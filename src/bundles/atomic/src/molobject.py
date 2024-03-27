@@ -40,12 +40,15 @@ c_function = _atomic_c_functions.c_function
 c_array_function = _atomic_c_functions.c_array_function
 
 def python_instances_of_class(inst_class, *, open_only=True):
+    import sys
+    print("class: ", inst_class, " open_only:", open_only, file=sys.__stderr__)
     f = c_function('python_instances_of_class', args = (ctypes.py_object,), ret = ctypes.py_object)
     instances = f(inst_class)
     if not open_only:
         return instances
     def open_structure(s):
         return s.session is not None and s.session.models.have_model(s)
+    print("filtering", file=sys.__stderr__)
     if issubclass(inst_class, (PseudobondGroupData, StructureSeq)):
         filt = lambda x: (not x.structure) or open_structure(x.structure)
     elif hasattr(inst_class, 'structure'):

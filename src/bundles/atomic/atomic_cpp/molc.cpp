@@ -5885,14 +5885,24 @@ extern "C" EXPORT PyObject *python_instances_of_class(PyObject* cls)
     try {
         obj_list = PyList_New(0);
         for (auto ptr_obj: pyinstance::_pyinstance_object_map) {
+std::cerr << "ptr: " << ptr_obj.first << " obj: " << ptr_obj.second << "\n";
             auto is_inst = PyObject_IsInstance(ptr_obj.second, cls);
             if (is_inst < 0)
+{
+std::cerr << "is_inst failes\n";
                 return nullptr;
+}
+std::cerr << "is_inst: " << is_inst << "\n";
             if (!is_inst)
                 continue;
             if (PyList_Append(obj_list, ptr_obj.second) < 0)
+{
+std::cerr << "list append failes\n";
                 return nullptr;
+}
+std::cerr << "list append okay\n";
         }
+std::cerr << "returning\n";
         return obj_list;
     } catch (...) {
         Py_XDECREF(obj_list);
