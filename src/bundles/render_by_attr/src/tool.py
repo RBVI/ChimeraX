@@ -271,7 +271,9 @@ class RenderByAttrTool(ToolInstance):
         # histogram
         self.select_histogram = sh = MarkedHistogram(min_label=True, max_label=True, color_button=False,
             show_marker_help=False, status_line=tw.status)
-        # TODO: histogram markers, histogram-related controls
+        # TODO: histogram-related controls
+        self.select_markers = sh.add_markers(coord_type='relative', min_marks=2, max_marks=2)
+        self.select_markers.extend([((0.333, 0.0), "green"), ((0.667, 0.0), "green")])
         self.select_widgets.addWidget(sh)
         # TODO: radio
 
