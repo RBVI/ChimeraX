@@ -78,6 +78,15 @@ class RenderAttrInfo(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
+    def select(self, session, attr_name, models, discrete, parameters):
+        """Select parts of the given models based on attr_name as requested.
+
+        'discrete' indicates whether 'parameters' is a discete sequence of values (which may include
+        None) to select.  If not, then TODO
+        """
+        pass
+
+    @abc.abstractmethod
     def values(self, attr_name, models):
         """Get the values of the given attribute in the given models.  Returns a two-tuple,
         the first component of which is a sequence of all the non-None values, and the second is

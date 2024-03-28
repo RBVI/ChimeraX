@@ -157,16 +157,20 @@ class _AtomicBundleAPI(BundleAPI):
             from chimerax.render_by_attr import RenderAttrInfo
             class Info(RenderAttrInfo):
                 _class_obj = class_obj
+
                 @property
                 def class_object(self):
                     return self._class_obj
+
                 def deworm_applicable(self, models):
                     for m in models:
                         if getattr(m, 'worm_ribbon', False):
                             return True
                     return False
+
                 def model_filter(self, model):
                     return isinstance(model, Structure)
+
                 def render(self, session, attr_name, models, method, params, sel_only):
                     prefix = { Atom: 'a', Residue: 'r', Structure: 'm' }[self.class_object]
                     from chimerax.core.commands import run, concise_model_spec, StringArg
@@ -222,6 +226,22 @@ class _AtomicBundleAPI(BundleAPI):
                             run(session, "cartoon byattr %s:%s %s%s" % (prefix, attr_name, spec, wp_string))
                         else:
                             run(session, "~worm %s" % spec)
+
+                def select(self, session, attr_name, models, discrete, params):
+                    prefix = { Atom: '@@', Residue: '::', Structure: '##' }[self.class_object]
+                    from chimerax.core.commands import run, concise_model_spec, StringArg
+                    spec = concise_model_spec(session, models)
+                    if spec and self.class_object == Structure:
+                        spec += ' & '
+                    if discrete:
+                        if None in params:
+                            params.remove(None)
+                            spec += f"{prefix}^{attr_name}"
+                        for attr_val in params:
+                            spec += f"{prefix}{attr_name}={StringArg.unparse(attr_val)}"
+                    else:
+                        raise NotImplementedError("range selections not yet implemented")
+                    run(session, "select " + spec)
 
                 def values(self, attr_name, models):
                     if self._class_obj == Atom:
