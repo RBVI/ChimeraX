@@ -34,7 +34,7 @@ class RenderByAttrTool(ToolInstance):
         self.tool_window = tw = MainToolWindow(self, statusbar=True)
         parent = tw.ui_area
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QDialogButtonBox, QPushButton, QMenu, QLabel
-        from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox, QLineEdit, QStackedWidget
+        from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox, QLineEdit, QStackedWidget, QListWidget
         from Qt.QtGui import QDoubleValidator
         from Qt.QtCore import Qt
         overall_layout = QVBoxLayout()
@@ -260,10 +260,21 @@ class RenderByAttrTool(ToolInstance):
         # value widgets
         self.select_widgets = QStackedWidget()
         self.select_widgets.addWidget(QLabel("Choose attribute to show values"))
-        #TODO: more value widgets
+        self.select_message_widget = QLabel()
+        self.select_widgets.addWidget(self.select_message_widget)
+        # list
         select_tab_layout.addWidget(self.select_widgets, alignment=Qt.AlignCenter)
+        self.sel_text_to_value = {}
+        self.select_list = QListWidget()
+        self.select_list.setSelectionMode(self.select_list.MultiSelection)
+        self.select_widgets.addWidget(self.select_list)
+        # histogram
+        self.select_histogram = sh = MarkedHistogram(min_label=True, max_label=True, color_button=False,
+            show_marker_help=False, status_line=tw.status)
+        # TODO: histogram markers, histogram-related controls
+        self.select_widgets.addWidget(sh)
+        # TODO: radio
 
-        select_tab_layout.addWidget(QLabel("This tab not yet fully implemented.\nUse 'select' command instead.", alignment=Qt.AlignCenter))
         self.mode_widget.addTab(select_tab, "Select")
 
         self._update_target_menu()
@@ -335,6 +346,65 @@ class RenderByAttrTool(ToolInstance):
         elif method == "worm":
             self._update_deworm_button()
 
+    def select(self, *, apply=False):
+        models = self.model_list.value
+        if not models:
+            raise UserError("No models chosen for selection")
+        attr_name = self.select_attr_menu_button.text()
+        if attr_name == self.NO_ATTR_TEXT:
+            raise UserError("No attribute chosen for selection")
+        cur_widget = self.select_widgets.currentWidget()
+        if cur_widget == self.select_message_widget:
+            raise UserError("Can't select using attribute '%s'" % attr_name)
+        if cur_widget == self.select_list:
+            discrete = True
+            texts = [item.text() for item in self.select_list.selectedItems()]
+            if not texts:
+                raise UserError("No values chosen for selection")
+            params = [self.sel_text_to_value.get(txt, txt) for txt in texts]
+        """
+        tabs = self.render_type_widget
+        tab_text = tabs.tabText(tabs.currentIndex()).lower()
+        method = tab_text[:-1] if tab_text[-1] == 's' else "radius"
+        markers = getattr(self, "render_" + method + "_markers")
+        vals = []
+        markers.coord_type = "absolute"
+        for marker in markers:
+            vals.append((marker.xy[0], getattr(marker, "rgba" if method == "color" else "radius")))
+        markers.coord_type = "relative"
+        if method == "color":
+            targets = set()
+            for target in ["atoms", "cartoons", "surfaces"]:
+                target_widget = getattr(self, "color_" + target)
+                if target_widget.isChecked() and target_widget.isEnabled():
+                    targets.add(target)
+            if not targets:
+                raise UserError("No coloring targets specified")
+            # histograms values + possibly None
+            if self.color_no_value.isChecked():
+                vals.append((None, [v/255.0 for v in self.no_value_color.color]))
+            if not vals:
+                raise UserError("No coloring values specified")
+            params = (targets, vals)
+        elif method == "radius":
+            if self.radii_affect_nv.widget.isEnabled() and self.radii_affect_nv.value:
+                vals.append((None, self.radii_nv_radius.value))
+            if not vals:
+                raise UserError("No radius values specified")
+            params = (self.radii_style_option.value, vals)
+        elif method == "worm":
+            if not vals:
+                raise UserError("No radius values specified")
+            if self.worm_nv_radius.widget.isEnabled():
+                vals.append((None, self.worm_nv_radius.value))
+            params = (True, vals)
+        else:
+            raise NotImplementedError("Don't know how to get parameters for '%s' method" % tab_text)
+        """
+        self._cur_attr_info().select(self.session, attr_name, models, discrete, params)
+        if not apply:
+            self.delete()
+
     def show_tab(self, tab_name):
         for index in range(self.mode_widget.count()):
             if self.mode_widget.tabText(index) == tab_name:
@@ -372,7 +442,6 @@ class RenderByAttrTool(ToolInstance):
         if self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render":
             self.render(apply=apply)
         else:
-            raise NotImplementedError("'Select' tab not fully implemented yet")
             self.select(apply=apply)
 
     def _filter_model(self, model):
@@ -386,7 +455,7 @@ class RenderByAttrTool(ToolInstance):
             if self.render_attr_menu_button.isEnabled():
                 attr_info = self.render_attr_menu_button.text()
                 if attr_info != self.NO_ATTR_TEXT:
-                    self._update_histogram(attr_info)
+                    self._update_render_histogram(attr_info)
             else:
                 self._new_render_attr()
             if self.select_attr_menu_button.isEnabled():
@@ -419,7 +488,7 @@ class RenderByAttrTool(ToolInstance):
             if attr_name_info is None:
                 self.render_histogram.data_source = "Choose attribute to show histogram"
             else:
-                self._update_histogram(attr_name)
+                self._update_render_histogram(attr_name)
             self._update_palettes()
         self.render_attr_menu_button.setEnabled(enabled)
 
@@ -440,10 +509,8 @@ class RenderByAttrTool(ToolInstance):
             self.select_attr_menu_button.setText(attr_name)
             if attr_name_info is None:
                 self.select_widgets.setCurrentIndex(0)
-            #TODO: may be showing widgets other that a histogram
-            #else:
-            #    self._update_histogram(attr_name)
-            #self._update_palettes()
+            else:
+                self._update_select_widget(attr_name)
         self.select_attr_menu_button.setEnabled(enabled)
 
     def _new_classes(self):
@@ -521,6 +588,43 @@ class RenderByAttrTool(ToolInstance):
         for attr_name in attr_names:
             menu.addAction(attr_name)
 
+    def _update_select_widget(self, attr_name):
+        attr_info = self._cur_attr_info()
+        from chimerax.core.attributes import MANAGER_NAME
+        attr_mgr = self.session.get_state_manager(MANAGER_NAME)
+        attr_type, can_be_none = attr_mgr.attribute_return_info(attr_info.class_object, attr_name)
+        values, any_None = attr_info.values(attr_name, self.model_list.value)
+        if len(values) == 0 and not any_None:
+            self.select_message_widget.setText("Attribute '%s' not found in any %s"
+                % (attr_name, self.target_menu_button.text()))
+            self.select_widgets.setCurrentWidget(self.select_message_widget)
+            return
+        if attr_type == str:
+            unique_values = set(values)
+            disp_values = sorted(list(unique_values))
+            self.sel_text_to_value.clear()
+            if ' ' in unique_values:
+                disp_values.remove(' ')
+                disp_values.append("(blank)")
+                self.sel_text_to_value["(blank)"] = ' '
+            if '' in unique_values:
+                disp_values.remove('')
+                disp_values.append("(empty)")
+                self.sel_text_to_value["(empty)"] = ''
+            if any_None:
+                disp_values.append("(no value)")
+                self.sel_text_to_value["(no value)"] = None
+            self.select_list.clear()
+            self.select_list.addItems(disp_values)
+            self.select_widgets.setCurrentWidget(self.select_list)
+        elif attr_type == bool:
+            #TODO
+            pass
+        else:
+            # histogram
+            self._update_histogram(self.select_histogram, attr_name)
+            self.select_widgets.setCurrentWidget(self.select_histogram)
+
     def _update_deworm_button(self):
         models = self.model_list.value
         if models and self.sel_restrict.isChecked():
@@ -532,27 +636,25 @@ class RenderByAttrTool(ToolInstance):
             enable = False
         self.deworm_button.setEnabled(enable)
 
-    def _update_histogram(self, attr_name):
+    def _update_histogram(self, histogram, attr_name):
         attr_info = self._cur_attr_info()
         values, any_None = attr_info.values(attr_name, self.model_list.value)
         if len(values) == 0:
-            self.render_histogram.data_source = "No '%s' values for histogram" % attr_name
+            histogram.data_source = "No '%s' values for histogram" % attr_name
         else:
             min_val, max_val = min(values), max(values)
             import numpy
             if min_val == max_val:
-                self.render_histogram.data_source = "All '%s' values are %g" % (attr_name, min_val)
+                histogram.data_source = "All '%s' values are %g" % (attr_name, min_val)
             elif attr_name in self._attr_names_of_type(int):
                 # just histogram the values directly
-                self.render_histogram.data_source = (min_val, max_val, numpy.histogram(
+                histogram.data_source = (min_val, max_val, numpy.histogram(
                     values, bins=max_val-min_val+1, range=(min_val, max_val), density=False)[0])
             else:
                 # number of bins based on histogram pixel width...
-                self.render_histogram.data_source = (min_val, max_val, lambda num_bins:
+                histogram.data_source = (min_val, max_val, lambda num_bins:
                     numpy.histogram(values, bins=num_bins, range=(min_val, max_val), density=False)[0])
-        self.radii_options.set_option_enabled(self.radii_affect_nv, not any_None)
-        self.radii_options.set_option_enabled(self.radii_nv_radius, not any_None)
-        self.worms_options.set_option_enabled(self.worm_nv_radius, not any_None)
+        return any_None
 
     def _update_palettes(self):
         if type(self.render_histogram.data_source) == str:
@@ -562,6 +664,12 @@ class RenderByAttrTool(ToolInstance):
         self.reverse_colors_button.setEnabled(len(rgbas) > 1)
         self.key_button.setEnabled(len(rgbas) > 1)
         self.palette_chooser.rgbas = rgbas
+
+    def _update_render_histogram(self, attr_name):
+        any_None = self._update_histogram(self.render_histogram, attr_name)
+        self.radii_options.set_option_enabled(self.radii_affect_nv, not any_None)
+        self.radii_options.set_option_enabled(self.radii_nv_radius, not any_None)
+        self.worms_options.set_option_enabled(self.worm_nv_radius, not any_None)
 
     def _update_target_menu(self):
         from .manager import get_manager
