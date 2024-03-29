@@ -106,10 +106,6 @@ class _mmCIFioAPI(BundleAPI):
                 class Info(FetcherInfo):
                     def fetch(self, session, ident, format_name, ignore_cache,
                               fetcher=fetcher, **kw):
-                        import inspect
-                        sig = inspect.signature(fetcher)
-                        if 'format_name' in sig.parameters:
-                            kw['format_name'] = format_name
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
 
                     @property
