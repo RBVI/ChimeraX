@@ -35,6 +35,7 @@ class RenderByAttrTool(ToolInstance):
         parent = tw.ui_area
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QDialogButtonBox, QPushButton, QMenu, QLabel
         from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox, QLineEdit, QStackedWidget, QListWidget
+        from Qt.QtWidgets import QButtonGroup, QGridLayout, QRadioButton
         from Qt.QtGui import QDoubleValidator
         from Qt.QtCore import Qt
         overall_layout = QVBoxLayout()
@@ -269,12 +270,32 @@ class RenderByAttrTool(ToolInstance):
         self.select_list.setSelectionMode(self.select_list.MultiSelection)
         self.select_widgets.addWidget(self.select_list)
         # histogram
+        self.select_histogram_area = QWidget()
+        sha_layout = QVBoxLayout()
+        self.select_histogram_area.setLayout(sha_layout)
         self.select_histogram = sh = MarkedHistogram(min_label=True, max_label=True, color_button=False,
             show_marker_help=False, status_line=tw.status)
-        # TODO: histogram-related controls
         self.select_markers = sh.add_markers(coord_type='relative', min_marks=2, max_marks=2)
         self.select_markers.extend([((0.333, 0.0), "green"), ((0.667, 0.0), "green")])
-        self.select_widgets.addWidget(sh)
+        sha_layout.addWidget(sh, stretch=1)
+        sh_button_area = QWidget()
+        sh_button_layout = QGridLayout()
+        sh_button_layout.setContentsMargins(0,0,0,0)
+        sh_button_area.setLayout(sh_button_layout)
+        sha_layout.addWidget(sh_button_area, alignment=Qt.AlignHCenter|Qt.AlignTop)
+        sh_button_layout.addWidget(QLabel("Select:"), 0, 0, 3, 1, alignment=Qt.AlignRight)
+        self.select_histogram_buttons = shb = QButtonGroup()
+        between_button = QRadioButton("between markers (inclusive)")
+        between_button.setChecked(True)
+        sh_button_layout.addWidget(between_button, 0, 1, alignment=Qt.AlignLeft)
+        shb.addButton(between_button, id=0)
+        outside_button = QRadioButton("outside markers")
+        sh_button_layout.addWidget(outside_button, 1, 1, alignment=Qt.AlignLeft)
+        shb.addButton(outside_button, id=1)
+        no_val_button = QRadioButton("no value")
+        sh_button_layout.addWidget(no_val_button, 2, 1, alignment=Qt.AlignLeft)
+        shb.addButton(no_val_button, id=2)
+        self.select_widgets.addWidget(self.select_histogram_area)
         # TODO: radio
 
         self.mode_widget.addTab(select_tab, "Select")
@@ -625,7 +646,8 @@ class RenderByAttrTool(ToolInstance):
         else:
             # histogram
             self._update_histogram(self.select_histogram, attr_name)
-            self.select_widgets.setCurrentWidget(self.select_histogram)
+            has_None = self.select_widgets.setCurrentWidget(self.select_histogram_area)
+            self.select_histogram_buttons.button(2).setHidden(not has_None)
 
     def _update_deworm_button(self):
         models = self.model_list.value
