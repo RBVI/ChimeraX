@@ -117,6 +117,20 @@ else:
 
 
 from .metadata_templates import metadata_preamble, pure_wheel_platforms
+from .classifiers import (
+    Tool,
+    Command,
+    Selector,
+    Manager,
+    Provider,
+    DataFormat,
+    FormatFetcher,
+    FormatReader,
+    FormatSaver,
+    Toolbar,
+    Preset,
+    Initialization,
+)
 
 # Python version was 3.7 in ChimeraX 1.0
 CHIMERAX1_0_PYTHON_VERSION = "3.7"
@@ -126,10 +140,6 @@ _platforms = {
     "darwin": ["mac", "macos", "darwin"],
     "win32": ["win", "windows", "win32"],
 }
-
-
-class MissingInfoError(Exception):
-    pass
 
 
 class _SpecifierWarning(UserWarning):
@@ -260,6 +270,7 @@ class Bundle:
         self.data_formats = []
         self.format_readers = []
         self.format_savers = []
+        self.toolbars = []
         self.file_fetchers = []
         self.presets = []
         self.managers = []
@@ -324,6 +335,18 @@ class Bundle:
                     else:
                         self.format_savers.append(FormatSaver(format_name, saver))
                 self.data_formats.append(DataFormat(format_name, attrs))
+        if "toolbar" in chimerax_data:
+            for section, attrs in chimerax_data["toolbar"].items():
+                buttons = attrs.pop("button", [])
+                name = attrs.pop("name", None)
+                if not name:
+                    raise ValueError("A toolbar section must have a name")
+                self.toolbars.append(Toolbar(section, name, attrs))
+                for button in buttons:
+                    name = button.pop("name", None)
+                    if not name:
+                        raise ValueError("A toolbar button must have a name")
+                    self.toolbars.append(Toolbar(section, name, button))
         if "preset" in chimerax_data:
             for preset_name, attrs in chimerax_data["preset"].items():
                 self.presets.append(Preset(preset_name, attrs))
@@ -582,6 +605,7 @@ class Bundle:
                 self.format_savers,
                 self.file_fetchers,
                 self.managers,
+                self.toolbars,
                 self.presets,
                 self.initializations,
             ]
@@ -774,213 +798,6 @@ class Bundle:
                 custom_init,
             ]
         )
-
-
-class ChimeraXClassifier:
-    classifier_separator = " :: "
-
-    def __init__(self, name, attrs):
-        self.name = name
-        self.attrs = attrs
-
-    @property
-    def categories(self):
-        if "category" in self.attrs:
-            return self.attrs["category"]
-        if "categories" in self.attrs:
-            return self.attrs["categories"]
-        raise MissingInfoError(f"No synopsis found for {self.name}")
-
-    @property
-    def description(self):
-        if "synopsis" in self.attrs:
-            return self.attrs["synopsis"]
-        if "description" in self.attrs:
-            return self.attrs["description"]
-        raise MissingInfoError(f"No synopsis found for {self.name}")
-
-    def misc_attrs_to_list(self):
-        attrs = []
-        for k, v in self.attrs.items():
-            formatted_field = k.replace("-", "_")
-            if type(v) is list:
-                if not v:
-                    continue
-                formatted_val = ",".join([quote_if_necessary(str(val)) for val in v])
-            elif type(v) is bool:
-                formatted_val = quote_if_necessary(str(v).lower())
-            else:
-                formatted_val = quote_if_necessary(str(v))
-            attrs.append("%s:%s" % (formatted_field, formatted_val))
-        return attrs
-
-
-class Tool(ChimeraXClassifier):
-    def __init__(self, tool_name: str, attrs: dict[str:str]):
-        super().__init__(tool_name, attrs)
-
-    def __str__(self):
-        if type(self.categories) == str:
-            return f"ChimeraX :: Tool :: {self.name} :: {self.categories} :: {self.description}"
-        else:
-            return f'ChimeraX :: Tool :: {self.name} :: {", ".join(self.categories)} :: {self.description}'
-
-
-class Command(ChimeraXClassifier):
-    def __init__(self, command_name: str, attrs: dict[str:str]):
-        super().__init__(command_name, attrs)
-
-    def __str__(self):
-        if type(self.categories) == str:
-            return f"ChimeraX :: Command :: {self.name} :: {self.categories} :: {self.description}"
-        else:
-            return f'ChimeraX :: Command :: {self.name} :: {", ".join(self.categories)} :: {self.description}'
-
-
-class Selector(ChimeraXClassifier):
-    def __init__(self, selector_name: str, attrs: dict[str:str]):
-        super().__init__(selector_name, attrs)
-
-    def __str__(self):
-        return f"ChimeraX :: Selector :: {self.name} :: {self.description}"
-
-
-class Manager(ChimeraXClassifier):
-    default_attrs = {"gui-only": False, "autostart": False}
-
-    def __init__(self, name, attrs):
-        if not attrs:
-            attrs = self.default_attrs
-        else:
-            for key, val in self.default_attrs.items():
-                if key not in attrs:
-                    attrs[key] = val
-        super().__init__(name, attrs)
-
-    def __str__(self):
-        attrs = self.misc_attrs_to_list()
-        return f"ChimeraX :: Manager :: {self.name} :: {self.classifier_separator.join(attrs)}"
-
-
-class Provider(ChimeraXClassifier):
-    def __init__(self, manager, name, attrs: dict[str:str]):
-        self.manager = manager
-        super().__init__(name, attrs)
-
-    def __str__(self):
-        attrs = self.misc_attrs_to_list()
-        return f"ChimeraX :: Provider :: {self.name} :: {self.manager} :: {self.classifier_separator.join(attrs)}"
-
-
-class DataFormat(Provider):
-    default_attrs = {
-        "category": "General",
-        "encoding": "utf-8",
-        "nicknames": None,
-        "reference-url": None,
-        "suffixes": None,
-        "synopsis": None,
-        "allow-directory": False,
-        "insecure": False,
-        "mime-types": [],
-    }
-
-    def __init__(self, name, attrs):
-        if not attrs:
-            attrs = self.default_attrs
-        else:
-            for key, val in self.default_attrs.items():
-                if key not in attrs:
-                    attrs[key] = val
-        super().__init__("data formats", name, attrs)
-
-
-class FormatReader(Provider):
-    default_attrs = {
-        "batch": False,
-        "check-path": True,
-        "is-default": True,
-        "pregrouped-structures": False,
-        "type": "open",
-        "want-path": False,
-    }
-
-    def __init__(self, reader_name, attrs):
-        if not attrs:
-            attrs = self.default_attrs
-        else:
-            for key, val in self.default_attrs.items():
-                if key not in attrs:
-                    attrs[key] = val
-        super().__init__("open command", reader_name, attrs)
-
-
-class FormatSaver(Provider):
-    default_attrs = {"compression-okay": True, "is-default": True}
-
-    def __init__(self, saver_name, attrs):
-        if not attrs:
-            attrs = self.default_attrs
-        else:
-            for key, val in self.default_attrs.items():
-                if key not in attrs:
-                    attrs[key] = val
-        super().__init__("save command", saver_name, attrs)
-
-
-class FormatFetcher(Provider):
-    default_attrs = {
-        "batch": False,
-        "check-path": False,
-        "is-default": True,
-        "pregrouped-structures": False,
-        "type": "fetch",
-        "want-path": False,
-    }
-
-    def __init__(self, name, attrs):
-        if not attrs:
-            attrs = self.default_attrs
-        else:
-            name, attrs["format_name"] = attrs.pop("name"), name
-            for key, val in self.default_attrs.items():
-                if key not in attrs:
-                    attrs[key] = val
-        super().__init__("open command", name, attrs)
-
-
-class Preset(Provider):
-    default_attrs = {"category": "General"}
-
-    def __init__(self, name, attrs):
-        if not attrs:
-            attrs = self.default_attrs
-        else:
-            for key, val in self.default_attrs.items():
-                if key not in attrs:
-                    attrs[key] = val
-        super().__init__("presets", name, attrs)
-
-
-class Initialization:
-    def __init__(self, type_, bundles):
-        self.type_ = type_
-        self.bundles = bundles
-
-    def __str__(self):
-        separator = " :: "
-        return (
-            f"ChimeraX :: InitAfter :: {self.type_} :: {separator.join(self.bundles)}"
-        )
-
-
-# TODO: Standardize
-# class DocDir:
-#    def __init__(self, path):
-#        self.path = path
-#
-#    def __str__(self):
-#        return f'ChimeraX :: DocDir :: {self.path}'
 
 
 class _CompiledCode:
