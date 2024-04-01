@@ -10,7 +10,7 @@ appdirs==1.4.4
 beautifulsoup4==4.12.3
 build==1.1.1
 colorama==0.4.6
-Cython==3.0.9
+Cython==3.0.9 ; platform_machine != 'arm64'
 filelock==3.13.1
 # grako==3.16.5 # See the Makefile; need patched Grako for 3.11
 html2text==2024.2.26
