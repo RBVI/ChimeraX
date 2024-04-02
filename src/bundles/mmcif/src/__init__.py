@@ -109,8 +109,10 @@ class _mmCIFioAPI(BundleAPI):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
 
                     @property
-                    def fetch_args(self):
+                    def fetch_args(self, name=name):
                         from chimerax.core.commands import BoolArg, FloatArg
+                        if name == "redo":
+                            return {}
                         return {
                             'over_sampling': FloatArg,
                             'structure_factors': BoolArg,
