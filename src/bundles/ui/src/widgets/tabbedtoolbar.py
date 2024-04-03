@@ -21,12 +21,17 @@ TODO: documnentation!
 
 from Qt.QtCore import Qt
 from Qt.QtWidgets import (
-    QWidget, QTabWidget, QToolBar, QWidgetAction,
-    QGridLayout, QLabel, QToolButton
+    QWidget,
+    QTabWidget,
+    QToolBar,
+    QWidgetAction,
+    QGridLayout,
+    QLabel,
+    QToolButton,
 )
 from Qt.QtGui import QPainter, QIcon, QColor, QPixmap, QAction
 
-_debug = False   # DEBUG
+_debug = False  # DEBUG
 
 
 def split_title(title):
@@ -40,19 +45,25 @@ def split_title(title):
     while i < len(words) - 1:
         if len(new_title) >= mid_len:
             break
-        new_title += ' ' + words[i]
+        new_title += " " + words[i]
         i += 1
-    new_title += '\n' + words[i]
+    new_title += "\n" + words[i]
     for i in range(i + 1, len(words)):
-        new_title += ' ' + words[i]
+        new_title += " " + words[i]
     return new_title
 
 
 class _ButtonInfo:
 
     __slots__ = (
-        "title", "callback", "icon", "description", "group", "vr_mode", "highlight_icon",
-        "enabled"
+        "title",
+        "callback",
+        "icon",
+        "description",
+        "group",
+        "vr_mode",
+        "highlight_icon",
+        "enabled",
     )
 
     def __init__(self, title, callback, icon, description, group, vr_mode, enabled):
@@ -74,11 +85,20 @@ class _Section(QWidgetAction):
     # 0 to n - 1 being the buttons and row n being the section title.
     # If not compact, then row 0 is the button and row 1 is the section title.
 
-    def __init__(self, parent, section_title, show_section_titles, show_button_titles, highlight_color):
+    def __init__(
+        self,
+        parent,
+        section_title,
+        show_section_titles,
+        show_button_titles,
+        highlight_color,
+    ):
         super().__init__(parent)
         self._buttons = []
-        self._groups = {}   # { toolbar-widget: { group-name: qtoolbutton } }
-        self._actions = {}  # keep references to actions in menus { button-title: [action] }
+        self._groups = {}  # { toolbar-widget: { group-name: qtoolbutton } }
+        self._actions = (
+            {}
+        )  # keep references to actions in menus { button-title: [action] }
         self.section_title = section_title
         self.show_section_titles = show_section_titles
         self.show_button_titles = show_button_titles
@@ -93,20 +113,22 @@ class _Section(QWidgetAction):
         if group and self.compact:
             raise ValueError("Can not use grouped buttons in a compact section")
         index = len(self._buttons)
-        button_info = _ButtonInfo(title, callback, icon, description, group, vr_mode, enabled)
+        button_info = _ButtonInfo(
+            title, callback, icon, description, group, vr_mode, enabled
+        )
         self._buttons.append(button_info)
         existing_widgets = self.createdWidgets()
         for w in existing_widgets:
             self._add_button(w, index, button_info)
 
     def _add_button(self, parent, index, button_info):
-        if hasattr(parent, '_title'):
+        if hasattr(parent, "_title"):
             self._adjust_title(parent)
 
         # split title into two lines if long
         orig_title = button_info.title
         title = orig_title
-        if '\n' not in title and len(title) > 6:
+        if "\n" not in title and len(title) > 6:
             title = split_title(title)
 
         if button_info.highlight_icon is None:
@@ -119,7 +141,7 @@ class _Section(QWidgetAction):
         else:
             buttons = self._groups.setdefault(parent, {})
             group_first = button_info.group not in buttons  # first button in drop down
-            group_follow = not group_first                  # subsequent buttons
+            group_follow = not group_first  # subsequent buttons
         if not group_follow:
             b = QToolButton(parent)
             if button_info.vr_mode is not None:
@@ -155,7 +177,9 @@ class _Section(QWidgetAction):
                 b.setDefaultAction(action)
             else:
                 b.setPopupMode(b.ToolButtonPopupMode.MenuButtonPopup)
-                b.triggered.connect(lambda action, b=b: self._update_button_action(b, action))
+                b.triggered.connect(
+                    lambda action, b=b: self._update_button_action(b, action)
+                )
                 self._groups[parent][button_info.group] = b
                 b.addAction(action)
                 self._update_button_action(b, action)
@@ -181,15 +205,15 @@ class _Section(QWidgetAction):
         if _debug:
             _debug = False
             policy = b.sizePolicy()
-            print('expanding:', int(policy.expandingDirections()))
-            print('horizontal policy:', policy.horizontalPolicy())
-            print('horizontal stretch:', policy.horizontalStretch())
-            print('vertical policy:', policy.verticalPolicy())
-            print('vertical stretch:', policy.verticalStretch())
+            print("expanding:", int(policy.expandingDirections()))
+            print("horizontal policy:", policy.horizontalPolicy())
+            print("horizontal stretch:", policy.horizontalStretch())
+            print("vertical policy:", policy.verticalPolicy())
+            print("vertical stretch:", policy.verticalStretch())
 
     def _update_button_action(self, button, action):
         button.setDefaultAction(action)
-        lines = button.text().split('\n')
+        lines = button.text().split("\n")
         fm = button.fontMetrics()
         width = max(fm.horizontalAdvance(text) for text in lines)
         # 20 is width of arrow on right side of button
@@ -200,11 +224,18 @@ class _Section(QWidgetAction):
         size = len(self._buttons)
         if self.compact:
             span = (size + self.compact_height - 1) // self.compact_height
-            w._layout.addWidget(w._title, self.compact_height, 0, 1, span,
-                                Qt.AlignHCenter | Qt.AlignBottom)
+            w._layout.addWidget(
+                w._title,
+                self.compact_height,
+                0,
+                1,
+                span,
+                Qt.AlignHCenter | Qt.AlignBottom,
+            )
         else:
-            w._layout.addWidget(w._title, 1, 0, 1, size,
-                                Qt.AlignHCenter | Qt.AlignBottom)
+            w._layout.addWidget(
+                w._title, 1, 0, 1, size, Qt.AlignHCenter | Qt.AlignBottom
+            )
 
     def createWidget(self, parent):
         w = QWidget(parent)
@@ -238,7 +269,7 @@ class _Section(QWidgetAction):
         # TODO: destroy group menus
         self._groups.clear()
         for w in self.createdWidgets():
-            if hasattr(w, '_title'):
+            if hasattr(w, "_title"):
                 del w._title
             self._clear_layout(w._layout)
             self._layout_buttons(w)
@@ -250,7 +281,9 @@ class _Section(QWidgetAction):
             return
         for button_info in self._buttons:
             if button_info.group:
-                raise ValueError("Can not make a section compact that has grouped buttons")
+                raise ValueError(
+                    "Can not make a section compact that has grouped buttons"
+                )
         self.compact = on_off
         self._redo_layout()
 
@@ -291,11 +324,13 @@ class _Section(QWidgetAction):
             sizes = icon.availableSizes()
             sizes.sort(key=lambda s: s.width())
             pm = icon.pixmap(icon.actualSize(sizes[-1]))
-#            with QPainter(pm) as p:
+            #            with QPainter(pm) as p:
             p = None
             try:
                 p = QPainter(pm)
-                p.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationOver)
+                p.setCompositionMode(
+                    QPainter.CompositionMode.CompositionMode_DestinationOver
+                )
                 if 1:
                     # draw filled
                     p.fillRect(pm.rect(), self.highlight_color)
@@ -392,15 +427,19 @@ class TabbedToolbar(QTabWidget):
         if tab is None:
             if not create:
                 return None
-            tab = tab_info['__toolbar__'] = QToolBar(self)
+            tab = tab_info["__toolbar__"] = QToolBar(self)
             self.addTab(tab, tab_title)
         section = tab_info.get(section_title, None)
         if section is None:
             if not create:
                 return None
             section = tab_info[section_title] = _Section(
-                section, section_title, self.show_section_titles, self.show_button_titles,
-                self._highlight_color)
+                section,
+                section_title,
+                self.show_section_titles,
+                self.show_button_titles,
+                self._highlight_color,
+            )
             tab.addAction(section)
             tab.addSeparator()
         return section
@@ -409,11 +448,25 @@ class TabbedToolbar(QTabWidget):
         section = self._get_section(tab_title, section_title)
         section.set_compact(on_off)
 
-    def add_button(self, tab_title, section_title, button_title, callback, icon=None, description=None, *, group=None, vr_mode=None, enabled=True):
+    def add_button(
+        self,
+        tab_title,
+        section_title,
+        button_title,
+        callback,
+        icon=None,
+        description=None,
+        *,
+        group=None,
+        vr_mode=None,
+        enabled=True,
+    ):
         if isinstance(enabled, str):
-            enabled = enabled not in ('False', 'false', '0', 'off')
+            enabled = enabled not in ("False", "false", "0", "off")
         section = self._get_section(tab_title, section_title)
-        section.add_button(button_title, callback, icon, description, group, vr_mode, enabled)
+        section.add_button(
+            button_title, callback, icon, description, group, vr_mode, enabled
+        )
 
     def show_tab(self, tab_title):
         """Make given tab the current tab"""
@@ -476,14 +529,18 @@ class TabbedToolbar(QTabWidget):
         if not on_off:
             self._recompute_tab_sizes()
 
-    def add_button_highlight(self, tab_title, section_title, button_title, *, redo=True):
+    def add_button_highlight(
+        self, tab_title, section_title, button_title, *, redo=True
+    ):
         section = self._get_section(tab_title, section_title, create=False)
         if section is None:
             return
         self._hide_toolbar_rollover(tab_title)  # Work around ChimeraX bug #3152
         section.add_button_highlight(button_title, redo=redo)
 
-    def remove_button_highlight(self, tab_title, section_title, button_title, *, redo=True):
+    def remove_button_highlight(
+        self, tab_title, section_title, button_title, *, redo=True
+    ):
         section = self._get_section(tab_title, section_title, create=False)
         if section is None:
             return
@@ -493,7 +550,9 @@ class TabbedToolbar(QTabWidget):
     def set_enabled(self, enabled, tab_title, section_title, button_title):
         section = self._get_section(tab_title, section_title, create=False)
         if section is None:
-            raise ValueError(f"Didn't find section '{section_title}' in tab '{tab_title}'")
+            raise ValueError(
+                f"Didn't find section '{section_title}' in tab '{tab_title}'"
+            )
         section.set_enabled(enabled, button_title)
 
     def _hide_toolbar_rollover(self, tab_title):
@@ -524,12 +583,16 @@ class TabbedToolbar(QTabWidget):
     def show_group_button(self, tab_title, section_title, button_title):
         section = self._get_section(tab_title, section_title, create=False)
         if section is None:
-            raise ValueError(f"Didn't find section '{section_title}' in tab '{tab_title}'")
+            raise ValueError(
+                f"Didn't find section '{section_title}' in tab '{tab_title}'"
+            )
         section.show_group_button(button_title)
+
 
 if __name__ == "__main__":
     import sys
     from Qt.QtWidgets import QApplication, QVBoxLayout, QTextEdit
+
     app = QApplication(sys.argv)
     app.setApplicationName("Tabbed Toolbar Demo")
     window = QWidget()
@@ -539,26 +602,56 @@ if __name__ == "__main__":
     ttb = TabbedToolbar()
     layout.addWidget(ttb)
     ttb.add_button(
-        'Graphics', 'Background', 'White', lambda: print('white'),
-        None, 'Set white background')
+        "Graphics",
+        "Background",
+        "White",
+        lambda: print("white"),
+        None,
+        "Set white background",
+    )
     ttb.add_button(
-        'Graphics', 'Background', 'Black', lambda: print('black'),
-        None, 'Set black background')
+        "Graphics",
+        "Background",
+        "Black",
+        lambda: print("black"),
+        None,
+        "Set black background",
+    )
     ttb.add_button(
-        'Graphics', 'Lighting', 'Soft', lambda: print('soft'),
-        None, 'Use ambient lighting')
+        "Graphics",
+        "Lighting",
+        "Soft",
+        lambda: print("soft"),
+        None,
+        "Use ambient lighting",
+    )
     ttb.add_button(
-        'Graphics', 'Lighting', 'Full', lambda: print('full'),
-        None, 'Use full lighting')
+        "Graphics", "Lighting", "Full", lambda: print("full"), None, "Use full lighting"
+    )
     ttb.add_button(
-        'Molecular Display', 'Styles', 'Sticks', lambda: print('sticks'),
-        None, 'Display atoms in stick style')
+        "Molecular Display",
+        "Styles",
+        "Sticks",
+        lambda: print("sticks"),
+        None,
+        "Display atoms in stick style",
+    )
     ttb.add_button(
-        'Molecular Display', 'Styles', 'Spheres', lambda: print('spheres'),
-        None, 'Display atoms in sphere style')
+        "Molecular Display",
+        "Styles",
+        "Spheres",
+        lambda: print("spheres"),
+        None,
+        "Display atoms in sphere style",
+    )
     ttb.add_button(
-        'Molecular Display', 'Styles', 'Ball and stick', lambda: print('bs'),
-        None, 'Display atoms in ball and stick style')
+        "Molecular Display",
+        "Styles",
+        "Ball and stick",
+        lambda: print("bs"),
+        None,
+        "Display atoms in ball and stick style",
+    )
     layout.addWidget(QTextEdit())
     window.setLayout(layout)
     window.show()
