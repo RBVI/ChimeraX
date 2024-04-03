@@ -33,11 +33,8 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  interfaces items_inspection io label iupac \
 	  list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
-<<<<<<< HEAD
 	  markers mask match_align match_maker md_crds \
-=======
 	  markers mask match_maker mcopy md_crds \
->>>>>>> c183ebf2582c01b4b427aec56029df0ca90461d3
 	  medical_toolbar meeting mlp model_series \
 	  mmcif mmtf model_panel modeller mol2 mole morph mouse_modes movie nmrstar \
 	  neuron nifti nrrd nucleotides open_command pdb pdb_bio pdb_lib pdb_matrices \
