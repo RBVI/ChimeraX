@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.state import State, StateManager
@@ -33,14 +44,16 @@ def python_instances_of_class(inst_class, *, open_only=True):
     instances = f(inst_class)
     if not open_only:
         return instances
-    if issubclass(inst_class, PseudobondGroupData):
-        filt = lambda x: (not x.structure) or x.structure.id
+    def open_structure(s):
+        return s.session is not None and s.session.models.have_model(s)
+    if issubclass(inst_class, (PseudobondGroupData, StructureSeq)):
+        filt = lambda x: (not x.structure) or open_structure(x.structure)
     elif hasattr(inst_class, 'structure'):
-        filt = lambda x: x.structure.id
+        filt = lambda x: open_structure(x.structure)
     elif issubclass(inst_class, StructureData):
-        filt = lambda x: x.id
+        filt = lambda x: open_structure(x)
     elif issubclass(inst_class, Pseudobond):
-        filt = lambda x: (not x.group.structure) or x.group.structure.id
+        filt = lambda x: (not x.group.structure) or open_structure(x.group.structure)
     elif issubclass(inst_class, (PseudobondManager, Sequence)):
         filt = lambda x: True
     else:
@@ -612,6 +625,7 @@ class Residue(CyResidue, State):
         ('chi1', (float, None)), ('chi2', (float, None)), ('chi3', (float, None)), ('chi4', (float, None)),
         ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('num_atoms', (int,)),
         ('number', (int,)), ('omega', (float, None)), ('phi', (float, None)), ('psi', (float, None)),
+        ('worm_radius', (float,)),
     ]
 
     # possibly long-term hack for interoperation with ctypes;
@@ -914,6 +928,14 @@ class Sequence(State):
     def __hash__(self):
         return id(self)
 
+    @staticmethod
+    def is_gap_character(c):
+        if len(c) != 1:
+            raise ValueError("Argument to is_gap_character must be single-character string, not %s"
+                % repr(c))
+        return c_function('sequence_is_gap_character', args = (ctypes.c_char_p,),
+            ret = ctypes.c_bool)(c.encode('utf-8'))
+
     def __len__(self):
         """Supported API. Sequence length"""
         f = c_function('sequence_len', args = (ctypes.c_void_p,), ret = ctypes.c_size_t)
@@ -1037,7 +1059,7 @@ class StructureSeq(Sequence):
                 args = (ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int), ret = ctypes.c_void_p)(
                     chain_id.encode('utf-8'), structure._c_pointer, polymer_type)
         super().__init__(sseq_pointer)
-        self.triggers.add_trigger('delete')
+        self.triggers.add_trigger('downgrade')
         self.triggers.add_trigger('characters changed')
         self.triggers.add_trigger('residues changed')
         from weakref import ref
@@ -1051,6 +1073,9 @@ class StructureSeq(Sequence):
     def __del__(self):
         if not self.chimerax_exiting:
             self.changes_handler.remove()
+            # Now that "demoted" chains don't change their class to Sequence, have to call
+            # Sequence's __del__ to get the entry removed from the Python object lookup map
+            super().__del__()
 
     def __lt__(self, other):
         # for sorting (objects of the same type)
@@ -1060,7 +1085,12 @@ class StructureSeq(Sequence):
             return self.chain_id < other.chain_id
         if self is other: # optimization to avoid comparing residue lists if possible
             return False
-        return self.residues < other.residues
+        # only happens for different chains in the same structure but with the same ID
+        s_exist = self.existing_residues
+        if not s_exist: return True
+        o_exist = other.existing_residues
+        if not o_exist: return False
+        return s_exist[0] < o_exist[0]
 
     chain_id = c_property('sseq_chain_id', string)
     '''Chain identifier. Read only string.'''
@@ -1073,6 +1103,9 @@ class StructureSeq(Sequence):
     '''Supported API. :class:`.Residues` collection containing the residues of this sequence with existing structure, in order. Read only.'''
     from_seqres = c_property('sseq_from_seqres', npy_bool, doc = "Was the full sequence "
         " determined from SEQRES (or equivalent) records in the input file")
+    '''"from_seqres" deprecated; use "full_sequence_known" instead.'''
+    full_sequence_known = c_property('sseq_from_seqres', npy_bool, doc = "Is the full polymer sequence "
+        " known (even if the structure is incomplete).")
     num_existing_residues = c_property('sseq_num_existing_residues', size_t, read_only = True)
     '''Supported API. Number of residues in this sequence with existing structure. Read only.'''
     num_residues = c_property('sseq_num_residues', size_t, read_only = True)
@@ -1218,6 +1251,15 @@ class StructureSeq(Sequence):
         return data
 
     def _changes_cb(self, trig_name, changes):
+        if self.structure == None:
+            # doing this directly from C++ layer causes crashes in garbage collection [#14506]
+            # so do it in 'changes' callback instead
+            numbering_start = self.numbering_start
+            self._fire_trigger('downgrade', Sequence)
+            self.changes_handler.remove()
+            self.numbering_start = numbering_start
+            return
+
         if "name changed" in changes.residue_reasons():
             updated_chars = []
             some_changed = False
@@ -1231,20 +1273,11 @@ class StructureSeq(Sequence):
                     updated_chars.append(cur_char)
             if some_changed:
                 self.bulk_set(self.residues, ''.join(updated_chars), fire_triggers=False)
-                self.from_seqres = False
                 self._fire_trigger('characters changed', self)
-
-    def _cpp_seq_demotion(self):
-        # called from C++ layer when this should be demoted to Sequence
-        numbering_start = self.numbering_start
-        self._fire_trigger('delete', self)
-        self.changes_handler.remove()
-        self.__class__ = Sequence
-        self.numbering_start = numbering_start
 
     def _cpp_structure_seq_demotion(self):
         # called from C++ layer when a Chain should be demoted to a StructureSeq
-        self.__class__ = StructureSeq
+        self._fire_trigger('downgrade', StructureSeq)
 
     def _cpp_modified(self):
         # called from C++ layer when the residue list changes
@@ -1332,7 +1365,7 @@ class Chain(StructureSeq):
     @property
     def identity(self):
         """'Fake' attribute to allow for //identity="/A" tests"""
-        class IdentityTester:
+        class IdentityTester():
             def __init__(self, chain):
                 self.chain = chain
 
@@ -1342,9 +1375,9 @@ class Chain(StructureSeq):
             def __ne__(self, chain_spec):
                 return self.chain.characters not in self._get_test_set(chain_spec)
 
-            def lower(self, *args, **kw):
-                # needed to fool attribute-testing code
-                return self
+            def __str__(self):
+                # raise TypeError so that the attribute-testing code can catch it and do the right thing
+                raise TypeError("fake attribute")
 
             def _get_test_set(self, chain_spec):
                 from chimerax.atomic import UniqueChainsArg
@@ -1498,8 +1531,10 @@ class StructureData:
     display = c_property('structure_display', npy_bool, doc =
         "Don't call this directly.  Use Model's 'display' attribute instead.  Only exposed so that "
         "Model's 'display' attribute can call it so that 'display changed' shows up in triggers.")
+    idatm_failed = c_property('structure_idatm_failed', npy_bool, read_only = True,
+        doc = "Supported API. Whether the IDATM computation failed for this structure. Boolean")
     idatm_valid = c_property('structure_idatm_valid', npy_bool,
-        doc = "Supported API. Whether atoms have vaid IDATM types set. Boolean")
+        doc = "Supported API. Whether atoms have valid IDATM types set. Boolean")
     lower_case_chains = c_property('structure_lower_case_chains', npy_bool,
         doc = "Supported API. Structure has lower case chain ids. Boolean")
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True,
@@ -1576,10 +1611,11 @@ class StructureData:
     '''Ribbon mode showing helix as ribbon wrapped around tube.'''
     ring_display_count = c_property('structure_ring_display_count', int32, read_only = True,
         doc = "Return number of residues with ring display set. Integer.")
-
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
         "Has secondary structure been assigned, either by data in original structure file "
         "or by some algorithm (e.g. dssp command)")
+    worm_ribbon = c_property('structure_worm_ribbon', npy_bool,
+        doc = "Show ribbon as a 'worm'. Boolean.")
 
     from contextlib import contextmanager
     @contextmanager
@@ -1669,6 +1705,9 @@ class StructureData:
         '''Add coordinate sets.  If 'replace' is True, clear out existing coordinate sets first'''
         if len(xyzs.shape) != 3:
             raise ValueError('add_coordsets(): array must be (frames)x(atoms)x3-dimensional')
+        if not xyzs.flags.c_contiguous:
+            # molc.cpp code doesn't know about strides...
+            xyzs = xyzs.copy()
         cs_size = self.coordset_size
         if cs_size > 0:
             dim_check = cs_size

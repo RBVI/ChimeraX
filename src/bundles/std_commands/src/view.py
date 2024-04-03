@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import Annotation, AnnotationError
@@ -16,7 +27,7 @@ from chimerax.core.errors import UserError
 
 
 def view(session, objects=None, frames=None, clip=True, cofr=True,
-         orient=False, zalign=None, pad=0.05, need_undo=True):
+         orient=False, zalign=None, in_front_of=None, pad=0.05, need_undo=True):
     '''
     Move camera so the displayed models fill the graphics window.
     Also camera and model positions can be saved and restored.
@@ -41,6 +52,10 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
       axis with the first atom in front.  Exactly two atoms must be specified.
       Alternatively an AxisModel or a PlaneModel can be specified, in which
       case the axis or plane normal will be aligned.
+    in_front_of : Atoms
+      Used only with zalign option.  If specified the geometric center of the
+      zalign atoms and the geometric center of the in_front_of atoms are aligned
+      perpendicular to the screen.
     pad : float
       When making objects fit in window use a window size reduced by this fraction.
       Default value is 0.05.  Pad is ignored when restoring named views.
@@ -57,7 +72,7 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
         if orient:
             v.initial_camera_view(set_pivot = cofr)
         if zalign:
-            _z_align_view(session.main_view.camera, zalign)
+            _z_align_view(session.main_view.camera, zalign, in_front_of)
         if objects is None:
             v.view_all(pad = pad)
             if cofr:
@@ -122,7 +137,7 @@ def _remove_molecular_surfaces(objects):
             o.add_model_instances(m, minst)
     return o
     
-def _z_align_view(camera, objects):
+def _z_align_view(camera, objects, in_front_of = None):
     '''
     Rotate camera so axis/plane/two atoms is/are along view direction (if atoms, first atom in front).
     Rotation is about midpoint between the two atoms, or center of axis/plane.
@@ -142,14 +157,21 @@ def _z_align_view(camera, objects):
 
     atoms = objects.atoms
     if atoms:
-        if len(atoms) != 2:
-            raise UserError('view: Must specify two atoms with zalign option, got %d' % len(atoms))
-        elif align_pts:
+        if align_pts:
             raise UserError("Must specify one axis or plane or two atoms for 'zalign'; you specified"
-                " both an axis/plane and atoms")
-        else:
+                            " both an axis/plane and atoms")
+        if in_front_of is not None:
+            if len(atoms) == 0:
+                raise UserError('view: zAlign option specified no atoms')
+            if len(in_front_of) == 0:
+                raise UserError('view: inFrontOf option specified no atoms')
+            align_pts = atoms.scene_coords.mean(axis = 0), in_front_of.scene_coords.mean(axis = 0)
+        elif len(atoms) == 2:
             align_pts = atoms.scene_coords
-    elif align_pts is None:
+        else:
+            raise UserError('view: Must specify two atoms with zalign option, got %d' % len(atoms))
+
+    if align_pts is None:
         raise UserError("Must specify one axis or plane or two atoms for 'zalign' option")
 
     xyz_front, xyz_back = align_pts
@@ -401,11 +423,11 @@ def _interpolate_clip_planes(v1, v2, f, view):
     p1 = {p.name: p for p in v1.clip_planes}
     p2 = {p.name: p for p in v2.clip_planes}
     pv = {p.name: p for p in view.clip_planes.planes()}
-    from numpy import array_equal
+    from chimerax.geometry import angle
     for name in p1:
         if name in p2 and name in pv:
             p1n, p2n, pvn = p1[name], p2[name], pv[name]
-            if array_equal(p1n.normal, p2n.normal):
+            if angle(p1n.normal, p2n.normal) < 0.01:  # degrees
                 pvn.normal = p1n.normal
                 pvn.plane_point = (1 - f) * p1n.plane_point + f * p2n.plane_point
                 # TODO: Update pv._last_distance
@@ -634,6 +656,7 @@ def register_command(logger):
                  ('cofr', BoolArg),
                  ('orient', NoArg),
                  ('zalign', ObjectsArg),
+                 ('in_front_of', AtomsArg),
                  ('pad', FloatArg)],
         synopsis='adjust camera so everything is visible')
     register('view', desc, view, logger=logger)

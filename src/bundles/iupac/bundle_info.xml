@@ -31,7 +31,8 @@
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="iupac" type="fetch" format_name="IUPAC"/>
+    <Provider name="iupac" type="fetch" format_name="IUPAC"
+		synopsis="IUPAC" example_ids="acetic acid" />
   </Providers>
 
   <Classifiers>

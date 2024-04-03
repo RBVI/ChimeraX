@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -56,7 +67,7 @@ class Volume(Model):
     self.region = clamp_region(region, data.size)
 
     if rendering_options is None:
-      rendering_options = RenderingOptions()
+      rendering_options = ds.rendering_option_defaults()
     self.rendering_options = rendering_options
 
     self.message_cb = session.logger.status
@@ -146,6 +157,10 @@ class Volume(Model):
     step = '%d' % sx if sy == sx and sz == sx else '%d,%d,%d' % (sx,sy,sz)
     info += 'step %s' % step
     info += ', values %s' % self.data.value_type.name
+    if hasattr(self, 'fit_pdb_ids') and self.fit_pdb_ids:
+      pdb_links = ', '.join(f'<a href="cxcmd: open {pdb_id}">{pdb_id}</a>'
+                            for pdb_id in self.fit_pdb_ids)
+      info += f', fit PDB {pdb_links}'
     return info
 
   # ---------------------------------------------------------------------------
@@ -165,7 +180,7 @@ class Volume(Model):
   def added_to_session(self, session):
     if getattr(self, 'series', None) is None and self._channels is None:
       msg = 'Opened %s as #%s, %s' % (self.name, self.id_string, self.info_string())
-      session.logger.info(msg)
+      session.logger.info(msg, is_html = ('cxcmd' in msg))
 
     # Use full lighting for initial map display
     if len(session.models.list()) == 1:
@@ -409,7 +424,7 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def _get_model_color(self):
+  def _get_overall_color(self):
     from chimerax.core.colors import rgba_to_rgba8
     if self.surface_shown:
       surfs = self.surfaces
@@ -425,10 +440,10 @@ class Volume(Model):
     if drgba:
       return rgba_to_rgba8(drgba)
     return None
-  def _set_model_color(self, color):
+  def _set_overall_color(self, color):
     from chimerax.core.colors import rgba8_to_rgba
     self.set_color(rgba8_to_rgba(color))
-  model_color = property(_get_model_color, _set_model_color)
+  overall_color = property(_get_overall_color, _set_overall_color)
 
   # ---------------------------------------------------------------------------
   #
@@ -577,13 +592,20 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def initial_surface_levels(self, mstats = None, vfrac = (0.01, 0.90), mfrac = None):
+    d = self.data
+    rgba = self.default_rgba
+    if hasattr(d, 'initial_surface_level'):
+      levels = [d.initial_surface_level]
+      colors = [rgba]
+      return levels, colors
+
     if mstats is None:
       mstats = self.matrix_value_statistics()
     if mfrac is None:
       v = mstats.rank_data_value(1-vfrac[0], estimate = 'high')
     else:
       v = mstats.mass_rank_data_value(1-mfrac[0], estimate = 'high')
-    rgba = self.default_rgba
+
     binary = getattr(self.data, 'binary', False)
     polar = getattr(self.data, 'polar_values', False)
     if polar:
@@ -826,17 +848,19 @@ class Volume(Model):
                                         max_bisections = 30, rank_method = False):
 
     cell_volume = self.data.voxel_volume()
+    ijk_min, ijk_max, ijk_step = self.region
 
     if rank_method:
       ms = self.matrix_value_statistics()
-      nx, ny, nz = self.data.size
+      nx, ny, nz = [imax-imin+1 for imin,imax in zip(ijk_min, ijk_max)]
       box_volume = cell_volume * nx * ny * nz
       r = 1.0 - (volume / box_volume)
       level = ms.rank_data_value(r)
       return level
 
-    gvolume = volume / cell_volume
-    matrix = self.full_matrix()
+    from math import prod
+    gvolume = volume / (cell_volume * prod(ijk_step))
+    matrix = self.matrix()
     from chimerax.map_data import surface_level_enclosing_volume
     try:
       level = surface_level_enclosing_volume(matrix, gvolume, tolerance, max_bisections)
@@ -1377,6 +1401,8 @@ class Volume(Model):
     if type == 'values changed':
       self.data.clear_cache()
       self.matrix_changed()
+      if self._image:
+        self._image.map_values_changed()
       self._drawings_need_update()
       self.call_change_callbacks('data values changed')
       # TODO: should this automatically update the data display?
@@ -1906,7 +1932,7 @@ class VolumeImage(Image3d):
 
   # ---------------------------------------------------------------------------
   #
-  def _get_model_color(self):
+  def _get_overall_color(self):
     '''Return average color.'''
     v = self._volume
     colors = v.image_colors
@@ -1916,14 +1942,14 @@ class VolumeImage(Image3d):
     else:
       c = array([int(r*255) for r in mean(colors, axis=0)], uint8)
     return c
-  def _set_model_color(self, color):
+  def _set_overall_color(self, color):
     v = self._volume
     rgba = [[r/255 for r in color]] * len(v.image_levels)
     if rgba != v.image_colors:
       v.image_colors = rgba
       self._update_colormap()
       v.call_change_callbacks('colors changed')
-  model_color = property(_get_model_color, _set_model_color)
+  overall_color = property(_get_overall_color, _set_overall_color)
 
   # ---------------------------------------------------------------------------
   #
@@ -3332,7 +3358,7 @@ def open_volume_file(path, session, format = None, name = None, style = 'auto',
 def default_settings(session):
   if not hasattr(session, 'volume_defaults'):
     from . import defaultsettings
-    session.volume_defaults = defaultsettings.VolumeDefaultSettings()
+    session.volume_defaults = defaultsettings.VolumeDefaultSettings(session)
   return session.volume_defaults
 
 # -----------------------------------------------------------------------------
@@ -3359,7 +3385,8 @@ def data_cache(session):
 # Open and display a map using Volume Viewer.
 #
 def volume_from_grid_data(grid_data, session, style = 'auto',
-                          open_model = True, model_id = None, show_dialog = True):
+                          open_model = True, model_id = None, show_dialog = True,
+                          allow_reseting_color_sequence = True):
   '''
   Supported API.
   Create a new :class:`.Volume` model from a :class:`~.data.GridData` instance and set its initial
@@ -3413,7 +3440,7 @@ def volume_from_grid_data(grid_data, session, style = 'auto',
     v._style_when_shown = style
 
   if grid_data.rgba is None:
-    if not any_volume_open(session):
+    if allow_reseting_color_sequence and not any_volume_open(session):
       _reset_color_sequence(session)
     set_initial_volume_color(v, session)
 
@@ -3605,7 +3632,12 @@ def open_map(session, path, name = None, format = None, **kw):
 #
 def open_grids(session, grids, name, **kw):
 
-    if kw.get('polar_values', False):
+    level = kw.get('initial_surface_level', None)
+    if level is not None:
+      for g in grids:
+        g.initial_surface_level = level
+
+    if kw.get('polar_values', False) or kw.get('difference', False):
       for g in grids:
         g.polar_values = True
         if g.rgba is None:
@@ -3646,7 +3678,9 @@ def open_grids(session, grids, name, **kw):
       vkw = {'show_dialog': False}
       if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'image'):
         vkw['style'] = d.initial_style
-      v = volume_from_grid_data(d, session, open_model = False, **vkw)
+      v = volume_from_grid_data(d, session, open_model = False,
+                                allow_reseting_color_sequence = (len(maps)==0),
+                                **vkw)
       maps.append(v)
       if not show_data:
         v.display = False
@@ -3979,7 +4013,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
         grids = []
         for v in vlist:
           g = v.grid_data(region, step, mask_zone)
-          color = v.model_color
+          color = v.overall_color
           if color is not None:
             g.rgba = tuple(r/255 for r in color)	# Set default map color to current color
           grids.append(g)

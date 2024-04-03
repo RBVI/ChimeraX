@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 '''
@@ -110,6 +121,7 @@ class OpenGLContext:
         w = self.window if window is None else window
         if not qc.makeCurrent(w):
             raise OpenGLError("Could not make graphics context current")
+
         return True
 
     def _initialize_context(self, mode = None, window = None):
@@ -180,8 +192,9 @@ class OpenGLContext:
             fmt.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
         fmt.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
         if not self._wait_for_vsync:
-            # Don't wait for vsync, tested on Mac OS 10.13 Nvidia graphics working.
-            # Has no effect on Windows 10, Nvidia GTX 1080.
+            # Don't wait for vsync.
+            # Works on Mac OS 10.13 Nvidia graphics with Qt 5.
+            # Works on Windows 10, Nvidia P6000 with Qt 6.5.
             fmt.setSwapInterval(0)
         if mode == 'stereo':
             fmt.setStereo(True)
@@ -233,6 +246,36 @@ class OpenGLContext:
         '''Swap back and front OpenGL buffers.'''
         w = self.window if window is None else window
         self._qopengl_context.swapBuffers(w)
+
+    def swap_interval(self):
+        from OpenGL.WGL.EXT.swap_control import wglGetSwapIntervalEXT
+        return wglGetSwapIntervalEXT()
+
+    def wait_for_vsync(self, wait):
+        '''
+        Control whether OpenGL synchronizes to the display vertical refresh.
+        Currently this call is only supported on Windows. Returns true if
+        the setting can be changed, otherwise false.
+        '''
+        results = False
+        from sys import platform
+        if platform == 'win32':
+            wfmt = self.window.format()
+            wfmt.setSwapInterval(1 if wait else 0)
+            self.window.setFormat(wfmt)
+            self._wait_for_vsync = wait
+            success = True
+            # succes = _set_windows_swap_interval(wait)
+        elif platform == 'darwin':
+            sync = 1 if wait else 0
+            from ._graphics import set_mac_swap_interval
+            success = set_mac_swap_interval(sync)
+        elif platform == 'linux':
+            sync = 1 if wait else 0
+            from ._graphics import set_linux_swap_interval
+            success = set_linux_swap_interval(sync)
+
+        return success
 
     def pixel_scale(self):
         '''
@@ -292,6 +335,19 @@ class OpenGLContext:
             for fb in tuple(self._framebuffers):
                 fb.set_color_bits(bits)
             self.done_current()
+
+def _set_windows_swap_interval(wait):
+    # Qt 6 on Windows overrides the swap interval each time makeCurrent()
+    # is called.  So this code is not useful and instead it is necessary
+    # to change the QSurfaceFormat assigned to the QWindow.
+    try:
+        from OpenGL.WGL.EXT.swap_control import wglSwapIntervalEXT
+        i = 1 if wait else 0
+        success = wglSwapIntervalEXT(i)
+        success = True if success else False
+    except Exception:
+        success = False
+    return success
 
 _initialized_pyopengl = False
 def _initialize_pyopengl(log_opengl_calls = False, offscreen = False):
@@ -444,6 +500,9 @@ class Render:
         # Camera origin, y, and xshift for SHADER_STEREO_360 mode
         self._stereo_360_params = ((0,0,0),(0,1,0),0)
 
+        # OpenGL texture size limit
+        self._max_3d_texture_size = None
+        
     def delete(self):
         if self._opengl_context._deleted:
             raise RuntimeError('Render.delete(): OpenGL context deleted before Render instance')
@@ -501,33 +560,11 @@ class Render:
     def front_buffer_valid(self):
         return self._front_buffer_valid
 
-    def wait_for_vsync(self, wait):
-        '''
-        Control whether OpenGL synchronizes to the display vertical refresh.
-        Currently this call is only supported on Windows. Returns true if
-        the setting can be changed, otherwise false.
-        '''
-        from sys import platform
-        if platform == 'win32':
-            try:
-                from OpenGL.WGL.EXT.swap_control import wglSwapIntervalEXT
-                i = 1 if wait else 0
-                success = wglSwapIntervalEXT(i)
-                return True if success else False
-            except Exception:
-                return False
-        elif platform == 'darwin':
-            sync = 1 if wait else 0
-            from ._graphics import set_mac_swap_interval
-            success = set_mac_swap_interval(sync)
-            return success
-        elif platform == 'linux':
-            sync = 1 if wait else 0
-            from ._graphics import set_linux_swap_interval
-            success = set_linux_swap_interval(sync)
-            return success
+    def swap_interval(self):
+        return self._opengl_context.swap_interval()
 
-        return False
+    def wait_for_vsync(self, wait):
+        return self._opengl_context.wait_for_vsync(wait)
 
     def use_shared_context(self, window):
         '''
@@ -603,6 +640,11 @@ class Render:
         max_size = min(max_rb_size, max_tex_size)
         return max_size
 
+    def max_3d_texture_size(self):
+        if self._max_3d_texture_size is None:
+            self._max_3d_texture_size = GL.glGetInteger(GL.GL_MAX_3D_TEXTURE_SIZE)
+        return self._max_3d_texture_size
+    
     def framebuffer_rgba_bits(self):
         # This is only valid for default framebuffer.
         # Need to use GL_COLOR_ATTACHMENT0 for offscreen framebuffers.
@@ -3156,13 +3198,14 @@ class Texture:
             raise TypeError('Texture value type %s not supported' % str(dtype))
         return format, iformat, tdtype, ncomp
 
-    def read_texture_data(self):
+    def read_texture_data(self, numpy_data_type = None):
         '''
         The data is read back to a numpy array as uint8 values using the
         same array shape used to fill the texture.
         '''
-        from numpy import zeros, uint8
-        data = zeros(self._array_shape, uint8)
+        dtype = self._numpy_dtype if numpy_data_type is None else numpy_data_type
+        from numpy import zeros
+        data = zeros(self._array_shape, dtype)
         format, iformat, tdtype, ncomp = self.texture_format(data)
         gl_target = self.gl_target
         GL.glBindTexture(gl_target, self.id)

@@ -422,6 +422,10 @@ all <a href="../pseudobonds.html">pseudobonds</a> and their endpoint atoms
 <li><b>hbondatoms</b> &ndash; H-bond
 <a href="../pseudobonds.html">pseudobonds</a> and their endpoint atoms
   </ul>
+<li><b>last-opened</b> &ndash; the top-level model most recently opened,
+not necessarily the highest model number
+<li><b>all</b> &ndash; all data applicable to the specific command
+(can be used in certain commands where a blank specification is not accepted)
 </ul>
 <p>
 Built-in classifications cannot be redefined by the user.
@@ -530,7 +534,7 @@ specified by <a href="../attributes.html#attrnames">name</a> and value,
 indicated with symbols:
 <b>@@</b> for <a href="../attributes.html#atom">atom attributes</a>,
 <b>::</b> for <a href="../attributes.html#residue">residue attributes</a>,
-<!-- <b>//</b> for <a href="../attributes.html#chain">chain attributes</a>, -->
+<b>//</b> for <a href="../attributes.html#chain">chain attributes</a>,
 and
 <b>##</b> for <a href="../attributes.html#model">atomic-model attributes</a>.
 Custom attributes can be created with <a href="setattr.html"><b>setattr</b></a>.
@@ -576,6 +580,9 @@ described <a href="#wildcards">above</a> for atom and residue names.
 </tr><tr>
 <td align="center"><b>&lt;=</b></td>
 <td>less than or equal to</td>
+</tr><tr>
+<td align="center"><b>^</b></td>
+<td>(before attribute name) attribute not assigned</td>
 </tr>
 </table>
 
@@ -597,10 +604,6 @@ see <a href="#combinations">combinations</a>:
 </blockquote>
 &ndash; atoms with <a href="altlocs.html">alternate locations</a>
 <blockquote>
-<b>~@@charge</b>
-</blockquote>
-&ndash; atoms not assigned a charge
-<blockquote>
 <b>@ca & @@bfactor>40</b>
 </blockquote>
 &ndash; atoms named CA with B-factor values over 40
@@ -617,29 +620,14 @@ see <a href="#combinations">combinations</a>:
 </blockquote>
 &ndash; non-aromatic carbon atoms
 (see <a href="../atomtypes.html">atom types</a>)
-<!-- label not attr in ChimeraX, and color doesn't work
-<blockquote>
-<b>N & @@draw_mode=0 & @@label</b>
-</blockquote>
-&ndash; nitrogen atoms that are drawn as spheres and labeled
-<blockquote>
-<b>N & (@@draw_mode=0 | @@label)</b>
-</blockquote>
-&ndash; nitrogen atoms that are drawn as spheres and/or labeled
-<blockquote>
-<b>@ca & ~ (@@label | @@color=green | @@color=red)</b>
-</blockquote>
-&ndash; atoms named CA that are not labeled, and are not green or red
-<blockquote>
-<b>~ @@color=yellow | ~ @@color=blue</b>
-</blockquote>
-&ndash; all atoms, because if an atom is yellow it fulfills the criterion of not
-being blue, and <i>vice versa</i>
--->
 <blockquote>
 <b>::num_atoms>=10</b>
 </blockquote>
 &ndash; residues with 10 or more atoms
+<blockquote>
+<b>::^chi3</b>
+</blockquote>
+&ndash; residues without a chi3 angle
 <blockquote>
 <b>//identity="#1/A,B"</b>
 </blockquote>
@@ -781,5 +769,5 @@ of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2022</address>
+March 2024</address>
 </body></html> 

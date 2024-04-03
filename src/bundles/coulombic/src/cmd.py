@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import UserError
@@ -16,7 +27,7 @@ from chimerax.add_charge import ChargeMethodArg
 
 def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4, gspacing=None,
         gpadding=None, map=None, palette=None, range=None, dist_dep=True, dielectric=4.0,
-        charge_method=ChargeMethodArg.default_value, key=False):
+        charge_method=ChargeMethodArg.default_value, key=False, reassign_charges=False):
     session.logger.status("Computing Coulombic potential%s" % (" map" if map else ""))
     if palette is None:
         from chimerax.core.colors import BuiltinColormaps
@@ -70,6 +81,9 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
     needs_assignment = set()
     for surf_atoms, shown_atoms, srf in atoms_per_surf:
         for r in surf_atoms.unique_residues:
+            if reassign_charges:
+                needs_assignment.add(r)
+                continue
             if getattr(r, '_coulombic_his_scheme', his_scheme) != his_scheme:
                 # should only be set on HIS residues
                 needs_assignment.add(r)
@@ -218,6 +232,7 @@ def register_command(logger):
             ('dielectric', FloatArg),
             ('charge_method', ChargeMethodArg),
             ('key', BoolArg),
+            ('reassign_charges', BoolArg),
         ],
         synopsis = 'Color surfaces by coulombic potential'
     )

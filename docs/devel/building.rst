@@ -98,6 +98,9 @@ Steps for compiling ChimeraX on Windows 10:
 #. Clone the `ChimeraX repository <https://github.com/RBVI/ChimeraX>`_ from GitHub.
 
 #. Run ". ./vsvars.sh" in chimerax root directory to set path to Visual Studio compiler.
+   If you use different Microsoft SDK or build tools versions then you will need to edit
+   the vsvars.sh script to use your versions.  If you do not it will not give any errors
+   but all compilations will mysteriously fail.
 
 #. "make install" in the repository root.
 

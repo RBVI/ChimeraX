@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -496,6 +507,8 @@ clock_t start_t = clock();
     const Real p7nn2nh = 1.3337;
     const Real p7on2nh = 1.3485;
 
+    const Real p9o2n2 = 1.295 * 1.295;
+
 #ifdef TIME_PASSES
 clock_t t0 = clock();
 #endif
@@ -519,6 +532,7 @@ clock_t t0 = clock();
             ~SuspendNotification() { as->_atom_types_notify = true; }
     };
     SuspendNotification suspender(this);
+    _idatm_failed = false;
 
     const Atom::IdatmInfoMap& info_map = Atom::get_idatm_info_map();
 #ifdef TIME_PASSES
@@ -837,8 +851,22 @@ t0 = t1;
                     a->set_computed_idatm_type("N3");
                     redo[a] = 2;
                 } else {
-                    a->set_computed_idatm_type(
-                      ang < angle12val ?  "Npl" : "N1+");
+                    if (ang < angle12val) {
+                        bool set_N2 = false;
+                        if (a->bonds().size() == 2) {
+                            for (auto bondee: a->neighbors()) {
+                                const Element &bondee_element = bondee->element();
+                                Real sqlen = bondee->coord().sqdistance(a->coord());
+                                if ((sqlen <= p4n2c && bondee_element == Element::C)
+                                || (sqlen <= p4n2n && bondee_element == Element::N)) {
+                                    set_N2 = true;
+                                    break;
+                                }
+                            }
+                        }
+                        a->set_computed_idatm_type(set_N2 ? "N2" : "Npl");
+                    } else
+                        a->set_computed_idatm_type("N1+");
                 }
             } else if (element == Element::O) {
                 a->set_computed_idatm_type("O3");
@@ -872,6 +900,18 @@ t0 = t1;
             if ((sqlen <= p3c1c1 && bondee_type == "C1")
             || (sqlen <= p3n1c1 && bondee->element() == Element::N)) {
                 a->set_computed_idatm_type("C1");
+            } else if (bondee_type == "N1+") {
+                // N1+ can only be set at this point if valence 2,
+                // so can assume exactly one other neighbor
+                for (auto gnb: bondee->neighbors()) {
+                    if (gnb == a)
+                        continue;
+                    auto gtype = gnb->idatm_type();
+                    if (gtype == "H" || gtype == "C3" || gtype == "D")
+                        a->set_computed_idatm_type("C1");
+                    else
+                        a->set_computed_idatm_type("C3");
+                }
             } else if (sqlen <= p3c2c &&
               bondee->element() == Element::C) {
                 a->set_computed_idatm_type("C2");
@@ -1047,6 +1087,91 @@ std::cerr << "pass 4 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n"
 t0 = t1;
 #endif
 
+    // "pass 4.25" (used to be pass 7):  a non-IDATM pass:  split off
+    //  heavy-atom-valence-2 Npls that have no hydrogens as type N2.
+    //  Discrimination criteria is the average bond length of the two 
+    //  heavy-atom bonds (shorter implies more double-bond character,
+    //  thereby no hydrogen).  Moved from pass 7 because typing as N2
+    //  early help ring bond determination (e.g. pubchem:825048)
+    for (auto a: untyped_atoms) {
+
+        if (a->idatm_type() != "Npl")
+            continue;
+        
+        if (heavys[a] != 2)
+            continue;
+
+        if (a->neighbors().size() > 2)
+            continue;
+
+        Real threshold = 1.0;
+        Real harm_len = 1.0;
+        Atom *recipient = NULL;
+        Real bratio = 1.0;
+        for (auto bondee: a->neighbors()) {
+            Real criteria;
+            if (bondee->element() == Element::C) {
+                criteria = p7cn2nh;
+            } else if (bondee->element() == Element::N) {
+                criteria = p7nn2nh;
+            } else if (bondee->element() == Element::O) {
+                if (bondee->neighbors().size() > 1)
+                    continue;
+                criteria = p7on2nh;
+            } else {
+                continue;
+            }
+            threshold *= criteria;
+            Real len = bondee->coord().distance(a->coord());
+            harm_len *= len;
+            if (len > criteria)
+                continue;
+            Real ratio = len / criteria;
+            if (ratio > bratio)
+                continue;
+            if (bondee->element() == Element::N && bondee->bonds().size() > 2)
+                continue;
+            if (bondee->idatm_type() == "Car")
+                continue;
+
+            bool double_okay = true;
+            for (auto grand_bondee: bondee->neighbors()) {
+                if (grand_bondee == a)
+                    continue;
+                auto gb_type = grand_bondee->idatm_type();
+
+                Atom::IdatmInfoMap::const_iterator i = info_map.find(gb_type);
+                if (i == info_map.end())
+                    continue;
+                int geom = (*i).second.geometry;
+                if (geom > 1 && geom < 4 && heavys[grand_bondee] == 1) {
+                        double_okay = false;
+                        break;
+                }
+            }
+            if (!double_okay)
+                continue;
+            recipient = bondee;
+            bratio = ratio;
+        }
+
+        if (harm_len < threshold && recipient != NULL) {
+            a->set_computed_idatm_type("N2");
+            if (recipient->element() == Element::C) {
+                recipient->set_computed_idatm_type("C2");
+            } else if (recipient->element() == Element::N) {
+                recipient->set_computed_idatm_type("N2");
+            } else if (recipient->element() == Element::O) {
+                recipient->set_computed_idatm_type("O2");
+            }
+        }
+    }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 4.25 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
+
     // "pass 4.5":  this pass is not in the IDATM paper but is a suggested
     //    improvement mentioned on page 897 of the paper:  find aromatic
     //    ring types.  The method is to:
@@ -1126,6 +1251,7 @@ t0 = t1;
     std::vector<std::set<Atom*> > fused_atoms;
     std::vector<std::vector<const Ring*> > component_rings;
     std::set<Atom *> ring_assigned_Ns;
+    std::set<Atom *> planar_ring_atoms;
     for (auto r: planar_rings) {
         if (seen_rings.find(r) != seen_rings.end())
             continue;
@@ -1159,6 +1285,7 @@ t0 = t1;
         fused_bonds.push_back(system_bonds);
         fused_atoms.push_back(system_atoms);
         component_rings.push_back(system_rings);
+        planar_ring_atoms.insert(system_atoms.begin(), system_atoms.end());
     }
         
     for (unsigned int i = 0; i < fused_bonds.size(); ++i) {
@@ -1214,7 +1341,7 @@ t0 = t1;
                     }
                     continue;
                 }
-                if (n->element() == Element::N) {
+                if (n->element() == Element::N && n->idatm_type() == "Npl") {
                     // aniline can be planar
                     connected[nb] = SINGLE;
                     continue;
@@ -1269,11 +1396,30 @@ t0 = t1;
                     connected[nb] = DOUBLE;
             }
         }
+        std::vector<Bond *> inter_ring_bonds;
+        for (auto b_order: connected) {
+            auto b = b_order.first;
+            if (planar_ring_atoms.find(b->atoms()[0]) != planar_ring_atoms.end()
+            && planar_ring_atoms.find(b->atoms()[1]) != planar_ring_atoms.end()
+            && b_order.second == AMBIGUOUS)
+                inter_ring_bonds.push_back(b);
+        }
         std::map<Bond*, int> cur_assign;
         std::vector<std::map<Bond*, int>> assignments;
         std::vector<std::vector<Atom*>> assigned_uncertains;
         std::map<Atom*, Bond*> uncertain2bond;
-        make_assignments(bonds, connected, cur_assign, &assignments);
+        if (inter_ring_bonds.size() > 0) {
+            // while a bond directly connecting planar rings is theoretically ambiguous,
+            // it is highly likely to be single, so try such assignments first.
+            // For example, helps with pubchem:121225808 with hydrogens removed
+            for (auto b: inter_ring_bonds)
+                connected[b] = SINGLE;
+            make_assignments(bonds, connected, cur_assign, &assignments);
+            for (auto b: inter_ring_bonds)
+                connected[b] = AMBIGUOUS;
+        }
+        if (assignments.size() == 0)
+            make_assignments(bonds, connected, cur_assign, &assignments);
         if (assignments.size() == 0)
             // try a charged ring
             make_assignments(bonds, connected, cur_assign, &assignments, true);
@@ -1376,6 +1522,7 @@ t0 = t1;
             logger::warning(_logger, "Cannot find consistent set of bond"
                 " orders for ring system containing atom ", a->name(),
                 " in residue ", a->residue()->str());
+            _idatm_failed = true;
             continue;
         }
 
@@ -1570,8 +1717,6 @@ t0 = t1;
                             longest_N = a;
                             best_val = val;
                         }
-                        // avoid retyping in pass 7
-                        redo[a] = -7;
                     }
                     longest_N->set_computed_idatm_type("Npl");
                     protonatable_Ns.erase(longest_N);
@@ -1615,6 +1760,38 @@ t0 = t1;
                         a->set_computed_idatm_type(N2_okay ? "N2" : "Npl");
                     }
                     ring_assigned_Ns.insert(a);
+                }
+            }
+        }
+        // now that ring atoms types have been assigned, see if that changes our assessment
+        // of the ambiguous valence-2 carbons
+        for (auto nb_b: ring_neighbors) {
+            auto nb = nb_b.first;
+            if (ambiguous_val2Cs.find(nb) == ambiguous_val2Cs.end())
+                continue;
+            auto ring_a = nb_b.second->other_atom(nb);
+            // see if external bond is definitely single
+            if (ring_a->idatm_type() != "Npl" && ring_a->idatm_type() != "Car")
+                continue;
+            decltype(nb) gnb;
+            for (auto g_nb: nb->neighbors())
+                if (g_nb != ring_a) {
+                    gnb = g_nb;
+                    break;
+                }
+            auto type_ptr = info_map.find(gnb->idatm_type());
+            if (type_ptr == info_map.end())
+                continue;
+            if ((*type_ptr).second.geometry == 4) {
+                // ambiguous atom must be C3
+                nb->set_computed_idatm_type("C3");
+                continue;
+            }
+            for (auto ggnb: gnb->neighbors()) {
+                if (ggnb->idatm_type() == "O2") {
+                    // grand neighbor double-bonded elsewhere, so ambiguous atom is C3
+                    nb->set_computed_idatm_type("C3");
+                    break;
                 }
             }
         }
@@ -1783,92 +1960,7 @@ std::cerr << "pass 6 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n"
 t0 = t1;
 #endif
 
-    // "pass 7":  a non-IDATM pass:  split off heavy-atom-valence-2
-    //  Npls that have no hydrogens as type N2.
-    //  Discrimination criteria is the average bond length of the two 
-    //  heavy-atom bonds (shorter implies more double-bond character,
-    //  thereby no hydrogen).
-    for (auto a: untyped_atoms) {
-
-        if (a->idatm_type() != "Npl")
-            continue;
-        
-        if (heavys[a] != 2)
-            continue;
-
-        if (ring_assigned_Ns.find(a) != ring_assigned_Ns.end())
-            continue;
-        
-        if (a->neighbors().size() > 2)
-            continue;
-
-        Real threshold = 1.0;
-        Real harm_len = 1.0;
-        Atom *recipient = NULL;
-        Real bratio = 1.0;
-        for (auto bondee: a->neighbors()) {
-            Real criteria;
-            if (bondee->element() == Element::C) {
-                criteria = p7cn2nh;
-            } else if (bondee->element() == Element::N) {
-                criteria = p7nn2nh;
-            } else if (bondee->element() == Element::O) {
-                if (bondee->neighbors().size() > 1)
-                    continue;
-                criteria = p7on2nh;
-            } else {
-                continue;
-            }
-            threshold *= criteria;
-            Real len = bondee->coord().distance(a->coord());
-            harm_len *= len;
-            if (len > criteria)
-                continue;
-            Real ratio = len / criteria;
-            if (ratio > bratio)
-                continue;
-            if (bondee->element() == Element::N && bondee->bonds().size() > 2)
-                continue;
-            if (bondee->idatm_type() == "Car")
-                continue;
-
-            bool double_okay = true;
-            for (auto grand_bondee: bondee->neighbors()) {
-                if (grand_bondee == a)
-                    continue;
-                auto gb_type = grand_bondee->idatm_type();
-
-                Atom::IdatmInfoMap::const_iterator i = info_map.find(gb_type);
-                if (i == info_map.end())
-                    continue;
-                int geom = (*i).second.geometry;
-                if (geom > 1 && geom < 4 && heavys[grand_bondee] == 1) {
-                        double_okay = false;
-                        break;
-                }
-            }
-            if (!double_okay)
-                continue;
-            recipient = bondee;
-            bratio = ratio;
-        }
-
-        if (harm_len < threshold && recipient != NULL) {
-            a->set_computed_idatm_type("N2");
-            if (recipient->element() == Element::C) {
-                recipient->set_computed_idatm_type("C2");
-            } else if (recipient->element() == Element::N) {
-                recipient->set_computed_idatm_type("N2");
-            } else if (recipient->element() == Element::O) {
-                recipient->set_computed_idatm_type("O2");
-            }
-        }
-    }
-#ifdef TIME_PASSES
-t1 = clock();
-std::cerr << "pass 7 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
-t0 = t1;
-#endif
+    // pass 4.25 used be here as pass 7
 
     // "pass 8":  another non-IDATM: change planar nitrogens bonded only
     //  SP3 atoms to N3 or N3+.  Change Npls/N3s bonded to sp2 atoms that
@@ -1927,7 +2019,7 @@ t0 = t1;
     }
 
     // order typing by easiest-figure-out (1 sp2 bonded) to hardest (3)
-    // good test cases:  1CY in 3UM8; WRA in 1J3I
+    // good test cases:  1CY in 3UM8; WRA in 1J3I, pubchem:3077812
     for (unsigned int i = 1; i < 4; ++i) {
         for(auto a_sp2s: bonded_sp2s) {
             const std::vector<Atom *> &sp2s = a_sp2s.second;
@@ -1959,11 +2051,8 @@ t0 = t1;
                 }
                 if (!remote_sp2) {
                     int hvys = heavys[a];
-                    if (hvys > 1)
-                        a->set_computed_idatm_type(hvys > 2 ? "Npl" : "N2");
-                    else if (hvys == 1)
-                        a->set_computed_idatm_type(is_N3plus_okay(
-                            a->neighbors()) ? "N3+" : "N3");
+                    if (hvys >= 1)
+                        a->set_computed_idatm_type(a->bonds().size() > 2 ? "Npl" : "N2");
                     else
                         a->set_computed_idatm_type("N3+");
                     break;
@@ -1990,8 +2079,9 @@ t0 = t1;
 #endif
 
     // "pass 9":  another non-IDATM pass and analogous to pass 8:
-    //  change O3 bonded only to non-Npl sp2 atom not in turn bonded
-    //  to non-Npl sp2 to O2.
+    //  change O3 bonded only to sp2 atom not in turn bonded
+    //  to non-Npl sp2 to O2, unless the bonded atom is Npl, in
+    //  which case check the bond distance and also change to N2+ if short.
     for (auto a: untyped_atoms) {
 
         auto idatm_type = a->idatm_type();
@@ -2034,8 +2124,15 @@ t0 = t1;
                 }
             }
         }
-        if (!remote_sp2)
-            a->set_computed_idatm_type("O2");
+        if (!remote_sp2) {
+            if (bondee_type == "Npl") {
+                if (bondee->coord().sqdistance(a->coord()) < p9o2n2) {
+                    a->set_computed_idatm_type("O2");
+                    bondee->set_computed_idatm_type("N2+");
+                }
+            } else
+                a->set_computed_idatm_type("O2");
+        }
     }
 #ifdef TIME_PASSES
 t1 = clock();

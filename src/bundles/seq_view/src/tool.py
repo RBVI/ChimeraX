@@ -152,7 +152,6 @@ class SequenceViewer(ToolInstance):
         self.tool_window = MainToolWindow(self, close_destroys=True, statusbar=True)
         self.tool_window._dock_widget.setMouseTracking(True)
         self.tool_window.fill_context_menu = self.fill_context_menu
-        self.status = self.tool_window.status
         parent = self.tool_window.ui_area
         parent.setMouseTracking(True)
         """TODO
@@ -171,13 +170,13 @@ class SequenceViewer(ToolInstance):
             for aseq in self.alignment.seqs:
                 if aseq.match_maps:
                     self.seq_canvas.assoc_mod(aseq)
-        from .region_browser import RegionBrowser
-        rb_window = self.tool_window.create_child_window("Regions", close_destroys=False)
-        self.region_browser = RegionBrowser(rb_window, self.seq_canvas)
+        self._regions_tool = None
+        from .region_browser import RegionManager
+        self.region_manager = RegionManager(self.seq_canvas)
         self._seq_rename_handlers = {}
         for seq in self.alignment.seqs:
             self._seq_rename_handlers[seq] = seq.triggers.add_handler("rename",
-                self.region_browser._seq_renamed_cb)
+                self.region_manager._seq_renamed_cb)
             if seq.match_maps:
                self._update_errors_gaps(seq)
         if self.alignment.intrinsic and not from_session:
@@ -442,7 +441,7 @@ class SequenceViewer(ToolInstance):
 
     @property
     def active_region(self):
-        return self.region_browser.cur_region()
+        return self.region_manager.cur_region()
 
     def alignment_notification(self, note_name, note_data):
         alignment = self.alignment
@@ -463,7 +462,7 @@ class SequenceViewer(ToolInstance):
             if hasattr(self, 'associations_tool'):
                 self.associations_tool._assoc_mod(note_data)
         elif note_name == alignment.NOTE_PRE_DEL_SEQS:
-            self.region_browser._pre_remove_lines(note_data)
+            self.region_manager._pre_remove_lines(note_data)
             for seq in note_data:
                 if seq in self._feature_browsers:
                     self._feature_browsers[seq].tool_window.destroy()
@@ -473,6 +472,12 @@ class SequenceViewer(ToolInstance):
         elif note_name == alignment.NOTE_COMMAND:
             from .cmd import run
             run(self.session, self, note_data)
+        elif note_name == alignment.NOTE_RMSD_UPDATE:
+            if self._regions_tool:
+                self._regions_tool.alignment_rmsd_update()
+        elif note_name == alignment.NOTE_ADD_DEL_SEQS:
+            if self._associations_tool:
+                self._associations_tool._choose_widgets()
 
         self.seq_canvas.alignment_notification(note_name, note_data)
 
@@ -501,7 +506,7 @@ class SequenceViewer(ToolInstance):
         self.seq_canvas.conservation_style = style
 
     def delete(self):
-        self.region_browser.destroy()
+        self.region_manager.destroy()
         self.seq_canvas.destroy()
         self.alignment.detach_viewer(self)
         for seq in self.alignment.seqs:
@@ -567,7 +572,7 @@ class SequenceViewer(ToolInstance):
         x, y = scene_xy.x(), scene_xy.y()
 
         seq, seq, index, index = self.seq_canvas.bounded_by(x, y, x, y, exclude_headers=True)
-        if seq is not None:
+        if seq is not None and seq in self.alignment.seqs:
             for chain, mm in seq.match_maps.items():
                 try:
                     view_targets.append(mm[seq.gapped_to_ungapped(index)])
@@ -689,19 +694,20 @@ class SequenceViewer(ToolInstance):
             identity_action.triggered.connect(self.show_percent_identity_dialog)
             tools_menu.addAction(identity_action)
 
-
-        # Whenever Region Browser and UniProt Annotations happen, the thought is to
-        # put them in an "Annotations" menu (rather than "Info"); for now with only
-        # sequence features available, use "Features"
+        annotations_menu = menu.addMenu("Annotations")
+        rt_action = QAction("Regions...", annotations_menu)
+        rt_action.triggered.connect(lambda*, self=self, action=rt_action:
+            setattr(self, "regions_tool_shown", True))
+        annotations_menu.addAction(rt_action)
         feature_seqs = [ seq for seq in self.alignment.seqs if seq.features(fetch=False) ]
         if feature_seqs:
             if len(self.alignment.seqs) == 1:
-                action = QAction("Sequence Features...", menu)
+                action = QAction("Sequence Features...", annotations_menu)
                 action.triggered.connect(lambda *args, seq=feature_seqs[0], show=self.show_feature_browser:
                     show(seq))
-                menu.addAction(action)
+                annotations_menu.addAction(action)
             else:
-                features_menu = menu.addMenu("Sequence Features")
+                features_menu = annotations_menu.addMenu("Sequence Features")
                 from .seq_canvas import _seq_name as seq_name
                 for seq in feature_seqs:
                     action = QAction(seq_name(seq), features_menu)
@@ -715,7 +721,7 @@ class SequenceViewer(ToolInstance):
 
     def load_scf_file(self, path, color_structures=None):
         """color_structures=None means use user's preference setting"""
-        self.region_browser.load_scf_file(path, color_structures)
+        self.region_manager.load_scf_file(path, color_structures)
 
     def new_region(self, name=None, **kw):
         if 'blocks' in kw:
@@ -742,7 +748,21 @@ class SequenceViewer(ToolInstance):
                 blocks.append((self.alignment.seqs[0], self.alignment.seqs[-1], left, right))
             kw['blocks'] = blocks
             del kw['columns']
-        return self.region_browser.new_region(name, **kw)
+        return self.region_manager.new_region(name, **kw)
+
+    @property
+    def regions_tool_shown(self):
+        return self._regions_tool is not None and self._regions_tool.shown
+
+    @regions_tool_shown.setter
+    def regions_tool_shown(self, shown):
+        if self._regions_tool is None:
+            from .region_browser import RegionsTool
+            rt_window = self.tool_window.create_child_window("Regions", close_destroys=False, statusbar=True)
+            self._regions_tool = RegionsTool(self, rt_window)
+            rt_window.fill_context_menu = self.fill_context_menu
+            rt_window.manage(None)
+        self._regions_tool.shown = shown
 
     def show_associations(self):
         if not hasattr(self, "associations_tool"):
@@ -788,19 +808,24 @@ class SequenceViewer(ToolInstance):
         # show == None means don't change show states, but update regions
         # ... not yet implemented, so see if the regions exist and their
         # display is True...
-        rb = self.region_browser
+        rm = self.region_manager
         if show == None:
-            hreg = rb.get_region(rb.ACTUAL_HELICES_REG_NAME)
+            hreg = rm.get_region(rm.ACTUAL_HELICES_REG_NAME)
             if not hreg:
                 return
             show = hreg.shown
-        rb.show_ss(show)
+        rm.show_ss(show)
+
+    def status(self, *args, **kw):
+        status = self.tool_window.status(*args, **kw)
+        if self._regions_tool:
+            self._regions_tool.tool_window.status(*args, **kw)
 
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
         inst._finalize_init(data['alignment'])
-        inst.region_browser.restore_state(data['region browser'])
+        inst.region_manager.restore_state(data['region browser'])
         if 'seq canvas' in data:
             inst.seq_canvas.restore_state(session, data['seq canvas'])
         # feature browsers depend on regions (and therefore the region browser) being restored first
@@ -817,7 +842,7 @@ class SequenceViewer(ToolInstance):
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'alignment': self.alignment,
             'feature browsers': {seq: fb.state() for seq, fb in self._feature_browsers.items()},
-            'region browser': self.region_browser.state(),
+            'region browser': self.region_manager.state(),
             'seq canvas': self.seq_canvas.state()
         }
         return data
@@ -825,6 +850,12 @@ class SequenceViewer(ToolInstance):
     def _atomic_changes_cb(self, trig_name, changes):
         if "ss_type changed" in changes.residue_reasons():
             self.show_ss(show=None)
+        if self._regions_tool:
+            self._regions_tool._atomic_changes_cb(changes)
+
+    def _regions_tool_notification(self, category, region):
+        if self._regions_tool:
+            self._regions_tool.region_notification(category, region)
 
     def _update_errors_gaps(self, aseq):
         if not self.settings.error_region_shown and not self.settings.gap_region_shown:
@@ -886,11 +917,11 @@ class SequenceViewer(ToolInstance):
                     (region_name_part, full_blocks, full_fill, full_outline),
                     ("partial " + region_name_part, partial_blocks, partial_fill, partial_outline)]:
                 region_name = "%s of %s" % (region_name_start, aseq.name)
-                old_reg = self.region_browser.get_region(region_name, create=False)
+                old_reg = self.region_manager.get_region(region_name, create=False)
                 if old_reg:
-                    self.region_browser.delete_region(old_reg)
+                    self.region_manager.delete_region(old_reg)
                 if blocks:
-                    self.region_browser.new_region(region_name, blocks=blocks, fill=fill,
+                    self.region_manager.new_region(region_name, blocks=blocks, fill=fill,
                         outline=outline, sequence=aseq, cover_gaps=False)
 
 def _start_seq_viewer(session, tool_name, alignment):

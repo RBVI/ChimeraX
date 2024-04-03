@@ -40,7 +40,8 @@ The command <b>open</b> reads data in several
 <ul>
 <li><a href="#local">local files</a>
 <li><a href="#url">URLs</a>
-<li><a href="#fetch">online sources</a>
+<li><a href="#fetch">online sources</a>;
+see also <a href="../fetch.html"><b>Fetch by ID</b></a>
 </ul>
 <p>
 Input files may contain data to be displayed or commands or code to be executed.
@@ -163,7 +164,8 @@ and/or target receptor in the modified PDB format written by
 <br>
 (see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
 for analysis of docking results from
-<a href="http://www.swissdock.ch/" target="_blank">SwissDock</a>)
+<a href="http://www.swissdock.ch/" target="_blank">SwissDock</a>;
+<br>see also the <a href="#showTool"><b>showTool</b></a> option)
 </td>
 </tr><tr>
 <td align="center">Sybyl Mol2</td>
@@ -177,7 +179,8 @@ target="_blank">UCSF&nbsp;DOCK</a>&nbsp;v4-6,
 <a href="http://dock.compbio.ucsf.edu/DOCK3.7/" 
 target="_blank">DOCK&nbsp;v3.7</a>, or
 <a href="https://www.ccdc.cam.ac.uk/solutions/csd-discovery/components/gold/"
-target="_blank">GOLD</a>)
+target="_blank">GOLD</a>;
+<br>see also the <a href="#showTool"><b>showTool</b></a> option)
 </td>
 </tr><tr>
 <td align="center"><a href="http://autodock.scripps.edu/faqs-help/faq/what-is-the-format-of-a-pdbqt-file"
@@ -188,7 +191,8 @@ target="_blank">PDBQT</a></td>
 <br>
 (see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
 for analysis of docking results from
-<a href="http://vina.scripps.edu/" target="_blank">AutoDock Vina</a>)
+<a href="http://vina.scripps.edu/" target="_blank">AutoDock Vina</a>;
+<br>see also the <a href="#showTool"><b>showTool</b></a> option)
 </td>
 </tr><tr>
 <td align="center"><a href="https://gromos.net/"
@@ -211,7 +215,8 @@ target="_blank">MDL Molfile/SDF</a></td>
 <br>
 (see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
 for analysis of docking results from 
-<a href="https://www.schrodinger.com/glide" target="_blank">Glide</a>)
+<a href="https://www.schrodinger.com/glide" target="_blank">Glide</a>;
+<br>see also the <a href="#showTool"><b>showTool</b></a> option)
 </td>
 </tr><tr>
 <td align="center">
@@ -243,8 +248,19 @@ file</a></td>
 <br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">
 list of atom pairs
-to connect with <a href="../pseudobonds.html">pseudobonds</a>
+to connect with <a href="../pseudobonds.html">pseudobonds</a>,
+but see also <a href="commands/pbond.html"><b>pbond</b></a>
 </td>
+</tr><tr>
+<td align="center">
+<a href="https://link.springer.com/article/10.1007/s10858-018-0220-3"
+target="_blank">PDB NMR-STAR</a></td>
+<td align="center"><b>nmrstar</b></td>
+<td align="center">.str
+<br><a href="#compressed">+&nbsp;compressed</td>
+<td align="center" class="text">nuclear magnetic resonance (NMR) 
+distance constraints; will be displayed on atomic model(s) specified
+with the <a href="#nmrstar"><b>structures</b></a> option</td>
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="trajectory"></a>
@@ -322,7 +338,8 @@ target="_blank">MDTools</a>)</td>
 <a name="volume"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Volume Data and Related</b> (associated tool: 
-<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>)</td>
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>;
+see also the <a href="#difference"><b>difference</b></a> option)</td>
 </tr><tr>
 <td align="center">
 <a href="https://www.fei.com/software/amira-for-life-sciences/"
@@ -706,7 +723,8 @@ target="_blank">Wavefront OBJ</a></td>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Sequences</b> (associated tool: 
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
-but see the <a href="#viewer"><b>viewer</b></a> option)</td>
+but see the <a href="#viewer"><b>viewer</b></a> option;
+see also <a href="#ident"><b>ident</b></a>)</td>
 </tr><tr>
 <td align="center">Clustal ALN</td>
 <td align="center"><b>aln</b></td>
@@ -771,7 +789,9 @@ target="_blank">Stockholm</a></td>
 <td align="center"><a href="save.html#session">ChimeraX session file</a></td>
 <td align="center"><b>session</b></td>
 <td align="center">.cxs</td>
-<td align="center">ChimeraX session; see the
+<td align="center">ChimeraX session; see the <b>open</b> command options
+<a href="#combine"><b>combine</b></a> and
+<a href="#resizeWindow"><b>resizeWindow</b></a>; see also the
 <a href="../preferences.html#window"><b>Window</b> preferences</a> and
 <a href="../preferences.html#log"><b>Log</b> preferences</a></td>
 </tr><tr>
@@ -921,7 +941,8 @@ the option must be set to <b>false</b>.
 <b>alignTo</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;[&nbsp;<b>trim</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <br>
 When <a href="#fetch">fetching</a>
-an <a href="alphafold.html#fetch">AlphaFold prediction</a>, 
+an <a href="alphafold.html#fetch">AlphaFold prediction</a>
+or <a href="esmfold.html#fetch">ESMFold prediction</a>, 
 superimpose the predicted structure onto the specified chain using 
 <a href="matchmaker.html"><b>matchmaker</b></a> defaults, and make the
 chain ID of the prediction the same as the specified chain's.
@@ -1044,9 +1065,10 @@ allowing them to follow their parent models.
 <b>colorConfidence</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 When <a href="#fetch">fetching</a>
-an <a href="alphafold.html#fetch">AlphaFold prediction</a>, 
+an <a href="alphafold.html#fetch">AlphaFold prediction</a>
+or <a href="esmfold.html#fetch">ESMFold prediction</a>, 
 whether to <a href="color.html#byattribute">color</a> it by the
-<a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
+<a href="https://alphafold.ebi.ac.uk/faq#faq-12" target="_blank">pLDDT
 confidence measure</a> in the B-factor field (default <b>true</b>):
      <ul>
      <li>90
@@ -1116,6 +1138,17 @@ can be used to draw a corresponding color key, for example:
   </blockquote>
 </blockquote>
 <blockquote>
+<a name="combine"></a>
+<b>combine</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+When opening a <a href="save.html#session">session</a> file,
+whether to retain the current session (existing models and other data)
+or to close the current session first (default, <b>combine false</b>).
+The model numbers of the incoming session will be changed as needed
+to avoid duplicate model numbers.
+See also the <a href="#resizeWindow"><b>resizeWindow</b></a> option.
+</blockquote>
+<blockquote>
 <b>combineSymAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 Nonstandard PDB or mmCIF files may contain duplicate copies of atoms
@@ -1140,10 +1173,30 @@ Whether to send verbose information to the
 <a href="../formats/sff.html">EMDB segmentation file</a>.
 </blockquote>
 <blockquote>
+<a name="difference"></a>
+<b>difference</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>
+When opening a <a href="#volume">density map</a>, whether to display it
+as a difference map, <i>i.e.</i>, showing positive and negative contour surfaces
+and turning off <a href="volume.html#capFaces">capping at box faces</a>
+(default <b>false</b>, except <b>true</b> when <a href="#fetch">fetching</a>
+from <b>edsdiff</b>).
+</blockquote>
+<blockquote>
 <b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to fetch ensembles associated with an IHM dataset 
 (default <b>false</b>, as these can be quite large).
+</blockquote>
+<blockquote>
+<a name="fits"></a>
+<b>fits</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+When <a href="#fetch">fetching</a> a map from the EMDB, whether to 
+additionally fetch associated atomic structures, if any, from the PDB.
+Alternatively, specifying the <a href="#fetch-table">data source</a>
+as <b>emdb_fits</b> (rather than <b>emdb</b>) will automatically
+fetch both types of data without the use of this option.
 </blockquote>
 <blockquote>
 <a name="forEachFile"></a>
@@ -1183,6 +1236,32 @@ See also:
 <br>
 Height in physical units of distance (&Aring;) for the
 <a href="#photo">photo</a> (single image) being opened.
+</blockquote>
+<blockquote>
+<a name="id"></a>
+<b>id</b>&nbsp;&nbsp;<i>model-id</i>
+<br>
+A model identifier (model number, as shown in the 
+<a href="../tools/modelpanel.html"><b>Model Panel</b></a>) 
+will be assigned automatically, starting with the lowest available number,
+unless another identifier is given with the <b>id</b> option.
+If the same command opens multiple models or the <i>model-id</i>
+is already &ldquo;taken,&rdquo; submodel numbers will be used.
+Similarly, the <a href="#name"><b>name</b></a> option can be used to specify
+the model name. The name and/or number of an existing (already open) model
+can be changed with the <a href="rename.html"><b>rename</b></a> command.
+</blockquote>
+<blockquote>
+<a name="ident"></a>
+<b>ident</b>&nbsp;&nbsp;<i>alignment-ID</i>
+<br>
+When opening <a href="#sequence">sequence data</a>, assign the specified text
+as the sequence alignment identifier. If this option is not used,
+an identifier will be generated automatically. This identifier is used to 
+<a href="seqspec.html">specify</a> the sequence alignment in other commands
+and appears in the title bar of
+the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window,
+if shown. See also the <a href="#viewer"><b>viewer</b></a> option.
 </blockquote>
 <blockquote>
 <a name="log"></a>
@@ -1241,15 +1320,19 @@ Whether to read the meshes from an
 Limit <a href="#defattr">attribute assignment</a> to the specified models.
 </blockquote>
 <blockquote>
+<a name="name"></a>
 <b>name</b>&nbsp;&nbsp;<i>model-name</i>
 <br>
-The name of the model (shown in the <b>Model Panel</b>) will be generated 
+The name of a model 
+(as shown in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>) 
+will be generated 
 automatically from the input <i>filename</i> or database <i>identifier</i>
 unless another name is given with the <b>name</b> option.
 If <i>model-name</i> contains spaces, it should be enclosed in quotation marks.
-Model number is also assigned automatically, starting with the lowest available
-number. Model name and number can be changed with the
-<a href="rename.html"><b>rename</b></a> command.
+Similarly, the <a href="#id"><b>id</b></a> option can be used to specify
+the model identifier (model number).
+The name and/or number of an existing (already open) model
+can be changed with the <a href="rename.html"><b>rename</b></a> command.
 </blockquote>
 <blockquote>
 <b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -1273,8 +1356,7 @@ When opening a <a href="save.html#session">session</a>,
 whether to restore its window size along with its contents; 
 overrides the corresponding
 <a href="../preferences.html#window"><b>Window</b> preference</a>.
-Opening a ChimeraX <a href="save.html#session">session</a>
-automatically runs <a href="close.html"><b>close session</b></a> first.
+See also the <a href="#combine"><b>combine</b></a> option.
 </blockquote>
 <blockquote>
 <a name="segidChains"></a>
@@ -1288,6 +1370,23 @@ Whether to assign segment IDs in PDB format as the chain IDs in ChimeraX.
 <br>
 Method to use when <a href="#fetch">fetching</a> a map
 from a specific EMDB mirror site.
+</blockquote>
+<blockquote>
+<a name="showTool"></a>
+<b>showTool</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to show the 
+<a href="../tools/viewdockx.html"><b>ViewDockX</b></a> tool
+when opening a file of molecular docking results
+(certain files in the <a href="#atomic">formats</a> <b>swissdock</b>,
+<b>pdbqt</b>, <b>mae</b>, and <b>mol2</b>; default <b>showTool true</b>).
+If the file is not found to contain molecular docking results, however,
+<a href="../tools/viewdockx.html"><b>ViewDockX</b></a> will not be shown.
+Alternatively, one or more files of docking results can be opened with
+<b>showTool false</b>, and subsequently (in a separate step) the 
+<a href="../tools/viewdockx.html"><b>ViewDockX</b></a> tool
+started from the <b>Tools</b> menu or by using the 
+<a href="viewdockx.html"><b>viewdockx</b></a> command.
 </blockquote>
 <blockquote>
 <a name="transparency"></a>
@@ -1306,6 +1405,7 @@ See also the <a href="transparency.html"><b>transparency</b></a> command.
 Whether to show the 
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
 when opening <a href="#sequence">sequence data</a>.
+See also the <a href="#ident"><b>ident</b></a> option.
 <!-- 
 also has option seqview = sv = view, meaning the Sequence Viewer,
 which will be relevant when an option is added for ProfileGrid instead.
@@ -1514,337 +1614,111 @@ before clicking the record button.
 See also: <a href="coordset.html#slider"><b>coordset slider</b></a>
 </blockquote>
 
-<a name="url"></a>
+<a name="nmrstar"></a>
 <p class="nav">
 [<a href="#top">back to top: open</a>]
 </p>
-<h3>URLs</h3>
-
+<h3>NMR-STAR Options</h3>
+<p>
+<a href="https://link.springer.com/article/10.1007/s10858-018-0220-3"
+target="_blank">NMR-STAR</a> files contain distance constraints
+that will be shown as <a href="../pseudobonds.html">pseudobonds</a>
+between atoms. These files can be <a href="#fetch">fetched</a> from the
+PDB for certain structures determined by nuclear magnetic resonance (NMR),
+or obtained directly from the PDB website using the Download option
+&ldquo;Combined NMR data (NMR-STAR) (.gz).&rdquo;
+</p>
 <blockquote>
-<a href="usageconventions.html"><b>Usage</b></a>:
-<b>open</b> &nbsp;<i>URL</i>&nbsp;
-[&nbsp;<b>dataFormat</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
-[&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
-[&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<a href="#vseries"><b>vseries</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#resizeWindow"><b>resizeWindow</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-&nbsp;<a href="#options"><i>options</i></a>&nbsp;
+<b>structures</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<br>
+Specifies the atomic model(s) on which to draw
+<a href="../pseudobonds.html">pseudobonds</a> representing constraints
+read from an NMR-STAR file. If this option is not given, every currently
+open atomic model that contains all of the atoms associated with 
+constraints in the NMR-STAR file will be used.
+If an atomic model that does not contain all of the constraint-associated
+atoms is specified, a warning will be issued, but constraint pseudobonds 
+will still be generated for the atom pairs that are present.
+</blockquote>
+<blockquote>
+<b>type</b>&nbsp;&nbsp;<i>type-name</i>
+<br>
+A single NMR-STAR may contain multiple types of constraints, where each
+type has a name such as &ldquo;NOE&rdquo; or &ldquo;hydrogen bond.&rdquo;
+By default, each type will be opened as a separate
+<a href="../pseudobonds.html">pseudobond group</a> with the type included
+in the model name.
+The <b>type</b> option can be used to limit the input to a specific type.
+If not specified, all types of constraints are read and each type is placed
+in a separate <a href="../pseudobonds.html">pseudobond group</a>.
 </blockquote>
 <p>
-Uniform Resource Locators (URLs) starting with
-<b>http:</b>, <b>https:</b>, and <b>ftp:</b> are handled.
-File types and command options are the same as described 
-<a href="#local">above</a> for local files.
-The file type can be indicated by <a href="#file-table">suffix</a>
-or the <b>dataFormat</b> option 
-(where <a href="#file-table"><i>format-name</i></a> can be truncated).
-</p><p>
-Web-fetched data other than those handled by the
-<a href="../tools/helpviewer.html">ChimeraX browser</a>
-are stored locally as described <a href="#ignoreCache">below</a>.
+Examples:
+</p>
+<blockquote>
+<b>open 8r4w</b>
+<br>
+<b>open 8r4w from pdb_nmr structures #1 type NOE</b>
+<br>
+<br><b>open ~/Downloads/8r4w_nmr-data.str structures #1</b>
+</blockquote>
+<p>
+Each restraint has a maximum distance. If the distance in a structure is
+within the maximum, it is classified satisfied 
+(<a href="atomspec.html#builtin">command-line specifier</a> for the
+corresponding <a href="../pseudobonds.html">pseudobonds</a> is
+<b>nmr-satisfied</b>), otherwise it is long 
+(<a href="atomspec.html#builtin">command-line specifier</a> <b>nmr-long</b>).
+Examples of using these in commands:
+<blockquote>
+<b>hide satisfied</b>
+<br>
+<b>show satisfied</b>
+<br>
+<b>hide long</b>
+</blockquote>
+<p>
+NMR-STAR constraints and their maxima are saved in
+<a href="save.html#session">sessions</a>.
 </p>
 
-<a name="fetch"></a>
+<a name="photo"></a>
 <p class="nav">
 [<a href="#top">back to top: open</a>]
 </p>
-<h3>Fetch from Online Sources</h3>
-
+<h3>Photo (Single Image)</h3>
+<p>
+A single image file can be opened as a flat model. Although flat,
+the model exists in 3D and can be rotated and translated like other models.
+Several image types (filename suffixes .png, .tif, <i>etc.</i>) 
+are accepted, but except for .jpg, require specifying 
+<a href="#miscellaneous"><b>format photo</b></a> 
+in the <a href="#local"><b>open</b></a> command. Any of the following 
+options can be used to specify the size of the image within the scene:
+</p>
 <blockquote>
-<a href="usageconventions.html"><b>Usage</b></a>: <b>open</b> 
-[&nbsp;<a href="#fetch-table"><i>source1</i></a>:]<i>identifier</i>&nbsp;
-[[&nbsp;<a href="#fetch-table"><i>source2</i></a>:]<i>identifier2</i>...&nbsp;]
-[&nbsp;<b>fromDatabase</b>&nbsp;&nbsp;<a href="#fetch-table"><i>source</i></a>&nbsp;]
-[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
-[&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
-[&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<a href="#maxAssemblies"><b>maxAssemblies</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<a href="#resName"><b>resName</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
-&nbsp;<a href="#options"><i>options</i></a>&nbsp;
+<a href="#width"><b>width</b></a>&nbsp;&nbsp;<i>w</i>
+<br>
+<a href="#height"><b>height</b></a>&nbsp;&nbsp;<i>h</i>
+<br>
+<a href="#pixelSize"><b>pixelSize</b></a>&nbsp;&nbsp;<i>s</i>
 </blockquote>
 <p>
-Atomic structures, density maps, and protein sequences can be fetched directly
-into ChimeraX from online sources. A specific compound or entry is specified 
-by an <i>identifier</i>, and its source (database or web service)
-can be indicated with either a <i>prefix</i>
-before the identifier or the <b>fromDatabase</b> option.
-The default database for a 4-character identifier without prefix is the
-<a href="https://www.rcsb.org/" target="_blank">RCSB Protein Data Bank</a>;
-the default format
-for that database is <b>mmcif</b>, although <b>pdb</b> or <b>mmtf</b>
-can be specified with the <b>format</b> option.
-Specifying multiple identifiers is equivalent to using the <b>open</b> command
-multiple times with the same options for each identifier.
-</p><p>
-<a name="ignoreCache"></a>
-Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b> 
-(where ~ indicates a user's home directory), with subdirectories
-<b>PDB</b> for atomic coordinates from the Protein Data Bank,
-<b>EMDB</b> for density maps from the
-<a href="https://www.ebi.ac.uk/pdbe/emdb/"
-target="_blank">Electron Microscopy Data Bank</a>, <i>etc.</i>
-For caching, no distinction is made among the different Protein Data Bank sites.
-If a data file specified for opening is not found in this local cache or 
-<b>ignoreCache</b> is set to <b>true</b>, the file will be fetched and cached.
-</p><p>
-<a name="maxAssemblies"></a>
-Multiple biological assemblies are defined for many entries in the PDB.
-By default, fetching from <b>rcsb_bio</b> or <b>pdbe_bio</b>
-will return every assembly available for that entry in that database.
-The <b>maxAssemblies</b> option limits fetching to the
-first <i>N</i> assemblies.
-A single assembly from <b>pdbe_bio</b> will be opened as a single model, but
-even a single assembly from <b>rcsb_bio</b> may be composed of multiple models
-(opened as submodels of the assembly model).
-<!-- 
-details in ticket #3515
-RCSB says that in 2021 all will be mmCIF and as one model per assembly
--->
-</p><p>
-<a name="resName"></a>
-The <b>resName</b> option applies only to <a href="#pubchem">PubChem3D</a>
-and <a href="#smiles">SMILES</a> fetches;
-it assigns a residue name to the compound (default UNL).
-For compatibility with other programs and PDB format,
-three-character residue names consisting of uppercase letters 
-and possibly numbers are recommended. 
-</p><p>
-The <b>colorConfidence</b> option (default <b>true</b>) applies only to 
-<b>alphafold</b> fetch and specifies whether to color the predicted structures
-by a confidence value (<a href="#colorConfidence">details...</a>).
-The <b>alignTo</b> and <b>trim</b> options also apply only to 
-<b>alphafold</b> fetch (<a href="#alignTo">details...</a>).
-See also: <a href="alphafold.html"><b>alphafold</b></a>
-</p><p>
-See also: 
-<a href="../tools/downloaddicom.html"><b>Download DICOM</b></a>,
-<a href="../preferences.html#webaccess"><b>Web Access</b> preferences</a>
+Width, height, and pixel size values are specified in physical units of 
+distance (&Aring;). If width or height is given,
+the other is set according to the aspect ratio of the image.
+If both are given and their ratio differs
+from that of the image, the image will be stretched.
+Width and height values override any pixel size specification.
+If no width, height, or pixel size is given,
+a pixel size of <b>1.0</b> will be used.
+Examples:
+<blockquote>
+<b>open ~/Desktop/headshot.png format photo width 5</b>
+<br>
+<b>open figure1.jpg height 30</b>
+</blockquote>
 </p>
-
-<center>
-<a name="fetch-table"><font size="+1"><b>Fetch Sources</b></font></a>
-</center>
-<table border cellpadding="4" cellspacing="0"><tr>
-<td align="center" style="background-color:#cccccc"><b>database
-or web service</b></td>
-<td align="center" style="background-color:#cccccc"><b><i>source</i></b></td>
-<td align="center" style="background-color:#cccccc"><b>description</b></td>
-<td align="center" style="background-color:#cccccc"><span class="nowrap"><b><i>format-name</i></b></span></td>
-</tr><tr>
-<td align="center" rowspan="2"><a href="https://www.rcsb.org/"
-target="_blank">RCSB Protein Data Bank</a></td>
-<td align="center"><b>pdb</b></td>
-<td align="center">atomic coordinates and associated annotations</td>
-<td align="center"><b>mmcif</b> (default) or <b>pdb</b>
-<br>or <a href="https://mmtf.rcsb.org/" target="_blank"><b>mmtf</b></a></td>
-</tr><tr>
-<td align="center" class="text"><b>rcsb_bio</b></td>
-<td align="center" class="text">atomic coordinates for biological assembly
-or assemblies, see <a href="#maxAssemblies"><b>maxAssemblies</b></a></td>
-<td align="center">(no choice, <b>mmcif</b> or <b>pdb</b> depending on
-the specific entry)</td>
-</tr><tr>
-<td align="center" rowspan="3"><a href="https://www.ebi.ac.uk/pdbe/"
-target="_blank">Protein Data Bank <br>in Europe (PDBe)</a></td>
-<td align="center"><b>pdbe</b></td>
-<td align="center">atomic coordinates and associated annotations</td>
-<td align="center"><b>mmcif</b> (default) or <b>pdb</b></td>
-</tr><tr>
-<td align="center" class="text"><b>pdbe_bio</b></td>
-<td align="center" class="text">atomic coordinates for biological assembly
-or assemblies, see <a href="#maxAssemblies"><b>maxAssemblies</b></a></td>
-<td align="center"><b>mmcif</b></td>
-</tr><tr>
-<td align="center" class="text"><b>pdbe_updated</b></td>
-<td align="center" class="text">atomic coordinates and associated annotations,
-&nbsp;updated to include small-molecule connectivity 
-and binding-site information as described in 
-<a href="https://nar.oxfordjournals.org/content/44/D1/D385.long"
-target="_blank">Velankar <i>et al.</i></a>,
-<i>Nucleic Acids Res</i> <b>44</b>:D385 (2016)</td>
-<td align="center"><b>mmcif</b>
-</td>
-</tr><tr>
-<td align="center"><a href="https://pdbj.org/" target="_blank">Protein 
-Data Bank Japan (PDBj)</a></td>
-<td align="center"><b>pdbj</b></td>
-<td align="center">atomic coordinates and associated annotations</td>
-<td align="center"><b>mmcif</b></td>
-</tr><tr>
-<td align="center"><a href="https://www.wwpdb.org/data/ccd"
-target="_blank">PDB Chemical Component Dictionary (CCD)</a>
-</td>
-<td align="center"><b>ccd</b></td>
-<td align="center">idealized structure of PDB chemical component 
-specified by CCD ID (residue name)</td>
-<td align="center"><b>ccd</b></td>
-</tr><tr>
-<td align="center" rowspan="2"><a href="https://www.ebi.ac.uk/pdbe/eds/"
-target="_blank">PDBe Electron Density Server (EDS)</a>
-</td>
-<td align="center"><b>eds</b></td>
-<td align="center">(2Fo-Fc) electron density map for a PDB entry;
-<br>not available for all PDB entries</td>
-<td align="center" rowspan="2"><b>ccp4</b></td>
-</tr><tr>
-</td>
-<td align="center"><b>edsdiff</b></td>
-<td align="center">(Fo-Fc) electron density difference map for a PDB entry;
-<br>not available for all PDB entries</td>
-</tr><tr>
-<td align="center" class="text"><a href="https://www.ebi.ac.uk/pdbe/emdb/"
-target="_blank">Electron Microscopy Data Bank (EMDB)</a></td>
-<td align="center"><b>emdb</b></td>
-<td align="center">electron density map
-<br>
-(from wwpdb.org to .edu/.gov hosts, Chinese mirror site to .cn hosts, 
-Japanese mirror to .jp hosts, otherwise ebi.ac.uk; 
-Japanese site uses https, others
-<a href="ftp://ftp.wwpdb.org/pub/emdb/README" target="_blank">ftp</a>)
-</td>
-<td align="center" rowspan="5"><b>ccp4</b></td>
-</tr><tr>
-<td align="center" class="text"><a href="https://www.ebi.ac.uk/pdbe/emdb/"
-target="_blank">EMDB</a> ebi.ac.uk</td>
-<td align="center"><b>emdb_europe</b></td>
-<td align="center">electron density map
-<br>
-(command option <a href="#transferMethod"><b>transferMethod</b></a>
-can be <b>https</b> or <b>ftp</b>)
-</td>
-</tr><tr>
-<td align="center" class="text"><a href="https://www.ebi.ac.uk/pdbe/emdb/"
-target="_blank">EMDB</a> Chinese mirror site</td>
-<td align="center"><b>emdb_china</b></td>
-<td align="center">electron density map
-<br>
-(<a href="#transferMethod"><b>transferMethod</b></a> <b>ftp</b> only)
-</td>
-</tr><tr>
-<td align="center" class="text"><a href="https://www.ebi.ac.uk/pdbe/emdb/"
-target="_blank">EMDB</a> Japanese mirror site</td>
-<td align="center"><b>emdb_japan</b></td>
-<td align="center">electron density map
-<br>
-(command option <a href="#transferMethod"><b>transferMethod</b></a>
-can be <b>https</b> or <b>ftp</b>)
-</td>
-</tr><tr>
-<td align="center" class="text"><a href="https://www.ebi.ac.uk/pdbe/emdb/"
-target="_blank">EMDB</a> wwpdb.org</td>
-<td align="center"><b>emdb_us</b></td>
-<td align="center">electron density map
-<br>
-(command option <a href="#transferMethod"><b>transferMethod</b></a>
-can be <b>https</b> or <b>ftp</b>)
-</td>
-</tr><tr>
-<td align="center"><a href="https://pdb-dev.wwpdb.org/"
-target="_blank">PDB-Dev</a></td>
-<td align="center"><b>pdbdev</b></td>
-<td align="center" class="text">integrative hybrid model;
-<br>
-leading zeroes can be omitted from the identifier, for example, 
-accession code PDBDEV_00000001 can be opened with command:
-<br><b>open pdbdev:1</b>
-</td>
-<td align="center"><b>ihm</b></td>
-</tr><tr>
-<td align="center"><a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold</a></td>
-<td align="center"><b>alphafold</b></td>
-<td align="center">theoretical protein structure modeled by
-<a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold</a> and specified by
-<a href="https://www.uniprot.org/" target="_blank">UniProt</a>
-name or accession number (<a href="alphafold.html#fetch">details...</a>)</td>
-<td align="center"><b>mmcif</b></td>
-</tr><tr>
-<td align="center"><a href="http://www.crystallography.net/cod/"
-target="_blank">Crystallography Open Database</a></td>
-<td align="center"><b>cod</b></td>
-<td align="center">crystal structures of small molecules and 
-inorganic compounds</td>
-<td align="center"><b>corecif</b></td>
-</tr><tr>
-<td align="center"><a href="http://www.crystallography.net/pcod/"
-target="_blank">Predicted Crystallography Open Database</a></td>
-<td align="center"><b>pcod</b></td>
-<td align="center">predicted structures of inorganic compounds</td>
-<td align="center"><b>corecif</b></td>
-</tr><tr>
-<td align="center"><a href="http://www.cellpack.org"
-target="_blank">cellPACK</a></td>
-<td align="center"><b>cellpack</b></td>
-<td align="center">hierarchical model;
-<br>
-<!--
-only the model with identifier <b>HIV-1_0.1.6</b> is available currently
--->
-see <a href="http://www.cellpack.org/use/" target="_blank">cellPACK
-Chimera instructions</a> for available identifiers
-</td>
-<td align="center"><b>cellpack</b></td>
-</tr><tr>
-<td align="center"><a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
-target="_blank">PubChem3D</a></td>
-<td align="center"><b>pubchem</b></td>
-<td align="center"><a name="pubchem"></a>
-modeled atomic coordinates specified by
-<a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem</a>
-compound identifier (CID); 
-<br>available for most but not all entries in PubChem Compound
-<br>(partial charges are assigned as the atom 
-<a href="../attributes.html">attribute</a> named <b>charge</b>)
-</td>
-<td align="center"><b>sdf</b></td>
-</tr><tr>
-<td align="center">IUPAC &rarr; SMILES &rarr; 3D translator</td>
-<td align="center"><b>iupac</b></td>
-<td align="center"><a name="iupac"></a>
-modeled atomic coordinates specified by
-IUPAC name, first translated to
-a <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank">SMILES</a> string using the
-<a href="https://opsin.ch.cam.ac.uk/index.html" target="_blank">OPSIN
-web service</a> provided by the <a href="https://www-cmi.ch.cam.ac.uk/"
-target="_blank">Centre for Molecular Informatics</a>
-at the University of Cambridge, followed by the process
-described <a href="#smiles">below</a> for SMILES; see also
-<a href="../tools/buildstructure.html"><b>Build Structure</b></a>
-</td>
-<td align="center"><b>iupac</b></td>
-</tr><tr>
-<td align="center">SMILES &rarr; 3D translator</td>
-<td align="center"><b>smiles</b></td>
-<td align="center"><a name="smiles"></a>
-modeled atomic coordinates specified by
-<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank">SMILES</a> string, generated using the
-<a href="https://cactus.nci.nih.gov/translate/" target="_blank">SMILES
-translator</a> provided by the
-<a href="https://cactus.nci.nih.gov/" target="_blank">National Cancer Institute
-CADD group</a>, or if that does not produce a structure, the
-<i>smi23d</i> web service provided by the
-cheminformatics group at Indiana University; see also
-<a href="../tools/buildstructure.html"><b>Build Structure</b></a>
-</td>
-<td align="center"><b>smiles</b></td>
-</tr><tr>
-<td align="center"><a href="https://www.uniprot.org" 
-target="_blank">UniProt</a></td>
-<td align="center"><b>uniprot</b></td>
-<td align="center">protein sequence
-<br>
-(command option <a href="#associate"><b>associate</b></a>)
-<br>
-(associated tool: 
-<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>;
-see <a href="../tools/sequenceviewer.html#uniprot">UniProt
-Sequence Features</a>)</td>
-<td align="center"><b>uniprot</b></td>
-</tr></table>
 
 <a name="image-wildcards"></a>
 <p class="nav">
@@ -1947,43 +1821,403 @@ See also:
 <a href="../hydrophobicity.html">amino acid hydrophobicity</a>
 </p>
 
-<a name="photo"></a>
+<a name="generic-hdf"></a>
 <p class="nav">
 [<a href="#top">back to top: open</a>]
 </p>
-<h3>Photo (Single Image)</h3>
+<h3>Generic HDF File Reader</h3>
 <p>
-A single image file can be opened as a flat model. Although flat,
-the model exists in 3D and can be rotated and translated like other models.
-Several image types (filename suffixes .png, .tif, <i>etc.</i>) 
-are accepted, but except for .jpg, require specifying 
-<a href="#miscellaneous"><b>format photo</b></a> 
-in the <a href="#local"><b>open</b></a> command. Any of the following 
-options can be used to specify the size of the image within the scene:
+If <a href="#volume">EMAN HDF format</a> is expected, 
+but that file reader fails, a generic HDF file reader is tried instead. 
+This generic reader does not look for any metadata; it simply looks for
+3-dimensional arrays and tries to open them as <a href="../tools/volumeviewer.html">volume models</a> with grid spacing of 1. The following 
+<a href="#local"><b>open</b></a> command option can be used to
+limit which 3D arrays are read:
 </p>
 <blockquote>
-<a href="#width"><b>width</b></a>&nbsp;&nbsp;<i>w</i>
+<b>arrayName</b>&nbsp;&nbsp;<i>name</i>
 <br>
-<a href="#height"><b>height</b></a>&nbsp;&nbsp;<i>h</i>
-<br>
-<a href="#pixelSize"><b>pixelSize</b></a>&nbsp;&nbsp;<i>s</i>
+In <a href="https://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a> format,
+each array has a directory path within the file and 
+a <i>name</i> (the last part of the pathname). This option indicates reading
+only arrays with the specified <i>name</i>. Example:
+ <blockquote>
+ <b>open Cam_long_00003.h5 arrayName Data</b>
+ </blockquote>
+</blockquote>
+
+<a name="url"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>URLs</h3>
+
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>open</b> &nbsp;<i>URL</i>&nbsp;
+[&nbsp;<b>dataFormat</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
+[&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#vseries"><b>vseries</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#resizeWindow"><b>resizeWindow</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#options"><i>options</i></a>&nbsp;
 </blockquote>
 <p>
-Width, height, and pixel size values are specified in physical units of 
-distance (&Aring;). If width or height is given,
-the other is set according to the aspect ratio of the image.
-If both are given and their ratio differs
-from that of the image, the image will be stretched.
-Width and height values override any pixel size specification.
-If no width, height, or pixel size is given,
-a pixel size of <b>1.0</b> will be used.
-Examples:
-<blockquote>
-<b>open ~/Desktop/headshot.png format photo width 5</b>
-<br>
-<b>open figure1.jpg height 30</b>
-</blockquote>
+Uniform Resource Locators (URLs) starting with
+<b>http:</b>, <b>https:</b>, and <b>ftp:</b> are handled.
+File types and command options are the same as described 
+<a href="#local">above</a> for local files.
+The file type can be indicated by <a href="#file-table">suffix</a>
+or the <b>dataFormat</b> option 
+(where <a href="#file-table"><i>format-name</i></a> can be truncated).
+</p><p>
+Web-fetched data other than those handled by the
+<a href="../tools/helpviewer.html">ChimeraX browser</a>
+are stored locally as described <a href="#ignoreCache">below</a>.
 </p>
+
+<a name="fetch"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>Fetch from Online Sources</h3>
+
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>: <b>open</b> 
+[&nbsp;<a href="#fetch-table"><i>source1</i></a>:]<i>identifier</i>&nbsp;
+[[&nbsp;<a href="#fetch-table"><i>source2</i></a>:]<i>identifier2</i>...&nbsp;]
+[&nbsp;<b>fromDatabase</b>&nbsp;&nbsp;<a href="#fetch-table"><i>source</i></a>&nbsp;]
+[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
+[&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#maxAssemblies"><b>maxAssemblies</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<a href="#resName"><b>resName</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
+&nbsp;<a href="#options"><i>options</i></a>&nbsp;
+</blockquote>
+<p>
+Atomic structures, density maps, and protein sequences can be fetched directly
+into ChimeraX from online sources. A specific compound or entry is specified 
+by an <i>identifier</i>, and its source (database or web service)
+can be indicated with either a <i>prefix</i>
+before the identifier or the <b>fromDatabase</b> option.
+The default database for a 4-character identifier without prefix is the
+<a href="https://www.rcsb.org/" target="_blank">RCSB Protein Data Bank</a>;
+the default format
+for that database is <b>mmcif</b>, although <b>pdb</b> or <b>mmtf</b>
+can be specified with the <b>format</b> option.
+Specifying multiple identifiers is equivalent to using the <b>open</b> command
+multiple times with the same options for each identifier.
+As an alternative to the command, <a href="../fetch.html"><b>Fetch by ID</b></a>
+provides a graphical interface to many common fetch types.
+</p><p>
+See also: 
+<a href="../tools/downloaddicom.html"><b>Download DICOM</b></a>,
+<a href="../preferences.html#webaccess"><b>Web Access</b> preferences</a>
+</p><p>
+<a name="ignoreCache"></a>
+Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b> 
+(where ~ indicates a user's home directory), with subdirectories
+<b>PDB</b>, <b>EMDB</b>, <i>etc.</i>
+For caching, no distinction is made among the different Protein Data Bank sites.
+If a data file specified for opening is not found in this local cache or 
+<b>ignoreCache</b> is set to <b>true</b>, the file will be fetched and cached.
+</p><p>
+<a name="maxAssemblies"></a>
+Multiple biological assemblies are defined for many entries in the PDB.
+By default, fetching from <b>rcsb_bio</b> or <b>pdbe_bio</b>
+will return every assembly available for that entry in that database.
+The <b>maxAssemblies</b> option limits fetching to the
+first <i>N</i> assemblies.
+</p><p>
+<a name="resName"></a>
+The <b>resName</b> option applies only to <a href="#pubchem">PubChem3D</a>
+and <a href="#smiles">SMILES</a> fetches;
+it assigns a residue name to the compound (default UNL).
+For compatibility with other programs and PDB format,
+three-character residue names consisting of uppercase letters 
+and possibly numbers are recommended. 
+</p><p>
+The <b>colorConfidence</b> option (default <b>true</b>) applies only to 
+<b>alphafold</b> or <b>esmfold</b>
+fetch and specifies whether to color the predicted structures
+by a confidence value (<a href="#colorConfidence">details...</a>).
+The <b>alignTo</b> and <b>trim</b> options also apply only to 
+<b>alphafold</b> or <b>esmfold</b> fetch (<a href="#alignTo">details...</a>).
+See also: <a href="alphafold.html"><b>alphafold</b></a>,
+<a href="esmfold.html"><b>esmfold</b></a>
+</p>
+
+<center>
+<a name="fetch-table"><font size="+1"><b>Fetch Sources</b></font></a>
+</center>
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center" style="background-color:#cccccc"><b>database
+or web service</b></td>
+<td align="center" style="background-color:#cccccc"><b><i>source</i></b></td>
+<td align="center" style="background-color:#cccccc"><b>description</b></td>
+<td align="center" style="background-color:#cccccc"><span class="nowrap"><b><i>format-name</i></b></span></td>
+</tr><tr>
+<td align="center" rowspan="2"><a href="https://www.rcsb.org/"
+target="_blank">RCSB Protein Data Bank</a></td>
+<td align="center"><b>pdb</b></td>
+<td align="center">atomic coordinates and associated annotations</td>
+<td align="center"><b>mmcif</b> (default) or <b>pdb</b>
+<br>or <a href="https://mmtf.rcsb.org/" target="_blank"><b>mmtf</b></a></td>
+</tr><tr>
+<td align="center" class="text"><b>rcsb_bio</b></td>
+<td align="center" class="text">atomic coordinates for biological assembly
+or assemblies, see <a href="#maxAssemblies"><b>maxAssemblies</b></a></td>
+<td align="center">(no choice, <b>mmcif</b> or <b>pdb</b> depending on
+the specific entry)</td>
+</tr><tr>
+<td align="center" rowspan="3"><a href="https://www.ebi.ac.uk/pdbe/"
+target="_blank">Protein Data Bank <br>in Europe (PDBe)</a></td>
+<td align="center"><b>pdbe</b></td>
+<td align="center">atomic coordinates and associated annotations</td>
+<td align="center"><b>mmcif</b> (default) or <b>pdb</b></td>
+</tr><tr>
+<td align="center" class="text"><b>pdbe_bio</b></td>
+<td align="center" class="text">atomic coordinates for biological assembly
+or assemblies, see <a href="#maxAssemblies"><b>maxAssemblies</b></a></td>
+<td align="center"><b>mmcif</b></td>
+</tr><tr>
+<td align="center" class="text"><b>pdbe_updated</b></td>
+<td align="center" class="text">atomic coordinates and associated annotations,
+&nbsp;updated to include small-molecule connectivity 
+and binding-site information as described in 
+<a href="https://nar.oxfordjournals.org/content/44/D1/D385.long"
+target="_blank">Velankar <i>et al.</i></a>,
+<i>Nucleic Acids Res</i> <b>44</b>:D385 (2016)</td>
+<td align="center"><b>mmcif</b>
+</td>
+</tr><tr>
+<td align="center"><a href="https://pdbj.org/" target="_blank">Protein 
+Data Bank Japan (PDBj)</a></td>
+<td align="center"><b>pdbj</b></td>
+<td align="center">atomic coordinates and associated annotations</td>
+<td align="center"><b>mmcif</b></td>
+</tr><tr>
+<td align="center"><a href="https://www.wwpdb.org/data/ccd"
+target="_blank">PDB Chemical Component Dictionary (CCD)</a>
+</td>
+<td align="center"><b>ccd</b></td>
+<td align="center">idealized structure of PDB chemical component 
+specified by CCD ID (residue name)</td>
+<td align="center"><b>ccd</b></td>
+</tr><tr>
+<td align="center">
+<a href="https://pdb-redo.eu/" target="_blank">PDB-REDO</a>
+</td>
+<td align="center"><b>redo</b></td>
+<td align="center" class="text">
+atomic coordinates or diffraction data (if MTZ)
+specified by PDB identifier</td>
+<td align="center"><b>mmcif</b> (default) or <b>pdb</b> or <b>mtz</b>*
+<br><br>*<b>mtz</b> requires installing the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper"
+target="_blank"><b>Clipper</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a>
+and specifying the corresponding atomic model
+(<a href="#clipper">details...</a>)
+</td>
+</tr><tr>
+<td align="center">
+<a href="https://link.springer.com/article/10.1007/s10858-018-0220-3"
+target="_blank">PDB NMR-STAR</a>
+</td>
+<td align="center"><b>pdb_nmr</b></td>
+<td align="center" class="text">nuclear magnetic resonance (NMR) 
+distance constraints; will be displayed on atomic model(s) specified
+with the <a href="#nmrstar"><b>structures</b></a> option</td>
+<td align="center"><b>nmrstar</b></td>
+</tr><tr>
+<td align="center" rowspan="2">
+<a href="https://www.ebi.ac.uk/pdbe/" target="_blank">PDBe</a>
+Electron Density Server (EDS)
+</td>
+<td align="center"><b>eds</b></td>
+<td align="center">(2Fo-Fc) electron density map for a PDB entry;
+<br>not available for all PDB entries</td>
+<td align="center" rowspan="2"><b>ccp4</b></td>
+</tr><tr>
+</td>
+<td align="center"><b>edsdiff</b></td>
+<td align="center">(Fo-Fc) electron density difference map for a PDB entry;
+<br>not available for all PDB entries</td>
+</tr><tr>
+<td align="center" class="text"><a href="https://www.ebi.ac.uk/emdb/"
+target="_blank">Electron Microscopy Data Bank (EMDB)</a></td>
+<td align="center"><b>emdb</b></td>
+<td align="center">electron density map
+<br>
+(from wwpdb.org to .edu/.gov hosts, Chinese mirror site to .cn hosts, 
+Japanese mirror to .jp hosts, otherwise ebi.ac.uk; 
+Japanese site uses https, others
+<a href="ftp://ftp.wwpdb.org/pub/emdb/README" target="_blank">ftp</a>)
+<br>
+(for associated atomic structures, if any,
+see command option <a href="#fits"><b>fits</b></a> or
+data source <b>emdb_fits</b>, below)
+</td>
+<td align="center" rowspan="5"><b>ccp4</b></td>
+</tr><tr>
+<td align="center" class="text"><a href="https://www.ebi.ac.uk/emdb/"
+target="_blank">EMDB</a> ebi.ac.uk</td>
+<td align="center"><b>emdb_europe</b></td>
+<td align="center">electron density map
+<br>
+(command option <a href="#transferMethod"><b>transferMethod</b></a>
+can be <b>https</b> or <b>ftp</b>)
+</td>
+</tr><tr>
+<td align="center" class="text"><a href="https://www.ebi.ac.uk/emdb/"
+target="_blank">EMDB</a> Chinese mirror site</td>
+<td align="center"><b>emdb_china</b></td>
+<td align="center">electron density map
+<br>
+(<a href="#transferMethod"><b>transferMethod</b></a> <b>ftp</b> only)
+</td>
+</tr><tr>
+<td align="center" class="text"><a href="https://www.ebi.ac.uk/emdb/"
+target="_blank">EMDB</a> Japanese mirror site</td>
+<td align="center"><b>emdb_japan</b></td>
+<td align="center">electron density map
+<br>
+(command option <a href="#transferMethod"><b>transferMethod</b></a>
+can be <b>https</b> or <b>ftp</b>)
+</td>
+</tr><tr>
+<td align="center" class="text"><a href="https://www.ebi.ac.uk/emdb/"
+target="_blank">EMDB</a> wwpdb.org</td>
+<td align="center"><b>emdb_us</b></td>
+<td align="center">electron density map
+<br>
+(command option <a href="#transferMethod"><b>transferMethod</b></a>
+can be <b>https</b> or <b>ftp</b>)
+</td>
+</tr><tr>
+<td align="center" class="text">
+<a href="https://www.ebi.ac.uk/emdb/" target="_blank">EMDB</a> and PDB</td>
+<td align="center"><b>emdb_fits</b></td>
+<td align="center">electron density map and associated atomic models, if any
+</td>
+<td align="center"><b>ccp4</b> and <b>mmcif</b></td>
+</tr><tr>
+<td align="center"><a href="https://pdb-dev.wwpdb.org/"
+target="_blank">PDB-Dev</a></td>
+<td align="center"><b>pdbdev</b></td>
+<td align="center" class="text">integrative hybrid model;
+<br>
+leading zeroes can be omitted from the identifier, for example, 
+accession code PDBDEV_00000001 can be opened with command:
+<br><b>open pdbdev:1</b>
+</td>
+<td align="center"><b>ihm</b></td>
+</tr><tr>
+<td align="center"><a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold</a></td>
+<td align="center"><b>alphafold</b></td>
+<td align="center">theoretical protein structure modeled by
+<a href="https://www.nature.com/articles/s41586-021-03819-2"
+target="_blank">AlphaFold</a> and specified by
+<a href="https://www.uniprot.org/" target="_blank">UniProt</a>
+name or accession number (<a href="alphafold.html#fetch">details...</a>)</td>
+<td align="center"><b>mmcif</b></td>
+</tr><tr>
+<td align="center">
+<a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a></td>
+<td align="center"><b>esmfold</b></td>
+<td align="center">theoretical protein structure modeled by
+<a href="https://pubmed.ncbi.nlm.nih.gov/36927031/" target="_blank">ESMFold</a>
+(Evolutionary Scale Modeling) and specified by its MGnify identifier
+(<a href="esmfold.html#fetch">details...</a>)</td>
+<td align="center"><b>pdb</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.crystallography.net/cod/"
+target="_blank">Crystallography Open Database</a></td>
+<td align="center"><b>cod</b></td>
+<td align="center">crystal structures of small molecules and 
+inorganic compounds</td>
+<td align="center"><b>corecif</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.crystallography.net/pcod/"
+target="_blank">Predicted Crystallography Open Database</a></td>
+<td align="center"><b>pcod</b></td>
+<td align="center">predicted structures of inorganic compounds</td>
+<td align="center"><b>corecif</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.cellpack.org"
+target="_blank">cellPACK</a></td>
+<td align="center"><b>cellpack</b></td>
+<td align="center">hierarchical model;
+<br>
+<!--
+only the model with identifier <b>HIV-1_0.1.6</b> is available currently
+-->
+see <a href="http://www.cellpack.org/use/" target="_blank">cellPACK
+Chimera instructions</a> for available identifiers
+</td>
+<td align="center"><b>cellpack</b></td>
+</tr><tr>
+<td align="center"><a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
+target="_blank">PubChem3D</a></td>
+<td align="center"><b>pubchem</b></td>
+<td align="center"><a name="pubchem"></a>
+modeled atomic coordinates specified by
+<a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem</a>
+compound identifier (CID); 
+<br>available for most but not all entries in PubChem Compound
+<br>(partial charges are assigned as the atom 
+<a href="../attributes.html">attribute</a> named <b>charge</b>)
+</td>
+<td align="center"><b>sdf</b></td>
+</tr><tr>
+<td align="center">IUPAC &rarr; SMILES &rarr; 3D translator</td>
+<td align="center"><b>iupac</b></td>
+<td align="center"><a name="iupac"></a>
+modeled atomic coordinates specified by
+IUPAC name, first translated to
+a <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> string using the
+<a href="https://opsin.ch.cam.ac.uk/index.html" target="_blank">OPSIN
+web service</a> provided by the <a href="https://www-cmi.ch.cam.ac.uk/"
+target="_blank">Centre for Molecular Informatics</a>
+at the University of Cambridge, followed by the process
+described <a href="#smiles">below</a> for SMILES; see also
+<a href="../tools/buildstructure.html"><b>Build Structure</b></a>
+</td>
+<td align="center"><b>iupac</b></td>
+</tr><tr>
+<td align="center">SMILES &rarr; 3D translator</td>
+<td align="center"><b>smiles</b></td>
+<td align="center"><a name="smiles"></a>
+modeled atomic coordinates specified by
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> string, generated using the
+<a href="https://cactus.nci.nih.gov/translate/" target="_blank">SMILES
+translator</a> provided by the
+<a href="https://cactus.nci.nih.gov/" target="_blank">National Cancer Institute
+CADD group</a>; see also
+<a href="../tools/buildstructure.html"><b>Build Structure</b></a>
+</td>
+<td align="center"><b>smiles</b></td>
+</tr><tr>
+<td align="center"><a href="https://www.uniprot.org" 
+target="_blank">UniProt</a></td>
+<td align="center"><b>uniprot</b></td>
+<td align="center">protein sequence
+<br>
+(command option <a href="#associate"><b>associate</b></a>)
+<br>
+(associated tool: 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>;
+see <a href="../tools/sequenceviewer.html#uniprot">UniProt
+Sequence Features</a>)</td>
+<td align="center"><b>uniprot</b></td>
+</tr></table>
 
 <a name="clipper"></a>
 <p class="nav">
@@ -1997,6 +2231,10 @@ target="_blank"><b>Clipper</b> bundle</a> from the
 target="_blank">ChimeraX Toolshed</a> allows
 <a href="#top">opening</a> and <a href="save.html">saving</a>
 crystallographic reflection files in MTZ format.
+See also: 
+<a href="https://tristanic.github.io/chimerax-clipper/commands/clipper.html"
+target="_blank"><b>clipper</b> commands</a>,
+<a href="#fetch-table">PDB-REDO fetch</a>
 </p><p>
 <a href="#top">Opening</a>
 an MTZ file requires specifying an already-open atomic structure
@@ -2007,6 +2245,10 @@ for example, if that atomic structure is open as model #1:
 <b>open myfile.mtz structureModel #1</b>
 </blockquote>
 <p>
+If the <a href="#structureModel"><b>structureModel</b></a> option
+is not given in the command, however, a dialog will appear to allow specifying 
+which atomic structure should be used.
+</p><p>
 Structure factors can also be <a href="#fetch">fetched</a> along
 with the corresponding atomic structure from the
 <a href="https://www.rcsb.org/" target="_blank">RCSB Protein Data Bank</a>
@@ -2039,32 +2281,7 @@ Whether to save the current amplitudes and phases for all maps
 generated by Clipper. If <b>false</b>, just save the experimental data.
 </blockquote>
 
-<a name="generic-hdf"></a>
-<p class="nav">
-[<a href="#top">back to top: open</a>]
-</p>
-<h3>Generic HDF File Reader</h3>
-<p>
-If <a href="#volume">EMAN HDF format</a> is expected, 
-but that file reader fails, a generic HDF file reader is tried instead. 
-This generic reader does not look for any metadata; it simply looks for
-3-dimensional arrays and tries to open them as <a href="../tools/volumeviewer.html">volume models</a> with grid spacing of 1. The following 
-<a href="#local"><b>open</b></a> command option can be used to
-limit which 3D arrays are read:
-</p>
-<blockquote>
-<b>arrayName</b>&nbsp;&nbsp;<i>name</i>
-<br>
-In <a href="https://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a> format,
-each array has a directory path within the file and 
-a <i>name</i> (the last part of the pathname). This option indicates reading
-only arrays with the specified <i>name</i>. Example:
- <blockquote>
- <b>open Cam_long_00003.h5 arrayName Data</b>
- </blockquote>
-</blockquote>
-
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2023</address>
+April 2024</address>
 </body></html>

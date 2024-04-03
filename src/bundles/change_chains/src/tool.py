@@ -28,6 +28,7 @@ class ChangeChainIDsDialog(ToolInstance):
 
     single_text = "To one ID"
     multiple_text = "To multiple IDs"
+    glyco_text = "Glycosylations"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -75,6 +76,14 @@ class ChangeChainIDsDialog(ToolInstance):
         ]
         self.tabs.addTab(multi_widget, self.multiple_text)
 
+        glyco_widget = QLabel(
+            "Apply/OK makes glycosylation chain IDs the same as those of the attached proteins.")
+        glyco_widget.setWordWrap(True)
+        glyco_widget.setAlignment(Qt.AlignCenter)
+        self.tabs.addTab(glyco_widget, self.glyco_text)
+
+        self.tabs.currentChanged.connect(self._tab_changed)
+
         self.sel_restrict = QCheckBox("Restrict change to selected residues, if any")
         self.sel_restrict.setChecked(True)
         layout.addWidget(self.sel_restrict, alignment=Qt.AlignCenter)
@@ -106,12 +115,17 @@ class ChangeChainIDsDialog(ToolInstance):
             if sel_res:
                 cmd += "sel "
                 spec_present = True
-        if self.tabs.tabText(self.tabs.currentIndex()) == self.single_text:
+        tab_text = self.tabs.tabText(self.tabs.currentIndex())
+        if tab_text == self.single_text:
             cid = self.single_id.value
+            # Some chain IDs (e.g. C) look like element names.
+            from chimerax.atomic import Element
+            if not spec_present and Element.get_element(cid).number > 0:
+                cmd += "#* "
             if not cid:
                 raise UserError("Cannot change to empty ID")
             cmd += cid
-        else:
+        elif tab_text == self.multiple_text:
             from_ids = []
             to_ids = []
             for from_id, widgets in self.widget_mapping.items():
@@ -129,11 +143,13 @@ class ChangeChainIDsDialog(ToolInstance):
             from_list = ','.join([StringArg.unparse(cid) for cid in from_ids])
             # the atom spec parser coughs up a hair ball for some quoted strings, so
             # prevent the atom spec parser from seeing such a thing
-            if not from_list[0].isalnum() and not spec_present:
+            if not spec_present and not from_list[0].isalnum():
                 cmd += "#* "
             cmd += from_list
             cmd += ' '
             cmd += ','.join([StringArg.unparse(cid) for cid in to_ids])
+        else:
+            cmd  += "glycosylations"
 
         from chimerax.core.commands import run
         run(self.session, cmd)
@@ -145,6 +161,9 @@ class ChangeChainIDsDialog(ToolInstance):
         if trig_data.created_residues() or trig_data.num_deleted_residues() > 0 \
         or "chain_id changed" in trig_data.residue_reasons():
             self._update_chain_list()
+
+    def _tab_changed(self, index):
+        self.sel_restrict.setEnabled(index < 2)
 
     def _update_chain_list(self):
         self.chain_list.blockSignals(True)

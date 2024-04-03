@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -208,9 +219,9 @@ from ..errors import UserError
 
 _debugging = False
 _normal_token = re.compile(r"[^;\s]*")
-_single_quote = re.compile(r"'(.|\')*?'(\s|$)")
+_single_quote = re.compile(r"(?P<string>'(.|\')*?')(\s|;|$)")
 _internal_single_quote = re.compile(r"'\s")
-_double_quote = re.compile(r'"(.|\")*?"(\s|$)')
+_double_quote = re.compile(r'(?P<string>"(.|\")*?")(\s|;|$)')
 _internal_double_quote = re.compile(r'"\s')
 _whitespace = re.compile(r"\s*")
 _internal_whitespace = re.compile(r"\s+")
@@ -1818,17 +1829,13 @@ def next_token(text, convert=False):
         m = _double_quote.match(text)
         if not m:
             raise AnnotationError("incomplete quoted text")
-        end = m.end()
-        if text[end - 1].isspace():
-            end -= 1
+        end = m.end('string')
         token = text[1:end - 1]
     elif text[0] == "'":
         m = _single_quote.match(text)
         if not m:
             raise AnnotationError("incomplete quoted text")
-        end = m.end()
-        if text[end - 1].isspace():
-            end -= 1
+        end = m.end('string')
         token = text[1:end - 1]
     elif text[0] == ';':
         return ';', ';', text[1:]

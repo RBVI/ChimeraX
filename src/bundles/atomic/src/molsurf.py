@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -88,8 +99,8 @@ class MolecularSurface(Surface):
         self.resolution = resolution    # Only used for Gaussian surface
         self.level = level		# Contour level for Gaussian surface, atomic number units
         self.color = color
-        self._atom_patch_colors = None
-        self._atom_patch_color_mask = None
+        self._atom_patch_colors = None	# Remember atom patch color to recolor when surface recomputed
+        self._atom_patch_color_mask = None  # Which atom patches were colored
         self.visible_patches = visible_patches
         self.sharp_boundaries = sharp_boundaries
         self._joined_triangles = None
@@ -387,16 +398,16 @@ class MolecularSurface(Surface):
             self.display = False
             self.triangle_mask = None
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         vc = self.vertex_colors
         from chimerax.core.colors import most_common_color
-        return self.color if vc is None else most_common_color(vc)
-    def _set_model_color(self, color):
+        return self.color if vc is None or len(vc) == 0 else most_common_color(vc)
+    def _set_overall_color(self, color):
         self.color = color
         self.vertex_colors = None
         self._atom_patch_colors = None
         self._atom_patch_color_mask = None
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = property(_get_overall_color, _set_overall_color)
 
     def _average_color(self):
         vc = self.vertex_colors
@@ -440,6 +451,7 @@ class MolecularSurface(Surface):
             else:
                 atom_colors, vertex_colors = self._per_atom_colors(atoms, per_atom_colors,
                                                                    opacity=opacity)
+                # Here we are using opacity from per_atom_colors
                 self.vertex_colors = vertex_colors
                 self._remember_atom_patch_colors(atom_colors)
         else:
@@ -451,6 +463,7 @@ class MolecularSurface(Surface):
                 vcolors[v,:3] = vertex_colors[v,:3]
             else:
                 atom_colors, vc = self._per_atom_colors(atoms, per_atom_colors)
+                # Here we are not using opacity from per_atom_colors
                 vcolors[v,:3] = vc[v,:3]
             if opacity is not None:
                 vcolors[v,3] = opacity
@@ -521,7 +534,7 @@ class MolecularSurface(Surface):
         c8 = self.color if color is None else color
         if opacity is not None:
             c8 = (c8[0], c8[1], c8[2], opacity)
-        self.model_color = c8
+        self.overall_color = c8
         self._clear_atom_patch_colors()
 
     # Handle undo of color changes

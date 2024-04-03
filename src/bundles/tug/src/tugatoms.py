@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # Mouse mode to drag atoms and update structure with OpenMM molecular dynamics.
@@ -199,7 +210,7 @@ class StructureTugger:
     '''
     def __init__(self, structure, force_constant = 10000.0,
                  cutoff = 10.0, temperature = 100.0,
-                 steps = 50, tolerance = 0.001):
+                 steps = 50, tolerance = 0.001, platform = None):
         self._log = Logger('structuretugger.log' if write_logs else None)
         self.structure = structure
         self._minimized = False
@@ -233,8 +244,8 @@ class StructureTugger:
         self._integrator_tolerance = tolerance
         self._constraint_tolerance = tolerance
         self._friction = 1.0/unit.picoseconds	# Coupling to heat bath
-        self._platform_name = 'CPU'
-        #self._platform_name = 'OpenCL' # Works on Mac
+        import sys
+        self._platform_name = ('OpenCL' if sys.platform == 'darwin' else 'CPU') if platform is None else platform
         #self._platform_name = 'CUDA'	# This is 3x faster but requires env DYLD_LIBRARY_PATH=/usr/local/cuda/lib Chimera.app/Contents/MacOS/ChimeraX so paths to cuda libraries are found.
         self._max_allowable_force = 50000.0 # kJ/mol/nm
         

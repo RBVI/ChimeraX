@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.toolshed import BundleAPI
@@ -30,6 +41,9 @@ class StdCommandsAPI(BundleAPI):
         if class_name in ['CoordinateSetSlider']:
             from . import coordset_gui
             return getattr(coordset_gui, class_name)
+        if class_name in ['_StructureAltlocManager']:
+            from . import altlocs
+            return getattr(altlocs, class_name)
 
     @staticmethod
     def register_command(command_name, logger):
@@ -47,7 +61,8 @@ class StdCommandsAPI(BundleAPI):
             'lighting model': 'lighting',
             'quit': 'exit',
             'redo': 'undo',
-            'select zone': 'zonesel'
+            'select zone': 'zonesel',
+            'worm': 'cartoon'
         }
         if tilde:
             name_remapping['show'] = name_remapping['display'] = 'hide'
@@ -57,6 +72,8 @@ class StdCommandsAPI(BundleAPI):
             mod_name = name_remapping[check_name]
         elif check_name.startswith('measure '):
             mod_name = check_name.replace(' ', '_')
+        elif check_name == 'move cofr':
+            mod_name = 'move_cofr'
         else:
             if ' ' in check_name:
                 mod_name, remainder = check_name.split(None, 1)
@@ -128,7 +145,7 @@ class StdCommandsAPI(BundleAPI):
 bundle_api = StdCommandsAPI()
 
 def register_commands(session):
-    mod_names = ['alias', 'align', 'angle', 'camera', 'cartoon', 'cd', 'clip', 'close', 'cofr', 'colorname', 'color', 'coordset_gui', 'coordset', 'crossfade', 'defattr_gui', 'defattr', 'delete', 'dssp', 'exit', 'fly', 'getcrd', 'graphics', 'hide', 'lighting', 'material', 'measure_buriedarea', 'measure_center', 'measure_convexity', 'measure_correlation', 'measure_inertia', 'measure_length', 'measure_rotation', 'measure_symmetry', 'move', 'palette', 'perframe', 'pwd', 'rainbow', 'rename', 'ribbon','rmsd', 'rock', 'roll', 'runscript', 'select', 'setattr', 'set', 'show', 'size', 'split', 'stop', 'style', 'sym', 'tile', 'time', 'transparency', 'turn', 'undo', 'usage', 'version', 'view', 'wait', 'windowsize', 'wobble', 'zonesel', 'zoom']
+    mod_names = ['alias', 'align', 'angle', 'camera', 'cartoon', 'cd', 'clip', 'close', 'cofr', 'colorname', 'color', 'coordset_gui', 'coordset', 'crossfade', 'defattr_gui', 'defattr', 'delete', 'dssp', 'exit', 'fly', 'getcrd', 'graphics', 'hide', 'lighting', 'material', 'measure_buriedarea', 'measure_center', 'measure_convexity', 'measure_correlation', 'measure_inertia', 'measure_length', 'measure_rotation', 'measure_symmetry', 'move', 'move_cofr', 'palette', 'perframe', 'pwd', 'rainbow', 'rename', 'ribbon','rmsd', 'rock', 'roll', 'runscript', 'select', 'setattr', 'set', 'show', 'size', 'split', 'stop', 'style', 'sym', 'tile', 'time', 'transparency', 'turn', 'undo', 'usage', 'version', 'view', 'wait', 'windowsize', 'wobble', 'zonesel', 'zoom']
 
     if not session.ui.is_gui:
         # Remove commands that require Qt to import

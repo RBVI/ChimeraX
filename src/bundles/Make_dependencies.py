@@ -2,7 +2,7 @@
 import os
 from packaging.requirements import Requirement
 from xml.dom import minidom
-import tomli
+import tomllib
 
 def make_dependencies(dir_path, output_name):
     # remove when toml is part of the standard Python library
@@ -48,7 +48,7 @@ def make_dependencies(dir_path, output_name):
             bundle_toml: dict = None
             try:
                 with open(p) as f:
-                    bundle_toml = tomli.loads(f.read())
+                    bundle_toml = tomllib.loads(f.read())
             except Exception as e:
                 print(str(e))
             build_dependencies = bundle_toml["build-system"]["requires"]

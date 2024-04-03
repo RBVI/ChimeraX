@@ -13,6 +13,7 @@ dependencies = [
 	, "ChimeraX-Geometry ~= 1.0"
 	, "ChimeraX-MapData ~= 2.0"
 	, "ChimeraX-OpenCommand ~= 1.0"
+  , "ChimeraX-UI >= 1.33"
 ]
 dynamic = ["classifiers", "requires-python", "version"]
 
@@ -36,6 +37,34 @@ max-session-version = 1
 categories = ["Medical Imaging"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
+[chimerax.initializations.manager]
+bundles = ["ChimeraX-MedicalToolbar"]
+
+# Don't delete just in case we do want to display these modes in the toolbar
+# [chimerax.provider."create segmentations"]
+# manager = "toolbar"
+# tab = "Medical Image"
+# section = "Mouse Mode"
+# mouse-mode = "create segmentations"
+# display-name = "Segment"
+# description = "Create a segmentation with the mouse"
+#
+# [chimerax.provider."move segmentation cursor"]
+# manager = "toolbar"
+# tab = "Medical Image"
+# section = "Mouse Mode"
+# mouse-mode = "move segmentation cursor"
+# display-name = "Move Segment Cursor"
+# description = "Move the segmentation cursor without adding to the segmentation"
+#
+# [chimerax.provider."resize segmentation cursor"]
+# manager = "toolbar"
+# tab = "Medical Image"
+# section = "Mouse Mode"
+# mouse-mode = "resize segmentation cursor"
+# display-name = "Resize Segment Cursor"
+# description = "Resize the segmentation cursor"
+
 [chimerax.data-format."DICOM medical imaging"]
 category = "Medical Imaging"
 nicknames = ["dicom"]
@@ -52,6 +81,10 @@ name = "tcia"
 format-name = "dicom"
 is-default = false
 
+[[chimerax.data-format."DICOM medical imaging".save]]
+compression-okay = false
+is-default = true
+
 [chimerax.tool."DICOM Browser"]
 category = "Medical Imaging"
 description = "View the metadata of a patient's DICOM files"
@@ -59,18 +92,6 @@ description = "View the metadata of a patient's DICOM files"
 [chimerax.tool."Download DICOM"]
 category = "Medical Imaging"
 description = "View the contents of public DICOM datasets from within ChimeraX"
-
-[chimerax.tool."Segmentations"]
-category = "Medical Imaging"
-description = "Interactively segment medical images"
-
-[chimerax.command."dicom view"]
-category = "Medical Imaging"
-description = "See medical images in a 4-panel viewer"
-
-[chimerax.command."dicom segmentations"]
-category = "Medical Imaging"
-description = "Create or destory segmentations"
 
 # TL;DR Do not modify monailabel.py to register this command
 # ----

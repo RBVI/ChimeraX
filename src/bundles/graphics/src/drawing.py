@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 '''
@@ -961,7 +972,7 @@ class Drawing:
         '''
         The bounds of all displayed parts of a drawing and its children and all descendants, including
         instance positions, in scene coordinates.  Drawings with an attribute skip_bounds = True
-        are not included.
+        are not included.  The bounds are in the scene coordinate system.
         '''
 
         # Get child drawing bounds
@@ -1709,9 +1720,6 @@ class _DrawShape:
         self.element_buffer = None
         self.instance_buffers = []
 
-    def __del__(self):
-        self.delete()
-
     def delete(self):
 
         self._masked_edges = None
@@ -2229,13 +2237,10 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     # Use font metrics to determine image width
     fm = QFontMetrics(f)
     r = fm.boundingRect(text if text else ' ')
-    # TODO: font metric width is sometimes 1 or 2 pixels too small in Qt 5.9.
-    #       Right bearing of rightmost character was positive, so does not extend right.
-    #       Use pad option to add some pixels to avoid clipped text.
-    tw, th = r.width(), r.height()  # pixels
-    from sys import platform
-    if platform == 'linux':
-        tw += 4  # With Qt 6.4 on Linux text width is too small.  ChimeraX bug #9263
+    # For text "Npl" the rectangle left, right, top, bottom are (4,68,-43,10) in Qt 6.6.
+    # This is if the text is drawn with origin 0,0.
+    # We are probably not getting the image size quite right.  ChimeraX ticket #14412.
+    tw, th = r.right()+1, r.height()  # pixels
 
     if pixels:
         iw, ih = tw+2*xbuf, size

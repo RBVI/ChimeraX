@@ -39,18 +39,18 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  markers mask match_maker mcopy md_crds \
 >>>>>>> c183ebf2582c01b4b427aec56029df0ca90461d3
 	  medical_toolbar meeting mlp model_series \
-	  mmcif mmtf model_panel modeller mol2 mole morph mouse_modes movie \
+	  mmcif mmtf model_panel modeller mol2 mole morph mouse_modes movie nmrstar \
 	  neuron nifti nrrd nucleotides open_command pdb pdb_bio pdb_lib pdb_matrices \
 	  pick_blobs positions preset_mgr pubchem read_pbonds registration \
 	  remote_control render_by_attr renumber_residues rest_server \
 	  residue_fit rna_layout rotamers rotamer_libs \
 	  save_command scheme_mgr \
-	  sdf sel_inspector segger segment seqalign seq_view shape \
+	  sdf sel_inspector segger segment segmentations seqalign seq_view shape \
 	  shell shortcuts show_sequences sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \
-	  tape_measure test toolbar topography to_quest tug ui uniprot unit_cell \
-	  viewdockx viperdb vive volume_menu vtk wavefront_obj \
+	  tape_measure task_manager test toolbar topography to_quest tug ui uniprot \
+	  unit_cell viewdockx viperdb vive volume_menu vrml vtk wavefront_obj \
 	  webcam webservices zone
 
 ifeq ($(OS),Linux)

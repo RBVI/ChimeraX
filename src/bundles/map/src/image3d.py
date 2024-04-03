@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -118,6 +129,11 @@ class Image3d(Model):
     if bi:
       bi._need_color_update()
 
+  # ---------------------------------------------------------------------------
+  #
+  def map_values_changed(self):
+    self._remove_planes()
+    
   # ---------------------------------------------------------------------------
   #
   def set_options(self, rendering_options):
@@ -407,6 +423,20 @@ class Image3d(Model):
   def _region_size(self):
     ijk_min, ijk_max, ijk_step = self._region
     return tuple(i1//s - i0//s + 1 for i0,i1,s in zip(ijk_min, ijk_max, ijk_step))
+
+  # ---------------------------------------------------------------------------
+  #
+  def _exceeds_maximum_texture_size(self, renderer):
+    '''Requires OpenGL context to be current.'''
+    if self._use_3d_texture:
+      vsize = max(self._region_size)
+      maxsize = renderer.max_3d_texture_size()
+      if vsize > maxsize:
+        if not hasattr(self, '_warned_3d_texture_too_large'):
+          self._warned_3d_texture_too_large = True
+          self._session.logger.warning(f'Not displaying volume {str(self)} of size {vsize} because it exceeds the maximum OpenGL 3D texture size {maxsize}.  Use a larger step size or crop the volume.')
+        return True
+    return False
   
   # ---------------------------------------------------------------------------
   #
@@ -766,6 +796,9 @@ class Image3d(Model):
     if not self.display:
       return
 
+    if self._exceeds_maximum_texture_size(renderer):
+      return
+
     self._update_blend_groups()
     bi = self._blend_image
     if bi:
@@ -1004,8 +1037,12 @@ class Texture2dPlanes(PlanesDrawing):
     return planes
 
   def _set_ortho_planes(self):
-    ro = self._image_render._rendering_options
+    ir = self._image_render
+    ro = ir._rendering_options
     p = ro.orthoplane_positions
+    ijk_min, ijk_max = ir._region[:2]
+    from .volume import clamp_ijk
+    p = clamp_ijk(p, ijk_min, ijk_max)	# Make sure center point is within region.
     show_axis = ro.orthoplanes_shown
     planes = tuple((p[axis], axis) for axis in (0,1,2) if show_axis[axis])
     self._update_geometry(planes)

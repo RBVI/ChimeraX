@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 #
@@ -83,7 +94,7 @@ command_defaults = {
     'verbose': False
 }
 def phenix_local_fit(session, model, center=None, map_data=None, *, resolution=0.0, show_sharpened_map=False,
-        block=None, phenix_location=None, verbose=command_defaults['verbose'],
+        apply_symmetry=False, block=None, phenix_location=None, verbose=command_defaults['verbose'],
         option_arg=[], position_arg=[]):
 
     # Find the phenix.voyager.emplace_local executable
@@ -127,8 +138,9 @@ def phenix_local_fit(session, model, center=None, map_data=None, *, resolution=0
     # Run phenix.voyager.emplace_local
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # the program runs
-    callback = lambda transform, sharpened_map, *args, session=session, ssm=show_sharpened_map, d_ref=d: \
-        _process_results(session, transform, sharpened_map, model, ssm)
+    callback = lambda transform, sharpened_map, *args, session=session, maps=map_data, \
+        ssm=show_sharpened_map, app_sym=apply_symmetry, d_ref=d: _process_results(session,
+        transform, sharpened_map, model, maps, ssm, app_sym)
     FitJob(session, exe_path, option_arg, map_arg1, map_arg2, search_center,
         "model.pdb", position_arg, temp_dir, resolution, verbose, callback, block)
 
@@ -194,13 +206,30 @@ def view_box(session, model):
         return (face_intercepts[0] + face_intercepts[1]) / 2
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
-def _process_results(session, transform, sharpened_map, orig_model, show_sharpened_map):
+def _process_results(session, transform, sharpened_map, orig_model, maps, show_sharpened_map,
+        apply_symmetry):
+    if orig_model.deleted:
+        raise UserError("Structure being fitting was deleted during fitting")
     from chimerax.geometry import Place
     orig_model.scene_position = Place(transform) * orig_model.scene_position
     sharpened_map.name = "sharpened local map"
     sharpened_map.display = show_sharpened_map
     session.models.add([sharpened_map])
     session.logger.status("Fitting job finished")
+    if apply_symmetry:
+        sym_map = maps[0]
+        if sym_map.deleted:
+            raise UserError("Map being fitted has been deleted; not applying symmetry")
+        from chimerax.core.commands import run, concise_model_spec, StringArg
+        run(session, "measure symmetry " + sym_map.atomspec)
+        if maps[0].data.symmetries:
+            prev_models = set(session.models[:])
+            run(session, "sym " + orig_model.atomspec + " symmetry " + sym_map.atomspec + " copies true")
+            added = [m for m in session.models if m not in prev_models]
+            run(session, "combine " + concise_model_spec(session, [orig_model] + added) + " close true"
+                " modelId %d name %s" % (orig_model.id[0], StringArg.unparse(orig_model.name)))
+        else:
+            session.logger.warning("Could not determine symmetry for %s" % sym_map)
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
@@ -286,6 +315,7 @@ def register_command(logger):
                    ('position_arg', RepeatOf(StringArg)),
                    ('resolution', NonNegativeFloatArg),
                    ('show_sharpened_map', BoolArg),
+                   ('apply_symmetry', BoolArg),
         ],
         synopsis = 'Place structure in map'
     )

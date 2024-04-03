@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -72,6 +83,7 @@ class OpenPredictedAlignedError(ToolInstance):
         amod = [m for m in session.models.list(type = AtomicStructure) if self.is_predicted_model(m)]
         if amod:
             self._structure_menu.value = amod[-1]
+            self._guess_pae_file_or_database_id()
 
         tw.manage(placement=None)	# Start floating
 
@@ -142,7 +154,7 @@ class OpenPredictedAlignedError(ToolInstance):
     #
     def _choose_pae_file(self):
         s = self._structure_menu.value
-        if s and hasattr(s, 'filename'):
+        if s and hasattr(s, 'filename') and s.filename is not None:
             from os import path
             dir = path.split(s.filename)[0]
         elif self._pae_file.text():
@@ -230,6 +242,9 @@ class OpenPredictedAlignedError(ToolInstance):
         run(self.session, 'help %s' % self.help)
 
 # -----------------------------------------------------------------------------
+# Look for PAE files that have long prefix or suffix matching the
+# PDB or mmCIF structure file.
+#
 # ChimeraX Google colab predictions names files
 #
 #	best_model.pdb
@@ -237,11 +252,23 @@ class OpenPredictedAlignedError(ToolInstance):
 #	model_3_unrelaxed.pdb
 #	model_3_pae.json
 #
+# Full AlphaFold 2.3.2 runs name files
+#
+#	unrelaxed_model_1_multimer_v3_pred_0.cif
+#	unrelaxed_model_1_multimer_v3_pred_0.pdb
+#	pae_model_1_multimer_v3_pred_0.json
+#	result_model_1_multimer_v3_pred_0.pkl
+#
 # Full AlphaFold 2.2.0 runs name files
 #
 #	unrelaxed_model_1_multimer_v2_pred_0.pdb
 #	relaxed_model_1_multimer_v2_pred_0.pdb
 #	result_model_1_multimer_v2_pred_0.pkl
+#
+# Colabfold 1.5.0
+#
+#	af182_unrelaxed_rank_001_alphafold2_multimer_v3_model_1_seed_000.pdb
+#	af182_scores_rank_001_alphafold2_multimer_v3_model_1_seed_000.json
 #
 # ColabFold 1.3.0 runs name files where 7qfc was user assigned name and efb9b was
 # server assigned id.
@@ -265,28 +292,41 @@ def _matching_pae_file(structure_path):
 
     from os import listdir
     dfiles = listdir(dir)
-    pfiles = [f for f in dfiles if f.endswith('.json') or f.endswith('.pkl')]
+    pkl_files = [f for f in dfiles if f.endswith('.pkl')]
+    json_files = [f for f in dfiles if f.endswith('.json') and not f.startswith('confidence_')]
 
-    if len(pfiles) == 0:
+    if len(pkl_files) == 0 and len(json_files) == 0:
         return None
-    if len(pfiles) == 1:
-        return join(dir, pfiles[0])
+
+    if len(json_files) == 1 and len(pkl_files) == 0:
+        return join(dir, json_files[0])
+    if len(json_files) == 0 and len(pkl_files) == 1:
+        return join(dir, pkl_files[0])
+
+    # Prefer json files over pkl files since they are much smaller.
+    from os.path import splitext
+    min_length = min(6, len(splitext(filename)[0]))
+    mfile = _longest_matching_prefix(filename, json_files, min_length = min_length)
+    if mfile is None and '_unrelaxed_' in filename:
+        mfile = _longest_matching_prefix(filename.replace('_unrelaxed_', '_scores_'),
+                                         json_files, min_length = min_length)
+    if mfile is None:
+        mfile = _longest_matching_suffix(filename, json_files, min_length = min_length)
+    if mfile is None:
+        mfile = _longest_matching_prefix(filename, pkl_files, min_length = min_length)
+    if mfile is None:
+        mfile = _longest_matching_suffix(filename, pkl_files, min_length = min_length)
     
-    mfile = _longest_matching_prefix(filename, pfiles, min_length = 6)
-    if mfile is None:
-        mfile = _longest_matching_suffix(filename, pfiles, min_length = 6)
-    if mfile is None:
-        return None
-    return join(dir, mfile)
+    path = None if mfile is None else join(dir, mfile)
+    return path
 
 # -----------------------------------------------------------------------------
 #
 def _longest_matching_prefix(filename, filenames, min_length = 1):
     m = [(len(_matching_prefix(pf,filename)),pf) for pf in filenames]
     m.sort(reverse = True)
-    if m[0][0] >= min_length and m[0][0] > m[1][0]:
-        return m[0][1]
-    return None
+    mfilename = m[0][1] if m[0][0] >= min_length and m[0][0] > m[1][0] else None
+    return mfilename
 
 # -----------------------------------------------------------------------------
 #
@@ -301,9 +341,8 @@ def _matching_prefix(s1, s2):
 def _longest_matching_suffix(filename, filenames, min_length = 1):
     m = [(len(_matching_suffix(pf,filename)),pf) for pf in filenames]
     m.sort(reverse = True)
-    if m[0][0] >= min_length and m[0][0] > m[1][0]:
-        return m[0][1]
-    return None
+    mfilename = m[0][1] if m[0][0] >= min_length and m[0][0] > m[1][0] else None
+    return mfilename
 
 # -----------------------------------------------------------------------------
 #
@@ -311,7 +350,7 @@ def _matching_suffix(s1, s2):
     # Ignore last "." and beyond
     from os.path import splitext
     s1,s2 = splitext(s1)[0], splitext(s2)[0]
-    for i in range(min(len(s1), len(s2))):
+    for i in range(1, min(len(s1), len(s2))+1):
         if s2[-i] != s1[-i]:
             break
     return s1[-i:]

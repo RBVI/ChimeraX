@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 default_results_directory = '~/Downloads/ChimeraX/AlphaFold/prediction_[N]'
@@ -17,6 +28,10 @@ def alphafold_predict(session, sequences, minimize = False, templates = False, d
     if not _is_alphafold_available(session):
         return
 
+    if len(sequences) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError(f'No sequences specified')
+    
     if not hasattr(session, '_cite_colabfold'):
         msg = 'Please cite <a href="https://www.nature.com/articles/s41592-022-01488-1">ColabFold: Making protein folding accessible to all. Nature Methods (2022)</a> if you use these predictions.'
         session.logger.info(msg, is_html = True)
@@ -38,6 +53,7 @@ class AlphaFoldRun(ToolInstance):
     # it has been updated to AlphaFold 2.2.0.  I am using the same file for the update so older
     # ChimeraX versions make use of the latest AlphaFold version.
     _ipython_notebook_url = 'https://colab.research.google.com/github/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/alphafold21_predict_colab.ipynb'
+#    _ipython_notebook_url = 'https://colab.research.google.com/github/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/colabfold_predict_test.ipynb'
     # Do not use alphafold_test_colab.ipynb since that was accidentally used by ChimeraX distributions
     # from April 4, 2022 to May 25, 2022.  Bug #6958.  So use a new alphafold_test2_colab.ipynb instead.
     # _ipython_notebook_url = 'https://colab.research.google.com/github/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/alphafold_test2_colab.ipynb'
@@ -99,6 +115,9 @@ class AlphaFoldRun(ToolInstance):
             # If we don't save the timer in a variable it is deleted and never fires.
 
     def _run(self):
+        from Qt import qt_object_is_deleted
+        if qt_object_is_deleted(self._browser):
+            return	# User closed the window before the _run() method was called.
         self._set_colab_sequence()
         self._run_colab()
         self.session.logger.info('Running AlphaFold prediction')
@@ -110,10 +129,14 @@ class AlphaFoldRun(ToolInstance):
             seqs = 'dont_minimize,' + seqs
         if self._use_pdb_templates:
             seqs = 'use_pdb_templates,' + seqs
-        set_seqs_javascript = ('document.querySelector("paper-input").setAttribute("value", "%s")'
-                               % seqs + '; ' +
-                              'document.querySelector("paper-input").dispatchEvent(new Event("change"))')
-        p.runJavaScript(set_seqs_javascript)
+#        entry = 'document.querySelector("paper-input")'
+        entry = 'document.querySelector("md-outlined-text-field")'
+        set_seqs_javascript = f'{entry}.setAttribute("value", "{seqs}"); {entry}.dispatchEvent(new Event("change"))'
+        p.runJavaScript(set_seqs_javascript, self._send_sequences_status)
+
+    def _send_sequences_status(self, status):
+        if status is not True:
+            self.session.logger.error(f'Alphafold prediction send sequence to Google Colab returned: {status}')
 
     def _run_colab(self):
         p = self._browser.page()
@@ -147,10 +170,7 @@ class AlphaFoldRun(ToolInstance):
             self._results_directory = dir = self._unique_results_directory()
         item.setDownloadDirectory(dir)
         if  filename == 'results.zip':
-            if hasattr(item, 'finished'):
-                item.finished.connect(self._unzip_results)		# Qt 5
-            else:
-                item.isFinishedChanged.connect(self._unzip_results)	# Qt 6
+            item.isFinishedChanged.connect(self._unzip_results)	# Qt 6
         item.accept()
 
     def _unique_results_directory(self):
@@ -227,8 +247,10 @@ class AlphaFoldRun(ToolInstance):
             import zipfile
             with zipfile.ZipFile(path, 'r') as z:
                 z.extractall(dir)
-        self.session.logger.info(f'AlphaFold prediction finished\nResults in {dir}')
-        self._open_prediction()
+            self.session.logger.info(f'AlphaFold prediction finished\nResults in {dir}')
+            self._open_prediction()
+        else:
+            self.session.logger.warning(f'AlphaFold prediction completed but downloading the results failed.  You can try manually downloading the results.zip file by clicking in the AlphaFold Run panel on the folder icon on the left side, then click on the "..." to the right of the results.zip file and choose Download.  It will not ask for a location to save the file, but will show a message in the ChimeraX Log panel if it succeeds or fails.  You can also try using any web browser, go to Google Colab use menu Runtime / Manage Sessions... to rejoin your ChimeraX AlphaFold session and download the results.zip file.')
 
 # ------------------------------------------------------------------------------
 #
@@ -245,7 +267,7 @@ def _chain_names(chains):
 #
 def _is_alphafold_available(session):
     '''Check if the AlphaFold web service has been discontinued or is down.'''
-    url = 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold21.html'
+    url = 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold23.html'
     import requests
     try:
         r = requests.get(url)

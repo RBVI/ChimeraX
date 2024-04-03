@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-StdCommands" version="1.12.1"
+<BundleInfo name="ChimeraX-StdCommands" version="1.16.3"
 	    package="chimerax.std_commands" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -18,7 +18,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.4dev2021"/>
+    <Dependency name="ChimeraX-Core" version="~=1.4dev2022"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.17"/>
     <Dependency name="ChimeraX-DistMonitor" version="~=1.2"/>
     <Dependency name="ChimeraX-Dssp" version="~=2.0"/>
@@ -101,6 +101,7 @@
     <ChimeraXClassifier>Command :: measure rotation :: Volume :: measure rotation of one model relative to another</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure symmetry :: Volume :: compute map symmetry</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: move :: General Controls :: move (parts of) a model relative to others</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: move cofr :: General Controls :: move models to center of rotation</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: palette :: General Controls :: list available color palettes</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: perframe :: General Controls :: execute commands every frame</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~perframe :: General Controls :: stop execution of commands every frame</ChimeraXClassifier>
@@ -138,6 +139,8 @@
     <ChimeraXClassifier>Command :: wait :: Movie Making :: wait a given amount of frames before executing the next command</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: windowsize :: General Controls :: set the size of the 3D window</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: wobble :: General Controls :: move models in figure 8 motion</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: worm :: General Controls :: turn on/off worm depiction</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ~worm :: General Controls :: turn off worm depiction</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: select zone :: General Controls :: select (parts of) models within a 3D zone</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: zoom :: Viewing Controls :: zoom in/out</ChimeraXClassifier>
   </Classifiers>

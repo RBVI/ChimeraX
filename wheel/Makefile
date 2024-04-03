@@ -8,7 +8,7 @@ BUNDLE ?=
 wheel: clean chimerax-copy pyproject.toml
 	$(APP_PYTHON_BIN) -I filter_modules.py
 	$(APP_PYTHON_BIN) -I make_init.py
-	python -m build
+	python -m build --wheel
 
 pyproject.toml: ensure-chimerax pyproject.toml.in
 	$(APP_PYTHON_BIN) -I filter_deps.py

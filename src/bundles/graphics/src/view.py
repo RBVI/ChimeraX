@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 '''
@@ -327,6 +338,12 @@ class View:
     @property
     def shape_changed(self):
         return self._drawing_manager.shape_changed
+
+    @property
+    def recalculate_clip_caps(self):
+        return self._drawing_manager.recalculate_clip_caps
+    def recalculated_clip_caps(self):
+        self._drawing_manager.recalculate_clip_caps = False
 
     def clear_drawing_changes(self):
         return self._drawing_manager.clear_changes()
@@ -1018,14 +1035,17 @@ class View:
         r = rotation(axis, angle, center)
         self.move(r, drawings)
 
-    def translate(self, shift, drawings=None):
+    def translate(self, shift, drawings=None, move_near_far_clip_planes = False):
         '''Move camera to simulate a translation of drawings.  Translation
         is in scene coordinates.'''
         if shift[0] == 0 and shift[1] == 0 and shift[2] == 0:
             return
         if self._center_of_rotation_method in ('front center', 'center of view'):
             self._update_center_of_rotation = True
-        self._shift_near_far_clip_planes(shift)
+        if not move_near_far_clip_planes:
+            # Near and far clip planes are fixed to camera.
+            # Move them so they stay fixed relative to models.
+            self._shift_near_far_clip_planes(shift)
         from chimerax.geometry import translation
         t = translation(shift)
         self.move(t, drawings)
@@ -1096,11 +1116,13 @@ class _RedrawNeeded:
         self.transparency_changed = False
         self.cached_drawing_bounds = None
         self.cached_any_part_highlighted = None
+        self.recalculate_clip_caps = False		# Set if shape changes
 
     def __call__(self, drawing, shape_changed=False, highlight_changed=False, transparency_changed=False):
         self.redraw_needed = True
         if shape_changed:
             self.shape_changed = True
+            self.recalculate_clip_caps = True
             if drawing.casts_shadows:
                 self.shadow_shape_change = True
             if not getattr(drawing, 'skip_bounds', False):

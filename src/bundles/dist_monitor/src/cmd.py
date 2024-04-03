@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from abc import ABC, abstractmethod
@@ -218,7 +229,8 @@ def distance_style(session, pbonds, *, color=None, dashes=None,
             if lm:
                 lm.add_labels(pbs, PseudobondLabel, session.main_view,
                     settings={ 'color': color.uint8x4() })
-        settings.color = color
+        if pbonds is None or set_defaults:
+            settings.color = color
         if set_defaults:
             settings.save('color')
 
@@ -228,26 +240,30 @@ def distance_style(session, pbonds, *, color=None, dashes=None,
             session.models.add([grp])
             session.pb_dist_monitor.add_group(grp, update_callback=_notify_updates)
         grp.dashes = dashes
-        settings.dashes = dashes
+        if pbonds is None or set_defaults:
+            settings.dashes = dashes
         if set_defaults:
             settings.save('dashes')
 
     if decimal_places is not None:
         session.pb_dist_monitor.decimal_places = decimal_places
-        settings.decimal_places = decimal_places
+        if pbonds is None or set_defaults:
+            settings.decimal_places = decimal_places
         if set_defaults:
             settings.save('decimal_places')
 
     if radius is not None:
         for pb in pbs:
             pb.radius = radius
-        settings.radius = radius
+        if pbonds is None or set_defaults:
+            settings.radius = radius
         if set_defaults:
             settings.save('radius')
 
     if symbol is not None:
         session.pb_dist_monitor.show_units = symbol
-        settings.show_units = symbol
+        if pbonds is None or set_defaults:
+            settings.show_units = symbol
         if set_defaults:
             settings.save('show_units')
 

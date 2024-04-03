@@ -633,6 +633,8 @@ class PaletteWidget:
     def _set_num_colors(self, nc):
         if nc == self._num_shown:
             return
+        if nc > len(self._buttons):
+            nc = len(self._buttons)
         for i,(b,v) in enumerate(zip(self._buttons, self._values)):
             vis = i < nc
             b.setVisible(vis)

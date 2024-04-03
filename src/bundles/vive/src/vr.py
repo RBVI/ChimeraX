@@ -94,6 +94,7 @@ def vr(session, enable = None, room_position = None, mirror = None,
     if mirror:
         if not wait_for_vsync(session, False):
             session.logger.warning('Graphics on desktop display may cause VR to flicker.')
+    if c is not None and mirror is not None:
         c.mirror = mirror
 
     if gui is not None:
@@ -540,6 +541,9 @@ class SteamVRCamera(Camera, StateManager):
         # Exit cleanly
         self._app_quit_handler = t.add_handler('app quit', self._app_quit)
 
+        # Notify other tools that VR has started
+        self._session.triggers.activate_trigger('vr started', self)
+
     @property
     def active(self):
         return self is self._session.main_view.camera
@@ -740,6 +744,9 @@ class SteamVRCamera(Camera, StateManager):
         self._vr_system = None
         self._compositor = None
         self._delete_framebuffers()
+
+        # Notify other tools that VR has stopped
+        self._session.triggers.activate_trigger('vr stopped', self)
 
         self._session.main_view.redraw_needed = True
     
@@ -1139,11 +1146,15 @@ class SteamVRCamera(Camera, StateManager):
             session.logger.info(str(e))
             return None
             
+        if not session.restore_options.get('restore camera'):
+            return c
+        
         c.room_to_scene = data['room_to_scene']
         for hc, ba in zip(c._hand_controllers, data['button_assignments']):
             hc.button_assignments = ba
         if data['active']:
-            # Try to start VR if it was active when session saved.
+            # Try to start VR if it was active when session saved
+            # and we are not already using a VR camera.
             def start_vr(trigger_name, session):
                 try:
                     vr(session, enable = True)

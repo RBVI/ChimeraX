@@ -371,8 +371,8 @@ See also: Segment, pdbdisplayfunction
 			if len(pdbrec) and pdbrec[0:6] in ('ATOM  ','HETATM'): moretogo = 1
 		if psf:
 			psfrec = psff.readline().split()
-			if len(psfrec) < 9:
-				# empty segment name
+			if len(psfrec) == 8 and psfrec[1].isdigit():
+				# empty segment name (not missing trailing 0 [#14605])
 				psfrec.insert(1, "")
 			if nrecs > len(self.atoms): moretogo = 1
 		curseg = None
@@ -425,8 +425,8 @@ See also: Segment, pdbdisplayfunction
 				curatom.mass = float(psfrec[7])
 				curatom.charge = float(psfrec[6])
 				psfrec = psff.readline().split()
-				if len(psfrec) < 9:
-					# empty segment name
+				if len(psfrec) == 8 and psfrec[1].isdigit():
+					# empty segment name (not missing trailing 0 [#14605])
 					psfrec.insert(1, "")
 				if nrecs > numread: moretogo = 1
 		if pdb: pdbf.close()

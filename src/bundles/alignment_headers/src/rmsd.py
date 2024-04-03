@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """Header sequence to show RMSD of associated structures"""
@@ -27,14 +38,18 @@ class RMSD(DynamicStructureHeaderSequence):
     def __init__(self, alignment, *args, **kw):
         from math import log
         self.scaling = log(0.5) / (-3.0)
+        self._eval_chains = []
         super().__init__(alignment, *args, **kw)
         from chimerax.atomic import get_triggers
         self.handlers = [
             self.settings.triggers.add_handler('setting changed', self._setting_changed_cb),
-            get_triggers().add_handler('changes', self._atomic_changes_cb)
         ]
         self._polymer_type = None
         self._set_name()
+
+    def alignment_notification(self, note_name, note_data):
+        if note_name == self.alignment.NOTE_RMSD_UPDATE:
+            self.reevaluate()
 
     @property
     def atoms(self):
@@ -108,53 +123,13 @@ class RMSD(DynamicStructureHeaderSequence):
             self._update_needed = True
             return
         if pos1 == 0 and pos2 == None:
-            original_eval_chains = getattr(self, '_eval_chains', [])
-            by_struct = {}
-            for chain in self.alignment.associations:
-                by_struct.setdefault(chain.structure, []).append(chain)
-            chain_lists = list(by_struct.values())
-            if len(chain_lists) < 2:
-                self._eval_chains = [cl[0] for cl in chain_lists]
-            else:
-                with self.alignment_notifications_suppressed():
-                    chain_lists.sort(key=lambda x: len(x))
-                    cl1, cl2 = chain_lists[:2]
-                    lowest = None
-                    for c1 in cl1:
-                        for c2 in cl2:
-                            self._eval_chains = [c1, c2]
-                            super().reevaluate()
-                            vals = [v for v in self[:] if v is not None]
-                            if not vals:
-                                continue
-                            avg = sum(vals) / len(vals)
-                            if lowest is None or avg < lowest:
-                                lowest = avg
-                                best_chains = [c1, c2]
-                    if lowest is None:
-                        best_chains = [cl1[0], cl2[0]]
-                    for cl in chain_lists[2:]:
-                        lowest = None
-                        for c in cl:
-                            self._eval_chains = best_chains + [c]
-                            super().reevaluate()
-                            vals = [v for v in self[:] if v is not None]
-                            if not vals:
-                                continue
-                            avg = sum(vals) / len(vals)
-                            if lowest is None or avg < lowest:
-                                lowest = avg
-                                best_chain = c
-                        if lowest is None:
-                            best_chains.append(cl[0])
-                        else:
-                            best_chains.append(best_chain)
-                    self._eval_chains = best_chains
-                    if set(best_chains) != set(original_eval_chains):
-                        self.alignment.session.logger.info("Chains used in RMSD evaluation for alignment"
-                            " %s: %s" % (self.alignment, ', '.join(str(c) for c in sorted(best_chains))))
-                # to force the refresh callback to happen...
-                self.clear()
+            new_eval_chains = self.alignment.rmsd_chains
+            if new_eval_chains and set(new_eval_chains) != set(self._eval_chains):
+                self.alignment.session.logger.info("Chains used in RMSD evaluation for alignment"
+                    " %s: %s" % (self.alignment, ', '.join(str(c) for c in sorted(new_eval_chains))))
+            self._eval_chains = new_eval_chains
+            # to force the refresh callback to happen...
+            self.clear()
         super().reevaluate(pos1, pos2)
 
     def _gather_coords(self, pos):
@@ -197,14 +172,6 @@ class RMSD(DynamicStructureHeaderSequence):
             if len(coords) > 1:
                 coord_lists.append(coords)
         return coord_lists
-
-    def _atomic_changes_cb(self, trig_name, changes):
-        if 'scene_coord changed' not in changes.structure_reasons():
-            return
-        for chain in self.alignment.associations:
-            if chain.structure in changes.modified_structures():
-                self.reevaluate()
-                break
 
     def _set_name(self):
         if self.atoms == principal_atom:

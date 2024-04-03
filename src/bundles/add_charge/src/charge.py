@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 class ChargeError(RuntimeError):
@@ -461,10 +472,15 @@ def nonstd_charge(session, residues, net_charge, method, *, status=None, temp_di
     # create a fake Structure that we can write to a Mol2 file
     from chimerax.atomic import AtomicStructure
     s = AtomicStructure(session)
-    s.name = r.name
+    # Antechamber/sqm misbehaves for empty residue names [#9597], so use a real name if needed
+    if not r.name:
+        r_name = "UNL"
+    else:
+        r_name = r.name
+    s.name = r_name
 
     # write out the residue's atoms first, since those are the ones we will be caring about
-    nr = s.new_residue(r.name, ' ', 1)
+    nr = s.new_residue(r_name, ' ', 1)
     atom_map = {}
     # use same ordering of atoms as they had in input, to improve consistency of antechamber charges
     r_atoms = sorted(r.atoms, key=lambda a: a.coord_index)
@@ -786,4 +802,3 @@ class FakeRes:
     @property
     def num_atoms(self):
         return len(self.atoms)
-

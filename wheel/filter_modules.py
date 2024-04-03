@@ -20,7 +20,10 @@ module_blacklist = set([
     , "chimerax.webservices" # needs cxservices
     , "chimerax.blastprotein" # needs webservices
     , "chimerax.build_structure" # needs Qt
+    , "chimerax.bug_reporter" # imports a GUI / not needed
     , "chimerax.dicom" # tries to import its .ui submodule in __init__
+    , "chimerax.nifti" # tries to import dicom
+    , "chimerax.nrrd" # tries to import dicom
     , "chimerax.structcomp"  # ChimeraX command script
     # Not going in the library, but part of test suite for GUI ChimeraX
     , "chimerax.ui" # tries to import Qt
@@ -103,11 +106,16 @@ if __name__ == "__main__":
     def check_if_true_error(pkg):
         if pkg not in fine_blacklist and pkg not in module_blacklist:
             raise
+    kept_files = []
     for info in pkgutil.walk_packages(chimerax.__path__, prefix=chimerax.__name__ + '.', onerror=check_if_true_error):
         module_finder, name, is_pkg = info
-        if name.endswith(".tool") or (name in fine_blacklist) or (name in module_blacklist):
+        if any(name.endswith(x) for x in ["tool", "ui", "cgi"]) or (name in fine_blacklist) or (name in module_blacklist):
             path_to_thing = os.path.sep.join(name.split('.'))
             if os.path.isdir(path_to_thing):
                 shutil.rmtree(path_to_thing)
             elif os.path.isfile(path_to_thing + '.py'):
                 os.remove(path_to_thing + '.py')
+        else:
+            path_to_thing = os.path.sep.join(name.split('.'))
+            kept_files.append(path_to_thing)
+    print('\n'.join(kept_files))

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # ensure C++ shared libs are linkable by us
@@ -89,6 +100,7 @@ class _mmCIFioAPI(BundleAPI):
                     "pdbe": mmcif.fetch_mmcif_pdbe,
                     "pdbe_updated": mmcif.fetch_mmcif_pdbe_updated,
                     "pdbj": mmcif.fetch_mmcif_pdbj,
+                    "redo": mmcif.fetch_pdb_redo,
                 }[name]
 
                 class Info(FetcherInfo):
@@ -97,8 +109,10 @@ class _mmCIFioAPI(BundleAPI):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
 
                     @property
-                    def fetch_args(self):
+                    def fetch_args(self, name=name):
                         from chimerax.core.commands import BoolArg, FloatArg
+                        if name == "redo":
+                            return {}
                         return {
                             'over_sampling': FloatArg,
                             'structure_factors': BoolArg,

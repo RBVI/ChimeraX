@@ -27,13 +27,14 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>swapna</b> 
-&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp; <i>new-type</i> 
+&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp; <i>new-type-list</i>
 [&nbsp;<b>preserve</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>bfactor</b>&nbsp;&nbsp;<i>value</i>&nbsp;]
 </h3>
 <p>
-The <b>swapna</b> command performs a virtual mutation of a nucleic acid 
-residue by replacing its base.
+The <b>swapna</b> command performs a virtual mutation of nucleic acid 
+residues by simply replacing the base.
+The resulting structure may be poor (steric clashes, <i>etc.</i>).
 See also:
 <a href="swapaa.html"><b>swapaa</b></a>,
 <a href="torsion.html"><b>torsion</b></a>,
@@ -42,11 +43,25 @@ See also:
 </p><p>
 One or more nucleic acid residues to change can be
 <a href="atomspec.html">specified</a> in a single command,
-and the <i>new-type</i> is a one-letter code representing 
-one of the standard nucleic acid bases: A, T, G, C, or U
-(case is unimportant).
-The geometries of the new residues may not be optimal.
-</p><p>
+and <i>new-type-list</i> can be either of the following:
+</p>
+<ul>
+<li>a single one-letter code representing one of the standard nucleic acid 
+bases: A, T, G, C, or U (capitalized or not) to use for all specified residues.
+Examples:
+<blockquote>
+<b>swapna /B:13 G</b>
+<br>
+<b>swapna /A:3-5,12 T</b>
+<li>a list of such codes separated by commas only, with exactly as many
+codes as the number of specified residues; the residues will be replaced
+with the types according to the order in which both were specified.
+Example:
+<blockquote>
+<b>swapna /A:3-5,12 A,T,G,G</b>
+</blockquote>
+</ul>
+<p>
 The <b>preserve</b> option (default <b>true</b>) retains the existing
 torsion angle around the base-sugar (glycosidic) bond and the
 position of the base nitrogen involved in that bond.
@@ -58,5 +73,5 @@ highest bfactor value found in the residue before the swap.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2022</address>
+February 2024</address>
 </body></html>

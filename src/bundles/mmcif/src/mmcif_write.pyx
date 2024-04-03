@@ -3,14 +3,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2018 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -82,6 +93,14 @@ def _same_chains(chain0, chain1):
     c0 = {c.chain_id: c.characters for c in chain0}
     c1 = {c.chain_id: c.characters for c in chain1}
     return c0 == c1
+
+
+def _rdisplayed(r):
+    if r.ribbon_displayed:
+        return True
+    # any(r.atoms.displays) is faster than r.atoms.displays.any()
+    # for short arrays (len < 32), and much faster for even shorter arrays (len < 8)
+    return any(r.atoms.displays)
 
 
 def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False, fixed_width=True, best_guess=False, all_coordsets=False, computed_sheets=False):
@@ -240,17 +259,28 @@ def _mmcif_chain_id(i):
 
 def _chain_id_ordinal(chain_id):
     value = 0
-    for char in chain_id:
-        ch = ord(char)
-        if ord('A') <= ch <= ord('Z'):
-            v = ch - ord('A')
-        elif ord('a') <= ch <= ord('z'):
-            v = ch - ord('a') + 26
-        elif ord('0') <= ch <= ord('9'):
-            v = ch - ord('0') + 52
-        else:
-            raise ValueError(f"not a legal chain id {chain_id}, only a-z, A-Z, 0-9 allowed")
-        value = value * 62 + v
+    if chain_id.isalnum():
+        # invert _mmcif_chain_id algorithm
+        ord_A = ord('A')
+        ord_Z = ord('Z')
+        ord_a = ord('a')
+        ord_z = ord('z')
+        ord_0 = ord('0')
+        ord_9 = ord('9')
+        for char in chain_id:
+            ch = ord(char)
+            if ord_A <= ch <= ord_Z:
+                v = ch - ord_A
+            elif ord_a <= ch <= ord_z:
+                v = ch - ord_a + 26
+            elif ord_0 <= ch <= ord_9:
+                v = ch - ord_0 + 52
+            else:
+                raise ValueError(f"not a legal chain id {chain_id}, only a-z, A-Z, 0-9 allowed")
+            value = value * 64 + v + 1
+    else:
+        for char in chain_id:
+            value = value * 64 + ord(char)
     return value
 
 
@@ -350,7 +380,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         chars = c.characters
         if chars in seq_entities:
             eid, _1to3, chains = seq_entities[chars]
-            if _1to3 is not None or not c.from_seqres:
+            if _1to3 is not None or not c.full_sequence_known:
                 chains.append(c)
                 continue
             # fallthrough when sequence wasn't authoratative, but is now
@@ -363,7 +393,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         names = set(c.existing_residues.names)
         nstd = 'yes' if names.difference(_standard_residues) else 'no'
         # _1to3 is reverse map to handle missing residues
-        if not best_guess and not c.from_seqres:
+        if not best_guess and not c.full_sequence_known:
             skipped_sequence_info = True
             _1to3 = None
         else:
@@ -393,7 +423,6 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     for chars, (eid, _1to3, chains) in seq_entities.items():
         if _1to3 is None:
             continue
-        chains = [c for c in chains if c.from_seqres]
         pdbx_poly_tmp[eid] = []
         for seq_id, ch, residues in zip(range(1, sys.maxsize), chars, zip(*(c.residues for c in chains))):
             label_seq_id = str(seq_id)
@@ -417,7 +446,11 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     last_asym_id = 0
 
     def allocate_asym_id(want_id):
+        # asym ids must be identifiers
         nonlocal existing_mmcif_chain_ids, used_mmcif_chain_ids, last_asym_id
+        want_id = ''.join(want_id.split())  # remove whitespace
+        if not want_id and len(best_m.chains) == 0:
+            want_id = '.'
         if want_id and want_id not in used_mmcif_chain_ids:
             used_mmcif_chain_ids.add(want_id)
             return want_id
@@ -871,7 +904,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
                 # TODO: shorten range to what is selected/displayed
                 if selected_only and (not beg_res.selected or not end_res.selected):
                     skip = True
-                if displayed_only and (not beg_res.display or not end_res.display):
+                if displayed_only and (not _rdisplayed(beg_res) or not _rdisplayed(end_res)):
                     skip = True
             if skip:
                 pass
@@ -889,7 +922,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             # TODO: shorten range to what is selected/displayed
             if selected_only and (not beg_res.selected or not end_res.selected):
                 skip = True
-            if displayed_only and (not beg_res.display or not end_res.display):
+            if displayed_only and (not _rdisplayed(beg_res) or not _rdisplayed(end_res)):
                 skip = True
         if skip:
             pass
@@ -904,12 +937,12 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         with best_m.suppress_ss_change_notifications():
             from chimerax.dssp import compute_ss
             ss_data = compute_ss(best_m, return_values=True)
-            # helix_info = ss_data["helix_info"]
-            # if helix_info:
-            #     for (beg_res, end_res), htype in helix_info:
-            #         # Helix type is always HELX_P in current PDB entries
-            #         helix_count += 1
-            #         struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
+            helix_info = ss_data["helix_info"]
+            if helix_count == 0 and helix_info:
+                for (beg_res, end_res), htype in helix_info:
+                    # Helix type is always HELX_P in current PDB entries
+                    helix_count += 1
+                    struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
             ss_sheets = ss_data["sheets"]
             if ss_sheets:
                 ss_strands = ss_data["strands"]
@@ -921,15 +954,21 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
                         beg_res, end_res = ss_strands[strand]
                         sheet_range_entry(sheet_id, j, beg_res, end_res)
                         strand_map[strand] = (sheet_id, j)
+                bad_dssp = False
                 ss_parallel = ss_data["strands_parallel"]
                 for (first, second) in ss_parallel:
+                    if first not in strand_map or second not in strand_map:
+                        bad_dssp = True
+                        continue
                     parallel = 'parallel' if ss_parallel[(first, second)] else 'anti-parallel'
                     st1 = strand_map[first]
                     st2 = strand_map[second]
                     if st1[0] != st2[0]:
-                        print("old strand order:", st1, st2)
+                        bad_dssp = True
                         continue
                     sheet_order_entry(st1[0], st1[1], st2[1], parallel)
+                if bad_dssp:
+                    session.logger.warning("Bad sheet data.  Please use Help / Report a Bug with this structure.")
 
     struct_conf_data[:] = flattened(struct_conf_data)
     struct_conf.print(file, fixed_width=fixed_width)

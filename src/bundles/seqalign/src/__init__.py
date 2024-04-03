@@ -1,17 +1,29 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .cmd import get_alignment_sequence, SeqArg, AlignmentArg, AlignSeqPairArg, SeqRegionArg
+from .cmd import (get_alignment_sequence, SeqArg, AlignmentArg, AlignSeqPairArg, SeqRegionArg,
+                    AlignmentViewerArg, SequenceViewerArg)
 from .alignment import clustal_strong_groups, clustal_weak_groups
 
 from chimerax.core.toolshed import BundleAPI
@@ -67,20 +79,12 @@ class _AlignmentsBundleAPI(BundleAPI):
 
                 @property
                 def open_args(self, *, session=session):
-                    from chimerax.core.commands import BoolArg, StringArg, Or, DynamicEnum
-                    def viewer_names(mgr):
-                        names = set()
-                        for type_viewers in mgr.viewer_info.values():
-                            for vname, nicknames in type_viewers.items():
-                                names.add(vname)
-                                names.update(nicknames)
-                        return names
+                    from chimerax.core.commands import BoolArg, StringArg, Or
                     return {
                         'alignment': BoolArg,
                         'auto_associate': BoolArg,
                         'ident': StringArg,
-                        'viewer': Or(BoolArg,
-                                    DynamicEnum(lambda mgr=session.alignments, f=viewer_names: f(mgr))),
+                        'viewer': Or(BoolArg, AlignmentViewerArg(session), SequenceViewerArg(session)),
                     }
         else:
             from chimerax.save_command import SaverInfo

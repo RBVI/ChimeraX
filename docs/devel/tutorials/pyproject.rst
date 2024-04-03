@@ -88,7 +88,7 @@ the source tree, respectively. ::
 The general syntax is ``"target/directory" = ["list", "of", "source", "files"]``.
 
 Platform-Specific Extra Files
-----------------------------
+-----------------------------
 You may choose to optionally include some extra files on certain platforms only. In this
 case put them in a table such as: ::
 
@@ -341,7 +341,7 @@ initializer are available in Bundle Builder with two additions:
 
   and
 
-- ``lib-modules``
+- ``library-modules``
 
 Each is expected to be a list of python modules on which your extension, library, 
 or executable depends. At build time, Bundle Builder will attempt to import the 
@@ -375,7 +375,7 @@ exposed in bundle builder:::
     language = ""
     optional = false
     include-modules = []
-    lib-modules = []
+    library-modules = []
 
 Notes:
 

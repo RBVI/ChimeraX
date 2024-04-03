@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 import re
@@ -385,7 +396,7 @@ def _fetch_colormap(session, palette_id):
 
 
 def _colourlovers_fetch_by_id(session, palette_id):
-    url = 'http://www.colourlovers.com/api/palette/%d?format=json' % palette_id
+    url = 'https://www.colourlovers.com/api/palette/%d?format=json' % palette_id
     from ..fetch import fetch_file
     filename = fetch_file(session, url, 'palette %d' % palette_id, '%d.json' % palette_id, 'COLOURlovers')
     f = open(filename, 'r')
@@ -410,7 +421,7 @@ def _colourlovers_fetch_by_name(session, palette_name):
     else:
         name, author = palette_name, None
     from urllib.parse import quote
-    url = 'http://www.colourlovers.com/api/palettes?keywords=%s&format=json&numResults=100' % quote(name)
+    url = 'https://www.colourlovers.com/api/palettes?keywords=%s&format=json&numResults=100' % quote(name)
     from ..fetch import fetch_file
     try:
         # fetch_file potentially raises OSError

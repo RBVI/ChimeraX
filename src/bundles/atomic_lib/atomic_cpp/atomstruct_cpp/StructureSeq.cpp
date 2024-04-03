@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -104,7 +115,12 @@ StructureSeq::demote_to_sequence()
         _structure->change_tracker()->add_deleted(_structure, dynamic_cast<Chain*>(this));
     }
     _structure = nullptr;
-    Py_XDECREF(py_call_method("_cpp_seq_demotion"));
+    // Since this demotion frequently happens as garbage collection is running,
+    // doing the call back into the Python layer below is a recipe for crashing,
+    // so instead the Python StructureSeq looks to see if the 'structure' attribute
+    // is None at check-for-changes
+    //Py_XDECREF(py_call_method("_cpp_seq_demotion"));
+
     // let normal deletion processes clean up; don't explicitly delete here
 }
 
@@ -116,6 +132,7 @@ StructureSeq::demote_to_structure_sequence()
     }
     _is_chain = false;
     Py_XDECREF(py_call_method("_cpp_structure_seq_demotion"));
+    
     // let normal deletion processes clean up; don't explicitly delete here
 }
 
@@ -158,7 +175,7 @@ StructureSeq::insert(Residue* follower, Residue* r)
 StructureSeq&
 StructureSeq::operator+=(StructureSeq& addition)
 {
-    Sequence::operator+=(*this);
+    Sequence::operator+=(addition);
     auto offset = _residues.size();
     _residues.insert(_residues.end(), addition._residues.begin(), addition._residues.end());
     bool ischain = is_chain();
@@ -448,28 +465,6 @@ StructureSeq::set_from_seqres(bool fs)
 {
     if (fs == _from_seqres)
         return;
-    if (_from_seqres) {
-        // changing from true to false;
-        // eliminate seqres parts of sequence...
-        if (std::find(_residues.begin(), _residues.end(), nullptr)
-        != _residues.end()) {
-            // there actually are seqres portions
-            _res_map.clear();
-            StructureSeq::Residues new_residues;
-            Sequence::Contents new_contents;
-            auto ri = _residues.begin();
-            int i = 0;
-            for (auto si = begin(); si != end(); ++si, ++ri) {
-                if (*ri == nullptr)
-                    continue;
-                _res_map[*ri] = ++i;
-                new_residues.push_back(*ri);
-                new_contents.push_back(*si);
-            }
-            _residues.swap(new_residues);
-            swap(new_contents);
-        }
-    }
     _from_seqres = fs;
     if (is_chain())
         _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),

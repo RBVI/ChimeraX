@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from .settings import SINGLE_PREFIX, ALIGNMENT_PREFIX
@@ -268,9 +279,9 @@ class SeqCanvas:
                     self.sv.status(self.seqInfoText(s)),
                 '<Double-Button>': lambda e, s=seq: self.sv._editSeqName(s)
             }
-        self.sv.region_browser._preAddLines(seqs)
+        self.sv.region_manager._preAddLines(seqs)
         self.lead_block.addSeqs(seqs)
-        self.sv.region_browser.redraw_regions()
+        self.sv.region_manager.redraw_regions()
 
     def adjustScrolling(self):
         self._resizescrollregion()
@@ -279,10 +290,10 @@ class SeqCanvas:
     def _arrowCB(self, event):
         if event.state & 4 != 4:
             if event.keysym == "Up":
-                self.sv.region_browser.raiseRegion(
+                self.sv.region_manager.raiseRegion(
                         self.sv.currentRegion())
             elif event.keysym == "Down":
-                self.sv.region_browser.lowerRegion(
+                self.sv.region_manager.lowerRegion(
                         self.sv.currentRegion())
             else:
                 self.sv.status(
@@ -638,7 +649,7 @@ class SeqCanvas:
                             updateAttrs=False)
         if region:
             region.updateLastBlock(lastBlock)
-        self.sv.region_browser.redraw_regions(just_gapping=True)
+        self.sv.region_manager.redraw_regions(just_gapping=True)
         if not self._editBounds:
             if self._delayedAttrsHandler:
                 self.mainCanvas.after_cancel(
@@ -685,7 +696,7 @@ class SeqCanvas:
 
     def hide_header(self, header):
         self.lead_block.hide_header(header)
-        self.sv.region_browser.redraw_regions()
+        self.sv.region_manager.redraw_regions()
         self._update_scene_rects()
 
     def layout_alignment(self):
@@ -848,7 +859,7 @@ class SeqCanvas:
                     % (fontsize, fontname), blankAfter=0)
         self.lead_block.fontChange(self.font)
         self.refreshTree()
-        self.sv.region_browser.redraw_regions()
+        self.sv.region_manager.redraw_regions()
         self.sv.status("Font changed")
 
     def _newWrap(self):
@@ -891,7 +902,7 @@ class SeqCanvas:
         self.labelCanvas.yview_moveto(float(numBlocks - 1) / numBlocks)
 
     def realign(self, seqs, handleRegions=True):
-        rb = self.sv.region_browser
+        rb = self.sv.region_manager
         if handleRegions:
             # do what we can; move single-seq regions that begin and end
             # over non-gap characters, delete others
@@ -1028,7 +1039,7 @@ class SeqCanvas:
             else:
                 self.lead_block.treeNodeMap = {'active': activeNode }
         """
-        self.sv.region_browser.redraw_regions(cull_empty=cull_empty)
+        self.sv.region_manager.redraw_regions(cull_empty=cull_empty)
         self.main_scene.update()
         self.label_scene.update()
         self._update_scene_rects()
@@ -1048,7 +1059,7 @@ class SeqCanvas:
                 self.refresh(note_data)
             elif note_name == self.alignment.NOTE_REALIGNMENT:
                 # headers are notified before us, so they should be "ready to go"
-                self.sv.region_browser.clear_regions()
+                self.sv.region_manager.clear_regions()
                 self._reformat()
             if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
                     self.alignment.NOTE_HDR_NAME):
@@ -1183,7 +1194,7 @@ class SeqCanvas:
 
     def show_header(self, header):
         self.lead_block.show_header(header)
-        self.sv.region_browser.redraw_regions()
+        self.sv.region_manager.redraw_regions()
         self._update_scene_rects()
 
     @property
@@ -1201,7 +1212,7 @@ class SeqCanvas:
         self.lead_block.show_left_numbering(show)
         if not show:
             self.numbering_widths[:] = new_widths
-        self.sv.region_browser.redraw_regions()
+        self.sv.region_manager.redraw_regions()
         self._update_scene_rects()
 
     @property
@@ -1231,7 +1242,7 @@ class SeqCanvas:
             return
         self._show_ruler = show_ruler
         self.lead_block.set_ruler_display(show_ruler)
-        self.sv.region_browser.redraw_regions()
+        self.sv.region_manager.redraw_regions()
         self._update_scene_rects()
 
     def state(self):
@@ -1461,16 +1472,24 @@ class SeqCanvas:
         """
 
     def _label_scene(self, grid=True):
+        from Qt.QtCore import Qt
         if self.wrap_okay():
             label_scene = self.main_scene
             if grid:
                 self.label_view.hide()
                 #self._vdivider.hide()
+
+                self.label_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+                self.main_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         else:
             label_scene = self.label_scene
             if grid:
                 self.label_view.show()
                 #self._vdivider.show()
+
+                # Having only one scroll bar showing causes labels not to align with sequences on Mac
+                self.label_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+                self.main_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         return label_scene
 
     """
@@ -1925,8 +1944,8 @@ class SeqBlock:
                 color = numpy.sum(colors, axis=0) / len(colors)
             else:
                 struct = structures.pop()
-                if struct.model_color is not None:
-                    color = struct.model_color
+                if struct.overall_color is not None:
+                    color = struct.overall_color
                 else:
                     colors = struct.atoms.colors
                     color = numpy.sum(colors, axis=0) / len(colors)
@@ -2864,7 +2883,7 @@ class SeqBlock:
             self.next_block.updateNumberings()
 """
 
-def _ellipsis_name(name, ellipsis_threshold):
+def ellipsis_name(name, ellipsis_threshold):
     if len(name) > ellipsis_threshold:
         half = int(ellipsis_threshold/2)
         return name[0:half-1] + "..." + name[len(name)-half:]
@@ -2881,9 +2900,9 @@ def _find_label_width(lines, settings, font_metrics, emphasis_font_metrics, labe
 
 def _seq_name(seq, settings):
     """TODO
-    return _ellipsis_name(seq.name, prefs[SEQ_NAME_ELLIPSIS])
+    return ellipsis_name(seq.name, prefs[SEQ_NAME_ELLIPSIS])
     """
-    return _ellipsis_name(seq.name, 30)
+    return ellipsis_name(seq.name, 30)
 
 def _wrap_okay(num_seqs, settings):
     if num_seqs == 1:

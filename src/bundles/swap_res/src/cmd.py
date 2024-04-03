@@ -1,27 +1,56 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import UserError
 
 default_criteria = "dchp"
-def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, criteria=default_criteria,
+def swap_aa(session, residues, res_types, *, angle_slop=None, bfactor=None, criteria=default_criteria,
     density=None, dist_slop=None, hbond_allowance=None, ignore_other_models=True, rot_lib=None, log=True,
     preserve=None, relax=True, retain=False, score_method="num", overlap_cutoff=None):
     ''' Command to swap amino acid side chains '''
 
     residues = _check_residues(residues)
 
-    _check_num_residues(session, residues)
+    # for backwards compatibility...
+    if type(res_types) == str:
+        res_types = [res_types]
+
+    if len(res_types) == 1 and res_types[0].startswith("seq:"):
+        rem = res_types[0][4:]
+        if not rem:
+            raise UserError("No sequence letters after 'seq:'")
+        rem_seq = [x for x in rem if x.isprintable()]
+        if not rem_seq:
+            raise UserError("Only non-printable/invisible characters after 'seq:'")
+        res_types = []
+        from chimerax.atomic import Sequence
+        for let in rem_seq:
+            try:
+                res_types.append(Sequence.protein1to3[let.upper()])
+            except KeyError:
+                raise UserError("Unknown amino acid code letter: %s" % let)
+    _check_num_residues(session, residues, res_types)
 
     if type(criteria) == str:
         for c in criteria:
@@ -37,13 +66,21 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
         session.logger.info("Using %s library" % rot_lib)
 
     from . import swap_res
-    swap_res.swap_aa(session, residues, res_type, bfactor=bfactor, clash_hbond_allowance=hbond_allowance,
-        clash_score_method=score_method, clash_overlap_cutoff=overlap_cutoff,
-        criteria=criteria, density=density, hbond_angle_slop=angle_slop,
-        hbond_dist_slop=dist_slop, ignore_other_models=ignore_other_models, rot_lib=rot_lib, log=log,
-        preserve=preserve, hbond_relax=relax, retain=retain)
+    kw =  { 'bfactor': bfactor, 'clash_hbond_allowance': hbond_allowance,
+        'clash_score_method': score_method, 'clash_overlap_cutoff': overlap_cutoff, 'criteria': criteria,
+        'density': density, 'hbond_angle_slop': angle_slop, 'hbond_dist_slop': dist_slop,
+        'ignore_other_models': ignore_other_models, 'rot_lib': rot_lib, 'log': log, 'preserve': preserve,
+        'hbond_relax': relax, 'retain': retain }
+    if len(res_types) == 1:
+        swap_res.swap_aa(session, residues, res_types[0], **kw)
+    else:
+        if len(residues) != len(res_types):
+            raise UserError("Number of residues (%d) does not match number of residue types (%d)"
+                % (len(residues), len(res_types)))
+        for res, res_type in zip(residues, res_types):
+            swap_res.swap_aa(session, [res], res_type, **kw)
 
-def swap_na(session, residues, res_type, *, preserve=False, bfactor=None):
+def swap_na(session, residues, res_types, *, preserve=False, bfactor=None):
     # Can't swap P-only residues anyway, so just test for C4'
     if len(residues) == 0:
         raise UserError("No residues specified for swapping")
@@ -53,10 +90,22 @@ def swap_na(session, residues, res_type, *, preserve=False, bfactor=None):
     if len(nuc_residues) == 0:
         raise UserError("No nucleic acid residues specified for swapping")
 
-    _check_num_residues(session, nuc_residues)
+    # for backwards compatibility...
+    if type(res_types) == str:
+        res_types = [res_types]
 
+    _check_num_residues(session, nuc_residues, res_types)
+
+    kw = { 'bfactor': bfactor, 'preserve': preserve }
     from . import swap_res
-    swap_res.swap_na(session, nuc_residues, res_type, bfactor=bfactor, preserve=preserve)
+    if len(res_types) == 1:
+        swap_res.swap_na(session, nuc_residues, res_types[0], **kw)
+    else:
+        if len(nuc_residues) != len(res_types):
+            raise UserError("Number of residues (%d) does not match number of residue types (%d)"
+                % (len(nuc_residues), len(res_types)))
+        for res, res_type in zip(nuc_residues, res_types):
+            swap_res.swap_na(session, [res], res_type, **kw)
 
 from chimerax.core.state import StateManager
 class _RotamerStateManager(StateManager):
@@ -127,10 +176,14 @@ class _RotamerStateManager(StateManager):
                 self.triggers.activate_trigger('self destroyed', self)
                 self.destroy()
 
-def rotamers(session, residues, res_type, *, rot_lib=None, log=True):
+def rotamers(session, residues, res_types, *, rot_lib=None, log=True):
     ''' Command to display possible side-chain rotamers '''
 
     residues = _check_residues(residues)
+
+    # for backwards compatibility...
+    if type(res_types) == str:
+        res_types = [res_types]
 
     if rot_lib is None:
         rot_lib = session.rotamers.default_command_library_name
@@ -139,7 +192,7 @@ def rotamers(session, residues, res_type, *, rot_lib=None, log=True):
     from . import swap_res
     from chimerax.atomic import AtomicStructures
     from chimerax.core.objects import Objects
-    for r in residues:
+    for r, res_type in zip(residues, res_types):
         if res_type == "same":
             r_type = r.name
         else:
@@ -167,8 +220,8 @@ def _check_residues(residues):
         raise UserError("No amino acid residues specified for swapping")
     return residues
 
-def _check_num_residues(session, residues):
-    if len(residues) > 2 and session.ui.is_gui and not session.in_script:
+def _check_num_residues(session, residues, res_types):
+    if len(residues) > 2 and len(res_types) < 2 and session.ui.is_gui and not session.in_script:
         from chimerax.ui.ask import ask
         if ask(session, "Really swap side chains for %d residues?" % len(residues),
                 title="Confirm Swap") == "no":
@@ -177,11 +230,11 @@ def _check_num_residues(session, residues):
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, NonNegativeIntArg, Or
-    from chimerax.core.commands import NonNegativeFloatArg, DynamicEnum, ListOf, FloatArg, EnumOf
+    from chimerax.core.commands import NonNegativeFloatArg, DynamicEnum, ListOf, FloatArg, EnumOf, ListOf
     from chimerax.atomic import ResiduesArg
     from chimerax.map import MapArg
     desc = CmdDesc(
-        required = [('residues', ResiduesArg), ('res_type', StringArg)],
+        required = [('residues', ResiduesArg), ('res_types', ListOf(StringArg))],
         keyword = [
             ('angle_slop', FloatArg),
             ('bfactor', FloatArg),
@@ -203,7 +256,7 @@ def register_command(command_name, logger):
     register("swapaa", desc, swap_aa, logger=logger)
 
     desc = CmdDesc(
-        required = [('residues', ResiduesArg), ('res_type', StringArg)],
+        required = [('residues', ResiduesArg), ('res_types', ListOf(StringArg))],
         keyword = [
             ('rot_lib', DynamicEnum(logger.session.rotamers.library_names)),
             ('log', BoolArg),
@@ -213,7 +266,7 @@ def register_command(command_name, logger):
     register("swapaa interactive", desc, rotamers, logger=logger)
 
     desc = CmdDesc(
-        required = [('residues', ResiduesArg), ('res_type', StringArg)],
+        required = [('residues', ResiduesArg), ('res_types', ListOf(StringArg))],
         keyword = [
             ('bfactor', FloatArg),
             ('preserve', BoolArg),

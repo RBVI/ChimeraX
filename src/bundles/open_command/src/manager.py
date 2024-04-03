@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 class NoOpenerError(ValueError):
@@ -18,21 +29,25 @@ class OpenerNotInstalledError(NoOpenerError):
     pass
 
 class OpenerProviderInfo:
-    def __init__(self, bundle_info, name, want_path, check_path, batch, pregrouped_structures):
+    def __init__(self, bundle_info, name, want_path, check_path, batch, pregrouped_structures,
+            group_multiple_models):
         self.bundle_info = bundle_info
         self.name = name
         self.want_path = want_path
         self.check_path = check_path
         self.batch = batch
         self.pregrouped_structures = pregrouped_structures
+        self.group_multiple_models = group_multiple_models
 
 class FetcherProviderInfo:
-    def __init__(self, bundle_info, is_default, example_ids, synopsis, pregrouped_structures):
+    def __init__(self, bundle_info, is_default, example_ids, synopsis, pregrouped_structures,
+            group_multiple_models):
         self.bundle_info = bundle_info
         self.is_default = is_default
         self.example_ids = example_ids
         self.synopsis = synopsis
         self.pregrouped_structures = pregrouped_structures
+        self.group_multiple_models = group_multiple_models
 
 from chimerax.core.toolshed import ProviderManager
 class OpenManager(ProviderManager):
@@ -50,7 +65,7 @@ class OpenManager(ProviderManager):
 
     def add_provider(self, bundle_info, name, *, type="open", want_path=False, check_path=True,
             batch=False, format_name=None, is_default=True, synopsis=None, example_ids=None,
-            pregrouped_structures=False, **kw):
+            pregrouped_structures=False, group_multiple_models=True, **kw):
         logger = self.session.logger
         self._ui_names[name.lower()] = ui_name = name
         name = name.lower()
@@ -61,6 +76,8 @@ class OpenManager(ProviderManager):
         check_path = bool_cvt(check_path, ui_name, bundle_name, "check_path")
         pregrouped_structures = bool_cvt(pregrouped_structures, ui_name, bundle_name,
             "pregrouped_structures")
+        group_multiple_models = bool_cvt(group_multiple_models, ui_name, bundle_name,
+            "group_multiple_models")
         if batch or not check_path:
             want_path = True
         type_description = "Open-command" if type == "open" else type.capitalize()
@@ -81,7 +98,7 @@ class OpenManager(ProviderManager):
                     " %s bundle" % (data_format.name, _readable_bundle_name(
                     self._openers[data_format].bundle_info), bundle_name))
             self._openers[data_format] = OpenerProviderInfo(bundle_info, ui_name, want_path,
-                check_path, batch, pregrouped_structures)
+                check_path, batch, pregrouped_structures, group_multiple_models)
         elif type == "fetch":
             if not name:
                 raise ValueError("Database fetch in bundle %s has empty name" % bundle_name)
@@ -94,21 +111,25 @@ class OpenManager(ProviderManager):
             try:
                 data_format = self.session.data_formats[format_name]
             except KeyError:
-                raise ValueError("Database-fetch provider '%s' in bundle %s specified"
+                self.session.logger.info("Database-fetch provider '%s' in bundle %s specified"
                     " unknown data format '%s'" % (ui_name, bundle_name, format_name))
+                return
             if name in self._fetchers and format_name in self._fetchers[name]:
-                logger.warning("Replacing fetcher for '%s' and format %s from %s bundle"
-                    " with that from %s bundle" % (ui_name, format_name,
-                    _readable_bundle_name(self._fetchers[name][format_name].bundle_info),
-                    bundle_name))
+                if not bundle_info.installed:
+                    return
+                if self._fetchers[name][format_name].bundle_info.installed:
+                    logger.warning("Replacing fetcher for '%s' and format %s from %s bundle"
+                        " with that from %s bundle" % (ui_name, format_name,
+                        _readable_bundle_name(self._fetchers[name][format_name].bundle_info),
+                        bundle_name))
             if example_ids:
-                example_ids = ",".split(example_ids)
+                example_ids = example_ids.split(';')
             else:
                 example_ids = []
-            if synopsis is None:
-                synopsis = "%s (%s)" % (name.capitalize(), format_name)
+            #if synopsis is None:
+            #    synopsis = "%s (%s)" % (name.capitalize() if ui_name.lower() else ui_name, format_name)
             self._fetchers.setdefault(name, {})[format_name] = FetcherProviderInfo(
-                bundle_info, is_default, example_ids, synopsis, pregrouped_structures)
+                bundle_info, is_default, example_ids, synopsis, pregrouped_structures, group_multiple_models)
             if is_default and len([fmt for fmt, info in self._fetchers[name].items()
                     if info.is_default]) > 1:
                 logger.warning("Multiple default formats declared for database fetch"

@@ -159,8 +159,7 @@ class UpdateTool(ToolInstance):
         from Qt.QtCore import Qt
         from Qt.QtWidgets import QTreeWidgetItem, QComboBox
         from packaging.version import Version
-        # TODO: make _compatible a non-private API
-        from chimerax.help_viewer.tool import _compatible as compatible
+        from chimerax.help_viewer.tool import incompatible_reason
         session = self.session
         toolshed = session.toolshed
         self.actions = []
@@ -171,8 +170,10 @@ class UpdateTool(ToolInstance):
         installed_version = ""
         for available in info:
             release_file = getattr(available, 'release_file', None)
-            if release_file is not None and not compatible(release_file):
-                continue
+            if release_file is not None:
+                reason = incompatible_reason(release_file)
+                if reason is not None:
+                    continue
             if last_bundle_name is None or available.name != last_bundle_name:
                 last_bundle_name = available.name
                 installed_bi = toolshed.find_bundle(last_bundle_name, session.logger)

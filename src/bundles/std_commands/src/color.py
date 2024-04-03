@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 _SpecialColors = ["byatom", "byelement", "byhetero", "bychain",
@@ -380,9 +391,9 @@ def _set_model_colors(session, model_list, color, opacity, undo_state):
         c = color.uint8x4()
         if not opacity is None:
             c[3] = opacity
-        elif not m.model_color is None and not m.model_color is False:
-            c[3] = m.model_color[3]
-        m.model_color = c
+        elif not m.overall_color is None and not m.overall_color is False:
+            c[3] = m.overall_color[3]
+        m.overall_color = c
         if undo_state:
             undo_state.add(m, 'color_undo_state', cprev, m.color_undo_state)
 
@@ -393,13 +404,13 @@ def _set_label_colors(session, objects, color, opacity, undo_state=None):
     from chimerax.label.label2d import LabelModel
     labels = [m for m in objects.models if isinstance(m, LabelModel)]
     if undo_state:
-        old_colors = [label.model_color for label in labels]
+        old_colors = [label.overall_color for label in labels]
     for label in labels:
-        label.model_color = _color_with_opacity(color, opacity, label.color)
+        label.overall_color = _color_with_opacity(color, opacity, label.color)
     if undo_state:
-        new_colors = [label.model_color for label in labels]
+        new_colors = [label.overall_color for label in labels]
         for label, old_color, new_color in zip(labels, old_colors, new_colors):
-            undo_state.add(label, 'model_color', old_color, new_color)
+            undo_state.add(label, 'overall_color', old_color, new_color)
     nl += len(labels)
 
     # 3D labels
@@ -515,6 +526,7 @@ def _set_sequential_residue(session, objects, cmap, opacity, target, undo_state)
                  for chain in res.unique_chains]
     import numpy
     from chimerax.core.colors import Color
+    from chimerax.atomic import Residues
     for chain, residues in chain_res:
         colors = cmap.interpolated_rgba8(numpy.linspace(0.0, 1.0, len(residues)))
         for color, r in zip(colors, residues):
@@ -527,6 +539,8 @@ def _set_sequential_residue(session, objects, cmap, opacity, target, undo_state)
                 rgba[3] = r.ribbon_color[3] if opac is None else opac
                 undo_state.add(r, "ribbon_color", r.ribbon_color, rgba)
                 r.ribbon_color = rgba
+            if target is None or 'f' in target:
+                _set_ring_colors(Residues([r]), c, opac, None, undo_state)
         if 's' in target:
             _color_surfaces_at_residues(residues, colors, opacity=opac,
                                         undo_state = undo_state)

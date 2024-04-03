@@ -1,18 +1,29 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import CmdDesc, register, Command, OpenFileNamesArg, RestOfLine, next_token, \
-    FileNameArg, BoolArg, StringArg, DynamicEnum
+    FileNameArg, BoolArg, StringArg, DynamicEnum, ModelIdArg
 from chimerax.core.commands.cli import RegisteredCommandInfo, log_command
 from chimerax.core.errors import UserError, LimitationError
 
@@ -98,6 +109,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
         keywords = {
             'format': DynamicEnum(lambda ses=session:format_names(ses)),
             'from_database': DynamicEnum(database_names),
+            'id': ModelIdArg,
             'ignore_cache': BoolArg,
             'name': StringArg
         }
@@ -124,7 +136,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
         return JSONResult(JSONEncoder().encode(open_data), models)
     return models
 
-def provider_open(session, names, format=None, from_database=None, ignore_cache=False, name=None,
+def provider_open(session, names, format=None, from_database=None, ignore_cache=False, name=None, id=None,
         _return_status=False, _add_models=True, _request_file_history=False, log_errors=True, **provider_kw):
     mgr = session.open_command
     # since the "file names" may be globs, need to preprocess them...
@@ -145,7 +157,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
         data_format = formats.pop() if formats else None
         database_name, format = databases.pop() if databases else (None, format)
         if database_name:
-            fetcher_info, default_format_name, pregrouped_structures = _fetch_info(
+            fetcher_info, default_format_name, pregrouped_structures, group_multiple_models = _fetch_info(
                 mgr, database_name, format)
             in_file_history = fetcher_info.in_file_history
             for ident, database_name, format_name in fetches:
@@ -157,7 +169,10 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 if status:
                     statuses.append(status)
                 if models:
-                    opened_models.append(name_and_group_models(models, name, [ident]))
+                    if group_multiple_models:
+                        opened_models.append(name_and_group_models(models, name, [ident]))
+                    else:
+                        opened_models.extend(models)
                     if pregrouped_structures:
                         for model in models:
                             ungrouped_models.extend([m for m in model.all_models()
@@ -178,7 +193,10 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 if status:
                     statuses.append(status)
                 if models:
-                    opened_models.append(name_and_group_models(models, name, paths))
+                    if provider_info.group_multiple_models:
+                        opened_models.append(name_and_group_models(models, name, paths))
+                    else:
+                        opened_models.extend(models)
                     if provider_info.pregrouped_structures:
                         for model in models:
                             ungrouped_models.extend([m for m in model.all_models()
@@ -195,7 +213,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                         models, status = collated_open(session, None, [data], data_format, _add_models,
                             log_errors, opener_info.open, (session, data,
                             name or model_name_from_path(fi.file_name)), provider_kw)
-                    except UnicodeDecodeError:
+                    except UnicodeError:
                         if not provider_info.want_path and data_format.encoding == "utf-8":
                             # try utf-16/32 (see #8746)
                             for encoding in ['utf-16', 'utf-32']:
@@ -205,7 +223,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                                     models, status = collated_open(session, None, [data], data_format,
                                         _add_models, log_errors, opener_info.open, (session, data,
                                         name or model_name_from_path(fi.file_name)), provider_kw)
-                                except UnicodeDecodeError:
+                                except UnicodeError:
                                     continue
                                 break
                             else:
@@ -215,7 +233,10 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     if status:
                         statuses.append(status)
                     if models:
-                        opened_models.append(name_and_group_models(models, name, [fi.file_name]))
+                        if provider_info.group_multiple_models:
+                            opened_models.append(name_and_group_models(models, name, [fi.file_name]))
+                        else:
+                            opened_models.extend(models)
                         if provider_info.pregrouped_structures:
                             for model in models:
                                 ungrouped_models.extend([m for m in model.all_models()
@@ -239,14 +260,17 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             if status:
                 statuses.append(status)
             if models:
-                opened_models.append(name_and_group_models(models, name, [fi.file_name]))
+                if provider_info.group_multiple_models:
+                    opened_models.append(name_and_group_models(models, name, [fi.file_name]))
+                else:
+                    opened_models.extend(models)
                 if provider_info.pregrouped_structures:
                     for model in models:
                         ungrouped_models.extend([m for m in model.all_models() if isinstance(m, Structure)])
                 else:
                     ungrouped_models.extend(models)
         for ident, database_name, format_name in fetches:
-            fetcher_info, default_format_name, pregrouped_structures = _fetch_info(
+            fetcher_info, default_format_name, pregrouped_structures, group_multiple_models = _fetch_info(
                 mgr, database_name, format)
             in_file_history = fetcher_info.in_file_history
             if format_name is None:
@@ -257,7 +281,10 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             if status:
                 statuses.append(status)
             if models:
-                opened_models.append(name_and_group_models(models, name, [ident]))
+                if group_multiple_models:
+                    opened_models.append(name_and_group_models(models, name, [ident]))
+                else:
+                    opened_models.extend(models)
                 if pregrouped_structures:
                     for model in models:
                         ungrouped_models.extend([m for m in model.all_models() if isinstance(m, Structure)])
@@ -265,6 +292,9 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     ungrouped_models.extend(models)
     if opened_models and _add_models:
         session.models.add(opened_models)
+        if id is not None:
+            from chimerax.std_commands.rename import rename
+            rename(session, opened_models, id=id)
     if (_add_models or _request_file_history) and len(names) == 1 and in_file_history:
         # TODO: Handle lists of file names in history
         from chimerax.core.filehistory import remember_file
@@ -300,7 +330,7 @@ def _fetch_info(mgr, database_name, default_format_name):
             raise UserError("No default format for database '%s'.  Possible formats are:"
                 " %s" % (database_name, commas(db_info.keys())))
     return (provider_info.bundle_info.run_provider(mgr.session, database_name, mgr),
-        default_format_name, provider_info.pregrouped_structures)
+        default_format_name, provider_info.pregrouped_structures, provider_info.group_multiple_models)
 
 def _get_path(mgr, file_name, check_path, check_compression=True):
     from os.path import expanduser, expandvars, exists
@@ -528,7 +558,7 @@ def cmd_usage_open(session):
     arg_syntax.append("%s: %s" % (arg_fmt % "names", get_name(OpenFileNamesArg)))
     for kw_name, arg in [('format', DynamicEnum(lambda ses=session: format_names(ses))),
             ('fromDatabase', DynamicEnum(lambda ses=session: ses.open_command.database_names)),
-            ('name', StringArg)]:
+            ('name', StringArg), ('id', ModelIdArg)]:
         if isinstance(arg, type):
             # class, not instance
             syntax += kw_fmt % (kw_name, get_name(arg))

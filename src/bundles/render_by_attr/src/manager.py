@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # providers return this
@@ -22,6 +33,10 @@ class RenderAttrInfo(metaclass=abc.ABCMeta):
     def class_object(self):
         """Return the class object (which must offer the core attribute-registration API)"""
         pass
+
+    def deworm_applicable(self, models):
+        """Best effort answer to whether worms are depicted on the given models"""
+        return False
 
     def hide_attr(self, attr_name, rendering):
         """Return True if attr_name should not be shown by the Render/Select tab of the tool
@@ -38,11 +53,25 @@ class RenderAttrInfo(metaclass=abc.ABCMeta):
     def render(self, session, attr_name, models, method, parameters, selected_only):
         """Render the given models based on attr_name as requested.
 
-        The only current method is 'color', for which 'parameters' is a two-tuple of a set of
-        targets to color (of those legal from the Provider declaration) and a sequence of value-RGBA
-        pairs (RGBA channels in 0-1 range) for the color to use at that value.  One of the values may
-        be None, in which case None values should receive that color.  If 'selected_only' is True, then
-        the coloring should only be applied to selected instances.
+        'parameters' is a two-tuple, the first value of which is specific to the rendering method
+        (see below) and the second of which a sequence of attribute value/rendering value pairs that
+        serve as waypoints for interpolating the rendering.  One of the attribute values may be None,
+        in which case missing or None values should receive that rendering value.  For the 'color'
+        method the rendering values are RGBA (RGBA channels in 0-1 range).  For the 'radius' method,
+        the value is an atomic radius value.
+
+        The method-specific first parameter is:
+
+        'color': a set of targets to color (of those legal from the Provider declaration).
+
+        'radius': a string, either 'sphere', 'ball', or 'unchanged', indicating how the affected atoms
+            should be depicted.
+
+        'worm': a boolean saying whether to show (True) or stop showing (False) worms.  If False, then
+            attr_name will be None and the sequence of waypoints will be empty.
+
+        For both methods, if 'selected_only' is True, then the rendering should only be applied to
+        selected instances.
 
         This method should carry out the rendering using a command if possible.
         """

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 timing = False
@@ -94,7 +105,8 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         # ranges of secondary structures
         is_helix = residues.is_helix
         ssids = residues.secondary_structure_ids
-        arc_helix = (structure.ribbon_mode_helix == structure.RIBBON_MODE_ARC)
+        worm = structure.worm_ribbon
+        arc_helix = (structure.ribbon_mode_helix == structure.RIBBON_MODE_ARC and not worm)
         res_class, helix_ranges, sheet_ranges, display_ranges = \
             _ribbon_ranges(is_helix, residues.is_strand, ssids, displays,
                            residues.polymer_types, arc_helix)
@@ -106,7 +118,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         # Assign front and back cross sections for each residue.
         xs_mgr = structure.ribbon_xs_mgr
         xs_front, xs_back, smooth_twist = \
-            _ribbon_crosssections(res_class, xs_mgr, is_helix, arc_helix)
+            _ribbon_crosssections(res_class, xs_mgr, is_helix, arc_helix, worm)
 
         if timing:
             xstime += time()-t0
@@ -157,9 +169,16 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         if timing:
             pathtime += time() - t0
             t0 = time()
-            
+
+        if worm:
+            radial_scale = _worm_radii(residues, segment_divisions)
+            radial_scale /= xs_mgr.scale_coil[0]
+        else:
+            radial_scale = None
+
         # Compute ribbon triangles
-        _ribbon_geometry(path, display_ranges, len(residues), xs_front, xs_back, geometry)
+        _ribbon_geometry(path, display_ranges, len(residues), xs_front, xs_back, geometry,
+                         radial_scale=radial_scale)
 
         if timing:
             geotime += time() - t0
@@ -377,7 +396,7 @@ def _end_helix(res_class, ss_ranges, end):
         res_class[-1] = XSectionManager.RC_HELIX_END
         ss_ranges[-1][1] = end
         
-def _ribbon_crosssections(res_class, ribbon_xs_mgr, is_helix, arc_helix):
+def _ribbon_crosssections(res_class, ribbon_xs_mgr, is_helix, arc_helix, worm):
     # Assign front and back cross sections for each residue.
     # The "front" section is between this residue and the previous.
     # The "back" section is between this residue and the next.
@@ -398,7 +417,10 @@ def _ribbon_crosssections(res_class, ribbon_xs_mgr, is_helix, arc_helix):
             rc2 = res_class[i + 1]
         except IndexError:
             rc2 = XSectionManager.RC_COIL
-        f, b = ribbon_xs_mgr.assign(rc0, rc1, rc2)
+        if worm:
+            f = b = ribbon_xs_mgr.xs_coil
+        else:
+            f, b = ribbon_xs_mgr.assign(rc0, rc1, rc2)
         xs_front.append(f)
         xs_back.append(b)
         smooth_twist.append(_smooth_twist(rc1, rc2))
@@ -429,12 +451,31 @@ def _smooth_twist(rc0, rc1):
         return True
     return False
 
-def _ribbon_geometry(path, ranges, num_res, xs_front, xs_back, geometry):        
+def _worm_radii(residues, segment_divisions):
+    '''Calculate worm radii and splined ribbon path points.'''
+
+    # Use 3D cubic spline and interpolation since we already have code for that
+    # used for splining the ribbon center coordinates.
+    n = len(residues)
+    from numpy import zeros, float64, float32, uint8
+    coords = zeros((n,3), float64)
+    coords[:,0] = residues.worm_radii
+    coefs = _natural_cubic_spline_coefficients(coords)
+    normals = zeros((n,3), float32)    # dummy argument
+    flip = twist = zeros((n,), uint8)  # dummy argument
+    scoords, tangents_unused, normals_unused = \
+        _spline_path(coefs, normals, flip, twist, segment_divisions)
+    spline_worm_radii = scoords[:,0].copy()  # Make it contiguous
+    return spline_worm_radii
+
+def _ribbon_geometry(path, ranges, num_res, xs_front, xs_back, geometry,
+                     radial_scale = None):
     centers, tangents, normals = path
     xsf = [xs._xs_pointer for xs in xs_front]
     xsb = [xs._xs_pointer for xs in xs_back]
+    radial_scale_kw = {} if radial_scale is None else {'radial_scale': radial_scale}
     _ribbons.ribbon_extrusions(centers, tangents, normals, ranges,
-                               num_res, xsf, xsb, geometry._geom_cpp)
+                               num_res, xsf, xsb, geometry._geom_cpp, **radial_scale_kw)
     
 # Compute triangle geometry for ribbon.
 # Only certain ranges of residues are considered, since not all

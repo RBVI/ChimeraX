@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.atomic.ribbon import XSectionManager
@@ -158,7 +169,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                   arrow_scale=None, xsection=None, sides=None,
                   bar_scale=None, bar_sides=None, ss_ends=None,
                   mode_helix=None, mode_strand=None, radius=None,
-                  divisions=None, spline_normals=None):
+                  divisions=None, spline_normals=None, undo_state=None):
     '''Set cartoon style options for secondary structures in specified structures.
 
     Parameters
@@ -259,6 +270,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
             print(indent, "barbell parameters:",
                   "sides=%d" % param["sides"],
                   "scale=%.2g" % param["ratio"])
+            print(indent, "worm=%s" % m.worm_ribbon)
         return
     is_helix = residues.is_helix
     is_strand = residues.is_strand
@@ -273,8 +285,9 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
         width /= 2
     if thickness is not None:
         thickness /= 2
-    from chimerax.core.undo import UndoState
-    undo_state = UndoState("cartoon style")
+    if undo_state is None:
+        from chimerax.core.undo import UndoState
+        undo_state = UndoState("cartoon style")
     if is_coil.any():
         # set coil parameters
         for m in structures:
@@ -553,6 +566,111 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
     session.undo.register(undo_state)
 
 
+def cartoon_by_attr(session, attr_name, structures=None, way_points=None, *, no_value_radius=0.1,
+          sides=24, undo_name="cartoon byattribute"):
+    '''
+    Show cartoon worm sized by attribute value using (attr-val, radius) way points.  Attr-val can be
+    'max' or 'min' to represent the maximum or minimum of that attribute value for the polymeric residues.
+
+    attr_name : string (actual Python attribute name optionally prefixed by 'a:'/'r:'/'m:'
+      for atom/residue/model attribute. If no prefix, then the Atom/Residue/Structure classes
+      will be searched for the attribute (in that order).
+    residues : Residues
+    sides : same as for 'cartoon style' command
+    '''
+    from .defattr import parse_attribute_name
+    attr_name, class_obj = parse_attribute_name(session, attr_name, allowable_types=[int, float])
+
+    if structures is None:
+        from chimerax.atomic import all_residues
+        residues = all_residues(session)
+    else:
+        residues = structures.residues
+
+    residues = residues.filter(residues.polymer_types > 0)
+
+    if len(residues) == 0:
+        session.logger.warning('No structures with polymeric residues specified')
+        return
+
+    if way_points is None:
+        way_points = [('min', 0.25), ('max', 2.0)]
+    elif len(way_points) < 2:
+        raise UserError("Must specify at least 2 attr-val:radius pairs (or no pairs)")
+
+    from chimerax.core.undo import UndoState
+    undo_state = UndoState(undo_name)
+
+    from chimerax.atomic import Atom, Residue
+    if class_obj == Atom:
+        attr_objs = residues.atoms
+    elif class_obj == Residue:
+        attr_objs = residues
+    else:
+        attr_objs = residues.structures
+    from chimerax.core.commands import plural_of
+    attr_names = plural_of(attr_name)
+    needs_none_processing = True
+    attr_vals = None
+    from .size import value_radii, none_possible_radii
+    if hasattr(attr_objs, attr_names):
+        # attribute found in Collection; try to maximize efficiency
+        needs_none_processing = False
+        if class_obj == Atom:
+            res_average = { r: getattr(r.atoms, attr_names).mean() for r in residues }
+            attr_vals = [res_average[r] for r in residues]
+        else:
+            import numpy
+            attr_vals = getattr(attr_objs, attr_names)
+            if not isinstance(attr_vals, numpy.ndarray):
+                # might have Nones
+                needs_none_processing = True
+        if not needs_none_processing:
+            wradii = value_radii(way_points, attr_vals)
+    if needs_none_processing:
+        if attr_vals is None:
+            attr_vals = [getattr(o, attr_name, None) for o in attr_objs]
+        has_none = None in attr_vals
+        if has_none:
+            if class_obj == Atom:
+                res_average = {}
+                for r in residues:
+                    vals = []
+                    for a in r.atoms:
+                        val = getattr(a, attr_name, None)
+                        if val is not None:
+                            vals.append(val)
+                    res_average[r] = sum(vals)/len(vals) if vals else None
+                attr_vals = [res_average[r] for r in residues]
+            non_none_attr_vals = [v for v in attr_vals if v is not None]
+            if non_none_attr_vals:
+                non_none_radii = value_radii(way_points, non_none_attr_vals)
+            else:
+                non_none_radii = None
+                session.logger.warning("All '%s' values are None" % attr_name)
+            wradii = none_possible_radii(residues.worm_radii, attr_vals, non_none_radii, no_value_radius)
+            # for later min/max message...
+            attr_vals = non_none_attr_vals
+        else:
+            if class_obj == Atom:
+                res_average = { r: sum([getattr(a, attr_name)
+                    for a in r.atoms])/r.num_atoms for r in residues }
+                attr_vals = [res_average[r] for r in residues]
+            wradii = value_radii(way_points, attr_vals)
+    structures = residues.unique_structures
+    undo_state.add(structures, "worm_ribbons", structures.worm_ribbons, True)
+    structures.worm_ribbons = True
+    undo_state.add(residues, "worm_radii", residues.worm_radii, wradii)
+    cartoon_style(session, sides=sides, undo_state=undo_state)
+    session.undo.register(undo_state)
+    residues.worm_radii = wradii
+    if len(attr_vals):
+        range_msg = 'residue average %s range'
+        msg = '%d residues, residue %s range %.3g to %.3g' % (
+            len(residues), attr_name, min(attr_vals), max(attr_vals))
+        session.logger.status(msg, log=True)
+
+
 def uncartoon(session, atoms=None):
     '''Undisplay ribbons for specified residues.
 
@@ -571,6 +689,18 @@ def uncartoon(session, atoms=None):
     undo_state.add(residues, "ribbon_displays", residues.ribbon_displays, False)
     residues.ribbon_displays = False
     session.undo.register(undo_state)
+
+def show_worm(session, structures=None):
+    if structures is None:
+        from chimerax.atomic import all_atomic_structures
+        structures = all_atomic_structures(session)
+    structures.worm_ribbons = True
+
+def hide_worm(session, structures=None):
+    if structures is None:
+        from chimerax.atomic import all_atomic_structures
+        structures = all_atomic_structures(session)
+    structures.worm_ribbons = False
 
 # -----------------------------------------------------------------------------
 #
@@ -592,9 +722,9 @@ class EvenIntArg(Annotation):
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
-    from chimerax.core.commands import register, Or, CmdDesc
-    from chimerax.core.commands import Bounded, FloatArg, PositiveFloatArg, EnumOf, BoolArg, IntArg, TupleOf, NoArg
-    from chimerax.atomic import AtomsArg, AtomicStructuresArg
+    from chimerax.core.commands import register, Or, CmdDesc, TupleOf, NoArg, StringArg, EmptyArg, RepeatOf
+    from chimerax.core.commands import Bounded, FloatArg, PositiveFloatArg, EnumOf, BoolArg, IntArg
+    from chimerax.atomic import AtomsArg, AtomicStructuresArg, ResiduesArg
     desc = CmdDesc(optional=[("atoms", AtomsArg)],
                    keyword=[("smooth", Or(Bounded(FloatArg, 0.0, 1.0),
                                           EnumOf(["default"]))),
@@ -630,6 +760,7 @@ def register_command(logger):
                             ("mode_strand", EnumOf(list(_ModeStrandMap.keys()))),
                             ("radius", Or(PositiveFloatArg, EnumOf(["auto"]))),
                             ("spline_normals", BoolArg),
+                            ("worm", BoolArg),
                             ],
                    hidden=["ss_ends", "mode_strand", "spline_normals"],
                    synopsis='set cartoon style for secondary structures in specified models')
@@ -639,3 +770,25 @@ def register_command(logger):
     register("cartoon hide", desc, uncartoon, logger=logger)
     from chimerax.core.commands import create_alias
     create_alias("~cartoon", "cartoon hide $*", logger=logger)
+
+    # size worms by attribute
+    from .size import AttrRadiusPairArg
+    desc = CmdDesc(required=[('attr_name', StringArg),
+                            ('structures', Or(AtomicStructuresArg, EmptyArg))],
+                   optional=[('way_points', RepeatOf(AttrRadiusPairArg))],
+                   keyword=[('no_value_radius', PositiveFloatArg),
+                            ("sides", Bounded(IntArg, 3, 24))],
+                   synopsis="size worms by attribute value")
+    register('cartoon byattribute', desc, cartoon_by_attr, logger=logger)
+
+    # show/hide worms
+    desc = CmdDesc(optional=[('structures', Or(AtomicStructuresArg, EmptyArg))],
+                   synopsis="show worms", url='help:user/commands/cartoon.html#worm')
+    register('cartoon byattribute on', desc, show_worm, logger=logger)
+    create_alias("worm", "cartoon byattribute $*", logger=logger,
+                   url='help:user/commands/cartoon.html#worm')
+    desc = CmdDesc(optional=[('structures', Or(AtomicStructuresArg, EmptyArg))],
+                   synopsis="hide worms", url='help:user/commands/cartoon.html#worm')
+    register('cartoon byattribute off', desc, hide_worm, logger=logger)
+    create_alias("~worm", "cartoon byattribute off $*", logger=logger,
+                   url='help:user/commands/cartoon.html#worm')

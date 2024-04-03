@@ -3,14 +3,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 
@@ -20,12 +31,7 @@ from tinyarray import array, zeros
 from cython.operator import dereference
 from ctypes import c_void_p, byref
 cimport cython
-from libc.stdint cimport uintptr_t
-
-IF UNAME_SYSNAME == "Windows":
-    ctypedef long long ptr_type
-ELSE:
-    ctypedef long ptr_type
+cimport libc.stdint
 
 cdef const char * _translate_struct_cat(cydecl.StructCat cat):
     if cat == cydecl.StructCat.Main:
@@ -62,7 +68,7 @@ cdef class CyAtom:
     }
     _alt_loc_suppress_count = 0
 
-    def __cinit__(self, ptr_type ptr_val, *args, **kw):
+    def __cinit__(self, libc.stdint.uintptr_t ptr_val, *args, **kw):
         self.cpp_atom = <cydecl.Atom *>ptr_val
 
     def __init__(self, ptr_val):
@@ -71,7 +77,7 @@ cdef class CyAtom:
     @property
     def cpp_pointer(self):
         if self._deleted: raise RuntimeError("Atom already deleted")
-        return int(<ptr_type>self.cpp_atom)
+        return int(<libc.stdint.uintptr_t>self.cpp_atom)
     @property
     def _c_pointer(self):
         return c_void_p(self.cpp_pointer)
@@ -189,7 +195,7 @@ cdef class CyAtom:
         if self._deleted: raise RuntimeError("Atom already deleted")
         bonds = self.cpp_atom.bonds()
         from . import Bond
-        return [Bond.c_ptr_to_py_inst(<ptr_type>b) for b in bonds]
+        return [Bond.c_ptr_to_py_inst(<libc.stdint.uintptr_t>b) for b in bonds]
 
     @property
     def color(self):
@@ -669,7 +675,7 @@ cdef class CyAtom:
         ring_ptrs = self.cpp_atom.rings(cross_residues, all_size_threshold)
         from chimerax.atomic.molarray import Rings
         import numpy
-        return Rings(numpy.array([<ptr_type>r for r in ring_ptrs], dtype=numpy.uintp))
+        return Rings(numpy.array([<libc.stdint.uintptr_t>r for r in ring_ptrs], dtype=numpy.uintp))
 
     def set_alt_loc(self, loc, create):
         '''Normally used to create alt locs.
@@ -725,7 +731,7 @@ cdef class CyAtom:
             raise ValueError(str(e))
         from chimerax.atomic import Atoms
         import numpy
-        return Atoms(numpy.array([<ptr_type>r for r in tmp], dtype=numpy.uintp))
+        return Atoms(numpy.array([<libc.stdint.uintptr_t>r for r in tmp], dtype=numpy.uintp))
 
     def string(self, *, atom_only=False, style=None, relative_to=None, omit_structure=None, minimal=False):
         '''Supported API.  Get text representation of Atom
@@ -794,11 +800,11 @@ cdef class CyAtom:
     # static methods...
 
     @staticmethod
-    def c_ptr_to_existing_py_inst(ptr_type ptr_val):
+    def c_ptr_to_existing_py_inst(libc.stdint.uintptr_t ptr_val):
         return (<cydecl.Atom *>ptr_val).py_instance(False)
 
     @staticmethod
-    def c_ptr_to_py_inst(ptr_type ptr_val):
+    def c_ptr_to_py_inst(libc.stdint.uintptr_t ptr_val):
         return (<cydecl.Atom *>ptr_val).py_instance(True)
 
     @staticmethod
@@ -811,7 +817,7 @@ cdef class Element:
 
     NUM_SUPPORTED_ELEMENTS = cydecl.cyelem.Element.AS.NUM_SUPPORTED_ELEMENTS
 
-    def __cinit__(self, ptr_type ptr_val):
+    def __cinit__(self, libc.stdint.uintptr_t ptr_val):
         self.cpp_element = <cydecl.cyelem.Element *>ptr_val
 
     def __init__(self, ptr_val):
@@ -840,7 +846,7 @@ cdef class Element:
 
     @property
     def cpp_pointer(self):
-        return int(<ptr_type>self.cpp_element)
+        return int(<libc.stdint.uintptr_t>self.cpp_element)
     @property
     def _c_pointer(self):
         return c_void_p(self.cpp_pointer)
@@ -902,7 +908,7 @@ cdef class Element:
         return self.name
 
     @staticmethod
-    cdef float _bond_length(ptr_type e1, ptr_type e2):
+    cdef float _bond_length(libc.stdint.uintptr_t e1, libc.stdint.uintptr_t e2):
         return cydecl.cyelem.Element.bond_length(
             dereference(<cydecl.cyelem.Element*>e1), dereference(<cydecl.cyelem.Element*>e2))
 
@@ -918,7 +924,7 @@ cdef class Element:
         return Element._bond_length(e1.cpp_pointer, e2.cpp_pointer)
 
     @staticmethod
-    cdef float _bond_radius(ptr_type e):
+    cdef float _bond_radius(libc.stdint.uintptr_t e):
         return cydecl.cyelem.Element.bond_radius(dereference(<cydecl.cyelem.Element*>e))
 
     @staticmethod
@@ -932,11 +938,11 @@ cdef class Element:
         return Element._bond_radius(e.cpp_pointer)
 
     @staticmethod
-    def c_ptr_to_existing_py_inst(ptr_type ptr_val):
+    def c_ptr_to_existing_py_inst(libc.stdint.uintptr_t ptr_val):
         return (<cydecl.cyelem.Element *>ptr_val).py_instance(False)
 
     @staticmethod
-    def c_ptr_to_py_inst(ptr_type ptr_val):
+    def c_ptr_to_py_inst(libc.stdint.uintptr_t ptr_val):
         return (<cydecl.cyelem.Element *>ptr_val).py_instance(True)
 
     @staticmethod
@@ -965,7 +971,7 @@ cdef class CyResidue:
     '''Base class for Residue, and is present only for performance reasons.'''
     cdef cydecl.Residue *cpp_res
 
-    def __cinit__(self, ptr_type ptr_val, *args, **kw):
+    def __cinit__(self, libc.stdint.uintptr_t ptr_val, *args, **kw):
         self.cpp_res = <cydecl.Residue *>ptr_val
 
     def __init__(self, ptr_val):
@@ -974,7 +980,7 @@ cdef class CyResidue:
     @property
     def cpp_pointer(self):
         if self._deleted: raise RuntimeError("Residue already deleted")
-        return int(<ptr_type>self.cpp_res)
+        return int(<libc.stdint.uintptr_t>self.cpp_res)
     @property
     def _c_pointer(self):
         return c_void_p(self.cpp_pointer)
@@ -1026,7 +1032,7 @@ cdef class CyResidue:
         # work around non-const-correct code by using temporary...
         if self._deleted: raise RuntimeError("Residue already deleted")
         atoms = self.cpp_res.atoms()
-        return Atoms(numpy.array([<ptr_type>a for a in atoms], dtype=numpy.uintp))
+        return Atoms(numpy.array([<libc.stdint.uintptr_t>a for a in atoms], dtype=numpy.uintp))
 
     @property
     def atomspec(self):
@@ -1040,10 +1046,10 @@ cdef class CyResidue:
         chain_ptr = self.cpp_res.chain()
         if chain_ptr:
             from chimerax.atomic import Chain
-            chain = Chain.c_ptr_to_existing_py_inst(<ptr_type>chain_ptr)
+            chain = Chain.c_ptr_to_existing_py_inst(<libc.stdint.uintptr_t>chain_ptr)
             if chain:
                 return chain
-            return Chain(<ptr_type>chain_ptr)
+            return Chain(<libc.stdint.uintptr_t>chain_ptr)
         return None
 
     @property
@@ -1473,7 +1479,7 @@ cdef class CyResidue:
         "Ribbon color RGBA length 4 sequence/array. Values in range 0-255"
         if self._deleted: raise RuntimeError("Residue already deleted")
         color = self.cpp_res.ribbon_color()
-        return array([color.r, color.g, color.b, color.a])
+        return (color.r, color.g, color.b, color.a)
 
     @ribbon_color.setter
     @cython.boundscheck(False)  # turn off bounds checking
@@ -1500,7 +1506,7 @@ cdef class CyResidue:
         "Ring color RGBA length 4 sequence/array. Values in range 0-255"
         if self._deleted: raise RuntimeError("Residue already deleted")
         color = self.cpp_res.ring_color()
-        return array([color.r, color.g, color.b, color.a])
+        return (color.r, color.g, color.b, color.a)
 
     @ring_color.setter
     @cython.boundscheck(False)  # turn off bounds checking
@@ -1579,6 +1585,17 @@ cdef class CyResidue:
 
     water_res_names = set(["HOH", "WAT", "H2O", "D2O", "TIP3"])
 
+    @property
+    def worm_radius(self):
+        "Radius of 'worm' ribbon depiction."
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        return self.cpp_res.worm_radius()
+
+    @worm_radius.setter
+    def worm_radius(self, ra):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        self.cpp_res.set_worm_radius(ra)
+
 
     # instance methods...
 
@@ -1596,7 +1613,7 @@ cdef class CyResidue:
         # work around non-const-correct code by using temporary...
         if self._deleted: raise RuntimeError("Residue already deleted")
         between = self.cpp_res.bonds_between(<cydecl.Residue*>other_res.cpp_res)
-        return Bonds(numpy.array([<ptr_type>b for b in between], dtype=numpy.uintp))
+        return Bonds(numpy.array([<libc.stdint.uintptr_t>b for b in between], dtype=numpy.uintp))
 
     def clean_alt_locs(self):
         "Change the current alt locs in this residue to 'regular' locations and delete all alt locs"
@@ -1714,7 +1731,7 @@ cdef class CyResidue:
         "Supported API.  Remove the atom from this residue."
         self.cpp_res.remove_atom(atom.cpp_atom)
 
-    def string(self, *, residue_only=False, omit_structure=None, style=None, minimal=False):
+    def string(self, *, residue_only=False, omit_structure=None, style=None, minimal=False, omit_chain=None):
         '''Supported API.  Get text representation of Residue
            If 'omit_structure' is None, the structure will be omitted only if exactly one structure is open
         '''
@@ -1728,10 +1745,11 @@ cdef class CyResidue:
             res_str = ":" + str(self.number) + ic
         if residue_only:
             return res_str
-        if minimal:
-            omit_chain = len(set(self.structure.residues.chain_ids)) ==  1
-        else:
-            omit_chain = False
+        if omit_chain is None:
+            if minimal:
+                omit_chain = len(set(self.structure.residues.chain_ids)) ==  1
+            else:
+                omit_chain = False
         if omit_chain:
             chain_str = ""
         else:
@@ -1761,11 +1779,11 @@ cdef class CyResidue:
     # static methods...
 
     @staticmethod
-    def c_ptr_to_existing_py_inst(ptr_type ptr_val):
+    def c_ptr_to_existing_py_inst(libc.stdint.uintptr_t ptr_val):
         return (<cydecl.Residue *>ptr_val).py_instance(False)
 
     @staticmethod
-    def c_ptr_to_py_inst(ptr_type ptr_val):
+    def c_ptr_to_py_inst(libc.stdint.uintptr_t ptr_val):
         return (<cydecl.Residue *>ptr_val).py_instance(True)
 
     @staticmethod
@@ -1793,7 +1811,11 @@ cdef class CyResidue:
             return None
 
 def _set_angle(session, torsion_atom2, bond, new_angle, cur_angle, attr_name, **kw):
-    br = session.bond_rotations.new_rotation(bond, **kw)
+    try:
+        br = session.bond_rotations.new_rotation(bond, **kw)
+    except session.bond_rotations.BondRotationError:
+        # Errors in angle setters are ignored
+        return
     br.angle += new_angle - cur_angle
     res = bond.atoms[0].residue
     res.structure.change_tracker.add_modified(res, attr_name + " changed")

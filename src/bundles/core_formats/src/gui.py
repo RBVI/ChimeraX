@@ -21,7 +21,7 @@ class SaveOptionsWidget(QFrame):
         layout.setSpacing(0)
         self.setLayout(layout)
 
-        self._include_maps = im = QCheckBox('Include maps')
+        self._include_maps = im = QCheckBox('Copy maps into session file instead of linking to external map files')
         layout.addWidget(im)
 
     def options_string(self):

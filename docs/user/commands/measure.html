@@ -91,8 +91,9 @@ sum of the areas of its triangles.
 The <b>includeMasked</b> option controls
 whether to include parts of the surface that have been hidden,
 such as with <a href="surface.html#dust"><b>surface dust</b></a>
-or <a href="surface.html#zone"><b>surface zone</b></a>
-(<a href="clip.html">clipping</a> does not affect the measurement, however).
+or <a href="surface.html#zone"><b>surface zone</b></a>.
+Parts hidden by <a href="clip.html">clipping</a> are always included, however
+(<a href="../tools/measurevolume.html#technical">details</a>...).
 See also: <a href="#sasa"><b>measure sasa</b></a>,
 <a href="surface.html#splitbycolor"><b>surface splitbycolor</b></a>,
 <a href="../tools/measurevolume.html"><b>Measure Volume and Area</b></a>
@@ -496,6 +497,7 @@ the new model will be a submodel of <i>surf-model</i>.
 &nbsp;<i>model1</i>&nbsp; <b>toModel</b> &nbsp;<i>model2</i>&nbsp;
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>showAxis</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>axisType</b>&nbsp;&nbsp;<b>markers</b>&nbsp;|&nbsp;object&nbsp;]
 [&nbsp;<b>showSlabs</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>length</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
@@ -534,13 +536,18 @@ is recommended instead.
 The transformation is expressed in the coordinate system of <i>model2</i>
 unless specified otherwise with the <b>coordinateSystem</b> option.
 If <b>showAxis</b> is <b>true</b> (default), a
-<a href="../markers.html">marker model</a> showing the axis as a rod
+model showing the axis as a rod
 will be created, with the specified <b>length</b>
 (default the largest dimension of the bounding box of the displayed part
 of <i>model2</i>), <b>radius</b> (default 2.5% of the length), and <b>color</b>
 (default <b>#d2d264</b> <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor="#d2d264" width="10px" title="#d2d264"></td></tr></table>).
+The <b>axisType</b> option specifies whether the axis should be created as a
+<a href="../markers.html">marker model</a> (default) or as an
+<a href="../tools/axesplanes.html#define-axes">axis</a> object
+(such as could be used to <a href="view.html#initial">reorient the view</a>
+or in various <a href="../measurements.html">measurements</a>).
 If <b>showSlabs</b> is <b>true</b> (default <b>false</b>), two rectangular
 slabs showing the rotation axis and angle and the shift will be created
 as surface models, with the specified <b>length</b>
@@ -702,8 +709,9 @@ Report the volume enclosed by an existing surface model.
 The <b>includeMasked</b> option controls
 whether to include parts of the surface that have been hidden,
 such as with <a href="surface.html#dust"><b>surface dust</b></a>
-or <a href="surface.html#zone"><b>surface zone</b></a>
-(<a href="clip.html">clipping</a> does not affect the measurement, however).
+or <a href="surface.html#zone"><b>surface zone</b></a>.
+Parts hidden by <a href="clip.html">clipping</a> are always included, however
+(<a href="../tools/measurevolume.html#technical">details</a>...).
 See also:
 <a href="../tools/measurevolume.html"><b>Measure Volume and Area</b></a>
 </blockquote>
@@ -750,5 +758,5 @@ has the same axes and moments as the measured surface.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2022</address>
+December 2023</address>
 </body></html>

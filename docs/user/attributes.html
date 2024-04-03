@@ -189,7 +189,7 @@ assigned by running <a href="commands/addcharge.html"><b>addcharge</b></a></td>
 is the solvent-accessible surface area of the residue 
 calculated with <a href="commands/measure.html#sasa"><b>measure sasa</b></a></td>
 </tr><tr>
-<td align=center><b>chain_id=</b><i>ID</i></td>
+<td align=center><b>chain_id==</b><i>ID</i></td>
 <td class="text"><i>ID</i> is the chain identifier of the residue;
 see also <a href="#chain">chain attributes</a></td>
 </tr><tr>
@@ -261,8 +261,9 @@ that does not have any ribbon, such as water)</td>
 (however, this can be true even when the residue is a type
 that does not have any ribbon, such as water)</td>
 </tr><tr>
-<td align=center><b>seq_conservation</b></td>
+<td align=center><b>seq_conservation=</b><i>cons</i></td>
 <td class="text">
+<i>cons</i> is the
 <a href="tools/sequenceviewer.html#settings-headers">Conservation header</a>
 value in the 
 <a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a> for the column 
@@ -270,8 +271,9 @@ value in the
 the alignment must contain at least two sequences
 </td>
 </tr><tr>
-<td align=center><b>seq_rmsd</b></td>
+<td align=center><b>seq_rmsd=</b><i>rmsd</i></td>
 <td class="text">
+<i>rmsd</i> is the
 <a href="tools/sequenceviewer.html#settings-headers">RMSD header</a>
 value in the 
 <a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a> for the column 
@@ -279,6 +281,13 @@ value in the
 the attribute exists only when at least two structure chains from 
 different models are associated with the alignment and the RMSD header is shown
 </td>
+</tr><tr>
+<td align=center><b>worm_radius=</b><i>wrad</i></td>
+<td class="text"><i>wrad</i> is the radius of a biopolymer residue in a 
+worm representation previously generated with 
+<a href="tools/render.html"><b>Render by Attribute</b></a> or the 
+<a href="commands/cartoon.html#byattribute"><b>cartoon byattribute</b></a>
+(<a href="commands/cartoon.html#worm"><b>worm</b></a>) command</td>
 </tr><tr>
 <td align=center><b>asym_detail=</b><i>value</i></td>
 <td class="text">the <i>value</i> for a chain in
@@ -301,20 +310,24 @@ and reported in the <a href="tools/log.html"><b>Log</b></a></td>
 <a href="commands/info.html#chains"><b>info chains</b></a>,
 <a href="modelinfo.html">model information</a>)</td></tr>
 </tr><tr>
-<td width="150px" align=center><b>chain_id=</b><i>ID</i></td>
+<td width="150px" align=center><b>chain_id==</b><i>ID</i></td>
 <td class="text"><i>ID</i> is the chain identifier of the polymer
 (whereas the <a href="#residue">residue attribute</a> <b>chain_id</b>
 also applies to nonpolymeric residues)</td>
 </tr><tr>
+<td width="150px" align=center><b>characters=</b><i>sequence</i></td>
+<td class="text"><i>sequence</i> is the entire sequence of the polymer
+chain, in one-letter residue codes</td>
+</tr><tr>
 <td width="150px" align=center><b>polymer_type=</b><i>type</i></td>
 <td class="text"><i>type</i> is 1 for protein, 2 for nucleic acid</td>
 </tr><tr>
-<td width="150px" align=center><b>identity=</b>"<i><a href="commands/atomspec.html">atom-spec</a></i>"</td>
+<td width="150px" align=center><b>identity==</b>"<i><a href="commands/atomspec.html">atom-spec</a></i>"</td>
 <td class="text">the <i><a href="commands/atomspec.html">atom-spec</a></i>
 is any atom specification string (surrounding quotation marks required)
 and will be taken to indicate the biopolymer chains containing those atoms. 
 The attribute means that a chain has the same sequence as 
-any of the specified chains. For example, <b>//identity="#1/A,B"</b> 
+any of the specified chains. For example, <b>//identity=="#1/A,B"</b> 
 would specify all chains with sequences the same as either chain A or chain B 
 in model 1.
 Chain sequences are determined from PDB SEQRES records or the mmCIF equivalent,
@@ -375,5 +388,5 @@ from the <a href="https://www.wwpdb.org" target="_blank">wwPDB</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2023</address>
+March 2024</address>
 </body></html>

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -129,18 +140,19 @@ class _MapBundle(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
-            if name in ['eds', 'edsdiff']:
-                from . import eds_fetch
+            if name in ['eds', 'edsdiff', 'redo']:
+                from . import eds_fetch, redo_fetch
                 fetcher = {
                     'eds': eds_fetch.fetch_eds_map,
                     'edsdiff': eds_fetch.fetch_edsdiff_map,
+                    'redo': redo_fetch.fetch_mtz_map,
                 }[name]
                 from chimerax.open_command import FetcherInfo
                 class Info(FetcherInfo):
                     def fetch(self, session, ident, format_name, ignore_cache,
                             fetcher=fetcher, **kw):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
-            elif name in ['emdb', 'emdb_europe', 'emdb_us', 'emdb_japan', 'emdb_china']:
+            elif name in ['emdb', 'emdb_europe', 'emdb_us', 'emdb_japan', 'emdb_china', 'emdb_fits']:
                 from . import emdb_fetch
                 fetcher = {
                     'emdb': emdb_fetch.fetch_emdb,
@@ -148,6 +160,7 @@ class _MapBundle(BundleAPI):
                     'emdb_us': emdb_fetch.fetch_emdb_us,
                     'emdb_japan': emdb_fetch.fetch_emdb_japan,
                     'emdb_china': emdb_fetch.fetch_emdb_china,
+                    'emdb_fits': emdb_fetch.fetch_emdb_fits,
                 }[name]
                 from chimerax.open_command import FetcherInfo
                 class Info(FetcherInfo):
@@ -156,9 +169,10 @@ class _MapBundle(BundleAPI):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
                     @property
                     def fetch_args(self):
-                        from chimerax.core.commands import EnumOf
+                        from chimerax.core.commands import EnumOf, BoolArg
                         return {
                             'transfer_method': EnumOf(['ftp', 'https']),
+                            'fits': BoolArg,
                         }
             else:
                 from chimerax.open_command import OpenerInfo
@@ -176,6 +190,7 @@ class _MapBundle(BundleAPI):
                             'channel': IntArg,
                             'verbose': BoolArg,
                             'vseries': BoolArg,
+                            'difference': BoolArg,
                         }
         else:
             from chimerax.save_command import SaverInfo

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def cmd_change_chains(session, residues, from_ids, to_ids=None):
@@ -87,12 +98,41 @@ def cmd_change_chains(session, residues, from_ids, to_ids=None):
                 r.chain_id = cid
     session.logger.info("Chain IDs of %d residues changed" % len(change_info))
 
+def cmd_change_glys(session, chains=None):
+    from chimerax.core.errors import UserError
+    if chains is None:
+        from chimerax.atomic import all_atomic_structures
+        chains = all_atomic_structures(session).chains
+    if not chains:
+        raise UserError("No chains specified as base for changing")
+    need_check = checked = set(chains.existing_residues)
+    num_changed = 0
+    while need_check:
+        next_check = set()
+        for r in need_check:
+            for nb in r.neighbors:
+                if nb in checked or nb in need_check or nb in next_check or nb.polymer_type != r.PT_NONE:
+                    continue
+                next_check.add(nb)
+                if nb.chain_id != r.chain_id:
+                    nb.chain_id = r.chain_id
+                    num_changed += 1
+            checked.add(r)
+        need_check = next_check
+    session.logger.info("Chain IDs of %d residues changed" % num_changed)
+
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, StringArg, ListOf
-    from chimerax.atomic import ResiduesArg
+    from chimerax.atomic import ResiduesArg, UniqueChainsArg
     desc = CmdDesc(
         required=[('residues', Or(ResiduesArg,EmptyArg)), ('from_ids', ListOf(StringArg))],
         optional=[('to_ids', ListOf(StringArg))],
         synopsis = 'Change chain IDs'
     )
     register('changechains', desc, cmd_change_chains, logger=logger)
+
+    desc = CmdDesc(
+        optional=[('chains', UniqueChainsArg)],
+        synopsis = 'Change chain IDs of glycosylations to match base chain ID'
+    )
+    register('changechains glycosylations', desc, cmd_change_glys, logger=logger)

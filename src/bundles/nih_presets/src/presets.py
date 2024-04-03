@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.atomic import all_atomic_structures, Residue, Structure
@@ -76,6 +87,7 @@ print_ribbon = [
     # make missing-structure pseudobonds bigger relative to upcoming hbonds
     "size min-backbone pseudobondRadius 1.1",
     "size ions atomRadius +0.8",
+    "cartoon style sides 16",
     "select backbone & protein | nucleic-acid & min-backbone | ions | ligand"
         " | ligand :< 5 & ~nucleic-acid",
     "hbonds sel color white restrict both",
@@ -98,7 +110,10 @@ undo_printable = [
     "close ##name='%s'" % p3ms_pbg_name,
     "show ##name='%s' models" % Structure.PBG_MISSING_STRUCTURE,
     "size atomRadius default stickRadius 0.2 pseudobondRadius 0.2",
-    "style dashes 7"
+    "style dashes 7",
+    "graphics quality bondSides default",
+    "graphics quality pseudobondSides 10",
+    "cartoon style sides 12",
 ]
 
 def addh_cmds(session):
@@ -157,10 +172,12 @@ def palette(num_chains):
         palette += base_palette
     return ':'.join(palette[:num_chains])
 
-def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0):
+def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0, bond_sides="default", pb_sides=16):
     always_cmds = [
         "size stickRadius 0.8",
-        "style dashes 0"
+        "style dashes 0",
+        "graphics quality bondSides %s" % bond_sides,
+        "graphics quality pseudobondSides %s" % pb_sides,
     ]
     if session is None:
         # not a ribbon preset
@@ -187,6 +204,7 @@ def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0):
                     "rename ##name=%s '%s'" % (os.path.basename(pb_file.name), p3ms_pbg_name)
                 ]
             cmds.append("hide %s models" % ms_pbg.atomspec)
+            print("; halfbond = true", file=pb_file)
             for pb in ms_pbg.pseudobonds:
                 a1, a2 = pb.atoms
                 ca1 = a1.residue.find_atom("CA") or a1
@@ -204,7 +222,7 @@ def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0):
 
 def rainbow_cmd(structure, target_atoms=False):
     color_arg = " chains palette " + palette(structure.num_chains)
-    return "rainbow %s@ca,c4'%s target rs%s" % (structure.atomspec, color_arg, ("a" if target_atoms else ""))
+    return "rainbow %s@ca,c4'%s target rfs%s" % (structure.atomspec, color_arg, ("a" if target_atoms else ""))
 
 def run_preset(session, name, mgr):
     if name == "ribbon by secondary structure":
@@ -221,10 +239,10 @@ def run_preset(session, name, mgr):
             rainbow_cmd(s) for s in all_atomic_structures(session)
         ] + print_ribbon + print_prep(session, pb_radius=None)
     elif name == "ribbon rainbow":
-        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [ "rainbow @CA target r" ]
+        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [ "rainbow @ca,c4' target rf" ]
     elif name == "ribbon rainbow (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + [
-            "rainbow @CA"
+            "rainbow @ca,c4'"
         ] + print_ribbon + print_prep(session, pb_radius=None)
     elif name == "ribbon by polymer (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
@@ -240,12 +258,14 @@ def run_preset(session, name, mgr):
             "color nih_blue",
             "setattr p color nih_blue"
         ] + print_prep(session, pb_radius=None)
-    elif name == "surface monochrome":
-        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
-            + [ "color nih_blue" ]
-    elif name == "surface coulombic":
-        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
-            + [ "color white", "coulombic surfaces #* chargeMethod gasteiger" ]
+    elif name.startswith("surface monochrome"):
+        printable = "printable" in name
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
+            printable) + [ "color nih_blue" ]
+    elif name.startswith("surface coulombic"):
+        printable = "printable" in name
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
+            printable) + [ "color white", "coulombic surfaces #* chargeMethod gasteiger" ]
         from chimerax.atomic import AtomicStructures
         structures = AtomicStructures(all_atomic_structures(session))
         main_atoms = structures.atoms.filter(structures.atoms.structure_categories == "main")
@@ -256,15 +276,18 @@ def run_preset(session, name, mgr):
                 " electrostatics probably inaccurate")
         elif "HIS" in incomplete_residues.names:
             session.logger.warning("Incomplete HIS residue; coulombic will likely fail")
-    elif name == "surface hydrophobicity":
-        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
-            + color_by_hydrophobicity_cmds(session)
-    elif name == "surface by chain":
-        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
-            + by_chain_cmds(session, rainbow=True, target_atoms=True)
-    elif name == "surface by polymer":
-        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
-            + [ "color bypolymer target ar" ] + by_chain_cmds(session)
+    elif name.startswith("surface hydrophobicity"):
+        printable = "printable" in name
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) \
+            + surface_cmds(session, printable, sharp=True) + color_by_hydrophobicity_cmds(session)
+    elif name.startswith("surface by chain"):
+        printable = "printable" in name
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
+            printable) + by_chain_cmds(session, rainbow=True, target_atoms=True)
+    elif name.startswith("surface by polymer"):
+        printable = "printable" in name
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
+            printable) + [ "color bypolymer target ar" ] + by_chain_cmds(session)
     elif name == "surface blob by chain":
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + [
                 "surf %s%s resolution 18 grid 6; %s" % (s.atomspec,
@@ -291,7 +314,7 @@ def run_preset(session, name, mgr):
             "~nuc",
             "~ribbon",
             "disp"
-        ] + print_prep(ion_size_increase=0.35)
+        ] + print_prep(ion_size_increase=0.35, bond_sides=32)
     elif name == "sticks monochrome":
         cmd = undo_printable + base_setup + [
             "style stick",
@@ -307,7 +330,7 @@ def run_preset(session, name, mgr):
             "~ribbon",
             "disp",
             "color nih_blue",
-        ] + print_prep(ion_size_increase=0.35)
+        ] + print_prep(ion_size_increase=0.35, bond_sides=32)
     elif name == "CPK":
         cmd = undo_printable + base_setup + color_by_het + [
             "style sphere",
@@ -340,12 +363,22 @@ def run_preset(session, name, mgr):
     cmd = " ; ".join(cmd)
     mgr.execute(cmd)
 
-def surface_cmds(session):
+def surface_cmds(session, printable, *, sharp=False):
     import math
-    cmds = []
+    cmds = ["size atomRadius default"]
     for s in all_atomic_structures(session):
-        grid_size = min(2.0, max(0.3, math.log10(s.num_atoms) - 3.2))
-        cmds.append("surface %s enclose %s grid %g sharp true" % (s.atomspec, s.atomspec, grid_size))
+        # AddH won't actually run until after this command is generated, so base the grid value
+        # on the number of heavy atoms involved in the surface for consistency, but then multiply
+        # by 2 to account for probable amount of hydrogens
+        import numpy
+        num_heavys = len(s.atoms.filter(
+            numpy.logical_and(s.atoms.elements.numbers != 1, s.atoms.structure_categories == "main")))
+        if printable:
+            grid_size = min(2.0, max(0.3, math.log10(2*num_heavys) - 3.2))
+        else:
+            grid_size = min(2.5, max(0.5, math.log10(2*num_heavys) - 2.5))
+        cmds.append("surface %s enclose %s grid %g sharp %s"
+            % (s.atomspec, s.atomspec, grid_size, "true" if sharp else "false"))
     return cmds
 
 def volume_cleanup_cmds(session, contour_cmds=None):

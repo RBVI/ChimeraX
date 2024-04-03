@@ -32,6 +32,7 @@ class _MyAPI(BundleAPI):
             'BlastProteinTool': BlastProteinTool
             , 'BlastProteinResults': BlastProteinResults
             , 'ToolUI': BlastProteinResults
+            , 'BlastProteinJob': BlastProteinJob
         }
         return class_names.get(class_name, None)
 

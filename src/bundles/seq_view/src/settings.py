@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 SINGLE_PREFIX = "single_seq_"
@@ -49,6 +60,8 @@ defaults = {
     "new_region_border": (REGIONS, "New-region border", 1, OptionalRGBAOption, {}, None),
     "new_region_interior": (REGIONS, "New-region interior", 2, OptionalRGBAOption, {},
         [chan/255.0 for chan in (233, 218, 198, 255)]),
+    "region_name_ellipsis": (REGIONS, "Use ellipsis for region names longer than", 12, IntOption,
+        {'min': 2}, 25),
     "sel_region_border": (REGIONS, "Selected-structure border", 4,
         OptionalRGBAOption, {}, None),
     "sel_region_interior": (REGIONS, "Selected-structure interior", 5,
@@ -67,6 +80,7 @@ from copy import deepcopy
 class _SVSettings(Settings):
     EXPLICIT_SAVE = { k: v[-1] for k, v in defaults.items() }
     AUTO_SAVE = {
+        "regions_tool_last_use": None,
         "scf_colors_structures": True,
     }
 

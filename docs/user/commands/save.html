@@ -61,8 +61,9 @@ If the format is specified separately, the
 appropriate suffix will be added to <i>filename</i>.
 </p><p>
 <a name="models"></a>
-Sessions, images, and scenes (most formats) include all contents, 
-but atomic coordinate, <a href="#map">map</a>, and <a href="#gltf">GLTF</a>
+Sessions, images, and scenes (most formats) include all contents, but 
+atomic coordinate, <a href="#map">map</a>, <a href="#gltf">GLTF</a>, and 
+<a href="#vrml">VRML</a>
 saving can be limited to specific models with the <b>models</b> option.
 The <b>models</b> keyword can be omitted if
 <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
@@ -87,6 +88,7 @@ depending on the file type:
 <li><a href="#attributes"><b>Attribute Values</b></a>
 <li><a href="#sequence"><b>Sequence Data</b></a>
 <li><a href="#gltf"><b>GLTF</b></a>
+<li><a href="#vrml"><b>VRML</b></a>
 <li><a href="open.html#clipper"><b>MTZ (Options from Clipper)</b></a>
 </ul>
 
@@ -247,7 +249,8 @@ in the format read by <a href="open.html#defattr"><b>open</b></a>;
 <td align="center">.pir, .ali</td>
 <td align="center">PIR (NBRF)</td>
 </tr><tr>
-<td align="center" valign="top" rowspan="5">&nbsp;<br>&nbsp;3D&nbsp;objects</td>
+<td align="center" valign="top" rowspan="6">&nbsp;<br>&nbsp;3D&nbsp;objects
+<br>(unclipped, see <a href="#export">details...</a>)</td>
 <td align="center"><b>gltf</b></td>
 <td align="center">.glb</td>
 <td align="center" class="text"><a href="https://www.khronos.org/gltf"
@@ -273,6 +276,12 @@ target="_blank">Exporting atomic models with colors to GLTF or OBJ</a>)
 <td align="center">.x3d</td>
 <td align="center"><a href="https://www.web3d.org/x3d/"
 target="_blank">X3D</a></td>
+</tr><tr>
+<td align="center"><b>vrml</b></td>
+<td align="center">.vrml, .wrl</td>
+<td align="center">basic <a href="https://en.wikipedia.org/wiki/VRML"
+target="_blank">VRML</a> for 3D printing
+<br>(see <a href="#vrml">VRML options</a>)</td>
 </tr><tr>
 <td align="center"><b>vtk</b></td>
 <td align="center">.vtk</td>
@@ -414,6 +423,9 @@ Saving and later opening a session file
 restores the session and allows resuming work in ChimeraX.
 A common use is to store setups for 
 <a href="../images.html">figures</a> and <a href="../movies.html">movies</a>.
+Opening a session file first closes the current session (models and other data)
+unless the <a href="open.html"><b>open</b></a> command option 
+<a href="open.html#combine"><b>combine true</b></a> is used.
 Whether to restore the graphics window size when opening a session file
 is set in the
 <a href="../preferences.html#window"><b>Window</b> preferences</a>
@@ -466,7 +478,7 @@ but compression is recognized automatically when the file is read.
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#mapformats"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>step</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
-[&nbsp;<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
+[&nbsp;<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
 [&nbsp;<b>maskZone</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
 &nbsp;<a href="#chimap-options"><i>chimera-map-options</i></a>
@@ -483,6 +495,11 @@ Older MRC-reading programs or programs expecting CCP4 format will read such
 files successfully but may not align the data correctly with other data sets.
 See also: <a href="segger.html#exportmask"><b>segger&nbsp;exportmask</b></a>,
 <a href="#afterfitting">saving maps after fitting</a>
+</p><p>
+If the map is cropped, the current
+<a href="../tools/volumeviewer.html#region">display region</a>
+will be written unless different extents are specified
+with <a href="#region"><b>region</b></a>.
 </p><p>
 Only the <a name="chimap">Chimera map</a> (<b>cmap</b>) format 
 can accommodate multiple data sets in a single file, 
@@ -539,18 +556,17 @@ used along all three axes; if three numbers are supplied
 are used along the X, Y, and Z axes, respectively.
 </blockquote>
 <blockquote>
-<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>
+<a name="region"></a>
+<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>
 <br>Whether to write
 the full extents of the data (<b>all</b>, default) or a specified subregion.
-A subregion can be specified by <i>name</i>
-(previously <a href="volume.html#dimensions">assigned</a> with 
-<a href="volume.html"><b>volume</b></a>) or by grid indices
+A subregion can be specified by grid indices
 <i>i1&ndash;i2</i> along the X axis,
 <i>j1&ndash;j2</i> along the Y axis, and
 <i>k1&ndash;k2</i> along the Z axis.
 Grid indices must be integers separated by commas but not spaces.
 If the <b>region</b> option is not supplied, the currently displayed
-subregion will be written.
+<a href="../tools/volumeviewer.html#region">subregion</a> will be written.
 In this context, a zone is not considered a subregion.
 </blockquote>
 <blockquote>
@@ -834,13 +850,17 @@ target="_blank">faster in ChimeraX</a>
 &ndash; whether to try to write polymer sequence information when it was
 missing from the input file, or the structure was built or modified by the user
 <li><b>computedSheets</b> (default <b>false</b>) 
-&ndash; although ChimeraX retains helix and strand assignments from input,
+&ndash; although ChimeraX retains protein helix and strand assignments 
+from input,
 it currently loses track of which strands are in the same sheets as each other. 
 This option specifies whether to run <a href="dssp.html"><b>dssp</b></a> 
 to recalculate strands and their sheet membership and to include that
 information in the output mmCIF. It does not affect secondary structure 
 assignments in the currently open structure, but the strand assignments in 
 the file may be different from those in the open structure.
+Further, if the existing structure did not already have helix assignments,
+the helix assignments from running <a href="dssp.html"><b>dssp</b></a> 
+will also be saved in the output mmCIF.
 </ul>
 
 <a name="mol2"></a>
@@ -1013,6 +1033,20 @@ Example:
 <b>save example.pir alignment 1.A</b>
 </blockquote> 
 
+<a name="export"></a>
+<p class="nav">
+[<a href="#top">back to top: save</a>]
+</p>
+<h3>3D Objects Not Clipped</h3>
+<p>
+Note that <a href="clip.html">clipping</a> only hides part of the scene
+but does not remove it. Files saved in 3D object formats
+(<b>gltf, stl, obj, x3d, vrml, vtk</b>)
+will include the entire models regardless of which parts 
+(if any) are hidden by clipping.
+<!-- TG Feb 2024: zones are exported in gltf,stl,obj,vrml, but not vtk -->
+</p>
+
 <a name="gltf"></a>
 <p class="nav">
 [<a href="#top">back to top: save</a>]
@@ -1023,7 +1057,7 @@ Example:
 <b>save</b>&nbsp;&nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;gltf&nbsp;]
 [&nbsp;<a href="#models"><b>models</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
-[&nbsp;<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#center"><b>center</b></a>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>shortVertexIndices</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>floatColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -1031,28 +1065,31 @@ Example:
 [&nbsp;<b>textureColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>preserveTransparency</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>instancing</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>backfaceCulling</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#backfaceCulling"><b>backfaceCulling</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>flatLighting</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>metallicFactor</b>&nbsp;&nbsp;<i>f<sub>m</sub></i>&nbsp;]
 [&nbsp;<b>roughnessFactor</b>&nbsp;&nbsp;<i>f<sub>r</sub></i>&nbsp;]
 </blockquote>
 <p>
 Several options apply only to saving <a href="https://www.khronos.org/gltf" 
-target="_blank">GL Transmission Format</a> (.glb). See also:
+target="_blank">GL Transmission Format</a> (.glb). 
+The models are <a href="#export">not clipped</a>. See also:
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/texture-may2021/export_3d.html"
 target="_blank">Exporting atomic models with colors to GLTF or OBJ</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/gltf-viewer-may2023/"
 target="_blank">Embedding a 3D scene in a web page</a>
 </p>
 <blockquote>
-<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<a name="center"></a>
+<b>center</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;|&nbsp;<i>x,y,z</i>
 <br>
-The <b>center</b> option allows placing the center of the scene bounding box
-at a specific position in the GLTF file coordinates:
+The <b>center</b> option applies to GLTF and <a href="#vrml">VRML</a> formats.
+It allows placing the center of the scene bounding box
+at a specific position in the output file coordinates:
 <ul>
-<li><b>center <i>x,y,z</i></b> &ndash; at <i>x,y,z</i>
 <li><b>center true</b> (default) &ndash; at 0,0,0 (same as <b>center 0,0,0</b>)
 <li><b>center false</b> &ndash; unchanged from the current scene
+<li><b>center <i>x,y,z</i></b> (allowed for GLTF only) &ndash; at <i>x,y,z</i>
 </blockquote>
 <blockquote>
 <b>size</b>&nbsp;&nbsp;<i>s</i>
@@ -1116,10 +1153,12 @@ Instancing is always used for <a href="sym.html#copies">graphical clones</a>
 created with <a href="sym.html"><b>sym</b></a> regardless of this option.
 </blockquote>
 <blockquote>
+<a name="backfaceCulling"></a>
 <b>backfaceCulling</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-Whether the file should specify culling the backfaces of surfaces for 
-faster rendering.
+The <b>backfaceCulling</b> option applies to GLTF and
+<a href="#vrml">VRML</a> formats. It indicates whether the file 
+should specify culling the backfaces of surfaces for faster rendering. 
 Setting this option to <b>false</b> allows viewing surfaces from the inside.
 </blockquote>
 <blockquote>
@@ -1141,7 +1180,39 @@ Write the specified roughness factor <i>f<sub>r</sub></i>
 (range 0.0-1.0, default <b>1.0</b>) into the output file. 
 </blockquote>
 
+<a name="vrml"></a>
+<p class="nav">
+[<a href="#top">back to top: save</a>]
+</p>
+<h3>Save VRML</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>save</b>&nbsp;&nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;vrml&nbsp;]
+[&nbsp;<a href="#models"><b>models</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<a href="#center"><b>center</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#backfaceCulling"><b>backfaceCulling</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</blockquote>
+<p>
+The VRML output is very basic and intended specifically for 3D printing.
+The models are <a href="#export">not clipped</a>.
+Everything in the scene is output as a single shape, a VRML IndexedFaceSet,
+which is a set of triangles. Primitives such as exact spheres or cylinders 
+are not exported. The number of triangles used for atoms and bonds in 
+ChimeraX (see <a href="graphics.html#quality"><b>graphics quality</b></a>)
+controls the quality of spheres and cylinders in the VRML output.
+Colors are always output as vertex colors even if single colors are used 
+in ChimeraX. Textures (<i>e.g.</i>, volume 
+<a href="volume.html#style">image style</a> display) are not handled. 
+Normal vectors used for lighting are not included in the VRML file, so 
+the VRML objects will appear faceted in viewer programs. 
+VRML does not offer per-vertex transparency.
+If the entire scene has the same transparency, then this will be specified 
+as the VRML material transparency; otherwise, the VRML file will say 
+that the scene is opaque.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2023</address>
+February 2024</address>
 </body></html>

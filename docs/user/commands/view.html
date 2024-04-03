@@ -49,7 +49,7 @@ See also:
 <a href="zoom.html"><b>zoom</b></a>,
 <a href="camera.html"><b>camera</b></a>,
 <a href="clip.html"><b>clip</b></a>,
-<a href="dicom.html#view"><b>dicom view</b></a>,
+<a href="ui.html#view"><b>ui view</b></a>,
 <a href="ui.html#mousemode"><b>mousemode</b></a>,
 <a href="windowsize.html"><b>windowsize</b></a>,
 <a href="save.html"><b>save</b></a>,
@@ -76,7 +76,7 @@ See also:
 [&nbsp;<b>clip</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>pad</b>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
 [&nbsp;<b>cofr</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>orient</b>&nbsp;|&nbsp;<b>zalign</b>&nbsp;(&nbsp;<a href="atomspec.html#hierarchy"><i>atom1</i></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>atom2</i></a>&nbsp;|&nbsp;<a href="atomspec.html#othermodels"><i>axis-spec</i></a>&nbsp;|&nbsp;<a href="atomspec.html#othermodels"><i>plane-spec</i></a>&nbsp;)]
+[&nbsp;<b>orient</b>&nbsp;|&nbsp;<b>zalign</b>&nbsp;<i>what</i>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>view</b> &nbsp;<b>initial</b>
@@ -124,25 +124,41 @@ and Z-axis perpendicular to the screen increasing toward the viewer;
 in other words, it aligns <a href="#scenecoords">scene coordinates</a> with
 <a href="#screencoords">screen coordinates</a>.
 </p><p>
-Alternatively, the <b>zalign</b> option can be used to align any of the 
-following along the <a href="#screencoords">screen</a> Z-axis:
+Alternatively, <b>zalign</b> can be used to specify <i>what</i> to align
+along the <a href="#screencoords">screen</a> Z-axis:
 </p>
-<ul>
-<li>two atoms, with the first atom in front. 
+<blockquote>
+<b>zalign</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>atom1</i></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>atom2</i></a>
+ <ul>
+ <li>exactly two atoms, with the first atom in front. 
 If exactly two atoms are <a href="../selection.html">selected</a>,
 they can be <a href="atomspec.html#builtin">specified</a> collectively
 with the word <b>sel</b>; for example, to Z-align a selection of two atoms
 and center the view on the residue(s) containing them:
 <b>view sel-residues zalign sel</b>
-<li>a previously defined 
+ </ul>
+<b>zalign</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;<b>inFrontOf</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>
+ <ul>
+ <li>the geometric (non-mass-weighted) centers of two sets of atoms, 
+with the first set's center in front; for example, to Z-align the center of
+<a href="atomspec.html#builtin"><b>ligand</b></a> atoms in front of the 
+center of all other atoms: <b>view zalign ligand infrontof ~ligand</b>
+ </ul>
+<b>zalign</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>axis-spec</i></a>
+ <ul>
+ <li>a previously defined 
 <a href="../tools/axesplanes.html#define-axes">axis</a> object,
 specified by model number or as a 
 <a href="../selection.html">selection</a> with <b>sel</b>
-<li>the normal axis of
+ </ul>
+<b>zalign</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>plane-spec</i></a>
+ <ul>
+ <li>the normal axis of
 a previously defined <a href="../tools/axesplanes.html#define-plane">plane</a>
 object, specified by model number or as a 
 <a href="../selection.html">selection</a> with <b>sel</b>
-</ul>
+ </ul>
+</blockquote>
 <p>
 The <b>view initial</b> command removes rotations and translations of
 models relative to the scene (aligns individual model coordinates with
@@ -180,9 +196,21 @@ moved separately, as in matching or fitting.
 </blockquote>
 <p>
 The <b>name</b> option assigns <i>view-name</i> to the current view,
-including the positions of any models that have been moved separately.
+including the positions of <a href="clip.html">active clipping planes</a>
+and any models that have been moved separately from the others.
 Subsequently, that view can be restored over a specified number of 
 image update <i>frames</i> (default <b>1</b> frame).
+A clipping plane will only transition smoothly if present 
+(active) in both the starting and ending views.
+If a clipping plane is not active, it does not have a
+position, even though vertical lines are always shown in the
+<a href="../tools/sideview.html"><b>Side View</b></a>.
+</p><p>
+The information saved with a view does not include the
+<a href="camera.html">camera mode</a>.
+It is recommended to save/restore views only when using the perspective
+(<b>mono</b>) <a href="camera.html">camera mode</a>.
+</p><p>
 The <b>delete</b> option can be used to &ldquo;forget&rdquo; a specific
 view or <b>all</b> views. 
 The <b>list</b> option reports the names of all currently saved 
@@ -206,6 +234,9 @@ Whereas <b>view</b> only interpolates between a pair of views, the
 <a href="fly.html"><b>fly</b></a> command can smoothly traverse a series 
 of multiple views, generating a path that visits and leaves the intermediate 
 views without discontinuities in motion.
+However, an advantage of the <b>view</b>
+command is that it interpolates <a href="clip.html">clipping plane</a>
+positions, but <a href="fly.html"><b>fly</b></a> does not.
 </p>
 
 <a name="scenecoords"></a>
@@ -299,5 +330,5 @@ later applied from such a file. See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2023</address>
+January 2024</address>
 </body></html>

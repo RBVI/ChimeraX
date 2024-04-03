@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def register_shortcuts(keyboard_shortcuts):
@@ -158,6 +169,7 @@ def standard_shortcuts(session):
         ('st', run_on_atoms('style %s stick'), 'Display atoms in stick style', molcat, sesarg, mlmenu, sep),
 
         ('rb', run_on_atoms('show %s cartoon'), 'Display ribbon', molcat, sesarg, mlmenu),
+        ('ri', select_residue_interval, 'Select residue interval', molcat, sesarg, mlmenu),
         ('hr', run_on_atoms('hide %s cartoon'), 'Undisplay ribbon', molcat, sesarg, mlmenu),
 #        ('r+', fatter_ribbons, 'Thicker ribbons', molcat, molarg, mlmenu),
 #        ('r-', thinner_ribbons, 'Thinner ribbons', molcat, molarg, mlmenu, sep),
@@ -246,7 +258,7 @@ def standard_shortcuts(session):
 
         # Help
 #        ('mn', show_manual, 'Show manual', gcat, sesarg, hmenu),
-#        ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat, sesarg, hmenu),
+        ('Ls', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat, sesarg, hmenu),
         ]
 
 #    from ..molecule.blastpdb import blast_shortcuts
@@ -412,6 +424,7 @@ def register_selectors(logger):
     register_selector("selAtoms", _sel_atoms_selector, logger)
     register_selector("selMaps", _sel_maps_selector, logger, atomic=False)
     register_selector("selModels", _sel_models_selector, logger, atomic=False)
+    register_selector("last-opened", _sel_last_opened_selector, logger)
 
 # Selected atoms, or if none selected then all atoms.
 def _sel_atoms_selector(session, models, results):
@@ -430,6 +443,16 @@ def _sel_maps_selector(session, models, results):
 def _sel_models_selector(session, models, results):
     for m in shortcut_models(session):
         results.add_model(m)
+
+# Last opened top level model and its atoms if atomic.
+def _sel_last_opened_selector(session, models, results):
+    top_models = session.models.scene_root_model.child_models()
+    if top_models:
+        last = top_models[-1]
+        results.add_model(last)
+        from chimerax.atomic import Structure
+        if isinstance(last, Structure):
+            results.add_atoms(last.atoms)
 
 def shortcut_models(session, mclass = None, undisplayed = True, at_least = None):
     sel = session.selection.models()
@@ -1030,6 +1053,19 @@ def molecule_bonds(m, session):
         log.info(msg)
         if missing:
             log.info('Missing %d templates: %s' % (len(missing), ', '.join(missing)))
+          
+def select_residue_interval(session):
+    specs = []
+    from chimerax.atomic import selected_residues
+    for struct, cid, res in selected_residues(session).by_chain:
+        if len(res) >= 2:
+            rnum = res.numbers
+            rmin, rmax = rnum.min(), rnum.max()
+            specs.append(f'#{struct.id_string}/{cid}:{rmin}-{rmax}')
+    if specs:
+        cmd = 'select ' + ' '.join(specs)
+        from chimerax.core.commands import run
+        run(session, cmd)
 
 def show_sequence(atoms):
     chains = atoms.residues.unique_chains
@@ -1047,12 +1083,8 @@ def show_sequence(atoms):
         run(session, 'sequence chain %s' % seq_chain_spec, log = False)
 
 def list_keyboard_shortcuts(session):
-    m = session.main_window
-    if m.showing_text() and m.text_id == 'keyboard shortcuts':
-        m.show_graphics()
-    else:
-        t = shortcut_descriptions(session.keyboard_shortcuts, html = True)
-        m.show_text(t, html = True, id = "keyboard shortcuts")
+    t = shortcut_descriptions(session.keyboard_shortcuts, html = True)
+    session.logger.info(t, is_html = True)
 
 def shortcut_descriptions(ks, html = False):
   ksc = {}

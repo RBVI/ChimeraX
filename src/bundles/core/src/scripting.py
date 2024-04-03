@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -187,10 +198,10 @@ def apply_command_script_to_files(session, path, script_name, for_each_file, log
         paths.extend(glob(expanduser(path)))
 
     from os.path import basename, dirname, splitext
-    from .commands import run
+    from .commands import run, quote_path_if_necessary
     for i, data_path in enumerate(paths):
         run(session, 'close', log = log)
-        run(session, 'open %s' % data_path, log = log)
+        run(session, 'open %s' % quote_path_if_necessary(data_path), log = log)
         session.logger.status('Executing script %s on file %s (%d of %d)'
                               % (basename(script_name), basename(data_path), i+1, len(paths)))
         fprefix = splitext(basename(data_path))[0]
@@ -212,8 +223,6 @@ def probably_chimera1_session(evalue):
     return False
 
 chimera1_session_message = """\
-ChimeraX cannot open a regular Chimera session.  An exporter from Chimera
-to ChimeraX is being worked on but only handles molecules and molecular surfaces
-(not volumes) at this time.  If that is sufficient, use the latest Chimera
-daily build and its File->Export Scene menu item, and change the resulting
-dialog's "File Type" to ChimeraX."""
+ChimeraX cannot open a regular Chimera session.  An exporter from Chimera to
+ChimeraX is available in the latest Chimera release.  Use its File->Export Scene
+menu item, and change the resulting dialog's "File Type" to ChimeraX."""

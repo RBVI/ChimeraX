@@ -1,6 +1,6 @@
 // vi: set noexpandtab ts=8 sw=8:
 /*
- * Copyright (c) 2014 The Regents of the University of California.
+ * Copyright (c) 2014-2024 The Regents of the University of California.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,9 +68,6 @@ using readcif::StringVector;
 // mmCIF files are CIF 1.1 compliant except for how strings are encoded.
 // For example, in mmCIF, BETA-MERCAPTOETHANOL, would be \B-mercaptoethanol,
 // in CIF 1.1.
-//
-// TODO: check if audit_conform.dict_name is "mmcif_pdbx.dic" to see if
-// we're parsing a mmcif file or not.
 
 namespace {
 
@@ -239,10 +236,7 @@ CIFFile::register_category(const string& category, ParseCategory callback,
 		categories.emplace(cname,
 			   CategoryInfo(category, callback, deps));
 	} else {
-		// TODO: find category in categoryOrder
-		// make sure none of the later categories depend on it
 		throw std::runtime_error("missing category callback");
-		categories.erase(category);
 	}
 }
 
@@ -308,10 +302,6 @@ CIFFile::parse_file(const char* filename)
 	}
 	if (size.QuadPart == 0)
 		return;
-	if (size.QuadPart < 0 || size.QuadPart > 2147483647) {
-		err_msg << "Unreasonable CIF file size: " << size.QuadPart;
-		throw std::runtime_error(err_msg.str());
-	}
 	SYSTEM_INFO sys_info;
 	GetSystemInfo(&sys_info);
 
@@ -461,7 +451,7 @@ CIFFile::error(const string& text, size_t lineno)
 	if (lineno == 0)
 		lineno = this->lineno;
 	std::ostringstream err_msg;
-	err_msg << text << " near line " << lineno;
+	err_msg << text << " on line " << lineno;
 	return std::move(std::runtime_error(err_msg.str()));
 }
 
@@ -490,6 +480,7 @@ CIFFile::internal_parse(bool one_table)
 			continue;
 		case T_LOOP: {
 			const char* loop_pos = pos - 5;
+			size_t loop_lineno = lineno;
 			next_token();
 			if (current_token != T_TAG) {
 				std::ostringstream err_msg;
@@ -544,7 +535,7 @@ CIFFile::internal_parse(bool one_table)
 						continue;
 					save_values = false;
 					stash.emplace(current_category,
-						  StashInfo(loop_pos, lineno));
+						  StashInfo(loop_pos, loop_lineno));
 					break;
 				}
 			}
@@ -601,7 +592,7 @@ CIFFile::internal_parse(bool one_table)
 			// eat remaining values
 			if (stylized) {
 				// if seen all tables, skip to next keyword
-				bool tags_okay = seen.size() < categories.size();
+				bool tags_okay = seen.size() < categories.size() || unregistered;
 				if (!current_is_keyword()
 				&& !(tags_okay && current_token == T_TAG))
 					stylized_next_keyword(tags_okay);
@@ -677,6 +668,7 @@ CIFFile::internal_parse(bool one_table)
 				if (current_category.empty()
 				|| category != current_category) {
 					const char* first_tag_pos = pos - cv.size() - 1;
+					size_t first_tag_lineno = lineno;
 					if (save_values) {
 						// flush current category
 						seen.insert(current_category);
@@ -710,7 +702,7 @@ CIFFile::internal_parse(bool one_table)
 								continue;
 							save_values = false;
 							stash.emplace(current_category,
-								  StashInfo(first_tag_pos, lineno));
+								  StashInfo(first_tag_pos, first_tag_lineno));
 							break;
 						}
 					}
@@ -803,6 +795,7 @@ CIFFile::internal_reset_parse()
 	columns.clear();
 	seen.clear();
 	stash.clear();
+	has_audit_syntax = false;
 
 	// lexical state
 	current_token = T_SOI;
@@ -1025,6 +1018,10 @@ CIFFile::stylized_next_keyword(bool tag_okay)
 			current_token = T_EOI;
 			return;
 		}
+#ifdef CR_IS_EOL
+		if (*pos == '\r' && *(pos + 1) == '\n')
+			++pos;
+#endif
 		++pos;
 		++lineno;
 		switch (*pos) {
@@ -1132,7 +1129,9 @@ vector<int>
 CIFFile::find_column_offsets()
 {
 	// Find starting character position of each table column on a line
+	// plus an additional offset which is the line length
 	vector<int> offsets;
+	Token save_token = current_token;
 	const char* save_start = current_value_start;
 	const char* start = save_start;
 	if (is_not_whitespace(*(start - 1)))
@@ -1157,6 +1156,7 @@ CIFFile::find_column_offsets()
 		// Values were not all on the same line,
 		// so fallback to tokenizing.
 		offsets.clear();
+		current_token = save_token;
 		pos = save_pos;
 		lineno = save_lineno;
 	} else {
@@ -1172,8 +1172,8 @@ CIFFile::find_column_offsets()
 		// fixed length, then this could be filled in now.
 		offsets.push_back(0);
 #endif
-		current_value_start = save_start;
 	}
+	current_value_start = save_start;
 	return offsets;
 }
 
@@ -1218,7 +1218,7 @@ CIFFile::parse_row(ParseValues& pv)
 	}
 	auto pvi = pv.begin(), pve = pv.end();
 	while (pvi != pve && pvi->column < 0)
-		++pvi;
+		++pvi;  // skip missing optional columns
 	if (!values.empty()) {
 		// values were given per-tag
 		// assert(current_colnames.size() == values.size())
@@ -1248,8 +1248,12 @@ CIFFile::parse_row(ParseValues& pv)
 	if (pvi == pve) {
 		// discard row
 		if (!columns.empty()) {
+			for (int i = 0, e = current_colnames.size(); i < e; ++i) {
+				if (is_whitespace(current_value_start[columns[i]]))
+					throw error("PDBx/mmCIF styling lost");
+			}
 #ifdef FIXED_LENGTH_ROWS
-			pos += columns[columns.size() - 1] + 1;
+			pos = current_value_start + columns[columns.size() - 1] + 1;
 			++lineno;
 #else
 			if (columns.size() > 2) {
@@ -1289,6 +1293,10 @@ CIFFile::parse_row(ParseValues& pv)
 		if (is_not_eol(*(start - 1))) {
 			// isn't at start of line, so not stylized
 			throw error("PDBx/mmCIF styling lost");
+		}
+		for (int i = 0, e = current_colnames.size(); i < e; ++i) {
+			if (is_whitespace(start[columns[i]]))
+				throw error("PDBx/mmCIF styling lost");
 		}
 #ifndef FIXED_LENGTH_ROWS
 		// rows are not padded with trailing spaces
@@ -1470,6 +1478,89 @@ void
 CIFFile::global_block()
 {
 	throw error("unexpected global_ keyword");
+}
+
+void
+CIFFile::register_heuristic_stylized_detection()
+{
+	register_category("audit_conform",
+		[this] () {
+			parse_audit_conform();
+		});
+	register_category("audit_syntax",
+		[this] () {
+			parse_audit_syntax();
+		});
+}
+
+void
+CIFFile::parse_audit_conform()
+{
+	// Heuristic to tell if the CIF file was written in the
+	// PDBx/mmCIF stylized format.
+	if (has_audit_syntax)
+		return;
+	string dict_name;
+	float dict_version = 0;
+
+	CIFFile::ParseValues pv;
+	pv.reserve(2);
+	try {
+		pv.emplace_back(get_column("dict_name"),
+			[&dict_name] (const char* start, const char* end) {
+				dict_name = string(start, end - start);
+			});
+		pv.emplace_back(get_column("dict_version"),
+			[&dict_version] (const char* start) {
+				dict_version = strtof(start, NULL);
+			});
+	} catch (std::runtime_error& e) {
+		return;
+	}
+	parse_row(pv);
+	if (dict_name == "mmcif_pdbx.dic" && dict_version > 4) {
+		set_PDBx_keywords(true);
+		set_PDBx_fixed_width_columns("atom_site");
+		set_PDBx_fixed_width_columns("atom_site_anisotrop");
+	}
+}
+
+void
+CIFFile::parse_audit_syntax()
+{
+	// Explicit way to tell if the CIF file was written in the
+	// PDBx/mmCIF stylized format.
+	bool case_sensitive = false;
+	vector<string> fixed_width;
+	fixed_width.reserve(12);
+
+	CIFFile::ParseValues pv;
+	pv.reserve(2);
+	try {
+		pv.emplace_back(get_column("case_sensitive_flag"),
+			[&] (const char* start) {
+				case_sensitive = *start == 'Y' || *start == 'y';
+			});
+		pv.emplace_back(get_column("fixed_width"),
+			[&] (const char* start, const char* end) {
+				for (const char *cp = start; cp < end; ++cp) {
+					if (isspace(*cp))
+						continue;
+					start = cp;
+					while (cp < end && !isspace(*cp))
+						++cp;
+					fixed_width.push_back(string(start, cp - start));
+				}
+			});
+	} catch (std::runtime_error& e) {
+		return;
+	}
+	has_audit_syntax = true;
+	parse_row(pv);
+	set_PDBx_keywords(case_sensitive);
+	use_fixed_width_columns.clear();
+	for (auto& category: fixed_width)
+		set_PDBx_fixed_width_columns(category);
 }
 
 } // namespace readcif

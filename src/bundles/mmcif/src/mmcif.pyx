@@ -3,14 +3,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -42,6 +53,8 @@ _additional_categories = (
     "citation_author",
     "citation_editor",
     "database_2",	# EMDB map reference
+    "pdbx_database_related",    # EMDB map reference (also, sigh, e.g. 4udv)
+    "pdbx_database_status",	# Specifies if NMR restraints available
     "exptl",
     "refine",
     "reflns",
@@ -220,17 +233,25 @@ def _get_formatted_metadata(model, session, *, verbose=False):
                 'host_org_species', 'pdbx_host_org_ncbi_taxonomy_id'])
 
     # EMDB map
-    database_2 = get_mmcif_tables_from_metadata(model, ["database_2"], metadata=metadata)[0]
-    if database_2:
-        for id, code in database_2.fields(['database_id', 'database_code']):
-            if id == 'EMDB' and code.startswith('EMD-'):
-                entry_id = escape(code[4:])
-                emdb_link = '<a href="https://www.ebi.ac.uk/emdb/EMD-%s">EMDB %s</a>' % (entry_id, entry_id)
-                emdb_load = '<a href="cxcmd:open %s from emdb">open map</a>' % entry_id
-                html += '  <tr>\n'
-                html += '   <th>CryoEM Map</th>\n'
-                html += '   <td>%s &mdash; %s</td>\n' % (emdb_link, emdb_load)
-                html += '  </tr>\n'
+    for table_name, field_names in [
+            ('database_2', ['database_id', 'database_code']),
+            ('pdbx_database_related', ['db_name', 'db_id'])]:
+        db_info = get_mmcif_tables_from_metadata(model, [table_name], metadata=metadata)[0]
+        if db_info:
+            for id, code in db_info.fields(field_names):
+                if id == 'EMDB' and code.startswith('EMD-'):
+                    entry_id = escape(code[4:])
+                    emdb_link = '<a href="https://www.ebi.ac.uk/emdb/EMD-%s">EMDB %s</a>' % (
+                        entry_id, entry_id)
+                    emdb_load = '<a href="cxcmd:open %s from emdb">open map</a>' % entry_id
+                    html += '  <tr>\n'
+                    html += '   <th>CryoEM Map</th>\n'
+                    html += '   <td>%s &mdash; %s</td>\n' % (emdb_link, emdb_load)
+                    html += '  </tr>\n'
+                    break
+            else:
+                continue
+            break
 
     # experimental method; resolution
     method = experimental_method(model, metadata=metadata)
@@ -239,6 +260,24 @@ def _get_formatted_metadata(model, session, *, verbose=False):
         html += '   <th>Experimental method</th>\n'
         html += '   <td>%s</td>\n' % process_chem_name(method, sentences=True)
         html += '  </tr>\n'
+
+    if method == 'SOLUTION NMR':
+        db_info = get_mmcif_tables_from_metadata(model, ['pdbx_database_status'], metadata=metadata)[0]
+        if db_info:
+            have_nmr, entry_id = db_info.fields(['status_code_nmr_data', 'entry_id'],
+                                                allow_missing_fields = True)[0]
+            if have_nmr == 'REL' and len(entry_id) == 4:
+                eid = _nmr_ensemble_id(model)
+                cmd = f'open {entry_id} from pdb_nmr structure #{eid}'
+                show_hide = (f'Satisfied constraints <a href="cxcmd:show #{eid} & satisfied">show</a> ' +
+                             f'or <a href="cxcmd:hide #{eid} & satisfied">hide</a>. ' +
+			     f'Long constraints <a href="cxcmd:show #{eid} & long">show</a> ' +
+                             f'or <a href="cxcmd:hide #{eid} & long">hide</a>.')
+                html += '  <tr>\n'
+                html += '   <th>NMR constraints</th>\n'
+                html += f'   <td><a href="cxcmd:{cmd}">Open {entry_id} restraints</a>. {show_hide}</td>\n'
+                html += '  </tr>\n'
+
     res = resolution(model, metadata=metadata)
     if res is not None:
         html += '  <tr>\n'
@@ -273,6 +312,15 @@ def _get_formatted_metadata(model, session, *, verbose=False):
 
     return html
 
+def _nmr_ensemble_id(model):
+    'Determine if this model is one of an ensemble of models for applying NMR constraints.'
+    if len(model.id) < 2:
+      return model.id_string
+    # Check if every sibling model has the same name.  Not great.
+    mnames = set(m.name for m in model.parent.child_models())
+    if len(mnames) == 1:
+      return model.parent.id_string
+    return model.id_string
 
 def experimental_method(model, metadata=None):
     experiment = get_mmcif_tables_from_metadata(model, ["exptl"], metadata=metadata)[0]
@@ -443,6 +491,43 @@ def fetch_mmcif_pdbe_updated(session, pdb_id, **kw):
 def fetch_mmcif_pdbj(session, pdb_id, **kw):
     return fetch_mmcif(session, pdb_id, fetch_source="pdbj", **kw)
 
+
+def fetch_pdb_redo(session, pdb_id, ignore_cache=False, **kw):
+    """Get mmCIF file from PDB-REDO repository"""
+    if not _initialized:
+        _initialize(session)
+
+    if len(pdb_id) not in (4,8):
+        raise UserError('PDB identifiers are either 4 or 8 characters long, got "%s"' % pdb_id)
+
+    pdb_id, base_url = pdb_redo_base_url(pdb_id)
+    from chimerax.core.fetch import fetch_file
+    pdb_name = "%s.cif" % pdb_id
+    filename = fetch_file(session, base_url + ".cif", 'mmCIF %s' % pdb_id, pdb_name,
+                          "PDB-REDO", ignore_cache=ignore_cache)
+    # double check that a mmCIF file was downloaded instead of an
+    # HTML error message saying the ID does not exist
+    with open(filename, 'r') as f:
+        line = f.readline()
+        if not line.startswith(('data_', '#')):
+            f.close()
+            import os
+            os.remove(filename)
+            raise UserError("Invalid PDB-REDO identifier")
+
+    session.logger.status("Opening PDB-REDO structure %s" % (pdb_id,))
+    models, status = session.open_command.open_data(filename, format='mmcif', name=pdb_id, 
+        ignore_styling=True, **kw)
+    return models, status
+
+# also used by pdb and map bundles
+def pdb_redo_base_url(pdb_id):
+    pdb_id = pdb_id.lower()
+    if len(pdb_id) == 8 and pdb_id.startswith("0000"):
+        # avoid two differently named but identical entries in the cache...
+        pdb_id = pdb_id[4:]
+    entry = pdb_id if len(pdb_id) == 4 else "pdb_" + pdb_id
+    return pdb_id, "https://pdb-redo.eu/db/%s/%s_final" % (entry, entry)
 
 def _get_template(session, name):
     """Get Chemical Component Dictionary (CCD) entry"""

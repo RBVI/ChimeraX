@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -47,6 +58,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <climits>	// Use INT_MAX
 
 #ifndef M_PI
 // not defined on Windows
@@ -3361,6 +3373,18 @@ extern "C" EXPORT void set_residue_thin_rings(void *residues, size_t n, npy_bool
     error_wrap_array_set(r, n, &Residue::set_thin_rings, thin_rings);
 }
 
+extern "C" EXPORT void residue_worm_radius(void *residues, size_t n, float32_t *radii)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::worm_radius, radii);
+}
+
+extern "C" EXPORT void set_residue_worm_radius(void *residues, size_t n, float32_t *radii)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set(r, n, &Residue::set_worm_radius, radii);
+}
+
 
 // -------------------------------------------------------------------------
 // structure sequence functions
@@ -3470,8 +3494,14 @@ extern "C" EXPORT void sseq_structure(void *chains, size_t n, pyobject_t *molp)
 {
     StructureSeq **c = static_cast<StructureSeq **>(chains);
     try {
-        for (size_t i = 0; i < n; ++i)
-          molp[i] = c[i]->structure()->py_instance(true);
+        for (size_t i = 0; i < n; ++i) {
+          auto s = c[i]->structure();
+          if (s == nullptr) {
+              molp[i] = Py_None;
+              Py_INCREF(Py_None);
+          } else
+              molp[i] = c[i]->structure()->py_instance(true);
+        }
     } catch (...) {
         molc_error();
     }
@@ -3958,6 +3988,16 @@ extern "C" EXPORT void set_sequence_name(void *seqs, size_t n, pyobject_t *names
     }
 }
 
+extern "C" EXPORT char sequence_is_gap_character(const char *c)
+{
+    try {
+        return Sequence::is_gap_character(c[0]);
+    } catch (...) {
+        molc_error();
+        return true;
+    }
+}
+
 extern "C" EXPORT char sequence_nucleic3to1(const char *rname)
 {
     try {
@@ -4167,6 +4207,17 @@ extern "C" EXPORT void set_structure_ss_change_notify(void *structures, size_t n
 {
     Structure **s = static_cast<Structure **>(structures);
     error_wrap_array_set_mutable(s, n, &Structure::set_ss_change_notify, alcn);
+}
+
+extern "C" EXPORT void structure_idatm_failed(void *structures, size_t n, npy_bool *failed)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            failed[i] = s[i]->idatm_failed();
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void structure_idatm_valid(void *structures, size_t n, npy_bool *valid)
@@ -4610,6 +4661,18 @@ extern "C" EXPORT void set_structure_ribbon_show_spine(void *mols, size_t n, npy
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_set(m, n, &Structure::set_ribbon_show_spine, ribbon_show_spine);
+}
+
+extern "C" EXPORT void structure_worm_ribbon(void *mols, size_t n, npy_bool *worm_ribbon)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::worm_ribbon, worm_ribbon);
+}
+
+extern "C" EXPORT void set_structure_worm_ribbon(void *mols, size_t n, npy_bool *worm_ribbon)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_set(m, n, &Structure::set_worm_ribbon, worm_ribbon);
 }
 
 extern "C" EXPORT void set_structure_ss_assigned(void *structures, size_t n, npy_bool *ss_assigned)
@@ -5721,8 +5784,10 @@ extern "C" EXPORT void *pointer_table_create(void *pointer_array, size_t n)
     void **pa = static_cast<void **>(pointer_array);
     PointerTable *t = new PointerTable;
     try {
-      for (int i = n-1; i >= 0; --i)
-	(*t)[pa[i]] = i;
+      if (n > INT_MAX)
+	throw std::range_error("pointer_table_create: array size exceeds maximum integer size");
+      for (size_t i = 0; i < n; ++i)
+	(*t)[pa[i]] = (int)i;
     } catch (...) {
         molc_error();
     }

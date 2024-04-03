@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -34,8 +45,9 @@ GLTF_TRIANGLES = 4
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core import generic3d
-class gltfModel(generic3d.Generic3DModel):
+from chimerax.core.models import Surface
+class gltfModel(Surface):
+    SESSION_SAVE_DRAWING = True
     clip_cap = True
 
 # -----------------------------------------------------------------------------
@@ -215,11 +227,15 @@ def meshes_as_models(session, meshes, material_colors, material_textures,
             va = ba[pa['POSITION']]
             if 'NORMAL' in pa:
                 na = ba[pa['NORMAL']]
-            else:
+            elif ta.shape[1] == 3:
+                # Compute triangle normals
                 from chimerax import surface
                 na = surface.calculate_vertex_normals(va, ta)
+            else:
+                na = None	# No computed normals for mesh or dots.
             if 'COLOR_0' in pa:
-                vc = ba[pa['COLOR_0']]
+                lin_vc = ba[pa['COLOR_0']]
+                vc = _linear_to_srgb_vertex_colors(lin_vc)
             else:
                 vc = None
             tc = ba[pa['TEXCOORD_0']] if 'TEXCOORD_0' in pa else None
@@ -334,7 +350,9 @@ def material_colors_and_textures(materials, textures, images):
     for material in materials:
         pbr = material.get('pbrMetallicRoughness')
         if pbr and 'baseColorFactor' in pbr:
-            color = rgba_to_rgba8(pbr['baseColorFactor'])
+            lin_color = pbr['baseColorFactor']
+            rgba = _linear_to_srgba_color(lin_color)
+            color = rgba_to_rgba8(rgba)
         else:
             color = (255,255,255,255)
         colors.append(color)
@@ -390,7 +408,7 @@ def _create_texture(png_bytes):
 # -----------------------------------------------------------------------------
 #
 def colors_to_uint8(vc):
-    from numpy import empty, uint8, float32
+    from numpy import empty, uint8, uint16, float32
     nc,ni = len(vc), vc.shape[1]
     if vc.dtype == uint8:
         if ni == 3:
@@ -405,7 +423,7 @@ def colors_to_uint8(vc):
         if ni == 3:
             c[:,3] = 255
     else:
-        raise glTFError('glTF colors, only handle float32 and uint8, got %s' % str(vc.dtype))
+        raise glTFError('glTF colors, only handle float32, uint8 and uint16, got %s' % str(vc.dtype))
 
     return c
 
@@ -846,13 +864,14 @@ class Mesh:
         if vc is not None:
             if not mat._preserve_transparency:
                 vc = vc[:,:3]
-            if mat._float_vertex_colors:
-                vc = vc.astype(float32)
-                vc /= 255
             if self._prune_vertex_colors:
                 single_vertex_color = _single_vertex_color(vc)
             if single_vertex_color is None:
-                ci = b.add_array(vc, normalized = not mat._float_vertex_colors, target=b.GLTF_ARRAY_BUFFER)
+                if mat._float_vertex_colors:
+                    vc = vc.astype(float32)
+                    vc /= 255
+                lin_vc = _srgb_to_linear_vertex_colors(vc)
+                ci = b.add_array(lin_vc, normalized = not mat._float_vertex_colors, target=b.GLTF_ARRAY_BUFFER)
         tci = b.add_array(tc) if tc is not None else None
         ne = len(ta)
         etype = uint16 if self._short_vertex_indices else uint32
@@ -869,7 +888,72 @@ def _single_vertex_color(vertex_colors):
         if (vertex_colors == color).all():
             return tuple(color)
     return None
-    
+
+# -----------------------------------------------------------------------------
+#
+def _srgb_to_linear_vertex_colors(vertex_colors):
+    '''
+    Input can be uint8 or float32 and can be rgb or rgba.
+    For float input produce float output.  For uint8 input produce uint16 output.
+    '''
+    from numpy import float32, uint8, uint16, where, empty
+    t = vertex_colors.dtype
+    if t == float32:
+        vc = vertex_colors
+    elif t == uint8:
+        vc = vertex_colors.astype(float32)
+        vc /= 255
+    else:
+        raise ValueError('Converting sRGB vertex colors to linear color space ' +
+                         f'requires uint8 or float32 numpy array, got {t}')
+    srgb = vc[:,:3]
+    gamma = ((srgb + 0.055) / 1.055)**2.4
+    scale = srgb / 12.92
+    lin_vc = where(srgb > 0.04045, gamma, scale)
+    if vertex_colors.shape[1] == 4:
+        # Copy alpha value
+        c = empty(vc.shape, float32)
+        c[:,:3] = lin_vc
+        c[:,3] = vc[:,3]
+        lin_vc = c
+    if t == uint8:
+        lin_vc *= 65535
+        lin_vc = lin_vc.astype(uint16)
+    return lin_vc
+
+# -----------------------------------------------------------------------------
+#
+def _linear_to_srgb_vertex_colors(vertex_colors):
+    '''
+    Input can be uint8, uint16 or float32 and can be rgb or rgba.  Produces uint8 output.
+    '''
+    from numpy import float32, uint8, uint16, where, empty
+    t = vertex_colors.dtype
+    if t == float32:
+        vc = vertex_colors
+    elif t == uint16:
+        vc = vertex_colors.astype(float32)
+        vc /= 65535
+    elif t == uint8:
+        vc = vertex_colors.astype(float32)
+        vc /= 255
+    else:
+        raise ValueError('Converting linear vertex colors to sRGB color space ' +
+                         f'requires uint16 or float32 numpy array, got {t}')
+    lin = vc[:,:3]
+    gamma = 1.055 * lin**(1/2.4) - 0.055
+    scale = 12.92 * lin 
+    srgb = where(lin > 0.0031308, gamma, scale)
+    if vc.shape[1] == 4:
+        # Copy alpha value
+        c = empty(vertex_colors.shape, float32)
+        c[:,:3] = srgb
+        c[:,3] = vc[:,3]
+        srgb = c
+    srgb *= 255
+    srgb8 = srgb.astype(uint8)
+    return srgb8
+
 # -----------------------------------------------------------------------------
 #
 def _mesh_style(triangle_array):
@@ -901,17 +985,30 @@ def _element_size_for_gltf_mode(gltf_mode):
 def _read_texture_images(drawing):
     d = drawing
     if d.texture and d.texture.dimension == 2:
-        d._opengl_context.make_current()
-        ti = [d.texture.read_texture_data()]
-        d._opengl_context.done_current()
+        ti = [_texture_colors(d.texture, d)]
     elif d.multitexture:
-        d._opengl_context.make_current()
-        ti = [t.read_texture_data() for t in d.multitexture]
-        d._opengl_context.done_current()
+        ti = [_texture_colors(t, d) for t in d.multitexture]
     else:
         ti = []
-
     return ti
+
+# -----------------------------------------------------------------------------
+#
+def _texture_colors(texture, drawing):
+    drawing._opengl_context.make_current()
+    data = texture.read_texture_data()
+    if drawing.colormap and drawing.colormap_range:
+        colormap = drawing.colormap.read_texture_data()
+        dmin, dmax = drawing.colormap_range
+        from numpy import empty
+        colors = empty(data.shape[:2] + (colormap.shape[1],), colormap.dtype)
+        extend_left = extend_right = True
+        from chimerax.map._map import data_to_colors
+        data_to_colors(data, dmin, dmax, colormap, extend_left, extend_right, colors)
+    else:
+        colors = data
+    drawing._opengl_context.done_current()
+    return colors
 
 # -----------------------------------------------------------------------------
 #
@@ -1152,7 +1249,8 @@ class Material:
     def specification(self):
         from chimerax.core.colors import rgba8_to_rgba
         color = rgba8_to_rgba(self._base_color8)
-        pbr = {'baseColorFactor': color,
+        linear_color = _srgba_to_linear_color(color)
+        pbr = {'baseColorFactor': linear_color,
                'metallicFactor': self._metallic_factor,
                'roughnessFactor': self._roughness_factor,
                }
@@ -1165,6 +1263,22 @@ class Material:
             spec['doubleSided'] = True
         return spec
 
+# -----------------------------------------------------------------------------
+#
+def _srgba_to_linear_color(color):
+    linear = tuple((((r + 0.055) / 1.055)**2.4
+                    if r > 0.04045 else (r/12.92))
+                   for r in color[:3]) + (color[3],)
+    return linear
+
+# -----------------------------------------------------------------------------
+#
+def _linear_to_srgba_color(color):
+    srgba = tuple(((1.055 * (pow(r, (1.0 / 2.4))) - 0.055)
+                   if r > 0.0031308 else (12.92 * r))
+                  for r in color[:3]) + (color[3],)
+    return srgba
+    
 # -----------------------------------------------------------------------------
 #
 class Textures:
@@ -1186,12 +1300,17 @@ class Textures:
         self._array_image_id[a_id] = im_id
         return im_id
 
-    def _texture_buffer(self, rgba_array):
-        '''Make a PNG image and save as a buffer.'''
-        # Ut oh, Texture does not keep data after filling OpenGL texture, to save memory
-        # for large volume data.
+    def _texture_buffer(self, color_array):
+        '''
+        Make a PNG image from a numpy array of colors and save as a buffer.
+        The array can have size (h,w,c) where color components c can be
+        1 (lumosity), 2 (luminosity + alpha), 3 (RGB), 4 (RGBA).
+        '''
+        if color_array.ndim == 3 and color_array.shape[2] == 1:
+            # Image.fromarray() won't except (h,w,1) array, wants (h,w).
+            color_array = color_array.reshape(color_array.shape[:2])
         from PIL import Image
-        pi = Image.fromarray(rgba_array)
+        pi = Image.fromarray(color_array)
         from io import BytesIO
         image_bytes = BytesIO()
         pi.save(image_bytes, format='PNG')

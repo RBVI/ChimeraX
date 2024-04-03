@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -90,12 +101,13 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
         from chimerax.atomic.structure import Structure as StructureClass
     models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style, log_info=log_info)
         for p in pointers]
-    from numpy import isnan
+    from numpy import isfinite
     for m in models:
-        if isnan(m.atoms.coords).any():
+        if not isfinite(m.atoms.coords).all():
             for dm in models:
                 dm.delete()
-            raise UserError("Some X/Y/Z coordinate values in the '%s' PDB file are not numbers" % file_name)
+            raise UserError(
+                "Some X/Y/Z coordinate values in the '%s' PDB file are not finite numbers" % file_name)
 
     if max_models is not None:
         for m in models[max_models:]:
@@ -271,6 +283,30 @@ def fetch_pdb_pdbe(session, pdb_id, **kw):
 
 def fetch_pdb_pdbj(session, pdb_id, **kw):
     return fetch_pdb(session, pdb_id, fetch_source="pdbj", **kw)
+
+def fetch_pdb_redo(session, pdb_id, ignore_cache=False, **kw):
+    from chimerax.core.errors import UserError
+    if len(pdb_id) not in (4, 8):
+        raise UserError('PDB identifiers are 4 or 8 characters long, got "%s"' % pdb_id)
+
+    from chimerax.mmcif.mmcif import pdb_redo_base_url
+    pdb_id, base_url = pdb_redo_base_url(pdb_id)
+    from chimerax.core.fetch import fetch_file
+    pdb_name = "%s.pdb" % pdb_id
+    filename = fetch_file(session, base_url + ".pdb", 'PDB %s' % pdb_id, pdb_name,
+                          "PDB-REDO", ignore_cache=ignore_cache)
+    # double check that a mmCIF file was downloaded instead of an
+    # HTML error message saying the ID does not exist
+    with open(filename, 'r') as f:
+        line = f.readline()
+        if not line.startswith(('HEADER', 'REMARK', 'ATOM')):
+            f.close()
+            import os
+            os.remove(filename)
+            raise UserError("Invalid PDB-REDO identifier")
+
+    session.logger.status("Opening PDB-REDO structure %s" % (pdb_id,))
+    return session.open_command.open_data(filename, format='pdb', name=pdb_id, **kw)
 
 def collate_records_text(records, multiple_results=False):
     if multiple_results:

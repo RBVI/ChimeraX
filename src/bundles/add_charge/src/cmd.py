@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import EnumOf
@@ -56,11 +67,11 @@ def cmd_addcharge(session, residues, *, method=ChargeMethodArg.default_value,
         session.logger.info("Here are the structures will non-integral total charge along with the"
             " particular residues from those structures with non-integral total charge:")
         for s, res_info in non_integral_info.items():
-            if len(res_info) == len([r for r in s.residues if r.num_atoms > 1]):
+            if s.num_residues > 1 and len(res_info) == len([r for r in s.residues if r.num_atoms > 1]):
                 res_info_text = "all residues"
             else:
-                res_info = commas(["%s: %g" % (r,c) for r, c in res_info], conjunction="and")
-            session.logger.info(f"{s}: {res_info}")
+                res_info_text = commas(["%s: %g" % (r,c) for r, c in res_info], conjunction="and")
+            session.logger.info(f"{s}: {res_info_text}")
 
 def cmd_addcharge_nonstd(session, residues, res_name, net_charge, *,
         method=ChargeMethodArg.default_value):
@@ -72,7 +83,11 @@ def cmd_addcharge_nonstd(session, residues, res_name, net_charge, *,
         raise UserError(f"No specified residues are named '{res_name}'")
 
     check_hydrogens(session, residues)
-    add_nonstandard_res_charges(session, residues, net_charge, method=method, status=session.logger.status)
+    try:
+        add_nonstandard_res_charges(session, residues, net_charge, method=method,
+            status=session.logger.status)
+    except ChargeError as e:
+        raise UserError(str(e))
 
 def check_hydrogens(session, residues):
     atoms = residues.atoms
