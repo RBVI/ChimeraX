@@ -4,23 +4,23 @@ include $(TOP)/mk/config.make
 
 # Using AmberTools distribution from https://ambermd.org
 
-#ifeq ($(OS),Darwin)
-#VERSION = 23
-#SRC_VERSION = 22
-#else
+ifeq ($(OS),Darwin)
+VERSION = 23
+SRC_VERSION = 22
+else
 VERSION = 20
 SRC_VERSION = 20
-#endif
+endif
 
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
-#ifeq ($(OS),Darwin)
-#USE_PREBUILT=false
-#UPLOAD_PREBUILT=true
-#else
+ifeq ($(OS),Darwin)
+USE_PREBUILT=false
+UPLOAD_PREBUILT=true
+else
 USE_PREBUILT=true
 UPLOAD_PREBUILT=false
-#endif
+endif
 ifeq ($(OS),Linux)
 SUPPORTED_DISTROS := Ubuntu CentOS Debian Rocky Freedesktop
 # CentOS uses "CentOS Linux", hence the second awk in the following line
@@ -94,6 +94,21 @@ else
 FLIBDIR = /usr/local/gfortran/lib
 endif
 
+
+ifeq ($(wildcard /usr/local/opt/gcc/lib/gcc/current/*),)
+ifeq ($(wildcard /opt/homebrew/opt/gcc/lib/gcc/current/*),)
+ifeq ($(wildcard /usr/local/gfortran/*),)
+LOCALLIBDIR = /usr/local/lib
+else
+LOCALLIBDIR = /usr/local/gfortran/lib
+endif
+else
+LOCALLIBDIR = /opt/homebrew/opt/gcc/lib/gcc/current
+endif
+else
+LOCALLIBDIR = /usr/local/opt/gcc/lib/gcc/current
+endif
+
 ifeq ($(USE_PREBUILT),true)
 install:
 
@@ -134,6 +149,14 @@ app-install: install
 	$(RSYNC) $(AMBERBIN_SRC)/wrapped_progs/* $(AMBERBIN_DST)
 	$(RSYNC) $(AMBERDAT_ANTECHAMBER_SRC)/* $(AMBERDAT_ANTECHAMBER_DST)
 	$(RSYNC) $(AMBERDAT_PARM_SRC)/gaff2.dat $(AMBERDAT_PARM_DST)
+ifeq ($(OS),Darwin)
+	for i in $(AMBERLIB_SRC)/*.$(SHLIB_EXT); do \
+		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(LOCALLIBDIR))/) { print $$1 }'`; do \
+			filename=`basename $$j`; \
+			install_name_tool -change $$j @executable_path/../../../lib/$$filename $$i; \
+		done; \
+	done
+endif
 	$(RSYNC) $(AMBERLIB_SRC)/*.$(SHLIB_EXT) $(app_libdir)
 ifeq ($(OS),Windows)
 	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /usr/bin/cygreadline*.dll /usr/bin/cygintl*.dll /usr/bin/cygncursesw*.dll /usr/bin/cygiconv*.dll /bin/sh.exe $(AMBERBIN_DST)
