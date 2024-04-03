@@ -99,7 +99,7 @@
     <Provider name="emdb_china" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
     <Provider name="emdb_fits" type="fetch" format_name="CCP4 density map" group_multiple_models="false"
 		synopsis="EMDB &amp; fit PDBs" example_ids="1048" />
-    <Provider name="redo" type="fetch" format_name="mtz" is_default="false" synopsis="PDB-REDO (map)" example_ids="1cbs" />
+    <Provider name="redo" type="fetch" format_name="MTZ" is_default="false" synopsis="PDB-REDO (map)" example_ids="1cbs" />
   </Providers>
 
   <Providers manager="save command">
