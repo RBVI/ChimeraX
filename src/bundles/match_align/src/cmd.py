@@ -30,7 +30,7 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
     from .make_alignment import match_to_align
     seqs = match_to_align(session, chains, dist_cutoff, column_criteria, gap_char, circular)
     #TODO: lots
-    session.alignments.new_alignment(seqs, "Match->Align")
+    session.alignments.new_alignment(seqs, "Match->Align") # for testing
 
 def register_command(cmd_name, logger):
     from chimerax.core.commands import CmdDesc, register, NonNegativeFloatArg, EnumOf, CharacterArg, \
