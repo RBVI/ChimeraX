@@ -19,7 +19,7 @@ def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
            move_whole_molecules = True,
            search = 0, placement = 'sr', radius = None,
            cluster_angle = 6, cluster_shift = 3,
-           asymmetric_unit = True, level_inside = 0.1, sequence = 0,
+           asymmetric_unit = True, level_inside = 0.1, seed = 0, sequence = 0,
            max_steps = 2000, grid_step_min = 0.01, grid_step_max = 0.5,
            list_fits = None, log_fits = None, each_model = False):
     '''
@@ -129,7 +129,7 @@ def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
             fits = fit_search(atoms, v, volume, metric, envelope, zeros, shift, rotate,
                               mwm, search, placement, radius,
                               cluster_angle, cluster_shift, asymmetric_unit, level_inside,
-                              max_steps, grid_step_min, grid_step_max, log)
+                              max_steps, grid_step_min, grid_step_max, log, random_seed = seed)
         elif symmetric:
             fits = [fit_map_in_symmetric_map(v, volume, metric, envelope, zeros,
                                              shift, rotate, mwm,
@@ -390,7 +390,7 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope, zeros,
 def fit_search(atoms, v, volume, metric, envelope, zeros, shift, rotate,
                move_whole_molecules, search, placement, radius,
                cluster_angle, cluster_shift, asymmetric_unit, level_inside,
-               max_steps, grid_step_min, grid_step_max, log = None):
+               max_steps, grid_step_min, grid_step_max, log = None, random_seed = 0):
     
     # TODO: Handle case where not moving whole molecules.
 
@@ -417,7 +417,8 @@ def fit_search(atoms, v, volume, metric, envelope, zeros, shift, rotate,
     flist, outside = FS.fit_search(
             mlist, points, point_weights, volume, search, rotations, shifts,
             radius, cluster_angle, cluster_shift, asymmetric_unit, level_inside,
-            me, shift, rotate, max_steps, grid_step_min, grid_step_max, stop_cb)
+            me, shift, rotate, max_steps, grid_step_min, grid_step_max, stop_cb,
+            random_seed = random_seed)
 #    finally:
 #        task.finished()
 
@@ -552,7 +553,7 @@ def report_status(log):
 #
 def register_fitmap_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, FloatArg, EnumOf, ObjectsArg, SaveFileNameArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, FloatArg, EnumOf, ObjectsArg, SaveFileNameArg, Or
     from chimerax.map.mapargs import MapArg
 
     fitmap_desc = CmdDesc(
@@ -587,6 +588,7 @@ def register_fitmap_command(logger):
             ('cluster_shift', FloatArg),
             ('asymmetric_unit', BoolArg),
             ('level_inside', FloatArg),            # fraction of point in contour
+            ('seed', Or(IntArg, EnumOf(['random']))),
 
 # Output options
             ('move_whole_molecules', BoolArg),
