@@ -16,30 +16,33 @@
 #include <Python.h>
 #include <algorithm>    // std::min
 #include <math.h>
+#include <string>
 #include <vector>
 
 #include <atomstruct/Chain.h>
+#include <atomstruct/search.h>
 #include <logger/logger.h>
 
 using atomstruct::Chain;
 
 PyObject *
-match_to_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all, char gap_char,
-    bool circular)
+multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all, char gap_char,
+    bool circular, const char* status_prefix)
 {
-    //TODO
-    PyErr_SetString(PyExc_NotImplementedError, "match_to_align not implemented");
+    PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align not implemented");
     return nullptr;
+    //TODO: once enough of the below implemented, remove the above two lines
 }
 
 static PyObject*
-match_to_align(PyObject*, PyObject* args)
+py_multi_align(PyObject*, PyObject* args)
 {
     PyObject* chain_ptrs_list;
     double dist_cutoff;
     int col_all, circular, py_gap_char;
-    if (!PyArg_ParseTuple(args, const_cast<char *>("OfpCp"),
-            &chain_ptrs_list, &dist_cutoff, &col_all, &py_gap_char, &circular))
+    const char* status_prefix;
+    if (!PyArg_ParseTuple(args, const_cast<char *>("OfpCps"),
+            &chain_ptrs_list, &dist_cutoff, &col_all, &py_gap_char, &circular, &status_prefix))
         return NULL;
     char gap_char = (char)py_gap_char;
     if (!PySequence_Check(chain_ptrs_list)) {
@@ -63,12 +66,12 @@ match_to_align(PyObject*, PyObject* args)
         }
         chains.push_back(static_cast<const Chain*>(PyLong_AsVoidPtr(py_ptr)));
     }
-    return match_to_align(chains, dist_cutoff, (bool)col_all, gap_char, (bool)circular);
+    return multi_align(chains, dist_cutoff, (bool)col_all, gap_char, (bool)circular, status_prefix);
 }
 
 static struct PyMethodDef msa3d_methods[] =
 {
-  {const_cast<char*>("match_to_align"), match_to_align, METH_VARARGS, NULL},
+  {const_cast<char*>("multi_align"), py_multi_align, METH_VARARGS, NULL},
   {nullptr, nullptr, 0, nullptr}
 };
 

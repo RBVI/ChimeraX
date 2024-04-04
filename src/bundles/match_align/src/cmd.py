@@ -27,10 +27,10 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
     if len(chains.structures.unique()) != len(chains):
         raise UserError("Specify only one chain per model")
 
-    col_all = column_criteria == "all"
-    from ._msa3d import match_to_align
-    seqs = match_to_align([int(x) for x in chains.pointers], dist_cutoff, col_all, gap_char, circular)
+    from .make_alignment import match_to_align
+    seqs = match_to_align(session, chains, dist_cutoff, column_criteria, gap_char, circular)
     #TODO: lots
+    session.alignments.new_alignment(seqs, "Match->Align")
 
 def register_command(cmd_name, logger):
     from chimerax.core.commands import CmdDesc, register, NonNegativeFloatArg, EnumOf, CharacterArg, \
