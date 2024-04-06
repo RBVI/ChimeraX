@@ -2588,6 +2588,9 @@ class HandController:
             self._dispatch_event(m, event)
 
     def _process_thumbstick_event(self, e):
+        if self._camera._button_lock:
+            return  # Don't process thumbstick events in button lock mode.
+        
         ts_mode = self._thumbstick_mode()
         if ts_mode is None or not ts_mode.uses_thumbstick():
             return

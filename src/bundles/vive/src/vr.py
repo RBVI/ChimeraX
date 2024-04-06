@@ -2806,7 +2806,8 @@ class HandController:
                 m.drag(HandMotionEvent(self, m._button_down, previous_pose, pose))
 
         # Check for Oculus thumbstick position
-        self._send_thumbstick_events()
+        if not self._camera._button_lock:
+            self._send_thumbstick_events()
 
     def _send_thumbstick_events(self):
         ts_mode = self._thumbstick_mode()
