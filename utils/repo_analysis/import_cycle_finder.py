@@ -3,9 +3,6 @@ import networkx
 import re
 import subprocess
 import sys
-import matplotlib.pyplot as plt
-
-from collections import defaultdict
 
 top_level_package_placeholder = "chimerax_init_func"
 
