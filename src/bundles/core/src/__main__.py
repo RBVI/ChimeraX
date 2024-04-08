@@ -992,7 +992,7 @@ def init(argv, event_loop=True):
     # By this point the GUI module will have redirected stdout if it's going to
     if opts.debug:
         logging.basicConfig(
-            level=logging.INFO,
+            level=logging.DEBUG,
             format="%(levelname)s:%(message)s",
             handlers=[logging.StreamHandler(sys.stdout)],
         )
