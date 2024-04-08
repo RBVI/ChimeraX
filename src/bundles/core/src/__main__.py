@@ -393,6 +393,14 @@ def parse_arguments(argv):
     return opts, args
 
 
+def disable_external_logs(debug: bool) -> None:
+    """Disable external loggers. Some ChimeraX dependencies have blathy logs
+    that can clutter up the UI."""
+    # TODO: Different lists of loggers for different situations e.g. debug vs normal
+    if not debug:
+        logging.getLogger("urllib3").setLevel(100)
+
+
 def init(argv, event_loop=True):
     import sys
 
@@ -988,10 +996,8 @@ def init(argv, event_loop=True):
             format="%(levelname)s:%(message)s",
             handlers=[logging.StreamHandler(sys.stdout)],
         )
-    else:
-        # Ticket #6187, set urllib3 not to log to the general ChimeraX log
-        #      It's just very verbose on failure.
-        logging.getLogger("urllib3").setLevel(100)
+    # Ticket #6187, some logs (in this case urllib3) are blabbermouths
+    disable_external_logs(opts.debug)
 
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application
