@@ -33,6 +33,8 @@ class FlipGrid(GridData):
     #
     def matrix(self, ijk_origin = (0,0,0), ijk_size = None,
                ijk_step = (1,1,1), progress = None, from_cache_only = False):
+        if ijk_size is None:
+            ijk_size = self.data.size
         origin = self.flipped_origin(ijk_origin, ijk_size)
         m = self.data.matrix(origin, ijk_size, ijk_step, progress=progress,
                              from_cache_only=from_cache_only)

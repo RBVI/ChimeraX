@@ -274,8 +274,12 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None, summa
             attr_type = float
         else:
             attr_type = None
-        recip_class.register_attr(session, attr_name, "defattr command", attr_type=attr_type,
-            can_return_none=can_return_none)
+        from chimerax.core.attributes import RegistrationConflict
+        try:
+            recip_class.register_attr(session, attr_name, "defattr command", attr_type=attr_type,
+                can_return_none=can_return_none, supercede=True)
+        except RegistrationConflict as e:
+            raise UserError(e)
 
         if summary:
             session.logger.info("Assigned attribute '%s' to %d %s using match mode: %s" % (attr_name,

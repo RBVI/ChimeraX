@@ -54,6 +54,24 @@ class XR:
     def _create_instance(self):
         '''Establish connection to OpenXR runtime.'''
         import xr
+#        extensions = xr.enumerate_instance_extension_properties()
+#        print ('Available openxr extensions', [e.extension_name for e in extensions])
+#
+# Looks to me that to enable passthrough video I need to do the following:
+#  1) Look for extension name XR_FB_passthrough.
+#  2) If extension is available create openxr instance with it requested.
+#  3) Create an XrPassthroughFB handle with xrCreatePassthroughFB().
+#  4) Create an XrPassthroughLayerFB handle with xrCreatePassthroughLayerFB().
+#  5) Submit that layer in xrEndFrame() with blending mode alpha.
+#  6) Render the ChimeraX scene with transparent background to an RGBA framebuffer.
+#
+# This APIs are described in
+#   https://registry.khronos.org/OpenXR/specs/1.0/html/xrspec.html#XR_FB_passthrough
+# And pyopenxr appears to define the functions and structures and enums in xr/typedefs.py
+#
+# I found a few discussions online of developers failing to get passthrough to work,
+# and none where the got it to work from late 2023 and early 2024.
+#
         requested_extensions = [xr.KHR_OPENGL_ENABLE_EXTENSION_NAME]
         if self._debug:
             requested_extensions.append(xr.EXT_DEBUG_UTILS_EXTENSION_NAME)

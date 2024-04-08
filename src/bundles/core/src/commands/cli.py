@@ -2256,7 +2256,7 @@ class _WordInfo:
                 self.registry.aliased_commands[name] = word_info
                 self.subcommands[word] = _WordInfo(self.registry, cmd_desc)
                 if logger is not None:
-                    logger.info("FYI: alias is hiding existing command" %
+                    logger.info("FYI: alias is hiding existing command: %s" %
                                 dq_repr(name))
         elif word_info.is_user_alias():
             # command is aliased, but new one isn't, so replaced saved version

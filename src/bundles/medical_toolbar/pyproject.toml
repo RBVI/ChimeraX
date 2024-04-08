@@ -1,0 +1,164 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-MedicalToolbar"
+license = { text = "Free for non-commercial use" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+description = "Toolbar for medical image analysis"
+dependencies = [
+	"ChimeraX-Core ~=1.0"
+	, "ChimeraX-UI ~=1.0"
+]
+
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text="""Provide a toolbar tab including buttons useful for medical image visualization."""
+	
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[chimerax]
+min-session-version = 1
+max-session-version = 1
+module-name-override = "medical_toolbar"
+categories = ["Toolbar"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[chimerax.package-data]
+"src/icons" = ["*.png"]
+
+# ----------------- Toolbars -----------------
+[chimerax.toolbar."Medical Image"]
+name = "layout1"
+after = "map"
+before = "Markers:Right Mouse"
+
+[[chimerax.toolbar."Medical Image".button]]
+section = "File"
+name = "open dicom"
+display-name = "Open DICOM"
+icon = "opendicom.png"
+description = "Open DICOM directories"
+
+[[chimerax.toolbar."Medical Image".button]]
+section = "File"
+name = "recent"
+link = "ChimeraX-Toolbar:Recent"
+
+[[chimerax.toolbar."Medical Image".button]]
+section = "File"
+name = "snapshot"
+link = "ChimeraX-Shortcuts:sx"
+
+[[chimerax.toolbar."Medical Image".button]]
+section="Style"
+name="plane style" 
+link="ChimeraX-Shortcuts:pl"
+
+[[chimerax.toolbar."Medical Image".button]]
+section="Style"
+name="slab style" 
+link="ChimeraX-Shortcuts:is"
+
+[[chimerax.toolbar."Medical Image".button]]
+section="Style"
+name="orthoplanes style" 
+link="ChimeraX-Shortcuts:o3"
+
+[[chimerax.toolbar."Medical Image".button]]
+section="Style"
+name="full style"
+link="ChimeraX-Shortcuts:pa"
+
+[[chimerax.toolbar."Medical Image".button]]
+section="Style"
+name="outline box"
+link="ChimeraX-Shortcuts:ob"
+
+[[chimerax.toolbar."Medical Image".button]]
+section="Color"
+name="airways" 
+link="ChimeraX-Shortcuts:aw"
+
+[[chimerax.toolbar."Medical Image".button]]
+section="Color"
+name="chest" 
+link="ChimeraX-Shortcuts:ch"
+
+[[chimerax.toolbar."Medical Image".button]]
+section="Color"
+name="brain" 
+link="ChimeraX-Shortcuts:bc"
+
+[[chimerax.toolbar."Medical Image".button]]
+section="Color"
+name="default thresholds" 
+link="ChimeraX-Shortcuts:dc"
+
+[[chimerax.toolbar."Medical Image".button]]
+section="Graphics"
+name="orient" 
+link="ChimeraX-Shortcuts:dv"
+
+[[chimerax.toolbar."Medical Image".button]]
+section="Graphics"
+name="step 1" 
+link="ChimeraX-Shortcuts:s1"
+
+[[chimerax.toolbar."Medical Image".button]]
+section="Graphics"
+name="step 2"
+link="ChimeraX-Shortcuts:s2"
+
+[[chimerax.toolbar."Medical Image".button]]
+section="Rendering Modes"
+name="xyz slices" 
+link="ChimeraX-Shortcuts:zs"
+
+[[chimerax.toolbar."Medical Image".button]]
+section="Rendering Modes"
+name="perpendicular slices" 
+link="ChimeraX-Shortcuts:ps"
+
+# Mouse modes -- these cannot currently be linked
+[[chimerax.toolbar."Medical Image".button]]
+section = "Mouse Mode"
+name = "mm1"
+mouse-mode = "crop volume"
+display-name = "Crop"
+description = "Crop volume data dragging any face of box outline"
+
+[[chimerax.toolbar."Medical Image".button]]
+section = "Mouse Mode"
+name = "mm2"
+mouse-mode = "move planes"
+display-name = "Move planes"
+description = "Move plane or slab along its axis to show a different section"
+
+[[chimerax.toolbar."Medical Image".button]]
+section = "Mouse Mode"
+name = "mm3"
+mouse-mode = "rotate slab"
+display-name = "Tilt slab"
+description="Tilt image planes, hold shift key to translate"
+
+[[chimerax.toolbar."Medical Image".button]]
+section = "Mouse Mode"
+name = "mm4"
+mouse-mode = "tape measure" 
+display-name = "Tape"
+description = "Measure distance between two points"
+
+[[chimerax.toolbar."Medical Image".button]]
+section = "Mouse Mode"
+name = "mm5"
+mouse-mode = "windowing" 
+display-name = "Windowing"
+description = "Adjust volume data thresholds collectively"

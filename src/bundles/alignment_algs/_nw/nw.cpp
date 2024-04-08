@@ -71,10 +71,11 @@ public:
 
 class ScoreEvaluator: public Evaluator
 {
-	double**  _score_m;
+	DArray  _score_m;
+	int64_t  indices[2];
 public:
-	ScoreEvaluator(double** score_m): _score_m(score_m) {}
-	double  score(int i, int j)  { return _score_m[i][j]; }
+	ScoreEvaluator(Numeric_Array& array): _score_m(array) {}
+	double  score(int i, int j)  { indices[0] = i; indices[1] = j; return _score_m.value(indices); }
 };
 
 class FreqEvaluator: public Evaluator
@@ -261,7 +262,7 @@ match(PyObject *, PyObject *args)
 			PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
 			return nullptr;
 		}
-		eval = new ScoreEvaluator(static_cast<double**>(array.values()));
+		eval = new ScoreEvaluator(array);
 	} else if (freq_m != Py_None) {
 		if (!PySequence_Check(freq_m)) {
 			PyErr_SetString(PyExc_ValueError, "Frequency matrix is not a sequence");
