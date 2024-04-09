@@ -813,33 +813,43 @@ class SegmentationTool(ToolInstance):
         if self.mouse_modes_changed:
             run(
                 self.session,
-                "ui mousemode shift wheel '"
-                + self.old_mouse_bindings["wheel"]["shift"]
-                + "'"
-                if self.old_mouse_bindings["wheel"]["shift"]
-                else "ui mousemode shift wheel 'none'",
+                (
+                    "ui mousemode shift wheel '"
+                    + self.old_mouse_bindings["wheel"]["shift"]
+                    + "'"
+                    if self.old_mouse_bindings["wheel"]["shift"]
+                    else "ui mousemode shift wheel 'none'"
+                ),
             )
             run(
                 self.session,
-                "ui mousemode right '" + self.old_mouse_bindings["right"]["none"] + "'"
-                if self.old_mouse_bindings["right"]["none"]
-                else "ui mousemode right 'none'",
+                (
+                    "ui mousemode right '"
+                    + self.old_mouse_bindings["right"]["none"]
+                    + "'"
+                    if self.old_mouse_bindings["right"]["none"]
+                    else "ui mousemode right 'none'"
+                ),
             )
             run(
                 self.session,
-                "ui mousemode shift right '"
-                + self.old_mouse_bindings["right"]["shift"]
-                + "'"
-                if self.old_mouse_bindings["right"]["shift"]
-                else "ui mousemode shift right 'none'",
+                (
+                    "ui mousemode shift right '"
+                    + self.old_mouse_bindings["right"]["shift"]
+                    + "'"
+                    if self.old_mouse_bindings["right"]["shift"]
+                    else "ui mousemode shift right 'none'"
+                ),
             )
             run(
                 self.session,
-                "ui mousemode shift middle '"
-                + self.old_mouse_bindings["middle"]["shift"]
-                + "'"
-                if self.old_mouse_bindings["middle"]["shift"]
-                else "ui mousemode shift middle 'none'",
+                (
+                    "ui mousemode shift middle '"
+                    + self.old_mouse_bindings["middle"]["shift"]
+                    + "'"
+                    if self.old_mouse_bindings["middle"]["shift"]
+                    else "ui mousemode shift middle 'none'"
+                ),
             )
         self.mouse_modes_changed = False
 

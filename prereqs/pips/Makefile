@@ -159,6 +159,7 @@ outdated:
 	@echo "  pip, wheel, setuptools versions are set in ../python/Makefile"
 	@echo "  pyzmq (pulled in by ipykernel via jupyter-client)"
 	@echo "  snowballstemmer (pulled in by Sphinx)"
+	@echo "  tables hdf5 package, 3.8.0 because 3.9.x exhibits bug #14935"
 	@echo "  tornado (pulled in by ipykernel)"
 
 app-outdated:

@@ -8,10 +8,10 @@
 #
 appdirs==1.4.4
 beautifulsoup4==4.12.3
-build==1.1.1
+build==1.2.1
 colorama==0.4.6
-Cython==3.0.9 ; platform_machine != 'arm64'
-filelock==3.13.1
+Cython==3.0.10 ; platform_machine != 'arm64'
+filelock==3.13.3
 # grako==3.16.5 # See the Makefile; need patched Grako for 3.11
 html2text==2024.2.26
 ihm==0.43
@@ -24,19 +24,19 @@ ipython==8.21.0
 jedi==0.19.1
 jupyter-client==8.6.0
 line_profiler==4.1.2
-lxml==5.1.0
+lxml==5.2.1
 lz4==4.3.3
-matplotlib==3.8.3
+matplotlib==3.8.4
 msgpack==1.0.8
 nibabel == 5.0.1
 netCDF4==1.6.5
-networkx==3.2.1
+networkx==3.3
 numpy==1.26.4
 openvr==1.26.701
 # as per Tristan's request in ticket #3055
 ParmEd==4.2.2
 pep517==0.13.1
-Pillow==10.2.0
+Pillow==10.3.0
 pkginfo==1.10.0
 psutil==5.9.8
 pycollada==0.8
@@ -52,12 +52,12 @@ python-dateutil==2.9.0.post0
 #PySide2==5.15.2
 qtconsole==5.5.1
 requests==2.31.0
-scipy==1.12.0
+scipy==1.13.0
 six==1.16.0
 sortedcontainers==2.4.0
 # Used by the DICOM bundle for a double-ended QSlider
-superqt==0.6.1
-tables==3.9.2 ; platform_machine != 'arm64'
+superqt==0.6.3
+tables==3.8.0 ; platform_machine != 'arm64'
 tifffile==2024.1.30
 # tinyarray==1.2.4 # 3.11 requires getting this from Plato
 webcolors==1.13
@@ -85,4 +85,4 @@ distro==1.9.0; sys_platform == 'linux'
 #
 # Indirect dependencies listed here to pin the version number
 #
-traitlets==5.14.1
+traitlets==5.14.2

@@ -31,24 +31,32 @@ log = logging.getLogger()
 
 from .bundle_builder_toml import Bundle, read_toml
 
+
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None) -> None:
-    bundle = Bundle(log, read_toml('pyproject.toml'))
+    bundle = Bundle(log, read_toml("pyproject.toml"))
     return bundle.build_wheel()
 
+
 def build_sdist(sdist_directory, config_settings=None) -> None:
-    bundle = Bundle(log, read_toml('pyproject.toml'))
+    bundle = Bundle(log, read_toml("pyproject.toml"))
     return bundle.build_sdist()
 
-def build_editable(wheel_directory, config_settings=None, metadata_directory=None) -> None:
-    bundle = Bundle(log, read_toml('pyproject.toml'))
+
+def build_editable(
+    wheel_directory, config_settings=None, metadata_directory=None
+) -> None:
+    bundle = Bundle(log, read_toml("pyproject.toml"))
     return bundle.build_editable(config_settings)
 
-def get_requires_for_build_wheel(config_settings = None) -> None:
-    toml_file = read_toml('pyproject.toml')
-    return toml_file['build-system']['requires']
+
+def get_requires_for_build_wheel(config_settings=None) -> None:
+    toml_file = read_toml("pyproject.toml")
+    return toml_file["build-system"]["requires"]
+
 
 get_requires_for_build_sdist = get_requires_for_build_wheel
 get_requires_for_build_editable = get_requires_for_build_wheel
+
 
 # A bug in pip requires that we specify prepare_metadata_for_build_editable, even
 # though it should take the dist-info directory of build_editable if it's not present.
@@ -59,15 +67,17 @@ get_requires_for_build_editable = get_requires_for_build_wheel
 #
 # This process is negligibly slower than building the wheel, because we discard the original
 # wheel for setuptools's new two-file editable wheel.
-def prepare_metadata_for_build_editable(metadata_directory, config_settings=None) -> None:
-    bundle = Bundle(log, read_toml('pyproject.toml'))
+def prepare_metadata_for_build_editable(
+    metadata_directory, config_settings=None
+) -> None:
+    bundle = Bundle(log, read_toml("pyproject.toml"))
     path_to_wheel = bundle.build_wheel_for_build_editable()
     dist_dir = os.path.dirname(path_to_wheel)
-    with zipfile.ZipFile(path_to_wheel, 'r') as f:
+    with zipfile.ZipFile(path_to_wheel, "r") as f:
         f.extractall(dist_dir)
     # Remove the old wheel and the chimerax folder, leaving only the dist-info directory.
     os.remove(path_to_wheel)
-    shutil.rmtree(os.path.join(dist_dir, 'chimerax'))
+    shutil.rmtree(os.path.join(dist_dir, "chimerax"))
     try:
         dist_info_filename = glob.glob(os.path.join(dist_dir, "*.dist-info"))[0]
     except IndexError:

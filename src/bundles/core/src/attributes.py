@@ -85,8 +85,9 @@ NO_DEFAULT = _NoDefault()
 
 @classmethod
 def register_attr(cls, session, attr_name, registerer, *, attr_type=None,
-        can_return_none=False):
-    cls._attr_registration.register(session, attr_name, registerer, (attr_type, can_return_none))
+        can_return_none=False, supercede=False):
+    cls._attr_registration.register(session, attr_name, registerer, (attr_type, can_return_none),
+        supercede=supercede)
 
 # used within the class to hold the registration info
 class AttrRegistration:
@@ -96,13 +97,17 @@ class AttrRegistration:
         self._session_attrs = {}
         self._ses_attr_counts = {}
 
-    def register(self, session, attr_name, registrant, type_info):
+    def register(self, session, attr_name, registrant, type_info, *, supercede=False):
         if attr_name in self.reg_attr_info:
             prev_registrant, prev_type_info = self.reg_attr_info[attr_name]
             if prev_type_info == type_info:
                 return
-            raise RegistrationConflict("Registration of attr '%s' with %s by %s conflicts with previous"
-                " registration by %s" % (attr_name, self.class_.__name__, registrant, prev_registrant))
+            if prev_registrant == registrant and supercede:
+                session.logger.info("Re-registration of attr '%s' with %s by %s changes type information"
+                    % (attr_name, self.class_.__name__, registrant))
+            else:
+                raise RegistrationConflict("Registration of attr '%s' with %s by %s conflicts with previous"
+                    " registration by %s" % (attr_name, self.class_.__name__, registrant, prev_registrant))
         self.reg_attr_info[attr_name] = (registrant, type_info)
         session_attrs = self._session_attrs.setdefault(session, set())
         if attr_name not in session_attrs:

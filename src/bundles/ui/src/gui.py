@@ -148,10 +148,13 @@ class UI(QApplication):
         from Qt.QtCore import qInstallMessageHandler
         def cx_qt_msg_handler(msg_type, msg_log_context, msg_string,
                               log_fatal_error = self._log_qt_fatal_error):
-            if (msg_string.startswith('delivering touch release to same window')
-                or msg_string.startswith('skipping QEventPoint')
-                or msg_string.startswith('doh set to')):
-                return	# Supress Qt 6.2 warnings
+            if msg_string.startswith((
+                    'delivering touch release to same window',   # Qt 6.2
+                    'skipping QEventPoint',   # Qt 6.2
+                    'doh set to',  # Qt 6.2
+                    'Path override failed for key base::DIR_APP_DICTIONARIES',  # Qt 6.6.3
+                    )):
+                return	# Supress Qt warnings
             if 'QWindowsWindow::setDarkBorderToWindow' in msg_string:
                 return  # Supress Qt 6.4 warning, ChimeraX ticket #8541
             if msg_type == QtMsgType.QtFatalMsg:

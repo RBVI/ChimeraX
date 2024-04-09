@@ -44,7 +44,10 @@ metadata_header_template = """Metadata-Version: 2.1
 Name: {}
 Version: {}"""
 
-def metadata_header(*, name, version, summary = None, homepage = None, author = None, email = None):
+
+def metadata_header(
+    *, name, version, summary=None, homepage=None, author=None, email=None
+):
     str_ = metadata_header_template.format(name, version)
     if summary:
         str_ = "\n".join([str_, "Summary: {}".format(summary)])

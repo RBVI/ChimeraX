@@ -1073,6 +1073,9 @@ class StructureSeq(Sequence):
     def __del__(self):
         if not self.chimerax_exiting:
             self.changes_handler.remove()
+            # Now that "demoted" chains don't change their class to Sequence, have to call
+            # Sequence's __del__ to get the entry removed from the Python object lookup map
+            super().__del__()
 
     def __lt__(self, other):
         # for sorting (objects of the same type)
@@ -1345,7 +1348,7 @@ class Chain(StructureSeq):
 
     # also used by Residue
     @staticmethod
-    def chain_id_to_atom_spec(chain_id): 
+    def chain_id_to_atom_spec(chain_id):
         if chain_id:
             if chain_id.isspace():
                 id_text = "?"

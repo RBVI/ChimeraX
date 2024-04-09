@@ -37,10 +37,11 @@ def tag(pure, limited=None):
     """
     import sys
     from packaging import tags
+
     vi = sys.version_info
     if pure:
         if limited:
-            version = ''.join(str(v) for v in limited.release[:2])
+            version = "".join(str(v) for v in limited.release[:2])
             tag = tags.Tag(f"py{version}", "none", "any")
         else:
             # savvy developers can handle default of all versions of Python 3
@@ -49,6 +50,7 @@ def tag(pure, limited=None):
         target = None
         if sys.platform == "darwin":
             import os
+
             target = os.environ.get("MACOSX_DEPLOYMENT_TARGET", None)
             if target:
                 target = f"_{target.replace('.', '_')}_"
@@ -58,7 +60,7 @@ def tag(pure, limited=None):
             if limited.release < (3, 2):
                 version = "32"
             else:
-                version = ''.join(str(v) for v in limited.release[:2])
+                version = "".join(str(v) for v in limited.release[:2])
             interpreter = f"{tags.interpreter_name()}{version}"
         for tag in tags.sys_tags():
             if target and target not in tag.platform:
@@ -75,6 +77,7 @@ def tag(pure, limited=None):
 if "__main__" in __name__:
     import sys
     import getopt
+
     pure = False
     limited = False
     opts, args = getopt.getopt(sys.argv[1:], "pl:")
@@ -83,5 +86,6 @@ if "__main__" in __name__:
             pure = True
         elif opt == "-l":
             from packaging.version import Version
+
             limited = Version(val)
     print(tag(pure, limited))

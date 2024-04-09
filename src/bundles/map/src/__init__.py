@@ -140,11 +140,12 @@ class _MapBundle(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
-            if name in ['eds', 'edsdiff']:
-                from . import eds_fetch
+            if name in ['eds', 'edsdiff', 'redo']:
+                from . import eds_fetch, redo_fetch
                 fetcher = {
                     'eds': eds_fetch.fetch_eds_map,
                     'edsdiff': eds_fetch.fetch_edsdiff_map,
+                    'redo': redo_fetch.fetch_mtz_map,
                 }[name]
                 from chimerax.open_command import FetcherInfo
                 class Info(FetcherInfo):

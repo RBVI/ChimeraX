@@ -85,7 +85,7 @@ can include underscores; cannot begin with a digit</td>
 when a line's match behavior differs from the match mode)</td>
 </tr><TR>
 <td align=center><b>recipient</b><br>(optional)</td>
-<td align=center><b>atoms</b> (default)<br>residues<br>molecules</td>
+<td align=center><b>atoms</b> (default)<br>residues<br>chains<br>structures<sup><a href="#note">&#8224;</a></sup><br>bonds<br>pseudobonds</td>
 <td align=center>level of attribute assignment</td>
 </tr><TR>
 <td align=center><b>none handling</b><br>(optional)</td>
@@ -96,6 +96,10 @@ or as removal of any assignment of that attribute from the specified item
 </td>
 </tr>
 </table>
+<a name="note"></a>
+<sup>&#8224;</sup>
+Either <b>structures</b> or <b>molecules</b> (for backwards compatibility
+with Chimera files) can be used to indicate an attribute of atomic models.
 <p>
 <a name="assignline"></a>
 The attribute assignments are described in
@@ -178,5 +182,5 @@ are provided;
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2022</address>
+April 2024</address>
 </body></html>
