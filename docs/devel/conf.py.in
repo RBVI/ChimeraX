@@ -279,6 +279,8 @@ epub_copyright = "2015, UCSF RBVI"
 # Allow duplicate toc entries.
 # epub_tocdup = True
 
+toc_object_entries_show_parents = "hide"
+
 todo_include_todos = True
 
 # intersphinx configuration:
