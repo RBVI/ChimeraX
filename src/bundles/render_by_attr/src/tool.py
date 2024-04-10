@@ -263,8 +263,8 @@ class RenderByAttrTool(ToolInstance):
         self.select_widgets.addWidget(QLabel("Choose attribute to show values"))
         self.select_message_widget = QLabel()
         self.select_widgets.addWidget(self.select_message_widget)
-        # list
         select_tab_layout.addWidget(self.select_widgets, alignment=Qt.AlignCenter)
+        # list
         self.sel_text_to_value = {}
         self.select_list = QListWidget()
         self.select_list.setSelectionMode(self.select_list.MultiSelection)
@@ -296,7 +296,29 @@ class RenderByAttrTool(ToolInstance):
         sh_button_layout.addWidget(no_val_button, 2, 1, alignment=Qt.AlignLeft)
         shb.addButton(no_val_button, id=2)
         self.select_widgets.addWidget(self.select_histogram_area)
-        # TODO: radio
+        # radio
+        self.select_radio_area = sra = QWidget()
+        outer_layout = QVBoxLayout()
+        sra.setLayout(outer_layout)
+        centering_widget = QWidget()
+        outer_layout.addWidget(centering_widget, alignment=Qt.AlignHCenter|Qt.AlignTop)
+        rbutton_layout = QVBoxLayout()
+        rbutton_layout.setContentsMargins(0,0,0,0)
+        centering_widget.setLayout(rbutton_layout)
+        self.select_radio_buttons = srb = QButtonGroup()
+        false_button = QRadioButton("False")
+        false_button.setChecked(True)
+        rbutton_layout.addWidget(false_button, alignment=Qt.AlignLeft)
+        srb.addButton(false_button, id=0)
+        true_button = QRadioButton("True")
+        true_button.setChecked(False)
+        rbutton_layout.addWidget(true_button, alignment=Qt.AlignLeft)
+        srb.addButton(true_button, id=1)
+        no_val_button = QRadioButton("No value")
+        no_val_button.setChecked(False)
+        rbutton_layout.addWidget(no_val_button, alignment=Qt.AlignLeft)
+        srb.addButton(no_val_button, id=2)
+        self.select_widgets.addWidget(self.select_radio_area)
 
         self.mode_widget.addTab(select_tab, "Select")
 
@@ -385,45 +407,21 @@ class RenderByAttrTool(ToolInstance):
             if not texts:
                 raise UserError("No values chosen for selection")
             params = [self.sel_text_to_value.get(txt, txt) for txt in texts]
-        """
-        tabs = self.render_type_widget
-        tab_text = tabs.tabText(tabs.currentIndex()).lower()
-        method = tab_text[:-1] if tab_text[-1] == 's' else "radius"
-        markers = getattr(self, "render_" + method + "_markers")
-        vals = []
-        markers.coord_type = "absolute"
-        for marker in markers:
-            vals.append((marker.xy[0], getattr(marker, "rgba" if method == "color" else "radius")))
-        markers.coord_type = "relative"
-        if method == "color":
-            targets = set()
-            for target in ["atoms", "cartoons", "surfaces"]:
-                target_widget = getattr(self, "color_" + target)
-                if target_widget.isChecked() and target_widget.isEnabled():
-                    targets.add(target)
-            if not targets:
-                raise UserError("No coloring targets specified")
-            # histograms values + possibly None
-            if self.color_no_value.isChecked():
-                vals.append((None, [v/255.0 for v in self.no_value_color.color]))
-            if not vals:
-                raise UserError("No coloring values specified")
-            params = (targets, vals)
-        elif method == "radius":
-            if self.radii_affect_nv.widget.isEnabled() and self.radii_affect_nv.value:
-                vals.append((None, self.radii_nv_radius.value))
-            if not vals:
-                raise UserError("No radius values specified")
-            params = (self.radii_style_option.value, vals)
-        elif method == "worm":
-            if not vals:
-                raise UserError("No radius values specified")
-            if self.worm_nv_radius.widget.isEnabled():
-                vals.append((None, self.worm_nv_radius.value))
-            params = (True, vals)
+        elif cur_widget == self.select_histogram_area:
+            discrete = False
+            checked_id = self.select_histogram_buttons.checkedId()
+            if checked_id == 2:
+                params = None
+            else:
+                markers = self.select_markers
+                markers.coord_type = "absolute"
+                vals = [marker.xy[0] for marker in markers]
+                markers.coord_type = "relative"
+                params = (checked_id == 0, *sorted(vals))
         else:
-            raise NotImplementedError("Don't know how to get parameters for '%s' method" % tab_text)
-        """
+            # boolean
+            discrete = True
+            params = [[False, True, None][self.select_radio_buttons.checkedId()]]
         self._cur_attr_info().select(self.session, attr_name, models, discrete, params)
         if not apply:
             self.delete()
@@ -641,13 +639,19 @@ class RenderByAttrTool(ToolInstance):
             self.select_list.addItems(disp_values)
             self.select_widgets.setCurrentWidget(self.select_list)
         elif attr_type == bool:
-            #TODO
-            pass
+            has_None = self.select_widgets.setCurrentWidget(self.select_radio_area)
+            no_val_button = self.select_radio_buttons.button(2)
+            no_val_button.setHidden(not has_None)
+            if no_val_button.isChecked():
+                self.select_radio_buttons.button(0).setChecked(True)
         else:
             # histogram
             self._update_histogram(self.select_histogram, attr_name)
             has_None = self.select_widgets.setCurrentWidget(self.select_histogram_area)
-            self.select_histogram_buttons.button(2).setHidden(not has_None)
+            no_val_button = self.select_histogram_buttons.button(2)
+            no_val_button.setHidden(not has_None)
+            if no_val_button.isChecked():
+                self.select_histogram_buttons.button(0).setChecked(True)
 
     def _update_deworm_button(self):
         models = self.model_list.value

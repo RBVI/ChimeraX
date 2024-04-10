@@ -229,7 +229,7 @@ class _AtomicBundleAPI(BundleAPI):
 
                 def select(self, session, attr_name, models, discrete, params):
                     prefix = { Atom: '@@', Residue: '::', Structure: '##' }[self.class_object]
-                    from chimerax.core.commands import run, concise_model_spec, StringArg
+                    from chimerax.core.commands import run, concise_model_spec, StringArg, BoolArg, FloatArg
                     spec = concise_model_spec(session, models)
                     if spec and self.class_object == Structure:
                         spec += ' & '
@@ -238,9 +238,19 @@ class _AtomicBundleAPI(BundleAPI):
                             params.remove(None)
                             spec += f"{prefix}^{attr_name}"
                         for attr_val in params:
-                            spec += f"{prefix}{attr_name}={StringArg.unparse(attr_val)}"
+                            arg = BoolArg if isinstance(attr_val, bool) else StringArg
+                            spec += f"{prefix}{attr_name}={arg.unparse(attr_val)}"
                     else:
-                        raise NotImplementedError("range selections not yet implemented")
+                        if params is None:
+                            spec += f'{prefix}^{attr_name}'
+                        else:
+                            between, low, high = params
+                            if between:
+                                spec += f'{prefix}{attr_name}>={FloatArg.unparse(low)} & ' \
+                                    f'{prefix}{attr_name}<={FloatArg.unparse(high)}'
+                            else:
+                                spec += f'{prefix}{attr_name}<{FloatArg.unparse(low)} | ' \
+                                    f'{prefix}{attr_name}>{FloatArg.unparse(high)}'
                     run(session, "select " + spec)
 
                 def values(self, attr_name, models):
