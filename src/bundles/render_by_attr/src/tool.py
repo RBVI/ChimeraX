@@ -597,17 +597,25 @@ class RenderByAttrTool(ToolInstance):
         menu = self.render_attr_menu_button.menu()
         menu.clear()
         attr_names = self._attr_names_of_type(int, float)
-        attr_names.sort()
-        for attr_name in attr_names:
-            menu.addAction(attr_name)
+        if attr_names:
+            attr_names.sort()
+            for attr_name in attr_names:
+                menu.addAction(attr_name)
+        else:
+            action = menu.addAction("No attributes available for %s" % self.target_menu_button.text())
+            action.setEnabled(False)
 
     def _update_select_attr_menu(self):
         menu = self.select_attr_menu_button.menu()
         menu.clear()
         attr_names = self._attr_names_of_type(int, float, bool, str)
-        attr_names.sort()
-        for attr_name in attr_names:
-            menu.addAction(attr_name)
+        if attr_names:
+            attr_names.sort()
+            for attr_name in attr_names:
+                menu.addAction(attr_name)
+        else:
+            action = menu.addAction("No attributes available for %s" % self.target_menu_button.text())
+            action.setEnabled(False)
 
     def _update_select_widget(self, attr_name):
         attr_info = self._cur_attr_info()
