@@ -34,6 +34,9 @@ class XR:
         self._ready_to_render = False
         self._scene_space = None			# XrSpace instance reference coordinate space
         self._hand_space = {}				# XrSpace instances for left and right hands
+        self._allow_passthrough = True			# Whether to try to enable passthrough video extension
+        self._passthrough = None
+        self._passthrough_layer = None
 
         self._frame_started = False
         self._frame_count = 0
@@ -50,29 +53,23 @@ class XR:
         self._frame_started = False
         self._frame_count = 0
         self._action_set = self._create_action_set()	# Manage hand controller input
-        
+#        self._check_blend_modes()
+
     def _create_instance(self):
         '''Establish connection to OpenXR runtime.'''
         import xr
-#        extensions = xr.enumerate_instance_extension_properties()
-#        print ('Available openxr extensions', [e.extension_name for e in extensions])
-#
-# Looks to me that to enable passthrough video I need to do the following:
-#  1) Look for extension name XR_FB_passthrough.
-#  2) If extension is available create openxr instance with it requested.
-#  3) Create an XrPassthroughFB handle with xrCreatePassthroughFB().
-#  4) Create an XrPassthroughLayerFB handle with xrCreatePassthroughLayerFB().
-#  5) Submit that layer in xrEndFrame() with blending mode alpha.
-#  6) Render the ChimeraX scene with transparent background to an RGBA framebuffer.
-#
-# This APIs are described in
-#   https://registry.khronos.org/OpenXR/specs/1.0/html/xrspec.html#XR_FB_passthrough
-# And pyopenxr appears to define the functions and structures and enums in xr/typedefs.py
-#
-# I found a few discussions online of developers failing to get passthrough to work,
-# and none where the got it to work from late 2023 and early 2024.
-#
         requested_extensions = [xr.KHR_OPENGL_ENABLE_EXTENSION_NAME]
+
+        if self._allow_passthrough:
+            extensions = xr.enumerate_instance_extension_properties()
+            ext_names = [e.extension_name.decode('UTF-8') for e in extensions]
+            #print (f'Available openxr extensions {ext_names}')
+            if xr.FB_PASSTHROUGH_EXTENSION_NAME in ext_names:
+                requested_extensions.append(xr.FB_PASSTHROUGH_EXTENSION_NAME)
+#                print ('Requesting OpenXR XR_FB_passthrough extension')
+#            else:
+#                print (f'Did not find passthrough extension, available extensions: {ext_names}')
+            
         if self._debug:
             requested_extensions.append(xr.EXT_DEBUG_UTILS_EXTENSION_NAME)
 
@@ -85,6 +82,76 @@ class XR:
         instance = xr.create_instance(iinfo)
 
         return instance
+
+    def enable_passthrough_video(self, enable):
+        '''
+        Looks to me that to enable passthrough video I need to do the following:
+          1) Look for extension name XR_FB_passthrough.
+          2) If extension is available create openxr instance with it requested.
+          3) Create an XrPassthroughFB handle with xrCreatePassthroughFB().
+          4) Create an XrPassthroughLayerFB handle with xrCreatePassthroughLayerFB().
+          5) Submit that layer in xrEndFrame() with blending mode alpha.
+          6) Render the ChimeraX scene with transparent background to an RGBA framebuffer.
+
+        This APIs are described in
+          https://registry.khronos.org/OpenXR/specs/1.0/html/xrspec.html#XR_FB_passthrough
+        And pyopenxr appears to define the functions and structures and enums in xr/typedefs.py
+
+        I found a few discussions online of developers failing to get passthrough to work,
+        and none where the got it to work from late 2023 and early 2024.
+        '''
+
+        self._define_passthrough_functions()
+        import xr
+        if enable and self._passthrough is None:
+            passthrough = xr.PassthroughFB()
+            pflags = xr.PassthroughFlagsFB(xr.PASSTHROUGH_IS_RUNNING_AT_CREATION_BIT_FB)
+            pinfo = xr.PassthroughCreateInfoFB(pflags)
+            from ctypes import byref
+            result = xr.xrCreatePassthroughFB(self._session, pinfo, byref(passthrough))
+            result = xr.check_result(xr.Result(result))
+            if result.is_exception():
+                raise result
+            passthrough_layer = xr.PassthroughLayerFB()
+            plflags = xr.PassthroughFlagsFB(xr.PASSTHROUGH_IS_RUNNING_AT_CREATION_BIT_FB)
+            plinfo = xr.PassthroughLayerCreateInfoFB(self._passthrough, plflags)
+            result = xr.xrCreatePassthroughLayerFB(self._session, plinfo, byref(passthrough_layer))
+            result = xr.check_result(xr.Result(result))
+            if result.is_exception():
+                raise result
+            self._passthrough = passthrough
+            self._passthrough_layer = passthrough_layer
+            self._composition_passthrough_layer = xr.CompositionLayerPassthroughFB(layer_handle = passthrough_layer)
+            print ('Enabled passthrough')
+        elif not enable and self._passthrough is not None:
+            xr.xrDestroyPassthroughFB(self._passthrough)
+            self._passthrough = None
+            xr.xrDestroyPassthroughLayerFB(self._passthrough_layer)
+            self._pasthrough_layer = None
+            self._composition_passthrough_layer = None
+
+    def _define_passthrough_functions(self):
+        import xr
+        if hasattr(xr, 'xrCreatePassthroughFB'):
+            return
+        func_names = ['xrCreatePassthroughFB', 'xrCreatePassthroughLayerFB',
+                      'xrDestroyPassthroughFB', 'xrDestroyPassthroughLayerFB']
+        from ctypes import cast
+        for func_name in func_names:
+            f = cast(xr.get_instance_proc_addr(self._instance, func_name),
+                     getattr(xr, f'PFN_{func_name}'))
+            setattr(xr, func_name, f)
+
+    def _check_blend_modes(self):
+        import xr
+        view_config_type = xr.ViewConfigurationType(xr.ViewConfigurationType.PRIMARY_STEREO)
+        blend_modes = xr.enumerate_environment_blend_modes(self._instance,
+                                                           self._system_id, view_config_type)
+        print ('Supported OpenXR environment blend modes', [m for m in blend_modes])
+        # Reports only blend mode 1 is supported: OPAQUE = 1, ADDITIVE = 2, ALPHA_BLEND = 3
+        # using AirLink and Quest 2.  Try QuestLink with Quest 3.
+        # https://community.khronos.org/t/xr-fb-passthrough-without-alpha-blend-environment-blend-mode/110353
+        # https://registry.khronos.org/OpenXR/specs/1.0/html/xrspec.html#XrCompositionLayerFlags
 
     def runtime_name(self):
         '''
@@ -205,7 +272,11 @@ class XR:
         pl_views = (xr.CompositionLayerProjectionView * 2)(
             xr.CompositionLayerProjectionView(), xr.CompositionLayerProjectionView())
         self._projection_layer_views = pl_views
-        projection_layer = xr.CompositionLayerProjection(space = self._scene_space,
+        # Set layer_flags to allow passthrough to be composited correctly.
+        layer_flags = xr.CompositionLayerFlags(xr.CompositionLayerFlags.BLEND_TEXTURE_SOURCE_ALPHA_BIT |
+                                            xr.CompositionLayerFlags.UNPREMULTIPLIED_ALPHA_BIT)
+        projection_layer = xr.CompositionLayerProjection(layer_flags = layer_flags,
+                                                         space = self._scene_space,
                                                          views = pl_views)
         return projection_layer
 
@@ -368,7 +439,12 @@ class XR:
         while True:
             try:
                 event_buffer = xr.poll_event(self._instance)
-                event_type = xr.StructureType(event_buffer.type)
+                try:
+                    event_type = xr.StructureType(event_buffer.type)
+                except ValueError:
+                    # PyOpenXR gives ValueError for event types it does not know
+                    # such as from the XR_FB_passthrough extension.
+                    continue
                 if event_type == xr.StructureType.EVENT_DATA_SESSION_STATE_CHANGED:
                     self._on_session_state_changed(event_buffer)
                 else:
@@ -418,6 +494,8 @@ class XR:
 
     def _end_xr_frame(self):
         layers = []
+        import xr
+        blend_mode = xr.EnvironmentBlendMode.OPAQUE
         if self._frame_state.should_render:
             for eye_index in range(2):
                 layer_view = self._projection_layer_views[eye_index]
@@ -426,13 +504,21 @@ class XR:
                 layer_view.pose = eye_view.pose
             import ctypes
             layers = [ctypes.byref(self._projection_layer)]
+            if self._passthrough is not None:
+#                layers.append(ctypes.byref(self._composition_passthrough_layer))
+                layers.insert(0, ctypes.byref(self._composition_passthrough_layer))
+#                layers = [ctypes.byref(self._composition_passthrough_layer)]
+#                blend_mode = xr.EnvironmentBlendMode.ALPHA_BLEND
+#                blend_mode = xr.EnvironmentBlendMode.ADDITIVE
+# ALPHA_BLEND or ADDITIVE is giving "xr.exception.EnvironmentBlendModeUnsupportedError: The specified environment blend mode is not supported by the runtime or platform."
+# Comment online suggests composition layer blend modes are used instead
+#   https://community.khronos.org/t/xr-fb-passthrough-without-alpha-blend-environment-blend-mode/110353/2
 
         self._projection_layer.views = self._projection_layer_views
 
-        import xr
         frame_end_info = xr.FrameEndInfo(
             display_time = self._frame_state.predicted_display_time,
-            environment_blend_mode = xr.EnvironmentBlendMode.OPAQUE,
+            environment_blend_mode = blend_mode,
             layers = layers)
         xr.end_frame(self._session, frame_end_info)
 
@@ -873,9 +959,13 @@ def _enable_openxr_debugging(iinfo):
 def _debug_callback(severity, _type, data, _user_data):
     d = data.contents
     sev = _debug_severity_string(severity)
-    fname = d.function_name.decode()
+    fname = d.function_name.decode() if d.function_name is not None else "unknown func"
     msg = d.message.decode()
-    debug( f"{sev}: {fname}: {msg}")
+    message = f"{sev}: {fname}: {msg}"
+    if sev in ('Error', 'Warning'):
+        error(message)
+    else:
+        debug(message)
     return True
 
 def _debug_severity_string(severity_flags):
