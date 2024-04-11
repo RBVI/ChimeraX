@@ -1,4 +1,8 @@
 TOP=../..
+RTOP=$(realpath $(TOP))
 
-install:
-	git config --local commit.template $(realpath $(TOP))/utils/git/gitmessage
+install-gitmessage:
+	git config --local commit.template $(RTOP)/utils/git/gitmessage
+
+install-commitlint-hook:
+	ln -s $(RTOP)/utils/git/commit-msg $(RTOP)/.git/hooks/
