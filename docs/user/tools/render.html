@@ -62,7 +62,7 @@ in the <a href="moldisplay.html"><b>Molecule Display Toolbar</b></a>,
 the <a href="../menu.html#select"><b>Select</b> menu</a>,
 <a href="../measurements.html">measurements</a>
 </p><p>
-<b>Render/Select by Attribute</b> set to its <b>Render</b> tab
+<b>Render by Attribute</b> (the tool set to its <b>Render</b> tab)
 can be opened from the <b>Depiction</b> or <b>Structure Analysis</b> 
 section of the <b>Tools</b> menu
 and manipulated like other panels (<a href="../window.html#panels">more...</a>).
@@ -189,14 +189,11 @@ and structures (atomic models) based on their <a href="../attributes.html">attri
 <p>
 If the chosen attribute is numerical, the dialog shows a histogram of its
 values in the <a href="#choosemodel">chosen</a> models.
-Each <b><i>threshold</i></b> or vertical bar on the histogram 
-has a <b>Value</b> (position on the histogram). 
-Each threshold can be dragged along the histogram to define a value range
-for <a href="../selection.html">selection</a>, 
-which can be either <b>between</b> (inclusive) or <b>outside</b>
-their positions. The <b>Value</b> field applies to the threshold
-most recently moved or clicked, and a different value can be entered
-directly as another way to move the threshold.
+The two <b><i>thresholds</i></b> or vertical bars on the histogram 
+define a value range for <a href="../selection.html">selection</a>,
+either <b>between</b> (inclusive) or <b>outside</b> their positions. 
+Each threshold can be moved by dragging or directly entering a new value.
+The <b>Value</b> field applies to the threshold most recently moved or clicked. 
 </p><p>
 If the chosen attribute is boolean, checkboxes allow specifying whether
 to <a href="../selection.html">select</a>
@@ -204,7 +201,12 @@ items for which the attribute is <b>true</b> or <b>false</b>.
 </p><p>
 If the chosen attribute is string-valued, a list of the values is shown.
 Individual rows or blocks of values can be chosen/unchosen by mouseclick
-or drag.
+or drag. Note that for the <a href="../attributes.html#atom"><b>alt_loc</b></a>
+attribute, only the values of currently used locations are listed,
+not all those present in the input file. 
+Which alternate locations to use can be set with the
+<a href="altlocexplorer.html"><b>AltLoc Explorer</b></a> or the
+<a href="../commands/altlocs.html"><b>altlocs</b></a> command.
 </p>
 </blockquote>
 <p>
