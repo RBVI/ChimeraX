@@ -1613,6 +1613,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         raise CancelOperation("Custom labeling cancelled")
 
     def _populate_select_menu(self, select_menu):
+        from chimerax.core.commands import run
         from Qt.QtGui import QAction
         sel_seq_action = QAction("Sequence...", self)
         select_menu.addAction(sel_seq_action)
@@ -1620,10 +1621,16 @@ class MainWindow(QMainWindow, PlainTextLog):
         sel_zone_action = QAction("&Zone...", self)
         select_menu.addAction(sel_zone_action)
         sel_zone_action.triggered.connect(self.show_select_zone_dialog)
+        sel_attr_action = QAction("By Attribute &Value...", self)
+        select_menu.addAction(sel_attr_action)
+        def show_sel_attr_tool(*args, ses=self.session):
+            from chimerax.render_by_attr import get_manager
+            mgr = get_manager(ses)
+            mgr.show_select_tool()
+        sel_attr_action.triggered.connect(show_sel_attr_tool)
         sel_contacts_action = QAction("Con&tacts...", self)
         select_menu.addAction(sel_contacts_action)
         sel_contacts_action.triggered.connect(self.show_select_contacts_dialog)
-        from chimerax.core.commands import run
         submenus = {}
         for menu_label, cmd_args in [("&Clear", "clear"),
                 (("Invert", "&Selected Models"), "~sel & ##selected"), (("Invert", "A&ll Models"), "~sel"),

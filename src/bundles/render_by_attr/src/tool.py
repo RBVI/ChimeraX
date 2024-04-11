@@ -29,11 +29,13 @@ class RenderByAttrTool(ToolInstance):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
+        self.display_name = "Render/Select by Attribute"
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, statusbar=True)
         parent = tw.ui_area
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QDialogButtonBox, QPushButton, QMenu, QLabel
-        from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox, QLineEdit
+        from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox, QLineEdit, QStackedWidget, QListWidget
+        from Qt.QtWidgets import QButtonGroup, QGridLayout, QRadioButton
         from Qt.QtGui import QDoubleValidator
         from Qt.QtCore import Qt
         overall_layout = QVBoxLayout()
@@ -45,31 +47,17 @@ class RenderByAttrTool(ToolInstance):
         target_layout.setSpacing(3)
         overall_layout.addLayout(target_layout)
 
-        attribute_layout = QVBoxLayout()
-        attribute_layout.setSpacing(0)
         target_menu_widget = QWidget()
         target_menu_layout = QHBoxLayout()
         target_menu_layout.setSpacing(2)
         target_menu_widget.setLayout(target_menu_layout)
-        attribute_layout.addWidget(target_menu_widget, alignment=Qt.AlignBottom, stretch=1)
+        target_layout.addWidget(target_menu_widget, alignment=Qt.AlignCenter)
         target_menu_layout.addWidget(QLabel("Attributes of"), alignment=Qt.AlignRight)
         self.target_menu_button = QPushButton()
         menu = QMenu()
         menu.triggered.connect(self._new_target)
         self.target_menu_button.setMenu(menu)
         target_menu_layout.addWidget(self.target_menu_button, alignment=Qt.AlignLeft)
-        attr_menu_widget = QWidget()
-        attr_menu_layout = QHBoxLayout()
-        attr_menu_layout.setSpacing(2)
-        attr_menu_widget.setLayout(attr_menu_layout)
-        attribute_layout.addWidget(attr_menu_widget, alignment=Qt.AlignTop, stretch=1)
-        attr_menu_layout.addWidget(QLabel("Attribute:"), alignment=Qt.AlignRight)
-        self.attr_menu_button = QPushButton()
-        menu = QMenu()
-        menu.triggered.connect(self._new_attr)
-        menu.aboutToShow.connect(self._update_attr_menu)
-        self.attr_menu_button.setMenu(menu)
-        attr_menu_layout.addWidget(self.attr_menu_button, alignment=Qt.AlignLeft)
         model_list_layout = QVBoxLayout()
         model_list_layout.addWidget(QLabel("Models"), alignment=Qt.AlignBottom)
         from chimerax.ui.widgets import ModelListWidget, MarkedHistogram, PaletteChooser
@@ -82,16 +70,32 @@ class RenderByAttrTool(ToolInstance):
         self.model_list = SmallerModelListWidget(session, filter_func=self._filter_model)
         self.model_list.value_changed.connect(self._models_changed)
         model_list_layout.addWidget(self.model_list, alignment=Qt.AlignTop)
-        target_layout.addLayout(attribute_layout)
         target_layout.addLayout(model_list_layout)
 
         self.mode_widget = QTabWidget()
         overall_layout.addWidget(self.mode_widget)
 
+        # Render tab
         render_tab = QWidget()
         render_tab_layout = QVBoxLayout()
         render_tab.setLayout(render_tab_layout)
         render_tab_layout.setSpacing(1)
+        render_tab_layout.setContentsMargins(0,0,0,0)
+        # attribute menu
+        attr_menu_widget = QWidget()
+        attr_menu_layout = QHBoxLayout()
+        attr_menu_layout.setSpacing(2)
+        attr_menu_layout.setContentsMargins(0,0,0,0)
+        attr_menu_widget.setLayout(attr_menu_layout)
+        render_tab_layout.addWidget(attr_menu_widget, alignment=Qt.AlignCenter)
+        attr_menu_layout.addWidget(QLabel("Attribute:"), alignment=Qt.AlignRight)
+        self.render_attr_menu_button = QPushButton()
+        menu = QMenu()
+        menu.triggered.connect(self._new_render_attr)
+        menu.aboutToShow.connect(self._update_render_attr_menu)
+        self.render_attr_menu_button.setMenu(menu)
+        attr_menu_layout.addWidget(self.render_attr_menu_button, alignment=Qt.AlignLeft)
+        # histogram
         self.render_histogram = rh = MarkedHistogram(min_label=True, max_label=True, status_line=tw.status,
             select_callback=self._render_sel_marker_cb)
         render_tab_layout.addWidget(rh)
@@ -234,20 +238,98 @@ class RenderByAttrTool(ToolInstance):
         # wait until tab contents are completely filled before connecting this
         self.render_type_widget.currentChanged.connect(self._render_mode_changed)
 
-        sel_tab = QWidget()
-        sel_layout = QVBoxLayout()
-        sel_tab.setLayout(sel_layout)
-        sel_layout.addWidget(QLabel("This tab not yet implemented.\nUse 'select' command instead.",
-            alignment=Qt.AlignCenter))
-        self.mode_widget.addTab(sel_tab, "Select")
+        # Select tab
+        select_tab = QWidget()
+        select_tab_layout = QVBoxLayout()
+        select_tab_layout.setSpacing(1)
+        select_tab_layout.setContentsMargins(0,0,0,0)
+        select_tab.setLayout(select_tab_layout)
+        # attribute menu
+        attr_menu_widget = QWidget()
+        attr_menu_layout = QHBoxLayout()
+        attr_menu_layout.setSpacing(2)
+        attr_menu_layout.setContentsMargins(0,0,0,0)
+        attr_menu_widget.setLayout(attr_menu_layout)
+        select_tab_layout.addWidget(attr_menu_widget, alignment=Qt.AlignCenter)
+        attr_menu_layout.addWidget(QLabel("Attribute:"), alignment=Qt.AlignRight)
+        self.select_attr_menu_button = QPushButton()
+        menu = QMenu()
+        menu.triggered.connect(self._new_select_attr)
+        menu.aboutToShow.connect(self._update_select_attr_menu)
+        self.select_attr_menu_button.setMenu(menu)
+        attr_menu_layout.addWidget(self.select_attr_menu_button, alignment=Qt.AlignLeft)
+        # value widgets
+        self.select_widgets = QStackedWidget()
+        self.select_widgets.addWidget(QLabel("Choose attribute to show values"))
+        self.select_message_widget = QLabel()
+        self.select_widgets.addWidget(self.select_message_widget)
+        select_tab_layout.addWidget(self.select_widgets, alignment=Qt.AlignCenter)
+        # list
+        self.sel_text_to_value = {}
+        self.select_list = QListWidget()
+        self.select_list.setSelectionMode(self.select_list.MultiSelection)
+        self.select_widgets.addWidget(self.select_list)
+        # histogram
+        self.select_histogram_area = QWidget()
+        sha_layout = QVBoxLayout()
+        self.select_histogram_area.setLayout(sha_layout)
+        self.select_histogram = sh = MarkedHistogram(min_label=True, max_label=True, color_button=False,
+            show_marker_help=False, status_line=tw.status)
+        self.select_markers = sh.add_markers(coord_type='relative', min_marks=2, max_marks=2)
+        self.select_markers.extend([((0.333, 0.0), "green"), ((0.667, 0.0), "green")])
+        sha_layout.addWidget(sh, stretch=1)
+        sh_button_area = QWidget()
+        sh_button_layout = QGridLayout()
+        sh_button_layout.setContentsMargins(0,0,0,0)
+        sh_button_area.setLayout(sh_button_layout)
+        sha_layout.addWidget(sh_button_area, alignment=Qt.AlignHCenter|Qt.AlignTop)
+        sh_button_layout.addWidget(QLabel("Select:"), 0, 0, 3, 1, alignment=Qt.AlignRight)
+        self.select_histogram_buttons = shb = QButtonGroup()
+        between_button = QRadioButton("between markers (inclusive)")
+        between_button.setChecked(True)
+        sh_button_layout.addWidget(between_button, 0, 1, alignment=Qt.AlignLeft)
+        shb.addButton(between_button, id=0)
+        outside_button = QRadioButton("outside markers")
+        sh_button_layout.addWidget(outside_button, 1, 1, alignment=Qt.AlignLeft)
+        shb.addButton(outside_button, id=1)
+        no_val_button = QRadioButton("no value")
+        sh_button_layout.addWidget(no_val_button, 2, 1, alignment=Qt.AlignLeft)
+        shb.addButton(no_val_button, id=2)
+        self.select_widgets.addWidget(self.select_histogram_area)
+        # radio
+        self.select_radio_area = sra = QWidget()
+        outer_layout = QVBoxLayout()
+        sra.setLayout(outer_layout)
+        centering_widget = QWidget()
+        outer_layout.addWidget(centering_widget, alignment=Qt.AlignHCenter|Qt.AlignTop)
+        rbutton_layout = QVBoxLayout()
+        rbutton_layout.setContentsMargins(0,0,0,0)
+        centering_widget.setLayout(rbutton_layout)
+        self.select_radio_buttons = srb = QButtonGroup()
+        false_button = QRadioButton("False")
+        false_button.setChecked(True)
+        rbutton_layout.addWidget(false_button, alignment=Qt.AlignLeft)
+        srb.addButton(false_button, id=0)
+        true_button = QRadioButton("True")
+        true_button.setChecked(False)
+        rbutton_layout.addWidget(true_button, alignment=Qt.AlignLeft)
+        srb.addButton(true_button, id=1)
+        no_val_button = QRadioButton("No value")
+        no_val_button.setChecked(False)
+        rbutton_layout.addWidget(no_val_button, alignment=Qt.AlignLeft)
+        srb.addButton(no_val_button, id=2)
+        self.select_widgets.addWidget(self.select_radio_area)
+
+        self.mode_widget.addTab(select_tab, "Select")
 
         self._update_target_menu()
-        self._new_attr()
+        self._new_render_attr()
+        self._new_select_attr()
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
-        bbox.accepted.connect(self.render)
-        bbox.button(qbbox.Apply).clicked.connect(lambda: self.render(apply=True))
+        bbox.accepted.connect(self._dispatch)
+        bbox.button(qbbox.Apply).clicked.connect(lambda: self._dispatch(apply=True))
         bbox.rejected.connect(self.delete)
         if hasattr(self, 'help'):
             from chimerax.core.commands import run
@@ -262,7 +344,7 @@ class RenderByAttrTool(ToolInstance):
         models = self.model_list.value
         if not models:
             raise UserError("No models chosen for rendering")
-        attr_name = self.attr_menu_button.text()
+        attr_name = self.render_attr_menu_button.text()
         if attr_name == self.NO_ATTR_TEXT:
             raise UserError("No attribute chosen for rendering")
         tabs = self.render_type_widget
@@ -309,6 +391,47 @@ class RenderByAttrTool(ToolInstance):
         elif method == "worm":
             self._update_deworm_button()
 
+    def select(self, *, apply=False):
+        models = self.model_list.value
+        if not models:
+            raise UserError("No models chosen for selection")
+        attr_name = self.select_attr_menu_button.text()
+        if attr_name == self.NO_ATTR_TEXT:
+            raise UserError("No attribute chosen for selection")
+        cur_widget = self.select_widgets.currentWidget()
+        if cur_widget == self.select_message_widget:
+            raise UserError("Can't select using attribute '%s'" % attr_name)
+        if cur_widget == self.select_list:
+            discrete = True
+            texts = [item.text() for item in self.select_list.selectedItems()]
+            if not texts:
+                raise UserError("No values chosen for selection")
+            params = [self.sel_text_to_value.get(txt, txt) for txt in texts]
+        elif cur_widget == self.select_histogram_area:
+            discrete = False
+            checked_id = self.select_histogram_buttons.checkedId()
+            if checked_id == 2:
+                params = None
+            else:
+                markers = self.select_markers
+                markers.coord_type = "absolute"
+                vals = [marker.xy[0] for marker in markers]
+                markers.coord_type = "relative"
+                params = (checked_id == 0, *sorted(vals))
+        else:
+            # boolean
+            discrete = True
+            params = [[False, True, None][self.select_radio_buttons.checkedId()]]
+        self._cur_attr_info().select(self.session, attr_name, models, discrete, params)
+        if not apply:
+            self.delete()
+
+    def show_tab(self, tab_name):
+        for index in range(self.mode_widget.count()):
+            if self.mode_widget.tabText(index) == tab_name:
+                self.mode_widget.setCurrentIndex(index)
+                break
+
     def _attr_names_of_type(self, *types):
         attr_info = self._cur_attr_info()
         from chimerax.core.attributes import MANAGER_NAME
@@ -336,6 +459,12 @@ class RenderByAttrTool(ToolInstance):
         target = self.target_menu_button.text()
         return self._ui_to_info[target]
 
+    def _dispatch(self, apply=False):
+        if self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render":
+            self.render(apply=apply)
+        else:
+            self.select(apply=apply)
+
     def _filter_model(self, model):
         try:
             return self._cur_attr_info().model_filter(model)
@@ -343,15 +472,26 @@ class RenderByAttrTool(ToolInstance):
             return False
 
     def _models_changed(self):
-        if self.model_list.value and self.attr_menu_button.isEnabled():
-            attr_info = self.attr_menu_button.text()
-            if attr_info != self.NO_ATTR_TEXT:
-                self._update_histogram(attr_info)
+        if self.model_list.value:
+            if self.render_attr_menu_button.isEnabled():
+                attr_info = self.render_attr_menu_button.text()
+                if attr_info != self.NO_ATTR_TEXT:
+                    self._update_render_histogram(attr_info)
+            else:
+                self._new_render_attr()
+            if self.select_attr_menu_button.isEnabled():
+                attr_info = self.select_attr_menu_button.text()
+                #TODO: may need to update other widgets
+                #if attr_info != self.NO_ATTR_TEXT:
+                #    self._update_histogram(attr_info)
+            else:
+                self._new_select_attr()
         else:
-            self._new_attr()
+            self._new_render_attr()
+            self._new_select_attr()
         self._update_deworm_button()
 
-    def _new_attr(self, attr_name_info=None):
+    def _new_render_attr(self, attr_name_info=None):
         enabled = True
         if attr_name_info is None:
             if not self.model_list.value:
@@ -364,14 +504,35 @@ class RenderByAttrTool(ToolInstance):
                 attr_name = attr_name_info
             else:
                 attr_name = attr_name_info.text()
-        if attr_name != self.attr_menu_button.text():
-            self.attr_menu_button.setText(attr_name)
+        if attr_name != self.render_attr_menu_button.text():
+            self.render_attr_menu_button.setText(attr_name)
             if attr_name_info is None:
                 self.render_histogram.data_source = "Choose attribute to show histogram"
             else:
-                self._update_histogram(attr_name)
+                self._update_render_histogram(attr_name)
             self._update_palettes()
-        self.attr_menu_button.setEnabled(enabled)
+        self.render_attr_menu_button.setEnabled(enabled)
+
+    def _new_select_attr(self, attr_name_info=None):
+        enabled = True
+        if attr_name_info is None:
+            if not self.model_list.value:
+                attr_name = "no model chosen"
+                enabled = False
+            else:
+                attr_name = self.NO_ATTR_TEXT
+        else:
+            if isinstance(attr_name_info, str):
+                attr_name = attr_name_info
+            else:
+                attr_name = attr_name_info.text()
+        if attr_name != self.select_attr_menu_button.text():
+            self.select_attr_menu_button.setText(attr_name)
+            if attr_name_info is None:
+                self.select_widgets.setCurrentIndex(0)
+            else:
+                self._update_select_widget(attr_name)
+        self.select_attr_menu_button.setEnabled(enabled)
 
     def _new_classes(self):
         self._update_target_menu()
@@ -389,7 +550,8 @@ class RenderByAttrTool(ToolInstance):
         self.color_atoms.setEnabled("atoms" in color_targets)
         self.color_cartoons.setEnabled("cartoons" in color_targets)
         self.color_surfaces.setEnabled("surfaces" in color_targets)
-        self._new_attr()
+        self._new_render_attr()
+        self._new_select_attr()
 
     def _radius_marker_add_del(self, marker=None):
         if marker:
@@ -431,13 +593,73 @@ class RenderByAttrTool(ToolInstance):
         self.render_color_markers.color_change_callback = cb
         self._update_palettes()
 
-    def _update_attr_menu(self):
-        menu = self.attr_menu_button.menu()
+    def _update_render_attr_menu(self):
+        menu = self.render_attr_menu_button.menu()
         menu.clear()
         attr_names = self._attr_names_of_type(int, float)
-        attr_names.sort()
-        for attr_name in attr_names:
-            menu.addAction(attr_name)
+        if attr_names:
+            attr_names.sort()
+            for attr_name in attr_names:
+                menu.addAction(attr_name)
+        else:
+            action = menu.addAction("No attributes available for %s" % self.target_menu_button.text())
+            action.setEnabled(False)
+
+    def _update_select_attr_menu(self):
+        menu = self.select_attr_menu_button.menu()
+        menu.clear()
+        attr_names = self._attr_names_of_type(int, float, bool, str)
+        if attr_names:
+            attr_names.sort()
+            for attr_name in attr_names:
+                menu.addAction(attr_name)
+        else:
+            action = menu.addAction("No attributes available for %s" % self.target_menu_button.text())
+            action.setEnabled(False)
+
+    def _update_select_widget(self, attr_name):
+        attr_info = self._cur_attr_info()
+        from chimerax.core.attributes import MANAGER_NAME
+        attr_mgr = self.session.get_state_manager(MANAGER_NAME)
+        attr_type, can_be_none = attr_mgr.attribute_return_info(attr_info.class_object, attr_name)
+        values, any_None = attr_info.values(attr_name, self.model_list.value)
+        if len(values) == 0 and not any_None:
+            self.select_message_widget.setText("Attribute '%s' not found in any %s"
+                % (attr_name, self.target_menu_button.text()))
+            self.select_widgets.setCurrentWidget(self.select_message_widget)
+            return
+        if attr_type == str:
+            unique_values = set(values)
+            disp_values = sorted(list(unique_values))
+            self.sel_text_to_value.clear()
+            if ' ' in unique_values:
+                disp_values.remove(' ')
+                disp_values.append("(blank)")
+                self.sel_text_to_value["(blank)"] = ' '
+            if '' in unique_values:
+                disp_values.remove('')
+                disp_values.append("(empty)")
+                self.sel_text_to_value["(empty)"] = ''
+            if any_None:
+                disp_values.append("(no value)")
+                self.sel_text_to_value["(no value)"] = None
+            self.select_list.clear()
+            self.select_list.addItems(disp_values)
+            self.select_widgets.setCurrentWidget(self.select_list)
+        elif attr_type == bool:
+            has_None = self.select_widgets.setCurrentWidget(self.select_radio_area)
+            no_val_button = self.select_radio_buttons.button(2)
+            no_val_button.setHidden(not has_None)
+            if no_val_button.isChecked():
+                self.select_radio_buttons.button(0).setChecked(True)
+        else:
+            # histogram
+            self._update_histogram(self.select_histogram, attr_name)
+            has_None = self.select_widgets.setCurrentWidget(self.select_histogram_area)
+            no_val_button = self.select_histogram_buttons.button(2)
+            no_val_button.setHidden(not has_None)
+            if no_val_button.isChecked():
+                self.select_histogram_buttons.button(0).setChecked(True)
 
     def _update_deworm_button(self):
         models = self.model_list.value
@@ -450,27 +672,26 @@ class RenderByAttrTool(ToolInstance):
             enable = False
         self.deworm_button.setEnabled(enable)
 
-    def _update_histogram(self, attr_name):
+    def _update_histogram(self, histogram, attr_name):
         attr_info = self._cur_attr_info()
         values, any_None = attr_info.values(attr_name, self.model_list.value)
         if len(values) == 0:
-            self.render_histogram.data_source = "No '%s' values for histogram" % attr_name
+            histogram.data_source = 'Chosen models are missing "%s" attribute in all %s' % (
+                attr_name, self.target_menu_button.text())
         else:
             min_val, max_val = min(values), max(values)
             import numpy
             if min_val == max_val:
-                self.render_histogram.data_source = "All '%s' values are %g" % (attr_name, min_val)
+                histogram.data_source = "All '%s' values are %g" % (attr_name, min_val)
             elif attr_name in self._attr_names_of_type(int):
                 # just histogram the values directly
-                self.render_histogram.data_source = (min_val, max_val, numpy.histogram(
+                histogram.data_source = (min_val, max_val, numpy.histogram(
                     values, bins=max_val-min_val+1, range=(min_val, max_val), density=False)[0])
             else:
                 # number of bins based on histogram pixel width...
-                self.render_histogram.data_source = (min_val, max_val, lambda num_bins:
+                histogram.data_source = (min_val, max_val, lambda num_bins:
                     numpy.histogram(values, bins=num_bins, range=(min_val, max_val), density=False)[0])
-        self.radii_options.set_option_enabled(self.radii_affect_nv, not any_None)
-        self.radii_options.set_option_enabled(self.radii_nv_radius, not any_None)
-        self.worms_options.set_option_enabled(self.worm_nv_radius, not any_None)
+        return any_None
 
     def _update_palettes(self):
         if type(self.render_histogram.data_source) == str:
@@ -480,6 +701,12 @@ class RenderByAttrTool(ToolInstance):
         self.reverse_colors_button.setEnabled(len(rgbas) > 1)
         self.key_button.setEnabled(len(rgbas) > 1)
         self.palette_chooser.rgbas = rgbas
+
+    def _update_render_histogram(self, attr_name):
+        any_None = self._update_histogram(self.render_histogram, attr_name)
+        self.radii_options.set_option_enabled(self.radii_affect_nv, not any_None)
+        self.radii_options.set_option_enabled(self.radii_nv_radius, not any_None)
+        self.worms_options.set_option_enabled(self.worm_nv_radius, not any_None)
 
     def _update_target_menu(self):
         from .manager import get_manager

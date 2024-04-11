@@ -422,6 +422,19 @@ class Mol2Parser:
             self._comments.append(self._line)
             self._get_line()
 
+    def _section_property_data(self):
+        if self._molecule is None:
+            self._eat_section()
+            return
+        while self._line is not None:
+            if self._is_section_tag():
+                break
+            fields = self._line.split("\t|\t")
+            if len(fields) == 2:
+                tag, value = fields
+                self._data[tag] = value
+            self._get_line()
+
     def _check_gold(self):
         import re
         re_gold = re.compile(r"> <Gold\.(?P<param>[^>]+)>\s*")

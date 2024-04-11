@@ -264,6 +264,7 @@ class MarkedHistogram(QWidget):
                 color_layout.addWidget(cb, alignment=Qt.AlignTop)
                 self._widget_layout.addLayout(color_layout)
         self._color_button_shown = True
+        self.color_button = color_button
 
         # Show the histogram or the no-data label
         self.data_source = data_source
