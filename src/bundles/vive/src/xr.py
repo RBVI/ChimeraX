@@ -17,7 +17,8 @@
 def vr(session, enable = None, room_position = None, mirror = None,
        gui = None, center = None, click_range = None,
        near_clip_distance = None, far_clip_distance = None,
-       multishadow_allowed = False, simplify_graphics = True):
+       multishadow_allowed = False, simplify_graphics = True,
+       passthrough = None):
     '''
     Enable stereo viewing and head motion tracking with virtual reality headsets using OpenXR.
 
@@ -63,6 +64,9 @@ def vr(session, enable = None, room_position = None, mirror = None,
       Adjust level-of-detail total number of triangles for atoms and bonds to a reduced value
       when VR is enabled, and restore to default value when VR disabled.  This helps maintain
       full rendering speed in VR.  Default true.
+    passthrough : bool
+      Whether to enable passthrough video.  This is only supported on Meta Quest headsets
+      using the OpenXR XR_FB_passthrough extension.
     '''
     
     if enable is None and room_position is None:
@@ -112,6 +116,9 @@ def vr(session, enable = None, room_position = None, mirror = None,
 
     if far_clip_distance is not None:
         c.far_clip_distance = far_clip_distance
+
+    if passthrough is not None:
+        c.enable_passthrough(passthrough)
 
 # -----------------------------------------------------------------------------
 # Assign VR hand controller buttons
@@ -262,6 +269,7 @@ def register_vr_command(logger):
                               ('far_clip_distance', FloatArg),
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
+                              ('passthrough', BoolArg),
                    ],
                    synopsis = 'Start OpenXR virtual reality rendering',
                    url = 'help:user/commands/device.html#vr')
@@ -530,7 +538,10 @@ class OpenXRCamera(Camera, StateManager):
     @property
     def active(self):
         return self is self._session.main_view.camera
-    
+
+    def enable_passthrough(self, enable):
+        self._xr.enable_passthrough_video(enable)
+
     def _move_camera_in_room(self, position):
         '''
         Move camera to the given scene position without changing
