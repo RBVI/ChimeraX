@@ -420,6 +420,28 @@ class Model(State, Drawing):
         if 'opened_data_format' in data:
             self.opened_data_format = data['opened_data_format']
 
+    def restore_scene(self, scene_data):
+        '''
+        Restore model to state from scene_data
+        (obtained from take_snapshot() with State.SCENE flag)
+        Do NOT restore the base Model class state -- the scene-restoration
+        machinery does that.  Consequently you needn't save Model state
+        in the take_snapshot() method for scenes.
+        '''
+        raise NotImplementedError("restore_scene not implmented")
+
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        '''
+        Restore model to state interpolated as a fraction between the two scene datas.
+        For parts of the model that aren't interpolable, chenge to the second state
+        when 'switchover' is True.  If no parts of the model are interpolable then
+        you needn't implement this method (restore_scene() is sufficient.
+        Do NOT call Model.interpolate_scene() -- the scene-restoration machinery
+        handles that.
+
+        '''
+        raise NotImplementedError("interpolate_scene not implmented")
+
     def save_geometry(self, session, flags):
         '''
         Return state for saving Model and Drawing geometry that can be restored
