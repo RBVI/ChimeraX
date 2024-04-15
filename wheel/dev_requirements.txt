@@ -6,7 +6,7 @@ coverage==7.1.0
 Cython==0.29.33
 exceptiongroup==1.1.0
 grako==3.99.9
-idna==3.4
+idna==3.7
 ihm==0.36
 iniconfig==2.0.0
 msgpack==1.0.4

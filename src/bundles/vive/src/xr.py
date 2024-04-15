@@ -64,7 +64,7 @@ def vr(session, enable = None, room_position = None, mirror = None,
       Adjust level-of-detail total number of triangles for atoms and bonds to a reduced value
       when VR is enabled, and restore to default value when VR disabled.  This helps maintain
       full rendering speed in VR.  Default true.
-    passthrough : bool
+    passthrough : bool or "toggle"
       Whether to enable passthrough video.  This is only supported on Meta Quest headsets
       using the OpenXR XR_FB_passthrough extension.
     '''
@@ -269,7 +269,7 @@ def register_vr_command(logger):
                               ('far_clip_distance', FloatArg),
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
-                              ('passthrough', BoolArg),
+                              ('passthrough', Or(EnumOf(['toggle']), BoolArg)),
                    ],
                    synopsis = 'Start OpenXR virtual reality rendering',
                    url = 'help:user/commands/device.html#vr')
