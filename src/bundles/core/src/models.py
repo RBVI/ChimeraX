@@ -424,11 +424,9 @@ class Model(State, Drawing):
         '''
         Restore model to state from scene_data
         (obtained from take_snapshot() with State.SCENE flag)
-        Do NOT restore the base Model class state -- the scene-restoration
-        machinery does that.  Consequently you needn't save Model state
-        in the take_snapshot() method for scenes.
         '''
-        raise NotImplementedError("restore_scene not implmented")
+        #TODO: restore base Model state here
+        raise NotImplementedError("restore_scene not implemented")
 
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
         '''
@@ -436,11 +434,10 @@ class Model(State, Drawing):
         For parts of the model that aren't interpolable, chenge to the second state
         when 'switchover' is True.  If no parts of the model are interpolable then
         you needn't implement this method (restore_scene() is sufficient.
-        Do NOT call Model.interpolate_scene() -- the scene-restoration machinery
-        handles that.
 
         '''
-        raise NotImplementedError("interpolate_scene not implmented")
+        #TODO: interepolate base Model state here
+        raise NotImplementedError("interpolate_scene not implemented")
 
     def save_geometry(self, session, flags):
         '''
