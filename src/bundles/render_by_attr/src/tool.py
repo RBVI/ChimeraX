@@ -285,11 +285,11 @@ class RenderByAttrTool(ToolInstance):
         sha_layout.addWidget(sh_button_area, alignment=Qt.AlignHCenter|Qt.AlignTop)
         sh_button_layout.addWidget(QLabel("Select:"), 0, 0, 3, 1, alignment=Qt.AlignRight)
         self.select_histogram_buttons = shb = QButtonGroup()
-        between_button = QRadioButton("between markers (inclusive)")
+        between_button = QRadioButton("between thresholds (inclusive)")
         between_button.setChecked(True)
         sh_button_layout.addWidget(between_button, 0, 1, alignment=Qt.AlignLeft)
         shb.addButton(between_button, id=0)
-        outside_button = QRadioButton("outside markers")
+        outside_button = QRadioButton("outside thresholds")
         sh_button_layout.addWidget(outside_button, 1, 1, alignment=Qt.AlignLeft)
         shb.addButton(outside_button, id=1)
         no_val_button = QRadioButton("no value")
@@ -481,9 +481,8 @@ class RenderByAttrTool(ToolInstance):
                 self._new_render_attr()
             if self.select_attr_menu_button.isEnabled():
                 attr_info = self.select_attr_menu_button.text()
-                #TODO: may need to update other widgets
-                #if attr_info != self.NO_ATTR_TEXT:
-                #    self._update_histogram(attr_info)
+                if attr_info != self.NO_ATTR_TEXT:
+                    self._update_select_widget(attr_info)
             else:
                 self._new_select_attr()
         else:
@@ -647,18 +646,18 @@ class RenderByAttrTool(ToolInstance):
             self.select_list.addItems(disp_values)
             self.select_widgets.setCurrentWidget(self.select_list)
         elif attr_type == bool:
-            has_None = self.select_widgets.setCurrentWidget(self.select_radio_area)
+            self.select_widgets.setCurrentWidget(self.select_radio_area)
             no_val_button = self.select_radio_buttons.button(2)
-            no_val_button.setHidden(not has_None)
-            if no_val_button.isChecked():
+            no_val_button.setHidden(not any_None)
+            if no_val_button.isChecked() and not any_None:
                 self.select_radio_buttons.button(0).setChecked(True)
         else:
             # histogram
             self._update_histogram(self.select_histogram, attr_name)
-            has_None = self.select_widgets.setCurrentWidget(self.select_histogram_area)
+            self.select_widgets.setCurrentWidget(self.select_histogram_area)
             no_val_button = self.select_histogram_buttons.button(2)
-            no_val_button.setHidden(not has_None)
-            if no_val_button.isChecked():
+            no_val_button.setHidden(not any_None)
+            if no_val_button.isChecked() and not any_None:
                 self.select_histogram_buttons.button(0).setChecked(True)
 
     def _update_deworm_button(self):

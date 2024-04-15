@@ -34,6 +34,8 @@ class XR:
         self._ready_to_render = False
         self._scene_space = None			# XrSpace instance reference coordinate space
         self._hand_space = {}				# XrSpace instances for left and right hands
+        self._passthrough_supported = False
+        self._passthrough = None
 
         self._frame_started = False
         self._frame_count = 0
@@ -50,29 +52,17 @@ class XR:
         self._frame_started = False
         self._frame_count = 0
         self._action_set = self._create_action_set()	# Manage hand controller input
-        
     def _create_instance(self):
         '''Establish connection to OpenXR runtime.'''
         import xr
-#        extensions = xr.enumerate_instance_extension_properties()
-#        print ('Available openxr extensions', [e.extension_name for e in extensions])
-#
-# Looks to me that to enable passthrough video I need to do the following:
-#  1) Look for extension name XR_FB_passthrough.
-#  2) If extension is available create openxr instance with it requested.
-#  3) Create an XrPassthroughFB handle with xrCreatePassthroughFB().
-#  4) Create an XrPassthroughLayerFB handle with xrCreatePassthroughLayerFB().
-#  5) Submit that layer in xrEndFrame() with blending mode alpha.
-#  6) Render the ChimeraX scene with transparent background to an RGBA framebuffer.
-#
-# This APIs are described in
-#   https://registry.khronos.org/OpenXR/specs/1.0/html/xrspec.html#XR_FB_passthrough
-# And pyopenxr appears to define the functions and structures and enums in xr/typedefs.py
-#
-# I found a few discussions online of developers failing to get passthrough to work,
-# and none where the got it to work from late 2023 and early 2024.
-#
         requested_extensions = [xr.KHR_OPENGL_ENABLE_EXTENSION_NAME]
+
+        from . import passthrough
+        self._passthrough_supported = passthrough.passthrough_extension_available()
+        if self._passthrough_supported:
+            requested_extensions.append(xr.FB_PASSTHROUGH_EXTENSION_NAME)
+            
+            
         if self._debug:
             requested_extensions.append(xr.EXT_DEBUG_UTILS_EXTENSION_NAME)
 
@@ -85,6 +75,19 @@ class XR:
         instance = xr.create_instance(iinfo)
 
         return instance
+
+    def enable_passthrough_video(self, enable):
+        import xr
+        if enable and self._passthrough is None:
+            if not self._passthrough_supported:
+                from chimerax.core.errors import UserError
+                raise UserError('The Facebook passthrough video extension is not supported by this instance of OpenXR')
+            from .passthrough import Passthrough
+            self._passthrough = Passthrough(self._session, self._instance)
+            print ('Enabled passthrough')
+        elif not enable and self._passthrough is not None:
+            self._passthrough.close()
+            self._passthrough = None
 
     def runtime_name(self):
         '''
@@ -205,7 +208,15 @@ class XR:
         pl_views = (xr.CompositionLayerProjectionView * 2)(
             xr.CompositionLayerProjectionView(), xr.CompositionLayerProjectionView())
         self._projection_layer_views = pl_views
-        projection_layer = xr.CompositionLayerProjection(space = self._scene_space,
+        # Set layer_flags to allow passthrough to be composited correctly.
+        if self._passthrough_supported:
+            flags = (xr.CompositionLayerFlags.BLEND_TEXTURE_SOURCE_ALPHA_BIT |
+                     xr.CompositionLayerFlags.UNPREMULTIPLIED_ALPHA_BIT)
+        else:
+            flags = 0
+        layer_flags = xr.CompositionLayerFlags(flags)
+        projection_layer = xr.CompositionLayerProjection(layer_flags = layer_flags,
+                                                         space = self._scene_space,
                                                          views = pl_views)
         return projection_layer
 
@@ -368,7 +379,12 @@ class XR:
         while True:
             try:
                 event_buffer = xr.poll_event(self._instance)
-                event_type = xr.StructureType(event_buffer.type)
+                try:
+                    event_type = xr.StructureType(event_buffer.type)
+                except ValueError:
+                    # PyOpenXR gives ValueError for event types it does not know
+                    # such as from the XR_FB_passthrough extension.
+                    continue
                 if event_type == xr.StructureType.EVENT_DATA_SESSION_STATE_CHANGED:
                     self._on_session_state_changed(event_buffer)
                 else:
@@ -418,6 +434,8 @@ class XR:
 
     def _end_xr_frame(self):
         layers = []
+        import xr
+        blend_mode = xr.EnvironmentBlendMode.OPAQUE
         if self._frame_state.should_render:
             for eye_index in range(2):
                 layer_view = self._projection_layer_views[eye_index]
@@ -426,13 +444,15 @@ class XR:
                 layer_view.pose = eye_view.pose
             import ctypes
             layers = [ctypes.byref(self._projection_layer)]
+            if self._passthrough is not None:
+                pclayer = self._passthrough._composition_layer
+                layers.insert(0, ctypes.byref(pclayer))
 
         self._projection_layer.views = self._projection_layer_views
 
-        import xr
         frame_end_info = xr.FrameEndInfo(
             display_time = self._frame_state.predicted_display_time,
-            environment_blend_mode = xr.EnvironmentBlendMode.OPAQUE,
+            environment_blend_mode = blend_mode,
             layers = layers)
         xr.end_frame(self._session, frame_end_info)
 
@@ -873,9 +893,13 @@ def _enable_openxr_debugging(iinfo):
 def _debug_callback(severity, _type, data, _user_data):
     d = data.contents
     sev = _debug_severity_string(severity)
-    fname = d.function_name.decode()
+    fname = d.function_name.decode() if d.function_name is not None else "unknown func"
     msg = d.message.decode()
-    debug( f"{sev}: {fname}: {msg}")
+    message = f"{sev}: {fname}: {msg}"
+    if sev in ('Error', 'Warning'):
+        error(message)
+    else:
+        debug(message)
     return True
 
 def _debug_severity_string(severity_flags):
