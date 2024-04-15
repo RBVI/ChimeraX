@@ -42,7 +42,7 @@ psutil==5.9.8
 pycollada==0.8
 pydicom==2.3.0
 pynrrd==1.0.0
-pyopenxr==1.0.3302
+pyopenxr==1.0.3401
 tcia_utils==1.5.1
 PyOpenGL==3.1.7
 PyOpenGL-accelerate==3.1.7
