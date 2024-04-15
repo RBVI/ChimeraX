@@ -170,7 +170,7 @@ class _AtomicBundleAPI(BundleAPI):
 
                 def hide_attr(self, attr_name, rendering):
                     if not rendering and self.class_object == Atom and attr_name in [
-                            'display', 'is_side_connector', 'num_bonds',
+                            'is_side_connector', 'num_bonds',
                             'num_explicit_bonds', 'selected', 'visible']:
                         return True
                     return super().hide_attr(attr_name, rendering)
