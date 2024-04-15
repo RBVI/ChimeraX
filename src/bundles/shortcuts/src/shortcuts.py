@@ -245,16 +245,15 @@ def standard_shortcuts(session):
         ('sn', toggle_space_navigator, 'Toggle use of space navigator', gcat, sesarg, dmenu),
         ('nf', toggle_space_navigator_fly_mode, 'Toggle space navigator fly mode', gcat, sesarg, dmenu, sep),
 #        ('nc', space_navigator_collisions, 'Toggle space navigator collision avoidance', gcat, sesarg),
-
         ('oc', start_oculus, 'Start Oculus Rift stereo', gcat, sesarg, dmenu),
 #        ('om', oculus_move, 'Move Oculus window to primary display', gcat, sesarg, dmenu),
-
 #        ('lp', toggle_leap, 'Toggle leap motion input device', gcat, sesarg, dmenu),
 #        ('lP', leap_position_mode, 'Enable leap motion position mode', gcat, sesarg),
 #        ('lx', leap_chopsticks_mode, 'Enable leap motion chopstick mode', gcat, sesarg),
 #        ('lv', leap_velocity_mode, 'Enable leap motion velocity mode', gcat, sesarg),
 #        ('lf', leap_focus, 'Check if app has leap focus', gcat, sesarg),
 #        ('lq', leap_quit, 'Quit using leap motion input device', gcat, sesarg),
+        ('vr', 'xr on passthrough toggle', 'Enable virtual reality', gcat, noarg, dmenu),
 
         # Help
 #        ('mn', show_manual, 'Show manual', gcat, sesarg, hmenu),

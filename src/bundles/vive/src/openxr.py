@@ -52,6 +52,7 @@ class XR:
         self._frame_started = False
         self._frame_count = 0
         self._action_set = self._create_action_set()	# Manage hand controller input
+
     def _create_instance(self):
         '''Establish connection to OpenXR runtime.'''
         import xr
@@ -77,6 +78,9 @@ class XR:
         return instance
 
     def enable_passthrough_video(self, enable):
+        if enable == 'toggle':
+            enable = (self._passthrough is None)
+
         import xr
         if enable and self._passthrough is None:
             if not self._passthrough_supported:
