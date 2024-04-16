@@ -168,6 +168,13 @@ class _AtomicBundleAPI(BundleAPI):
                             return True
                     return False
 
+                def hide_attr(self, attr_name, rendering):
+                    if not rendering and self.class_object == Atom and attr_name in [
+                            'is_side_connector', 'num_bonds',
+                            'num_explicit_bonds', 'selected', 'visible']:
+                        return True
+                    return super().hide_attr(attr_name, rendering)
+
                 def model_filter(self, model):
                     return isinstance(model, Structure)
 
