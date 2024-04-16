@@ -124,9 +124,8 @@ class GridCanvas:
         from Qt.QtGui import QColor, QBrush
         from chimerax.core.colors import contrast_with
         y = 0
-        # adjust for rectangle outline width + inter-line spacing
-        y_adjust = 2
-        adjustments = set()
+        # adjust for rectangle outline width / inter-line spacing
+        y_adjust = 1
         for i in range(rows):
             if i in self.empty_rows:
                 continue
@@ -143,12 +142,7 @@ class GridCanvas:
                     cell_text = self.main_scene.addSimpleText(text_val, self.font)
                     cell_text.moveBy(x, y)
                     bbox = cell_text.boundingRect()
-                    # The additional 1 is for the rectangle outline width
-                    cell_text.moveBy(1 + (width - bbox.width())/2, y_adjust + (height - bbox.height())/2)
-                    if text_val not in adjustments:
-                        adjustments.add(text_val)
-                        print("Adjustment for %s:" % text_val, (width - bbox.width())/2, (height - bbox.height())/2)
-
+                    cell_text.moveBy((width - bbox.width())/2, y_adjust + (height - bbox.height())/2)
                     cell_text.setBrush(QBrush(QColor(*[int(255 * channel + 0.5) for channel in text_rgb])))
             label_text = self.main_label_scene.addSimpleText(self.row_labels[i], self.font)
             label_width = self.font_metrics.horizontalAdvance(self.row_labels[i] + ' ')
