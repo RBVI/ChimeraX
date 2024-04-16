@@ -80,6 +80,8 @@ class Consensus(DynamicHeaderSequence):
             retlet = let.upper()
             if num == len(self.alignment.seqs):
                 self.conserved[pos] = True
+        elif self.settings.hide_low:
+            retlet = ' '
         else:
             retlet = let.lower()
         return retlet
@@ -91,6 +93,14 @@ class Consensus(DynamicHeaderSequence):
             'ignore_gaps': self.settings.ignore_gaps,
         }
         return state
+
+    @property
+    def hide_low(self):
+        return self.settings.hide_low
+
+    @hide_low.setter
+    def hide_low(self, hide_low):
+        self.settings.hide_low = hide_low
 
     @property
     def ignore_gaps(self):
@@ -106,8 +116,10 @@ class Consensus(DynamicHeaderSequence):
     def option_data(self):
         from chimerax.ui.options import FloatOption, BooleanOption
         return super().option_data() + [
-            ("capitalization threshold", 'capitalize_threshold', FloatOption, {},
+            ("high-conservation threshold", 'capitalize_threshold', FloatOption, {},
                 "Capitalize consensus letter if at least this fraction of sequences are identical"),
+            ("hide low-conservation letters", 'hide_low', BooleanOption, {},
+                "Leave consensus position blank for conservation below threshold"),
             ("ignore gap characters", 'ignore_gaps', BooleanOption, {},
                 "Whether gap characters are considered for the consensus character")
         ]
@@ -138,6 +150,7 @@ class Consensus(DynamicHeaderSequence):
         from chimerax.core.commands import Bounded, FloatArg, BoolArg
         defaults.update({
             'capitalize_threshold': (Bounded(FloatArg, min=0, max=1), 0.8),
+            'hide_low': (BoolArg, False),
             'ignore_gaps': (BoolArg, False),
         })
         return "consensus sequence header", defaults
