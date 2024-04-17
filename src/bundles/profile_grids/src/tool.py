@@ -52,7 +52,7 @@ class ProfileGridsTool(ToolInstance):
             from ._profile_grids import compute_profile
             weights = [getattr(seq, 'weight', 1.0) for seq in alignment.seqs]
             grid_data = compute_profile([seq.cpp_pointer for seq in alignment.seqs], weights, num_cpus)
-            # the returned grid data is (num seqs x num symbols), which is the transpose of what we
+            # the returned grid data is (num positions x num symbols), which is the transpose of what we
             # display, so to reduce confusion in the code, transpose it
             import numpy
             grid_data = numpy.transpose(grid_data)
@@ -67,8 +67,12 @@ class ProfileGridsTool(ToolInstance):
         self.tool_window.manage('side')
 
     def alignment_notification(self, note_name, note_data):
-        raise NotImplementedError("alignment_notification")
         alignment = self.alignment
+        if note_name == alignment.NOTE_DESTROYED:
+            self.delete()
+        else:
+            raise NotImplementedError("alignment_notification")
+        '''
         if note_name == alignment.NOTE_MOD_ASSOC:
             assoc_aseqs = set()
             if note_data[0] != alignment.NOTE_DEL_ASSOC:
@@ -98,12 +102,11 @@ class ProfileGridsTool(ToolInstance):
             run(self.session, self, note_data)
 
         self.grid_canvas.alignment_notification(note_name, note_data)
+        '''
 
     def delete(self):
         self.grid_canvas.destroy()
         self.alignment.detach_viewer(self)
-        for seq in self.alignment.seqs:
-            seq.triggers.remove_handler(self._seq_rename_handlers[seq])
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):

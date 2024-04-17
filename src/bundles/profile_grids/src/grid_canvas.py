@@ -104,9 +104,14 @@ class GridCanvas:
         self.main_label_view.show()
         self.main_view.show()
         self.layout_alignment()
+        self.selection_items = []
+        self.update_selection()
+        from chimerax.core.selection import SELECTION_CHANGED
+        self.handers = [ self.pg.session.triggers.add_handler(SELECTION_CHANGED, self.update_selection)
 
     def destroy(self):
-        pass
+        for handler in self.handlers:
+            handler.remove()
 
     def hide_header(self, header):
         raise NotImplementedError("hide_header")
@@ -223,6 +228,16 @@ class GridCanvas:
         self.lead_block.show_header(header)
         self.sv.region_browser.redraw_regions()
         self._update_scene_rects()
+
+    def update_selection(self, *args):
+        for item in self.selection_items():
+            self.main_scene.removeItem(item)
+        from chimerax.atomic import selected_chains, selected_residues
+        sel_chains = set(selected_chains(session))
+        if not sel_chains:
+            return
+        sel_residues = set(selected_residues(session))
+        #TODO
 
     def _update_scene_rects(self):
         # have to play with setViewportMargins to get correct scrolling...
