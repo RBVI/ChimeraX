@@ -91,6 +91,8 @@ class ColorActions(ToolInstance):
         actions_layout.addWidget(sep, stretch=1)
 
         self.global_button_info = []
+        # The _target_arg function relies on this being only the "Background" button,
+        # so would need revision if more buttons were added here
         for label, command in [("Background", "set bg %s")]:
             chk = QCheckBox(label)
             chk.setChecked(False)
@@ -263,6 +265,9 @@ class ColorActions(ToolInstance):
             if but.isChecked():
                 target += targ_char
         if not target:
+            for but, cmd in self.global_button_info:
+                if but.isChecked():
+                    return None
             raise NoTargetError()
         return "" if target == "acspf" else " target " + target
 
