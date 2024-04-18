@@ -40,7 +40,7 @@ Pillow==10.3.0
 pkginfo==1.10.0
 psutil==5.9.8
 pycollada==0.8
-pydicom==2.3.0
+pydicom==2.4.4
 pynrrd==1.0.0
 pyopenxr==1.0.3401
 tcia_utils==1.5.1
