@@ -19,6 +19,7 @@ from chimerax.webservices.cxservices_job import CxServicesJob
 from .data_model import get_database, CurrentDBVersions
 from .utils import BlastParams, make_instance_name
 
+
 class BlastProteinJob(CxServicesJob):
     inet_error = "Could not start BLAST job. Please check your internet connection and try again."
     service_name = "blast"
@@ -27,10 +28,10 @@ class BlastProteinJob(CxServicesJob):
     def __init__(self, session, seq, atomspec, **kw):
         super().__init__(session)
 
-        if 'tool_inst_name' not in kw:
-            kw['tool_inst_name'] = make_instance_name()
-        if kw['tool_inst_name'] is None:
-            kw['tool_inst_name'] = make_instance_name()
+        if "tool_inst_name" not in kw:
+            kw["tool_inst_name"] = make_instance_name()
+        if kw["tool_inst_name"] is None:
+            kw["tool_inst_name"] = make_instance_name()
 
         try:
             self.setup(seq, atomspec, **kw)
@@ -44,32 +45,42 @@ class BlastProteinJob(CxServicesJob):
             "matrix": self.matrix,
             "blimit": str(self.max_seqs),
             "input_seq": self.seq,
-            "version": self.version
+            "version": self.version,
         }
 
         try:
-            model_no = int(atomspec.split('/')[0].split('#')[1])
+            model_no = int(atomspec.split("/")[0].split("#")[1])
             self.model_name = session.models._models[(model_no,)]._name
         except (ValueError, KeyError, AttributeError):
             self.model_name = None
 
-    def setup(self, seq, atomspec, database: str = "pdb", cutoff: float = 1.0e-3,
-              matrix: str = "BLOSUM62", max_seqs: int = 100, log = None,
-              version = None, tool_inst_name = None, sequence_name = None):
-        self.seq = seq.replace('?', 'X')                  # string
-        if self.seq.count('X') == len(self.seq):
+    def setup(
+        self,
+        seq,
+        atomspec,
+        database: str = "pdb",
+        cutoff: float = 1.0e-3,
+        matrix: str = "BLOSUM62",
+        max_seqs: int = 100,
+        log=None,
+        version=None,
+        tool_inst_name=None,
+        sequence_name=None,
+    ):
+        self.seq = seq.replace("?", "X")  # string
+        if self.seq.count("X") == len(self.seq):
             raise JobError("Sequence consists entirely of unknown amino acids.")
         # if self.seq.count('X') > len(self.seq) // 2:
         #     self.thread_safe_warn("Attempting to run BLAST job with a high occurrence of unknown sequences.")
-        self.sequence_name = sequence_name                # string
-        self.atomspec = atomspec                          # string (atom specifier)
-        self.database = database                          # string
-        self.cutoff = cutoff                              # float
-        self.matrix = matrix                              # string
-        self.max_seqs = max_seqs                          # int
+        self.sequence_name = sequence_name  # string
+        self.atomspec = atomspec  # string (atom specifier)
+        self.database = database  # string
+        self.cutoff = cutoff  # float
+        self.matrix = matrix  # string
+        self.max_seqs = max_seqs  # int
         if version is None:
             version = CurrentDBVersions[self.database]
-        self.version = version                            # DB Version
+        self.version = version  # DB Version
         self.log = log
         self.tool_inst_name = tool_inst_name
 
@@ -83,13 +94,17 @@ class BlastProteinJob(CxServicesJob):
         data = ["> %s\n" % title]
         block_size = 60
         for i in range(0, len(seq), block_size):
-            data.append("%s\n" % seq[i:i + block_size])
-        return ''.join(data)
+            data.append("%s\n" % seq[i : i + block_size])
+        return "".join(data)
 
     def _params(self):
         return BlastParams(
-            self.atomspec, self.database, self.cutoff
-            , self.max_seqs, self.matrix, self.version
+            self.atomspec,
+            self.database,
+            self.cutoff,
+            self.max_seqs,
+            self.matrix,
+            self.version,
         )
 
     def on_finish(self):
@@ -98,18 +113,21 @@ class BlastProteinJob(CxServicesJob):
         if self.session.ui.is_gui:
             if self.exited_normally():
                 from .ui import BlastProteinResults
+
                 BlastProteinResults.from_job(
-                    session = self.session
-                    , tool_name = self.tool_inst_name
-                    , params=self._params()
-                    , job=self
+                    session=self.session,
+                    tool_name=self.tool_inst_name,
+                    params=self._params(),
+                    job=self,
                 )
             else:
                 self.session.logger.error("BLAST job failed")
         else:
             if self.exited_normally():
                 results = self.get_results()
-                parse_blast_results_nogui(self.session, self._params(), self.seq, results, self.log)
+                parse_blast_results_nogui(
+                    self.session, self._params(), self.seq, results, self.log
+                )
             else:
                 self.session.logger.error("BLAST job failed")
 
@@ -118,35 +136,43 @@ class BlastProteinJob(CxServicesJob):
 
     @classmethod
     def from_snapshot(cls, session, data):
-        params = data['params']
-        atomspec = data['atomspec']
-        seq = params['input_seq']
-        database = params['db']
-        cutoff = params['evalue']
-        matrix = params['matrix']
-        maxSeqs = params['blimit']
-        version = params['version']
-        tmp = cls(session, seq, atomspec
-                  , database=database, cutoff=cutoff, matrix=matrix
-                  , max_seqs = maxSeqs, version = version, log = None
-                  , tool_inst_name = data.get('tool_inst_name', None))
-        tmp.start_time = data['start_time']
-        tmp.end_time = data['end_time']
-        tmp.id = data['id']
-        tmp.job_id = data['job_id']
-        tmp.state = data['state']
+        params = data["params"]
+        atomspec = data["atomspec"]
+        seq = params["input_seq"]
+        database = params["db"]
+        cutoff = params["evalue"]
+        matrix = params["matrix"]
+        maxSeqs = params["blimit"]
+        version = params["version"]
+        tmp = cls(
+            session,
+            seq,
+            atomspec,
+            database=database,
+            cutoff=cutoff,
+            matrix=matrix,
+            max_seqs=maxSeqs,
+            version=version,
+            log=None,
+            tool_inst_name=data.get("tool_inst_name", None),
+        )
+        tmp.start_time = data["start_time"]
+        tmp.end_time = data["end_time"]
+        tmp.id = data["id"]
+        tmp.job_id = data["job_id"]
+        tmp.state = data["state"]
         tmp.restore()
         return tmp
 
     def take_snapshot(self, session, flags) -> Dict:
         data = super().take_snapshot(session, flags)
-        data['params'] = self.params
-        data['atomspec'] = self.atomspec
-        data['tool_inst_name'] = self.tool_inst_name
+        data["params"] = self.params
+        data["atomspec"] = self.atomspec
+        data["tool_inst_name"] = self.tool_inst_name
         return data
 
     @staticmethod
-    def restore_snapshot(session, data) -> 'CxServicesJob':
+    def restore_snapshot(session, data) -> "CxServicesJob":
         return BlastProteinJob.from_snapshot(session, data)
 
 
@@ -164,7 +190,7 @@ def parse_blast_results_nogui(session, params, sequence, results, log=None):
                 msgs.append("  %s: %s" % (name, value))
             for m in blast_results.parser.matches:
                 name = m.match if m.match else m.name
-                msgs.append('\t'.join([name, "%.1e" % m.evalue,
-                                       str(m.score),
-                                       m.description]))
-            session.logger.info('\n'.join(msgs))
+                msgs.append(
+                    "\t".join([name, "%.1e" % m.evalue, str(m.score), m.description])
+                )
+            session.logger.info("\n".join(msgs))

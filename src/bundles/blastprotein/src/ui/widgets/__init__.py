@@ -1,3 +1,3 @@
-from .labelledbar import *
-from .table import *
-from .bpform import *
+from .labelledbar import *  # noqa
+from .table import *  # noqa
+from .bpform import *  # noqa

@@ -87,68 +87,114 @@ query_template = """{
 }"""
 
 entry_attr_name_mapping = [
-    ("title", ['struct', 'title']),
-    ("method", ['exptl', 'method']),
-    ("resolution", ['rcsb_entry_info', 'resolution_combined']),
-    ("#_residues", ['rcsb_entry_info', 'deposited_polymer_monomer_count']),
-    ("#_atoms", ['rcsb_entry_info', 'deposited_atom_count']),
-    ("date", ['rcsb_accession_info', 'deposit_date']),
-    ("authors", ['audit_author', 'name']),
-    ("pubmed_id", ['rcsb_primary_citation', 'pdbx_database_id_PubMed']),
-    ('ligand_formulas', ['nonpolymer_entities', 'nonpolymer_comp', 'chem_comp', 'formula']),
-    ('ligand_names', ['nonpolymer_entities', 'nonpolymer_comp', 'chem_comp', 'name']),
-    ('ligand_smiles', ['nonpolymer_entities', 'nonpolymer_comp', 'rcsb_chem_comp_descriptor', 'SMILES']),
-    ('ligand_symbols', ['nonpolymer_entities', 'nonpolymer_comp', 'rcsb_chem_comp_descriptor', 'comp_id']),
-    ('ligand_weights', ['nonpolymer_entities', 'nonpolymer_comp', 'chem_comp', 'formula_weight'])
+    ("title", ["struct", "title"]),
+    ("method", ["exptl", "method"]),
+    ("resolution", ["rcsb_entry_info", "resolution_combined"]),
+    ("#_residues", ["rcsb_entry_info", "deposited_polymer_monomer_count"]),
+    ("#_atoms", ["rcsb_entry_info", "deposited_atom_count"]),
+    ("date", ["rcsb_accession_info", "deposit_date"]),
+    ("authors", ["audit_author", "name"]),
+    ("pubmed_id", ["rcsb_primary_citation", "pdbx_database_id_PubMed"]),
+    (
+        "ligand_formulas",
+        ["nonpolymer_entities", "nonpolymer_comp", "chem_comp", "formula"],
+    ),
+    ("ligand_names", ["nonpolymer_entities", "nonpolymer_comp", "chem_comp", "name"]),
+    (
+        "ligand_smiles",
+        [
+            "nonpolymer_entities",
+            "nonpolymer_comp",
+            "rcsb_chem_comp_descriptor",
+            "SMILES",
+        ],
+    ),
+    (
+        "ligand_symbols",
+        [
+            "nonpolymer_entities",
+            "nonpolymer_comp",
+            "rcsb_chem_comp_descriptor",
+            "comp_id",
+        ],
+    ),
+    (
+        "ligand_weights",
+        ["nonpolymer_entities", "nonpolymer_comp", "chem_comp", "formula_weight"],
+    ),
 ]
 
 chain_attr_name_mapping = [
-    ('chain_names', False, ['rcsb_polymer_entity', 'pdbx_description']),
-    ('chain_copies', True, ["entity_poly", "pdbx_strand_id", lambda v: len(v.split(','))]),
-    ('#_polymers', False, [len]),
-    ('chain_residues', True, ["entity_poly", "rcsb_sample_sequence_length"]),
-    ('species', True, [(["entity_src_gen", "pdbx_gene_src_scientific_name"],
-                       ["entity_src_nat", (["pdbx_organism_scientific"], ["species"])])]),
-    ('uniprot_id', True, ["rcsb_polymer_entity_container_identifiers",
-                          "reference_sequence_identifiers", {("database_name", "UniProt"): ["database_accession"]}]),
-    ('chain_weight', True, ['rcsb_polymer_entity', 'formula_weight'])
+    ("chain_names", False, ["rcsb_polymer_entity", "pdbx_description"]),
+    (
+        "chain_copies",
+        True,
+        ["entity_poly", "pdbx_strand_id", lambda v: len(v.split(","))],
+    ),
+    ("#_polymers", False, [len]),
+    ("chain_residues", True, ["entity_poly", "rcsb_sample_sequence_length"]),
+    (
+        "species",
+        True,
+        [
+            (
+                ["entity_src_gen", "pdbx_gene_src_scientific_name"],
+                ["entity_src_nat", (["pdbx_organism_scientific"], ["species"])],
+            )
+        ],
+    ),
+    (
+        "uniprot_id",
+        True,
+        [
+            "rcsb_polymer_entity_container_identifiers",
+            "reference_sequence_identifiers",
+            {("database_name", "UniProt"): ["database_accession"]},
+        ],
+    ),
+    ("chain_weight", True, ["rcsb_polymer_entity", "formula_weight"]),
 ]
+
 
 def fetch_pdb_info(entry_chain_list):
     # Can't just sub in a list, since Python uses single quotes around strings by default
-    query = query_template % ",".join(['"%s"' % entry_chain.split('_')[0] for entry_chain in entry_chain_list])
-    req = Request("https://data.rcsb.org/graphql", data=query.encode('utf-8'), headers={
-         "Content-Type": "application/graphql"
-    })
+    query = query_template % ",".join(
+        ['"%s"' % entry_chain.split("_")[0] for entry_chain in entry_chain_list]
+    )
+    req = Request(
+        "https://data.rcsb.org/graphql",
+        data=query.encode("utf-8"),
+        headers={"Content-Type": "application/graphql"},
+    )
     f = urlopen(req)
     data = f.read()
     f.close()
-    data = data.decode('utf-8')
+    data = data.decode("utf-8")
     info = json.loads(data)
-    if 'errors' in info:
-        raise ValueError("Fetching BLAST PDB info had errors: %s" % info['errors'])
+    if "errors" in info:
+        raise ValueError("Fetching BLAST PDB info had errors: %s" % info["errors"])
     by_entry = {}
-    for entry_data in info['data']['entries']:
-        by_entry[entry_data['rcsb_id']] = entry_data
+    for entry_data in info["data"]["entries"]:
+        by_entry[entry_data["rcsb_id"]] = entry_data
     pdb_info = {}
     for info_key in entry_chain_list:
-        entry, chain = info_key.split('_')
+        entry, chain = info_key.split("_")
         pdb_info[info_key] = hits = {}
         if entry not in by_entry:
             continue
         for attr_name, mmcif_keys in entry_attr_name_mapping:
             val = get_val(by_entry[entry], mmcif_keys)
             hits[attr_name] = val
-        all_polys = by_entry[entry]['polymer_entities']
+        all_polys = by_entry[entry]["polymer_entities"]
         for poly in all_polys:
             try:
-                ids = poly['rcsb_polymer_entity_container_identifiers']
+                ids = poly["rcsb_polymer_entity_container_identifiers"]
             except KeyError:
                 continue
             if ids is None:
                 continue
             try:
-                auth_ids = ids['auth_asym_ids']
+                auth_ids = ids["auth_asym_ids"]
             except KeyError:
                 continue
             if auth_ids and chain in auth_ids:
@@ -168,13 +214,20 @@ def fetch_pdb_info(entry_chain_list):
                     val = []
                     for p in all_polys:
                         pval = get_val(p, mmcif_keys)
-                        auth_ids = get_val(p, ['rcsb_polymer_entity_container_identifiers', 'auth_asym_ids'])
+                        auth_ids = get_val(
+                            p,
+                            [
+                                "rcsb_polymer_entity_container_identifiers",
+                                "auth_asym_ids",
+                            ],
+                        )
                         if pval is not None and auth_ids is not None:
                             val.append("%s: %s" % (",".join(auth_ids), pval))
                     if not val:
                         val = None
             hits[attr_name] = val
     return pdb_info
+
 
 def get_val(init_val, mmcif_keys):
     val = init_val
