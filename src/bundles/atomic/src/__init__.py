@@ -40,7 +40,7 @@ from .pbgroup import interatom_pseudobonds, selected_pseudobonds
 from .molarray import Collection, Atoms, AtomicStructures, Bonds, Chains, Pseudobonds, Structures, \
     PseudobondGroups, Residues, concatenate
 from .structure import AtomicStructure, Structure, LevelOfDetail
-from .structure import selected_atoms, selected_bonds, selected_residues
+from .structure import selected_atoms, selected_bonds, selected_residues, selected_chains
 from .structure import all_atoms, all_bonds, all_residues, all_atomic_structures, all_structures
 from .structure import structure_atoms, structure_residues, structure_graphics_updater, level_of_detail
 from .structure import PickedAtom, PickedBond, PickedResidue, PickedPseudobond
