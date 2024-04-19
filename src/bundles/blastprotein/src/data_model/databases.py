@@ -10,7 +10,7 @@
 #  including partial copies, of the software or any revisions
 #  or derivations thereof.
 #  === UCSF ChimeraX Copyright ===
-
+from enum import StrEnum
 from typing import Callable
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
@@ -367,17 +367,21 @@ CurrentDBVersions = {
 }
 
 AvailableDBs = list(AvailableDBsDict.keys())
-AvailableMatrices = [
-    "BLOSUM45",
-    "BLOSUM50",
-    "BLOSUM62",
-    "BLOSUM80",
-    "BLOSUM90",
-    "PAM30",
-    "PAM70",
-    "PAM250",
-    "IDENTITY",
-]
+
+
+class Matrix(StrEnum):
+    BLOSUM45 = "BLOSUM45"
+    BLOSUM50 = "BLOSUM50"
+    BLOSUM62 = "BLOSUM62"
+    BLOSUM80 = "BLOSUM80"
+    BLOSUM90 = "BLOSUM90"
+    PAM30 = "PAM30"
+    PAM70 = "PAM70"
+    PAM250 = "PAM250"
+    IDENTITY = "IDENTITY"
+
+
+AvailableMatrices = set([e.value for e in Matrix])
 
 
 def get_database(db: str) -> Database:
