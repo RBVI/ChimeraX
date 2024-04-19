@@ -27,7 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>transparency</b>
 &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp; &nbsp;<i>percent</i>&nbsp;
-[&nbsp;<b>target</b>&nbsp;&nbsp;<i>string</i>&nbsp;]
+[&nbsp;<i>what</i>&nbsp;|&nbsp;<b>target</b>&nbsp;&nbsp;<i>string</i>&nbsp;]
 </h3>
 <p>
 The <b>transparency</b> command sets the transparency of 
@@ -74,8 +74,8 @@ without commas or spaces:
   </ul>
 The default is <b>target s</b>, surfaces only.
 </p><p>
-Alternatively, 
-targets can be specified with one or more of the following keywords
+Alternatively, the targets (<i>what</i> to act upon)
+can be specified with one or more of the following keywords
 as a comma-separated list at the end of the command:
 </p>
 <ul>
@@ -88,7 +88,30 @@ or <b>target r</b>
 <li><b>All</b> &ndash; equivalent to <b>target abcsp</b>
 </ul>
 
+<a name="examples"></a>
+<h4>Examples</h4>
+Make chain A molecular surface 50% transparent:
+<blockquote>
+<b>transparency /A 50</b>
+</blockquote>
+Make atoms 75% transparent:
+<blockquote>
+<b>transparency 75 target a</b>
+<br>&ndash; or &ndash;<br>
+<b>transparency 75 atoms</b>
+</blockquote>
+Make <a href="../selection.html">selected</a> atoms non-transparent:
+<blockquote>
+<b>transparency sel 0 target a</b>
+</blockquote>
+Make model #2 chain B ribbons 80% transparent:
+<blockquote>
+<b>transparency #2/B 80 target r</b>
+<br>&ndash; or &ndash;<br>
+<b>transparency #2/B 80 ribbon</b>
+</blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2020</address>
+April 2024</address>
 </body></html>
