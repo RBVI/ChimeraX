@@ -4272,3 +4272,8 @@ def log_command(session, command_name, command_text, *, url=None):
             % (text, text)
         )
         session.logger.info(msg, is_html=True, add_newline=False)
+
+
+# TODO: register_type(PythonType, CliArgType) -> void
+# TODO: python_type_to_cx_type(PythonType) -> CliArgType
+# TODO: command_desc_from_function_signature(Callable) -> CmdDesc
