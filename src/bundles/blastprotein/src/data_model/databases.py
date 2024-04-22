@@ -381,7 +381,7 @@ class Matrix(StrEnum):
     IDENTITY = "IDENTITY"
 
 
-AvailableMatrices = set([e.value for e in Matrix])
+AvailableMatrices = [e.value for e in Matrix]
 
 
 def get_database(db: str) -> Database:
