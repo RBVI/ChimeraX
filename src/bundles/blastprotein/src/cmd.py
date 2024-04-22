@@ -43,6 +43,7 @@ def blastprotein(
     *,
     name=None
 ):
+    """Search PDB/NR using BLAST"""
     str_chain = None
     if isinstance(atoms, tuple):
         # Must be alignment:seq
@@ -103,5 +104,5 @@ blastprotein_desc = CmdDesc(
         ("log", BoolArg),
         ("name", StringArg),
     ],
-    synopsis="Search PDB/NR using BLAST",
+    synopsis=blastprotein.__doc__.split("\n")[0].strip(),
 )
