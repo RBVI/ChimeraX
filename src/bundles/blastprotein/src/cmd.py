@@ -11,6 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from typing import Optional, Union
 from chimerax.core.commands import (
     StringArg,
     BoolArg,
@@ -26,24 +27,31 @@ from chimerax.atomic import SequenceArg, Sequence, Chain
 from chimerax.core.errors import UserError
 from chimerax.seqalign import AlignSeqPairArg
 
-from .data_model import AvailableDBs, AvailableMatrices
+from .data_model import AvailableDBs, AvailableMatrices, Matrix
 from .job import BlastProteinJob
 
 
 # Use camel-case variable names for displaying keywords in help/usage
 def blastprotein(
     session,
+    # TODO: Figure out what types are included in Or(AtomSpecArg, AlignSeqPairArg, SequenceArg)
+    # Or is a union, clearly
     atoms=None,
     database="pdb",
-    cutoff=1.0e-3,
-    matrix="BLOSUM62",
-    maxSeqs=100,
-    version=None,
+    cutoff: float = 1.0e-3,
+    matrix: Union[Matrix, str] = "BLOSUM62",
+    maxSeqs: int = 100,
+    version: Optional[int] = None,
+    showResultsTable: bool = True,
+    loadStructures: bool = False,
+    showSequenceAlignment: bool = False,
     log=None,
     *,
     name=None
 ):
     """Search PDB/NR using BLAST"""
+    if isinstance(matrix, str):
+        matrix = Matrix(matrix)
     str_chain = None
     if isinstance(atoms, tuple):
         # Must be alignment:seq
@@ -89,6 +97,9 @@ def blastprotein(
         version=version,
         log=log,
         tool_inst_name=name,
+        show_gui=showResultsTable,
+        load_structures=loadStructures,
+        load_sequences=showSequenceAlignment,
     )
     job.start()
 
@@ -103,6 +114,9 @@ blastprotein_desc = CmdDesc(
         ("version", StringArg),
         ("log", BoolArg),
         ("name", StringArg),
+        ("showResultsTable", BoolArg),
+        ("loadStructures", BoolArg),
+        ("showSequenceAlignment", BoolArg),
     ],
     synopsis=blastprotein.__doc__.split("\n")[0].strip(),
 )

@@ -15,8 +15,14 @@ from urllib3.exceptions import MaxRetryError
 
 from chimerax.core.tasks import JobError
 from chimerax.webservices.cxservices_job import CxServicesJob
+from chimerax.atomic import Sequence
 
-from .data_model import get_database, CurrentDBVersions
+from .data_model import (
+    get_database,
+    CurrentDBVersions,
+    parse_blast_results,
+    AvailableDBsDict,
+)
 from .utils import BlastParams, make_instance_name
 
 
@@ -27,6 +33,10 @@ class BlastProteinJob(CxServicesJob):
 
     def __init__(self, session, seq, atomspec, **kw):
         super().__init__(session)
+
+        self.show_gui = kw.pop("show_gui", True)
+        self.load_structures = kw.pop("load_structures", False)
+        self.load_sequences = kw.pop("load_sequences", False)
 
         if "tool_inst_name" not in kw:
             kw["tool_inst_name"] = make_instance_name()
@@ -50,7 +60,9 @@ class BlastProteinJob(CxServicesJob):
 
         try:
             model_no = int(atomspec.split("/")[0].split("#")[1])
+            chain = atomspec.split("/")[1]
             self.model_name = session.models._models[(model_no,)]._name
+            self.chain = chain
         except (ValueError, KeyError, AttributeError):
             self.model_name = None
 
@@ -112,14 +124,85 @@ class BlastProteinJob(CxServicesJob):
         logger.status("BlastProtein finished.")
         if self.session.ui.is_gui:
             if self.exited_normally():
-                from .ui import BlastProteinResults
+                if self.show_gui:
+                    from .ui import BlastProteinResults
 
-                BlastProteinResults.from_job(
-                    session=self.session,
-                    tool_name=self.tool_inst_name,
-                    params=self._params(),
-                    job=self,
-                )
+                    BlastProteinResults.from_job(
+                        session=self.session,
+                        tool_name=self.tool_inst_name,
+                        params=self._params(),
+                        job=self,
+                    )
+                else:
+                    params = self._params()
+                    db = AvailableDBsDict[params.database]
+                    hits, sequences = parse_blast_results(
+                        params.database,
+                        self.get_results(),
+                        self.seq,
+                        self.atomspec,
+                    )
+                    # Load the structures and sequences
+                    if self.load_structures:
+                        hits = sorted(hits, key=lambda i: i["e-value"])
+                        for index, hit in enumerate(hits):
+                            hit["hit_#"] = index + 1
+                        for hit in hits:
+                            name = hit[db.fetchable_col]
+                            if params.database in ["alphafold", "esmfold"]:
+                                models, chain_id = db.load_model(
+                                    self.session, name, self.atomspec, params.version
+                                )
+                            else:
+                                models, chain_id = db.load_model(
+                                    self.session, name, self.atomspec
+                                )
+                            models = models[0]
+                            db.display_model(
+                                self.session,
+                                self.atomspec,
+                                models,
+                                chain_id,
+                            )
+                    if self.load_sequences:
+                        # Show the multiple alignment viewer
+                        ids = [hit["id"] for hit in hits]
+                        ids.insert(0, 0)
+                        names = []
+                        seqs = []
+                        for sid in ids:
+                            name, match = sequences[sid]
+                            names.append(name)
+                            seqs.append(match.sequence)
+                        # Find columns that are gaps in all sequences and remove them.
+                        all_gaps = set()
+                        for i in range(len(seqs[0])):
+                            for seq in seqs:
+                                if seq[i].isalpha():
+                                    break
+                            else:
+                                all_gaps.add(i)
+                        if all_gaps:
+                            for i in range(len(seqs)):
+                                seq = seqs[i]
+                                new_seq = "".join(
+                                    [
+                                        seq[n]
+                                        for n in range(len(seq))
+                                        if n not in all_gaps
+                                    ]
+                                )
+                                seqs[i] = new_seq
+                        # Generate multiple sequence alignment file
+                        # Ask sequence viewer to display alignment
+                        seqs = [
+                            Sequence(name=name, characters=seqs[i])
+                            for i, name in enumerate(names)
+                        ]
+                        name = "blast-nogui alignments"
+                        # Ensure that the next time the user launches the same command that a
+                        # unique index gets shown.
+                        self.session.alignments.new_alignment(seqs, name)
             else:
                 self.session.logger.error("BLAST job failed")
         else:
