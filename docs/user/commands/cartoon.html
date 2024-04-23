@@ -15,7 +15,7 @@ or derivations thereof.
 
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
-<title>Command: cartoon, ribbon</title>
+<title>Command: cartoon, ribbon, worm</title>
 </head><body>
 
 <a name="top"></a>
@@ -23,7 +23,7 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3><a href="../index.html#commands">Command</a>: cartoon, ribbon</h3>
+<h3><a href="../index.html#commands">Command</a>: cartoon, ribbon, worm</h3>
 
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
@@ -54,6 +54,11 @@ other residues), and the integer-valued
 automatically used to distinguish them. To force combining adjacent helices
 or breaking a longer helix into shorter ones, <b>ss_id</b> can be changed
 &ldquo;manually&rdquo; with <a href="setattr.html"><b>setattr</b></a>.
+</p><p>
+For &ldquo;worms,&rdquo; specialized cartoons with variable thickness to show
+the values of a numerical <a href="../attributes.html">attribute</a>,
+see the <a href="#byattribute"><b>cartoon byattribute</b></a>
+or <a href="#worm"><b>worm</b></a> command.
 </p><p>
 See also:
 <a href="preset.html"><b>preset</b></a>,
@@ -109,6 +114,11 @@ control per-model settings:
 &ndash; width, thickness, and shape; protein secondary structure representations
 <li><a href="#tether"><b>cartoon tether</b></a>
 &ndash; appearance of connectors between cartoon and offset backbone atoms
+<li><a href="#byattribute"><b>cartoon byattribute</b></a>
+(<a href="#worm"><b>worm</b></a>)
+&ndash; create &ldquo;worms,&rdquo; specialized cartoons with variable
+thickness to show <a href="../attributes.html">attribute</a> values;
+toggle between worms and standard cartoons
 </ul>
 <p>
 The cartoon path is guided by CA atoms (&alpha;-carbons) in peptides 
@@ -193,6 +203,14 @@ alt="6cmn licorice" title="6cmn licorice"></td>
 <br>(no 2&deg;-structure representations)</td>
 </table>
 </blockquote>
+
+<!--
+undocumented command option "cartoon style ssEnds long|short" (default short)
+which I thought was removed in 2018 but apparently can be used even in a
+daily build from 14 Feb 2024.  The reason we meant to remove or at least not 
+document this option is that it only works on some of the ends (those not 
+preceded by coil? due to https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/333 )
+-->
 
 <a href="#top" class="nounder">&bull;</a>
 (&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
@@ -296,7 +314,10 @@ the circumference of a <a href="#hmode">tube</a>, with higher numbers
 corresponding to finer subdivisions (initial default <b>12</b>).
 Shading is used to give a smooth, rounded appearance despite
 this approximation of the shape.
-See also: <a href="graphics.html#quality"><b>graphics quality</b></a>
+See also: 
+<a href="#byattribute"><b>cartoon byattribute</b></a>
+(<a href="#worm"><b>worm</b></a>),
+<a href="graphics.html#quality"><b>graphics quality</b></a>
   </blockquote><blockquote>
 <b>arrows</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>Whether to show arrowheads at the 
@@ -411,7 +432,104 @@ Tethers can be hidden using <b>opacity 0</b>.
 </p>
 </blockquote>
 
+<a name="byattribute"></a>
+<a name="worm"></a>
+<p class="nav">
+[<a href="#top">back to top: cartoon</a>]
+<h3>Cartoon by Attribute (Worm)</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+(&nbsp;<b>cartoon byattribute</b>&nbsp;|&nbsp;<b>worm</b>&nbsp;)
+&nbsp;<a href="../attributes.html#attrnames"><i>attribute-name</i></a>&nbsp;
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;<i>values-and-radii</i>&nbsp;]
+[&nbsp;<b>noValueRadius</b>&nbsp;&nbsp;<i>radius</i></a>&nbsp;]
+[&nbsp;<b>sides</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+(&nbsp;<b>cartoon byattribute</b>&nbsp;|&nbsp;<b>worm</b>&nbsp;) 
+(&nbsp;<b>on</b>&nbsp;|&nbsp;<b>off</b>&nbsp;)
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>~worm</b>
+</blockquote>
+<p>
+A <b><i>worm</i></b> is a specialized cartoon in which the radius varies to
+show the values of a numerical <a href="../attributes.html">attribute</a>.
+Attribute values are mapped to worm radius on a per-residue basis,
+and only biopolymer chains can be shown as worms.
+If an <a href="../attributes.html#atom">atom attribute</a> is given,
+the average value over all atoms in a residue is used for that residue.
+Several attributes are present automatically, but others can be
+defined by the user arbitrarily or created by various ChimeraX tools and
+commands (<a href="../attributes.html">details...</a>).
+The graphical interface to <b>cartoon byattribute</b> is
+<a href="../tools/render.html"><b>Render by Attribute</b></a>.
+See also: 
+<a href="color.html#byattribute"><b>color byattribute</b></a>,
+<a href="size.html#byattribute"><b>size byattribute</b></a>
+</p><p>
+The <i>values and radii</i> specification can be given as two or more
+space-separated pairs of the form:
+</p>
+<blockquote>
+<i>value</i></a>:<i>radius</i>
+</blockquote>
+<p>
+...where <i>value</i> can be <b>min</b> or <b>max</b> as well as
+a numerical value of the attribute. The default mapping is:
+</p>
+<blockquote>
+<b>min:0.25 max:2.0</b>
+</blockquote>
+<p>
+The min and max are determined from the residues within the specified model 
+or models (&ldquo;all&rdquo; if the specification is blank,
+as per the usual convention) and that can be represented by a cartoon,
+namely peptide and nucleotide chains.
+</p><p>
+The <b>noValueRadius</b> option indicates what radius to use for residues 
+without an assignment (or within atomic structures without an 
+assignment) for the specified attribute (default <b>0.1</b> &Aring;).
+</p><p>
+The <b>sides</b> option sets the number of facets <i>N</i> around the 
+circumference of the worm, with higher values giving a more smoothly
+rounded shape. The default for worms is <b>24</b> (the current maximum).
+This parameter can also be adjusted with
+<a href="cartoon.html#style"><b>cartoon style</b></a>
+and <a href="graphics.html#quality"><b>graphics quality</b></a>.
+</p><p>
+Once generated, the worm radii are remembered separately from the other 
+cartoon parameters (as a residue
+<a href="../attributes.html">attribute</a> named <b>worm_radius</b>),
+and it is possible to toggle back and forth between 
+the previous non-worm cartoon and a previously defined worm display. 
+This can be done with
+<b>worm off</b> (equivalent to <b>~worm</b> or <b>cartoon byattribute off</b>)
+and <b>worm on</b> (equivalent to <b>cartoon byattribute on</b>).
+As with other Boolean settings, synonyms for <b>on</b> are <b>true</b>, 
+<b>True</b>, <b>1</b>, and synonyms for <b>off</b> are
+<b>false</b>, <b>False</b>, <b>0</b>. Example commands:
+</p>
+<blockquote>
+<b>cartoon byattr bfactor min:0.2 max:2.5</b>
+<br>
+<b>worm bfactor min:0.2 max:2.5</b>
+<br>
+<b>~worm</b>
+</blockquote>
+<p>
+These commands do not hide/show worms, they merely switch between worm
+and non-worm cartoon styles without changing whether the cartoon is displayed.
+As with other cartoon displays, the command 
+<a href="#top"><b>cartoon hide</b></a> or <a href="#top"><b>~cartoon</b></a>
+(<a href="#top"><b>ribbon hide</b></a> or <a href="#top"><b>~ribbon</b></a>)
+hides worm for the specified residues.
+The general <a href="show.html"><b>hide</b></a> and 
+<a href="show.html"><b>show</b></a> commands can also be used.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2023</address>
+March 2024</address>
 </body></html>

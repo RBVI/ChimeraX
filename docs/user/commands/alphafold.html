@@ -277,7 +277,7 @@ as that chain's. See also the <a href="#trim"><b>trim</b></a> option.
 <br>
 Whether to <a href="color.html#byattribute">color</a>
 the predicted structures by the
-<a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
+<a href="https://alphafold.ebi.ac.uk/faq#faq-12" target="_blank">pLDDT
 confidence measure</a> in the B-factor field (default <b>true</b>):
    <ul>
      <li>100
@@ -569,7 +569,7 @@ on the user's browser settings; it is not kept in the
 <a href="../preferences.html">ChimeraX preferences</a>.
 See the <a href="https://www.youtube.com/watch?v=gIbCAcMDM7E"
 target="_blank">example video</a> for an explanation of the images/plots
-from <b>ColabFold</b> that appear in the Colab log
+from ColabFold that appear in the Colab log
 and where to find downloaded files.
 </p><p>
 The model will be opened automatically and
@@ -577,11 +577,20 @@ The model will be opened automatically and
 The model for a sequence that was specified by structure chain will
 be superimposed on that chain and assigned structure-comparison attributes
 for further analysis (<a href="#structmatch">details...</a>).
+</p><p>
+See also: <a href="#batch">batch predictions</a>
 </p>
 
 <a name="caveats"></a>
 <h4>Caveats</h4>
 <ul>
+<li><b>Results may be lost if the local computer goes to sleep</b>.
+Google intends Colab to be for interactive use. Even if the Colab job completes,
+the results may fail to download to the local computer if it has gone to
+sleep. It is recommended to turn off the option to enter sleep mode 
+(meant to conserve power after some amount of idle time)
+before running a prediction.
+<br><br>
 <li>The process includes
 installing various software packages on a virtual machine, 
 searching sequence databases, generating a multiple sequence alignment,
@@ -622,7 +631,7 @@ using an Nvidia A100 GPU on Google Colab, costing about $1.50 for a
 <h3>AlphaFold Predicted Aligned Error (PAE)</h3>
 <p>
 Besides the per-residue
-<a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
+<a href="https://alphafold.ebi.ac.uk/faq#faq-12" target="_blank">pLDDT
 confidence measure</a>, AlphaFold gives
 for each pair of residues (X,Y) the expected position error
 at residue X if the predicted and true structures were aligned on residue Y.
@@ -837,7 +846,7 @@ gives the residues whose error values are reported, except that using
 <a href="atomspec.html"><i>res-spec1</i></a> and
 <a href="atomspec.html"><i>res-spec2</i></a>.
 If one set of residues is higher-confidence (lower in 
-<a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT</a>)
+<a href="https://alphafold.ebi.ac.uk/faq#faq-12" target="_blank">pLDDT</a>)
 than the other, it is usually best to specify them as the aligned residues
 so that the coloring will show the error values of the lower-confidence set.
 </p><p>
@@ -917,7 +926,219 @@ numbers of the residues that they connect:
 <a href="label.html">label</a>&nbsp;sel&nbsp;pseudobonds&nbsp;text&nbsp;"{0.atoms[0].residue.name}&nbsp;{0.atoms[0].residue.number}&nbsp;to&nbsp;{0.atoms[1].residue.name}&nbsp;{0.atoms[1].residue.number}"
 </b></blockquote>
 
+<a name="batch"></a>
+<p class="nav">
+[<a href="#top">back to top: alphafold</a>]
+</p>
+<h3>Batch Prediction Commands</h3>
+<p>
+The following commands facilitate batch predictions by advanced users
+who have access to running <b>ColabFold</b>
+directly (outside of ChimeraX) from the Linux shell.
+ColabFold [<a href="https://github.com/sokrypton/ColabFold" 
+target="_blank">github</a>] 
+[<a href="https://www.nature.com/articles/s41592-022-01488-1
+target="_blank">citation</a>] 
+runs on Linux computers with Nvidia graphics.
+See also:
+<a href="#predict"><b>alphafold predict</b></a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/afbatch-jan2024/rim_dimers.html"
+target="_blank">predicting dimers with AlphaFold</a>
+</p>
+<ul>
+<li><a href="#monomers"><b>alphafold monomers</b></a> &ndash; 
+estimate ColabFold runtime for monomer predictions
+given a set of sequences (<b>does not run the predictions</b>) 
+or display the results of previous predictions
+<li><a href="#dimers"><b>alphafold dimers</b></a> &ndash; 
+estimate ColabFold runtime for dimer predictions
+given a set of sequences (<b>does not run the predictions</b>) 
+<li><a href="#interfaces"><b>alphafold interfaces</b></a> &ndash;
+examine the <a href="#pae">PAE</a> scores of previous dimer predictions
+to determine which pairs are actually predicted to bind
+</ul>
+
+<a name="monomers"></a>
+<a href="#batch" class="nounder">&bull;</a>
+<b>alphafold monomers</b> 
+(&nbsp;<i>sequence-list</i>&nbsp;|&nbsp;<b>open</b>&nbsp;&nbsp;<i>results-folder</i>&nbsp;)
+[&nbsp;<b>maxLength</b>&nbsp;&nbsp;<i>L</i>&nbsp;]
+[&nbsp;<b>recycles</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<i>NN-list</i></a>&nbsp;]
+[&nbsp;<b>outputFasta</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
+<blockquote>
+Given a <i>sequence-list</i>, <b>alphafold monomers</b>
+estimates the time it would take ColabFold to run monomer predictions 
+for the sequences on an Nvidia 3090 GPU. 
+It also reports in the <a href="../tools/log.html"><b>Log</b></a> the
+colabfold_batch command that would be used to run the predictions
+from the Linux shell, but it does not actually run the predictions.
+Alternatively, if the monomer predictions have already been run,
+<b>alphafold monomers</b> can be used with the <b>open</b> option
+to display the results in ChimeraX.
+<p>
+The <i>sequence-list</i> can be given as either of the following:
+<ul>
+<li>a file in FASTA format, specified by pathname
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window
+<li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+for one or more chains in atomic structures open in ChimeraX
+</ul>
+Only protein sequences are considered, and duplicates are eliminated.
+The <b>maxLength</b> option excludes sequences with more than <i>L</i> 
+residues (no default, <i>i.e.</i> unlimited length).
+The <b>recycles</b> option controls the number of iterations for each prediction
+(default <b>3</b>), with smaller values giving shorter run times.
+The <b>models</b> option controls which of the five neural networks
+(called &ldquo;models&rdquo; in AlphaFold) to use, where
+<i>NN-list</i> is a comma-separated list of integers in the range 1-5
+(default <b>1,2,3,4,5</b>). Normally all five are used, producing five 
+predicted structures for each sequence, but using fewer neural networks 
+will decrease the run time.
+The sequences for which predictions would be run (filtered by uniqueness 
+and maximum length, if any) can be written to a new FASTA file using the 
+<b>outputFasta</b> option; if this option is not used, no FASTA file
+will be written.
+<p>
+Alternatively, using the <b>open</b> option to give a 
+<i>results-folder</i> (specified by pathname
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window) 
+opens the resulting structures and displays them in a convenient fashion:
+<a href="tile.html">tiled</a>, <a href="label.html">labeled</a>, and 
+<a href="#colorConfidence">colored by pLDDT</a>.
+</blockquote>
+
+<a name="dimers"></a>
+<a href="#batch" class="nounder">&bull;</a>
+<b>alphafold dimers</b> 
+&nbsp;<i>sequence-list</i>&nbsp;
+[&nbsp;<b>withSequences</b>&nbsp;&nbsp;<i>sequence-list2</i>&nbsp;]
+[&nbsp;<b>homodimers</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>maxLength</b>&nbsp;&nbsp;<i>L</i>&nbsp;]
+[&nbsp;<b>recycles</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<i>NN-list</i></a>&nbsp;]
+[&nbsp;<b>outputFasta</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
+<blockquote>
+Given a <i>sequence-list</i>, <b>alphafold dimers</b>
+estimates the time it would take ColabFold to run dimer predictions 
+on an Nvidia 3090 GPU for all pairs of the sequences.
+If <b>withSequences</b> is used to give a second list of sequences,
+only pairs with one sequence in the first list and the other in the second 
+list will be considered.  
+The command also reports in the <a href="../tools/log.html"><b>Log</b></a> the
+colabfold_batch command that would be used to run the predictions
+from the Linux shell, but it does not actually run the predictions.
+<p>
+Each sequence list can be given as either of the following:
+<ul>
+<li>a file in FASTA format, specified by pathname
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window
+<li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+for one or more chains in atomic structures open in ChimeraX
+</ul>
+Only protein sequences are considered, and duplicates are eliminated,
+except that the <b>homodimers</b> option indicates whether to predict
+structures for pairs of chains with identical sequences (default <b>true</b>).
+The sequence pairs for which predictions would be run
+can be written to a new FASTA file using the <b>outputFasta</b> option;
+if this option is not used, no FASTA file will be written.
+The <b>maxLength</b>, <b>recycles</b>, and <b>models</b> options are the same
+as described for <a href="#monomers"><b>alphafold monomers</b></a>,
+except that <b>maxLength</b> applies to the total combined length of the
+two sequences.
+</blockquote>
+
+<a name="interfaces"></a>
+<a href="#batch" class="nounder">&bull;</a>
+<b>alphafold interfaces</b> 
+&nbsp;<i>dimer-results-folder</i>&nbsp;
+[&nbsp;<b>distance</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>maxPae</b>&nbsp;&nbsp;<i>max-error</i>&nbsp;]
+[&nbsp;<b>minConfPairs</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>open</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>resultsFile</b>&nbsp;&nbsp;<i>csv-output-file</i>&nbsp;]
+[&nbsp;<b>shortNames</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+When AlphaFold (ColabFold) is given two sequences to predict as a complex, 
+it will always place the two chains near each other even if there are no 
+favorable binding interactions. 
+The AlphaFold <a href="#pae">predicted aligned error (PAE) score</a>
+indicates confidence in the predicted residue-residue interactions, and
+thus whether or not the two proteins are really predicted to bind one another.
+<p>
+The <b>alphafold interfaces</b> command considers all PDB files (.pdb suffix) 
+in the <i>dimer-results-folder</i> directory, which can be specified by its 
+pathname or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+Each PDB file should contain a ColabFold protein-protein dimer prediction 
+and should be named according to the ColabFold convention, which includes
+the sequence names and the rank and network used for the prediction.
+The directory will also include a PAE file (suffix .json) for each PDB file.
+For each predicted dimer:
+<ol>
+<li>the PDB file is opened and pairs of residues across the
+chain-chain interface with any atoms &le; <b>distance</b> <i>d</i> apart
+(default <b>4.0</b> &Aring;) are considered
+<li>of these, residue pairs with PAE &le; <b>maxPae</b>
+<i>max-error</i> (default <b>5.0</b> &Aring;) are counted
+<li>if at least <b>minConfPairs</b> <i>N</i> (default <b>10</b>)
+of the interface residue pairs meet both the distance and PAE criteria,
+the dimer is included in the list of possible binders
+<li>the structure is closed
+</ol>
+Processing all of the dimer predictions can take a few minutes,
+and progress is reported in the ChimeraX status line.
+After the calculation completes, a table listing the possible binders is
+written to the <a href="../tools/log.html"><b>Log</b></a>,
+including the sequence names, number of high-confidence residue pairs, and 
+how many residues in each chain are part of a high-confidence pair.
+<a name="alphafold-interfaces-open"></a>
+The <b>open</b> option allows opening the highest-ranked model structure for
+each possible-binder prediction (default <b>false</b>).
+</p><p>
+Results are also automatically written to a CSV file (filename specified 
+with the <b>resultsFile</b> option, default <b>interfaces.csv</b>).
+Contents include the numbers of high-confidence residue pairs found for
+each PDB file and their residue numbers.
+If the <b>alphafold interfaces</b> command is run a second time,
+it will look for this file and use it instead of reevaluating the predictions.
+If it is desired to rerun the evaluation with different criteria, 
+the interface.csv file should be deleted or renamed beforehand.
+</p><p>
+By default, ColabFold generates five structures for each pair of sequences.
+The table has one row for each pair of sequences for which at least one 
+&ldquo;possible binder&rdquo; structure was found.
+The Models column lists how many of the five model structures met the binding 
+criteria. In each row of the table, the sequence names are a link to
+open the highest-ranked model structure for that sequence pair.
+The <b>Open best</b> link below the table opens the highest-ranked structure
+for every listed sequence pair 
+(same as the <a href="#alphafold-interfaces-open"><b>open</b></a> command option).
+The links below the table to <b>Hide</b> and <b>Show</b> disordered loops 
+allow hiding or showing the ribbon for residues with 
+<a href="https://alphafold.ebi.ac.uk/faq#faq-12" target="_blank">pLDDT</a>
+&le; 50.
+</p><p>
+The sequence names are parsed from the PDB filenames, in which they are
+separated by a &ldquo;.&rdquo; character and terminated by 
+&ldquo;_unrelaxed.&rdquo;
+The sequence names may be long if the ColabFold input used long names.
+The names can be shortened in the possible-binders table using the 
+<b>shortNames</b> option (default <b>true</b>). That option considers words 
+in the sequence names separated by underscore characters (&ldquo;_&rdquo;)
+and looks for a unique word in each sequence that it will use as the short name.
+If no unique word is found, it will use the full name. 
+It is very helpful to make the FASTA file descriptions in the input to 
+ColabFold as concise as possible, since they will be used as the 
+sequence names in the output. Shorter names make it easier to navigate 
+the hundreds of files that ColabFold produces.
+</p>
+</blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2023</address>
+February 2024</address>
 </body></html>

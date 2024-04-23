@@ -2237,13 +2237,10 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     # Use font metrics to determine image width
     fm = QFontMetrics(f)
     r = fm.boundingRect(text if text else ' ')
-    # TODO: font metric width is sometimes 1 or 2 pixels too small in Qt 5.9.
-    #       Right bearing of rightmost character was positive, so does not extend right.
-    #       Use pad option to add some pixels to avoid clipped text.
-    tw, th = r.width(), r.height()  # pixels
-    from sys import platform
-    if platform == 'linux':
-        tw += 4  # With Qt 6.4 on Linux text width is too small.  ChimeraX bug #9263
+    # For text "Npl" the rectangle left, right, top, bottom are (4,68,-43,10) in Qt 6.6.
+    # This is if the text is drawn with origin 0,0.
+    # We are probably not getting the image size quite right.  ChimeraX ticket #14412.
+    tw, th = r.right()+1, r.height()  # pixels
 
     if pixels:
         iw, ih = tw+2*xbuf, size

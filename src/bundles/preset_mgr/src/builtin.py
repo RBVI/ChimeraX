@@ -25,7 +25,7 @@
 nospheres = (["style (protein|nucleic|solvent) & @@draw_mode=0 stick"])
 cardef    = (["show nucleic", "hide protein|solvent|H", "surf hide"] +
              nospheres +
-             ["cartoon",
+             ["~worm", "cartoon",
               "cartoon style modeh def arrows t arrowshelix f "
                 "arrowscale 2 wid 2 thick 0.4 sides 12 div 20",
               "cartoon style ~(nucleic|strand) x round",

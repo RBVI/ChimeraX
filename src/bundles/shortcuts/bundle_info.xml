@@ -160,6 +160,10 @@
       name="sx" display_name="Snapshot" icon="camera.png" description="Save snapshot to desktop"/>
     <Provider tab="Extras" section="Images" hidden="true"
       name="vd" display_name="Spin movie" icon="video.png" description="Record spin movie"/>
+
+    <Provider tab="Extras" section="Viewing" hidden="true"
+      name="vr" display_name="Virtual reality" icon="vr.png" description="Enable virtual reality with OpenXR.  Press to toggle passthrough video."/>
+
   </Providers>
 
   <Classifiers>
@@ -170,6 +174,7 @@
     <ChimeraXClassifier>Selector :: selAtoms :: Selected atoms, or if none selected then all atoms.</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: selMaps :: Selected maps, or if none selected then displayed maps. :: false</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: selModels :: Selected models, or if none selected then all models. :: false</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: last-opened :: Last opened top level model including its atoms.</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

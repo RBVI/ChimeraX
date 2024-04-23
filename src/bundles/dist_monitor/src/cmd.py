@@ -229,7 +229,8 @@ def distance_style(session, pbonds, *, color=None, dashes=None,
             if lm:
                 lm.add_labels(pbs, PseudobondLabel, session.main_view,
                     settings={ 'color': color.uint8x4() })
-        settings.color = color
+        if pbonds is None or set_defaults:
+            settings.color = color
         if set_defaults:
             settings.save('color')
 
@@ -239,26 +240,30 @@ def distance_style(session, pbonds, *, color=None, dashes=None,
             session.models.add([grp])
             session.pb_dist_monitor.add_group(grp, update_callback=_notify_updates)
         grp.dashes = dashes
-        settings.dashes = dashes
+        if pbonds is None or set_defaults:
+            settings.dashes = dashes
         if set_defaults:
             settings.save('dashes')
 
     if decimal_places is not None:
         session.pb_dist_monitor.decimal_places = decimal_places
-        settings.decimal_places = decimal_places
+        if pbonds is None or set_defaults:
+            settings.decimal_places = decimal_places
         if set_defaults:
             settings.save('decimal_places')
 
     if radius is not None:
         for pb in pbs:
             pb.radius = radius
-        settings.radius = radius
+        if pbonds is None or set_defaults:
+            settings.radius = radius
         if set_defaults:
             settings.save('radius')
 
     if symbol is not None:
         session.pb_dist_monitor.show_units = symbol
-        settings.show_units = symbol
+        if pbonds is None or set_defaults:
+            settings.show_units = symbol
         if set_defaults:
             settings.save('show_units')
 

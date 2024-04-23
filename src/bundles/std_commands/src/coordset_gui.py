@@ -77,6 +77,14 @@ class CoordinateSetSlider(Slider):
         super().delete()
         self.structure = None
 
+    @staticmethod
+    def remove_coordset_sliders(structures):
+        if structures:
+            sliders = tuple(getattr(structures[0].session, '_coord_set_sliders', []))
+            for slider in sliders:
+                if slider.structure in structures:
+                    slider.delete()
+
     SESSION_SAVE = True
     version = 1
     def take_snapshot(self, session, flags):

@@ -1037,8 +1037,12 @@ class Texture2dPlanes(PlanesDrawing):
     return planes
 
   def _set_ortho_planes(self):
-    ro = self._image_render._rendering_options
+    ir = self._image_render
+    ro = ir._rendering_options
     p = ro.orthoplane_positions
+    ijk_min, ijk_max = ir._region[:2]
+    from .volume import clamp_ijk
+    p = clamp_ijk(p, ijk_min, ijk_max)	# Make sure center point is within region.
     show_axis = ro.orthoplanes_shown
     planes = tuple((p[axis], axis) for axis in (0,1,2) if show_axis[axis])
     self._update_geometry(planes)

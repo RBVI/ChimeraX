@@ -219,9 +219,9 @@ from ..errors import UserError
 
 _debugging = False
 _normal_token = re.compile(r"[^;\s]*")
-_single_quote = re.compile(r"'(.|\')*?'(\s|$)")
+_single_quote = re.compile(r"(?P<string>'(.|\')*?')(\s|;|$)")
 _internal_single_quote = re.compile(r"'\s")
-_double_quote = re.compile(r'"(.|\")*?"(\s|$)')
+_double_quote = re.compile(r'(?P<string>"(.|\")*?")(\s|;|$)')
 _internal_double_quote = re.compile(r'"\s')
 _whitespace = re.compile(r"\s*")
 _internal_whitespace = re.compile(r"\s+")
@@ -1829,17 +1829,13 @@ def next_token(text, convert=False):
         m = _double_quote.match(text)
         if not m:
             raise AnnotationError("incomplete quoted text")
-        end = m.end()
-        if text[end - 1].isspace():
-            end -= 1
+        end = m.end('string')
         token = text[1:end - 1]
     elif text[0] == "'":
         m = _single_quote.match(text)
         if not m:
             raise AnnotationError("incomplete quoted text")
-        end = m.end()
-        if text[end - 1].isspace():
-            end -= 1
+        end = m.end('string')
         token = text[1:end - 1]
     elif text[0] == ';':
         return ';', ';', text[1:]
@@ -2260,7 +2256,7 @@ class _WordInfo:
                 self.registry.aliased_commands[name] = word_info
                 self.subcommands[word] = _WordInfo(self.registry, cmd_desc)
                 if logger is not None:
-                    logger.info("FYI: alias is hiding existing command" %
+                    logger.info("FYI: alias is hiding existing command: %s" %
                                 dq_repr(name))
         elif word_info.is_user_alias():
             # command is aliased, but new one isn't, so replaced saved version

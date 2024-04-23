@@ -132,12 +132,16 @@ class AddChargeTool(ToolInstance):
         params = {
             'standardize_residues': standardizable_residues if standardize else [],
         }
-        sel_restrict = self.sel_restrict.isChecked()
+        sel_restrict = self.sel_restrict.isChecked() and not self.session.selection.empty()
         from chimerax.core.commands import concise_model_spec
-        self.session.logger.info("Closest equivalent command: <b>addcharge %s%s standardizeResidues %s</b>"
-            % (concise_model_spec(self.session, self.structures,
-            relevant_types=self.structures[0].__class__), " & sel" if sel_restrict else "",
-            ",".join(standardizable_residues) if standardize else "none"), is_html=True)
+        concise_spec = concise_model_spec(self.session, self.structures,
+            relevant_types=self.structures[0].__class__)
+        if concise_spec:
+            spec = concise_spec + (" % sel" if sel_restrict else "")
+        else:
+            spec = "sel" if sel_restrict else ""
+        self.session.logger.info("Closest equivalent command: <b>addcharge %s standardizeResidues %s</b>"
+            % (spec, ",".join(standardizable_residues) if standardize else "none"), is_html=True)
         from .charge import add_standard_charges
         non_std = add_standard_charges(self.session, residues=residues, **params)
         if non_std:

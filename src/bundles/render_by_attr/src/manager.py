@@ -34,6 +34,10 @@ class RenderAttrInfo(metaclass=abc.ABCMeta):
         """Return the class object (which must offer the core attribute-registration API)"""
         pass
 
+    def deworm_applicable(self, models):
+        """Best effort answer to whether worms are depicted on the given models"""
+        return False
+
     def hide_attr(self, attr_name, rendering):
         """Return True if attr_name should not be shown by the Render/Select tab of the tool
           (respectively rendering True/False).
@@ -56,12 +60,15 @@ class RenderAttrInfo(metaclass=abc.ABCMeta):
         method the rendering values are RGBA (RGBA channels in 0-1 range).  For the 'radius' method,
         the value is an atomic radius value.
 
-        The method=specific first parameter is:
+        The method-specific first parameter is:
 
         'color': a set of targets to color (of those legal from the Provider declaration).
 
         'radius': a string, either 'sphere', 'ball', or 'unchanged', indicating how the affected atoms
             should be depicted.
+
+        'worm': a boolean saying whether to show (True) or stop showing (False) worms.  If False, then
+            attr_name will be None and the sequence of waypoints will be empty.
 
         For both methods, if 'selected_only' is True, then the rendering should only be applied to
         selected instances.
@@ -71,9 +78,22 @@ class RenderAttrInfo(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
+    def select(self, session, attr_name, models, discrete, parameters):
+        """Select parts of the given models based on attr_name as requested.
+
+        'discrete' indicates whether 'parameters' is a discete sequence of values (strings or booleans, and
+        can include None) to select.  If not, then 'parameters' is either None, in which case items with
+        missing or None values should be selected.  Otherwise, parameters is a three-tuple, the first value
+        is a boolean and the other two values are numeric.  The boolean idicates whether to select values
+        between the other two values (inclusive; first value True) or outside the other two values (first
+        value False).  The lesser of the two bounds values will be the second value of the three-tuple.
+        """
+        pass
+
+    @abc.abstractmethod
     def values(self, attr_name, models):
         """Get the values of the given attribute in the given models.  Returns a two-tuple,
-        the first component of which is a sequence of the non-None values, and the second is
+        the first component of which is a sequence of all the non-None values, and the second is
         a boolean indicating if there were any None values.
         """
         pass
@@ -129,6 +149,15 @@ class RenderByAttrManager(ProviderManager):
 
     def ui_name(self, provider_name):
         return self._ui_names[provider_name]
+
+    def show_select_tool(self):
+        from .tool import RenderByAttrTool as tool_class
+        for tool in self.session.tools:
+            if isinstance(tool, tool_class):
+                break
+        else:
+            tool = tool_class(self.session, "Render by Attribute")
+        tool.show_tab("Select")
 
 _manager = None
 def get_manager(session):

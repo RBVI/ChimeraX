@@ -15,3 +15,8 @@ f2c53ce407384e608cb5ac0daa56fd78d7e30784 # Lint the DICOM bundle
 3eedbb7aa610cee0484d16ab6ed4cadfa0e8e89c # CRLF -> LF conversion in lots of files
 83c60ffbc1d6cde5669cbf530c14d504697a999f # CRLF -> LF conversion in mixed file
 732d1474ece932fa8c94432518332ec221e79ac7 # Remove trailing/blank line whitespace
+9d3f6d9b67bc47deb1e271e5ef3339c2dabb70d7 # Format bundle_builder with black
+06890d5202d4280f62f43b58915413d81b881e2f # Format docs/devel/conf.py.in with black
+d4b088d2790812f12c918fbedab16f232737f89c # Format ui/src/widgets/tabbedtoolbar.py with black
+75c740b4adb710e21c0db85699adae73fb532e82 # Format segmentations/src/ui/segmentations.py with black
+60ef9cf63c176cf7bd9e4fab0800769588adc530 # Format core/src/__{init,main}__.py with black

@@ -115,7 +115,12 @@ StructureSeq::demote_to_sequence()
         _structure->change_tracker()->add_deleted(_structure, dynamic_cast<Chain*>(this));
     }
     _structure = nullptr;
-    Py_XDECREF(py_call_method("_cpp_seq_demotion"));
+    // Since this demotion frequently happens as garbage collection is running,
+    // doing the call back into the Python layer below is a recipe for crashing,
+    // so instead the Python StructureSeq looks to see if the 'structure' attribute
+    // is None at check-for-changes
+    //Py_XDECREF(py_call_method("_cpp_seq_demotion"));
+
     // let normal deletion processes clean up; don't explicitly delete here
 }
 
@@ -127,6 +132,7 @@ StructureSeq::demote_to_structure_sequence()
     }
     _is_chain = false;
     Py_XDECREF(py_call_method("_cpp_structure_seq_demotion"));
+    
     // let normal deletion processes clean up; don't explicitly delete here
 }
 
@@ -169,7 +175,7 @@ StructureSeq::insert(Residue* follower, Residue* r)
 StructureSeq&
 StructureSeq::operator+=(StructureSeq& addition)
 {
-    Sequence::operator+=(*this);
+    Sequence::operator+=(addition);
     auto offset = _residues.size();
     _residues.insert(_residues.end(), addition._residues.begin(), addition._residues.end());
     bool ischain = is_chain();
@@ -459,28 +465,6 @@ StructureSeq::set_from_seqres(bool fs)
 {
     if (fs == _from_seqres)
         return;
-    if (_from_seqres) {
-        // changing from true to false;
-        // eliminate seqres parts of sequence...
-        if (std::find(_residues.begin(), _residues.end(), nullptr)
-        != _residues.end()) {
-            // there actually are seqres portions
-            _res_map.clear();
-            StructureSeq::Residues new_residues;
-            Sequence::Contents new_contents;
-            auto ri = _residues.begin();
-            int i = 0;
-            for (auto si = begin(); si != end(); ++si, ++ri) {
-                if (*ri == nullptr)
-                    continue;
-                _res_map[*ri] = ++i;
-                new_residues.push_back(*ri);
-                new_contents.push_back(*si);
-            }
-            _residues.swap(new_residues);
-            swap(new_contents);
-        }
-    }
     _from_seqres = fs;
     if (is_chain())
         _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),

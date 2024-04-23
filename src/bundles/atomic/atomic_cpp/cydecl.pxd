@@ -114,9 +114,11 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         void set_thin_rings(bool)
         void set_ss_id(int)
         void set_ss_type(SSType)
+        void set_worm_radius(float)
         int ss_id()
         SSType ss_type()
         Structure* structure()
+        float worm_radius()
 
         @staticmethod
         void set_py_class(object)

@@ -285,6 +285,7 @@ class RotamerDialog(ToolInstance):
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
+        tw.fill_context_menu = self.fill_context_menu
         self.tool_window.manage(placement=None)
 
     def delete(self, from_mgr=False):
@@ -295,6 +296,12 @@ class RotamerDialog(ToolInstance):
         if not from_mgr:
             self.mgr.destroy()
         super().delete()
+
+    def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        act = QAction("Save CSV or TSV File...", parent=menu)
+        act.triggered.connect(lambda *args, tab=self.table: tab.write_values())
+        menu.addAction(act)
 
     @classmethod
     def restore_snapshot(cls, session, data):

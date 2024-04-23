@@ -71,6 +71,8 @@ const std::string ChangeTracker::REASON_SERIAL_NUMBER("serial_number changed");
 const std::string ChangeTracker::REASON_STRUCTURE_CATEGORY("structure_category changed");
 const std::string ChangeTracker::REASON_SS_ID("ss_id changed");
 const std::string ChangeTracker::REASON_SS_TYPE("ss_type changed");
+const std::string ChangeTracker::REASON_WORM_RADIUS("worm_radius changed");
+const std::string ChangeTracker::REASON_WORM_RIBBON("worm_ribbon changed");
 
 DiscardingChangeTracker  dct;
 

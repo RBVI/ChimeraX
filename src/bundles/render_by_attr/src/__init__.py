@@ -25,7 +25,7 @@
 
 #--- public API ---
 
-from .manager import RenderAttrInfo
+from .manager import RenderAttrInfo, get_manager
 
 #--- toolshed/session-init funcs ---
 

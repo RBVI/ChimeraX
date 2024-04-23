@@ -94,47 +94,40 @@ def douse_needs_resolution(session, phenix_location=None):
         # Find the phenix.douse executable
         from .locate import find_phenix_command, env_file_name
         env_path = find_phenix_command(session, env_file_name(), phenix_location, verify_installation=True)
-        version_path = find_phenix_command(session, 'phenix.version')
-        import subprocess
-        p = subprocess.run(". " + env_path + " ; " + version_path, capture_output=True, shell=True)
-        if p.returncode != 0:
-            out, err = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
-            msg = (f'phenix.version exited with error code {p.returncode}\n\n' +
-                   f'Command: {version_path}\n\n' +
-                   f'stdout:\n{out}\n\n' +
-                   f'stderr:\n{err}')
-            from chimerax.core.errors import UserError
-            raise UserError(msg)
-        from chimerax.core.errors import UserError
-        version = release = None
-        for line in p.stdout.decode("utf-8").splitlines():
-            fields = line.strip().lower().split()
-            if len(fields) == 2 and fields[0] == "version:":
-                if version is None:
-                    version = fields[1]
-                else:
-                    raise UserError("Multiple 'version' fields in phenix.version output:\n%s"
-                        % p.stdout.decode())
-            if len(fields) == 3 and fields[0] == "release" and fields[1] == "tag:":
-                if release is None:
-                    release = fields[2]
-                else:
-                    raise UserError("Multiple 'release tag' fields in phenix.version output:\n%s"
-                        % p.stdout.decode())
-        if version is None or release is None:
-            raise UserError("Could not identify version and/or release tag in phenix.version output "
-                "(running %s ; %s):%s" % (env_path, version_path, p.stdout.decode('utf-8')))
-        if version.startswith("1."):
-            num_string = "1."
-            for c in version[2:]:
-                if c.isdigit():
-                    num_string += c
-                else:
+        version_marker = 'PHENIX_VERSION'
+        with open(env_path, 'r') as f:
+            for line in f.readlines():
+                if version_marker in line:
+                    before, after = line.split(version_marker)
+                    if len(after) < 2 or not after[1].isdigit():
+                        raise UserError("Do not recognize format of %s line in %s"
+                            % (version_marker, env_path))
+                    major = 0
+                    index = 1
+                    while index < len(after) and after[index].isdigit():
+                        major = 10 * major + ord(after[index]) - ord('0')
+                        index += 1
+                    if major == 0:
+                        _needs_resolution = False
+                        break
+                    if major > 1:
+                        _needs_resolution = True
+                        break
+                    if index == len(after):
+                        _needs_resolution = False
+                        break
+                    if index >= len(after)-2 or after[index] != '.' or not after[index+1].isdigit():
+                        raise UserError("Do not recognize format of %s line in %s"
+                            % (version_marker, env_path))
+                    minor = 0
+                    index += 1
+                    while index < len(after) and after[index].isdigit():
+                        minor = 10 * minor + ord(after[index]) - ord('0')
+                        index += 1
+                    _needs_resolution = minor >= 21
                     break
-            v_num = float(num_string)
-            _needs_resolution = v_num >= 1.21
-        else:
-            _needs_resolution = True
+            else:
+                raise UserError("No line in %s contains '%s'" % (env_path, version_marker))
     return _needs_resolution
 
 command_defaults = {

@@ -40,6 +40,7 @@ from ._surface import boundary_edges, compute_cap, triangulate_polygon, refine_m
 from ._surface import boundary_edge_mask
 from ._surface import vertex_convexity
 from ._surface import smooth_vertex_positions
+from ._surface import surface_distance
 
 from .dust import largest_blobs_triangle_mask
 from .gaussian import gaussian_surface
@@ -75,6 +76,8 @@ class _SurfaceBundle(BundleAPI):
         elif command_name.startswith('measure'):
             from . import area
             area.register_measure_subcommand(command_name, logger)
+            from . import measure_contactarea
+            measure_contactarea.register_contactarea_command(logger)
         elif command_name == 'volume splitbyzone':
             from . import colorzone
             colorzone.register_volume_split_command(logger)

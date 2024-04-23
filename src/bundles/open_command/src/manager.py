@@ -111,13 +111,17 @@ class OpenManager(ProviderManager):
             try:
                 data_format = self.session.data_formats[format_name]
             except KeyError:
-                raise ValueError("Database-fetch provider '%s' in bundle %s specified"
+                self.session.logger.info("Database-fetch provider '%s' in bundle %s specified"
                     " unknown data format '%s'" % (ui_name, bundle_name, format_name))
+                return
             if name in self._fetchers and format_name in self._fetchers[name]:
-                logger.warning("Replacing fetcher for '%s' and format %s from %s bundle"
-                    " with that from %s bundle" % (ui_name, format_name,
-                    _readable_bundle_name(self._fetchers[name][format_name].bundle_info),
-                    bundle_name))
+                if not bundle_info.installed:
+                    return
+                if self._fetchers[name][format_name].bundle_info.installed:
+                    logger.warning("Replacing fetcher for '%s' and format %s from %s bundle"
+                        " with that from %s bundle" % (ui_name, format_name,
+                        _readable_bundle_name(self._fetchers[name][format_name].bundle_info),
+                        bundle_name))
             if example_ids:
                 example_ids = example_ids.split(';')
             else:

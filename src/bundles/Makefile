@@ -35,13 +35,13 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker mcopy md_crds \
 	  medical_toolbar meeting mlp model_series \
-	  mmcif mmtf model_panel modeller mol2 mole morph mouse_modes movie \
+	  mmcif mmtf model_panel modeller mol2 mole morph mouse_modes movie nmrstar \
 	  neuron nifti nrrd nucleotides open_command pdb pdb_bio pdb_lib pdb_matrices \
 	  pick_blobs positions preset_mgr pubchem read_pbonds registration \
 	  remote_control render_by_attr renumber_residues rest_server \
 	  residue_fit rna_layout rotamers rotamer_libs \
 	  save_command scheme_mgr \
-	  sdf sel_inspector segger segment seqalign seq_view shape \
+	  sdf sel_inspector segger segment segmentations seqalign seq_view shape \
 	  shell shortcuts show_sequences sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \

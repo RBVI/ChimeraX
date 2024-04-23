@@ -256,6 +256,7 @@ class InstalledBundleCache(list):
                     except KeyError:
                         logger.warning("Unknown bundle name '%s' listed in Initializations"
                             " section for bundle %s" % (bundle_name, bi.name))
+                        continue
                     explicit_reverse_order.setdefault(dist_key, set()).add(d.key)
         # Then we build a dependency map where the key is a
         # distribution instance and the value is a list of

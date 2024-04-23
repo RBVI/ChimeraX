@@ -31,7 +31,7 @@ def log_chains(session, structures=None):
     for s in structures:
         s._report_chain_descriptions(session)
 
-def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
+def combine_cmd(session, structures, *, close=False, model_id=None, name=None, retain_ids=False):
 
     if structures is None:
         from chimerax.atomic import AtomicStructure
@@ -47,26 +47,90 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
         else:
             name = "combination"
 
+    if retain_ids:
+        res_numbers = {}
+        polymer_type = {}
+        for s in structures:
+            for r in s.residues:
+                key = str(r.number) + r.insertion_code
+                pot = res_numbers.setdefault(r.chain_id, set())
+                if key in pot:
+                    raise UserError("'retainIds' requires residues number / insertion code combos be unique"
+                        " in each chain with the same ID (duplicate: %s)" % r.string(omit_structure=True))
+                pot.add(key)
+            for chain in s.chains:
+                if polymer_type.setdefault(chain.chain_id, chain.polymer_type) != chain.polymer_type:
+                    raise UserError("Cannot combine chains with different polymer types (chain %s)" %
+                        chain.chain_id)
     combination = structures[0].copy(name)
 
     # Compute needed remapping of chain IDs
     seen_ids = set(combination.residues.unique_chain_ids)
     for s in structures[1:]:
         chain_id_mapping = {}
-        chain_ids = sorted(s.residues.unique_chain_ids)
-        for chain_id in chain_ids:
-            # blank chain IDs don't "play nice" when combined; always remap them
-            if chain_id in seen_ids or chain_id.isspace():
-                from chimerax.atomic import next_chain_id
-                new_id = next_chain_id(chain_id)
-                while new_id in seen_ids or new_id in chain_ids:
-                    new_id = next_chain_id(new_id)
-                session.logger.info("Remapping chain ID '%s' in %s to '%s'" % (chain_id, s, new_id))
-                chain_id_mapping[chain_id] = new_id
-                seen_ids.add(new_id)
-            else:
-                seen_ids.add(chain_id)
+        if not retain_ids:
+            chain_ids = sorted(s.residues.unique_chain_ids)
+            for chain_id in chain_ids:
+                # blank chain IDs don't "play nice" when combined; always remap them
+                if chain_id in seen_ids or chain_id.isspace():
+                    from chimerax.atomic import next_chain_id
+                    new_id = next_chain_id(chain_id)
+                    while new_id in seen_ids or new_id in chain_ids:
+                        new_id = next_chain_id(new_id)
+                    session.logger.info("Remapping chain ID '%s' in %s to '%s'" % (chain_id, s, new_id))
+                    chain_id_mapping[chain_id] = new_id
+                    seen_ids.add(new_id)
+                else:
+                    seen_ids.add(chain_id)
         combination.combine(s, chain_id_mapping, structures[0].scene_position)
+
+    if retain_ids:
+        # combine same-ID chains
+        by_id = {}
+        for chain in combination.chains:
+            by_id.setdefault(chain.chain_id, []).append(chain)
+        def end_residues(chain):
+            first = last = None
+            for r in chain.residues:
+                if r:
+                    if first is None:
+                        first = r
+                    last = r
+            return (first, last)
+        for chains in by_id.values():
+            if len(chains) == 1:
+                continue
+            sortable_data = []
+            for chain in chains:
+                first, last = end_residues(chain)
+                sortable_data.append(((first.number, first.insertion_code), first, last))
+            sortable_data.sort()
+            left_end = sortable_data[0][-1]
+            backbone_names = left_end.aa_min_ordered_backbone_names if left_end.chain.polymer_type \
+                == left_end.PT_AMINO else left_end.na_min_ordered_backbone_names
+            for _, right_start, right_end in sortable_data[1:]:
+                missing = False
+                for bb_name in reversed(backbone_names):
+                    left_atom = left_end.find_atom(bb_name)
+                    if left_atom:
+                        break
+                    missing = True
+                else:
+                    left_atom = left_end.atoms[0]
+                for bb_name in backbone_names:
+                    right_atom = right_start.find_atom(bb_name)
+                    if right_atom:
+                        break
+                    missing = True
+                else:
+                    right_atom = right_start.atoms[0]
+                if missing or right_start.number - left_end.number > 1:
+                    pbg = combination.pseudobond_group(combination.PBG_MISSING_STRUCTURE)
+                    pbg.new_pseudobond(left_atom, right_atom)
+                else:
+                    combination.new_bond(left_atom, right_atom)
+                left_end = right_end
+
     # eliminate blanks IDs coming from structure 0
     chain_ids = set(combination.residues.unique_chain_ids)
     for chain_id in chain_ids:
@@ -189,6 +253,7 @@ def register_command(logger):
             ('close', BoolArg),
             ('model_id', ModelIdArg),
             ('name', StringArg),
+            ('retain_ids', BoolArg),
         ],
         synopsis = 'Copy/combine structure models')
     register('combine', combine_desc, combine_cmd, logger=logger)

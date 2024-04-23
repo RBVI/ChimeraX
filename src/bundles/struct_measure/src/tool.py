@@ -53,6 +53,7 @@ class StructMeasureTool(ToolInstance):
         self.handlers = []
         for tab_name in self.tab_names:
             self._add_tab(tab_name)
+        tw.fill_context_menu = self.fill_context_menu
 
         tw.manage(placement="side")
 
@@ -62,6 +63,14 @@ class StructMeasureTool(ToolInstance):
         for handler in self.handlers:
             handler.remove()
         super().delete()
+
+    def fill_context_menu(self, menu, x, y):
+        if not self.tab_widget.tabText(self.tab_widget.currentIndex()).startswith("Axes"):
+            return
+        from Qt.QtGui import QAction
+        act = QAction("Save CSV or TSV File...", parent=menu)
+        act.triggered.connect(lambda *args, tab=self.apc_table: tab.write_values())
+        menu.addAction(act)
 
     def show_tab(self, tab_name):
         index = self.tab_names.index(tab_name)

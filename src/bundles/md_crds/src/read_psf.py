@@ -66,8 +66,10 @@ def read_psf(session, path, file_name, *, auto_style=True, coords=None, **kw):
     if coords is None:
         if session.ui.is_gui and not session.in_script:
             from Qt.QtWidgets import QFileDialog
+            # Don't use a native dialog so that the caption is actually shown;
+            # otherwise the dialog is totally mystifying
             coords, types = QFileDialog.getOpenFileName(caption="Specify coordinates file for PSF",
-                directory=os.path.dirname(path))
+                directory=os.path.dirname(path), options=QFileDialog.DontUseNativeDialog)
             if not coords:
                 raise CancelOperation("No coordinates file specified for PSF")
             session.logger.info("Coordinates file: %s" % coords)

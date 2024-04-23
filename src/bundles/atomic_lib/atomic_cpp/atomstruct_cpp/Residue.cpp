@@ -77,7 +77,7 @@ Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int n
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert), _mmcif_chain_id(chain),
     _name(name), _number(num), _ribbon_adjust(-1.0), _ribbon_display(false), _ribbon_hide_backbone(true),
     _ribbon_rgba({160,160,0,255}), _ss_id(-1), _ss_type(SS_COIL), _structure(as), _ring_display(false),
-    _rings_are_thin(false)
+    _rings_are_thin(false), _worm_radius(1.0)
 {
     if (!as->lower_case_chains) {
         for (auto c: _chain_id) {
@@ -101,55 +101,147 @@ Residue::~Residue() {
 }
 
 void
-Residue::add_atom(Atom* a, bool copying_structure)
+Residue::add_atom(Atom* a, bool copying_or_restoring)
 {
     a->_residue = this;
     _atoms.push_back(a);
-    if (copying_structure)
+    if (copying_or_restoring)
         return;
 
-    // if this is the first atom of a residue being introduced into a chain gap,
-    // possibly adjust missing-structure pseudobonds; try to do this work only if
-    // we are not in initial structure creation
+    // If adding first atom or backbone atoms, possibly adjust missing-structure pseudobonds.
+    // Try to do this work only if we are not in initial structure creation.
     if (!structure()->_polymers_computed)
-        return;
-    if (structure()->residues().back() == this || structure()->residues()[0] == this || _atoms.size() > 1)
         return;
     auto pbg = structure()->pb_mgr().get_group(Structure::PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
     if (pbg == nullptr)
         return;
-    // Okay, make residue-index map so that we can see if missing-structure bonds "cross" our residue
+    // Okay, make residue-index map so that we can see if missing-structure bonds are relevant to our residue
     std::map<Residue*, Structure::Residues::size_type> res_map;
     Structure::Residues::size_type i = 0;
     for (auto r: structure()->residues()) {
         res_map[r] = i++;
     }
     auto my_index = res_map[this];
-    for (auto pb: pbg->pseudobonds()) {
-        auto a1 = pb->atoms()[0];
-        auto a2 = pb->atoms()[1];
-        auto i1 = res_map[a1->residue()];
-        auto i2 = res_map[a2->residue()];
-        if ((i1 < my_index && i2 > my_index) || (i2 < my_index && i1 > my_index)) {
-            pbg->delete_pseudobond(pb);
-            // add the "shorter" one first, so that the residue gets placed on the correct side of a gap
-            int d1, d2;
-            if (i1 < my_index) {
-                d1 = number() - a1->residue()->number();
-                d2 = a2->residue()->number() - number();
-            } else {
-                d1 = a1->residue()->number() - number();
-                d2 = number() - a1->residue()->number();
+    if (_atoms.size() == 1) {
+        // If residue is between residues in the same chain, look for missing-structure pseudobonds
+        // that "cross over" this residue and break them into two pseudobonds.
+        if (structure()->residues().back() == this || structure()->residues()[0] == this)
+            return;
+        for (auto pb: pbg->pseudobonds()) {
+            auto a1 = pb->atoms()[0];
+            auto a2 = pb->atoms()[1];
+            auto i1 = res_map[a1->residue()];
+            auto i2 = res_map[a2->residue()];
+            if ((i1 < my_index && i2 > my_index) || (i2 < my_index && i1 > my_index)) {
+                pbg->delete_pseudobond(pb);
+                // add the "shorter" one first, so that the residue gets placed on the correct side of a gap
+                int d1, d2;
+                if (i1 < my_index) {
+                    d1 = number() - a1->residue()->number();
+                    d2 = a2->residue()->number() - number();
+                } else {
+                    d1 = a1->residue()->number() - number();
+                    d2 = number() - a1->residue()->number();
+                }
+                if (d1 <= d2) {
+                    pbg->new_pseudobond(a1, a);
+                    pbg->new_pseudobond(a, a2);
+                } else {
+                    pbg->new_pseudobond(a, a2);
+                    pbg->new_pseudobond(a1, a);
+                }
+                break;
             }
-            if (d1 <= d2) {
-                pbg->new_pseudobond(a1, a);
-                pbg->new_pseudobond(a, a2);
-            } else {
-                pbg->new_pseudobond(a, a2);
-                pbg->new_pseudobond(a1, a);
-            }
-            break;
         }
+    } else {
+        // If this is a new backbone atom, look for missing-structure pseudobonds that go to this
+        // residue and adjust their endpoint if appropriate.
+        if (chain() == nullptr)
+            return;
+        auto chain_type = chain()->polymer_type();
+        auto bb_name_set = chain_type == PT_AMINO ? aa_min_backbone_names : na_min_backbone_names;
+        if (bb_name_set.find(a->name()) == bb_name_set.end())
+            return;
+        // hack to short-circuit _form_chain_check's expensive computations;
+        _structure->_copying_or_restoring = true;
+        auto bb_names = chain_type == PT_AMINO ?
+            aa_min_ordered_backbone_names : na_min_ordered_backbone_names;
+        auto name_index = std::find(bb_names.begin(), bb_names.end(), name()) - bb_names.begin();
+        // make a separate list of pseudobonds to this residue, so that we are not modifying the
+        // main pseudobond list as we iterate over it
+        std::vector<Pseudobond*> my_pbs;
+        for (auto pb: pbg->pseudobonds()) {
+            auto a1 = pb->atoms()[0];
+            auto a2 = pb->atoms()[1];
+            auto i1 = res_map[a1->residue()];
+            auto i2 = res_map[a2->residue()];
+            if (i1 == my_index || i2 == my_index)
+                my_pbs.push_back(pb);
+        }
+        for (auto pb: my_pbs) {
+            auto a1 = pb->atoms()[0];
+            auto a2 = pb->atoms()[1];
+            auto i1 = res_map[a1->residue()];
+            auto i2 = res_map[a2->residue()];
+            decltype(a1) change_atom = nullptr;
+            if (i1 == my_index && i2 == my_index) {
+                // internal to the residue
+                bool a1_bb = bb_name_set.find(a1->name()) != bb_name_set.end();
+                bool a2_bb = bb_name_set.find(a2->name()) != bb_name_set.end();
+                if (a1_bb) {
+                    auto a1_index = std::find(bb_names.begin(), bb_names.end(), a1->name())
+                        - bb_names.begin();
+                    if (a2_bb) {
+                        auto a2_index = std::find(bb_names.begin(), bb_names.end(), a2->name())
+                            - bb_names.begin();
+                        auto low_index = a1_index < a2_index ? a1_index : a2_index;
+                        auto high_index = a1_index > a2_index ? a1_index : a2_index;
+                        if (name_index > low_index && name_index < high_index) {
+                            // in between; break into two pseudobonds
+                            pbg->delete_pseudobond(pb);
+                            pbg->new_pseudobond(a1, a);
+                            pbg->new_pseudobond(a2, a);
+                        }
+                    } else {
+                        change_atom = a2;
+                    }
+                } else {
+                    if (a2_bb) {
+                        change_atom = a1;
+                    } else {
+                        // both ends are non-backbone; just delete
+                        pbg->delete_pseudobond(pb);
+                    }
+                }
+            } else {
+                decltype(a1) here_a;
+                decltype(i1) there_i;
+                if (i1 == my_index) {
+                    here_a = a1;
+                    there_i = i2;
+                } else {
+                    here_a = a2;
+                    there_i = i1;
+                }
+                if (bb_name_set.find(here_a->name()) == bb_name_set.end()) {
+                    change_atom = here_a;
+                } else {
+                    auto here_name_index = std::find(bb_names.begin(), bb_names.end(), here_a->name())
+                        - bb_names.begin();
+                    // if new atom's name to the left of existing, and this residue is on the right
+                    // side of the bond, or vice verse, change the bond
+                    if ((here_name_index > name_index) == (my_index > there_i)) {
+                        change_atom = here_a;
+                    }
+                }
+            }
+            if (change_atom != nullptr) {
+                pbg->delete_pseudobond(pb);
+                decltype(a1) keep_atom = change_atom == a1 ? a2 : a1;
+                pbg->new_pseudobond(keep_atom, a);
+            }
+        }
+        _structure->_copying_or_restoring = false;
     }
 }
 
@@ -409,11 +501,12 @@ Residue::session_restore(int version, int** ints, float** floats)
     int_ptr += SESSION_NUM_INTS(version);
 
     _ribbon_adjust = float_ptr[0];
+    _worm_radius = float_ptr[1];
     float_ptr += SESSION_NUM_FLOATS(version);
 
     auto& atoms = structure()->atoms();
     for (decltype(num_atoms) i = 0; i < num_atoms; ++i) {
-        add_atom(atoms[*int_ptr++]);
+        add_atom(atoms[*int_ptr++], true);
     }
 }
 
@@ -438,6 +531,7 @@ Residue::session_save(int** ints, float** floats) const
     int_ptr += SESSION_NUM_INTS();
 
     float_ptr[0] = _ribbon_adjust;
+    float_ptr[1] = _worm_radius;
     float_ptr += SESSION_NUM_FLOATS();
 
     auto& atom_map = *structure()->session_save_atoms;

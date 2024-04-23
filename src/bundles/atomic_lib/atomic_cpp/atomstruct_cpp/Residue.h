@@ -75,7 +75,7 @@ private:
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
         return version < 6 ? 10 : (version < 10 ? 9 : (version < 14 ? 8 : (version < 15 ? 7 : 9)));
     }
-    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 1; }
+    static int  SESSION_NUM_FLOATS(int version=CURRENT_SESSION_VERSION) { return version < 20 ? 1 : 2; }
 
     char  _alt_loc;
     Atoms  _atoms;
@@ -96,8 +96,9 @@ private:
     bool  _ring_display;
     bool  _rings_are_thin;
     Rgba  _ring_rgba;
+    float  _worm_radius;
 public:
-    void  add_atom(Atom*, bool copying_structure=false);
+    void  add_atom(Atom*, bool copying_or_restoring=false);
     const Atoms&  atoms() const { return _atoms; }
     AtomsMap  atoms_map() const;
     std::vector<Bond*>  bonds_between(const Residue* other_res, bool just_first=false) const;
@@ -114,12 +115,6 @@ public:
     bool  is_missing_heavy_template_atoms(bool no_template_okay=false) const;
     bool  is_strand() const { return ss_type() == SS_STRAND; }
     const ResName&  name() const { return _name; }
-    void  set_name(const ResName &name) {
-        if (name != _name) {
-            _name = name;
-            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NAME);
-        }
-    }
     PolymerType  polymer_type() const;
     int  number() const { return _number; }
     Atom*  principal_atom() const;
@@ -142,6 +137,12 @@ public:
     }
     void  set_is_helix(bool ih);
     void  set_is_strand(bool is);
+    void  set_name(const ResName &name) {
+        if (name != _name) {
+            _name = name;
+            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NAME);
+        }
+    }
     void  set_ss_id(int ssid);
     void  set_ss_type(SSType sst);
     void  set_mmcif_chain_id(const ChainID &cid) { _mmcif_chain_id = cid; }
@@ -205,6 +206,8 @@ public:
     }
     void  set_ring_display(bool d);
     void  set_thin_rings(bool d);
+    void  set_worm_radius(float r);
+    float  worm_radius() const { return _worm_radius; }
 };
 
 }  // namespace atomstruct
@@ -361,6 +364,15 @@ Residue::set_ribbon_hide_backbone(bool d) {
     change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RIBBON_HIDE_BACKBONE);
     _structure->set_gc_ribbon();
     _ribbon_hide_backbone = d;
+}
+
+inline void
+Residue::set_worm_radius(float r) {
+    if (r == _worm_radius)
+        return;
+    change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_WORM_RADIUS);
+    _structure->set_gc_ribbon();
+    _worm_radius = r;
 }
 
 inline void

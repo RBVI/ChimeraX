@@ -25,7 +25,7 @@
 from chimerax.core.errors import UserError
 
 def size(session, objects=None, atom_radius=None,
-          stick_radius=None, pseudobond_radius=None, ball_scale=None):
+          stick_radius=None, pseudobond_radius=None, ball_scale=None, verbose=True):
     '''Set the sizes of atom and bonds.
 
     Parameters
@@ -143,7 +143,7 @@ def size(session, objects=None, atom_radius=None,
                 s.ball_scale = amount
         what.append('%d ball scales' % len(mols))
 
-    if what:
+    if verbose and what:
         msg = 'Changed %s' % ', '.join(what)
         log = session.logger
         log.status(msg)
@@ -160,7 +160,7 @@ AtomRadiiStyleArg.default = 'sphere'
 def size_by_attr(session, attr_name, atoms=None, way_points=None, *, average=None, no_value_radius=None,
           undo_name="size byattribute", style=AtomRadiiStyleArg.default):
     '''
-    Size atoms by attribute value using (attr-val, radius) way points.  Attr-val can nen 'max' or 'min'
+    Size atoms by attribute value using (attr-val, radius) way points.  Attr-val can be 'max' or 'min'
       to represent the maximum or minimum of that attribute value for the atoms.
 
     attr_name : string (actual Python attribute name optionally prefixed by 'a:'/'r:'/'m:'
@@ -212,7 +212,7 @@ def size_by_attr(session, attr_name, atoms=None, way_points=None, *, average=Non
                 # might have Nones
                 needs_none_processing = True
         if not needs_none_processing:
-            aradii = _value_radii(way_points, attr_vals)
+            aradii = value_radii(way_points, attr_vals)
     if needs_none_processing:
         if attr_vals is None:
             attr_vals = [getattr(o, attr_name, None) for o in attr_objs]
@@ -231,11 +231,11 @@ def size_by_attr(session, attr_name, atoms=None, way_points=None, *, average=Non
                 attr_vals = [res_average[r] for r in atoms.residues]
             non_none_attr_vals = [v for v in attr_vals if v is not None]
             if non_none_attr_vals:
-                non_none_radii = _value_radii(way_points, non_none_attr_vals)
+                non_none_radii = value_radii(way_points, non_none_attr_vals)
             else:
                 non_none_radii = None
                 session.logger.warning("All '%s' values are None" % attr_name)
-            aradii = _none_possible_radii(atoms.radii, attr_vals, non_none_radii, no_value_radius)
+            aradii = none_possible_radii(atoms.radii, attr_vals, non_none_radii, no_value_radius)
             # for later min/max message...
             attr_vals = non_none_attr_vals
         else:
@@ -244,7 +244,7 @@ def size_by_attr(session, attr_name, atoms=None, way_points=None, *, average=Non
                 res_average = { r: sum([getattr(a, attr_name)
                     for a in r.atoms])/r.num_atoms for r in residues }
                 attr_vals = [res_average[r] for r in atoms.residues]
-            aradii = _value_radii(way_points, attr_vals)
+            aradii = value_radii(way_points, attr_vals)
     if style != "unchanged":
         draw_mode = Atom.BALL_STYLE if style == "ball" else Atom.SPHERE_STYLE
         undo_state.add(atoms, "draw_modes", atoms.draw_modes, draw_mode)
@@ -258,7 +258,8 @@ def size_by_attr(session, attr_name, atoms=None, way_points=None, *, average=Non
             len(atoms), (range_msg % attr_name), min(attr_vals), max(attr_vals))
         session.logger.status(msg, log=True)
 
-def _none_possible_radii(item_radii, attr_vals, non_none_radii, no_value_radius):
+# also used by cartoon byattribute
+def none_possible_radii(item_radii, attr_vals, non_none_radii, no_value_radius):
     ri = 0
     radii = []
     import sys
@@ -274,7 +275,8 @@ def _none_possible_radii(item_radii, attr_vals, non_none_radii, no_value_radius)
     import numpy
     return numpy.array(radii, numpy.single)
 
-def _value_radii(way_points, values):
+# also used by cartoon byattribute
+def value_radii(way_points, values):
     from chimerax.surface.colorvol import _use_full_range, _colormap_with_range
     min_val, max_val = min(values), max(values)
     final_way_points = []
@@ -306,7 +308,9 @@ def _rad_lookup(val, way_points):
             return left_rad + ((val - left_val) / (right_val - left_val)) * (right_rad - left_rad)
     return right_rad
 # -----------------------------------------------------------------------------
-#
+# 
+
+# also used by cartoon byattribute
 class AttrRadiusPairArg(Annotation):
     name = "attr-value:radius pair"
 
@@ -352,6 +356,7 @@ def register_command(logger):
 
     # size atoms by attribute
     from chimerax.atomic import AtomsArg
+    from .size import AttrRadiusPairArg
     desc = CmdDesc(required=[('attr_name', StringArg),
                             ('atoms', Or(AtomsArg, EmptyArg))],
                    optional=[('way_points', RepeatOf(AttrRadiusPairArg))],

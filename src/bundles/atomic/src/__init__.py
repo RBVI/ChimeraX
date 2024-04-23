@@ -40,7 +40,7 @@ from .pbgroup import interatom_pseudobonds, selected_pseudobonds
 from .molarray import Collection, Atoms, AtomicStructures, Bonds, Chains, Pseudobonds, Structures, \
     PseudobondGroups, Residues, concatenate
 from .structure import AtomicStructure, Structure, LevelOfDetail
-from .structure import selected_atoms, selected_bonds, selected_residues
+from .structure import selected_atoms, selected_bonds, selected_residues, selected_chains
 from .structure import all_atoms, all_bonds, all_residues, all_atomic_structures, all_structures
 from .structure import structure_atoms, structure_residues, structure_graphics_updater, level_of_detail
 from .structure import PickedAtom, PickedBond, PickedResidue, PickedPseudobond
@@ -157,11 +157,27 @@ class _AtomicBundleAPI(BundleAPI):
             from chimerax.render_by_attr import RenderAttrInfo
             class Info(RenderAttrInfo):
                 _class_obj = class_obj
+
                 @property
                 def class_object(self):
                     return self._class_obj
+
+                def deworm_applicable(self, models):
+                    for m in models:
+                        if getattr(m, 'worm_ribbon', False):
+                            return True
+                    return False
+
+                def hide_attr(self, attr_name, rendering):
+                    if not rendering and self.class_object == Atom and attr_name in [
+                            'is_side_connector', 'num_bonds',
+                            'num_explicit_bonds', 'selected', 'visible']:
+                        return True
+                    return super().hide_attr(attr_name, rendering)
+
                 def model_filter(self, model):
                     return isinstance(model, Structure)
+
                 def render(self, session, attr_name, models, method, params, sel_only):
                     prefix = { Atom: 'a', Residue: 'r', Structure: 'm' }[self.class_object]
                     from chimerax.core.commands import run, concise_model_spec, StringArg
@@ -202,27 +218,48 @@ class _AtomicBundleAPI(BundleAPI):
                             letters, palette_string, no_val_string))
                     elif method == "radius":
                         atom_style, way_points = params
-                        # Chimera doesn't hide ribbons or show atoms, so...
-                        #if atom_style != "unchanged":
-                        #    run(session, "~cartoon %s ; show %s" % (spec, spec))
-                        no_val_string = ""
-                        wp_vals = []
-                        for attr_val, radius in way_points:
-                            if attr_val is None:
-                                no_val_string = " noValueRadius %g" % radius
-                            else:
-                                wp_vals.append((attr_val, radius))
-                        if wp_vals:
-                            wp_string = " ".join(["%g:%g" % (av,rad) for av, rad in wp_vals])
-                        else:
-                            wp_string = ""
+                        wp_string = self._way_point_string(way_points)
                         from chimerax.std_commands.size import AtomRadiiStyleArg
                         if atom_style == AtomRadiiStyleArg.default:
                             style_arg = ""
                         else:
                             style_arg = " style %s" % atom_style
-                        run(session, "size byattr %s:%s %s %s%s%s" % (prefix, attr_name, spec, wp_string,
-                            no_val_string, style_arg))
+                        run(session, "size byattr %s:%s %s%s%s" % (prefix, attr_name, spec, wp_string,
+                            style_arg))
+                    elif method == "worm":
+                        show_worms, way_points = params
+                        if show_worms:
+                            wp_string = self._way_point_string(way_points)
+                            run(session, "cartoon byattr %s:%s %s%s" % (prefix, attr_name, spec, wp_string))
+                        else:
+                            run(session, "~worm %s" % spec)
+
+                def select(self, session, attr_name, models, discrete, params):
+                    prefix = { Atom: '@@', Residue: '::', Structure: '##' }[self.class_object]
+                    from chimerax.core.commands import run, concise_model_spec, StringArg, BoolArg, FloatArg
+                    spec = concise_model_spec(session, models)
+                    if spec and self.class_object == Structure:
+                        spec += ' & '
+                    if discrete:
+                        if None in params:
+                            params.remove(None)
+                            spec += f"{prefix}^{attr_name}"
+                        for attr_val in params:
+                            arg = BoolArg if isinstance(attr_val, bool) else StringArg
+                            spec += f"{prefix}{attr_name}={arg.unparse(attr_val)}"
+                    else:
+                        if params is None:
+                            spec += f'{prefix}^{attr_name}'
+                        else:
+                            between, low, high = params
+                            if between:
+                                spec += f'{prefix}{attr_name}>={FloatArg.unparse(low)} & ' \
+                                    f'{prefix}{attr_name}<={FloatArg.unparse(high)}'
+                            else:
+                                spec += f'{prefix}{attr_name}<{FloatArg.unparse(low)} | ' \
+                                    f'{prefix}{attr_name}>{FloatArg.unparse(high)}'
+                    run(session, "select " + spec)
+
                 def values(self, attr_name, models):
                     if self._class_obj == Atom:
                         collections = [m.atoms for m in models]
@@ -242,6 +279,20 @@ class _AtomicBundleAPI(BundleAPI):
                         all_vals = numpy.array(all_vals)
                     non_none_vals = all_vals[all_vals != None]
                     return non_none_vals, len(non_none_vals) < len(all_vals)
+
+                def _way_point_string(self, way_points):
+                    no_val_string = ""
+                    wp_vals = []
+                    for attr_val, radius in way_points:
+                        if attr_val is None:
+                            no_val_string = " noValueRadius %g" % radius
+                        else:
+                            wp_vals.append((attr_val, radius))
+                    if wp_vals:
+                        wp_string = ' ' + " ".join(["%g:%g" % (av,rad) for av, rad in wp_vals])
+                    else:
+                        wp_string = ""
+                    return "%s%s"% (wp_string, no_val_string)
             return Info(session)
 
     @staticmethod

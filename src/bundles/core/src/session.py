@@ -581,6 +581,16 @@ class Session:
     def remove_state_manager(self, tag):
         del self._state_containers[tag]
 
+    def state_managers(self, class_obj):
+        # there can be multiple instances of some kinds of state managers (rotamers, alt locs),
+        # so allow getting those by type rather than tag
+        return [mgr for mgr in self._state_containers.values() if isinstance(mgr, class_obj)]
+
+    def state_managers_by_tag(self, class_obj):
+        # in the unusual case where you need to call a Session API requiring a tag,
+        # and you don't already know the tag
+        return {tag:mgr for tag,mgr in self._state_containers.items() if isinstance(mgr, class_obj)}
+
     def snapshot_methods(self, obj, instance=True, base_type=State):
         """Return an object having take_snapshot(), restore_snapshot(),
         and reset_state() methods for the given object.

@@ -879,6 +879,11 @@ class Alignment(State):
             return
         if 'scene_coord changed' not in changes.structure_reasons():
             return
+        from chimerax.atomic import StructureSeq
+        for chain in self.associations:
+            if chain.deleted or not isinstance(chain, StructureSeq):
+                # the ensuing disassociation/demotion will update the RMSD
+                return
         for chain in self.associations:
             if chain.structure in changes.modified_structures():
                 self._notify_rmsd_change()

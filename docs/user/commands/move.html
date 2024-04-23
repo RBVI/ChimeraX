@@ -35,7 +35,8 @@ class="clRight" title="User Guide Index"/></a>
 The <b>move</b> command translates the specified 
 <b>models</b> or <b>atoms</b> by <i>distance</i> along <i>axis</i> 
 at each of a specified number of image update <i>frames</i>
-(default <b>1</b> frame). 
+(default <b>1</b> frame). To place models at the center of rotation,
+see <a href="#cofr"><b>move cofr</b></a>.
 See also: <a href="roll.html"><b>roll</b></a>,
 <a href="turn.html"><b>turn</b></a>,
 <a href="zoom.html"><b>zoom</b></a>,
@@ -70,7 +71,25 @@ use the <a href="wait.html"><b>wait</b></a> command.
 To halt an ongoing <b>move</b>, use <a href="stop.html"><b>stop</b></a>.
 </p>
 
+<a name="cofr"></a>
+<p class="nav">
+[<a href="#top">back to top: move</a>]
+</p>
+<h3>Centering Models at the Center of Rotation</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>move cofr</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+</blockquote>
+<p>
+The <b>move cofr</b> command translates the specified models collectively 
+(without changing their positions relative to one another) to center their
+bounding box at the current <a href="cofr.html">center of rotation</a>.
+Only displayed parts are used to compute the bounding box.
+The <a href="atomspec.html#hierarchy"><i>model-spec</i></a> cannot be blank.
+See also: <a href="cofr.html"><b>cofr</b></a>
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2020</address>
+January 2024</address>
 </body></html>
