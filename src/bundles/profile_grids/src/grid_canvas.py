@@ -32,6 +32,7 @@ class GridCanvas:
         self.row_labels = list(string.ascii_uppercase) + ['?', 'gap', 'misc']
         import numpy
         self.empty_rows = numpy.where(~self.grid_data.any(axis=1))[0]
+        self.existing_row_labels = [rl for i, rl in enumerate(self.row_labels) if i not in self.empty_rows]
         from Qt.QtGui import QFont, QFontMetrics
         self.font = QFont("Helvetica")
         self.font_metrics = QFontMetrics(self.font)
@@ -107,7 +108,7 @@ class GridCanvas:
         self.selection_items = []
         self.update_selection()
         from chimerax.core.selection import SELECTION_CHANGED
-        self.handers = [ self.pg.session.triggers.add_handler(SELECTION_CHANGED, self.update_selection)
+        self.handlers = [ self.pg.session.triggers.add_handler(SELECTION_CHANGED, self.update_selection) ]
 
     def destroy(self):
         for handler in self.handlers:
@@ -130,7 +131,7 @@ class GridCanvas:
         from chimerax.core.colors import contrast_with
         y = 0
         # adjust for rectangle outline width / inter-line spacing
-        y_adjust = 1
+        y_adjust = 2
         for i in range(rows):
             if i in self.empty_rows:
                 continue
@@ -177,7 +178,10 @@ class GridCanvas:
         self._update_scene_rects()
 
     def alignment_notification(self, note_name, note_data):
-        raise NotImplementedError("alignment_notification")
+        alignment = self.alignment
+        if note_name == alignment.NOTE_MOD_ASSOC:
+            self.update_selection()
+        '''
         if hasattr(self, 'lead_block'):
             if note_name == self.alignment.NOTE_REF_SEQ:
                 self.lead_block.rerule()
@@ -213,6 +217,7 @@ class GridCanvas:
                         self.main_label_scene.update()
                     else:
                         self._reformat()
+        '''
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
         raise NotImplementedError("refresh")
@@ -230,14 +235,40 @@ class GridCanvas:
         self._update_scene_rects()
 
     def update_selection(self, *args):
-        for item in self.selection_items():
+        for item in self.selection_items:
             self.main_scene.removeItem(item)
         from chimerax.atomic import selected_chains, selected_residues
-        sel_chains = set(selected_chains(session))
+        sel_chains = set(selected_chains(self.pg.session))
         if not sel_chains:
             return
-        sel_residues = set(selected_residues(session))
-        #TODO
+        sel_residues = set(selected_residues(self.pg.session))
+        needs_highlight = set()
+        chars_to_rows = { c:i for i,c in enumerate(self.existing_row_labels) }
+        for chain, aseq in self.alignment.associations.items():
+            if chain not in sel_chains:
+                continue
+            match_map = aseq.match_maps[chain]
+            for r in chain.existing_residues:
+                if r not in sel_residues:
+                    continue
+                try:
+                    ungapped_seq_index = match_map[r]
+                except KeyError:
+                    continue
+                gapped_seq_index = aseq.ungapped_to_gapped(ungapped_seq_index)
+                char = aseq[gapped_seq_index].upper()
+                if char.isupper() or char == '?':
+                    row = chars_to_rows[char]
+                else:
+                    row = chars_to_rows['misc']
+                needs_highlight.add((row, gapped_seq_index))
+        from Qt.QtGui import QPen, QColor
+        pen = QPen(QColor(87, 202, 35))
+        pen.setWidth(3)
+        width, height = self.font_pixels
+        for row, col in needs_highlight:
+            self.selection_items.append(self.main_scene.addRect(col * width, row * height, width, height,
+                pen=pen))
 
     def _update_scene_rects(self):
         # have to play with setViewportMargins to get correct scrolling...
