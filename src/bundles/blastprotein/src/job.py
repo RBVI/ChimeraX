@@ -164,11 +164,15 @@ class BlastProteinJob(CxServicesJob):
                                     chains[chain] = hit
                         hits = list(chains.values())
                     if self.load_structures:
+                        num_opened = 0
                         hits = sorted(hits, key=lambda i: i["e-value"])
                         for index, hit in enumerate(hits):
                             hit["hit_#"] = index + 1
                         for hit in hits:
                             name = hit[db.fetchable_col]
+                            parts = name.split("_", 1)
+                            if len(parts) == 1 or len(parts[0]) != 4:
+                                continue
                             if params.database in ["alphafold", "esmfold"]:
                                 models, chain_id = db.load_model(
                                     self.session, name, self.atomspec, params.version
@@ -184,6 +188,11 @@ class BlastProteinJob(CxServicesJob):
                                 models,
                                 chain_id,
                             )
+                            num_opened += 1
+                        self.session.logger.info(
+                            "Opened %s models, skipped %s sequence-only results"
+                            % (num_opened, len(hits) - num_opened)
+                        )
                     if self.load_sequences:
                         # Show the multiple alignment viewer
                         ids = [hit["id"] for hit in hits]
