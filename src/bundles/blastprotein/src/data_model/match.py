@@ -13,18 +13,30 @@
 
 from ..utils import SeqGapChars
 
+
 class Match:
     """Data from a single BLAST hit."""
 
-    def __init__(self, name, match_id, desc, score, evalue,
-                 q_start, q_end, q_seq, h_seq, sequence = None):
+    def __init__(
+        self,
+        name,
+        match_id,
+        desc,
+        score,
+        evalue,
+        q_start,
+        q_end,
+        q_seq,
+        h_seq,
+        sequence=None,
+    ):
         self.name = name
         self._match = match_id
         self.description = desc.strip()
         self._score = score
         self.evalue = evalue
         self.q_start = q_start - 1  # switch to 0-base indexing
-        self.q_end = q_end - 1      # switch to 0-base indexing
+        self.q_end = q_end - 1  # switch to 0-base indexing
         self.q_seq = q_seq
         self.h_seq = h_seq
         if len(q_seq) != len(h_seq):
@@ -57,13 +69,13 @@ class Match:
 
     def print_sequence(self, f, prefix, per_line=60):
         for i in range(0, len(self.sequence), per_line):
-            f.write("%s%s\n" % (prefix, self.sequence[i:i + per_line]))
+            f.write("%s%s\n" % (prefix, self.sequence[i : i + per_line]))
 
     def match_sequence_gaps(self, gap_count):
         seq = []
         # Insert gap for head of query sequence that did not match
         for i in range(self.q_start):
-            seq.append('.' * (gap_count[i] + 1))
+            seq.append("." * (gap_count[i] + 1))
         start = self.q_start
         count = 0
         # Add all the sequence data from this HSP
@@ -89,16 +101,16 @@ class Match:
                     print("count", count, ">", gap_count[start])
                     raise ValueError("cannot align sequences")
                 if count < gap_count[start]:
-                    seq.append('-' * (gap_count[start] - count))
+                    seq.append("-" * (gap_count[start] - count))
                 seq.append(self.h_seq[i])
                 count = 0
                 start += 1
         # Append gap for tail of query sequence that did not match
         while start < len(gap_count):
-            seq.append('.' * (gap_count[start] + 1))
+            seq.append("." * (gap_count[start] + 1))
             start += 1
-        self.sequence = ''.join(seq)
+        self.sequence = "".join(seq)
 
     def dump(self, f):
         print(self, file=f)
-        self.print_sequence(f, '')
+        self.print_sequence(f, "")

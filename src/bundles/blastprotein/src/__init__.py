@@ -10,17 +10,18 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "2.1.2"
+__version__ = "2.4.0"
 
 from chimerax.core.toolshed import BundleAPI
 
 # Expose all of our important modules so they can be imported
 # from chimerax.blastprotein instead of chimerax.blastprotein.X
-from .cmd import *
-from .data_model import *
-from .job import *
-from .ui import *
-from .utils import *
+from .cmd import *  # noqa
+from .data_model import *  # noqa
+from .job import *  # noqa
+from .ui import *  # noqa
+from .utils import *  # noqa
+
 
 class _MyAPI(BundleAPI):
 
@@ -29,10 +30,10 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def get_class(class_name):
         class_names = {
-            'BlastProteinTool': BlastProteinTool
-            , 'BlastProteinResults': BlastProteinResults
-            , 'ToolUI': BlastProteinResults
-            , 'BlastProteinJob': BlastProteinJob
+            "BlastProteinTool": BlastProteinTool,
+            "BlastProteinResults": BlastProteinResults,
+            "ToolUI": BlastProteinResults,
+            "BlastProteinJob": BlastProteinJob,
         }
         return class_names.get(class_name, None)
 
@@ -45,18 +46,23 @@ class _MyAPI(BundleAPI):
         command_name = ci.name
         if command_name == "blastpdb":
             from chimerax.core.commands import create_alias
+
             create_alias(
-                command_name, "blastprotein $*", logger=logger,
-                url="help:user/commands/blastprotein.html"
+                command_name,
+                "blastprotein $*",
+                logger=logger,
+                url="help:user/commands/blastprotein.html",
             )
             return
         from . import cmd
-        function_name = command_name.replace(' ', '_')
+
+        function_name = command_name.replace(" ", "_")
         func = getattr(cmd, function_name)
         desc = getattr(cmd, function_name + "_desc")
         if desc.synopsis is None:
             desc.synopsis = ci.synopsis
         from chimerax.core.commands import register
+
         register(command_name, desc, func, logger=logger)
 
 
