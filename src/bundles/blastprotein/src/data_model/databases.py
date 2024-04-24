@@ -154,6 +154,8 @@ class NCBIDB(Database):
         models = run(chimerax_session, "open pdb:%s" % pdb_id)[0]
         if isinstance(models, AtomicStructure):
             models = [models]
+        for m in models:
+            m.name = match_code
         return models, chain_id
 
     @staticmethod

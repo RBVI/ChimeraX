@@ -21,3 +21,4 @@ d4b088d2790812f12c918fbedab16f232737f89c # Format ui/src/widgets/tabbedtoolbar.p
 75c740b4adb710e21c0db85699adae73fb532e82 # Format segmentations/src/ui/segmentations.py with black
 60ef9cf63c176cf7bd9e4fab0800769588adc530 # Format core/src/__{init,main}__.py with black
 340c0982e2a41a2b704dc2de9f7aeab96cb27696 # Format core/logger, core/commands/cli, blastprotein
+60bf203ad8b9874a503d8260b0a04ca6fb49fb88 # Format dicom with black
