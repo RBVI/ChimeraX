@@ -596,6 +596,8 @@ class PlaneViewer(QWindow):
             self._remove_axis_from_volume_viewer(volume_viewer, v)
         self.view.drawing.delete()
         self.view.delete()
+        self.mouse_move_timer.stop()
+        self.volume_viewer_opened_timer.stop()
         QWindow.destroy(self)
 
     def _redraw(self, *_):
