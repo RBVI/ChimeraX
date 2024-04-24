@@ -70,8 +70,6 @@ class ProfileGridsTool(ToolInstance):
         alignment = self.alignment
         if note_name == alignment.NOTE_DESTROYED:
             self.delete()
-        else:
-            raise NotImplementedError("alignment_notification")
         '''
         if note_name == alignment.NOTE_MOD_ASSOC:
             assoc_aseqs = set()
@@ -100,9 +98,9 @@ class ProfileGridsTool(ToolInstance):
         elif note_name == alignment.NOTE_COMMAND:
             from .cmd import run
             run(self.session, self, note_data)
+        '''
 
         self.grid_canvas.alignment_notification(note_name, note_data)
-        '''
 
     def delete(self):
         self.grid_canvas.destroy()
