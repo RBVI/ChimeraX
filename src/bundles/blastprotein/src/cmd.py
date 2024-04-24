@@ -45,6 +45,7 @@ def blastprotein(
     showResultsTable: bool = True,
     loadStructures: bool = False,
     showSequenceAlignment: bool = False,
+    onlyBest: bool = False,
     log=None,
     *,
     name=None
@@ -100,6 +101,7 @@ def blastprotein(
         show_gui=showResultsTable,
         load_structures=loadStructures,
         load_sequences=showSequenceAlignment,
+        only_best=onlyBest,
     )
     job.start()
 
@@ -117,6 +119,7 @@ blastprotein_desc = CmdDesc(
         ("showResultsTable", BoolArg),
         ("loadStructures", BoolArg),
         ("showSequenceAlignment", BoolArg),
+        ("onlyBest", BoolArg),
     ],
     synopsis=blastprotein.__doc__.split("\n")[0].strip(),
 )

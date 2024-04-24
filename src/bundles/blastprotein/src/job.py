@@ -11,6 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 from typing import Dict
+from collections import defaultdict
 from urllib3.exceptions import MaxRetryError
 
 from chimerax.core.tasks import JobError
@@ -35,6 +36,7 @@ class BlastProteinJob(CxServicesJob):
         super().__init__(session)
 
         self.show_gui = kw.pop("show_gui", True)
+        self.only_best = kw.pop("only_best", True)
         self.load_structures = kw.pop("load_structures", False)
         self.load_sequences = kw.pop("load_sequences", False)
 
@@ -132,7 +134,9 @@ class BlastProteinJob(CxServicesJob):
                         tool_name=self.tool_inst_name,
                         params=self._params(),
                         job=self,
+                        only_best=self.only_best,
                     )
+
                 else:
                     params = self._params()
                     db = AvailableDBsDict[params.database]
@@ -142,7 +146,23 @@ class BlastProteinJob(CxServicesJob):
                         self.seq,
                         self.atomspec,
                     )
-                    # Load the structures and sequences
+                    # If the user wants to load the sequence alignment it MUST
+                    # happen before other models are loaded or else ChimeraX
+                    # will freeze.
+                    if self.only_best:
+                        chains = defaultdict(str)
+                        for hit in hits:
+                            chain, homotetramer = hit["name"].split("_")
+                            if chain not in chains:
+                                chains[chain] = hit
+                            else:
+                                old_homotetramer = chains[chain]["name"].split("_")[1]
+                                best_homotetramer = sorted(
+                                    [homotetramer, old_homotetramer]
+                                )[0]
+                                if best_homotetramer == homotetramer:
+                                    chains[chain] = hit
+                        hits = list(chains.values())
                     if self.load_structures:
                         hits = sorted(hits, key=lambda i: i["e-value"])
                         for index, hit in enumerate(hits):

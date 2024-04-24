@@ -74,6 +74,7 @@ class BlastProteinResults(ToolInstance):
         self._viewer_index = 1
         self._from_restore = kw.pop("from_restore", False)
         self.params: BlastParams = kw.pop("params", None)
+        self.only_best = kw.pop("only_best", False)
 
         # from_job
         self.job = kw.pop("job", None)
@@ -92,8 +93,8 @@ class BlastProteinResults(ToolInstance):
         self._build_ui()
 
     @classmethod
-    def from_job(cls, session, tool_name, params, job):
-        return cls(session, tool_name, from_restore=False, params=params, job=job)
+    def from_job(cls, session, tool_name, params, job, **kw):
+        return cls(session, tool_name, from_restore=False, params=params, job=job, **kw)
 
     @classmethod
     def from_pull(cls, session, tool_name, params, sequence, results):
@@ -276,7 +277,7 @@ class BlastProteinResults(ToolInstance):
         self.show_best_matching_container = QWidget(parent=parent)
         self.show_best_matching_layout = QHBoxLayout()
         self.only_best_matching = QCheckBox(
-            "List only best chain per PDB", parent=parent
+            "List only best chain per hit", parent=parent
         )
         self.only_best_matching.stateChanged.connect(
             self._on_best_matching_state_changed
@@ -284,7 +285,7 @@ class BlastProteinResults(ToolInstance):
         self.show_best_matching_layout.addStretch()
         self.show_best_matching_layout.addWidget(self.only_best_matching)
         self.show_best_matching_container.setLayout(self.show_best_matching_layout)
-        self.show_best_matching_container.setVisible(False)
+        self.show_best_matching_container.setVisible(True)
         self.main_layout.addWidget(self.show_best_matching_container)
         self.main_layout.addWidget(self.load_buttons_widget)
 
@@ -335,6 +336,8 @@ class BlastProteinResults(ToolInstance):
         state = self.only_best_matching.checkState()
         if state.name == "Checked":
             if self._best_hits is None:
+                # Every chain has the same e-value, so really we're just taking the first
+                # chain of a hit for each group of hits.
                 chains = defaultdict(str)
                 for hit in self._hits:
                     chain, homotetramer = hit["name"].split("_")
@@ -468,6 +471,10 @@ class BlastProteinResults(ToolInstance):
                     self.control_widget.setVisible(True)
                     if db.name == "pdb":
                         self.show_best_matching_container.setVisible(True)
+                    if self.only_best:
+                        self.only_best_matching.setCheckState(Qt.Checked)
+                        self._on_best_matching_state_changed()
+
             except RuntimeError:
                 # The user closed the window before the results came back.
                 # TODO: Investigate the layer of abstraction in ui/src/gui.py that makes
