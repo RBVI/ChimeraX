@@ -4028,6 +4028,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
 #
 class VolumeUpdateManager:
   def __init__(self, session):
+    self._session = session
     self._volumes_to_update = set()
     # Only update displayed volumes.  Keep list or efficiency with time series.
     self._displayed_volumes_to_update = set()
@@ -4035,6 +4036,8 @@ class VolumeUpdateManager:
     if t.has_trigger('graphics update'):
       t.add_handler('graphics update', self._update_drawings)
     t.add_handler('model display changed', self._display_change)
+    if t.has_trigger('command finished'):
+      t.add_handler('command finished', self._update_drawings_if_in_script)
 
   def add(self, v):
     self._volumes_to_update.add(v)
@@ -4061,6 +4064,13 @@ class VolumeUpdateManager:
           vset.remove(v)
           vdisp.remove(v)
           v.update_drawings()
+
+  def _update_drawings_if_in_script(self, *_):
+    # Make sure volume surfaces are created after a volume is created
+    # when running a script so that subsequent commands can act on those surfaces
+    # (for instance mask or hide dust).  Ticket #14971
+    if self._session.in_script:
+      self._update_drawings()
 
 # -----------------------------------------------------------------------------
 # Check if file name contains %d type format specification.

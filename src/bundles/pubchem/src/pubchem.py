@@ -26,21 +26,50 @@
 pubchem: PubChem fetch support
 """
 
+# https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest
+PUG_REST = "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
+
 def fetch_pubchem(session, pubchem_id, *, ignore_cache=False, res_name=None, **kw):
     from chimerax.core.errors import UserError
     if not pubchem_id.isdigit():
         raise UserError('PubChem identifiers are numeric, got "%s"' % pubchem_id)
 
     import os
-    url = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/%s/SDF?record_type=3d" % pubchem_id
+    url = f"{PUG_REST}/compound/cid/%s/SDF?record_type=3d" % pubchem_id
     pubchem_name = "%s.sdf" % pubchem_id
     from chimerax.core.fetch import fetch_file
     filename = fetch_file(session, url, 'PubChem %s' % pubchem_id, pubchem_name,
         'PubChem', ignore_cache=ignore_cache)
+    url = f"{PUG_REST}/compound/cid/%s/description/JSON" % pubchem_id
+    meta_name = f"{pubchem_id}.desc"
+    metadata_fn = fetch_file(session, url, 'PubChem %s description' % pubchem_id, meta_name,
+        'PubChem', ignore_cache=ignore_cache, timeout=5)
 
     session.logger.status("Opening PubChem %s" % (pubchem_id,))
     structures, status = session.open_command.open_data(filename, format='sdf',
         name="pubchem:" + pubchem_id, **kw)
+    if os.path.exists(metadata_fn):
+        import json
+        with open(metadata_fn) as f:
+            metadata = json.load(f)
+        try:
+            description_list = metadata["InformationList"]["Information"]
+        except KeyError:
+            description_list = []
+        title = None
+        for d in description_list:
+            if "Title" in d:
+                title = d["Title"]
+                break
+        if title is not None:
+            from html import escape
+            title = escape(title)
+            for s in structures:
+                s.html_title = f"{s.get_html_title()}: {title}"
+                try:
+                    del s.get_html_title
+                except AttributeError:
+                    pass
     if res_name is not None:
         for s in structures:
             s.residues.names = res_name

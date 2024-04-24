@@ -13,3 +13,6 @@ ChimeraX to make the git workflow a little easier.
 - commitlintconfig.js
 
   The configuration file for commitlint.
+
+- pre-commit
+  Looks at changes in bundles and verifies that those bundles have their version numbers bumped.

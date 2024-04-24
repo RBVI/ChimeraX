@@ -10,7 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-from .databases import *
-from .dbparsers import *
-from .match import *
-from .pdbinfo import *
+from .databases import *  # noqa
+from .dbparsers import *  # noqa
+from .match import *  # noqa
+from .pdbinfo import *  # noqa

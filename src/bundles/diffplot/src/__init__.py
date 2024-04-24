@@ -21,28 +21,15 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "3.5"
-
-import os
-
-def get_bin() -> str:
-    return os.path.join(os.path.dirname(__file__), "bin")
-
-from .header_sequence import HeaderSequence, FixedHeaderSequence, DynamicHeaderSequence, \
-    DynamicStructureHeaderSequence
 
 from chimerax.core.toolshed import BundleAPI
 
-class _AlignmentHdrsAPI(BundleAPI):
+class _DiffPlotAPI(BundleAPI):
 
-    @classmethod
-    def get_class(cls, class_name):
-        import importlib
-        hdr_mod = importlib.import_module(".%s" % class_name.lower(), cls.__module__)
-        return getattr(hdr_mod, class_name)
+    @staticmethod
+    def register_command(command_name, logger):
+        # 'register_command' is called by the toolshed on start up
+        from . import diffplot
+        diffplot.register_diffplot_command(logger)
 
-    @classmethod
-    def run_provider(cls, session, name, mgr, **kw):
-        return cls.get_class(name)
-
-bundle_api = _AlignmentHdrsAPI()
+bundle_api = _DiffPlotAPI()

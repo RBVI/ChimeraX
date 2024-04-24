@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-PubChem" version="2.1"
+<BundleInfo name="ChimeraX-PubChem" version="2.2"
 	    package="chimerax.pubchem"
   	    minSessionVersion="1" maxSessionVersion="1">
 
