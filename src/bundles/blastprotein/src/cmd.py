@@ -27,7 +27,7 @@ from chimerax.atomic import SequenceArg, Sequence, Chain
 from chimerax.core.errors import UserError
 from chimerax.seqalign import AlignSeqPairArg
 
-from .data_model import AvailableDBs, AvailableMatrices, Matrix
+from .data_model import AvailableDBs, AvailableMatrices
 from .job import BlastProteinJob
 
 
@@ -39,7 +39,7 @@ def blastprotein(
     atoms=None,
     database="pdb",
     cutoff: float = 1.0e-3,
-    matrix: Union[Matrix, str] = "BLOSUM62",
+    matrix: str = "BLOSUM62",
     maxSeqs: int = 100,
     version: Optional[int] = None,
     showResultsTable: bool = True,
@@ -51,8 +51,6 @@ def blastprotein(
     name=None
 ):
     """Search PDB/NR using BLAST"""
-    if isinstance(matrix, str):
-        matrix = Matrix(matrix)
     str_chain = None
     if isinstance(atoms, tuple):
         # Must be alignment:seq
