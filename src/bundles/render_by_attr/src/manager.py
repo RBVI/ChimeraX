@@ -78,9 +78,22 @@ class RenderAttrInfo(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
+    def select(self, session, attr_name, models, discrete, parameters):
+        """Select parts of the given models based on attr_name as requested.
+
+        'discrete' indicates whether 'parameters' is a discete sequence of values (strings or booleans, and
+        can include None) to select.  If not, then 'parameters' is either None, in which case items with
+        missing or None values should be selected.  Otherwise, parameters is a three-tuple, the first value
+        is a boolean and the other two values are numeric.  The boolean idicates whether to select values
+        between the other two values (inclusive; first value True) or outside the other two values (first
+        value False).  The lesser of the two bounds values will be the second value of the three-tuple.
+        """
+        pass
+
+    @abc.abstractmethod
     def values(self, attr_name, models):
         """Get the values of the given attribute in the given models.  Returns a two-tuple,
-        the first component of which is a sequence of the non-None values, and the second is
+        the first component of which is a sequence of all the non-None values, and the second is
         a boolean indicating if there were any None values.
         """
         pass
@@ -136,6 +149,15 @@ class RenderByAttrManager(ProviderManager):
 
     def ui_name(self, provider_name):
         return self._ui_names[provider_name]
+
+    def show_select_tool(self):
+        from .tool import RenderByAttrTool as tool_class
+        for tool in self.session.tools:
+            if isinstance(tool, tool_class):
+                break
+        else:
+            tool = tool_class(self.session, "Render by Attribute")
+        tool.show_tab("Select")
 
 _manager = None
 def get_manager(session):

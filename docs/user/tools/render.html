@@ -15,7 +15,7 @@ or derivations thereof.
 
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
-<title>Tool: Render by Attribute</title>
+<title>Tool: Render/Select by Attribute</title>
 </head><body>
 
 <a name="top"></a>
@@ -23,33 +23,58 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3><a href="../index.html#tools">Tool</a>: Render by Attribute</h3>
+<table class="clRight">
+<tr><td>
+<a href="worms.png" title="click to enlarge...">
+<img class="outline" src="worms.png" alt="1pho B-factor worms/coloing"
+width="250px"></a></td></tr>
+<tr><td align="center"><font size="-1">
+<b>1pho coloring and worms by B-factor</b>
+(<a href="https://www.rbvi.ucsf.edu/chimerax/features.html#worms"
+target="_blank">more...</a>)</font></td></tr>
+</table>
+
+<h3><a href="../index.html#tools">Tool</a>: Render/Select by Attribute</h3>
 <p>
-<b>Render by Attribute</b> can show the values of a numerical 
-<a href="../attributes.html">attribute</a> (built-in or user-defined)
-with colors, atomic radii, or worms, where a 
-<b><i>worm</i></b> is a specialized cartoon in which the radius varies to
-show the values of a numerical <a href="../attributes.html">attribute</a>.
-<b>Render by Attribute</b> is the graphical interface to the commands
+<b>Render/Select by Attribute</b> performs functions according to the values
+of <a href="../attributes.html">attributes</a> (built-in or user-defined):
+</p>
+<ul>
+<li>visual rendering of numerical attributes with <a href="#colors">colors</a>,
+atomic <a href="#radii">radii</a>, or <a href="#worms">worms</a>, where a 
+<b><i>worm</i></b> is a specialized cartoon of variable radius per residue
+<li><a href="#select">selection</a> by numerical, boolean, 
+or string attribute value
+</ul>
+<p>
+<b>Render/Select by Attribute</b> is the graphical interface to the commands
 <a href="../commands/color.html#byattribute"><b>color byattribute</b></a>,
-<a href="../commands/size.html#byattribute"><b>size byattribute</b></a>, and
-<a href="../commands/cartoon.html#byattribute"><b>cartoon byattribute</b></a>.
+<a href="../commands/size.html#byattribute"><b>size byattribute</b></a>,
+<a href="../commands/cartoon.html#byattribute"><b>cartoon byattribute</b></a>,
+and <a href="../commands/select.html"><b>select</b></a> (with command-line
+<a href="../commands/atomspec.html#attributes">specification by attribute</a>).
 See also: 
 <a href="surfacecolor.html"><b>Surface Color</b></a>,
 <a href="colorkey.html"><b>Color Key</b></a>, the <b>color bfactor</b> icon
 <a href="moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="shortcut-icons/bfactor.png"></a>
 in the <a href="moldisplay.html"><b>Molecule Display Toolbar</b></a>,
+the <a href="../menu.html#select"><b>Select</b> menu</a>,
 <a href="../measurements.html">measurements</a>
 </p><p>
-The <b>Render by Attribute</b> dialog can be opened from the
-<b>Depiction</b> or <b>Structure Analysis</b> section of the <b>Tools</b> menu
+<b>Render/Select by Attribute</b> set to its <b>Render</b> tab
+can be opened from the <b>Depiction</b> or <b>Structure Analysis</b> 
+section of the <b>Tools</b> menu
 and manipulated like other panels (<a href="../window.html#panels">more...</a>).
+Choosing
+<a href="../menu.html#select"><b>Select... By Attribute Value...</b></a>
+from the main ChimeraX menu opens the tool set to its 
+<a href="#select"><b>Select</b></a> tab.
 </p>
 <blockquote><b>
 <a href="#choosemodel">Choosing Model and Attribute</a>
 <br>
-<a href="#histogram">Histogram of Attribute Values</a>
+<a href="#histogram">Histogram or List of Attribute Values</a>
 <br>
 <a href="#colors">Colors</a>
 <br>
@@ -76,8 +101,10 @@ The <b>Attribute of</b> menu specifies whether the
 <b>atoms</b>, <b>residues</b>, or <b>structures</b> (atomic models). 
 The <b>Attribute</b> can then be chosen from the list of 
 attributes available within the <a href="#choosemodel">chosen models</a>.
-Only <b><i>numerical</i></b> attributes can be used for coloring;
-these may include:
+</p><p>
+In the <b>Render</b> tab, only <b><i>numerical</i></b> attributes 
+are available, whereas the <b>Select</b> tab also allows using boolean
+and string-valued attributes. These may include:
 <ul>
 <li><b>atoms</b>
   <ul>
@@ -123,10 +150,13 @@ mapped to colors with this tool.
 
 <a name="histogram"></a>
 <p class="nav">
-[<a href="#top">back to top: Render by Attribute</a>]
+[<a href="#top">back to top: Render/Select by Attribute</a>]
 </p>
-<h3>Histogram of Attribute Values</h3>
+<h3>Histogram or List of Attribute Values</h3>
 <p>
+In the <b>Render</b> section:
+</p>
+<blockquote>
 Choosing an attribute as described above shows a histogram of its
 values in the <a href="#choosemodel">chosen</a> models.
 </p><p>
@@ -148,22 +178,56 @@ whereas Shift-clicking an existing threshold deletes it.
 </p><p>
 <b>Restrict to selection</b> limits rendering by attribute to the current
 <a href="../selection.html">selection</a>.
+</p>
+</blockquote>
+<p>
+<a name="select"></a>
+The <b>Select</b> tab of <a href="#top"><b>Render/Select by Attribute</b></a>
+performs <a href="../selection.html">selection</a> of atoms, residues, 
+and structures (atomic models) based on their <a href="../attributes.html">attribute</a> values. In this section:
+<blockquote>
+<p>
+If the chosen attribute is numerical, the dialog shows a histogram of its
+values in the <a href="#choosemodel">chosen</a> models.
+The two <b><i>thresholds</i></b> or vertical bars on the histogram 
+define a value range for <a href="../selection.html">selection</a>,
+either <b>between</b> (inclusive) or <b>outside</b> their positions. 
+Each threshold can be moved by dragging or directly entering a new value.
+The <b>Value</b> field applies to the threshold most recently moved or clicked. 
+The <b>no value</b> option allows selecting items with no value assigned 
+for the chosen attribute. For example, nucleic acid residues do not have 
+peptide backbone <b>phi</b> angles.
 </p><p>
-Clicking <b>Apply</b> performs the rendering without closing the dialog,
-whereas <b>OK</b> performs the rendering and dismisses the dialog.
+If the chosen attribute is boolean, checkboxes allow specifying whether
+to <a href="../selection.html">select</a>
+items for which the attribute is <b>true</b> or <b>false</b>.
+</p><p>
+If the chosen attribute is string-valued, a list of the values is shown.
+Individual rows or blocks of values can be chosen/unchosen by mouseclick
+or drag. Note that for the <a href="../attributes.html#atom"><b>alt_loc</b></a>
+attribute, only the values of currently used locations are listed,
+not all those present in the input file. 
+Which alternate locations to use can be set with the
+<a href="altlocexplorer.html"><b>AltLoc Explorer</b></a> or the
+<a href="../commands/altlocs.html"><b>altlocs</b></a> command.
+</p>
+</blockquote>
+<p>
+Clicking <b>Apply</b> performs the action without closing the dialog,
+whereas <b>OK</b> performs the action and dismisses the dialog.
 <b>Close</b> simply dismisses the dialog, and <b>Help</b> shows this page 
 in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 </p>
 
 <a name="colors"></a>
 <p class="nav">
-[<a href="#top">back to top: Render by Attribute</a>]
+[<a href="#top">back to top: Render/Select by Attribute</a>]
 </p>
 <h3>Colors</h3>
 <p>
 The <b>Value</b> and <b>Color</b>
 settings apply to the <a href="#histogram">threshold</a>
- most recently moved or clicked.
+most recently moved or clicked.
 Clicking a color well opens the system color editor 
 for choosing a color interactively.
 Coloring can be applied to <b>atoms</b>, <b>cartoons</b>, and/or
@@ -204,7 +268,7 @@ in the graphics window using the settings in that tool.
 
 <a name="radii"></a>
 <p class="nav">
-[<a href="#top">back to top: Render by Attribute</a>]
+[<a href="#top">back to top: Render/Select by Attribute</a>]
 </p>
 <h3>Radii</h3>
 <p>
@@ -244,7 +308,7 @@ no-value atoms, <i>etc.</i> will retain their current VDW radii.
 
 <a name="worms"></a>
 <p class="nav">
-[<a href="#top">back to top: Render by Attribute</a>]
+[<a href="#top">back to top: Render/Select by Attribute</a>]
 </p>
 <h3>Worms</h3>
 <p>
@@ -275,5 +339,5 @@ cartoon and a previously defined worm display.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2024</address>
+April 2024</address>
 </body></html>

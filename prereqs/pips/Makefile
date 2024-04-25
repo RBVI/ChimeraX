@@ -101,7 +101,7 @@ upgrade:
 app-install:
 	$(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifneq (,$(SOURCE_WHEELS))
-	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(SOURCE_WHEELS)
+	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
 endif
 	# Will be downloaded from install step
 	$(APP_PIP_INSTALL) $(GRAKO_WHEEL)
@@ -159,6 +159,7 @@ outdated:
 	@echo "  pip, wheel, setuptools versions are set in ../python/Makefile"
 	@echo "  pyzmq (pulled in by ipykernel via jupyter-client)"
 	@echo "  snowballstemmer (pulled in by Sphinx)"
+	@echo "  tables hdf5 package, 3.8.0 because 3.9.x exhibits bug #14935"
 	@echo "  tornado (pulled in by ipykernel)"
 
 app-outdated:

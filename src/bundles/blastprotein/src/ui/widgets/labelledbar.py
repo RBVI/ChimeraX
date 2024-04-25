@@ -13,9 +13,11 @@
 from typing import Optional
 from Qt.QtWidgets import QWidget, QHBoxLayout, QProgressBar, QLabel
 
+
 class LabelledProgressBar(QWidget):
     """Provide a labelled progress bar on all platforms, as the default QProgressBar
     does not display text, ever, on macOS."""
+
     def __init__(self, parent: Optional[QWidget]):
         super().__init__(parent)
         # Reach into the widget

@@ -19,12 +19,13 @@ from Qt.QtWidgets import QMenu, QWidget
 from chimerax.core.settings import Settings
 from chimerax.ui.widgets import ItemTable
 
+
 class BlastResultsRow:
     """Takes in and stores a dictionary. This class only exists to coerce Python into hashing a dictionary."""
 
     # Save on memory by suppressing the internal class dictionary.
     # Only allocate these slots.
-    __slots__ = ['_internal_dict']
+    __slots__ = ["_internal_dict"]
 
     def __init__(self, row: dict):
         self._internal_dict = row
@@ -34,23 +35,31 @@ class BlastResultsRow:
 
 
 class BlastResultsTable(ItemTable):
-    def __init__(self, control_widget: Union[QMenu, QWidget], default_cols, settings: 'BlastProteinResultsSettings', parent = Optional[QWidget]):
+    def __init__(
+        self,
+        control_widget: Union[QMenu, QWidget],
+        default_cols,
+        settings: "BlastProteinResultsSettings",
+        parent=Optional[QWidget],
+    ):
         super().__init__(
             column_control_info=(
-                control_widget
-                , settings
-                , default_cols
-                , False        # fallback default for column display
-                , None         # display callback
-                , None         # number of checkbox columns
-                , True         # Whether to show global buttons
-            )
-            , parent=parent)
+                control_widget,
+                settings,
+                default_cols,
+                False,  # fallback default for column display
+                None,  # display callback
+                None,  # number of checkbox columns
+                True,  # Whether to show global buttons
+            ),
+            parent=parent,
+        )
 
     def resizeColumns(self, max_size: int = 0):
         for col in self._columns:
             if self.columnWidth(self._columns.index(col)) > max_size:
                 self.setColumnWidth(self._columns.index(col), max_size)
+
 
 class BlastProteinResultsSettings(Settings):
     EXPLICIT_SAVE = {BlastResultsTable.DEFAULT_SETTINGS_ATTR: {}}

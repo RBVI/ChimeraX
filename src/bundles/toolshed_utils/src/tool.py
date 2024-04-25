@@ -189,6 +189,9 @@ class UpdateTool(ToolInstance):
             if dialog_type == DialogType.UPDATES_ONLY:
                 if new_version <= installed_version:
                     continue
+            if not available.categories:
+                # Protect against missing bundle category, ticket #14977
+                available.categories = ["General"]
             data = new_bundles.setdefault(
                 last_bundle_name,
                 ([], installed_version, available.synopsis, available.categories[0]))

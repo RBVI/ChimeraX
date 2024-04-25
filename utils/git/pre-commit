@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+
+import os
+import codecs
+import sys
+import subprocess
+from lxml.etree import parse
+
+rotamer_lib_bundles = set(["Dunbrack", "Dynameomics", "Richardson"])
+
+git_root_cmd = subprocess.run(
+    ["git", "rev-parse", "--show-toplevel"],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+)
+
+if git_root_cmd.returncode != 0:
+    print("Not in a git repository?")
+    sys.exit(1)
+if git_root_cmd.stderr:
+    print("Error getting git root")
+    sys.exit(1)
+
+git_root_dir = git_root_cmd.stdout.decode("utf-8").strip().split("\n")[0]
+
+bundles = [
+    potential_dir
+    for potential_dir in os.listdir(os.path.join(git_root_dir, "src", "bundles"))
+    if os.path.isdir(os.path.join(git_root_dir, "src", "bundles", potential_dir))
+] + ["Dunbrack", "Dynameomics", "Richardson"]
+
+
+def get_bundle_name(bundle_path):
+    # e.g. ./segger/seggerx/Segger/src/fit_dialog.py
+    path_as_list = bundle_path.split("/")
+    bundle_name = path_as_list[2]
+    if bundle_name == "rotamer_libs":
+        bundle_name = path_as_list[3]
+    return bundle_name
+
+
+def init_for_bundle(bundle_name, real_path=False):
+    if real_path:
+        if bundle_name in rotamer_lib_bundles:
+            return (
+                f"{git_root_dir}/src/bundles/rotamer_libs/{bundle_name}/src/__init__.py"
+            )
+        return f"{git_root_dir}/src/bundles/{bundle_name}/src/__init__.py"
+    if bundle_name in rotamer_lib_bundles:
+        return f"src/bundles/rotamer_libs/{bundle_name}/src/__init__.py"
+    return f"src/bundles/{bundle_name}/src/__init__.py"
+
+
+def xml_for_bundle(bundle_name, real_path=False):
+    if real_path:
+        if bundle_name in rotamer_lib_bundles:
+            return (
+                f"{git_root_dir}/src/bundles/rotamer_libs/{bundle_name}/bundle_info.xml"
+            )
+        return f"{git_root_dir}/src/bundles/{bundle_name}/bundle_info.xml"
+    if bundle_name in rotamer_lib_bundles:
+        return f"src/bundles/rotamer_libs/{bundle_name}/bundle_info.xml"
+    return f"src/bundles/{bundle_name}/bundle_info.xml"
+
+
+def bundle_uses_toml(bundle_name) -> bool:
+    if bundle_name in rotamer_lib_bundles:
+        if os.path.exists(
+            f"{git_root_dir}/src/bundles/rotamer_libs/{bundle_name}/pyproject.toml"
+        ):
+            return True
+        return False
+    if os.path.exists(f"{git_root_dir}/src/bundles/{bundle_name}/pyproject.toml"):
+        return True
+    return False
+
+
+def file_contents_at_git_head(_file):
+    content_cmd = subprocess.run(
+        ["git", "show", f"HEAD:{_file}"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    if content_cmd.stderr:
+        print(f"Error getting contents of {_file}")
+        sys.exit(1)
+    if content_cmd.returncode != 0:
+        print(f"Error getting contents of {_file}")
+        sys.exit(1)
+    return content_cmd.stdout.decode("utf-8").strip()
+
+
+def file_contents_on_disk(_file):
+    with open(_file, "r") as f:
+        return f.read()
+
+
+def parse_init_for_version(contents):
+    for line in contents.splitlines():
+        if line.startswith("__version__"):
+            delim = '"' if '"' in line else "'"
+            return line.split(delim)[1]
+    else:
+        raise RuntimeError("Unable to find version string.")
+
+
+def parse_xml_for_version(contents):
+    doc = parse(contents)
+    bi = doc.getroot()
+    version = bi.get("version")
+    return version
+
+
+changed_files_proc = subprocess.run(
+    ["git", "diff", "--cached", "--name-only"],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+)
+
+changed_files = changed_files_proc.stdout.decode("utf-8").strip().split("\n")
+
+changed_bundles = set()
+for file in changed_files:
+    path_as_list = file.split("/")
+    # Nothing at the top level has a version
+    if len(path_as_list) == 1:
+        continue
+    bundle = get_bundle_name(file)
+    # The core bundle gets its version bumped by CI
+    if bundle in bundles and bundle != "core":
+        changed_bundles.add(bundle)
+
+for bundle in changed_bundles:
+    if bundle_uses_toml(bundle):
+        init_file = init_for_bundle(bundle)
+        if init_file not in changed_files:
+            # Made a change to the bundle but not the __init__.py file guarantees
+            # that the version number didn't change
+            print(
+                f"__init__.py file for bundle {bundle} not staged, bump the version number and stage it or use git commit --no-verify if only stylistic changes were made."
+            )
+            sys.exit(1)
+        else:
+            real_init_path = init_for_bundle(bundle, real_path=True)
+            contents_on_disk = file_contents_on_disk(real_init_path)
+            contents_at_head = file_contents_at_git_head(init_file)
+            if parse_init_for_version(contents_on_disk) == parse_init_for_version(
+                contents_at_head
+            ):
+                print(
+                    f"Version number in {init_file} did not change, bump the version number or use git commit --no-verify if only stylistic changes were made."
+                )
+                sys.exit(1)
+
+    else:
+        xml_file = xml_for_bundle(bundle)
+        if xml_file not in changed_files:
+            # Made a change to the bundle but not the bundle_info.xml file guarantees
+            # that the version number didn't change
+            print(
+                f"bundle_info.xml file for bundle {bundle} not staged, bump the version number and stage it or use git commit --no-verify if only stylistic changes were made."
+            )
+            sys.exit(1)
+        else:
+            real_xml_path = xml_for_bundle(bundle, real_path=True)
+            contents_on_disk = file_contents_on_disk(real_xml_path)
+            contents_at_head = file_contents_at_git_head(xml_file)
+            if parse_xml_for_version(contents_on_disk) == parse_xml_for_version(
+                contents_at_head
+            ):
+                print(
+                    f"Version number in {xml_file} did not change, bump the version number or use git commit --no-verify if only stylistic changes were made."
+                )
+                sys.exit(1)
+sys.exit(0)

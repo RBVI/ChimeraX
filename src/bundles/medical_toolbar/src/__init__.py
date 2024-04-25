@@ -21,8 +21,10 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+__version__ = "1.0.2"
 
 from chimerax.core.toolshed import BundleAPI
+
 
 class _MedicalToolbarAPI(BundleAPI):
 
@@ -30,6 +32,7 @@ class _MedicalToolbarAPI(BundleAPI):
     def run_provider(session, name, mgr, **kw):
         """Run toolbar provider"""
         from . import actions
+
         actions.run_provider(session, name)
 
 

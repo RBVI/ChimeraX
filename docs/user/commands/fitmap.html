@@ -386,12 +386,20 @@ number of cluster members (hits).
 </p>
 <blockquote>
   <a name="search"><b>search</b> &nbsp;<i>N</i></a>
+[&nbsp;<b>seed</b> &nbsp;<i>M</i>&nbsp;]
   <br>
-Number of initial placements (prior to 
+The <b>search</b> option specifies the number of initial placements (prior to 
 <a href="#optimization">local optimization</a>)
 of the fit model within the reference map (default <b>0</b>, no global search).
 The <a href="#placement"><b>placement</b></a> option can be used to constrain
 initial placements to only rotations or shifts from the current position.
+These <i>N</i> initial placements of the fit model 
+within the reference map are generated randomly, but these depend on both
+the current transformation of the model relative to the scene
+and the seed used for randomization.
+If reproducibility is required, the fit model position should be reset 
+beforehand with <a href="view.html#initial"><b>view initial</b></a>
+and a consistent <b>seed</b> <i>M</i> specified in the search.
 </blockquote>
 <blockquote>
   <a name="placement"><b>placement</b> 
@@ -569,5 +577,5 @@ whichever comes first.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2023</address>
+April 2024</address>
 </body></html>

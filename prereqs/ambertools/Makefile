@@ -94,6 +94,21 @@ else
 FLIBDIR = /usr/local/gfortran/lib
 endif
 
+
+ifeq ($(wildcard /usr/local/opt/gcc/lib/gcc/current/*),)
+ifeq ($(wildcard /opt/homebrew/opt/gcc/lib/gcc/current/*),)
+ifeq ($(wildcard /usr/local/gfortran/*),)
+LOCALLIBDIR = /usr/local/lib
+else
+LOCALLIBDIR = /usr/local/gfortran/lib
+endif
+else
+LOCALLIBDIR = /opt/homebrew/opt/gcc/lib/gcc/current
+endif
+else
+LOCALLIBDIR = /usr/local/opt/gcc/lib/gcc/current
+endif
+
 ifeq ($(USE_PREBUILT),true)
 install:
 
@@ -134,6 +149,14 @@ app-install: install
 	$(RSYNC) $(AMBERBIN_SRC)/wrapped_progs/* $(AMBERBIN_DST)
 	$(RSYNC) $(AMBERDAT_ANTECHAMBER_SRC)/* $(AMBERDAT_ANTECHAMBER_DST)
 	$(RSYNC) $(AMBERDAT_PARM_SRC)/gaff2.dat $(AMBERDAT_PARM_DST)
+ifeq ($(OS),Darwin)
+	for i in $(AMBERLIB_SRC)/*.$(SHLIB_EXT); do \
+		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(LOCALLIBDIR))/) { print $$1 }'`; do \
+			filename=`basename $$j`; \
+			install_name_tool -change $$j @executable_path/../../../lib/$$filename $$i; \
+		done; \
+	done
+endif
 	$(RSYNC) $(AMBERLIB_SRC)/*.$(SHLIB_EXT) $(app_libdir)
 ifeq ($(OS),Windows)
 	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /usr/bin/cygreadline*.dll /usr/bin/cygintl*.dll /usr/bin/cygncursesw*.dll /usr/bin/cygiconv*.dll /bin/sh.exe $(AMBERBIN_DST)

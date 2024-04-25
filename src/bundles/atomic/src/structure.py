@@ -2584,6 +2584,12 @@ def selected_residues(session):
 
 # -----------------------------------------------------------------------------
 #
+def selected_chains(session):
+    '''All selected chains in all structures as an :class:`.Chains` collection.'''
+    return selected_residues(session).chains.unique()
+
+# -----------------------------------------------------------------------------
+#
 def structure_residues(structures):
     '''Return all residues in specified atomic structures as an :class:`.Residues` collection.'''
     from .molarray import Residues

@@ -20,6 +20,7 @@ from .match import Match
 
 def parse_blast_results(db, results, sequence, atomspec):
     from .databases import get_database
+
     sequences = {}
     blast_results = get_database(db)
     blast_results.parse("query", sequence, results)
@@ -33,8 +34,12 @@ def parse_blast_results(db, results, sequence, atomspec):
     sequence_only_hits = {}
     for n, m in enumerate(blast_results.parser.matches[1:]):
         sid = n + 1
-        hit = {"id":          sid, "e-value": m.evalue, "score": m.score,
-               "description": m.description}
+        hit = {
+            "id": sid,
+            "e-value": m.evalue,
+            "score": m.score,
+            "description": m.description,
+        }
         if m.match:
             hit["name"] = m.match
             match_chains[m.match] = hit
@@ -53,6 +58,7 @@ def parse_blast_results(db, results, sequence, atomspec):
 class Parser(ABC):
     """Abstract base class for BLAST JSON parsers. To define a parser for a new
     type of database, create a subclass that implements _extract_hit"""
+
     def __init__(self, query_title, query_seq, output):
         self.true_name = query_title
         self.query_seq = query_seq
@@ -86,7 +92,7 @@ class Parser(ABC):
         # Extract information from results
         self.res = self.output
 
-        if 'BlastOutput2' not in self.res.keys():
+        if "BlastOutput2" not in self.res.keys():
             raise ValueError("Text is not BLAST JSON output")
 
         self.res_data = self.res["BlastOutput2"][0]["report"]
@@ -112,8 +118,17 @@ class Parser(ABC):
 
     def _append_query(self):
         """Insert the query as the first match"""
-        m = Match(self.true_name, None, "user_input",
-                  0.0, 0.0, 1, len(self.query_seq), self.query_seq, self.query_seq) # SH
+        m = Match(
+            self.true_name,
+            None,
+            "user_input",
+            0.0,
+            0.0,
+            1,
+            len(self.query_seq),
+            self.query_seq,
+            self.query_seq,
+        )  # SH
         self.matches.insert(0, m)
         self.match_dict[self.query] = m
 
@@ -154,14 +169,22 @@ class Parser(ABC):
         return m
 
     def _copy_match(self, m, name, match_id, desc):
-        nm = Match(name, match_id, desc, m.score, m.evalue,
-                   m.q_start + 1, m.q_end + 1, # switch back to 1-base indexing
-                   m.q_seq, m.h_seq)
+        nm = Match(
+            name,
+            match_id,
+            desc,
+            m.score,
+            m.evalue,
+            m.q_start + 1,
+            m.q_end + 1,  # switch back to 1-base indexing
+            m.q_seq,
+            m.h_seq,
+        )
         self.matches.append(nm)
         self.match_dict[name] = nm
 
     def _update_gap_counts(self, seq, start, end):
-        start -= 1 # Switch to 0-based indexing
+        start -= 1  # Switch to 0-based indexing
         count = 0
         for c in seq:
             if c in SeqGapChars:
@@ -213,7 +236,7 @@ class PDBParser(Parser):
             name = pdb_id
             pdb = None
         else:
-            name = pdb = '_'.join([pdb_id, chain_id])
+            name = pdb = "_".join([pdb_id, chain_id])
         desc = hit_desc
         return name, pdb, desc
 
@@ -233,7 +256,7 @@ class PDBParser(Parser):
                 # Strip the chain information up to the first comma, but since
                 # the description can have many commas splice the description
                 # back together at the end
-                desc = (','.join(desc.split(',')[1:])).strip()
+                desc = (",".join(desc.split(",")[1:])).strip()
             id_list.append((name, chain, desc))
         name, pdb, desc = PDBParser._get_id_info(*id_list[0])
         match_list = []
@@ -253,25 +276,28 @@ class AlphaFoldParser(Parser):
         id_list = []
         for entry in hit["description"]:
             title = entry["title"]
-            if '|' in title:
+            if "|" in title:
                 # AlphaFold database version 2
-                fields = title.split('|')
+                fields = title.split("|")
                 uniprot_id = fields[1]
                 desc = fields[2]
             else:
                 # AlphaFold database version 3
-                fields = title.split(' ', 1)
-                if not (fields[0].startswith('AFDB:AF-') and fields[0].endswith('-F1')):
-                    raise ValueError(f'Expected AlphaFold BLAST result title line to start with AFDB:AF-[uniprot_id]-F1, got {entry["title"]}')
+                fields = title.split(" ", 1)
+                if not (fields[0].startswith("AFDB:AF-") and fields[0].endswith("-F1")):
+                    raise ValueError(
+                        f'Expected AlphaFold BLAST result title line to start with AFDB:AF-[uniprot_id]-F1, got {entry["title"]}'
+                    )
                 uniprot_id = fields[0][8:-3]
-                desc = fields[1] if len(fields) >= 2 else ''
+                desc = fields[1] if len(fields) >= 2 else ""
                 # Parsing is partly done here and partly in databases.py in
                 # AlphaFoldDB.add_info().  Need to start description with uniprot name
                 # for parsing in databases.py to work correctly.
                 from .databases import Database
-                uniprot_name = Database._get_equal_sep_attr(desc, 'UI')
+
+                uniprot_name = Database._get_equal_sep_attr(desc, "UI")
                 name = uniprot_name if uniprot_name else uniprot_id
-                desc = name + ' ' + desc
+                desc = name + " " + desc
             id_list.append((uniprot_id, desc))
         match_list = []
         for hsp in hit["hsps"]:

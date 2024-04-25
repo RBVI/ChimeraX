@@ -148,10 +148,13 @@ class UI(QApplication):
         from Qt.QtCore import qInstallMessageHandler
         def cx_qt_msg_handler(msg_type, msg_log_context, msg_string,
                               log_fatal_error = self._log_qt_fatal_error):
-            if (msg_string.startswith('delivering touch release to same window')
-                or msg_string.startswith('skipping QEventPoint')
-                or msg_string.startswith('doh set to')):
-                return	# Supress Qt 6.2 warnings
+            if msg_string.startswith((
+                    'delivering touch release to same window',   # Qt 6.2
+                    'skipping QEventPoint',   # Qt 6.2
+                    'doh set to',  # Qt 6.2
+                    'Path override failed for key base::DIR_APP_DICTIONARIES',  # Qt 6.6.3
+                    )):
+                return	# Supress Qt warnings
             if 'QWindowsWindow::setDarkBorderToWindow' in msg_string:
                 return  # Supress Qt 6.4 warning, ChimeraX ticket #8541
             if msg_type == QtMsgType.QtFatalMsg:
@@ -1565,10 +1568,16 @@ class MainWindow(QMainWindow, PlainTextLog):
             if sys.platform == "darwin":
                 cd.hide()
             cd.currentColorChanged.disconnect()
-        from chimerax.core.commands import run, sel_or_all
-        cd.currentColorChanged.connect(lambda clr, *, ses=self.session, arg_func=cmd_arg_func:
-            run(ses, "color %s %s" % (sel_or_all(ses, ['atoms', 'bonds']),
-            clr.name() + clr.name(clr.HexArgb)[1:3]) + arg_func()))
+        def use_color(color, *, ses=self.session, arg_func=cmd_arg_func):
+            from chimerax.core.commands import run, sel_or_all
+            cmd_arg = arg_func()
+            hex_code = color.name() + color.name(color.HexArgb)[1:3]
+            if cmd_arg is None:
+                # setting background color
+                run(ses, "set bgColor %s" % hex_code)
+            else:
+                run(ses, "color %s %s" % (sel_or_all(ses, ['atoms', 'bonds']), hex_code) + cmd_arg)
+        cd.currentColorChanged.connect(use_color)
         cd.show()
 
     def _run_surf_command(self, cmd, *, whole_surf=False):
@@ -1610,6 +1619,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         raise CancelOperation("Custom labeling cancelled")
 
     def _populate_select_menu(self, select_menu):
+        from chimerax.core.commands import run
         from Qt.QtGui import QAction
         sel_seq_action = QAction("Sequence...", self)
         select_menu.addAction(sel_seq_action)
@@ -1617,10 +1627,16 @@ class MainWindow(QMainWindow, PlainTextLog):
         sel_zone_action = QAction("&Zone...", self)
         select_menu.addAction(sel_zone_action)
         sel_zone_action.triggered.connect(self.show_select_zone_dialog)
+        sel_attr_action = QAction("By Attribute &Value...", self)
+        select_menu.addAction(sel_attr_action)
+        def show_sel_attr_tool(*args, ses=self.session):
+            from chimerax.render_by_attr import get_manager
+            mgr = get_manager(ses)
+            mgr.show_select_tool()
+        sel_attr_action.triggered.connect(show_sel_attr_tool)
         sel_contacts_action = QAction("Con&tacts...", self)
         select_menu.addAction(sel_contacts_action)
         sel_contacts_action.triggered.connect(self.show_select_contacts_dialog)
-        from chimerax.core.commands import run
         submenus = {}
         for menu_label, cmd_args in [("&Clear", "clear"),
                 (("Invert", "&Selected Models"), "~sel & ##selected"), (("Invert", "A&ll Models"), "~sel"),

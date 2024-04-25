@@ -37,6 +37,7 @@
 #include "sasa.h"			// use surface_area_of_spheres
 #include "smooth.h"			// use smooth_vertex_positions
 #include "subdivide.h"			// use subdivide_triangles
+#include "surfdist.h"			// use surface_distance
 #include "triangulate.h"		// use triangulate_polygon
 #include "tube.h"			// use tube_geometry
 
@@ -391,6 +392,30 @@ Returns
 vertices : n by 3 array of float
 triangles : m by 3 array of int
 normals : n by 3 array of float
+)"
+  },
+
+// ----------------------------------------------------------------------------    
+  /* surfdist.h */
+  {const_cast<char*>("surface_distance"),
+   (PyCFunction)surface_distance,
+   METH_VARARGS|METH_KEYWORDS,
+R"(
+surface_distance(points, vertices, triangles, distances = None)
+
+Compute the closest distance from a point to a surface.  Do this for
+each point in a list.  The distance, closest point, and side of the closest
+triangle that the given point lies on is returned in an N by 5 float32 array.
+Side +1 is the right-handed normal clockwise vertex traversal, while -1
+indicates the opposite side.  This is for determining if the given point
+is inside or outside the surface.  If a distance array (N by 5) is passed
+as an argument, it will only be modified by distances less those.  If no
+distance array is provided, a newly allocated one will be returned.
+Implemented in C++.
+
+Returns
+-------
+distances : n by 5 array of float
 )"
   },
 

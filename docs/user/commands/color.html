@@ -117,7 +117,7 @@ the <a href="../tools/log.html"><b>Log</b></a>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 &nbsp;<a href="#colorname"><i>colorname</i></a>&nbsp;
-[&nbsp;<b>target</b>&nbsp;&nbsp;<i>string</i>&nbsp;]
+[&nbsp;<i>what</i>&nbsp;|&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 [&nbsp;<b>halfbond</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
@@ -214,7 +214,8 @@ However, if only <a href="2dlabels"><b>2dlabels</b></a> are specified
 in the command (such as by model number), labels are inferred as the target.
 <p>
 Alternatively, for certain types of coloring,
-targets can be specified with one or more of the following keywords
+the targets (<i>what</i> to act upon)
+can be specified with one or more of the following keywords
 as a comma-separated list:
 </p>
 <ul>
@@ -228,7 +229,7 @@ or <b>target r</b>
 <li><b>labels</b> &ndash; equivalent to <b>target l</b>
 <li><b>All</b> &ndash; equivalent to <b>target abcspfl</b>
 </ul>
-These target keywords must be given in the right place in the command:
+These <i>what</i> keywords must be given in the right place in the command:
 <ul>
 <li>for <a href="#simple">simple</a> or <a href="#byattribute">attribute</a> 
 coloring, before any other optional arguments
@@ -282,7 +283,6 @@ Color map #4:
 <b>color #4 &nbsp;medium violet</b>
 </blockquote>
 
-<p>
 <a name="sequential"></a>
 <a name="rainbow"></a>
 <p class="nav">
@@ -393,19 +393,19 @@ target="_blank">1qmv</a> using the 10-color version of the &ldquo;paired&rdquo;
 <b>color modify</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 &nbsp;<b>hue</b>&nbsp; [&nbsp;&plus;&nbsp;|&nbsp;&minus;&nbsp;]
 &nbsp;<i>angle</i>&nbsp;
-[&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
+[&nbsp;<i>what</i>&nbsp;|&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color modify</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 (&nbsp;<b>saturation</b>&nbsp;|&nbsp;<b>lightness</b>&nbsp;|&nbsp;<b>whiteness</b>&nbsp;|&nbsp;<b>blackness</b>&nbsp;|&nbsp;<b>red</b>&nbsp;|&nbsp;<b>green</b>&nbsp;|&nbsp;<b>blue</b>&nbsp;)
 [&nbsp;&plus;&nbsp;|&nbsp;&minus;&nbsp;|&nbsp;*&nbsp;]
 &nbsp;<i>percent</i>&nbsp;
-[&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
+[&nbsp;<i>what</i>&nbsp;|&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color modify</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 <b>contrast</b> [&nbsp;<i>percent</i>&nbsp;]
-[&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
+[&nbsp;<i>what</i>&nbsp;|&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 </blockquote>
 <p>
 Color modification adjusts existing colors.
@@ -462,8 +462,8 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 <b>color</b> &nbsp;<b>byattribute</b>
 &nbsp;[<b>a:</b>][<b>r:</b>][<b>m:</b>]<a href="../attributes.html#attrnames"><i>attribute-name</i></a>&nbsp;
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<i>what</i>&nbsp;|&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 [&nbsp;<b>average</b>&nbsp;&nbsp;residues&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 [&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
@@ -1298,5 +1298,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2024</address>
+April 2024</address>
 </body></html>

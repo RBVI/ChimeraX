@@ -83,6 +83,10 @@ class LevelLabel(QLabel):
         self.move(self.graphics_window.mapToGlobal(QPoint(int(x) + 10, int(y))))
         self.show()
 
+    def close(self):
+        self.graphics_window = None
+        super().close()
+
 
 class PlaneViewerManager:
     # TODO: If the drawings in the orthoplane viewers are not the same as the drawings in the
@@ -596,6 +600,9 @@ class PlaneViewer(QWindow):
             self._remove_axis_from_volume_viewer(volume_viewer, v)
         self.view.drawing.delete()
         self.view.delete()
+        self.mouse_move_timer.stop()
+        self.volume_viewer_opened_timer.stop()
+        self.level_label.close()
         QWindow.destroy(self)
 
     def _redraw(self, *_):

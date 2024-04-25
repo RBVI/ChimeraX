@@ -17,7 +17,8 @@
 def vr(session, enable = None, room_position = None, mirror = None,
        gui = None, center = None, click_range = None,
        near_clip_distance = None, far_clip_distance = None,
-       multishadow_allowed = False, simplify_graphics = True):
+       multishadow_allowed = False, simplify_graphics = True,
+       passthrough = None):
     '''
     Enable stereo viewing and head motion tracking with virtual reality headsets using OpenXR.
 
@@ -63,6 +64,9 @@ def vr(session, enable = None, room_position = None, mirror = None,
       Adjust level-of-detail total number of triangles for atoms and bonds to a reduced value
       when VR is enabled, and restore to default value when VR disabled.  This helps maintain
       full rendering speed in VR.  Default true.
+    passthrough : bool or "toggle"
+      Whether to enable passthrough video.  This is only supported on Meta Quest headsets
+      using the OpenXR XR_FB_passthrough extension.
     '''
     
     if enable is None and room_position is None:
@@ -112,6 +116,9 @@ def vr(session, enable = None, room_position = None, mirror = None,
 
     if far_clip_distance is not None:
         c.far_clip_distance = far_clip_distance
+
+    if passthrough is not None:
+        c.enable_passthrough(passthrough)
 
 # -----------------------------------------------------------------------------
 # Assign VR hand controller buttons
@@ -262,6 +269,7 @@ def register_vr_command(logger):
                               ('far_clip_distance', FloatArg),
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
+                              ('passthrough', Or(EnumOf(['toggle']), BoolArg)),
                    ],
                    synopsis = 'Start OpenXR virtual reality rendering',
                    url = 'help:user/commands/device.html#vr')
@@ -464,7 +472,8 @@ class OpenXRCamera(Camera, StateManager):
         self._hand_controllers = [HandController(self, 'right'),
                                   HandController(self, 'left')]	# List of HandController
         self._tracker_device_index = None	# Vive tracker
-        
+        self._button_lock = False		# Whether to ignore button presses
+
         self.user_interface = UserInterface(self, session)
         self._vr_model_group = None	# Grouping model for hand controllers and UI models
         self._vr_model_group_id = 100	# Keep VR model group at bottom of model panel
@@ -529,7 +538,10 @@ class OpenXRCamera(Camera, StateManager):
     @property
     def active(self):
         return self is self._session.main_view.camera
-    
+
+    def enable_passthrough(self, enable):
+        self._xr.enable_passthrough_video(enable)
+
     def _move_camera_in_room(self, position):
         '''
         Move camera to the given scene position without changing
@@ -839,6 +851,9 @@ class OpenXRCamera(Camera, StateManager):
             '''
             for hc in self.hand_controllers():
                 hc.process_event(e)
+
+    def toggle_button_lock(self):
+        self._button_lock = not self._button_lock
 
     def process_controller_motion(self):
 
@@ -2563,7 +2578,11 @@ class HandController:
         hm = self.hand_model
         if hm:
             hm._show_button_down(button_name, pressed)
+
         m = self._modes.get(button_name)
+        if self._camera._button_lock and not isinstance(m, ButtonLockMode):
+            return  # Don't process button clicks in button lock mode.
+
         if not isinstance(m, ShowUIMode):
             # Check for click on UI panel.
             ui = self._camera.user_interface
@@ -2580,6 +2599,9 @@ class HandController:
             self._dispatch_event(m, event)
 
     def _process_thumbstick_event(self, e):
+        if self._camera._button_lock:
+            return  # Don't process thumbstick events in button lock mode.
+        
         ts_mode = self._thumbstick_mode()
         if ts_mode is None or not ts_mode.uses_thumbstick():
             return
@@ -3382,6 +3404,19 @@ class RecenterMode(HandMode):
         from chimerax import shortcuts
         return join(dirname(shortcuts.__file__), 'icons', 'viewall.png')
 
+class ButtonLockMode(HandMode):
+    name = 'button lock'
+    def pressed(self, hand_event):
+        hand_event.camera.toggle_button_lock()
+    @property
+    def icon_path(self):
+        return self.icon_location()
+    @staticmethod
+    def icon_location():
+        from os.path import join, dirname
+        from chimerax import shortcuts
+        return join(dirname(shortcuts.__file__), 'icons', 'lock.png')
+
 class MouseMode(HandMode):
     def __init__(self, mouse_mode):
         self._mouse_mode = mouse_mode
@@ -3463,7 +3498,7 @@ class RunCommandMode(HandMode):
             from traceback import format_exc
             self._session.logger.bug(format_exc())
             
-vr_hand_modes = (ShowUIMode, MoveSceneMode, ZoomMode, RecenterMode, NoneMode)
+vr_hand_modes = (ShowUIMode, MoveSceneMode, ZoomMode, RecenterMode, ButtonLockMode, NoneMode)
 
 def hand_mode_names(session):
     names = set()

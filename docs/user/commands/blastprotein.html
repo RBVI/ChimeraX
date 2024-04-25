@@ -33,6 +33,9 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>maxSeqs</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>log</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>showResultsTable</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>loadStructures</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>showSequenceAlignment</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </h3>
 <p>
 The <b>blastprotein</b> command runs a protein sequence similarity search
@@ -121,13 +124,24 @@ maximum number of unique sequences to return; more hits than this number
 may be obtained because multiple structures or other sequence-database entries
 may have the same sequence.
 </p><p>
-When the search completes, results are shown in a
-<a href="../tools/blastprotein.html#results">separate window</a>.
-Many other types of information can be shown and used to sort the hits:
+The remaining options control what happens when the search completes:
+<p>
+<ul>
+<li>The <b>showResultsTable</b> option indicates whether the results should be
+shown in an interactive table in a 
+<a href="../tools/blastprotein.html#results">separate window</a>
+(default <b>true</b>). In this table,
+many columns of information can be shown and used to sort the hits:
 alignment scores, structure resolution, ligand residue names, <i>etc.</i>
 (<a href="../tools/blastprotein.html#results">details...</a>)
+The <b>name</b> option allows supplying a name for a specific set of
+<a href="../tools/blastprotein.html"><b>Blast Protein</b></a> results,
+which may be useful when several sets of results are shown at the same time. 
+The name appears in the title bar of the results panel.
 </p><p>
-Double-clicking a row with an associated structure (AlphaFold or PDB)
+In the results panel, double-clicking a row with
+<a name="structurefetch"></a>
+an associated structure (from searching PDB, AlphaFold, ESMFold)
 <a href="../commands/open.html#fetch">fetches</a> the structure,
 and if a structure chain was used as the query,
 automatically superimposes the hit and query structures with
@@ -145,18 +159,40 @@ One or more hits can be chosen (highlighted) in the list and
 the panel's <a href="../window.html#context-menu">context menu</a>
 used to fetch and superimpose all of the corresponding structures, or to
 show their <a href="../tools/blastprotein.html#notes">multiple 
-sequence alignment</a> with the query.
-</p><p>
-The <b>log</b> option indicates whether to also list the results in the
-<a href="../tools/log.html"><b>Log</b></a> (default <b>false</b>).
-</p><p>
-The <b>name</b> option allows supplying a name for a specific set of
-<a href="../tools/blastprotein.html"><b>Blast Protein</b></a> results,
-which may be useful when several sets of results are shown at the same time. 
-The name appears in the title bar of the results panel.
+sequence alignment</a> with the query
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
 </p>
+<li>The <b>log</b> option indicates whether to also list the results in the
+<a href="../tools/log.html"><b>Log</b></a> (default <b>false</b>).
+<br><br>
+<li>The <b>loadStructures</b> option indicates that for each hit with an
+associated structure (from searching PDB, AlphaFold, ESMFold),
+the structure should be fetched and superimposed
+as described <a href="#structurefetch">above</a> (default <b>false</b>).
+Setting this option to <b>true</b> automatically opens a potentially large
+number of structures. If <b>onlyBest</b> is <b>false</b> (default), this
+could include multiple copies of the same PDB entry (<i>e.g.</i>, a 
+homotetramer structure could be opened four times, each corresponding to
+a match to one of the monomers).
+If <b>onlyBest</b> is <b>true</b>, a given PDB entry will only be opened once
+and matched on the chain with the best sequence alignment score.
+To open only specific structures of interest, use the results table instead.
+<br><br>
+<li>The <b>showSequenceAlignment</b> option indicates whether to show the
+<a href="../tools/blastprotein.html#notes">multiple sequence alignment</a>
+of all hits with the query
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+(default <b>false</b>). Similar to loading all structures, setting this option
+to <b>true</b> may give an alignment with a very large number of sequences.
+If <b>onlyBest</b> is <b>false</b> (default), this may include multiple chains
+from the same PDB entry (<i>e.g.</i>, the four chains of a homotetramer).
+If <b>onlyBest</b> is <b>true</b>, only the chain with the best alignment
+score will be included for a given PDB entry.
+To include only specific sequences of interest, use the results table instead.
+</p>
+</ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2023</address>
+April 2024</address>
 </body></html>
