@@ -82,6 +82,7 @@ class BlastProteinResults(ToolInstance):
         # from_pull
         self._sequence = kw.pop("sequence", None)
         self._results = kw.pop("results", None)
+        self._first_opened_hit = None
 
         # from_snapshot
         self._hits = kw.pop("hits", None)
@@ -528,13 +529,15 @@ class BlastProteinResults(ToolInstance):
             if not models:
                 return
             if not self.params.chain:
-                if not db.name == "alphafold":
-                    run(self.session, "select clear")
-                else:
+                if db.name == "alphafold":
                     self._log_alphafold(models)
-            else:
-                for m in models:
+            for m in models:
+                if self.params.chain or db.name in ["alphafold", "esmfold"]:
                     db.display_model(self.session, self.params.chain, m, chain_id)
+                elif self._first_opened_hit:
+                    db.display_model(self.session, self._first_opened_hit, m, chain_id)
+                else:
+                    self._first_opened_hit = m.atomspec + "/" + chain_id
 
     def _log_alphafold(self, models):
         query_match = self._sequences[0][1]
