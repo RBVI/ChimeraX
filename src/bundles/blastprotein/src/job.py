@@ -152,16 +152,29 @@ class BlastProteinJob(CxServicesJob):
                     if self.only_best:
                         chains = defaultdict(str)
                         for hit in hits:
-                            chain, homotetramer = hit["name"].split("_")
-                            if chain not in chains:
-                                chains[chain] = hit
-                            else:
-                                old_homotetramer = chains[chain]["name"].split("_")[1]
-                                best_homotetramer = sorted(
-                                    [homotetramer, old_homotetramer]
-                                )[0]
-                                if best_homotetramer == homotetramer:
+                            try:
+                                chain, homotetramer = hit["name"].split("_")
+                                if chain not in chains:
                                     chains[chain] = hit
+                                else:
+                                    old_homotetramer = chains[chain]["name"].split("_")[
+                                        1
+                                    ]
+                                    best_homotetramer = sorted(
+                                        [homotetramer, old_homotetramer]
+                                    )[0]
+                                    if best_homotetramer == homotetramer:
+                                        chains[chain] = hit
+                            except ValueError:
+                                # If the chain doesn't have a homotetramer, just take the name
+                                chain = hit["name"]
+                                if chain not in chains:
+                                    chains[chain] = hit
+                                else:
+                                    old_chain = chains[chain]["name"]
+                                    best_chain = sorted([chain, old_chain])[0]
+                                    if best_chain == chain:
+                                        chains[chain] = hit
                         hits = list(chains.values())
                     if self.load_structures:
                         num_opened = 0
