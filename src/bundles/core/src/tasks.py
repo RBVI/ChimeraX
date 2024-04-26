@@ -580,15 +580,15 @@ class Tasks(StateManager):
             List of registered tasks.
 
         """
-        task = self._tasks[key]
         try:
+            task = self._tasks[key]
             del self._tasks[key]
+            self.session.triggers.activate_trigger(REMOVE_TASK, task)
+            del task
         except KeyError:
             # Maybe we had reset and there were still old
             # tasks finishing up
             pass
-        self.session.triggers.activate_trigger(REMOVE_TASK, task)
-        del task
 
     def remove(self, task: Task) -> None:
         self.__delitem__(task.id)
