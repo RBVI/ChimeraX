@@ -432,7 +432,9 @@ class Mol2Parser:
             fields = self._line.split("\t|\t")
             if len(fields) == 2:
                 tag, value = fields
-                self._data[tag] = value
+                self._data[tag] = _value(value)
+                import sys
+                print(repr(self._data[tag]), file=sys.__stderr__)
             self._get_line()
 
     def _check_gold(self):
@@ -459,9 +461,11 @@ class Mol2Parser:
 def _value(s):
     try:
         return int(s)
-        return float(s)
     except ValueError:
-        return s
+        try:
+            return float(s)
+        except ValueError:
+            return s
 
 def open_swissdock(session, stream, file_name, auto_style, atomic):
     from chimerax.atomic import next_chain_id
