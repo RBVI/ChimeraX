@@ -35,11 +35,14 @@ alt="using HTC Vive VR system" title="click to enlarge..."></a>
 
 <p>
 ChimeraX allows display and analysis of structures and density maps 
-using virtual reality headsets such as HTC Vive,
-Vive Pro, Oculus Rift, Samsung Odyssey and Windows Mixed Reality.
+using virtual reality headsets such as Quest 3, Quest 2, Valve Index,
+Oculus Rift S, HTC Vive and others.
 For multi-person VR sessions, see the
 <a href="commands/meeting.html"><b>meeting</b></a> command
 and <a href="tools/meeting.html"><b>Meeting</b></a> tool.
+Scenes can also be viewed in standalone VR headsets (not connected to a PC)
+using the <a href="https://www.rbvi.ucsf.edu/chimerax/data/looksee-mar2023/looksee.html">LookSee</a> Quest app
+and <a href="https://preview.cgl.ucsf.edu/chimerax/docs/user/tools/sendtoquest.html">Send to Quest ChimeraX</a> tool.
 To add buttons for easy command execution from within VR, see 
 <a href="commands/buttonpanel.html"><b>buttonpanel</b></a>.
 ChimeraX can also <a href="vrphone.html">record 360&deg; movies</a>.
@@ -94,8 +97,7 @@ alt="Vive hand controllers" width="300px"></a>
 </table>
 <p>
 Any models displayed in ChimeraX can be shown in virtual reality headsets
-supported by <a href="https://steamvr.com">SteamVR</a>, such as HTC Vive, 
-Oculus Rift and Samsung Odyssey.
+using <a href="https://www.khronos.org/openxr/">OpenXR</a> or  <a href="https://steamvr.com">SteamVR</a>.
 Most descriptions here are for Vive hand controllers, but other systems have 
 hand-controller buttons that are generally similar in position and function.
 </p><p>
@@ -129,9 +131,13 @@ target="_blank">SteamVR</a>
 <blockquote>
 <b><a href="commands/open.html">open</a> 2gbp</b> 
 </blockquote>
-<li>enter the ChimeraX command: 
+<li>To start SteamVR enter the ChimeraX command: 
 <blockquote>
 <a href="commands/device.html#vr"><b>vr on</b></a>
+</blockquote>
+or to use OpenXR (e.g. with Meta Quest headsets):
+<blockquote>
+<a href="commands/device.html#vr"><b>xr on</b></a>
 </blockquote>
 </ol>
 
@@ -184,11 +190,15 @@ Vive <b><i>trackpad</i></b> pressed (Oculus A button)</td>
 <td class="text">&nbsp;Vive <b><i>grip</i></b> button (Oculus X button)</td>
 </tr><tr>
 <td align="center" class="text">
-collectively show, hide, move tool panels
+collectively show, hide, move and resize tool panels
 <br><br>
-(a panel can be moved individually by
+Move a panel can by
 click-dragging with any button on its title bar, 
-or on a blank area in the panel if no title bar)
+or on a blank area in the panel if no title bar.<br><br>
+Resize all panels by clicking both controller
+menu buttons and pinching.<br><br>
+Resize individual panels
+by clicking the upper left corner resize icon.
 </td>
 <td class="text">
 &nbsp;Vive <b><i>menu</i></b> button (Oculus B/Y button)</td>
@@ -230,12 +240,17 @@ desktop display, use the ChimeraX command:
 <blockquote>
 <a href="commands/device.html#vr"><b>vr off</b></a>
 </blockquote>
+or
+<blockquote>
+<a href="commands/device.html#vr"><b>xr off</b></a>
+</blockquote>
 <p>
 VR status, model positions in the room, and hand-controller
 <a href="commands/device.html#vr-button">button assignments</a> are saved in
 <a href="commands/save.html#session">ChimeraX session files</a>.
 The VR model positions and button assignments
 are also retained through uses of <b>vr on</b> and <b>vr off</b>,
+or <b>xr on</b> and <b>xr off</b>,
 but not after exiting ChimeraX.
 </p>
 
