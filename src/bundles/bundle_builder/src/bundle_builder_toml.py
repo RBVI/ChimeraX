@@ -260,7 +260,13 @@ class Bundle:
         else:
             self.supersedes = []
         self.custom_init = str(chimerax_data.get("custom-init", ""))
-        self.categories = chimerax_data.get("categories", "")
+        self.categories = chimerax_data.get("categories", [])
+        if len(self.categories) == 0:
+            category = chimerax_data.get("category", "")
+            if not category:
+                raise ValueError("At least one category is required under the [chimerax] table.")
+            self.categories = [category]
+
         self.classifiers = chimerax_data.get("classifiers", [])
 
         self.tools = []
