@@ -77,20 +77,21 @@ from .state import State, StateManager
 # number in setup.py.in
 TASKS_STATE_VERSION = 1
 
-ADD_TASK = 'add task'
-REMOVE_TASK = 'remove task'
-UPDATE_TASK = 'update task'
-END_TASK = 'end task'
+ADD_TASK = "add task"
+REMOVE_TASK = "remove task"
+UPDATE_TASK = "update task"
+END_TASK = "end task"
 
 task_triggers = [ADD_TASK, REMOVE_TASK, UPDATE_TASK, END_TASK]
 
+
 # Possible task states
 class TaskState(StrEnum):
-    PENDING = "pending"         # Initialized but not running
-    RUNNING = "running"         # Running
-    TERMINATING = "terminating" # Termination requested
-    TERMINATED = "terminated"   # Termination requested
-    FINISHED = "finished"       # Finished
+    PENDING = "pending"  # Initialized but not running
+    RUNNING = "running"  # Running
+    TERMINATING = "terminating"  # Termination requested
+    TERMINATED = "terminated"  # Termination requested
+    FINISHED = "finished"  # Finished
     # Webservices states
     QUEUED = "queued"
     STARTED = "started"
@@ -98,7 +99,7 @@ class TaskState(StrEnum):
     DELETED = "deleted"
     CANCELED = "canceled"
     # Unknown state?
-    UNDEFINED = "undefined"     # Undefined
+    UNDEFINED = "undefined"  # Undefined
 
     @classmethod
     def from_str(cls, value):
@@ -115,6 +116,7 @@ RUNNING = TaskState.RUNNING
 TERMINATING = TaskState.TERMINATING
 TERMINATED = TaskState.TERMINATED
 FINISHED = TaskState.FINISHED
+
 
 class Task(State):
     """Base class for instances of tasks.
@@ -153,7 +155,7 @@ class Task(State):
 
         """
         self.id = id
-        self._session: weakref.ref['Session'] = weakref.ref(session)
+        self._session: weakref.ref["Session"] = weakref.ref(session)
         self._thread: threading.Thread = None
         self._terminate = None
         self._state: TaskState = TaskState.PENDING
@@ -172,8 +174,12 @@ class Task(State):
         if self.state == TaskState.PENDING:
             return datetime.timedelta()
         if self.state not in [
-            TaskState.TERMINATED, TaskState.FINISHED, TaskState.UNDEFINED
-            , TaskState.FAILED, TaskState.DELETED, TaskState.CANCELED
+            TaskState.TERMINATED,
+            TaskState.FINISHED,
+            TaskState.UNDEFINED,
+            TaskState.FAILED,
+            TaskState.DELETED,
+            TaskState.CANCELED,
         ]:
             return datetime.datetime.now() - self.start_time
         else:
@@ -212,17 +218,13 @@ class Task(State):
         self.state = TaskState.TERMINATING
 
     def terminating(self):
-        """Return whether user has requested termination of this task.
-
-        """
+        """Return whether user has requested termination of this task."""
         if self._terminate is None:
             return False
         return self._terminate.is_set()
 
     def terminated(self):
-        """Return whether task has finished.
-
-        """
+        """Return whether task has finished."""
         return self.state in [TaskState.TERMINATED, TaskState.FINISHED]
 
     def start(self, *args, **kw):
@@ -238,9 +240,10 @@ class Task(State):
         """
         if self.state != TaskState.PENDING:
             raise RuntimeError("starting task multiple times")
-        blocking = kw.get("blocking", False) # since _run_thread will pop() it
-        self._thread = threading.Thread(target=self._run_function,
-                                        daemon=True, args=(self.run, *args), kwargs=kw)
+        blocking = kw.get("blocking", False)  # since _run_thread will pop() it
+        self._thread = threading.Thread(
+            target=self._run_function, daemon=True, args=(self.run, *args), kwargs=kw
+        )
         self._thread.start()
         self.start_time = datetime.datetime.now()
         self.state = TaskState.RUNNING
@@ -255,9 +258,13 @@ class Task(State):
 
     def restore(self, *args, **kw):
         """Like start, but for restoring a task from a snapshot."""
-        blocking = kw.get("blocking", False) # since _run_thread will pop() it
-        self._thread = threading.Thread(target=self._run_function,
-                                        daemon=True, args=(self._relaunch, *args), kwargs=kw)
+        blocking = kw.get("blocking", False)  # since _run_thread will pop() it
+        self._thread = threading.Thread(
+            target=self._run_function,
+            daemon=True,
+            args=(self._relaunch, *args),
+            kwargs=kw,
+        )
         self._thread.start()
         self.start_time = datetime.datetime.now()
         self.state = TaskState.RUNNING
@@ -287,9 +294,17 @@ class Task(State):
             self.state = TaskState.TERMINATED
         else:
             self.state = TaskState.FINISHED
-        if not blocking and self.launched_successfully and not self.state in [
-            TaskState.CANCELED, TaskState.DELETED, TaskState.FAILED, TaskState.TERMINATED
-        ]:
+        if (
+            not blocking
+            and self.launched_successfully
+            and not self.state
+            in [
+                TaskState.CANCELED,
+                TaskState.DELETED,
+                TaskState.FAILED,
+                TaskState.TERMINATED,
+            ]
+        ):
             # the blocking code path also has an on_finish() call that executes immediately
             self.session.ui.thread_safe(self.on_finish)
 
@@ -308,7 +323,7 @@ class Task(State):
         user has requested termination.
 
         """
-        raise RuntimeError("base class \"run\" method called.")
+        raise RuntimeError('base class "run" method called.')
 
     def on_finish(self):
         """Callback method executed after task thread terminates.
@@ -320,7 +335,7 @@ class Task(State):
         pass
 
     def __str__(self):
-        return ("ChimeraX Task, ID %s" % self.id)
+        return "ChimeraX Task, ID %s" % self.id
 
     def thread_safe_status(self, message: str):
         if self.session:
@@ -346,7 +361,6 @@ class Task(State):
             tsafe = self.session.ui.thread_safe
             tsafe(status, message)
 
-
     def from_snapshot(self, session, data):
         pass
 
@@ -356,15 +370,17 @@ class Task(State):
             # msgpack is schizophrenic about enums and can't
             # decide whether it can or can't serialize them
             # so we'll just use strings
-            , "state": str(self.state)
-            , "start_time": self.start_time
-            , "end_time": self.end_time
+            ,
+            "state": str(self.state),
+            "start_time": self.start_time,
+            "end_time": self.end_time,
         }
         return data
 
     @classmethod
     def restore_snapshot(cls, session, data):
         pass
+
 
 class Job(Task):
     """
@@ -401,10 +417,31 @@ class Job(Task):
     to 'Job' instances, not :py:meth:`run`.
 
     """
+
     local_timing_intervals = [
-        5, 5, 10, 15, 25, 40, 65, 105, 170, 275, 300, 350, 400, 450, 500
-        , 550, 600, 650, 700, 750, 800
+        5,
+        5,
+        10,
+        15,
+        25,
+        40,
+        65,
+        105,
+        170,
+        275,
+        300,
+        350,
+        400,
+        450,
+        500,
+        550,
+        600,
+        650,
+        700,
+        750,
+        800,
     ]
+
     def __init__(self, session):
         super().__init__(session)
         self._local_timing_step = 0
@@ -428,10 +465,8 @@ class Job(Task):
 
     @abc.abstractmethod
     def running(self):
-        """Check if job is running.
-
-        """
-        raise RuntimeError("base class \"running\" method called.")
+        """Check if job is running."""
+        raise RuntimeError('base class "running" method called.')
 
     def monitor(self):
         """Check the status of the background process.
@@ -443,21 +478,24 @@ class Job(Task):
         pass
 
     def __str__(self):
-        return ("ChimeraX Job, ID %s" % self.id)
+        return "ChimeraX Job, ID %s" % self.id
 
 
 class JobError(RuntimeError):
     """Generic job error."""
+
     pass
 
 
 class JobLaunchError(JobError):
     """Exception thrown when job launch fails."""
+
     pass
 
 
 class JobMonitorError(JobError):
     """Exception thrown when job status check fails."""
+
     pass
 
 
@@ -469,7 +507,7 @@ class Tasks(StateManager):
     task states for scenes and sessions.
     """
 
-    def __init__(self, session, ids_start_from = 1):
+    def __init__(self, session, ids_start_from=1):
         """Initialize per-session state manager for tasks.
 
         Parameters
@@ -542,15 +580,15 @@ class Tasks(StateManager):
             List of registered tasks.
 
         """
-        task = self._tasks[key]
         try:
+            task = self._tasks[key]
             del self._tasks[key]
+            self.session.triggers.activate_trigger(REMOVE_TASK, task)
+            del task
         except KeyError:
             # Maybe we had reset and there were still old
             # tasks finishing up
             pass
-        self.session.triggers.activate_trigger(REMOVE_TASK, task)
-        del task
 
     def remove(self, task: Task) -> None:
         self.__delitem__(task.id)
@@ -593,12 +631,14 @@ class Tasks(StateManager):
         """
         tasks = {}
         for tid, task in self._tasks.items():
-            assert(isinstance(task, Task))
+            assert isinstance(task, Task)
             if task.SESSION_SAVE:
                 tasks[tid] = task
-        data = {'tasks': tasks,
-                'version': TASKS_STATE_VERSION,
-                'counter': next(self._id_counter) - 1}
+        data = {
+            "tasks": tasks,
+            "version": TASKS_STATE_VERSION,
+            "counter": next(self._id_counter) - 1,
+        }
         return data
 
     @staticmethod
@@ -618,7 +658,7 @@ class Tasks(StateManager):
 
         """
         t = session.tasks
-        for tid, task in data['tasks'].items():
+        for tid, task in data["tasks"].items():
             t._tasks[tid] = task
         return t
 
