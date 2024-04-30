@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
+# Copyright 2024 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
@@ -10,7 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 from chimerax.core.toolshed import BundleAPI
 
 from .segmentation import Segmentation, open_grids_as_segmentation
@@ -22,6 +22,7 @@ class _SegmentationsBundle(BundleAPI):
     @staticmethod
     def initialize(session, _):
         if session.ui.is_gui:
+            from chimerax.segmentations.cmd.view import register_view_triggers
             from .ui.segmentation_mouse_mode import (
                 CreateSegmentation3DMouseMode,
                 EraseSegmentation3DMouseMode,
@@ -38,6 +39,7 @@ class _SegmentationsBundle(BundleAPI):
                 Toggle3DSegmentationVisibilityMouseMode,
             ]:
                 session.ui.mouse_modes.add_mode(mode(session))
+            register_view_triggers(session)
 
     @staticmethod
     def get_class(class_name):

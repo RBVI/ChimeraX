@@ -49,26 +49,25 @@ view_layout_desc = CmdDesc(
 )
 
 
-def _check_rapid_access(*args):
-    try:
-        # This trigger fires many times, and on the last firing there is no model
-        # we can pull the session out of, so we just have to catch the error here
-        session = args[1][0].session
-        if session.ui.is_gui:
-            if not any_open_volumes(session):
-                if session.ui.main_window.view_layout != "default":
-                    session.ui.main_window.restore_default_main_view()
-                st = None
-                for tool in session.tools:
-                    if type(tool) == SegmentationTool:
-                        st = tool
-                        break
-                if st:
-                    st.delete()
-    except IndexError:
-        pass
+def _check_rapid_access(session, *_):
+    if session.ui.is_gui:
+        if not any_open_volumes(session):
+            if session.ui.main_window.view_layout != "default":
+                session.ui.main_window.restore_default_main_view()
+            st = None
+            for tool in session.tools:
+                if type(tool) == SegmentationTool:
+                    st = tool
+                    break
+            if st:
+                st.delete()
 
 
 def register_view_cmds(logger):
     register("ui view", view_layout_desc, view_layout, logger=logger)
-    logger.session.triggers.add_handler(REMOVE_MODELS, _check_rapid_access)
+
+
+def register_view_triggers(session):
+    session.triggers.add_handler(
+        REMOVE_MODELS, lambda *args, ses=session: _check_rapid_access(ses, *args)
+    )
