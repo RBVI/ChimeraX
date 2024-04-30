@@ -82,6 +82,7 @@ class BlastProteinResults(ToolInstance):
         # from_pull
         self._sequence = kw.pop("sequence", None)
         self._results = kw.pop("results", None)
+        self._first_opened_hit = None
 
         # from_snapshot
         self._hits = kw.pop("hits", None)
@@ -340,14 +341,27 @@ class BlastProteinResults(ToolInstance):
                 # chain of a hit for each group of hits.
                 chains = defaultdict(str)
                 for hit in self._hits:
-                    chain, homotetramer = hit["name"].split("_")
-                    if chain not in chains:
-                        chains[chain] = hit
-                    else:
-                        old_homotetramer = chains[chain]["name"].split("_")[1]
-                        best_homotetramer = sorted([homotetramer, old_homotetramer])[0]
-                        if best_homotetramer == homotetramer:
+                    try:
+                        chain, homotetramer = hit["name"].split("_")
+                        if chain not in chains:
                             chains[chain] = hit
+                        else:
+                            old_homotetramer = chains[chain]["name"].split("_")[1]
+                            best_homotetramer = sorted(
+                                [homotetramer, old_homotetramer]
+                            )[0]
+                            if best_homotetramer == homotetramer:
+                                chains[chain] = hit
+                    except ValueError:
+                        # If the chain doesn't have a homotetramer, just take the name
+                        chain = hit["name"]
+                        if chain not in chains:
+                            chains[chain] = hit
+                        else:
+                            old_chain = chains[chain]["name"]
+                            best_chain = sorted([chain, old_chain])[0]
+                            if best_chain == chain:
+                                chains[chain] = hit
                 self._best_hits = list(chains.values())
                 self.table.data = [BlastResultsRow(item) for item in self._best_hits]
             else:
@@ -515,13 +529,15 @@ class BlastProteinResults(ToolInstance):
             if not models:
                 return
             if not self.params.chain:
-                if not db.name == "alphafold":
-                    run(self.session, "select clear")
-                else:
+                if db.name == "alphafold":
                     self._log_alphafold(models)
-            else:
-                for m in models:
+            for m in models:
+                if self.params.chain or db.name in ["alphafold", "esmfold"]:
                     db.display_model(self.session, self.params.chain, m, chain_id)
+                elif self._first_opened_hit:
+                    db.display_model(self.session, self._first_opened_hit, m, chain_id)
+                else:
+                    self._first_opened_hit = m.atomspec + "/" + chain_id
 
     def _log_alphafold(self, models):
         query_match = self._sequences[0][1]

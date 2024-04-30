@@ -180,8 +180,8 @@ def _associate_chains_to_sequence_alignment_by_name(alignment, chains):
 
 def _residue_alignment_columns(alignment, residues):
     ruc = residues.unique_chains
+    from chimerax.core.errors import UserError
     if len(ruc) != 1:
-        from chimerax.core.errors import UserError
         raise UserError(f'Must specify residues in a single chain, got {len(residues)} in {len(ruc)} chains')
     ref_chain = ruc[0]
 
