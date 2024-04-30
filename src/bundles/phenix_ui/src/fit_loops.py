@@ -209,6 +209,7 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, gap_only=False, p
                             raise NoSeqInfoError("Structure file does not contain complete sequence"
                                 f" information.  Please provide that information via the '{seq_keyword}'"
                                 " keyword argument.")
+                        print("> Chain %s" % chain.chain_id, file=f)
                         print(chain.characters, file=f)
             else:
                 import shutil
@@ -302,7 +303,7 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
                         break
                 for r in new_residues:
                     structure.delete_residue(r)
-                raise AssertionError("Chain sequnce for chain %s changed after fit_loops; undoing changes"
+                raise AssertionError("Chain sequence for chain %s changed after fit_loops; undoing changes"
                     % chain.chain_id)
         # show residues adjacent to the gap as stick
         for nbr in bonded_residues - gap_residues:
