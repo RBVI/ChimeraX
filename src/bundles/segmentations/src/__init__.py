@@ -23,7 +23,7 @@ class _SegmentationsBundle(BundleAPI):
     def initialize(session, _):
         if session.ui.is_gui:
             from chimerax.segmentations.cmd.view import register_view_triggers
-            from .ui.segmentation_mouse_mode import (
+            from chimerax.segmentations.ui.segmentation_mouse_mode import (
                 CreateSegmentation3DMouseMode,
                 EraseSegmentation3DMouseMode,
                 Move3DSegmentationSphereMouseMode,

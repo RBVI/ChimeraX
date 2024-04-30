@@ -13,15 +13,8 @@
 # TODO: Don't rely on the frame drawn trigger to redraw this view. Although
 # more convenient, the constant passing around of the context results in the
 # ChimeraX UI flickering.
-# TODO: There are a lot of little hacks that would go away entirely if we
-# could base the currently displayed orthoplane slice on the GridData directly
-# instead of abusing the model system's Texture2DPlanes code to get orthoplanes
-# generated.
-# We would no longer have to coordinate hiding the orthoplanes model in the 3D view
-#     then showing it in the 2D viewports.
-# We would no longer have to move the camera in and out when the current slice changes
-# We could display more than one model's orthoplane at a time, say if a physician wanted
-#     to compare two different CT scans.
+# TODO: Better use of the event system. Really the plane viewers and the segmentation
+# tool should have no knowledge of each other.
 import sys
 from math import sqrt
 
@@ -532,9 +525,9 @@ class PlaneViewer(QWindow):
                 or self.view.drawing is self.placeholder_drawing
             ):
                 self.model_menu.value = self._segmentation_tool.model_menu.value
-            self._segmentation_tool.segmentation_cursors[
-                self.axis
-            ].radius = self.segmentation_cursor_overlay.radius
+            self._segmentation_tool.segmentation_cursors[self.axis].radius = (
+                self.segmentation_cursor_overlay.radius
+            )
             # TODO:
             # Set the segmentation pucks' locations based on the current slice location
             # self._segmentation_tool.segmentation_cursors[self.axis].

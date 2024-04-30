@@ -4,8 +4,8 @@ from chimerax.core.models import REMOVE_MODELS
 from chimerax.map import Volume
 from chimerax.dicom.dicom_volumes import DICOMVolume
 
-from ..ui.view import views, FourPanelView
-from ..ui.segmentations import SegmentationTool
+from chimerax.segmentations.ui.view import views, FourPanelView
+from chimerax.segmentations.ui.segmentations import SegmentationTool
 
 
 def any_open_volumes(session) -> bool:

@@ -1,6 +1,6 @@
 from chimerax.core.commands import CmdDesc, ModelIdArg, EnumOf, register
-from ..ui.segmentations import SegmentationTool
 from chimerax.ui.cmd import ui_tool_show
+from chimerax.segmentations.ui.segmentations import SegmentationTool
 
 actions = ["add", "remove"]
 
