@@ -475,9 +475,14 @@ class LaunchFitLoopsTool(ToolInstance):
         layout.addLayout(targeting_layout, stretch=1)
         self.no_structure_message = "Select a structure from the menu above"
         self.target_label = QLabel(self.no_structure_message)
+        self.target_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        from chimerax.core.commands import run
+        self.target_label.linkActivated.connect(lambda *args, ses=session, run=run:
+            run(ses, "help help:user/selection.html"))
         self.model_structure_message = "Select the parts of %s you want to model/remodel, including" \
             " missing-structure pseudobonds if filling the corresponding gap is desired." \
-            "  For convenience, choosing a gap from the list below will select the" \
+            "  For convenience, choosing a gap from the list below will" \
+            ' <a href="help:select">select</a> the' \
             " corresponding part of the structure and focus the view on it."
         self.many_residues_message = "The fit_loops program does not perform well when" \
             " modeling %d consecutive residues or more, so modeling" \
