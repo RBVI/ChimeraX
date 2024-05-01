@@ -433,8 +433,6 @@ class Mol2Parser:
             if len(fields) == 2:
                 tag, value = fields
                 self._data[tag] = _value(value)
-                import sys
-                print(repr(self._data[tag]), file=sys.__stderr__)
             self._get_line()
 
     def _check_gold(self):
