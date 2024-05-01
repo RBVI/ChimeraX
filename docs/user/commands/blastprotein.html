@@ -147,11 +147,14 @@ an associated structure (from searching PDB, AlphaFold, ESMFold)
 and if a structure chain was used as the query,
 automatically superimposes the hit and query structures with
 <a href="../commands/matchmaker.html"><b>matchmaker</b></a>.
+If the query was sequence-only (not a structure chain), the first
+structure opened from the results will serve as the reference for
+superimposing the others.
 AlphaFold-predicted structures are
 <a href="alphafold.html#colorConfidence">colored by confidence 0-100</a>.
 ESMFold-predicted structures are
 <a href="esmfold.html#colorConfidence">colored by confidence 0-1</a>.
-<!-- CHECK THIS 
+<!-- as of Apr 2024 does not do this, just logs warning about no structure
 Double-clicking rows for sequence-only hits shows the
 corresponding web pages in the <a href="https://www.ncbi.nlm.nih.gov/protein"
 target="_blank">NCBI Protein</a> database.
