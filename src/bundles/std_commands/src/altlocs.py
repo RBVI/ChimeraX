@@ -151,6 +151,7 @@ class _StructureAltlocManager(StateManager):
         self.init_state_manager(session, "structure altlocs")
         self.session = session
         self.structure = structure
+        self.expected_changes = set()
         if not from_session:
             from chimerax.core.models import Model
             self.main_group = Model("alternate locations", session)
@@ -166,9 +167,12 @@ class _StructureAltlocManager(StateManager):
     def destroy(self):
         for handler in self.handlers:
             handler.remove()
+        for al_to_s in self.res_alt_locs.values():
+            for alt_loc_s in al_to_s.values():
+                s._alt_loc_changes_handler.remove()
         if self.main_group.id is not None:
             self.session.models.close([self.main_group])
-        self.group = self.structure = self.res_alt_locs = self.session = None
+        self.group = self.structure = self.res_alt_locs = self.session = self.expected_changes = None
         super().destroy()
 
     def hide(self, residues=None, locs=None):
@@ -208,9 +212,19 @@ class _StructureAltlocManager(StateManager):
             self.session.triggers.add_handler(REMOVE_MODELS, self._models_closed_cb)
         ]
 
+    def _alt_loc_changes_cb(self, change_info, res, alt_loc):
+        alt_loc_s, changes = change_info
+        if alt_loc_s in self.expected_changes:
+            # we made the changes ourself; leave them be
+            self.expected_changes.remove(alt_loc_s)
+            return
+        for new_a in changes.created_atoms():
+            alt_loc_s.delete_atom(new_a)
+
     def _build_alt_loc(self, res, alt_loc):
         from chimerax.atomic import AtomicStructure, Atom
         s = AtomicStructure(self.session, name=alt_loc, auto_style=False, log_info=False)
+        self.expected_changes.add(s)
         r = s.new_residue(res.name, res.chain_id, res.number, insert=res.insertion_code)
         from chimerax.atomic.struct_edit import add_atom
         atom_map = {}
@@ -241,6 +255,9 @@ class _StructureAltlocManager(StateManager):
         size(self.session, alt_loc_objects, stick_radius=0.1, verbose=False)
         s.display = False
         self.res_alt_locs.setdefault(res, {})[alt_loc] = s
+        s._alt_loc_changes_handler = s.triggers.add_handler('changes',
+            lambda trig_name, change_info, f=self._alt_loc_changes_cb, res=res, al=alt_loc:
+            f(change_info, res, al))
         return s
 
     def _build_alt_locs(self, res, main_group):
@@ -284,6 +301,7 @@ class _StructureAltlocManager(StateManager):
         for r, alt_locs in list(self.res_alt_locs.items()):
             for alt_loc, al_s in list(alt_locs.items()):
                 if al_s in closed_models:
+                    al_s._alt_loc_changes_handler.remove()
                     del alt_locs[alt_loc]
             if not alt_locs:
                 del self.res_alt_locs[r]
