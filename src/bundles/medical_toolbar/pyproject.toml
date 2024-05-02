@@ -37,7 +37,7 @@ classifiers = ["Development Status :: 2 - Pre-Alpha"]
 # ----------------- Toolbars -----------------
 [chimerax.toolbar."Medical Image"]
 name = "layout1"
-after = "map"
+after = "Map"
 before = "Markers:Right Mouse"
 
 [[chimerax.toolbar."Medical Image".button]]
