@@ -26,6 +26,7 @@
 # Command to place waters in cryoEM maps using Phenix douse.
 #
 from chimerax.core.tasks import Job
+from chimerax.core.errors import UserError
 from time import time
 
 class DouseJob(Job):
@@ -87,8 +88,8 @@ def douse_needs_resolution(session, phenix_location=None):
     # We could run "douse --show-defaults 3" to determine if the resolution parameter
     # is needed, but unfortunately douse takes a minimum of 2 seconds to start up
     # (and frequenty considerably longer on its first execution) due to overhead of
-    # the Phenix execution environment.  So, instead rely on phenix.version, which 
-    # only requires shell script execution, which is fast
+    # the Phenix execution environment.  So, instead look for PHENIX_VERSION in
+    # Phenix's environment-setting shell script
     global _needs_resolution
     if _needs_resolution is None:
         # Find the phenix.douse executable
@@ -99,6 +100,9 @@ def douse_needs_resolution(session, phenix_location=None):
             for line in f.readlines():
                 if version_marker in line:
                     before, after = line.split(version_marker)
+                    if after.startswith('=dev'):
+                        # Just hope it's not an ancient development version...
+                        return True
                     if len(after) < 2 or not after[1].isdigit():
                         raise UserError("Do not recognize format of %s line in %s"
                             % (version_marker, env_path))
@@ -246,7 +250,6 @@ def _run_douse_subprocess(session, exe_path, optional_args, map_filename, model_
                f'Command: {cmd}\n\n' +
                f'stdout:\n{out}\n\n' +
                f'stderr:\n{err}')
-        from chimerax.core.errors import UserError
         raise UserError(msg)
 
     # Log phenix douse command output

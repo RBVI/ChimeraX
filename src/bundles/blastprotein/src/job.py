@@ -146,26 +146,37 @@ class BlastProteinJob(CxServicesJob):
                         self.seq,
                         self.atomspec,
                     )
-                    # If the user wants to load the sequence alignment it MUST
-                    # happen before other models are loaded or else ChimeraX
-                    # will freeze.
                     if self.only_best:
                         chains = defaultdict(str)
                         for hit in hits:
-                            chain, homotetramer = hit["name"].split("_")
-                            if chain not in chains:
-                                chains[chain] = hit
-                            else:
-                                old_homotetramer = chains[chain]["name"].split("_")[1]
-                                best_homotetramer = sorted(
-                                    [homotetramer, old_homotetramer]
-                                )[0]
-                                if best_homotetramer == homotetramer:
+                            try:
+                                chain, homotetramer = hit["name"].split("_")
+                                if chain not in chains:
                                     chains[chain] = hit
+                                else:
+                                    old_homotetramer = chains[chain]["name"].split("_")[
+                                        1
+                                    ]
+                                    best_homotetramer = sorted(
+                                        [homotetramer, old_homotetramer]
+                                    )[0]
+                                    if best_homotetramer == homotetramer:
+                                        chains[chain] = hit
+                            except ValueError:
+                                # If the chain doesn't have a homotetramer, just take the name
+                                chain = hit["name"]
+                                if chain not in chains:
+                                    chains[chain] = hit
+                                else:
+                                    old_chain = chains[chain]["name"]
+                                    best_chain = sorted([chain, old_chain])[0]
+                                    if best_chain == chain:
+                                        chains[chain] = hit
                         hits = list(chains.values())
                     if self.load_structures:
                         num_opened = 0
                         hits = sorted(hits, key=lambda i: i["e-value"])
+                        _first_opened = None
                         for index, hit in enumerate(hits):
                             hit["hit_#"] = index + 1
                         for hit in hits:
@@ -181,14 +192,21 @@ class BlastProteinJob(CxServicesJob):
                                 models, chain_id = db.load_model(
                                     self.session, name, self.atomspec
                                 )
-                            models = models[0]
-                            db.display_model(
-                                self.session,
-                                self.atomspec,
-                                models,
-                                chain_id,
-                            )
-                            num_opened += 1
+                            for m in models:
+                                if self.atomspec:
+                                    db.display_model(
+                                        self.session,
+                                        self.atomspec,
+                                        m,
+                                        chain_id,
+                                    )
+                                elif _first_opened:
+                                    db.display_model(
+                                        self.session, _first_opened, m, chain_id
+                                    )
+                                else:
+                                    _first_opened = m.atomspec + "/" + chain_id
+                                num_opened += 1
                         self.session.logger.info(
                             "Opened %s models, skipped %s sequence-only results"
                             % (num_opened, len(hits) - num_opened)
