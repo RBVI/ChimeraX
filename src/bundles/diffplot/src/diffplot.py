@@ -61,9 +61,9 @@ def diffplot(session, embedding_path = None, alignment = None, residues = None, 
         log = session.logger if verbose else None
         dcols = _drop_columns(chains, res_columns, alignment, log)
         if dcols:
-            dcolstring = ' '.join(str(c+1) for c in sorted(list(dcols)))
+            dcolstring = _concise_columns(sorted(list(dcols)))
             ucols = len(res_columns) - len(dcols)
-            msg = f'Dropping {len(dcols)} residues in columns {dcolstring} because not all structures had them. Using {ucols} residues.'
+            msg = f'\nDropping {len(dcols)} residues in columns {dcolstring} because not all structures had them. Using {ucols} residues.'
             session.logger.info(msg)
             if len(dcols) == len(res_columns):
                 raise UserError('No residues were in all the structures')
@@ -197,7 +197,7 @@ def _alignment_atoms(chain, alignment, columns):
         if ugcol not in cares:
             missing_col.append(gcol)
     if missing_col:
-        mcolstring = " ".join(str(mc+1) for mc in  missing_col)
+        mcolstring = _concise_columns(missing_col)
         missing_msg = f'Chain {chain} has no residue in alignment columns {mcolstring}'
         return None, missing_col, missing_msg
     from chimerax.atomic import Residues, Atoms
@@ -244,7 +244,7 @@ def _chain_atom_motions(chains, res_columns, alignment, aligned_residues, refere
     from chimerax.core.objects import Objects
     name_frozen(session, 'diffatoms', Objects(atoms = diffplot_atoms))
     
-    column_nums = ' '.join(str(c+1) for c in res_columns)	# Switch from 0-base to 1-base indexing
+    column_nums = _concise_columns(res_columns)
     from chimerax.atomic import concise_residue_spec
     residue_nums = concise_residue_spec(session, aligned_residues)
     struct_name = aligned_residues[0].structure.name
@@ -252,7 +252,7 @@ def _chain_atom_motions(chains, res_columns, alignment, aligned_residues, refere
     show_hide_sel = (f'(<a href="cxcmd:show {comp_spec} model">show</a>'
                      f' / <a href="cxcmd:hide {comp_spec} model">hide</a>'
                      f' / <a href="cxcmd:select {comp_spec}">select</a>)')
-    session.logger.info(f'Compared {len(diffs)} structures {show_hide_sel} at {len(aligned_residues)} residues of {struct_name}<br>'
+    session.logger.info(f'<br>Compared {len(diffs)} structures {show_hide_sel} at {len(aligned_residues)} residues of {struct_name}<br>'
                         f'{residue_nums}<br><br>'
                         f'\nAlignment columns {column_nums}<br>',
                         is_html = True)
@@ -268,6 +268,22 @@ def _chain_atom_motions(chains, res_columns, alignment, aligned_residues, refere
             session.logger.info('\n'.join(msg for c,msg in excluded_chains))
 
     return diffs
+
+def _concise_columns(column_numbers):
+    ranges = []
+    last_c = None
+    for c in column_numbers:
+        c += 1	# Switch from 0-base to 1-base indexing
+        if last_c is None:
+            start = last_c = c
+        elif c > last_c + 1:
+            ranges.append(f'{start}-{last_c}' if last_c > start else f'{start}')
+            start = last_c = c
+        else:
+            last_c = c
+    if last_c is not None:
+        ranges.append(f'{start}-{c}' if c > start else f'{start}')
+    return ' '.join(ranges)
 
 def _install_umap(session):
     try:
@@ -332,7 +348,7 @@ def _report_clusters(chains, pdb_names, cluster_num, logger):
                          f' / <a href="cxcmd:hide {cluster_spec} model">hide</a>'
                          f' / <a href="cxcmd:select {cluster_spec}">select</a>)')
 
-        lines.append(f'<br><b>Cluster {i+1}</b> {show_hide_sel}: {" ".join(pdbs)}')
+        lines.append(f'<b>Cluster {i+1}</b> {show_hide_sel}: {" ".join(pdbs)}<br><br>')
     logger.info('\n' + '\n\n'.join(lines), is_html = True)
 
 def _color_models(session, pdb_names, colors):
