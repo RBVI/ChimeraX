@@ -555,4 +555,4 @@ def register_diffplot_command(logger):
                    synopsis='Hide chains not given in structure name')
     register('diffplot hideextrachains', desc, hide_extra_chains, logger=logger)
 
-register_diffplot_command(session.logger)
+#register_diffplot_command(session.logger)
