@@ -23,7 +23,8 @@
 # === UCSF ChimeraX Copyright ===
 
 def diffplot(session, embedding_path = None, alignment = None, residues = None, structures = None,
-             coords_path = None, output_embedding_path = None, plot = True, cluster = None, verbose = False):
+             drop = 'structures', coords_path = None, output_embedding_path = None,
+             plot = True, cluster = None, replace = True, verbose = False):
 
     if embedding_path is not None:
         pdb_names, umap_xy = _read_embedding(embedding_path)
@@ -33,7 +34,7 @@ def diffplot(session, embedding_path = None, alignment = None, residues = None, 
             _report_clusters(pdb_names, cluster_numbers, session.logger)
         else:
             colors = None
-        _plot_embedding(session, pdb_names, umap_xy, colors)
+        _plot_embedding(session, pdb_names, umap_xy, colors, replace=replace)
         return
         
     if alignment is None:
@@ -54,52 +55,27 @@ def diffplot(session, embedding_path = None, alignment = None, residues = None, 
 
     _associate_chains_to_sequence_alignment_by_name(alignment, chains)
 
-    resa, atoms, res_columns = _residue_alignment_columns(alignment, residues)
+    aligned_residues, atoms, res_columns = _residue_alignment_columns(alignment, residues)
+
+    if drop == 'residues':
+        log = session.logger if verbose else None
+        dcols = _drop_columns(chains, res_columns, alignment, log)
+        if dcols:
+            dcolstring = _concise_columns(sorted(list(dcols)))
+            ucols = len(res_columns) - len(dcols)
+            msg = f'\nDropping {len(dcols)} residues in columns {dcolstring} because not all structures had them. Using {ucols} residues.'
+            session.logger.info(msg)
+            if len(dcols) == len(res_columns):
+                raise UserError('No residues were in all the structures')
+            from numpy import array
+            mask = array([(c not in dcols) for c in res_columns], bool)
+            aligned_residues = aligned_residues[mask]
+            atoms = atoms[mask]
+            res_columns = [c for c in res_columns if c not in dcols]
 
     rxyz = atoms.scene_coords
-    
-    diffs = []
-    excluded_chains = []
-    all_atoms = []
-    for chain in chains:
-        if chain not in alignment.associations:
-            raise UserError(f'Chain {chain} is not associated with any sequence in alignment {alignment.name}')
-        atoms, missing_message = _alignment_atoms(chain, alignment, res_columns)
-        if missing_message:
-            excluded_chains.append((chain, missing_message))
-        else:
-            diff_xyz = atoms.scene_coords - rxyz
-            diffs.append((chain, diff_xyz))
-            all_atoms.append(atoms)
 
-    from chimerax.atomic import Atoms, concatenate
-    diffplot_atoms = concatenate(all_atoms, Atoms)
-    from chimerax.basic_actions.cmd import name_frozen
-    from chimerax.core.objects import Objects
-    name_frozen(session, 'diffatoms', Objects(atoms = diffplot_atoms))
-    
-    column_nums = ' '.join(str(c+1) for c in res_columns)	# Switch from 0-base to 1-base indexing
-    from chimerax.atomic import concise_residue_spec
-    residue_nums = concise_residue_spec(session, resa)
-    struct_name = resa[0].structure.name
-    comp_spec = ' '.join(chain.string(style='command') for chain, diff_xyz in diffs)
-    show_hide_sel = (f'(<a href="cxcmd:show {comp_spec} model">show</a>'
-                     f' / <a href="cxcmd:hide {comp_spec} model">hide</a>'
-                     f' / <a href="cxcmd:select {comp_spec}">select</a>)')
-    session.logger.info(f'Compared {len(diffs)} structures {show_hide_sel} at {len(resa)} residues of {struct_name}<br>'
-                        f'{residue_nums}<br><br>'
-                        f'\nAlignment columns {column_nums}<br>',
-                        is_html = True)
-
-    if excluded_chains:
-        excl_names = ' '.join(c.structure.name for c,msg in excluded_chains)
-        excl_spec = ' '.join(c.string(style='command') for c,msg in excluded_chains)
-        show_hide_sel = (f'(<a href="cxcmd:show {excl_spec} model">show</a>'
-                         f' / <a href="cxcmd:hide {excl_spec} model">hide</a>'
-                         f' / <a href="cxcmd:select {excl_spec}">select</a>)')
-        session.logger.info(f'Excluded {len(excluded_chains)} structures {show_hide_sel} because they did not have alignment matches for all the residues being compared: {excl_names}', is_html=True)
-        if verbose:
-            session.logger.info('\n'.join(msg for c,msg in excluded_chains))
+    diffs = _chain_atom_motions(chains, res_columns, alignment, aligned_residues, rxyz, session, verbose)
 
     if coords_path is not None:
         with open(coords_path, 'w') as f:
@@ -125,7 +101,7 @@ def diffplot(session, embedding_path = None, alignment = None, residues = None, 
             _report_clusters(diff_chains, pdb_names, cluster_numbers, session.logger)
         else:
             colors = None
-        _plot_embedding(session, pdb_names, umap_xy, colors)
+        _plot_embedding(session, pdb_names, umap_xy, colors, replace=replace)
         
 def _get_open_sequence_alignment(session):
     from chimerax.core.errors import UserError
@@ -209,6 +185,9 @@ def _residue_alignment_columns(alignment, residues):
     return resa, rpa, columns
 
 def _alignment_atoms(chain, alignment, columns):
+    if chain not in alignment.associations:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Chain {chain} is not associated with any sequence in alignment {alignment.name}')
     aseq = alignment.associations[chain]
     mm = aseq.match_maps[chain]
     cares = mm.pos_to_res
@@ -218,14 +197,93 @@ def _alignment_atoms(chain, alignment, columns):
         if ugcol not in cares:
             missing_col.append(gcol)
     if missing_col:
-        return None, f'Chain {chain} has no residue in alignment columns {" ".join(str(mc+1) for mc in  missing_col)}'
-    from chimerax.atomic import Residues
+        mcolstring = _concise_columns(missing_col)
+        missing_msg = f'Chain {chain} has no residue in alignment columns {mcolstring}'
+        return None, missing_col, missing_msg
+    from chimerax.atomic import Residues, Atoms
     cres = Residues([cares.get(col) for col in ugcolumns])
-    cra = cres.existing_principal_atoms
-    if len(cra) < len(cres):
-        return None, f'Chain {chain} is missing {len(cres) - len(cra)} CA atoms'
+    cra = cres.principal_atoms
+    if None in cra:
+        nmissing = cra.count(None)
+        missing_col = [columns[i] for i,a in enumerate(cra) if a is None]
+        return None, missing_col, f'Chain {chain} is missing {nmissing} CA atoms'
 #    print (chain.structure.name, 'residues', ''.join([r.one_letter_code for r in cres]))
-    return cra, None
+    return Atoms(cra), [], None
+
+def _drop_columns(chains, res_columns, alignment, log):
+    '''Find columns where not all chains aligned or have C-alpha atom.'''
+    missing = set()
+    msgs = []
+    for chain in chains:
+        atoms, missing_columns, missing_message = _alignment_atoms(chain, alignment, res_columns)
+        if missing_columns:
+            missing.update(missing_columns)
+        if missing_message:
+            msgs.append(missing_message)
+    if log:
+        log.info('\n'.join(msgs))
+
+    return missing
+
+def _chain_atom_motions(chains, res_columns, alignment, aligned_residues, reference_xyz, session, verbose):
+    diffs = []
+    excluded_chains = []
+    all_atoms = []
+    for chain in chains:
+        atoms, missing_columns, missing_message = _alignment_atoms(chain, alignment, res_columns)
+        if missing_message:
+            excluded_chains.append((chain, missing_message))
+        else:
+            diff_xyz = atoms.scene_coords - reference_xyz
+            diffs.append((chain, diff_xyz))
+            all_atoms.append(atoms)
+
+    from chimerax.atomic import Atoms, concatenate
+    diffplot_atoms = concatenate(all_atoms, Atoms)
+    from chimerax.basic_actions.cmd import name_frozen
+    from chimerax.core.objects import Objects
+    name_frozen(session, 'diffatoms', Objects(atoms = diffplot_atoms))
+    
+    column_nums = _concise_columns(res_columns)
+    from chimerax.atomic import concise_residue_spec
+    residue_nums = concise_residue_spec(session, aligned_residues)
+    struct_name = aligned_residues[0].structure.name
+    comp_spec = ' '.join(chain.string(style='command') for chain, diff_xyz in diffs)
+    show_hide_sel = (f'(<a href="cxcmd:show {comp_spec} model">show</a>'
+                     f' / <a href="cxcmd:hide {comp_spec} model">hide</a>'
+                     f' / <a href="cxcmd:select {comp_spec}">select</a>)')
+    session.logger.info(f'<br>Compared {len(diffs)} structures {show_hide_sel} at {len(aligned_residues)} residues of {struct_name}<br>'
+                        f'{residue_nums}<br><br>'
+                        f'\nAlignment columns {column_nums}<br>',
+                        is_html = True)
+
+    if excluded_chains:
+        excl_names = ' '.join(c.structure.name for c,msg in excluded_chains)
+        excl_spec = ' '.join(c.string(style='command') for c,msg in excluded_chains)
+        show_hide_sel = (f'(<a href="cxcmd:show {excl_spec} model">show</a>'
+                         f' / <a href="cxcmd:hide {excl_spec} model">hide</a>'
+                         f' / <a href="cxcmd:select {excl_spec}">select</a>)')
+        session.logger.info(f'Excluded {len(excluded_chains)} structures {show_hide_sel} because they did not have alignment matches for all the residues being compared: {excl_names}', is_html=True)
+        if verbose:
+            session.logger.info('\n'.join(msg for c,msg in excluded_chains))
+
+    return diffs
+
+def _concise_columns(column_numbers):
+    ranges = []
+    last_c = None
+    for c in column_numbers:
+        c += 1	# Switch from 0-base to 1-base indexing
+        if last_c is None:
+            start = last_c = c
+        elif c > last_c + 1:
+            ranges.append(f'{start}-{last_c}' if last_c > start else f'{start}')
+            start = last_c = c
+        else:
+            last_c = c
+    if last_c is not None:
+        ranges.append(f'{start}-{c}' if c > start else f'{start}')
+    return ' '.join(ranges)
 
 def _install_umap(session):
     try:
@@ -290,7 +348,7 @@ def _report_clusters(chains, pdb_names, cluster_num, logger):
                          f' / <a href="cxcmd:hide {cluster_spec} model">hide</a>'
                          f' / <a href="cxcmd:select {cluster_spec}">select</a>)')
 
-        lines.append(f'<br><b>Cluster {i+1}</b> {show_hide_sel}: {" ".join(pdbs)}')
+        lines.append(f'<b>Cluster {i+1}</b> {show_hide_sel}: {" ".join(pdbs)}<br><br>')
     logger.info('\n' + '\n\n'.join(lines), is_html = True)
 
 def _color_models(session, pdb_names, colors):
@@ -304,20 +362,29 @@ def _color_models(session, pdb_names, colors):
             c_atoms = atoms[atoms.element_names == 'C']
             c_atoms.colors = color
 
-def _plot_embedding(session, pdb_names, umap_xy, colors = None):
+def _plot_embedding(session, pdb_names, umap_xy, colors = None, replace = False):
     if colors is not None:
         _color_models(session, pdb_names, colors)
-    StructurePlot(session, pdb_names, umap_xy, colors)
+    if replace and hasattr(session, '_last_diffplot') and session._last_diffplot.tool_window.ui_area is not None:
+        plot = session._last_diffplot
+        plot.set_nodes(pdb_names, umap_xy, colors)
+    else:
+        plot = StructurePlot(session, pdb_names, umap_xy, colors)
+        session._last_diffplot = plot
+    return plot
 
 from chimerax.interfaces.graph import Graph
 class StructurePlot(Graph):
     def __init__(self, session, pdb_names, umap_xy, colors = None):
         self._have_colors = (colors is not None)
         self._node_area = 500	# Area in pixels
-        self._nodes = nodes = self._make_nodes(pdb_names, umap_xy, colors)
-        edges = []
+        nodes = edges = []
         Graph.__init__(self, session, nodes, edges, tool_name = 'DiffPlot', title = 'Structure UMAP Plot')
-        self.font_size = 5
+        self.font_size = 5	# Override graph default value of 12 points
+        self.set_nodes(pdb_names, umap_xy, colors)
+    def set_nodes(self, pdb_names, umap_xy, colors = None):
+        self.nodes = self._make_nodes(pdb_names, umap_xy, colors)
+        self.graph = self._make_graph()
         self.draw_graph()
     def _make_nodes(self, pdb_names, umap_xy, colors = None):
         from chimerax.interfaces.graph import Node
@@ -420,7 +487,7 @@ class StructurePlot(Graph):
     def _node_structures(self):
         from chimerax.atomic import all_atomic_structures
         smap = {m.name:m for m in all_atomic_structures(self.session)}
-        structures = [smap[node.name] for node in self._nodes if node.name in smap]
+        structures = [smap[node.name] for node in self.nodes if node.name in smap]
         return structures
     def _run_command(self, command):
         from chimerax.core.commands import run
@@ -467,7 +534,7 @@ def hide_extra_chains(session, structures):
         res[other_chains].ribbon_displays = False
 
 def register_diffplot_command(logger):
-    from chimerax.core.commands import register, CmdDesc, OpenFileNameArg, SaveFileNameArg, IntArg, BoolArg
+    from chimerax.core.commands import register, CmdDesc, OpenFileNameArg, SaveFileNameArg, IntArg, BoolArg, EnumOf
     from chimerax.atomic import ResiduesArg, AtomicStructuresArg
     from chimerax.seqalign import AlignmentArg
     desc = CmdDesc(required = [],
@@ -475,9 +542,11 @@ def register_diffplot_command(logger):
                    keyword = [('alignment', AlignmentArg),
                               ('residues', ResiduesArg),
                               ('structures', AtomicStructuresArg),
+                              ('drop', EnumOf(('structures', 'residues'))),
                               ('cluster', IntArg),
                               ('coords_path', SaveFileNameArg),
                               ('output_embedding_path', SaveFileNameArg),
+                              ('replace', BoolArg),
                               ('verbose', BoolArg)],
                    synopsis='Measure structure differences')
     register('diffplot', desc, diffplot, logger=logger)

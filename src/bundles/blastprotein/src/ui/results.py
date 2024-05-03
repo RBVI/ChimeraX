@@ -33,6 +33,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui.gui import MainToolWindow
 from chimerax.ui.open_save import SaveDialog
 from chimerax.help_viewer import show_url
+from chimerax.core.models import REMOVE_MODELS
 
 from ..data_model import AvailableDBsDict, Match, parse_blast_results
 from ..utils import BlastParams, SeqId, _instance_generator
@@ -90,8 +91,22 @@ class BlastProteinResults(ToolInstance):
         self._sequences: Dict[int, Match] = kw.pop("sequences", None)
         self._table_session_data = kw.pop("table_session_data", None)
         self.tool_window = None
+        self.model_removed_handler = self.session.triggers.add_handler(
+            REMOVE_MODELS,
+            lambda *args: self._on_model_removed_from_session(*args),
+        )
 
         self._build_ui()
+
+    def _on_model_removed_from_session(self, _, models):
+        db = AvailableDBsDict[self.params.database]
+        if db.name in ["alphafold", "esmfold"]:
+            # We never set the first opened hit for alphaFold or ESMFold
+            return
+        for m in models:
+            if m is self._first_opened_hit:
+                # Release our reference to the model so it can be deleted
+                self._first_opened_hit = None
 
     @classmethod
     def from_job(cls, session, tool_name, params, job, **kw):
@@ -370,6 +385,7 @@ class BlastProteinResults(ToolInstance):
             self.table.data = [BlastResultsRow(item) for item in self._hits]
 
     def closeEvent(self, event):
+        self.model_removed_handler.remove()
         if self.worker is not None:
             self.worker.terminate()
         self.tool_window.ui_area.close()
@@ -535,9 +551,13 @@ class BlastProteinResults(ToolInstance):
                 if self.params.chain or db.name in ["alphafold", "esmfold"]:
                     db.display_model(self.session, self.params.chain, m, chain_id)
                 elif self._first_opened_hit:
-                    db.display_model(self.session, self._first_opened_hit, m, chain_id)
+                    atomspec = self._first_opened_hit.atomspec
+                    chain = self._first_opened_hit.name.split("_")[1]
+                    db.display_model(
+                        self.session, "/".join([atomspec, chain]), m, chain_id
+                    )
                 else:
-                    self._first_opened_hit = m.atomspec + "/" + chain_id
+                    self._first_opened_hit = m
 
     def _log_alphafold(self, models):
         query_match = self._sequences[0][1]
