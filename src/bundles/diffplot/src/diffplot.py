@@ -23,7 +23,8 @@
 # === UCSF ChimeraX Copyright ===
 
 def diffplot(session, embedding_path = None, alignment = None, residues = None, structures = None,
-             coords_path = None, output_embedding_path = None, plot = True, cluster = None, verbose = False):
+             coords_path = None, output_embedding_path = None, plot = True, cluster = None,
+             replace = True, verbose = False):
 
     if embedding_path is not None:
         pdb_names, umap_xy = _read_embedding(embedding_path)
@@ -33,7 +34,7 @@ def diffplot(session, embedding_path = None, alignment = None, residues = None, 
             _report_clusters(pdb_names, cluster_numbers, session.logger)
         else:
             colors = None
-        _plot_embedding(session, pdb_names, umap_xy, colors)
+        _plot_embedding(session, pdb_names, umap_xy, colors, replace=replace)
         return
         
     if alignment is None:
@@ -125,7 +126,7 @@ def diffplot(session, embedding_path = None, alignment = None, residues = None, 
             _report_clusters(diff_chains, pdb_names, cluster_numbers, session.logger)
         else:
             colors = None
-        _plot_embedding(session, pdb_names, umap_xy, colors)
+        _plot_embedding(session, pdb_names, umap_xy, colors, replace=replace)
         
 def _get_open_sequence_alignment(session):
     from chimerax.core.errors import UserError
@@ -304,20 +305,29 @@ def _color_models(session, pdb_names, colors):
             c_atoms = atoms[atoms.element_names == 'C']
             c_atoms.colors = color
 
-def _plot_embedding(session, pdb_names, umap_xy, colors = None):
+def _plot_embedding(session, pdb_names, umap_xy, colors = None, replace = False):
     if colors is not None:
         _color_models(session, pdb_names, colors)
-    StructurePlot(session, pdb_names, umap_xy, colors)
+    if replace and hasattr(session, '_last_diffplot') and session._last_diffplot.tool_window.ui_area is not None:
+        plot = session._last_diffplot
+        plot.set_nodes(pdb_names, umap_xy, colors)
+    else:
+        plot = StructurePlot(session, pdb_names, umap_xy, colors)
+        session._last_diffplot = plot
+    return plot
 
 from chimerax.interfaces.graph import Graph
 class StructurePlot(Graph):
     def __init__(self, session, pdb_names, umap_xy, colors = None):
         self._have_colors = (colors is not None)
         self._node_area = 500	# Area in pixels
-        self._nodes = nodes = self._make_nodes(pdb_names, umap_xy, colors)
-        edges = []
+        nodes = edges = []
         Graph.__init__(self, session, nodes, edges, tool_name = 'DiffPlot', title = 'Structure UMAP Plot')
-        self.font_size = 5
+        self.font_size = 5	# Override graph default value of 12 points
+        self.set_nodes(pdb_names, umap_xy, colors)
+    def set_nodes(self, pdb_names, umap_xy, colors = None):
+        self.nodes = self._make_nodes(pdb_names, umap_xy, colors)
+        self.graph = self._make_graph()
         self.draw_graph()
     def _make_nodes(self, pdb_names, umap_xy, colors = None):
         from chimerax.interfaces.graph import Node
@@ -420,7 +430,7 @@ class StructurePlot(Graph):
     def _node_structures(self):
         from chimerax.atomic import all_atomic_structures
         smap = {m.name:m for m in all_atomic_structures(self.session)}
-        structures = [smap[node.name] for node in self._nodes if node.name in smap]
+        structures = [smap[node.name] for node in self.nodes if node.name in smap]
         return structures
     def _run_command(self, command):
         from chimerax.core.commands import run
@@ -478,6 +488,7 @@ def register_diffplot_command(logger):
                               ('cluster', IntArg),
                               ('coords_path', SaveFileNameArg),
                               ('output_embedding_path', SaveFileNameArg),
+                              ('replace', BoolArg),
                               ('verbose', BoolArg)],
                    synopsis='Measure structure differences')
     register('diffplot', desc, diffplot, logger=logger)
