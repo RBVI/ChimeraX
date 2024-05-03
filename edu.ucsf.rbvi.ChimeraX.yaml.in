@@ -11,6 +11,8 @@ build-options:
   - --share=network
   #? FontConfig error while running ChimeraX --nogui
   #? - --ro-bind /usr/share/fonts /run/host/fonts
+  # daily builds need to get saved binary wheels from base OS build
+  - --filesystem=host
 
 finish-args:
   # X11 + Xshm access
@@ -25,31 +27,29 @@ finish-args:
   - --device=dri
   # Network access
   - --share=network
-  # needs to save local files
+  # Share setup with other installations of ChimeraX
   - --filesystem=xdg-cache/ChimeraX:create
   - --filesystem=xdg-config/ChimeraX:create
   - --filesystem=xdg-data/ChimeraX:create
   - --filesystem=xdg-download/ChimeraX:create
-  # want "Spin Movie" icon to be able to save to Desktop
+  # Want "Spin Movie" icon to be able to save to Desktop
   - --filesystem=xdg-desktop
-  # Add --filesystem=home so Flatseal can turn it off
+  # Want to be able to open files in current directory on command
+  # line (both in shell and within ChimeraX)
+  # --fileystem=home allows for files in the home directory tree
+  # --fileystem=host allows for files in /tmp, /var/tmp, etc.
+  #   This makes the previous filesystem entries redundent
+  #   unless these permissions are turned off (with the
+  #   FlatSeal flatpak application).
   - --filesystem=home
-  # want to be able to open files in current directory
-  # -- this makes the previous filesystem entries redundent
-  #    unless this permission is turned off.  An limited
-  #    alternative would be --filesystem=home
   - --filesystem=host
 
 modules:
   - name: chimerax
     buildsystem: simple
-    sources:
-      - type: git
-        url: ssh://git@github.com/RBVI/ChimeraX.git
-        branch: BRANCH
     build-commands:
       # ffmpeg fails to compile with -j
-      - make -f Makefile.flatpak install
+      - cd SRC_DIR && make -f Makefile.flatpak install BUILD_TYPE
 
   # libQt6Network.so.6 from the Qt Group needs
   # libgssapi_krb5.so.2, but is not in flatpak runtime environment
@@ -57,7 +57,7 @@ modules:
     buildsystem: simple
     sources:
     - type: archive
-      url: http://web.mit.edu/kerberos/dist/krb5/1.20/krb5-1.20.2.tar.gz
+      url: https://web.mit.edu/kerberos/dist/krb5/1.20/krb5-1.20.2.tar.gz
       sha256: 7d8d687d42aed350c2525cb69a4fc3aa791694da6761dccc1c42c2ee7796b5dd
     build-commands:
       - cd src && ./configure

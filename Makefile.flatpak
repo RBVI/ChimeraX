@@ -2,6 +2,7 @@ APPNAME = edu.ucsf.rbvi.ChimeraX
 BUILD_DIR = fp-build.tmp
 RUNTIME_VER = 23.08
 BRANCH = $(shell awk '$$1 == "branch:" { print $$2; exit } { exit 3 }' last-commit 2> /dev/null || git branch --show-current)
+SRC_DIR = $(shell pwd -P)
 
 all:
 	# by default, do nothing
@@ -13,14 +14,23 @@ prereqs-ubuntu:
 	apt install flatpak flatpak-builder gnome-software-plugin-flatpak
 
 prereqs-flatpak:
-	flatpak install -y org.freedesktop.Sdk//${RUNTIME_VER}
+	flatpak install -y org.freedesktop.Sdk//${RUNTIME_VER} org.freedesktop.Platform//${RUNTIME_VER}
 
-
-build-flatpak: ${APPNAME}.yaml
+build-flatpak: ${APPNAME}.yaml wheels
 	flatpak-builder --force-clean ${BUILD_DIR} ${APPNAME}.yaml
 
+prereqs:
+	# normally the wheels and include directories are created by the build_tools process
+	$(MAKE) -C prereqs install NO_PREBUILT=1
+	$(MAKE) -C prereqs app-install NO_PREBUILT=1
+	$(MAKE) -C src/apps/ChimeraX install BUILD_TYPE=${BUILD_TYPE}
+	$(MAKE) -C src/bundles install BUILD_TYPE=${BUILD_TYPE}
+	rm -rf wheels include
+	mv build/sync wheels
+	mv build/include .
+
 ${APPNAME}.yaml: ${APPNAME}.yaml.in
-	sed -e 's:RUNTIME_VER:${RUNTIME_VER}:' -e 's:BRANCH:${BRANCH}:' $< > $@ || rm $@
+	sed -e 's:RUNTIME_VER:${RUNTIME_VER}:' -e 's:BUILD_TYPE:BUILD_TYPE=${BUILD_TYPE}:' -e 's:SRC_DIR:${SRC_DIR}:' $< > $@ || rm $@
 
 clean:
 	rm -f ${APPNAME}.metainfo.xml ${APPNAME}.desktop ${APPNAME}.yaml
@@ -29,7 +39,14 @@ clean:
 install:
 	# this is called indirectly by flatpak-builder via yaml/json manifest
 	mkdir -p /app
-	$(MAKE) install NO_PREBUILT=1 FLATPAK_DIST=${RUNTIME_VER} FLATPAK_APPNAME=${APPNAME}
+	$(MAKE) -C prereqs install NO_PREBUILT=1 FLATPAK_DIST=${RUNTIME_VER} FLATPAK_APPNAME=${APPNAME}
+	$(MAKE) -C prereqs app-install NO_PREBUILT=1 FLATPAK_DIST=${RUNTIME_VER} FLATPAK_APPNAME=${APPNAME}
+	$(MAKE) -C src/apps/ChimeraX install FLATPAK_DIST=${RUNTIME_VER} FLATPAK_APPNAME=${APPNAME} BUILD_TYPE=${BUILD_TYPE}
+	/app/bin/python3.* -m pip install wheels/*.whl
+	cp -rp include /app
+	$(MAKE) -C src/apps install BUILD_TYPE=${BUILD_TYPE}
+	$(MAKE) -C docs install BUILD_TYPE=${BUILD_TYPE}
+	/app/bin/ChimeraX --nogui --exit --cmd "linux flatpak-files ${APPNAME}"
 	install -Dm644 -t /app/share/metainfo ${APPNAME}.metainfo.xml
 	install -Dm644 -t /app/share/applications ${APPNAME}.desktop
 
