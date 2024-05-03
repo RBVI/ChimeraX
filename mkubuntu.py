@@ -228,7 +228,7 @@ UBUNTU_DEPENDENCIES = {
         "libdrm2": "2.4.101",
         "libegl1": "1.3.1",
         "libexpat1": "2.2.9",
-        "libffi7": "3.3",
+        "libffi8": "3.3",
         "libfftw3-single3": "3.3.8",
         "libfontconfig1": "2.13.1",
         "libfreetype6": "2.10.1",
