@@ -223,36 +223,11 @@ class _StructureAltlocManager(StateManager):
 
     def _build_alt_loc(self, res, alt_loc):
         from chimerax.atomic import AtomicStructure, Atom
+        # _mirror_atoms code depends on structure name being the alt_loc
         s = AtomicStructure(self.session, name=alt_loc, auto_style=False, log_info=False)
         self.expected_changes.add(s)
         r = s.new_residue(res.name, res.chain_id, res.number, insert=res.insertion_code)
-        from chimerax.atomic.struct_edit import add_atom
-        atom_map = {}
-        for old_a in res.atoms:
-            use_alt_loc = alt_loc in old_a.alt_locs
-            coord = old_a.get_alt_loc_coord(alt_loc) if use_alt_loc else old_a.coord
-            new_a = add_atom(old_a.name, old_a.element, r, coord, alt_loc=alt_loc)
-            new_a.draw_mode = Atom.STICK_STYLE
-            atom_map[old_a] = new_a
-            if not old_a.is_side_chain and not use_alt_loc:
-                new_a.display = False
-        handled_bonds = set()
-        for old_a in res.atoms:
-            for old_b in old_a.bonds:
-                a1, a2 = old_b.atoms
-                try:
-                    new1 = atom_map[a1]
-                    new2 = atom_map[a2]
-                except KeyError:
-                    continue
-                if new2 not in new1.neighbors:
-                    s.new_bond(new1, new2)
-        from chimerax.core.objects import Objects
-        alt_loc_objects = Objects(atoms=s.atoms, bonds=s.bonds)
-        from chimerax.std_commands.color import color
-        color(self.session, alt_loc_objects, color="byelement")
-        from chimerax.std_commands.size import size
-        size(self.session, alt_loc_objects, stick_radius=0.1, verbose=False)
+        self._update_alt_loc_res(alt_loc, res.atoms, s, {})
         s.display = False
         self.res_alt_locs.setdefault(res, {})[alt_loc] = s
         s._alt_loc_changes_handler = s.triggers.add_handler('changes',
@@ -283,9 +258,43 @@ class _StructureAltlocManager(StateManager):
                 for del_r in del_residues:
                     del self.res_group[del_r]
                 self.session.models.close(del_groups)
+        mod_res = set()
+        for a in changes.created_atoms():
+            if a.residue in self.res_group:
+                mod_res.add(a.residue)
+        if mod_res:
+            # defer the mirroring to the altloc model in order to allow atoms added directly to the model
+            # (e.g. from addh) to first be removed
+            from chimerax.atomic import get_triggers
+            get_triggers().add_handler('changes done',
+                lambda *args, f=self._mirror_atoms, residues=mod_res: f(residues))
         for r in changes.created_residues():
             if r.alt_locs:
                 self._build_alt_locs(r, self.main_group)
+
+    def _mirror_atoms(self, residues):
+        from chimerax.atomic import AtomicStructure
+        from chimerax.atomic.struct_edit import add_atom
+        for r in residues:
+            group = self.res_group[r]
+            for alt_loc_s in group.child_models():
+                if not isinstance(alt_loc_s, AtomicStructure) or len(alt_loc_s.name) != 1:
+                    continue
+                self.expected_changes.add(alt_loc_s)
+                alt_loc = alt_loc_s.name
+                name_lookup = { a.name: a for a in alt_loc_s.atoms }
+                # find newly created atoms, and correspondences between residue atoms and altloc model atoms
+                atom_map = {}
+                created = []
+                for a in r.atoms:
+                    try:
+                        atom_map[a] = name_lookup[a.name]
+                    except KeyError:
+                        created.append(a)
+                assert(len(atom_map) == alt_loc_s.num_atoms)
+                self._update_alt_loc_res(alt_loc, created, alt_loc_s, atom_map)
+        from chimerax.core.triggerset import DEREGISTER
+        return DEREGISTER
 
     def _models_closed_cb(self, trigger_name, closed_models):
         if self.structure in closed_models or self.main_group in closed_models:
@@ -311,6 +320,37 @@ class _StructureAltlocManager(StateManager):
                     closures.append(res_group)
         if closures:
             self.session.models.close(closures)
+
+    def _update_alt_loc_res(self, alt_loc, source_atoms, dest_s, atom_map):
+        from chimerax.atomic.struct_edit import add_atom
+        from chimerax.atomic import Atom, Atoms, Bonds
+        new_atoms = []
+        for old_a in source_atoms:
+            use_alt_loc = alt_loc in old_a.alt_locs
+            coord = old_a.get_alt_loc_coord(alt_loc) if use_alt_loc else old_a.coord
+            new_a = add_atom(old_a.name, old_a.element, dest_s.residues[0], coord, alt_loc=alt_loc)
+            new_atoms.append(new_a)
+            new_a.draw_mode = Atom.STICK_STYLE
+            atom_map[old_a] = new_a
+            if not old_a.is_side_chain and not use_alt_loc:
+                new_a.display = False
+        new_bonds = []
+        for old_a in source_atoms:
+            for old_b in old_a.bonds:
+                a1, a2 = old_b.atoms
+                try:
+                    new1 = atom_map[a1]
+                    new2 = atom_map[a2]
+                except KeyError:
+                    continue
+                if new2 not in new1.neighbors:
+                    new_bonds.append(dest_s.new_bond(new1, new2))
+        from chimerax.core.objects import Objects
+        alt_loc_objects = Objects(atoms=Atoms(new_atoms), bonds=Bonds(new_bonds))
+        from chimerax.std_commands.color import color
+        color(self.session, alt_loc_objects, color="byelement")
+        from chimerax.std_commands.size import size
+        size(self.session, alt_loc_objects, stick_radius=0.1, verbose=False)
 
     def reset_state(self, session):
         self.destroy()
