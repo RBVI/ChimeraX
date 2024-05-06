@@ -939,6 +939,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
                     other_chain->push_front(start_r);
                 else
                     other_chain->insert(other_r, start_r);
+                other_chain->set_from_seqres(false);
             } else {
                 other_chain->_residues[other_index-1] = start_r;
                 other_chain->_res_map[start_r] = other_index-1;
@@ -948,6 +949,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
                 auto new_char = Sequence::rname3to1(start_r->name());
                 if (old_char != new_char) {
                     other_chain->at(other_index-1) = new_char;
+                    other_chain->set_from_seqres(false);
                 }
             }
         }
@@ -962,6 +964,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
                     start_chain->push_back(other_r);
                 else
                     start_chain->insert(start_chain->residues()[start_index+1], other_r);
+                start_chain->set_from_seqres(false);
             } else {
                 start_chain->_residues[start_index+1] = other_r;
                 start_chain->_res_map[other_r] = start_index+1;
@@ -971,6 +974,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
                 auto new_char = Sequence::rname3to1(other_r->name());
                 if (old_char != new_char) {
                     start_chain->at(start_index+1) = new_char;
+                    start_chain->set_from_seqres(false);
                 }
             }
         } else if (start_r->chain() != other_r->chain()) {

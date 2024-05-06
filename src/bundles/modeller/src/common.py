@@ -452,6 +452,8 @@ class RunModeller(State):
 
         reset_alignments = []
         for alignment, target_seq in self.targets:
+            # allow chain lists, etc., to update before sending notifications [#10410]
+            alignment.suspend_notify_observers()
             alignment.associate(models, seq=target_seq)
             if alignment.auto_associate:
                 alignment.auto_associate = False
@@ -459,6 +461,8 @@ class RunModeller(State):
         self.session.models.add_group(models, name=self.target_seq_name + " models")
         for alignment in reset_alignments:
             alignment.auto_associate = True
+        for alignment, target_seq in self.targets:
+            alignment.resume_notify_observers()
 
         if self.session.ui.is_gui:
             from .tool import ModellerResultsViewer
