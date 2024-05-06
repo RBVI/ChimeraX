@@ -65,6 +65,17 @@ class QCxTableModel(QAbstractTableModel):
                 font = QFont(font)
                 font.setBold(True)
             return font
+        if role == Qt.ForegroundRole:
+            if col.data_color is None:
+                return None
+            color_val = col.data_color(item)
+            from chimerax.core.colors import Color
+            if isinstance(color_val, Color):
+                color = color_val
+            else:
+                color = Color(color_val)
+            return QBrush(QColor(*color.uint8x4()))
+
         if role == Qt.TextAlignmentRole:
             return self._convert_justification(col.justification)
         if role == Qt.CheckStateRole:
@@ -110,12 +121,12 @@ class QCxTableModel(QAbstractTableModel):
             return self._convert_justification(col.header_justification)
 
         elif role == Qt.ForegroundRole:
-            if col.color is not None:
+            if col.header_color is not None:
                 from chimerax.core.colors import Color
-                if isinstance(col.color, Color):
-                    color = col.color
+                if isinstance(col.header_color, Color):
+                    color = col.header_color
                 else:
-                    color = Color(col.color)
+                    color = Color(col.header_color)
                 return QBrush(QColor(*color.uint8x4()))
 
         elif role == Qt.ToolTipRole:
@@ -341,7 +352,8 @@ class ItemTable(QTableView):
 
     def add_column(self, title, data_fetch, *, format="%s", data_set=None, display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,
-            header_justification=None, icon=None, editable=False, validator=None, sort_func=None, show_tooltips=False):
+            header_justification=None, icon=None, editable=False, validator=None, sort_func=None,
+            show_tooltips=False, data_color=None):
         """ Add a column who's header text is 'title'.  It is allowable to add a column with the
             same title multiple times.  The duplicative additions will be ignored.
 
@@ -414,6 +426,12 @@ class ItemTable(QTableView):
 
             If 'show_tooltips' is True, then hovering over cells in that column will show the cell contents
             in a tooltip.  Useful in cases where cell values might exceed the width of the column.
+
+            'data_color', if not None, is a function that returns the _foreground_ (text) color of a
+            row entry. The function take the row's data item as its only argument.  The returned value
+            should be a chimerax.core.Color instance or a value that can be used as the Color constructor
+            first argument.
+
         """
         titles = [c.title for c in self._columns]
         if title in titles:
@@ -438,7 +456,8 @@ class ItemTable(QTableView):
             header_justification = justification if justification != "decimal" else "right"
 
         c = _ItemColumn(title, data_fetch, format, data_set, title_display, justification, font, color,
-            header_justification, balloon, icon, self._session, editable, validator, sort_func, show_tooltips)
+            header_justification, balloon, icon, self._session, editable, validator, sort_func,
+            show_tooltips, data_color)
 
         if self._column_control_info:
             self._add_column_control_entry(c)
@@ -812,7 +831,8 @@ class ItemTable(QTableView):
 
 class _ItemColumn:
     def __init__(self, title, data_fetch, display_format, data_set, title_display, justification, font,
-            color, header_justification, balloon, icon, session, editable, validator, sort_func, show_tooltips):
+            header_color, header_justification, balloon, icon, session, editable, validator, sort_func,
+            show_tooltips, data_color):
         # set all args to corresponding 'self' attributes...
         import inspect
         args, varargs, keywords, locals = inspect.getargvalues(inspect.currentframe())
@@ -872,7 +892,7 @@ class _ItemColumn:
             run(self.session, cmd)
 
     def _update(self, data=False, data_fetch=None, format=None, display=None, justification=None, font=None,
-            icon=None):
+            icon=None, data_color=False):
         changed = []
         if data:
             changed.append(Qt.DisplayRole)
@@ -893,4 +913,6 @@ class _ItemColumn:
         if icon is not None and icon != self.icon:
             self.icon = icon
             changed.append(Qt.DecorationRole)
+        if data_color:
+            changed.append(Qt.ForegroundRole)
         return changed
