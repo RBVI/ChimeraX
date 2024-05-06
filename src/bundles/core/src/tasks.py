@@ -632,7 +632,12 @@ class Tasks(StateManager):
         tasks = {}
         for tid, task in self._tasks.items():
             assert isinstance(task, Task)
-            if task.SESSION_SAVE:
+            if task.SESSION_SAVE and task.state not in [
+                TaskState.FINISHED,
+                TaskState.FAILED,
+                TaskState.DELETED,
+                TaskState.CANCELED,
+            ]:
                 tasks[tid] = task
         data = {
             "tasks": tasks,
@@ -659,7 +664,13 @@ class Tasks(StateManager):
         """
         t = session.tasks
         for tid, task in data["tasks"].items():
-            t._tasks[tid] = task
+            if task.state not in [
+                TaskState.FINISHED,
+                TaskState.FAILED,
+                TaskState.DELETED,
+                TaskState.CANCELED,
+            ]:
+                t._tasks[tid] = task
         return t
 
     def reset_state(self, session):
