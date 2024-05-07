@@ -507,7 +507,7 @@ class Tasks(StateManager):
     task states for scenes and sessions.
     """
 
-    def __init__(self, session, ids_start_from=1):
+    def __init__(self, session):
         """Initialize per-session state manager for tasks.
 
         Parameters
@@ -517,7 +517,7 @@ class Tasks(StateManager):
 
         """
         self._session = weakref.ref(session)
-        self._id_counter = itertools.count(ids_start_from)
+        self._id_counter = itertools.count(1)
         self._tasks = {}
 
     def __len__(self) -> int:
@@ -563,6 +563,8 @@ class Tasks(StateManager):
             raise ValueError("Attempted to record task ID already in task list")
         if key is None:
             id = next(self._id_counter)
+            while id in self._tasks:
+                id = next(self._id_counter)
             task.id = id
             dict.__setitem__(self._tasks, id, task)
         else:
@@ -642,7 +644,6 @@ class Tasks(StateManager):
         data = {
             "tasks": tasks,
             "version": TASKS_STATE_VERSION,
-            "counter": next(self._id_counter) - 1,
         }
         return data
 
@@ -670,6 +671,9 @@ class Tasks(StateManager):
                 TaskState.DELETED,
                 TaskState.CANCELED,
             ]:
+                while tid in t._tasks:
+                    tid += 1
+                    task.id = tid
                 t._tasks[tid] = task
         return t
 
