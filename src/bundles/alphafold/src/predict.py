@@ -107,12 +107,18 @@ class AlphaFoldRun(ToolInstance):
             self._run()
 
     def _page_loaded(self, okay):
-        if okay:
-            # Need to delay setting sequence and running or those do nothing
-            # probably because it is still waiting for some asynchronous setup.
-            delay_millisec = 1000
-            self._keep_timer_alive = self.session.ui.timer(delay_millisec, self._run)
-            # If we don't save the timer in a variable it is deleted and never fires.
+        if not okay:
+            return
+
+        from Qt.QtCore import QUrl
+        if self._browser.page().url() != QUrl(self._ipython_notebook_url):
+            return  # Google sign-in page
+        
+        # Need to delay setting sequence and running or those do nothing
+        # probably because it is still waiting for some asynchronous setup.
+        delay_millisec = 1000
+        # If we don't save the timer in a variable it is deleted and never fires.
+        self._keep_timer_alive = self.session.ui.timer(delay_millisec, self._run)
 
     def _run(self):
         from Qt import qt_object_is_deleted
