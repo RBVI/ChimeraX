@@ -259,6 +259,14 @@ class Task(State):
     def restore(self, *args, **kw):
         """Like start, but for restoring a task from a snapshot."""
         blocking = kw.get("blocking", False)  # since _run_thread will pop() it
+        if self.state in [
+            TaskState.FINISHED,
+            TaskState.FAILED,
+            TaskState.DELETED,
+            TaskState.CANCELED,
+        ]:
+            return
+
         self._thread = threading.Thread(
             target=self._run_function,
             daemon=True,
