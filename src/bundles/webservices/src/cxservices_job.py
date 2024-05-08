@@ -86,6 +86,7 @@ class CxServicesJob(Job):
         # Prefer the HTTPS proxy
         self.launch_time = None
         self.chimerax_api = None
+        self.next_poll = None
         if settings.https_proxy:
             url, port = settings.https_proxy
             if url:
@@ -174,13 +175,17 @@ class CxServicesJob(Job):
 
     def running(self) -> bool:
         """Return whether background process is still running."""
-        return self.launch_time is not None and self.end_time is None
+        return self.state == TaskState.RUNNING or (
+            self.launch_time is not None and self.end_time is None
+        )
 
     @property
     def launched_successfully(self) -> bool:
         return bool(self.job_id)
 
     def next_check(self) -> Optional[int]:
+        if self.next_poll is None:
+            self.next_poll = 1
         return self.next_poll
 
     def monitor(self, poll_freq_override: Optional[int] = None) -> None:
@@ -195,6 +200,16 @@ class CxServicesJob(Job):
             status = TaskState.from_str(result.status)
             next_poll = result.next_poll
         except ApiException as e:
+            if self.session.ui.is_gui:
+                self.session.ui.thread_safe(
+                    self.session.logger.info,
+                    "Error checking the status of job %s; if this job was restored from a session and results are still available, be sure to save them so they aren't lost!"
+                    % self.job_id,
+                )
+            reason = json.loads(e.body)["description"]
+            if reason.startswith("No such job"):
+                self.state = TaskState.FINISHED
+                return
             raise JobMonitorError(str(e))
         self.state = status
         if poll_freq_override is None and next_poll is not None:
