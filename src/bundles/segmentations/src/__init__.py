@@ -10,7 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "1.0.4"
+__version__ = "1.2.0"
 from chimerax.core.toolshed import BundleAPI
 
 from .segmentation import Segmentation, open_grids_as_segmentation
@@ -22,7 +22,7 @@ class _SegmentationsBundle(BundleAPI):
     @staticmethod
     def initialize(session, _):
         if session.ui.is_gui:
-            from chimerax.segmentations.cmd.view import register_view_triggers
+            from chimerax.segmentations.view.cmd import register_view_triggers
             from chimerax.segmentations.ui.segmentation_mouse_mode import (
                 CreateSegmentation3DMouseMode,
                 EraseSegmentation3DMouseMode,
@@ -59,13 +59,20 @@ class _SegmentationsBundle(BundleAPI):
     @staticmethod
     def register_command(_, ci, logger):
         if ci.name == "ui view":
-            from .cmd.view import register_view_cmds
+            from chimerax.segmentations.view.cmd import register_view_cmds
 
             register_view_cmds(logger)
-            # elif ci.name == "segmentations":
-            #    from .cmd.segmentations import register_seg_cmds
+        elif ci.name == "segmentations":
+            from .cmd.segmentations import register_seg_cmds
 
-            #    register_seg_cmds(logger)
+            register_seg_cmds(logger)
+
+    @staticmethod
+    def run_provider(session, name, mgr, **_):
+        if mgr == session.toolbar:
+            from .actions import run_toolbar_button
+
+            return run_toolbar_button(session, name)
 
 
 bundle_api = _SegmentationsBundle()
