@@ -10,7 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 from chimerax.core.toolshed import BundleAPI
 
 from .segmentation import Segmentation, open_grids_as_segmentation
@@ -62,10 +62,17 @@ class _SegmentationsBundle(BundleAPI):
             from .cmd.view import register_view_cmds
 
             register_view_cmds(logger)
-            # elif ci.name == "segmentations":
-            #    from .cmd.segmentations import register_seg_cmds
+        elif ci.name == "segmentations":
+            from .cmd.segmentations import register_seg_cmds
 
-            #    register_seg_cmds(logger)
+            register_seg_cmds(logger)
+
+    @staticmethod
+    def run_provider(session, name, mgr, **_):
+        if mgr == session.toolbar:
+            from .actions import run_toolbar_button
+
+            return run_toolbar_button(session, name)
 
 
 bundle_api = _SegmentationsBundle()
