@@ -65,6 +65,7 @@ from ..dicom_segmentations import PlanePuckSegmentation, SphericalSegmentation
 from ..segmentation import Segmentation, segment_volume
 
 from chimerax.segmentations.settings import get_settings
+from chimerax.segmentations.view.modes import ViewMode
 from chimerax.segmentations.actions import (
     ImageFormat,
     MouseAction,
@@ -72,33 +73,12 @@ from chimerax.segmentations.actions import (
     Handedness,
 )
 
+
 class SegmentationListItem(QListWidgetItem):
     def __init__(self, parent, segmentation):
         super().__init__(parent)
         self.segmentation = segmentation
         self.setText(self.segmentation.name)
-
-
-# Use these enums to populate the dropdowns so that the order is consistent
-class ViewMode(IntEnum):
-    TWO_BY_TWO = 0
-    ORTHOPLANES_OVER_3D = 1
-    ORTHOPLANES_BESIDE_3D = 2
-    DEFAULT_DESKTOP = 3
-    DEFAULT_VR = 4
-
-    def __str__(self):
-        if self.name == "TWO_BY_TWO":
-            return "2 x 2 (desktop)"
-        elif self.name == "ORTHOPLANES_OVER_3D":
-            return "3D over slices (desktop)"
-        elif self.name == "ORTHOPLANES_BESIDE_3D":
-            return "3D beside slices (desktop)"
-        elif self.name == "DEFAULT_DESKTOP":
-            return "3D only (desktop)"
-        elif self.name == "DEFAULT_VR":
-            return "3D only (VR)"
-        return "%s: Set a value to return for the name of this EnumItem" % self.name
 
 
 class SegmentationToolControlsDialog(QDialog):
