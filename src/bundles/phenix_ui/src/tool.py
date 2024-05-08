@@ -507,7 +507,7 @@ class LaunchFitLoopsTool(ToolInstance):
         self.target_table = targets = ItemTable(session=session)
         chain_col = targets.add_column("Chain", "chain_id")
         targets.add_column("Adjacent Residues", "between")
-        targets.add_column("Gap Length", "length")
+        self.gap_column = targets.add_column("Gap Length", "length", data_color=self._gap_color)
         targets.selection_changed.connect(self._new_target)
         targets.launch(select_mode=QAbstractItemView.SelectionMode.SingleSelection)
         targets.sort_by(chain_col, targets.SORT_ASCENDING)
@@ -617,6 +617,14 @@ class LaunchFitLoopsTool(ToolInstance):
         unk_gaps.sort()
         return gaps, unk_gaps
 
+    def _gap_color(self, datum):
+        full_length = datum.length + 2 * self.padding_widget.value()
+        if full_length < self.ADVISORY_RES_LIMIT:
+            return 'black'
+        if full_length < self.HARD_RES_LIMIT:
+            return [x/255 for x in (219, 118, 0)]
+        return 'red'
+
     def _new_target(self, *args):
         table_data = self.target_table.selected
         if not table_data:
@@ -657,6 +665,7 @@ class LaunchFitLoopsTool(ToolInstance):
         cur_text = self.residue_label.text()
         self.residue_label.setText(prefix + cur_text[cur_text[1:].index(' ')+1:])
         self._new_target(self.target_table.selected)
+        self.target_table.update_column(self.gap_column, data_color=True)
 
     def _sel_changed(self, trig_name, data):
         structure = self.structure_menu.value

@@ -26,7 +26,7 @@
     <Dependency name="ChimeraX-MapData" version="~=2.0"/>
     <Dependency name="ChimeraX-MapFilter" version="~=2.0"/>
     <Dependency name="ChimeraX-PDB" version="~=2.6"/>
-    <Dependency name="ChimeraX-UI" version="~=1.21"/>
+    <Dependency name="ChimeraX-UI" version="~=1.39"/>
   </Dependencies>
 
   <Classifiers>

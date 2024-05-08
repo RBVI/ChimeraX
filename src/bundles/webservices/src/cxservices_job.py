@@ -25,7 +25,13 @@ from urllib3.exceptions import MaxRetryError, NewConnectionError
 from typing import Any, Dict, List, Optional, Union
 from urllib.error import URLError
 
-from chimerax.core.tasks import TaskState, Job, JobError, JobLaunchError, JobMonitorError
+from chimerax.core.tasks import (
+    TaskState,
+    Job,
+    JobError,
+    JobLaunchError,
+    JobMonitorError,
+)
 
 from cxservices.rest import ApiException
 from cxservices.api import default_api
@@ -34,15 +40,17 @@ from cxservices.configuration import Configuration
 
 from chimerax.core.core_settings import settings
 
-def get_cxservices_api_with_proxy(proxy_url = None, proxy_port = None, https = True):
+
+def get_cxservices_api_with_proxy(proxy_url=None, proxy_port=None, https=True):
     configuration = Configuration()
     if https and not proxy_url.startswith("https://"):
         proxy_url = "".join(["https://", proxy_url])
     elif not https and not proxy_url.startswith("http://"):
         proxy_url = "".join(["http://", proxy_url])
     configuration.proxy = ":".join([proxy_url, str(proxy_port)])
-    api_client = ApiClient(configuration = configuration)
-    return default_api.DefaultApi(api_client = api_client)
+    api_client = ApiClient(configuration=configuration)
+    return default_api.DefaultApi(api_client=api_client)
+
 
 class CxServicesJob(Job):
     """Launch a ChimeraX REST web service request and monitor its status.
@@ -78,21 +86,29 @@ class CxServicesJob(Job):
         # Prefer the HTTPS proxy
         self.launch_time = None
         self.chimerax_api = None
+        self.next_poll = None
         if settings.https_proxy:
             url, port = settings.https_proxy
             if url:
-                self.chimerax_api = get_cxservices_api_with_proxy(proxy_url = url, proxy_port = port, https = True)
+                self.chimerax_api = get_cxservices_api_with_proxy(
+                    proxy_url=url, proxy_port=port, https=True
+                )
         elif settings.http_proxy:
             url, port = settings.http_proxy
             if url:
-                self.chimerax_api = get_cxservices_api_with_proxy(proxy_url = url, proxy_port = port, https = False)
+                self.chimerax_api = get_cxservices_api_with_proxy(
+                    proxy_url=url, proxy_port=port, https=False
+                )
         if not self.chimerax_api:
             self.chimerax_api = default_api.DefaultApi()
         self.job_id = None
 
-    def run(self, service_name: str
-            , params: Dict[str, Any] = None
-            , files_to_upload: Optional[List[str]] = None) -> None:
+    def run(
+        self,
+        service_name: str,
+        params: Dict[str, Any] = None,
+        files_to_upload: Optional[List[str]] = None,
+    ) -> None:
         """Launch the background process.
 
         Arguments
@@ -122,17 +138,15 @@ class CxServicesJob(Job):
         # Launch job
         try:
             result = self.chimerax_api.submit_job(
-                job_type = service_name
-                , params = processed_params
-                , filepaths = processed_files_to_upload
+                job_type=service_name,
+                params=processed_params,
+                filepaths=processed_files_to_upload,
             )
         except ApiException as e:
             self.state = TaskState.FAILED
             self.end_time = datetime.datetime.now()
-            reason = json.loads(e.body)['description']
-            self.thread_safe_error(
-                "Error launching job: %s" % reason
-            )
+            reason = json.loads(e.body)["description"]
+            self.thread_safe_error("Error launching job: %s" % reason)
         except (URLError, MaxRetryError, NewConnectionError) as e:
             self.state = TaskState.FAILED
             self.end_time = datetime.datetime.now()
@@ -152,24 +166,26 @@ class CxServicesJob(Job):
     def _relaunch(self):
         """Relaunch the background process. Used to restore the job."""
         if self.state not in [
-            TaskState.FINISHED
-            , TaskState.FAILED
-            , TaskState.DELETED
-            , TaskState.CANCELED
+            TaskState.FINISHED,
+            TaskState.FAILED,
+            TaskState.DELETED,
+            TaskState.CANCELED,
         ]:
             super().run()
 
     def running(self) -> bool:
-        """Return whether background process is still running.
-
-        """
-        return self.launch_time is not None and self.end_time is None
+        """Return whether background process is still running."""
+        return self.state == TaskState.RUNNING or (
+            self.launch_time is not None and self.end_time is None
+        )
 
     @property
     def launched_successfully(self) -> bool:
         return bool(self.job_id)
 
     def next_check(self) -> Optional[int]:
+        if self.next_poll is None:
+            self.next_poll = 1
         return self.next_poll
 
     def monitor(self, poll_freq_override: Optional[int] = None) -> None:
@@ -180,26 +196,43 @@ class CxServicesJob(Job):
         """
         try:
             # Not sure why, but we have to specify job_id by name here
-            result = self.chimerax_api.get_status(job_id = self.job_id)
+            result = self.chimerax_api.get_status(job_id=self.job_id)
             status = TaskState.from_str(result.status)
             next_poll = result.next_poll
         except ApiException as e:
+            if self.session.ui.is_gui:
+                self.session.ui.thread_safe(
+                    self.session.logger.info,
+                    "Error checking the status of job %s; if this job was restored from a session and results are still available, be sure to save them so they aren't lost!"
+                    % self.job_id,
+                )
+            reason = json.loads(e.body)["description"]
+            if reason.startswith("No such job"):
+                self.state = TaskState.FINISHED
+                return
             raise JobMonitorError(str(e))
         self.state = status
         if poll_freq_override is None and next_poll is not None:
             self.next_poll = int(next_poll)
         else:
             self.next_poll = poll_freq_override
-        if status in [TaskState.FINISHED, TaskState.FAILED, TaskState.DELETED, TaskState.CANCELED] and self.end_time is None:
+        if (
+            status
+            in [
+                TaskState.FINISHED,
+                TaskState.FAILED,
+                TaskState.DELETED,
+                TaskState.CANCELED,
+            ]
+            and self.end_time is None
+        ):
             self.end_time = datetime.datetime.now()
 
     def exited_normally(self) -> bool:
-        """Return whether background process terminated normally.
-
-        """
+        """Return whether background process terminated normally."""
         return self.state == TaskState.FINISHED
 
-    def get_results(self) -> Optional[Union[bytes,str]]:
+    def get_results(self) -> Optional[Union[bytes, str]]:
         """Expects JSON."""
         try:
             content = self.chimerax_api.get_results(self.job_id)
@@ -211,7 +244,7 @@ class CxServicesJob(Job):
     #
     # Other helper methods
     #
-    def get_file(self, filename, *, encoding='utf-8'):
+    def get_file(self, filename, *, encoding="utf-8"):
         """Return the contents of file on REST server.
 
         Argument
@@ -268,7 +301,7 @@ class CxServicesJob(Job):
             filenames = self.chimerax_api.get_job_filenames(self.job_id).files
         except ApiException as e:
             raise IOError("job %s: cannot get file list" % self.job_id)
-        self._outputs = {fn:fn for fn in filenames}
+        self._outputs = {fn: fn for fn in filenames}
         return self._outputs
 
     def post_file(self, name, value_type, value) -> None:
@@ -282,7 +315,7 @@ class CxServicesJob(Job):
             with open(value, "rb") as f:
                 value = f.read()
         elif value_type != "bytes":
-            raise ValueError("unsupported content type: \"%s\"" % value_type)
+            raise ValueError('unsupported content type: "%s"' % value_type)
         self.chimerax_api.file_post(value, self.job_id, name)
 
     def __str__(self) -> str:
@@ -291,12 +324,12 @@ class CxServicesJob(Job):
     @classmethod
     def from_snapshot(cls, session, data):
         tmp = cls(session)
-        tmp.job_id = data['job_id']
-        tmp.launch_time = data['launch_time']
-        tmp.end_time = data['end_time']
-        tmp.start_time = data['start_time']
-        tmp.id = data['id']
-        tmp.state = data['state']
+        tmp.job_id = data["job_id"]
+        tmp.launch_time = data["launch_time"]
+        tmp.end_time = data["end_time"]
+        tmp.start_time = data["start_time"]
+        tmp.id = data["id"]
+        tmp.state = data["state"]
         tmp._relaunch()
         return tmp
 
@@ -309,11 +342,11 @@ class CxServicesJob(Job):
         The semantics of the data is unknown to the caller.
         Returns None if should be skipped."""
         data = super().take_snapshot(session, flags)
-        data['job_id'] = self.job_id
-        data['launch_time'] = self.launch_time
+        data["job_id"] = self.job_id
+        data["launch_time"] = self.launch_time
         return data
 
     @staticmethod
-    def restore_snapshot(session, data) -> 'CxServicesJob':
+    def restore_snapshot(session, data) -> "CxServicesJob":
         """Restore data snapshot creating instance."""
         return CxServicesJob.from_snapshot(session, data)

@@ -162,7 +162,7 @@ def _residue_alignment_columns(alignment, residues):
     ref_chain = ruc[0]
 
     if ref_chain not in alignment.associations:
-        raise UserError(f'Chain {ref_chain} is not in alignment {alignment.name}')
+        raise UserError(f'Chain {ref_chain} is not in alignment {alignment.description}')
     
 # TODO: Need to fix automatic BLAST associations so correct structure is matched with corresponding row
 #       in the sequence alignment.
@@ -187,7 +187,7 @@ def _residue_alignment_columns(alignment, residues):
 def _alignment_atoms(chain, alignment, columns):
     if chain not in alignment.associations:
         from chimerax.core.errors import UserError
-        raise UserError(f'Chain {chain} is not associated with any sequence in alignment {alignment.name}')
+        raise UserError(f'Chain {chain} is not associated with any sequence in alignment {alignment.description}')
     aseq = alignment.associations[chain]
     mm = aseq.match_maps[chain]
     cares = mm.pos_to_res

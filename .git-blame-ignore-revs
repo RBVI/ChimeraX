@@ -24,3 +24,5 @@ d4b088d2790812f12c918fbedab16f232737f89c # Format ui/src/widgets/tabbedtoolbar.p
 60bf203ad8b9874a503d8260b0a04ca6fb49fb88 # Format dicom with black
 54e21c1c9dccaa7b679e92ae3c9d68ca48c8c726 # Format core/tasks with black
 b29e6a8003f8952cb2aecaaff0d0fe10a6869a6a # Format two files in segmentations
+3f159c8a410950ed0fb337368da48ca721060478 # Format webservices/cxservices_job.py with black
+6ef077499b7ea8ab249388ff73b09db2413663d2 # Format core/tools.py with black

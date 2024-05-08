@@ -71,6 +71,13 @@ from ..graphics.sphere import SegmentationSphere
 from ..dicom_segmentations import PlanePuckSegmentation, SphericalSegmentation
 from ..segmentation import Segmentation, segment_volume
 
+from chimerax.segmentations.settings import get_settings
+from chimerax.segmentations.actions import (
+    ImageFormat,
+    MouseAction,
+    HandAction,
+    Handedness,
+)
 
 class SegmentationListItem(QListWidgetItem):
     def __init__(self, parent, segmentation):
@@ -99,78 +106,6 @@ class ViewMode(IntEnum):
         elif self.name == "DEFAULT_VR":
             return "3D only (VR)"
         return "%s: Set a value to return for the name of this EnumItem" % self.name
-
-
-class ImageFormat(IntEnum):
-    DICOM = 0
-    NIFTI = 1
-    NRRD = 2
-
-    def __str__(self):
-        if self.name == "NIFTI":
-            return "NIfTI"
-        return self.name
-
-
-class MouseAction(IntEnum):
-    NONE = 0
-    ADD_TO_SEGMENTATION = 1
-    MOVE_SPHERE = 2
-    RESIZE_SPHERE = 3
-    ERASE_FROM_SEGMENTATION = 4
-
-    def __str__(self):
-        return " ".join(self.name.split("_")).lower()
-
-
-class HandAction(IntEnum):
-    NONE = 0
-    RESIZE_CURSOR = 1
-    MOVE_CURSOR = 2
-    ADD_TO_SEGMENTATION = 3
-    ERASE_FROM_SEGMENTATION = 4
-
-    def __str__(self):
-        return " ".join(self.name.split("_")).lower()
-
-
-class Handedness(IntEnum):
-    LEFT = 0
-    RIGHT = 1
-
-    def __str__(self):
-        return self.name.title()
-
-
-class _SegmentationToolSettings(Settings):
-    EXPLICIT_SAVE = {
-        "start_vr_automatically": False,
-        "set_mouse_modes_automatically": False,
-        "set_hand_modes_automatically": False,
-        "default_view": 0,  # 4 x 4
-        "default_file_format": 0,  # DICOM
-        "default_segmentation_opacity": 80,  # %
-        "mouse_3d_right_click": MouseAction.ADD_TO_SEGMENTATION,
-        "mouse_3d_middle_click": MouseAction.MOVE_SPHERE,
-        "mouse_3d_scroll": MouseAction.RESIZE_SPHERE,
-        "mouse_3d_left_click": MouseAction.NONE,
-        "vr_thumbstick": HandAction.RESIZE_CURSOR,
-        "vr_trigger": HandAction.ADD_TO_SEGMENTATION,
-        "vr_grip": HandAction.MOVE_CURSOR,
-        "vr_a_button": HandAction.ERASE_FROM_SEGMENTATION,
-        "vr_b_button": HandAction.NONE,
-        "vr_handedness": Handedness.RIGHT,
-    }
-
-
-_seg_tool_settings = None
-
-
-def get_settings(session):
-    global _seg_tool_settings
-    if _seg_tool_settings is None:
-        _seg_tool_settings = _SegmentationToolSettings(session, "Segmentation Tool")
-    return _seg_tool_settings
 
 
 class SegmentationToolControlsDialog(QDialog):
