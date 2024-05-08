@@ -33,6 +33,8 @@
     <Provider category="NIH3D" name="ribbon by polymer (printable)"/>
     <Provider category="NIH3D" name="ribbon monochrome"/>
     <Provider category="NIH3D" name="ribbon monochrome (printable)"/>
+    <Provider category="NIH3D" name="ribbon AlphaFold2/pLDDT"/>
+    <Provider category="NIH3D" name="ribbon AlphaFold2/pLDDT (printable)"/>
     <Provider category="NIH3D" name="surface monochrome"/>
     <Provider category="NIH3D" name="surface coulombic"/>
     <Provider category="NIH3D" name="surface hydrophobicity"/>
