@@ -58,13 +58,6 @@ from chimerax.ui.options import (
 from chimerax.ui.widgets import ModelMenu
 from chimerax.ui.icons import get_qt_icon
 
-from chimerax.vive.vr import vr_camera as steamvr_camera
-from chimerax.vive.vr import vr_button as steamvr_button
-from chimerax.vive.vr import SteamVRCamera
-from chimerax.vive.xr import vr_camera as openxr_camera
-from chimerax.vive.xr import vr_button as openxr_button
-from chimerax.vive.xr import OpenXRCamera
-
 from ..ui.orthoplanes import Axis
 from ..graphics.cylinder import SegmentationDisk
 from ..graphics.sphere import SegmentationSphere
@@ -72,6 +65,7 @@ from ..dicom_segmentations import PlanePuckSegmentation, SphericalSegmentation
 from ..segmentation import Segmentation, segment_volume
 
 from chimerax.segmentations.settings import get_settings
+from chimerax.segmentations.view.modes import ViewMode
 from chimerax.segmentations.actions import (
     ImageFormat,
     MouseAction,
@@ -79,33 +73,12 @@ from chimerax.segmentations.actions import (
     Handedness,
 )
 
+
 class SegmentationListItem(QListWidgetItem):
     def __init__(self, parent, segmentation):
         super().__init__(parent)
         self.segmentation = segmentation
         self.setText(self.segmentation.name)
-
-
-# Use these enums to populate the dropdowns so that the order is consistent
-class ViewMode(IntEnum):
-    TWO_BY_TWO = 0
-    ORTHOPLANES_OVER_3D = 1
-    ORTHOPLANES_BESIDE_3D = 2
-    DEFAULT_DESKTOP = 3
-    DEFAULT_VR = 4
-
-    def __str__(self):
-        if self.name == "TWO_BY_TWO":
-            return "2 x 2 (desktop)"
-        elif self.name == "ORTHOPLANES_OVER_3D":
-            return "3D over slices (desktop)"
-        elif self.name == "ORTHOPLANES_BESIDE_3D":
-            return "3D beside slices (desktop)"
-        elif self.name == "DEFAULT_DESKTOP":
-            return "3D only (desktop)"
-        elif self.name == "DEFAULT_VR":
-            return "3D only (VR)"
-        return "%s: Set a value to return for the name of this EnumItem" % self.name
 
 
 class SegmentationToolControlsDialog(QDialog):
@@ -727,134 +700,26 @@ class SegmentationTool(ToolInstance):
         super().delete()
 
     def _set_3d_mouse_modes(self):
-        for binding in self.session.ui.mouse_modes.bindings:
-            if not binding.modifiers:
-                self.old_mouse_bindings[binding.button]["none"] = binding.mode.name
-            else:
-                for modifier in binding.modifiers:
-                    self.old_mouse_bindings[binding.button][
-                        modifier
-                    ] = binding.mode.name
-        run(self.session, "ui mousemode shift wheel 'resize segmentation cursor'")
-        run(self.session, "ui mousemode right 'create segmentations'")
-        run(self.session, "ui mousemode shift right 'erase segmentations'")
-        run(self.session, "ui mousemode shift middle 'move segmentation cursor'")
+        run(self.session, "segmentations setMouseModes")
         self.mouse_modes_changed = True
 
     def _reset_3d_mouse_modes(self):
         """Set mouse modes back to what they were but only if we changed them automatically.
         If you set the mode by hand, or in between the change and restore you're on your own!
         """
-        if self.mouse_modes_changed:
-            run(
-                self.session,
-                (
-                    "ui mousemode shift wheel '"
-                    + self.old_mouse_bindings["wheel"]["shift"]
-                    + "'"
-                    if self.old_mouse_bindings["wheel"]["shift"]
-                    else "ui mousemode shift wheel 'none'"
-                ),
-            )
-            run(
-                self.session,
-                (
-                    "ui mousemode right '"
-                    + self.old_mouse_bindings["right"]["none"]
-                    + "'"
-                    if self.old_mouse_bindings["right"]["none"]
-                    else "ui mousemode right 'none'"
-                ),
-            )
-            run(
-                self.session,
-                (
-                    "ui mousemode shift right '"
-                    + self.old_mouse_bindings["right"]["shift"]
-                    + "'"
-                    if self.old_mouse_bindings["right"]["shift"]
-                    else "ui mousemode shift right 'none'"
-                ),
-            )
-            run(
-                self.session,
-                (
-                    "ui mousemode shift middle '"
-                    + self.old_mouse_bindings["middle"]["shift"]
-                    + "'"
-                    if self.old_mouse_bindings["middle"]["shift"]
-                    else "ui mousemode shift middle 'none'"
-                ),
-            )
+        run(self.session, "segmentations resetMouseModes")
         self.mouse_modes_changed = False
 
     def _set_vr_hand_modes(self):
+        run(self.session, "segmentations setHandModes")
         self.hand_modes_changed = True
-        if type(self.session.main_view.camera) is SteamVRCamera:
-            vr_camera = steamvr_camera
-            vr_button = steamvr_button
-            from openvr import (
-                k_EButton_Grip as grip,
-                k_EButton_ApplicationMenu as menu,
-                k_EButton_SteamVR_Trigger as trigger,
-                k_EButton_SteamVR_Touchpad as touchpad,
-                k_EButton_A as a,
-            )
-
-            button_names = {
-                grip: "grip",
-                menu: "menu",
-                trigger: "trigger",
-                touchpad: "thumbstick",
-                a: "a",
-            }
-            c = vr_camera(self.session)
-            hclist = [
-                hc
-                for hc in c.hand_controllers()
-                if hc._side == str(self.settings.vr_handedness).lower()
-            ]
-            if not hclist:
-                ...  # error
-            hc = hclist[0]
-            for button, binding in hc._modes.items():
-                self.old_hand_bindings[button_names[button]] = binding.name
-        elif type(self.session.main_view.camera) is OpenXRCamera:
-            # TODO
-            vr_camera = openxr_camera
-            vr_button = openxr_button
-        run(
-            self.session,
-            f"vr button b 'erase segmentations' hand { str(self.settings.vr_handedness).lower() }",
-        )
-        run(
-            self.session,
-            f"vr button a 'create segmentations' hand { str(self.settings.vr_handedness).lower() }",
-        )
-        run(self.session, f"vr button x 'toggle segmentation visibility' hand left")
-        run(
-            self.session,
-            f"vr button thumbstick 'resize segmentation cursor' hand { str(self.settings.vr_handedness).lower() }",
-        )
-        run(
-            self.session,
-            f"vr button grip 'move segmentation cursor' hand { str(self.settings.vr_handedness).lower() }",
-        )
 
     def _reset_vr_hand_modes(self):
         """Set hand modes back to what they were but only if we changed them automatically.
         If you set the mode by hand, or in between the change and restore you're on your own!
         """
         if self.hand_modes_changed:
-            run(self.session, f'vr button trigger {self.old_hand_modes["trigger"]}')
-            run(
-                self.session,
-                f'vr button thumbstick {self.old_hand_modes["thumbstick"]}',
-            )
-            run(self.session, f'vr button grip {self.old_hand_modes["grip"]}')
-            run(self.session, f'vr button a {self.old_hand_modes["a"]}')
-            run(self.session, f'vr button b {self.old_hand_modes["b"]}')
-            run(self.session, f'vr button x {self.old_hand_modes["x"]}')
+            run(self.session, "segmentations resetHandModes")
         self.hand_modes_changed = False
 
     def _start_vr(self):

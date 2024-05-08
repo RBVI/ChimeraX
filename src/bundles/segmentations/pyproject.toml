@@ -48,31 +48,38 @@ description = "Interactively segment volumes"
 category = "General"
 description = "See medical images in a 4-panel viewer"
 
-#[chimerax.command.segmentations]
-#category = "Volume Data"
-#description = "Create, edit, or destory segmentations"
+[chimerax.command.segmentations]
+category = "Volume Data"
+description = "Create, edit, or destory segmentations"
 
-# Don't delete just in case we do want to display these modes in the toolbar
-# [chimerax.provider."create segmentations"]
-# manager = "toolbar"
-# tab = "Medical Image"
-# section = "Mouse Mode"
-# mouse-mode = "create segmentations"
-# display-name = "Segment"
-# description = "Create a segmentation with the mouse"
-#
-# [chimerax.provider."move segmentation cursor"]
-# manager = "toolbar"
-# tab = "Medical Image"
-# section = "Mouse Mode"
-# mouse-mode = "move segmentation cursor"
-# display-name = "Move Segment Cursor"
-# description = "Move the segmentation cursor without adding to the segmentation"
-#
-# [chimerax.provider."resize segmentation cursor"]
-# manager = "toolbar"
-# tab = "Medical Image"
-# section = "Mouse Mode"
-# mouse-mode = "resize segmentation cursor"
-# display-name = "Resize Segment Cursor"
-# description = "Resize the segmentation cursor"
+[chimerax.provider."set mouse modes"]
+manager = "toolbar"
+tab = "Medical Image"
+section = "Segmentation Controls"
+display-name = "Set Mouse Modes"
+icon = "mouse_small.png"
+description = "Set mouse modes"
+
+[chimerax.provider."restore mouse modes"]
+manager = "toolbar"
+tab = "Medical Image"
+section = "Segmentation Controls"
+display-name = "Restore Mouse Modes"
+icon = "mouse_small.png"
+description = "Restore mouse modes"
+
+[chimerax.provider."set hand modes"]
+manager = "toolbar"
+tab = "Medical Image"
+section = "Segmentation Controls"
+icon = "right_controller_small.png"
+display-name = "Set Hand Modes"
+description = "Set hand modes"
+
+[chimerax.provider."restore hand modes"]
+manager = "toolbar"
+tab = "Medical Image"
+section = "Segmentation Controls"
+icon = "right_controller_small.png"
+display-name = "Restore Hand Modes"
+description = "Restore hand modes"

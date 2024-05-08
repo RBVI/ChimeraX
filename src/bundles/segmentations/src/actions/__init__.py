@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 from enum import IntEnum
+from chimerax.core.commands import run
+
 
 class ImageFormat(IntEnum):
     DICOM = 0
@@ -51,3 +53,17 @@ class Handedness(IntEnum):
 
     def __str__(self):
         return self.name.title()
+
+
+def run_toolbar_button(session, name):
+    # run shortcut chosen via bundle provider interface
+    if name == "set mouse modes":
+        run(session, "segmentations setMouseModes")
+    elif name == "restore mouse modes":
+        run(session, "segmentations resetMouseModes")
+    elif name == "set hand modes":
+        run(session, "segmentations setHandModes")
+    elif name == "restore hand modes":
+        run(session, "segmentations resetHandModes")
+    else:
+        raise ValueError("No provider for toolbar button %s" % name)
