@@ -276,6 +276,11 @@ class OpenPredictedAlignedError(ToolInstance):
 #	7qfc_efb9b_unrelaxed_rank_1_model_4.pdb
 #	7qfc_efb9b_unrelaxed_rank_1_model_4_scores.json
 #
+# AlphaFold 3 Server
+#
+#	fold_2024_05_08_15_09_model_0.cif
+#	fold_2024_05_08_15_09_full_data_0.json
+#
 # AlphaFold database files
 #
 #	AF-P01445-F1-model_v2.cif
@@ -306,16 +311,22 @@ def _matching_pae_file(structure_path):
     # Prefer json files over pkl files since they are much smaller.
     from os.path import splitext
     min_length = min(6, len(splitext(filename)[0]))
-    mfile = _longest_matching_prefix(filename, json_files, min_length = min_length)
-    if mfile is None and '_unrelaxed_' in filename:
-        mfile = _longest_matching_prefix(filename.replace('_unrelaxed_', '_scores_'),
-                                         json_files, min_length = min_length)
-    if mfile is None:
-        mfile = _longest_matching_suffix(filename, json_files, min_length = min_length)
-    if mfile is None:
-        mfile = _longest_matching_prefix(filename, pkl_files, min_length = min_length)
-    if mfile is None:
-        mfile = _longest_matching_suffix(filename, pkl_files, min_length = min_length)
+    if len(json_files) > 0:
+        mfile = _longest_matching_prefix(filename, json_files, min_length = min_length)
+        if mfile is None:
+            fname = filename
+            if '_unrelaxed_' in filename:
+                fname = filename.replace('_unrelaxed_', '_scores_')
+            elif '_model_' in filename:
+                fname = filename.replace('_model_', '_full_data_')
+            mfile = _longest_matching_prefix(fname, json_files, min_length = min_length)
+        if mfile is None:
+            mfile = _longest_matching_suffix(filename, json_files, min_length = min_length)
+    if len(pkl_files) > 0:
+        if mfile is None:
+            mfile = _longest_matching_prefix(filename, pkl_files, min_length = min_length)
+        if mfile is None:
+            mfile = _longest_matching_suffix(filename, pkl_files, min_length = min_length)
     
     path = None if mfile is None else join(dir, mfile)
     return path
@@ -325,7 +336,7 @@ def _matching_pae_file(structure_path):
 def _longest_matching_prefix(filename, filenames, min_length = 1):
     m = [(len(_matching_prefix(pf,filename)),pf) for pf in filenames]
     m.sort(reverse = True)
-    mfilename = m[0][1] if m[0][0] >= min_length and m[0][0] > m[1][0] else None
+    mfilename = m[0][1] if len(m) >= 1 and m[0][0] >= min_length and (len(m) < 2 or m[0][0] > m[1][0]) else None
     return mfilename
 
 # -----------------------------------------------------------------------------
@@ -341,7 +352,7 @@ def _matching_prefix(s1, s2):
 def _longest_matching_suffix(filename, filenames, min_length = 1):
     m = [(len(_matching_suffix(pf,filename)),pf) for pf in filenames]
     m.sort(reverse = True)
-    mfilename = m[0][1] if m[0][0] >= min_length and m[0][0] > m[1][0] else None
+    mfilename = m[0][1] if len(m) >= 1 and m[0][0] >= min_length and (len(m) < 2 or m[0][0] > m[1][0]) else None
     return mfilename
 
 # -----------------------------------------------------------------------------
