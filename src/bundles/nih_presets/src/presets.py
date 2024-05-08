@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.atomic import all_atomic_structures, Residue, Structure
+from chimerax.atomic import all_atomic_structures, Residue, Structure, all_residues
 
 ball_and_stick = [
     "style ball",
@@ -126,6 +126,13 @@ def by_chain_cmds(session, rainbow=False, target_atoms=False):
             cmds.append(rainbow_cmd(s, target_atoms=target_atoms))
         cmds.append("color zone %s near %s & main distance 20" % (s.atomspec, s.atomspec))
     return cmds
+
+def check_AF(session):
+    for r in all_residues(session):
+        if hasattr(r, 'pLDDT_score'):
+            return
+    from chimerax.core.errors import UserError
+    raise UserError("No structures have pLDDT scores assigned!")
 
 def color_by_hydrophobicity_cmds(session, target="rs"):
     kdh_info = {
@@ -257,6 +264,16 @@ def run_preset(session, name, mgr):
         cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
             "color nih_blue",
             "setattr p color nih_blue"
+        ] + print_prep(session, pb_radius=None)
+    elif name == "ribbon AlphaFold2/pLDDT":
+        check_AF(session)
+        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [
+            "color byattribute r:pLDDT_score palette alphafold",
+        ]
+    elif name == "ribbon AlphaFold2/pLDDT (printable)":
+        check_AF(session)
+        cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
+            "color byattribute r:pLDDT_score palette alphafold",
         ] + print_prep(session, pb_radius=None)
     elif name.startswith("surface monochrome"):
         printable = "printable" in name
