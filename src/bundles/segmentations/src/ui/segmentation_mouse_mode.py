@@ -14,10 +14,158 @@ import os
 
 from enum import Enum
 
+from chimerax.core.commands import run
 from chimerax.core.settings import Settings
 from chimerax.mouse_modes import MouseMode
 
-from .segmentations import SegmentationTool
+from chimerax.vive.vr import vr_camera as steamvr_camera
+from chimerax.vive.vr import vr_button as steamvr_button
+from chimerax.vive.vr import SteamVRCamera
+from chimerax.vive.xr import vr_camera as openxr_camera
+from chimerax.vive.xr import vr_button as openxr_button
+from chimerax.vive.xr import OpenXRCamera
+
+from chimerax.segmentations.ui import find_segmentation_tool
+
+saved_mouse_bindings = {
+    "left": {
+        "none": None,
+        "shift": None,
+        "ctrl": None,
+        "command": None,
+        "alt": None,
+    },
+    "right": {
+        "none": None,
+        "shift": None,
+        "ctrl": None,
+        "command": None,
+        "alt": None,
+    },
+    "middle": {
+        "none": None,
+        "shift": None,
+        "ctrl": None,
+        "command": None,
+        "alt": None,
+    },
+    "wheel": {
+        "none": None,
+        "shift": None,
+        "ctrl": None,
+        "command": None,
+        "alt": None,
+    },
+    "pause": {
+        "none": None,
+        "shift": None,
+        "ctrl": None,
+        "command": None,
+        "alt": None,
+    },
+}
+
+saved_hand_bindings = {
+    "trigger": None,
+    "grip": None,
+    "touchpad": None,
+    "thumbstick": None,
+    "menu": None,
+    "a": None,
+    "b": None,
+    "x": None,
+    "y": None,
+}
+
+
+def save_mouse_bindings(session):
+    for binding in session.ui.mouse_modes.bindings:
+        if not binding.modifiers:
+            saved_mouse_bindings[binding.button]["none"] = binding.mode.name
+        else:
+            for modifier in binding.modifiers:
+                saved_mouse_bindings[binding.button][modifier] = binding.mode.name
+
+
+def restore_mouse_bindings(session):
+    run(
+        session,
+        (
+            "ui mousemode shift wheel '" + saved_mouse_bindings["wheel"]["shift"] + "'"
+            if saved_mouse_bindings["wheel"]["shift"]
+            else "ui mousemode shift wheel 'none'"
+        ),
+    )
+    run(
+        session,
+        (
+            "ui mousemode right '" + saved_mouse_bindings["right"]["none"] + "'"
+            if saved_mouse_bindings["right"]["none"]
+            else "ui mousemode right 'none'"
+        ),
+    )
+    run(
+        session,
+        (
+            "ui mousemode shift right '" + saved_mouse_bindings["right"]["shift"] + "'"
+            if saved_mouse_bindings["right"]["shift"]
+            else "ui mousemode shift right 'none'"
+        ),
+    )
+    run(
+        session,
+        (
+            "ui mousemode shift middle '"
+            + saved_mouse_bindings["middle"]["shift"]
+            + "'"
+            if saved_mouse_bindings["middle"]["shift"]
+            else "ui mousemode shift middle 'none'"
+        ),
+    )
+
+
+def save_hand_bindings(session, handedness):
+    if type(session.main_view.camera) is SteamVRCamera:
+        vr_camera = steamvr_camera
+        vr_button = steamvr_button
+        from openvr import (
+            k_EButton_Grip as grip,
+            k_EButton_ApplicationMenu as menu,
+            k_EButton_SteamVR_Trigger as trigger,
+            k_EButton_SteamVR_Touchpad as touchpad,
+            k_EButton_A as a,
+        )
+
+        button_names = {
+            grip: "grip",
+            menu: "menu",
+            trigger: "trigger",
+            touchpad: "thumbstick",
+            a: "a",
+        }
+        c = vr_camera(session)
+        hclist = [hc for hc in c.hand_controllers() if hc._side == handedness]
+        if not hclist:
+            ...  # error
+        hc = hclist[0]
+        for button, binding in hc._modes.items():
+            saved_hand_bindings[button_names[button]] = binding.name
+    elif type(session.main_view.camera) is OpenXRCamera:
+        # TODO
+        vr_camera = openxr_camera
+        vr_button = openxr_button
+
+
+def restore_hand_bindings(session):
+    run(session, f'vr button trigger {saved_hand_bindings["trigger"]}')
+    run(
+        session,
+        f'vr button thumbstick {saved_hand_bindings["thumbstick"]}',
+    )
+    run(session, f'vr button grip {saved_hand_bindings["grip"]}')
+    run(session, f'vr button a {saved_hand_bindings["a"]}')
+    run(session, f'vr button b {saved_hand_bindings["b"]}')
+    run(session, f'vr button x {saved_hand_bindings["x"]}')
 
 
 class CreateSegmentation3DMouseMode(MouseMode):
@@ -38,18 +186,12 @@ class CreateSegmentation3DMouseMode(MouseMode):
         self.segmentation_tool = None
 
     def enable(self):
-        self.segmentation_tool = self._find_segmentation_tool()
-
-    def _find_segmentation_tool(self):
-        for tool in self.session.tools:
-            if isinstance(tool, SegmentationTool):
-                return tool
-        return None
+        self.segmentation_tool = find_segmentation_tool(self.session)
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         self.segmentation_tool.set_segmentation_step(2)
@@ -61,7 +203,7 @@ class CreateSegmentation3DMouseMode(MouseMode):
 
     def wheel(self, event):
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         d = event.wheel_value()
@@ -72,7 +214,7 @@ class CreateSegmentation3DMouseMode(MouseMode):
 
     def mouse_drag(self, event):
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         dx, dy = self.mouse_motion(event)
@@ -96,7 +238,7 @@ class CreateSegmentation3DMouseMode(MouseMode):
 
     def vr_press(self, event):
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         self.segmentation_tool.set_segmentation_step(2)
@@ -104,7 +246,7 @@ class CreateSegmentation3DMouseMode(MouseMode):
     def vr_release(self, event):
         MouseMode.mouse_up(self, event)
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         self.segmentation_tool.set_segmentation_step(1)
@@ -112,14 +254,14 @@ class CreateSegmentation3DMouseMode(MouseMode):
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         self.segmentation_tool.set_segmentation_step(1)
 
     def vr_motion(self, event):
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
@@ -150,18 +292,12 @@ class EraseSegmentation3DMouseMode(MouseMode):
         self.segmentation_tool = None
 
     def enable(self):
-        self.segmentation_tool = self._find_segmentation_tool()
-
-    def _find_segmentation_tool(self):
-        for tool in self.session.tools:
-            if isinstance(tool, SegmentationTool):
-                return tool
-        return None
+        self.segmentation_tool = find_segmentation_tool(self.session)
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         self.segmentation_tool.set_segmentation_step(2)
@@ -173,7 +309,7 @@ class EraseSegmentation3DMouseMode(MouseMode):
 
     def wheel(self, event):
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         d = event.wheel_value()
@@ -184,7 +320,7 @@ class EraseSegmentation3DMouseMode(MouseMode):
 
     def mouse_drag(self, event):
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         dx, dy = self.mouse_motion(event)
@@ -209,14 +345,14 @@ class EraseSegmentation3DMouseMode(MouseMode):
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         self.segmentation_tool.set_segmentation_step(1)
 
     def vr_press(self, event):
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         self.segmentation_tool.set_segmentation_step(2)
@@ -226,7 +362,7 @@ class EraseSegmentation3DMouseMode(MouseMode):
         # Any positive Y reading indicates pushing up, getting bigger
         # Any negative Y reading indicates pushing down, getting smaller
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         self.segmentation_tool.set_segmentation_step(1)
@@ -235,7 +371,7 @@ class EraseSegmentation3DMouseMode(MouseMode):
         # Any positive Y reading indicates pushing up, getting bigger
         # Any negative Y reading indicates pushing down, getting smaller
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
@@ -261,17 +397,11 @@ class Move3DSegmentationSphereMouseMode(MouseMode):
         self.segmentation_tool = None
 
     def enable(self):
-        self.segmentation_tool = self._find_segmentation_tool()
-
-    def _find_segmentation_tool(self):
-        for tool in self.session.tools:
-            if isinstance(tool, SegmentationTool):
-                return tool
-        return None
+        self.segmentation_tool = find_segmentation_tool(self.session)
 
     def mouse_drag(self, event):
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         dx, dy = self.mouse_motion(event)
@@ -289,7 +419,7 @@ class Move3DSegmentationSphereMouseMode(MouseMode):
         # Any positive Y reading indicates pushing up, getting bigger
         # Any negative Y reading indicates pushing down, getting smaller
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
@@ -306,24 +436,18 @@ class Toggle3DSegmentationVisibilityMouseMode(MouseMode):
         self.segmentaiton_tool = None
 
     def enable(self):
-        self.segmentation_tool = self._find_segmentation_tool()
-
-    def _find_segmentation_tool(self):
-        for tool in self.session.tools:
-            if isinstance(tool, SegmentationTool):
-                return tool
-        return None
+        self.segmentation_tool = find_segmentation_tool(self.session)
 
     def vr_press(self, event):
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         self.segmentation_tool.hide_active_segmentation()
 
     def vr_release(self, event):
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         self.segmentation_tool.show_active_segmentation()
@@ -342,17 +466,11 @@ class Resize3DSegmentationSphereMouseMode(MouseMode):
         self.segmentation_tool = None
 
     def enable(self):
-        self.segmentation_tool = self._find_segmentation_tool()
-
-    def _find_segmentation_tool(self):
-        for tool in self.session.tools:
-            if isinstance(tool, SegmentationTool):
-                return tool
-        return None
+        self.segmentation_tool = find_segmentation_tool(self.session)
 
     def wheel(self, event):
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         d = event.wheel_value()
@@ -363,7 +481,7 @@ class Resize3DSegmentationSphereMouseMode(MouseMode):
 
     def vr_motion(self, event):
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
@@ -374,7 +492,7 @@ class Resize3DSegmentationSphereMouseMode(MouseMode):
         # Any positive Y reading indicates pushing up, getting bigger
         # Any negative Y reading indicates pushing down, getting smaller
         if self.segmentation_tool is None:
-            self.segmentation_tool = self._find_segmentation_tool()
+            self.segmentation_tool = find_segmentation_tool(self.session)
         if self.segmentation_tool is None:
             return
         d = event.y
