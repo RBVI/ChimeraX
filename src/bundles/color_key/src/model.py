@@ -540,7 +540,6 @@ class ColorKeyModel(Model):
             # Qt seemingly will not return the actual height of a text string; estimate all lower case
             # to be LC_FRACT height
             label_height = (font_height * self.LC_FRACT) if labels[first_index].islower() else font_height
-            #label_size = label_height if layout == "vertical" else xywh[long_index+2]
             label_size = label_height if layout == "vertical" else xywh[2]
             extra = max(label_size / 2 - label_positions[first_index] - border, 0)
             (end_offset if layout == "vertical" else start_offset)[long_index] += extra
