@@ -24,15 +24,17 @@
 
 from chimerax.core.settings import Settings
 
+label_missing_attr = 'label_missing_structure'
 class _AtomicSettings(Settings):
     EXPLICIT_SAVE = {
         'atomspec_contents': 'simple', # choices: simple, command (-line specifier), serial (number)
+        label_missing_attr: False,
     }
 
 # 'settings' module attribute will be set by the initialization of the bundle API
 
 def register_settings_options(session):
-    from chimerax.ui.options import SymbolicEnumOption
+    from chimerax.ui.options import SymbolicEnumOption, BooleanOption
     class AtomSpecOption(SymbolicEnumOption):
         values = ("command", "serial", "simple")
         labels = ("command line", "serial number", "simple")
@@ -47,9 +49,19 @@ def register_settings_options(session):
             <tr><td>command line</td><td>&nbsp;</td><td>Form used in commands</td></tr>
             <tr><td>serial number</td><td>&nbsp;</td><td>Atom serial number</td></tr>
             </table>"""),
+        'label_missing_structure': (
+            "Label length of missing structure",
+            BooleanOption,
+            "Label missing-structure pseudobonds with the number of residues that are missing"),
     }
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, balloon = setting_info
         opt = opt_class(opt_name, getattr(settings, setting), None,
             attr_name=setting, settings=settings, balloon=balloon)
         session.ui.main_window.add_settings_option("Labels", opt)
+    from chimerax.core.commands import run
+    def setting_changed(trig_name, trig_vals):
+        setting_name, old, new = trig_vals
+        if setting_name == label_missing_attr:
+            run(session, "label missing %s" % new)
+    settings.triggers.add_handler('setting changed', setting_changed)
