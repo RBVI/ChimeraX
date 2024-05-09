@@ -878,7 +878,7 @@ class SegmentationTool(ToolInstance):
         if not sd.exec():
             return
         filename = sd.selectedFiles()[0]
-        self.active_seg.data.save(filename)
+        self.active_seg.save(filename)
 
     def setActiveSegment(self, segment):
         if self.active_seg:
