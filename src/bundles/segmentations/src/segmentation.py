@@ -17,7 +17,6 @@ from chimerax.map.volume import (
     volume_from_grid_data,
     _reset_color_sequence,
 )
-from chimerax.save_command import SaverInfo
 
 
 class SegmentationStrategy:
@@ -54,9 +53,8 @@ class Segmentation(Volume):
         strategy.execute(self.data, self.reference_volume.data)
         self.data.values_changed()
 
-    def save(self, path, saver: SaverInfo):
-        # TODO: Saver could be one of the Manager-Provider interfaces
-        saver.save(self.session, path)
+    def save(self, path):
+        self.session.save_command.save_data(path, models=[self])
 
     def take_snapshot(self, session, flags):
         data = super().take_snapshot(session, flags)
