@@ -38,10 +38,13 @@ class Segmentation(Volume):
 
     def copy(self):
         v = segmentation_from_grid_data(
-            self.data, self.session, open_model=False, style=None, show_dialog=False
+            self.data, self.session, open_model=False, style="", show_dialog=False
         )
         v.copy_settings_from(self)
         return v
+
+    def world_coordinates_for_data_point(self, xyz):
+        return self.data.ijk_to_xyz(xyz)
 
     # TODO: Should probably be upstream in Volume
     def set_step(self, step):
