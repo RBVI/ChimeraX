@@ -236,8 +236,8 @@ def get_segmentation_tool(session):
 
 segmentations_desc = CmdDesc(
     required=[("action", EnumOf(actions))],
-    optional=[
-        ("modelSpecifier", ModelIdArg),
+    optional=[("modelSpecifier", ModelIdArg)],
+    keyword=[
         ("axis", EnumOf([str(axis) for axis in [*Axis]])),
         # TODO: File a bug about how this can't just be ("center", Or(Int2Arg, Int3Arg))
         ("planeCenter", Int2Arg),
