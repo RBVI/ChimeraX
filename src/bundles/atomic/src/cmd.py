@@ -176,6 +176,8 @@ def label_missing_cmd(session, structures, show):
         structures = all_atomic_structures(session)
     from chimerax.label.label3d import label, label_delete
     from chimerax.core.objects import Objects
+    import math
+    from chimerax.core.commands import plural_form
     for structure in structures:
         try:
             pbg = structure.pbg_map[structure.PBG_MISSING_STRUCTURE]
@@ -185,8 +187,14 @@ def label_missing_cmd(session, structures, show):
             for pb in pbg.pseudobonds:
                 a1, a2 = pb.atoms
                 r1, r2 = a1.residue, a2.residue
-                gap_size = abs(r1.chain.residues.index(r1) - r2.chain.residues.index(r2)) - 1
-                label(session, Objects(pseudobonds=Pseudobonds([pb])), text="%d residues" % gap_size)
+                if r1.name == "UNK" or r2.name == "UNK":
+                    # e.g. 3j5p
+                    gap_size = abs(r1.number - r2.number) - 1
+                else:
+                    gap_size = abs(r1.chain.residues.index(r1) - r2.chain.residues.index(r2)) - 1
+                label(session, Objects(pseudobonds=Pseudobonds([pb])),
+                    text="%d %s" % (gap_size, plural_form(gap_size, "residue")),
+                    height=math.log10(max(gap_size, 1))+1)
         else:
             label_delete(session, Objects(pseudobonds=pbg.pseudobonds))
 
