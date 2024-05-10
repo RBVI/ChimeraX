@@ -59,6 +59,7 @@ class GridCanvas:
         self.header_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         self.main_scene = QGraphicsScene()
         self.main_scene.setBackgroundBrush(Qt.white)
+        self.main_scene.mouseReleaseEvent = self.mouse_click
         """if gray background desired...
         ms_brush = self.main_scene.backgroundBrush()
         from Qt.QtGui import QColor
@@ -105,10 +106,52 @@ class GridCanvas:
         self.main_label_view.show()
         self.main_view.show()
         self.layout_alignment()
-        self.selection_items = []
+        self.selection_items = {}
         self.update_selection()
         from chimerax.core.selection import SELECTION_CHANGED
         self.handlers = [ self.pg.session.triggers.add_handler(SELECTION_CHANGED, self.update_selection) ]
+
+    def alignment_notification(self, note_name, note_data):
+        alignment = self.alignment
+        if note_name == alignment.NOTE_MOD_ASSOC:
+            self.update_selection()
+        '''
+        if hasattr(self, 'lead_block'):
+            if note_name == self.alignment.NOTE_REF_SEQ:
+                self.lead_block.rerule()
+            elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
+                self.refresh(note_data)
+            elif note_name == self.alignment.NOTE_REALIGNMENT:
+                # headers are notified before us, so they should be "ready to go"
+                self.sv.region_browser.clear_regions()
+                self._reformat()
+            if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
+                    self.alignment.NOTE_HDR_NAME):
+                return
+            if type(note_data) == tuple:
+                hdr, bounds = note_data
+            else:
+                hdr = note_data
+            if note_name == self.alignment.NOTE_HDR_SHOWN:
+                if hdr.shown:
+                    self.show_header(hdr)
+                else:
+                    self.hide_header(hdr)
+            elif hdr.shown:
+                if note_name == self.alignment.NOTE_HDR_VALUES:
+                    if bounds is None:
+                        bounds = (0, len(hdr)-1)
+                    self.lead_block.refresh(hdr, *bounds)
+                    self.main_scene.update()
+                elif note_name == self.alignment.NOTE_HDR_NAME:
+                    if self.label_width == _find_label_width(self.alignment.seqs +
+                            [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
+                            self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
+                        self.lead_block.replace_label(hdr)
+                        self.main_label_scene.update()
+                    else:
+                        self._reformat()
+        '''
 
     def destroy(self):
         for handler in self.handlers:
@@ -177,47 +220,37 @@ class GridCanvas:
             self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps())
         self._update_scene_rects()
 
-    def alignment_notification(self, note_name, note_data):
-        alignment = self.alignment
-        if note_name == alignment.NOTE_MOD_ASSOC:
-            self.update_selection()
-        '''
-        if hasattr(self, 'lead_block'):
-            if note_name == self.alignment.NOTE_REF_SEQ:
-                self.lead_block.rerule()
-            elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
-                self.refresh(note_data)
-            elif note_name == self.alignment.NOTE_REALIGNMENT:
-                # headers are notified before us, so they should be "ready to go"
-                self.sv.region_browser.clear_regions()
-                self._reformat()
-            if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
-                    self.alignment.NOTE_HDR_NAME):
+    def mouse_click(self, event):
+        from Qt.QtCore import Qt
+        width, height = self.font_pixels
+        raw_rows, grid_columns = self.grid_data.shape
+        grid_rows = raw_rows - len(self.empty_rows)
+        pos = event.scenePos()
+        row = int(pos.y() / height)
+        if row < 0 or row > grid_rows - 1:
+            return
+        col = int(pos.x() / width)
+        if col < 0 or col > grid_columns - 1:
+            return
+        residues = self._residues_at(row, col)
+        final_cmd = None
+        if event.modifiers() & Qt.ShiftModifier:
+            if not residues:
                 return
-            if type(note_data) == tuple:
-                hdr, bounds = note_data
+            if (row, col) in self.selection_items:
+                cmd = "sel subtract"
             else:
-                hdr = note_data
-            if note_name == self.alignment.NOTE_HDR_SHOWN:
-                if hdr.shown:
-                    self.show_header(hdr)
-                else:
-                    self.hide_header(hdr)
-            elif hdr.shown:
-                if note_name == self.alignment.NOTE_HDR_VALUES:
-                    if bounds is None:
-                        bounds = (0, len(hdr)-1)
-                    self.lead_block.refresh(hdr, *bounds)
-                    self.main_scene.update()
-                elif note_name == self.alignment.NOTE_HDR_NAME:
-                    if self.label_width == _find_label_width(self.alignment.seqs +
-                            [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
-                            self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
-                        self.lead_block.replace_label(hdr)
-                        self.main_label_scene.update()
-                    else:
-                        self._reformat()
-        '''
+                cmd = "sel add"
+        else:
+            if residues:
+                cmd = "sel"
+            else:
+                final_cmd = "sel clear"
+        if final_cmd is None:
+            from chimerax.atomic import concise_residue_spec
+            final_cmd = cmd + ' ' + concise_residue_spec(self.pg.session, residues)
+        from chimerax.core.commands import run
+        run(self.pg.session, final_cmd)
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
         raise NotImplementedError("refresh")
@@ -235,8 +268,9 @@ class GridCanvas:
         self._update_scene_rects()
 
     def update_selection(self, *args):
-        for item in self.selection_items:
+        for item in self.selection_items.values():
             self.main_scene.removeItem(item)
+        self.selection_items.clear()
         from chimerax.atomic import selected_chains, selected_residues
         sel_chains = set(selected_chains(self.pg.session))
         if not sel_chains:
@@ -267,8 +301,21 @@ class GridCanvas:
         pen.setWidth(3)
         width, height = self.font_pixels
         for row, col in needs_highlight:
-            self.selection_items.append(self.main_scene.addRect(col * width, row * height, width, height,
-                pen=pen))
+            self.selection_items[(row, col)] = self.main_scene.addRect(
+                col * width, row * height, width, height, pen=pen)
+
+    def _residues_at(self, grid_row, grid_col):
+        residues = []
+        row_label = self.existing_row_labels[grid_row]
+        for seq in self.alignment.seqs:
+            if seq.characters[grid_col].upper() != row_label:
+                continue
+            for match_map in seq.match_maps.values():
+                try:
+                    residues.append(match_map[seq.gapped_to_ungapped(grid_col)])
+                except KeyError:
+                    continue
+        return residues
 
     def _update_scene_rects(self):
         # have to play with setViewportMargins to get correct scrolling...
