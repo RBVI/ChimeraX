@@ -155,6 +155,7 @@ def create_patch(session, v, n, t, position, color, offset = 0, slab = None):
 
   from chimerax.core.models import Surface
   s = Surface('contact patch', session)
+  s.SESSION_SAVE_DRAWING = True	# Save geometry in sessions
   s.position = position
   s.color = color
 

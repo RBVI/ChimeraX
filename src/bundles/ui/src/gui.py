@@ -153,6 +153,8 @@ class UI(QApplication):
                     'skipping QEventPoint',   # Qt 6.2
                     'doh set to',  # Qt 6.2
                     'Path override failed for key base::DIR_APP_DICTIONARIES',  # Qt 6.6.3
+                    'Already setting window visible!', # Qt 6.6.3
+                    'Compositor returned null texture', # Qt 6.6.3
                     )):
                 return	# Supress Qt warnings
             if 'QWindowsWindow::setDarkBorderToWindow' in msg_string:
@@ -1568,10 +1570,16 @@ class MainWindow(QMainWindow, PlainTextLog):
             if sys.platform == "darwin":
                 cd.hide()
             cd.currentColorChanged.disconnect()
-        from chimerax.core.commands import run, sel_or_all
-        cd.currentColorChanged.connect(lambda clr, *, ses=self.session, arg_func=cmd_arg_func:
-            run(ses, "color %s %s" % (sel_or_all(ses, ['atoms', 'bonds']),
-            clr.name() + clr.name(clr.HexArgb)[1:3]) + arg_func()))
+        def use_color(color, *, ses=self.session, arg_func=cmd_arg_func):
+            from chimerax.core.commands import run, sel_or_all
+            cmd_arg = arg_func()
+            hex_code = color.name() + color.name(color.HexArgb)[1:3]
+            if cmd_arg is None:
+                # setting background color
+                run(ses, "set bgColor %s" % hex_code)
+            else:
+                run(ses, "color %s %s" % (sel_or_all(ses, ['atoms', 'bonds']), hex_code) + cmd_arg)
+        cd.currentColorChanged.connect(use_color)
         cd.show()
 
     def _run_surf_command(self, cmd, *, whole_surf=False):

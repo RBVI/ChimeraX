@@ -401,7 +401,8 @@ def volume_cleanup_cmds(session, contour_cmds=None):
             session.logger.info("Contour level does not connect pieces; trying other levels")
             volume = surface.volume
             mtx = volume.matrix()
-            vmin, vmax = mtx.min(), mtx.max()
+            # mtx.min/max() return 16-bit signed integers, so min-max could be negative, so...
+            vmin, vmax = int(mtx.min()), int(mtx.max())
             contour_step = (vmax - vmin) * 0.05
             contour = orig_contour = surface.level
             connecting_contour = None

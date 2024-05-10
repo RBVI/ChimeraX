@@ -185,7 +185,7 @@ def add_standard_charges(session, residues=None, *, status=None, standardize_res
     for res_type, residues in urt_list:
         bond_residues = residues
         br_type = res_type
-        while True:
+        while bond_residues:
             if len(bond_residues[0].atoms) == 1:
                 break
             isolated_names = []

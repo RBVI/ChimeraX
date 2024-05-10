@@ -28,7 +28,7 @@ lxml==5.2.1
 lz4==4.3.3
 matplotlib==3.8.4
 msgpack==1.0.8
-nibabel == 5.0.1
+nibabel == 5.2.0
 netCDF4==1.6.5
 networkx==3.3
 numpy==1.26.4
@@ -40,7 +40,7 @@ Pillow==10.3.0
 pkginfo==1.10.0
 psutil==5.9.8
 pycollada==0.8
-pydicom==2.3.0
+pydicom==2.4.4
 pynrrd==1.0.0
 pyopenxr==1.0.3401
 tcia_utils==1.5.1
@@ -67,7 +67,7 @@ wheel-filename==1.4.1
 #
 blockdiag==3.0.0
 docutils==0.20.1
-Jinja2==3.1.3
+Jinja2==3.1.4
 Pygments==2.17.2
 Sphinx==7.2.6
 sphinxcontrib-blockdiag==3.0.0

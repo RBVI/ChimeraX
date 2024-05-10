@@ -80,6 +80,7 @@ def _copy_surface_triangles(surface, triangle_indices, name = None,
         name = surface.name + ' copy'
     from chimerax.core.models import Surface
     surf = Surface(name, surface.session)
+    surf.SESSION_SAVE_DRAWING = True	# Save geometry in sessions
     ta = surface.triangles[triangle_indices,:]
     surf.set_geometry(surface.vertices, surface.normals, ta)
     if surface.triangle_mask is not None:

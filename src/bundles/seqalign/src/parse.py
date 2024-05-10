@@ -90,7 +90,8 @@ def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
                     auto_associate=auto_associate, **kw))
     if return_vals == "alignments":
         return alignments
-    return [], "Opened %d sequences from %s" % (len(seqs), fname)
+    from chimerax.core.commands import plural_form
+    return [], "Opened %d %s from %s" % (len(seqs), plural_form(seqs, "sequence"), fname)
 
 def make_readable(seq_name):
     """Make sequence name more human-readable"""
