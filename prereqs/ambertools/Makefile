@@ -4,23 +4,23 @@ include $(TOP)/mk/config.make
 
 # Using AmberTools distribution from https://ambermd.org
 
-#ifeq ($(OS),Darwin)
-#VERSION = 23
-#SRC_VERSION = 22
-#else
+ifeq ($(OS),Darwin)
+VERSION = 24
+SRC_VERSION = 24
+else
 VERSION = 20
 SRC_VERSION = 20
-#endif
+endif
 
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
-#ifeq ($(OS),Darwin)
-#USE_PREBUILT=false
-#UPLOAD_PREBUILT=true
-#else
+ifeq ($(OS),Darwin)
+USE_PREBUILT=false
+UPLOAD_PREBUILT=true
+else
 USE_PREBUILT=true
 UPLOAD_PREBUILT=false
-#endif
+endif
 ifeq ($(OS),Linux)
 SUPPORTED_DISTROS := Ubuntu CentOS Debian Rocky Freedesktop
 # CentOS uses "CentOS Linux", hence the second awk in the following line
