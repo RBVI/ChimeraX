@@ -27,7 +27,7 @@ from chimerax.vive.xr import OpenXRCamera
 
 from chimerax.segmentations.ui import find_segmentation_tool
 
-saved_mouse_bindings = {
+_saved_mouse_bindings = {
     "left": {
         "none": None,
         "shift": None,
@@ -65,7 +65,7 @@ saved_mouse_bindings = {
     },
 }
 
-saved_hand_bindings = {
+_saved_hand_bindings = {
     "trigger": None,
     "grip": None,
     "touchpad": None,
@@ -77,54 +77,72 @@ saved_hand_bindings = {
     "y": None,
 }
 
+_have_saved_mouse_bindings = False
+_have_saved_hand_bindings = False
+
 
 def save_mouse_bindings(session):
+    global _saved_mouse_bindings
+    global _have_saved_mouse_bindings
     for binding in session.ui.mouse_modes.bindings:
         if not binding.modifiers:
-            saved_mouse_bindings[binding.button]["none"] = binding.mode.name
+            _saved_mouse_bindings[binding.button]["none"] = binding.mode.name
         else:
             for modifier in binding.modifiers:
-                saved_mouse_bindings[binding.button][modifier] = binding.mode.name
+                _saved_mouse_bindings[binding.button][modifier] = binding.mode.name
+    _have_saved_mouse_bindings = True
 
 
 def restore_mouse_bindings(session):
-    run(
-        session,
-        (
-            "ui mousemode shift wheel '" + saved_mouse_bindings["wheel"]["shift"] + "'"
-            if saved_mouse_bindings["wheel"]["shift"]
-            else "ui mousemode shift wheel 'none'"
-        ),
-    )
-    run(
-        session,
-        (
-            "ui mousemode right '" + saved_mouse_bindings["right"]["none"] + "'"
-            if saved_mouse_bindings["right"]["none"]
-            else "ui mousemode right 'none'"
-        ),
-    )
-    run(
-        session,
-        (
-            "ui mousemode shift right '" + saved_mouse_bindings["right"]["shift"] + "'"
-            if saved_mouse_bindings["right"]["shift"]
-            else "ui mousemode shift right 'none'"
-        ),
-    )
-    run(
-        session,
-        (
-            "ui mousemode shift middle '"
-            + saved_mouse_bindings["middle"]["shift"]
-            + "'"
-            if saved_mouse_bindings["middle"]["shift"]
-            else "ui mousemode shift middle 'none'"
-        ),
-    )
+    global _saved_mouse_bindings
+    global _have_saved_mouse_bindings
+    if _have_saved_mouse_bindings:
+        run(
+            session,
+            (
+                "ui mousemode shift wheel '"
+                + _saved_mouse_bindings["wheel"]["shift"]
+                + "'"
+                if _saved_mouse_bindings["wheel"]["shift"]
+                else "ui mousemode shift wheel 'none'"
+            ),
+        )
+        run(
+            session,
+            (
+                "ui mousemode right '" + _saved_mouse_bindings["right"]["none"] + "'"
+                if _saved_mouse_bindings["right"]["none"]
+                else "ui mousemode right 'none'"
+            ),
+        )
+        run(
+            session,
+            (
+                "ui mousemode shift right '"
+                + _saved_mouse_bindings["right"]["shift"]
+                + "'"
+                if _saved_mouse_bindings["right"]["shift"]
+                else "ui mousemode shift right 'none'"
+            ),
+        )
+        run(
+            session,
+            (
+                "ui mousemode shift middle '"
+                + _saved_mouse_bindings["middle"]["shift"]
+                + "'"
+                if _saved_mouse_bindings["middle"]["shift"]
+                else "ui mousemode shift middle 'none'"
+            ),
+        )
+        _have_saved_mouse_bindings = False
+    else:
+        session.logger.warning("No mouse bindings saved")
 
 
 def save_hand_bindings(session, handedness):
+    global _saved_hand_bindings
+    global _have_saved_hand_bindings
     if type(session.main_view.camera) is SteamVRCamera:
         vr_camera = steamvr_camera
         vr_button = steamvr_button
@@ -149,23 +167,39 @@ def save_hand_bindings(session, handedness):
             ...  # error
         hc = hclist[0]
         for button, binding in hc._modes.items():
-            saved_hand_bindings[button_names[button]] = binding.name
+            _saved_hand_bindings[button_names[button]] = binding.name
+        _have_saved_hand_bindings = True
+        return True
     elif type(session.main_view.camera) is OpenXRCamera:
         # TODO
         vr_camera = openxr_camera
         vr_button = openxr_button
+        _have_saved_hand_bindings = True
+        return True
+    return False
 
 
 def restore_hand_bindings(session):
-    run(session, f'vr button trigger {saved_hand_bindings["trigger"]}')
-    run(
-        session,
-        f'vr button thumbstick {saved_hand_bindings["thumbstick"]}',
-    )
-    run(session, f'vr button grip {saved_hand_bindings["grip"]}')
-    run(session, f'vr button a {saved_hand_bindings["a"]}')
-    run(session, f'vr button b {saved_hand_bindings["b"]}')
-    run(session, f'vr button x {saved_hand_bindings["x"]}')
+    global _saved_hand_bindings
+    global _have_saved_hand_bindings
+    camera = session.main_view.camera
+    if isinstance(camera, SteamVRCamera) or isinstance(camera, OpenXRCamera):
+        if _have_saved_hand_bindings:
+            run(session, f'vr button trigger {_saved_hand_bindings["trigger"]}')
+            run(
+                session,
+                f'vr button thumbstick {_saved_hand_bindings["thumbstick"]}',
+            )
+            run(session, f'vr button grip {_saved_hand_bindings["grip"]}')
+            run(session, f'vr button a {_saved_hand_bindings["a"]}')
+            run(session, f'vr button b {_saved_hand_bindings["b"]}')
+            run(session, f'vr button x {_saved_hand_bindings["x"]}')
+            _have_saved_mouse_bindings = False
+            return True
+        else:
+            session.logger.warning("No hand bindings saved")
+            return True
+    return False
 
 
 class CreateSegmentation3DMouseMode(MouseMode):
