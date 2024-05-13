@@ -33,7 +33,7 @@ def esmfold_pae(session, structure = None, file = None, mgnify_id = None,
         pae_url, file_name = esmfold_pae_url(session, mgnify_id, database_version=version)
         from chimerax.core.fetch import fetch_file
         file = fetch_file(session, pae_url, 'ESM Metagenomics Atlas PAE %s' % mgnify_id,
-                          file_name, 'ESMFold', error_status = False)
+                          file_name, 'ESMFold',  check_certificates = False, error_status = False)
         
     if file:
         from chimerax.alphafold.pae import AlphaFoldPAE
