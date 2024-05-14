@@ -42,9 +42,9 @@ def esmfold_pae(session, structure = None, file = None, mgnify_id = None,
         if structure:
             if not pae.reduce_matrix_to_residues_in_structure():
                 from chimerax.core.errors import UserError
-                raise UserError('Number of residues in structure "%s" is %d which does not match PAE matrix size %d.'
-                                % (str(structure), structure.num_residues, pae.matrix_size) +
-                                '\n\nThis can happen if residues were deleted from the ESMFold model or if the PAE data was applied to a structure that was not the one predicted by ESMFold.  Use the full-length ESMFold model to show predicted aligned error.')
+                raise UserError(f'Structure {structure} does not match PAE matrix size {pae.matrix_size}.'
+                                f'The structure has {pae.num_residue_rows} polymer residues and {pae.num_atom_rows} non-polymer atoms'
+                                '\n\nThis can happen if chains or atoms were deleted from the AlphaFold model or if the PAE data was applied to a structure that was not the one predicted by AlphaFold.  Use the full-length AlphaFold model to show predicted aligned error.')
             structure.esmfold_pae = pae
     elif structure is None:
         from chimerax.core.errors import UserError
