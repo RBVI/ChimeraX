@@ -230,7 +230,7 @@ Residue::add_atom(Atom* a, bool copying_or_restoring)
                         - bb_names.begin();
                     // if new atom's name to the left of existing, and this residue is on the right
                     // side of the bond, or vice verse, change the bond
-                    if ((here_name_index > name_index) == (my_index > there_i)) {
+                    if ((here_name_index < name_index) == (my_index > there_i)) {
                         change_atom = here_a;
                     }
                 }
