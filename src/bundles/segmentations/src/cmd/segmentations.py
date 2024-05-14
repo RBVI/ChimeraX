@@ -1,3 +1,5 @@
+import sys
+
 from typing import Optional, Union, Annotated
 
 from chimerax.core.commands import (
@@ -162,30 +164,52 @@ def segmentations(
     elif action == "resetMouseModes":
         restore_mouse_bindings(session)
     elif action == "setHandModes":
-        save_hand_bindings(session, settings.vr_handedness)
-        if settings.vr_handedness == "right":
-            offhand = "left"
+        if sys.platform != "win32":
+            session.logger.warning(
+                "VR is only available on Windows, ignoring setHandModes"
+            )
+            return
+        is_vr = save_hand_bindings(session, settings.vr_handedness)
+        if is_vr:
+            if settings.vr_handedness == "right":
+                offhand = "left"
+            else:
+                offhand = "right"
+            run(
+                session,
+                f"vr button b 'erase segmentations' hand { str(settings.vr_handedness).lower() }",
+            )
+            run(
+                session,
+                f"vr button a 'create segmentations' hand { str(settings.vr_handedness).lower() }",
+            )
+            run(
+                session,
+                f"vr button x 'toggle segmentation visibility' hand { offhand }",
+            )
+            run(
+                session,
+                f"vr button thumbstick 'resize segmentation cursor' hand { str(settings.vr_handedness).lower() }",
+            )
+            run(
+                session,
+                f"vr button grip 'move segmentation cursor' hand { str(settings.vr_handedness).lower() }",
+            )
         else:
-            offhand = "right"
-        run(
-            session,
-            f"vr button b 'erase segmentations' hand { str(settings.vr_handedness).lower() }",
-        )
-        run(
-            session,
-            f"vr button a 'create segmentations' hand { str(settings.vr_handedness).lower() }",
-        )
-        run(session, f"vr button x 'toggle segmentation visibility' hand { offhand }")
-        run(
-            session,
-            f"vr button thumbstick 'resize segmentation cursor' hand { str(settings.vr_handedness).lower() }",
-        )
-        run(
-            session,
-            f"vr button grip 'move segmentation cursor' hand { str(settings.vr_handedness).lower() }",
-        )
+            session.logger.warning(
+                "Segmentations thinks VR is not on; ignoring request to save hand modes."
+            )
     elif action == "resetHandModes":
-        restore_hand_bindings(session)
+        if sys.platform != "win32":
+            session.logger.warning(
+                "VR is only available on Windows, ignoring resetHandModes"
+            )
+            return
+        is_vr = restore_hand_bindings(session)
+        if not is_vr:
+            session.logger.warning(
+                "Segmentations thinks VR is not on; ignoring request to restore hand modes."
+            )
 
 
 def segment_in_sphere(
@@ -236,8 +260,8 @@ def get_segmentation_tool(session):
 
 segmentations_desc = CmdDesc(
     required=[("action", EnumOf(actions))],
-    optional=[
-        ("modelSpecifier", ModelIdArg),
+    optional=[("modelSpecifier", ModelIdArg)],
+    keyword=[
         ("axis", EnumOf([str(axis) for axis in [*Axis]])),
         # TODO: File a bug about how this can't just be ("center", Or(Int2Arg, Int3Arg))
         ("planeCenter", Int2Arg),

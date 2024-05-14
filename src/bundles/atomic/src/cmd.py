@@ -169,6 +169,35 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None, r
     session.models.add([combination])
     return combination
 
+def label_missing_cmd(session, structures, show):
+    from . import all_atomic_structures, Pseudobonds
+    lm_group_name = 'missing-structure length labels'
+    if structures is None:
+        structures = all_atomic_structures(session)
+    from chimerax.label.label3d import label, label_delete
+    from chimerax.core.objects import Objects
+    import math
+    from chimerax.core.commands import plural_form
+    for structure in structures:
+        try:
+            pbg = structure.pbg_map[structure.PBG_MISSING_STRUCTURE]
+        except KeyError:
+            continue
+        if show:
+            for pb in pbg.pseudobonds:
+                a1, a2 = pb.atoms
+                r1, r2 = a1.residue, a2.residue
+                if r1.name == "UNK" or r2.name == "UNK":
+                    # e.g. 3j5p
+                    gap_size = abs(r1.number - r2.number) - 1
+                else:
+                    gap_size = abs(r1.chain.residues.index(r1) - r2.chain.residues.index(r2)) - 1
+                label(session, Objects(pseudobonds=Pseudobonds([pb])),
+                    text="%d %s" % (gap_size, plural_form(gap_size, "residue")),
+                    height=math.log10(max(gap_size, 1))+1)
+        else:
+            label_delete(session, Objects(pseudobonds=pbg.pseudobonds))
+
 from chimerax.core.colors import BuiltinColors
 def pbond_cmd(session, atoms, *, color=BuiltinColors["slate gray"], current_coordset_only=False, dashes=6,
         global_=False, name="custom", radius=0.075, reveal=False, show_dist=False):
@@ -284,3 +313,12 @@ def register_command(logger):
     }
     register('pbond delete', CmdDesc(**xpbond_kw), xpbond_cmd, logger=logger)
     register('~pbond', CmdDesc(**xpbond_kw), xpbond_cmd, logger=logger)
+
+    label_missing_desc = CmdDesc(
+        required=[
+            ('structures', Or(AtomicStructuresArg,EmptyArg)),
+            ('show', BoolArg),
+        ],
+        synopsis = 'Show/hide missing-structure pseudobond labels')
+    register('label missing', label_missing_desc, label_missing_cmd, logger=logger)
+

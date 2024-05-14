@@ -474,13 +474,21 @@ class ObjectLabels(Model):
         return [l.object for l in self._labels
                 if label_class is None or isinstance(l, label_class)]
 
+    def _changes_attr(self, class_obj):
+        attr_name = class_obj.__name__[0].lower()
+        for char in class_obj.__name__[1:]:
+            if char.isupper():
+                attr_name += '_'
+            attr_name += char.lower()
+        return attr_name
+
     def _structure_changed(self, tname, changes):
         # If atoms undisplayed, or radii change, or names change, can effect label display.
         if 'name changed' in changes.atom_reasons() or 'name changed' in changes.residue_reasons():
             self._texture_needs_update = True
         else:
             for monitored_class, attr_name_info in self._monitored_attr_info.items():
-                reasons = getattr(changes, monitored_class.__name__.lower() + '_reasons')()
+                reasons = getattr(changes, self._changes_attr(monitored_class) + '_reasons')()
                 for attr_name in attr_name_info.keys():
                     if attr_name + ' changed' in reasons:
                         self._texture_needs_update = True
