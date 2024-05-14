@@ -24,7 +24,7 @@
 
 # -----------------------------------------------------------------------------
 #
-def esmfold_contacts(session, residues, to_residues = None, distance = 3,
+def esmfold_contacts(session, atoms, to_atoms = None, distance = 3, max_pae = None,
                      flip = False, palette = None, range = None, radius = 0.2, dashes = 1,
                      name = 'PAE Contacts', replace = True, output_file = None):
     '''
@@ -34,7 +34,7 @@ def esmfold_contacts(session, residues, to_residues = None, distance = 3,
     Pseudobonds are drawn between CA atoms.
     '''
     from chimerax.alphafold.contacts import alphafold_contacts
-    return alphafold_contacts(session, residues, to_residues = to_residues, distance = distance,
+    return alphafold_contacts(session, atoms, to_atoms = to_atoms, distance = distance, max_pae = max_pae,
                               flip = flip, palette = palette, range = range, radius = radius, dashes = dashes,
                               name = name, replace = replace, output_file = output_file, method = 'esmfold')
     
