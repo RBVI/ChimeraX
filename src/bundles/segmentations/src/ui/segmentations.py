@@ -164,17 +164,6 @@ class SegmentationToolControlsDialog(QDialog):
                 attr_name="default_segmentation_opacity",
             )
         )
-        self.panel.add_option(
-            SymbolicEnumOption(
-                name="Format for saving segmentations",
-                default=None,
-                settings=settings,
-                callback=None,
-                labels=[str(format) for format in ImageFormat],
-                values=[format.value for format in ImageFormat],
-                attr_name="default_file_format",
-            )
-        )
         self.settings_container.layout().addWidget(self.panel)
         self.tab_widget.addTab(self.settings_container, "General")
 
