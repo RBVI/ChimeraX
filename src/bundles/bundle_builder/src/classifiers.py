@@ -99,7 +99,7 @@ class Selector(ChimeraXClassifier):
 
 
 class Manager(ChimeraXClassifier):
-    default_attrs = {"gui-only": False, "autostart": False}
+    default_attrs = {"gui-only": False, "autostart": True}
 
     def __init__(self, name, attrs):
         if not attrs:
