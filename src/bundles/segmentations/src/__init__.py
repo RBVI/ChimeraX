@@ -10,7 +10,8 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "1.3.4"
+
+__version__ = "1.3.5"
 from chimerax.core.toolshed import BundleAPI
 
 from .segmentation import Segmentation, open_grids_as_segmentation
