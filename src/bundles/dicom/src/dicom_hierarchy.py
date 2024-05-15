@@ -151,7 +151,7 @@ class Study(Model):
         self.patient = patient
         Model.__init__(self, "Study (%s)" % uid, session)
         self.series = []  # regular images
-        self._drawn_series = set()
+        self.series_models: dict[str, list] = {}
 
     def series_from_files(self, files) -> None:
         series = defaultdict(list)
@@ -210,11 +210,11 @@ class Study(Model):
             all_opened_models = []
             for s in self.series:
                 try:
-                    if s.uid not in self._drawn_series:
+                    if s.uid not in self.series_models:
                         models = s.to_models(all_opened_models, derived, sgrids)
                         all_opened_models.extend(models)
                         self.add(models)
-                        self._drawn_series.add(s.uid)
+                        self.series_models[s.uid] = models
                 except UnrenderableSeriesError as e:
                     self.session.logger.warning(str(e))
 
