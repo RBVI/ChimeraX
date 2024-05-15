@@ -10,7 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "1.1"
+__version__ = "1.1.1"
 from .nifti import NifTI, NiftiData, NiftiGrid
 
 from chimerax.core.toolshed import BundleAPI
@@ -21,10 +21,12 @@ class _NifTIBundle(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
-        class NiftiOpenerInfo(OpenerInfo):
-            def open(self, session, data, *args, **kw):
-                nifti = NifTI.from_paths(session, data)
-                return nifti.open()
-        return NiftiOpenerInfo()
+        if mgr == session.open_command:
 
+            class NiftiOpenerInfo(OpenerInfo):
+                def open(self, session, data, *args, **kw):
+                    nifti = NifTI.from_paths(session, data)
+                    return nifti.open()
+
+            return NiftiOpenerInfo()
 bundle_api = _NifTIBundle()
