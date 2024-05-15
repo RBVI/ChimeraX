@@ -42,3 +42,7 @@ reference-url = "https://teem.sourceforge.net/nrrd/format.html"
 
 [[chimerax.data-format."NRRD Medical Imaging".open]]
 batch = false
+
+[[chimerax.data-format."NRRD Medical Imaging".save]]
+compression-okay = false
+is-default = true
