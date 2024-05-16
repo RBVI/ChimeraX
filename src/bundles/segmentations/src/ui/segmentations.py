@@ -700,18 +700,18 @@ class SegmentationTool(ToolInstance):
         super().delete()
 
     def _set_3d_mouse_modes(self):
-        run(self.session, "segmentations setMouseModes")
+        run(self.session, "segmentations mouseModes on")
         self.mouse_modes_changed = True
 
     def _reset_3d_mouse_modes(self):
         """Set mouse modes back to what they were but only if we changed them automatically.
         If you set the mode by hand, or in between the change and restore you're on your own!
         """
-        run(self.session, "segmentations resetMouseModes")
+        run(self.session, "segmentations mouseModes off")
         self.mouse_modes_changed = False
 
     def _set_vr_hand_modes(self):
-        run(self.session, "segmentations setHandModes")
+        run(self.session, "segmentations handModes on")
         self.hand_modes_changed = True
 
     def _reset_vr_hand_modes(self):
@@ -719,7 +719,7 @@ class SegmentationTool(ToolInstance):
         If you set the mode by hand, or in between the change and restore you're on your own!
         """
         if self.hand_modes_changed:
-            run(self.session, "segmentations resetHandModes")
+            run(self.session, "segmentations handModes off")
         self.hand_modes_changed = False
 
     def _start_vr(self):
