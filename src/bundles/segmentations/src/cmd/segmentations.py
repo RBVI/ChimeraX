@@ -13,6 +13,7 @@ from chimerax.core.commands import (
     IntArg,
     Int2Arg,
     Int3Arg,
+    OnOffArg,
 )
 from chimerax.core.errors import UserError
 from chimerax.ui.cmd import ui_tool_show
@@ -37,16 +38,12 @@ actions = [
     "add",
     "remove",
     "create",
-    "setMouseModes",
-    "resetMouseModes",
-    "setHandModes",
-    "resetHandModes",
 ]
 
 
 def segmentations(
     session,
-    action,
+    action=None,
     modelSpecifier=None,
     axis: Optional[str] = None,
     # Axial, Coronal, Sagittal slice segmentations
@@ -67,7 +64,9 @@ def segmentations(
     radius: Optional[int] = None,
     minIntensity: Optional[int] = None,
     maxIntensity: Optional[int] = None,
-    openTool: Optional[bool] = False,
+    mouseModes: Optional[bool] = None,
+    handModes: Optional[bool] = None,
+    openTool: Optional[bool] = None,
 ):
     """Set or restore hand modes; or add, delete, or modify segmentations."""
     settings = get_settings(session)
@@ -155,61 +154,59 @@ def segmentations(
                 )
         else:
             raise UserError("Can't add to a non-segmentation")
-    elif action == "setMouseModes":
-        save_mouse_bindings(session)
-        run(session, "ui mousemode shift wheel 'resize segmentation cursor'")
-        run(session, "ui mousemode right 'create segmentations'")
-        run(session, "ui mousemode shift right 'erase segmentations'")
-        run(session, "ui mousemode shift middle 'move segmentation cursor'")
-    elif action == "resetMouseModes":
-        restore_mouse_bindings(session)
-    elif action == "setHandModes":
-        if sys.platform != "win32":
-            session.logger.warning(
-                "VR is only available on Windows, ignoring setHandModes"
-            )
-            return
-        is_vr = save_hand_bindings(session, settings.vr_handedness)
-        if is_vr:
-            if settings.vr_handedness == "right":
-                offhand = "left"
+    else:
+        if mouseModes is not None:
+            if mouseModes:
+                save_mouse_bindings(session)
+                run(session, "ui mousemode shift wheel 'resize segmentation cursor'")
+                run(session, "ui mousemode right 'create segmentations'")
+                run(session, "ui mousemode shift right 'erase segmentations'")
+                run(session, "ui mousemode shift middle 'move segmentation cursor'")
             else:
-                offhand = "right"
-            run(
-                session,
-                f"vr button b 'erase segmentations' hand { str(settings.vr_handedness).lower() }",
-            )
-            run(
-                session,
-                f"vr button a 'create segmentations' hand { str(settings.vr_handedness).lower() }",
-            )
-            run(
-                session,
-                f"vr button x 'toggle segmentation visibility' hand { offhand }",
-            )
-            run(
-                session,
-                f"vr button thumbstick 'resize segmentation cursor' hand { str(settings.vr_handedness).lower() }",
-            )
-            run(
-                session,
-                f"vr button grip 'move segmentation cursor' hand { str(settings.vr_handedness).lower() }",
-            )
-        else:
-            session.logger.warning(
-                "Segmentations thinks VR is not on; ignoring request to save hand modes."
-            )
-    elif action == "resetHandModes":
-        if sys.platform != "win32":
-            session.logger.warning(
-                "VR is only available on Windows, ignoring resetHandModes"
-            )
-            return
-        is_vr = restore_hand_bindings(session)
-        if not is_vr:
-            session.logger.warning(
-                "Segmentations thinks VR is not on; ignoring request to restore hand modes."
-            )
+                restore_mouse_bindings(session)
+        if handModes is not None:
+            if sys.platform != "win32":
+                session.logger.warning(
+                    "VR is only available on Windows, ignoring handModes and its argument"
+                )
+                return
+            if handModes:
+                is_vr = save_hand_bindings(session, settings.vr_handedness)
+                if is_vr:
+                    if settings.vr_handedness == "right":
+                        offhand = "left"
+                    else:
+                        offhand = "right"
+                    run(
+                        session,
+                        f"vr button b 'erase segmentations' hand { str(settings.vr_handedness).lower() }",
+                    )
+                    run(
+                        session,
+                        f"vr button a 'create segmentations' hand { str(settings.vr_handedness).lower() }",
+                    )
+                    run(
+                        session,
+                        f"vr button x 'toggle segmentation visibility' hand { offhand }",
+                    )
+                    run(
+                        session,
+                        f"vr button thumbstick 'resize segmentation cursor' hand { str(settings.vr_handedness).lower() }",
+                    )
+                    run(
+                        session,
+                        f"vr button grip 'move segmentation cursor' hand { str(settings.vr_handedness).lower() }",
+                    )
+                else:
+                    session.logger.warning(
+                        "Segmentations thinks VR is not on; ignoring request to save hand modes."
+                    )
+            else:
+                is_vr = restore_hand_bindings(session)
+                if not is_vr:
+                    session.logger.warning(
+                        "Segmentations thinks VR is not on; ignoring request to restore hand modes."
+                    )
 
 
 def segment_in_sphere(
@@ -259,11 +256,11 @@ def get_segmentation_tool(session):
 
 
 segmentations_desc = CmdDesc(
-    required=[("action", EnumOf(actions))],
-    optional=[("modelSpecifier", ModelIdArg)],
+    optional=[("action", EnumOf(actions)), ("modelSpecifier", ModelIdArg)],
     keyword=[
+        ("mouseModes", OnOffArg),
+        ("handModes", OnOffArg),
         ("axis", EnumOf([str(axis) for axis in [*Axis]])),
-        # TODO: File a bug about how this can't just be ("center", Or(Int2Arg, Int3Arg))
         ("planeCenter", Int2Arg),
         ("sphereCenter", Int3Arg),
         ("slice", IntArg),
