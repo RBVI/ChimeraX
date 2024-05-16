@@ -16,8 +16,11 @@ prereqs-ubuntu:
 prereqs-flatpak:
 	flatpak install -y org.freedesktop.Sdk//${RUNTIME_VER} org.freedesktop.Platform//${RUNTIME_VER}
 
-build-flatpak: ${APPNAME}.yaml wheels
+build-flatpak: ${APPNAME}.yaml
 	flatpak-builder --force-clean ${BUILD_DIR} ${APPNAME}.yaml
+
+flatpak-prereq:
+	flatpak install flathub org.freedesktop.Platform//${RUNTIME_VER} org.freedesktop.Sdk//${RUNTIME_VER}
 
 prereqs:
 	# normally the wheels and include directories are created by the build_tools process
@@ -30,7 +33,7 @@ prereqs:
 	mv build/include .
 
 ${APPNAME}.yaml: ${APPNAME}.yaml.in
-	sed -e 's:RUNTIME_VER:${RUNTIME_VER}:' -e 's:BUILD_TYPE:BUILD_TYPE=${BUILD_TYPE}:' -e 's:SRC_DIR:${SRC_DIR}:' $< > $@ || rm $@
+	sed -e 's:RUNTIME_VER:${RUNTIME_VER}:' -e 's:BRANCH:${BRANCH}:' -e 's:BUILD_TYPE:BUILD_TYPE=${BUILD_TYPE}:' $< > $@ || rm $@
 
 clean:
 	rm -f ${APPNAME}.metainfo.xml ${APPNAME}.desktop ${APPNAME}.yaml
@@ -42,8 +45,10 @@ install:
 	$(MAKE) -C prereqs install NO_PREBUILT=1 FLATPAK_DIST=${RUNTIME_VER} FLATPAK_APPNAME=${APPNAME}
 	$(MAKE) -C prereqs app-install NO_PREBUILT=1 FLATPAK_DIST=${RUNTIME_VER} FLATPAK_APPNAME=${APPNAME}
 	$(MAKE) -C src/apps/ChimeraX install FLATPAK_DIST=${RUNTIME_VER} FLATPAK_APPNAME=${APPNAME} BUILD_TYPE=${BUILD_TYPE}
+	# create wheels and include directories
+	curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/linux-shared/${BUILD_TYPE}.tar.bz2 | tar jxf -
+	mv include /app
 	/app/bin/python3.* -m pip install wheels/*.whl
-	cp -rp include /app
 	$(MAKE) -C src/apps install BUILD_TYPE=${BUILD_TYPE}
 	$(MAKE) -C docs install BUILD_TYPE=${BUILD_TYPE}
 	/app/bin/ChimeraX --nogui --exit --cmd "linux flatpak-files ${APPNAME}"
