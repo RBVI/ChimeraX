@@ -47,20 +47,12 @@ def segmentations(
     modelSpecifier=None,
     axis: Optional[str] = None,
     # Axial, Coronal, Sagittal slice segmentations
-    planeCenter: Optional[
-        Union[
-            tuple[int, int],
-            Annotated[list[int], 2],
-        ]
-    ] = None,
-    # Spherical segmentations
-    sphereCenter: Optional[
+    center: Optional[
         Union[
             tuple[int, int, int],
             Annotated[list[int], 3],
         ]
     ] = None,
-    slice: Optional[int] = None,
     radius: Optional[int] = None,
     minIntensity: Optional[int] = None,
     maxIntensity: Optional[int] = None,
@@ -90,70 +82,38 @@ def segmentations(
             int((settings.default_segmentation_opacity / 100) * 255)
         )
         session.models.add([new_seg])
-    elif action == "add":
+    elif action in ("add", "remove"):
         if not modelSpecifier:
             raise UserError("No segmentation specified")
         model = [model for model in session.models if model.id == modelSpecifier][0]
         if isinstance(model, Segmentation):
-            if planeCenter:
+            value = 1 if action == "add" else 0
+            if not value and (minIntensity or maxIntensity):
+                session.logger.info(
+                    "Ignoring the intensity parameters for removing regions from a segmentation"
+                )
+                minIntensity = maxIntensity = None
+            if axis:
                 axis = Axis.from_string(axis)
-                if not slice:
-                    raise UserError("Must specify a slice for a 2d segmentation")
+                slice = center[2]
+                seg_center = (center[0], center[1])
                 segment_in_circle(
                     model,
                     axis,
                     slice,
-                    planeCenter,
+                    seg_center,
                     radius,
                     minIntensity,
                     maxIntensity,
-                    1,
+                    value,
                 )
-            elif sphereCenter:
-                if axis:
-                    session.logger.info(
-                        "Ignoring the Axis parameter for a 3D segmentation"
-                    )
-                model_center = model.world_coordinates_for_data_point(sphereCenter)
+            else:
+                model_center = model.world_coordinates_for_data_point(center)
                 segment_in_sphere(
-                    model, model_center, radius, minIntensity, maxIntensity, 1
+                    model, model_center, radius, minIntensity, maxIntensity, value
                 )
         else:
-            raise UserError("Can't add to a non-segmentation")
-    elif action == "remove":
-        if not modelSpecifier:
-            raise UserError("No segmentation specified")
-        model = [model for model in session.models if model.id == modelSpecifier][0]
-        if isinstance(model, Segmentation):
-            if planeCenter:
-                axis = Axis.from_string(axis)
-                if not slice:
-                    raise UserError("Must specify a slice for a 2d segmentation")
-                if minIntensity or maxIntensity:
-                    session.logger.info(
-                        "Ignoring the intensity parameters for removing regions from a segmentation"
-                    )
-                segment_in_circle(
-                    model,
-                    axis,
-                    slice,
-                    planeCenter,
-                    radius,
-                    minIntensity,
-                    maxIntensity,
-                    0,
-                )
-            elif sphereCenter:
-                if axis:
-                    session.logger.info(
-                        "Ignoring the Axis parameter for a 3D segmentation"
-                    )
-                model_center = model.world_coordinates_for_data_point(sphereCenter)
-                segment_in_sphere(
-                    model, model_center, radius, minIntensity, maxIntensity, 0
-                )
-        else:
-            raise UserError("Can't add to a non-segmentation")
+            raise UserError("Can't operate on a non-segmentation")
     else:
         if mouseModes is not None:
             if mouseModes:
@@ -261,8 +221,7 @@ segmentations_desc = CmdDesc(
         ("mouseModes", OnOffArg),
         ("handModes", OnOffArg),
         ("axis", EnumOf([str(axis) for axis in [*Axis]])),
-        ("planeCenter", Int2Arg),
-        ("sphereCenter", Int3Arg),
+        ("center", Int3Arg),
         ("slice", IntArg),
         ("radius", IntArg),
         ("minIntensity", IntArg),
