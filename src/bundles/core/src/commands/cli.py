@@ -996,6 +996,13 @@ class BoolArg(Annotation):
         return str(bool(value)).casefold()
 
 
+class OnOffArg(BoolArg):
+    """BoolArg, but puts 'on or off' in usage text instead of 'true or false'
+    where it would make more grammatical sense to do so"""
+
+    name = "on or off"
+
+
 class NoArg(Annotation):
     """Annotation for keyword whose presence indicates True"""
 
