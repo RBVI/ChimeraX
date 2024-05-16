@@ -869,6 +869,9 @@ class SegmentationTool(ToolInstance):
             seg_item = self.segmentation_list.takeItem(
                 self.segmentation_list.currentRow()
             )
+            if seg_item is None:
+                self.session.logger.warning("No segmentations to remove.")
+                return
             segments = [seg_item.segmentation]
             seg_item.segmentation = None
             del seg_item
