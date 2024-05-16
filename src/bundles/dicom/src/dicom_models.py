@@ -229,6 +229,10 @@ class DicomGrid(GridData):
             ijk_origin[0] : ijk_origin[0] + ijk_size[0] : ijk_step[0],
         ]
 
+    @property
+    def array(self):
+        return self.pixel_array
+
     @requires_gui
     def show_info(self):
         from .ui import DICOMMetadata
