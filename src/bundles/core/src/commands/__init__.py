@@ -38,7 +38,16 @@ from .cli import (
     make_converter,
     as_parser,
 )
-from .cli import NoArg, NoneArg, BoolArg, StringArg, EmptyArg, EnumOf, DynamicEnum
+from .cli import (
+    NoArg,
+    NoneArg,
+    BoolArg,
+    OnOffArg,
+    StringArg,
+    EmptyArg,
+    EnumOf,
+    DynamicEnum,
+)
 from .cli import IntArg, Int2Arg, Int3Arg, IntsArg, NonNegativeIntArg, PositiveIntArg
 from .cli import (
     FloatArg,
