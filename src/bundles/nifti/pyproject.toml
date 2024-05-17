@@ -51,3 +51,7 @@ type = "fetch"
 name = "tcia"
 format-name = "nifti"
 is-default = false
+
+[[chimerax.data-format."NIfTI Medical Imaging".save]]
+compression-okay = false
+is-default = true

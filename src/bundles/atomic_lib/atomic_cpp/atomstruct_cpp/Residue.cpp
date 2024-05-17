@@ -166,7 +166,7 @@ Residue::add_atom(Atom* a, bool copying_or_restoring)
         _structure->_copying_or_restoring = true;
         auto bb_names = chain_type == PT_AMINO ?
             aa_min_ordered_backbone_names : na_min_ordered_backbone_names;
-        auto name_index = std::find(bb_names.begin(), bb_names.end(), name()) - bb_names.begin();
+        auto name_index = std::find(bb_names.begin(), bb_names.end(), a->name()) - bb_names.begin();
         // make a separate list of pseudobonds to this residue, so that we are not modifying the
         // main pseudobond list as we iterate over it
         std::vector<Pseudobond*> my_pbs;
@@ -228,8 +228,9 @@ Residue::add_atom(Atom* a, bool copying_or_restoring)
                 } else {
                     auto here_name_index = std::find(bb_names.begin(), bb_names.end(), here_a->name())
                         - bb_names.begin();
-                    // if new atom's name to the left of existing, and this residue is on the right
-                    // side of the bond, or vice verse, change the bond
+                    // if current pseudobond partner in this residue is to the left of the new atom
+                    // (here_name_index < name_index) then change the endpoint if this residue precedes
+                    // the other residue (my_index < there_i), and vice versa
                     if ((here_name_index > name_index) == (my_index > there_i)) {
                         change_atom = here_a;
                     }

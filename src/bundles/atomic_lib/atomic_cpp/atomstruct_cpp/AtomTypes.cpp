@@ -857,11 +857,31 @@ t0 = t1;
                             for (auto bondee: a->neighbors()) {
                                 const Element &bondee_element = bondee->element();
                                 Real sqlen = bondee->coord().sqdistance(a->coord());
-                                if ((sqlen <= p4n2c && bondee_element == Element::C)
-                                || (sqlen <= p4n2n && bondee_element == Element::N)) {
+                                if (sqlen <= p4n2n && bondee_element == Element::N) {
                                     set_N2 = true;
                                     break;
                                 }
+                                if (bondee_element != Element::C)
+                                    continue;
+                                if (sqlen > p4n2c)
+                                    continue;
+                                if (bondee->idatm_type() == "Cac")
+                                    continue;
+                                if (bondee->idatm_type() == "C2") {
+                                    bool grand_O2 = false;
+                                    for (auto gnb: bondee->neighbors()) {
+                                        if (gnb->element() == Element::O && gnb->bonds().size() == 1) {
+                                            if (bondee->coord().sqdistance(gnb->coord()) <= p3o2c2) {
+                                                grand_O2 = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (grand_O2)
+                                        continue;
+                                }
+                                set_N2 = true;
+                                break;
                             }
                         }
                         a->set_computed_idatm_type(set_N2 ? "N2" : "Npl");

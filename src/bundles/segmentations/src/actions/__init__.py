@@ -58,12 +58,12 @@ class Handedness(IntEnum):
 def run_toolbar_button(session, name):
     # run shortcut chosen via bundle provider interface
     if name == "set mouse modes":
-        run(session, "segmentations setMouseModes")
+        run(session, "segmentations mouseModes on")
     elif name == "restore mouse modes":
-        run(session, "segmentations resetMouseModes")
+        run(session, "segmentations mouseModes off")
     elif name == "set hand modes":
-        run(session, "segmentations setHandModes")
+        run(session, "segmentations handModes on")
     elif name == "restore hand modes":
-        run(session, "segmentations resetHandModes")
+        run(session, "segmentations handModes off")
     else:
         raise ValueError("No provider for toolbar button %s" % name)

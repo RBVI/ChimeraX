@@ -143,9 +143,10 @@ def alphafold_contacts(session, atoms, to_atoms = None, distance = 3, max_pae = 
 def _pae_residues_and_atoms(atoms):
     res = set()
     np_atoms = []
+    from .pae import per_residue_pae
     for a in atoms:
         r = a.residue
-        if r.polymer_type in (r.PT_PROTEIN, r.PT_NUCLEIC):
+        if per_residue_pae(r):
             res.add(r)
         else:
             np_atoms.append(a)
@@ -224,7 +225,8 @@ def _residue_to_atom_pairs(rpairs):
 # -----------------------------------------------------------------------------
 #
 def _residue_or_non_polymer_atoms(residue):
-    if residue.polymer_type in (residue.PT_PROTEIN, residue.PT_NUCLEIC):
+    from .pae import per_residue_pae
+    if per_residue_pae(residue):
         return [residue]
     else:
         return residue.atoms
