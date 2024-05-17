@@ -33,6 +33,7 @@ from chimerax.segmentations.ui.segmentation_mouse_mode import (
 )
 from chimerax.segmentations.settings import get_settings
 from chimerax.segmentations.types import Axis
+from chimerax.segmentations.trigger_handlers import get_tracker
 
 actions = [
     "add",
@@ -62,6 +63,7 @@ def segmentations(
 ):
     """Set or restore hand modes; or add, delete, or modify segmentations."""
     settings = get_settings(session)
+    tracker = get_tracker(session)
     if session.ui.is_gui:
         if openTool:
             tool = get_segmentation_tool(session)
@@ -75,7 +77,12 @@ def segmentations(
             raise UserError(
                 "Must specify a volume to segment; try narrowing your model specifier (e.g. #1 --> #1.1)"
             )
-        new_seg = segment_volume(reference_model, 1)
+        # TODO The tracker can probably keep track of this without us having to recompute
+        # the length every time
+        num_preexisting_segmentations = len(
+            tracker.segmentations_for_volume(reference_model)
+        )
+        new_seg = segment_volume(reference_model, num_preexisting_segmentations + 1)
         new_seg.set_parameters(surface_levels=[0.501])
         new_seg.set_step(1)
         new_seg.set_transparency(

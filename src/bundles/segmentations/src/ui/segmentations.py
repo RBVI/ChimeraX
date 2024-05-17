@@ -869,6 +869,9 @@ class SegmentationTool(ToolInstance):
             seg_item = self.segmentation_list.takeItem(
                 self.segmentation_list.currentRow()
             )
+            if seg_item is None:
+                self.session.logger.warning("No segmentations to remove.")
+                return
             segments = [seg_item.segmentation]
             seg_item.segmentation = None
             del seg_item
@@ -879,11 +882,12 @@ class SegmentationTool(ToolInstance):
             run(self.session, "close %s" % segment.atomspec)
 
     def saveSegment(self, segments=None):
-        if isinstance(segments, bool):
-            # Why in world would this be a bool?? Go home Qt, you're drunk.
-            segments = None
-        if segments is None:
-            segments = self.segmentation_list.selectedItems()
+        if not len(self.segmentation_list):
+            self.session.logger.warning("No segmentations to save.")
+            return
+        if self.segmentation_tracker.active_segmentation is None:
+            self.session.logger.warning("No active segmentation to save.")
+            return
         sd = SaveDialog(self.session, parent=self.tool_window.ui_area)
         if not sd.exec():
             return
