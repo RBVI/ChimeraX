@@ -47,7 +47,7 @@ install:
 	$(MAKE) -C src/apps/ChimeraX install FLATPAK_DIST=${RUNTIME_VER} FLATPAK_APPNAME=${APPNAME} BUILD_TYPE=${BUILD_TYPE}
 	# create wheels and include directories
 	curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/linux-shared/${BUILD_TYPE}.tar.bz2 | tar jxf -
-	mv include /app
+	cp -rp include /app
 	/app/bin/python3.* -m pip install wheels/*.whl
 	$(MAKE) -C src/apps install BUILD_TYPE=${BUILD_TYPE}
 	$(MAKE) -C docs install BUILD_TYPE=${BUILD_TYPE}
