@@ -49,6 +49,7 @@ modules:
       - type: git
         url: ssh://git@github.com/RBVI/ChimeraX.git
         branch: BRANCH
+        commit: COMMIT
     build-commands:
       # ffmpeg fails to compile with -j
       - make -f Makefile.flatpak install BUILD_TYPE

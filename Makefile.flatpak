@@ -1,7 +1,14 @@
 APPNAME = edu.ucsf.rbvi.ChimeraX
 BUILD_DIR = fp-build.tmp
 RUNTIME_VER = 23.08
-BRANCH = $(shell awk '$$1 == "branch:" { print $$2; exit } { exit 3 }' last-commit 2> /dev/null || git branch --show-current)
+BRANCH = $(shell \
+    branch=$$(awk '$$1 == "branch:" { print $$2; exit } { exit }' last-commit 2> /dev/null) ; \
+    if [ -z "$$branch" ]; then branch=$$(git branch --show-current); fi ; \
+    if [ -z "$$branch" ]; then branch=develop; fi ; \
+    echo $$branch )
+COMMIT=$(shell \
+    (awk '$$1 == "commit" { print $$2; exit } { exit 3 }' last-commit 2> /dev/null) \
+    || (git show --summary --format=%H | head -1))
 SRC_DIR = $(shell pwd -P)
 
 all:
@@ -33,7 +40,7 @@ prereqs:
 	mv build/include .
 
 ${APPNAME}.yaml: ${APPNAME}.yaml.in
-	sed -e 's:RUNTIME_VER:${RUNTIME_VER}:' -e 's:BRANCH:${BRANCH}:' -e 's:BUILD_TYPE:BUILD_TYPE=${BUILD_TYPE}:' $< > $@ || rm $@
+	sed -e 's:RUNTIME_VER:${RUNTIME_VER}:' -e 's:BRANCH:${BRANCH}:' -e 's:COMMIT:${COMMIT}:' -e 's:BUILD_TYPE:BUILD_TYPE=${BUILD_TYPE}:' $< > $@ || rm $@
 
 clean:
 	rm -f ${APPNAME}.metainfo.xml ${APPNAME}.desktop ${APPNAME}.yaml
