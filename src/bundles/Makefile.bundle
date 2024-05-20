@@ -54,7 +54,7 @@ PYTHON ?= $(APP_PYTHON_EXE) -I
 RUN = PYTHONNOUSERSITE=1 $(PYTHON) -m chimerax.core --nogui --exit
 RUN_SAFE = $(RUN) --safemode
 RUN_CMD = $(RUN_SAFE) --cmd
-ifeq (,$(wildcard $(APP_PYTHONE_EXE)))
+ifeq (,$(wildcard $(APP_PYTHON_EXE)))
 $(error missing ChimeraX application's python)
 endif
 
