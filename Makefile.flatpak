@@ -44,7 +44,7 @@ prereqs:
 	mv build/sync wheels
 	mv build/include .
 
-${APPNAME}.yaml: ${APPNAME}.yaml.in
+${APPNAME}.yaml: flatpak-app.yaml.in
 	sed -e 's:APPNAME:${APPNAME}:' -e 's:RUNTIME_VER:${RUNTIME_VER}:' -e 's:BRANCH:${BRANCH}:' -e 's:COMMIT:${COMMIT}:' -e 's:BUILD_TYPE:BUILD_TYPE=${BUILD_TYPE}:' $< > $@ || rm $@
 
 clean:
