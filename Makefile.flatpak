@@ -10,6 +10,11 @@ COMMIT=$(shell \
     (awk '$$1 == "commit" { print $$2; exit } { exit 3 }' last-commit 2> /dev/null) \
     || (git show --summary --format=%H | head -1))
 SRC_DIR = $(shell pwd -P)
+ifeq ($(BUILD_TYPE),daily)
+APPNAME := ${APPNAME}-daily
+else ifeq ($(BUILD_TYPE),techpreview)
+APPNAME := ${APPNAME}-techpreview
+endif
 
 all:
 	# by default, do nothing
@@ -40,7 +45,7 @@ prereqs:
 	mv build/include .
 
 ${APPNAME}.yaml: ${APPNAME}.yaml.in
-	sed -e 's:RUNTIME_VER:${RUNTIME_VER}:' -e 's:BRANCH:${BRANCH}:' -e 's:COMMIT:${COMMIT}:' -e 's:BUILD_TYPE:BUILD_TYPE=${BUILD_TYPE}:' $< > $@ || rm $@
+	sed -e 's:APPNAME:${APPNAME}:' -e 's:RUNTIME_VER:${RUNTIME_VER}:' -e 's:BRANCH:${BRANCH}:' -e 's:COMMIT:${COMMIT}:' -e 's:BUILD_TYPE:BUILD_TYPE=${BUILD_TYPE}:' $< > $@ || rm $@
 
 clean:
 	rm -f ${APPNAME}.metainfo.xml ${APPNAME}.desktop ${APPNAME}.yaml

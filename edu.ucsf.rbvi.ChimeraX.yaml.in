@@ -1,5 +1,5 @@
 # vim:set expandtab shiftwidth=2:
-id: edu.ucsf.rbvi.ChimeraX
+id: APPNAME
 runtime: org.freedesktop.Platform
 runtime-version: 'RUNTIME_VER'
 sdk: org.freedesktop.Sdk
