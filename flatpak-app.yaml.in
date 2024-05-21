@@ -1,5 +1,5 @@
 # vim:set expandtab shiftwidth=2:
-id: edu.ucsf.rbvi.ChimeraX
+id: APPNAME
 runtime: org.freedesktop.Platform
 runtime-version: 'RUNTIME_VER'
 sdk: org.freedesktop.Sdk
@@ -11,8 +11,6 @@ build-options:
   - --share=network
   #? FontConfig error while running ChimeraX --nogui
   #? - --ro-bind /usr/share/fonts /run/host/fonts
-  # daily builds need to get saved binary wheels from base OS build
-  - --filesystem=host
 
 finish-args:
   # X11 + Xshm access
@@ -47,9 +45,14 @@ finish-args:
 modules:
   - name: chimerax
     buildsystem: simple
+    sources:
+      - type: git
+        url: ssh://git@github.com/RBVI/ChimeraX.git
+        branch: BRANCH
+        commit: COMMIT
     build-commands:
       # ffmpeg fails to compile with -j
-      - cd SRC_DIR && make -f Makefile.flatpak install BUILD_TYPE
+      - make -f Makefile.flatpak install BUILD_TYPE
 
   # libQt6Network.so.6 from the Qt Group needs
   # libgssapi_krb5.so.2, but is not in flatpak runtime environment

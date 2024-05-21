@@ -95,7 +95,7 @@ def segment_volume(volume, number: int) -> Segmentation:
         cell_angles=volume.data.cell_angles,
         rotation=volume.data.rotation,
         symmetries=volume.data.symmetries,
-        name="segmentation of %s (#%d)" % (volume.name, number),
+        name="segmentation %d of %s" % (number, volume.name),
     )
     new_grid.initial_plane_display = False
     new_seg_model = open_grids_as_segmentation(

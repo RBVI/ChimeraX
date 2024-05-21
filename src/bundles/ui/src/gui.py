@@ -258,7 +258,8 @@ class UI(QApplication):
         # times on the command line.
         self._bad_drop_events = list(ignore_files)
         for bad_drop in getattr(self, '_seen_bad_drops', []):
-            self._bad_drop_events.remove(bad_drop)
+            if bad_drop in self._bad_drop_events:
+                self._bad_drop_events.remove(bad_drop)
         for path in self._files_to_open:
             if path not in ignore_files:
                 try:
