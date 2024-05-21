@@ -1412,6 +1412,13 @@ class AtomicStructure(Structure):
             from chimerax.std_commands.lighting import lighting as light_cmd
             light_cmd(self.session, **lighting)
 
+        if self.session.main_view.render is not None:
+            # Can't add labels if no renderer
+            from .settings import settings, label_missing_attr
+            if getattr(settings, label_missing_attr):
+               from .cmd import label_missing_cmd
+               label_missing_cmd(self.session, [self], True)
+
     def take_snapshot(self, session, flags):
         data = {
             'AtomicStructure version': 3,

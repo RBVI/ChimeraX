@@ -14,7 +14,6 @@ class _SegmentationSettings(Settings):
         "set_mouse_modes_automatically": False,
         "set_hand_modes_automatically": False,
         "default_view": 0,  # 4 x 4
-        "default_file_format": 0,  # DICOM
         "default_segmentation_opacity": 80,  # %
         "mouse_3d_right_click": MouseAction.ADD_TO_SEGMENTATION,
         "mouse_3d_middle_click": MouseAction.MOVE_SPHERE,

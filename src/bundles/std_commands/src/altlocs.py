@@ -169,7 +169,7 @@ class _StructureAltlocManager(StateManager):
             handler.remove()
         for al_to_s in self.res_alt_locs.values():
             for alt_loc_s in al_to_s.values():
-                s._alt_loc_changes_handler.remove()
+                alt_loc_s._alt_loc_changes_handler.remove()
         if self.main_group.id is not None:
             self.session.models.close([self.main_group])
         self.group = self.structure = self.res_alt_locs = self.session = self.expected_changes = None

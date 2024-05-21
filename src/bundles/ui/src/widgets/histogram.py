@@ -492,6 +492,10 @@ class MarkedHistogram(QWidget):
 
     def _button_up_cb(self, event=None):
         if self._drag_marker:
+            from numbers import Integral
+            if isinstance(self._min_val, Integral) and isinstance(self._max_val, Integral):
+                # presumably histogram of ints...
+                self._move_cur_marker(round(self._marker2abs(self._drag_marker)[0]))
             self._drag_marker = None
             if self._active_markers.move_callback:
                 self._active_markers.move_callback('end')
@@ -698,11 +702,13 @@ class MarkedHistogram(QWidget):
                 line.setZValue(-1)  # keep bars below markers
         else:
             x_scale = (hist_width - 1) / float(num_bins)
+            from Qt.QtCore import Qt
+            from Qt.QtGui import QBrush, QColor
             for b, n in enumerate(self._bins):
                 x1 = border + b * x_scale
                 x2 = border + (b+1) * x_scale
                 h = int(h_scale * n)
-                rect = self._hist_scene.addRect(x1, bottom-h, x2-x1, h)
+                rect = self._hist_scene.addRect(x1, bottom-h, x2-x1, h, brush=QBrush(QColor(225,225,225)))
                 self._hist_bars.addToGroup(rect)
                 rect.setZValue(-1) # keep bars below markers
         self._markable = True

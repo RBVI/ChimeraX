@@ -41,6 +41,12 @@ from chimerax.mouse_modes.trackpad import MultitouchEvent, Touch
 from chimerax.ui.widgets import ModelMenu
 
 from ..segmentation import Segmentation, copy_volume_for_auxiliary_display
+from ..trigger_handlers import (
+    get_tracker,
+    ACTIVE_SEGMENTATION_CHANGED,
+    SEGMENTATION_ADDED,
+    SEGMENTATION_REMOVED,
+)
 
 
 from ..graphics import (
@@ -89,6 +95,22 @@ class PlaneViewerManager:
         self.session = session
         self.have_seg_tool = False
         self.axes = {}
+        self.segmentation_tracker = get_tracker(session)
+        self._active_seg_changed_handler = (
+            self.segmentation_tracker.triggers.add_handler(
+                ACTIVE_SEGMENTATION_CHANGED, self._active_segmentation_changed_cb
+            )
+        )
+        self._segmentation_added_handler = (
+            self.segmentation_tracker.triggers.add_handler(
+                SEGMENTATION_ADDED, self._on_segmentation_added
+            )
+        )
+        self._segmentation_removed_handler = (
+            self.segmentation_tracker.triggers.add_handler(
+                SEGMENTATION_REMOVED, self._on_segmentation_removed
+            )
+        )
         self.volumes = {}
 
     def register(self, viewer):
@@ -110,6 +132,17 @@ class PlaneViewerManager:
                 self.axes[Axis.AXIAL].sagittal_index = viewer.sagittal_index
             if Axis.CORONAL in self.axes:
                 self.axes[Axis.CORONAL].sagittal_index = viewer.sagittal_index
+
+    def deregister_triggers(self):
+        self.segmentation_tracker.triggers.remove_handler(
+            self._active_seg_changed_handler
+        )
+        self.segmentation_tracker.triggers.remove_handler(
+            self._segmentation_added_handler
+        )
+        self.segmentation_tracker.triggers.remove_handler(
+            self._segmentation_removed_handler
+        )
 
     def update_dimensions(self, dimensions):
         for axis in self.axes.values():
@@ -151,13 +184,19 @@ class PlaneViewerManager:
         for viewer in self.axes.values():
             viewer.model_menu._menu.set_value(model)
 
-    def add_segmentation(self, seg):
-        for viewer in self.axes.values():
-            viewer.add_segmentation(seg)
+    def _on_segmentation_added(self, _, segmentation):
+        self.add_segmentation(segmentation)
 
-    def remove_segmentation(self, seg):
+    def _on_segmentation_removed(self, _, segmentation):
+        self.remove_segmentation(segmentation)
+
+    def add_segmentation(self, segmentation):
         for viewer in self.axes.values():
-            viewer.remove_segmentation(seg)
+            viewer.add_segmentation(segmentation)
+
+    def remove_segmentation(self, segmentation):
+        for viewer in self.axes.values():
+            viewer.remove_segmentation(segmentation)
 
     def update_segmentation_overlay_for_segmentation(self, segmentation):
         for viewer in self.axes.values():
@@ -178,6 +217,7 @@ class PlaneViewer(QWindow):
         self.axis = axis
         self.axes = axis.transform
         self._segmentation_tool = None
+        self.segmentation_tracker = get_tracker(session)
         self.manager.register(self)
 
         self.last_mouse_position = None
@@ -727,11 +767,12 @@ class PlaneViewer(QWindow):
             self.manager.toggle_guidelines()
 
     def add_segmentation(self, segmentation):
-        self.segmentation_overlays[segmentation] = SegmentationOverlay(
-            segmentation.name + "_overlay", segmentation, self.axis
-        )
-        self.view.add_segmentation_overlay(self.segmentation_overlays[segmentation])
-        self.segmentation_overlays[segmentation].slice = self.pos
+        if segmentation not in self.segmentation_overlays:
+            self.segmentation_overlays[segmentation] = SegmentationOverlay(
+                segmentation.name + "_overlay", segmentation, self.axis
+            )
+            self.view.add_segmentation_overlay(self.segmentation_overlays[segmentation])
+            self.segmentation_overlays[segmentation].slice = self.pos
         self._redraw()
 
     def remove_segmentation(self, segmentation):
@@ -947,7 +988,7 @@ class PlaneViewer(QWindow):
                     self.current_segmentation_cursor_overlays
                 )
                 self.current_segmentation_cursor_overlays = []
-                active_seg = self.segmentation_tool.active_seg
+                active_seg = self.segmentation_tracker.active_segmentation
                 self.manager.update_segmentation_overlay_for_segmentation(active_seg)
             self.view.camera.redraw_needed = True
         self.last_mouse_position = None

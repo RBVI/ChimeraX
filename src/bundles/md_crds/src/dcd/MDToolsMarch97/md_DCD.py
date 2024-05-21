@@ -417,7 +417,8 @@ See also: AtomGroup
                 f.write(p('i',84))
                 rawremarks = [ \
                         'REMARKS FILENAME='+self.dcdfile+' CREATED BY MDTools for Python',
-                        'REMARKS DATE: '+time.ctime(time.time())+' CREATED BY USER: '+os.environ['USER']]
+                        'REMARKS DATE: '+time.ctime(time.time())+' CREATED BY USER: '
+						+ os.environ.get('USER', os.environ.get('USERNAME', 'unknown'))]
                 self.remarks = []
                 for r in rawremarks: self.remarks.append(r.ljust(80)[0:80])
                 size = cs('i')+80*len(self.remarks)
