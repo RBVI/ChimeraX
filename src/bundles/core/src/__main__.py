@@ -429,9 +429,6 @@ def init(argv, event_loop=True):
 
     os.environ["SSL_CERT_FILE"] = certifi.where()
 
-    if len(argv) > 1 and argv[1].startswith("--"):
-        # MacOS doesn't generate these drop events for args after '--' flags
-        bad_drop_events = False
     opts, args = parse_arguments(argv)
     if not opts.devel:
         import warnings
@@ -987,7 +984,7 @@ def init(argv, event_loop=True):
 
     # Open files dropped on application
     if opts.gui:
-        sess.ui.open_pending_files(ignore_files=(args if bad_drop_events else []))
+        sess.ui.open_pending_files(ignore_files=(args+opts.scripts+opts.commands if bad_drop_events else []))
 
     # By this point the GUI module will have redirected stdout if it's going to
     if opts.debug:
