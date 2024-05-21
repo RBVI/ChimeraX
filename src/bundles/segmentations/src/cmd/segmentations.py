@@ -64,7 +64,7 @@ def segmentations(
     mouseModes: Optional[bool] = None,
     handModes: Optional[bool] = None,
 ):
-    """Set or restore hand modes; or add, delete, or modify segmentations."""
+    """Set or restore mouse and hand modes; or create and modify segmentations."""
     settings = get_settings(session)
     tracker = get_tracker(session)
     if action == "create":
@@ -250,7 +250,7 @@ segmentations_desc = CmdDesc(
         ("minIntensity", IntArg),
         ("maxIntensity", IntArg),
     ],
-    synopsis="Set the view window to a grid of orthoplanes or back to the default",
+    synopsis=segmentations.__doc__.split("\n")[0].strip(),
 )
 
 
