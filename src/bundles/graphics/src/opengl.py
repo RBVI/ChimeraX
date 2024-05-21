@@ -142,7 +142,7 @@ class OpenGLContext:
         # Use screen window is on if it has been mapped.
         screen = window.screen()
         if screen is None:
-            self._screen
+            screen = self._screen
         qc.setScreen(screen)
 
         if self._share_context:
