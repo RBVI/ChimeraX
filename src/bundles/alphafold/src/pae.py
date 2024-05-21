@@ -445,13 +445,13 @@ class AlphaFoldPAEPlot(ToolInstance):
 
         sname = f'for {pae.structure}' if pae.structure else ''
         title = (f'<html>Predicted aligned errors (PAE) {sname}'
-                 '<br>Drag a box to color structure residues.</html>')
+                 '<br>Drag a box to color structure residues and atoms.</html>')
         from Qt.QtWidgets import QLabel
         self._heading = hl = QLabel(title)
         layout.addWidget(hl)
 
         self._pae_view = gv = PAEView(parent, self._rectangle_select, self._rectangle_clear,
-                                      self._report_residues)
+                                      self._report_residues_or_atoms)
         from Qt.QtWidgets import QSizePolicy
         from Qt.QtCore import Qt
         gv.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -543,7 +543,7 @@ class AlphaFoldPAEPlot(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _color_from_structure(self, colormap = None):
-        '''colormap is used for plot points where residues have different colors.'''
+        '''colormap is used for plot points where residues or atoms have different colors.'''
         if colormap is None:
             colormap = self._pae_view._block_colormap((0,0,0,255))
         color_blocks = self._residue_color_blocks()
@@ -551,23 +551,42 @@ class AlphaFoldPAEPlot(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def show_chain_dividers(self, show = True, thickness = 4):
+    def show_chain_dividers(self, show = True, thickness = None):
         self._showing_chain_dividers = show
         if show:
-            s = self._pae.structure
-            if s is None:
-                return  # Don't know chain lengths without structure.
-            chain_ids = s.residues.chain_ids
-            # Residue indices for start of each chain excluding the first.
-            dividers = tuple((chain_ids[:-1] != chain_ids[1:]).nonzero()[0]+1)
+            dividers = []
+            rra = self._pae.row_residues_or_atoms()
+            for i in range(len(rra)-1):
+                ra0, ra1 = rra[i:i+2]
+                if self._chain_divider(ra0, ra1):
+                    dividers.append(i)
+            if thickness is None:
+                thickness = min(4, 1+len(rra)//500)
         else:
             dividers = []
         self._pae_view._show_chain_dividers(dividers, thickness)
-        
+
+    # ---------------------------------------------------------------------------
+    #
+    def _chain_divider(self, ra0, ra1):
+        from chimerax.atomic import Residue
+        r0, r1 = isinstance(ra0, Residue), isinstance(ra1, Residue)
+        if r0 and r1:
+            if ra0.chain_id != ra1.chain_id:
+                return True
+        if r0 and not r1 and ra0.chain != ra1.residue.chain:
+            return True   # One residue and one atom that is not from a modified residue
+        if not r0 and r1 and ra0.residue.chain != ra1.chain:
+            return True   # One residue and one atom that is not from a modified residue
+        return False
+
     # ---------------------------------------------------------------------------
     #
     def _residue_color_blocks(self):
-        colors = self._pae.structure.residues.ribbon_colors
+        pae = self._pae
+        rra = pae.row_residues_or_atoms()
+        from chimerax.atomic import Residue
+        colors = [ra.ribbon_color if isinstance(ra, Residue) else ra.color for ra in rra]
         color_indices = {}
         for i,color in enumerate(colors):
             c = tuple(color)
@@ -622,23 +641,17 @@ class AlphaFoldPAEPlot(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _report_residues(self, index1, index2):
-        m = self._pae.pae_matrix
-        size = m.shape[0]
-        s = self._pae.structure
-        if s is None:
-            return
-        res = s.residues
-        if index1 < 0 or index2 < 0 or index1 >= size or index2 >= size or len(res) < size:
+    def _report_residues_or_atoms(self, index1, index2):
+        pae = self._pae
+        m = pae.pae_matrix
+        msize = m.shape[0]
+        if index1 < 0 or index2 < 0 or index1 >= msize or index2 >= msize:
             msg = ''
         else:
+            name1, name2 = [pae.row_residue_or_atom_name(i) for i in (index1, index2)]
             d = m[index1,index2]
             dstr = '%.1f' % d
-            r1,r2 = res[index1], res[index2]
-            if s.num_chains == 1:
-                msg = f'{r1.label_one_letter_code}{r1.number} {r2.label_one_letter_code}{r2.number} = {dstr}'
-            else:
-                msg = f'/{r1.chain_id} {r1.label_one_letter_code}{r1.number} /{r2.chain_id} {r2.label_one_letter_code}{r2.number} = {dstr}'
+            msg = f'{name1} {name2} = {dstr}'
         self._info_label.setText(msg)
         
     # ---------------------------------------------------------------------------
@@ -646,27 +659,28 @@ class AlphaFoldPAEPlot(ToolInstance):
     def _rectangle_select(self, xy1, xy2):
         x1,y1 = xy1
         x2,y2 = xy2
-        r1, r2 = int(min(x1,x2)), int(max(x1,x2))
-        r3, r4 = int(min(y1,y2)), int(max(y1,y2))
+        r1, r2 = max(0,int(min(x1,x2))), int(max(x1,x2))
+        r3, r4 = max(0,int(min(y1,y2))), int(max(y1,y2))
         off_diagonal_drag = (r2 < r3 or r4 < r1)
         if self._drag_colors_structure:
             # Color residues
             if off_diagonal_drag:
                 # Use two colors
-                self._color_residues(r1, r2, 'lime', 'gray')
-                self._color_residues(r3, r4, 'magenta')
+                self._color_residues_and_atoms(r1, r2, 'lime', 'gray')
+                self._color_residues_and_atoms(r3, r4, 'magenta')
             else:
                 # Use single color
-                self._color_residues(min(r1,r3), max(r2,r4), 'lime', 'gray')
+                self._color_residues_and_atoms(min(r1,r3), max(r2,r4), 'lime', 'gray')
         else:
-            # Select residues
+            # Select residues and atoms
             ranges = [(r1,r2), (r3,r4)] if off_diagonal_drag else [(min(r1,r3), max(r2,r4))]
-            self._select_residue_ranges(ranges)
+            self._select_residue_and_atom_ranges(ranges)
 
     # ---------------------------------------------------------------------------
     #
-    def _color_residues(self, r1, r2, colorname, other_colorname = None):
-        m = self._pae.structure
+    def _color_residues_and_atoms(self, row1, row2, colorname, other_colorname = None):
+        pae = self._pae
+        m = pae.structure
         if m is None:
             return
 
@@ -678,19 +692,27 @@ class AlphaFoldPAEPlot(ToolInstance):
             all_res.atoms.colors = other_color
             
         color = BuiltinColors[colorname].uint8x4()
-        residues = m.residues[r1:r2+1]
-        residues.ribbon_colors = color
-        residues.atoms._colors = color
+        rra = pae.row_residues_or_atoms()
+        res_and_atoms = rra[row1:row2+1]
+        from chimerax.atomic import Residue, Atom
+        for ra in res_and_atoms:
+            if isinstance(ra, Residue):
+                ra.ribbon_color = color
+                ra.atoms.colors = color
+            elif isinstance(ra, Atom):
+                ra.color = color
+                ra.residue.ribbon_color = color
 
-        if len(residues) > 0:
-            cmd = 'color %s %s' % (_residue_range_spec(residues), colorname)
+        if len(res_and_atoms) > 0:
+            cmd = 'color %s %s' % (_residue_and_atom_spec(res_and_atoms), colorname)
             from chimerax.core.commands import log_equivalent_command
             log_equivalent_command(self.session, cmd)
 
     # ---------------------------------------------------------------------------
     #
-    def _select_residue_ranges(self, ranges):
-        m = self._pae.structure
+    def _select_residue_and_atom_ranges(self, ranges):
+        pae = self._pae
+        m = pae.structure
         if m is None:
             return
 
@@ -699,11 +721,12 @@ class AlphaFoldPAEPlot(ToolInstance):
         res = m.residues
         specs = []
         for r1,r2 in ranges:
-            rres = res[r1:r2+1]
-            atoms = rres.atoms
+            rra = pae.row_residues_or_atoms()
+            ra = rra[r1:r2+1]
+            atoms = _residues_and_atoms_to_atoms(ra)
             atoms.selected = True
-            if len(rres) > 0:
-                specs.append(_residue_range_spec(rres))
+            if len(ra) > 0:
+                specs.append(_residue_and_atom_spec(ra))
 
         if specs:
             cmd = 'select %s' % ' '.join(specs)
@@ -717,24 +740,66 @@ class AlphaFoldPAEPlot(ToolInstance):
 
 # ---------------------------------------------------------------------------
 #
-def _residue_range_spec(residues):
-    s = residues[0].structure
-    if s.num_chains == 1:
-        nums = residues.numbers
-        rspec = ':%d-%d' % (nums.min(), nums.max())
-    else:
-        specs = []
-        for s, cid, cres in residues.by_chain:
-            nums = cres.numbers
-            specs.append('/%s:%d-%d' % (cid, nums.min(), nums.max()))
-        rspec = ''.join(specs)
-    spec = '#%s%s' % (s.id_string, rspec)
+def _residues_and_atoms_to_atoms(residues_and_atoms):
+    atoms = []
+    from chimerax.atomic import Residue, Atom, Atoms
+    for ra in residues_and_atoms:
+        if isinstance(ra, Residue):
+            atoms.extend(ra.atoms)
+        elif isinstance(ra, Atom):
+            atoms.append(ra)
+    return Atoms(atoms)
+
+# ---------------------------------------------------------------------------
+#
+def _residue_and_atom_spec(residues_and_atoms):
+    from chimerax.atomic import Residue, Atom, concise_residue_spec
+    res = [r for r in residues_and_atoms if isinstance(r, Residue)]
+    rspec = concise_residue_spec(res[0].structure.session, res) if res else ''
+    atoms = [a for a in residues_and_atoms if isinstance(a, Atom)]
+    aspec = _concise_atom_spec(atoms)
+    spec = f'{rspec} {aspec}'
     return spec
-    
+
+# ---------------------------------------------------------------------------
+#
+def _concise_atom_spec(atoms):
+    if len(atoms) == 0:
+        return ''
+    from chimerax.atomic import Atoms
+    if not isinstance(atoms, Atoms):
+        atoms = Atoms(atoms)
+    specs = []
+    for struct, struct_atoms in atoms.by_structure:
+        specs.append(f'#{struct.id_string}')
+        for cstruct, chain_id, chain_atoms in struct_atoms.by_chain:
+            specs.append(f'/{chain_id}')
+            for res, res_atoms in _atoms_by_residue(chain_atoms):
+                if len(res_atoms) == res.num_atoms:
+                    specs.append(f':{res.number}')
+                else:
+                    anames = ",".join(a.name for a in res_atoms)
+                    specs.append(f':{res.number}@{anames}')
+    return ''.join(specs)
+
+# ---------------------------------------------------------------------------
+#
+def _atoms_by_residue(atoms):
+    ratoms = {}
+    for a in atoms:
+        r = a.residue
+        if r in ratoms:
+            ratoms[r].append(a)
+        else:
+            ratoms[r] = [a]
+    return tuple(ratoms.items())
+
+# ---------------------------------------------------------------------------
+#
 from Qt.QtWidgets import QGraphicsView
 class PAEView(QGraphicsView):
     def __init__(self, parent, rectangle_select_cb=None, rectangle_clear_cb=None,
-                 report_residues_cb=None):
+                 report_residues_and_atoms_cb=None):
         QGraphicsView.__init__(self, parent)
         self.click_callbacks = []
         self.drag_callbacks = []
@@ -743,10 +808,10 @@ class PAEView(QGraphicsView):
         self._down_xy = None
         self._rectangle_select_callback = rectangle_select_cb
         self._rectangle_clear_callback = rectangle_clear_cb
-        self._report_residues_callback = report_residues_cb
+        self._report_residues_and_atoms_callback = report_residues_and_atoms_cb
         self._pixmap_item = None
         self._divider_items = []
-        # Report residues as mouse hovers over plot.
+        # Report residues and atoms as mouse hovers over plot.
         self.setMouseTracking(True)
 
     def sizeHint(self):
@@ -771,9 +836,9 @@ class PAEView(QGraphicsView):
             self._rectangle_clear_callback()
 
     def mouseMoveEvent(self, event):
-        if self._report_residues_callback:
+        if self._report_residues_and_atoms_callback:
             x,y = self._scene_position(event)
-            self._report_residues_callback(int(x),int(y))
+            self._report_residues_and_atoms_callback(int(x),int(y))
         if self._mouse_down:
             self._drag(event)
 
@@ -875,7 +940,10 @@ class AlphaFoldPAE:
         self._pae_path = pae_path
         self._pae_matrix = read_pae_matrix(pae_path)
         self.structure = structure
-        self._residue_indices = None	# Map residue to index
+        self._row_residues_or_atoms = None
+        self._num_atoms = structure.num_atoms
+        self._num_residues = structure.num_residues
+        self._residue_or_atom_indices = None	# Map residue or atom to matrix row
         self._cluster_max_pae = 5
         self._cluster_clumping = 0.5
         self._cluster_min_size = 10
@@ -883,6 +951,8 @@ class AlphaFoldPAE:
         self._cluster_colors = None
         self._plddt_palette = 'alphafold'
 
+    # ---------------------------------------------------------------------------
+    #
     def reduce_matrix_to_residues_in_structure(self):
         '''
         Delete rows and columns of PAE matrix for which there are no structure residues.
@@ -891,22 +961,18 @@ class AlphaFoldPAE:
         Returns True if successful, False if structure does not appear to have the right
         sequence length for the PAE matrix.
         '''
-        structure = self.structure
-        if structure.num_residues == self.matrix_size:
+        rra = self.row_residues_or_atoms()
+        if len(rra) == self.matrix_size:
             return True
 
-        chains = structure.chains
-        num_res = sum([chain.num_residues for chain in chains], 0)
-        if num_res != self.matrix_size:
+        full_rra = _include_deleted_residues(rra)
+        if len(full_rra) != self.matrix_size:
             # Structure does not appear to represent same number of residues as matrix.
             # This could happen if a whole chain was deleted.
             return False
 
-        cres = [(chain.chain_id, chain.residues) for chain in chains]
-        cres.sort(key = lambda cid_res: cid_res[0])	  # Sort by chain identifier
-        res = sum([r for cid,r in cres], [])	          # List of residues with None for deleted ones
-        res_in_structure = [i for i,r in enumerate(res) if r is not None]  # Indices of structure residues
-        self._pae_matrix = self._pae_matrix[res_in_structure,:][:,res_in_structure]
+        rows = [i for i,ra in enumerate(full_rra) if ra is not None]
+        self._pae_matrix = self._pae_matrix[rows,:][:,rows]
 
         return True
 
@@ -924,18 +990,93 @@ class AlphaFoldPAE:
 
     # ---------------------------------------------------------------------------
     #
-    def value(self, aligned_residue, scored_residue):
-        ai = self._residue_index(aligned_residue)
-        si = self._residue_index(scored_residue)
+    def row_residues_or_atoms(self):
+        s = self.structure
+        if self._row_residues_or_atoms is not None:
+            if s.num_atoms != self._num_atoms or s.num_residues != self._num_residues:
+                # If user deletes some residues or atoms remove them from row list.
+                self._row_residues_or_atoms = tuple((None if ra.deleted else ra)
+                                                    for ra in self._row_residues_or_atoms)
+                self._num_atoms = s.num_atoms
+                self._num_residues = s.num_residues
+            return self._row_residues_or_atoms
+        ra = []
+        for r in s.residues:
+            if per_residue_pae(r):
+                ra.append(r)
+            else:
+                ra.extend(r.atoms)
+        self._row_residues_or_atoms = tuple(ra)
+        self._num_atoms = s.num_atoms		# Used to check for deletions
+        self._num_residues = s.num_residues	# Used to check for deletions
+        return self._row_residues_or_atoms
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def num_residue_rows(self):
+        count = 0
+        from chimerax.atomic import Residue
+        for ra in self.row_residues_or_atoms():
+            if isinstance(ra, Residue):
+                count += 1
+        return count
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def num_atom_rows(self):
+        count = 0
+        from chimerax.atomic import Atom
+        for ra in self.row_residues_or_atoms():
+            if isinstance(ra, Atom):
+                count += 1
+        return count
+
+    # ---------------------------------------------------------------------------
+    #
+    def row_residue_or_atom_name(self, row):
+        ra = self.row_residues_or_atoms()[row]
+        if ra is None or ra.deleted:
+            return ''
+        from chimerax.atomic import Residue, Atom
+        if isinstance(ra, Residue):
+            name = (f'{ra.label_one_letter_code}{ra.number}' if self.structure.num_chains == 1 else
+                    f'/{ra.chain_id} {ra.label_one_letter_code}{ra.number}')
+        elif isinstance(ra, Atom):
+            res = ra.residue
+            if res.polymer_type != res.PT_NONE:
+                name = f'/{res.chain_id} {res.label_one_letter_code}{res.number} {ra.name}'  # Modified residue
+            elif res.num_atoms == 1:
+                name = f'/{res.chain_id} {ra.name}'	# Ion
+            else:
+                name = f'/{res.chain_id} {res.name} {ra.name}'   # Ligand
+        else:
+            name = ''
+        return name
+    
+    # ---------------------------------------------------------------------------
+    #
+    def residues_or_atoms_deleted(self):
+        for ra in self.row_residues_or_atoms():
+            if ra.deleted:
+                return True
+        return False
+    
+    # ---------------------------------------------------------------------------
+    #
+    def value(self, aligned_residue_or_atom, scored_residue_or_atom):
+        ai = self._residue_or_atom_index(aligned_residue_or_atom)
+        si = self._residue_or_atom_index(scored_residue_or_atom)
         return self._pae_matrix[ai,si]
 
     # ---------------------------------------------------------------------------
     #
-    def _residue_index(self, residue):
-        ri = self._residue_indices
-        if ri is None:
-            self._residue_indices = ri = {r:i for i,r in enumerate(self.structure.residues)}
-        return ri[residue]
+    def _residue_or_atom_index(self, residue_or_atom):
+        rai = self._residue_or_atom_indices
+        if rai is None:
+            self._residue_or_atom_indices = rai = {ra:i for i,ra in enumerate(self.row_residues_or_atoms())}
+        return rai[residue_or_atom]
     
     # ---------------------------------------------------------------------------
     #
@@ -945,9 +1086,9 @@ class AlphaFoldPAE:
         if m is None:
             return
 
-        if m.num_residues != self.matrix_size:
+        if self.residues_or_atoms_deleted():
             from chimerax.core.errors import UserError
-            raise UserError(f'The structure {m} has {m.num_residues} residues which does not equal the PAE matrix size {self.matrix_size}, so domains cannot be colored')
+            raise UserError(f'The structure {m} residues or atoms deleted so domains cannot be colored')
 
         self.set_default_domain_clustering(cluster_max_pae, cluster_clumping,
                                            cluster_min_size)
@@ -965,8 +1106,9 @@ class AlphaFoldPAE:
             from chimerax.core.commands import log_equivalent_command
             log_equivalent_command(m.session, cmd)
 
-        color_by_pae_domain(m.residues, self._clusters, colors=self._cluster_colors)
-        set_pae_domain_residue_attribute(m.residues, self._clusters)
+        ra = self.row_residues_or_atoms()
+        color_by_pae_domain(ra, self._clusters, colors=self._cluster_colors)
+        set_pae_domain_attribute(ra, self._clusters)
         
     # ---------------------------------------------------------------------------
     #
@@ -998,6 +1140,43 @@ class AlphaFoldPAE:
             cmd += ' log false'
         from chimerax.core.commands import run
         run(m.session, cmd, log = log_command)
+
+# ---------------------------------------------------------------------------
+#
+def per_residue_pae(r):
+    '''Determine if PAE for this residue is one value or a value for each atom.'''
+    ptype = r.polymer_type
+    if ptype == r.PT_PROTEIN and r.name == r.standard_aa_name:
+        return True
+    if ptype == r.PT_NUCLEIC and r.name in ('A','C','G','U','DA','DC','DG','DT'):
+        return True
+    return False
+
+# -----------------------------------------------------------------------------
+#
+def _include_deleted_residues(res):
+    '''
+    Make a new list of residues including None where residues are missing in a chain.
+    Input list includes residues and atoms and atoms are preserved.
+    '''
+    full_res = []
+    last_chain = None
+    from chimerax.atomic import Residue
+    for r in res:
+        c = r.chain if isinstance(r, Residue) else None
+        if c is None:
+            if last_chain is not None:
+                full_res.extend(last_chain.residues)
+                last_chain = None
+            full_res.append(r)
+        elif last_chain is None:
+            last_chain = c
+        elif c != last_chain:
+            full_res.extend(last_chain.residues)
+            last_chain = c
+    if last_chain:
+        full_res.extend(last_chain.residues)
+    return full_res
 
 # -----------------------------------------------------------------------------
 #
@@ -1170,39 +1349,47 @@ def pae_domains(pae_matrix, pae_power=1, pae_cutoff=5, graph_resolution=0.5,
 
 # -----------------------------------------------------------------------------
 #
-def color_by_pae_domain(residues, clusters, colors = None):
+def color_by_pae_domain(residues_or_atoms, clusters, colors = None):
     if colors is None:
         from chimerax.core.colors import random_colors
         colors = random_colors(len(clusters), seed=0)
 
-    from numpy import array, int32
+    from chimerax.atomic import Residue, Atom
     for c, color in zip(clusters, colors):
-        cresidues = residues[array(list(c),int32)]
-        cresidues.ribbon_colors = color
-        cresidues.atoms.colors = color
+        cra = [residues_or_atoms[i] for i in c]
+        for ra in cra:
+            if isinstance(ra, Residue):
+                ra.ribbon_color = color
+                ra.atoms.colors = color
+            elif isinstance(ra, Atom):
+                ra.color = color
     
 # -----------------------------------------------------------------------------
 #
-def set_pae_domain_residue_attribute(residues, clusters):
-    if len(residues) > 0:
+def set_pae_domain_attribute(residues_and_atoms, clusters):
+    if len(residues_and_atoms) > 0:
         # Register attribute so it is saved in sessions.
-        session = residues[0].structure.session
-        from chimerax.atomic import Residue
+        session = residues_and_atoms[0].structure.session
+        from chimerax.atomic import Residue, Atom
         Residue.register_attr(session, 'pae_domain', "AlphaFold", attr_type = int)
+        Atom.register_attr(session, 'pae_domain', "AlphaFold", attr_type = int)
 
+    # Map rows to domain number
     cnum = {}
     for i, cluster in enumerate(clusters):
-        for ri in cluster:
-            cnum[ri] = i+1
-    for ri,r in enumerate(residues):
-        r.pae_domain = cnum.get(ri)
-    
+        for rai in cluster:
+            cnum[rai] = i+1
+
+    # Set domain number for each residue or atom
+    for rai,ra in enumerate(residues_and_atoms):
+        ra.pae_domain = cnum.get(rai)
+
 # -----------------------------------------------------------------------------
 #
 def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
                   palette = None, range = None, plot = None, divider_lines = None,
                   color_domains = False, connect_max_pae = 5, cluster = 0.5, min_size = 10,
-                  version = None):
+                  version = None, ignore_cache = False):
     '''Load AlphaFold predicted aligned error file and show plot or color domains.'''
 
     if uniprot_id:
@@ -1211,16 +1398,17 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
         file_name = pae_url.split('/')[-1]
         from chimerax.core.fetch import fetch_file
         file = fetch_file(session, pae_url, 'AlphaFold PAE %s' % uniprot_id,
-                          file_name, 'AlphaFold', error_status = False)
+                          file_name, 'AlphaFold', error_status = False,
+                          ignore_cache = ignore_cache)
         
     if file:
         pae = AlphaFoldPAE(file, structure)
         if structure:
             if not pae.reduce_matrix_to_residues_in_structure():
                 from chimerax.core.errors import UserError
-                raise UserError('Number of residues in structure "%s" is %d which does not match PAE matrix size %d.'
-                                % (str(structure), structure.num_residues, pae.matrix_size) +
-                                '\n\nThis can happen if chains were deleted from the AlphaFold model or if the PAE data was applied to a structure that was not the one predicted by AlphaFold.  Use the full-length AlphaFold model to show predicted aligned error.')
+                raise UserError(f'Structure {structure} does not match PAE matrix size {pae.matrix_size}.'
+                                f'The structure has {pae.num_residue_rows} polymer residues and {pae.num_atom_rows} non-polymer atoms'
+                                '\n\nThis can happen if chains or atoms were deleted from the AlphaFold model or if the PAE data was applied to a structure that was not the one predicted by AlphaFold.  Use the full-length AlphaFold model to show predicted aligned error.')
             structure.alphafold_pae = pae
     elif structure is None:
         from chimerax.core.errors import UserError
@@ -1260,6 +1448,8 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
             raise UserError('Must specify structure to color domains.')
         pae.color_domains(connect_max_pae, cluster, min_size)
 
+    return pae
+
 # -----------------------------------------------------------------------------
 #
 def register_alphafold_pae_command(logger):
@@ -1277,7 +1467,8 @@ def register_alphafold_pae_command(logger):
                    ('connect_max_pae', FloatArg),
                    ('cluster', FloatArg),
                    ('min_size', IntArg),
-                   ('version', IntArg)],
+                   ('version', IntArg),
+                   ('ignore_cache', BoolArg)],
         synopsis = 'Show AlphaFold predicted aligned error'
     )
     
