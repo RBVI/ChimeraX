@@ -63,14 +63,10 @@ def segmentations(
     maxIntensity: Optional[int] = None,
     mouseModes: Optional[bool] = None,
     handModes: Optional[bool] = None,
-    openTool: Optional[bool] = None,
 ):
     """Set or restore hand modes; or add, delete, or modify segmentations."""
     settings = get_settings(session)
     tracker = get_tracker(session)
-    if session.ui.is_gui:
-        if openTool:
-            tool = get_segmentation_tool(session)
     if action == "create":
         if not modelSpecifier:
             raise UserError("No model specified")
@@ -253,7 +249,6 @@ segmentations_desc = CmdDesc(
         ("radius", IntArg),
         ("minIntensity", IntArg),
         ("maxIntensity", IntArg),
-        ("openTool", BoolArg),
     ],
     synopsis="Set the view window to a grid of orthoplanes or back to the default",
 )
