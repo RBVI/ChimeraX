@@ -52,34 +52,18 @@ description = "See medical images in a 4-panel viewer"
 category = "Volume Data"
 description = "Create, edit, or destory segmentations"
 
-[chimerax.provider."set mouse modes"]
+[chimerax.provider."toggle mouse modes"]
 manager = "toolbar"
 tab = "Medical Image"
 section = "Segmentation Controls"
-display-name = "Set Mouse Modes"
+display-name = "Toggle Mouse Modes"
 icon = "mouse_small.png"
-description = "Set mouse modes"
+description = "Toggle mouse modes"
 
-[chimerax.provider."restore mouse modes"]
-manager = "toolbar"
-tab = "Medical Image"
-section = "Segmentation Controls"
-display-name = "Restore Mouse Modes"
-icon = "mouse_small.png"
-description = "Restore mouse modes"
-
-[chimerax.provider."set hand modes"]
+[chimerax.provider."toggle hand modes"]
 manager = "toolbar"
 tab = "Medical Image"
 section = "Segmentation Controls"
 icon = "right_controller_small.png"
-display-name = "Set Hand Modes"
-description = "Set hand modes"
-
-[chimerax.provider."restore hand modes"]
-manager = "toolbar"
-tab = "Medical Image"
-section = "Segmentation Controls"
-icon = "right_controller_small.png"
-display-name = "Restore Hand Modes"
-description = "Restore hand modes"
+display-name = "Toggle Hand Modes"
+description = "toggle hand modes"
