@@ -151,6 +151,7 @@ class Study(Model):
         self.patient = patient
         Model.__init__(self, "Study (%s)" % uid, session)
         self.series = []  # regular images
+        self._model_watchers = {}
         self.series_models: dict[str, list] = {}
 
     def series_from_files(self, files) -> None:
@@ -213,10 +214,28 @@ class Study(Model):
                     if s.uid not in self.series_models:
                         models = s.to_models(all_opened_models, derived, sgrids)
                         all_opened_models.extend(models)
+                        for model in models:
+                            self._model_watchers[model] = model.triggers.add_handler(
+                                "deleted", self._on_child_model_deleted
+                            )
                         self.add(models)
                         self.series_models[s.uid] = models
                 except UnrenderableSeriesError as e:
                     self.session.logger.warning(str(e))
+
+    def _on_child_model_deleted(self, _, model):
+        for s in self.series:
+            try:
+                smodels = self.series_models[s.uid]
+                if model in smodels:
+                    smodels.remove(model)
+                    if not smodels:
+                        del self.series_models[s.uid]
+            except KeyError:
+                # This can happen if we remove all models
+                pass
+        model.triggers.remove_handler(self._model_watchers[model])
+        del self._model_watchers[model]
 
     def __str__(self):
         return f"Study {self.uid} with {len(self.series)} series"
