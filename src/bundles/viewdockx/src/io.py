@@ -299,7 +299,7 @@ class Mol2Parser:
                     # Assume value is last field
                     parts = self._line[non_hash:].rsplit(None, 1)
                 try:
-                    self._data[parts[0].strip()] = parts[1].strip()
+                    self._data[parts[0].strip()] = _value(parts[1].strip())
                 except IndexError:
                     # Must be a single word on the line, just ignore
                     pass
