@@ -144,6 +144,9 @@ class PlaneViewerManager:
             self._segmentation_removed_handler
         )
 
+    def _active_segmentation_changed_cb(self, _, segmentation):
+        pass
+
     def update_dimensions(self, dimensions):
         for axis in self.axes.values():
             axis.update_dimensions(dimensions)
