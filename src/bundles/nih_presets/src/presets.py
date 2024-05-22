@@ -127,12 +127,25 @@ def by_chain_cmds(session, rainbow=False, target_atoms=False):
         cmds.append("color zone %s near %s & main distance 20" % (s.atomspec, s.atomspec))
     return cmds
 
-def check_AF(session):
-    for r in all_residues(session):
-        if hasattr(r, 'pLDDT_score'):
-            return
+def check_AF(session, *, pae=False):
     from chimerax.core.errors import UserError
-    raise UserError("No structures have pLDDT scores assigned!")
+    structures = []
+    if pae:
+        for s in all_atomic_structures(session):
+            if hasattr(s, 'alphafold_pae'):
+                structures.append(s)
+                continue
+        missing = "PAE information"
+    else:
+        for s in all_atomic_structures(session):
+            for r in s.residues:
+                if hasattr(r, 'pLDDT_score'):
+                    structures.append(s)
+                    break
+        missing = "pLDDT scores assigned"
+    if not structures:
+        raise UserError(f"No structures have {missing}!")
+    return ''.join([s.atomspec for s in structures])
 
 def color_by_hydrophobicity_cmds(session, target="rs"):
     kdh_info = {
@@ -265,15 +278,25 @@ def run_preset(session, name, mgr):
             "color nih_blue",
             "setattr p color nih_blue"
         ] + print_prep(session, pb_radius=None)
-    elif name == "ribbon AlphaFold2/pLDDT":
-        check_AF(session)
+    elif name == "ribbon AlphaFold/pLDDT":
+        struct_spec = check_AF(session)
         cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [
-            "color byattribute r:pLDDT_score palette alphafold",
+            f"color byattribute r:pLDDT_score {struct_spec} palette alphafold"
         ]
-    elif name == "ribbon AlphaFold2/pLDDT (printable)":
-        check_AF(session)
+    elif name == "ribbon AlphaFold/pLDDT (printable)":
+        struct_spec = check_AF(session)
         cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
-            "color byattribute r:pLDDT_score palette alphafold",
+            f"color byattribute r:pLDDT_score {struct_spec} palette alphafold"
+        ] + print_prep(session, pb_radius=None)
+    elif name == "ribbon AlphaFold/PAE domains":
+        struct_spec = check_AF(session, pae=True)
+        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [
+            f"alphafold pae {struct_spec} colorDomains true"
+        ]
+    elif name == "ribbon AlphaFold/PAE domains (printable)":
+        struct_spec = check_AF(session, pae=True)
+        cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
+            f"alphafold pae {struct_spec} colorDomains true"
         ] + print_prep(session, pb_radius=None)
     elif name.startswith("surface monochrome"):
         printable = "printable" in name
@@ -318,6 +341,15 @@ def run_preset(session, name, mgr):
                 % (s.atomspec, ("" if s.num_atoms < 250000 else " enclose %s" % s.atomspec))
                     for s in all_atomic_structures(session)
             ] + [ "color bypolymer target ar" ] + by_chain_cmds(session)
+    elif name == "surface AlphaFold/pLDDT (printable)":
+        struct_spec = check_AF(session)
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
+            True, sharp=True) + [ f"color byattribute r:pLDDT_score {struct_spec} palette alphafold" ]
+    elif name == "surface AlphaFold/PAE domains (printable)":
+        struct_spec = check_AF(session, pae=True)
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
+            True, sharp=True) + [ f"alphafold pae {struct_spec} colorDomains true",
+            f"color {struct_spec} fromAtoms" ]
     elif name == "sticks":
         cmd = undo_printable + base_setup + color_by_het + [
             "style stick",

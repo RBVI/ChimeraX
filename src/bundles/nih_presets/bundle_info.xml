@@ -33,8 +33,10 @@
     <Provider category="NIH3D" name="ribbon by polymer (printable)"/>
     <Provider category="NIH3D" name="ribbon monochrome"/>
     <Provider category="NIH3D" name="ribbon monochrome (printable)"/>
-    <Provider category="NIH3D" name="ribbon AlphaFold2/pLDDT"/>
-    <Provider category="NIH3D" name="ribbon AlphaFold2/pLDDT (printable)"/>
+    <Provider category="NIH3D" name="ribbon AlphaFold/pLDDT"/>
+    <Provider category="NIH3D" name="ribbon AlphaFold/pLDDT (printable)"/>
+    <Provider category="NIH3D" name="ribbon AlphaFold/PAE domains"/>
+    <Provider category="NIH3D" name="ribbon AlphaFold/PAE domains (printable)"/>
     <Provider category="NIH3D" name="surface monochrome"/>
     <Provider category="NIH3D" name="surface coulombic"/>
     <Provider category="NIH3D" name="surface hydrophobicity"/>
@@ -47,6 +49,8 @@
     <Provider category="NIH3D" name="surface by polymer (printable)"/>
     <Provider category="NIH3D" name="surface blob by chain"/>
     <Provider category="NIH3D" name="surface blob by polymer"/>
+    <Provider category="NIH3D" name="surface AlphaFold/pLDDT (printable)"/>
+    <Provider category="NIH3D" name="surface AlphaFold/PAE domains (printable)"/>
     <Provider category="NIH3D" name="sticks"/>
     <Provider category="NIH3D" name="sticks (printable)"/>
     <Provider category="NIH3D" name="sticks monochrome"/>
