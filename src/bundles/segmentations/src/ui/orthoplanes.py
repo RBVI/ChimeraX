@@ -918,6 +918,7 @@ class PlaneViewer(QWindow):
         if self.segmentation_tool:
             self.disableSegmentationOverlays()
             self.segmentation_tool.make_puck_invisible(self.axis)
+        self.level_label.hide()
         self.mouse_move_timer.stop()
 
     def shouldOpenContextMenu(self):

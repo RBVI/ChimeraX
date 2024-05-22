@@ -34,6 +34,10 @@ from chimerax.segmentations.ui.segmentation_mouse_mode import (
 from chimerax.segmentations.settings import get_settings
 from chimerax.segmentations.types import Axis
 from chimerax.segmentations.trigger_handlers import get_tracker
+from chimerax.segmentations.ui.segmentation_mouse_mode import (
+    mouse_bindings_saved,
+    hand_bindings_saved,
+)
 
 actions = [
     "add",
@@ -59,14 +63,10 @@ def segmentations(
     maxIntensity: Optional[int] = None,
     mouseModes: Optional[bool] = None,
     handModes: Optional[bool] = None,
-    openTool: Optional[bool] = None,
 ):
-    """Set or restore hand modes; or add, delete, or modify segmentations."""
+    """Set or restore mouse and hand modes; or create and modify segmentations."""
     settings = get_settings(session)
     tracker = get_tracker(session)
-    if session.ui.is_gui:
-        if openTool:
-            tool = get_segmentation_tool(session)
     if action == "create":
         if not modelSpecifier:
             raise UserError("No model specified")
@@ -123,13 +123,21 @@ def segmentations(
             raise UserError("Can't operate on a non-segmentation")
     else:
         if mouseModes is not None:
-            if mouseModes:
+            if mouseModes and not mouse_bindings_saved():
                 save_mouse_bindings(session)
                 run(session, "ui mousemode shift wheel 'resize segmentation cursor'")
                 run(session, "ui mousemode right 'create segmentations'")
                 run(session, "ui mousemode shift right 'erase segmentations'")
                 run(session, "ui mousemode shift middle 'move segmentation cursor'")
-            else:
+            elif mouseModes and mouse_bindings_saved():
+                session.logger.warning(
+                    "Mouse bindings already saved; ignoring 'mouseModes true'"
+                )
+            elif not mouseModes and not mouse_bindings_saved():
+                session.logger.warning(
+                    "Mouse bindings not saved; ignoring 'mouseModes false'"
+                )
+            elif not mouseModes and mouse_bindings_saved():
                 restore_mouse_bindings(session)
         if handModes is not None:
             if sys.platform != "win32":
@@ -137,7 +145,7 @@ def segmentations(
                     "VR is only available on Windows, ignoring handModes and its argument"
                 )
                 return
-            if handModes:
+            if handModes and not hand_bindings_saved():
                 is_vr = save_hand_bindings(session, settings.vr_handedness)
                 if is_vr:
                     if settings.vr_handedness == "right":
@@ -168,7 +176,15 @@ def segmentations(
                     session.logger.warning(
                         "Segmentations thinks VR is not on; ignoring request to save hand modes."
                     )
-            else:
+            elif handModes and hand_bindings_saved():
+                session.logger.warning(
+                    "Hand bindings already saved; ignoring 'handModes true'"
+                )
+            elif not handModes and not hand_bindings_saved():
+                session.logger.warning(
+                    "Hand bindings not saved; ignoring 'handModes false'"
+                )
+            elif not handModes and hand_bindings_saved():
                 is_vr = restore_hand_bindings(session)
                 if not is_vr:
                     session.logger.warning(
@@ -233,9 +249,8 @@ segmentations_desc = CmdDesc(
         ("radius", IntArg),
         ("minIntensity", IntArg),
         ("maxIntensity", IntArg),
-        ("openTool", BoolArg),
     ],
-    synopsis="Set the view window to a grid of orthoplanes or back to the default",
+    synopsis=segmentations.__doc__.split("\n")[0].strip(),
 )
 
 

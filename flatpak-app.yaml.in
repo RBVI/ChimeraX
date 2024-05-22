@@ -1,5 +1,5 @@
 # vim:set expandtab shiftwidth=2:
-id: edu.ucsf.rbvi.ChimeraX
+id: APPNAME
 runtime: org.freedesktop.Platform
 runtime-version: 'RUNTIME_VER'
 sdk: org.freedesktop.Sdk
@@ -49,6 +49,7 @@ modules:
       - type: git
         url: ssh://git@github.com/RBVI/ChimeraX.git
         branch: BRANCH
+        commit: COMMIT
     build-commands:
       # ffmpeg fails to compile with -j
       - make -f Makefile.flatpak install BUILD_TYPE
