@@ -346,8 +346,11 @@ class Bundle:
                 buttons = attrs.pop("button", [])
                 name = attrs.pop("name", None)
                 if not name:
-                    raise ValueError("A toolbar section must have a name")
-                self.toolbars.append(Toolbar(section, name, attrs))
+                    warnings.warn(
+                        "A toolbar section must have a name; if this bundle does not extend another toolbar please add one."
+                    )
+                else:
+                    self.toolbars.append(Toolbar(section, name, attrs))
                 for button in buttons:
                     name = button.pop("name", None)
                     if not name:
