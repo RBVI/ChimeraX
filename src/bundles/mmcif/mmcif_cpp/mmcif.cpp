@@ -187,8 +187,10 @@ public:
 };
 #endif
 
-bool reasonable_bond_length(Atom* a1, Atom* a2, float distance = std::numeric_limits<float>::quiet_NaN())
+bool
+reasonable_bond_length(Atom* a1, Atom* a2, float distance = std::numeric_limits<float>::quiet_NaN())
 {
+    // use same criteria as pdb_connect::find_missing_structure_bonds
     Real idealBL = Element::bond_length(a1->element(), a2->element());
     Real sqlength;
     if (!std::isnan(distance))
@@ -196,8 +198,8 @@ bool reasonable_bond_length(Atom* a1, Atom* a2, float distance = std::numeric_li
     else
         sqlength = a1->coord().sqdistance(a2->coord());
     // 3.0625 == 1.75 squared
-    // (allows ASP 223.A OD2 <-> PLP 409.A N1 bond in 1aam
-    // and SER 233.A OG <-> NDP 300.A O1X bond in 1a80
+    // (allows ASP /A:223 OD2 <-> PLP /A:409 N1 bond in 1aam
+    // and SER /A:233 OG <-> NDP /A:300 O1X bond in 1a80
     // to not be classified as missing seqments)
     return (sqlength < 3.0625f * idealBL * idealBL);
 }
@@ -313,7 +315,7 @@ struct ExtractMolecule: public readcif::CIFFile
     StrandInfo strand_info;
 #endif
     Residue* find_residue(int model_num, const ChainID& chain_id, long position, const ResName& name);
-    Residue* find_residue(const ChainResidueMap& crm, const ChainID& chain_id, ResidueKey& rk);
+    Residue* find_residue(const ChainResidueMap& crm, const ChainID& chain_id, const ResidueKey& rk);
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
@@ -491,7 +493,7 @@ ExtractMolecule::find_residue(int model_num, const ChainID& chain_id, long posit
 }
 
 inline Residue*
-ExtractMolecule::find_residue(const ChainResidueMap& crm, const ChainID& chain_id, ResidueKey& rk)
+ExtractMolecule::find_residue(const ChainResidueMap& crm, const ChainID& chain_id, const ResidueKey& rk)
 {
     const auto ci = crm.find(chain_id);
     if (ci == crm.end())
@@ -792,11 +794,10 @@ ExtractMolecule::finished_parse()
                         auto ri2 = residue_map.find(ResidueKey(entity_id, p2.seq_id, p2.mon_id));
                         if (ri2 == residue_map.end())
                             continue;
-                        string c_id;
-                        if (auth_chain_id == " ")
+                        Residue* r = ri2->second;
+                        string c_id = r->chain_id();
+                        if (c_id == " ")
                             c_id = "' '";
-                        else
-                            c_id = auth_chain_id;
                         if (model_num == first_model_num) {
                             if (model_num != first_model_num)
                                 ;  // only warn for first model
@@ -807,7 +808,6 @@ ExtractMolecule::finished_parse()
                                 logger::warning(_logger, "Skipping residue with duplicate label_seq_id ",
                                                 p.seq_id, " in chain ", c_id);
                         }
-                        Residue* r = ri2->second;
                         residue_map.erase(ri2);
                         mol->delete_residue(r);
                     }
@@ -1410,8 +1410,13 @@ ExtractMolecule::parse_atom_site()
         }
 
         bool missing_entity_id = entity_id.empty();
-        if (missing_entity_id)
-            entity_id = chain_id;  // no entity_id, use chain id
+        if (missing_entity_id) {
+            // no entity_id, use chain id
+            if (chain_id != " ")
+                entity_id = chain_id;
+            else
+                entity_id = chain_id = auth_chain_id;
+        }
         bool missing_position = position == 0;
         if (missing_position)
             position = auth_position;

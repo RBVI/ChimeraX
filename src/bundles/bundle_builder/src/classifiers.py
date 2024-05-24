@@ -99,7 +99,7 @@ class Selector(ChimeraXClassifier):
 
 
 class Manager(ChimeraXClassifier):
-    default_attrs = {"gui-only": False, "autostart": False}
+    default_attrs = {"gui-only": False, "autostart": True}
 
     def __init__(self, name, attrs):
         if not attrs:
@@ -234,8 +234,10 @@ class Toolbar(Provider):
 
 
 class Initialization:
-    def __init__(self, type_, bundles):
+    def __init__(self, type_=None, bundles=None):
         self.type_ = type_
+        if not bundles:
+            bundles = []
         self.bundles = bundles
 
     def __str__(self):

@@ -353,7 +353,7 @@ def _user_kw_cnt(kw_name):
 class AnnotationError(UserError, ValueError):
     """Error, with optional offset, in an annotation"""
 
-    def __init__(self, message, offset=None):
+    def __init__(self, message, offset=0):
         super().__init__(message)
         self.offset = offset
 
@@ -549,10 +549,7 @@ class Aggregate(Annotation):
                 try:
                     value, consumed, rest = self.annotation.parse(text, session)
                 except AnnotationError as err:
-                    if err.offset is None:
-                        err.offset = len(used)
-                    else:
-                        err.offset += len(used)
+                    err.offset += len(used)
                     raise
                 tmp = self.add_to(result, value)
                 if tmp:
@@ -563,10 +560,7 @@ class Aggregate(Annotation):
             try:
                 value, consumed, rest = self.annotation.parse(examine, session)
             except AnnotationError as err:
-                if err.offset is None:
-                    err.offset = len(used)
-                else:
-                    err.offset += len(used)
+                err.offset += len(used)
                 raise
             tmp = self.add_to(result, value)
             if tmp:
@@ -651,7 +645,10 @@ class TupleOf(Aggregate):
     constructor = tuple
 
     def __init__(self, annotation, size, name=None, url=None):
-        return Aggregate.__init__(self, annotation, size, size, name=name, url=url)
+        Aggregate.__init__(self, annotation, size, size, name=name, url=url)
+        noun = plural_of(discard_article(annotation.name))
+        self.name = "%d-tuple of %s" % (size, noun)
+        self._html_name = "%d-tuple of %s" % (size, annotation.html_name(noun))
 
     def add_to(self, container, value):
         return container + (value,)
@@ -955,15 +952,15 @@ class Or(Annotation):
                 self._html_name = commas([a.html_name() for a in annotations])
 
     def parse(self, text, session):
+        offset = 0
         for anno in self.annotations:
             try:
                 return anno.parse(text, session)
             except AnnotationError as err:
-                if err.offset:
-                    raise
+                offset = max(offset, err.offset)
             except ValueError:
                 pass
-        raise AnnotationError("Expected %s" % self.name)
+        raise AnnotationError("Expected %s" % self.name, offset)
 
     def unparse(self, value, session=None):
         for a in self.annotations:
@@ -994,6 +991,13 @@ class BoolArg(Annotation):
     @staticmethod
     def unparse(value, session=None):
         return str(bool(value)).casefold()
+
+
+class OnOffArg(BoolArg):
+    """BoolArg, but puts 'on or off' in usage text instead of 'true or false'
+    where it would make more grammatical sense to do so"""
+
+    name = "on or off"
 
 
 class NoArg(Annotation):
@@ -3097,7 +3101,7 @@ class Command:
                     self._kw_args[kwn] = value
                 prev_annos = (anno, None)
             except ValueError as err:
-                if isinstance(err, AnnotationError) and err.offset is not None:
+                if isinstance(err, AnnotationError):
                     self.amount_parsed += err.offset
                 self._error = 'Invalid "%s" argument: %s' % (user_kw(kw_name), err)
                 return

@@ -522,6 +522,10 @@ class Toolshed:
         else:
             self._available_bundle_info = abc
 
+    @property
+    def cache_initialized(self):
+        return self._available_bundle_info is not None
+
     def register_available_commands(self, logger):
         from sortedcontainers import SortedDict
         available = SortedDict()

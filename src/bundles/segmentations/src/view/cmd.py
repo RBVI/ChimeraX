@@ -4,8 +4,8 @@ from chimerax.core.models import REMOVE_MODELS
 from chimerax.map import Volume
 from chimerax.dicom.dicom_volumes import DICOMVolume
 
-from chimerax.segmentations.ui.view import views, FourPanelView
-from chimerax.segmentations.ui.segmentations import SegmentationTool
+from chimerax.segmentations.view import views, FourPanelView
+from chimerax.segmentations.ui import find_segmentation_tool
 
 
 def any_open_volumes(session) -> bool:
@@ -15,11 +15,7 @@ def any_open_volumes(session) -> bool:
 def view_layout(
     session, layout: str = None, guidelines: bool = None, force=False
 ) -> None:
-    st = None
-    for tool in session.tools:
-        if type(tool) == SegmentationTool:
-            st = tool
-            break
+    st = find_segmentation_tool(session)
     if st:
         st.set_view_dropdown(layout)
     if layout == "default" and session.ui.main_window.view_layout != "default":
@@ -38,7 +34,10 @@ def view_layout(
         if layout:
             session.ui.main_window.main_view.convert_to_layout(layout)
         if guidelines is not None:
-            session.ui.main_window.main_view.set_guideline_visibility(guidelines)
+            if st:
+                st.setGuidelineCheckboxValue(guidelines)
+            else:
+                session.ui.main_window.main_view.set_guideline_visibility(guidelines)
 
 
 view_layout_desc = CmdDesc(
@@ -54,11 +53,7 @@ def _check_rapid_access(session, *_):
         if not any_open_volumes(session):
             if session.ui.main_window.view_layout != "default":
                 session.ui.main_window.restore_default_main_view()
-            st = None
-            for tool in session.tools:
-                if type(tool) == SegmentationTool:
-                    st = tool
-                    break
+            st = find_segmentation_tool(session)
             if st:
                 st.delete()
 

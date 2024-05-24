@@ -1,4 +1,4 @@
-from .orthoplanes import PlaneViewer, PlaneViewerManager, Axis
+from chimerax.segmentations.ui.orthoplanes import PlaneViewer, PlaneViewerManager, Axis
 import PyQt6.sip
 from Qt.QtCore import Qt
 from Qt.QtWidgets import (
@@ -191,6 +191,7 @@ class FourPanelView(QWidget):
             self._sagittal_orthoplane,
         ]:
             orthoplane.close()
+        self._orthoplane_manager.deregister_triggers()
         if self._view_layout == "fourup":
             self._clean_fourup()
         elif self._view_layout == "overunder":

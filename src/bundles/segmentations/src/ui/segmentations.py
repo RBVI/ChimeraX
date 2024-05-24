@@ -58,20 +58,15 @@ from chimerax.ui.options import (
 from chimerax.ui.widgets import ModelMenu
 from chimerax.ui.icons import get_qt_icon
 
-from chimerax.vive.vr import vr_camera as steamvr_camera
-from chimerax.vive.vr import vr_button as steamvr_button
-from chimerax.vive.vr import SteamVRCamera
-from chimerax.vive.xr import vr_camera as openxr_camera
-from chimerax.vive.xr import vr_button as openxr_button
-from chimerax.vive.xr import OpenXRCamera
-
 from ..ui.orthoplanes import Axis
 from ..graphics.cylinder import SegmentationDisk
 from ..graphics.sphere import SegmentationSphere
 from ..dicom_segmentations import PlanePuckSegmentation, SphericalSegmentation
 from ..segmentation import Segmentation, segment_volume
+from ..trigger_handlers import get_tracker
 
 from chimerax.segmentations.settings import get_settings
+from chimerax.segmentations.view.modes import ViewMode
 from chimerax.segmentations.actions import (
     ImageFormat,
     MouseAction,
@@ -79,33 +74,12 @@ from chimerax.segmentations.actions import (
     Handedness,
 )
 
+
 class SegmentationListItem(QListWidgetItem):
     def __init__(self, parent, segmentation):
         super().__init__(parent)
         self.segmentation = segmentation
         self.setText(self.segmentation.name)
-
-
-# Use these enums to populate the dropdowns so that the order is consistent
-class ViewMode(IntEnum):
-    TWO_BY_TWO = 0
-    ORTHOPLANES_OVER_3D = 1
-    ORTHOPLANES_BESIDE_3D = 2
-    DEFAULT_DESKTOP = 3
-    DEFAULT_VR = 4
-
-    def __str__(self):
-        if self.name == "TWO_BY_TWO":
-            return "2 x 2 (desktop)"
-        elif self.name == "ORTHOPLANES_OVER_3D":
-            return "3D over slices (desktop)"
-        elif self.name == "ORTHOPLANES_BESIDE_3D":
-            return "3D beside slices (desktop)"
-        elif self.name == "DEFAULT_DESKTOP":
-            return "3D only (desktop)"
-        elif self.name == "DEFAULT_VR":
-            return "3D only (VR)"
-        return "%s: Set a value to return for the name of this EnumItem" % self.name
 
 
 class SegmentationToolControlsDialog(QDialog):
@@ -189,17 +163,6 @@ class SegmentationToolControlsDialog(QDialog):
                 max=100,
                 callback=None,
                 attr_name="default_segmentation_opacity",
-            )
-        )
-        self.panel.add_option(
-            SymbolicEnumOption(
-                name="Format for saving segmentations",
-                default=None,
-                settings=settings,
-                callback=None,
-                labels=[str(format) for format in ImageFormat],
-                values=[format.value for format in ImageFormat],
-                attr_name="default_file_format",
             )
         )
         self.settings_container.layout().addWidget(self.panel)
@@ -413,10 +376,10 @@ class SegmentationTool(ToolInstance):
         # Construct the GUI
         self.tool_window = MainToolWindow(self)
         self.settings = get_settings(self.session)
+        self.segmentation_tracker = get_tracker(self.session)
         self.parent = self.tool_window.ui_area
         self.controls_dialog = SegmentationToolControlsDialog(self.parent, self.session)
         self.main_layout = QVBoxLayout()
-        self.active_seg: Volume | None = None
 
         self.view_dropdown_container = QWidget(self.parent)
         self.view_dropdown_layout = QHBoxLayout()
@@ -563,7 +526,7 @@ class SegmentationTool(ToolInstance):
             QSizePolicy.Policy.Ignored, QSizePolicy.Policy.MinimumExpanding
         )
         self.segmentation_list.currentItemChanged.connect(
-            self._on_active_segmentation_changed
+            self._on_current_menu_item_changed
         )
         self.main_layout.addWidget(self.segmentation_list_label)
         self.main_layout.addWidget(self.add_remove_save_container)
@@ -602,7 +565,6 @@ class SegmentationTool(ToolInstance):
         self.segmentation_sphere = None
         self.segmentations = {}
         self.current_segmentation = None
-        self.reference_model = None
         self.threshold_max = 0
         self.threshold_min = 0
 
@@ -638,19 +600,33 @@ class SegmentationTool(ToolInstance):
                 if self.settings.start_vr_automatically:
                     self._start_vr()
 
-        # Do the initial population of the segmentation list
-        for model in self.session.models:
-            if type(model) is DICOMVolume and model.is_segmentation():
-                self.segmentation_list.addItem(
-                    SegmentationListItem(
-                        parent=self.segmentation_list, segmentation=model
-                    )
-                )
-                if self.session.ui.main_window.view_layout == "orthoplanes":
-                    self.session.ui.main_window.main_view.add_segmentation(model)
-        self.segmentations_by_model = {}
+        self._on_view_changed()
+        self._populate_segmentation_list()
+
         self.tool_window.fill_context_menu = self.fill_context_menu
         self._surface_chosen()
+
+    def _populate_segmentation_list(self):
+        reference_model = self.model_menu.value
+        segmentations = self.segmentation_tracker.segmentations_for_volume(
+            reference_model
+        )
+        for model in segmentations:
+            self.segmentation_list.addItem(
+                SegmentationListItem(parent=self.segmentation_list, segmentation=model)
+            )
+            if self.session.ui.main_window.view_layout == "orthoplanes":
+                self.session.ui.main_window.main_view.add_segmentation(model)
+
+    def _clear_segmentation_list(self):
+        for _ in range(self.segmentation_list.count()):
+            item = self.segmentation_list.takeItem(0)
+            item.segmentation = None
+            del item
+
+    def _rebuild_segmentation_list(self):
+        self._clear_segmentation_list()
+        self._populate_segmentation_list()
 
     def fill_context_menu(self, menu, x, y):
         show_settings_action = QAction("Settings...", menu)
@@ -678,36 +654,34 @@ class SegmentationTool(ToolInstance):
     def _on_model_added_to_session(self, *args):
         # If this model is a DICOM segmentation, add it to the list of segmentations
         _, model_list = args
+        need_to_rebuild_our_list = False
+        current_reference_model = self.model_menu.value
         if model_list:
             for model in model_list:
-                if (type(model) is DICOMVolume and model.is_segmentation()) or type(
-                    model
-                ) is Segmentation:
-                    self.segmentation_list.addItem(
-                        SegmentationListItem(
-                            parent=self.segmentation_list, segmentation=model
-                        )
-                    )
-                    if self.session.ui.main_window.view_layout == "orthoplanes":
-                        self.session.ui.main_window.main_view.add_segmentation(model)
+                if (
+                    isinstance(model, DICOMVolume)
+                    and model.is_segmentation()
+                    or isinstance(model, Segmentation)
+                ):
+                    if model.reference_volume is current_reference_model:
+                        need_to_rebuild_our_list = True
+        if need_to_rebuild_our_list:
+            self._rebuild_segmentation_list()
 
     def _on_model_removed_from_session(self, *args):
         # If this model is a DICOM segmentation, add it to the list of segmentations
         _, model_list = args
         if model_list:
             for model in model_list:
-                for row in range(self.segmentation_list.count()):
-                    item = self.segmentation_list.item(row)
-                    if item.segmentation == model:
-                        seg_item = self.segmentation_list.takeItem(row)
-                        segments = [seg_item.segmentation]
-                        seg_item.segmentation = None
-                        del seg_item
-                        if self.session.ui.main_window.view_layout == "orthoplanes":
-                            self.session.ui.main_window.main_view.remove_segmentation(
-                                model
-                            )
-                        break
+                if isinstance(model, Segmentation):
+                    if model.reference_volume is self.model_menu.value:
+                        for row in range(self.segmentation_list.count()):
+                            item = self.segmentation_list.item(row)
+                            if item.segmentation == model:
+                                seg_item = self.segmentation_list.takeItem(row)
+                                segments = [seg_item.segmentation]
+                                seg_item.segmentation = None
+                                del seg_item
 
     def delete(self):
         self.session.triggers.remove_handler(self.model_added_handler)
@@ -727,134 +701,26 @@ class SegmentationTool(ToolInstance):
         super().delete()
 
     def _set_3d_mouse_modes(self):
-        for binding in self.session.ui.mouse_modes.bindings:
-            if not binding.modifiers:
-                self.old_mouse_bindings[binding.button]["none"] = binding.mode.name
-            else:
-                for modifier in binding.modifiers:
-                    self.old_mouse_bindings[binding.button][
-                        modifier
-                    ] = binding.mode.name
-        run(self.session, "ui mousemode shift wheel 'resize segmentation cursor'")
-        run(self.session, "ui mousemode right 'create segmentations'")
-        run(self.session, "ui mousemode shift right 'erase segmentations'")
-        run(self.session, "ui mousemode shift middle 'move segmentation cursor'")
+        run(self.session, "segmentations mouseModes on")
         self.mouse_modes_changed = True
 
     def _reset_3d_mouse_modes(self):
         """Set mouse modes back to what they were but only if we changed them automatically.
         If you set the mode by hand, or in between the change and restore you're on your own!
         """
-        if self.mouse_modes_changed:
-            run(
-                self.session,
-                (
-                    "ui mousemode shift wheel '"
-                    + self.old_mouse_bindings["wheel"]["shift"]
-                    + "'"
-                    if self.old_mouse_bindings["wheel"]["shift"]
-                    else "ui mousemode shift wheel 'none'"
-                ),
-            )
-            run(
-                self.session,
-                (
-                    "ui mousemode right '"
-                    + self.old_mouse_bindings["right"]["none"]
-                    + "'"
-                    if self.old_mouse_bindings["right"]["none"]
-                    else "ui mousemode right 'none'"
-                ),
-            )
-            run(
-                self.session,
-                (
-                    "ui mousemode shift right '"
-                    + self.old_mouse_bindings["right"]["shift"]
-                    + "'"
-                    if self.old_mouse_bindings["right"]["shift"]
-                    else "ui mousemode shift right 'none'"
-                ),
-            )
-            run(
-                self.session,
-                (
-                    "ui mousemode shift middle '"
-                    + self.old_mouse_bindings["middle"]["shift"]
-                    + "'"
-                    if self.old_mouse_bindings["middle"]["shift"]
-                    else "ui mousemode shift middle 'none'"
-                ),
-            )
+        run(self.session, "segmentations mouseModes off")
         self.mouse_modes_changed = False
 
     def _set_vr_hand_modes(self):
+        run(self.session, "segmentations handModes on")
         self.hand_modes_changed = True
-        if type(self.session.main_view.camera) is SteamVRCamera:
-            vr_camera = steamvr_camera
-            vr_button = steamvr_button
-            from openvr import (
-                k_EButton_Grip as grip,
-                k_EButton_ApplicationMenu as menu,
-                k_EButton_SteamVR_Trigger as trigger,
-                k_EButton_SteamVR_Touchpad as touchpad,
-                k_EButton_A as a,
-            )
-
-            button_names = {
-                grip: "grip",
-                menu: "menu",
-                trigger: "trigger",
-                touchpad: "thumbstick",
-                a: "a",
-            }
-            c = vr_camera(self.session)
-            hclist = [
-                hc
-                for hc in c.hand_controllers()
-                if hc._side == str(self.settings.vr_handedness).lower()
-            ]
-            if not hclist:
-                ...  # error
-            hc = hclist[0]
-            for button, binding in hc._modes.items():
-                self.old_hand_bindings[button_names[button]] = binding.name
-        elif type(self.session.main_view.camera) is OpenXRCamera:
-            # TODO
-            vr_camera = openxr_camera
-            vr_button = openxr_button
-        run(
-            self.session,
-            f"vr button b 'erase segmentations' hand { str(self.settings.vr_handedness).lower() }",
-        )
-        run(
-            self.session,
-            f"vr button a 'create segmentations' hand { str(self.settings.vr_handedness).lower() }",
-        )
-        run(self.session, f"vr button x 'toggle segmentation visibility' hand left")
-        run(
-            self.session,
-            f"vr button thumbstick 'resize segmentation cursor' hand { str(self.settings.vr_handedness).lower() }",
-        )
-        run(
-            self.session,
-            f"vr button grip 'move segmentation cursor' hand { str(self.settings.vr_handedness).lower() }",
-        )
 
     def _reset_vr_hand_modes(self):
         """Set hand modes back to what they were but only if we changed them automatically.
         If you set the mode by hand, or in between the change and restore you're on your own!
         """
         if self.hand_modes_changed:
-            run(self.session, f'vr button trigger {self.old_hand_modes["trigger"]}')
-            run(
-                self.session,
-                f'vr button thumbstick {self.old_hand_modes["thumbstick"]}',
-            )
-            run(self.session, f'vr button grip {self.old_hand_modes["grip"]}')
-            run(self.session, f'vr button a {self.old_hand_modes["a"]}')
-            run(self.session, f'vr button b {self.old_hand_modes["b"]}')
-            run(self.session, f'vr button x {self.old_hand_modes["x"]}')
+            run(self.session, "segmentations handModes off")
         self.hand_modes_changed = False
 
     def _start_vr(self):
@@ -868,13 +734,15 @@ class SegmentationTool(ToolInstance):
         # except redefine the constraints of our segmentation e.g. size, spacing
         # TODO: When does this get called from the event loop / why?
         try:
-            self.reference_model = self.model_menu.value
+            current_reference_model = self.model_menu.value
+            self._clear_segmentation_list()
+            self._populate_segmentation_list()
             for axis, puck in self.segmentation_cursors.items():
-                puck.height = self.reference_model.data.pixel_spacing()[axis]
+                puck.height = current_reference_model.data.pixel_spacing()[axis]
             # Keep the orthoplanes in sync with this menu, but don't require this menu to
             # be in sync with them
-            min_ = int(self.reference_model.data.pixel_array.min())
-            max_ = int(self.reference_model.data.pixel_array.max())
+            min_ = int(current_reference_model.data.pixel_array.min())
+            max_ = int(current_reference_model.data.pixel_array.max())
             self.lower_intensity_spinbox.setRange(min_, max_)
             self.upper_intensity_spinbox.setRange(min_, max_)
             self.lower_intensity_spinbox.setValue(min_)
@@ -902,26 +770,39 @@ class SegmentationTool(ToolInstance):
             cursor.display = initial_display
             # The active segmentation will always have the same spacing as whatever
             # is currently the reference model, so we can set the height to that
-            if self.active_seg:
-                cursor.height = self.active_seg.data.plane_spacings()[cursor.axis]
+            if self.segmentation_tracker.active_segmentation:
+                cursor.height = (
+                    self.segmentation_tracker.active_segmentation.data.plane_spacings()[
+                        cursor.axis
+                    ]
+                )
         self.session.models.add(self.segmentation_cursors.values())
 
     def _destroy_2d_segmentation_pucks(self) -> None:
-        self.session.models.remove(self.segmentation_cursors.values())
+        seg_cursors = self.segmentation_cursors.values()
+        # We have to check because if we close all volumes the tool's delete method is called
+        # which calls this method, which schedules things for deletion twice, and will cause an
+        # infinite recursion
+        for cursor in seg_cursors:
+            if cursor in self.session.models:
+                self.session.models.remove([cursor])
         self.segmentation_cursors = {}
 
     def _create_3d_segmentation_sphere(self) -> None:
         self.segmentation_sphere = SegmentationSphere(
             "Segmentation Sphere", self.session
         )
-        if self.reference_model:
+        current_reference_model = self.model_menu.value
+        if current_reference_model:
             self.segmentation_sphere.position = Place(
-                origin=self.reference_model.bounds().center()
+                origin=current_reference_model.bounds().center()
             )
 
     def _destroy_3d_segmentation_sphere(self) -> None:
         if self.segmentation_sphere:
-            self.session.models.remove([self.segmentation_sphere])
+            # See comment in _destroy_2d_segmentation_pucks for why this is necessary
+            if self.segmentation_sphere in self.session.models:
+                self.session.models.remove([self.segmentation_sphere])
             self.segmentation_sphere = None
 
     def make_puck_visible(self, axis):
@@ -947,7 +828,7 @@ class SegmentationTool(ToolInstance):
         # redundant recalculations.
         # I can already see this becoming a massive PITA when 3D spheres get involved.
         # TODO: Many segmentations
-        if not self.active_seg:
+        if not self.segmentation_tracker.active_segmentation:
             self.addSegment()
         positions = []
         for marker in markers:
@@ -958,7 +839,7 @@ class SegmentationTool(ToolInstance):
         if self.intensity_range_checkbox.isChecked() and value != 0:
             segmentation_strategy.min_threshold = self.threshold_min
             segmentation_strategy.max_threshold = self.threshold_max
-        self.active_seg.segment(segmentation_strategy)
+        self.segmentation_tracker.active_segmentation.segment(segmentation_strategy)
 
     def addMarkersToSegment(self, axis, slice, markers):
         self.setMarkerRegionsToValue(axis, slice, markers, 1)
@@ -971,14 +852,10 @@ class SegmentationTool(ToolInstance):
         # ADD_MODEL event that we listen to above. Concerns are separated here so
         # that segmentations from files still show up in the menu.
         # TODO: We want to track the number of segmentations created per open model
-        self.num_segmentations_created += 1
-        new_seg = segment_volume(self.reference_model, self.num_segmentations_created)
-        new_seg.set_parameters(surface_levels=[0.501])
-        new_seg.set_step(1)
-        new_seg.set_transparency(
-            int((self.settings.default_segmentation_opacity / 100) * 255)
-        )
-        self.session.models.add([new_seg])
+        current_reference_model = self.model_menu.value
+        from chimerax.core.commands import run
+
+        run(self.session, "segmentations create %s" % current_reference_model.atomspec)
         num_items = self.segmentation_list.count()
         self.segmentation_list.setCurrentItem(
             self.segmentation_list.item(num_items - 1)
@@ -988,49 +865,52 @@ class SegmentationTool(ToolInstance):
         # We don't need to listen to the REMOVE_MODEL trigger because we're going
         # to be the ones triggering it, here.
         if isinstance(segments, bool):
-            # We got here from clicking the button...
             segments = None
         if segments is None:
             seg_item = self.segmentation_list.takeItem(
                 self.segmentation_list.currentRow()
             )
+            if seg_item is None:
+                self.session.logger.warning("No segmentations to remove.")
+                return
             segments = [seg_item.segmentation]
             seg_item.segmentation = None
             del seg_item
-        if self.session.ui.main_window.view_layout == "orthoplanes":
-            self.session.ui.main_window.main_view.remove_segmentation(segments[0])
-        self.session.models.remove(segments)
+        # if self.segmentation_tracker.active_segmentation in segments:
+        from chimerax.core.commands import run
+
+        for segment in segments:
+            run(self.session, "close %s" % segment.atomspec)
 
     def saveSegment(self, segments=None):
-        if isinstance(segments, bool):
-            # Why in world would this be a bool?? Go home Qt, you're drunk.
-            segments = None
-        if segments is None:
-            segments = self.segmentation_list.selectedItems()
+        if not len(self.segmentation_list):
+            self.session.logger.warning("No segmentations to save.")
+            return
+        if self.segmentation_tracker.active_segmentation is None:
+            self.session.logger.warning("No active segmentation to save.")
+            return
         sd = SaveDialog(self.session, parent=self.tool_window.ui_area)
-        sd.setNameFilter("DICOM (*.dcm)")
-        sd.setDefaultSuffix("dcm")
         if not sd.exec():
             return
         filename = sd.selectedFiles()[0]
-        self.active_seg.data.save(filename)
+        self.segmentation_tracker.active_segmentation.save(filename)
 
     def setActiveSegment(self, segment):
-        if self.active_seg:
-            self.active_seg.active = False
-        self.active_seg = segment
-        if self.active_seg:
-            self.active_seg.active = True
+        if self.segmentation_tracker.active_segmentation:
+            self.segmentation_tracker.active_segmentation.active = False
+        self.segmentation_tracker.active_segmentation = segment
+        if self.segmentation_tracker.active_segmentation:
+            self.segmentation_tracker.active_segmentation.active = True
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.redraw_all()
 
     def hide_active_segmentation(self):
-        self.active_seg.display = False
+        self.segmentation_tracker.active_segmentation.display = False
 
     def show_active_segmentation(self):
-        self.active_seg.display = True
+        self.segmentation_tracker.active_segmentation.display = True
 
-    def _on_active_segmentation_changed(self, new, prev):
+    def _on_current_menu_item_changed(self, new, prev):
         if new:
             self.edit_seg_metadata_button.setEnabled(True)
             self.setActiveSegment(new.segmentation)
@@ -1039,9 +919,9 @@ class SegmentationTool(ToolInstance):
             self.setActiveSegment(None)
 
     def set_segmentation_step(self, step):
-        if not self.active_seg:
+        if not self.segmentation_tracker.active_segmentation:
             self.addSegment()
-        self.active_seg.set_step(step)
+        self.segmentation_tracker.active_segmentation.set_step(step)
 
     def _on_view_changed(self):
         self.previous_layout = self.current_layout
@@ -1159,13 +1039,13 @@ class SegmentationTool(ToolInstance):
         sm.position = sm.position * translation(dxyz)
 
     def setSphereRegionToValue(self, origin, radius, value=1):
-        if not self.active_seg:
+        if not self.segmentation_tracker.active_segmentation:
             self.addSegment()
         segmentation_strategy = SphericalSegmentation(origin, radius, value)
         if self.intensity_range_checkbox.isChecked() and value != 0:
             segmentation_strategy.min_threshold = self.threshold_min
             segmentation_strategy.max_threshold = self.threshold_max
-        self.active_seg.segment(segmentation_strategy)
+        self.segmentation_tracker.active_segmentation.segment(segmentation_strategy)
 
     def addSphereToSegment(self, origin, radius):
         self.setSphereRegionToValue(origin, radius, 1)

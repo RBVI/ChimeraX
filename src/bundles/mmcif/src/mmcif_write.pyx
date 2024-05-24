@@ -96,7 +96,7 @@ def _same_chains(chain0, chain1):
 
 
 def _rdisplayed(r):
-    if r.ribbon_displayed:
+    if r.ribbon_display:
         return True
     # any(r.atoms.displays) is faster than r.atoms.displays.any()
     # for short arrays (len < 32), and much faster for even shorter arrays (len < 8)
