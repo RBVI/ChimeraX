@@ -346,8 +346,11 @@ class Bundle:
                 buttons = attrs.pop("button", [])
                 name = attrs.pop("name", None)
                 if not name:
-                    raise ValueError("A toolbar section must have a name")
-                self.toolbars.append(Toolbar(section, name, attrs))
+                    warnings.warn(
+                        "A toolbar section must have a name; if this bundle does not extend another toolbar please add one."
+                    )
+                else:
+                    self.toolbars.append(Toolbar(section, name, attrs))
                 for button in buttons:
                     name = button.pop("name", None)
                     if not name:
@@ -356,17 +359,11 @@ class Bundle:
         if "preset" in chimerax_data:
             for preset_name, attrs in chimerax_data["preset"].items():
                 self.presets.append(Preset(preset_name, attrs))
-        if "initialization" in chimerax_data:
-            init = chimerax_data["initialization"]
-            if type(init) is list:
-                for entry in chimerax_data["initialization"]:
-                    self.initializations.append(
-                        Initialization(entry["type"], entry["bundles"])
-                    )
-            else:
-                self.initializations.append(
-                    Initialization(init["type"], init["bundles"])
-                )
+        if "initializations" in chimerax_data:
+            init = chimerax_data["initializations"]
+            for entry_type, bundles in init.items():
+                _bundles = bundles.get("bundles", bundles.get("bundle", None))
+                self.initializations.append(Initialization(entry_type, _bundles))
         if "extension" in chimerax_data:
             for name, attrs in chimerax_data["extension"].items():
                 self.c_modules.append(_CModule(name, attrs))
