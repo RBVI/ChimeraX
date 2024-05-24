@@ -426,11 +426,10 @@ class LaunchEmplaceLocalTool(ToolInstance):
 
 class LaunchFitLoopsTool(ToolInstance):
     #help = "help:user/tools/localemfitting.html"
-    #NOTES: 1oed (all failures), 3j5p
 
     GAPS_TAB, REMODEL_TAB = TAB_NAMES = ("Fill Gaps", "Remodel")
 
-    ADVISORY_RES_LIMIT = 10
+    ADVISORY_RES_LIMIT = 15
     HARD_RES_LIMIT = 20
 
     def __init__(self, session, tool_name):
