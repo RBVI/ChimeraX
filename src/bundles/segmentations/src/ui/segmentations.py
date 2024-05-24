@@ -600,6 +600,7 @@ class SegmentationTool(ToolInstance):
                 if self.settings.start_vr_automatically:
                     self._start_vr()
 
+        self._on_view_changed()
         self._populate_segmentation_list()
 
         self.tool_window.fill_context_menu = self.fill_context_menu

@@ -124,6 +124,23 @@ class UI(QApplication):
         self.triggers.add_trigger('tool window show')
         self.triggers.add_trigger('tool window hide')
 
+        # Work around Mac crash when adding or removing a screen. ChimeraX ticket #15277.
+        self.screenAdded.connect(self._block_redraw_during_screen_change)
+        self.screenRemoved.connect(self._block_redraw_during_screen_change)
+
+    def _block_redraw_during_screen_change(self, screen, block_msec = 2000):
+        '''Work around bug #15277 where ChimeraX crashes on Mac when a screen is added or removed.'''
+        self.session.update_loop.block_redraw()
+        timer = []
+        t = self.timer(block_msec, self._unblock_redraw, timer)
+        timer.append(t)
+        if not hasattr(self, '_block_redraw_timers'):
+            self._block_redraw_timers = set()
+        self._block_redraw_timers.add(t)
+    def _unblock_redraw(self, timer_list):
+        self._block_redraw_timers.discard(timer_list[0])
+        self.session.update_loop.unblock_redraw()
+
     @property
     def mouse_modes(self):
         # delay creation of mouse modes to allow mouse_modes bundle time to run
