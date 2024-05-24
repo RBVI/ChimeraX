@@ -34,7 +34,10 @@ def view_layout(
         if layout:
             session.ui.main_window.main_view.convert_to_layout(layout)
         if guidelines is not None:
-            session.ui.main_window.main_view.set_guideline_visibility(guidelines)
+            if st:
+                st.setGuidelineCheckboxValue(guidelines)
+            else:
+                session.ui.main_window.main_view.set_guideline_visibility(guidelines)
 
 
 view_layout_desc = CmdDesc(

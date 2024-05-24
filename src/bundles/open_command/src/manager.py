@@ -49,7 +49,7 @@ class FetcherProviderInfo:
         self.pregrouped_structures = pregrouped_structures
         self.group_multiple_models = group_multiple_models
 
-from chimerax.core.toolshed import ProviderManager
+from chimerax.core.toolshed import ProviderManager, get_toolshed
 class OpenManager(ProviderManager):
     """Manager for open command"""
 
@@ -111,9 +111,9 @@ class OpenManager(ProviderManager):
             try:
                 data_format = self.session.data_formats[format_name]
             except KeyError:
-                self.session.logger.info("Database-fetch provider '%s' in bundle %s specified"
-                    " unknown data format '%s'" % (ui_name, bundle_name, format_name))
-                return
+                if get_toolshed().cache_initialized:
+                    raise ValueError("Database-fetch provider '%s' in bundle %s specified"
+                        " unknown data format '%s'" % (ui_name, bundle_name, format_name))
             if name in self._fetchers and format_name in self._fetchers[name]:
                 if not bundle_info.installed:
                     return
