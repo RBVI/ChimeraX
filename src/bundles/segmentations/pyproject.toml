@@ -52,6 +52,11 @@ description = "See medical images in a 4-panel viewer"
 category = "Volume Data"
 description = "Create, edit, or destory segmentations"
 
+[chimerax.provider."Segmentation Controls"]
+manager = "toolbar"
+tab = "Medical Image"
+after = "Mouse Mode"
+
 [chimerax.provider."toggle mouse modes"]
 manager = "toolbar"
 tab = "Medical Image"
