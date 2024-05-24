@@ -187,11 +187,16 @@ def label_missing_cmd(session, structures, show):
             for pb in pbg.pseudobonds:
                 a1, a2 = pb.atoms
                 r1, r2 = a1.residue, a2.residue
+                # only label in-chain pseudobonds
+                if r1.chain != r2.chain or r1.chain is None:
+                    continue
                 if r1.name == "UNK" or r2.name == "UNK":
                     # e.g. 3j5p
                     gap_size = abs(r1.number - r2.number) - 1
                 else:
                     gap_size = abs(r1.chain.residues.index(r1) - r2.chain.residues.index(r2)) - 1
+                if gap_size < 1:
+                    continue
                 label(session, Objects(pseudobonds=Pseudobonds([pb])),
                     text="%d %s" % (gap_size, plural_form(gap_size, "residue")),
                     height=math.log10(max(gap_size, 1))+1)
