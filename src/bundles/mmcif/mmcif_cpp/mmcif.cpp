@@ -313,7 +313,7 @@ struct ExtractMolecule: public readcif::CIFFile
     StrandInfo strand_info;
 #endif
     Residue* find_residue(int model_num, const ChainID& chain_id, long position, const ResName& name);
-    Residue* find_residue(const ChainResidueMap& crm, const ChainID& chain_id, ResidueKey& rk);
+    Residue* find_residue(const ChainResidueMap& crm, const ChainID& chain_id, const ResidueKey& rk);
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
@@ -491,7 +491,7 @@ ExtractMolecule::find_residue(int model_num, const ChainID& chain_id, long posit
 }
 
 inline Residue*
-ExtractMolecule::find_residue(const ChainResidueMap& crm, const ChainID& chain_id, ResidueKey& rk)
+ExtractMolecule::find_residue(const ChainResidueMap& crm, const ChainID& chain_id, const ResidueKey& rk)
 {
     const auto ci = crm.find(chain_id);
     if (ci == crm.end())
@@ -619,9 +619,12 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
     if (gap || (!Bond::polymer_bond_atoms(a0, a1) && !reasonable_bond_length(a0, a1))) {
         // gap or CA trace
         auto as = r0->structure();
-        auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
-            atomstruct::AS_PBManager::GRP_NORMAL);
-        pbg->new_pseudobond(a0, a1);
+        if (a0->residue()->chain_id() == a1->residue()->chain_id()) {
+            // should only be creating bond within chain, but be careful
+            auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
+                atomstruct::AS_PBManager::GRP_NORMAL);
+            pbg->new_pseudobond(a0, a1);
+        }
     } else if (!a0->connects_to(a1))
         (void) a0->structure()->new_bond(a0, a1);
 }
@@ -792,11 +795,10 @@ ExtractMolecule::finished_parse()
                         auto ri2 = residue_map.find(ResidueKey(entity_id, p2.seq_id, p2.mon_id));
                         if (ri2 == residue_map.end())
                             continue;
-                        string c_id;
-                        if (auth_chain_id == " ")
+                        Residue* r = ri2->second;
+                        string c_id = r->chain_id();
+                        if (c_id == " ")
                             c_id = "' '";
-                        else
-                            c_id = auth_chain_id;
                         if (model_num == first_model_num) {
                             if (model_num != first_model_num)
                                 ;  // only warn for first model
@@ -807,7 +809,6 @@ ExtractMolecule::finished_parse()
                                 logger::warning(_logger, "Skipping residue with duplicate label_seq_id ",
                                                 p.seq_id, " in chain ", c_id);
                         }
-                        Residue* r = ri2->second;
                         residue_map.erase(ri2);
                         mol->delete_residue(r);
                     }
@@ -1410,8 +1411,13 @@ ExtractMolecule::parse_atom_site()
         }
 
         bool missing_entity_id = entity_id.empty();
-        if (missing_entity_id)
-            entity_id = chain_id;  // no entity_id, use chain id
+        if (missing_entity_id) {
+            // no entity_id, use chain id
+            if (chain_id != " ")
+                entity_id = chain_id;
+            else
+                entity_id = chain_id = auth_chain_id;
+        }
         bool missing_position = position == 0;
         if (missing_position)
             position = auth_position;
@@ -1843,7 +1849,8 @@ ExtractMolecule::parse_struct_conn()
                 hydrogen_bonds.insert(key);
                 continue;
             }
-            if (!reasonable_bond_length(a1, a2, distance)) {
+            if (a1->residue()->chain_id() == a2->residue()->chain_id()
+            && !reasonable_bond_length(a1, a2, distance)) {
                 auto missing_pbg = mol->pb_mgr().get_group(
                         mol->PBG_MISSING_STRUCTURE,
                         atomstruct::AS_PBManager::GRP_NORMAL);
