@@ -88,8 +88,9 @@ class OpenManager(ProviderManager):
             try:
                 data_format = self.session.data_formats[ui_name]
             except KeyError:
-                logger.warning("Open-command provider in bundle %s specified unknown"
-                    " data format '%s';" " skipping" % (bundle_name, ui_name))
+                if get_toolshed().cache_initialized:
+                    raise ValueError("Open-command provider in bundle %s specified unknown"
+                        " data format '%s'" % (bundle_name, ui_name))
                 return
             if data_format in self._openers and self._openers[data_format].bundle_info.installed:
                 if not bundle_info.installed:
@@ -114,6 +115,7 @@ class OpenManager(ProviderManager):
                 if get_toolshed().cache_initialized:
                     raise ValueError("Database-fetch provider '%s' in bundle %s specified"
                         " unknown data format '%s'" % (ui_name, bundle_name, format_name))
+                return
             if name in self._fetchers and format_name in self._fetchers[name]:
                 if not bundle_info.installed:
                     return
