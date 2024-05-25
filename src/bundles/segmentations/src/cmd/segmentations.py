@@ -100,7 +100,7 @@ def segmentations(
                     "Ignoring the intensity parameters for removing regions from a segmentation"
                 )
                 minIntensity = maxIntensity = None
-            if axis:
+            if len(center) < 3 and axis:
                 axis = Axis.from_string(axis)
                 segment_in_circle(
                     model,
