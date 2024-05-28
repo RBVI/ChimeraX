@@ -125,12 +125,17 @@ class UI(QApplication):
         self.triggers.add_trigger('tool window hide')
 
         # Work around Mac crash when adding or removing a screen. ChimeraX ticket #15277.
-        self.screenAdded.connect(self._block_redraw_during_screen_change)
-        self.screenRemoved.connect(self._block_redraw_during_screen_change)
+        from sys import platform
+        if platform == 'darwin':
+            self.screenAdded.connect(self._block_redraw_during_screen_change)
+            self.screenRemoved.connect(self._block_redraw_during_screen_change)
 
-    def _block_redraw_during_screen_change(self, screen, block_msec = 2000):
+    def _block_redraw_during_screen_change(self, screen):
         '''Work around bug #15277 where ChimeraX crashes on Mac when a screen is added or removed.'''
         self.session.update_loop.block_redraw()
+        # Block for longer on Intel Mac where a 2 second block still caused crash #15304.
+        from os import uname
+        block_msec = 5000 if uname().machine == 'x86_64' else 2000
         timer = []
         t = self.timer(block_msec, self._unblock_redraw, timer)
         timer.append(t)

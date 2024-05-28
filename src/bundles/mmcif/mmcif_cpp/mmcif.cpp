@@ -187,8 +187,10 @@ public:
 };
 #endif
 
-bool reasonable_bond_length(Atom* a1, Atom* a2, float distance = std::numeric_limits<float>::quiet_NaN())
+bool
+reasonable_bond_length(Atom* a1, Atom* a2, float distance = std::numeric_limits<float>::quiet_NaN())
 {
+    // use same criteria as pdb_connect::find_missing_structure_bonds
     Real idealBL = Element::bond_length(a1->element(), a2->element());
     Real sqlength;
     if (!std::isnan(distance))
@@ -196,8 +198,8 @@ bool reasonable_bond_length(Atom* a1, Atom* a2, float distance = std::numeric_li
     else
         sqlength = a1->coord().sqdistance(a2->coord());
     // 3.0625 == 1.75 squared
-    // (allows ASP 223.A OD2 <-> PLP 409.A N1 bond in 1aam
-    // and SER 233.A OG <-> NDP 300.A O1X bond in 1a80
+    // (allows ASP /A:223 OD2 <-> PLP /A:409 N1 bond in 1aam
+    // and SER /A:233 OG <-> NDP /A:300 O1X bond in 1a80
     // to not be classified as missing seqments)
     return (sqlength < 3.0625f * idealBL * idealBL);
 }
@@ -619,12 +621,9 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
     if (gap || (!Bond::polymer_bond_atoms(a0, a1) && !reasonable_bond_length(a0, a1))) {
         // gap or CA trace
         auto as = r0->structure();
-        if (a0->residue()->chain_id() == a1->residue()->chain_id()) {
-            // should only be creating bond within chain, but be careful
-            auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
-                atomstruct::AS_PBManager::GRP_NORMAL);
-            pbg->new_pseudobond(a0, a1);
-        }
+        auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
+            atomstruct::AS_PBManager::GRP_NORMAL);
+        pbg->new_pseudobond(a0, a1);
     } else if (!a0->connects_to(a1))
         (void) a0->structure()->new_bond(a0, a1);
 }
@@ -1849,8 +1848,7 @@ ExtractMolecule::parse_struct_conn()
                 hydrogen_bonds.insert(key);
                 continue;
             }
-            if (a1->residue()->chain_id() == a2->residue()->chain_id()
-            && !reasonable_bond_length(a1, a2, distance)) {
+            if (!reasonable_bond_length(a1, a2, distance)) {
                 auto missing_pbg = mol->pb_mgr().get_group(
                         mol->PBG_MISSING_STRUCTURE,
                         atomstruct::AS_PBManager::GRP_NORMAL);

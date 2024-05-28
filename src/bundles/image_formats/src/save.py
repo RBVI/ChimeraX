@@ -127,6 +127,10 @@ def save_image(session, path, format_name=None, width=None, height=None,
         raise UserError('Image size %d x %d too large, exceeds maximum OpenGL render buffer size %d'
                         % (width, height, max_size))
 
+    if session.in_script:
+        # Update clip planes before saving image.  Bug #15308
+        session.update_loop.update_graphics_now()
+        
     i = view.image(width, height, supersample=supersample,
                    transparent_background=transparent_background)
     if i is not None:
