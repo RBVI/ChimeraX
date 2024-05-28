@@ -70,22 +70,24 @@ src="../tools/mouse-icons/right_controller_small.png"></a>
 &nbsp;<b>center</b>&nbsp;&nbsp;<i>i,j</i>
 &nbsp;<b>slice</b>&nbsp;&nbsp;<i>k</i>
 &nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>
-&nbsp;<a href="#options"><i>options</i></a>
+[&nbsp;<b>minIntensity</b>&nbsp;&nbsp;<i>min</i>&nbsp;]
+[&nbsp;<b>maxIntensity</b>&nbsp;&nbsp;<i>max</i>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>segmentations (&nbsp;add&nbsp;|&nbsp;remove&nbsp;)</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>seg-model</i></a>&nbsp;
 &nbsp;<b>center</b>&nbsp;&nbsp;<i>i,j,k</i>
 &nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>
-&nbsp;<a href="#options"><i>options</i></a>
-<br>
-<a name="options"></a>
-<a href="usageconventions.html"><b>Usage</b></a>:
-<b>segmentations</b>
 [&nbsp;<b>minIntensity</b>&nbsp;&nbsp;<i>min</i>&nbsp;]
 [&nbsp;<b>maxIntensity</b>&nbsp;&nbsp;<i>max</i>&nbsp;]
-[&nbsp;<b>mouseModes</b>&nbsp;&nbsp;on&nbsp;|&nbsp;off&nbsp;]
-[&nbsp;<b>handModes</b>&nbsp;&nbsp;on&nbsp;|&nbsp;off&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>segmentations</b>
+<b>mouseModes</b>&nbsp;&nbsp;on&nbsp;|&nbsp;off&nbsp;
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>segmentations</b>
+<b>handModes</b>&nbsp;&nbsp;on&nbsp;|&nbsp;off&nbsp;
 </blockquote>
 <p>
 The <b>segmentations create</b> command starts a new segmentation model
@@ -108,17 +110,21 @@ All grid indices start at zero. The <b>radius</b>&nbsp;&nbsp<i>r</i>
 is the radius of the circular or spherical area being added to or subtracted
 from the segmentation.
 </p><p>
-The remaining arguments are optional and can be used in the
-<b>segmentations</b> command alone or in combination with each other or
-any of the <b>segmentations</b> actions described above
-(<b>create</b>, <b>add</b>, <b>remove</b>).
-</p>
+The <b>minIntensity</b>&nbsp;&nbsp;<i>min</i> and 
+<b>maxIntensity</b>&nbsp;&nbsp;<i>max</i> settings
+specify the range of data values that can be added to the segmentation model.
+They apply only to <b>segmentations add</b> and are ignored by
+<b>segmentations remove</b>.
+Only those pixels with data values within the specified range will be added 
+even if a larger area is given in the command. The settings are not
+persistent, in that they apply only to the command(s) in which they appear;
+when they are omitted from the command, there is no limit on the 
+range of data values that can be added.
+</p><p>
+The remaining options set/unset button functions associated with
+<a href="../tools/segmentations.html"><b>Segmentations</b></a>:
+</p> 
 <ul>
-<li><b>minIntensity</b>&nbsp;&nbsp;<i>min</i> and 
-<b>maxIntensity</b>&nbsp;&nbsp;<i>max</i>
-specify the range of data values that can be added to the segmentation model;
-only those pixels with data values within the specified range will be added 
-even when a larger area is given in the <b>segmentations add</b> command.
 <li><b>mouseModes</b>&nbsp;&nbsp;on&nbsp;|&nbsp;off
 &ndash; assign mouse modes as specified in the
 <a href="../tools/segmentations.html#settings"><b>Mouse (3D)</b></a> settings
