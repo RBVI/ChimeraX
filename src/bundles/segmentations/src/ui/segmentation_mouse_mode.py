@@ -27,8 +27,6 @@ from chimerax.vive.xr import OpenXRCamera
 
 from chimerax.segmentations.ui import find_segmentation_tool
 
-# from chimerax.segmentations.trigger_handlers import get_tracker
-
 _saved_mouse_bindings = {
     "left": {
         "none": None,

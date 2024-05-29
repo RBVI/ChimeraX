@@ -63,7 +63,7 @@ from ..graphics.cylinder import SegmentationDisk
 from ..graphics.sphere import SegmentationSphere
 from ..dicom_segmentations import PlanePuckSegmentation, SphericalSegmentation
 from ..segmentation import Segmentation, segment_volume
-from ..trigger_handlers import get_tracker
+from ..segmentation_tracker import get_tracker
 
 from chimerax.segmentations.settings import get_settings
 from chimerax.segmentations.view.modes import ViewMode
@@ -376,7 +376,7 @@ class SegmentationTool(ToolInstance):
         # Construct the GUI
         self.tool_window = MainToolWindow(self)
         self.settings = get_settings(self.session)
-        self.segmentation_tracker = get_tracker(self.session)
+        self.segmentation_tracker = get_tracker()
         self.parent = self.tool_window.ui_area
         self.controls_dialog = SegmentationToolControlsDialog(self.parent, self.session)
         self.main_layout = QVBoxLayout()

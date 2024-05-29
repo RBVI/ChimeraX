@@ -41,13 +41,12 @@ from chimerax.mouse_modes.trackpad import MultitouchEvent, Touch
 from chimerax.ui.widgets import ModelMenu
 
 from ..segmentation import Segmentation, copy_volume_for_auxiliary_display
-from ..trigger_handlers import (
+from ..segmentation_tracker import (
     get_tracker,
     ACTIVE_SEGMENTATION_CHANGED,
     SEGMENTATION_ADDED,
     SEGMENTATION_REMOVED,
 )
-
 
 from ..graphics import (
     OrthoplaneView,
@@ -95,7 +94,7 @@ class PlaneViewerManager:
         self.session = session
         self.have_seg_tool = False
         self.axes = {}
-        self.segmentation_tracker = get_tracker(session)
+        self.segmentation_tracker = get_tracker()
         self._active_seg_changed_handler = (
             self.segmentation_tracker.triggers.add_handler(
                 ACTIVE_SEGMENTATION_CHANGED, self._active_segmentation_changed_cb
@@ -220,7 +219,7 @@ class PlaneViewer(QWindow):
         self.axis = axis
         self.axes = axis.transform
         self._segmentation_tool = None
-        self.segmentation_tracker = get_tracker(session)
+        self.segmentation_tracker = get_tracker()
         self.manager.register(self)
 
         self.last_mouse_position = None

@@ -35,8 +35,7 @@ SEGMENTATION_ADDED = "segmentation added"
 
 # TODO: Is this a StateManager?
 class SegmentationTracker:
-    def __init__(self, session):
-        self.session = session
+    def __init__(self):
         self._active_segmentation: Optional[Segmentation] = None
         self.triggers = TriggerSet()
         self.triggers.add_trigger(ACTIVE_SEGMENTATION_CHANGED)
@@ -98,7 +97,7 @@ _trigger_set = None
 
 
 def on_model_added_to_session(session, _, models):
-    tracker = get_tracker(session)
+    tracker = get_tracker()
     # TODO: Make individual bundles handle unparented segmentations
     # themselves... convert to Provider-Manager
     for model in models:
@@ -187,7 +186,7 @@ def on_model_added_to_session(session, _, models):
 
 
 def on_model_removed_from_session(session, _, models):
-    tracker = get_tracker(session)
+    tracker = get_tracker()
     for model in models:
         if isinstance(model, Segmentation):
             tracker.remove_segmentation(model)
@@ -195,10 +194,10 @@ def on_model_removed_from_session(session, _, models):
             del tracker[model]
 
 
-def get_tracker(session):
+def get_tracker():
     global _tracker
     if _tracker is None:
-        _tracker = SegmentationTracker(session)
+        _tracker = SegmentationTracker()
     return _tracker
 
 
@@ -209,8 +208,8 @@ def get_trigger_set():
     return _trigger_set
 
 
-def register_trigger_handlers(session):
-    _ = get_tracker(session)
+def register_model_trigger_handlers(session):
+    _ = get_tracker()
     triggerset = get_trigger_set()
     triggerset.add_trigger(ACTIVE_SEGMENTATION_CHANGED)
     session.triggers.add_handler(

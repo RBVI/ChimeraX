@@ -32,7 +32,7 @@ from chimerax.segmentations.ui.segmentation_mouse_mode import (
 )
 from chimerax.segmentations.settings import get_settings
 from chimerax.segmentations.types import Axis
-from chimerax.segmentations.trigger_handlers import get_tracker
+from chimerax.segmentations.segmentation_tracker import get_tracker
 from chimerax.segmentations.ui.segmentation_mouse_mode import (
     mouse_bindings_saved,
     hand_bindings_saved,
@@ -66,7 +66,7 @@ def segmentations(
 ):
     """Set or restore mouse and hand modes; or create and modify segmentations."""
     settings = get_settings(session)
-    tracker = get_tracker(session)
+    tracker = get_tracker()
     if action == "create":
         if not modelSpecifier:
             raise UserError("No model specified")
