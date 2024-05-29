@@ -919,15 +919,15 @@ class PlaneViewer(QWindow):
         self.segmentation_cursor_overlay.display = False
 
     def enterEvent(self):
+        chimerax.segmentations.triggers.activate_trigger(ENTER_EVENTS[self.axis])
         if self.segmentation_tool:
             self.enableSegmentationOverlays()
             self.resize3DSegmentationCursor()
-            self.segmentation_tool.make_puck_visible(self.axis)
 
     def leaveEvent(self):
+        chimerax.segmentations.triggers.activate_trigger(LEAVE_EVENTS[self.axis])
         if self.segmentation_tool:
             self.disableSegmentationOverlays()
-            self.segmentation_tool.make_puck_invisible(self.axis)
         self.level_label.hide()
         self.mouse_move_timer.stop()
 
