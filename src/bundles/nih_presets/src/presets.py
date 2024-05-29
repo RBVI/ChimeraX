@@ -283,21 +283,11 @@ def run_preset(session, name, mgr):
         cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [
             f"color byattribute r:pLDDT_score {struct_spec} palette alphafold"
         ]
-    elif name == "ribbon AlphaFold/pLDDT (printable)":
-        struct_spec = check_AF(session)
-        cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
-            f"color byattribute r:pLDDT_score {struct_spec} palette alphafold"
-        ] + print_prep(session, pb_radius=None)
     elif name == "ribbon AlphaFold/PAE domains":
         struct_spec = check_AF(session, pae=True)
         cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [
             f"alphafold pae {struct_spec} colorDomains true"
         ]
-    elif name == "ribbon AlphaFold/PAE domains (printable)":
-        struct_spec = check_AF(session, pae=True)
-        cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
-            f"alphafold pae {struct_spec} colorDomains true"
-        ] + print_prep(session, pb_radius=None)
     elif name.startswith("surface monochrome"):
         printable = "printable" in name
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
