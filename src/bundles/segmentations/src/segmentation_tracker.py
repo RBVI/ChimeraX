@@ -22,25 +22,21 @@
 # === UCSF ChimeraX Copyright ===
 from collections import defaultdict
 from typing import Optional
+
 from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
-from chimerax.core.triggerset import TriggerSet
 from chimerax.map import Volume
-from chimerax.segmentations.segmentation import Segmentation
 from chimerax.dicom import Study
 
-ACTIVE_SEGMENTATION_CHANGED = "active segmentation changed"
-SEGMENTATION_REMOVED = "segmentation removed"
-SEGMENTATION_ADDED = "segmentation added"
+from chimerax.segmentations.segmentation import Segmentation
 
+import chimerax.segmentations.triggers
+
+_tracker = None
 
 # TODO: Is this a StateManager?
 class SegmentationTracker:
     def __init__(self):
         self._active_segmentation: Optional[Segmentation] = None
-        self.triggers = TriggerSet()
-        self.triggers.add_trigger(ACTIVE_SEGMENTATION_CHANGED)
-        self.triggers.add_trigger(SEGMENTATION_ADDED)
-        self.triggers.add_trigger(SEGMENTATION_REMOVED)
         self._segmentations = defaultdict(set)
         self._unparented_segmentations = set()
 
@@ -56,14 +52,18 @@ class SegmentationTracker:
             self._segmentations[segmentation.reference_volume].add(segmentation)
         else:
             self._unparented_segmentations.add(segmentation)
-        self.triggers.activate_trigger(SEGMENTATION_ADDED, segmentation)
+        chimerax.segmentations.triggers.activate_trigger(
+            chimerax.segmentations.triggers.SEGMENTATION_ADDED, segmentation
+        )
 
     def remove_segmentation(self, segmentation):
         if segmentation.reference_volume is not None:
             self._segmentations[segmentation.reference_volume].remove(segmentation)
         else:
             self._unparented_segmentations.remove(segmentation)
-        self.triggers.activate_trigger(SEGMENTATION_REMOVED, segmentation)
+        chimerax.segmentations.triggers.activate_trigger(
+            chimerax.segmentations.triggers.SEGMENTATION_REMOVED, segmentation
+        )
 
     def __delitem__(self, item):
         segmentations = self.segmentations_for_volume(item)
@@ -89,11 +89,10 @@ class SegmentationTracker:
                 f"Segmentation {segmentation} is not associated with any open volumes."
             )
         self._active_segmentation = segmentation
-        self.triggers.activate_trigger(ACTIVE_SEGMENTATION_CHANGED, segmentation)
+        chimerax.segmentations.triggers.activate_trigger(
+            chimerax.segmentations.triggers.ACTIVE_SEGMENTATION_CHANGED, segmentation
+        )
 
-
-_tracker = None
-_trigger_set = None
 
 
 def on_model_added_to_session(session, _, models):
@@ -200,18 +199,8 @@ def get_tracker():
         _tracker = SegmentationTracker()
     return _tracker
 
-
-def get_trigger_set():
-    global _trigger_set
-    if _trigger_set is None:
-        _trigger_set = TriggerSet()
-    return _trigger_set
-
-
 def register_model_trigger_handlers(session):
     _ = get_tracker()
-    triggerset = get_trigger_set()
-    triggerset.add_trigger(ACTIVE_SEGMENTATION_CHANGED)
     session.triggers.add_handler(
         ADD_MODELS, lambda *args, ses=session: on_model_added_to_session(ses, *args)
     )

@@ -38,6 +38,9 @@ from chimerax.segmentations.ui.segmentation_mouse_mode import (
     hand_bindings_saved,
 )
 
+import chimerax.segmentations.triggers
+from chimerax.segmentations.triggers import SEGMENTATION_MODIFIED
+
 actions = [
     "add",
     "remove",
@@ -117,6 +120,9 @@ def segmentations(
                 segment_in_sphere(
                     model, model_center, radius, minIntensity, maxIntensity, value
                 )
+            chimerax.segmentations.triggers.activate_trigger(
+                SEGMENTATION_MODIFIED, model
+            )
         else:
             raise UserError("Can't operate on a non-segmentation")
     else:
