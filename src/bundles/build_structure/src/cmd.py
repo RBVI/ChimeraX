@@ -211,6 +211,118 @@ def cmd_modify_atom(session, *args, **kw):
     except ParamError as e:
         raise UserError(e)
 
+def _check_connected_polymeric(residues):
+    chain = None
+    for r in residues:
+        if r.chain is None:
+            return False
+        if chain is None:
+            chain = r.chain
+            last_index = r.chain.residues.index(r)
+            continue
+        if chain != r.chain:
+            return False
+        last_index += 1
+        while last_index < len(chain):
+            next_r = chain.residues[last_index]
+            if next_r is None:
+                last_index += 1
+                continue
+            if next_r != r:
+                return False
+            break
+        else:
+            return False
+    return chain is not None
+
+def cmd_replace_residues(session, replaced_residues, with_=None, *,
+        bond_start=None, bond_end=None, numbering_start=None):
+    # If bond_start/end is None then bond the start/end of the replacement to adjacent residue if
+    # bond length seems reasonable.  If numbering_start is None, use the first replaced residue's
+    # number as the start
+    for checked, msg_frag in [(replaced_residues, "Target"), (with_, "Replacement")]:
+        if not _check_connected_polymeric(checked):
+            raise UserError("%s residues are not directly chain-connected polymeric residues" % msg_frag)
+    reset_chain_info = [rr.name for rr in replaced_residues] != [wr.name for wr in with_]
+    before = after = None
+    replaced = set(replaced_residues)
+    replaced_seen = False
+    for r in replaced_residues[0].chain.residues:
+        if not r:
+            continue
+        if r in replaced:
+            replaced_seen = True
+            continue
+        if replaced_seen:
+            after = r
+            break
+        else:
+            before = r
+    if numbering_start is None:
+        number = replaced_residues[0].number
+    else:
+        number = numbering_start
+    chain = replaced_residues[0].chain
+    s = chain.structure
+    for r in replaced_residues:
+        s.delete_residue(r)
+
+    from chimerax.atomic.struct_edit import add_atom, add_bond
+    atom_mapping = {}
+    used_numbers = set([r.number for r in s.residues if r.chain_id == chain.chain_id])
+    transform = s.scene_position.inverse()
+    replacements = []
+    for from_r in with_:
+        while number in used_numbers:
+            number += 1
+        used_numbers.add(number)
+        replacement_r = s.new_residue(from_r.name, chain.chain_id, number, precedes=after)
+        replacements.append(replacement_r)
+        for from_a in from_r.atoms:
+            pos = transform * from_a.scene_coord
+            replace_a = add_atom(from_a.name, from_a.element, replacement_r, pos, info_from=from_a)
+            replace_a.color = from_a.color
+            atom_mapping[from_a] = replace_a
+            for from_nb, from_bond in zip(from_a.neighbors, from_a.bonds):
+                try:
+                    replace_nb = atom_mapping[from_nb]
+                except KeyError:
+                    continue
+                add_bond(replace_a, replace_nb, halfbond=from_bond.halfbond, color=from_bond.color)
+
+    from .bond import is_reasonable
+    from chimerax.atomic import Residue
+    bb_names = Residue.aa_min_ordered_backbone_names if chain.polymer_type == Residue.PT_AMINO \
+        else Residue.na_min_ordered_backbone_names
+    def get_bond_atoms(r1, r2, bb_names):
+        if r1 and r2:
+            a1 = r1.find_atom(bb_names[-1])
+            if a1:
+                a2 = r2.find_atom(bb_names[0])
+                if a2:
+                    return (a1, a2)
+        return None
+    if bond_start is not False:
+        bond_atoms = get_bond_atoms(before, replacements[0], bb_names)
+        if bond_atoms:
+            if bond_start is True or is_reasonable(*bond_atoms):
+                add_bond(*bond_atoms)
+    if bond_end is not False:
+        bond_atoms = get_bond_atoms(replacements[-1], after, bb_names)
+        if bond_atoms:
+            if bond_start is True or is_reasonable(*bond_atoms):
+                add_bond(*bond_atoms)
+    if reset_chain_info:
+        from chimerax.atomic import Sequence
+        residues = []
+        characters = []
+        for r in chain.residues:
+            if r:
+                residues.append(r)
+                characters.append(Sequence.rname3to1(r.name))
+        chain.bulk_set(residues, characters)
+
+
 def cmd_start_structure(session, method, model_info, subargs):
     from .manager import get_manager
     manager = get_manager(session)
@@ -236,7 +348,7 @@ def cmd_start_structure(session, method, model_info, subargs):
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, Or, IntArg, EnumOf, StringArg
     from chimerax.core.commands import DynamicEnum, RestOfLine, create_alias, PositiveFloatArg, FloatArg
-    from chimerax.atomic import AtomArg, ElementArg, StructureArg, AtomsArg, BondArg
+    from chimerax.atomic import AtomArg, ElementArg, StructureArg, AtomsArg, BondArg, ResiduesArg
     from chimerax.atomic.bond_geom import geometry_name
     desc = CmdDesc(
         required=[('atoms', AtomsArg)],
@@ -270,6 +382,15 @@ def register_command(command_name, logger):
         synopsis = 'modify atom'
     )
     register('build modify', desc, cmd_modify_atom, logger=logger)
+
+    desc = CmdDesc(
+        required=[('replaced_residues', ResiduesArg)],
+        required_arguments = ['with_'],
+        keyword = [('with_', ResiduesArg), ('numbering_start', IntArg),
+            ('bond_start', BoolArg), ('bond_end', BoolArg)],
+        synopsis = 'replace residues with information from other residues'
+    )
+    register('build replace', desc, cmd_replace_residues, logger=logger)
 
     from .manager import get_manager
     manager = get_manager(logger.session)

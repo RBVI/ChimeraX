@@ -215,17 +215,36 @@ class Preset(Provider):
         super().__init__("presets", name, attrs)
 
 
-class Toolbar(Provider):
-    default_attrs = {}
+class ToolbarTab(Provider):
 
-    def __init__(self, tab, name, attrs):
-        if not attrs:
-            attrs = self.default_attrs
-        else:
-            for key, val in self.default_attrs.items():
-                if key not in attrs:
-                    attrs[key] = val
-        attrs["tab"] = tab
+    def __init__(self, tab_name, attrs):
+        attrs["tab"] = tab_name
+        name = "tab-" + tab_name.lower().replace(" ", "-")
+        super().__init__("toolbar", name, attrs)
+
+    def __str__(self):
+        attrs = self.misc_attrs_to_list()
+        return f"ChimeraX :: Provider :: {self.name} :: {self.manager} :: {self.classifier_separator.join(attrs)}"
+
+
+class ToolbarSection(Provider):
+    def __init__(self, tab_name, section_name, attrs):
+        self.tab_name = tab_name
+        attrs["tab"] = tab_name
+        attrs["section"] = section_name
+        name = "section-" + section_name.lower().replace(" ", "-")
+        super().__init__("toolbar", name, attrs)
+
+    def __str__(self):
+        attrs = self.misc_attrs_to_list()
+        return f"ChimeraX :: Provider :: {self.name} :: {self.manager} :: {self.classifier_separator.join(attrs)}"
+
+
+class ToolbarButton(Provider):
+    def __init__(self, tab_name, section_name, button_name, attrs):
+        attrs["tab"] = tab_name
+        attrs["section"] = section_name
+        name = "button-" + button_name.lower().replace(" ", "-")
         super().__init__("toolbar", name, attrs)
 
     def __str__(self):
@@ -234,8 +253,10 @@ class Toolbar(Provider):
 
 
 class Initialization:
-    def __init__(self, type_, bundles):
+    def __init__(self, type_=None, bundles=None):
         self.type_ = type_
+        if not bundles:
+            bundles = []
         self.bundles = bundles
 
     def __str__(self):

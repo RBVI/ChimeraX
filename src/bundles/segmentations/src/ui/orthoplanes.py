@@ -144,6 +144,9 @@ class PlaneViewerManager:
             self._segmentation_removed_handler
         )
 
+    def _active_segmentation_changed_cb(self, _, segmentation):
+        pass
+
     def update_dimensions(self, dimensions):
         for axis in self.axes.values():
             axis.update_dimensions(dimensions)
@@ -918,6 +921,7 @@ class PlaneViewer(QWindow):
         if self.segmentation_tool:
             self.disableSegmentationOverlays()
             self.segmentation_tool.make_puck_invisible(self.axis)
+        self.level_label.hide()
         self.mouse_move_timer.stop()
 
     def shouldOpenContextMenu(self):

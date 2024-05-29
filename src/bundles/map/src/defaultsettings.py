@@ -47,7 +47,7 @@ class _VolumeSettings(Settings):
                            (.9,.75,.6,1),
                            (.6,.75,.9,1),
                            (.8,.8,.6,1)),
-	'data_cache_size': 512.0,                # Mbytes
+	'data_cache_size': None,                # None or float value in Mbytes.  None means use half physical memory.
         'selectable_subregions': False,
         'subregion_button': 'middle',
         'box_padding': 0.0,

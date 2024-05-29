@@ -16,6 +16,11 @@ from chimerax.atomic import Element
 class CreateBondError(ValueError):
     pass
 
+def is_reasonable(a1, a2, tolerance=0.4):
+    from chimerax.geometry import distance
+    from chimerax.atomic import Element
+    return distance(a1.coord, a2.coord) - Element.bond_length(a1.element, a2.element) < tolerance
+
 def create_bonds(atoms, *, reasonable=True, bond_length_tolerance=0.4):
     """Create bonds among the given Atoms Collection.  If 'reasonable' is True, then only bonds whose
        lengths are chemically reasonable will be created.  Otherwise, all possible bonds will be created.
@@ -25,11 +30,6 @@ def create_bonds(atoms, *, reasonable=True, bond_length_tolerance=0.4):
 
     if len(atoms) < 2:
         raise CreateBondError("Must specify two or more atoms")
-
-    from chimerax.geometry import distance
-    from chimerax.atomic import Element
-    def is_reasonable(a1, a2, tolerance=bond_length_tolerance):
-        return distance(a1.coord, a2.coord) - Element.bond_length(a1.element, a2.element) < tolerance
 
     from chimerax.atomic.struct_edit import add_bond
     if len(atoms) == 2:

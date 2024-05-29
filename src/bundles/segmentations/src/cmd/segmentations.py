@@ -9,7 +9,6 @@ from chimerax.core.commands import (
     register,
     run,
     Or,
-    BoolArg,
     IntArg,
     Int2Arg,
     Int3Arg,
@@ -50,7 +49,7 @@ def segmentations(
     session,
     action=None,
     modelSpecifier=None,
-    axis: Optional[str] = None,
+    axis: Optional[str] = "axial",
     # Axial, Coronal, Sagittal slice segmentations
     center: Optional[
         Union[
@@ -58,6 +57,7 @@ def segmentations(
             Annotated[list[int], 3],
         ]
     ] = None,
+    slice: Optional[int] = None,
     radius: Optional[int] = None,
     minIntensity: Optional[int] = None,
     maxIntensity: Optional[int] = None,
@@ -100,15 +100,13 @@ def segmentations(
                     "Ignoring the intensity parameters for removing regions from a segmentation"
                 )
                 minIntensity = maxIntensity = None
-            if axis:
+            if len(center) < 3 and axis:
                 axis = Axis.from_string(axis)
-                slice = center[2]
-                seg_center = (center[0], center[1])
                 segment_in_circle(
                     model,
                     axis,
                     slice,
-                    seg_center,
+                    center,
                     radius,
                     minIntensity,
                     maxIntensity,
@@ -244,7 +242,7 @@ segmentations_desc = CmdDesc(
         ("mouseModes", OnOffArg),
         ("handModes", OnOffArg),
         ("axis", EnumOf([str(axis) for axis in [*Axis]])),
-        ("center", Int3Arg),
+        ("center", Or(Int2Arg, Int3Arg)),
         ("slice", IntArg),
         ("radius", IntArg),
         ("minIntensity", IntArg),

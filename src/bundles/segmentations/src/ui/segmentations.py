@@ -600,6 +600,7 @@ class SegmentationTool(ToolInstance):
                 if self.settings.start_vr_automatically:
                     self._start_vr()
 
+        self._on_view_changed()
         self._populate_segmentation_list()
 
         self.tool_window.fill_context_menu = self.fill_context_menu
@@ -852,6 +853,8 @@ class SegmentationTool(ToolInstance):
         # that segmentations from files still show up in the menu.
         # TODO: We want to track the number of segmentations created per open model
         current_reference_model = self.model_menu.value
+        if not current_reference_model:
+            return;
         from chimerax.core.commands import run
 
         run(self.session, "segmentations create %s" % current_reference_model.atomspec)
@@ -920,7 +923,8 @@ class SegmentationTool(ToolInstance):
     def set_segmentation_step(self, step):
         if not self.segmentation_tracker.active_segmentation:
             self.addSegment()
-        self.segmentation_tracker.active_segmentation.set_step(step)
+        if self.segmentation_tracker.active_segmentation:
+            self.segmentation_tracker.active_segmentation.set_step(step)
 
     def _on_view_changed(self):
         self.previous_layout = self.current_layout
@@ -1040,6 +1044,10 @@ class SegmentationTool(ToolInstance):
     def setSphereRegionToValue(self, origin, radius, value=1):
         if not self.segmentation_tracker.active_segmentation:
             self.addSegment()
+        # If the first attempt fails, then the user probably only has one
+        # segmentation open
+        if not self.segmentation_tracker.active_segmentation:
+            return
         segmentation_strategy = SphericalSegmentation(origin, radius, value)
         if self.intensity_range_checkbox.isChecked() and value != 0:
             segmentation_strategy.min_threshold = self.threshold_min
