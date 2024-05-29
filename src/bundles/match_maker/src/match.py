@@ -421,6 +421,19 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 s.residues.ss_types = ss_types
                 s.ss_change_notify = True
 
+    import contextlib
+    show_context = contextlib.nullcontext
+    if show_alignment and session.ui.is_gui:
+        num_alignments = 0
+        for pairs in pairings.values():
+            num_alignments += len(pairs)
+        if num_alignments > 5:
+            from chimerax.ui.ask import ask
+            if ask(session, f"Really show {num_alignments} alignments?",
+                    title="Confirm show alignments", default="no") == "no":
+                show_alignment = False
+            else:
+                show_context = session.ui.force_float_tools
     logger = session.logger
     ret_vals = []
     logged_params = False
@@ -547,8 +560,9 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                             residues[i] = r
                             skip.add(r)
                         s.bulk_set(residues, characters)
-                alignment = session.alignments.new_alignment([s1,s2], None, auto_associate=None,
-                    name="MatchMaker alignment")
+                with show_context():
+                    alignment = session.alignments.new_alignment([s1,s2], None, auto_associate=None,
+                        name="MatchMaker alignment")
                 alignment.auto_associate = True
                 for hdr in alignment.headers:
                     hdr.shown = hdr.ident == "rmsd"
