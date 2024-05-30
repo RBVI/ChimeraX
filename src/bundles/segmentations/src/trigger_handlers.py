@@ -60,6 +60,8 @@ class SegmentationTracker:
         self.triggers.activate_trigger(SEGMENTATION_ADDED, segmentation)
 
     def remove_segmentation(self, segmentation):
+        if segmentation is self.active_segmentation:
+            self.active_segmentation = None
         if segmentation.reference_volume is not None:
             self._segmentations[segmentation.reference_volume].remove(segmentation)
         else:
