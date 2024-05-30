@@ -163,6 +163,7 @@ Atom::clean_alt_locs()
 
     _alt_loc = ' ';
     _alt_loc_map.clear();
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_ALT_LOCS);
 }
 
 void
@@ -908,6 +909,7 @@ Atom::delete_alt_loc(char al)
         if (structure()->alt_loc_change_notify())
             graphics_changes()->set_gc_shape();
     }
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_ALT_LOCS);
 }
 
 Atom::IdatmInfoMap _idatm_map = {
