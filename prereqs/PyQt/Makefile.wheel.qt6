@@ -84,7 +84,7 @@ app-install: $(QT_WHEEL) $(WB_WHEEL)
 	$(APP_PIP) install -U $(WHEELS)
 ifneq ($(MISSING_QTWEBENGINE_DICT),)
 # Work around Qt 6.6.3 bug spewing warnings to shell.  ChimeraX ticket #15088
-	touch $(APP_PYSITEDIR)/$(MISSING_QTWEBENGINE_DICT)
+	-mkdir $(APP_PYSITEDIR)/$(MISSING_QTWEBENGINE_DICT)
 endif
 
 prefetch: $(QT_WHEEL) $(WB_WHEEL)
