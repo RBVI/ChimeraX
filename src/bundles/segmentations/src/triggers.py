@@ -22,6 +22,78 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+"""\
+Segmentations triggers ======================
+
+This module wraps chimerax.core.triggerset, and provides public signals all
+other code may subscribe to. Module level functions are the same as TriggerSet
+functions.
+
+SEGMENTATION_ADDED: Activated when this bundle's segmentation tracker recognizes
+                    a new segmentation has been opened. May be emitted at the
+                    end of this bundle's ADD_MODEL trigger handler.
+
+SEGMENTATION_REMOVED: Activated when this bundle's segmentation tracker
+                      recognizes an open segmentation has been closed. May be
+                      emitted at the end of this bundle's REMOVE_MODEL trigger
+                      handler.
+
+SEGMENTATION_MODIFIED: Should be activated any time a segmentation is modified,
+                       i.e. regions are added to or subtracted from the
+                       segmentation.
+
+AXIAL_CURSOR_MOVED: Activated whenever the user moves their mouse over a
+                    PlaneViewer displaying an axial slice.
+
+CORONAL_CURSOR_MOVED: Activated whenever the user moves their mouse over a
+                      PlaneViewer displaying a coronal slice.
+
+SAGITTAL_CURSOR_MOVED: Activated whenever the user moves their mouse over a
+                       PlaneViewer displaying a sagittal slice.
+
+SPHERE_CURSOR_MOVED: Activated whenever the segmentation sphere is moved by the
+                     corresponding mouse or hand mode.
+
+AXIAL_CURSOR_RESIZED: Activated whenever the user resizes the segmentation
+                      cursor in a PlaneViewer displaying an axial slice.
+
+CORONAL_CURSOR_RESIZED: Activated whenever the user resizes the segmentation
+                        cursor in a PlaneViewer displaying a coronal slice.
+
+SAGITTAL_CURSOR_RESIZED: Activated whenever the user resizes the segmentation
+                         cursor in a PlaneViewer displaying a sagittal slice.
+
+SPHERE_CURSOR_RESIZED: Activated whenever the user resizes the spherical
+                       segmentation cursor using the corresponding mouse or hand
+                       mode.
+
+AXIAL_PLANE_VIEWER_ENTER: Activated when the mouse enters a PlaneViewer
+                          displaying an axial slice
+
+CORONAL_PLANE_VIEWER_ENTER: Activated when the mouse enters a PlaneViewer
+                            displaying a coronal slice
+
+SAGITTAL_PLANE_VIEWER_ENTER: Activated when the mouse enters a PlaneViewer
+                             displaying a sagittal slice
+
+AXIAL_PLANE_VIEWER_LEAVE: Activated when the mouse leaves a PlaneViewer
+                          displaying an axial slice
+
+CORONAL_PLANE_VIEWER_LEAVE: Activated when the mouse leaves a PlaneViewer
+                            displaying a coronal slice
+
+SAGITTAL_PLANE_VIEWER_LEAVE: Activated when the mouse leaves a PlaneViewer
+                             displaying a sagittal slice
+
+VIEW_LAYOUT_CHANGED: (EXPERIMENTAL) Activated when the view layout changes. May
+                     be moved to chimerax.ui
+
+GUIDELINES_VISIBILITY_CHANGED: Activated when a UI or command changes the
+                               visibility of the guidelines over PlaneViewers.
+                               Listeners should re-read this bundle's settings
+                               and react accordingly to the new value.
+"""
+
 # from collections import defaultdict
 from typing import Any, Callable, Optional
 
@@ -29,8 +101,8 @@ from chimerax.core.triggerset import TriggerSet
 
 from chimerax.segmentations.types import Axis
 
-SEGMENTATION_REMOVED = "segmentation removed"
 SEGMENTATION_ADDED = "segmentation added"
+SEGMENTATION_REMOVED = "segmentation removed"
 SEGMENTATION_MODIFIED = "segmentation modified"
 
 REFERENCE_MODEL_CHANGED = "reference model changed"
