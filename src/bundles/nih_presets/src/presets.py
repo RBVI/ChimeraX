@@ -184,38 +184,32 @@ def color_by_hydrophobicity_cmds(session, target="rs"):
     ]
 
 def hide_AF_low_confidence(session):
-    high = high_AF_confidence(session)
+    # When this is called, 'ribbon_display' may be different than when the commands this
+    # generates are executed, so do not screen out residues to hide based on current ribbon_display
+    high = connected_high_AF_confidence(session)
     hide_residues = []
     for s in all_atomic_structures(session):
         for r in s.residues:
-            if r.ribbon_display and r not in high:
+            if r not in high:
                 hide_residues.append(r)
     if hide_residues:
-        hide_set = set(hide_residues)
-        affected_chains = set([r.chain for r in hide_residues])
-        for chain in affected_chains:
-            connected = []
-            for r in chain.residues:
-                if not r:
-                    continue
-                if r in hide_set:
-                    if len(connected) < 4:
-                        hide_residues.extend(connected)
-                    connected.clear()
-                else:
-                    connected.append(r)
-            if len(connected) < 4:
-                hide_residues.extend(connected)
         return ["~ribbon " + concise_residue_spec(session, hide_residues)]
     return []
 
-def high_AF_confidence(session):
+def connected_high_AF_confidence(session):
     high = set()
     for s in all_atomic_structures(session):
         for chain in s.chains:
+            connected = []
             for r in chain.residues:
                 if r and hasattr(r, 'pLDDT_score') and r.pLDDT_score > 50:
-                    high.add(r)
+                    connected.append(r)
+                else:
+                    if len(connected) > 3:
+                        high.update(connected)
+                    connected.clear()
+            if len(connected) > 3:
+                high.update(connected)
     return high
 
 base_palette = ["marine", "goldenrod", "firebrick", "forest", "tangerine", "grape"]
@@ -377,7 +371,7 @@ def run_preset(session, name, mgr):
     elif name.startswith("surface AlphaFold/pLDDT"):
         struct_spec = check_AF(session)
         if "high confidence" in name:
-            high = high_AF_confidence(session)
+            high = connected_high_AF_confidence(session)
             spec_lookup = {}
             for s in all_atomic_structures(session):
                 s_residues = [r for r in high if r.structure == s]
@@ -393,7 +387,7 @@ def run_preset(session, name, mgr):
     elif name.startswith("surface AlphaFold/PAE domains"):
         struct_spec = check_AF(session, pae=True)
         if "high confidence" in name:
-            high = high_AF_confidence(session)
+            high = connected_high_AF_confidence(session)
             spec_lookup = {}
             for s in all_atomic_structures(session):
                 s_residues = [r for r in high if r.structure == s]
