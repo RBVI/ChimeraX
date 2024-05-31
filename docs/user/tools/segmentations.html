@@ -134,7 +134,12 @@ for how to scroll through, zoom, and translate the slice views.
 Clicking <b>Remove</b> deletes the chosen segmentation.
 <b>Edit Metadata</b> allows
 editing the metadata associated with the segmentation model, and <b>Save</b>
-saves it as <a href="../dicom/dicom.html">DICOM</a> with the SEG modality.
+brings up a file-saving dialog. If the <a href="../dicom/dicom.html">DICOM</a>
+file type is chosen, the segmentation is saved as the SEG modality with 
+the associated metadata, if any. Other medical-image formats
+(<a href="https://nifti.nimh.nih.gov/" target="_blank"><b>NIfTI</b></a>,
+<a href="https://teem.sourceforge.net/nrrd/" target="_blank"><b>NRRD</b></a>
+will not include the metadata.
 </p><p>
 In the slice views, the segmentation cursor is shown as a red circle; 
 left mouse click-drag sweeps out an area in the currently displayed 
@@ -204,18 +209,6 @@ when the tool is started:
   <li><b>3D only (desktop)</b>
   <li><b>3D only (VR)</b>
  </ul>
-<li><b>Format for saving segmentations</b> 
-&ndash; file format produced by clicking <b>Save</b> in the tool dialog:
-  <ul>
-  <li><a href="../dicom/dicom.html"><b>DICOM</b></a> (initial default)
-  with SEG modality
-  <li><a href="https://nifti.nimh.nih.gov/" target="_blank"><b>NIfTI</b></a>
-  <li><a href="https://teem.sourceforge.net/nrrd/" 
-  target="_blank"><b>NRRD</b></a>
-  </ul>
-Formats other than DICOM will not include metadata (if any) read from
-the original DICOM file.
-<br>
 <li><b>Segmentation opacity</b> (initial default <b>80</b>%)
 &ndash; opacity of segmentation surfaces; transparency = 100% &ndash; opacity
 <li><b>Set 3D mouse modes when the desktop 3D-only layout is chosen</b>
