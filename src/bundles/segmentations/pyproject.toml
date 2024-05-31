@@ -55,6 +55,7 @@ description = "Create, edit, or destory segmentations"
 [chimerax.provider."Segmentation Controls"]
 manager = "toolbar"
 tab = "Medical Image"
+section = "Segmentation Controls"
 after = "Mouse Mode"
 
 [chimerax.provider."toggle mouse modes"]
