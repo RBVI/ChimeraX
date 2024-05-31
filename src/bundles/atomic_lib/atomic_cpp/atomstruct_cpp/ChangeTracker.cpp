@@ -35,6 +35,7 @@ namespace atomstruct {
 
 const std::string ChangeTracker::REASON_ACTIVE_COORD_SET("active_coordset changed");
 const std::string ChangeTracker::REASON_ALT_LOC("alt_loc changed");
+const std::string ChangeTracker::REASON_ALT_LOCS("alt_locs changed");
 const std::string ChangeTracker::REASON_ANISO_U("aniso_u changed");
 const std::string ChangeTracker::REASON_BALL_SCALE("ball_scale changed");
 const std::string ChangeTracker::REASON_BFACTOR("bfactor changed");
