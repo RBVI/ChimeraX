@@ -78,6 +78,7 @@ import chimerax.segmentations.triggers
 from chimerax.segmentations.triggers import (
     ENTER_EVENTS,
     LEAVE_EVENTS,
+    VIEW_LAYOUT_CHANGED,
     GUIDELINES_VISIBILITY_CHANGED,
 )
 
@@ -605,6 +606,9 @@ class SegmentationTool(ToolInstance):
         self.sagittal_leave_handler = chimerax.segmentations.triggers.add_handler(
             LEAVE_EVENTS[Axis.SAGITTAL], self._on_sagittal_plane_viewer_leave_event
         )
+        self.view_layout_changed_handler = chimerax.segmentations.triggers.add_handler(
+            VIEW_LAYOUT_CHANGED, self._on_view_changed_trigger
+        )
         self.guideline_visibility_handler = chimerax.segmentations.triggers.add_handler(
             GUIDELINES_VISIBILITY_CHANGED, self._on_guidelines_visibility_changed
         )
@@ -738,6 +742,7 @@ class SegmentationTool(ToolInstance):
         chimerax.segmentations.triggers.remove_handler(self.coronal_leave_handler)
         chimerax.segmentations.triggers.remove_handler(self.sagittal_enter_handler)
         chimerax.segmentations.triggers.remove_handler(self.sagittal_leave_handler)
+        chimerax.segmentations.triggers.remove_handler(self.view_layout_changed_handler)
         chimerax.segmentations.triggers.remove_handler(
             self.guideline_visibility_handler
         )
@@ -974,7 +979,7 @@ class SegmentationTool(ToolInstance):
         if self.segmentation_tracker.active_segmentation:
             self.segmentation_tracker.active_segmentation.set_step(step)
 
-    def _on_view_changed(self):
+    def _on_view_changed(self, *args):
         self.previous_layout = self.current_layout
         self.current_layout = self.view_dropdown.currentIndex()
         need_to_register = False
@@ -1046,34 +1051,37 @@ class SegmentationTool(ToolInstance):
                         self.segmentation_list.item(i).segmentation
                     )
 
-    def set_view_dropdown(self, layout):
-        if layout == "default":
-            if self.is_vr:
-                self.view_dropdown.setCurrentIndex(ViewMode.DEFAULT_VR)
+    def _on_view_changed_trigger(self, _, layout):
+        with chimerax.segmentations.triggers.block_trigger(VIEW_LAYOUT_CHANGED):
+            self.view_dropdown.blockSignals(True)
+            if layout == "default":
+                if self.is_vr:
+                    self.view_dropdown.setCurrentIndex(ViewMode.DEFAULT_VR)
+                else:
+                    self.view_dropdown.setCurrentIndex(ViewMode.DEFAULT_DESKTOP)
+            elif layout == "sidebyside":
+                self.view_dropdown.setCurrentIndex(ViewMode.ORTHOPLANES_BESIDE_3D)
+            elif layout == "overunder":
+                self.view_dropdown.setCurrentIndex(ViewMode.ORTHOPLANES_OVER_3D)
             else:
-                self.view_dropdown.setCurrentIndex(ViewMode.DEFAULT_DESKTOP)
-        elif layout == "sidebyside":
-            self.view_dropdown.setCurrentIndex(ViewMode.ORTHOPLANES_BESIDE_3D)
-        elif layout == "overunder":
-            self.view_dropdown.setCurrentIndex(ViewMode.ORTHOPLANES_OVER_3D)
-        else:
-            self.view_dropdown.setCurrentIndex(ViewMode.TWO_BY_TWO)
+                self.view_dropdown.setCurrentIndex(ViewMode.TWO_BY_TWO)
+            self.view_dropdown.blockSignals(False)
 
     def _on_show_guidelines_checkbox_changed(self):
         from chimerax.segmentations.settings import get_settings
+
         settings = get_settings(self.session)
 
         check_state = self.guidelines_checkbox.isChecked()
 
         settings.display_guidelines = not settings.display_guidelines
-        chimerax.segmentations.triggers.activate_trigger(
-            GUIDELINES_VISIBILITY_CHANGED
-        )
+        chimerax.segmentations.triggers.activate_trigger(GUIDELINES_VISIBILITY_CHANGED)
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.register_segmentation_tool(self)
 
     def _on_guidelines_visibility_changed(self, _, visibility):
         from chimerax.segmentations.settings import get_settings
+
         settings = get_settings(self.session)
 
         if settings.display_guidelines:
