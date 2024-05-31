@@ -75,7 +75,11 @@ from chimerax.segmentations.actions import (
 )
 
 import chimerax.segmentations.triggers
-from chimerax.segmentations.triggers import ENTER_EVENTS, LEAVE_EVENTS
+from chimerax.segmentations.triggers import (
+    ENTER_EVENTS,
+    LEAVE_EVENTS,
+    GUIDELINES_VISIBILITY_CHANGED,
+)
 
 
 class SegmentationListItem(QListWidgetItem):
@@ -487,6 +491,7 @@ class SegmentationTool(ToolInstance):
         self.guidelines_checkbox = QCheckBox("Plane guidelines")
         self.control_checkbox_layout.addWidget(self.model_menu.frame)
         self.control_checkbox_layout.addWidget(self.guidelines_checkbox)
+        self.guidelines_checkbox.setChecked(self.settings.display_guidelines)
         self.guidelines_checkbox.stateChanged.connect(
             self._on_show_guidelines_checkbox_changed
         )
@@ -599,6 +604,9 @@ class SegmentationTool(ToolInstance):
         )
         self.sagittal_leave_handler = chimerax.segmentations.triggers.add_handler(
             LEAVE_EVENTS[Axis.SAGITTAL], self._on_sagittal_plane_viewer_leave_event
+        )
+        self.guideline_visibility_handler = chimerax.segmentations.triggers.add_handler(
+            GUIDELINES_VISIBILITY_CHANGED, self._on_guidelines_visibility_changed
         )
         # TODO: VR started trigger
         if not self.session.ui.main_window.view_layout == "orthoplanes":
@@ -730,6 +738,9 @@ class SegmentationTool(ToolInstance):
         chimerax.segmentations.triggers.remove_handler(self.coronal_leave_handler)
         chimerax.segmentations.triggers.remove_handler(self.sagittal_enter_handler)
         chimerax.segmentations.triggers.remove_handler(self.sagittal_leave_handler)
+        chimerax.segmentations.triggers.remove_handler(
+            self.guideline_visibility_handler
+        )
         # TODO: Restore old mouse modes if necessary
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.clear_segmentation_tool()
@@ -856,13 +867,6 @@ class SegmentationTool(ToolInstance):
     def make_puck_invisible(self, axis):
         if axis in self.segmentation_cursors:
             self.segmentation_cursors[axis].display = False
-
-    def setGuidelineCheckboxValue(self, visible):
-        if visible:
-            state = Qt.CheckState.Checked
-        else:
-            state = Qt.CheckState.Unchecked
-        self.guidelines_checkbox.setCheckState(state)
 
     def setMarkerRegionsToValue(self, axis, slice, markers, value=1):
         # I wasn't able to recycle code from Map Eraser here, unfortunately. Map Eraser uses
@@ -1032,8 +1036,6 @@ class SegmentationTool(ToolInstance):
                 # If no models are open we will not successfully change the view, so
                 # we need to check the view layout before continuing!
                 self.session.ui.main_window.main_view.register_segmentation_tool(self)
-                if self.guidelines_checkbox.isChecked():
-                    self.session.ui.main_window.main_view.toggle_guidelines()
             if self.previous_layout not in {
                 ViewMode.ORTHOPLANES_BESIDE_3D,
                 ViewMode.ORTHOPLANES_OVER_3D,
@@ -1058,11 +1060,32 @@ class SegmentationTool(ToolInstance):
             self.view_dropdown.setCurrentIndex(ViewMode.TWO_BY_TWO)
 
     def _on_show_guidelines_checkbox_changed(self):
+        from chimerax.segmentations.settings import get_settings
+        settings = get_settings(self.session)
+
+        check_state = self.guidelines_checkbox.isChecked()
+
+        settings.display_guidelines = not settings.display_guidelines
+        chimerax.segmentations.triggers.activate_trigger(
+            GUIDELINES_VISIBILITY_CHANGED
+        )
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.register_segmentation_tool(self)
-            self.session.ui.main_window.main_view.toggle_guidelines()
-        # else if it's just the main window, save that the user wanted it to be displayed
-        # and on change enable it?
+
+    def _on_guidelines_visibility_changed(self, _, visibility):
+        from chimerax.segmentations.settings import get_settings
+        settings = get_settings(self.session)
+
+        if settings.display_guidelines:
+            state = Qt.CheckState.Checked
+        else:
+            state = Qt.CheckState.Unchecked
+        with chimerax.segmentations.triggers.block_trigger(
+            GUIDELINES_VISIBILITY_CHANGED
+        ):
+            self.guidelines_checkbox.blockSignals(True)
+            self.guidelines_checkbox.setCheckState(state)
+            self.guidelines_checkbox.blockSignals(False)
 
     def setCursorOffsetFromOrigin(self, axis, offset):
         offsets = self.segmentation_cursors[axis].origin

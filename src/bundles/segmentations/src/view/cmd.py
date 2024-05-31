@@ -4,8 +4,11 @@ from chimerax.core.models import REMOVE_MODELS
 from chimerax.map import Volume
 from chimerax.dicom.dicom_volumes import DICOMVolume
 
+import chimerax.segmentations.triggers
+
 from chimerax.segmentations.view import views, FourPanelView
 from chimerax.segmentations.ui import find_segmentation_tool
+from chimerax.segmentations.settings import get_settings
 
 
 def any_open_volumes(session) -> bool:
@@ -16,6 +19,7 @@ def view_layout(
     session, layout: str = None, guidelines: bool = None, force=False
 ) -> None:
     st = find_segmentation_tool(session)
+    settings = get_settings(session)
     if st:
         st.set_view_dropdown(layout)
     if layout == "default" and session.ui.main_window.view_layout != "default":
@@ -29,15 +33,18 @@ def view_layout(
         if st:
             session.ui.main_window.main_view.register_segmentation_tool(st)
         if guidelines:
-            session.ui.main_window.main_view.set_guideline_visibility(guidelines)
+            settings.display_guidelines = guidelines
+            chimerax.segmentations.triggers.activate_trigger(
+                chimerax.segmentations.triggers.GUIDELINES_VISIBILITY_CHANGED
+            )
     elif layout in views and session.ui.main_window.view_layout == "orthoplanes":
         if layout:
             session.ui.main_window.main_view.convert_to_layout(layout)
         if guidelines is not None:
-            if st:
-                st.setGuidelineCheckboxValue(guidelines)
-            else:
-                session.ui.main_window.main_view.set_guideline_visibility(guidelines)
+            settings.display_guidelines = guidelines
+            chimerax.segmentations.triggers.activate_trigger(
+                chimerax.segmentations.triggers.GUIDELINES_VISIBILITY_CHANGED
+            )
 
 
 view_layout_desc = CmdDesc(
