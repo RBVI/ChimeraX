@@ -79,7 +79,7 @@ name="outline box"
 link="ChimeraX-Shortcuts:ob"
 
 [chimerax.toolbar."Medical Image".sections."Color"]
-after = "File"
+after = "Style"
 
 [[chimerax.toolbar."Medical Image".sections."Color".button]]
 name="airways" 

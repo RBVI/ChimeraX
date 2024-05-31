@@ -350,6 +350,7 @@ Residue::delete_alt_loc(char alt_loc)
         } else
             _alt_loc = ' ';
     }
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_ALT_LOCS);
 }
 
 Atom *
