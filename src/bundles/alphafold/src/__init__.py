@@ -87,12 +87,14 @@ class _AlphaFoldBundle(BundleAPI):
                                                **kw)
                     @property
                     def fetch_args(self):
-                        from chimerax.core.commands import BoolArg, Or, EnumOf
+                        from chimerax.core.commands import BoolArg, Or, EnumOf, IntArg
                         from chimerax.atomic import ChainArg
                         return {
                             'color_confidence': BoolArg,
                             'align_to': ChainArg,
                             'trim': BoolArg,
+                            'pae': BoolArg,
+                            'version': IntArg,
                         }
                 return AlphaFoldDatabaseInfo()
             elif name == 'alphafold_pae':
