@@ -425,7 +425,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
             self.model_menu.setHidden(False)
 
 class LaunchFitLoopsTool(ToolInstance):
-    #help = "help:user/tools/localemfitting.html"
+    help = "help:user/tools/fitloops.html"
 
     GAPS_TAB, REMODEL_TAB = TAB_NAMES = ("Fill Gaps", "Remodel")
 
