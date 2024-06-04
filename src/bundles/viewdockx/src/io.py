@@ -520,7 +520,7 @@ def open_swissdock(session, stream, file_name, auto_style, atomic):
                 is_ligands = False
             else:
                 k,v = line[7:].strip().split(': ')
-                viewdockx_data[_wordize(k)] = v
+                viewdockx_data[_wordize(k)] = _value(v)
             # these "REMARK"s are all badly formatted, prevent ChimeraX from complaining
             line = None
         if line is not None:

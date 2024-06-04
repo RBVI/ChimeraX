@@ -160,7 +160,7 @@ class _TriggerHandler:
         finally:
             self._blocked -= 1
 
-    def block(sel):
+    def block(self):
         self._blocked += 1
 
     def release(self):
