@@ -1157,7 +1157,10 @@ class PlaneViewer(QWindow):
                 0,
             )
             self.segmentation_cursor_overlay.update()
-            if self.segmentation_tool:
+            if (
+                self.segmentation_tool
+                and self.view.drawing is not self.placeholder_drawing
+            ):
                 self.moveSegmentationPuck(x, y, record_seg=False)
 
             self.mouse_move_timer.start()
