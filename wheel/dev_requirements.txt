@@ -6,7 +6,7 @@ coverage==7.1.0
 Cython==0.29.33
 exceptiongroup==1.1.0
 grako==3.99.9
-idna==3.4
+idna==3.7
 ihm==0.36
 iniconfig==2.0.0
 msgpack==1.0.4
@@ -21,7 +21,7 @@ pyproject_hooks==1.0.0
 pytest==7.2.1
 pytest-dependency==0.5.1
 pytest-order==1.0.1
-requests==2.31.0
+requests==2.32.0
 sortedcontainers==2.4.0
 setuptools==67.4.0
 tinyarray==1.2.4

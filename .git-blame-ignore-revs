@@ -17,3 +17,13 @@ f2c53ce407384e608cb5ac0daa56fd78d7e30784 # Lint the DICOM bundle
 732d1474ece932fa8c94432518332ec221e79ac7 # Remove trailing/blank line whitespace
 9d3f6d9b67bc47deb1e271e5ef3339c2dabb70d7 # Format bundle_builder with black
 06890d5202d4280f62f43b58915413d81b881e2f # Format docs/devel/conf.py.in with black
+d4b088d2790812f12c918fbedab16f232737f89c # Format ui/src/widgets/tabbedtoolbar.py with black
+75c740b4adb710e21c0db85699adae73fb532e82 # Format segmentations/src/ui/segmentations.py with black
+60ef9cf63c176cf7bd9e4fab0800769588adc530 # Format core/src/__{init,main}__.py with black
+340c0982e2a41a2b704dc2de9f7aeab96cb27696 # Format core/logger, core/commands/cli, blastprotein
+60bf203ad8b9874a503d8260b0a04ca6fb49fb88 # Format dicom with black
+54e21c1c9dccaa7b679e92ae3c9d68ca48c8c726 # Format core/tasks with black
+b29e6a8003f8952cb2aecaaff0d0fe10a6869a6a # Format two files in segmentations
+3f159c8a410950ed0fb337368da48ca721060478 # Format webservices/cxservices_job.py with black
+6ef077499b7ea8ab249388ff73b09db2413663d2 # Format core/tools.py with black
+8a7ef8e61d9234c4428457eb9d550a196f0a068f # Format core/commands/__init__.py with black

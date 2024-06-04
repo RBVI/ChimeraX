@@ -58,16 +58,16 @@ with some ChimeraX sample code and modify it appropriately.
 Bundle Sample Code
 ------------------
 
-To build a bundle from the sample code (`XML configuration
-<https://www.github.com/RBVI/ChimeraX-Bundle-Template>`_
-/ `TOML configuration
-<https://www.github.com/RBVI/ChimeraX-Bundle-Template-TOML>`_
-),
+To build a bundle from the `sample code
+<https://www.cgl.ucsf.edu/chimerax/cgi-bin/bundle_sample.zip>`_,
 you can either use the ``make`` program, or the
 ChimeraX application if you do not have ``make``.
 On Linux and macOS, ``make`` is available as part of the
 developer package.  On Windows, ``make`` is
 available as part of `Cygwin <https://cygwin.com>`_.
+The sample code can also be accessed from GitHub
+(`XML-based configuration <https://www.github.com/RBVI/ChimeraX-Bundle-Template>`_ ;
+`TOML-based configuration <https://www.github.com/RBVI/ChimeraX-Bundle-Template-TOML>`_).
 
 Because the sample code includes C++ source code that
 need to be compiled, you will need a C++ compiler for

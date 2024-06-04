@@ -1339,6 +1339,12 @@ class Chain(StructureSeq):
 
     '''
 
+    # For attribute registration...
+    _attr_reg_info = [
+        ('chain_id', (str,)), ('circular', (bool,)), ('description', (bool,)),
+        ('num_existing_residues', (int,)), ('num_residues', (int,)), ('polymer_type', int),
+    ]
+
     def __str__(self):
         return self.string()
 
@@ -1460,6 +1466,12 @@ class StructureData:
     PBG_HYDROGEN_BONDS = c_function('structure_PBG_HYDROGEN_BONDS', args = (),
         ret = ctypes.c_char_p)().decode('utf-8')
     _ss_suppress_count = 0
+
+    # For attribute registration...
+    _attr_reg_info = [
+        ('display', (bool,)), ('name', (str,)), ('num_atoms', (int,)), ('num_bonds', (int,)),
+        ('num_chains', (int,)), ('num_residues', (int,)),
+    ]
 
     def __init__(self, mol_pointer=None, *, logger=None):
         if mol_pointer is None:

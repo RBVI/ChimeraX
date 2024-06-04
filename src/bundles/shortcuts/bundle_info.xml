@@ -160,6 +160,10 @@
       name="sx" display_name="Snapshot" icon="camera.png" description="Save snapshot to desktop"/>
     <Provider tab="Extras" section="Images" hidden="true"
       name="vd" display_name="Spin movie" icon="video.png" description="Record spin movie"/>
+
+    <Provider tab="Extras" section="Viewing" hidden="true"
+      name="vr" display_name="Virtual reality" icon="vr.png" description="Enable virtual reality with OpenXR.  Press to toggle passthrough video."/>
+
   </Providers>
 
   <Classifiers>

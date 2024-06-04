@@ -45,6 +45,8 @@ surface blob
 area buried between two sets of atoms
 <li><a href="#center"><b>center</b></a>
 &ndash; calculate center of mass of map, atoms, and/or surface
+<li><a href="#contactarea"><b>contactarea</b></a>
+&ndash; report the area of one surface within a cutoff distance of another
 <li><a href="#convexity"><b>convexity</b></a>
 &ndash; calculate convexity at each surface vertex,
 color the surface accordingly
@@ -191,6 +193,8 @@ buried between <a href="atomspec.html#builtin"><b>ligand</b></a> and
 <a href="atomspec.html#builtin"><b>protein</b></a>
 </blockquote>
 <p>
+For surfaces without associated atomic coordinates, see
+<a href="#contactarea"><b>measure contactarea</b></a>.
 See also: <a href="interfaces.html"><b>interfaces</b></a>
 </p>
 </blockquote>
@@ -235,6 +239,52 @@ See also: <a href="cofr"><b>cofr</b></a>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
+<a name="contactarea"></a>
+<b>measure contactarea</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model1</i></a>&nbsp;
+<b>withSurface</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model2</i></a>&nbsp;
+[&nbsp;<b>distance</b>&nbsp;&nbsp;<i>d</i>&nbsp;&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d2</i>&nbsp;]
+[&nbsp;<b>slab</b>&nbsp;&nbsp;<i>width</i>&nbsp;|&nbsp;<i>d1,d2</i>&nbsp;]
+[&nbsp;<b>show</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>smooth</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>optimize</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+Report the surface area of one surface model
+(<a href="atomspec.html#othermodels"><i>surf-model1</i></a>) that lies within 
+<b>distance</b> <i>d</i> (default <b>3.0</b> &Aring;) of another surface model
+(<a href="atomspec.html#othermodels"><i>surf-model2</i></a>).
+Unless <b>show false</b> or <b>offset 0</b> is specified,
+a new surface model is created to show the corresponding patch of
+<i>surf-model1</i>. The default color for the patch is
+<b>red</b>. The new surface can be <b>offset</b> from the
+original <i>surf-model1</i> by a distance <i>d2</i>
+(default <b>1.0</b> &Aring;). An offset of zero indicates
+recoloring <i>surf-model1</i> to show the patch
+instead of creating a new surface model.
+The <b>slab</b> option overrides any <b>offset</b> and
+generates a slab of finite thickness instead of a single layer of surface.
+If a single value is supplied for the slab <i>width</i>,
+its inner and outer layers will be offset
+from <i>surf-model1</i> by &plusmn;&frac12;(<i>width</i>).
+Alternatively, two values separated by a comma but no spaces can be used
+to specify the offsets of the two slab layers independently.
+Patch or slab offsets can be positive (outward) or negative (inward).
+<b><i>Offsets affect only the display, not the area measurement</i></b>,
+which is taken at the <i>surf-model1</i> surface.
+The <b>smooth</b> option smooths the new surface but is generally
+not recommended.
+The <b>optimize</b> setting speeds up the calculation
+by disregarding far-apart portions of the surfaces.
+<p>
+For atomic structures,
+<a href="#buriedarea"><b>measure buriedarea</b></a> may be more appropriate.
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
 <a name="convexity"></a>
 <b>measure convexity</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
@@ -245,7 +295,8 @@ See also: <a href="cofr"><b>cofr</b></a>
 &nbsp;<a href="color.html#palette-options"><i>palette-options</i></a>&nbsp;
 <blockquote>
 Color a surface based on the convexity at each vertex, 
-calculated as 2&pi; minus the cone-angle spanned by the triangles incident 
+calculated as 2&pi; minus the cone-angle (in steradians)
+spanned by the triangles incident 
 at the vertex. Convexity values are smoothed by averaging with 
 neighboring (edge-connected) vertices for a specified number of iterations
 (default <b>5</b>). Smoothing is generally recommended, given that this
@@ -758,5 +809,5 @@ has the same axes and moments as the measured surface.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2023</address>
+May 2024</address>
 </body></html>

@@ -16,9 +16,13 @@ from typing import Dict
 
 from Qt.QtCore import Qt, QThread, Signal, Slot
 from Qt.QtWidgets import (
-    QWidget, QVBoxLayout, QAbstractItemView
-    , QLabel, QPushButton, QHBoxLayout
-    , QCheckBox
+    QWidget,
+    QVBoxLayout,
+    QAbstractItemView,
+    QLabel,
+    QPushButton,
+    QHBoxLayout,
+    QCheckBox,
 )
 from Qt.QtGui import QAction
 
@@ -29,30 +33,32 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui.gui import MainToolWindow
 from chimerax.ui.open_save import SaveDialog
 from chimerax.help_viewer import show_url
+from chimerax.core.models import REMOVE_MODELS
 
 from ..data_model import AvailableDBsDict, Match, parse_blast_results
 from ..utils import BlastParams, SeqId, _instance_generator
-from .widgets import (
-    BlastResultsTable, BlastResultsRow
-    , BlastProteinResultsSettings
-)
+from .widgets import BlastResultsTable, BlastResultsRow, BlastProteinResultsSettings
 
 _settings = None
 
-_instance_map = {} # Map of blastprotein results names to results instances
+_instance_map = {}  # Map of blastprotein results names to results instances
+
 
 def find_match(instance_name):
     if instance_name is None:
         if len(_instance_map) == 1:
             return _instance_map.values()[0]
         if len(_instance_map) > 1:
-            raise UserError("no name specified with multiple active blastprotein instances")
+            raise UserError(
+                "no name specified with multiple active blastprotein instances"
+            )
         else:
             raise UserError("no active blastprotein instance")
     try:
         return _instance_map[instance_name]
     except KeyError:
-        raise UserError("no blastprotein instance named \"%s\"" % instance_name)
+        raise UserError('no blastprotein instance named "%s"' % instance_name)
+
 
 class BlastProteinResults(ToolInstance):
 
@@ -67,76 +73,96 @@ class BlastProteinResults(ToolInstance):
         self._instance_name = tool_name
         _instance_map[self._instance_name] = self
         self._viewer_index = 1
-        self._from_restore = kw.pop('from_restore', False)
-        self.params: BlastParams = kw.pop('params', None)
+        self._from_restore = kw.pop("from_restore", False)
+        self.params: BlastParams = kw.pop("params", None)
+        self.only_best = kw.pop("only_best", False)
 
         # from_job
-        self.job = kw.pop('job', None)
+        self.job = kw.pop("job", None)
 
         # from_pull
-        self._sequence = kw.pop('sequence', None)
-        self._results = kw.pop('results', None)
+        self._sequence = kw.pop("sequence", None)
+        self._results = kw.pop("results", None)
+        self._first_opened_hit = None
 
         # from_snapshot
-        self._hits = kw.pop('hits', None)
+        self._hits = kw.pop("hits", None)
         self._best_hits = None
-        self._sequences: Dict[int, Match] = kw.pop('sequences', None)
-        self._table_session_data = kw.pop('table_session_data', None)
+        self._sequences: Dict[int, Match] = kw.pop("sequences", None)
+        self._table_session_data = kw.pop("table_session_data", None)
         self.tool_window = None
+        self.model_removed_handler = self.session.triggers.add_handler(
+            REMOVE_MODELS,
+            lambda *args: self._on_model_removed_from_session(*args),
+        )
 
         self._build_ui()
 
+    def _on_model_removed_from_session(self, _, models):
+        db = AvailableDBsDict[self.params.database]
+        if db.name in ["alphafold", "esmfold"]:
+            # We never set the first opened hit for alphaFold or ESMFold
+            return
+        for m in models:
+            if m is self._first_opened_hit:
+                # Release our reference to the model so it can be deleted
+                self._first_opened_hit = None
+
     @classmethod
-    def from_job(cls, session, tool_name, params, job):
-        return cls(
-            session, tool_name, from_restore = False, params=params
-            , job=job
-        )
+    def from_job(cls, session, tool_name, params, job, **kw):
+        return cls(session, tool_name, from_restore=False, params=params, job=job, **kw)
 
     @classmethod
     def from_pull(cls, session, tool_name, params, sequence, results):
         return cls(
-            session, tool_name, from_restore = False, params=params
-            , sequence=sequence, results=results
+            session,
+            tool_name,
+            from_restore=False,
+            params=params,
+            sequence=sequence,
+            results=results,
         )
 
     @classmethod
     def from_snapshot(cls, session, data):
         """Initializer to be used when restoring ChimeraX sessions."""
         sequences_dict = {}
-        version = data.get('version', 3)
+        version = data.get("version", 3)
         if version == 1:
             # Data from version 1 snapshots is prefixed by _, so need to add it in
             # for backwards compatibility.
-            sequences_dict = data['_sequences']
-            data['params'] = BlastParams(*[x[1] for x in data['_params']])
-            data['tool_name'] = data['_instance_name'] + str(data['_viewer_index'])
-            data['results'] = data['_hits']
-            data['table_session'] = None
+            sequences_dict = data["_sequences"]
+            data["params"] = BlastParams(*[x[1] for x in data["_params"]])
+            data["tool_name"] = data["_instance_name"] + str(data["_viewer_index"])
+            data["results"] = data["_hits"]
+            data["table_session"] = None
         # The version 2 getter exists because for a few weeks in August and
         # September 2021 the daily builds did not save snapshots with a version number.
         # We can remove this when sufficient time has passed.
         elif version == 2:
-            sequences = data['sequences']
-            for (key, hit_name, sequence) in sequences:
+            sequences = data["sequences"]
+            for key, hit_name, sequence in sequences:
                 sequences_dict[key] = SeqId(hit_name, sequence)
-            data['params'] = BlastParams(*list(data['params'].values()))
+            data["params"] = BlastParams(*list(data["params"].values()))
         else:
-            sequences = data['sequences']
-            for (key, hit_name, saved_seq_dict) in sequences:
+            sequences = data["sequences"]
+            for key, hit_name, saved_seq_dict in sequences:
                 keys = list(saved_seq_dict.keys())
                 # Fix up keys that don't match current initializer
-                keys[1] = 'match_id'
-                keys[2] = 'desc'
-                keys[3] = 'score'
+                keys[1] = "match_id"
+                keys[2] = "desc"
+                keys[3] = "score"
                 values = list(saved_seq_dict.values())
                 sequences_dict[key] = (hit_name, Match(**dict(zip(keys, values))))
-            data['params'] = BlastParams(*list(data['params'].values()))
+            data["params"] = BlastParams(*list(data["params"].values()))
         return cls(
-            session, data['tool_name'], from_restore=True, params = data['params']
-            , hits = data['results']
-            , sequences = sequences_dict
-            , table_session_data = data['table_session']
+            session,
+            data["tool_name"],
+            from_restore=True,
+            params=data["params"],
+            hits=data["results"],
+            sequences=sequences_dict,
+            table_session_data=data["table_session"],
         )
 
     #
@@ -147,22 +173,22 @@ class BlastProteinResults(ToolInstance):
         # Increment the counter on the Blast name generator each time a blast
         # instance with a default name is restored, so that subsequent blast
         # jobs have the correct default name if needed
-        if data['tool_name'].startswith('bp'):
+        if data["tool_name"].startswith("bp"):
             next(_instance_generator)
         return BlastProteinResults.from_snapshot(session, data)
 
     def take_snapshot(self, session, flags):
         data = {
-            'version': 3
-            , 'ToolUI': ToolInstance.take_snapshot(self, session, flags)
-            , 'table_session': self.table.session_info()
-            , 'params': self.params._asdict()
-            , 'tool_name': self._instance_name
-            , 'results': self._hits
-            , 'sequences': [(key
-                             , self._sequences[key][0]
-                             , vars(self._sequences[key][1])
-                             ) for key in self._sequences.keys()]
+            "version": 3,
+            "ToolUI": ToolInstance.take_snapshot(self, session, flags),
+            "table_session": self.table.session_info(),
+            "params": self.params._asdict(),
+            "tool_name": self._instance_name,
+            "results": self._hits,
+            "sequences": [
+                (key, self._sequences[key][0], vars(self._sequences[key][1]))
+                for key in self._sequences.keys()
+            ],
         }
         return data
 
@@ -170,43 +196,44 @@ class BlastProteinResults(ToolInstance):
     # Utilities
     #
     def _format_column_title(self, title: str):
-        if title == 'e-value':
-            return 'E-Value'
-        if title == 'uniprot_id':
-            return 'UniProt ID'
-        if title == 'mgnify_id':
-            return 'MGnify ID'
-        new_title = capwords(" ".join(title.split('_')))
-        new_title = new_title.replace('Id', 'ID')
+        if title == "e-value":
+            return "E-Value"
+        if title == "uniprot_id":
+            return "UniProt ID"
+        if title == "mgnify_id":
+            return "MGnify ID"
+        new_title = capwords(" ".join(title.split("_")))
+        new_title = new_title.replace("Id", "ID")
         return new_title
 
     def _make_settings_dict(self, db):
-        defaults = {
-            self._format_column_title(title): True for title in db.default_cols
-        }
+        defaults = {self._format_column_title(title): True for title in db.default_cols}
         return defaults
 
     def _format_param_str(self):
         labels = list(self.params._asdict().keys())
         values = list(self.params._asdict().values())
         try:
-            model_no = int(float(values[0].split('/')[0][1:]))
-        except AttributeError: # AlphaFold can be run without a model
+            model_no = int(float(values[0].split("/")[0][1:]))
+        except AttributeError:  # AlphaFold can be run without a model
             model_no = None
         try:
-            chain = ''.join(['/', values[0].split('/')[1]])
-        except AttributeError: # There won't be a selected chain either
+            chain = "".join(["/", values[0].split("/")[1]])
+        except AttributeError:  # There won't be a selected chain either
             chain = None
         if model_no:
             try:
-                model_formatted = ''.join([self.job.model_name, chain])
+                model_formatted = "".join([self.job.model_name, chain])
             except (KeyError, AttributeError, TypeError):
                 model_formatted = None
         else:
             model_formatted = None
         values[0] = model_formatted
         param_str = ", ".join(
-            [": ".join([str(label), str(value)]) for label, value in zip(labels, values)]
+            [
+                ": ".join([str(label), str(value)])
+                for label, value in zip(labels, values)
+            ]
         )
         return param_str
 
@@ -232,20 +259,32 @@ class BlastProteinResults(ToolInstance):
         self.control_widget.setVisible(False)
 
         default_cols = self._make_settings_dict(AvailableDBsDict[self.params.database])
-        self.table = BlastResultsTable(self.control_widget, default_cols, _settings, parent)
+        self.table = BlastResultsTable(
+            self.control_widget, default_cols, _settings, parent
+        )
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.get_selection.connect(self.load)
         self.tool_window.fill_context_menu = self.fill_context_menu
 
-        self.load_button = QPushButton("Load Structures", parent=self.load_buttons_widget)
-        self.seq_view_button = QPushButton("Show Sequence Alignment", parent=self.load_buttons_widget)
-        self.load_db_button = QPushButton("Open Database Webpage", parent=self.load_buttons_widget)
+        self.load_button = QPushButton(
+            "Load Structures", parent=self.load_buttons_widget
+        )
+        self.seq_view_button = QPushButton(
+            "Show Sequence Alignment", parent=self.load_buttons_widget
+        )
+        self.load_db_button = QPushButton(
+            "Open Database Webpage", parent=self.load_buttons_widget
+        )
         self.load_button_container.addWidget(self.load_button)
         self.load_button_container.addWidget(self.seq_view_button)
         self.load_button_container.addWidget(self.load_db_button)
         self.load_button.clicked.connect(lambda: self.load(self.table.selected))
-        self.seq_view_button.clicked.connect(lambda: self._show_mav(self.table.selected))
-        self.load_db_button.clicked.connect(lambda: self.load_sequence(self.table.selected))
+        self.seq_view_button.clicked.connect(
+            lambda: self._show_mav(self.table.selected)
+        )
+        self.load_db_button.clicked.connect(
+            lambda: self.load_sequence(self.table.selected)
+        )
 
         self.main_layout.addWidget(self.param_report)
         self.main_layout.addWidget(self.table)
@@ -253,12 +292,16 @@ class BlastProteinResults(ToolInstance):
         self.load_buttons_widget.setLayout(self.load_button_container)
         self.show_best_matching_container = QWidget(parent=parent)
         self.show_best_matching_layout = QHBoxLayout()
-        self.only_best_matching = QCheckBox("List only best chain per PDB", parent=parent)
-        self.only_best_matching.stateChanged.connect(self._on_best_matching_state_changed)
+        self.only_best_matching = QCheckBox(
+            "List only best-matching chain per PDB entry", parent=parent
+        )
+        self.only_best_matching.stateChanged.connect(
+            self._on_best_matching_state_changed
+        )
         self.show_best_matching_layout.addStretch()
         self.show_best_matching_layout.addWidget(self.only_best_matching)
         self.show_best_matching_container.setLayout(self.show_best_matching_layout)
-        self.show_best_matching_container.setVisible(False)
+        self.show_best_matching_container.setVisible(True)
         self.main_layout.addWidget(self.show_best_matching_container)
         self.main_layout.addWidget(self.load_buttons_widget)
 
@@ -271,14 +314,18 @@ class BlastProteinResults(ToolInstance):
         self.save_button.clicked.connect(self.save_as_tsv)
         self.main_layout.addWidget(self.save_button_container)
 
-        for layout in [self.main_layout, self.show_best_matching_layout, self.save_button_layout]:
+        for layout in [
+            self.main_layout,
+            self.show_best_matching_layout,
+            self.save_button_layout,
+        ]:
             layout.setContentsMargins(2, 2, 2, 2)
             layout.setSpacing(2)
 
         if self._from_restore:
             self._on_report_hits_signal(self._hits)
         else:
-            if(self.job):
+            if self.job:
                 results = None
                 sequence = self.job.seq
                 atomspec = self.job.atomspec
@@ -288,8 +335,12 @@ class BlastProteinResults(ToolInstance):
                 atomspec = self.params.chain
 
             self.worker = BlastResultsWorker(
-                self.session, self.job, self.params.database
-                , results, sequence, atomspec
+                self.session,
+                self.job,
+                self.params.database,
+                results,
+                sequence,
+                atomspec,
             )
             self.connect_worker_callbacks(self.worker)
             self.worker.start()
@@ -301,16 +352,31 @@ class BlastProteinResults(ToolInstance):
         state = self.only_best_matching.checkState()
         if state.name == "Checked":
             if self._best_hits is None:
+                # Every chain has the same e-value, so really we're just taking the first
+                # chain of a hit for each group of hits.
                 chains = defaultdict(str)
                 for hit in self._hits:
-                    chain, homotetramer = hit["name"].split('_')
-                    if chain not in chains:
-                        chains[chain] = hit
-                    else:
-                        old_homotetramer = chains[chain]["name"].split('_')[1]
-                        best_homotetramer = sorted([homotetramer, old_homotetramer])[0]
-                        if best_homotetramer == homotetramer:
+                    try:
+                        chain, homotetramer = hit["name"].split("_")
+                        if chain not in chains:
                             chains[chain] = hit
+                        else:
+                            old_homotetramer = chains[chain]["name"].split("_")[1]
+                            best_homotetramer = sorted(
+                                [homotetramer, old_homotetramer]
+                            )[0]
+                            if best_homotetramer == homotetramer:
+                                chains[chain] = hit
+                    except ValueError:
+                        # If the chain doesn't have a homotetramer, just take the name
+                        chain = hit["name"]
+                        if chain not in chains:
+                            chains[chain] = hit
+                        else:
+                            old_chain = chains[chain]["name"]
+                            best_chain = sorted([chain, old_chain])[0]
+                            if best_chain == chain:
+                                chains[chain] = hit
                 self._best_hits = list(chains.values())
                 self.table.data = [BlastResultsRow(item) for item in self._best_hits]
             else:
@@ -319,6 +385,7 @@ class BlastProteinResults(ToolInstance):
             self.table.data = [BlastResultsRow(item) for item in self._hits]
 
     def closeEvent(self, event):
+        self.model_removed_handler.remove()
         if self.worker is not None:
             self.worker.terminate()
         self.tool_window.ui_area.close()
@@ -331,7 +398,9 @@ class BlastProteinResults(ToolInstance):
         save_as_tsv_action = QAction("Save as TSV", menu)
         seq_action.triggered.connect(lambda: self.load(self.table.selected))
         seq_view_action.triggered.connect(lambda: self._show_mav(self.table.selected))
-        load_from_db_action.triggered.connect(lambda: self.load_sequence(self.table.selected))
+        load_from_db_action.triggered.connect(
+            lambda: self.load_sequence(self.table.selected)
+        )
         save_as_tsv_action.triggered.connect(lambda: self.save_as_tsv())
         menu.addAction(seq_action)
         menu.addAction(seq_view_action)
@@ -349,9 +418,20 @@ class BlastProteinResults(ToolInstance):
         if len(self.table.data) > 0:
             rows = []
             # Get the header row
-            rows.append("\t".join([str(val) for val in self.table.data[0]._internal_dict.keys()]))
+            rows.append(
+                "\t".join(
+                    [str(val) for val in self.table.data[0]._internal_dict.keys()]
+                )
+            )
             for row in self.table.data:
-                rows.append('\t'.join([str(val).replace('\n','') for val in row._internal_dict.values()]))
+                rows.append(
+                    "\t".join(
+                        [
+                            str(val).replace("\n", "")
+                            for val in row._internal_dict.values()
+                        ]
+                    )
+                )
             with open(filename, "w") as f:
                 # chop up all the table data by tabs
                 f.write("\n".join(rows))
@@ -380,11 +460,11 @@ class BlastProteinResults(ToolInstance):
 
     def _on_report_hits_signal(self, items):
         if items:
-            self.tool_window.manage('side')
+            self.tool_window.manage("side")
             try:
-                items = sorted(items, key = lambda i: i['e-value'])
+                items = sorted(items, key=lambda i: i["e-value"])
                 for index, item in enumerate(items):
-                    item['hit_#'] = index + 1
+                    item["hit_#"] = index + 1
                 self._hits = items
                 db = AvailableDBsDict[self.params.database]
                 try:
@@ -394,7 +474,9 @@ class BlastProteinResults(ToolInstance):
                         columns.update(list(item.keys()))
                     # Sort the columns so that defaults come first
                     columns = list(filter(lambda x: x not in db.excluded_cols, columns))
-                    nondefault_cols = list(filter(lambda x: x not in db.default_cols, columns))
+                    nondefault_cols = list(
+                        filter(lambda x: x not in db.default_cols, columns)
+                    )
                     columns = list(db.default_cols)
                     columns.extend(nondefault_cols)
                 except IndexError:
@@ -405,16 +487,24 @@ class BlastProteinResults(ToolInstance):
                     self.table.data = [BlastResultsRow(item) for item in items]
                     for string in columns:
                         title = self._format_column_title(string)
-                        self.table.add_column(title, data_fetch=lambda x, i=string: x[i])
-                    self.table.sortByColumn(columns.index('e-value'), Qt.AscendingOrder)
+                        self.table.add_column(
+                            title, data_fetch=lambda x, i=string: x[i]
+                        )
+                    self.table.sortByColumn(columns.index("e-value"), Qt.AscendingOrder)
                     if self._from_restore:
-                        self.table.launch(session_info=self._table_session_data, suppress_resize=True)
+                        self.table.launch(
+                            session_info=self._table_session_data, suppress_resize=True
+                        )
                     else:
                         self.table.launch(suppress_resize=True)
-                    self.table.resizeColumns(max_size = 100) # pixels
+                    self.table.resizeColumns(max_size=100)  # pixels
                     self.control_widget.setVisible(True)
                     if db.name == "pdb":
                         self.show_best_matching_container.setVisible(True)
+                    if self.only_best:
+                        self.only_best_matching.setCheckState(Qt.Checked)
+                        self._on_best_matching_state_changed()
+
             except RuntimeError:
                 # The user closed the window before the results came back.
                 # TODO: Investigate the layer of abstraction in ui/src/gui.py that makes
@@ -426,7 +516,7 @@ class BlastProteinResults(ToolInstance):
             self.tool_window.destroy()
 
     # Show a sequence-only hit's webpage
-    def load_sequence(self, selections: list['BlastResultsRow']) -> None:
+    def load_sequence(self, selections: list["BlastResultsRow"]) -> None:
         db = AvailableDBsDict[self.params.database]
         db_url = db.database_url
         urls = []
@@ -437,41 +527,47 @@ class BlastProteinResults(ToolInstance):
         for url in urls[1:]:
             show_url(self.session, url, new_tab=True)
 
-
     # Loading (and spatially matching) a match entry
-    def load(self, selections: list['BlastResultsRow']) -> None:
-        """Load the model from the results database.
-        """
+    def load(self, selections: list["BlastResultsRow"]) -> None:
+        """Load the model from the results database."""
         db = AvailableDBsDict[self.params.database]
         for row in selections:
             code = row[db.fetchable_col]
             if self.params.database in ["alphafold", "esmfold"]:
                 models, chain_id = db.load_model(
-                    self.session, code, self.params.chain, self.params._asdict().get("version", "1")
+                    self.session,
+                    code,
+                    self.params.chain,
+                    self.params._asdict().get("version", "1"),
                 )
             else:
-                models, chain_id = db.load_model(
-                    self.session, code, self.params.chain
-                )
+                models, chain_id = db.load_model(self.session, code, self.params.chain)
             if not models:
                 return
             if not self.params.chain:
-                if not db.name == 'alphafold':
-                    run(self.session, "select clear")
-                else:
+                if db.name == "alphafold":
                     self._log_alphafold(models)
-            else:
-                for m in models:
+            for m in models:
+                if self.params.chain or db.name in ["alphafold", "esmfold"]:
                     db.display_model(self.session, self.params.chain, m, chain_id)
+                elif self._first_opened_hit:
+                    atomspec = self._first_opened_hit.atomspec
+                    chain = self._first_opened_hit.name.split("_")[1]
+                    db.display_model(
+                        self.session, "/".join([atomspec, chain]), m, chain_id
+                    )
+                else:
+                    self._first_opened_hit = m
 
     def _log_alphafold(self, models):
         query_match = self._sequences[0][1]
-        query_seq = Sequence(name = 'query', characters = query_match.h_seq)
+        query_seq = Sequence(name="query", characters=query_match.h_seq)
         from chimerax.alphafold.match import _similarity_table_html
+
         for m in models:
             # TODO: Would be nice if all models were in one log table.
             msg = _similarity_table_html(m.chains[0], query_seq, m.database.id)
-            m.session.logger.info(msg, is_html = True)
+            m.session.logger.info(msg, is_html=True)
 
     # Code for displaying matches as multiple sequence alignment
     def _show_mav(self, selections) -> None:
@@ -480,7 +576,7 @@ class BlastProteinResults(ToolInstance):
         should have the same length because they include the gaps inserted by
         the BLAST alignment.
         """
-        ids = [hit['id'] for hit in selections]
+        ids = [hit["id"] for hit in selections]
         ids.insert(0, 0)
         names = []
         seqs = []
@@ -499,13 +595,13 @@ class BlastProteinResults(ToolInstance):
         if all_gaps:
             for i in range(len(seqs)):
                 seq = seqs[i]
-                new_seq = ''.join([seq[n] for n in range(len(seq))
-                                   if n not in all_gaps])
+                new_seq = "".join(
+                    [seq[n] for n in range(len(seq)) if n not in all_gaps]
+                )
                 seqs[i] = new_seq
         # Generate multiple sequence alignment file
         # Ask sequence viewer to display alignment
-        seqs = [Sequence(name=name, characters=seqs[i])
-                for i, name in enumerate(names)]
+        seqs = [Sequence(name=name, characters=seqs[i]) for i, name in enumerate(names)]
         inst_name = "None"
         if self._instance_name:
             inst_name = self._instance_name
@@ -524,7 +620,9 @@ class BlastResultsWorker(QThread):
     report_hits = Signal(list)
     report_sequences = Signal(dict)
 
-    def __init__(self, session, job, database = None, results = None, sequence = None, atomspec = None):
+    def __init__(
+        self, session, job, database=None, results=None, sequence=None, atomspec=None
+    ):
         super().__init__()
         self.session = session
         self.job = job
@@ -536,14 +634,14 @@ class BlastResultsWorker(QThread):
     @Slot()
     def run(self):
         if self.job:
-            if self.job.state == 'failed':
-                self.job_failed.emit('failed')
+            if self.job.state == "failed":
+                self.job_failed.emit("failed")
                 self.exit(1)
-            if self.job.state == 'deleted':
-                self.job_failed.emit('deleted')
+            if self.job.state == "deleted":
+                self.job_failed.emit("deleted")
                 self.exit(1)
-            if self.job.state == 'canceled':
-                self.job_failed.emit('canceled')
+            if self.job.state == "canceled":
+                self.job_failed.emit("canceled")
                 self.exit(1)
             try:
                 self.results = self.job.get_results()

@@ -13,6 +13,8 @@
 import math
 
 import nibabel
+import os
+import glob
 
 from chimerax.map.volume import open_grids
 from chimerax.map_data import GridData
@@ -22,8 +24,14 @@ from chimerax.dicom.coordinates import get_coordinate_system
 class NifTI:
     def __init__(self, session, data):
         self.session = session
-        self.paths = data
-        self.nifti_images = [nibabel.load(file) for file in data]
+        files = []
+        for path in data:
+            if os.path.exists(path) and os.path.isdir(path):
+                files.extend(glob.glob(os.path.join(path, "*.nii*")))
+            elif os.path.exists(path) and os.path.isfile(path):
+                files.append(path)
+        self.paths = files
+        self.nifti_images = [nibabel.load(file) for file in self.paths]
 
     @classmethod
     def from_paths(cls, session, data):

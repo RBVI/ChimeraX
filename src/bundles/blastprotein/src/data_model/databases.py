@@ -10,7 +10,7 @@
 #  including partial copies, of the software or any revisions
 #  or derivations thereof.
 #  === UCSF ChimeraX Copyright ===
-
+from enum import StrEnum
 from typing import Callable
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
@@ -28,13 +28,15 @@ experimental_evidence = {
     2: "Transcript Level",
     3: "Inferred from Homology",
     4: "Predicted",
-    5: "Uncertain"
+    5: "Uncertain",
 }
+
 
 @dataclass
 class Database(ABC):
     """Base class for defining blast protein databases; used to model the
     results of blast queries."""
+
     parser_factory: Callable[[dbparsers.Parser], object]
     parser: dbparsers.Parser = field(init=False)
     fetchable_col: str = ""
@@ -57,14 +59,13 @@ class Database(ABC):
     def display_model(chimerax_session, ref_atomspec, model, chain_id):
         spec = model.atomspec
         # Rudimentary mechanism to detect NMR ensemble?
-        dot_index = spec.find('.')
-        if dot_index > 0: # -1 is not falsy
+        dot_index = spec.find(".")
+        if dot_index > 0:  # -1 is not falsy
             spec = spec[0:dot_index]
         if chain_id:
-            spec += '/' + chain_id
+            spec += "/" + chain_id
         if ref_atomspec:
-            run(chimerax_session, "matchmaker %s to %s" %
-                (spec, ref_atomspec))
+            run(chimerax_session, "matchmaker %s to %s" % (spec, ref_atomspec))
         else:
             run(chimerax_session, "select add %s" % spec)
 
@@ -83,15 +84,15 @@ class Database(ABC):
             attr: One of 'n', 'Tax', 'RepID', 'OS', 'OX', etc.
         """
         try:
-            attr_loc = raw_desc.index("".join([attr, '=']))
+            attr_loc = raw_desc.index("".join([attr, "="]))
         except:
             # No such attr
             return ""
         else:
-            if attr_loc + len(attr) == raw_desc.rindex('='):
+            if attr_loc + len(attr) == raw_desc.rindex("="):
                 # We are at the last attribute
                 try:
-                    attr_value = raw_desc[attr_loc + len(attr) + 1:]
+                    attr_value = raw_desc[attr_loc + len(attr) + 1 :]
                     if attr_value.strip() == "deleted":
                         return ""
                     else:
@@ -99,9 +100,9 @@ class Database(ABC):
                 except:
                     # There's not even anything noted
                     return ""
-            next_attr_start = raw_desc[attr_loc + len(attr) + 1:].index('=')
-            attr_value = raw_desc[attr_loc + len(attr) + 1:][:next_attr_start]
-            attr_value = attr_value[:attr_value.rindex(" ")]
+            next_attr_start = raw_desc[attr_loc + len(attr) + 1 :].index("=")
+            attr_value = raw_desc[attr_loc + len(attr) + 1 :][:next_attr_start]
+            attr_value = attr_value[: attr_value.rindex(" ")]
             if attr_value.strip() == "deleted":
                 return ""
             else:
@@ -112,8 +113,8 @@ class Database(ABC):
         """For entries of the form DATABASE_SPECIES title ATTR=VAL, extract the title."""
         # Splitting by = then spaces lets us cut out the X=VAL attributes
         # and the longform Uniprot ID,
-        hit_title = ' '.join(raw_desc.split('=')[0].split(' ')[1:-1])
-        if hit_title == 'deleted':
+        hit_title = " ".join(raw_desc.split("=")[0].split(" ")[1:-1])
+        if hit_title == "deleted":
             hit_title = ""
         return hit_title
 
@@ -124,7 +125,15 @@ class NCBIDB(Database):
     parser_factory: object = dbparsers.PDBParser
     fetchable_col: str = "name"
     database_url: str = "https://ncbi.nlm.nih.gov/protein/%s"
-    default_cols: tuple = ("hit_#", "name", "e-value", "score", "title", "resolution", "ligand_symbols")
+    default_cols: tuple = (
+        "hit_#",
+        "name",
+        "e-value",
+        "score",
+        "title",
+        "resolution",
+        "ligand_symbols",
+    )
 
     @staticmethod
     def load_model(chimerax_session, match_code, ref_atomspec):
@@ -132,9 +141,11 @@ class NCBIDB(Database):
         url: Instance of Qt.QtCore.QUrl
         """
         # If there are two underscores only split on the first
-        parts = match_code.split('_', 1)
+        parts = match_code.split("_", 1)
         if len(parts) == 1 or len(parts[0]) != 4:
-            chimerax_session.logger.warning("Cannot open sequence-only hit \"%s\" in model viewer" % match_code)
+            chimerax_session.logger.warning(
+                'Cannot open sequence-only hit "%s" in model viewer' % match_code
+            )
             return None, None
         try:
             pdb_id, chain_id = parts
@@ -143,15 +154,17 @@ class NCBIDB(Database):
         models = run(chimerax_session, "open pdb:%s" % pdb_id)[0]
         if isinstance(models, AtomicStructure):
             models = [models]
+        for m in models:
+            m.name = match_code
         return models, chain_id
 
     @staticmethod
     def format_desc(desc):
         title = species = ""
         try:
-            species_range = slice(desc.rindex('['), desc.rindex(']'))
-            title = desc[:species_range.start]
-            species = desc[species_range.start + 1:species_range.stop]
+            species_range = slice(desc.rindex("["), desc.rindex("]"))
+            title = desc[: species_range.start]
+            species = desc[species_range.start + 1 : species_range.stop]
         except ValueError:
             # There is no species information in this description field
             title = desc
@@ -161,10 +174,10 @@ class NCBIDB(Database):
 
     @staticmethod
     def format_formulas(formulas):
-        temp_formulas = formulas.split(',')
+        temp_formulas = formulas.split(",")
         postprocessed_formulas = []
         for formula in temp_formulas:
-            postprocessed_formulas.append(formula.replace(' ', ''))
+            postprocessed_formulas.append(formula.replace(" ", ""))
             # TODO: Activate when Trac#5407 is complete
             # Wrap the numbers in the formulas in <sub></sub> HTML tags
             # postprocessed_formulas.append(re.sub(r"([0-9]+)", lambda x: "<sub>{}</sub>".format(x.group(0)), formula).rep    lace(' ', ''))
@@ -207,6 +220,7 @@ class PDB(NCBIDB):
 class NRDB(NCBIDB):
     name: str = "nrdb"
 
+
 @dataclass
 class UniRefDB(NCBIDB):
     name: str = "uniref"
@@ -241,21 +255,20 @@ class UniRefDB(NCBIDB):
             raw_desc = hit["description"]
             hit["title"] = Database._get_title_from_desc(raw_desc)
             try:
-                hit["uniprot_id"] = raw_desc.split(' ')[0].split('_')[1]
+                hit["uniprot_id"] = raw_desc.split(" ")[0].split("_")[1]
             except:
                 pass
-            hit["cluster_size"] = Database._get_equal_sep_attr(raw_desc, 'n')
-            hit["species"] = Database._get_equal_sep_attr(raw_desc, 'Tax')
-            hit["representative_id"] = Database._get_equal_sep_attr(raw_desc, 'RepID')
+            hit["cluster_size"] = Database._get_equal_sep_attr(raw_desc, "n")
+            hit["species"] = Database._get_equal_sep_attr(raw_desc, "Tax")
+            hit["representative_id"] = Database._get_equal_sep_attr(raw_desc, "RepID")
             ligand_formulas = hit.get("ligand_formulas", None)
             if ligand_formulas:
                 hit["ligand_formulas"] = NCBIDB.format_formulas(ligand_formulas)
             hit["cluster_id"] = hit["name"]
             hit["name"] = hit.get("representative_id", None)
-            if 'representative_id' in hit:
+            if "representative_id" in hit:
                 del hit["representative_id"]
             del hit["description"]
-
 
 
 @dataclass
@@ -272,7 +285,7 @@ class AlphaFoldDB(Database):
     def load_model(chimerax_session, match_code, ref_atomspec, version):
         cmd = "alphafold fetch %s version %s" % (match_code, version)
         if ref_atomspec:
-            cmd += ' alignTo %s' % ref_atomspec
+            cmd += " alignTo %s" % ref_atomspec
         models, _ = run(chimerax_session, cmd)
         # Hack around the fact that we use run(...) to load the model
         return models, None
@@ -283,23 +296,30 @@ class AlphaFoldDB(Database):
         for match in matches:
             raw_desc = matches[match]["description"]
             matches[match]["uniprot_id"] = matches[match]["name"]
-            name = raw_desc.split('=')[0].split(' ')[0].split('|')[-1]
+            name = raw_desc.split("=")[0].split(" ")[0].split("|")[-1]
             if name == "deleted":
                 name = ""
             matches[match]["name"] = name
             matches[match]["title"] = Database._get_title_from_desc(raw_desc)
-            matches[match]["species"] = Database._get_equal_sep_attr(raw_desc, 'OS')
-            matches[match]["taxonomic_id"] = Database._get_equal_sep_attr(raw_desc, 'OX')
-            matches[match]["gene"] = Database._get_equal_sep_attr(raw_desc, 'GN')
-            protein_existence = Database._get_equal_sep_attr(raw_desc, 'PE')
+            matches[match]["species"] = Database._get_equal_sep_attr(raw_desc, "OS")
+            matches[match]["taxonomic_id"] = Database._get_equal_sep_attr(
+                raw_desc, "OX"
+            )
+            matches[match]["gene"] = Database._get_equal_sep_attr(raw_desc, "GN")
+            protein_existence = Database._get_equal_sep_attr(raw_desc, "PE")
             try:
-                matches[match]["protein_existence"] = experimental_evidence[int(protein_existence)]
+                matches[match]["protein_existence"] = experimental_evidence[
+                    int(protein_existence)
+                ]
             except ValueError:
                 matches[match]["protein_existence"] = ""
-            matches[match]["sequence_version"] = Database._get_equal_sep_attr(raw_desc, 'SV')
+            matches[match]["sequence_version"] = Database._get_equal_sep_attr(
+                raw_desc, "SV"
+            )
             # At this point all useful information has been extracted from the description
             # column and formatted elsewhere.
             del matches[match]["description"]
+
 
 @dataclass
 class ESMFoldDB(Database):
@@ -314,7 +334,7 @@ class ESMFoldDB(Database):
     def load_model(chimerax_session, match_code, ref_atomspec, version):
         cmd = "esmfold fetch %s version %s" % (match_code, version)
         if ref_atomspec:
-            cmd += ' alignTo %s' % ref_atomspec
+            cmd += " alignTo %s" % ref_atomspec
         models, _ = run(chimerax_session, cmd)
         # Hack around the fact that we use run(...) to load the model
         return models, None
@@ -327,32 +347,44 @@ class ESMFoldDB(Database):
             hit["url"] = ESMFoldDB.database_url % hit["description"]
             del hit["description"]
 
+
 AvailableDBsDict = {
-    'pdb': PDB
-    , 'nr': NRDB
-    , 'alphafold': AlphaFoldDB
-    , 'uniref100': UniRefDB
-    , 'uniref90': UniRefDB
-    , 'uniref50': UniRefDB
-    , 'esmfold': ESMFoldDB
+    "pdb": PDB,
+    "nr": NRDB,
+    "alphafold": AlphaFoldDB,
+    "uniref100": UniRefDB,
+    "uniref90": UniRefDB,
+    "uniref50": UniRefDB,
+    "esmfold": ESMFoldDB,
 }
 
 CurrentDBVersions = {
-    'pdb': 1
-    , 'nr': 1
-    , 'alphafold': 4
-    , 'uniref100': 1
-    , 'uniref90': 1
-    , 'uniref50': 1
-    , 'esmfold': 0
+    "pdb": 1,
+    "nr": 1,
+    "alphafold": 4,
+    "uniref100": 1,
+    "uniref90": 1,
+    "uniref50": 1,
+    "esmfold": 0,
 }
 
 AvailableDBs = list(AvailableDBsDict.keys())
-AvailableMatrices = [
-    "BLOSUM45", "BLOSUM50", "BLOSUM62", "BLOSUM80", "BLOSUM90"
-    , "PAM30", "PAM70", "PAM250"
-    , "IDENTITY"
-]
+
+
+class Matrix(StrEnum):
+    BLOSUM45 = "BLOSUM45"
+    BLOSUM50 = "BLOSUM50"
+    BLOSUM62 = "BLOSUM62"
+    BLOSUM80 = "BLOSUM80"
+    BLOSUM90 = "BLOSUM90"
+    PAM30 = "PAM30"
+    PAM70 = "PAM70"
+    PAM250 = "PAM250"
+    IDENTITY = "IDENTITY"
+
+
+AvailableMatrices = [e.value for e in Matrix]
+
 
 def get_database(db: str) -> Database:
     """Instantiate and return a database instance.

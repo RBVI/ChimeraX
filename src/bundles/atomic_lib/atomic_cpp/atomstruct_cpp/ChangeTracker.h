@@ -91,6 +91,7 @@ public:
 
     static const std::string  REASON_ACTIVE_COORD_SET;
     static const std::string  REASON_ALT_LOC;
+    static const std::string  REASON_ALT_LOCS;
     static const std::string  REASON_ANISO_U;
     static const std::string  REASON_BALL_SCALE;
     static const std::string  REASON_BFACTOR;

@@ -91,6 +91,8 @@ class ColorActions(ToolInstance):
         actions_layout.addWidget(sep, stretch=1)
 
         self.global_button_info = []
+        # The _target_arg function relies on this being only the "Background" button,
+        # so would need revision if more buttons were added here
         for label, command in [("Background", "set bg %s")]:
             chk = QCheckBox(label)
             chk.setChecked(False)
@@ -117,8 +119,17 @@ class ColorActions(ToolInstance):
             but = QPushButton("By " + label)
             if tooltip:
                 but.setToolTip(tooltip)
-            but.clicked.connect(lambda *, run=run, ses=self.session, get_target=self._target_arg, arg=arg:
-                run(ses, "color " + ("" if ses.selection.empty() else "sel ") + "by" + arg + get_target()))
+            def do_color(*args, coloring=arg, ses=self.session):
+                target = self._target_arg()
+                if target is None:
+                    for button, command in self.global_button_info:
+                        if button.isChecked():
+                            raise UserError("Cannot color %s by %s"
+                                % (button.text().lower(), coloring.lower()))
+                    raise AssertionError("No global button checked?!?")
+                run(ses, "color " + ("" if ses.selection.empty() else "sel ") + "by" + coloring + target)
+
+            but.clicked.connect(do_color)
             grp_layout.addWidget(but)
         but = QPushButton("From Editor")
         but.setToolTip("Bring up a color editor to choose the color")
@@ -221,9 +232,10 @@ class ColorActions(ToolInstance):
         from chimerax.core.commands import run
         commands = []
         try:
-            commands.append("color "
-                + ("" if self.session.selection.empty() else "sel ") + color_name
-                + self._target_arg())
+            target = self._target_arg()
+            if target is not None:
+                commands.append("color "
+                    + ("" if self.session.selection.empty() else "sel ") + color_name + target)
         except NoTargetError:
             pass
 
@@ -263,6 +275,9 @@ class ColorActions(ToolInstance):
             if but.isChecked():
                 target += targ_char
         if not target:
+            for but, cmd in self.global_button_info:
+                if but.isChecked():
+                    return None
             raise NoTargetError()
         return "" if target == "acspf" else " target " + target
 

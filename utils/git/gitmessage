@@ -1,0 +1,29 @@
+
+# Commit format (non-breaking):
+#  type(scope): subject What changed specifically
+#  <BLANK LINE>
+#  <body> Motivation for change, contrast with previous behavior
+#  <BLANK LINE>
+#  <footer> e.g. Closes #1, reverts <commit hash>
+# Commit format (breaking):
+# Use one of BREAKING CHANGE in the body or an exclamation point after
+# the scope.
+#  type(scope)!: subject What changed specifically
+#  <BLANK LINE>
+#  BREAKING CHANGE: <body> Motivation for change, contrast with previous behavior
+#  <BLANK LINE>
+#  <footer> e.g. Closes #1, reverts <commit hash>
+# Possible types:
+#  feat: A new feature
+#  fix: A bug fix
+#  revert: Revert a previous commit
+#  build: build system or dependencies
+#  chore: e.g. updating dependencies, no production code change
+#  ci: Changes to CI configuration files/scripts
+#  docs: Documentation
+#  style: For e.g. whitespace changes
+#  test: Adding missing tests or correcting existing tests
+#  dev: Developer tooling, e.g. the source file for this message
+# Possible scopes (non-exhaustive):
+# - bundles (core)
+# - bundle submodules (core.toolshed)

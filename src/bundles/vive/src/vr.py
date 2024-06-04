@@ -480,7 +480,8 @@ class SteamVRCamera(Camera, StateManager):
         self._hand_controllers = [HandController(self, 'right'),
                                   HandController(self, 'left')]	# List of HandController
         self._tracker_device_index = None	# Vive tracker
-        
+        self._button_lock = False		# Whether to ignore button presses
+
         self.user_interface = UserInterface(self, session)
         self._vr_model_group = None	# Grouping model for hand controllers and UI models
         self._vr_model_group_id = 100	# Keep VR model group at bottom of model panel
@@ -863,6 +864,9 @@ class SteamVRCamera(Camera, StateManager):
                 for hc in self.hand_controllers():
                     hc.process_event(e)
 
+    def toggle_button_lock(self):
+        self._button_lock = not self._button_lock
+    
     def _device_type(self, device_index):
         vrs = self._vr_system
         c = vrs.getTrackedDeviceClass(device_index)
@@ -2691,7 +2695,11 @@ class HandController:
         hm = self.hand_model
         if hm:
             hm._show_button_down(b, pressed)
+
         m = self._modes.get(b)
+        if self._camera._button_lock and not isinstance(m, ButtonLockMode):
+            return  # Don't process button clicks in button lock mode.
+        
         if not isinstance(m, ShowUIMode):
             # Check for click on UI panel.
             ui = self._camera.user_interface
@@ -2798,7 +2806,8 @@ class HandController:
                 m.drag(HandMotionEvent(self, m._button_down, previous_pose, pose))
 
         # Check for Oculus thumbstick position
-        self._send_thumbstick_events()
+        if not self._camera._button_lock:
+            self._send_thumbstick_events()
 
     def _send_thumbstick_events(self):
         ts_mode = self._thumbstick_mode()
@@ -3527,6 +3536,19 @@ class RecenterMode(HandMode):
         from chimerax import shortcuts
         return join(dirname(shortcuts.__file__), 'icons', 'viewall.png')
 
+class ButtonLockMode(HandMode):
+    name = 'button lock'
+    def pressed(self, hand_event):
+        hand_event.camera.toggle_button_lock()
+    @property
+    def icon_path(self):
+        return self.icon_location()
+    @staticmethod
+    def icon_location():
+        from os.path import join, dirname
+        from chimerax import shortcuts
+        return join(dirname(shortcuts.__file__), 'icons', 'lock.png')
+
 class MouseMode(HandMode):
     def __init__(self, mouse_mode):
         self._mouse_mode = mouse_mode
@@ -3608,7 +3630,7 @@ class RunCommandMode(HandMode):
             from traceback import format_exc
             self._session.logger.bug(format_exc())
             
-vr_hand_modes = (ShowUIMode, MoveSceneMode, ZoomMode, RecenterMode, NoneMode)
+vr_hand_modes = (ShowUIMode, MoveSceneMode, ZoomMode, RecenterMode, ButtonLockMode, NoneMode)
 
 def hand_mode_names(session):
     names = set()

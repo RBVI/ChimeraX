@@ -14,7 +14,7 @@ Basic Usage
 """
 
 
-def tag(pure, limited=None):
+def tag(pure, limited=None, universal=False):
     """Return the tag part of a wheel filename for this version of Python.
 
     https://www.python.org/dev/peps/pep-0491/#file-name-convention
@@ -26,9 +26,11 @@ def tag(pure, limited=None):
     Parameters:
     -----------
     pure : boolean
-        Whether the bundle only contains Python code (no C/C++)
-    limited : string
-        Python version major[.minor[.micro]]
+        Whether the bundle only contains Python code or is a binary bundle
+    limited : instance of package.version.Version
+        Minimum Python version major[.minor[.micro]] for limited binary API
+    universal : boolean
+        Whether universal binary builds are wanted (macOS only)
 
     Returns:
     --------
@@ -54,6 +56,8 @@ def tag(pure, limited=None):
             target = os.environ.get("MACOSX_DEPLOYMENT_TARGET", None)
             if target:
                 target = f"_{target.replace('.', '_')}_"
+        else:
+            universal = False
         # use most specific tag, e.g., manylinux2014_x86_64 instead of linux_x86_64
         if limited:
             abi = f"abi{limited.major}"
@@ -64,6 +68,8 @@ def tag(pure, limited=None):
             interpreter = f"{tags.interpreter_name()}{version}"
         for tag in tags.sys_tags():
             if target and target not in tag.platform:
+                continue
+            if universal and 'universal' not in tag.platform:
                 continue
             if not limited:
                 break

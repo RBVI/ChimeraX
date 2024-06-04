@@ -61,7 +61,9 @@ def open_stack(paths, time=None, channel=None, log=None):
         pgrids = image_stack_grids([p])
       grids.extend(pgrids)
 
-  if time is None and channel is None:
+  if tiff_type == 'ImageJ':
+    pass  # ImageJ reader already assigned channels and times
+  elif time is None and channel is None:
     assign_series_and_channels(grids)
   else:
     for g in grids:

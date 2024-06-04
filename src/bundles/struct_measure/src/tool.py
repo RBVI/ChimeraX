@@ -339,7 +339,7 @@ class StructMeasureTool(ToolInstance):
                 ("Decimal places", 'decimal_places', IntOption, {'min': 0})]:
             panel.add_option(opt_class(opt_name, None,
                 lambda opt, settings=settings: self._set_angle_decimal_places(settings.decimal_places),
-                attr_name=attr_name, settings=settings, auto_set_attr=True))
+                attr_name=attr_name, settings=settings, auto_set_attr=True, **opt_class_kw))
         layout.addWidget(panel)
         self._set_angle_decimal_places(settings.decimal_places)
 
@@ -533,7 +533,7 @@ class StructMeasureTool(ToolInstance):
                 lambda opt, run=run, converter=converter, ses=self.session, cmd_suffix=cmd_arg:
                 run(ses, "distance style " + cmd_suffix
                 % (opt.value if converter is None else converter(opt.value))),
-                attr_name=attr_name, settings=settings, auto_set_attr=False))
+                attr_name=attr_name, settings=settings, auto_set_attr=False, **opt_class_kw))
         layout.addWidget(panel)
 
         from chimerax.dist_monitor.cmd import group_triggers

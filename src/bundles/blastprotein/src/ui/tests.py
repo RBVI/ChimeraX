@@ -11,5 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+
 class BlastGUITests:
     pass

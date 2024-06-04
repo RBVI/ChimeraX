@@ -258,6 +258,7 @@ def surface_smooth(session, surfaces, factor = 0.3, iterations = 2, in_place = F
             smooth_vertex_positions(va, ta, factor, iterations)
             smooth_vertex_positions(na, ta, factor, iterations)
             copy = Surface(surface.name + ' smooth', session)
+            copy.SESSION_SAVE_DRAWING = True	# Save geometry in sessions
             copy.set_geometry(va, na, ta)
             copy.positions = surface.get_scene_positions()
             _copy_surface_attributes(surface, copy)

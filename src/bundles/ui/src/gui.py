@@ -124,6 +124,28 @@ class UI(QApplication):
         self.triggers.add_trigger('tool window show')
         self.triggers.add_trigger('tool window hide')
 
+        # Work around Mac crash when adding or removing a screen. ChimeraX ticket #15277.
+        from sys import platform
+        if platform == 'darwin':
+            self.screenAdded.connect(self._block_redraw_during_screen_change)
+            self.screenRemoved.connect(self._block_redraw_during_screen_change)
+
+    def _block_redraw_during_screen_change(self, screen):
+        '''Work around bug #15277 where ChimeraX crashes on Mac when a screen is added or removed.'''
+        self.session.update_loop.block_redraw()
+        # Block for longer on Intel Mac where a 2 second block still caused crash #15304.
+        from os import uname
+        block_msec = 5000 if uname().machine == 'x86_64' else 2000
+        timer = []
+        t = self.timer(block_msec, self._unblock_redraw, timer)
+        timer.append(t)
+        if not hasattr(self, '_block_redraw_timers'):
+            self._block_redraw_timers = set()
+        self._block_redraw_timers.add(t)
+    def _unblock_redraw(self, timer_list):
+        self._block_redraw_timers.discard(timer_list[0])
+        self.session.update_loop.unblock_redraw()
+
     @property
     def mouse_modes(self):
         # delay creation of mouse modes to allow mouse_modes bundle time to run
@@ -148,10 +170,15 @@ class UI(QApplication):
         from Qt.QtCore import qInstallMessageHandler
         def cx_qt_msg_handler(msg_type, msg_log_context, msg_string,
                               log_fatal_error = self._log_qt_fatal_error):
-            if (msg_string.startswith('delivering touch release to same window')
-                or msg_string.startswith('skipping QEventPoint')
-                or msg_string.startswith('doh set to')):
-                return	# Supress Qt 6.2 warnings
+            if msg_string.startswith((
+                    'delivering touch release to same window',   # Qt 6.2
+                    'skipping QEventPoint',   # Qt 6.2
+                    'doh set to',  # Qt 6.2
+                    'Path override failed for key base::DIR_APP_DICTIONARIES',  # Qt 6.6.3
+                    'Already setting window visible!', # Qt 6.6.3
+                    'Compositor returned null texture', # Qt 6.6.3
+                    )):
+                return	# Supress Qt warnings
             if 'QWindowsWindow::setDarkBorderToWindow' in msg_string:
                 return  # Supress Qt 6.4 warning, ChimeraX ticket #8541
             if msg_type == QtMsgType.QtFatalMsg:
@@ -1565,10 +1592,16 @@ class MainWindow(QMainWindow, PlainTextLog):
             if sys.platform == "darwin":
                 cd.hide()
             cd.currentColorChanged.disconnect()
-        from chimerax.core.commands import run, sel_or_all
-        cd.currentColorChanged.connect(lambda clr, *, ses=self.session, arg_func=cmd_arg_func:
-            run(ses, "color %s %s" % (sel_or_all(ses, ['atoms', 'bonds']),
-            clr.name() + clr.name(clr.HexArgb)[1:3]) + arg_func()))
+        def use_color(color, *, ses=self.session, arg_func=cmd_arg_func):
+            from chimerax.core.commands import run, sel_or_all
+            cmd_arg = arg_func()
+            hex_code = color.name() + color.name(color.HexArgb)[1:3]
+            if cmd_arg is None:
+                # setting background color
+                run(ses, "set bgColor %s" % hex_code)
+            else:
+                run(ses, "color %s %s" % (sel_or_all(ses, ['atoms', 'bonds']), hex_code) + cmd_arg)
+        cd.currentColorChanged.connect(use_color)
         cd.show()
 
     def _run_surf_command(self, cmd, *, whole_surf=False):
@@ -1610,6 +1643,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         raise CancelOperation("Custom labeling cancelled")
 
     def _populate_select_menu(self, select_menu):
+        from chimerax.core.commands import run
         from Qt.QtGui import QAction
         sel_seq_action = QAction("Sequence...", self)
         select_menu.addAction(sel_seq_action)
@@ -1617,10 +1651,16 @@ class MainWindow(QMainWindow, PlainTextLog):
         sel_zone_action = QAction("&Zone...", self)
         select_menu.addAction(sel_zone_action)
         sel_zone_action.triggered.connect(self.show_select_zone_dialog)
+        sel_attr_action = QAction("By Attribute &Value...", self)
+        select_menu.addAction(sel_attr_action)
+        def show_sel_attr_tool(*args, ses=self.session):
+            from chimerax.render_by_attr import get_manager
+            mgr = get_manager(ses)
+            mgr.show_select_tool()
+        sel_attr_action.triggered.connect(show_sel_attr_tool)
         sel_contacts_action = QAction("Con&tacts...", self)
         select_menu.addAction(sel_contacts_action)
         sel_contacts_action.triggered.connect(self.show_select_contacts_dialog)
-        from chimerax.core.commands import run
         submenus = {}
         for menu_label, cmd_args in [("&Clear", "clear"),
                 (("Invert", "&Selected Models"), "~sel & ##selected"), (("Invert", "A&ll Models"), "~sel"),

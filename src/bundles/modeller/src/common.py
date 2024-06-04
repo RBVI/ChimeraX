@@ -41,7 +41,7 @@ def modeller_copy(seq):
     return mseq
 
 def opal_safe_file_name(fn):
-    return fn.replace(':', '_').replace(' ', '_').replace('|', '_').replace('[', '(').replace(']', ')')
+    return fn.replace(':', '_').replace(' ', '_').replace('|', '_').replace('[', '(').replace(']', ')').replace('#', '_')
 
 def structure_save_name(s):
     return s.name.replace(':', '_').replace(' ', '_') + "_" + s.id_string

@@ -187,13 +187,18 @@ an object in the <a href="window.html">main window</a> (see the
   <li><b>serial number</b> &ndash; atom serial number (for example, 126)
   <li><b>simple</b> (initial default) &ndash; chain ID (preceded by slash),
   residue name, residue number, atom name (for example, /B ASN 21 OD1)
-</ul>
+  </ul>
 Model number will be included when multiple models are present.
 This setting is also the default style for atom logging by
 the <a href="tools/hbonds.html"><b>H-Bonds</b></a> tool and
 the <a href="commands/hbonds.html"><b>hbonds</b></a> and
 <a href="commands/clashes.html"><b>clashes/contacts</b></a> commands
 (see their <b>namingStyle</b> options).
+<li><b>Label missing-structure segments</b> (initial default <b>true</b>)
+&ndash; whether to label missing-structure 
+<a href="pseudobonds.html">pseudobonds</a> with the number of biopolymer
+residues that they represent, according to PDB SEQRES information or 
+the mmCIF equivalent; if <b>false</b>, no labels will be shown
 </ul>
 
 <a name="log"></a>
@@ -447,5 +452,5 @@ Examples:
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2024</address>
+May 2024</address>
 </body></html> 

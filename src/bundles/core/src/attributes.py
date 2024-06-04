@@ -85,8 +85,9 @@ NO_DEFAULT = _NoDefault()
 
 @classmethod
 def register_attr(cls, session, attr_name, registerer, *, attr_type=None,
-        can_return_none=False):
-    cls._attr_registration.register(session, attr_name, registerer, (attr_type, can_return_none))
+        can_return_none=False, supercede=False):
+    cls._attr_registration.register(session, attr_name, registerer, (attr_type, can_return_none),
+        supercede=supercede)
 
 # used within the class to hold the registration info
 class AttrRegistration:
@@ -96,13 +97,17 @@ class AttrRegistration:
         self._session_attrs = {}
         self._ses_attr_counts = {}
 
-    def register(self, session, attr_name, registrant, type_info):
+    def register(self, session, attr_name, registrant, type_info, *, supercede=False):
         if attr_name in self.reg_attr_info:
             prev_registrant, prev_type_info = self.reg_attr_info[attr_name]
             if prev_type_info == type_info:
                 return
-            raise RegistrationConflict("Registration of attr '%s' with %s by %s conflicts with previous"
-                " registration by %s" % (attr_name, self.class_.__name__, registrant, prev_registrant))
+            if prev_registrant == registrant and supercede:
+                session.logger.info("Re-registration of attr '%s' with %s by %s changes type information"
+                    % (attr_name, self.class_.__name__, registrant))
+            else:
+                raise RegistrationConflict("Registration of attr '%s' with %s by %s conflicts with previous"
+                    " registration by %s" % (attr_name, self.class_.__name__, registrant, prev_registrant))
         self.reg_attr_info[attr_name] = (registrant, type_info)
         session_attrs = self._session_attrs.setdefault(session, set())
         if attr_name not in session_attrs:
@@ -177,8 +182,8 @@ def register_class(reg_class, instances_func, builtin_attr_info={}):
     'builtin_attr_info' should only be provided by classes that want to automatically
         show up in some tools, such as Render By Attribute, and provides information about
         the class's builtin (i.e non-custom) attributes.  The dictionary value should
-        be a mapping from attribute name to a list of possible types that attribute can
-        return (including None).
+        be a mapping from attribute name to a list containing the type that attribute can
+        return and possibly also None if the attribute could return None.
     """
     if hasattr(reg_class, '_attr_registration'):
         return
@@ -204,6 +209,35 @@ class RegAttrManager(StateManager):
         self.init_state_manager(session, MANAGER_NAME)
         self._python_instances = None
         self.session = session
+
+    def attribute_return_info(self, class_obj, attr_name):
+        """Returns the type object that the attribute named attr_name is registered to return,
+           and a boolean indicating if the attribute could return None.
+        """
+        try:
+            instances_func, builtin_attr_info = self.class_info[class_obj]
+        except KeyError:
+            raise ValueError("Class '%s' has not registered attribute information" % class_obj.__name__)
+
+        # builtin properties
+        matching_attr_names = []
+        for reg_attr_name, types in builtin_attr_info.items():
+            if reg_attr_name != attr_name:
+                continue
+            if len(types) == 1:
+                return types[0], False
+            for t in types:
+                if t is not None:
+                    return t, False
+            return None, True
+
+        # registered attributes
+        for reg_attr_name, attr_info in class_obj._attr_registration.reg_attr_info.items():
+            if reg_attr_name != attr_name:
+                continue
+            return attr_info[1]
+        raise ValueError("Class '%s' has not registered attribute named '%s'"
+            % (class_obj.__name__, attr_name))
 
     def attributes_returning(self, class_obj, return_types, *, none_okay=False):
         """Return list of attribute names for class 'class_obj' whose return types

@@ -420,6 +420,25 @@ class Model(State, Drawing):
         if 'opened_data_format' in data:
             self.opened_data_format = data['opened_data_format']
 
+    def restore_scene(self, scene_data):
+        '''
+        Restore model to state from scene_data
+        (obtained from take_snapshot() with State.SCENE flag)
+        '''
+        #TODO: restore base Model state here
+        raise NotImplementedError("restore_scene not implemented")
+
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        '''
+        Restore model to state interpolated as a fraction between the two scene datas.
+        For parts of the model that aren't interpolable, chenge to the second state
+        when 'switchover' is True.  If no parts of the model are interpolable then
+        you needn't implement this method (restore_scene() is sufficient.
+
+        '''
+        #TODO: interepolate base Model state here
+        raise NotImplementedError("interpolate_scene not implemented")
+
     def save_geometry(self, session, flags):
         '''
         Return state for saving Model and Drawing geometry that can be restored

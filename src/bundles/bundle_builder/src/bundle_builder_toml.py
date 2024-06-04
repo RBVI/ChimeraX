@@ -127,7 +127,9 @@ from .classifiers import (
     FormatFetcher,
     FormatReader,
     FormatSaver,
-    Toolbar,
+    ToolbarTab,
+    ToolbarSection,
+    ToolbarButton,
     Preset,
     Initialization,
 )
@@ -260,7 +262,15 @@ class Bundle:
         else:
             self.supersedes = []
         self.custom_init = str(chimerax_data.get("custom-init", ""))
-        self.categories = chimerax_data.get("categories", "")
+        self.categories = chimerax_data.get("categories", [])
+        if len(self.categories) == 0:
+            category = chimerax_data.get("category", "")
+            if not category:
+                raise ValueError(
+                    "At least one category is required under the [chimerax] table."
+                )
+            self.categories = [category]
+
         self.classifiers = chimerax_data.get("classifiers", [])
 
         self.tools = []
@@ -336,31 +346,33 @@ class Bundle:
                         self.format_savers.append(FormatSaver(format_name, saver))
                 self.data_formats.append(DataFormat(format_name, attrs))
         if "toolbar" in chimerax_data:
-            for section, attrs in chimerax_data["toolbar"].items():
-                buttons = attrs.pop("button", [])
-                name = attrs.pop("name", None)
-                if not name:
-                    raise ValueError("A toolbar section must have a name")
-                self.toolbars.append(Toolbar(section, name, attrs))
-                for button in buttons:
-                    name = button.pop("name", None)
-                    if not name:
+            for tab, attrs in chimerax_data["toolbar"].items():
+                tab_name = tab
+                sections = attrs.pop("sections", [])
+                self.toolbars.append(ToolbarTab(tab_name, attrs))
+                for section_name, attrs in sections.items():
+                    if not section_name:
                         raise ValueError("A toolbar button must have a name")
-                    self.toolbars.append(Toolbar(section, name, button))
+                    buttons = attrs.pop("button", [])
+                    self.toolbars.append(ToolbarSection(tab_name, section_name, attrs))
+                    for button in buttons:
+                        button_name = button.pop("name", None)
+                        button_attrs = button
+                        if not button_name:
+                            raise ValueError("A toolbar button must have a name")
+                        self.toolbars.append(
+                            ToolbarButton(
+                                tab_name, section_name, button_name, button_attrs
+                            )
+                        )
         if "preset" in chimerax_data:
             for preset_name, attrs in chimerax_data["preset"].items():
                 self.presets.append(Preset(preset_name, attrs))
-        if "initialization" in chimerax_data:
-            init = chimerax_data["initialization"]
-            if type(init) is list:
-                for entry in chimerax_data["initialization"]:
-                    self.initializations.append(
-                        Initialization(entry["type"], entry["bundles"])
-                    )
-            else:
-                self.initializations.append(
-                    Initialization(init["type"], init["bundles"])
-                )
+        if "initializations" in chimerax_data:
+            init = chimerax_data["initializations"]
+            for entry_type, bundles in init.items():
+                _bundles = bundles.get("bundles", bundles.get("bundle", None))
+                self.initializations.append(Initialization(entry_type, _bundles))
         if "extension" in chimerax_data:
             for name, attrs in chimerax_data["extension"].items():
                 self.c_modules.append(_CModule(name, attrs))

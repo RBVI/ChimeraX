@@ -10,7 +10,7 @@ REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt6
 
 # QT_VERSION is overriden by Makefile
 BASE_VERSION = 6.6
-QT_MINOR_VERSION = 2
+QT_MINOR_VERSION = 3
 PYQT_MINOR_VERSION = 1
 PYQTWE_MINOR_VERSION = 0
 QT_VERSION = $(BASE_VERSION).$(QT_MINOR_VERSION)
@@ -44,6 +44,7 @@ ifeq ($(OS),Darwin)
 BIN_PLATFORM = macos
 WHEEL_PLATFORM = macosx_10_14_universal2
 WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
+MISSING_QTWEBENGINE_DICT = PyQt6/Qt6/lib/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents/MacOS/qtwebengine_dictionaries
 else ifeq ($(OS),Linux)
 BIN_PLATFORM = linux
 ifeq (0, $(shell sort -CV <<< "$(PYQT_VERSION)"$$'\n'"6.3.99" && echo $$?))
@@ -53,6 +54,7 @@ else
 WHEEL_PLATFORM = manylinux_2_28_x86_64
 endif
 WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
+MISSING_QTWEBENGINE_DICT = PyQt6/Qt6/libexec/qtwebengine_dictionaries
 else ifeq ($(OS),Windows)
 BIN_PLATFORM = win.exe
 WHEEL_PLATFORM = win_amd64
@@ -80,6 +82,10 @@ install: $(QT_WHEEL) $(WB_WHEEL)
 
 app-install: $(QT_WHEEL) $(WB_WHEEL)
 	$(APP_PIP) install -U $(WHEELS)
+ifneq ($(MISSING_QTWEBENGINE_DICT),)
+# Work around Qt 6.6.3 bug spewing warnings to shell.  ChimeraX ticket #15088
+	-mkdir $(APP_PYSITEDIR)/$(MISSING_QTWEBENGINE_DICT)
+endif
 
 prefetch: $(QT_WHEEL) $(WB_WHEEL)
 

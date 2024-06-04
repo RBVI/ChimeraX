@@ -48,31 +48,28 @@ description = "Interactively segment volumes"
 category = "General"
 description = "See medical images in a 4-panel viewer"
 
-#[chimerax.command.segmentations]
-#category = "Volume Data"
-#description = "Create, edit, or destory segmentations"
+[chimerax.command.segmentations]
+category = "Volume Data"
+description = "Create, edit, or destory segmentations"
 
-# Don't delete just in case we do want to display these modes in the toolbar
-# [chimerax.provider."create segmentations"]
-# manager = "toolbar"
-# tab = "Medical Image"
-# section = "Mouse Mode"
-# mouse-mode = "create segmentations"
-# display-name = "Segment"
-# description = "Create a segmentation with the mouse"
-#
-# [chimerax.provider."move segmentation cursor"]
-# manager = "toolbar"
-# tab = "Medical Image"
-# section = "Mouse Mode"
-# mouse-mode = "move segmentation cursor"
-# display-name = "Move Segment Cursor"
-# description = "Move the segmentation cursor without adding to the segmentation"
-#
-# [chimerax.provider."resize segmentation cursor"]
-# manager = "toolbar"
-# tab = "Medical Image"
-# section = "Mouse Mode"
-# mouse-mode = "resize segmentation cursor"
-# display-name = "Resize Segment Cursor"
-# description = "Resize the segmentation cursor"
+[chimerax.provider."Segmentation Controls"]
+manager = "toolbar"
+tab = "Medical Image"
+section = "Segmentation Controls"
+after = "Mouse Mode"
+
+[chimerax.provider."toggle mouse modes"]
+manager = "toolbar"
+tab = "Medical Image"
+section = "Segmentation Controls"
+display-name = "Toggle Mouse Modes"
+icon = "mouse_small.png"
+description = "Toggle mouse modes"
+
+[chimerax.provider."toggle hand modes"]
+manager = "toolbar"
+tab = "Medical Image"
+section = "Segmentation Controls"
+icon = "right_controller_small.png"
+display-name = "Toggle Hand Modes"
+description = "toggle hand modes"

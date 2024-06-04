@@ -605,22 +605,27 @@ there can be only one set of saved preference values.
 <li><b>Consensus</b>
   <ul>
   <li><b>Show initially</b> (initial default <b>off</b>)
-  <li><b>Capitalization threshold</b> (initial default <b>0.8</b>)
+  <li><a name="low-conservation"></a><b>Hide low-conservation letters</b>
+(initial default <b>off</b>)
+&ndash; whether to leave the consensus sequence blank at positions where 
+no type meets the 
+<a href="#conservation-threshold"><b>High-conservation threshold</b></a>;
+otherwise, the most prevalent type at each position will be shown,
+even if it appears in fewer than half of the sequences, and if several
+residue types are equally the most common, one will be chosen at random
+  <li><a name="conservation-threshold"></a>
+<b>High-conservation threshold</b> (initial default <b>0.8</b>)
+&ndash; fraction conservation for showing the consensus type as a purple or red 
+capital letter, with red indicating that all sequences have the same type
+(a fraction of 1.0); consensus types with a fraction below the threshold 
+will be shown as lowercase letters or
+(if <a href="#low-conservation"><b>Hide low-conservation letters</b></a>
+is <b>on</b>) as blanks
   <li><b>Ignore gap characters</b> (initial default <b>off</b>)
+&ndash; whether to exclude gaps from being considered the most prevalent type
+at a position; regardless of this option, however, gap positions are always 
+included in the denominator for calculating the conservation fraction
   </ul>
-The consensus sequence shows the residue type that is most common
-at each position in the alignment, even if it appears in less than 0.5
-of the sequences; if a consensus type appears in at least the 
-<b>capitalization threshold</b> fraction of sequences, 
-it will be capitalized and shown in purple,
-or in red if all of the sequences have the same type.
-If several residue types are equally the most common,
-one is chosen at random. The consensus will show a gap at positions 
-where a gap is the most prevalent or equally the most prevalent
-as one or more residue types, unless <b>ignore gap characters</b>
-is turned on. Regardless of this option, however,
-gap positions are always included in the denominator
-for calculating the consensus fraction.
 </p>
 <li><b>Conservation</b>
   <ul>
@@ -825,5 +830,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2023</address>
+April 2024</address>
 </body></html>

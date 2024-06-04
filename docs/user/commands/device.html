@@ -23,7 +23,7 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3><a href="../index.html#commands">Command</a>: device, vr</h3>
+<h3><a href="../index.html#commands">Command</a>: device, vr, xr</h3>
 
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>device</b> &nbsp;<i>device-type</i> [&nbsp;<i>status</i>&nbsp;] 
@@ -38,12 +38,13 @@ where the <i>device-type</i> can be:
 &ndash; SpaceNavigator<sup>&reg;</sup> 3D mouse
 <li><a href="#webcam"><b>webcam</b></a>
 &ndash; use webcam video as the background for augmented reality
-<li><a href="#vr"><b>vr</b></a>
-&ndash; HTC Vive, Oculus Rift, Samsung Odyssey virtual reality systems
+<li><a href="#vr"><b>vr</b></a> or <a href="#vr"><b>xr</b></a>
+&ndash; Quest 3, Quest 2, Valve Index and other 
+<a href="../vr.html">virtual reality</a> systems
   <ul>
-  <li><a href="#vr-button"><b>vr button</b></a> 
+  <li><a href="#vr-button"><b>vr button</b></a> or <a href="#vr-button"><b>xr button</b></a> 
   &ndash; assign functions to hand-controller buttons
-  <li><a href="#vr-roomCamera"><b>vr roomCamera</b></a>
+  <li><a href="#vr-roomCamera"><b>vr roomCamera</b></a> or <a href="#vr-roomCamera"><b>xr roomCamera</b></a>
   &ndash; set up a separate camera view fixed in the VR room coordinates,
   useful for making videos
   </ul>
@@ -184,8 +185,11 @@ will be shown in front of the ChimeraX scene.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
-<a name="vr"><b>vr</b></a> [&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
+<a name="vr"></a>
+(&nbsp;<b>vr</b>&nbsp;|&nbsp;<b>xr</b>&nbsp;)
+[&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
 [&nbsp;<b>mirror</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>passthrough</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>center</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>clickRange</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>gui</b>&nbsp;&nbsp;<i>tool1</i>[<i>,tool2</i>&nbsp;...&nbsp;]]
@@ -196,14 +200,16 @@ will be shown in front of the ChimeraX scene.
 [&nbsp;<b>roomPosition</b>&nbsp;&nbsp;<i>matrix</i>&nbsp;|&nbsp;<b>report</b>&nbsp;]
 <blockquote>
 <p>
-The <b>vr</b> command (same as <b>device vr</b>)
+The <b>vr</b> or <b>xr</b> command (same as <b>device vr</b> or <b>device xr</b>)
 enables a virtual reality mode for systems supported by
-<a href="https://store.steampowered.com/about/"
-target="_blank">SteamVR</a>, including HTC Vive, Oculus Rift,
-and Samsung Odyssey. SteamVR must be installed separately by the user
-and started before the mode is enabled.
-In addition, Oculus Rift users should start the Oculus runtime 
-before starting SteamVR. For details and related issues, 
+<a href="https://store.steampowered.com/about/" target="_blank">SteamVR</a>
+or <a href="https://www.khronos.org/openxr/" target="_blank">OpenXR</a>,
+including Quest 3, Quest 2, Valve Index, Oculus Rift S, HTC Vive,
+and others. SteamVR must be installed separately in order to use
+the vr command, and with Meta Quest headsets the 
+<a href="https://www.meta.com/help/quest/articles/headsets-and-accessories/oculus-rift-s/install-app-for-link/">Meta Quest Link</a> app must be installed and started.
+The xr command allows using Meta Quest headsets without SteamVR installed.
+For details and related issues, 
 see <a href="../vr.html">ChimeraX virtual reality</a>.
 See also: 
 <a href="#vr-button"><b>vr button</b></a>,
@@ -238,6 +244,17 @@ because refreshing the computer display (nominally 60 times per second)
 slows rendering to headset. ChimeraX turns off syncing to
 vertical refresh if possible. Another way to mirror is to use
 SteamVR's menu entry to display mirror window.
+</p><p>
+The <b>passthrough</b> option controls whether the physical room is visible
+in the VR headset using passthrough video provided by cameras on the headset.
+This option is only available with the <b>xr</b> command, and only with Meta Quest 3,
+2, and Pro headsets.  It uses the Meta Quest OpenXR passthrough extension.
+Currently (April 2024) Meta requires enabling options
+in the Meta Quest Link PC app:
+<a href="https://developer.oculus.com/documentation/native/android/mobile-passthrough-over-link/">Settings / Beta / Developer Runtime Features</a>
+and
+<a href="https://developer.oculus.com/documentation/native/android/mobile-passthrough-over-link/">Settings / Beta / Passthrough over Meta Quest Link</a>,
+and these require a Meta developer account.
 </p><p>
 The <b>center</b> option (default <b>true</b>)
 centers and scales models in the room.
@@ -324,7 +341,8 @@ restored when VR is turned off.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
-<a name="vr-button"><b>vr button</b></a> 
+<a name="vr-button"></a>
+(&nbsp;<b>vr&nbsp;button</b>&nbsp;|&nbsp;<b>xr&nbsp;button</b>&nbsp;)
 &nbsp;<i>button-name</i>
 [&nbsp;<i>function</i>&nbsp;]
 [&nbsp;<b>command</b>&nbsp;&nbsp;"<i>string</i>"&nbsp;]
@@ -351,7 +369,7 @@ target="_blank">Oculus</a> &ldquo;Touch&rdquo; hand controllers
 </font></td></tr>
 </table>
 <p>
-The <b>vr button</b> command assigns modes (functions) to 
+The <b>vr button</b> or <b>xr button</b> command assigns modes (functions) to 
 the hand-controller buttons in <a href="../vr.html">virtual reality</a>,
 as a scriptable alternative to <a href="../vr.html#mousemodes">clicking icons
 to assign modes interactively</a>.
@@ -361,6 +379,8 @@ The available <i>function</i> names are as listed
 plus the following VR-specific modes:
 </p>
 <ul>
+<li><b>button lock</b> 
+&ndash; toggle (inactivate/activate) all other hand-controller buttons
 <li><b>recenter</b> &ndash; center and scale models in the room
 <li><b>show ui</b> &ndash; collectively show, hide, move ChimeraX tool panels
 </ul>
@@ -435,7 +455,8 @@ and <b>play coordinates</b>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
-<a name="vr-roomCamera"><b>vr roomCamera</b></a> 
+<a name="vr-roomCamera"></a>
+(&nbsp;<b>vr&nbsp;roomCamera</b>&nbsp;|&nbsp;<b>xr&nbsp;roomCamera</b>&nbsp;)
 [&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
 [&nbsp;<b>fieldOfView</b>&nbsp;&nbsp;<i>angle</i>&nbsp;]
 [&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;]
@@ -446,7 +467,7 @@ and <b>play coordinates</b>
 [&nbsp;<b>tracker</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>saveTrackerMount</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
-The <b>vr roomCamera</b> command sets up a separate camera view fixed 
+The <b>vr roomCamera</b> or <b>xr roomCamera</b> command sets up a separate camera view fixed 
 in the VR room coordinates, useful for making video tutorials.
 The camera view is shown in the desktop graphics window 
 and as &ldquo;picture in picture&rdquo; in the VR headset. 
@@ -455,7 +476,9 @@ See also: <a href="camera.html"><b>camera</b></a>,
 <p>
 The <b>vr roomCamera</b> command can only be used in 
 <a href="../vr.html">virtual reality</a>
-(after using <a href="#vr"><b>vr on</b></a>).
+after using <a href="#vr"><b>vr on</b></a>,
+and the <b>xr roomCamera</b> command can only be used
+after using <a href="#vr"><b>xr on</b></a>.
 In VR, the room camera is shown as a rectangle at the camera position 
 (initially with its center 1.5 meters above the floor and offset 2 meters 
 horizontally from the room center), facing the user and showing 
@@ -734,5 +757,5 @@ specific Looking Glass device when more than one is connected.
 </blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2024</address>
+April 2024</address>
 </body></html>

@@ -14,8 +14,9 @@
 from Qt.QtCore import Qt
 from Qt.QtWidgets import QWidget, QFormLayout, QLabel
 
+
 class BlastProteinFormWidget(QWidget):
-    def __init__(self, label, input_widget = None, parent = None):
+    def __init__(self, label, input_widget=None, parent=None):
         super().__init__()
         self.layout = QFormLayout()
         self._label = QLabel(label)
@@ -28,7 +29,7 @@ class BlastProteinFormWidget(QWidget):
         self.layout.setFormAlignment(Qt.AlignLeft)
         # If the second value is not at least 4 then ChainMenuButton stops being
         # rendered in native macOS style.
-        self.layout.setContentsMargins(0,4,0,0)
+        self.layout.setContentsMargins(0, 4, 0, 0)
         self.layout.setSpacing(2)
         self.setLayout(self.layout)
 

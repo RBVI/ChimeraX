@@ -982,240 +982,240 @@ def _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
             print("not enough info (all/donors/acceptors):", len(all), len(donors), len(acceptors))
         return False
 
-    # if so, find their positions and record in hbond_info; mark as finished
-    at_pos = atom._addh_coord
-    targets = []
-    for is_acc, other in hbond_info[atom][:2]:
-        targets.append(_find_target(atom, at_pos, other, not is_acc, hbond_info, finished))
+    altloc_info = []
+    for alt_loc in _alt_locs(atom):
+        atom.alt_loc = alt_loc
 
-    # for purposes of this intermediate measurement, use hydrogen distances instead
-    # of lone pair distances; determine true lone pair positions once hydrogens are found
-    bonded_pos = []
-    test_positions = []
-    coplanar = []
-    for bonded in atom.neighbors:
-        bonded_pos.append(bonded._addh_coord)
-        if bonded.element.number == 1:
-            test_positions.append((True, bonded._addh_coord))
-        if geom == planar:
-            for btb in bonded.neighbors:
-                if btb == atom:
-                    continue
-                coplanar.append(btb._addh_coord)
-    toward = targets[0]
-    if len(targets) > 1:
-        toward2 = targets[1]
-    else:
-        toward2 = None
-    h_len = bond_with_H_length(atom, geom)
-    lp_len = vdw_radius(atom)
-    if debug:
-        print(atom, "co-planar:", coplanar)
-        print(atom, "toward:", toward)
-        print(atom, "toward2:", toward2)
-    normals = bond_positions(at_pos, geom, 1.0, bonded_pos,
-            coplanar=coplanar, toward=toward, toward2=toward2)
-    if debug:
-        print(atom, "bond_positions:", [str(x) for x in normals])
-    # use vectors so we can switch between lone-pair length and H-length
-    for normal in normals:
-        test_positions.append((False, normal - at_pos))
+        # if so, find their positions and record in hbond_info; mark as finished
+        at_pos = atom._addh_coord
+        targets = []
+        for is_acc, other in hbond_info[atom][:2]:
+            targets.append(_find_target(atom, at_pos, other, not is_acc, hbond_info, finished))
 
-    # try to hook up positions with acceptors/donors
-    if atom in aro_amines:
-        if debug:
-            print("delay finishing aromatic amine")
-        return False
-    all = {}
-    protons = {}
-    lone_pairs = {}
-    conflicting = []
-    for is_acc, other in hbond_info[atom]:
-        if debug:
-            print("other:", other)
-        if is_acc:
-            key = (other, atom)
+        # for purposes of this intermediate measurement, use hydrogen distances instead
+        # of lone pair distances; determine true lone pair positions once hydrogens are found
+        bonded_pos = []
+        test_positions = []
+        coplanar = []
+        for bonded in atom.neighbors:
+            bonded_pos.append(bonded._addh_coord)
+            if bonded.element.number == 1:
+                test_positions.append((True, bonded._addh_coord))
+            if geom == planar:
+                for btb in bonded.neighbors:
+                    if btb == atom:
+                        continue
+                    coplanar.append(btb._addh_coord)
+        toward = targets[0]
+        if len(targets) > 1:
+            toward2 = targets[1]
         else:
-            key = (atom, other)
-        conflict_allowable = key not in processed
-        nearest = None
-        if other in finished:
-            oprotons, olps = hbond_info[other][-1][1:]
+            toward2 = None
+        h_len = bond_with_H_length(atom, geom)
+        lp_len = vdw_radius(atom)
+        if debug:
+            print(atom, "co-planar:", coplanar)
+            print(atom, "toward:", toward)
+            print(atom, "toward2:", toward2)
+        normals = bond_positions(at_pos, geom, 1.0, bonded_pos,
+                coplanar=coplanar, toward=toward, toward2=toward2)
+        if debug:
+            print(atom, "bond_positions:", [str(x) for x in normals])
+        # use vectors so we can switch between lone-pair length and H-length
+        for normal in normals:
+            test_positions.append((False, normal - at_pos))
+
+        # try to hook up positions with acceptors/donors
+        if atom in aro_amines:
+            if debug:
+                print("delay finishing aromatic amine")
+            return False
+        all = {}
+        protons = {}
+        lone_pairs = {}
+        conflicting = []
+        for is_acc, other in hbond_info[atom]:
+            if debug:
+                print("other:", other)
             if is_acc:
-                # proton may have been stripped if donor near metal...
-                if not oprotons:
-                    continue
-                opositions = oprotons
-                mul = lp_len
+                key = (other, atom)
             else:
-                opositions = olps
-                mul = h_len
-            for opos in opositions:
+                key = (atom, other)
+            conflict_allowable = key not in processed
+            nearest = None
+            if other in finished:
+                oprotons, olps = hbond_info[other][-1][1:]
+                if is_acc:
+                    # proton may have been stripped if donor near metal...
+                    if not oprotons:
+                        continue
+                    opositions = oprotons
+                    mul = lp_len
+                else:
+                    opositions = olps
+                    mul = h_len
+                for opos in opositions:
+                    for is_h, check in test_positions:
+                        if is_h:
+                            pos = check
+                        else:
+                            pos = at_pos + check * mul
+                        dsq = distance_squared(opos, pos)
+                        if nearest is None or dsq < nsq:
+                            nearest = check
+                            nearest_is_h = is_h
+                            nsq = dsq
+            else:
+                other_pos = other._addh_coord
+                if is_acc:
+                    mul = lp_len
+                else:
+                    mul = h_len
                 for is_h, check in test_positions:
                     if is_h:
                         pos = check
                     else:
                         pos = at_pos + check * mul
-                    dsq = distance_squared(opos, pos)
+                    dsq = distance_squared(pos, other_pos)
+                    if debug:
+                        print("dist from other to", end=" ")
+                        if is_h:
+                            if check in all:
+                                if check in protons:
+                                    print("new proton:", end=" ")
+                                else:
+                                    print("new lone pair:", end=" ")
+                            else:
+                                print("unfilled position:", end=" ")
+                        else:
+                            print("pre-existing proton:", end=" ")
+                        import math
+                        print(math.sqrt(dsq))
                     if nearest is None or dsq < nsq:
                         nearest = check
                         nearest_is_h = is_h
                         nsq = dsq
-        else:
-            other_pos = other._addh_coord
-            if is_acc:
-                mul = lp_len
-            else:
-                mul = h_len
-            for is_h, check in test_positions:
-                if is_h:
-                    pos = check
-                else:
-                    pos = at_pos + check * mul
-                dsq = distance_squared(pos, other_pos)
-                if debug:
-                    print("dist from other to", end=" ")
-                    if is_h:
-                        if check in all:
-                            if check in protons:
-                                print("new proton:", end=" ")
-                            else:
-                                print("new lone pair:", end=" ")
-                        else:
-                            print("unfilled position:", end=" ")
-                    else:
-                        print("pre-existing proton:", end=" ")
-                    import math
-                    print(math.sqrt(dsq))
-                if nearest is None or dsq < nsq:
-                    nearest = check
-                    nearest_is_h = is_h
-                    nsq = dsq
-        if nearest and nearest_is_h:
-            # closest to known hydrogen; no help in positioning...
-            if is_acc and conflict_allowable:
-                # other is trying to donate and is nearest to one of our hydrogens
-                conflicting.append((is_acc, other))
-            continue
-        if nearest in all:
-            if is_acc:
-                if nearest in protons and conflict_allowable:
+            if nearest and nearest_is_h:
+                # closest to known hydrogen; no help in positioning...
+                if is_acc and conflict_allowable:
+                    # other is trying to donate and is nearest to one of our hydrogens
                     conflicting.append((is_acc, other))
-            elif nearest in lone_pairs and conflict_allowable:
-                conflicting.append((is_acc, other))
-            continue
-        # check for steric conflict (frequent with metal coordination)
-        if is_acc:
-            pos = at_pos + nearest * lp_len
-            at_bump = 0.0
-        else:
-            pos = at_pos + nearest * h_len
-            at_bump = h_rad
-        check_dist = 2.19 + at_bump
-        # since searchTree is a module variable that changes need to access via the module...
-        from .cmd import search_tree
-        nearby = search_tree.search(pos, check_dist)
-        steric_clash = False
-        okay = set([atom, other])
-        okay.update(atom.neighbors)
-        for nb in nearby:
-            if nb in okay:
                 continue
-            if nb.structure != atom.structure and (
-                    atom.structure.id is None or (
-                        len(nb.structure.id) > 1
-                        and (nb.structure.id[:-1] == atom.structure.id[:-1]))):
-                # ignore clashes with sibling submodels or if our model isn't open
+            if nearest in all:
+                if is_acc:
+                    if nearest in protons and conflict_allowable:
+                        conflicting.append((is_acc, other))
+                elif nearest in lone_pairs and conflict_allowable:
+                    conflicting.append((is_acc, other))
                 continue
-            d_chk = vdw_radius(nb) + at_bump - 0.4
-            if d_chk * d_chk >= distance_squared(nb._addh_coord, pos):
-                steric_clash = True
-                if debug:
-                    print("steric clash with", nb, "(%.3f < %.3f)"
-                        % (distance(pos, nb._addh_coord), d_chk))
-                break
-        if steric_clash and conflict_allowable:
-            conflicting.append((is_acc, other))
-            continue
-
-        all[nearest] = 1
-        if is_acc:
-            if debug:
-                print("determined lone pair")
-            lone_pairs[nearest] = 1
-        else:
-            if debug:
-                print("determined proton")
-            protons[nearest] = 1
-        if len(protons) == hyds_to_position:
-            # it is possible that an earlier call to this routine had protons in
-            # the same position and therefore decided that the full set of proton
-            # positions hadn't been determined, but between that call and a later
-            # call one of the H-bond partners became fully determined and caused
-            # the "nearest" proton to switch to a different position, so that by
-            # the time this routine is called again, you don't need the extra
-            # H-bond, so this check is to prevent adding extra protons!  Example
-            # is /H:2081 (water) in 2c9t
-            break
-
-    for is_acc, other in conflicting:
-        if debug:
-            print("Removing hbond to %s due to conflict" % other)
-        hbond_info[atom].remove((is_acc, other))
-        if not hbond_info[atom]:
-            del hbond_info[atom]
-        if other in finished:
-            continue
-        try:
-            hbond_info[other].remove((not is_acc, atom))
-            if not hbond_info[other]:
-                del hbond_info[other]
-        except ValueError:
-            pass
-    # since any conflicting hbonds may have been used to determine positions,
-    # determine the positions again with the remaining hbonds
-    if conflicting:
-        # restore hbonds pruned by the conflicting hbonds
-        for is_acc, other in conflicting:
+            # check for steric conflict (frequent with metal coordination)
             if is_acc:
-                key = (other, atom)
+                pos = at_pos + nearest * lp_len
+                at_bump = 0.0
             else:
-                key = (atom, other)
-            if key in pruned_by:
-                for phb in pruned_by[key]:
-                    if phb[0] in finished or phb[1] in finished:
-                        continue
+                pos = at_pos + nearest * h_len
+                at_bump = h_rad
+            check_dist = 2.19 + at_bump
+            # since searchTree is a module variable that changes need to access via the module...
+            from .cmd import search_tree
+            nearby = search_tree.search(pos, check_dist)
+            steric_clash = False
+            okay = set([atom, other])
+            okay.update(atom.neighbors)
+            for nb in nearby:
+                if nb in okay:
+                    continue
+                if nb.structure != atom.structure and (
+                        atom.structure.id is None or (
+                            len(nb.structure.id) > 1
+                            and (nb.structure.id[:-1] == atom.structure.id[:-1]))):
+                    # ignore clashes with sibling submodels or if our model isn't open
+                    continue
+                d_chk = vdw_radius(nb) + at_bump - 0.4
+                if d_chk * d_chk >= distance_squared(nb._addh_coord, pos):
+                    steric_clash = True
                     if debug:
-                        print("restoring %s/%s hbond pruned by hbond to %s"
-                            % (phb[0], phb[1], other))
-                    processed.remove(phb)
-                    hbond_info.setdefault(phb[0], []).append((False, phb[1]))
-                    hbond_info.setdefault(phb[1], []).append((True, phb[0]))
-                del pruned_by[key]
-        if atom not in hbond_info:
-            if debug:
-                print("No non-conflicting hbonds left!")
-            return False
-        if debug:
-            print("calling _try_finish with non-conflicting hbonds")
-        return _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed)
-    # did we determine enough positions?
-    if len(all) < openings and len(protons) < hyds_to_position \
-    and len(lone_pairs) < openings - hyds_to_position:
-        if debug:
-            print("not enough hookups (all/protons/lps):", len(all), len(protons), len(lone_pairs))
-        return False
-
-    if len(protons) < hyds_to_position:
-        for is_h, pos in test_positions:
-            if is_h:
+                        print("steric clash with", nb, "(%.3f < %.3f)"
+                            % (distance(pos, nb._addh_coord), d_chk))
+                    break
+            if steric_clash and conflict_allowable:
+                conflicting.append((is_acc, other))
                 continue
-            if pos not in all:
-                protons[pos] = 1
-    hbond_info[atom] = altloc_info = []
-    for alt_loc in _alt_locs(atom):
-        atom.alt_loc = alt_loc
-        at_pos = atom._addh_coord
+
+            all[nearest] = 1
+            if is_acc:
+                if debug:
+                    print("determined lone pair")
+                lone_pairs[nearest] = 1
+            else:
+                if debug:
+                    print("determined proton")
+                protons[nearest] = 1
+            if len(protons) == hyds_to_position:
+                # it is possible that an earlier call to this routine had protons in
+                # the same position and therefore decided that the full set of proton
+                # positions hadn't been determined, but between that call and a later
+                # call one of the H-bond partners became fully determined and caused
+                # the "nearest" proton to switch to a different position, so that by
+                # the time this routine is called again, you don't need the extra
+                # H-bond, so this check is to prevent adding extra protons!  Example
+                # is /H:2081 (water) in 2c9t
+                break
+
+        for is_acc, other in conflicting:
+            if debug:
+                print("Removing hbond to %s due to conflict" % other)
+            hbond_info[atom].remove((is_acc, other))
+            if not hbond_info[atom]:
+                del hbond_info[atom]
+            if other in finished:
+                continue
+            try:
+                hbond_info[other].remove((not is_acc, atom))
+                if not hbond_info[other]:
+                    del hbond_info[other]
+            except ValueError:
+                pass
+        # since any conflicting hbonds may have been used to determine positions,
+        # determine the positions again with the remaining hbonds
+        if conflicting:
+            # restore hbonds pruned by the conflicting hbonds
+            for is_acc, other in conflicting:
+                if is_acc:
+                    key = (other, atom)
+                else:
+                    key = (atom, other)
+                if key in pruned_by:
+                    for phb in pruned_by[key]:
+                        if phb[0] in finished or phb[1] in finished:
+                            continue
+                        if debug:
+                            print("restoring %s/%s hbond pruned by hbond to %s"
+                                % (phb[0], phb[1], other))
+                        processed.remove(phb)
+                        hbond_info.setdefault(phb[0], []).append((False, phb[1]))
+                        hbond_info.setdefault(phb[1], []).append((True, phb[0]))
+                    del pruned_by[key]
+            if atom not in hbond_info:
+                if debug:
+                    print("No non-conflicting hbonds left!")
+                return False
+            if debug:
+                print("calling _try_finish with non-conflicting hbonds")
+            return _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed)
+        # did we determine enough positions?
+        if len(all) < openings and len(protons) < hyds_to_position \
+        and len(lone_pairs) < openings - hyds_to_position:
+            if debug:
+                print("not enough hookups (all/protons/lps):", len(all), len(protons), len(lone_pairs))
+            return False
+
+        if len(protons) < hyds_to_position:
+            for is_h, pos in test_positions:
+                if is_h:
+                    continue
+                if pos not in all:
+                    protons[pos] = 1
 
         h_locs = []
         for h_vec in protons.keys():
@@ -1229,6 +1229,7 @@ def _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
                 lp_locs.append(at_pos + vec * lp_len)
 
         altloc_info.append((alt_loc, h_locs, lp_locs))
+    hbond_info[atom] = altloc_info
     finished[atom] = True
     return True
 
