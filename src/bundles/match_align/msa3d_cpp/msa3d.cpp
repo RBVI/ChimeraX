@@ -16,6 +16,7 @@
 #include <Python.h>
 #include <algorithm>    // std::min
 #include <math.h>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -23,26 +24,72 @@
 #include <atomstruct/search.h>
 #include <logger/logger.h>
 
+using atomstruct::Atom;
 using atomstruct::Chain;
+using atomstruct::AtomSearchTree;
+
+class EndPoint
+{
+public:
+    Chain*  chain;
+    Chain::SeqPos  pos;
+
+    EndPoint(Chain* _chain, Chain::SeqPos _pos): chain(_chain), pos(_pos) {};
+};
+
+class Link
+{
+public:
+    std::vector<EndPoint*> info;
+    float val;
+    float penalty = 0.0;
+    std::vector<std::shared_ptr<Link>> cross_links;
+
+    Link(EndPoint* e1, EndPoint* e2, float _val) {
+        info.push_back(e1);
+        info.push_back(e2);
+        val = _val;
+    }
+    ~Link() {
+        for (auto ep: info)
+            delete ep;
+    }
+};
 
 PyObject *
 multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all, char gap_char,
-    bool circular, const char* status_prefix)
+    bool circular, const char* status_prefix, PyObject* py_logger)
 {
     PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align not implemented");
     return nullptr;
     //TODO: once enough of the below implemented, remove the above two lines
+
+    // Create list of parings between chains and prune to be monotonic
+    std::map<const Chain, AtomSearchTree> trees;
+
+    // For each pair, go through the second chain residue by residue
+    // and compile crosslinks to other chain.  As links are compiled,
+    // figure out what previous links are crossed and keep a running
+    // "penalty" for links based on what they cross.  Sort links by
+    // penalty and keep pruning worst link until no links cross.
+    std::vector<Link*> all_links;
+
+    std::map<const Chain*, std::vector<Atom*>> pas;
+    std::vector<std::vector<std::shared_ptr<Link>>> pairings;
+    logger::status(py_logger, status_prefix, "Finding residue principal atoms");
+    //TODO: lots
 }
 
 static PyObject*
 py_multi_align(PyObject*, PyObject* args)
 {
     PyObject* chain_ptrs_list;
+    PyObject* py_logger;
     double dist_cutoff;
     int col_all, circular, py_gap_char;
     const char* status_prefix;
-    if (!PyArg_ParseTuple(args, const_cast<char *>("OfpCps"),
-            &chain_ptrs_list, &dist_cutoff, &col_all, &py_gap_char, &circular, &status_prefix))
+    if (!PyArg_ParseTuple(args, const_cast<char *>("OfpCpsO"),
+            &chain_ptrs_list, &dist_cutoff, &col_all, &py_gap_char, &circular, &status_prefix, &py_logger))
         return NULL;
     char gap_char = (char)py_gap_char;
     if (!PySequence_Check(chain_ptrs_list)) {
@@ -66,7 +113,8 @@ py_multi_align(PyObject*, PyObject* args)
         }
         chains.push_back(static_cast<const Chain*>(PyLong_AsVoidPtr(py_ptr)));
     }
-    return multi_align(chains, dist_cutoff, (bool)col_all, gap_char, (bool)circular, status_prefix);
+    return multi_align(chains, dist_cutoff, (bool)col_all, gap_char, (bool)circular,
+        status_prefix, py_logger);
 }
 
 static struct PyMethodDef msa3d_methods[] =
