@@ -32,11 +32,14 @@ from chimerax.segmentations.ui.segmentation_mouse_mode import (
 )
 from chimerax.segmentations.settings import get_settings
 from chimerax.segmentations.types import Axis
-from chimerax.segmentations.trigger_handlers import get_tracker
+from chimerax.segmentations.segmentation_tracker import get_tracker
 from chimerax.segmentations.ui.segmentation_mouse_mode import (
     mouse_bindings_saved,
     hand_bindings_saved,
 )
+
+import chimerax.segmentations.triggers
+from chimerax.segmentations.triggers import SEGMENTATION_MODIFIED
 
 actions = [
     "add",
@@ -66,7 +69,7 @@ def segmentations(
 ):
     """Set or restore mouse and hand modes; or create and modify segmentations."""
     settings = get_settings(session)
-    tracker = get_tracker(session)
+    tracker = get_tracker()
     if action == "create":
         if not modelSpecifier:
             raise UserError("No model specified")
@@ -100,7 +103,7 @@ def segmentations(
                     "Ignoring the intensity parameters for removing regions from a segmentation"
                 )
                 minIntensity = maxIntensity = None
-            if axis:
+            if len(center) < 3 and axis:
                 axis = Axis.from_string(axis)
                 segment_in_circle(
                     model,
@@ -117,6 +120,9 @@ def segmentations(
                 segment_in_sphere(
                     model, model_center, radius, minIntensity, maxIntensity, value
                 )
+            chimerax.segmentations.triggers.activate_trigger(
+                SEGMENTATION_MODIFIED, model
+            )
         else:
             raise UserError("Can't operate on a non-segmentation")
     else:

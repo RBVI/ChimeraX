@@ -244,20 +244,32 @@ class _StructureAltlocManager(StateManager):
         if structure.deleted:
             self.destroy()
             return
+        del_groups = []
+        del_alt_locs = []
         if changes.num_deleted_residues() > 0:
-            del_groups = []
-            del_residues = []
             for r, group in self.res_group.items():
                 if r.deleted:
                     del_groups.append(group)
-                    del_residues.append(r)
-            if del_groups:
-                if len(del_groups) == len(self.res_group):
-                    self.destroy()
-                    return
-                for del_r in del_residues:
-                    del self.res_group[del_r]
-                self.session.models.close(del_groups)
+        if 'alt_locs changed' in changes.residue_reasons():
+            for r, group in self.res_group.items():
+                if r.deleted:
+                    continue
+                r_alt_locs = r.alt_locs
+                if not r_alt_locs:
+                    del_groups.append(group)
+                else:
+                    shown_alt_locs = set(self.res_alt_locs[r].keys())
+                    for del_al in shown_alt_locs - r_alt_locs:
+                        del_alt_locs.append(self.res_alt_locs[r][del_al])
+
+        if del_groups:
+            if len(del_groups) == len(self.res_group):
+                self.destroy()
+                return
+            # self.res_group will be cleaned up in the models-closed callback
+            self.session.models.close(del_groups)
+        if del_alt_locs:
+            self.session.models.close(del_alt_locs)
         mod_res = set()
         for a in changes.created_atoms():
             if a.residue in self.res_group:

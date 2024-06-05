@@ -63,7 +63,7 @@ from ..graphics.cylinder import SegmentationDisk
 from ..graphics.sphere import SegmentationSphere
 from ..dicom_segmentations import PlanePuckSegmentation, SphericalSegmentation
 from ..segmentation import Segmentation, segment_volume
-from ..trigger_handlers import get_tracker
+from ..segmentation_tracker import get_tracker
 
 from chimerax.segmentations.settings import get_settings
 from chimerax.segmentations.view.modes import ViewMode
@@ -73,6 +73,9 @@ from chimerax.segmentations.actions import (
     HandAction,
     Handedness,
 )
+
+import chimerax.segmentations.triggers
+from chimerax.segmentations.triggers import ENTER_EVENTS, LEAVE_EVENTS
 
 
 class SegmentationListItem(QListWidgetItem):
@@ -376,7 +379,7 @@ class SegmentationTool(ToolInstance):
         # Construct the GUI
         self.tool_window = MainToolWindow(self)
         self.settings = get_settings(self.session)
-        self.segmentation_tracker = get_tracker(self.session)
+        self.segmentation_tracker = get_tracker()
         self.parent = self.tool_window.ui_area
         self.controls_dialog = SegmentationToolControlsDialog(self.parent, self.session)
         self.main_layout = QVBoxLayout()
@@ -579,7 +582,24 @@ class SegmentationTool(ToolInstance):
         # overlays to views when the layout changes
         self.previous_layout = None
         self.current_layout = self.settings.default_view
-
+        self.axial_enter_handler = chimerax.segmentations.triggers.add_handler(
+            ENTER_EVENTS[Axis.AXIAL], self._on_axial_plane_viewer_enter_event
+        )
+        self.coronal_enter_handler = chimerax.segmentations.triggers.add_handler(
+            ENTER_EVENTS[Axis.CORONAL], self._on_coronal_plane_viewer_enter_event
+        )
+        self.sagittal_enter_handler = chimerax.segmentations.triggers.add_handler(
+            ENTER_EVENTS[Axis.SAGITTAL], self._on_sagittal_plane_viewer_enter_event
+        )
+        self.axial_leave_handler = chimerax.segmentations.triggers.add_handler(
+            LEAVE_EVENTS[Axis.AXIAL], self._on_axial_plane_viewer_leave_event
+        )
+        self.coronal_leave_handler = chimerax.segmentations.triggers.add_handler(
+            LEAVE_EVENTS[Axis.CORONAL], self._on_coronal_plane_viewer_leave_event
+        )
+        self.sagittal_leave_handler = chimerax.segmentations.triggers.add_handler(
+            LEAVE_EVENTS[Axis.SAGITTAL], self._on_sagittal_plane_viewer_leave_event
+        )
         # TODO: VR started trigger
         if not self.session.ui.main_window.view_layout == "orthoplanes":
             if self.settings.default_view == ViewMode.TWO_BY_TWO:
@@ -605,6 +625,24 @@ class SegmentationTool(ToolInstance):
 
         self.tool_window.fill_context_menu = self.fill_context_menu
         self._surface_chosen()
+
+    def _on_axial_plane_viewer_enter_event(self, *_):
+        self.make_puck_visible(Axis.AXIAL)
+
+    def _on_coronal_plane_viewer_enter_event(self, *_):
+        self.make_puck_visible(Axis.CORONAL)
+
+    def _on_sagittal_plane_viewer_enter_event(self, *_):
+        self.make_puck_visible(Axis.SAGITTAL)
+
+    def _on_axial_plane_viewer_leave_event(self, *_):
+        self.make_puck_invisible(Axis.AXIAL)
+
+    def _on_coronal_plane_viewer_leave_event(self, *_):
+        self.make_puck_invisible(Axis.CORONAL)
+
+    def _on_sagittal_plane_viewer_leave_event(self, *_):
+        self.make_puck_invisible(Axis.SAGITTAL)
 
     def _populate_segmentation_list(self):
         reference_model = self.model_menu.value
@@ -686,6 +724,12 @@ class SegmentationTool(ToolInstance):
     def delete(self):
         self.session.triggers.remove_handler(self.model_added_handler)
         self.session.triggers.remove_handler(self.model_closed_handler)
+        chimerax.segmentations.triggers.remove_handler(self.axial_enter_handler)
+        chimerax.segmentations.triggers.remove_handler(self.axial_leave_handler)
+        chimerax.segmentations.triggers.remove_handler(self.coronal_enter_handler)
+        chimerax.segmentations.triggers.remove_handler(self.coronal_leave_handler)
+        chimerax.segmentations.triggers.remove_handler(self.sagittal_enter_handler)
+        chimerax.segmentations.triggers.remove_handler(self.sagittal_leave_handler)
         # TODO: Restore old mouse modes if necessary
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.clear_segmentation_tool()
@@ -853,6 +897,8 @@ class SegmentationTool(ToolInstance):
         # that segmentations from files still show up in the menu.
         # TODO: We want to track the number of segmentations created per open model
         current_reference_model = self.model_menu.value
+        if not current_reference_model:
+            return
         from chimerax.core.commands import run
 
         run(self.session, "segmentations create %s" % current_reference_model.atomspec)
@@ -921,7 +967,8 @@ class SegmentationTool(ToolInstance):
     def set_segmentation_step(self, step):
         if not self.segmentation_tracker.active_segmentation:
             self.addSegment()
-        self.segmentation_tracker.active_segmentation.set_step(step)
+        if self.segmentation_tracker.active_segmentation:
+            self.segmentation_tracker.active_segmentation.set_step(step)
 
     def _on_view_changed(self):
         self.previous_layout = self.current_layout
@@ -1041,6 +1088,10 @@ class SegmentationTool(ToolInstance):
     def setSphereRegionToValue(self, origin, radius, value=1):
         if not self.segmentation_tracker.active_segmentation:
             self.addSegment()
+        # If the first attempt fails, then the user probably only has one
+        # segmentation open
+        if not self.segmentation_tracker.active_segmentation:
+            return
         segmentation_strategy = SphericalSegmentation(origin, radius, value)
         if self.intensity_range_checkbox.isChecked() and value != 0:
             segmentation_strategy.min_threshold = self.threshold_min
