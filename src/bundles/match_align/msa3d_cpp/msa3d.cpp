@@ -60,10 +60,6 @@ PyObject *
 multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all, char gap_char,
     bool circular, const char* status_prefix, PyObject* py_logger)
 {
-    PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align not implemented");
-    return nullptr;
-    //TODO: once enough of the below implemented, remove the above two lines
-
     // Create list of parings between chains and prune to be monotonic
     std::map<const Chain, AtomSearchTree> trees;
 
@@ -78,6 +74,8 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
     std::vector<std::vector<std::shared_ptr<Link>>> pairings;
     logger::status(py_logger, status_prefix, "Finding residue principal atoms");
     //TODO: lots
+    PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align not implemented");
+    return nullptr;
 }
 
 static PyObject*
