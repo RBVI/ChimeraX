@@ -235,7 +235,7 @@ class RegAttrManager(StateManager):
         for reg_attr_name, attr_info in class_obj._attr_registration.reg_attr_info.items():
             if reg_attr_name != attr_name:
                 continue
-            return attr_info
+            return attr_info[1]
         raise ValueError("Class '%s' has not registered attribute named '%s'"
             % (class_obj.__name__, attr_name))
 

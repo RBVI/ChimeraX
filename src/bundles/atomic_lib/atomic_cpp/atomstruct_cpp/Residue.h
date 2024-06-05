@@ -222,7 +222,10 @@ inline ChangeTracker*
 Residue::change_tracker() const { return structure()->change_tracker(); }
 
 inline void
-Residue::clean_alt_locs() { for (auto a: atoms()) a->clean_alt_locs(); }
+Residue::clean_alt_locs() {
+    for (auto a: atoms()) a->clean_alt_locs();
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_ALT_LOCS);
+}
 
 inline const std::set<AtomName>*
 Residue::backbone_atom_names(BackboneExtent bbe) const

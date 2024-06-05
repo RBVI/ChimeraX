@@ -28,7 +28,7 @@ label_missing_attr = 'label_missing_structure'
 class _AtomicSettings(Settings):
     EXPLICIT_SAVE = {
         'atomspec_contents': 'simple', # choices: simple, command (-line specifier), serial (number)
-        label_missing_attr: False,
+        label_missing_attr: True,
     }
 
 # 'settings' module attribute will be set by the initialization of the bundle API
@@ -50,7 +50,7 @@ def register_settings_options(session):
             <tr><td>serial number</td><td>&nbsp;</td><td>Atom serial number</td></tr>
             </table>"""),
         'label_missing_structure': (
-            "Label length of missing structure",
+            "Label missing-structure segments",
             BooleanOption,
             "Label missing-structure pseudobonds with the number of residues that are missing"),
     }

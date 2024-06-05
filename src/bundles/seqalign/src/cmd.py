@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import Annotation, AnnotationError, next_token, DynamicEnum
+from chimerax.core.commands import Annotation, AnnotationError, next_token, DynamicEnum, StringArg
 class SeqArg(Annotation):
     '''A single sequence (in a single alignment)
 
@@ -68,7 +68,8 @@ class SeqRegionArg(Annotation):
             align_seq_text, region_text = token.rsplit(':', 1)
         except ValueError:
             raise AnnotationError("Must include at least one ':' character")
-        align_seq, _text, _rest = AlignSeqPairArg.parse(align_seq_text, session, empty_okay=True)
+        align_seq, _text, _rest = AlignSeqPairArg.parse(StringArg.unparse(align_seq_text), session,
+            empty_okay=True)
         if _rest:
             raise AnnotationError("Unexpected text (%s) after alignment/sequence name and before range"
                 % _rest)

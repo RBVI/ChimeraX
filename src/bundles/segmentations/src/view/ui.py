@@ -191,6 +191,7 @@ class FourPanelView(QWidget):
             self._sagittal_orthoplane,
         ]:
             orthoplane.close()
+        self._orthoplane_manager.deregister_triggers()
         if self._view_layout == "fourup":
             self._clean_fourup()
         elif self._view_layout == "overunder":

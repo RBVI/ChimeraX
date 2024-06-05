@@ -22,13 +22,16 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+
 def run_provider(session, name):
     # run shortcut chosen via bundle provider interface
-    if name == 'open dicom':
+    if name == "button-open-dicom":
         open_dicom(session)
     else:
         raise ValueError('Medical Toolbar called with unknown operation "%s"' % name)
 
+
 def open_dicom(session):
     from chimerax.open_command import show_open_folder_dialog
+
     show_open_folder_dialog(session)
