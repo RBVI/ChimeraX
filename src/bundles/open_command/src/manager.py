@@ -89,7 +89,10 @@ class OpenManager(ProviderManager):
                 data_format = self.session.data_formats[ui_name]
             except KeyError:
                 if get_toolshed().cache_initialized:
-                    raise ValueError("Open-command provider in bundle %s specified unknown"
+                    # Throwing an error completely fouls up ChimeraX, so only issue a warning
+                    # despite this theoretically being an error, since it could be because of
+                    # a bad cache file, or a bad version of a bundle on the Toolshed
+                    logger.warning("Open-command provider in bundle %s specified unknown"
                         " data format '%s'" % (bundle_name, ui_name))
                 return
             if data_format in self._openers and self._openers[data_format].bundle_info.installed:
