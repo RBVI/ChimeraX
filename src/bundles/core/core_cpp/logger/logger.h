@@ -43,11 +43,12 @@ typedef _object PyObject;
 namespace logger {
 
 #ifdef _WIN32
+# undef STATUS
 # undef INFO
 # undef WARNING
 # undef ERROR
 #endif
-enum class _LogLevel { INFO, WARNING, ERROR };
+enum class _LogLevel { STATUS, INFO, WARNING, ERROR };
 
 void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level, bool is_html=false);
 template<typename T, typename... Args>
@@ -59,6 +60,14 @@ void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level,
 }
 
 // 'logger' arg can be nullptr
+
+template<typename T, typename... Args>
+void  status(PyObject* logger, T value, Args... args)
+{
+    std::stringstream msg;
+    msg << value;
+    _log(logger, msg, _LogLevel::STATUS, args...);
+}
 
 template<typename T, typename... Args>
 void  info(PyObject* logger, T value, Args... args)
