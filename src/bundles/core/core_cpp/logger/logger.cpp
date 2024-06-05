@@ -81,8 +81,10 @@ void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level, bool is_ht
             method_name = "error";
         else if (level == _LogLevel::WARNING)
             method_name = "warning";
-        else
+        else if (level == _LogLevel::INFO)
             method_name = "info";
+        else
+            method_name = "status";
         PyObject* method = PyObject_GetAttrString(logger, method_name);
         if (method == nullptr) {
             std::stringstream err_msg;
