@@ -94,7 +94,7 @@ class GridCanvas:
         layout = QGridLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
-        layout.addWidget(self.header_view, 0, 1)
+        layout.addWidget(self.header_view, 0, 1, alignment=Qt.AlignLeft | Qt.AlignBottom)
         layout.addWidget(self.main_label_view, 1, 0, alignment=Qt.AlignRight | Qt.AlignTop)
         layout.addWidget(self.main_view, 1, 1, alignment=Qt.AlignLeft | Qt.AlignTop)
         layout.setColumnStretch(0, 0)
@@ -197,6 +197,10 @@ class GridCanvas:
             label_width = self.font_metrics.horizontalAdvance(self.row_labels[i] + ' ')
             label_text.moveBy((self.max_label_width - label_width) / 2, y + y_adjust)
             y += height
+        self.header_groups = {}
+        for hdr in self.alignment.headers:
+            if hdr.shown:
+                self.show_header(hdr)
         self._update_scene_rects()
         #TODO: everything else
         return
@@ -262,9 +266,32 @@ class GridCanvas:
         self.main_scene.update()
 
     def show_header(self, header):
-        raise NotImplementedError("show_header")
-        self.lead_block.show_header(header)
-        self.sv.region_browser.redraw_regions()
+        width, height = self.font_pixels
+        if not self.header_groups:
+            y = 0
+        else:
+            y = max([grp.boundingRect().y() for grp in self.header_groups.values()]) + height
+        x = width / 2
+        items = []
+        val_func = lambda i, hdr=header: hdr.depiction_val(i) if hasattr(hdr, 'depiction_val') \
+            else lambda i, hdr=header: hdr[i]
+        from chimerax.alignment_headers import position_color_to_qcolor as qcolor
+        from Qt.QtGui import QBrush
+        for i in range(len(header)):
+            val = val_func(i)
+            color = qcolor(header.position_color(i))
+            if isinstance(val, str):
+                text = self.header_scene.addSimpleText(val, font=self.font)
+                rect = text.sceneBoundingRect()
+                text.setPos(x - rect.width()/2, y - rect.height())
+                text.setBrush(QBrush(color))
+                items.append(text)
+            elif val != None and val > 0.0:
+                items.append(self.header_scene.addRect(x - width/2, y - height, width, -val * height,
+                    brush=QBrush(color)))
+            x += width
+
+        self.header_groups[header] = self.header_scene.createItemGroup(items);
         self._update_scene_rects()
 
     def update_selection(self, *args):
@@ -329,7 +356,7 @@ class GridCanvas:
         y = min(lbr.y(), mbr.y())
         height = max(lbr.y() + lbr.height() - y, mbr.y() + mbr.height() - y)
         mr = self.main_scene.sceneRect()
-        #hbr = self.header_scene.itemsBoundingRect()
+        hbr = self.header_scene.itemsBoundingRect()
         self.main_label_scene.setSceneRect(lbr.x(), y, lbr.width(), height)
         self.main_scene.setSceneRect(mbr.x(), y, mbr.width(), height)
-        #self.header_scene.setSceneRect(mr.x(), hbr.y(), mr.width(), hbr.height())
+        self.header_scene.setSceneRect(mr.x(), hbr.y(), mr.width(), hbr.height())
