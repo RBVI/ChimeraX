@@ -127,22 +127,30 @@ class UI(QApplication):
         # Work around Mac crash when adding or removing a screen. ChimeraX ticket #15277.
         from sys import platform
         if platform == 'darwin':
-            self.screenAdded.connect(self._block_redraw_during_screen_change)
-            self.screenRemoved.connect(self._block_redraw_during_screen_change)
+            self.screenAdded.connect(self._screen_added)
+            self.screenRemoved.connect(self._screen_removed)
 
-    def _block_redraw_during_screen_change(self, screen):
+    def _screen_added(self):
+        self._block_redraw_during_screen_change()
+        from os import uname
+        if uname().machine == 'x86_64':
+            # Work around Qt 6.6 Intel Mac crash, ChimeraX ticket #15277.
+            self.session.main_view.use_opengl_done_current = False
+    def _screen_removed(self):
+        self._block_redraw_during_screen_change()
+    def _block_redraw_during_screen_change(self):
         '''Work around bug #15277 where ChimeraX crashes on Mac when a screen is added or removed.'''
         self.session.update_loop.block_redraw()
         # Block for longer on Intel Mac where a 2 second block still caused crash #15304.
         from os import uname
         block_msec = 5000 if uname().machine == 'x86_64' else 2000
         timer = []
-        t = self.timer(block_msec, self._unblock_redraw, timer)
+        t = self.timer(block_msec, self._unblock_redraw_after_screen_change, timer)
         timer.append(t)
         if not hasattr(self, '_block_redraw_timers'):
             self._block_redraw_timers = set()
         self._block_redraw_timers.add(t)
-    def _unblock_redraw(self, timer_list):
+    def _unblock_redraw_after_screen_change(self, timer_list):
         self._block_redraw_timers.discard(timer_list[0])
         self.session.update_loop.unblock_redraw()
 
@@ -441,6 +449,31 @@ class UI(QApplication):
     def update_undo(self, undo_manager):
         self.main_window.update_undo(undo_manager)
 
+    def dark_mode(self):
+        from Qt.QtCore import Qt
+        return self.styleHints().colorScheme() == Qt.ColorScheme.Dark
+
+    def dark_css(self):
+        from textwrap import dedent
+        return dedent("""
+            @media (prefers-color-scheme: dark) {
+                // :root { --mode: "dark"; }
+                body {
+                    background-color: #202020;
+                    color: white;
+                }
+                a {
+                    color: dodgerblue;
+                }
+            }
+            """)
+            #@media (prefers-color-scheme: light) {
+            #     body {
+            #        background-color: white;
+            #        color: black;
+            #    }
+            #}
+
 from Qt.QtWidgets import QMainWindow, QStackedWidget, QLabel, QToolButton, QWidget
 class MainWindow(QMainWindow, PlainTextLog):
 
@@ -509,6 +542,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             "    left: 50%;",
             "    transform: translate(-50%,-50%);",
             "}",
+            f"{ui.dark_css()}",
             "</style>",
             '<p class="banner-text">ChimeraX</p>',
             '<p class="help-link"><a href="cxcmd:help help:quickstart">Get started</a><p>',
@@ -1053,7 +1087,8 @@ class MainWindow(QMainWindow, PlainTextLog):
     def _build_status(self):
         from .statusbar import _StatusBar
         self._status_bar = sbar = _StatusBar(self.session)
-        sbar.status('Welcome to ChimeraX', 'blue')
+        status_color = 'dodgerblue' if self.session.ui.dark_mode() else 'blue'
+        sbar.status('Welcome to ChimeraX', status_color)
         sb = sbar.widget
         self._global_hide_button = ghb = QToolButton(sb)
         self._rapid_access_button = rab = QToolButton(sb)
