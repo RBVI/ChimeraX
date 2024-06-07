@@ -31,8 +31,12 @@ class _StatusBarOpenGL:
         self._window = None
         self._drawing = None
         self._drawing2 = None	# Secondary status
-        self.background_color = (0.85,0.85,0.85,1.0)
-        self.text_color = (0,0,0,255)
+        if session.ui.dark_mode():
+            self.background_color = (0.125,0.125,0.125,1.0)
+            self.text_color = (255,255,255,255)
+        else:
+            self.background_color = (0.85,0.85,0.85,1.0)
+            self.text_color = (0,0,0,255)
         self.font = 'Arial'
         self.pad_vert = 0.2 		# Fraction of status bar height
         self.pad_horz = 0.3 		# Fraction of status bar height (not width)
