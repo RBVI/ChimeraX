@@ -127,22 +127,30 @@ class UI(QApplication):
         # Work around Mac crash when adding or removing a screen. ChimeraX ticket #15277.
         from sys import platform
         if platform == 'darwin':
-            self.screenAdded.connect(self._block_redraw_during_screen_change)
-            self.screenRemoved.connect(self._block_redraw_during_screen_change)
+            self.screenAdded.connect(self._screen_added)
+            self.screenRemoved.connect(self._screen_removed)
 
-    def _block_redraw_during_screen_change(self, screen):
+    def _screen_added(self):
+        self._block_redraw_during_screen_change()
+        from os import uname
+        if uname().machine == 'x86_64':
+            # Work around Qt 6.6 Intel Mac crash, ChimeraX ticket #15277.
+            self.session.main_view.use_opengl_done_current = False
+    def _screen_removed(self):
+        self._block_redraw_during_screen_change()
+    def _block_redraw_during_screen_change(self):
         '''Work around bug #15277 where ChimeraX crashes on Mac when a screen is added or removed.'''
         self.session.update_loop.block_redraw()
         # Block for longer on Intel Mac where a 2 second block still caused crash #15304.
         from os import uname
         block_msec = 5000 if uname().machine == 'x86_64' else 2000
         timer = []
-        t = self.timer(block_msec, self._unblock_redraw, timer)
+        t = self.timer(block_msec, self._unblock_redraw_after_screen_change, timer)
         timer.append(t)
         if not hasattr(self, '_block_redraw_timers'):
             self._block_redraw_timers = set()
         self._block_redraw_timers.add(t)
-    def _unblock_redraw(self, timer_list):
+    def _unblock_redraw_after_screen_change(self, timer_list):
         self._block_redraw_timers.discard(timer_list[0])
         self.session.update_loop.unblock_redraw()
 

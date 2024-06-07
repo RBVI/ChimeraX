@@ -135,6 +135,7 @@ class Log(ToolInstance, HtmlLog):
         self.settings = settings
         self.suppress_scroll = False
         self._log_file = None
+        self.page_source = ""
         from chimerax.ui import MainToolWindow
         class LogToolWindow(MainToolWindow):
             def fill_context_menu(self, menu, x, y, session=session):

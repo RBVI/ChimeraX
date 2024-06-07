@@ -201,7 +201,8 @@ class View:
             if camera.do_swap_buffers():
                 r.swap_buffers()
             self.redraw_needed = False
-            r.done_current()
+            if getattr(self, 'use_opengl_done_current', True):
+                r.done_current()
 
     def _draw_scene(self, camera, drawings):
 
