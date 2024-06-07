@@ -759,14 +759,14 @@ class PlaneViewer(QWindow):
 
     def toggle_guidelines(self):
         from chimerax.segmentations.settings import get_settings
+
         settings = get_settings(self.session)
         settings.display_guidelines = not settings.display_guidelines
-        chimerax.segmentations.triggers.activate_trigger(
-            GUIDELINES_VISIBILITY_CHANGED
-        )
+        chimerax.segmentations.triggers.activate_trigger(GUIDELINES_VISIBILITY_CHANGED)
 
     def _on_guideline_visibility_changed(self, _, __):
         from chimerax.segmentations.settings import get_settings
+
         settings = get_settings(self.session)
         self.setGuidelineVisibility(settings.display_guidelines)
 
@@ -917,6 +917,7 @@ class PlaneViewer(QWindow):
         if self.segmentation_tool:
             self.enableSegmentationOverlays()
             self.resize3DSegmentationCursor()
+        self.render()
 
     def leaveEvent(self):
         chimerax.segmentations.triggers.activate_trigger(LEAVE_EVENTS[self.axis])
@@ -924,6 +925,7 @@ class PlaneViewer(QWindow):
             self.disableSegmentationOverlays()
         self.level_label.hide()
         self.mouse_move_timer.stop()
+        self.render()
 
     def shouldOpenContextMenu(self):
         return (
