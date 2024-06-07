@@ -90,8 +90,13 @@ VIEW_LAYOUT_CHANGED: (EXPERIMENTAL) Activated when the view layout changes. May
 
 GUIDELINES_VISIBILITY_CHANGED: Activated when a UI or command changes the
                                visibility of the guidelines over PlaneViewers.
+                               Callers will need to set the value of
+                               the display_guidelines attribute of a Segmentations
+                               bundle settings object before activating.
                                Listeners should re-read this bundle's settings
                                and react accordingly to the new value.
+                               If you are both a caller and a listener, take care
+                               to block your own handler when activating.
 """
 
 # from collections import defaultdict

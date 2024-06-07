@@ -158,23 +158,6 @@ class PlaneViewerManager:
             return None
         return self.axes[Axis.AXIAL].segmentation_tool
 
-    def toggle_guidelines(self):
-        layout = self.session.ui.main_window.main_view.view_layout()
-        if self.axes[Axis.AXIAL].guidelines_visible:
-            log_equivalent_command(self.session, f"ui view {layout} guidelines false")
-        else:
-            log_equivalent_command(self.session, f"ui view {layout} guidelines true")
-        for viewer in self.axes.values():
-            viewer.setGuidelineVisibility(not viewer.guidelines_visible)
-
-    def show_guidelines(self):
-        for viewer in self.axes.values():
-            viewer.setGuidelineVisibility(True)
-
-    def hide_guidelines(self):
-        for viewer in self.axes.values():
-            viewer.setGuidelineVisibility(False)
-
     def update_displayed_model(self, model):
         for viewer in self.axes.values():
             viewer.model_menu._menu.set_value(model)
@@ -391,6 +374,9 @@ class PlaneViewer(QWindow):
 
         self.tool_instance_added_handler = session.triggers.add_handler(
             ADD_TOOL_INSTANCE, self._tool_instance_added_cb
+        )
+        self.guideline_visibility_handler = chimerax.segmentations.triggers.add_handler(
+            GUIDELINES_VISIBILITY_CHANGED, self._on_guideline_visibility_changed
         )
         self.segmentation_modified_handler = (
             chimerax.segmentations.triggers.add_handler(
@@ -629,6 +615,9 @@ class PlaneViewer(QWindow):
         # self.setParent(None)
         self.label.delete()
         chimerax.segmentations.triggers.remove_handler(
+            self.guideline_visibility_handler
+        )
+        chimerax.segmentations.triggers.remove_handler(
             self.segmentation_modified_handler
         )
 
@@ -769,12 +758,17 @@ class PlaneViewer(QWindow):
         self.view.render.done_current()
 
     def toggle_guidelines(self):
-        if self.segmentation_tool:
-            self.segmentation_tool.setGuidelineCheckboxValue(
-                not self.guidelines_visible
-            )
-        else:
-            self.manager.toggle_guidelines()
+        from chimerax.segmentations.settings import get_settings
+        settings = get_settings(self.session)
+        settings.display_guidelines = not settings.display_guidelines
+        chimerax.segmentations.triggers.activate_trigger(
+            GUIDELINES_VISIBILITY_CHANGED
+        )
+
+    def _on_guideline_visibility_changed(self, _, __):
+        from chimerax.segmentations.settings import get_settings
+        settings = get_settings(self.session)
+        self.setGuidelineVisibility(settings.display_guidelines)
 
     def add_segmentation(self, segmentation):
         if segmentation not in self.segmentation_overlays:

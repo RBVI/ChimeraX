@@ -14,7 +14,7 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.core.logger import HtmlLog
 
-cxcmd_css = """
+_cxcmd_css = """
 .cxcmd {
     display: block;
     font-weight: bold;
@@ -25,7 +25,7 @@ a.no_underline {
     text-decoration: none;
 }
 """
-cxcmd_as_doc_css = """
+_cxcmd_as_doc_css = """
 .cxcmd_as_doc {
     display: inline;
 }
@@ -33,7 +33,7 @@ cxcmd_as_doc_css = """
     display: none;
 }
 """
-cxcmd_as_cmd_css = """
+_cxcmd_as_cmd_css = """
 .cxcmd_as_doc {
     display: none;
 }
@@ -41,6 +41,12 @@ cxcmd_as_cmd_css = """
     display: inline;
 }
 """
+
+def cxcmd_css(exec_links):
+    if exec_links:
+        return _cxcmd_css + _cxcmd_as_cmd_css
+    return _cxcmd_css + _cxcmd_as_doc_css
+
 
 context_menu_html = """
 <nav id="context-menu" class="context-menu">
@@ -135,6 +141,7 @@ class Log(ToolInstance, HtmlLog):
         self.settings = settings
         self.suppress_scroll = False
         self._log_file = None
+        self.page_source = ""
         from chimerax.ui import MainToolWindow
         class LogToolWindow(MainToolWindow):
             def fill_context_menu(self, menu, x, y, session=session):
@@ -427,11 +434,12 @@ class Log(ToolInstance, HtmlLog):
             self.suppress_scroll = False
         else:
             height = 'document.body.scrollHeight'
-        html = "<style>%s%s</style>\n<body onload=\"window.scrollTo(0, %s);\">%s</body>" % (
-            cxcmd_css,
-            cxcmd_as_cmd_css if self.settings.exec_cmd_links else cxcmd_as_doc_css,
-            height,
-            self.page_source
+        css = cxcmd_css(self.settings.exec_cmd_links) + self.session.ui.dark_css()
+        html = (
+            f"<style>{css}</style>\n"
+            f"<body onload=\"window.scrollTo(0, {height});\">\n"
+            f"{self.page_source}"
+            "</body>"
         )
         lw = self.log_window
         lw.setHtml(html)
@@ -450,26 +458,24 @@ class Log(ToolInstance, HtmlLog):
         from os.path import expanduser
         path = expanduser(path)
         with open(path, 'w', encoding='utf-8') as f:
-            f.write("<html>\n"
-                    "<head>\n"
-                    "<meta charset='utf-8'>\n"
-                    "<title> ChimeraX Log </title>\n"
-                    '<script type="text/javascript">\n'
-                    "%s"
-                    "</script>\n"
-                    "</head>\n"
-                    "<h1> ChimeraX Log </h1>\n"
-                    "<style>\n"
-                    "%s"
-                    "%s"
-                    "</style>\n" % (
-                        self._get_cxcmd_script(), cxcmd_css,
-                        cxcmd_as_cmd_css if executable_links else cxcmd_as_doc_css,
-                    )
+            f.write(
+                "<html>\n"
+                "<head>\n"
+                "<meta charset='utf-8'>\n"
+                "<title> ChimeraX Log </title>\n"
+                '<script type="text/javascript">\n'
+                f"{self._get_cxcmd_script()}"
+                "</script>\n"
+                "<style>\n"
+                f"{_cxcmd_as_cmd_css if executable_links else _cxcmd_as_doc_css}"
+                "</style>\n"
+                "</head>\n"
+                "<body>\n"
+                "<h1> ChimeraX Log </h1>\n"
+                f"{self.page_source}"
+                "</body>\n"
+                "</html>\n"
             )
-            f.write(self.page_source)
-            f.write("</body>\n"
-                    "</html>\n")
 
     def _get_cxcmd_script(self):
         try:

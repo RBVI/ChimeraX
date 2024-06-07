@@ -428,7 +428,8 @@ def form_strings(target, templates, chain_info):
                     if next_index is None or check_index > next_index:
                         chars.append('-')
                     else:
-                        chars.append(template.characters[template_index])
+                        char = template.characters[template_index]
+                        chars.append(char if char != 'X' else '.')
                         template_state[template] = (chars, template_index+1, mmap)
             else:
                 assert(next_index is None)
