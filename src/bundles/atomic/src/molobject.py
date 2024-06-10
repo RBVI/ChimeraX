@@ -1212,11 +1212,12 @@ class StructureSeq(Sequence):
 
     @staticmethod
     def restore_snapshot(session, data):
+        if data['structure'] is None:
+            return Sequence.restore_snapshot(session, data['Sequence'])
         sseq = StructureSeq(chain_id=data['chain_id'], structure=data['structure'])
         Sequence.set_state_from_snapshot(sseq, session, data['Sequence'])
         sseq.description = data['description']
         sseq.bulk_set(data['residues'], sseq.characters, fire_triggers=False)
-        sseq.description = data.get('description', None)
         sseq.set_custom_attrs(data)
         return sseq
 
