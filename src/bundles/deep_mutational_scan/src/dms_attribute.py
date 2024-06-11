@@ -28,7 +28,7 @@ def _attribute_name(column_name, type, above, below):
     if above is not None:
         attr_name += f'_ge_{"%.3g"%above}'
     if below is not None:
-        attr_name += f'_lee_{"%.3g"%below}'
+        attr_name += f'_le_{"%.3g"%below}'
     return attr_name
 
 def register_command(logger):
