@@ -88,10 +88,12 @@ PythonInstance<C>::~PythonInstance() {
     if (i == _pyinstance_object_map.end())
         return;
     PyObject* py_inst = (*i).second;
-    AcquireGIL gil; // Py_DECREF can cause code to run
-    PyObject_DelAttrString(py_inst, "_c_pointer");
-    PyObject_DelAttrString(py_inst, "_c_pointer_ref");
-    Py_DECREF(py_inst);
+    if (!PyObject_GC_IsFinalized(py_inst)) {
+        AcquireGIL gil; // Py_DECREF can cause code to run
+        PyObject_DelAttrString(py_inst, "_c_pointer");
+        PyObject_DelAttrString(py_inst, "_c_pointer_ref");
+        Py_DECREF(py_inst);
+    }
     _pyinstance_object_map.erase(i);
 }
 
