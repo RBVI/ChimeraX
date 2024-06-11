@@ -57,6 +57,8 @@ class GridCanvas:
         self.header_scene.setBackgroundBrush(Qt.white)
         self.header_view = QGraphicsView(self.header_scene)
         self.header_view.setAttribute(Qt.WA_AlwaysShowToolTips)
+        self.header_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
         self.main_scene = QGraphicsScene()
         self.main_scene.setBackgroundBrush(Qt.white)
         self.main_scene.mouseReleaseEvent = self.mouse_click
@@ -97,12 +99,14 @@ class GridCanvas:
         layout.addWidget(self.header_view, 0, 1, alignment=Qt.AlignLeft | Qt.AlignBottom)
         layout.addWidget(self.main_label_view, 1, 0, alignment=Qt.AlignRight | Qt.AlignTop)
         layout.addWidget(self.main_view, 1, 1, alignment=Qt.AlignLeft | Qt.AlignTop)
+        from Qt.QtWidgets import QLabel
+        layout.addWidget(QLabel("test"), 0, 0)
         layout.setColumnStretch(0, 0)
         layout.setColumnStretch(1, 1)
         layout.setRowStretch(0, 0)
         layout.setRowStretch(1, 1)
         parent.setLayout(layout)
-        self.header_view.show()
+        #self.header_view.show()
         self.main_label_view.show()
         self.main_view.show()
         self.layout_alignment()
@@ -292,6 +296,7 @@ class GridCanvas:
             x += width
 
         self.header_groups[header] = self.header_scene.createItemGroup(items);
+        self.header_view.show()
         self._update_scene_rects()
 
     def update_selection(self, *args):
@@ -360,3 +365,16 @@ class GridCanvas:
         self.main_label_scene.setSceneRect(lbr.x(), y, lbr.width(), height)
         self.main_scene.setSceneRect(mbr.x(), y, mbr.width(), height)
         self.header_scene.setSceneRect(mr.x(), hbr.y(), mr.width(), hbr.height())
+        from math import ceil
+        #from Qt.QtCore import QTimer
+        #QTimer.singleShot(100, lambda *args, view=self.header_view, val=ceil(hbr.height())+14: view.setFixedHeight(val))
+        #self.header_view.setFixedHeight(ceil(hbr.height()))
+        print("label boundng:", lbr.x(), lbr.y(), lbr.width(), lbr.height())
+        print("grid boundng:", mbr.x(), mbr.y(), mbr.width(), mbr.height())
+        print("header boundng:", hbr.x(), hbr.y(), hbr.width(), hbr.height())
+        sr = self.header_scene.sceneRect()
+        print("resulting header scene:", sr.x(), sr.y(), sr.width(), sr.height())
+        sh = self.header_view.sizeHint()
+        print("header view size hint:", sh.width(), sh.height())
+        vsh = self.header_view.viewportSizeHint()
+        print("header viewport size hint:", vsh.width(), vsh.height())
