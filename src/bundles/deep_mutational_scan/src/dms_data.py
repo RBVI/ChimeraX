@@ -13,7 +13,10 @@ def open_deep_mutational_scan_csv(session, path, chain = None):
     sresnums = set(r.number for r in cres)
     dresnums = set(dms_data.scores.keys())
     score_names = ', '.join(dms_data.score_column_names)
-    message = f'Opened deep mutational scan data for {len(dresnums)} residues, assigned to {len(sresnums & dresnums)} of {len(cres)} chain {chain} residues, found data for {len(dresnums - sresnums)} residues not present in chain, score column names {score_names}.'
+    nmut = sum(len(mscores) for mscores in dms_data.scores.values())
+    mres = len(dresnums - sresnums)
+    missing_res = f'found data for {mres} residues not present in atomic model, ' if mres > 0 else ''
+    message = f'Opened deep mutational scan data for {nmut} mutations of {len(dresnums)} residues, assigned to {len(sresnums & dresnums)} of {len(cres)} residues of chain {chain}, {missing_res} score column names {score_names}.'
 
     return dms_data, message
 
