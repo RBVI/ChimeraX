@@ -642,14 +642,14 @@ class SequenceViewer(ToolInstance):
         action = QAction("No Reference Sequence", refseq_menu)
         action.setCheckable(True)
         action.setChecked(self.alignment.reference_seq is None)
-        action.triggered.connect(lambda*, align_arg=align_arg, action=action, self=self:
+        action.triggered.connect(lambda*, align_arg=align_arg[:-1], action=action, self=self:
             run(self.session, "seq ref " + align_arg) if action.isChecked() else None)
         refseq_menu.addAction(action)
         for seq in self.alignment.seqs:
             action = QAction(seq.name, refseq_menu)
             action.setCheckable(True)
             action.setChecked(self.alignment.reference_seq is seq)
-            action.triggered.connect(lambda*, seq_arg=StringArg.unparse(align_arg + ':' + seq.name),
+            action.triggered.connect(lambda*, seq_arg=StringArg.unparse(align_arg[:-1] + ':' + seq.name),
                 action=action: run(self.session, "seq ref " + seq_arg) if action.isChecked() else None)
             refseq_menu.addAction(action)
         numberings_menu.addSeparator()
