@@ -747,7 +747,7 @@ XDG_CURRENT_DESKTOP={os.environ.get("XDG_CURRENT_DESKTOP", "")}
 {newline.join(displays)}
 Manufacturer: {vendor}
 Model: {product}
-OS: {' '.join(distro.linux_distribution())}
+OS: {distro.name()} {distro.version()}
 Architecture: {' '.join(platform.architecture())}
 Virtual Machine: {virtual_machine}
 CPU: {count} {model_name}

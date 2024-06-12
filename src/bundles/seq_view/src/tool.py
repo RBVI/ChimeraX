@@ -459,8 +459,9 @@ class SequenceViewer(ToolInstance):
                 self._update_errors_gaps(aseq)
             if self.alignment.intrinsic:
                 self.show_ss(True)
-            if hasattr(self, 'associations_tool'):
-                self.associations_tool._assoc_mod(note_data)
+            for opt_tool in ['associations_tool', 'transfer_seq_tool']:
+                if hasattr(self, opt_tool):
+                    getattr(self, opt_tool)._assoc_mod(note_data)
         elif note_name == alignment.NOTE_PRE_DEL_SEQS:
             self.region_manager._pre_remove_lines(note_data)
             for seq in note_data:
@@ -563,6 +564,10 @@ class SequenceViewer(ToolInstance):
         else:
             assoc_action.setEnabled(False)
         structure_menu.addAction(assoc_action)
+        xfer_action = QAction("Update Chain Sequence...", structure_menu)
+        xfer_action.triggered.connect(self.show_transfer_seq_dialog)
+        xfer_action.setEnabled(bool(self.alignment.associations))
+        structure_menu.addAction(xfer_action)
         view_targets = []
         # bounded_by expects the scene coordinate system...
         from Qt.QtCore import QPointF
@@ -637,14 +642,14 @@ class SequenceViewer(ToolInstance):
         action = QAction("No Reference Sequence", refseq_menu)
         action.setCheckable(True)
         action.setChecked(self.alignment.reference_seq is None)
-        action.triggered.connect(lambda*, align_arg=align_arg, action=action, self=self:
+        action.triggered.connect(lambda*, align_arg=align_arg[:-1], action=action, self=self:
             run(self.session, "seq ref " + align_arg) if action.isChecked() else None)
         refseq_menu.addAction(action)
         for seq in self.alignment.seqs:
             action = QAction(seq.name, refseq_menu)
             action.setCheckable(True)
             action.setChecked(self.alignment.reference_seq is seq)
-            action.triggered.connect(lambda*, seq_arg=StringArg.unparse(align_arg + ':' + seq.name),
+            action.triggered.connect(lambda*, seq_arg=StringArg.unparse(align_arg[:-1] + ':' + seq.name),
                 action=action: run(self.session, "seq ref " + seq_arg) if action.isChecked() else None)
             refseq_menu.addAction(action)
         numberings_menu.addSeparator()
@@ -795,6 +800,14 @@ class SequenceViewer(ToolInstance):
                 self.tool_window.create_child_window("Percent Identity", close_destroys=False))
             self.percent_identity_dialog.tool_window.manage(None)
         self.percent_identity_dialog.tool_window.shown = True
+
+    def show_transfer_seq_dialog(self):
+        if not hasattr(self, "transfer_seq_dialog"):
+            from .transfer_seq_tool import TransferSeqTool
+            self.transfer_seq_dialog = TransferSeqTool(self,
+                self.tool_window.create_child_window("Update Chain Sequence", close_destroys=False))
+            self.transfer_seq_dialog.tool_window.manage(None)
+        self.transfer_seq_dialog.tool_window.shown = True
 
     def show_settings(self):
         if not hasattr(self, "settings_tool"):
