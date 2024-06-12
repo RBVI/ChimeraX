@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-ScholAR"
+license = { text = "Free for non-commercial use" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+descrtption = "Provides a ChimeraX interface to the Schol-AR project"
+dependencies = [
+	"ChimeraX-Core ~=1.0"
+]
+
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = """Provides a ChimeraX interface to the Schol-AR project"""
+	
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Sequence"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[chimerax.tool."Schol-AR"]
+category = "Publishing"
+description = "TODO"
+
+[chimerax.command.scholar]
+category = "Publishing"
+description = "TODO"
