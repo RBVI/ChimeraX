@@ -348,7 +348,7 @@ def seqalign_refseq(session, ref_seq_info):
         aln, ref_seq = ref_seq_info, None
     aln.reference_seq = ref_seq
 
-def seqalign_transfer(session, chains, *, alignment=None):
+def seqalign_update(session, chains, *, alignment=None):
     if alignment is None:
         alignments = session.alignments.alignments
     else:
@@ -470,9 +470,7 @@ def register_seqalign_command(logger):
         keyword = [('alignment', AlignmentArg)],
         synopsis = 'transfer alignment sequences to associated chains'
     )
-    register('sequence transfer', desc, seqalign_transfer, logger=logger)
-    create_alias('sequence xfer', 'sequence transfer $*', logger=logger,
-            url="help:user/commands/sequence.html#transfer")
+    register('sequence update', desc, seqalign_update, logger=logger)
 
     from . import manager
     manager._register_viewer_subcommands(logger)
