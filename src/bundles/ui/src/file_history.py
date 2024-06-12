@@ -14,14 +14,17 @@
 class FileHistory:
 
     def __init__(self, session, parent, bg_color=None, thumbnail_size=(64,64), filename_size=8,
-            no_hist_text='<html><body>No files in history</body></html>', **kw):
+            no_hist_text=None, **kw):
         self.thumbnail_size = thumbnail_size	# Pixels
         self.filename_size = filename_size	# Characters
         self._default_image = None
         self._default_image_format = None
         self.session = session
         self.bg_color = bg_color
-        self.no_hist_text = no_hist_text
+        if no_hist_text:
+            self.no_hist_text = no_hist_text
+        else:
+            self.no_hist_text = f'<html><script>{session.ui.dark_css()}</script><body>No files in history</body></html>'
 
         self.file_history_window = fhw = HistoryWindow(session, parent, **kw)
 
@@ -45,6 +48,7 @@ class FileHistory:
             lines = ['<html>', '<body>', '<style>', 'table { float:left; }']
             if self.bg_color:
                 lines.extend(['body {', '    background-color: %s;' % self.bg_color, '}'])
+            lines.append(self.session.ui.dark_css())
             lines.append('</style>')
             w,h = self.thumbnail_size
             # TODO: Qt 5.6.0 bug in QT-53414 makes web content > 2 Mbytes not display.

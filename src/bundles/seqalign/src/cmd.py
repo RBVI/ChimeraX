@@ -348,6 +348,40 @@ def seqalign_refseq(session, ref_seq_info):
         aln, ref_seq = ref_seq_info, None
     aln.reference_seq = ref_seq
 
+def seqalign_update(session, chains, *, alignment=None):
+    if alignment is None:
+        alignments = session.alignments.alignments
+    else:
+        alignments = [alignment]
+
+    for chain in chains:
+        did_xfer = False
+        for aln in alignments:
+            if chain in aln.associations:
+                did_xfer = True
+                aseq = aln.associations[chain]
+                match_map = aseq.match_maps[chain]
+                residues = set()
+                seq_residues = []
+                ungapped = aseq.ungapped()
+                for i in range(len(ungapped)):
+                    try:
+                        r = match_map[i]
+                    except KeyError:
+                        seq_residues.append(None)
+                    else:
+                        seq_residues.append(r)
+                        residues.add(r)
+                cur_residues = set(chain.existing_residues)
+                if len(cur_residues) > len(residues):
+                    raise UserError("Alignment sequence does not cover all chain residues (e.g. %s)"
+                        % ((cur_residues - residues).pop()))
+                chain.bulk_set(seq_residues, ungapped)
+                chain.from_seqres = True
+        if not did_xfer:
+            session.logger.warning("%s not associated with %s"
+                % (chain, " any alignment" if alignment is None else "alignment %s" % alignment.ident))
+
 MUSCLE = "MUSCLE"
 CLUSTAL_OMEGA = "Clustal Omega"
 alignment_program_name_args = { 'muscle': MUSCLE, 'omega': CLUSTAL_OMEGA, 'clustalOmega': CLUSTAL_OMEGA }
@@ -430,6 +464,13 @@ def register_seqalign_command(logger):
         synopsis = "set alignment reference sequence"
     )
     register('sequence refseq', desc, seqalign_refseq, logger=logger)
+
+    desc = CmdDesc(
+        required = [('chains', UniqueChainsArg)],
+        keyword = [('alignment', AlignmentArg)],
+        synopsis = 'transfer alignment sequences to associated chains'
+    )
+    register('sequence update', desc, seqalign_update, logger=logger)
 
     from . import manager
     manager._register_viewer_subcommands(logger)
