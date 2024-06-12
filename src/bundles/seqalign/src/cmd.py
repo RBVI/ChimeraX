@@ -348,7 +348,7 @@ def seqalign_refseq(session, ref_seq_info):
         aln, ref_seq = ref_seq_info, None
     aln.reference_seq = ref_seq
 
-def seqalign_transfer(session, chains, alignment=None):
+def seqalign_transfer(session, chains, *, alignment=None):
     if alignment is None:
         alignments = session.alignments.alignments
     else:
@@ -467,7 +467,7 @@ def register_seqalign_command(logger):
 
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
-        optional = [('alignment', AlignmentArg)],
+        keyword = [('alignment', AlignmentArg)],
         synopsis = 'transfer alignment sequences to associated chains'
     )
     register('sequence transfer', desc, seqalign_transfer, logger=logger)
