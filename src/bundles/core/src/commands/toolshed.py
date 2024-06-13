@@ -52,6 +52,8 @@ class BundleNameArg(StringArg):
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % BundleNameArg.name)
         import re
         token, text, rest = next_token(text, convert=True)
         canonical = re.sub(r"[^\w\d.]+", "_", token, re.UNICODE)
