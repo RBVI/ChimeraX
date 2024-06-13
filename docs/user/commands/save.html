@@ -732,7 +732,8 @@ The <i>filename</i> can include [NAME] and/or [ID]
 to indicate substitution with model name and/or model number, respectively,
 as needed to save multiple atomic models to multiple files with a 
 single command. See also: <a href="getcrd.html"><b>getcrd</b></a>,
-<a href="view.html"><b>view</b></a>
+<a href="view.html"><b>view</b></a>, <a href="#update-sequence">adding full
+sequence information
 </p>
 <blockquote>
 <b>models</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
@@ -848,7 +849,26 @@ fixed-width columns make reading the file
 target="_blank">faster in ChimeraX</a>
 <li><b>bestGuess</b> (default <b>false</b>) 
 &ndash; whether to try to write polymer sequence information when it was
-missing from the input file, or the structure was built or modified by the user
+missing from the input file, or the structure was built or modified by the user.
+<p>
+The <b>bestGuess option</b> will only include residues with atomic coordinates.
+<a name="update-sequence"></a>
+However, a different approach can be used to add the full sequence information
+(including any residues without atomic coordinates) prior to saving a file:
+  <ol>
+  <li>open the full sequence in the 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
+<i>e.g.</i>, by reading it from a <a href="open.html#sequence">sequence file</a>
+or by <a href="open.html#fetch">fetching</a> it from
+<a href="https://www.uniprot.org" target="_blank">UniProt</a>
+  <li>make sure that the sequence is
+<a href="../tools/sequenceviewer.html#association">associated</a>
+with the structure chain (should occur automatically in most cases)
+  <li>use <b>Structure... Update Chain Sequence</b> in the 
+<a href="../tools/sequenceviewer.html#context"><b>Sequence Viewer</b>
+context menu</a> 
+  </ol>
+<br>
 <li><b>computedSheets</b> (default <b>false</b>) 
 &ndash; although ChimeraX retains protein helix and strand assignments 
 from input,
@@ -1214,5 +1234,5 @@ that the scene is opaque.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2024</address>
+June 2024</address>
 </body></html>
