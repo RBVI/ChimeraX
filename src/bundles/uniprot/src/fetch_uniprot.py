@@ -131,7 +131,16 @@ def fetch_uniprot_accession_info(session, accession, ignore_cache=False):
     except IndexError:
         raise InvalidAccessionError("Invalid UniProt accession number: %s" % accession)
 
-    entry = get_child(uniprot, "entry")
+    try:
+        entry = get_child(uniprot, "entry")
+    except IndexError:
+        from chimerax.core.commands import run
+        try:
+            run(session, "open https://www.uniprot.org/uniprotkb/%s" % accession)
+        except Exception:
+            pass
+        raise InvalidAccessionError("No entry information for %s; possibly deleted by UniProt"
+            " -- attempting to show UniProt page for %s" % (accession, accession))
     try:
         seq_node = get_child(entry, "sequence")
     except (KeyError, IndexError):
