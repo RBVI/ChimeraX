@@ -25,19 +25,35 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: sequence</h3>
 <p>
-The <b>sequence</b> command can:
+The <b>sequence</b> subcommands perform actions related to the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+and associated structures:
 </p>
 <ul>
-<li><a href="#chain">show the sequence</a> of a structure chain
-in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
-<li><a href="#associate">control sequence-structure associations</a>
-<li><a href="#header">show, hide, save alignment headers</a>
-<li><a href="#identity">calculate pairwise percent identities</a>
-<li><a href="#align">calculate a new sequence alignment</a>
-using a web service
+<li><a href="#align"><b>sequence align</b></a>
+&ndash; calculate a new sequence alignment using a web service
+<li><a href="#associate"><b>sequence associate</b></a> and
+<a href="#dissociate"><b>sequence dissociate</b></a>
+&ndash; control sequence-structure associations
+<li><a href="#chain"><b>sequence chain</b></a>
+&ndash; show the sequence of a structure chain (start the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>)
+<li><a href="#header"><b>sequence header</b></a>
+&ndash; show, hide, save alignment headers
+<li><a href="#identity"><b>sequence identity</b></a>
+&ndash; calculate pairwise percent identities
+<li><a href="#refseq"><b>sequence refseq</b></a>
+&ndash; set which sequence to use as the reference for numbering
+<li><a href="#update"><b>sequence update</b></a>
+&ndash; replace the sequence data of a structure chain with its
+associated sequence in the 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
 </ul>
 <p>
-Except for showing a sequence, these actions can also be accessed from the
+The <a href="../menu.html#tools"><b>Tools</b> menu</a> 
+can also be used to show the sequence of a structure chain in the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
+All of the other actions can be accessed from the
 <a href="../tools/sequenceviewer.html#context"><b>Sequence Viewer</b>
 context menu</a>.
 </p>
@@ -66,6 +82,8 @@ See also:
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="iconbar" src="../tools/shortcut-icons/sequence.png"></a>
 </p><p>
+Other ways to start the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>:
 Independent of structure, sequence alignments and individual sequences
 can also be <a href="open.html#local">opened</a>
 from <a href="open.html#sequence">files</a>
@@ -139,7 +157,7 @@ associated with one sequence per alignment.
 <p class="nav">
 [<a href="#top">back to top: sequence</a>]
 </p>
-<h3>Sequence Header Controls</h3>
+<h3>Sequence Viewer Headers and Numbering</h3>
 <blockquote>
 <a href="usageconventions.html">Usage</a>:
 <b>sequence &nbsp;header</b> [&nbsp;<i>alignment-ID</i>&nbsp;]
@@ -168,6 +186,44 @@ If multiple alignments are open but an <i>alignment-ID</i> is not specified,
 showing/hiding affects all applicable alignments. 
 However, saving only works for a single header at a time, so an
 <i>alignment-ID</i> must be given when more than one alignment is open.
+</p>
+<a name="refseq"></a>
+<blockquote>
+<a href="usageconventions.html">Usage</a>:
+<b>sequence &nbsp;refseq</b>
+<span class="nowrap">[&nbsp;<i>alignment-ID</i>:<i>sequence-ID</i>&nbsp;]</span>
+</blockquote>
+<p>
+The overall numbering of an alignment is shown across the top at the
+first position and every tenth position thereafter. By default, there
+is no reference sequence, and the alignment is simply numbered 1, 11, 21, 
+<i>etc.</i>, regardless of whether the columns contain gaps.
+However, with <b>sequence refseq</b>, any of the individual sequences 
+can be specified as the reference for numbering instead.
+The sequence to use is specified by its alignment ID, shown in the title bar
+of the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window,
+plus the sequence's name or index number in the alignment, in the form:
+&nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
+(<a href="seqspec.html">details...</a>).
+</p><p>
+When the reference sequence has a gap character at a position
+where a number is to be shown (first column, eleventh column, <i>etc.</i>),
+how that position falls relative to the reference is shown in parentheses.
+For example, &ldquo;(<1)&rdquo; would be shown for alignment positions
+before the reference's first residue, and &ldquo;(43/44)&rdquo;
+for positions that fall between residues 43 and 44 of the reference.
+</p><p>
+Omitting the sequence identifier returns to the default numbering:
+</p>
+<blockquote>
+<a href="usageconventions.html">Usage</a>:
+<b>sequence &nbsp;refseq</b>
+<span class="nowrap">[&nbsp;<i>alignment-ID</i>&nbsp;]</span>
+</blockquote>
+<p>
+If more than one 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window
+is present, the <i>alignment-ID</i> is required.
 </p>
 
 <a name="identity"></a>
@@ -216,6 +272,39 @@ as a percentage of the specified <b>denominator</b>:
 <li><b>nongap</b>
 &ndash; the number of columns where neither sequence has a gap
 </ul> 
+
+<a name="update"></a>
+<p class="nav">
+[<a href="#top">back to top: sequence</a>]
+</p>
+<h3>Update Structure Metadata with Associated Sequence</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sequence &nbsp;update</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+[&nbsp;<b>alignment</b>&nbsp;&nbsp;<i>alignment-ID</i>&nbsp;]
+</blockquote>
+<p>
+Standard PDB files have SEQRES records containing the sequence of
+each biopolymer chain in the structure, and similarly, standard mmCIF files
+include this information in specific tables. In many structures, some of
+the residues in the sequence are missing from the atomic coordinates
+because their positions could not be resolved from the experimental density
+(due to disorder, <i>etc.</i>).
+However, atomic coordinate files output from various modeling programs often
+lack sequence information, so that the sequence is only inferred from 
+the coordinates. The <b>sequence update</b> command is useful for
+adding full sequence information to such structures.
+For example, the full sequence could be opened from a FASTA file or by 
+<a href="open.html#fetch">fetching</a> it from
+<a href="https://www.uniprot.org" target="_blank">UniProt</a>,
+associated with the chain, and then used to update the chain's sequence
+information. This command only applies to the sequences associated with
+the specified chains, limited to a specific <b>alignment</b> as needed.
+The <i>alignment-ID</i> is shown in the title bar of the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window.
+The sequence must cover all of the residues in the structure chain.
+</p>
 
 <a name="align"></a>
 <p class="nav">
@@ -333,5 +422,5 @@ Edgar RC.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2023</address>
+June 2024</address>
 </body></html>

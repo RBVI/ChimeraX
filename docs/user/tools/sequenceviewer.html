@@ -43,12 +43,13 @@ sequence region.
 The <b>Sequence Viewer</b> displays individual sequences and 
 sequence alignments of amino acids and nucleotides, with crosstalk to any
 <a href="#association">associated</a> structures.
+Some of its functions are implemented in the
+<a href="../commands/sequence.html"><b>sequence</b></a> command.
 To <a href="../findseq.html">find and select</a>
 a specified sequence or sequence pattern, use
 <a href="../menu.html#selectseq"><b>Select... Sequence</b></a> in the menu
 or the <a href="../commands/select.html#new"><b>select</b></a> command.
 See also:
-<a href="../commands/sequence.html"><b>sequence</b></a>,
 <a href="modeller.html"><b>Modeller Comparative</b></a>,
 <a href="modelloops.html"><b>Model Loops</b></a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
@@ -70,6 +71,7 @@ link that appears in the <a href="log.html"><b>Log</b></a>
 when a structure is opened 
 </ul>
 <p>
+Other ways to start the <b>Sequence Viewer</b>:
 Independent of structure, sequence alignments and individual sequences 
 can also be <a href="../commands/open.html#local">opened</a> 
 from <a href="../commands/open.html#sequence">files</a>
@@ -149,6 +151,18 @@ even if they form disjoint segments
   <ul>
   <li><b>Associations...</b> show dialog for controlling 
   <a href="#association">sequence-structure association</a>
+<a name="update-sequence"></a>
+  <li><b>Update Chain Sequence...</b> show dialog for updating structure
+metadata with the <a href="#association">associated</a> sequence(s);
+this is useful for adding full sequence information to structures
+read from files lacking PDB SEQRES records or the mmCIF equivalent 
+(<a href="../commands/sequence.html#update">details...</a>).
+For example, the full sequence could be opened from a FASTA file or by 
+<a href="../commands/open.html#fetch">fetching</a> it from
+<a href="https://www.uniprot.org" target="_blank">UniProt</a>,
+associated with the chain, and then used to update the chain's sequence
+information. See also:
+<a href="../commands/sequence.html#update"><b>sequence update</b></a>
   <li><b>View</b> [ <i>residue</i> ]
 &ndash; focus the view on the structure residue 
 <a href="#association">associated</a> with the clicked sequence position
@@ -830,5 +844,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2024</address>
+June 2024</address>
 </body></html>
