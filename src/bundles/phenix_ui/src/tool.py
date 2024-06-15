@@ -17,6 +17,25 @@ from chimerax.core.settings import Settings
 from Qt.QtCore import Qt
 from Qt.QtWidgets import QDialog
 
+from chimerax.ui.widgets import Citation
+class PhenixCitation(Citation):
+    def __init__(self, session, tool_name, phenix_name, *, title=None, info=None, **kw):
+        # if title is None, use generic Phenix citation
+        if title is None:
+            title = "Macromolecular structure determination using X-rays, neutrons and electrons:" \
+                " recent developments in Phenix"
+            info = [
+                "Liebschner D, Afonine PV, Baker ML, Bunkóczi G, Chen VB, Croll TI, Hintze B, Hung LW, Jain S, McCoy AJ,",
+                "Moriarty NW, Oeffner RD, Poon BK, Prisant MG, Read RJ, Richardson JS, Richardson DC, Sammito MD,",
+                "Sobolev OV, Stockwell DH, Terwilliger TC, Urzhumtsev AG, Videau LL, Williams CJ, Adams PD",
+                "Acta Cryst. D75, 861-877 (2019)"
+            ]
+            kw['pubmed_id'] = 31588918
+        elif info is None:
+            raise AssertionError("Citation 'title' argument supplied, but not 'info' argument")
+        cite = '<br>'.join(["<b>" + title + "</b>"] + info)
+        kw['prefix'] = "%s uses the Phenix <i>%s</i> command. Please cite:" % (tool_name, phenix_name)
+        super().__init__(session, cite, **kw)
 class DouseSettings(Settings):
     AUTO_SAVE = {
         "show_hbonds": True,
@@ -111,6 +130,8 @@ class LaunchDouseTool(ToolInstance):
         self.verbose_option = BooleanOption("Show full douse output in log", None, None,
             attr_name="verbose", settings=self.settings)
         options.add_option(self.verbose_option)
+
+        layout.addWidget(PhenixCitation(session, tool_name, "douse"), alignment=Qt.AlignCenter)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
@@ -510,7 +531,7 @@ class LaunchFitLoopsTool(ToolInstance):
         targets.selection_changed.connect(self._new_target)
         targets.launch(select_mode=QAbstractItemView.SelectionMode.SingleSelection)
         targets.sort_by(chain_col, targets.SORT_ASCENDING)
-        target_layout.addWidget(targets, alignment=Qt.AlignCenter)
+        target_layout.addWidget(targets, alignment=Qt.AlignCenter, stretch=1)
         padding_area = QWidget()
         padding_layout = QHBoxLayout()
         padding_layout.setSpacing(1)
@@ -529,8 +550,20 @@ class LaunchFitLoopsTool(ToolInstance):
         self.warning_label.setWordWrap(True)
         from chimerax.ui import shrink_font
         shrink_font(self.warning_label, 0.9)
+        self.warning_label.hide()
         target_layout.addWidget(self.warning_label)
         self.target_area.setHidden(True)
+
+        layout.addWidget(PhenixCitation(session, tool_name, "fit_loops",
+            title="Iterative model building, structure refinement and density<br>"
+                   "modification with the PHENIX AutoBuild wizard",
+            info=[
+                "Terwilliger TC, Grosse-Kunstleve RW, Afonine PV, Moriarty",
+                "NW, Zwart PH, Hung L-W, Read RJ, Adams PD",
+                "Acta Cryst. D64:61-69 (2009)"
+            ],
+            pubmed_id=18094468), alignment=Qt.AlignCenter)
+
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -710,6 +743,7 @@ class LaunchFitLoopsTool(ToolInstance):
                 if num_sel >= self.HARD_RES_LIMIT:
                     self.warning_label.setText(self.too_many_residues_message % (num_sel, chain.chain_id))
                     self.warning_label.setStyleSheet("QLabel { color : red }")
+                    self.warning_label.show()
                     for but in self.bbox.buttons():
                         if but.text() in ["OK", "Apply"]:
                             but.setEnabled(False)
@@ -717,9 +751,11 @@ class LaunchFitLoopsTool(ToolInstance):
                 if num_sel >= self.ADVISORY_RES_LIMIT:
                     self.warning_label.setText(self.many_residues_message % (num_sel, chain.chain_id))
                     self.warning_label.setStyleSheet("QLabel { color : rgb(219, 118, 0) }")
+                    self.warning_label.show()
                     break
             else:
                 self.warning_label.setText("")
+                self.warning_label.hide()
             self.target_label.setText(self.model_structure_message % (structure, self.map_menu.value))
         else:
             self.target_label.setText(self.no_structure_message)
