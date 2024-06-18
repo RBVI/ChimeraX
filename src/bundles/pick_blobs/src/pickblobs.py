@@ -215,11 +215,17 @@ class PickBlobs(MouseMode):
         self._pick_blob(pick)
     
     def _pick_blob(self, pick):
+        from chimerax.core.models import PickedModel
         from chimerax.map.volume import PickedMap
-        if not isinstance(pick , PickedMap) or not hasattr(pick, 'triangle_pick'):
+        if not isinstance(pick , (PickedMap, PickedModel)):
             return
 
-        tpick = pick.triangle_pick
+        if hasattr(pick, 'triangle_pick'):
+            tpick = pick.triangle_pick
+        elif hasattr(pick, 'picked_triangle'):
+            tpick = pick.picked_triangle
+        else:
+            return
         t = tpick.triangle_number
         surface = tpick.drawing()
 
