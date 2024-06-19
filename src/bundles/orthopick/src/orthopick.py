@@ -115,7 +115,7 @@ class OrthoPickMode(MouseMode):
         camera = self.session.main_view.camera
         scene_shift = camera.position.transform_vector(cam_shift)
         # Find drag displacement in orthoview coordinates
-        ov_shift = ov.scene_position.inverse().transform_vector(scene_shift)
+        ov_shift = ov.ortho_position.inverse().transform_vector(scene_shift)
         shift = ov_shift[1] if axis == 2 else ov_shift[axis]
         if event.shift_down():
             ov.shift_center(axis, shift)
@@ -210,7 +210,7 @@ class OrthoView(Model):
         self.oversample = oversample
         self.slab_thickness = slab_thickness
         self.membrane_surface = membrane_surface
-        self._ortho_position = None	# Place for origin ortho drawing position
+        self.ortho_position = None	# Place for origin ortho drawing position
         self._ortho_drawings = {}	# Map axis 0,1,2 to ortho Drawing
         self._plane_drawings = {}	# Map axis 0,1,2 to plane Drawing
         self._ortho_color = {}		# Map axis to VolumeColor instance
@@ -238,7 +238,7 @@ class OrthoView(Model):
         grid_size = max(2, int(ceil(self.oversample * width / self.volume.data.step[0])))
 
         # Make ortho planes
-        self._ortho_position = oplace = self._orthoview_placement()
+        self.ortho_position = oplace = self._orthoview_placement()
         slab_offsets = self._slab_offsets(self.slab_thickness)
         for name, axis, normal in [('z outline', 2, (0,0,1)),
                                    ('y outline', 1, (0,-1,0)),
@@ -330,7 +330,7 @@ class OrthoView(Model):
         for axis in (0,1,2):
             od = self._ortho_drawings[axis]
             od.position = od_trans * od.position
-        self._ortho_position = od_trans * self._ortho_position
+        self.ortho_position = od_trans * self.ortho_position
         self._update_plane_colors()
 
     def _update_plane_colors(self, axis = None):
@@ -407,7 +407,7 @@ class OrthoView(Model):
         from math import ceil
         grid_size = max(2, int(ceil(self.oversample * width / self.volume.data.step[0])))
         grid_spacing = width / (grid_size - 1)
-        pos = self._ortho_position
+        pos = self.ortho_position
         c = -grid_spacing * (grid_size - 1)/2
         corner = (c,c,c)
         origin = pos * corner
