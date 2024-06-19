@@ -1,0 +1,39 @@
+<BundleInfo name="ChimeraX-OrthoPick" version="1.0.1"
+	    package="chimerax.orthopick"
+  	    minSessionVersion="1" maxSessionVersion="1" customInit="true">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Show orthogonal views for tomogram particle picking</Synopsis>
+  <Description>Show orthogonal views for tomogram particle picking.</Description>
+
+  <DataFiles>
+    <DataFile>icons/orthopick.png</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="Volume data"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-MouseModes" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="toolbar">
+    <Provider tab="Right Mouse" section="Map" hidden="true"
+	      name="orthopick" icon="orthopick.png" display_name="Orthopick"
+	      description="Show orthogonal views of picked particles in tomograms."/>
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Tool :: Orthopick :: Volume Data :: Pick particles in tomograms</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
