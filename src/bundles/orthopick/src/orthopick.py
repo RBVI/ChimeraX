@@ -38,7 +38,7 @@ class OrthoPickMode(MouseMode):
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
-        self._active_orthoview_axis = None, None	# OrthoView and axis for mouse press
+        self._active_orthoview_axis = None, None, None	# OrthoView and axis for mouse press
         self._last_orthoview = None
         self._adjust_box_volume_contour = None
         self._box_volume_level = None
@@ -58,7 +58,7 @@ class OrthoPickMode(MouseMode):
             self._adjust_box_volume_contour = bv
             return
         
-        self._active_orthoview_axis = ov, axis = self._orthoview_pick(event)
+        self._active_orthoview_axis = ov, axis, zfacing = self._orthoview_pick(event)
         if ov is None:
             self._create_orthoview(event)
 
@@ -106,7 +106,7 @@ class OrthoPickMode(MouseMode):
             from chimerax.map.mouselevel import adjust_threshold_level
             adjust_threshold_level(bv, -0.001*dy)
             
-        ov, axis = self._active_orthoview_axis
+        ov, axis, zfacing = self._active_orthoview_axis
         if ov is None or axis is None:
             return
 
@@ -116,14 +116,14 @@ class OrthoPickMode(MouseMode):
         scene_shift = camera.position.transform_vector(cam_shift)
         # Find drag displacement in orthoview coordinates
         ov_shift = ov.ortho_position.inverse().transform_vector(scene_shift)
-        shift = ov_shift[1] if axis == 2 else ov_shift[axis]
+        shift = ov_shift[1] if axis == 2 and zfacing else ov_shift[axis]
         if event.shift_down():
             ov.shift_center(axis, shift)
         else:
             ov.shift_plane(axis, shift)
 
     def mouse_up(self, event = None):
-        self._active_orthoview_axis = None, None
+        self._active_orthoview_axis = None, None, None
         self._adjust_box_volume_contour = None
 
     def _orthoview_pick(self, event):
@@ -136,8 +136,9 @@ class OrthoPickMode(MouseMode):
                 pt = pick.picked_triangle
                 d = pt.drawing()
                 axis = getattr(d, 'ortho_axis', None)
-                return pick.model, axis
-        return None, None
+                zfacing = getattr(d, 'zfacing', None)
+                return pick.model, axis, zfacing
+        return None, None, None
 
     def _volume_pick(self, event):
         x,y = event.position()
@@ -246,8 +247,8 @@ class OrthoView(Model):
             plane = _make_square_drawing(name, width, normal = normal, grid_size = grid_size,
                                          border_color = self._border_color[axis])
             plane.position = oplace
-            plane.ortho_axis = axis
-            plane.outline.ortho_axis = axis
+            plane.ortho_axis = plane.outline.ortho_axis = axis
+            plane.zfacing = plane.outline.zfacing = False
             self.add_drawing(plane)
             self._ortho_drawings[axis] = plane
             from chimerax.surface.colorvol import VolumeColor
@@ -267,7 +268,8 @@ class OrthoView(Model):
                                         border_color = self._border_color[axis])
             from chimerax.geometry import translation
             view.position = fplace * translation(offset)
-            view.ortho_axis = axis
+            view.ortho_axis = view.outline.ortho_axis = axis
+            view.zfacing = view.outline.zfacing = True
             self.add_drawing(view)
             self._plane_drawings[axis] = view
 
