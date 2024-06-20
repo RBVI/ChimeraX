@@ -215,19 +215,9 @@ class PickBlobs(MouseMode):
         self._pick_blob(pick)
     
     def _pick_blob(self, pick):
-        from chimerax.core.models import PickedModel
-        from chimerax.map.volume import PickedMap
-        if not isinstance(pick , (PickedMap, PickedModel)):
+        surface, t = _picked_triangle(pick)
+        if surface is None:
             return
-
-        if hasattr(pick, 'triangle_pick'):
-            tpick = pick.triangle_pick
-        elif hasattr(pick, 'picked_triangle'):
-            tpick = pick.picked_triangle
-        else:
-            return
-        t = tpick.triangle_number
-        surface = tpick.drawing()
 
         cmd = 'measure blob #!%s triangle %d'  % (surface.id_string, t)
         settings = self.settings
@@ -248,8 +238,59 @@ class PickBlobs(MouseMode):
         pick = event.picked_object(self.view)
         self._pick_blob(pick)
 
+def _picked_triangle(pick):
+    from chimerax.core.models import PickedModel
+    from chimerax.map.volume import PickedMap
+    if not isinstance(pick , (PickedMap, PickedModel)):
+        return None, None
+
+    if hasattr(pick, 'triangle_pick'):
+        tpick = pick.triangle_pick
+    elif hasattr(pick, 'picked_triangle'):
+        tpick = pick.picked_triangle
+    else:
+        return None, None
+    t = tpick.triangle_number
+    surface = tpick.drawing()
+    return surface, t
+
 def hex_color(rgba8):
     return '#%02x%02x%02x%02x' % tuple(rgba8)
+
+# -------------------------------------------------------------------------
+#
+from chimerax.mouse_modes import MouseMode
+class HideBlobs(MouseMode):
+    name = 'hide blobs'
+
+    def __init__(self, session):
+        MouseMode.__init__(self, session)
+        
+    def mouse_down(self, event):
+        x,y = event.position()
+        view = self.session.main_view
+        pick = view.picked_object(x, y, max_transparent_layers = 0)
+        self._hide_blob(pick)
+        
+    def _hide_blob(self, pick):
+        surface, triangle_number = _picked_triangle(pick)
+        if surface is None:
+            return
+        _hide_blob(surface, triangle_number)
+
+    def vr_press(self, event):
+        # Virtual reality hand controller button press.
+        pick = event.picked_object(self.view)
+        self._hide_blob(pick)
+
+def _hide_blob(surface, triangle_number):
+    vlist, tlist = connected_component(surface.triangles, triangle_number)
+    tmask = surface.triangle_mask
+    if tmask is None:
+        from numpy import ones
+        tmask = ones((len(surface.triangles),), bool)
+    tmask[tlist] = False
+    surface.triangle_mask = tmask
 
 # -----------------------------------------------------------------------------
 # Panel for coloring connected pieces of a surface chosen with mouse.
@@ -435,3 +476,4 @@ def blob_size(surface, vlist, tlist, log = None):
 def register_mousemode(session):
     mm = session.ui.mouse_modes
     mm.add_mode(PickBlobs(session))
+    mm.add_mode(HideBlobs(session))
