@@ -94,7 +94,7 @@ class Volume(Model):
     # Image display submodel and parameters
     self._image = None
     self.image_levels = []                      # list of (threshold, scale)
-    self.image_colors = []
+    self.image_colors = []			# list of (r,g,b,a), float values 0-1
     self._mask_colors = None			# For coloring by segmentation
     self._segment_colors = None			# For coloring segmentations
     self.transparency_depth = 0.5               # for image rendering

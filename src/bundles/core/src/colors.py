@@ -268,13 +268,13 @@ class Colormap(State):
     data_values : array of floating point values
         sorted list or numpy array of floating point values.
     colors : array of colors
-        list or numpy array of Color instances.
+        list or numpy array of (r,g,b,a) float 0-1 values or Color instances.
     color_above_value_range : color for values above maximum value
-        instance of Color.
+        (r,g,b,a) float 0-1 or Color.
     color_below_value_range : color for values below minimum value
-        instance of Color.
+        (r,g,b,a) float 0-1 or Color.
     color_no_value : default color when no value is defined
-        instance of Color.
+        (r,g,b,a) float 0-1 or Color.
     """
 
     def __init__(self, data_values, colors,

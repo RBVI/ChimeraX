@@ -88,6 +88,8 @@ class _SurfaceBundle(BundleAPI):
             surfacecmds.register_command(logger)
             from . import check
             check.register_command(logger)
+            from . import hidefarblobs
+            hidefarblobs.register_command(logger)
             
     @staticmethod
     def start_tool(session, tool_name):

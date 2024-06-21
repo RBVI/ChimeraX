@@ -164,7 +164,7 @@ th.bundle {
 
 
 def _newest_by_name(bi_list):
-    from pkg_resources import parse_version
+    from packaging.version import Version
     bundle_map = {}
     for bi in bi_list:
         try:
@@ -172,7 +172,7 @@ def _newest_by_name(bi_list):
         except KeyError:
             bundle_map[bi.name] = bi
         else:
-            if parse_version(bi.version) > parse_version(seen.version):
+            if Version(bi.version) > Version(seen.version):
                 bundle_map[bi.name] = bi
     return bundle_map.values()
 
