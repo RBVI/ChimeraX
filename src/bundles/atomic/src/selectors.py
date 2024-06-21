@@ -245,27 +245,23 @@ def add_select_menu_items(session):
     atom_triggers = get_triggers()
     atom_triggers.add_handler("changes", _check_residues_update_status)
 
+    # Other bundles might want to add to Structure menu (or submenu), so use add_menu_selector()
+    # rather than connecting to 'triggered' signal [#15449]
     parent_menus = ["&Structure"]
-    select_structure_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
-    select_structure_menu.addAction(QAction("Backbone", mw))
-    select_structure_menu.addAction(QAction("Ions", mw))
-    select_structure_menu.addAction(QAction("Ligand", mw))
-    select_structure_menu.addAction(QAction("Main", mw))
-    # Nucleic Acid/Protein/Ribose move to Chemistry menu (chem_group bundle)
-    parent_menus = ["&Structure", "&Secondary Structure"]
-    ss_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
-    ss_menu.addAction(QAction("Coil", mw))
-    ss_menu.addAction(QAction("Helix", mw))
-    ss_menu.addAction(QAction("Strand", mw))
-    select_structure_menu.addAction(QAction("Sidechain + Connector", mw))
-    select_structure_menu.addAction(QAction("Sidechain Only", mw))
-    select_structure_menu.addAction(QAction("Solvent", mw))
     sel_text_remapping = {
         'Sidechain + Connector': 'sidechain',
         'Sidechain Only': 'sideonly'
     }
-    select_structure_menu.triggered.connect(lambda act, mw=mw:
-        mw.select_by_mode(sel_text_remapping.get(act.text(), act.text()).lower().replace(' ', '-')))
+    make_selector_text = lambda menu_text, mapping=sel_text_remapping: \
+        mapping.get(menu_text, menu_text).lower().replace(' ', '-')
+    select_structure_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
+    for menu_text in ["Backbone", "Ions", "Ligand", "Main",
+            "Sidechain + Connector", "Sidechain Only", "Solvent"]:
+        mw.add_menu_selector(select_structure_menu, menu_text, make_selector_text(menu_text))
+    parent_menus = ["&Structure", "&Secondary Structure"]
+    ss_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1], append=False)
+    for ss_menu_text in [ "Coil", "Helix", "Strand"]:
+        mw.add_menu_selector(ss_menu, ss_menu_text, make_selector_text(ss_menu_text))
 
 def _update_select_chains_menu(session):
     global _chains_menu_needs_update
