@@ -957,12 +957,12 @@ class _CompiledCode:
                 return None
         inc_dirs.extend(self.include_dirs)
         lib_dirs.extend(self.library_dirs)
-        from pkg_resources import DistributionNotFound
+        from importlib.metadata import PackageNotFoundError
 
         for dep in dependencies:
             try:
                 d_inc, d_lib = self._get_bundle_dirs(logger, dep)
-            except (RuntimeError, DistributionNotFound):
+            except (RuntimeError, PackageNotFoundError):
                 pass
             else:
                 if d_inc:
@@ -974,13 +974,15 @@ class _CompiledCode:
 
     def _get_bundle_dirs(self, logger, dep):
         from chimerax.core import toolshed
-        from pkg_resources import Requirement, get_distribution
+        import importlib.metadata
+        from packaging.requirements import Requirement
 
-        req = Requirement.parse(dep)
-        if not get_distribution(req):
+        req = Requirement(dep)
+        d = importlib.metadata.distribution(req.name)
+        if not req.specifier.contains(d.version, prereleases=True):
             raise RuntimeError("unsatisfied dependency: %s" % dep)
         ts = toolshed.get_toolshed()
-        bundle = ts.find_bundle(req.project_name, logger)
+        bundle = ts.find_bundle(req.name, logger)
         if not bundle:
             # The requirement is satisfied but is not recognized
             # as a bundle.  Probably just a regular Python package.

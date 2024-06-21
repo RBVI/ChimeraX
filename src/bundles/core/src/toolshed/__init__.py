@@ -29,8 +29,6 @@ installation from a remote server.
 The Toolshed can handle updating, installing and uninstalling
 bundles while taking care of inter-bundle dependencies.
 
-The Toolshed interface uses :py:mod:`pkg_resources` heavily.
-
 Each Python distribution, a ChimeraX Bundle,
 may contain multiple tools, commands, data formats, and specifiers,
 with metadata entries for each deliverable.
@@ -670,7 +668,7 @@ class Toolshed:
             container = self._installed_bundle_info
         else:
             container = self._get_available_bundles(logger)
-        from pkg_resources import parse_version
+        from packaging.version import Version
         # put the below kludge in to allow sessions saved before some
         # bundles got renamed to restore
         name = {
@@ -710,12 +708,12 @@ class Toolshed:
             if version is None:
                 if best_bi is None:
                     best_bi = bi
-                    best_version = parse_version(bi.version)
+                    best_version = Version(bi.version)
                 elif best_bi.name != bi.name:
                     logger.warning("%r matches multiple bundles %s, %s" % (name, best_bi.name, bi.name))
                     return None
                 else:
-                    v = parse_version(bi.version)
+                    v = Version(bi.version)
                     if v > best_version:
                         best_bi = bi
                         best_version = v
@@ -1572,7 +1570,7 @@ class NewerVersionQuery(Task):
         class NewerDialog(QDialog):
 
             def __init__(self, parent):
-                from Qt.QtWidgets import QDialogButtonBox, QGridLayout, QLabel, QStyle, QFrame, QCheckBox, QFrame
+                from Qt.QtWidgets import QDialogButtonBox, QGridLayout, QLabel, QStyle, QFrame, QCheckBox
                 from Qt.QtCore import Qt, QSize
                 from Qt.QtGui import QPalette
                 super().__init__(parent, Qt.WindowType.Dialog | Qt.WindowType.WindowCloseButtonHint)

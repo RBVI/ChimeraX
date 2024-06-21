@@ -11,5 +11,7 @@ src/server.pem:	ssl.conf
 	openssl req -new -x509 -keyout src/server.pem -out src/server.pem \
 		-days 365 -nodes -config ssl.conf
 
-clean:
+clean: clean_pem
+
+clean_pem:
 	-rm -rf src/server.pem

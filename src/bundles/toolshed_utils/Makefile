@@ -27,6 +27,7 @@ install app-install: wheel
 	$(PYTHON) -m pip install --no-build-isolation .
 
 build: install
+	# unlike normal bundles, install as well
 	$(MAKE) sync
 
 install-editable:
@@ -34,10 +35,6 @@ install-editable:
 
 sync:
 	cp -av dist/*.whl $(TOP)/build/sync/
-
-build: install
-	# unlike normal bundles, install as well
-	$(MAKE) sync
 
 test:
 	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
