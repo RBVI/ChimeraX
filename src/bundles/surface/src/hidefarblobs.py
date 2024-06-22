@@ -64,7 +64,7 @@ def surface_hide_far_blobs(session, surface, near_surface, distance, symmetric =
                 near_count += 1
 
     far_count = len(blobs) - near_count
-    session.logger.info(f'Surface #{surface.id_string} has {near_count} near blobs, {far_count} far blobs')
+    session.logger.info(f'Surface #{surface.id_string} has {near_count} near blobs, {far_count} far blobs, {near_count + far_count} total')
     
     if not counts_only:
         # Find triangles of surface where all vertices are in a close blob.
