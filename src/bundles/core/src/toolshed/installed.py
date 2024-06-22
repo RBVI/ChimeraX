@@ -590,7 +590,7 @@ def _get_installed_packages(d, logger):
             path_file = path
             continue
         elif path.parts[-1] == '__init__.py':
-            packages.append(str(path.parent))
+            packages.append(path.parent.parts)
     # If we looked at the RECORD file and didn't find any packages, then the
     # bundle was probably installed in editable mode. Instead, we can list the
     # source directory tree and add any directory that has an init.py to the
