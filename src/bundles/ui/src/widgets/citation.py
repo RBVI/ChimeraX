@@ -68,7 +68,7 @@ class Citation(QFrame):
             button = QToolButton()
             button.setDefaultAction(action)
             button.setAutoRaise(True)
-            layout.addWidget(button, 1, 1, Qt.AlignLeft | Qt.AlignBottom)
+            layout.addWidget(button, 1, 1, Qt.AlignLeft | Qt.AlignVCenter)
         if suffix is not None:
             layout.addWidget(QLabel(suffix), 2, 0, Qt.AlignLeft)
 
