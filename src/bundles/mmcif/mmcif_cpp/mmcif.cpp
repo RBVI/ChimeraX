@@ -334,8 +334,8 @@ const char* ExtractMolecule::builtin_categories[] = {
 ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets, bool atomic, bool ignore_styling):
     _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
     found_missing_poly_seq(false), coordsets(coordsets), atomic(atomic),
-    guess_fixed_width_categories(false), verbose(false), hydrogens_missing_in_template(0),
-    ignore_styling(ignore_styling)
+    guess_fixed_width_categories(false), verbose(false),
+    ignore_styling(ignore_styling), hydrogens_missing_in_template(0)
 {
     empty_residue_templates.insert("UNL");  // Unknown ligand
     empty_residue_templates.insert("UNX");  // Unknown atom or ion
@@ -375,7 +375,7 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         }, { "atom_site" });
     register_category("atom_site_aniso",
         // So parsing small v1 CIF files does treat this as atom_site table
-        [this] () {});
+        [] () {});
     register_category("struct_conn",
         [this] () {
             parse_struct_conn();
