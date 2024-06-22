@@ -22,12 +22,16 @@ class PhenixCitation(Citation):
     def __init__(self, session, tool_name, phenix_name, *, title=None, info=None, **kw):
         # if title is None, use generic Phenix citation
         if title is None:
-            title = "Macromolecular structure determination using X-rays, neutrons and electrons:" \
-                " recent developments in Phenix"
+            title = \
+                "Macromolecular structure determination using X-rays,<br>" \
+                "neutrons and electrons: recent developments in Phenix"
             info = [
-                "Liebschner D, Afonine PV, Baker ML, Bunkóczi G, Chen VB, Croll TI, Hintze B, Hung LW, Jain S, McCoy AJ,",
-                "Moriarty NW, Oeffner RD, Poon BK, Prisant MG, Read RJ, Richardson JS, Richardson DC, Sammito MD,",
-                "Sobolev OV, Stockwell DH, Terwilliger TC, Urzhumtsev AG, Videau LL, Williams CJ, Adams PD",
+                "Liebschner D, Afonine PV, Baker ML, Bunkóczi G, Chen VB,",
+                "Croll TI, Hintze B, Hung LW, Jain S, McCoy AJ, Moriarty NW,",
+                "Oeffner RD, Poon BK, Prisant MG, Read RJ, Richardson JS,",
+                "Richardson DC, Sammito MD, Sobolev OV, Stockwell DH,",
+                "Terwilliger TC, Urzhumtsev AG, Videau LL, Williams CJ,",
+                "Adams PD",
                 "Acta Cryst. D75, 861-877 (2019)"
             ]
             kw['pubmed_id'] = 31588918
@@ -462,7 +466,7 @@ class LaunchFitLoopsTool(ToolInstance):
         #if not hasattr(self.__class__, 'settings'):
         #    self.__class__.settings = LaunchEmplaceLocalSettings(session, "launch emplace local")
 
-        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QSpinBox
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QSpinBox, QStackedWidget
         from Qt.QtWidgets import QGridLayout, QAbstractItemView
         from Qt.QtCore import Qt, QSize
         layout = QVBoxLayout()
@@ -490,39 +494,38 @@ class LaunchFitLoopsTool(ToolInstance):
         self.map_menu.value_changed.connect(self._input_changed)
         data_layout.addWidget(self.map_menu, alignment=Qt.AlignLeft, stretch=1)
 
-        targeting_layout = QVBoxLayout()
-        targeting_layout.setSpacing(1)
-        targeting_layout.setContentsMargins(0,0,0,0)
-        layout.addLayout(targeting_layout, stretch=1)
-        self.no_structure_message = "Select a structure and map from the menus above"
-        self.target_label = QLabel(self.no_structure_message)
-        self.target_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        self.target_area = QStackedWidget()
+
+        layout.addWidget(self.target_area, stretch=1, alignment=Qt.AlignCenter)
+        self.need_input_message = "Select a structure and map from the menus above"
+        self.no_table_label = QLabel(self.need_input_message)
+        self.target_area.addWidget(self.no_table_label)
+
+        self.table_area = QWidget()
+        self.table_area.setMinimumHeight(300)
+        table_layout = QVBoxLayout()
+        table_layout.setSpacing(2)
+        self.table_area.setLayout(table_layout)
+        self.target_area.addWidget(self.table_area)
+
+        self.help_label = QLabel()
+        self.help_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
         from chimerax.core.commands import run
-        self.target_label.linkActivated.connect(lambda *args, ses=session, run=run:
+        self.help_label.linkActivated.connect(lambda *args, ses=session, run=run:
             run(ses, "help help:user/selection.html"))
-        self.model_structure_message = '<ul><li>Specify the parts of %%s to model into %%s' \
+        self.model_structure_message = '&bull; Specify the parts of %%s to model into %%s' \
             ' by <a href="help:select">selection</a> using' \
             ' <a href="help:select">any method</a>,' \
-            ' including the table below.</li>' \
-            '<li>Modeling >= %d consecutive residues is <span style="color:rgb(219, 118, 0)">not recommended</span>, and' \
-            ' modeling >= %d consecutive residues is <span style="color:red">disallowed</span>.' \
-            '</ul>' % (
+            ' including the table below.<br>' \
+            '&bull; Modeling >= %d consecutive residues is <span style="color:rgb(219, 118, 0)">not recommended</span>, and' \
+            ' modeling >= %d consecutive residues is <span style="color:red">disallowed</span>.' % (
             self.ADVISORY_RES_LIMIT, self.HARD_RES_LIMIT)
-        self.many_residues_message = "Current selection of %%d consecutive residues in chain %%s is >= %d" \
-            " (fit_loops modeling not recommended)." % self.ADVISORY_RES_LIMIT
-        self.too_many_residues_message = "Current selection of %%d consecutive residues in chain %%s" \
-            " is >= %d (fit_loops modeling disallowed)" % self.HARD_RES_LIMIT
-        self.target_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.target_label.setWordWrap(True)
+        self.help_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.help_label.setWordWrap(True)
         from chimerax.ui import shrink_font
-        shrink_font(self.target_label, 0.9)
-        targeting_layout.addWidget(self.target_label)
-        self.target_area = QWidget()
-        target_layout = QVBoxLayout()
-        target_layout.setSpacing(2)
-        self.target_area.setLayout(target_layout)
-        target_layout.addWidget(QLabel("Gaps"), alignment=Qt.AlignHCenter|Qt.AlignBottom)
-        targeting_layout.addWidget(self.target_area, stretch=1)
+        shrink_font(self.help_label, 0.9)
+        table_layout.addWidget(self.help_label)
+        table_layout.addWidget(QLabel("Gaps"), alignment=Qt.AlignHCenter|Qt.AlignBottom)
         from chimerax.ui.widgets import ItemTable
         self.target_table = targets = ItemTable(session=session)
         chain_col = targets.add_column("Chain", "chain_id")
@@ -531,12 +534,12 @@ class LaunchFitLoopsTool(ToolInstance):
         targets.selection_changed.connect(self._new_target)
         targets.launch(select_mode=QAbstractItemView.SelectionMode.SingleSelection)
         targets.sort_by(chain_col, targets.SORT_ASCENDING)
-        target_layout.addWidget(targets, alignment=Qt.AlignCenter, stretch=1)
+        table_layout.addWidget(targets, alignment=Qt.AlignCenter, stretch=1)
         padding_area = QWidget()
         padding_layout = QHBoxLayout()
         padding_layout.setSpacing(1)
         padding_area.setLayout(padding_layout)
-        target_layout.addWidget(padding_area, alignment=Qt.AlignHCenter|Qt.AlignTop)
+        table_layout.addWidget(padding_area, alignment=Qt.AlignHCenter|Qt.AlignTop)
         padding_layout.addWidget(QLabel("Also select "), alignment=Qt.AlignRight)
         self.padding_widget = QSpinBox()
         self.padding_widget.setValue(1)
@@ -546,24 +549,19 @@ class LaunchFitLoopsTool(ToolInstance):
         self.residue_label = QLabel(" residue on each side of gap")
         padding_layout.addWidget(self.residue_label)
         self.warning_label = QLabel("")
+        self.many_residues_message = "Current selection of %%d consecutive residues in chain %%s is >= %d" \
+            " (fit_loops modeling not recommended)." % self.ADVISORY_RES_LIMIT
+        self.too_many_residues_message = "Current selection of %%d consecutive residues in chain %%s" \
+            " is >= %d (fit_loops modeling disallowed)" % self.HARD_RES_LIMIT
         self.warning_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.warning_label.setWordWrap(True)
         from chimerax.ui import shrink_font
         shrink_font(self.warning_label, 0.9)
         self.warning_label.hide()
-        target_layout.addWidget(self.warning_label)
-        self.target_area.setHidden(True)
+        table_layout.addWidget(self.warning_label)
+        self.target_area.setCurrentWidget(self.no_table_label)
 
-        layout.addWidget(PhenixCitation(session, tool_name, "fit_loops",
-            title="Iterative model building, structure refinement and density<br>"
-                   "modification with the PHENIX AutoBuild wizard",
-            info=[
-                "Terwilliger TC, Grosse-Kunstleve RW, Afonine PV, Moriarty",
-                "NW, Zwart PH, Hung L-W, Read RJ, Adams PD",
-                "Acta Cryst. D64:61-69 (2009)"
-            ],
-            pubmed_id=18094468), alignment=Qt.AlignCenter)
-
+        layout.addWidget(PhenixCitation(session, tool_name, "fit_loops"), alignment=Qt.AlignCenter)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -756,9 +754,11 @@ class LaunchFitLoopsTool(ToolInstance):
             else:
                 self.warning_label.setText("")
                 self.warning_label.hide()
-            self.target_label.setText(self.model_structure_message % (structure, self.map_menu.value))
+            self.help_label.setText(self.model_structure_message % (structure, self.map_menu.value))
+            self.target_area.setCurrentWidget(self.table_area)
         else:
-            self.target_label.setText(self.no_structure_message)
+            self.no_table_label.setText(self.need_input_message)
+            self.target_area.setCurrentWidget(self.no_table_label)
 
     def _input_changed(self):
         structure = self.structure_menu.value
@@ -773,7 +773,6 @@ class LaunchFitLoopsTool(ToolInstance):
                     for r1, r2, pb in unk_gaps])), is_html=True)
             if gap_info:
                 msg = self.model_structure_message % (structure, self.map_menu.value)
-                self.target_table.data = []
                 class TableDatum:
                     def __init__(self, gap_info):
                         self.gap_info = gap_info
@@ -791,19 +790,21 @@ class LaunchFitLoopsTool(ToolInstance):
                 if unk_gaps:
                     msg += f"  {structure} also has missing-structure gaps involving UNK residues, which" \
                         " Phenix loop fitting cannot handle (see Log for more info)."
-                self.target_area.setHidden(False)
+                self.help_label.setText(msg)
+                self.target_area.setCurrentWidget(self.table_area)
             else:
+                self.target_table.data = []
                 if unk_gaps:
                     msg = f"{structure} only has missing-structure gaps involving UNK residues, which" \
                         " Phenix loop fitting cannot handle (see Log for more info).  You could remodel" \
                         " other residues by selecting them."
                 else:
                     msg = f"Select residues you wish to remodel."
-                self.target_area.setHidden(True)
-            self.target_label.setText(msg)
+                self.no_table_label.setText(msg)
+                self.target_area.setCurrentWidget(self.no_table_label)
         else:
-            self.target_label.setText(self.no_structure_message)
-            self.target_area.setHidden(True)
+            self.no_table_label.setText(self.need_input_message)
+            self.target_area.setCurrentWidget(self.no_table_label)
 
 class VerifyCenterDialog(QDialog):
     def __init__(self, session, structure, maps, resolution, initial_center, opaque_maps,
