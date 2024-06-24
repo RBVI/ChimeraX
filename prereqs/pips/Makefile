@@ -33,7 +33,6 @@ PYSIDE2_MACOS_REMOVE = PySide2/pyside2-lupdate \
 
 
 GRAKO_WHEEL = grako-3.16.5-py2.py3-none-any.whl
-GRAKO_PREREQ = $(PREREQS_ARCHIVE)/grako/$(GRAKO_WHEEL)
 ifeq ($(OS),Windows)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-win_amd64.whl
 else
@@ -42,8 +41,8 @@ TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux201
 else
 ifeq ($(OS),Darwin)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
-ifeq ($(OSARCH),DarwinArm64)
-PYTABLES_WHEEL = $(PREREQS_ARCHIVE)/pytables/tables-3.8.0-cp311-cp311-macosx_11_0_arm64.whl
+ifeq ($(OSARCH),DarwinArm649)
+PYTABLES_WHEEL = tables-3.8.0-cp311-cp311-macosx_11_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
 endif
@@ -51,8 +50,6 @@ endif
 endif
 endif
 endif
-
-TINYARRAY_PREREQ = $(PREREQS_ARCHIVE)/tinyarray/$(TINYARRAY_WHEEL)
 
 PLATO_PREREQS = $(TINYARRAY_PREREQ)
 PLATO_WHEELS = $(TINYARRAY_WHEEL)
@@ -77,12 +74,11 @@ endif
 
 all:
 
-install:
+install: $(GRAKO_WHEEL)
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation -r build_requirements.txt
 ifneq (,$(SOURCE_WHEELS))
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
 endif
-	$(FETCH_PREREQ) $(GRAKO_PREREQ)
 	$(PIP_INSTALL) $(GRAKO_WHEEL)
 ifeq ($(OS),Darwin)
 	# Link cython in Python framework to build/bin, used compiling core/serialize.pyx.
@@ -98,7 +94,7 @@ app-list:
 upgrade:
 	$(PIP_INSTALL) -U --no-build-isolation -r build_requirements.txt
 
-app-install:
+app-install: $(GRAKO_WHEEL) $(PLATO_WHEELS)
 	$(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifneq (,$(SOURCE_WHEELS))
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
@@ -108,9 +104,6 @@ endif
 ifdef DEV_DEPENDENCIES
 	$(APP_PIP_INSTALL) --no-build-isolation -r dev_requirements.txt
 endif
-	for prereq in $(PLATO_PREREQS); do \
-		$(FETCH_PREREQ) $$prereq; \
-	done
 	$(APP_PIP_INSTALL) $(PLATO_WHEELS)
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
@@ -167,3 +160,14 @@ app-outdated:
 
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src
+
+$(GRAKO_WHEEL):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/grako/$(GRAKO_WHEEL)
+
+$(TINYARRAY_WHEEL):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/tinyarray/$(TINYARRAY_WHEEL)
+
+ifneq (,$(PYTABLES_WHEEL))
+$(PYTABLES_WHEEL):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pytables/$(PYTABLES_WHEEL)
+endif
