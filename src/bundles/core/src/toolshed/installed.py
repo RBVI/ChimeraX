@@ -583,13 +583,13 @@ def _get_installed_packages(d, logger):
     finder_file = None
     path_file = None
     for path in d.files:
-        if path.parts[-1].endswith('finder.py'):
+        if path.name.startswith("__editable___") and path.name.endswith('finder.py'):
             finder_file = path
             continue
         elif path.suffix == '.pth':
             path_file = path
             continue
-        elif path.parts[-1] == '__init__.py':
+        elif path.name == '__init__.py':
             packages.append(path.parent.parts)
     # If we looked at the RECORD file and didn't find any packages, then the
     # bundle was probably installed in editable mode. Instead, we can list the
