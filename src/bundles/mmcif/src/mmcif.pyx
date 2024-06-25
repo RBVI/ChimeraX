@@ -38,30 +38,16 @@ _builtin_open = open
 _initialized = False
 
 _additional_categories = (
-    "pdbx_struct_assembly",
-    "pdbx_struct_assembly_gen",
-    "pdbx_struct_oper_list",
-    "entity_src_gen",
-    "entity_src_nat",
-    "cell",
-    "symmetry",
-    "struct_ncs_oper",
     "atom_sites",
-    "software",
-    "struct",
+    "cell",
     "citation",
     "citation_author",
     "citation_editor",
     "database_2",	# EMDB map reference
-    "pdbx_database_related",    # EMDB map reference (also, sigh, e.g. 4udv)
-    "pdbx_database_status",	# Specifies if NMR restraints available
-    "exptl",
-    "refine",
-    "reflns",
     "em_3d_reconstruction",
+    "entity_src_gen",
+    "entity_src_nat",
     "exptl",
-    "struct_ref",	# Uniprot data base id
-    "struct_ref_seq",	# Sequence range for uniprot id
     "ma_alignment",	# 'Model Archive' alignment [#5601]
     "ma_template_details",
     "ma_template_ref_db_details",
@@ -69,6 +55,20 @@ _additional_categories = (
     "ma_qa_metric",
     "ma_qa_metric_global",
     "ma_qa_metric_local",
+    "pdbe_chain_remapping", # So that NIH presets can determine original asymmetic chain ID
+    "pdbx_database_related",    # EMDB map reference (also, sigh, e.g. 4udv)
+    "pdbx_database_status",	# Specifies if NMR restraints available
+    "pdbx_struct_assembly",
+    "pdbx_struct_assembly_gen",
+    "pdbx_struct_oper_list",
+    "refine",
+    "reflns",
+    "software",
+    "struct",
+    "struct_ncs_oper",
+    "struct_ref",	# Uniprot data base id
+    "struct_ref_seq",	# Sequence range for uniprot id
+    "symmetry",
 )
 # _reserved_words = {
 #     'loop_', 'stop_', 'global_', "data_", "save_"
@@ -957,7 +957,7 @@ def get_mmcif_tables_from_metadata(obj, table_names, *, metadata=None):
     metadata : optional metadata dictonary
         Allow reuse of existing metadata dictionary.
 
-    Returns a list of :py:class:`CIFtable`s or :external+python:ref:`None`,
+    Returns a list of :py:class:`CIFTable`s or :external+python:ref:`None`,
     one for each table name.
     """
     if metadata is None:

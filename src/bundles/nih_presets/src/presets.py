@@ -270,8 +270,27 @@ def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0, bond_sides
     return cmds
 
 def rainbow_cmd(structure, target_atoms=False):
+    target_arg = "target rfs%s" % ("a" if target_atoms else "")
+    from chimerax.mmcif import get_mmcif_tables_from_metadata
+    remapping = get_mmcif_tables_from_metadata(structure, ['pdbe_chain_remapping'])[0]
+    if remapping:
+        by_asym_okay = True
+        asym_to_sym = {}
+        for asym_id, sym_id in remapping.fields(['orig_label_asym_id', 'new_label_asym_id']):
+            if len(asym_id) > 1 or not sym_id.startswith(asym_id):
+                by_asym_id = False
+            asym_to_sym.setdefault(asym_id, []).append(sym_id)
+        cmds = []
+        for i, asym_id in enumerate(sorted(list(asym_to_sym.keys()))):
+            if by_asym_okay:
+                chain_spec = '/' + asym_id + '*'
+            else:
+                chain_spec = ''.join(['/' + cid for cid in asym_to_sym[asym_id]])
+            cmds.append("color %s%s %s %s" % (structure.atomspec, chain_spec,
+                base_palette[i % len(base_palette)], target_arg))
+        return ' ; '.join(cmds)
     color_arg = " chains palette " + palette(structure.num_chains)
-    return "rainbow %s@ca,c4'%s target rfs%s" % (structure.atomspec, color_arg, ("a" if target_atoms else ""))
+    return "rainbow %s@ca,c4'%s %s" % (structure.atomspec, color_arg, target_arg)
 
 def run_preset(session, name, mgr):
     if name == "ribbon by secondary structure":
@@ -351,6 +370,7 @@ def run_preset(session, name, mgr):
         printable = "printable" in name
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
             printable) + by_chain_cmds(session, rainbow=True, target_atoms=True)
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session, printable) + by_chain_cmds(session, rainbow=True, target_atoms=True)
     elif name.startswith("surface by polymer"):
         printable = "printable" in name
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
