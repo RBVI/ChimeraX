@@ -110,6 +110,7 @@ class UI(QApplication):
 
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
+        self.setStyle('Fusion')
 
         redirect_stdio_to_logger(self.session.logger)
         self.redirect_qt_messages()
