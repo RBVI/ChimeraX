@@ -370,7 +370,6 @@ def run_preset(session, name, mgr):
         printable = "printable" in name
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
             printable) + by_chain_cmds(session, rainbow=True, target_atoms=True)
-        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session, printable) + by_chain_cmds(session, rainbow=True, target_atoms=True)
     elif name.startswith("surface by polymer"):
         printable = "printable" in name
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
@@ -484,7 +483,10 @@ def run_preset(session, name, mgr):
 
 def surface_cmds(session, printable, *, sharp=False, spec_lookup=None):
     import math
-    cmds = ["size atomRadius default"]
+    # the newline preceding the 'size' command means that the preset manager will run the commands
+    # preceding 'size' in their own run() call, will will allow check_for_changes to happen.  Otherwise
+    # surface may get recolored (to default coloring) by an unexpectedly late check_for_changes
+    cmds = ["\nsize atomRadius default"]
     for s in all_atomic_structures(session):
         # AddH won't actually run until after this command is generated, so base the grid value
         # on the number of heavy atoms involved in the surface for consistency, but then multiply
