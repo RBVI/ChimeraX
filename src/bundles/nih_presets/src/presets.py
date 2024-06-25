@@ -370,6 +370,7 @@ def run_preset(session, name, mgr):
         printable = "printable" in name
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
             printable) + by_chain_cmds(session, rainbow=True, target_atoms=True)
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session, printable) + by_chain_cmds(session, rainbow=True, target_atoms=True)
     elif name.startswith("surface by polymer"):
         printable = "printable" in name
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
