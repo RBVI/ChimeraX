@@ -41,7 +41,7 @@ TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux201
 else
 ifeq ($(OS),Darwin)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
-ifeq ($(OSARCH),DarwinArm649)
+ifeq ($(OSARCH),DarwinArm64)
 PYTABLES_WHEEL = tables-3.8.0-cp311-cp311-macosx_11_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)

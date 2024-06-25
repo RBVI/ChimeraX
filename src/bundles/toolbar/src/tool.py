@@ -151,15 +151,20 @@ class ToolbarTool(ToolInstance):
         from Qt.QtGui import QIcon
         self.ttb.clear_tab("Home")
         last_section = None
-        for (section, compact, display_name, icon_path, description, link, bundle_info, name, kw) in _home_layout(self.session, _settings.home_tab):
+        for (section, compact, display_name, icon_info, description, link, bundle_info, name, kw) in _home_layout(self.session, _settings.home_tab):
+            theme_icon, icon_path, dark_icon_path = icon_info
             if section != last_section:
                 last_section = section
                 if compact:
                     self.ttb.set_section_compact("Home", section, True)
-            if icon_path is None:
-                icon = None
-            else:
+            if theme_icon is not None:
+                icon = QIcon.fromTheme(theme_icon)
+            elif dark_icon_path is not None and self.session.ui.dark_mode():
+                icon = QIcon(dark_icon_path)
+            elif icon_path is not None:
                 icon = QIcon(icon_path)
+            else:
+                icon = None
 
             def callback(*, session=self.session, name=name, bundle_info=bundle_info, display_name=display_name):
                 bundle_info.run_provider(session, name, session.toolbar, display_name=display_name)
@@ -180,7 +185,8 @@ class ToolbarTool(ToolInstance):
         toolbar = self.session.toolbar._toolbar
         last_tab = None
         last_section = None
-        for (tab, section, compact, display_name, icon_path, description, bundle_info, name, kw) in _other_layout(self.session, toolbar):
+        for tab, section, compact, display_name, icon_info, description, bundle_info, name, kw in _other_layout(self.session, toolbar):
+            theme_icon, icon_path, dark_icon_path = icon_info
             if tab != last_tab:
                 last_tab = tab
                 last_section = None
@@ -196,10 +202,14 @@ class ToolbarTool(ToolInstance):
                     if m is not None:
                         icon_path = m.icon_path
                 rmbs.append((tab, section, display_name, icon_path))
-            if icon_path is None:
-                icon = None
-            else:
+            if theme_icon is not None:
+                icon = QIcon.fromTheme(theme_icon)
+            elif dark_icon_path is not None and self.session.ui.dark_mode():
+                icon = QIcon(dark_icon_path)
+            elif icon_path is not None:
                 icon = QIcon(icon_path)
+            else:
+                icon = None
 
             def callback(*, session=self.session, name=name, bundle_info=bundle_info, display_name=display_name):
                 bundle_info.run_provider(session, name, session.toolbar, display_name=display_name)
@@ -252,6 +262,7 @@ class ToolbarTool(ToolInstance):
 def _home_layout(session, home_tab):
     # interact through buttons in home tab
     # All buttons were vetted, so silently skip missing ones
+    from Qt.QtGui import QIcon
     for section_title, buttons in _settings.home_tab:
         compact = False
         if type(section_title) is tuple:
@@ -276,16 +287,19 @@ def _home_layout(session, home_tab):
                 display_name = pi_kw.get("display_name", None)
                 if display_name is None:
                     display_name = name
-            try:
-                icon_path = pi_kw["icon"]
-                description = pi_kw["description"]
-            except KeyError:
-                continue
+            theme_icon = pi_kw.get('themeIcon', None)
+            icon_path = pi_kw.get("icon", None)
+            dark_icon_path = pi_kw.get("darkIcon", None)
+            description = pi_kw.get("description", None)
             if description and not description[0].isupper():
                 description = description.capitalize()
+            if theme_icon is not None:
+                theme_icon = getattr(QIcon.ThemeIcon, theme_icon, None)
             if icon_path is not None:
                 icon_path = bi.get_path('icons/%s' % icon_path)
-            yield (section_title, compact, display_name, icon_path, description, link, bi, name, kw)
+            if dark_icon_path is not None:
+                dark_icon_path = bi.get_path('icons/%s' % dark_icon_path)
+            yield (section_title, compact, display_name, (theme_icon, icon_path, dark_icon_path), description, link, bi, name, kw)
 
 
 def _other_layout(session, toolbar, hide_hidden=True):
@@ -301,13 +315,13 @@ def _other_layout(session, toolbar, hide_hidden=True):
                 if display_name.startswith("__") or display_name not in section_info:
                     continue
                 args = section_info[display_name]
-                (name, bundle_info, icon_path, description, kw) = args
+                (name, bundle_info, icon_info, description, kw) = args
                 if hide_hidden and "hidden" in kw:
                     continue
                 if description and not description[0].isupper():
                     description = description.capitalize()
                 compact = "__compact__" in section_info
-                yield (tab, section, compact, display_name, icon_path, description, bundle_info, name, kw)
+                yield (tab, section, compact, display_name, icon_info, description, bundle_info, name, kw)
 
 
 def _layout(d, what):
@@ -571,7 +585,8 @@ class ToolbarSettingsTool:
         last_section = None
         tab_item = None
         section_item = None
-        for (tab, section, compact, display_name, icon_path, description, bundle_info, name, kw) in _other_layout(self.session, toolbar, hide_hidden=False):
+        for (tab, section, compact, display_name, icon_info, description, bundle_info, name, kw) in _other_layout(self.session, toolbar, hide_hidden=False):
+            theme_icon, icon_path, dark_icon_path = icon_info
             if bundle_info == fake_mouse_mode_bundle_info:
                 continue
             if tab != last_tab:
@@ -593,10 +608,15 @@ class ToolbarSettingsTool:
             item.setData(0, ITEM_TYPE_ROLE, BUTTON_TYPE)
             item.setData(0, LINK_ROLE, f"{bundle_info.name}:{name}")
             item.setFlags(other_flags)
-            if icon_path is None:
-                icon = None
-            else:
+            if theme_icon is not None:
+                icon = QIcon.fromTheme(theme_icon)
+            elif dark_icon_path is not None and self.session.ui.dark_mode():
+                icon = QIcon(dark_icon_path)
+            elif icon_path is not None:
                 icon = QIcon(icon_path)
+            else:
+                icon = None
+            if icon is not None:
                 item.setIcon(0, icon)
             item.setToolTip(0, description)
 
@@ -610,7 +630,8 @@ class ToolbarSettingsTool:
         self.home.setHeaderLabels(["Home Tab"])
         last_section = None
         section_item = None
-        for (section, compact, display_name, icon_path, description, link, bi, name, kw) in _home_layout(self.session, _settings.home_tab):
+        for (section, compact, display_name, icon_info, description, link, bi, name, kw) in _home_layout(self.session, _settings.home_tab):
+            theme_icon, icon_path, dark_icon_path = icon_info
             if section != last_section:
                 last_section = section
                 section_item = QTreeWidgetItem(self.home, [section])
@@ -622,10 +643,15 @@ class ToolbarSettingsTool:
             item.setData(0, ITEM_TYPE_ROLE, BUTTON_TYPE)
             item.setData(0, LINK_ROLE, link)
             item.setFlags(BUTTON_FLAGS)
-            if icon_path is None:
-                icon = None
-            else:
+            if theme_icon is not None:
+                icon = QIcon.fromTheme(theme_icon)
+            elif dark_icon_path is not None and self.session.ui.dark_mode():
+                icon = QIcon(dark_icon_path)
+            elif icon_path is not None:
                 icon = QIcon(icon_path)
+            else:
+                icon = None
+            if icon is not None:
                 item.setIcon(0, icon)
             item.setToolTip(0, description)
         if self.home.topLevelItemCount() != 0:

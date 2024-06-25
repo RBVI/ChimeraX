@@ -27,7 +27,9 @@ A basic button **Provider** needs a *tab*, *section*, *name*, *icon*,
 *description*, and optionally a *display_name*.
 The *display_name* defaults to the value of the *name* option.
 The *display_name* is used to label the button.
+The optional *themeIcon* is one of the QIcon ThemeIcon_ icon names.
 The optional *icon* is searched for the in the bundle's **icons** directory.
+The optional *darkIcon* is searched for the in the bundle's **icons** directory.
 Also, buttons can be assigned a *group*, where only one button in the group
 is visible at a time.
 The order of the buttons may be constrained with the *before* and *after* options.
@@ -36,6 +38,8 @@ section.
 The constraints may include several other buttons by using a colon separated list.
 If the *hidden* option is given, with any value, then the button is not shown,
 but is available for adding for adding to custom tags, *e.g.*, the **Home** tab.
+
+.. _ThemeIcon: https://doc.qt.io/qt-6/qicon.html
 
 Mouse Mode
 ==========
@@ -50,8 +54,8 @@ Example::
 Mouse mode buttons are similar to basic buttons,
 with the *mouse_mode* identifying which mode mode to set
 and the default *display_name*.
-The optional *icon* can be given,
-but is normally found with the registered mouse mode.
+An optional *themeIcon*, *icon*, and *darkIcon* can be given,
+but are normally found with the registered mouse mode.
 
 Link Button
 ===========
@@ -68,7 +72,7 @@ a **Provider** may give a *link* to it.
 The link value is a colon separated *bundle-name:name* pair.
 Its **name** is ignored, but still needs to be unique.
 *tab* and *section* are required.
-*icon*, and *description*, must not given.
+*themeIcon*, *icon*, *darkIcon*, and *description* must not given.
 *hidden* is ignored.
 *display_name*, *before*, *after*, and *group* are optional.
 Currently, links may not be made to mouse mode buttons.
