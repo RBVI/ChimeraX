@@ -30,7 +30,7 @@ all:
 
 # version numbers that leak out of prerequisites
 
-PYTHON_VERSION = 3.11
+PYTHON_VERSION = 3.12
 PYTHON_PATCH_VERSION = 4
 
 ifndef DEBUG

@@ -40,9 +40,9 @@ ifeq ($(OS),Linux)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 else
 ifeq ($(OS),Darwin)
-TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
+TINYARRAY_WHEEL = tinyarray-1.2.4-cp312-cp312-macosx_10_9_universal2.whl
 ifeq ($(OSARCH),DarwinArm64)
-PYTABLES_WHEEL = tables-3.8.0-cp311-cp311-macosx_11_0_arm64.whl
+PYTABLES_WHEEL = tables-3.9.2-cp312-cp312-macosx_11_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
 endif
