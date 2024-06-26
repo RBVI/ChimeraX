@@ -524,14 +524,18 @@ each based on its distance from the other (default <b>true</b>).
 With <b>countsOnly true</b>, no blobs are hidden,
 but how many would be hidden are reported in the
 <a href="../tools/log.html"><b>Log</b></a> (default <b>false</b>).
-Using <b>nested true</b> means to keep showing blobs that are entirely
-enclosed (nested) inside other blobs that are within the distance range
-even if the inner blob surfaces are farther away;
-it applies only when the outer blob is an volume isosurface, and
-it checks that the interpolated volume values at the inner blob vertices 
-are above the isosurface contour level.
-With <b>nested false</b> (default), blobs that are entirely enclosed in other
-blobs are instead hidden or shown based only their own surface distances.
+The <b>nested</b> option (default <b>false</b>) considers blobs of
+<a href="atomspec.html#othermodels"><i>surf-model1</i></a>
+that are entirely inside blobs of
+<a href="atomspec.html#othermodels"><i>surf-model2</i></a>
+as within the distance range even if the nested surfaces are farther apart
+than the specified distance. It only applies when 
+<a href="atomspec.html#othermodels"><i>surf-model2</i></a>
+is a volume isosurface, since nesting of the inner blob
+is verified by checking that the interpolated volume values 
+at all of its surface vertices are above the volume threshold level.
+The <b>nested</b> option facilitates showing 3D light microscopy spots
+in one channel that are near spots of another channel.
 See also:
 <a href="ui.html#hideblobs"><b>hide blobs</b> mouse mode</a>, the presentation
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/colocalization-jun2024/coloc.html"
