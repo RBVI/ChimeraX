@@ -58,11 +58,19 @@ class InstalledBundleCache(list):
         _debug("InstalledBundleCache.load: rebuilding cache")
         from importlib.metadata import distributions
         dist_bundle_map = {}
-        for d in distributions():
+        dists = distributions()
+        filtered_dists = list(filter(lambda d: any([c.startswith('ChimeraX') for c in d.metadata.json.get('classifier', [])]), dists))
+        # work around https://github.com/pypa/setuptools/issues/4170
+        # all packages are duplicated when an editable package is installed
+        seen_bundles = set()
+        for d in filtered_dists:
             _debug("InstalledBundleCache.load: package %s" % d)
             bi = _make_bundle_info(d, True, logger)
             if bi is not None:
                 _debug("InstalledBundleCache.load: bundle %s" % bi)
+                if bi.name in seen_bundles:
+                    continue
+                seen_bundles.add(bi.name)
                 dist_bundle_map[d] = bi
         #
         # The ordering of the bundles is important because we want
