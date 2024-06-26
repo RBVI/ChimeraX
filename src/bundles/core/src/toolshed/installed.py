@@ -583,14 +583,14 @@ def _get_installed_packages(d, logger):
     finder_file = None
     path_file = None
     for path in d.files:
-        if path.parts[-1] == 'finder.py':
+        if path.name.startswith("__editable___") and path.name.endswith('finder.py'):
             finder_file = path
             continue
         elif path.suffix == '.pth':
             path_file = path
             continue
-        elif path.parts[-1] == '__init__.py':
-            packages.append(str(path.parent))
+        elif path.name == '__init__.py':
+            packages.append(path.parent.parts)
     # If we looked at the RECORD file and didn't find any packages, then the
     # bundle was probably installed in editable mode. Instead, we can list the
     # source directory tree and add any directory that has an init.py to the
@@ -634,7 +634,7 @@ def _get_installed_packages(d, logger):
                         packages.append(_directory_to_package(dir_, path_to_package, module_prefix))
         elif path_file:
             import os
-            with open(os.path.join(d.location, path_file)) as f:
+            with open(d.locate_file(path_file)) as f:
                 # The whole file will typically point at a folder
                 source_directory = f.read().rstrip() + "/"
             for dir_, _, files in os.walk(source_directory):
