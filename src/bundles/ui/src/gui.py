@@ -111,7 +111,9 @@ class UI(QApplication):
 
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
-        self.setStyle('Fusion')
+        import sys
+        if sys.platform == 'win32':
+            self.setStyle('Fusion')
 
         if self.dark_mode():
             # TODO: hook up Qt signal to monitor color scheme changes
