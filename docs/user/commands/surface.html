@@ -505,7 +505,10 @@ See also: <a href="marker.html#connected"><b>marker connected</b></a>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model1</i></a>&nbsp;
 <b>nearSurface</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model2</i></a>&nbsp;
-<b>distance</b>&nbsp;&nbsp;<i>d</i>
+<b>distance</b>&nbsp;&nbsp;<i>d</i>&nbsp;
+[&nbsp;<b>symmetric</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>countsOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>nested</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
 Hide triangles of a surface model
 (<a href="atomspec.html#othermodels"><i>surf-model1</i></a>)
@@ -516,7 +519,27 @@ The distance criterion should be larger than the typical vertex spacing because
 only vertex-to-vertex distances between the two surfaces are evaluated.
 Parts of the surfaces that are already hidden 
 (<i>e.g.</i>, with <a href="#dust"><b>surface dust</b></a>) are not considered.
-See also the <a href="ui.html#hideblobs"><b>hide blobs</b> mouse mode</a>.
+The <b>symmetric</b> option indicates whether to hide blobs in both surfaces, 
+each based on its distance from the other (default <b>true</b>).
+With <b>countsOnly true</b>, no blobs are hidden,
+but how many would be hidden are reported in the
+<a href="../tools/log.html"><b>Log</b></a> (default <b>false</b>).
+The <b>nested</b> option (default <b>false</b>) considers blobs of
+<a href="atomspec.html#othermodels"><i>surf-model1</i></a>
+that are entirely inside blobs of
+<a href="atomspec.html#othermodels"><i>surf-model2</i></a>
+as within the distance range even if the nested surfaces are farther apart
+than the specified distance. It only applies when 
+<a href="atomspec.html#othermodels"><i>surf-model2</i></a>
+is a volume isosurface, since nesting of the inner blob
+is verified by checking that the interpolated volume values 
+at all of its surface vertices are above the volume threshold level.
+The <b>nested</b> option facilitates showing 3D light microscopy spots
+in one channel that are near spots of another channel.
+See also:
+<a href="ui.html#hideblobs"><b>hide blobs</b> mouse mode</a>, the presentation
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/colocalization-jun2024/coloc.html"
+target="_blank">Colocalization in 3D Microscopy</a>
 </blockquote>
 
 <a name="invertShown"></a>

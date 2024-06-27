@@ -95,7 +95,7 @@ def register_command(logger):
         required = [('surface', SurfaceArg)],
         keyword = [('near_surface', SurfaceArg),
                    ('distance', FloatArg),
-                   ('symmetric_only', BoolArg),
+                   ('symmetric', BoolArg),
                    ('counts_only', BoolArg),
                    ('nested', BoolArg)],
         required_arguments = ['near_surface', 'distance'],
