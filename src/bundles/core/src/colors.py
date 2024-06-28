@@ -1143,8 +1143,8 @@ _scheme_colors = {
     'new_user_canvas_text': "#aad9f5",  # ChimeraX icon blue
     # status messages
     'status': ('blue', 'dodgerblue'),
-    # log messages
-    'info': '_Canvas',
+    # log messages -- change background color
+    'info': 'Canvas',
     'warning': ('#ffb961', 'gold'),
     'error':  ('#ff7882', 'dark red'),
     'bug': ('#dc1436', 'maroon'),

@@ -466,23 +466,14 @@ class UI(QApplication):
             background = scheme_color('Canvas', scheme='dark')
         foreground = scheme_color('CanvasText', scheme='dark')
         link = scheme_color('LinkText', scheme='dark')
-        from textwrap import dedent
-        return dedent(f"""
-            @media (prefers-color-scheme: dark) {{
-                body {{
-                    background-color: {background};
-                    color: {foreground};
-                }}
-                a {{
-                    color: {link};
-                }}
-            }}
+        import textwrap
+        return textwrap.dedent("""
+            @media (prefers-color-scheme: dark) {
+                :root { color-scheme: dark; }
+            }
             """)
             #@media (prefers-color-scheme: light) {
-            #     body {
-            #        background-color: white;
-            #        color: black;
-            #    }
+            #    :root { color-scheme: light; }
             #}
 
 
