@@ -29,13 +29,13 @@ class FoldseekPDBResults(ToolInstance):
     help = 'help:user/tools/foldseek.html'
 
     def __init__(self, session, tool_name = 'Foldseek Results',
-                 query_structure = None, pdb_hits = [], trim = True, alignment_cutoff_distance = 2.0):
-        self._query_structure = query_structure
+                 query_chain = None, pdb_hits = [], trim = True, alignment_cutoff_distance = 2.0):
+        self._query_chain = query_chain
 
         # Whether to delete extra chains and extra residues when loading structures.
         self._trim = trim   # bool or 'chains' or 'sequence'.
 
-        # For pruning aligned residues when opening hits and aligning them to query structure.
+        # For pruning aligned residues when opening hits and aligning them to query chain
         self._alignment_cutoff_distance = alignment_cutoff_distance
 
         ToolInstance.__init__(self, session, tool_name)
@@ -73,7 +73,7 @@ class FoldseekPDBResults(ToolInstance):
 
     def _open_pdb_hit(self, pdb_row):
         from .foldseek import open_pdb_hit
-        open_pdb_hit(self.session, pdb_row.pdb_hit, self._query_structure,
+        open_pdb_hit(self.session, pdb_row.pdb_hit, self._query_chain,
                      trim = self._trim, alignment_cutoff_distance = self._alignment_cutoff_distance)
 
     def _show_help(self):

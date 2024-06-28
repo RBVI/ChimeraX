@@ -22,9 +22,9 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek(session, structure, database = 'pdb100', trim = True, alignment_cutoff_distance = 2.0):
+def foldseek(session, chain, database = 'pdb100', trim = True, alignment_cutoff_distance = 2.0):
 
-    mmcif_string = _mmcif_as_string(structure)
+    mmcif_string = _mmcif_as_string(chain)
     results = foldseek_web_query(mmcif_string, databases = [database])
     # Use cached 8jnb results for developing user interface so I don't have to wait for server every test.
 #    with open('/Users/goddard/ucsf/chimerax/src/bundles/foldseek_example/alis_pdb100.m8', 'r') as mfile:
@@ -37,7 +37,7 @@ def foldseek(session, structure, database = 'pdb100', trim = True, alignment_cut
         hit_lines = results[database]
         hits = [parse_search_result(hit, database) for hit in hit_lines]
         from .gui import FoldseekPDBResults
-        FoldseekPDBResults(session, query_structure = structure, pdb_hits = hits, trim = trim,
+        FoldseekPDBResults(session, query_chain = chain, pdb_hits = hits, trim = trim,
                            alignment_cutoff_distance = alignment_cutoff_distance)
 
         '''
@@ -129,11 +129,15 @@ def foldseek_web_query(mmcif_string,
          
     return m8_results
 
-def _mmcif_as_string(structure):
+def _mmcif_as_string(chain):
+    structure = chain.structure.copy()
+    cchain = [c for c in structure.chains if c.chain_id == chain.chain_id][0]
+    extra_residues = structure.residues - cchain.existing_residues
+    extra_residues.delete()
     import tempfile
     with tempfile.NamedTemporaryFile(prefix = 'foldseek_mmcif_', suffix = '.cif') as f:
         from chimerax.mmcif.mmcif_write import write_mmcif
-        write_mmcif(structure.session, f.name, models = [structure])
+        write_mmcif(chain.structure.session, f.name, models = [structure])
         mmcif_string = f.read()
     return mmcif_string
 
@@ -216,7 +220,7 @@ def parse_pdb100_theader(theader):
     }
     return values
 
-def open_pdb_hit(session, pdb_hit, query_structure, trim = True, alignment_cutoff_distance = 2.0):
+def open_pdb_hit(session, pdb_hit, query_chain, trim = True, alignment_cutoff_distance = 2.0):
     from chimerax.core.commands import run
     pdb_id = pdb_hit["pdb_id"]
     structure = run(session, f'open {pdb_id}')[0]
@@ -225,26 +229,14 @@ def open_pdb_hit(session, pdb_hit, query_structure, trim = True, alignment_cutof
     
     # Align the model to the query structure using Foldseek alignment.
     # Foldseek server does not return transform by default, so compute from sequence alignment.
-    qchains = query_structure.chains
-    if len(qchains) == 1:
-        query_chain = qchains[0]
-        res, query_res = alignment_residue_pairs(pdb_hit, aligned_res, query_chain)
-        p, rms, npairs = alignment_transform(res, query_res, alignment_cutoff_distance)
-        structure.position = p
-        chain_id = pdb_hit["pdb_chain_id"]
-        msg = f'Alignment of {pdb_id} chain {chain_id} to query has RMSD {"%.3g" % rms} using {npairs} of {len(res)} paired residues'
-        if alignment_cutoff_distance is not None and alignment_cutoff_distance > 0:
-            msg += f' within cutoff distance {alignment_cutoff_distance}'
-        session.logger.info(msg)
-    else:
-        session.logger.info(f'Foldseek currently can only align for single chain queries, query has {len(qchains)} chains')
-
-    # TODO: Would like to make initial display ribbon.  8gds comes out spheres with query 8jnb.
-
-def _structure_chain(structure, chain_id):
-    chains = [chain for chain in structure.chains if chain.chain_id == chain_id]
-    chain = chains[0] if len(chains) == 1 else None
-    return chain
+    res, query_res = alignment_residue_pairs(pdb_hit, aligned_res, query_chain)
+    p, rms, npairs = alignment_transform(res, query_res, alignment_cutoff_distance)
+    structure.position = p
+    chain_id = pdb_hit["pdb_chain_id"]
+    msg = f'Alignment of {pdb_id} chain {chain_id} to query has RMSD {"%.3g" % rms} using {npairs} of {len(res)} paired residues'
+    if alignment_cutoff_distance is not None and alignment_cutoff_distance > 0:
+        msg += f' within cutoff distance {alignment_cutoff_distance}'
+    session.logger.info(msg)
 
 def trim_pdb_structure(structure, pdb_hit, trim):
     pdb_id = pdb_hit["pdb_id"]
@@ -353,9 +345,9 @@ def _show_ribbons(structure):
             
 def register_foldseek_command(logger):
     from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg
-    from chimerax.atomic import AtomicStructureArg
+    from chimerax.atomic import ChainArg
     desc = CmdDesc(
-        required = [('structure', AtomicStructureArg)],
+        required = [('chain', ChainArg)],
         keyword = [('database', EnumOf(foldseek_databases)),
                    ('trim', Or(ListOf(EnumOf(['chains', 'sequence', 'ligands'])), BoolArg)),
                    ('alignment_cutoff_distance', FloatArg),
