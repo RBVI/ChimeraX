@@ -22,19 +22,23 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek(session, structure, database = 'pdb100', trim = True):
+def foldseek(session, structure, database = 'pdb100', trim = True, alignment_cutoff_distance = 2.0):
 
     mmcif_string = _mmcif_as_string(structure)
     results = foldseek_web_query(mmcif_string, databases = [database])
+    # Use cached 8jnb results for developing user interface so I don't have to wait for server every test.
+#    with open('/Users/goddard/ucsf/chimerax/src/bundles/foldseek_example/alis_pdb100.m8', 'r') as mfile:
+#        results = {database: mfile.readlines()}
     msg = 'Foldseek ' + ', '.join([f'{database} {len(search_results)} hits'
                                    for database, search_results in results.items()])
     session.logger.info(msg)
 
     if database == 'pdb100':
         hit_lines = results[database]
-        hits = [parse_search_result(hit, database) for hit in hit_lines[:5]]
+        hits = [parse_search_result(hit, database) for hit in hit_lines]
         from .gui import FoldseekPDBResults
-        FoldseekPDBResults(session, query_structure = structure, pdb_hits = hits, trim = trim)
+        FoldseekPDBResults(session, query_structure = structure, pdb_hits = hits, trim = trim,
+                           alignment_cutoff_distance = alignment_cutoff_distance)
 
         '''
         hlines = []
@@ -122,7 +126,7 @@ def foldseek_web_query(mmcif_string,
             mfile = tfile.extractfile(filename)
             dbname = filename.replace('alis_', '').replace('.m8', '')
             m8_results[dbname] = [line.decode('utf-8') for line in mfile.readlines()]
-        
+         
     return m8_results
 
 def _mmcif_as_string(structure):
@@ -212,33 +216,67 @@ def parse_pdb100_theader(theader):
     }
     return values
 
-def open_pdb_hit(session, pdb_hit, query_structure, trim = True):
+def open_pdb_hit(session, pdb_hit, query_structure, trim = True, alignment_cutoff_distance = 2.0):
     from chimerax.core.commands import run
     pdb_id = pdb_hit["pdb_id"]
     structure = run(session, f'open {pdb_id}')[0]
     aligned_res = trim_pdb_structure(structure, pdb_hit, trim)
-
-    # TODO: Align the model to the query structure using Foldseek alignment
-#    run(session, f'matchmaker #{structure.id_string} to #{query_structure.id_string}')
-    p = alignment_transform(aligned_res, pdb_hit, session.logger)
-    if p is not None:
+    _show_ribbons(structure)
+    
+    # Align the model to the query structure using Foldseek alignment.
+    # Foldseek server does not return transform by default, so compute from sequence alignment.
+    qchains = query_structure.chains
+    if len(qchains) == 1:
+        query_chain = qchains[0]
+        res, query_res = alignment_residue_pairs(pdb_hit, aligned_res, query_chain)
+        p, rms, npairs = alignment_transform(res, query_res, alignment_cutoff_distance)
         structure.position = p
+        chain_id = pdb_hit["pdb_chain_id"]
+        msg = f'Alignment of {pdb_id} chain {chain_id} to query has RMSD {"%.3g" % rms} using {npairs} of {len(res)} paired residues'
+        if alignment_cutoff_distance is not None and alignment_cutoff_distance > 0:
+            msg += f' within cutoff distance {alignment_cutoff_distance}'
+        session.logger.info(msg)
+    else:
+        session.logger.info(f'Foldseek currently can only align for single chain queries, query has {len(qchains)} chains')
+
+    # TODO: Would like to make initial display ribbon.  8gds comes out spheres with query 8jnb.
+
+def _structure_chain(structure, chain_id):
+    chains = [chain for chain in structure.chains if chain.chain_id == chain_id]
+    chain = chains[0] if len(chains) == 1 else None
+    return chain
 
 def trim_pdb_structure(structure, pdb_hit, trim):
     pdb_id = pdb_hit["pdb_id"]
     chain_id = pdb_hit["pdb_chain_id"]
     
-    if trim == 'chains' or trim is True:
+    if trim is True or 'chains' in trim:
         if len(structure.chains) > 1:
             cmd = f'delete #{structure.id_string} & ~/{chain_id}'
             from chimerax.core.commands import run
             run(structure.session, cmd)
 
-    res, all = pdb_residue_range(structure, pdb_hit)
-    if trim == 'sequence' or trim is True:
-        if not all and res is not None:
-            rnum_start, rnum_end = res[0].number, res[-1].number
-            cmd = f'delete #{structure.id_string}/{chain_id} & ~:{rnum_start}-{rnum_end}'
+    res, chain_res = pdb_residue_range(structure, pdb_hit)
+    rnum_start, rnum_end = res[0].number, res[-1].number
+    crnum_start, crnum_end = chain_res[0].number, chain_res[-1].number
+
+    trim_seq = (trim is True or 'sequence' in trim)
+    if trim_seq:
+        if res is not None and len(res) < len(chain_res):
+            res_ranges = []
+            if crnum_start < rnum_start:
+                res_ranges.append(f'{crnum_start}-{rnum_start-1}')
+            if crnum_end > rnum_end:
+                res_ranges.append(f'{rnum_end+1}-{crnum_end}')
+            cmd = f'delete #{structure.id_string}/{chain_id}:{",".join(res_ranges)}'
+            from chimerax.core.commands import run
+            run(structure.session, cmd)
+
+    if trim is True or 'ligands' in trim:
+        if structure.num_residues > len(chain_res):
+            # Delete non-polymer residues that are not in contact with trimmed chain residues.
+            rstart, rend = (rnum_start, rnum_end) if trim_seq else (crnum_start, crnum_end)
+            cmd = f'delete #{structure.id_string}/{chain_id}:{rstart}-{rend} :> 3 & (ligand | ions | solvent)'
             from chimerax.core.commands import run
             run(structure.session, cmd)
 
@@ -267,35 +305,60 @@ def pdb_residue_range(structure, pdb_hit):
         structure.session.logger.warning(f'Foldseek result PDB {pdb_id} chain {chain_id} target sequence {tseq} does not match PDB structure existing residue sequence {seq}.')
         return None, None
     all = (tend == len(tseq))
-    return res[tstart-1:tend], all
+    return res[tstart-1:tend], res
 
-def alignment_transform(res, pdb_hit, log):
-    if res is None:
-        return None
-    pdb_id = pdb_hit['pdb_id']
-    chain_id = pdb_hit['pdb_chain_id']
-    tca = [float(x) for x in pdb_hit['tca'].split(',')]
-    from numpy import array, float64
-    tca = array(tca, float64).reshape((len(tca)//3, 3))
-    tstart, tend = int(pdb_hit['tstart']), int(pdb_hit['tend'])
-    tca = tca[tstart-1:tend,:]	# tca includes coordinates for all residues even those not used in alignment
-    if len(tca) != len(res):
-        log.warning(f'Foldseek result PDB {pdb_id} chain {chain_id} has {len(tca)} transform coordinates for {len(res)} residues.')
-        return None
-    ca_xyz = res.existing_principal_atoms.coords
-    from chimerax.geometry import align_points
-    p, rms = align_points(ca_xyz, tca)
-    log.info(f'Foldseek alignment for PDB {pdb_id} chain {chain_id} of {len(res)} C-alpha atoms has RMSD {rms}')
-    print ('alignment matrix', p.matrix)
-    return p
-    
+def alignment_residue_pairs(pdb_hit, aligned_res, query_chain):
+    qstart, qend = int(pdb_hit['qstart']), int(pdb_hit['qend'])
+    qres = query_chain.existing_residues[qstart-1:qend]
+    qaln, taln = pdb_hit['qaln'], pdb_hit['taln']
+    ti = qi = 0
+    ati, aqi = [], []
+    for qaa, taa in zip(qaln, taln):
+        if qaa != '-' and taa != '-':
+            if aligned_res[ti].one_letter_code != taa:
+                from chimerax.core.errors import UserError
+                raise UserError(f'Amino acid at aligned sequence position {ti} is {taa} which does not match target PDB structure residue {aligned_res[ti].one_letter_code}{aligned_res[ti].number}')
+            if qres[qi].one_letter_code != qaa:
+                from chimerax.core.errors import UserError
+                raise UserError(f'Amino acid at aligned sequence position {qi} is {qaa} which does not match query PDB structure residue {qres[qi].one_letter_code}{qres[qi].number}')
+            ati.append(ti)
+            aqi.append(qi)
+        if taa != '-':
+            ti += 1
+        if qaa != '-':
+            qi += 1
+                    
+    return aligned_res.filter(ati), qres.filter(aqi)
+
+def alignment_transform(res, query_res, cutoff_distance = None):
+    # TODO: Do iterative pruning to get better core alignment.
+    qxyz = query_res.existing_principal_atoms.scene_coords
+    txyz = res.existing_principal_atoms.coords
+    if cutoff_distance is None or cutoff_distance <= 0:
+        from chimerax.geometry import align_points
+        p, rms = align_points(txyz, qxyz)
+        npairs = len(txyz)
+    else:
+        from chimerax.std_commands.align import align_and_prune
+        p, rms, indices = align_and_prune(txyz, qxyz, cutoff_distance)
+        npairs = len(indices)
+    return p, rms, npairs
+
+def _show_ribbons(structure):
+    for c in structure.chains:
+        cres = c.existing_residues
+        if not cres.ribbon_displays.any():
+            cres.ribbon_displays = True
+            cres.atoms.displays = False
+            
 def register_foldseek_command(logger):
-    from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or
+    from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg
     from chimerax.atomic import AtomicStructureArg
     desc = CmdDesc(
         required = [('structure', AtomicStructureArg)],
         keyword = [('database', EnumOf(foldseek_databases)),
-                   ('trim', Or(EnumOf(['chains', 'sequence']), BoolArg)),
+                   ('trim', Or(ListOf(EnumOf(['chains', 'sequence', 'ligands'])), BoolArg)),
+                   ('alignment_cutoff_distance', FloatArg),
                    ],
         synopsis = 'Search for proteins with similar folds using Foldseek web service'
     )
