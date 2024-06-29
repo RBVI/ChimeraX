@@ -22,76 +22,110 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek(session, chain, database = 'pdb100', trim = True, alignment_cutoff_distance = 2.0):
-
-    mmcif_string = _mmcif_as_string(chain)
-    results = foldseek_web_query(mmcif_string, databases = [database])
-    # Use cached 8jnb results for developing user interface so I don't have to wait for server every test.
-#    with open('/Users/goddard/ucsf/chimerax/src/bundles/foldseek_example/alis_pdb100.m8', 'r') as mfile:
-#        results = {database: mfile.readlines()}
-    msg = 'Foldseek ' + ', '.join([f'{database} {len(search_results)} hits'
-                                   for database, search_results in results.items()])
-    session.logger.info(msg)
-
-    if database == 'pdb100':
-        hit_lines = results[database]
-        hits = [parse_search_result(hit, database) for hit in hit_lines]
-        from .gui import FoldseekPDBResults
-        FoldseekPDBResults(session, query_chain = chain, pdb_hits = hits, trim = trim,
-                           alignment_cutoff_distance = alignment_cutoff_distance)
-
-        '''
-        hlines = []
-        for hit in hits[:5]:
-            values = parse_search_result(hit, database)
-            hmsg = f'PDB {values["pdb_id"]} chain {values["pdb_chain_id"]} assembly {values["pdb_assembly_id"]} description {values["pdb_description"]}'
-            hlines.append(hmsg)
-        session.logger.info('\n'.join(hlines))
-        '''
-    
-    '''
-    For monomer search
-    curl -X POST -F q=@PATH_TO_FILE -F 'mode=3diaa' -F 'database[]=afdb50' -F 'database[]=afdb-swissprot' -F 'database[]=afdb-proteome' -F 'database[]=bfmd' -F 'database[]=cath50' -F 'database[]=mgnify_esm30' -F 'database[]=pdb100' -F 'database[]=gmgcl_id' https://search.foldseek.com/api/ticket
-
-    For multimer search.
-    curl -X POST -F q=@PATH_TO_FILE -F 'mode=complex-3diaa' -F 'database[]=bfmd' -F 'database[]=pdb100' https://search.foldseek.com/api/ticket
-
-    https://search.mmseqs.com/docs/
-    '''
+def foldseek(session, chain, database = 'pdb100', trim = True, alignment_cutoff_distance = 2.0, wait = False):
+    '''Submit a Foldseek search for similar structures and display results in a table.'''
+    FoldseekWebQuery(session, chain, database=database,
+                     trim=trim, alignment_cutoff_distance=alignment_cutoff_distance, wait=wait)
 
 foldseek_databases = ['pdb100', 'afdb50', 'afdb-swissprot', 'afdb-proteome',
                       'bfmd', 'cath50', 'mgnify_esm30', 'gmgcl_id']
 
-def foldseek_web_query(mmcif_string,
-                       foldseek_url = 'https://search.foldseek.com/api',
-#                       databases = ['pdb100', 'afdb50', 'afdb-swissprot' 'afdb-proteome'],
-                       databases = ['pdb100'],
-                       status_interval = 1.0):
-    '''
-    Use an https post to start at search using the Foldseek REST API.
-    Then wait for results, download them, and return a dictionary mapping
-    database name to results as m8 format tab-separated values.
-    '''
+class FoldseekWebQuery:
 
-    query_url = foldseek_url + '/ticket'
-    files = {'q': mmcif_string}
-    data = {
-        'mode': '3diaa',  # "3diaa" for monomer searhces, "complex-3diaa" for multimer searches
-        'database[]': databases
-    }
-    import requests
-    r = requests.post(query_url, files=files, data=data)
-    if r.status_code != 200:
-        error_msg = r.text
+    def __init__(self, session, chain, database = 'pdb100', trim = True,
+                 alignment_cutoff_distance = 2.0, wait = False,
+                 foldseek_url = 'https://search.foldseek.com/api'):
+        self.session = session
+        self.chain = chain
+        self.database = database
+        self.trim = trim
+        self.alignment_cutoff_distance = alignment_cutoff_distance
+        self.foldseek_url = foldseek_url
+        self._last_check_time = None
+        
+        # Use cached 8jnb results for developing user interface so I don't have to wait for server every test.
+#        with open('/Users/goddard/ucsf/chimerax/src/bundles/foldseek_example/alis_pdb100.m8', 'r') as mfile:
+#            results = {database: mfile.readlines()}
+#        self.report_results(results)
+#        return
+        
+        mmcif_string = _mmcif_as_string(chain)
+        ticket_id = self.submit_query(mmcif_string, databases = [database])
+        if wait:
+            self.wait_for_results(ticket_id)
+            results = self.download_results(ticket_id)
+            self.report_results(results)
+        else:
+            self.poll_for_results(ticket_id)
+
+    def report_results(self, results):
+        hit_summary = ', '.join([f'in {self.database} found {len(search_results)} hits'
+                                 for database, search_results in results.items()])
+        msg = f'Foldseek search for similar structures to {self.chain} {hit_summary}'
+        self.session.logger.info(msg)
+
+        if self.database == 'pdb100':
+            hit_lines = results[self.database]
+            hits = [parse_search_result(hit, self.database) for hit in hit_lines]
+            from .gui import FoldseekPDBResults
+            FoldseekPDBResults(self.session, query_chain = self.chain, pdb_hits = hits, trim = self.trim,
+                               alignment_cutoff_distance = self.alignment_cutoff_distance)
+
+    def submit_query(self, mmcif_string, databases = ['pdb100']):
+        '''
+        Use an https post to start at search using the Foldseek REST API.
+        '''
+
+        query_url = self.foldseek_url + '/ticket'
+        files = {'q': mmcif_string}
+        data = {
+            'mode': '3diaa',  # "3diaa" for monomer searhces, "complex-3diaa" for multimer searches
+            'database[]': databases
+        }
+        import requests
+        r = requests.post(query_url, files=files, data=data)
+        if r.status_code != 200:
+            error_msg = r.text
+            from chimerax.core.errors import UserError
+            raise UserError(f'Foldseek search failed: {error_msg}')
+
+        ticket = r.json()
+        ticket_id = ticket['id']
+        return ticket_id
+
+    def wait_for_results(self, ticket_id):
+        # poll until the job is successful or fails
+        import time
+        while not self.check_for_results(ticket_id):
+            time.sleep(self.status_interval)
+
+    def poll_for_results(self, ticket_id):
+        '''Poll for results during new frame callback and report them when complete.'''
+        self.session.triggers.add_handler('new frame', lambda *args, t=ticket_id: self._new_frame_callback(t))
+
+    def _new_frame_callback(self, ticket_id):
+        from time import time
+        t = time()
+        if self._last_check_time and t - self._last_time_check < self.status_interval:
+            return
+        self._last_check_time = t
+
         from chimerax.core.errors import UserError
-        raise UserError(f'Foldseek search failed: {error_msg}')
+        try:
+            complete = self.check_for_results(ticket_id)
+        except UserError as e:
+            self.session.logger.warning(str(e))
+            return 'delete handler'
 
-    ticket = r.json()
-    ticket_id = ticket['id']
-    
-    # poll until the job was successful or failed
-    status_url = foldseek_url + f'/ticket/{ticket_id}'
-    while True:
+        if complete:
+            results = self.download_results(ticket_id)
+            self.report_results(results)
+            return 'delete handler'
+
+    def check_for_results(self, ticket_id):
+        # poll until the job was successful or failed
+        status_url = self.foldseek_url + f'/ticket/{ticket_id}'
+        import requests
         r = requests.get(status_url)
         status = r.json()
 
@@ -100,34 +134,39 @@ def foldseek_web_query(mmcif_string,
             raise UserError(f'FoldSeek jobs failed {status}')
 
         if status['status'] == "COMPLETE":
-            break
+            return True
 
-        # wait a short time between poll requests
-        import time
-        time.sleep(status_interval)
+        return False
+    
+    def download_results(self, ticket_id):
+        '''
+        Return a dictionary mapping database name to results as m8 format tab-separated values.
+        '''
+        result_url = self.foldseek_url + f'/result/download/{ticket_id}'
+        import requests
+        results = requests.get(result_url, stream = True)
 
-    # get results
-    result_url = foldseek_url + f'/result/download/{ticket_id}'
-    results = requests.get(result_url, stream = True)
+        # Result is a tar gzip file containing a .m8 tab-separated value file.
+        import tempfile
+        rfile = tempfile.NamedTemporaryFile(prefix = 'foldseek_results_', suffix = '.tar.gz')
+        size = 0
+        with rfile as f:
+            for chunk in results.iter_content(chunk_size=16384):
+                f.write(chunk)
+                size += len(chunk)
+                self.session.logger.status(f'Reading Foldseek results {size} bytes')
+            f.flush()
 
-    # Result is a tar gzip file containing a .m8 tab-separated value file.
-    import tempfile
-    rfile = tempfile.NamedTemporaryFile(prefix = 'foldseek_results_', suffix = '.tar.gz')
-    with rfile as f:
-        for chunk in results.iter_content(chunk_size=128):
-            f.write(chunk)
-        f.flush()
+            # Extract tar file making a dictionary of results for each database searched
+            m8_results = {}
+            import tarfile
+            tfile = tarfile.open(f.name)
+            for filename in tfile.getnames():
+                mfile = tfile.extractfile(filename)
+                dbname = filename.replace('alis_', '').replace('.m8', '')
+                m8_results[dbname] = [line.decode('utf-8') for line in mfile.readlines()]
 
-        # Extract tar file making a dictionary of results for each database searched
-        m8_results = {}
-        import tarfile
-        tfile = tarfile.open(f.name)
-        for filename in tfile.getnames():
-            mfile = tfile.extractfile(filename)
-            dbname = filename.replace('alis_', '').replace('.m8', '')
-            m8_results[dbname] = [line.decode('utf-8') for line in mfile.readlines()]
-         
-    return m8_results
+        return m8_results
 
 def _mmcif_as_string(chain):
     structure = chain.structure.copy()
@@ -268,7 +307,7 @@ def trim_pdb_structure(structure, pdb_hit, trim):
         if structure.num_residues > len(chain_res):
             # Delete non-polymer residues that are not in contact with trimmed chain residues.
             rstart, rend = (rnum_start, rnum_end) if trim_seq else (crnum_start, crnum_end)
-            cmd = f'delete #{structure.id_string}/{chain_id}:{rstart}-{rend} :> 3 & (ligand | ions | solvent)'
+            cmd = f'delete (#{structure.id_string}/{chain_id}:{rstart}-{rend} :> 3) & #{structure.id_string} & (ligand | ions | solvent)'
             from chimerax.core.commands import run
             run(structure.session, cmd)
 

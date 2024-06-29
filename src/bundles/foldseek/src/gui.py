@@ -48,7 +48,8 @@ class FoldseekPDBResults(ToolInstance):
         layout = vertical_layout(parent, margins = (5,0,5,0))
 
         from chimerax.ui.widgets import EntriesRow
-        heading = EntriesRow(parent, f'Foldseek search found {len(pdb_hits)} PDB hits')
+        q = query_chain.string(include_structure = True)
+        heading = EntriesRow(parent, f'Foldseek search found {len(pdb_hits)} PDB hits similar to {q}')
         layout.addWidget(heading.frame)
 
         self._table = FoldseekPDBResultsTable(pdb_hits, parent = parent)
