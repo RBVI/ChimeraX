@@ -23,14 +23,16 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
-class FoldseekPDBResults(ToolInstance):
+class FoldseekResults(ToolInstance):
 
     name = 'Foldseek Results'
     help = 'help:user/tools/foldseek.html'
 
     def __init__(self, session, tool_name = 'Foldseek Results',
-                 query_chain = None, pdb_hits = [], trim = True, alignment_cutoff_distance = 2.0):
+                 query_chain = None, hits = [], database = 'pdb100',
+                 trim = True, alignment_cutoff_distance = 2.0):
         self._query_chain = query_chain
+        self._database = database
 
         # Whether to delete extra chains and extra residues when loading structures.
         self._trim = trim   # bool or 'chains' or 'sequence'.
@@ -49,10 +51,16 @@ class FoldseekPDBResults(ToolInstance):
 
         from chimerax.ui.widgets import EntriesRow
         q = query_chain.string(include_structure = True)
-        heading = EntriesRow(parent, f'Foldseek search found {len(pdb_hits)} PDB hits similar to {q}')
+        heading = EntriesRow(parent, f'Foldseek search found {len(hits)} {database} hits similar to {q}')
         layout.addWidget(heading.frame)
 
-        self._table = FoldseekPDBResultsTable(pdb_hits, parent = parent)
+        if database.startswith('pdb'):
+            database_name = 'PDB'
+        elif database.startswith('afdb'):
+            database_name = 'AFDB'
+        else:
+            database_name = 'Id'
+        self._table = FoldseekResultsTable(hits, database_name, parent = parent)
         layout.addWidget(self._table)
 
         from chimerax.ui.widgets import button_row
@@ -68,36 +76,33 @@ class FoldseekPDBResults(ToolInstance):
         tw.manage(placement=None)	# Start floating
 
     def _open_selected(self):
-        pdb_hits = self._table.selected		# FoldseekPDBRow instances
-        for hit in pdb_hits:
-            self._open_pdb_hit(hit)
+        hits = self._table.selected		# FoldseekRow instances
+        for hit in hits:
+            self._open_hit(hit)
 
-    def _open_pdb_hit(self, pdb_row):
-        from .foldseek import open_pdb_hit
-        open_pdb_hit(self.session, pdb_row.pdb_hit, self._query_chain,
-                     trim = self._trim, alignment_cutoff_distance = self._alignment_cutoff_distance)
+    def _open_hit(self, row):
+        from .foldseek import open_hit
+        open_hit(self.session, row.hit, self._query_chain, trim = self._trim,
+                 alignment_cutoff_distance = self._alignment_cutoff_distance)
 
     def _show_help(self):
         from chimerax.core.commands import run
         run(self.session, 'help %s' % self.help)
 
 from chimerax.ui.widgets import ItemTable
-class FoldseekPDBResultsTable(ItemTable):
-    def __init__(self, pdb_hits, parent = None):
+class FoldseekResultsTable(ItemTable):
+    def __init__(self, hits, database_name, parent = None):
         ItemTable.__init__(self, parent = parent)
-        self.add_column('PDB', 'pdb_id_and_chain_id')
+        self.add_column(database_name, 'database_full_id')
         col_identity = self.add_column('Identity', 'pident')
-        self.add_column('Description', 'pdb_description', justification = 'left')
-        rows = [FoldseekPDBRow(hit) for hit in pdb_hits]
+        self.add_column('Description', 'description', justification = 'left')
+        rows = [FoldseekRow(hit) for hit in hits]
         self.data = rows
         self.launch()
         self.sort_by(col_identity, self.SORT_DESCENDING)
 
-class FoldseekPDBRow:
-    def __init__(self, pdb_hit):
-        self.pdb_hit = pdb_hit
+class FoldseekRow:
+    def __init__(self, hit):
+        self.hit = hit
     def __getattr__(self, attribute_name):
-        return self.pdb_hit.get(attribute_name)
-    @property
-    def pdb_id_and_chain_id(self):
-        return f'{self.pdb_id}_{self.pdb_chain_id}'
+        return self.hit.get(attribute_name)

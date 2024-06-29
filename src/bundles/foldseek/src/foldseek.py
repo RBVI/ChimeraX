@@ -27,8 +27,10 @@ def foldseek(session, chain, database = 'pdb100', trim = True, alignment_cutoff_
     FoldseekWebQuery(session, chain, database=database,
                      trim=trim, alignment_cutoff_distance=alignment_cutoff_distance, wait=wait)
 
-foldseek_databases = ['pdb100', 'afdb50', 'afdb-swissprot', 'afdb-proteome',
-                      'bfmd', 'cath50', 'mgnify_esm30', 'gmgcl_id']
+foldseek_databases = ['pdb100', 'afdb50', 'afdb-swissprot', 'afdb-proteome']
+
+#foldseek_databases = ['pdb100', 'afdb50', 'afdb-swissprot', 'afdb-proteome',
+#                      'bfmd', 'cath50', 'mgnify_esm30', 'gmgcl_id']
 
 class FoldseekWebQuery:
 
@@ -42,6 +44,7 @@ class FoldseekWebQuery:
         self.alignment_cutoff_distance = alignment_cutoff_distance
         self.foldseek_url = foldseek_url
         self._last_check_time = None
+        self._status_interval = 1.0	# Seconds.  Frequency to check for search completion
         
         # Use cached 8jnb results for developing user interface so I don't have to wait for server every test.
 #        with open('/Users/goddard/ucsf/chimerax/src/bundles/foldseek_example/alis_pdb100.m8', 'r') as mfile:
@@ -64,12 +67,12 @@ class FoldseekWebQuery:
         msg = f'Foldseek search for similar structures to {self.chain} {hit_summary}'
         self.session.logger.info(msg)
 
-        if self.database == 'pdb100':
-            hit_lines = results[self.database]
-            hits = [parse_search_result(hit, self.database) for hit in hit_lines]
-            from .gui import FoldseekPDBResults
-            FoldseekPDBResults(self.session, query_chain = self.chain, pdb_hits = hits, trim = self.trim,
-                               alignment_cutoff_distance = self.alignment_cutoff_distance)
+        hit_lines = results[self.database]
+        hits = [parse_search_result(hit, self.database) for hit in hit_lines]
+        from .gui import FoldseekResults
+        FoldseekResults(self.session, query_chain = self.chain, hits = hits,
+                        database = self.database, trim = self.trim,
+                        alignment_cutoff_distance = self.alignment_cutoff_distance)
 
     def submit_query(self, mmcif_string, databases = ['pdb100']):
         '''
@@ -97,7 +100,7 @@ class FoldseekWebQuery:
         # poll until the job is successful or fails
         import time
         while not self.check_for_results(ticket_id):
-            time.sleep(self.status_interval)
+            time.sleep(self._status_interval)
 
     def poll_for_results(self, ticket_id):
         '''Poll for results during new frame callback and report them when complete.'''
@@ -106,7 +109,7 @@ class FoldseekWebQuery:
     def _new_frame_callback(self, ticket_id):
         from time import time
         t = time()
-        if self._last_check_time and t - self._last_time_check < self.status_interval:
+        if self._last_check_time and t - self._last_check_time < self._status_interval:
             return
         self._last_check_time = t
 
@@ -204,6 +207,8 @@ For pdb100 database theader looks like "4mjs-assembly7.cif.gz_N crystal structur
 including the PDB id then a bioassembly number then .cif.gz then underscore and a chain ID, then a space
 and then a text description.
 
+For alphafold-swissprot theader looks like "AF-A7E3S4-F1-model_v4 RAF proto-oncogene serine/threonine-protein kinase".
+
 It appears that tstart, tend are not the residue numbers used in the PDB file, they are the numbers
 starting from 1 and including only polymer residues with atomic coordinates.  Also the tseq target
 sequence only includes residues with atomic coordinates, and tlen is the number of residues with
@@ -224,14 +229,18 @@ foldseek does -- iterative pruning may give a better alignment.
 '''
 
 def parse_search_result(line, database):
-    if database != 'pdb100':
-        from chimerax.core.errors import UserError
-        raise UserError('Foldseek command currently can only parse pdb100 database results.')
-    
     fields = line.split('\t')
     field_names = ['query', 'theader', 'pident', 'alnlen', 'mismatch', 'gapopen', 'qstart', 'qend', 'tstart', 'tend', 'prob', 'evalue', 'bits', 'qlen', 'tlen', 'qaln', 'taln', 'tca', 'tseq', 'taxid', 'taxname']
     values = dict(zip(field_names, fields))
-    values.update(parse_pdb100_theader(values['theader']))
+    for int_field in ['alnlen', 'mismatch', 'qstart', 'qend', 'tstart', 'tend', 'qlen', 'tlen']:
+        values[int_field] = int(values[int_field])
+    for float_field in ['pident', 'gapopen', 'prob', 'evalue', 'bits']:
+        values[float_field] = float(values[float_field])
+    values['database'] = database
+    if database == 'pdb100':
+        values.update(parse_pdb100_theader(values['theader']))
+    if database.startswith('afdb'):
+        values.update(parse_alphafold_theader(values['theader']))
     return values
 
 def parse_pdb100_theader(theader):
@@ -254,40 +263,65 @@ def parse_pdb100_theader(theader):
     values = {
         'pdb_id': theader[:4],
         'pdb_assembly_id': theader[ia+9:iz],
-        'pdb_chain_id': theader[iz+8:id],
-        'pdb_description': theader[id+1:],
+        'chain_id': theader[iz+8:id],
+        'description': theader[id+1:],
     }
+    values['database_id'] = values['pdb_id']
+    values['database_full_id'] = values['pdb_id'] + '_' + values['chain_id']
+
     return values
 
-def open_pdb_hit(session, pdb_hit, query_chain, trim = True, alignment_cutoff_distance = 2.0):
+def parse_alphafold_theader(theader):
+    '''Example: "AF-A7E3S4-F1-model_v4 RAF proto-oncogene serine/threonine-protein kinase"'''
+    if not theader.startswith('AF-'):
+        from chimerax.core.errors import UserError
+        raise UserError(f'Foldseek results target header "{theader}" did not contain expected string "AF-"')
+
+    im = theader.find('-F1-model_v')
+    if im == -1:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Foldseek results target header "{theader}" did not contain expected string "-F1-model_v"')
+    
+    values = {
+        'alphafold_id': theader[3:im],
+        'alphafold_version': theader[im+11:im+12],
+        'description': theader[im+13:],
+    }
+    values['database_id'] = values['alphafold_id']
+    values['database_full_id'] = values['alphafold_id']
+    
+    return values
+        
+def open_hit(session, hit, query_chain, trim = True, alignment_cutoff_distance = 2.0):
+    db_id = hit.get('database_id')
+    from_db = 'from alphafold' if hit['database'].startswith('afdb') else ''
     from chimerax.core.commands import run
-    pdb_id = pdb_hit["pdb_id"]
-    structure = run(session, f'open {pdb_id}')[0]
-    aligned_res = trim_pdb_structure(structure, pdb_hit, trim)
+    structure = run(session, f'open {db_id} {from_db}')[0]
+    aligned_res = trim_structure(structure, hit, trim)
     _show_ribbons(structure)
     
     # Align the model to the query structure using Foldseek alignment.
     # Foldseek server does not return transform by default, so compute from sequence alignment.
-    res, query_res = alignment_residue_pairs(pdb_hit, aligned_res, query_chain)
+    res, query_res = alignment_residue_pairs(hit, aligned_res, query_chain)
     p, rms, npairs = alignment_transform(res, query_res, alignment_cutoff_distance)
     structure.position = p
-    chain_id = pdb_hit["pdb_chain_id"]
-    msg = f'Alignment of {pdb_id} chain {chain_id} to query has RMSD {"%.3g" % rms} using {npairs} of {len(res)} paired residues'
+    chain_id = hit.get('chain_id')
+    cname = '' if chain_id is None else f'chain {chain_id}'
+    msg = f'Alignment of {db_id}{cname} to query has RMSD {"%.3g" % rms} using {npairs} of {len(res)} paired residues'
     if alignment_cutoff_distance is not None and alignment_cutoff_distance > 0:
         msg += f' within cutoff distance {alignment_cutoff_distance}'
     session.logger.info(msg)
 
-def trim_pdb_structure(structure, pdb_hit, trim):
-    pdb_id = pdb_hit["pdb_id"]
-    chain_id = pdb_hit["pdb_chain_id"]
+def trim_structure(structure, hit, trim):
+    chain_id = hit.get('chain_id')
     
-    if trim is True or 'chains' in trim:
+    if (trim is True or 'chains' in trim) and chain_id is not None:
         if len(structure.chains) > 1:
             cmd = f'delete #{structure.id_string} & ~/{chain_id}'
             from chimerax.core.commands import run
             run(structure.session, cmd)
 
-    res, chain_res = pdb_residue_range(structure, pdb_hit)
+    res, chain_res = residue_range(structure, hit, structure.session.logger)
     rnum_start, rnum_end = res[0].number, res[-1].number
     crnum_start, crnum_end = chain_res[0].number, chain_res[-1].number
 
@@ -299,11 +333,12 @@ def trim_pdb_structure(structure, pdb_hit, trim):
                 res_ranges.append(f'{crnum_start}-{rnum_start-1}')
             if crnum_end > rnum_end:
                 res_ranges.append(f'{rnum_end+1}-{crnum_end}')
-            cmd = f'delete #{structure.id_string}/{chain_id}:{",".join(res_ranges)}'
+            chain_spec = f'#{structure.id_string}' if chain_id is None else f'#{structure.id_string}/{chain_id}'
+            cmd = f'delete {chain_spec}:{",".join(res_ranges)}'
             from chimerax.core.commands import run
             run(structure.session, cmd)
 
-    if trim is True or 'ligands' in trim:
+    if (trim is True or 'ligands' in trim) and hit['database'] == 'pdb100':
         if structure.num_residues > len(chain_res):
             # Delete non-polymer residues that are not in contact with trimmed chain residues.
             rstart, rend = (rnum_start, rnum_end) if trim_seq else (crnum_start, crnum_end)
@@ -313,35 +348,38 @@ def trim_pdb_structure(structure, pdb_hit, trim):
 
     return res
 
-def pdb_residue_range(structure, pdb_hit):
+def residue_range(structure, hit, log):
     '''
+    Return the residue range for the subset of residues used in the hit alignment.
     Foldseek tstart and tend target residue numbers are not PDB residue numbers.
-    Instead they start at 1 and include only residues with atomic coordinates in the PDB chain.
-    This routine converts these to PDB residue numbers.
+    Instead they start at 1 and include only residues with atomic coordinates in the chain.
     '''
-    pdb_id = pdb_hit['pdb_id']
-    chain_id = pdb_hit['pdb_chain_id']
-    schains = [chain for chain in structure.chains if chain.chain_id == chain_id]
+    db = hit['database']
+    db_id = hit['database_id']
+    chain_id = hit.get('chain_id')
+    cname = '' if chain_id is None else f'chain {chain_id}'
+    schains = structure.chains if chain_id is None else [chain for chain in structure.chains
+                                                         if chain.chain_id == chain_id]
     chain = schains[0] if len(schains) == 1 else None
     if chain is None:
-        structure.session.logger.warning(f'Foldseek result PDB {pdb_id} does not have a chain {chain_id}.')
+        log.warning(f'Foldseek result {db} {db_id} does not have expected chain {chain_id}.')
         return None, None
-    tstart, tend, tlen, tseq = int(pdb_hit['tstart']), int(pdb_hit['tend']), int(pdb_hit['tlen']), pdb_hit['tseq']
+    tstart, tend, tlen, tseq = hit['tstart'], hit['tend'], hit['tlen'], hit['tseq']
     res = chain.existing_residues
     if len(res) != tlen:
-        structure.session.logger.warning(f'Foldseek result PDB {pdb_id} chain {chain_id} number of residues {tlen} does not match residues in structure {len(res)}.')
+        log.warning(f'Foldseek result {db} {db_id} {cname} number of residues {tlen} does not match residues in structure {len(res)}.')
         return None, None
     seq = ''.join(r.one_letter_code for r in res)
     if seq != tseq:
-        structure.session.logger.warning(f'Foldseek result PDB {pdb_id} chain {chain_id} target sequence {tseq} does not match PDB structure existing residue sequence {seq}.')
+        log.warning(f'Foldseek result {db_id} {cname} target sequence {tseq} does not match sequence from database {seq}.')
         return None, None
     all = (tend == len(tseq))
     return res[tstart-1:tend], res
 
-def alignment_residue_pairs(pdb_hit, aligned_res, query_chain):
-    qstart, qend = int(pdb_hit['qstart']), int(pdb_hit['qend'])
+def alignment_residue_pairs(hit, aligned_res, query_chain):
+    qstart, qend = hit['qstart'], hit['qend']
     qres = query_chain.existing_residues[qstart-1:qend]
-    qaln, taln = pdb_hit['qaln'], pdb_hit['taln']
+    qaln, taln = hit['qaln'], hit['taln']
     ti = qi = 0
     ati, aqi = [], []
     for qaa, taa in zip(qaln, taln):
