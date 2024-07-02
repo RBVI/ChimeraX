@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek(session, chain, database = 'pdb100', trim = True, alignment_cutoff_distance = 2.0, wait = False):
+def foldseek(session, chain, database = 'pdb100', trim = None, alignment_cutoff_distance = None, wait = False):
     '''Submit a Foldseek search for similar structures and display results in a table.'''
     FoldseekWebQuery(session, chain, database=database,
                      trim=trim, alignment_cutoff_distance=alignment_cutoff_distance, wait=wait)
@@ -45,6 +45,9 @@ class FoldseekWebQuery:
         self.foldseek_url = foldseek_url
         self._last_check_time = None
         self._status_interval = 1.0	# Seconds.  Frequency to check for search completion
+        from chimerax.core import version as cx_version
+        self._user_agent = {'User-Agent': f'ChimeraX {cx_version}'}	# Identify ChimeraX to Foldseek server
+        self._download_chunk_size = 64 * 1024	# bytes
         
         # Use cached 8jnb results for developing user interface so I don't have to wait for server every test.
 #        with open('/Users/goddard/ucsf/chimerax/src/bundles/foldseek_example/alis_pdb100.m8', 'r') as mfile:
@@ -53,13 +56,13 @@ class FoldseekWebQuery:
 #        return
         
         mmcif_string = _mmcif_as_string(chain)
-        ticket_id = self.submit_query(mmcif_string, databases = [database])
         if wait:
+            ticket_id = self.submit_query(mmcif_string, databases = [database])
             self.wait_for_results(ticket_id)
-            results = self.download_results(ticket_id)
+            results = self.download_results(ticket_id, report_progress = self._report_progress)
             self.report_results(results)
         else:
-            self.poll_for_results(ticket_id)
+            self.query_in_thread(mmcif_string, database)
 
     def report_results(self, results):
         hit_summary = ', '.join([f'in {self.database} found {len(search_results)} hits'
@@ -69,10 +72,14 @@ class FoldseekWebQuery:
 
         hit_lines = results[self.database]
         hits = [parse_search_result(hit, self.database) for hit in hit_lines]
-        from .gui import FoldseekResults
-        FoldseekResults(self.session, query_chain = self.chain, hits = hits,
-                        database = self.database, trim = self.trim,
-                        alignment_cutoff_distance = self.alignment_cutoff_distance)
+        from .gui import foldseek_panel, Foldseek
+        fp = foldseek_panel(self.session)
+        if fp:
+            fp.show_results(hits, query_chain = self.chain, database = self.database,
+                            trim = self.trim, alignment_cutoff_distance = self.alignment_cutoff_distance)
+        else:
+            Foldseek(self.session, query_chain = self.chain, database = self.database,
+                     hits = hits, trim = self.trim, alignment_cutoff_distance = self.alignment_cutoff_distance)
 
     def submit_query(self, mmcif_string, databases = ['pdb100']):
         '''
@@ -86,7 +93,7 @@ class FoldseekWebQuery:
             'database[]': databases
         }
         import requests
-        r = requests.post(query_url, files=files, data=data)
+        r = requests.post(query_url, files=files, data=data, headers = self._user_agent)
         if r.status_code != 200:
             error_msg = r.text
             from chimerax.core.errors import UserError
@@ -96,40 +103,21 @@ class FoldseekWebQuery:
         ticket_id = ticket['id']
         return ticket_id
 
-    def wait_for_results(self, ticket_id):
+    def wait_for_results(self, ticket_id, report_progress = None):
         # poll until the job is successful or fails
         import time
+        elapsed = 0
         while not self.check_for_results(ticket_id):
             time.sleep(self._status_interval)
-
-    def poll_for_results(self, ticket_id):
-        '''Poll for results during new frame callback and report them when complete.'''
-        self.session.triggers.add_handler('new frame', lambda *args, t=ticket_id: self._new_frame_callback(t))
-
-    def _new_frame_callback(self, ticket_id):
-        from time import time
-        t = time()
-        if self._last_check_time and t - self._last_check_time < self._status_interval:
-            return
-        self._last_check_time = t
-
-        from chimerax.core.errors import UserError
-        try:
-            complete = self.check_for_results(ticket_id)
-        except UserError as e:
-            self.session.logger.warning(str(e))
-            return 'delete handler'
-
-        if complete:
-            results = self.download_results(ticket_id)
-            self.report_results(results)
-            return 'delete handler'
+            elapsed += self._status_interval
+            if report_progress:
+                report_progress(f'Waiting for Foldseek results, {"%.0f"%elapsed} seconds elapsed')
 
     def check_for_results(self, ticket_id):
         # poll until the job was successful or failed
         status_url = self.foldseek_url + f'/ticket/{ticket_id}'
         import requests
-        r = requests.get(status_url)
+        r = requests.get(status_url, headers = self._user_agent)
         status = r.json()
 
         if status['status'] == "ERROR":
@@ -141,23 +129,30 @@ class FoldseekWebQuery:
 
         return False
     
-    def download_results(self, ticket_id):
+    def download_results(self, ticket_id, report_progress = None):
         '''
         Return a dictionary mapping database name to results as m8 format tab-separated values.
         '''
         result_url = self.foldseek_url + f'/result/download/{ticket_id}'
         import requests
-        results = requests.get(result_url, stream = True)
-
+        results = requests.get(result_url, stream = True, headers = self._user_agent)
+        if report_progress:
+            total_bytes = results.headers.get('Content-length')
+            of_total = '' if total_bytes is None else f'of {"%.1f" % (total_bytes / (1024 * 1024))}'
+            from time import time
+            start_time = time()
         # Result is a tar gzip file containing a .m8 tab-separated value file.
         import tempfile
         rfile = tempfile.NamedTemporaryFile(prefix = 'foldseek_results_', suffix = '.tar.gz')
         size = 0
         with rfile as f:
-            for chunk in results.iter_content(chunk_size=16384):
+            for chunk in results.iter_content(chunk_size=self._download_chunk_size):
                 f.write(chunk)
                 size += len(chunk)
-                self.session.logger.status(f'Reading Foldseek results {size} bytes')
+                if report_progress:
+                    size_mb = size / (1024 * 1024)
+                    elapsed = time() - start_time
+                    report_progress(f'Reading Foldseek results {"%.1f" % size_mb}{of_total} Mbytes downloaded in {"%.0f" % elapsed} seconds')
             f.flush()
 
             # Extract tar file making a dictionary of results for each database searched
@@ -171,6 +166,46 @@ class FoldseekWebQuery:
 
         return m8_results
 
+    def _report_progress(self, message):
+        self.session.logger.status(message)
+
+    def query_in_thread(self, mmcif_string, database):
+        from queue import Queue
+        result_queue = Queue()
+        import threading
+        t = threading.Thread(target=self._submit_and_download_in_thread,
+                             args=(mmcif_string, database, result_queue))
+        t.start()
+        # Check for results from query each new frame callback.
+        self.session.triggers.add_handler('new frame',
+                                          lambda *args, q=result_queue: self._check_for_results_from_thread(q))
+
+    def _submit_and_download_in_thread(self, mmcif_string, database, result_queue):
+        def _report_progress(message, result_queue=result_queue):
+            result_queue.put(('status',message))
+        try:
+            _report_progress('Submitted Foldseek query')
+            ticket_id = self.submit_query(mmcif_string, databases = [database])
+            self.wait_for_results(ticket_id, report_progress = _report_progress)
+            results = self.download_results(ticket_id, report_progress = _report_progress)
+        except Exception as e:
+            result_queue.put(('error', str(e)))
+        else:
+            result_queue.put(('success', results))
+                             
+    def _check_for_results_from_thread(self, result_queue):
+        if result_queue.empty():
+            return
+        status, r = result_queue.get()
+        if status == 'status':
+            self.session.logger.status(r)
+            return
+        elif status == 'success':
+            self.report_results(r)
+        elif status == 'error':
+            self.session.logger.warning(f'Foldseek query failed: {r}')
+        return 'delete handler'
+        
 def _mmcif_as_string(chain):
     structure = chain.structure.copy()
     cchain = [c for c in structure.chains if c.chain_id == chain.chain_id][0]
@@ -313,6 +348,13 @@ def open_hit(session, hit, query_chain, trim = True, alignment_cutoff_distance =
     session.logger.info(msg)
 
 def trim_structure(structure, hit, trim):
+    res, chain_res = residue_range(structure, hit, structure.session.logger)
+    rnum_start, rnum_end = res[0].number, res[-1].number
+    crnum_start, crnum_end = chain_res[0].number, chain_res[-1].number
+
+    if not trim:
+        return res
+    
     chain_id = hit.get('chain_id')
     
     if (trim is True or 'chains' in trim) and chain_id is not None:
@@ -320,10 +362,6 @@ def trim_structure(structure, hit, trim):
             cmd = f'delete #{structure.id_string} & ~/{chain_id}'
             from chimerax.core.commands import run
             run(structure.session, cmd)
-
-    res, chain_res = residue_range(structure, hit, structure.session.logger)
-    rnum_start, rnum_end = res[0].number, res[-1].number
-    crnum_start, crnum_end = chain_res[0].number, chain_res[-1].number
 
     trim_seq = (trim is True or 'sequence' in trim)
     if trim_seq:
@@ -428,6 +466,7 @@ def register_foldseek_command(logger):
         keyword = [('database', EnumOf(foldseek_databases)),
                    ('trim', Or(ListOf(EnumOf(['chains', 'sequence', 'ligands'])), BoolArg)),
                    ('alignment_cutoff_distance', FloatArg),
+                   ('wait', BoolArg),
                    ],
         synopsis = 'Search for proteins with similar folds using Foldseek web service'
     )

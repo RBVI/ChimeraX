@@ -16,12 +16,13 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command: open</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: open</h3>
 
@@ -110,12 +111,12 @@ The command <b>open formats</b> command lists the possible formats and
 </center>
 <table border cellpadding="4" cellspacing="0">
 <tr>
-<td align="center" style="background-color:#cccccc"><b>format</b></td>
-<td align="center" style="background-color:#cccccc"><span class="nowrap"><b><i>format-name</i></b></span></td>
-<td align="center" style="background-color:#cccccc"><b>suffix</b></td>
-<td align="center" style="background-color:#cccccc"><b>description</b></td>
+<td align="center" style="color:black; background-color:#cccccc"><b>format</b></td>
+<td align="center" style="color:black; background-color:#cccccc"><span class="nowrap"><b><i>format-name</i></b></span></td>
+<td align="center" style="color:black; background-color:#cccccc"><b>suffix</b></td>
+<td align="center" style="color:black; background-color:#cccccc"><b>description</b></td>
 </tr><tr>
-<td colspan=4 align="center" style="background-color:#eaeaea">
+<td colspan=4 align="center" class="shaded">
 <a name="atomic"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Atomic Structures and Related Data</b></td>
@@ -275,7 +276,7 @@ predicted aligned error (PAE) matrix, to be shown as an
 tied to the corresponding AlphaFold model, which should be specified
 with the <a href="#pae"><b>structure</b></a> option</td>
 </tr><tr>
-<td colspan=4 align="center" style="background-color:#eaeaea">
+<td colspan=4 align="center" class="shaded">
 <a name="trajectory"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Trajectory Coordinates</b>
@@ -314,7 +315,7 @@ target="_blank">Gromacs full-precision coordinates</a> (binary)</td>
 <td align="center">atomic <a href="../trajectories.html">trajectory</a>
 coordinates</td>
 </tr><tr>
-<td colspan=4 align="center" style="background-color:#eaeaea">
+<td colspan=4 align="center" class="shaded">
 <a name="trajtop"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Trajectory Topology</b>
@@ -334,7 +335,7 @@ topology
 target="_blank">MDTools</a>)</td>
 <!--
 </tr><tr>
-<td colspan=4 align="center" style="background-color:#eaeaea">
+<td colspan=4 align="center" class="shaded">
 <a name="docking"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Docking Results</b> (associated tool: 
@@ -347,7 +348,7 @@ target="_blank">MDTools</a>)</td>
 <a href="https://dock.compbio.ucsf.edu/">UCSF DOCK</a> versions 4, 5, 6</td>
 -->
 </tr><tr>
-<td colspan=4 align="center" style="background-color:#eaeaea">
+<td colspan=4 align="center" class="shaded">
 <a name="volume"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Volume Data and Related</b> (associated tool: 
@@ -624,7 +625,7 @@ target="_blank">TOM toolbox</a> map</td>
 <td align="center">electrostatic potential map from
 University of Houston Brownian Dynamics</td>
 </tr><tr>
-<td colspan=4 align="center" style="background-color:#eaeaea">
+<td colspan=4 align="center" class="shaded">
 <a name="segmentation"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Segmentations</b></td>
@@ -647,7 +648,7 @@ University of Houston Brownian Dynamics</td>
 <td align="center">.seg</td>
 <td align="center">segmentation regions</td>
 </tr><tr>
-<td colspan=4 align="center" style="background-color:#eaeaea">
+<td colspan=4 align="center" class="shaded">
 <a name="object"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Other 3D Objects</b></td>
@@ -731,7 +732,7 @@ target="_blank">Wavefront OBJ</a></td>
 <td align="center">graphical objects
 <br>(triangles only: vertices, vertex normals, faces; texture colors)</td>
 </tr><tr>
-<td colspan=4 align="center" style="background-color:#eaeaea">
+<td colspan=4 align="center" class="shaded">
 <a name="sequence"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Sequences</b> (associated tool: 
@@ -794,7 +795,7 @@ target="_blank">Stockholm</a></td>
 <br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">sequence alignment</td>
 </tr><tr>
-<td colspan=4 align="center" style="background-color:#eaeaea">
+<td colspan=4 align="center" class="shaded">
 <a name="composite"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Composite</b></td>
@@ -819,7 +820,7 @@ target="_blank">PDB-Dev</a> (see <a href="#fetch">database fetch</a>);
 may create <a href="../attributes.html#residue">residue attributes</a>
 </td>
 </tr><tr>
-<td colspan=4 align="center" style="background-color:#eaeaea">
+<td colspan=4 align="center" class="shaded">
 <a name="miscellaneous"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Miscellaneous</b></td>
@@ -2083,11 +2084,11 @@ See also: <a href="alphafold.html"><b>alphafold</b></a>,
 <a name="fetch-table"><font size="+1"><b>Fetch Sources</b></font></a>
 </center>
 <table border cellpadding="4" cellspacing="0"><tr>
-<td align="center" style="background-color:#cccccc"><b>database
+<td align="center" style="color:black; background-color:#cccccc"><b>database
 or web service</b></td>
-<td align="center" style="background-color:#cccccc"><b><i>source</i></b></td>
-<td align="center" style="background-color:#cccccc"><b>description</b></td>
-<td align="center" style="background-color:#cccccc"><span class="nowrap"><b><i>format-name</i></b></span></td>
+<td align="center" style="color:black; background-color:#cccccc"><b><i>source</i></b></td>
+<td align="center" style="color:black; background-color:#cccccc"><b>description</b></td>
+<td align="center" style="color:black; background-color:#cccccc"><span class="nowrap"><b><i>format-name</i></b></span></td>
 </tr><tr>
 <td align="center" rowspan="2"><a href="https://www.rcsb.org/"
 target="_blank">RCSB Protein Data Bank</a></td>

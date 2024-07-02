@@ -27,6 +27,12 @@ from chimerax.core.toolshed import BundleAPI
 class _FoldseekBundle(BundleAPI):
 
     @staticmethod
+    def start_tool(session, tool_name):
+        if tool_name == 'Foldseek':
+            from . import gui
+            return gui.show_foldseek_panel(session)
+
+    @staticmethod
     def register_command(command_name, logger):
         from . import foldseek
         foldseek.register_foldseek_command(logger)

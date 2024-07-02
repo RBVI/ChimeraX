@@ -680,9 +680,10 @@ class LaunchFitLoopsTool(ToolInstance):
                     r = res_list[index]
                     if r:
                         target_residues.append(r)
-            from chimerax.atomic import concise_residue_spec
-            run(self.session, "select " + concise_residue_spec(self.session, target_residues))
-            run(self.session, "view sel")
+            with self.session.undo.aggregate("Fit Loops launcher table row"):
+                from chimerax.atomic import concise_residue_spec
+                run(self.session, "select " + concise_residue_spec(self.session, target_residues))
+                run(self.session, "view sel")
         else:
             # There is no command to select _just_ a pseudobond, so if the padding is zero...
             self.session.selection.clear()
@@ -1030,12 +1031,13 @@ class FitLoopsResultsViewer(ToolInstance):
                 from chimerax.core.commands import run
                 from chimerax.atomic import concise_residue_spec
                 # display things if necessary
-                if not residues.ribbon_displays.any() and not residues.atoms.displays.any():
-                    if self.model.residues.ribbon_displays.any():
-                        run(self.session, "cartoon %s" % spec)
-                    else:
-                        run(self.session, "display %s" % spec)
-                spec = concise_residue_spec(self.session, residues)
-                run(self.session, "sel %s; view sel" % spec)
+                with self.session.undo.aggregate("Fit Loops results table row"):
+                    if not residues.ribbon_displays.any() and not residues.atoms.displays.any():
+                        if self.model.residues.ribbon_displays.any():
+                            run(self.session, "cartoon %s" % spec)
+                        else:
+                            run(self.session, "display %s" % spec)
+                    spec = concise_residue_spec(self.session, residues)
+                    run(self.session, "sel %s; view sel" % spec)
             else:
                 self.session.logger.status("No residues to view for this row")
