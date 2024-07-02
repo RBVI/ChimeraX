@@ -18,7 +18,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.8rc"/>
+    <Dependency name="ChimeraX-Core" version="~=1.8"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.32"/>
     <Dependency name="ChimeraX-CheckWaters" version="~=1.3"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.3"/>
