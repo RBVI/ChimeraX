@@ -120,24 +120,34 @@ class ColumnValues:
         return tuple(self.values_by_residue_number.keys())
     
     # Allowed value_type in residue_value() function.
-    residue_value_types = ('sum', 'sum_absolute', 'synonymous')
+    amino_acid_types = {'ala':'A','arg':'R','asn':'N','asp':'D','cys':'C','glu':'E','gln':'Q','gly':'G',
+                        'his':'H','ile':'I','leu':'L','lys':'K','met':'M','phe':'F','pro':'P','ser':'S',
+                        'thr':'T','trp':'W','tyr':'Y','val':'V'}
+    residue_value_types = ('sum', 'sum_absolute', 'synonymous') + tuple(amino_acid_types.keys())
         
     def residue_value(self, residue_number, value_type='sum_absolute', above=None, below=None):
-        value = None
         dms_values = self.mutation_values(residue_number)
-        if dms_values:
-            if value_type == 'sum_absolute' or value_type == 'sum':
-                values = [value for from_aa, to_aa, value in dms_values
-                          if ((above is None and below is None)
-                              or (above is not None and value >= above)
-                              or (below is not None and value <= below))]
-                if value_type == 'sum_absolute':
-                    values = [abs(v) for v in values]
-                value = sum(values) if values else None
-            elif value_type == 'synonymous':
-                values = [value for from_aa, to_aa, value in dms_values if to_aa == from_aa]
-                if values:
-                    value = values[0]
+        if len(dms_values) == 0:
+            return None
+
+        value = None
+        if value_type == 'sum_absolute' or value_type == 'sum':
+            values = [value for from_aa, to_aa, value in dms_values
+                      if ((above is None and below is None)
+                          or (above is not None and value >= above)
+                          or (below is not None and value <= below))]
+            if value_type == 'sum_absolute':
+                values = [abs(v) for v in values]
+            value = sum(values) if values else None
+        elif value_type == 'synonymous':
+            values = [value for from_aa, to_aa, value in dms_values if to_aa == from_aa]
+            if values:
+                value = values[0]
+        elif value_type in self.amino_acid_types:
+            one_letter_code = self.amino_acid_types[value_type]
+            values = [value for from_aa, to_aa, value in dms_values if to_aa == one_letter_code]
+            if len(values) == 1:
+                value = values[0]
         return value
 
     def mutation_values(self, residue_number):
