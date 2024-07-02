@@ -19,7 +19,7 @@ _cxcmd_css = """
     display: block;
     font-weight: bold;
     margin-top: .5em;
-    background-color: #ddd;
+    background-color: BACKGROUND;
 }
 a.no_underline {
     text-decoration: none;
@@ -43,9 +43,12 @@ _cxcmd_as_cmd_css = """
 """
 
 def cxcmd_css(exec_links):
+    from chimerax.core.colors import scheme_color
+    background = scheme_color('command')
+    base_css = _cxcmd_css.replace('BACKGROUND', background)
     if exec_links:
-        return _cxcmd_css + _cxcmd_as_cmd_css
-    return _cxcmd_css + _cxcmd_as_doc_css
+        return base_css + _cxcmd_as_cmd_css
+    return base_css + _cxcmd_as_doc_css
 
 
 context_menu_html = """
