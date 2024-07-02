@@ -242,9 +242,10 @@ class FoldseekResultsTable(ItemTable):
         self.data = rows
         self.launch()
         self.sort_by(col_identity, self.SORT_DESCENDING)
-        col_species_index = self._columns.index(col_species)	# TODO: Don't use private method of ItemTable
+        col_species_index = self.columns.index(col_species)
         species_column_width = 120
         self.setColumnWidth(col_species_index, species_column_width)
+        self.setAutoScroll(False)  # Otherwise click on Description column scrolls horizontally
 
 # -----------------------------------------------------------------------------
 #
