@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek(session, chain, database = 'pdb100', trim = True, alignment_cutoff_distance = 2.0, wait = False):
+def foldseek(session, chain, database = 'pdb100', trim = None, alignment_cutoff_distance = None, wait = False):
     '''Submit a Foldseek search for similar structures and display results in a table.'''
     FoldseekWebQuery(session, chain, database=database,
                      trim=trim, alignment_cutoff_distance=alignment_cutoff_distance, wait=wait)
@@ -69,10 +69,14 @@ class FoldseekWebQuery:
 
         hit_lines = results[self.database]
         hits = [parse_search_result(hit, self.database) for hit in hit_lines]
-        from .gui import FoldseekResults
-        FoldseekResults(self.session, query_chain = self.chain, hits = hits,
-                        database = self.database, trim = self.trim,
-                        alignment_cutoff_distance = self.alignment_cutoff_distance)
+        from .gui import foldseek_panel, Foldseek
+        fp = foldseek_panel(self.session)
+        if fp:
+            fp.show_results(hits, query_chain = self.chain, database = self.database,
+                            trim = self.trim, alignment_cutoff_distance = self.alignment_cutoff_distance)
+        else:
+            Foldseek(self.session, query_chain = self.chain, database = self.database,
+                     hits = hits, trim = self.trim, alignment_cutoff_distance = self.alignment_cutoff_distance)
 
     def submit_query(self, mmcif_string, databases = ['pdb100']):
         '''
@@ -313,6 +317,13 @@ def open_hit(session, hit, query_chain, trim = True, alignment_cutoff_distance =
     session.logger.info(msg)
 
 def trim_structure(structure, hit, trim):
+    res, chain_res = residue_range(structure, hit, structure.session.logger)
+    rnum_start, rnum_end = res[0].number, res[-1].number
+    crnum_start, crnum_end = chain_res[0].number, chain_res[-1].number
+
+    if not trim:
+        return res
+    
     chain_id = hit.get('chain_id')
     
     if (trim is True or 'chains' in trim) and chain_id is not None:
@@ -320,10 +331,6 @@ def trim_structure(structure, hit, trim):
             cmd = f'delete #{structure.id_string} & ~/{chain_id}'
             from chimerax.core.commands import run
             run(structure.session, cmd)
-
-    res, chain_res = residue_range(structure, hit, structure.session.logger)
-    rnum_start, rnum_end = res[0].number, res[-1].number
-    crnum_start, crnum_end = chain_res[0].number, chain_res[-1].number
 
     trim_seq = (trim is True or 'sequence' in trim)
     if trim_seq:
