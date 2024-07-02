@@ -234,6 +234,9 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
         fit_loops_model.atoms.coords += shift
 
     if replace:
+        undo_all_atoms = structure.atoms
+        undo_all_coords = undo_all_atoms.coords
+
         orig_atom_map = dict([(a.string(style="simple", omit_structure=True), a) for a in structure.atoms])
         orig_res_map = dict([(r.string(style="simple", omit_structure=True), r) for r in structure.residues])
         fit_res_indices = dict([(r, i) for i, r in enumerate(fit_loops_model.residues)])
@@ -272,7 +275,7 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
         gap_residues = set()
         for fit_atom, orig_atom in new_atoms:
             gap_residues.add(orig_atom.residue)
-            for fnb, fb in zip(fit_atom.neighbors, fit_atom.bonds):
+            for fnb in fit_atom.neighbors:
                 onb = orig_atom_map[fnb.string(style="simple", omit_structure=True)]
                 bonded_residues.add(onb.residue)
                 if onb not in orig_atom.neighbors:
@@ -306,10 +309,47 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
                 raise AssertionError("Chain sequence for chain %s changed after fit_loops; undoing changes"
                     % chain.chain_id)
         # show residues adjacent to the gap as stick
-        for nbr in bonded_residues - gap_residues:
-            nbr.ribbon_display = False
-            nbr.atoms.displays = True
-            nbr.atoms.draw_modes = nbr.atoms[0].STICK_STYLE
+        from chimerax.atomic import Residues, Atoms, Atom
+        edge_residues = Residues(bonded_residues - gap_residues)
+        edge_ribbon_displays = edge_residues.ribbon_displays
+        edge_residues.ribbon_displays = False
+        edge_atoms = edge_residues.atoms
+        edge_atom_displays = edge_atoms.displays
+        edge_atom_draw_modes = edge_atoms.draw_modes
+        edge_atoms.displays = True
+        edge_atoms.draw_modes = Atom.STICK_STYLE
+        from chimerax.core.undo import UndoAction
+        class FitLoopsUndo(UndoAction):
+            def __init__(self, session, data=(undo_all_atoms, undo_all_coords, edge_residues,
+                    edge_ribbon_displays, edge_atoms, edge_atom_displays, edge_atom_draw_modes,
+                    Atoms([orig for fit, orig in new_atoms]))):
+                self.session = session
+                self.data = data
+                super().__init__("Fit Loops result", can_redo=False)
+
+            def undo(self):
+                all_atoms, all_coords, edge_residues, edge_ribbon_displays, edge_atoms, \
+                    edge_atom_displays, edge_atom_draw_modes, new_atoms = self.data
+                if new_atoms:
+                    for a in new_atoms:
+                        a.structure.delete_atom(a)
+                if len(all_atoms) == len(all_coords):
+                    all_atoms.coords = all_coords
+                else:
+                    self.session.logger.warning("Not all previous atoms still exist; not restoring"
+                        " previous coordinates")
+                if len(edge_residues) == len(edge_ribbon_displays):
+                    edge_residues.ribbon_displays = edge_ribbon_displays
+                    if len(edge_atoms) == len(edge_atom_displays):
+                        edge_atoms.displays = edge_atom_displays
+                        edge_atoms.draw_modes = edge_atom_draw_modes
+                    else:
+                        self.session.logger("Not all atoms in residues adjacent to gap still exist;"
+                            " not restoring their display status and draw mode")
+                else:
+                    self.session.logger.warning("Not all residues adjacent to gap still exist; not"
+                        " restoring their state")
+        session.undo.register(FitLoopsUndo(session))
         fit_loops_model.delete()
     else:
         fit_loops_model.position = structure.scene_position
