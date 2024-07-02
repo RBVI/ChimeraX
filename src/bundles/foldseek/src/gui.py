@@ -236,11 +236,16 @@ class FoldseekResultsTable(ItemTable):
         ItemTable.__init__(self, parent = parent)
         self.add_column(database_name, 'database_full_id')
         col_identity = self.add_column('Identity', 'pident')
+        col_species = self.add_column('Species', 'taxname')
         self.add_column('Description', 'description', justification = 'left')
         rows = [FoldseekRow(hit) for hit in hits]
         self.data = rows
         self.launch()
         self.sort_by(col_identity, self.SORT_DESCENDING)
+        col_species_index = self._columns.index(col_species)	# TODO: Don't use private method of ItemTable
+        species_column_width = 120
+        print('foldseek species col width', self.columnWidth(col_species_index))
+        self.setColumnWidth(col_species_index, species_column_width)
 
 # -----------------------------------------------------------------------------
 #
