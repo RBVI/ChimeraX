@@ -244,7 +244,6 @@ class FoldseekResultsTable(ItemTable):
         self.sort_by(col_identity, self.SORT_DESCENDING)
         col_species_index = self._columns.index(col_species)	# TODO: Don't use private method of ItemTable
         species_column_width = 120
-        print('foldseek species col width', self.columnWidth(col_species_index))
         self.setColumnWidth(col_species_index, species_column_width)
 
 # -----------------------------------------------------------------------------
