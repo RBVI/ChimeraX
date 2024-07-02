@@ -151,6 +151,7 @@ Surface display style (solid, mesh, or dot) can be adjusted with
   <li><a href="#dust"><b>surface dust</b></a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/dust.png"></a>
+  <li><a href="#hidefarblobs"><b>surface hidefarblobs</b></a>
   <li><a href="#invertShown"><b>surface invertShown</b></a>
   <li><a href="#showall"><b>surface showall</b></a>
   <li><a href="#squaremesh"><b>surface squaremesh</b></a>
@@ -396,6 +397,8 @@ See also:
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/dust.png"></a>
 &ndash; hide small blobs (disconnected parts)
+<li><a href="#hidefarblobs"><b>surface hidefarblobs</b></a>
+&ndash; hide surface blobs far from another surface
 <li><a href="#invertShown"><b>surface invertShown</b></a>
 &ndash; show hidden surface triangles, hide triangles that were shown
 <li><a href="#showall"><b>surface showall</b></a>
@@ -494,6 +497,48 @@ first hide the dust, then use
 <a href="#invertShown"><b>surface invertShown</b></a>.
 See also: <a href="marker.html#connected"><b>marker connected</b></a>
 </p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="hidefarblobs"></a>
+<b>surface hidefarblobs</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model1</i></a>&nbsp;
+<b>nearSurface</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model2</i></a>&nbsp;
+<b>distance</b>&nbsp;&nbsp;<i>d</i>&nbsp;
+[&nbsp;<b>symmetric</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>countsOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>nested</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<blockquote>
+Hide triangles of a surface model
+(<a href="atomspec.html#othermodels"><i>surf-model1</i></a>)
+that are not part of connected surface pieces within
+<b>distance</b> <i>d</i> of another surface model
+(<a href="atomspec.html#othermodels"><i>surf-model2</i></a>).
+This is useful for
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/colocalization-jun2024/coloc.html"
+target="_blank">colocalization analysis</a> of 3D light microscopy,
+finding spots in one channel near spots in another channel.
+The distance criterion should be larger than the typical vertex spacing because
+only vertex-to-vertex distances between the two surfaces are evaluated.
+Parts of the surfaces that are already hidden 
+(<i>e.g.</i>, with <a href="#dust"><b>surface dust</b></a>) are not considered.
+The <b>symmetric</b> option indicates whether to hide blobs in both surfaces, 
+each based on its distance from the other (default <b>true</b>).
+With <b>countsOnly true</b>, no blobs are hidden,
+but how many would be hidden are reported in the
+<a href="../tools/log.html"><b>Log</b></a> (default <b>false</b>).
+The <b>nested</b> option (default <b>false</b>) indicates not hiding
+blobs of <a href="atomspec.html#othermodels"><i>surf-model1</i></a>
+that are entirely inside blobs of
+<a href="atomspec.html#othermodels"><i>surf-model2</i></a>
+even if the nested surfaces are farther apart than the specified distance.
+It only applies when <a href="atomspec.html#othermodels"><i>surf-model2</i></a>
+is a volume isosurface, since nesting of the inner blob
+is verified by checking that the interpolated volume values 
+at all of its surface vertices are above the volume threshold level.
+See also:
+<a href="ui.html#hideblobs"><b>hide blobs</b> mouse mode</a>
 </blockquote>
 
 <a name="invertShown"></a>

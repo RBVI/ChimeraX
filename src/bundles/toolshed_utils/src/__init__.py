@@ -136,7 +136,7 @@ def _import_package(toolshed, package_name, logger, install=None, session=None):
                 raise ImportError("bundle %r has no module" % package_name)
             return module
     # No installed bundle matches
-    from pkg_resources import parse_version
+    from packaging.version import Version
     best_bi = None
     best_version = None
     for bi in toolshed._get_available_bundles(logger):
@@ -144,12 +144,12 @@ def _import_package(toolshed, package_name, logger, install=None, session=None):
             continue
         if best_bi is None:
             best_bi = bi
-            best_version = parse_version(bi.version)
+            best_version = Version(bi.version)
         elif best_bi.name != bi.name:
             raise ImportError("%r matches multiple bundles %s, %s" % (
                 package_name, best_bi.name, bi.name))
         else:
-            v = parse_version(bi.version)
+            v = Version(bi.version)
             if v > best_version:
                 best_bi = bi
                 best_version = v

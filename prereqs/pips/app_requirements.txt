@@ -51,7 +51,7 @@ python-dateutil==2.9.0.post0
 # sip handled in prereqs/PyQt
 #PySide2==5.15.2
 qtconsole==5.5.1
-requests==2.32.0
+requests==2.32.3
 scipy==1.13.0
 six==1.16.0
 sortedcontainers==2.4.0

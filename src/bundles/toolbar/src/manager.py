@@ -63,6 +63,7 @@ class ToolbarManager(ProviderManager):
         #   name="Redo" link="BundleName:provider-name"/>
         # <Provider tab="Markers" section="Place markers" name="pm1"
         #   mouse_mode="mark maximum" display_name="Maximum" description="Mark maximum"/>
+        from Qt import QtGui
         tab = kw.pop('tab', None)
         if tab is None:
             self.session.logger.warning('Missing tab %s' % where())
@@ -90,9 +91,15 @@ class ToolbarManager(ProviderManager):
             name = kw.pop("mouse_mode")
             display_name = kw.pop('display_name', name)
             description = kw.pop('description', None)
+            theme_icon = kw.pop('themeIcon', None)
             icon = kw.pop('icon', None)
+            dark_icon = kw.pop('darkIcon', None)
+            if theme_icon is not None:
+                theme_icon = getattr(QtGui.QIcon.ThemeIcon, theme_icon, None)
             if icon is not None:
                 icon = bundle_info.get_path('icons/%s' % icon)
+            if dark_icon is not None:
+                dark_icon = bundle_info.get_path('icons/%s' % dark_icon)
             bundle_info = fake_mouse_mode_bundle_info
         elif 'link' in kw:
             link = kw.pop("link")
@@ -118,23 +125,38 @@ class ToolbarManager(ProviderManager):
                 display_name = pi_kw.get("display_name", None)
                 if display_name is None:
                     display_name = provider
+            theme_icon = pi_kw.get('themeIcon', None)
+            icon = pi_kw.get('icon', None)
+            dark_icon = pi_kw.get('darkIcon', None)
+            if theme_icon is None and icon is None and dark_icon is None:
+                self.session.logger.warning('Missing icon in linked button %s' % where())
+                return
             try:
-                icon = pi_kw["icon"]
                 description = pi_kw["description"]
             except KeyError as e:
                 self.session.logger.warning('Missing %s in linked button %s' % (e, where()))
                 return
+            if theme_icon is not None:
+                theme_icon = getattr(QtGui.QIcon.ThemeIcon, theme_icon, None)
+                if theme_icon is None:
+                    self.session.logger.warning('Unable to find theme icon %s' % where())
             if icon is not None:
                 icon = bi.get_path('icons/%s' % icon)
                 if icon is None:
                     self.session.logger.warning('Unable to find icon %s' % where())
+            if dark_icon is not None:
+                dark_icon = bi.get_path('icons/%s' % dark_icon)
+                if dark_icon is None:
+                    self.session.logger.warning('Unable to find dark icon %s' % where())
             name = provider
             bundle_info = bi
         else:
             display_name = kw.pop('display_name', None)
+            theme_icon = kw.pop('themeIcon', None)
             icon = kw.pop('icon', None)
+            dark_icon = kw.pop('darkIcon', None)
             description = kw.pop('description', None)
-            if display_name is None and icon is None and description is None:
+            if display_name is None and theme_icon is None and icon is None and description is None:
                 self._add_layout(tab_dict, section, before, after)
                 compact = kw.pop('compact', False)
                 if compact:
@@ -142,14 +164,22 @@ class ToolbarManager(ProviderManager):
                 return
             if display_name is None:
                 display_name = name
+            if theme_icon is not None:
+                theme_icon = getattr(QtGui.QIcon.ThemeIcon, theme_icon, None)
+                if theme_icon is None:
+                    self.session.logger.warning('Unable to find theme icon %s' % where())
             if icon is not None:
                 icon = bundle_info.get_path('icons/%s' % icon)
                 if icon is None:
                     self.session.logger.warning('Unable to find icon %s' % where())
+            if dark_icon is not None:
+                dark_icon = bundle_info.get_path('icons/%s' % dark_icon)
+                if dark_icon is None:
+                    self.session.logger.warning('Unable to find icon %s' % where())
                 # TODO: use default icon
         if name in section_dict:
             self.session.logger.warning('Overriding existing toolbar provider %s' % where())
-        section_dict[display_name] = (name, bundle_info, icon, description, kw)
+        section_dict[display_name] = (name, bundle_info, (theme_icon, icon, dark_icon), description, kw)
         if before is not None or after is not None:
             self._add_layout(section_dict, display_name, before, after)
 

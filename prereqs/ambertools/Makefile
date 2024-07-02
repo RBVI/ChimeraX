@@ -5,8 +5,8 @@ include $(TOP)/mk/config.make
 # Using AmberTools distribution from https://ambermd.org
 
 #ifeq ($(OS),Darwin)
-#VERSION = 23
-#SRC_VERSION = 22
+#VERSION = 24
+#SRC_VERSION = 24
 #else
 VERSION = 20
 SRC_VERSION = 20

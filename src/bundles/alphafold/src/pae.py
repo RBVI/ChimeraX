@@ -1423,7 +1423,7 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
     if plot is None:
         plot = not color_domains	# Plot by default if not coloring domains.
         
-    if plot:
+    if plot and session.ui.is_gui:
         from chimerax.core.colors import colormap_with_range
         colormap = colormap_with_range(palette, range, default_colormap_name = 'pae',
                                        full_range = (0,30))

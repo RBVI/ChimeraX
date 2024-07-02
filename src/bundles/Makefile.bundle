@@ -5,7 +5,8 @@
 # 	build: make wheel and sync
 # 	test: run ChimeraX
 # 	debug: run ChimeraX with debugging flag set
-# 	clean: remove files used in building wheel
+# 	clean: remove files used in building wheel except downloads
+#	distclean: remove downloaded files as well
 
 TOP ?= ../../..
 -include $(TOP)/.makerc
@@ -133,6 +134,11 @@ clean:
 	if [ -n "$(CLEAN_ALWAYS)" ]; then \
 		rm -rf $(CLEAN_ALWAYS); \
 	fi
+
+distclean: clean
+ifneq (,$(DISTCLEAN))
+	rm -rf $(DISTCLEAN)
+endif
 
 pylint:
 	$(CX_BIN) -m flake8 $(filter %.py, $(PYSRCS))
