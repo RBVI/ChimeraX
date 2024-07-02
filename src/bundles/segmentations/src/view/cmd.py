@@ -4,8 +4,15 @@ from chimerax.core.models import REMOVE_MODELS
 from chimerax.map import Volume
 from chimerax.dicom.dicom_volumes import DICOMVolume
 
+import chimerax.segmentations.triggers
+from chimerax.segmentations.triggers import (
+    VIEW_LAYOUT_CHANGED,
+    GUIDELINES_VISIBILITY_CHANGED,
+)
+
 from chimerax.segmentations.view import views, FourPanelView
 from chimerax.segmentations.ui import find_segmentation_tool
+from chimerax.segmentations.settings import get_settings
 
 
 def any_open_volumes(session) -> bool:
@@ -15,26 +22,37 @@ def any_open_volumes(session) -> bool:
 def view_layout(
     session, layout: str = None, guidelines: bool = None, force=False
 ) -> None:
+    # TODO Handle VR
     st = find_segmentation_tool(session)
-    if st:
-        st.set_view_dropdown(layout)
+    settings = get_settings(session)
     if layout == "default" and session.ui.main_window.view_layout != "default":
         session.ui.main_window.restore_default_main_view()
+        chimerax.segmentations.triggers.activate_trigger(VIEW_LAYOUT_CHANGED, layout)
     elif layout in views and session.ui.main_window.view_layout != "orthoplanes":
         if not layout:
             session.ui.main_window.main_view = FourPanelView(session)
         else:
             session.ui.main_window.main_view = FourPanelView(session, layout)
         session.ui.main_window.view_layout = "orthoplanes"
+        chimerax.segmentations.triggers.activate_trigger(VIEW_LAYOUT_CHANGED, layout)
         if st:
             session.ui.main_window.main_view.register_segmentation_tool(st)
         if guidelines:
-            session.ui.main_window.main_view.set_guideline_visibility(guidelines)
+            settings.display_guidelines = guidelines
+            chimerax.segmentations.triggers.activate_trigger(
+                chimerax.segmentations.triggers.GUIDELINES_VISIBILITY_CHANGED
+            )
     elif layout in views and session.ui.main_window.view_layout == "orthoplanes":
         if layout:
             session.ui.main_window.main_view.convert_to_layout(layout)
+            chimerax.segmentations.triggers.activate_trigger(
+                VIEW_LAYOUT_CHANGED, layout
+            )
         if guidelines is not None:
-            session.ui.main_window.main_view.set_guideline_visibility(guidelines)
+            settings.display_guidelines = guidelines
+            chimerax.segmentations.triggers.activate_trigger(
+                GUIDELINES_VISIBILITY_CHANGED
+            )
 
 
 view_layout_desc = CmdDesc(

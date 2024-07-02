@@ -30,6 +30,7 @@ from Qt.QtWidgets import QApplication
 from chimerax.core.logger import PlainTextLog
 import sys
 from contextlib import contextmanager
+from chimerax.core.colors import scheme_color, set_default_color_scheme
 
 def initialize_qt():
     initialize_qt_plugins_location()
@@ -110,6 +111,13 @@ class UI(QApplication):
 
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
+        import sys
+        if sys.platform == 'win32':
+            self.setStyle('Fusion')
+
+        if self.dark_mode():
+            # TODO: hook up Qt signal to monitor color scheme changes
+            set_default_color_scheme('dark')
 
         redirect_stdio_to_logger(self.session.logger)
         self.redirect_qt_messages()
@@ -123,6 +131,36 @@ class UI(QApplication):
         self.triggers.add_trigger('ready')
         self.triggers.add_trigger('tool window show')
         self.triggers.add_trigger('tool window hide')
+
+        # Work around Mac crash when adding or removing a screen. ChimeraX ticket #15277.
+        from sys import platform
+        if platform == 'darwin':
+            self.screenAdded.connect(self._screen_added)
+            self.screenRemoved.connect(self._screen_removed)
+
+    def _screen_added(self):
+        self._block_redraw_during_screen_change()
+        from os import uname
+        if uname().machine == 'x86_64':
+            # Work around Qt 6.6 Intel Mac crash, ChimeraX ticket #15277.
+            self.session.main_view.use_opengl_done_current = False
+    def _screen_removed(self):
+        self._block_redraw_during_screen_change()
+    def _block_redraw_during_screen_change(self):
+        '''Work around bug #15277 where ChimeraX crashes on Mac when a screen is added or removed.'''
+        self.session.update_loop.block_redraw()
+        # Block for longer on Intel Mac where a 2 second block still caused crash #15304.
+        from os import uname
+        block_msec = 5000 if uname().machine == 'x86_64' else 2000
+        timer = []
+        t = self.timer(block_msec, self._unblock_redraw_after_screen_change, timer)
+        timer.append(t)
+        if not hasattr(self, '_block_redraw_timers'):
+            self._block_redraw_timers = set()
+        self._block_redraw_timers.add(t)
+    def _unblock_redraw_after_screen_change(self, timer_list):
+        self._block_redraw_timers.discard(timer_list[0])
+        self.session.update_loop.unblock_redraw()
 
     @property
     def mouse_modes(self):
@@ -419,6 +457,26 @@ class UI(QApplication):
     def update_undo(self, undo_manager):
         self.main_window.update_undo(undo_manager)
 
+    def dark_mode(self):
+        from Qt.QtCore import Qt
+        return self.styleHints().colorScheme() == Qt.ColorScheme.Dark
+
+    def dark_css(self, background=None):
+        if background is None:
+            background = scheme_color('Canvas', scheme='dark')
+        foreground = scheme_color('CanvasText', scheme='dark')
+        link = scheme_color('LinkText', scheme='dark')
+        import textwrap
+        return textwrap.dedent("""
+            @media (prefers-color-scheme: dark) {
+                :root { color-scheme: dark; }
+            }
+            """)
+            #@media (prefers-color-scheme: light) {
+            #    :root { color-scheme: light; }
+            #}
+
+
 from Qt.QtWidgets import QMainWindow, QStackedWidget, QLabel, QToolButton, QWidget
 class MainWindow(QMainWindow, PlainTextLog):
 
@@ -464,28 +522,35 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._stack.addWidget(g.widget)
         self.rapid_access = QWidget(self._stack)
         self.view_layout = "default"
-        ra_bg_color = "#B8B8B8"
-        font_size = 96
+        background = scheme_color('new_user_canvas')
+        foreground = scheme_color('new_user_canvas_text')
+        link = scheme_color('LinkText')
         new_user_text = [
             "<html>",
             "<body>",
             "<style>",
             "body {",
-            "    background-color: %s;" % ra_bg_color,
+            f"    background-color: {background};"
             "}",
             ".banner-text {",
-            "    font-size: %dpx;" % font_size,
-            "    color: #3C6B19;",
+            #"    font-size: %dpx;" % font_size,
+            "    font-size: 10vw;"
+            f"    color: {foreground};",
             "    position: absolute;",
             "    top: 50%;",
             "    left: 50%;",
             "    transform: translate(-50%,-150%);",
+            "    text-shadow: #000 0px 0px 1px;",
             "}"
             ".help-link {",
+            "    font-size: 2vw;"
             "    position: absolute;"
             "    top: 60%;",
             "    left: 50%;",
             "    transform: translate(-50%,-50%);",
+            "}",
+            ".help-link a {"
+            f"    color: {link};",
             "}",
             "</style>",
             '<p class="banner-text">ChimeraX</p>',
@@ -496,7 +561,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         from Qt import qt_have_web_engine
         if qt_have_web_engine():
             from .file_history import FileHistory
-            fh = FileHistory(session, self.rapid_access, bg_color=ra_bg_color, thumbnail_size=(128,128),
+            fh = FileHistory(session, self.rapid_access, bg_color=background, thumbnail_size=(128,128),
                              filename_size=15, no_hist_text="\n".join(new_user_text))
         self._stack.addWidget(self.rapid_access)
         self._stack.setCurrentWidget(g.widget)
@@ -1031,7 +1096,8 @@ class MainWindow(QMainWindow, PlainTextLog):
     def _build_status(self):
         from .statusbar import _StatusBar
         self._status_bar = sbar = _StatusBar(self.session)
-        sbar.status('Welcome to ChimeraX', 'blue')
+        status_color = scheme_color('status')
+        sbar.status('Welcome to ChimeraX', status_color)
         sb = sbar.widget
         self._global_hide_button = ghb = QToolButton(sb)
         self._rapid_access_button = rab = QToolButton(sb)

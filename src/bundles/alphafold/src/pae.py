@@ -555,23 +555,31 @@ class AlphaFoldPAEPlot(ToolInstance):
         self._showing_chain_dividers = show
         if show:
             dividers = []
-            pae = self._pae
-            rra = pae.row_residues_or_atoms()
-            from chimerax.atomic import Residue
+            rra = self._pae.row_residues_or_atoms()
             for i in range(len(rra)-1):
                 ra0, ra1 = rra[i:i+2]
-                r0, r1 = isinstance(ra0, Residue), isinstance(ra1, Residue)
-                if r0 and r1:
-                    if ra0.chain_id != ra1.chain_id:
-                        dividers.append(i)
-                elif r0 or r1:
-                    dividers.append(i)	# One residue and one atom
+                if self._chain_divider(ra0, ra1):
+                    dividers.append(i)
             if thickness is None:
                 thickness = min(4, 1+len(rra)//500)
         else:
             dividers = []
         self._pae_view._show_chain_dividers(dividers, thickness)
-        
+
+    # ---------------------------------------------------------------------------
+    #
+    def _chain_divider(self, ra0, ra1):
+        from chimerax.atomic import Residue
+        r0, r1 = isinstance(ra0, Residue), isinstance(ra1, Residue)
+        if r0 and r1:
+            if ra0.chain_id != ra1.chain_id:
+                return True
+        if r0 and not r1 and ra0.chain != ra1.residue.chain:
+            return True   # One residue and one atom that is not from a modified residue
+        if not r0 and r1 and ra0.residue.chain != ra1.chain:
+            return True   # One residue and one atom that is not from a modified residue
+        return False
+
     # ---------------------------------------------------------------------------
     #
     def _residue_color_blocks(self):
@@ -693,6 +701,7 @@ class AlphaFoldPAEPlot(ToolInstance):
                 ra.atoms.colors = color
             elif isinstance(ra, Atom):
                 ra.color = color
+                ra.residue.ribbon_color = color
 
         if len(res_and_atoms) > 0:
             cmd = 'color %s %s' % (_residue_and_atom_spec(res_and_atoms), colorname)
@@ -749,7 +758,7 @@ def _residue_and_atom_spec(residues_and_atoms):
     rspec = concise_residue_spec(res[0].structure.session, res) if res else ''
     atoms = [a for a in residues_and_atoms if isinstance(a, Atom)]
     aspec = _concise_atom_spec(atoms)
-    spec = rspec + aspec
+    spec = f'{rspec} {aspec}'
     return spec
 
 # ---------------------------------------------------------------------------
@@ -993,7 +1002,7 @@ class AlphaFoldPAE:
             return self._row_residues_or_atoms
         ra = []
         for r in s.residues:
-            if r.polymer_type in (r.PT_PROTEIN, r.PT_NUCLEIC):
+            if per_residue_pae(r):
                 ra.append(r)
             else:
                 ra.extend(r.atoms)
@@ -1036,7 +1045,12 @@ class AlphaFoldPAE:
                     f'/{ra.chain_id} {ra.label_one_letter_code}{ra.number}')
         elif isinstance(ra, Atom):
             res = ra.residue
-            name = f'/{res.chain_id} {ra.name}' if res.num_atoms == 1 else f'/{res.chain_id} {res.name} {ra.name}'
+            if res.polymer_type != res.PT_NONE:
+                name = f'/{res.chain_id} {res.label_one_letter_code}{res.number} {ra.name}'  # Modified residue
+            elif res.num_atoms == 1:
+                name = f'/{res.chain_id} {ra.name}'	# Ion
+            else:
+                name = f'/{res.chain_id} {res.name} {ra.name}'   # Ligand
         else:
             name = ''
         return name
@@ -1126,6 +1140,17 @@ class AlphaFoldPAE:
             cmd += ' log false'
         from chimerax.core.commands import run
         run(m.session, cmd, log = log_command)
+
+# ---------------------------------------------------------------------------
+#
+def per_residue_pae(r):
+    '''Determine if PAE for this residue is one value or a value for each atom.'''
+    ptype = r.polymer_type
+    if ptype == r.PT_PROTEIN and r.name == r.standard_aa_name:
+        return True
+    if ptype == r.PT_NUCLEIC and r.name in ('A','C','G','U','DA','DC','DG','DT'):
+        return True
+    return False
 
 # -----------------------------------------------------------------------------
 #
@@ -1398,7 +1423,7 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
     if plot is None:
         plot = not color_domains	# Plot by default if not coloring domains.
         
-    if plot:
+    if plot and session.ui.is_gui:
         from chimerax.core.colors import colormap_with_range
         colormap = colormap_with_range(palette, range, default_colormap_name = 'pae',
                                        full_range = (0,30))

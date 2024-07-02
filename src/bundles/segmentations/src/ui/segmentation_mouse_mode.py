@@ -81,6 +81,16 @@ _have_saved_mouse_bindings = False
 _have_saved_hand_bindings = False
 
 
+def mouse_bindings_saved():
+    global _have_saved_mouse_bindings
+    return _have_saved_mouse_bindings
+
+
+def hand_bindings_saved():
+    global _have_saved_mouse_bindings
+    return _have_saved_mouse_bindings
+
+
 def save_mouse_bindings(session):
     global _saved_mouse_bindings
     global _have_saved_mouse_bindings

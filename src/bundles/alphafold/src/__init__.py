@@ -87,12 +87,14 @@ class _AlphaFoldBundle(BundleAPI):
                                                **kw)
                     @property
                     def fetch_args(self):
-                        from chimerax.core.commands import BoolArg, Or, EnumOf
+                        from chimerax.core.commands import BoolArg, Or, EnumOf, IntArg
                         from chimerax.atomic import ChainArg
                         return {
                             'color_confidence': BoolArg,
                             'align_to': ChainArg,
                             'trim': BoolArg,
+                            'pae': BoolArg,
+                            'version': IntArg,
                         }
                 return AlphaFoldDatabaseInfo()
             elif name == 'alphafold_pae':
@@ -132,7 +134,7 @@ class _AlphaFoldBundle(BundleAPI):
                                 kw['structure'] = structs[0]
                             else:
                                 from chimerax.core.errors import UserError
-                                raise UserError(f'Opening an AlphaFold PAE file requires specifying the structure to associate.  Did not find an open structure from the same directory.  To specify the structure use menu\n\n\tTools / Structure Prediction / AlphaFold Error Plot\n\nor use the open command, for example\n\n\topen {path} format pae structure #1')
+                                raise UserError(f'Opening an AlphaFold PAE file requires specifying the structure to associate.  Did not find an open structure from the same directory.  To specify the structure use menu\n\n\tTools / Structure Prediction / AlphaFold Error Plot\n\nor use the open command, for example\n\n\topen {path} format pae structure #1\n\nIf you are trying to open a JSON file that is not AlphaFold PAE data then you need to specify the format such as \n\n\topen mole_channels.json format mole')
                         from .pae import alphafold_pae
                         pae = alphafold_pae(session, file = path, **kw)
                         return [], f'Opened AlphaFold PAE with values for {pae.matrix_size} residues and atoms'

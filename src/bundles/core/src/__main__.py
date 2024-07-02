@@ -401,6 +401,31 @@ def disable_external_logs(debug: bool) -> None:
         logging.getLogger("urllib3").setLevel(100)
 
 
+def dedup_sys_path():
+    """remove duplicate entries on sys.path"""
+    # importlib.metadata.distributions() will return duplicates if there is more
+    # than one entry for a directory on sys.path
+    # This is a problem on macOS because the symbolic link lib/pythonVER/site-packages
+    # is found in addtion to the Python.Framework one
+    import itertools
+
+    def stat_or_unique(path, _u=[0]):
+        try:
+            return os.stat(path)
+        except FileNotFoundError:
+            _u[0] += 1
+            return _u[0]
+
+    dups = []
+    for _, paths in itertools.groupby(sys.path, key=stat_or_unique):
+        paths = list(paths)
+        if len(paths) <= 1:
+            continue
+        dups += paths[1:]
+    for dup in dups:
+        sys.path.remove(dup)
+
+
 def init(argv, event_loop=True):
     import sys
 
@@ -417,6 +442,8 @@ def init(argv, event_loop=True):
         # ChimeraX is only distributed for 10.13+, so don't need to check version
         bad_drop_events = True
 
+    dedup_sys_path()
+
     if sys.platform.startswith("linux"):
         # Workaround for #638:
         # "any number of threads more than one leads to 200% CPU usage"
@@ -429,9 +456,6 @@ def init(argv, event_loop=True):
 
     os.environ["SSL_CERT_FILE"] = certifi.where()
 
-    if len(argv) > 1 and argv[1].startswith("--"):
-        # MacOS doesn't generate these drop events for args after '--' flags
-        bad_drop_events = False
     opts, args = parse_arguments(argv)
     if not opts.devel:
         import warnings
@@ -987,7 +1011,7 @@ def init(argv, event_loop=True):
 
     # Open files dropped on application
     if opts.gui:
-        sess.ui.open_pending_files(ignore_files=(args if bad_drop_events else []))
+        sess.ui.open_pending_files(ignore_files=(args+opts.scripts+opts.commands if bad_drop_events else []))
 
     # By this point the GUI module will have redirected stdout if it's going to
     if opts.debug:

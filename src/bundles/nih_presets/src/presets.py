@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.atomic import all_atomic_structures, Residue, Structure
+from chimerax.atomic import all_atomic_structures, Residue, Structure, all_residues, concise_residue_spec
 
 ball_and_stick = [
     "style ball",
@@ -127,6 +127,26 @@ def by_chain_cmds(session, rainbow=False, target_atoms=False):
         cmds.append("color zone %s near %s & main distance 20" % (s.atomspec, s.atomspec))
     return cmds
 
+def check_AF(session, *, pae=False):
+    from chimerax.core.errors import UserError
+    structures = []
+    if pae:
+        for s in all_atomic_structures(session):
+            if hasattr(s, 'alphafold_pae'):
+                structures.append(s)
+                continue
+        missing = "PAE information"
+    else:
+        for s in all_atomic_structures(session):
+            for r in s.residues:
+                if hasattr(r, 'pLDDT_score'):
+                    structures.append(s)
+                    break
+        missing = "pLDDT scores assigned"
+    if not structures:
+        raise UserError(f"No structures have {missing}!")
+    return ''.join([s.atomspec for s in structures])
+
 def color_by_hydrophobicity_cmds(session, target="rs"):
     kdh_info = {
         "asp": -3.5,
@@ -162,6 +182,46 @@ def color_by_hydrophobicity_cmds(session, target="rs"):
         "color byattribute kd_hydrophobicity protein target %s palette 16,67,87:white:100,45,0"
             " novalue magenta" % target
     ]
+
+def get_AF_surf_spec(session):
+    high = connected_high_AF_confidence(session)
+    spec_lookup = {}
+    for s in all_atomic_structures(session):
+        s_residues = [r for r in high if r.structure == s]
+        if s_residues:
+            spec_lookup[s] = concise_residue_spec(session, s_residues)
+        else:
+            spec_lookup[s] = s.atomspec
+    return spec_lookup
+
+def hide_AF_low_confidence(session):
+    # When this is called, 'ribbon_display' may be different than when the commands this
+    # generates are executed, so do not screen out residues to hide based on current ribbon_display
+    high = connected_high_AF_confidence(session)
+    hide_residues = []
+    for s in all_atomic_structures(session):
+        for r in s.residues:
+            if r not in high:
+                hide_residues.append(r)
+    if hide_residues:
+        return ["~ribbon " + concise_residue_spec(session, hide_residues)]
+    return []
+
+def connected_high_AF_confidence(session):
+    high = set()
+    for s in all_atomic_structures(session):
+        for chain in s.chains:
+            connected = []
+            for r in chain.residues:
+                if r and hasattr(r, 'pLDDT_score') and r.pLDDT_score > 50:
+                    connected.append(r)
+                else:
+                    if len(connected) > 3:
+                        high.update(connected)
+                    connected.clear()
+            if len(connected) > 3:
+                high.update(connected)
+    return high
 
 base_palette = ["marine", "goldenrod", "firebrick", "forest", "tangerine", "grape"]
 def palette(num_chains):
@@ -221,15 +281,39 @@ def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0, bond_sides
     return cmds
 
 def rainbow_cmd(structure, target_atoms=False):
+    target_arg = "target rfs%s" % ("a" if target_atoms else "")
+    from chimerax.mmcif import get_mmcif_tables_from_metadata
+    remapping = get_mmcif_tables_from_metadata(structure, ['pdbe_chain_remapping'])[0]
+    if remapping:
+        by_asym_okay = True
+        asym_to_sym = {}
+        for asym_id, sym_id in remapping.fields(['orig_label_asym_id', 'new_label_asym_id']):
+            if len(asym_id) > 1 or not sym_id.startswith(asym_id):
+                by_asym_id = False
+            asym_to_sym.setdefault(asym_id, []).append(sym_id)
+        cmds = []
+        for i, asym_id in enumerate(sorted(list(asym_to_sym.keys()))):
+            if by_asym_okay:
+                chain_spec = '/' + asym_id + '*'
+            else:
+                chain_spec = ''.join(['/' + cid for cid in asym_to_sym[asym_id]])
+            cmds.append("color %s%s %s %s" % (structure.atomspec, chain_spec,
+                base_palette[i % len(base_palette)], target_arg))
+        return ' ; '.join(cmds)
     color_arg = " chains palette " + palette(structure.num_chains)
-    return "rainbow %s@ca,c4'%s target rfs%s" % (structure.atomspec, color_arg, ("a" if target_atoms else ""))
+    return "rainbow %s@ca,c4'%s %s" % (structure.atomspec, color_arg, target_arg)
 
 def run_preset(session, name, mgr):
-    if name == "ribbon by secondary structure":
-        cmd = undo_printable + base_setup + base_macro_model + base_ribbon
-    elif name == "ribbon by secondary structure (printable)":
+    if name == "ribbon by secondary structure (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + print_prep(
             session, pb_radius=None)
+    elif name.startswith("ribbon by secondary structure"):
+        if "AlphaFold" in name:
+            check_AF(session)
+            af_cmds = hide_AF_low_confidence(session)
+        else:
+            af_cmds = []
+        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + af_cmds
     elif name == "ribbon by chain":
         cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [
             rainbow_cmd(s) for s in all_atomic_structures(session)
@@ -238,12 +322,18 @@ def run_preset(session, name, mgr):
         cmd = base_setup + base_macro_model + base_ribbon + [
             rainbow_cmd(s) for s in all_atomic_structures(session)
         ] + print_ribbon + print_prep(session, pb_radius=None)
-    elif name == "ribbon rainbow":
-        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [ "rainbow @ca,c4' target rf" ]
     elif name == "ribbon rainbow (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + [
             "rainbow @ca,c4'"
         ] + print_ribbon + print_prep(session, pb_radius=None)
+    elif name.startswith("ribbon rainbow"):
+        if "AlphaFold" in name:
+            check_AF(session)
+            af_cmds = hide_AF_low_confidence(session)
+        else:
+            af_cmds = []
+        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + af_cmds + [
+            "rainbow @ca,c4' target rf" ]
     elif name == "ribbon by polymer (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
             "color bypolymer"
@@ -258,14 +348,38 @@ def run_preset(session, name, mgr):
             "color nih_blue",
             "setattr p color nih_blue"
         ] + print_prep(session, pb_radius=None)
+    elif name.startswith("ribbon AlphaFold/pLDDT"):
+        struct_spec = check_AF(session)
+        if "high confidence" in name:
+            confidence_cmds = hide_AF_low_confidence(session)
+        else:
+            confidence_cmds = []
+        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + confidence_cmds + [
+            f"color byattribute r:pLDDT_score {struct_spec} palette alphafold"
+        ]
+    elif name.startswith("ribbon AlphaFold/PAE domains"):
+        struct_spec = check_AF(session, pae=True)
+        if "high confidence" in name:
+            confidence_cmds = hide_AF_low_confidence(session)
+        else:
+            confidence_cmds = []
+        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + confidence_cmds + [
+            f"alphafold pae {struct_spec} colorDomains true"
+        ]
     elif name.startswith("surface monochrome"):
         printable = "printable" in name
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
             printable) + [ "color nih_blue" ]
     elif name.startswith("surface coulombic"):
         printable = "printable" in name
+        if "AlphaFold" in name:
+            check_AF(session)
+            spec_lookup = get_AF_surf_spec(session)
+        else:
+            spec_lookup = None
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
-            printable) + [ "color white", "coulombic surfaces #* chargeMethod gasteiger" ]
+            printable, spec_lookup=spec_lookup) + [ "color white",
+            "coulombic surfaces #* chargeMethod gasteiger" ]
         from chimerax.atomic import AtomicStructures
         structures = AtomicStructures(all_atomic_structures(session))
         main_atoms = structures.atoms.filter(structures.atoms.structure_categories == "main")
@@ -278,8 +392,14 @@ def run_preset(session, name, mgr):
             session.logger.warning("Incomplete HIS residue; coulombic will likely fail")
     elif name.startswith("surface hydrophobicity"):
         printable = "printable" in name
+        if "AlphaFold" in name:
+            check_AF(session)
+            spec_lookup = get_AF_surf_spec(session)
+        else:
+            spec_lookup = None
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) \
-            + surface_cmds(session, printable, sharp=True) + color_by_hydrophobicity_cmds(session)
+            + surface_cmds(session, printable, sharp=True, spec_lookup=spec_lookup) \
+            + color_by_hydrophobicity_cmds(session)
     elif name.startswith("surface by chain"):
         printable = "printable" in name
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
@@ -301,6 +421,24 @@ def run_preset(session, name, mgr):
                 % (s.atomspec, ("" if s.num_atoms < 250000 else " enclose %s" % s.atomspec))
                     for s in all_atomic_structures(session)
             ] + [ "color bypolymer target ar" ] + by_chain_cmds(session)
+    elif name.startswith("surface AlphaFold/pLDDT"):
+        struct_spec = check_AF(session)
+        if "high confidence" in name:
+            spec_lookup = get_AF_surf_spec(session)
+        else:
+            spec_lookup = None
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + \
+            surface_cmds(session, True, sharp=True, spec_lookup=spec_lookup) + [
+            f"color byattribute r:pLDDT_score {struct_spec} palette alphafold" ]
+    elif name.startswith("surface AlphaFold/PAE domains"):
+        struct_spec = check_AF(session, pae=True)
+        if "high confidence" in name:
+            spec_lookup = get_AF_surf_spec(session)
+        else:
+            spec_lookup = None
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + \
+            surface_cmds(session, True, sharp=True, spec_lookup=spec_lookup) + [
+            f"alphafold pae {struct_spec} colorDomains true", f"color {struct_spec} fromAtoms" ]
     elif name == "sticks":
         cmd = undo_printable + base_setup + color_by_het + [
             "style stick",
@@ -363,9 +501,12 @@ def run_preset(session, name, mgr):
     cmd = " ; ".join(cmd)
     mgr.execute(cmd)
 
-def surface_cmds(session, printable, *, sharp=False):
+def surface_cmds(session, printable, *, sharp=False, spec_lookup=None):
     import math
-    cmds = ["size atomRadius default"]
+    # the newline preceding the 'size' command means that the preset manager will run the commands
+    # preceding 'size' in their own run() call, will will allow check_for_changes to happen.  Otherwise
+    # surface may get recolored (to default coloring) by an unexpectedly late check_for_changes
+    cmds = ["\nsize atomRadius default"]
     for s in all_atomic_structures(session):
         # AddH won't actually run until after this command is generated, so base the grid value
         # on the number of heavy atoms involved in the surface for consistency, but then multiply
@@ -377,8 +518,12 @@ def surface_cmds(session, printable, *, sharp=False):
             grid_size = min(2.0, max(0.3, math.log10(2*num_heavys) - 3.2))
         else:
             grid_size = min(2.5, max(0.5, math.log10(2*num_heavys) - 2.5))
+        if spec_lookup is None:
+            spec = s.atomspec
+        else:
+            spec = spec_lookup[s]
         cmds.append("surface %s enclose %s grid %g sharp %s"
-            % (s.atomspec, s.atomspec, grid_size, "true" if sharp else "false"))
+            % (s.atomspec, spec, grid_size, "true" if sharp else "false"))
     return cmds
 
 def volume_cleanup_cmds(session, contour_cmds=None):

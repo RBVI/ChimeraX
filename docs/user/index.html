@@ -20,6 +20,7 @@ or derivations thereof.
 <style>
 div.expanded {visibility:visible; display: block}
 div.collapsed {visibility:hidden; display: none}
+@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }
 </style>
 <script>
 function toggle(id, image) {
@@ -38,10 +39,10 @@ function toggle(id, image) {
 <a name="top"></a>
 <a href="https://www.rbvi.ucsf.edu/chimerax/">
 <img width="50px" src="ChimeraX-home-icon.svg" alt="ChimeraX home icon"
-title="ChimeraX Home" class="clRight"/></a>
+title="ChimeraX Home" class="clRighticon"/></a>
 <h2>
 <img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-title="ChimeraX User Guide Index"/>
+title="ChimeraX User Guide Index" style="background:white"/>
 UCSF ChimeraX User Guide
 </h2>
 <p>
@@ -171,7 +172,9 @@ with colors, atomic radii, or worms, or
 <li><a href="tools/scalebar.html"><b>Scale Bar</b></a></li>
 <li><a href="tools/segment.html"><b>Segment Map</b></a></li>
 <li><a href="tools/segmentations.html"><b>Segmentations</b></a>
-&ndash; manually segment medical image or other map data plane by plane</li>
+&ndash; manually segment medical image or other map data plane by plane,
+or with a spherical cursor in the 3D view or in
+<a href="vr.html">virtual reality</a></li>
 <li><a href="tools/inspector.html"><b>Selection Inspector</b></a>
 <img class="icon" src="tools/toolbar-icons/magnifying-glass.png">
 &ndash; view/modify <a href="attributes.html">attributes</a> of the current 

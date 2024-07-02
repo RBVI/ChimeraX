@@ -1,8 +1,20 @@
 APPNAME = edu.ucsf.rbvi.ChimeraX
 BUILD_DIR = fp-build.tmp
 RUNTIME_VER = 23.08
-BRANCH = $(shell awk '$$1 == "branch:" { print $$2; exit } { exit 3 }' last-commit 2> /dev/null || git branch --show-current)
+BRANCH = $(shell \
+    branch=$$(awk '$$1 == "branch:" { print $$2; exit } { exit }' last-commit 2> /dev/null) ; \
+    if [ -z "$$branch" ]; then branch=$$(git branch --show-current); fi ; \
+    if [ -z "$$branch" ]; then branch=develop; fi ; \
+    echo $$branch )
+COMMIT=$(shell \
+    (awk '$$1 == "commit" { print $$2; exit } { exit 3 }' last-commit 2> /dev/null) \
+    || (git show --summary --format=%H | head -1))
 SRC_DIR = $(shell pwd -P)
+ifeq ($(BUILD_TYPE),daily)
+APPNAME := ${APPNAME}-daily
+else ifeq ($(BUILD_TYPE),techpreview)
+APPNAME := ${APPNAME}-techpreview
+endif
 
 all:
 	# by default, do nothing
@@ -32,8 +44,8 @@ prereqs:
 	mv build/sync wheels
 	mv build/include .
 
-${APPNAME}.yaml: ${APPNAME}.yaml.in
-	sed -e 's:RUNTIME_VER:${RUNTIME_VER}:' -e 's:BRANCH:${BRANCH}:' -e 's:BUILD_TYPE:BUILD_TYPE=${BUILD_TYPE}:' $< > $@ || rm $@
+${APPNAME}.yaml: flatpak-app.yaml.in
+	sed -e 's:APPNAME:${APPNAME}:' -e 's:RUNTIME_VER:${RUNTIME_VER}:' -e 's:BRANCH:${BRANCH}:' -e 's:COMMIT:${COMMIT}:' -e 's:BUILD_TYPE:BUILD_TYPE=${BUILD_TYPE}:' $< > $@ || rm $@
 
 clean:
 	rm -f ${APPNAME}.metainfo.xml ${APPNAME}.desktop ${APPNAME}.yaml
@@ -47,7 +59,7 @@ install:
 	$(MAKE) -C src/apps/ChimeraX install FLATPAK_DIST=${RUNTIME_VER} FLATPAK_APPNAME=${APPNAME} BUILD_TYPE=${BUILD_TYPE}
 	# create wheels and include directories
 	curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/linux-shared/${BUILD_TYPE}.tar.bz2 | tar jxf -
-	mv include /app
+	cp -rp include /app
 	/app/bin/python3.* -m pip install wheels/*.whl
 	$(MAKE) -C src/apps install BUILD_TYPE=${BUILD_TYPE}
 	$(MAKE) -C docs install BUILD_TYPE=${BUILD_TYPE}

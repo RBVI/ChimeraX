@@ -98,7 +98,7 @@ def masked_volume(volume, surfaces,
   # Create minimal size volume mask array and calculate transformation from
   # mask indices to depth array indices.
   full = full_map or invert_mask
-  vol, mvol, ijk_origin, mijk_to_dijk = volume_mask(volume, surfaces, full, tf)
+  vol, mvol, ijk_origin, mijk_to_dijk = volume_mask(volume, surfaces, full, extend, tf)
 
   # Copy volume to masked volume at depth intervals inside surface.
   project_and_mask(zsurf, size, mvol, mijk_to_dijk, sandwich, fill_overlap)
@@ -187,7 +187,7 @@ def surface_projection_coordinates(surfaces, projection_axis, volume):
 # Create minimal size volume mask array and calculate transformation from
 # mask indices to depth array indices.
 #
-def volume_mask(volume, surfaces, full, tf):
+def volume_mask(volume, surfaces, full, extend, tf):
 
   g = volume.data
   if full:
@@ -196,8 +196,8 @@ def volume_mask(volume, surfaces, full, tf):
   else:
     ijk_min, ijk_max = bounding_box(surfaces, g.xyz_to_ijk_transform)
     from math import ceil, floor
-    ijk_min = [int(floor(i)) for i in ijk_min]
-    ijk_max = [int(ceil(i)) for i in ijk_max]
+    ijk_min = [int(floor(i))-extend for i in ijk_min]
+    ijk_max = [int(ceil(i))+extend for i in ijk_max]
     from chimerax.map.volume import clamp_region
     ijk_min, ijk_max = clamp_region((ijk_min, ijk_max, (1,1,1)), g.size)[:2]
   ijk_size = [a-b+1 for a,b in zip(ijk_max, ijk_min)]

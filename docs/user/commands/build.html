@@ -16,12 +16,13 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command: build</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: build</h3>
 <p>
@@ -37,6 +38,9 @@ the <a href="../tools/buildstructure.html"><b>Build Structure</b></a> tool:
 &ndash; add a covalent bond between two atomic models to form a single model
 <li><a href="#invert"><b>build invert</b></a>
 &ndash; swap substituents, potentially changing chirality
+<li><a href="#replace"><b>build replace</b></a>
+&ndash; replace part of a chain with part of another chain 
+(without changing the position of the latter set of residues)
 </ul>
 <p>
 See also: 
@@ -395,7 +399,51 @@ The results can be reversed by simply repeating the command.
 </p>
 </blockquote>
 
+<a href="#top" class="nounder">&bull;</a>
+<a name="replace"></a>
+<b>build replace</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>res-spec1</i></a>&nbsp;
+<b>with</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>res-spec2</i></a>&nbsp;
+[&nbsp;<b>numberingStart</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>bondStart</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>bondEnd</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+<p>
+The <b>build replace</b> command deletes a set of residues from a chain
+(<a href="atomspec.html#hierarchy"><i>res-spec1</i></a>)
+and replaces them with a copy of set of residues from another chain
+(<a href="atomspec.html#hierarchy"><i>res-spec2</i></a>). 
+The two chains must be of the same polymer type, either both peptide or
+both nucleic acid. This command is somewhat special-purpose in that
+nothing is moved; the copied residues will have exactly 
+the same coordinates as the original set of residues.
+If the geometry is not reasonable, some other method
+(<i>e.g.</i>, dynamic refinement with 
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxisolde"
+target="_blank"><b>ISOLDE</b></a>)
+would be required to improve the structure.
+</p><p>
+The copied residues will be assigned the chain ID of the residues that 
+they replaced, and will potentially be renumbered starting from
+<b>numberingStart</b>&nbsp;&nbsp;<i>N</i>
+(default is the same starting number as the deleted residues).
+Numbers that would give duplicates within the same chain are skipped.
+The original set of residues is left unchanged.
+</p><p>
+The <b>bondStart</b> and <b>bondEnd</b> options specify whether to covalently
+bond the copied residues to their new chain, if the appropriate atoms for a
+standard mainchain linkage are present. If false, a missing-structure 
+<a href="../pseudobonds.html">pseudobond</a> will be added instead.
+The default for each is to add a bond only when the bonding distance
+is reasonable (same criteria as for the <a href="bond.html"><b>bond</b></a>
+command), otherwise a <a href="../pseudobonds.html">pseudobond</a>.
+If the appropriate atoms are not both present, regardless of how the 
+corresponding option is set, a <a href="../pseudobonds.html">pseudobond</a>
+will be added unless the replaced residues are already at the terminus.
+</p>
+</blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2024</address>
+May 2024</address>
 </body></html>

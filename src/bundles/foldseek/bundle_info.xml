@@ -1,0 +1,27 @@
+<BundleInfo name="ChimeraX-Foldseek" version="1.0.1"
+	    package="chimerax.foldseek"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Search for proteins with similar folds using Foldseek web service</Synopsis>
+  <Description>Search for proteins with similar folds using Foldseek web service</Description>
+
+  <Categories>
+    <Category name="Structure Comparison"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: foldseek :: Structure Comparison :: Search PDB or AlphaFold databases for protein structures matching the fold of a specified structure</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Foldseek :: Structure Analysis :: Search PDB or AlphaFold databases for protein structures matching the fold of a specified structure</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

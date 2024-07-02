@@ -66,7 +66,8 @@ def type_attrs(t):
     from types import GetSetDescriptorType
     attrs = [name for name in dir(t)
         if name[0] != '_' and type(getattr(t, name)) in [property, GetSetDescriptorType]]
-    attrs.extend(t._attr_registration.reg_attr_info.keys())
+    if hasattr(t, '_attr_registration'):
+        attrs.extend(t._attr_registration.reg_attr_info.keys())
     attrs.sort()
     return attrs
 
@@ -235,7 +236,7 @@ class RegAttrManager(StateManager):
         for reg_attr_name, attr_info in class_obj._attr_registration.reg_attr_info.items():
             if reg_attr_name != attr_name:
                 continue
-            return attr_info
+            return attr_info[1]
         raise ValueError("Class '%s' has not registered attribute named '%s'"
             % (class_obj.__name__, attr_name))
 

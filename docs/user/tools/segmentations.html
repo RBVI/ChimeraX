@@ -16,12 +16,13 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Tool: Segmentations</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <table class="clRight">
 <tr><td>
@@ -39,7 +40,8 @@ axial slices segmented</font>
 <p>
 The <b>Segmentations</b> tool allows interactive manual segmentation
 of medical images and other <a href="volumeviewer.html">volume data</a>
-plane by plane.
+plane by plane, or with a spherical cursor in the 3D view or in
+<a href="../vr.html">virtual reality</a>.
 Segmentations are additional volume models displayed as surfaces that
 delineate regions of arbitrary shape within the image dataset; 
 for medical images,
@@ -61,9 +63,13 @@ See also:
 <a href="../commands/color.html#zone"><b>color zone</b></a>,
 <a href="../commands/volume.html#mask"><b>volume mask</b></a>,
 <a href="../commands/segmentation.html"><b>segmentation</b></a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html">DICOM segmentation tutorial</a>,
 <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
-target="_blank">ChimeraX for Medical Image Analysis</a>
+<a href="medicalimage.html#mousemodes"><b>Medical Image</b></a> toolbar icons:
+<a href="medicalimage.html#mousemodes" title="Medical Image Toolbar...">
+<img class="icon" border=1 src="mouse-icons/mouse_small.png"></a>
+<a href="medicalimage.html#mousemodes" title="Medical Image Toolbar...">
+<img class="icon" border=1 src="mouse-icons/right_controller_small.png"></a>
 </p>
 
 <a name="dialog"></a>
@@ -124,13 +130,16 @@ Clicking <b>Add</b> creates a new segmentation model, and any
 segmentation in the list can be can be chosen (highlighted) with the mouse.
 The currently highlighted segmentation is the one that will be populated
 using the segmentation cursor in the slice views. 
-See <a href="../commands/dicom.html#navigation">slice navigation</a>
+See <a href="../commands/ui.html#navigation">slice navigation</a>
 for how to scroll through, zoom, and translate the slice views.
-</p><p>
-Clicking <b>Remove</b> deletes the chosen segmentation.
-<b>Edit Metadata</b> allows
-editing the metadata associated with the segmentation model, and <b>Save</b>
-saves it as <a href="../dicom/dicom.html">DICOM</a> with the SEG modality.
+Clicking <b>Remove</b> deletes the chosen segmentation, whereas
+<b>Save</b> brings up a dialog for saving the segmentation to a file.
+If the <a href="../dicom/dicom.html">DICOM</a>
+file type is chosen, the segmentation is saved as the SEG modality with 
+the associated metadata, if any. Other medical-image formats
+(<a href="https://nifti.nimh.nih.gov/" target="_blank"><b>NIfTI</b></a>,
+<a href="https://teem.sourceforge.net/nrrd/" target="_blank"><b>NRRD</b></a>)
+will not include the metadata.
 </p><p>
 In the slice views, the segmentation cursor is shown as a red circle; 
 left mouse click-drag sweeps out an area in the currently displayed 
@@ -200,18 +209,6 @@ when the tool is started:
   <li><b>3D only (desktop)</b>
   <li><b>3D only (VR)</b>
  </ul>
-<li><b>Format for saving segmentations</b> 
-&ndash; file format produced by clicking <b>Save</b> in the tool dialog:
-  <ul>
-  <li><a href="../dicom/dicom.html"><b>DICOM</b></a> (initial default)
-  with SEG modality
-  <li><a href="https://nifti.nimh.nih.gov/" target="_blank"><b>NIfTI</b></a>
-  <li><a href="https://teem.sourceforge.net/nrrd/" 
-  target="_blank"><b>NRRD</b></a>
-  </ul>
-Formats other than DICOM will not include metadata (if any) read from
-the original DICOM file.
-<br>
 <li><b>Segmentation opacity</b> (initial default <b>80</b>%)
 &ndash; opacity of segmentation surfaces; transparency = 100% &ndash; opacity
 <li><b>Set 3D mouse modes when the desktop 3D-only layout is chosen</b>
@@ -244,6 +241,11 @@ automatically when the VR <a href="#layout">layout</a> is chosen
 when the <a href="#settings-general"><b>General</b></a> option to
 <b>Set 3D mouse modes...</b> is on
 and the desktop 3D-only <a href="#layout">layout</a> is chosen.
+These assignments can be toggled on/off with the
+<a href="medicalimage.html#mousemodes"><b>Medical Image</b></a> toolbar icon
+<a href="medicalimage.html#mousemodes" title="Medical Image Toolbar...">
+<img class="icon" border=1 src="mouse-icons/mouse_small.png"></a>,
+where the &ldquo;off&rdquo; state restores the previous assignments.
 </p>
 
 <a name="settings-vr"></a>
@@ -253,7 +255,11 @@ and the desktop 3D-only <a href="#layout">layout</a> is chosen.
 when the <a href="#settings-general"><b>General</b></a> option to
 <b>Set VR controller modes...</b> is on
 and the VR 3D-only <a href="#layout">layout</a> is chosen.
-
+These assignments can be toggled on/off with the
+<a href="medicalimage.html#mousemodes"><b>Medical Image</b></a> toolbar icon
+<a href="medicalimage.html#mousemodes" title="Medical Image Toolbar...">
+<img class="icon" border=1 src="mouse-icons/right_controller_small.png"></a>,
+where the &ldquo;off&rdquo; state restores the previous assignments.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 May 2024</address>

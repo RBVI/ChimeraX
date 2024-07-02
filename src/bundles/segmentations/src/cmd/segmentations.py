@@ -9,7 +9,6 @@ from chimerax.core.commands import (
     register,
     run,
     Or,
-    BoolArg,
     IntArg,
     Int2Arg,
     Int3Arg,
@@ -33,7 +32,14 @@ from chimerax.segmentations.ui.segmentation_mouse_mode import (
 )
 from chimerax.segmentations.settings import get_settings
 from chimerax.segmentations.types import Axis
-from chimerax.segmentations.trigger_handlers import get_tracker
+from chimerax.segmentations.segmentation_tracker import get_tracker
+from chimerax.segmentations.ui.segmentation_mouse_mode import (
+    mouse_bindings_saved,
+    hand_bindings_saved,
+)
+
+import chimerax.segmentations.triggers
+from chimerax.segmentations.triggers import SEGMENTATION_MODIFIED
 
 actions = [
     "add",
@@ -46,7 +52,7 @@ def segmentations(
     session,
     action=None,
     modelSpecifier=None,
-    axis: Optional[str] = None,
+    axis: Optional[str] = "axial",
     # Axial, Coronal, Sagittal slice segmentations
     center: Optional[
         Union[
@@ -54,19 +60,16 @@ def segmentations(
             Annotated[list[int], 3],
         ]
     ] = None,
+    slice: Optional[int] = None,
     radius: Optional[int] = None,
     minIntensity: Optional[int] = None,
     maxIntensity: Optional[int] = None,
     mouseModes: Optional[bool] = None,
     handModes: Optional[bool] = None,
-    openTool: Optional[bool] = None,
 ):
-    """Set or restore hand modes; or add, delete, or modify segmentations."""
+    """Set or restore mouse and hand modes; or create and modify segmentations."""
     settings = get_settings(session)
-    tracker = get_tracker(session)
-    if session.ui.is_gui:
-        if openTool:
-            tool = get_segmentation_tool(session)
+    tracker = get_tracker()
     if action == "create":
         if not modelSpecifier:
             raise UserError("No model specified")
@@ -100,15 +103,13 @@ def segmentations(
                     "Ignoring the intensity parameters for removing regions from a segmentation"
                 )
                 minIntensity = maxIntensity = None
-            if axis:
+            if len(center) < 3 and axis:
                 axis = Axis.from_string(axis)
-                slice = center[2]
-                seg_center = (center[0], center[1])
                 segment_in_circle(
                     model,
                     axis,
                     slice,
-                    seg_center,
+                    center,
                     radius,
                     minIntensity,
                     maxIntensity,
@@ -119,17 +120,28 @@ def segmentations(
                 segment_in_sphere(
                     model, model_center, radius, minIntensity, maxIntensity, value
                 )
+            chimerax.segmentations.triggers.activate_trigger(
+                SEGMENTATION_MODIFIED, model
+            )
         else:
             raise UserError("Can't operate on a non-segmentation")
     else:
         if mouseModes is not None:
-            if mouseModes:
+            if mouseModes and not mouse_bindings_saved():
                 save_mouse_bindings(session)
                 run(session, "ui mousemode shift wheel 'resize segmentation cursor'")
                 run(session, "ui mousemode right 'create segmentations'")
                 run(session, "ui mousemode shift right 'erase segmentations'")
                 run(session, "ui mousemode shift middle 'move segmentation cursor'")
-            else:
+            elif mouseModes and mouse_bindings_saved():
+                session.logger.warning(
+                    "Mouse bindings already saved; ignoring 'mouseModes true'"
+                )
+            elif not mouseModes and not mouse_bindings_saved():
+                session.logger.warning(
+                    "Mouse bindings not saved; ignoring 'mouseModes false'"
+                )
+            elif not mouseModes and mouse_bindings_saved():
                 restore_mouse_bindings(session)
         if handModes is not None:
             if sys.platform != "win32":
@@ -137,7 +149,7 @@ def segmentations(
                     "VR is only available on Windows, ignoring handModes and its argument"
                 )
                 return
-            if handModes:
+            if handModes and not hand_bindings_saved():
                 is_vr = save_hand_bindings(session, settings.vr_handedness)
                 if is_vr:
                     if settings.vr_handedness == "right":
@@ -168,7 +180,15 @@ def segmentations(
                     session.logger.warning(
                         "Segmentations thinks VR is not on; ignoring request to save hand modes."
                     )
-            else:
+            elif handModes and hand_bindings_saved():
+                session.logger.warning(
+                    "Hand bindings already saved; ignoring 'handModes true'"
+                )
+            elif not handModes and not hand_bindings_saved():
+                session.logger.warning(
+                    "Hand bindings not saved; ignoring 'handModes false'"
+                )
+            elif not handModes and hand_bindings_saved():
                 is_vr = restore_hand_bindings(session)
                 if not is_vr:
                     session.logger.warning(
@@ -228,14 +248,13 @@ segmentations_desc = CmdDesc(
         ("mouseModes", OnOffArg),
         ("handModes", OnOffArg),
         ("axis", EnumOf([str(axis) for axis in [*Axis]])),
-        ("center", Int3Arg),
+        ("center", Or(Int2Arg, Int3Arg)),
         ("slice", IntArg),
         ("radius", IntArg),
         ("minIntensity", IntArg),
         ("maxIntensity", IntArg),
-        ("openTool", BoolArg),
     ],
-    synopsis="Set the view window to a grid of orthoplanes or back to the default",
+    synopsis=segmentations.__doc__.split("\n")[0].strip(),
 )
 
 

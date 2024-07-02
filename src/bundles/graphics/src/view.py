@@ -201,7 +201,8 @@ class View:
             if camera.do_swap_buffers():
                 r.swap_buffers()
             self.redraw_needed = False
-            r.done_current()
+            if getattr(self, 'use_opengl_done_current', True):
+                r.done_current()
 
     def _draw_scene(self, camera, drawings):
 
@@ -842,7 +843,7 @@ class View:
             ucxyz1, ucxyz2 = self.clip_plane_points(win_x, win_y, include_scene_clipping = False)
             if ucxyz1 is not None and ucxyz2 is not None:
                 def exclude_clipped(d, exclude=exclude):
-                    return exclude(d) or d.allow_clipping
+                    return exclude(d) or (d.allow_clipping and not d.empty_drawing())
                 ucp = self.picked_object_on_segment(ucxyz1, ucxyz2,
                                                     max_transparent_layers = max_transparent_layers,
                                                     exclude = exclude_clipped)

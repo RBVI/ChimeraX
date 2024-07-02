@@ -1,6 +1,6 @@
 <!-- vi:set shiftwidth=2: -->
 <BundleInfo name="ChimeraX-Toolbar"
-	    version="1.1.2" package="chimerax.toolbar"
+	    version="1.2" package="chimerax.toolbar"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -42,21 +42,21 @@ Provides a Windows ribbon-style toolbar interface
   <Providers manager="toolbar">
     <!-- hidden File tab -->
     <Provider tab="Extras" section="File" hidden="true"
-      name="Open" icon="open-in-app.png" description="Open data file"/>
+      name="Open" icon="open-in-app.png" description="Open data file" themeIcon="DocumentOpen"/>
     <Provider tab="Extras" section="File" hidden="true"
-      name="Recent" icon="recentfiles.png" description="Open recent files" after="Open"/>
+      name="Recent" icon="recentfiles.png" description="Open recent files" after="Open" themeIcon="DocumentOpenRecent"/>
     <Provider tab="Extras" section="File" hidden="true"
-      name="Save" icon="content-save.png" description="Save session file" after="Recent"/>
+      name="Save" icon="content-save.png" description="Save session file" after="Recent" themeIcon="DocumentSaveAs"/>
+    <!--Provider tab="Extras" section="File" hidden="true"
+      name="Close" icon="close-box.png" description="Close current session" after="Save"/-->
     <Provider tab="Extras" section="File" hidden="true"
-      name="Close" icon="close-box.png" description="Close current session" after="Save"/>
-    <Provider tab="Extras" section="File" hidden="true"
-      name="Exit" icon="exit.png" description="Exit application" after="Close"/>
+      name="Exit" icon="exit.png" description="Exit application" after="Save" themeIcon="ApplicationExit"/>
 
     <!-- hidden Undo tab -->
     <Provider tab="Extras" section="Undo" hidden="true"
-      name="Undo" icon="undo-variant.png" description="Undo last action"/>
+      name="Undo" icon="undo-variant.png" description="Undo last action" themeIcon="EditUndo"/>
     <Provider tab="Extras" section="Undo" hidden="true"
-      name="Redo" icon="redo-variant.png" description="Redo last action"/>
+      name="Redo" icon="redo-variant.png" description="Redo last action" themeIcon="EditRedo"/>
 
     <!-- Molecule Display tab -->
     <Provider tab="Molecule Display"

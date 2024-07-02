@@ -1,0 +1,95 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Fit Loops</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Fit Loops</h3>
+<p>
+The <b>Fit Loops</b> tool in ChimeraX runs
+<a href="https://phenix-online.org/documentation/reference/fit_loops.html"
+target="_blank"><i>fit_loops</i></a> (included in the 
+<a href="https://phenix-online.org" target="_blank">Phenix</a> nightly build)
+to build short peptides such as missing loops into density.
+The command implementation is 
+<a href="../commands/phenix.html#fitLoops"><b>phenix fitLoops</b></a>.
+See also:
+<a href="localemfitting.html"><b>Local EM Fitting</b></a>,
+<a href="waterplacement.html"><b>Water Placement</b></a>
+</p><p>
+<a href="https://phenix-online.org" target="_blank">Phenix</a>
+must be installed locally and the <b>PhenixUI</b> bundle installed in ChimeraX.
+The program location can be specified (saved in
+<a href="../preferences.html#other">preferences</a>) beforehand with the
+<a href="../commands/phenix.html#location"><b>phenix location</b></a> command.
+If no location has been specified, however, ChimeraX will look for a folder
+name that starts with <b>phenix</b> in the user's home directory,
+and on Mac only, if none is found there, then in the system
+<b>/Applications</b> folder.
+</p><p>
+<b>Fit Loops</b> 
+can be started from the <b>Phenix</b> section of the <b>Tools</b> menu.
+The existing atomic <b>Structure</b> and the <b>Map</b> to use should
+already be open in ChimeraX and chosen from the menus of available models; 
+other maps and atomic structures may also be present.
+</p><p>
+The peptide segments to build or rebuild are specified by
+<a href="../selection.html">selection</a>. 
+The residues of interest can be <a href="../selection.html">selected</a>
+using any method (menu, command, mouseclick
+in the graphics window, the <b>Gaps</b> table mentioned below, <i>etc.</i>).
+The residues in a missing segment or gap can be specified by selecting the 
+corresponding missing-structure <a href="../pseudobonds.html">pseudobond</a>.
+</p><p>
+Although there is no limit on the total number of residues to model
+in multiple segments, within an individual segment,
+<font color="#DB7600">modeling &ge;15 consecutive residues is not
+recommended</font> (is more likely to give poor results)
+and <font color="red">modeling &ge;20 is disallowed</font>.
+</p><p>
+A table of the <b>Gaps</b> in the chosen structure is provided for convenience
+if the goal is to fill in a missing segment, but it need not be used if
+some other <a href="../selection.html">selection</a> method is preferred.
+Clicking an entry in the table zooms in on the corresponding region 
+and selects the missing-structure <a href="../pseudobonds.html">pseudobond</a>.
+Only one entry can be chosen at a time. <b>Also select <i>N</i> residues
+on each side of gap</b> allows specifying how many residues on either side of
+the gap to include in the newly built portion. These end residues are also
+<a href="../selection.html">selected</a> when an entry in the table is chosen,
+and they are included in the count of consecutive residues to be modeled. 
+Accordingly, the <b>Gap length</b> values in the table will be shown in 
+<font color="red">red</font> when the total length (including the end residues)
+is too great to model (disallowed), or in 
+<font color="#DB7600">orange</font> if allowed but greater than recommended.
+</p><p>
+Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
+starts the calculation.
+<b>Close</b> dismisses the dialog without starting the calculation,
+whereas <b>Help</b> shows this page
+in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+June 2024</address>
+</body></html>
