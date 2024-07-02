@@ -227,6 +227,22 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, gap_only=False, p
                 "map.mrc", "model.pdb", "sequences", position_arg, temp_dir, start_res_number,
                 end_res_number, chain_id, procs_per_job.pop(), verbose, callback, block)
 
+def get_missing_structure_pbg(structure, create=False):
+    return structure.pseudobond_group(structure.PBG_MISSING_STRUCTURE,
+        create_type=("normal" if create else None))
+
+def get_missing_structure_labels(structure, container=False):
+    pbg = get_missing_structure_pbg(structure, create=container)
+    if container:
+        return pbg
+    if not pbg:
+        return set()
+    from chimerax.label.label3d import ObjectLabels
+    for cm in pbg.child_models():
+        if isinstance(cm, ObjectLabels):
+            return set(cm.labels())
+    return set()
+
 def _process_results(session, fit_loops_model, map, shift, structure, start_res_number, end_res_number,
         replace, chain_id, info):
     fit_loops_model.position = map.scene_position
@@ -236,6 +252,13 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
     if replace:
         undo_all_atoms = structure.atoms
         undo_all_coords = undo_all_atoms.coords
+        # get label attrs before pseudobond gets deleted, since default values may ask for attributes
+        # of the pseudobond
+        labels = get_missing_structure_labels(structure)
+        label_infos = {
+            label: { name: getattr(label, name) for name in ['view', 'offset', 'text', 'color',
+                'background', 'attribute', 'size', 'height', 'font'] } for label in labels
+        }
 
         orig_atom_map = dict([(a.string(style="simple", omit_structure=True), a) for a in structure.atoms])
         orig_res_map = dict([(r.string(style="simple", omit_structure=True), r) for r in structure.residues])
@@ -308,6 +331,14 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
                     structure.delete_residue(r)
                 raise AssertionError("Chain sequence for chain %s changed after fit_loops; undoing changes"
                     % chain.chain_id)
+
+        dead_labels = [lbl for lbl in labels if lbl.object.deleted]
+        if len(dead_labels) == 1:
+            label = dead_labels.pop()
+            label_info = label_infos[label]
+        else:
+            label_info = None
+
         # show residues adjacent to the gap as stick
         from chimerax.atomic import Residues, Atoms, Atom
         edge_residues = Residues(bonded_residues - gap_residues)
@@ -322,14 +353,23 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
         class FitLoopsUndo(UndoAction):
             def __init__(self, session, data=(undo_all_atoms, undo_all_coords, edge_residues,
                     edge_ribbon_displays, edge_atoms, edge_atom_displays, edge_atom_draw_modes,
-                    Atoms([orig for fit, orig in new_atoms]))):
+                    Atoms([orig for fit, orig in new_atoms]), label_info)):
                 self.session = session
                 self.data = data
                 super().__init__("Fit Loops result", can_redo=False)
 
             def undo(self):
                 all_atoms, all_coords, edge_residues, edge_ribbon_displays, edge_atoms, \
-                    edge_atom_displays, edge_atom_draw_modes, new_atoms = self.data
+                    edge_atom_displays, edge_atom_draw_modes, new_atoms, label_info = self.data
+                if not all_atoms:
+                    return
+                if label_info:
+                    structure = all_atoms[0].structure
+                    ms_pbg = get_missing_structure_pbg(structure)
+                    if ms_pbg:
+                        orig_pbs = set(ms_pbg.pseudobonds)
+                    else:
+                        orig_pbs = set()
                 if new_atoms:
                     for a in new_atoms:
                         a.structure.delete_atom(a)
@@ -349,6 +389,20 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
                 else:
                     self.session.logger.warning("Not all residues adjacent to gap still exist; not"
                         " restoring their state")
+                if label_info:
+                    ms_pbg = get_missing_structure_pbg(structure)
+                    if ms_pbg:
+                        cur_pbs = set(ms_pbg.pseudobonds)
+                    else:
+                        cur_pbs = set()
+                    diff_pbs = cur_pbs - diff_pbs
+                    if len(diff_pbs) == 1:
+                        pb = diff_pbs.pop()
+                        labels = get_missing_structure_labels(structure, container=True)
+                        view, offset, text, color, background, attribute, size, height, font = label_info
+                        from chimerax.label.label3d import PseudobondLabel
+                        labels.add_labels([pb], PseudobondLabel, label_info.pop('view'), settings=label_info)
+
         session.undo.register(FitLoopsUndo(session))
         fit_loops_model.delete()
     else:
