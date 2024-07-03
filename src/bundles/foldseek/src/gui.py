@@ -210,8 +210,10 @@ class Foldseek(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _show_hit_count(self, nhits, query_chain, database):
-        q = query_chain.string(include_structure = True)
-        heading = f'Foldseek search found {nhits} {database} hits similar to {q}'
+        heading = f'Foldseek search found {nhits} {database} hits'
+        if query_chain:
+            q = query_chain.string(include_structure = True)
+            heading += ' similar to {q}'
         self._heading.setText(heading)
             
     # ---------------------------------------------------------------------------
@@ -225,8 +227,17 @@ class Foldseek(ToolInstance):
     #
     def _open_hit(self, row):
         from .foldseek import open_hit
-        open_hit(self.session, row.hit, self._results_query_chain, trim = self._trim,
+        open_hit(self.session, row.hit, self.results_query_chain, trim = self._trim,
                  alignment_cutoff_distance = self._alignment_cutoff_distance.value)
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def results_query_chain(self):
+        qc = self._results_query_chain
+        if qc is not None and qc.structure is None:
+            self._results_query_chain = qc = None
+        return qc
 
     # ---------------------------------------------------------------------------
     #
@@ -242,11 +253,8 @@ class Foldseek(ToolInstance):
         return len(self._hits) > 0
 
     def take_snapshot(self, session, flags):
-        qc = self._results_query_chain
-        if qc is not None and qc.deleted:
-            self._results_query_chain = qc = None
         data = {'hits': self._hits,
-                'query_chain': qc,
+                'query_chain': self.results_query_chain,
                 'database': self._results_database,
                 'trim': self._trim,
                 'alignment_cutoff_distance': self._alignment_cutoff_distance.value,

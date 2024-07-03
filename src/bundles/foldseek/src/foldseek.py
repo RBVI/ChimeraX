@@ -24,6 +24,11 @@
 
 def foldseek(session, chain, database = 'pdb100', trim = None, alignment_cutoff_distance = None, wait = False):
     '''Submit a Foldseek search for similar structures and display results in a table.'''
+    global _query_in_progress
+    if _query_in_progress:
+        from chimerax.core.errors import UserError
+        raise UserError('Foldseek search in progress.  Cannot run another search until current one completes.')
+
     FoldseekWebQuery(session, chain, database=database,
                      trim=trim, alignment_cutoff_distance=alignment_cutoff_distance, wait=wait)
 
@@ -31,6 +36,8 @@ foldseek_databases = ['pdb100', 'afdb50', 'afdb-swissprot', 'afdb-proteome']
 
 #foldseek_databases = ['pdb100', 'afdb50', 'afdb-swissprot', 'afdb-proteome',
 #                      'bfmd', 'cath50', 'mgnify_esm30', 'gmgcl_id']
+
+_query_in_progress = False
 
 class FoldseekWebQuery:
 
@@ -48,7 +55,7 @@ class FoldseekWebQuery:
         from chimerax.core import version as cx_version
         self._user_agent = {'User-Agent': f'ChimeraX {cx_version}'}	# Identify ChimeraX to Foldseek server
         self._download_chunk_size = 64 * 1024	# bytes
-        
+
         # Use cached 8jnb results for developing user interface so I don't have to wait for server every test.
 #        with open('/Users/goddard/ucsf/chimerax/src/bundles/foldseek_example/alis_pdb100.m8', 'r') as mfile:
 #            results = {database: mfile.readlines()}
@@ -170,6 +177,8 @@ class FoldseekWebQuery:
         self.session.logger.status(message)
 
     def query_in_thread(self, mmcif_string, database):
+        global _query_in_progress
+        _query_in_progress = True
         from queue import Queue
         result_queue = Queue()
         import threading
@@ -204,6 +213,8 @@ class FoldseekWebQuery:
             self.report_results(r)
         elif status == 'error':
             self.session.logger.warning(f'Foldseek query failed: {r}')
+        global _query_in_progress
+        _query_in_progress = False
         return 'delete handler'
         
 def _mmcif_as_string(chain):
@@ -338,12 +349,16 @@ def open_hit(session, hit, query_chain, trim = True, alignment_cutoff_distance =
         aligned_res = trim_structure(structure, hit, trim)
         _show_ribbons(structure)
 
-        # Align the model to the query structure using Foldseek alignment.
-        # Foldseek server does not return transform by default, so compute from sequence alignment.
-        res, query_res = alignment_residue_pairs(hit, aligned_res, query_chain)
-        p, rms, npairs = alignment_transform(res, query_res, alignment_cutoff_distance)
-        stats.append((rms, npairs))
-        structure.position = p
+        if query_chain is not None:
+            # Align the model to the query structure using Foldseek alignment.
+            # Foldseek server does not return transform by default, so compute from sequence alignment.
+            res, query_res = alignment_residue_pairs(hit, aligned_res, query_chain)
+            p, rms, npairs = alignment_transform(res, query_res, alignment_cutoff_distance)
+            stats.append((rms, npairs))
+            structure.position = p
+
+    if query_chain is None:
+        return
 
     chain_id = hit.get('chain_id')
     cname = '' if chain_id is None else f' chain {chain_id}'
