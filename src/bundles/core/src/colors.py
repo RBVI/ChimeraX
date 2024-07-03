@@ -35,6 +35,7 @@ color names.
 """
 from sortedcontainers import SortedDict
 from .state import State, StateManager
+from enum import IntEnum
 
 # If any of the *STATE_VERSIONs change, then increase the (maximum) core session
 # number in setup.py.in
@@ -1048,6 +1049,7 @@ def luminance(rgba):
     luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
     return luminance
 
+
 from . import configfile
 class ColorValue(configfile.Value):
     """Class to use in settings when the setting is a Color"""
@@ -1075,3 +1077,77 @@ class ColorValue(configfile.Value):
 BuiltinColors = _builtin_colors()
 BuiltinColormaps = _builtin_colormaps()
 
+class ColorScheme(IntEnum):
+    LIGHT = 0
+    DARK = 1
+
+
+_default_scheme = ColorScheme.LIGHT
+
+
+def set_default_color_scheme(scheme: ColorScheme | str):
+    if isinstance(scheme, str):
+        try:
+            scheme = getattr(ColorScheme, scheme.upper())
+        except AttributeError:
+            raise ValueError("unknown color scheme")
+    global _default_scheme
+    _default_scheme = scheme
+
+
+def scheme_color(name, *, as_hex=False, scheme=None):
+    """Return light- or dark-schemed color name as appropriate
+
+    Parameters
+    ----------
+    name : symbolic color name.  leading underscore aliases to other symbolic name
+    as_hex : True if return value must be #RRGGBB
+    scheme : ColorScheme.LIGHT/'LIGHT'/ColorScheme.DARK/'DARK'/None
+    """
+    colors = _scheme_colors[name]  # raises KeyError if not present
+    if isinstance(scheme, str):
+        try:
+            scheme = getattr(ColorScheme, scheme.upper())
+        except AttributeError:
+            raise ValueError("unknown color scheme")
+    if isinstance(colors, str):
+        # must be string singleton
+        if colors.startswith('_'):
+            return scheme_color(colors[1:])
+        color = colors
+    else:
+        if scheme is None:
+            scheme = _default_scheme
+        color = colors[scheme]
+    if not as_hex:
+        return color
+    elif color.startswith('#'):
+        return color
+    else:
+        from chimerax.core.colors import Color
+        return Color(color).hex()
+
+
+_scheme_colors = {
+    # Use CSS4 system colors where appropriate
+    # https://www.w3.org/TR/css-color-4/#css-system-colors
+    # Entries are:
+    #   symbolic name: color
+    #   symbolic name: _alias
+    #   symbolic name: (light scheme color, dark scheme color)
+    'Canvas': ('white', '#1f1f1f'),   # white, gray12
+    'CanvasText': ('black', 'white'),
+    'LinkText': ('blue', 'dodgerblue'),
+    # New user
+    'new_user_canvas': ("#B8B8B8", "#242424"),  # gray72, gray14
+    'new_user_canvas_text': "#aad9f5",  # ChimeraX icon blue
+    # status messages
+    'status': ('blue', 'dodgerblue'),
+    # log messages -- change background color
+    'info': 'Canvas',
+    'warning': ('#ffb961', 'gold'),
+    'error':  ('#ff7882', 'dark red'),
+    'bug': ('#dc1436', 'maroon'),
+    # logged command background
+    'command': ('#ddd', '#444'),
+}

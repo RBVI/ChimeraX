@@ -3281,9 +3281,11 @@ class Command:
                     session.logger.error("%s^" % ("." * error_at))
         else:
             from html import escape
+            from ..colors import scheme_color
 
             ci = self._ci
-            err_color = "crimson"
+            err_color = scheme_color('error')
+            text_color = scheme_color('CanvasText')
             msg = '<div class="cxcmd">'
             if ci is None or ci.url is None:
                 offset = 0
@@ -3295,9 +3297,9 @@ class Command:
                     self.current_text[self.start + offset : self.amount_parsed]
                 )
             else:
-                msg += '%s<span style="color:white; background-color:%s;">%s</span>' % (
+                msg += '%s<span style="color:%s; background-color:%s;">%s</span>' % (
                     escape(self.current_text[self.start + offset : error_at]),
-                    err_color,
+                    text_color, err_color,
                     escape(self.current_text[error_at:]),
                 )
             msg += "</div>"

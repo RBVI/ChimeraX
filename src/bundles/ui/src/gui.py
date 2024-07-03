@@ -30,6 +30,7 @@ from Qt.QtWidgets import QApplication
 from chimerax.core.logger import PlainTextLog
 import sys
 from contextlib import contextmanager
+from chimerax.core.colors import scheme_color, set_default_color_scheme
 
 def initialize_qt():
     initialize_qt_plugins_location()
@@ -110,7 +111,13 @@ class UI(QApplication):
 
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
-        self.setStyle('Fusion')
+        import sys
+        if sys.platform == 'win32':
+            self.setStyle('Fusion')
+
+        if self.dark_mode():
+            # TODO: hook up Qt signal to monitor color scheme changes
+            set_default_color_scheme('dark')
 
         redirect_stdio_to_logger(self.session.logger)
         self.redirect_qt_messages()
@@ -454,26 +461,21 @@ class UI(QApplication):
         from Qt.QtCore import Qt
         return self.styleHints().colorScheme() == Qt.ColorScheme.Dark
 
-    def dark_css(self):
-        from textwrap import dedent
-        return dedent("""
+    def dark_css(self, background=None):
+        if background is None:
+            background = scheme_color('Canvas', scheme='dark')
+        foreground = scheme_color('CanvasText', scheme='dark')
+        link = scheme_color('LinkText', scheme='dark')
+        import textwrap
+        return textwrap.dedent("""
             @media (prefers-color-scheme: dark) {
-                // :root { --mode: "dark"; }
-                body {
-                    background-color: #202020;
-                    color: white;
-                }
-                a {
-                    color: dodgerblue;
-                }
+                :root { color-scheme: dark; }
             }
             """)
             #@media (prefers-color-scheme: light) {
-            #     body {
-            #        background-color: white;
-            #        color: black;
-            #    }
+            #    :root { color-scheme: light; }
             #}
+
 
 from Qt.QtWidgets import QMainWindow, QStackedWidget, QLabel, QToolButton, QWidget
 class MainWindow(QMainWindow, PlainTextLog):
@@ -520,30 +522,36 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._stack.addWidget(g.widget)
         self.rapid_access = QWidget(self._stack)
         self.view_layout = "default"
-        ra_bg_color = "#B8B8B8"
-        font_size = 96
+        background = scheme_color('new_user_canvas')
+        foreground = scheme_color('new_user_canvas_text')
+        link = scheme_color('LinkText')
         new_user_text = [
             "<html>",
             "<body>",
             "<style>",
             "body {",
-            "    background-color: %s;" % ra_bg_color,
+            f"    background-color: {background};"
             "}",
             ".banner-text {",
-            "    font-size: %dpx;" % font_size,
-            "    color: #3C6B19;",
+            #"    font-size: %dpx;" % font_size,
+            "    font-size: 10vw;"
+            f"    color: {foreground};",
             "    position: absolute;",
             "    top: 50%;",
             "    left: 50%;",
             "    transform: translate(-50%,-150%);",
+            "    text-shadow: #000 0px 0px 1px;",
             "}"
             ".help-link {",
+            "    font-size: 2vw;"
             "    position: absolute;"
             "    top: 60%;",
             "    left: 50%;",
             "    transform: translate(-50%,-50%);",
             "}",
-            f"{ui.dark_css()}",
+            ".help-link a {"
+            f"    color: {link};",
+            "}",
             "</style>",
             '<p class="banner-text">ChimeraX</p>',
             '<p class="help-link"><a href="cxcmd:help help:quickstart">Get started</a><p>',
@@ -553,7 +561,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         from Qt import qt_have_web_engine
         if qt_have_web_engine():
             from .file_history import FileHistory
-            fh = FileHistory(session, self.rapid_access, bg_color=ra_bg_color, thumbnail_size=(128,128),
+            fh = FileHistory(session, self.rapid_access, bg_color=background, thumbnail_size=(128,128),
                              filename_size=15, no_hist_text="\n".join(new_user_text))
         self._stack.addWidget(self.rapid_access)
         self._stack.setCurrentWidget(g.widget)
@@ -1088,7 +1096,7 @@ class MainWindow(QMainWindow, PlainTextLog):
     def _build_status(self):
         from .statusbar import _StatusBar
         self._status_bar = sbar = _StatusBar(self.session)
-        status_color = 'dodgerblue' if self.session.ui.dark_mode() else 'blue'
+        status_color = scheme_color('status')
         sbar.status('Welcome to ChimeraX', status_color)
         sb = sbar.widget
         self._global_hide_button = ghb = QToolButton(sb)
