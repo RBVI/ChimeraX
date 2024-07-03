@@ -37,4 +37,10 @@ class _FoldseekBundle(BundleAPI):
         from . import foldseek
         foldseek.register_foldseek_command(logger)
 
+    @staticmethod
+    def get_class(class_name):
+        if class_name == 'Foldseek':
+            from .gui import Foldseek
+            return Foldseek
+
 bundle_api = _FoldseekBundle()
