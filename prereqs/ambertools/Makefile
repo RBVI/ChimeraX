@@ -184,6 +184,7 @@ ifeq ($(OS),Darwin)
 		done; \
 	done; \
 	for i in $$first_wave; do \
+		echo "looking for second wave in:" $$i ; \
 		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
 			echo "second wave:" $$j ; \
 			cp $$j $(app_libdir); \
