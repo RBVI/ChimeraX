@@ -304,16 +304,17 @@ def rainbow_cmd(structure, target_atoms=False):
     return "rainbow %s@ca,c4'%s %s" % (structure.atomspec, color_arg, target_arg)
 
 def run_preset(session, name, mgr):
-    if name == "ribbon by secondary structure (printable)":
-        cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + print_prep(
-            session, pb_radius=None)
-    elif name.startswith("ribbon by secondary structure"):
+    if name.startswith("ribbon by secondary structure"):
         if "AlphaFold" in name:
             check_AF(session)
             af_cmds = hide_AF_low_confidence(session)
         else:
             af_cmds = []
-        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + af_cmds
+        if name.endswith("(printable)"):
+            cmd = base_setup + base_macro_model + base_ribbon + af_cmds + print_ribbon + print_prep(
+                session, pb_radius=None)
+        else:
+            cmd = undo_printable + base_setup + base_macro_model + base_ribbon + af_cmds
     elif name == "ribbon by chain":
         cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [
             rainbow_cmd(s) for s in all_atomic_structures(session)
@@ -322,18 +323,19 @@ def run_preset(session, name, mgr):
         cmd = base_setup + base_macro_model + base_ribbon + [
             rainbow_cmd(s) for s in all_atomic_structures(session)
         ] + print_ribbon + print_prep(session, pb_radius=None)
-    elif name == "ribbon rainbow (printable)":
-        cmd = base_setup + base_macro_model + base_ribbon + [
-            "rainbow @ca,c4'"
-        ] + print_ribbon + print_prep(session, pb_radius=None)
     elif name.startswith("ribbon rainbow"):
         if "AlphaFold" in name:
             check_AF(session)
             af_cmds = hide_AF_low_confidence(session)
         else:
             af_cmds = []
-        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + af_cmds + [
-            "rainbow @ca,c4' target rf" ]
+        if name.endswith("(printable)"):
+            cmd = base_setup + base_macro_model + base_ribbon + af_cmds + [
+                "rainbow @ca,c4'"
+            ] + print_ribbon + print_prep(session, pb_radius=None)
+        else:
+            cmd = undo_printable + base_setup + base_macro_model + base_ribbon + af_cmds + [
+                "rainbow @ca,c4' target rf" ]
     elif name == "ribbon by polymer (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
             "color bypolymer"
