@@ -166,9 +166,10 @@ ifeq ($(OS),Darwin)
 	install_name_tool -rpath @loader_path/../lib @loader_path/../../../lib $(AMBERBIN_DST)/sqm
 	# copy the shared libraries needed by the fortran executables and fix up their paths
 	cat /dev/null > $(FLIB_NAMES_FILE)
-	cd $(AMBERBIN_DST) && for i in sqm; do \
+	set first_wave "" ; cd $(AMBERBIN_DST) && for i in sqm; do \
 		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
 			cp $$j $(app_libdir); \
+			set first_wave "$$first_wave $$j" ; \
 			filename=`basename $$j`; \
 			echo "$$filename " >> $(FLIB_NAMES_FILE); \
 			install_filename=$(app_libdir)/$$filename; \
@@ -179,7 +180,7 @@ ifeq ($(OS),Darwin)
 				install_name_tool -change $$k @executable_path/../../../lib/$$subfilename $$install_filename; \
 			done; \
 		done; \
-	done
+	done; echo "first wave:" $$first_wave
 endif
 ifeq ($(UPLOAD_PREBUILT),true)
 	tar cjf $(AMBERTOOLS_PREBUILT) -C "$(AMBERBIN_DST_HOME)" .
