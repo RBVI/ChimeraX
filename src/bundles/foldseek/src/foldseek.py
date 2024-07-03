@@ -331,18 +331,30 @@ def open_hit(session, hit, query_chain, trim = True, alignment_cutoff_distance =
     db_id = hit.get('database_id')
     from_db = 'from alphafold' if hit['database'].startswith('afdb') else ''
     from chimerax.core.commands import run
-    structure = run(session, f'open {db_id} {from_db}')[0]
-    aligned_res = trim_structure(structure, hit, trim)
-    _show_ribbons(structure)
-    
-    # Align the model to the query structure using Foldseek alignment.
-    # Foldseek server does not return transform by default, so compute from sequence alignment.
-    res, query_res = alignment_residue_pairs(hit, aligned_res, query_chain)
-    p, rms, npairs = alignment_transform(res, query_res, alignment_cutoff_distance)
-    structure.position = p
+    structures = run(session, f'open {db_id} {from_db}')
+    # Can get multiple structures such as NMR ensembles from PDB.
+    stats = []
+    for structure in structures:
+        aligned_res = trim_structure(structure, hit, trim)
+        _show_ribbons(structure)
+
+        # Align the model to the query structure using Foldseek alignment.
+        # Foldseek server does not return transform by default, so compute from sequence alignment.
+        res, query_res = alignment_residue_pairs(hit, aligned_res, query_chain)
+        p, rms, npairs = alignment_transform(res, query_res, alignment_cutoff_distance)
+        stats.append((rms, npairs))
+        structure.position = p
+
     chain_id = hit.get('chain_id')
-    cname = '' if chain_id is None else f'chain {chain_id}'
-    msg = f'Alignment of {db_id}{cname} to query has RMSD {"%.3g" % rms} using {npairs} of {len(res)} paired residues'
+    cname = '' if chain_id is None else f' chain {chain_id}'
+    if len(structures) == 1:
+        msg = f'Alignment of {db_id}{cname} to query has RMSD {"%.3g" % rms} using {npairs} of {len(res)} paired residues'
+    else:
+        rms = [rms for rms,npair in stats]
+        rms_min, rms_max = min(rms), max(rms)
+        npair = [npair for rms,npair in stats]
+        npair_min, npair_max = min(npair), max(npair)
+        msg = f'Alignment of {db_id}{cname} ensemble of {len(structures)} structures to query has RMSD {"%.3g" % rms_min} - {"%.3g" % rms_max} using {npair_min}-{npair_max} of {len(res)} paired residues'      
     if alignment_cutoff_distance is not None and alignment_cutoff_distance > 0:
         msg += f' within cutoff distance {alignment_cutoff_distance}'
     session.logger.info(msg)
