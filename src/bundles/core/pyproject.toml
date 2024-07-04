@@ -84,3 +84,7 @@ include-dirs = ["core_cpp/mac_util/"]
 [chimerax.extension.pysupport]
 sources = ["core_cpp/pysupport/*.cpp"]
 include-dirs = ["core_cpp/pysupport/"]
+
+[chimerax.extension._spec_parser]
+sources = ["core_cpp/spec_parser/*.cpp"]
+extra-compile-args = ["-std=c++17"]
