@@ -178,7 +178,8 @@ class Foldseek(ToolInstance):
     def _search(self):
         chain = self._chain_menu.value
         if chain is None:
-            self.session.logger.warning('Must choose a chain in the Foldseek panel before running search')
+            self.session.logger.error('Must choose a chain in the Foldseek panel before running search')
+            return
         db = self._database_menu.value
         cmd = f'foldseek {chain.string(style="command")}'
         if db != 'pdb100':
@@ -213,15 +214,23 @@ class Foldseek(ToolInstance):
         heading = f'Foldseek search found {nhits} {database} hits'
         if query_chain:
             q = query_chain.string(include_structure = True)
-            heading += ' similar to {q}'
+            heading += f' similar to {q}'
         self._heading.setText(heading)
             
     # ---------------------------------------------------------------------------
     #
     def _open_selected(self):
-        hits = self._results_table.selected		# FoldseekRow instances
+        results_table = self._results_table
+        if results_table is None:
+            msg = 'You must press the Foldseek Search button before you can open matching structures.'
+            self.session.logger.error(msg)
+            return
+        hits = results_table.selected		# FoldseekRow instances
         for hit in hits:
             self._open_hit(hit)
+        if len(hits) == 0:
+            msg = 'Click lines in the Foldseek results table and then press Open.'
+            self.session.logger.error(msg)
 
     # ---------------------------------------------------------------------------
     #
