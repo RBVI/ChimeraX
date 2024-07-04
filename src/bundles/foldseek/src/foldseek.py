@@ -22,15 +22,21 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek(session, chain, database = 'pdb100', trim = None, alignment_cutoff_distance = None, wait = False):
+def foldseek(session, chain, database = 'pdb100', trim = None, alignment_cutoff_distance = None,
+             save_directory = None, wait = False):
     '''Submit a Foldseek search for similar structures and display results in a table.'''
     global _query_in_progress
     if _query_in_progress:
         from chimerax.core.errors import UserError
         raise UserError('Foldseek search in progress.  Cannot run another search until current one completes.')
 
+    if save_directory is None:
+        from os.path import expanduser
+        save_directory = expanduser(f'~/Downloads/ChimeraX/Foldseek/{chain.structure.name}_{chain.chain_id}')
+
     FoldseekWebQuery(session, chain, database=database,
-                     trim=trim, alignment_cutoff_distance=alignment_cutoff_distance, wait=wait)
+                     trim=trim, alignment_cutoff_distance=alignment_cutoff_distance,
+                     save_directory = save_directory, wait=wait)
 
 foldseek_databases = ['pdb100', 'afdb50', 'afdb-swissprot', 'afdb-proteome']
 
@@ -42,13 +48,14 @@ _query_in_progress = False
 class FoldseekWebQuery:
 
     def __init__(self, session, chain, database = 'pdb100', trim = True,
-                 alignment_cutoff_distance = 2.0, wait = False,
+                 alignment_cutoff_distance = 2.0, save_directory = None, wait = False,
                  foldseek_url = 'https://search.foldseek.com/api'):
         self.session = session
         self.chain = chain
         self.database = database
         self.trim = trim
         self.alignment_cutoff_distance = alignment_cutoff_distance
+        self.save_directory = save_directory
         self.foldseek_url = foldseek_url
         self._last_check_time = None
         self._status_interval = 1.0	# Seconds.  Frequency to check for search completion
@@ -63,6 +70,8 @@ class FoldseekWebQuery:
 #        return
         
         mmcif_string = _mmcif_as_string(chain)
+        self._save('query.cif', mmcif_string)
+        self._save_query_path(chain)
         if wait:
             ticket_id = self.submit_query(mmcif_string, databases = [database])
             self.wait_for_results(ticket_id)
@@ -72,21 +81,10 @@ class FoldseekWebQuery:
             self.query_in_thread(mmcif_string, database)
 
     def report_results(self, results):
-        hit_summary = ', '.join([f'in {self.database} found {len(search_results)} hits'
-                                 for database, search_results in results.items()])
-        msg = f'Foldseek search for similar structures to {self.chain} {hit_summary}'
-        self.session.logger.info(msg)
-
-        hit_lines = results[self.database]
-        hits = [parse_search_result(hit, self.database) for hit in hit_lines]
-        from .gui import foldseek_panel, Foldseek
-        fp = foldseek_panel(self.session)
-        if fp:
-            fp.show_results(hits, query_chain = self.chain, database = self.database,
-                            trim = self.trim, alignment_cutoff_distance = self.alignment_cutoff_distance)
-        else:
-            Foldseek(self.session, query_chain = self.chain, database = self.database,
-                     hits = hits, trim = self.trim, alignment_cutoff_distance = self.alignment_cutoff_distance)
+        hits = results[self.database]
+        show_foldseek_hits(self.session, hits, self.database, self.chain,
+                           trim = self.trim, alignment_cutoff_distance = self.alignment_cutoff_distance)
+        self._log_open_results_command()
 
     def submit_query(self, mmcif_string, databases = ['pdb100']):
         '''
@@ -171,6 +169,10 @@ class FoldseekWebQuery:
                 dbname = filename.replace('alis_', '').replace('.m8', '')
                 m8_results[dbname] = [line.decode('utf-8') for line in mfile.readlines()]
 
+        # Save results to a file
+        for dbname, hit_lines in m8_results.items():
+            self._save(dbname + '.m8', ''.join(hit_lines))
+
         return m8_results
 
     def _report_progress(self, message):
@@ -216,7 +218,34 @@ class FoldseekWebQuery:
         global _query_in_progress
         _query_in_progress = False
         return 'delete handler'
-        
+
+    def _save(self, filename, data):
+        save_directory = self.save_directory
+        if save_directory is None:
+            return
+        from os import path, makedirs
+        if not path.exists(save_directory):
+            makedirs(save_directory)
+        file_mode = 'w' if isinstance(data, str) else 'wb'
+        with open(path.join(save_directory, filename), file_mode) as file:
+            file.write(data)
+
+    def _save_query_path(self, chain):
+        if chain:
+            path = getattr(chain.structure, 'filename', None)
+            if path:
+                self._save('query', f'{path}\t{chain.chain_id}')
+
+    def _log_open_results_command(self):
+        if not self.save_directory:
+            return
+        from os.path import join
+        m8_path = join(self.save_directory, self.database + '.m8')
+        cspec = self.chain.string(style='command')
+        from chimerax.core.commands import log_equivalent_command, quote_path_if_necessary
+        cmd = f'open {quote_path_if_necessary(m8_path)} database {self.database} chain {cspec}'
+        log_equivalent_command(self.session, cmd)
+
 def _mmcif_as_string(chain):
     structure = chain.structure.copy()
     cchain = [c for c in structure.chains if c.chain_id == chain.chain_id][0]
@@ -484,15 +513,97 @@ def _show_ribbons(structure):
         if not cres.ribbon_displays.any():
             cres.ribbon_displays = True
             cres.atoms.displays = False
-            
+
+def open_foldseek_m8(session, path, query_chain = None, database = None):
+    with open(path, 'r') as file:
+        hit_lines = file.readlines()
+
+    if query_chain is None:
+        query_chain, models = _guess_query_chain(session, path)
+
+    if database is None:
+        database = _guess_database(path, hit_lines)
+        if database is None:
+            from os.path import basename
+            filename = basename(path)
+            from chimerax.core.errors import UserError
+            raise UserError('Cannot determine database for foldseek file {filename}.  Specify which database ({", ".join(foldseek_databases)}) using the open command "database" option, for example "open {filename} database pdb100".')
+    
+    show_foldseek_hits(session, hit_lines, database, query_chain)
+
+    return models, ''
+
+def _guess_query_chain(session, results_path):
+    '''Look for files in same directory as foldseek results to figure out query chain.'''
+
+    from os.path import dirname, join, exists
+    results_dir = dirname(results_path)
+    qpath = join(results_dir, 'query')
+    if exists(qpath):
+        # See if the original query structure file is already opened.
+        path, chain_id = open(qpath,'r').read().split('\t')
+        from chimerax.atomic import AtomicStructure
+        for s in session.models.list(type = AtomicStructure):
+            if hasattr(s, 'filename') and s.filename == path:
+                for c in s.chains:
+                    if c.chain_id == chain_id:
+                        return c, []
+        # Try opening the original query structure file
+        if exists(path):
+            models, status = session.open_command.open_data(path)
+            chains = [c for c in models[0].chains if c.chain_id == chain_id]
+            return chains[0], models
+
+    qpath = join(results_dir, 'query.cif')
+    if exists(qpath):
+        # Use the single-chain mmCIF file used in the Foldseek submission
+        models, status = session.open_command.open_data(qpath)
+        return models[0].chains[0], models
+    
+    return None, []
+
+def _guess_database(path, hit_lines):
+    for database in foldseek_databases:
+        if path.endswith(database + '.m8'):
+            return database
+
+    from os.path import dirname, join, exists
+    dpath = join(dirname(path), 'database')
+    if exists(dpath):
+        database = open(dpath,'r').read()
+        return database
+
+    hit_file = hit_lines[0].split('\t')[1]
+    if '.cif.gz' in hit_file:
+        database = 'pdb100'
+
+    return None
+
+def show_foldseek_hits(session, hit_lines, database, query_chain = None,
+                       trim = None, alignment_cutoff_distance = None):
+    msg = f'Foldseek search for similar structures to {query_chain} in {database} found {len(hit_lines)} hits'
+    session.logger.info(msg)
+
+    hits = [parse_search_result(hit, database) for hit in hit_lines]
+    from .gui import foldseek_panel, Foldseek
+    fp = foldseek_panel(session)
+    if fp:
+        fp.show_results(hits, query_chain = query_chain, database = database,
+                        trim = trim, alignment_cutoff_distance = alignment_cutoff_distance)
+    else:
+        fp = Foldseek(session, query_chain = query_chain, database = database,
+                      hits = hits, trim = trim, alignment_cutoff_distance = alignment_cutoff_distance)
+    return fp
+    
 def register_foldseek_command(logger):
-    from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg
+    from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg
     from chimerax.atomic import ChainArg
     desc = CmdDesc(
         required = [('chain', ChainArg)],
         keyword = [('database', EnumOf(foldseek_databases)),
                    ('trim', Or(ListOf(EnumOf(['chains', 'sequence', 'ligands'])), BoolArg)),
                    ('alignment_cutoff_distance', FloatArg),
+                   ('save_directory', SaveFolderNameArg),
                    ('wait', BoolArg),
                    ],
         synopsis = 'Search for proteins with similar folds using Foldseek web service'
