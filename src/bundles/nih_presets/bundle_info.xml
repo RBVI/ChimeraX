@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-NIHPresets" version="1.2" package="chimerax.nih_presets"
+<BundleInfo name="ChimeraX-NIHPresets" version="1.2.1" package="chimerax.nih_presets"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -38,7 +38,9 @@
     <Provider category="NIH3D" name="ribbon AlphaFold/pLDDT [high confidence]"/>
     <Provider category="NIH3D" name="ribbon AlphaFold/PAE domains [high confidence]"/>
     <Provider category="NIH3D" name="ribbon rainbow [AlphaFold high confidence]"/>
+    <Provider category="NIH3D" name="ribbon rainbow [AlphaFold high confidence] (printable)"/>
     <Provider category="NIH3D" name="ribbon by secondary structure [AlphaFold high confidence]"/>
+    <Provider category="NIH3D" name="ribbon by secondary structure [AlphaFold high confidence] (printable)"/>
     <Provider category="NIH3D" name="surface monochrome"/>
     <Provider category="NIH3D" name="surface coulombic"/>
     <Provider category="NIH3D" name="surface hydrophobicity"/>
@@ -56,7 +58,9 @@
     <Provider category="NIH3D" name="surface AlphaFold/pLDDT [high confidence]"/>
     <Provider category="NIH3D" name="surface AlphaFold/PAE domains [high confidence]"/>
     <Provider category="NIH3D" name="surface coulombic [AlphaFold high confidence]"/>
+    <Provider category="NIH3D" name="surface coulombic [AlphaFold high confidence] (printable)"/>
     <Provider category="NIH3D" name="surface hydrophobicity [AlphaFold high confidence]"/>
+    <Provider category="NIH3D" name="surface hydrophobicity [AlphaFold high confidence] (printable)"/>
     <Provider category="NIH3D" name="sticks"/>
     <Provider category="NIH3D" name="sticks (printable)"/>
     <Provider category="NIH3D" name="sticks monochrome"/>

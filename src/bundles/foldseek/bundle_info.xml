@@ -17,6 +17,16 @@
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="Foldseek" synopsis="Foldseek structure similarity hits" category="Structure Analysis"
+		suffixes=".m8" nicknames="foldseek"
+		reference_url="https://github.com/steineggerlab/foldseek?tab=readme-ov-file#output-search" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="Foldseek" want_path="true" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
