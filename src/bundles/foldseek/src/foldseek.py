@@ -22,73 +22,107 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek(session, structure, database = 'pdb100', trim = True):
-
-    mmcif_string = _mmcif_as_string(structure)
-    results = foldseek_web_query(mmcif_string, databases = [database])
-    msg = 'Foldseek ' + ', '.join([f'{database} {len(search_results)} hits'
-                                   for database, search_results in results.items()])
-    session.logger.info(msg)
-
-    if database == 'pdb100':
-        hit_lines = results[database]
-        hits = [parse_search_result(hit, database) for hit in hit_lines[:5]]
-        from .gui import FoldseekPDBResults
-        FoldseekPDBResults(session, query_structure = structure, pdb_hits = hits, trim = trim)
-
-        '''
-        hlines = []
-        for hit in hits[:5]:
-            values = parse_search_result(hit, database)
-            hmsg = f'PDB {values["pdb_id"]} chain {values["pdb_chain_id"]} assembly {values["pdb_assembly_id"]} description {values["pdb_description"]}'
-            hlines.append(hmsg)
-        session.logger.info('\n'.join(hlines))
-        '''
-    
-    '''
-    For monomer search
-    curl -X POST -F q=@PATH_TO_FILE -F 'mode=3diaa' -F 'database[]=afdb50' -F 'database[]=afdb-swissprot' -F 'database[]=afdb-proteome' -F 'database[]=bfmd' -F 'database[]=cath50' -F 'database[]=mgnify_esm30' -F 'database[]=pdb100' -F 'database[]=gmgcl_id' https://search.foldseek.com/api/ticket
-
-    For multimer search.
-    curl -X POST -F q=@PATH_TO_FILE -F 'mode=complex-3diaa' -F 'database[]=bfmd' -F 'database[]=pdb100' https://search.foldseek.com/api/ticket
-
-    https://search.mmseqs.com/docs/
-    '''
-
-foldseek_databases = ['pdb100', 'afdb50', 'afdb-swissprot', 'afdb-proteome',
-                      'bfmd', 'cath50', 'mgnify_esm30', 'gmgcl_id']
-
-def foldseek_web_query(mmcif_string,
-                       foldseek_url = 'https://search.foldseek.com/api',
-#                       databases = ['pdb100', 'afdb50', 'afdb-swissprot' 'afdb-proteome'],
-                       databases = ['pdb100'],
-                       status_interval = 1.0):
-    '''
-    Use an https post to start at search using the Foldseek REST API.
-    Then wait for results, download them, and return a dictionary mapping
-    database name to results as m8 format tab-separated values.
-    '''
-
-    query_url = foldseek_url + '/ticket'
-    files = {'q': mmcif_string}
-    data = {
-        'mode': '3diaa',  # "3diaa" for monomer searhces, "complex-3diaa" for multimer searches
-        'database[]': databases
-    }
-    import requests
-    r = requests.post(query_url, files=files, data=data)
-    if r.status_code != 200:
-        error_msg = r.text
+def foldseek(session, chain, database = 'pdb100', trim = None, alignment_cutoff_distance = None,
+             save_directory = None, wait = False):
+    '''Submit a Foldseek search for similar structures and display results in a table.'''
+    global _query_in_progress
+    if _query_in_progress:
         from chimerax.core.errors import UserError
-        raise UserError(f'Foldseek search failed: {error_msg}')
+        raise UserError('Foldseek search in progress.  Cannot run another search until current one completes.')
 
-    ticket = r.json()
-    ticket_id = ticket['id']
-    
-    # poll until the job was successful or failed
-    status_url = foldseek_url + f'/ticket/{ticket_id}'
-    while True:
-        r = requests.get(status_url)
+    if save_directory is None:
+        from os.path import expanduser
+        save_directory = expanduser(f'~/Downloads/ChimeraX/Foldseek/{chain.structure.name}_{chain.chain_id}')
+
+    FoldseekWebQuery(session, chain, database=database,
+                     trim=trim, alignment_cutoff_distance=alignment_cutoff_distance,
+                     save_directory = save_directory, wait=wait)
+
+foldseek_databases = ['pdb100', 'afdb50', 'afdb-swissprot', 'afdb-proteome']
+
+#foldseek_databases = ['pdb100', 'afdb50', 'afdb-swissprot', 'afdb-proteome',
+#                      'bfmd', 'cath50', 'mgnify_esm30', 'gmgcl_id']
+
+_query_in_progress = False
+
+class FoldseekWebQuery:
+
+    def __init__(self, session, chain, database = 'pdb100', trim = True,
+                 alignment_cutoff_distance = 2.0, save_directory = None, wait = False,
+                 foldseek_url = 'https://search.foldseek.com/api'):
+        self.session = session
+        self.chain = chain
+        self.database = database
+        self.trim = trim
+        self.alignment_cutoff_distance = alignment_cutoff_distance
+        self.save_directory = save_directory
+        self.foldseek_url = foldseek_url
+        self._last_check_time = None
+        self._status_interval = 1.0	# Seconds.  Frequency to check for search completion
+        from chimerax.core import version as cx_version
+        self._user_agent = {'User-Agent': f'ChimeraX {cx_version}'}	# Identify ChimeraX to Foldseek server
+        self._download_chunk_size = 64 * 1024	# bytes
+
+        # Use cached 8jnb results for developing user interface so I don't have to wait for server every test.
+#        with open('/Users/goddard/ucsf/chimerax/src/bundles/foldseek_example/alis_pdb100.m8', 'r') as mfile:
+#            results = {database: mfile.readlines()}
+#        self.report_results(results)
+#        return
+        
+        mmcif_string = _mmcif_as_string(chain)
+        self._save('query.cif', mmcif_string)
+        self._save_query_path(chain)
+        if wait:
+            ticket_id = self.submit_query(mmcif_string, databases = [database])
+            self.wait_for_results(ticket_id)
+            results = self.download_results(ticket_id, report_progress = self._report_progress)
+            self.report_results(results)
+        else:
+            self.query_in_thread(mmcif_string, database)
+
+    def report_results(self, results):
+        hits = results[self.database]
+        show_foldseek_hits(self.session, hits, self.database, self.chain,
+                           trim = self.trim, alignment_cutoff_distance = self.alignment_cutoff_distance)
+        self._log_open_results_command()
+
+    def submit_query(self, mmcif_string, databases = ['pdb100']):
+        '''
+        Use an https post to start at search using the Foldseek REST API.
+        '''
+
+        query_url = self.foldseek_url + '/ticket'
+        files = {'q': mmcif_string}
+        data = {
+            'mode': '3diaa',  # "3diaa" for monomer searhces, "complex-3diaa" for multimer searches
+            'database[]': databases
+        }
+        import requests
+        r = requests.post(query_url, files=files, data=data, headers = self._user_agent)
+        if r.status_code != 200:
+            error_msg = r.text
+            from chimerax.core.errors import UserError
+            raise UserError(f'Foldseek search failed: {error_msg}')
+
+        ticket = r.json()
+        ticket_id = ticket['id']
+        return ticket_id
+
+    def wait_for_results(self, ticket_id, report_progress = None):
+        # poll until the job is successful or fails
+        import time
+        elapsed = 0
+        while not self.check_for_results(ticket_id):
+            time.sleep(self._status_interval)
+            elapsed += self._status_interval
+            if report_progress:
+                report_progress(f'Waiting for Foldseek results, {"%.0f"%elapsed} seconds elapsed')
+
+    def check_for_results(self, ticket_id):
+        # poll until the job was successful or failed
+        status_url = self.foldseek_url + f'/ticket/{ticket_id}'
+        import requests
+        r = requests.get(status_url, headers = self._user_agent)
         status = r.json()
 
         if status['status'] == "ERROR":
@@ -96,40 +130,131 @@ def foldseek_web_query(mmcif_string,
             raise UserError(f'FoldSeek jobs failed {status}')
 
         if status['status'] == "COMPLETE":
-            break
+            return True
 
-        # wait a short time between poll requests
-        import time
-        time.sleep(status_interval)
+        return False
+    
+    def download_results(self, ticket_id, report_progress = None):
+        '''
+        Return a dictionary mapping database name to results as m8 format tab-separated values.
+        '''
+        result_url = self.foldseek_url + f'/result/download/{ticket_id}'
+        import requests
+        results = requests.get(result_url, stream = True, headers = self._user_agent)
+        if report_progress:
+            total_bytes = results.headers.get('Content-length')
+            of_total = '' if total_bytes is None else f'of {"%.1f" % (total_bytes / (1024 * 1024))}'
+            from time import time
+            start_time = time()
+        # Result is a tar gzip file containing a .m8 tab-separated value file.
+        import tempfile
+        rfile = tempfile.NamedTemporaryFile(prefix = 'foldseek_results_', suffix = '.tar.gz')
+        size = 0
+        with rfile as f:
+            for chunk in results.iter_content(chunk_size=self._download_chunk_size):
+                f.write(chunk)
+                size += len(chunk)
+                if report_progress:
+                    size_mb = size / (1024 * 1024)
+                    elapsed = time() - start_time
+                    report_progress(f'Reading Foldseek results {"%.1f" % size_mb}{of_total} Mbytes downloaded in {"%.0f" % elapsed} seconds')
+            f.flush()
 
-    # get results
-    result_url = foldseek_url + f'/result/download/{ticket_id}'
-    results = requests.get(result_url, stream = True)
+            # Extract tar file making a dictionary of results for each database searched
+            m8_results = {}
+            import tarfile
+            tfile = tarfile.open(f.name)
+            for filename in tfile.getnames():
+                mfile = tfile.extractfile(filename)
+                dbname = filename.replace('alis_', '').replace('.m8', '')
+                m8_results[dbname] = [line.decode('utf-8') for line in mfile.readlines()]
 
-    # Result is a tar gzip file containing a .m8 tab-separated value file.
-    import tempfile
-    rfile = tempfile.NamedTemporaryFile(prefix = 'foldseek_results_', suffix = '.tar.gz')
-    with rfile as f:
-        for chunk in results.iter_content(chunk_size=128):
-            f.write(chunk)
-        f.flush()
+        # Save results to a file
+        for dbname, hit_lines in m8_results.items():
+            self._save(dbname + '.m8', ''.join(hit_lines))
 
-        # Extract tar file making a dictionary of results for each database searched
-        m8_results = {}
-        import tarfile
-        tfile = tarfile.open(f.name)
-        for filename in tfile.getnames():
-            mfile = tfile.extractfile(filename)
-            dbname = filename.replace('alis_', '').replace('.m8', '')
-            m8_results[dbname] = [line.decode('utf-8') for line in mfile.readlines()]
-        
-    return m8_results
+        return m8_results
 
-def _mmcif_as_string(structure):
+    def _report_progress(self, message):
+        self.session.logger.status(message)
+
+    def query_in_thread(self, mmcif_string, database):
+        global _query_in_progress
+        _query_in_progress = True
+        from queue import Queue
+        result_queue = Queue()
+        import threading
+        t = threading.Thread(target=self._submit_and_download_in_thread,
+                             args=(mmcif_string, database, result_queue))
+        t.start()
+        # Check for results from query each new frame callback.
+        self.session.triggers.add_handler('new frame',
+                                          lambda *args, q=result_queue: self._check_for_results_from_thread(q))
+
+    def _submit_and_download_in_thread(self, mmcif_string, database, result_queue):
+        def _report_progress(message, result_queue=result_queue):
+            result_queue.put(('status',message))
+        try:
+            _report_progress('Submitted Foldseek query')
+            ticket_id = self.submit_query(mmcif_string, databases = [database])
+            self.wait_for_results(ticket_id, report_progress = _report_progress)
+            results = self.download_results(ticket_id, report_progress = _report_progress)
+        except Exception as e:
+            result_queue.put(('error', str(e)))
+        else:
+            result_queue.put(('success', results))
+                             
+    def _check_for_results_from_thread(self, result_queue):
+        if result_queue.empty():
+            return
+        status, r = result_queue.get()
+        if status == 'status':
+            self.session.logger.status(r)
+            return
+        elif status == 'success':
+            self.report_results(r)
+        elif status == 'error':
+            self.session.logger.warning(f'Foldseek query failed: {r}')
+        global _query_in_progress
+        _query_in_progress = False
+        return 'delete handler'
+
+    def _save(self, filename, data):
+        save_directory = self.save_directory
+        if save_directory is None:
+            return
+        from os import path, makedirs
+        if not path.exists(save_directory):
+            makedirs(save_directory)
+        file_mode = 'w' if isinstance(data, str) else 'wb'
+        with open(path.join(save_directory, filename), file_mode) as file:
+            file.write(data)
+
+    def _save_query_path(self, chain):
+        if chain:
+            path = getattr(chain.structure, 'filename', None)
+            if path:
+                self._save('query', f'{path}\t{chain.chain_id}')
+
+    def _log_open_results_command(self):
+        if not self.save_directory:
+            return
+        from os.path import join
+        m8_path = join(self.save_directory, self.database + '.m8')
+        cspec = self.chain.string(style='command')
+        from chimerax.core.commands import log_equivalent_command, quote_path_if_necessary
+        cmd = f'open {quote_path_if_necessary(m8_path)} database {self.database} chain {cspec}'
+        log_equivalent_command(self.session, cmd)
+
+def _mmcif_as_string(chain):
+    structure = chain.structure.copy()
+    cchain = [c for c in structure.chains if c.chain_id == chain.chain_id][0]
+    extra_residues = structure.residues - cchain.existing_residues
+    extra_residues.delete()
     import tempfile
     with tempfile.NamedTemporaryFile(prefix = 'foldseek_mmcif_', suffix = '.cif') as f:
         from chimerax.mmcif.mmcif_write import write_mmcif
-        write_mmcif(structure.session, f.name, models = [structure])
+        write_mmcif(chain.structure.session, f.name, models = [structure])
         mmcif_string = f.read()
     return mmcif_string
 
@@ -157,6 +282,8 @@ For pdb100 database theader looks like "4mjs-assembly7.cif.gz_N crystal structur
 including the PDB id then a bioassembly number then .cif.gz then underscore and a chain ID, then a space
 and then a text description.
 
+For alphafold-swissprot theader looks like "AF-A7E3S4-F1-model_v4 RAF proto-oncogene serine/threonine-protein kinase".
+
 It appears that tstart, tend are not the residue numbers used in the PDB file, they are the numbers
 starting from 1 and including only polymer residues with atomic coordinates.  Also the tseq target
 sequence only includes residues with atomic coordinates, and tlen is the number of residues with
@@ -177,14 +304,18 @@ foldseek does -- iterative pruning may give a better alignment.
 '''
 
 def parse_search_result(line, database):
-    if database != 'pdb100':
-        from chimerax.core.errors import UserError
-        raise UserError('Foldseek command currently can only parse pdb100 database results.')
-    
     fields = line.split('\t')
     field_names = ['query', 'theader', 'pident', 'alnlen', 'mismatch', 'gapopen', 'qstart', 'qend', 'tstart', 'tend', 'prob', 'evalue', 'bits', 'qlen', 'tlen', 'qaln', 'taln', 'tca', 'tseq', 'taxid', 'taxname']
     values = dict(zip(field_names, fields))
-    values.update(parse_pdb100_theader(values['theader']))
+    for int_field in ['alnlen', 'mismatch', 'qstart', 'qend', 'tstart', 'tend', 'qlen', 'tlen']:
+        values[int_field] = int(values[int_field])
+    for float_field in ['pident', 'gapopen', 'prob', 'evalue', 'bits']:
+        values[float_field] = float(values[float_field])
+    values['database'] = database
+    if database == 'pdb100':
+        values.update(parse_pdb100_theader(values['theader']))
+    if database.startswith('afdb'):
+        values.update(parse_alphafold_theader(values['theader']))
     return values
 
 def parse_pdb100_theader(theader):
@@ -207,95 +338,281 @@ def parse_pdb100_theader(theader):
     values = {
         'pdb_id': theader[:4],
         'pdb_assembly_id': theader[ia+9:iz],
-        'pdb_chain_id': theader[iz+8:id],
-        'pdb_description': theader[id+1:],
+        'chain_id': theader[iz+8:id],
+        'description': theader[id+1:],
     }
+    values['database_id'] = values['pdb_id']
+    values['database_full_id'] = values['pdb_id'] + '_' + values['chain_id']
+
     return values
 
-def open_pdb_hit(session, pdb_hit, query_structure, trim = True):
-    from chimerax.core.commands import run
-    pdb_id = pdb_hit["pdb_id"]
-    structure = run(session, f'open {pdb_id}')[0]
-    aligned_res = trim_pdb_structure(structure, pdb_hit, trim)
+def parse_alphafold_theader(theader):
+    '''Example: "AF-A7E3S4-F1-model_v4 RAF proto-oncogene serine/threonine-protein kinase"'''
+    if not theader.startswith('AF-'):
+        from chimerax.core.errors import UserError
+        raise UserError(f'Foldseek results target header "{theader}" did not contain expected string "AF-"')
 
-    # TODO: Align the model to the query structure using Foldseek alignment
-#    run(session, f'matchmaker #{structure.id_string} to #{query_structure.id_string}')
-    p = alignment_transform(aligned_res, pdb_hit, session.logger)
-    if p is not None:
-        structure.position = p
-
-def trim_pdb_structure(structure, pdb_hit, trim):
-    pdb_id = pdb_hit["pdb_id"]
-    chain_id = pdb_hit["pdb_chain_id"]
+    im = theader.find('-F1-model_v')
+    if im == -1:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Foldseek results target header "{theader}" did not contain expected string "-F1-model_v"')
     
-    if trim == 'chains' or trim is True:
+    values = {
+        'alphafold_id': theader[3:im],
+        'alphafold_version': theader[im+11:im+12],
+        'description': theader[im+13:],
+    }
+    values['database_id'] = values['alphafold_id']
+    values['database_full_id'] = values['alphafold_id']
+    
+    return values
+        
+def open_hit(session, hit, query_chain, trim = True, alignment_cutoff_distance = 2.0):
+    db_id = hit.get('database_id')
+    from_db = 'from alphafold' if hit['database'].startswith('afdb') else ''
+    from chimerax.core.commands import run
+    structures = run(session, f'open {db_id} {from_db}')
+    # Can get multiple structures such as NMR ensembles from PDB.
+    stats = []
+    for structure in structures:
+        aligned_res = trim_structure(structure, hit, trim)
+        _show_ribbons(structure)
+
+        if query_chain is not None:
+            # Align the model to the query structure using Foldseek alignment.
+            # Foldseek server does not return transform by default, so compute from sequence alignment.
+            res, query_res = alignment_residue_pairs(hit, aligned_res, query_chain)
+            p, rms, npairs = alignment_transform(res, query_res, alignment_cutoff_distance)
+            stats.append((rms, npairs))
+            structure.position = p
+
+    if query_chain is None:
+        return
+
+    chain_id = hit.get('chain_id')
+    cname = '' if chain_id is None else f' chain {chain_id}'
+    if len(structures) == 1:
+        msg = f'Alignment of {db_id}{cname} to query has RMSD {"%.3g" % rms} using {npairs} of {len(res)} paired residues'
+    else:
+        rms = [rms for rms,npair in stats]
+        rms_min, rms_max = min(rms), max(rms)
+        npair = [npair for rms,npair in stats]
+        npair_min, npair_max = min(npair), max(npair)
+        msg = f'Alignment of {db_id}{cname} ensemble of {len(structures)} structures to query has RMSD {"%.3g" % rms_min} - {"%.3g" % rms_max} using {npair_min}-{npair_max} of {len(res)} paired residues'      
+    if alignment_cutoff_distance is not None and alignment_cutoff_distance > 0:
+        msg += f' within cutoff distance {alignment_cutoff_distance}'
+    session.logger.info(msg)
+
+def trim_structure(structure, hit, trim):
+    res, chain_res = residue_range(structure, hit, structure.session.logger)
+    rnum_start, rnum_end = res[0].number, res[-1].number
+    crnum_start, crnum_end = chain_res[0].number, chain_res[-1].number
+
+    if not trim:
+        return res
+    
+    chain_id = hit.get('chain_id')
+    
+    if (trim is True or 'chains' in trim) and chain_id is not None:
         if len(structure.chains) > 1:
             cmd = f'delete #{structure.id_string} & ~/{chain_id}'
             from chimerax.core.commands import run
             run(structure.session, cmd)
 
-    res, all = pdb_residue_range(structure, pdb_hit)
-    if trim == 'sequence' or trim is True:
-        if not all and res is not None:
-            rnum_start, rnum_end = res[0].number, res[-1].number
-            cmd = f'delete #{structure.id_string}/{chain_id} & ~:{rnum_start}-{rnum_end}'
+    trim_seq = (trim is True or 'sequence' in trim)
+    if trim_seq:
+        if res is not None and len(res) < len(chain_res):
+            res_ranges = []
+            if crnum_start < rnum_start:
+                res_ranges.append(f'{crnum_start}-{rnum_start-1}')
+            if crnum_end > rnum_end:
+                res_ranges.append(f'{rnum_end+1}-{crnum_end}')
+            chain_spec = f'#{structure.id_string}' if chain_id is None else f'#{structure.id_string}/{chain_id}'
+            cmd = f'delete {chain_spec}:{",".join(res_ranges)}'
+            from chimerax.core.commands import run
+            run(structure.session, cmd)
+
+    if (trim is True or 'ligands' in trim) and hit['database'] == 'pdb100':
+        if structure.num_residues > len(chain_res):
+            # Delete non-polymer residues that are not in contact with trimmed chain residues.
+            rstart, rend = (rnum_start, rnum_end) if trim_seq else (crnum_start, crnum_end)
+            cmd = f'delete (#{structure.id_string}/{chain_id}:{rstart}-{rend} :> 3) & #{structure.id_string} & (ligand | ions | solvent)'
             from chimerax.core.commands import run
             run(structure.session, cmd)
 
     return res
 
-def pdb_residue_range(structure, pdb_hit):
+def residue_range(structure, hit, log):
     '''
+    Return the residue range for the subset of residues used in the hit alignment.
     Foldseek tstart and tend target residue numbers are not PDB residue numbers.
-    Instead they start at 1 and include only residues with atomic coordinates in the PDB chain.
-    This routine converts these to PDB residue numbers.
+    Instead they start at 1 and include only residues with atomic coordinates in the chain.
     '''
-    pdb_id = pdb_hit['pdb_id']
-    chain_id = pdb_hit['pdb_chain_id']
-    schains = [chain for chain in structure.chains if chain.chain_id == chain_id]
+    db = hit['database']
+    db_id = hit['database_id']
+    chain_id = hit.get('chain_id')
+    cname = '' if chain_id is None else f'chain {chain_id}'
+    schains = structure.chains if chain_id is None else [chain for chain in structure.chains
+                                                         if chain.chain_id == chain_id]
     chain = schains[0] if len(schains) == 1 else None
     if chain is None:
-        structure.session.logger.warning(f'Foldseek result PDB {pdb_id} does not have a chain {chain_id}.')
+        log.warning(f'Foldseek result {db} {db_id} does not have expected chain {chain_id}.')
         return None, None
-    tstart, tend, tlen, tseq = int(pdb_hit['tstart']), int(pdb_hit['tend']), int(pdb_hit['tlen']), pdb_hit['tseq']
+    tstart, tend, tlen, tseq = hit['tstart'], hit['tend'], hit['tlen'], hit['tseq']
     res = chain.existing_residues
     if len(res) != tlen:
-        structure.session.logger.warning(f'Foldseek result PDB {pdb_id} chain {chain_id} number of residues {tlen} does not match residues in structure {len(res)}.')
+        log.warning(f'Foldseek result {db} {db_id} {cname} number of residues {tlen} does not match residues in structure {len(res)}.')
         return None, None
     seq = ''.join(r.one_letter_code for r in res)
     if seq != tseq:
-        structure.session.logger.warning(f'Foldseek result PDB {pdb_id} chain {chain_id} target sequence {tseq} does not match PDB structure existing residue sequence {seq}.')
+        log.warning(f'Foldseek result {db_id} {cname} target sequence {tseq} does not match sequence from database {seq}.')
         return None, None
     all = (tend == len(tseq))
-    return res[tstart-1:tend], all
+    return res[tstart-1:tend], res
 
-def alignment_transform(res, pdb_hit, log):
-    if res is None:
-        return None
-    pdb_id = pdb_hit['pdb_id']
-    chain_id = pdb_hit['pdb_chain_id']
-    tca = [float(x) for x in pdb_hit['tca'].split(',')]
-    from numpy import array, float64
-    tca = array(tca, float64).reshape((len(tca)//3, 3))
-    tstart, tend = int(pdb_hit['tstart']), int(pdb_hit['tend'])
-    tca = tca[tstart-1:tend,:]	# tca includes coordinates for all residues even those not used in alignment
-    if len(tca) != len(res):
-        log.warning(f'Foldseek result PDB {pdb_id} chain {chain_id} has {len(tca)} transform coordinates for {len(res)} residues.')
-        return None
-    ca_xyz = res.existing_principal_atoms.coords
-    from chimerax.geometry import align_points
-    p, rms = align_points(ca_xyz, tca)
-    log.info(f'Foldseek alignment for PDB {pdb_id} chain {chain_id} of {len(res)} C-alpha atoms has RMSD {rms}')
-    print ('alignment matrix', p.matrix)
-    return p
+def alignment_residue_pairs(hit, aligned_res, query_chain):
+    qstart, qend = hit['qstart'], hit['qend']
+    qres = query_chain.existing_residues[qstart-1:qend]
+    qaln, taln = hit['qaln'], hit['taln']
+    ti = qi = 0
+    ati, aqi = [], []
+    for qaa, taa in zip(qaln, taln):
+        if qaa != '-' and taa != '-':
+            if aligned_res[ti].one_letter_code != taa:
+                from chimerax.core.errors import UserError
+                raise UserError(f'Amino acid at aligned sequence position {ti} is {taa} which does not match target PDB structure residue {aligned_res[ti].one_letter_code}{aligned_res[ti].number}')
+            if qres[qi].one_letter_code != qaa:
+                from chimerax.core.errors import UserError
+                raise UserError(f'Amino acid at aligned sequence position {qi} is {qaa} which does not match query PDB structure residue {qres[qi].one_letter_code}{qres[qi].number}')
+            ati.append(ti)
+            aqi.append(qi)
+        if taa != '-':
+            ti += 1
+        if qaa != '-':
+            qi += 1
+                    
+    return aligned_res.filter(ati), qres.filter(aqi)
+
+def alignment_transform(res, query_res, cutoff_distance = None):
+    # TODO: Do iterative pruning to get better core alignment.
+    qxyz = query_res.existing_principal_atoms.scene_coords
+    txyz = res.existing_principal_atoms.coords
+    if cutoff_distance is None or cutoff_distance <= 0:
+        from chimerax.geometry import align_points
+        p, rms = align_points(txyz, qxyz)
+        npairs = len(txyz)
+    else:
+        from chimerax.std_commands.align import align_and_prune
+        p, rms, indices = align_and_prune(txyz, qxyz, cutoff_distance)
+        npairs = len(indices)
+    return p, rms, npairs
+
+def _show_ribbons(structure):
+    for c in structure.chains:
+        cres = c.existing_residues
+        if not cres.ribbon_displays.any():
+            cres.ribbon_displays = True
+            cres.atoms.displays = False
+
+def open_foldseek_m8(session, path, query_chain = None, database = None):
+    with open(path, 'r') as file:
+        hit_lines = file.readlines()
+
+    if query_chain is None:
+        query_chain, models = _guess_query_chain(session, path)
+
+    if database is None:
+        database = _guess_database(path, hit_lines)
+        if database is None:
+            from os.path import basename
+            filename = basename(path)
+            from chimerax.core.errors import UserError
+            raise UserError('Cannot determine database for foldseek file {filename}.  Specify which database ({", ".join(foldseek_databases)}) using the open command "database" option, for example "open {filename} database pdb100".')
+
+    # TODO: The query_chain model has not been added to the session yet.  So it is has no model id which
+    # messes up the hits table header.  Also it causes an error trying to set the Chain menu if that menu
+    # has already been used.  But I don't want to add the structure to the session because then its log output
+    # appears in the open Notes table.
+    if models:
+        session.models.add(models)
+        models = []
+
+    show_foldseek_hits(session, hit_lines, database, query_chain)
+
+    return models, ''
+
+def _guess_query_chain(session, results_path):
+    '''Look for files in same directory as foldseek results to figure out query chain.'''
+
+    from os.path import dirname, join, exists
+    results_dir = dirname(results_path)
+    qpath = join(results_dir, 'query')
+    if exists(qpath):
+        # See if the original query structure file is already opened.
+        path, chain_id = open(qpath,'r').read().split('\t')
+        from chimerax.atomic import AtomicStructure
+        for s in session.models.list(type = AtomicStructure):
+            if hasattr(s, 'filename') and s.filename == path:
+                for c in s.chains:
+                    if c.chain_id == chain_id:
+                        return c, []
+        # Try opening the original query structure file
+        if exists(path):
+            models, status = session.open_command.open_data(path)
+            chains = [c for c in models[0].chains if c.chain_id == chain_id]
+            return chains[0], models
+
+    qpath = join(results_dir, 'query.cif')
+    if exists(qpath):
+        # Use the single-chain mmCIF file used in the Foldseek submission
+        models, status = session.open_command.open_data(qpath)
+        return models[0].chains[0], models
+    
+    return None, []
+
+def _guess_database(path, hit_lines):
+    for database in foldseek_databases:
+        if path.endswith(database + '.m8'):
+            return database
+
+    from os.path import dirname, join, exists
+    dpath = join(dirname(path), 'database')
+    if exists(dpath):
+        database = open(dpath,'r').read()
+        return database
+
+    hit_file = hit_lines[0].split('\t')[1]
+    if '.cif.gz' in hit_file:
+        database = 'pdb100'
+
+    return None
+
+def show_foldseek_hits(session, hit_lines, database, query_chain = None,
+                       trim = None, alignment_cutoff_distance = None):
+    msg = f'Foldseek search for similar structures to {query_chain} in {database} found {len(hit_lines)} hits'
+    session.logger.info(msg)
+
+    hits = [parse_search_result(hit, database) for hit in hit_lines]
+    from .gui import foldseek_panel, Foldseek
+    fp = foldseek_panel(session)
+    if fp:
+        fp.show_results(hits, query_chain = query_chain, database = database,
+                        trim = trim, alignment_cutoff_distance = alignment_cutoff_distance)
+    else:
+        fp = Foldseek(session, query_chain = query_chain, database = database,
+                      hits = hits, trim = trim, alignment_cutoff_distance = alignment_cutoff_distance)
+    return fp
     
 def register_foldseek_command(logger):
-    from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or
-    from chimerax.atomic import AtomicStructureArg
+    from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg
+    from chimerax.atomic import ChainArg
     desc = CmdDesc(
-        required = [('structure', AtomicStructureArg)],
+        required = [('chain', ChainArg)],
         keyword = [('database', EnumOf(foldseek_databases)),
-                   ('trim', Or(EnumOf(['chains', 'sequence']), BoolArg)),
+                   ('trim', Or(ListOf(EnumOf(['chains', 'sequence', 'ligands'])), BoolArg)),
+                   ('alignment_cutoff_distance', FloatArg),
+                   ('save_directory', SaveFolderNameArg),
+                   ('wait', BoolArg),
                    ],
         synopsis = 'Search for proteins with similar folds using Foldseek web service'
     )

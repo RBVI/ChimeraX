@@ -183,6 +183,17 @@ def color_by_hydrophobicity_cmds(session, target="rs"):
             " novalue magenta" % target
     ]
 
+def get_AF_surf_spec(session):
+    high = connected_high_AF_confidence(session)
+    spec_lookup = {}
+    for s in all_atomic_structures(session):
+        s_residues = [r for r in high if r.structure == s]
+        if s_residues:
+            spec_lookup[s] = concise_residue_spec(session, s_residues)
+        else:
+            spec_lookup[s] = s.atomspec
+    return spec_lookup
+
 def hide_AF_low_confidence(session):
     # When this is called, 'ribbon_display' may be different than when the commands this
     # generates are executed, so do not screen out residues to hide based on current ribbon_display
@@ -293,11 +304,17 @@ def rainbow_cmd(structure, target_atoms=False):
     return "rainbow %s@ca,c4'%s %s" % (structure.atomspec, color_arg, target_arg)
 
 def run_preset(session, name, mgr):
-    if name == "ribbon by secondary structure":
-        cmd = undo_printable + base_setup + base_macro_model + base_ribbon
-    elif name == "ribbon by secondary structure (printable)":
-        cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + print_prep(
-            session, pb_radius=None)
+    if name.startswith("ribbon by secondary structure"):
+        if "AlphaFold" in name:
+            check_AF(session)
+            af_cmds = hide_AF_low_confidence(session)
+        else:
+            af_cmds = []
+        if name.endswith("(printable)"):
+            cmd = base_setup + base_macro_model + base_ribbon + af_cmds + print_ribbon + print_prep(
+                session, pb_radius=None)
+        else:
+            cmd = undo_printable + base_setup + base_macro_model + base_ribbon + af_cmds
     elif name == "ribbon by chain":
         cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [
             rainbow_cmd(s) for s in all_atomic_structures(session)
@@ -306,12 +323,19 @@ def run_preset(session, name, mgr):
         cmd = base_setup + base_macro_model + base_ribbon + [
             rainbow_cmd(s) for s in all_atomic_structures(session)
         ] + print_ribbon + print_prep(session, pb_radius=None)
-    elif name == "ribbon rainbow":
-        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [ "rainbow @ca,c4' target rf" ]
-    elif name == "ribbon rainbow (printable)":
-        cmd = base_setup + base_macro_model + base_ribbon + [
-            "rainbow @ca,c4'"
-        ] + print_ribbon + print_prep(session, pb_radius=None)
+    elif name.startswith("ribbon rainbow"):
+        if "AlphaFold" in name:
+            check_AF(session)
+            af_cmds = hide_AF_low_confidence(session)
+        else:
+            af_cmds = []
+        if name.endswith("(printable)"):
+            cmd = base_setup + base_macro_model + base_ribbon + af_cmds + [
+                "rainbow @ca,c4'"
+            ] + print_ribbon + print_prep(session, pb_radius=None)
+        else:
+            cmd = undo_printable + base_setup + base_macro_model + base_ribbon + af_cmds + [
+                "rainbow @ca,c4' target rf" ]
     elif name == "ribbon by polymer (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
             "color bypolymer"
@@ -350,8 +374,14 @@ def run_preset(session, name, mgr):
             printable) + [ "color nih_blue" ]
     elif name.startswith("surface coulombic"):
         printable = "printable" in name
+        if "AlphaFold" in name:
+            check_AF(session)
+            spec_lookup = get_AF_surf_spec(session)
+        else:
+            spec_lookup = None
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
-            printable) + [ "color white", "coulombic surfaces #* chargeMethod gasteiger" ]
+            printable, spec_lookup=spec_lookup) + [ "color white",
+            "coulombic surfaces #* chargeMethod gasteiger" ]
         from chimerax.atomic import AtomicStructures
         structures = AtomicStructures(all_atomic_structures(session))
         main_atoms = structures.atoms.filter(structures.atoms.structure_categories == "main")
@@ -364,8 +394,14 @@ def run_preset(session, name, mgr):
             session.logger.warning("Incomplete HIS residue; coulombic will likely fail")
     elif name.startswith("surface hydrophobicity"):
         printable = "printable" in name
+        if "AlphaFold" in name:
+            check_AF(session)
+            spec_lookup = get_AF_surf_spec(session)
+        else:
+            spec_lookup = None
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) \
-            + surface_cmds(session, printable, sharp=True) + color_by_hydrophobicity_cmds(session)
+            + surface_cmds(session, printable, sharp=True, spec_lookup=spec_lookup) \
+            + color_by_hydrophobicity_cmds(session)
     elif name.startswith("surface by chain"):
         printable = "printable" in name
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
@@ -390,14 +426,7 @@ def run_preset(session, name, mgr):
     elif name.startswith("surface AlphaFold/pLDDT"):
         struct_spec = check_AF(session)
         if "high confidence" in name:
-            high = connected_high_AF_confidence(session)
-            spec_lookup = {}
-            for s in all_atomic_structures(session):
-                s_residues = [r for r in high if r.structure == s]
-                if s_residues:
-                    spec_lookup[s] = concise_residue_spec(session, s_residues)
-                else:
-                    spec_lookup[s] = s.atomspec
+            spec_lookup = get_AF_surf_spec(session)
         else:
             spec_lookup = None
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + \
@@ -406,14 +435,7 @@ def run_preset(session, name, mgr):
     elif name.startswith("surface AlphaFold/PAE domains"):
         struct_spec = check_AF(session, pae=True)
         if "high confidence" in name:
-            high = connected_high_AF_confidence(session)
-            spec_lookup = {}
-            for s in all_atomic_structures(session):
-                s_residues = [r for r in high if r.structure == s]
-                if s_residues:
-                    spec_lookup[s] = concise_residue_spec(session, s_residues)
-                else:
-                    spec_lookup[s] = s.atomspec
+            spec_lookup = get_AF_surf_spec(session)
         else:
             spec_lookup = None
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + \

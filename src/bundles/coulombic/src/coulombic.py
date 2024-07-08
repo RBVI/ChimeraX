@@ -84,7 +84,7 @@ def assign_charges(session, uncharged_residues, his_scheme, charge_method, *, st
                     copy_r_to_orig[c_r] = o_r
                 from chimerax.addh.cmd import cmd_addh
                 hbond = False
-                if his_scheme is None:
+                if his_scheme is None and struct.num_coordsets == 1:
                     if len(struct_residues[struct_residues.names == "HIS"]) > 0:
                         hbond = True
                 from chimerax.atomic import AtomicStructures

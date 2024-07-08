@@ -621,6 +621,7 @@ class CollatingLog(HtmlLog):
         # note that this handling of the summary (only calling logger,info
         # at the end and not calling the individual log-level functions)
         # will not raise an error dialog except for 'bug'-level log entries
+        from .colors import scheme_color
         summary = "\n<table %s>\n" % html_table_params
         summary += "  <thead>\n"
         summary += "    <tr>\n"
@@ -629,7 +630,7 @@ class CollatingLog(HtmlLog):
         summary += "  </thead>\n"
         summary += "  <tbody>\n"
         some_msgs = False
-        colors = ["#ffffff", "#ffb961", "#ff7882", "#dc1436"]
+        colors = ['info', 'warning', 'error', 'bug']
         for level, msgs in reversed(list(enumerate(self.msgs))):
             if not msgs:
                 continue
@@ -640,7 +641,7 @@ class CollatingLog(HtmlLog):
                 "s" if len(msgs) > 1 else "",
             )
             summary += '      <td style="background-color:%s">%s</td>' % (
-                colors[level],
+                scheme_color(colors[level]),
                 self.summarize_msgs(msgs, collapse_similar),
             )
             summary += "    </tr>\n"

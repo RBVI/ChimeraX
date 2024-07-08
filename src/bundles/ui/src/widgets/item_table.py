@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from Qt.QtWidgets import QWidget, QCheckBox, QTableView, QMenu, QAbstractItemView, QFileDialog
+from Qt.QtWidgets import QWidget, QCheckBox, QTableView, QMenu, QAbstractItemView, QFileDialog, QLabel
 from Qt.QtGui import QAction
 from Qt.QtCore import QAbstractTableModel, Qt, QModelIndex, Signal, QSortFilterProxyModel, QSize, QTimer
 # Qt has no QVariant; None can be used in place of an invalid QVariant
@@ -36,7 +36,7 @@ class QCxTableModel(QAbstractTableModel):
             from chimerax.core.colors import Color
             if isinstance(val, bool):
                 return None
-            elif col.display_format in ItemTable.color_formats:
+            if col.display_format in ItemTable.color_formats:
                 if self._item_table._allow_user_sorting:
                     sorted_index = self._item_table.model().mapFromSource(index)
                 else:
@@ -49,6 +49,17 @@ class QCxTableModel(QAbstractTableModel):
                     widget.color_changed.connect(lambda clr, c=col, i=item: c.set_value(i, clr))
                     self._item_table.setIndexWidget(sorted_index, widget)
                 widget.color = val
+                return None
+            if col.is_html:
+                if self._item_table._allow_user_sorting:
+                    sorted_index = self._item_table.model().mapFromSource(index)
+                else:
+                    sorted_index = index
+                widget = self._item_table.indexWidget(sorted_index)
+                if not widget:
+                    widget = QLabel()
+                    self._item_table.setIndexWidget(sorted_index, widget)
+                widget.setText(val)
                 return None
             return str(val)
         if role == Qt.FontRole and (item in self._item_table._highlighted or col.justification == "decimal"
@@ -353,7 +364,7 @@ class ItemTable(QTableView):
     def add_column(self, title, data_fetch, *, format="%s", data_set=None, display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,
             header_justification=None, icon=None, editable=False, validator=None, sort_func=None,
-            show_tooltips=False, data_color=None):
+            show_tooltips=False, data_color=None, is_html=False):
         """ Add a column who's header text is 'title'.  It is allowable to add a column with the
             same title multiple times.  The duplicative additions will be ignored.
 
@@ -432,6 +443,8 @@ class ItemTable(QTableView):
             should be a chimerax.core.Color instance or a value that can be used as the Color constructor
             first argument.
 
+            Set 'is_html' to True if you need HTML formatting.  This uses a QLabel for each cell in the
+            column so is somewhat higher overhead, so only use it when actually needed if possible.
         """
         titles = [c.title for c in self._columns]
         if title in titles:
@@ -457,7 +470,7 @@ class ItemTable(QTableView):
 
         c = _ItemColumn(title, data_fetch, format, data_set, title_display, justification, font, color,
             header_justification, balloon, icon, self._session, editable, validator, sort_func,
-            show_tooltips, data_color)
+            show_tooltips, data_color, is_html)
 
         if self._column_control_info:
             self._add_column_control_entry(c)
@@ -656,7 +669,7 @@ class ItemTable(QTableView):
     def sort_by(self, column, order):
         if not self._allow_user_sorting:
             raise ValueError("Table was not configured to allow sorting")
-        self.model().sort(self._columns.index(column), order)
+        self.sortByColumn(self._columns.index(column), order)
 
     @property
     def sorted_data(self):
@@ -832,7 +845,7 @@ class ItemTable(QTableView):
 class _ItemColumn:
     def __init__(self, title, data_fetch, display_format, data_set, title_display, justification, font,
             header_color, header_justification, balloon, icon, session, editable, validator, sort_func,
-            show_tooltips, data_color):
+            show_tooltips, data_color, is_html):
         # set all args to corresponding 'self' attributes...
         import inspect
         args, varargs, keywords, locals = inspect.getargvalues(inspect.currentframe())
