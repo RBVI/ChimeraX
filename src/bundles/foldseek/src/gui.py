@@ -98,6 +98,12 @@ class Foldseek(ToolInstance):
     
     # ---------------------------------------------------------------------------
     #
+    @property
+    def hits(self):
+        return self._hits
+
+    # ---------------------------------------------------------------------------
+    #
     def _create_chain_and_database_menus(self, parent):
         from chimerax.atomic.widgets import ChainMenuButton
         from chimerax.atomic import Residue
