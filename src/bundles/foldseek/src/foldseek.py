@@ -528,7 +528,15 @@ def open_foldseek_m8(session, path, query_chain = None, database = None):
             filename = basename(path)
             from chimerax.core.errors import UserError
             raise UserError('Cannot determine database for foldseek file {filename}.  Specify which database ({", ".join(foldseek_databases)}) using the open command "database" option, for example "open {filename} database pdb100".')
-    
+
+    # TODO: The query_chain model has not been added to the session yet.  So it is has no model id which
+    # messes up the hits table header.  Also it causes an error trying to set the Chain menu if that menu
+    # has already been used.  But I don't want to add the structure to the session because then its log output
+    # appears in the open Notes table.
+    if models:
+        session.models.add(models)
+        models = []
+
     show_foldseek_hits(session, hit_lines, database, query_chain)
 
     return models, ''

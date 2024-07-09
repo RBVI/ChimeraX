@@ -34,8 +34,12 @@ class _FoldseekBundle(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        from . import foldseek
-        foldseek.register_foldseek_command(logger)
+        if command_name == 'foldseek':
+            from . import foldseek
+            foldseek.register_foldseek_command(logger)
+        elif command_name == 'foldseek coverage':
+            from . import coverage
+            coverage.register_foldseek_coverage_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
