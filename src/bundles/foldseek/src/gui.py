@@ -307,6 +307,7 @@ class FoldseekResultsTable(ItemTable):
         ItemTable.__init__(self, parent = parent)
         self.add_column(database_name, 'database_full_id')
         col_identity = self.add_column('Identity', 'pident')
+        col_evalue = self.add_column('E-value', 'evalue', format = '%.2g')
         col_species = self.add_column('Species', 'taxname')
         self.add_column('Description', 'description', justification = 'left')
         rows = [FoldseekRow(hit) for hit in hits]
