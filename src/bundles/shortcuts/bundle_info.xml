@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Shortcuts" version="1.1.1"
+<BundleInfo name="ChimeraX-Shortcuts" version="1.1.2"
 	    package="chimerax.shortcuts"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -29,17 +29,20 @@
     <Provider tab="Molecule Display" section="Atoms"
       name="da" display_name="Show" icon="atomshow.png" description="Show atoms"/>
     <Provider tab="Molecule Display" section="Atoms"
-      name="ha" display_name="Hide" icon="atomhide.png" description="Hide atoms"/>
+      name="ha" display_name="Hide" icon="atomhide.png" darkIcon="atomhide-dark.png"
+      description="Hide atoms"/>
 
     <Provider tab="Molecule Display" section="Cartoons"
       name="rb" display_name="Show" icon="ribshow.png" description="Show cartoons"/>
     <Provider tab="Molecule Display" section="Cartoons"
-      name="hr" display_name="Hide" icon="ribhide.png" description="Hide cartoons"/>
+      name="hr" display_name="Hide" icon="ribhide.png" darkIcon="ribhide-dark.png"
+      description="Hide cartoons"/>
 
     <Provider tab="Molecule Display" section="Surfaces"
       name="ms" display_name="Show" icon="surfshow.png" description="Show surfaces"/>
     <Provider tab="Molecule Display" section="Surfaces"
-      name="hs" display_name="Hide" icon="surfhide.png" description="Hide surfaces"/>
+      name="hs" display_name="Hide" icon="surfhide.png" darkIcon="surfhide-dark.png"
+      description="Hide surfaces"/>
 
     <Provider tab="Molecule Display" section="Styles"
       name="st" display_name="Stick" icon="stick.png" description="Display atoms in stick style"/>
@@ -90,14 +93,17 @@
     <Provider tab="Graphics" section="Lighting &amp; Effects"
       name="sh" display_name="Shadow" icon="shadow.png" description="Toggle shadows"/>
     <Provider tab="Graphics" section="Lighting &amp; Effects"
-      name="se" display_name="Silhouettes" icon="silhouette.png" description="Toggle silhouettes"/>
+      name="se" display_name="Silhouettes" icon="silhouette.png" darkIcon="silhouette-dark.png"
+      description="Toggle silhouettes"/>
 
     <Provider tab="Graphics" section="Camera"
       name="vs" display_name="View selected" icon="viewsel.png" description="View selected"/>
     <Provider tab="Graphics" section="Camera"
-      name="va" display_name="View all" icon="viewall.png" description="View all"/>
+      name="va" display_name="View all" icon="viewall.png" darkIcon="viewall-dark.png"
+      description="View all"/>
     <Provider tab="Graphics" section="Camera"
-      name="dv" display_name="Orient" icon="orient.png" description="Default orientation"/>
+      name="dv" display_name="Orient" icon="orient.png" darkIcon="orient-dark.png"
+      description="Default orientation"/>
 
     <!-- Map tab -->
     <Provider tab="Map" section="Map"

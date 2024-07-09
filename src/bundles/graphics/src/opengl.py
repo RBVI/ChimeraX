@@ -801,6 +801,9 @@ class Render:
         self._use_shader(p)
         return p
 
+    def flush_shader_cache(self):
+        self._opengl_context.shader_programs = {}
+        self._opengl_context.current_shader_program = None
     def set_projection_matrix(self, pm=None):
         '''
         Set the shader to use the given 4x4 OpenGL projection matrix.
