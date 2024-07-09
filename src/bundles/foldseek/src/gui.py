@@ -308,6 +308,11 @@ class FoldseekResultsTable(ItemTable):
         self.add_column(database_name, 'database_full_id')
         col_identity = self.add_column('Identity', 'pident')
         col_evalue = self.add_column('E-value', 'evalue', format = '%.2g')
+        if hits and hits[0]:
+            if 'close' in hits[0]:
+                col_close = self.add_column('% Close', 'close', format = '%.0f')
+            if 'coverage' in hits[0]:
+                col_coverage = self.add_column('% Cover', 'coverage', format = '%.0f')
         col_species = self.add_column('Species', 'taxname')
         self.add_column('Description', 'description', justification = 'left')
         rows = [FoldseekRow(hit) for hit in hits]
