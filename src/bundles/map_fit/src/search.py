@@ -176,7 +176,8 @@ class Fit:
             move_models(self.models, self.transforms, self.volume, frames, session)
         else:
             for m, tf in self.model_transforms():
-                m.position = tf
+                if not m.deleted:
+                    m.position = tf
 
     # -------------------------------------------------------------------------
     #

@@ -350,6 +350,11 @@ class Log(ToolInstance, HtmlLog):
                 bug = (level == self.LEVEL_BUG)
                 f = lambda self=self, msg=dlg_msg: self.show_error_message(msg, bug=bug)
                 self.session.ui.thread_safe(f)
+            else:
+                # If we're not raising a dialog, at least try to bring the Log to the front
+                # if it is somehow obscured
+                self.tool_window.shown = True
+
             if not is_html:
                 from html import escape
                 msg = escape(msg)
