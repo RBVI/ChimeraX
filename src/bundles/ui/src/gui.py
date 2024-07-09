@@ -3150,7 +3150,7 @@ class SelContactsDialog(QDialog):
             if self.criteria_button_group.checkedButton() == self.buried_button:
                 cmd = "interfaces select %s & ::polymer_type>0 " \
                     "contacting %s & ::polymer_type>0 areaCutoff 0" % (chain_spec1, chain_spec2)
-                if self.what_sel_button.text() == "both":
+                if self.what_sel_button.text().startswith("both"):
                     cmd += " bothSides true"
                 from chimerax.interfaces import residue_area_default
                 buried_residue_area = self.residue_spinbox.value()
