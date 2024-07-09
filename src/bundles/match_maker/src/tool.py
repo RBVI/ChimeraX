@@ -315,12 +315,15 @@ class MatchMakerTool(ToolInstance):
 
     def _filter_bring_models(self, model):
         from chimerax.atomic import PseudobondGroup
-        if isinstance(model, PseudobondGroup):
+        from chimerax.label.label3d import ObjectLabels
+        if isinstance(model, (PseudobondGroup, ObjectLabels)):
             return False
         chain_pairing = self.chain_pairing_option.value
         ref_widget, match_widget = self.matching_widgets[chain_pairing]
         ref_value = ref_widget.value
         match_value = match_widget.value
+        if ref_value is None or match_value is None:
+            return False
         if chain_pairing == CP_BEST_BEST:
             ref_structures = [ref_value]
             match_structures = match_value
