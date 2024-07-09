@@ -79,6 +79,7 @@ class Foldseek(ToolInstance):
         bf = button_row(parent,
                         [('Search', self._search),
                          ('Open', self._open_selected),
+                         ('Coverage', self._show_coverage_plot),
                          ('Options', self._show_or_hide_options),
                          ('Help', self._show_help)],
                         spacing = 10)
@@ -172,12 +173,18 @@ class Foldseek(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     @property
-    def _trim(self):
+    def trim(self):
         c, s, l = self._trim_extra_chains.value, self._trim_sequences.value, self._trim_ligands.value
         trim = [name for t, name in ((c, 'chains'), (s, 'sequence'), (l, 'ligands')) if t]
         if len(trim) == 3: trim = True
         elif len(trim) == 0: trim = False
         return trim
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def alignment_cutoff_distance(self):
+        return self._alignment_cutoff_distance.value
 
     # ---------------------------------------------------------------------------
     #
@@ -242,7 +249,7 @@ class Foldseek(ToolInstance):
     #
     def _open_hit(self, row):
         from .foldseek import open_hit
-        open_hit(self.session, row.hit, self.results_query_chain, trim = self._trim,
+        open_hit(self.session, row.hit, self.results_query_chain, trim = self.trim,
                  alignment_cutoff_distance = self._alignment_cutoff_distance.value)
 
     # ---------------------------------------------------------------------------
@@ -253,6 +260,12 @@ class Foldseek(ToolInstance):
         if qc is not None and qc.structure is None:
             self._results_query_chain = qc = None
         return qc
+
+    # ---------------------------------------------------------------------------
+    #
+    def _show_coverage_plot(self):
+        from chimerax.core.commands import run
+        run(self.session, 'foldseek coverage')
 
     # ---------------------------------------------------------------------------
     #
@@ -271,8 +284,8 @@ class Foldseek(ToolInstance):
         data = {'hits': self._hits,
                 'query_chain': self.results_query_chain,
                 'database': self._results_database,
-                'trim': self._trim,
-                'alignment_cutoff_distance': self._alignment_cutoff_distance.value,
+                'trim': self.trim,
+                'alignment_cutoff_distance': self.alignment_cutoff_distance,
                 'version': '1'}
         return data
 

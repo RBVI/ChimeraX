@@ -348,19 +348,25 @@ def parse_pdb100_theader(theader):
 
 def parse_alphafold_theader(theader):
     '''Example: "AF-A7E3S4-F1-model_v4 RAF proto-oncogene serine/threonine-protein kinase"'''
-    if not theader.startswith('AF-'):
+    fields = theader.split('-')
+    if fields[0] != 'AF':
         from chimerax.core.errors import UserError
-        raise UserError(f'Foldseek results target header "{theader}" did not contain expected string "AF-"')
+        raise UserError(f'Foldseek results target header "{theader}" did not start with "AF-"')
 
-    im = theader.find('-F1-model_v')
-    if im == -1:
+    if len(fields) < 3 or not fields[2].startswith('F'):
         from chimerax.core.errors import UserError
-        raise UserError(f'Foldseek results target header "{theader}" did not contain expected string "-F1-model_v"')
-    
+        raise UserError(f'Foldseek results target header "{theader}" did not have 3rd "-" separated field starting with "F"')
+
+    if len(fields) < 4 or  not fields[3].startswith('model_v'):
+        from chimerax.core.errors import UserError
+        raise UserError(f'Foldseek results target header "{theader}" did not have 4th "-" separated field starting with "model_v"')
+
+    version, descrip = fields[3][7:].split(' ', maxsplit=1)
     values = {
-        'alphafold_id': theader[3:im],
-        'alphafold_version': theader[im+11:im+12],
-        'description': theader[im+13:],
+        'alphafold_id': fields[1],
+        'alphafold_fragment': fields[2],
+        'alphafold_version': version,
+        'description': descrip,
     }
     values['database_id'] = values['alphafold_id']
     values['database_full_id'] = values['alphafold_id']
@@ -368,6 +374,11 @@ def parse_alphafold_theader(theader):
     return values
         
 def open_hit(session, hit, query_chain, trim = True, alignment_cutoff_distance = 2.0):
+    af_frag = hit.get('alphafold_fragment')
+    if af_frag is not None and af_frag != 'F1':
+        session.logger.warning(f'Foldseek AlphaFold database hit {hit["alphafold_id"]} was predicted in fragments and ChimeraX is not able to fetch the fragment structures')
+        return
+
     db_id = hit.get('database_id')
     from_db = 'from alphafold' if hit['database'].startswith('afdb') else ''
     from chimerax.core.commands import run
@@ -480,10 +491,10 @@ def alignment_residue_pairs(hit, aligned_res, query_chain):
         if qaa != '-' and taa != '-':
             if aligned_res[ti].one_letter_code != taa:
                 from chimerax.core.errors import UserError
-                raise UserError(f'Amino acid at aligned sequence position {ti} is {taa} which does not match target PDB structure residue {aligned_res[ti].one_letter_code}{aligned_res[ti].number}')
+                raise UserError(f'Database structure {hit["database_full_id"]} sequence does not match Foldseek alignment sequence.  Database structure has residue {aligned_res[ti].one_letter_code}{aligned_res[ti].number} where Foldseek alignment has amino acid type {taa} at position {ti+1}')
             if qres[qi].one_letter_code != qaa:
                 from chimerax.core.errors import UserError
-                raise UserError(f'Amino acid at aligned sequence position {qi} is {qaa} which does not match query PDB structure residue {qres[qi].one_letter_code}{qres[qi].number}')
+                raise UserError(f'Query chain {query_chain.string()} sequence does not match Foldseek alignment sequence. Query chain has residue {qres[qi].one_letter_code}{qres[qi].number} where Foldseek alignment has amino acid type {qaa} at position {qi+1}')
             ati.append(ti)
             aqi.append(qi)
         if taa != '-':
