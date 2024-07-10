@@ -67,7 +67,11 @@ class FoldseekCoveragePlot(ToolInstance):
         hd.frame.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)  # Don't resize whole panel to fit heading
         layout.addWidget(hd.frame)
 
-        rgb, self._sorted_hits, (qstart, qend) = coverage_image(hits, conserved = conserved)
+        self._sorted_hits = sorted_hits(hits)
+        self._coverage_array, (qstart, qend) = _coverage_array(self._sorted_hits)
+        rgb = _coverage_image(self._coverage_array)
+        if conserved > 0:
+            _color_conserved(self._coverage_array, rgb, conserved)
         self._query_res = [(r.one_letter_code, r.number)
                            for r in query_chain.existing_residues[qstart-1:qend]]
         self._coverage_view = gv = CoverageView(parent, rgb, self._mouse_hover)
@@ -111,7 +115,19 @@ class FoldseekCoveragePlot(ToolInstance):
             menu.addAction(f'Select query residue {res_type}{res_num}',
                            lambda res_num=res_num: self._select_query_residue(res_num))
 
+        self._add_menu_toggle(menu, 'Color conserved', self._conserved>0, self._color_conserved)
+
         menu.addAction('Save image', self._save_image)
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _add_menu_toggle(self, menu, text, checked, callback):
+        from Qt.QtGui import QAction
+        a = QAction(text, menu)
+        a.setCheckable(True)
+        a.setChecked(checked)
+        a.triggered.connect(callback)
+        menu.addAction(a)
         
     # ---------------------------------------------------------------------------
     #
@@ -128,7 +144,18 @@ class FoldseekCoveragePlot(ToolInstance):
         resspec = self._query_chain.string(style = 'command') + f':{res_num}'
         from chimerax.core.commands import run
         run(self.session, f'select {resspec}')
-    
+
+    # ---------------------------------------------------------------------------
+    #
+    def _color_conserved(self, color = True):
+        rgb = _coverage_image(self._coverage_array)
+        if color:
+            self._conserved = 0.30
+            _color_conserved(self._coverage_array, rgb, self._conserved)
+        else:
+            self._conserved = 0
+        self._coverage_view.set_image(rgb)
+
     # ---------------------------------------------------------------------------
     #
     def _save_image(self, default_suffix = '.png'):
@@ -192,7 +219,7 @@ class CoverageView(QGraphicsView):
 
 # -----------------------------------------------------------------------------
 #
-def coverage_image(hits, conserved = 0, conserved_color = (255,0,0), identity_color = (0,255,0)):
+def _coverage_array(hits):
     qstarts = []
     qends = []
     for hit in hits:
@@ -201,23 +228,30 @@ def coverage_image(hits, conserved = 0, conserved_color = (255,0,0), identity_co
     qstart, qend = min(qstarts), max(qends)
     qlen = qend-qstart+1
 
-    shits = sorted_hits(hits)
-    from numpy import zeros, uint8, array
+    from numpy import zeros, uint8
     cover = zeros((len(hits), qlen), uint8)
-    for i,hit in enumerate(shits):
+    for i,hit in enumerate(hits):
         query_coverage(hit, qstart, cover[i,:])
-    
-    colors = array(((255,255,255), (0,0,0), identity_color), uint8)
-    rgb = colors[cover]
 
-    if conserved:
-        for i in range(qlen):
-            ci = cover[:,i]
-            ns,nd = (ci == 2).sum(), (ci == 1).sum()
-            if ns > conserved * (ns + nd):
-                rgb[ci==2,i,:] = conserved_color
-        
-    return rgb, shits, (qstart, qend)
+    return cover, (qstart, qend)
+
+# -----------------------------------------------------------------------------
+#
+def _coverage_image(coverage_array, identity_color = (0,255,0)):
+    from numpy import array, uint8
+    colors = array(((255,255,255), (0,0,0), identity_color), uint8)
+    rgb = colors[coverage_array]
+    return rgb
+
+# -----------------------------------------------------------------------------
+#
+def _color_conserved(coverage_array, rgb, conserved = 0.3, conserved_color = (255,0,0),
+                     identity_color = (0,255,0)):
+    for i in range(coverage_array.shape[1]):
+        ci = coverage_array[:,i]
+        ns,nd = (ci == 2).sum(), (ci == 1).sum()
+        color = conserved_color if ns > conserved * (ns + nd) else identity_color
+        rgb[ci==2,i,:] = color
 
 # -----------------------------------------------------------------------------
 #
