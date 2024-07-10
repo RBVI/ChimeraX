@@ -666,6 +666,8 @@ class BundleBuilder:
         return datafiles
 
     def _make_setup_arguments(self):
+        import sys, os
+
         def add_argument(name, value):
             if value:
                 self.setup_arguments[name] = value
@@ -692,8 +694,6 @@ class BundleBuilder:
                 rel = CHIMERAX1_0_PYTHON_VERSION.release
         elif binary_files:
             # Binary files are tied to the current version of Python
-            import sys
-
             rel = sys.version_info[:2]
         else:
             # Python-only bundles default to the ChimeraX 1.0
@@ -724,8 +724,6 @@ class BundleBuilder:
             if em is not None
         ]
         if not self._is_pure_python():
-            import sys
-
             if sys.platform == "darwin":
                 env = ("Environment :: MacOS X :: Aqua",)
                 op_sys = "Operating System :: MacOS :: MacOS X"
@@ -756,6 +754,9 @@ class BundleBuilder:
                 "Operating System :: POSIX :: Linux",
             ]
         self.python_classifiers.extend(platform_classifiers)
+        if sys.platform == "darwin" and 'MACOSX_DEPLOYMENT_TARGET' not in os.environ:
+            # enable access to modern language features, like std::any_cast
+            os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.13'
         self.setup_arguments["ext_modules"] = cythonize(ext_mods)
         self.setup_arguments["classifiers"] = (
             self.python_classifiers + self.chimerax_classifiers
