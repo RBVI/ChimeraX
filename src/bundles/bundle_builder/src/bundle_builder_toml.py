@@ -600,6 +600,9 @@ class Bundle:
         else:
             # pure Python
             platform_classifiers = pure_wheel_platforms.split("\n")
+        if sys.platform == "darwin" and 'MACOSX_DEPLOYMENT_TARGET' not in os.environ:
+            # enable access to modern language features, like std::any_cast
+            os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.13'
         self.setup_arguments["ext_modules"] = cythonize(ext_mods)
         self.classifiers.extend(metadata_preamble.split("\n"))
         self.classifiers.extend(platform_classifiers)
