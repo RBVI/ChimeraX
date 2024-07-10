@@ -252,10 +252,14 @@ def _mmcif_as_string(chain):
     extra_residues = structure.residues - cchain.existing_residues
     extra_residues.delete()
     import tempfile
-    with tempfile.NamedTemporaryFile(prefix = 'foldseek_mmcif_', suffix = '.cif') as f:
+    with tempfile.NamedTemporaryFile(prefix = 'foldseek_mmcif_', suffix = '.cif', mode = 'w+') as f:
         from chimerax.mmcif.mmcif_write import write_mmcif
         write_mmcif(chain.structure.session, f.name, models = [structure])
         mmcif_string = f.read()
+    # Strip initial comment lines since Foldseek service apparently changed its parsing July 10, 2024
+    # and now gives an error unless the entry starts with "data_somename".
+    start = mmcif_string.find('data_')
+    mmcif_string = mmcif_string[start:]
     return mmcif_string
 
 '''
@@ -518,13 +522,71 @@ def align_xyz_transform(txyz, qxyz, cutoff_distance = None):
     else:
         from chimerax.std_commands.align import align_and_prune
         p, rms, indices = align_and_prune(txyz, qxyz, cutoff_distance)
+#        look_for_more_alignments(txyz, qxyz, cutoff_distance, indices)
         npairs = len(indices)
     return p, rms, npairs
 
+def look_for_more_alignments(txyz, qxyz, cutoff_distance, indices):
+    sizes = [len(txyz), len(indices)]
+    from numpy import ones
+    mask = ones(len(txyz), bool)
+#    from chimerax.std_commands.align import align_and_prune, IterationError
+    while True:
+        mask[indices] = 0
+        if mask.sum() < 3:
+            break
+        try:
+#            p, rms, indices = align_and_prune(txyz, qxyz, cutoff_distance, mask.nonzero()[0])
+            p, rms, indices, close_mask = align_and_prune(txyz, qxyz, cutoff_distance, mask.nonzero()[0])
+            sizes.append(len(indices))
+            nclose = close_mask.sum()
+            if nclose > len(indices):
+                sizes.append(-nclose)
+                sizes.append(-(mask*close_mask).sum())
+        except IterationError:
+            break
+    print (' '.join(str(s) for s in sizes))
+
+from chimerax.core.errors import UserError
+class IterationError(UserError):
+    pass
+
+def align_and_prune(xyz, ref_xyz, cutoff_distance, indices = None):
+
+    import numpy
+    if indices is None:
+        indices = numpy.arange(len(xyz))
+    axyz, ref_axyz = xyz[indices], ref_xyz[indices]
+    from chimerax.geometry import align_points
+    p, rms = align_points(axyz, ref_axyz)
+    dxyz = p*axyz - ref_axyz
+    d2 = (dxyz*dxyz).sum(axis=1)
+    cutoff2 = cutoff_distance * cutoff_distance
+    i = d2.argsort()
+    if d2[i[-1]] <= cutoff2:
+        dxyz = p*xyz - ref_xyz
+        d2 = (dxyz*dxyz).sum(axis=1)
+        close_mask = (d2 <= cutoff2)
+        return p, rms, indices, close_mask
+
+    # cull 10% or...
+    index1 = int(len(d2) * 0.9)
+    # cull half the long pairings
+    index2 = int(((d2 <= cutoff2).sum() + len(d2)) / 2)
+    # whichever is fewer
+    index = max(index1, index2)
+    survivors = indices[i[:index]]
+
+    if len(survivors) < 3:
+        raise IterationError("Alignment failed;"
+            " pruning distances > %g left less than 3 atom pairs" % cutoff_distance)
+    return align_and_prune(xyz, ref_xyz, cutoff_distance, survivors)
+    
 def compute_rmsds(hits, query_xyz, cutoff_distance = None):
     for hit in hits:
         hxyz = _hit_coords(hit)
         hi, qi = _hit_residue_pairing(hit)
+#        print(hit['database_full_id'])
         p, rms, npairs = align_xyz_transform(hxyz[hi], query_xyz[qi], cutoff_distance=cutoff_distance)
         hit['rmsd'] = rms
         hit['close'] = 100*npairs/len(hi)
