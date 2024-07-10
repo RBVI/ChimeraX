@@ -505,9 +505,12 @@ def alignment_residue_pairs(hit, aligned_res, query_chain):
     return aligned_res.filter(ati), qres.filter(aqi)
 
 def alignment_transform(res, query_res, cutoff_distance = None):
-    # TODO: Do iterative pruning to get better core alignment.
     qxyz = query_res.existing_principal_atoms.scene_coords
     txyz = res.existing_principal_atoms.coords
+    p, rms, npairs = align_xyz_transform(txyz, qxyz, cutoff_distance = cutoff_distance)
+    return p, rms, npairs
+
+def align_xyz_transform(txyz, qxyz, cutoff_distance = None):
     if cutoff_distance is None or cutoff_distance <= 0:
         from chimerax.geometry import align_points
         p, rms = align_points(txyz, qxyz)
@@ -518,6 +521,41 @@ def alignment_transform(res, query_res, cutoff_distance = None):
         npairs = len(indices)
     return p, rms, npairs
 
+def compute_rmsds(hits, query_xyz, cutoff_distance = None):
+    for hit in hits:
+        hxyz = _hit_coords(hit)
+        hi, qi = _hit_residue_pairing(hit)
+        p, rms, npairs = align_xyz_transform(hxyz[hi], query_xyz[qi], cutoff_distance=cutoff_distance)
+        hit['rmsd'] = rms
+        hit['close'] = 100*npairs/len(hi)
+        hit['cutoff_distance'] = cutoff_distance
+        hit['coverage'] = 100 * len(qi) / len(query_xyz)
+
+def _hit_coords(hit):
+    from numpy import array, float32
+    xyz = array([float(x) for x in hit['tca'].split(',')], float32)
+    n = len(xyz)//3
+    hxyz = xyz.reshape((n,3))
+    return hxyz
+
+def _hit_residue_pairing(hit):
+    qaln, taln = hit['qaln'], hit['taln']
+    ti = qi = 0
+    ati, aqi = [], []
+    for qaa, taa in zip(qaln, taln):
+        if qaa != '-' and taa != '-':
+            ati.append(ti)
+            aqi.append(qi)
+        if taa != '-':
+            ti += 1
+        if qaa != '-':
+            qi += 1
+    from numpy import array, int32
+    ati, aqi = array(ati, int32), array(aqi, int32)
+    ati += hit['tstart']-1
+    aqi += hit['qstart']-1
+    return ati, aqi
+    
 def _show_ribbons(structure):
     for c in structure.chains:
         cres = c.existing_residues
@@ -604,6 +642,9 @@ def show_foldseek_hits(session, hit_lines, database, query_chain = None,
     session.logger.info(msg)
 
     hits = [parse_search_result(hit, database) for hit in hit_lines]
+    if query_chain is not None:
+        qxyz = query_chain.existing_residues.existing_principal_atoms.coords
+        compute_rmsds(hits, qxyz, cutoff_distance = 2)
     from .gui import foldseek_panel, Foldseek
     fp = foldseek_panel(session)
     if fp:
