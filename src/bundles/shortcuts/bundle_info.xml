@@ -96,7 +96,7 @@
       name="se" display_name="Silhouettes" icon="silhouette.png" darkIcon="silhouette-dark.png"
       description="Toggle silhouettes"/>
 
-    <Provider tab="Graphics" section="Camera"
+    <Provider tab="Graphics" section="Camera" after="Side view"
       name="vs" display_name="View selected" icon="viewsel.png" description="View selected"/>
     <Provider tab="Graphics" section="Camera"
       name="va" display_name="View all" icon="viewall.png" darkIcon="viewall-dark.png"
