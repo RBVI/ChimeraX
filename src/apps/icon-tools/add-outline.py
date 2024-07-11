@@ -53,8 +53,9 @@ def usage(file=sys.stderr):
             --verbose   Be chatty
 
             Add colored outline to raster image files.  By default, the image
-            is to a -outline file unless --inplace is given.  For the various
-            was to specify the color, see:
+            is to a "-outline" file unless --inplace is given.  The image's
+            alpha mask is used to determine the boundaries.  For the various
+            ways to specify the color, see:
             https://pillow.readthedocs.io/en/stable/reference/ImageColor.html.
         """), file=file)
 
