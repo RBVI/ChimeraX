@@ -46,6 +46,7 @@ Either of the following methods of communication can be used:
 [&nbsp;<b>port</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>ssl</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>json</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>log</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>remotecontrol rest stop</b>
@@ -86,6 +87,11 @@ curl http://127.0.0.1:60958/run?command=open+1a0s
 wget http://127.0.0.1:60958/run?command=open+1grl
 </blockquote>
 <p>
+The <b>log</b> option indicates whether to show messages from the server
+in the ChimeraX <a href="../tools/log.html"><b>Log</b></a>
+in addition to the client log.
+With <b>log false</b> (default), the messages will go to the client log only.
+</p><p>
 If <b>json</b> is <b>false</b> (default), 
 any logging that would normally result from command execution will still occur,
 but will be shown in the web browser or (for curl or wget) in the shell
@@ -170,5 +176,5 @@ discontinues accepting commands by XML-RPC.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2020</address>
+July 2024</address>
 </body></html>
