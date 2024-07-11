@@ -1480,8 +1480,12 @@ class ObjectsArg(AtomSpecArg):
 
     @classmethod
     def parse(cls, text, session):
-        aspec, text, rest = super().parse(text, session)
-        objects = aspec.evaluate(session)
+        if cls.use_cpp_peglib:
+            from chimerax.core._spec_parser import evaluate
+            objects = evaluate(session, text)
+        else:
+            aspec, text, rest = super().parse(text, session)
+            objects = aspec.evaluate(session)
         objects.spec = str(aspec)
         return objects, text, rest
 

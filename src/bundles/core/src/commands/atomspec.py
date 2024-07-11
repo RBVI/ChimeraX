@@ -109,7 +109,7 @@ class AtomSpecArg(Annotation):
     name = "an atom specifier"
     url = "help:user/commands/atomspec.html"
 
-    use_cpp_peglib = False
+    use_cpp_peglib = True
 
     @classmethod
     def parse(cls, text, session):
