@@ -85,7 +85,7 @@ class AssociationsTool:
         self.single_seq_area.setLayout(ss_layout)
 
         ss_layout.addWidget(
-            QLabel("Chains chosen/unchosen below will be associated/disassocated immediatley with sequence"))
+            QLabel("Chains chosen/unchosen below will be associated/dissociated immediately"))
 
         from chimerax.atomic.widgets import ChainListWidget
         self.ss_chain_list = ChainListWidget(sv.session, autoselect=ChainListWidget.AUTOSELECT_NONE)
