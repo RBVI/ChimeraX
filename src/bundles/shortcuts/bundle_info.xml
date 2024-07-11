@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Shortcuts" version="1.1.2"
+<BundleInfo name="ChimeraX-Shortcuts" version="1.1.3"
 	    package="chimerax.shortcuts"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -97,7 +97,8 @@
       description="Toggle silhouettes"/>
 
     <Provider tab="Graphics" section="Camera" after="Side view"
-      name="vs" display_name="View selected" icon="viewsel.png" description="View selected"/>
+      name="vs" display_name="View selected" icon="viewsel.png" darkIcon="viewsel-dark.png"
+      description="View selected"/>
     <Provider tab="Graphics" section="Camera"
       name="va" display_name="View all" icon="viewall.png" darkIcon="viewall-dark.png"
       description="View all"/>
