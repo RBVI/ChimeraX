@@ -63,7 +63,7 @@ class Log:
             The message to display
         color : text or (r,g,b) tuple, r/g/b in range 0-1
             Color to display text in.  If log cannot understand color
-            text string, use black instead.
+            text string, use CanvasText instead.
         secondary : boolean
             Whether to show the status in the secondary status area.
             If the log doesn't support a secondary status area it should
@@ -200,7 +200,7 @@ class StatusLogger:
     def status(
         self,
         msg,
-        color="black",
+        color="CanvasText",
         log=False,
         secondary=False,
         blank_after=None,
