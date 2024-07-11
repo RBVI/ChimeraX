@@ -32,6 +32,8 @@ class Foldseek(ToolInstance):
     def __init__(self, session, tool_name = 'Foldseek',
                  query_chain = None, database = None,
                  hits = [], trim = True, alignment_cutoff_distance = 2.0):
+        self._hits = hits
+
         ToolInstance.__init__(self, session, tool_name)
 
         from chimerax.ui import MainToolWindow
@@ -60,8 +62,10 @@ class Foldseek(ToolInstance):
         self._results_table = None
         self._results_table_position = layout.count()
         self._results_query_chain = None
+        self._results_database = None
         if hits:
             self._results_query_chain = query_chain
+            self._results_database = database
             self._results_table = rt = self._create_results_table(parent, hits, database)
             layout.addWidget(rt)
             self._show_hit_count(len(hits), query_chain, database)
@@ -75,6 +79,7 @@ class Foldseek(ToolInstance):
         bf = button_row(parent,
                         [('Search', self._search),
                          ('Open', self._open_selected),
+                         ('Coverage', self._show_coverage_plot),
                          ('Options', self._show_or_hide_options),
                          ('Help', self._show_help)],
                         spacing = 10)
@@ -92,6 +97,12 @@ class Foldseek(ToolInstance):
         from chimerax.core import tools
         return tools.get_singleton(session, cls, 'Foldseek', create=create)
     
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def hits(self):
+        return self._hits
+
     # ---------------------------------------------------------------------------
     #
     def _create_chain_and_database_menus(self, parent):
@@ -162,7 +173,7 @@ class Foldseek(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     @property
-    def _trim(self):
+    def trim(self):
         c, s, l = self._trim_extra_chains.value, self._trim_sequences.value, self._trim_ligands.value
         trim = [name for t, name in ((c, 'chains'), (s, 'sequence'), (l, 'ligands')) if t]
         if len(trim) == 3: trim = True
@@ -171,10 +182,17 @@ class Foldseek(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
+    @property
+    def alignment_cutoff_distance(self):
+        return self._alignment_cutoff_distance.value
+
+    # ---------------------------------------------------------------------------
+    #
     def _search(self):
         chain = self._chain_menu.value
         if chain is None:
-            self.session.logger.warning('Must choose a chain in the Foldseek panel before running search')
+            self.session.logger.error('Must choose a chain in the Foldseek panel before running search')
+            return
         db = self._database_menu.value
         cmd = f'foldseek {chain.string(style="command")}'
         if db != 'pdb100':
@@ -185,8 +203,10 @@ class Foldseek(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def show_results(self, hits, query_chain, database, trim = None, alignment_cutoff_distance = None):
+        self._hits = hits
         self._chain_menu.value = query_chain
         self._results_query_chain = query_chain
+        self._results_database = database
         self._database_menu.value = database
         self._set_trim_options(trim)
         if alignment_cutoff_distance is not None:
@@ -204,29 +224,80 @@ class Foldseek(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _show_hit_count(self, nhits, query_chain, database):
-        q = query_chain.string(include_structure = True)
-        heading = f'Foldseek search found {nhits} {database} hits similar to {q}'
+        heading = f'Foldseek search found {nhits} {database} hits'
+        if query_chain:
+            q = query_chain.string(include_structure = True)
+            heading += f' similar to {q}'
         self._heading.setText(heading)
             
     # ---------------------------------------------------------------------------
     #
     def _open_selected(self):
-        hits = self._results_table.selected		# FoldseekRow instances
+        results_table = self._results_table
+        if results_table is None:
+            msg = 'You must press the Foldseek Search button before you can open matching structures.'
+            self.session.logger.error(msg)
+            return
+        hits = results_table.selected		# FoldseekRow instances
         for hit in hits:
             self._open_hit(hit)
+        if len(hits) == 0:
+            msg = 'Click lines in the Foldseek results table and then press Open.'
+            self.session.logger.error(msg)
 
     # ---------------------------------------------------------------------------
     #
     def _open_hit(self, row):
         from .foldseek import open_hit
-        open_hit(self.session, row.hit, self._results_query_chain, trim = self._trim,
+        open_hit(self.session, row.hit, self.results_query_chain, trim = self.trim,
                  alignment_cutoff_distance = self._alignment_cutoff_distance.value)
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def results_query_chain(self):
+        qc = self._results_query_chain
+        if qc is not None and qc.structure is None:
+            self._results_query_chain = qc = None
+        return qc
+
+    # ---------------------------------------------------------------------------
+    #
+    def _show_coverage_plot(self):
+        from chimerax.core.commands import run
+        run(self.session, 'foldseek coverage')
 
     # ---------------------------------------------------------------------------
     #
     def _show_help(self):
         from chimerax.core.commands import run
         run(self.session, 'help %s' % self.help)
+    
+    # ---------------------------------------------------------------------------
+    # Session saving.
+    #
+    @property
+    def SESSION_SAVE(self):
+        return len(self._hits) > 0
+
+    def take_snapshot(self, session, flags):
+        data = {'hits': self._hits,
+                'query_chain': self.results_query_chain,
+                'database': self._results_database,
+                'trim': self.trim,
+                'alignment_cutoff_distance': self.alignment_cutoff_distance,
+                'version': '1'}
+        return data
+
+    # ---------------------------------------------------------------------------
+    # Session restore
+    #
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        fp = foldseek_panel(session, create = True)
+        fp.show_results(data['hits'], data['query_chain'], data['database'],
+                        trim = data['trim'], alignment_cutoff_distance = data['alignment_cutoff_distance'])
+        return fp
 
 # -----------------------------------------------------------------------------
 #
@@ -236,15 +307,22 @@ class FoldseekResultsTable(ItemTable):
         ItemTable.__init__(self, parent = parent)
         self.add_column(database_name, 'database_full_id')
         col_identity = self.add_column('Identity', 'pident')
+        col_evalue = self.add_column('E-value', 'evalue', format = '%.2g')
+        if hits and hits[0]:
+            if 'close' in hits[0]:
+                col_close = self.add_column('% Close', 'close', format = '%.0f')
+            if 'coverage' in hits[0]:
+                col_coverage = self.add_column('% Cover', 'coverage', format = '%.0f')
         col_species = self.add_column('Species', 'taxname')
         self.add_column('Description', 'description', justification = 'left')
         rows = [FoldseekRow(hit) for hit in hits]
         self.data = rows
         self.launch()
         self.sort_by(col_identity, self.SORT_DESCENDING)
-        col_species_index = self._columns.index(col_species)	# TODO: Don't use private method of ItemTable
+        col_species_index = self.columns.index(col_species)
         species_column_width = 120
         self.setColumnWidth(col_species_index, species_column_width)
+        self.setAutoScroll(False)  # Otherwise click on Description column scrolls horizontally
 
 # -----------------------------------------------------------------------------
 #

@@ -121,6 +121,7 @@ class Opts:
         self.safe_mode = False
         self.toolshed = None
         self.disable_qt = False
+        self.color_scheme = None
 
 
 def _parse_python_args(argv, usage):
@@ -157,7 +158,7 @@ def _parse_python_args(argv, usage):
                     if opt == "m" or opt == "c":
                         # special case, eats rest of arguments
                         yield f"-{opt}", argv[cur_index]
-                        yield None, argv[cur_index + 1 :]
+                        yield None, argv[cur_index + 1:]
                         return
                     arg = argv[cur_index]
                     cur_index += 1
@@ -283,6 +284,11 @@ def _parse_chimerax_args(argv, arguments, usage):
             opts.toolshed = optarg
         elif opt == "--disable-qt":
             opts.disable_qt = True
+        elif opt == "--color-scheme":
+            if optarg not in ('light', 'dark'):
+                print(f"{argv[0]}: unknown color scheme", file=sys.stderr)
+                raise SystemExit(os.EX_USAGE)
+            opts.color_scheme = optarg
         else:
             print("Unknown option: ", opt)
             opts.help = True
@@ -331,6 +337,7 @@ def parse_arguments(argv):
         "--qtscalefactor <factor>",
         "--toolshed preview|<url>",
         "--disable-qt",
+        "--color-scheme <light|dark>",
     ]
     if sys.platform.startswith("win"):
         arguments += ["--console", "--noconsole"]
@@ -677,7 +684,7 @@ def init(argv, event_loop=True):
     if opts.gui:
         from chimerax.ui import gui
 
-        sess.ui = gui.UI(sess)
+        sess.ui = gui.UI(sess, color_scheme=opts.color_scheme)
     else:
         from chimerax.core.nogui import NoGuiLog
 

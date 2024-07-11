@@ -34,7 +34,35 @@ class _FoldseekBundle(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        from . import foldseek
-        foldseek.register_foldseek_command(logger)
+        if command_name == 'foldseek':
+            from . import foldseek
+            foldseek.register_foldseek_command(logger)
+        elif command_name == 'foldseek coverage':
+            from . import coverage
+            coverage.register_foldseek_coverage_command(logger)
+
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        if mgr == session.open_command:
+            from chimerax.open_command import OpenerInfo
+            class FoldseekInfo(OpenerInfo):
+                def open(self, session, path, file_name, **kw):
+                    from . import foldseek
+                    return foldseek.open_foldseek_m8(session, path, query_chain = kw.get('chain'))
+                @property
+                def open_args(self):
+                    from chimerax.core.commands import EnumOf
+                    from chimerax.atomic import ChainArg
+                    from .foldseek import foldseek_databases
+                    return { 'chain': ChainArg,
+                             'database': EnumOf(foldseek_databases)}
+            return FoldseekInfo()
+
+    # Make class name to class for session restore
+    @staticmethod
+    def get_class(class_name):
+        if class_name == 'Foldseek':
+            from .gui import Foldseek
+            return Foldseek
 
 bundle_api = _FoldseekBundle()

@@ -132,7 +132,7 @@ class HelpUI(ToolInstance):
         parent.setLayout(layout)
         import os.path
         icon_dir = os.path.dirname(__file__)
-        # attribute, text, tool tip, callback, shortcut(s), enabled
+        # attribute, text, tool tip, callback, shortcut(s), enabled, icon
         buttons = (
             ("back", "Back", "Back to previous page", self.page_back,
                 Qt.Key_Back, False, QIcon.ThemeIcon.GoPrevious),

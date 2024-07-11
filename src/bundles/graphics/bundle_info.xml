@@ -1,24 +1,18 @@
-<BundleInfo name="ChimeraX-Graphics" version="1.1.1"
-	    package="chimerax.graphics"
-  	    minSessionVersion="1" maxSessionVersion="1">
-
+<?xml version="1.0"?>
+<BundleInfo name="ChimeraX-Graphics" version="1.2" package="chimerax.graphics" minSessionVersion="1" maxSessionVersion="1">
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
-
   <Synopsis>OpenGL graphics rendering</Synopsis>
   <Description>Render scenes using a camera, view and hierarchy of drawings.</Description>
-
   <DataFiles>
     <DataFile>vertexShader.txt</DataFile>
     <DataFile>fragmentShader.txt</DataFile>
     <DataFile>_graphics.*</DataFile>
   </DataFiles>
-
   <Categories>
     <Category name="Graphics"/>
   </Categories>
-
   <CModule name="_graphics">
     <SourceFile>_graphics/blend_rgba.cpp</SourceFile>
     <SourceFile>_graphics/count.cpp</SourceFile>
@@ -31,16 +25,13 @@
     <Library platform="linux">GL</Library>
     <Framework>OpenGL</Framework>
   </CModule>
-
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" build="true" version="~=1.0"/>
   </Dependencies>
-
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
   </Classifiers>
-
 </BundleInfo>
