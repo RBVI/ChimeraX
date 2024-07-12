@@ -24,7 +24,7 @@ class FileHistory:
         if no_hist_text:
             self.no_hist_text = no_hist_text
         else:
-            self.no_hist_text = f'<html><script>{session.ui.dark_css()}</script><body>No files in history</body></html>'
+            self.no_hist_text = f'<html><style>{session.ui.dark_css()}</style><body>No files in history</body></html>'
 
         self.file_history_window = fhw = HistoryWindow(session, parent, **kw)
 

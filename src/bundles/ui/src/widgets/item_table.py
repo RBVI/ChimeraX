@@ -669,7 +669,7 @@ class ItemTable(QTableView):
     def sort_by(self, column, order):
         if not self._allow_user_sorting:
             raise ValueError("Table was not configured to allow sorting")
-        self.model().sort(self._columns.index(column), order)
+        self.sortByColumn(self._columns.index(column), order)
 
     @property
     def sorted_data(self):

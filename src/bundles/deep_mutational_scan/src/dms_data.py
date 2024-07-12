@@ -123,7 +123,7 @@ class ColumnValues:
     amino_acid_types = {'ala':'A','arg':'R','asn':'N','asp':'D','cys':'C','glu':'E','gln':'Q','gly':'G',
                         'his':'H','ile':'I','leu':'L','lys':'K','met':'M','phe':'F','pro':'P','ser':'S',
                         'thr':'T','trp':'W','tyr':'Y','val':'V'}
-    residue_value_types = ('sum', 'sum_absolute', 'synonymous') + tuple(amino_acid_types.keys())
+    residue_value_types = ('sum', 'sum_absolute', 'synonymous', 'mean', 'stddev') + tuple(amino_acid_types.keys())
         
     def residue_value(self, residue_number, value_type='sum_absolute', above=None, below=None):
         dms_values = self.mutation_values(residue_number)
@@ -131,14 +131,25 @@ class ColumnValues:
             return None
 
         value = None
-        if value_type == 'sum_absolute' or value_type == 'sum':
+        if value_type in ('sum_absolute', 'sum', 'mean', 'stddev'):
             values = [value for from_aa, to_aa, value in dms_values
                       if ((above is None and below is None)
                           or (above is not None and value >= above)
                           or (below is not None and value <= below))]
-            if value_type == 'sum_absolute':
-                values = [abs(v) for v in values]
-            value = sum(values) if values else None
+            if len(values) == 0:
+                value = None
+            elif value_type == 'sum':
+                value = sum(values)
+            elif value_type == 'sum_absolute':
+                value = sum([abs(v) for v in values])
+            elif value_type == 'mean':
+                from numpy import mean
+                value = mean(values)
+            elif value_type == 'stddev':
+                from numpy import std
+                value = std(values)
+            else:
+                value = None
         elif value_type == 'synonymous':
             values = [value for from_aa, to_aa, value in dms_values if to_aa == from_aa]
             if values:

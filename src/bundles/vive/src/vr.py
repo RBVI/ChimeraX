@@ -64,7 +64,12 @@ def vr(session, enable = None, room_position = None, mirror = None,
       when VR is enabled, and restore to default value when VR disabled.  This helps maintain
       full rendering speed in VR.  Default true.
     '''
-    
+
+    from sys import platform
+    if platform == 'darwin':
+        from chimerax.core.errors import UserError
+        raise UserError('VR is not supported by the Mac operating system')
+
     if enable is None and room_position is None:
         enable = True
 

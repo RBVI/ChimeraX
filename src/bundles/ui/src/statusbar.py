@@ -42,7 +42,7 @@ class _StatusBarOpenGL:
         self.pad_horz = 0.3 		# Fraction of status bar height (not width)
         self.widget = self._make_widget()
         self._last_message = ''
-        self._last_color = 'black'
+        self._last_color = 'CanvasText'
 
     def destroy(self):
         self.widget.destroy()
@@ -124,7 +124,7 @@ class _StatusBarOpenGL:
     # TODO: Handle expose events on status bar windows so resizes show label.
     #  Should probably handle status bar as one QWindow created by this class.
     #  Can put primary and secondary areas in same window.
-    def status(self, msg, color = 'black', secondary = False):
+    def status(self, msg, color = 'CanvasText', secondary = False):
         if not secondary:
             self._last_message = msg
             self._last_color = color
@@ -177,7 +177,11 @@ class _StatusBarOpenGL:
         aspect = lh/lw
         xpad,ypad = self.pad_horz, self.pad_vert
 
-        from chimerax.core.colors import BuiltinColors
+        from chimerax.core.colors import BuiltinColors, scheme_color
+        try:
+            color = scheme_color(color, expand=True)
+        except KeyError:
+            pass
         tcolor = BuiltinColors[color].uint8x4() if color in BuiltinColors else self.text_color
         image_height = lh
         ixpad, iypad = max(1, int(xpad*lh)), max(1, int(ypad*lh))
@@ -250,7 +254,7 @@ class _StatusBarQt:
         sb.addPermanentWidget(sb._secondary_status_label)
         return sb
 
-    def status(self, msg, color = 'black', secondary = False):
+    def status(self, msg, color = 'CanvasText', secondary = False):
         sb = self.widget
         sb.clearMessage()
         if secondary:
