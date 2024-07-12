@@ -184,24 +184,27 @@ The calculation requires charge assignments, which in turn require hydrogens.
 However, an existing structure lacking hydrogens is not changed;
 a copy is created in memory, protonated, and <a href="#charges">assigned 
 charges</a>. The default settings of <a href="addh.html"><b>addh</b></a>
-are used, except that the <b>hisScheme</b> option allows different treatments 
-of HIS residues in structures without hydrogens:
+are used, except that:
 </p>
 <ul>
-<li>HID
-&ndash; neutral sidechain, implicitly protonated at &delta;-nitrogen
-<li>HIE
-&ndash; neutral sidechain, implicitly protonated at &epsilon;-nitrogen
-<li>HIP
-&ndash; positive sidechain, implicitly protonated at both sidechain nitrogens
-</ul>
-<p>
+<li>hydrogen addition is not H-bond-guided for trajectory models
+<li>for other atomic models,
+the <b>hisScheme</b> option allows different treatments 
+of HIS residues in structures without hydrogens:
+ <ul>
+ <li>HID
+ &ndash; neutral sidechain, implicitly protonated at &delta;-nitrogen
+ <li>HIE
+ &ndash; neutral sidechain, implicitly protonated at &epsilon;-nitrogen
+ <li>HIP
+ &ndash; positive sidechain, implicitly protonated at both sidechain nitrogens
+ </ul>
 If <b>hisScheme</b> is not specified, the protonation state of each HIS
 residue will be chosen based on the local H-bonding environment.
 The option applies only to residues named HIS. Regardless of this option,
 histidines that already have the special names (HID, HIE, HIP) 
 will be protonated accordingly.
-</p>
+</ul>
 
 <a name="charges"></a>
 <p class="nav">
@@ -285,5 +288,5 @@ used to compute the ESP (default <b>5.0</b> &Aring;).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2023</address>
+July 2024</address>
 </body></html>

@@ -130,7 +130,7 @@ class SaveOptionsWidget(QFrame):
         if self.computed_sheets.isChecked():
             if cmd:
                 cmd += ' '
-            cmd += "computeSheets true"
+            cmd += "computedSheets true"
         if self.rel_models.isChecked():
             if cmd:
                 cmd += ' '

@@ -41,10 +41,11 @@ class FoldseekCoveragePlot(ToolInstance):
     name = 'Foldseek Sequence Coverage'
     help = 'help:user/tools/foldseek.html#coverage'
 
-    def __init__(self, session, hits, query_chain, conserved = 0):
+    def __init__(self, session, hits, query_chain, conserved = 0, order = 'cluster'):
 
         self._hits = hits
         self._query_chain = query_chain
+        self._order = order
         self._conserved = conserved
         self._last_hover_xy = None
 
@@ -67,13 +68,29 @@ class FoldseekCoveragePlot(ToolInstance):
         hd.frame.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)  # Don't resize whole panel to fit heading
         layout.addWidget(hd.frame)
 
-        rgb, self._sorted_hits, (qstart, qend) = coverage_image(hits, conserved = conserved)
-        self._query_res = [(r.one_letter_code, r.number)
-                           for r in query_chain.existing_residues[qstart-1:qend]]
+        rgb = self._sequence_image()
         self._coverage_view = gv = CoverageView(parent, rgb, self._mouse_hover)
         layout.addWidget(gv)
 
         tw.manage(placement=None)	# Start floating
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _sequence_image(self):
+        order = self._order
+        if order == 'cluster':
+            hits = hits_sorted_by_cluster(self._hits)
+        elif order == 'evalue':
+            hits = list(self._hits)
+            hits.sort(key = lambda hit: hit['evalue'])
+        else:
+            hits = self._hits
+        self._sorted_hits = hits
+        self._coverage_array = _coverage_array(hits)
+        rgb = _coverage_image(self._coverage_array)
+        if self._conserved > 0:
+            _color_conserved(self._coverage_array, rgb, self._conserved)
+        return rgb
         
     # ---------------------------------------------------------------------------
     #
@@ -90,12 +107,29 @@ class FoldseekCoveragePlot(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _hover_info(self, x, y):
-        if y >= 0 and y < len(self._sorted_hits) and x >= 0 and x < len(self._query_res):
+        query_res = self._column_query_residues()
+        if y >= 0 and y < len(self._sorted_hits) and x >= 0 and x < len(query_res):
             hit = self._sorted_hits[y]
-            res_type, res_num = self._query_res[x]
+            res_type, res_num = query_res[x]
         else:
             hit = res_type = res_num = None
         return hit, res_type, res_num
+
+    # ---------------------------------------------------------------------------
+    #
+    def _column_query_residues(self):
+        if not hasattr(self, '_query_res'):
+            qstart, qend = self._query_residue_range()
+            qres = self._query_chain.existing_residues[qstart-1:qend]
+            self._query_res = [(r.one_letter_code, r.number) for r in qres]
+        return self._query_res
+
+    # ---------------------------------------------------------------------------
+    #
+    def _query_residue_range(self):
+        if not hasattr(self, '_query_res_range'):
+            self._query_res_range = _query_residue_range(self._hits)
+        return self._query_res_range
 
     # ---------------------------------------------------------------------------
     #
@@ -104,14 +138,28 @@ class FoldseekCoveragePlot(ToolInstance):
             # Use last hover position since menu post position is different by several pixels.
             hx, hy = self._last_hover_xy
             hit, res_type, res_num = self._hover_info(hx, hy)
-        if hit:
-            menu.addAction(f'Open structure {hit["database_full_id"]}',
-                           lambda hit=hit: self._open_hit(hit))
-        if res_type:
-            menu.addAction(f'Select query residue {res_type}{res_num}',
-                           lambda res_num=res_num: self._select_query_residue(res_num))
+            if hit:
+                menu.addAction(f'Open structure {hit["database_full_id"]}',
+                               lambda hit=hit: self._open_hit(hit))
+            if res_type:
+                menu.addAction(f'Select query residue {res_type}{res_num}',
+                               lambda res_num=res_num: self._select_query_residue(res_num))
+            menu.addSeparator()
 
+        menu.addAction('Order by e-value', self._order_by_evalue)
+        menu.addAction('Order by cluster', self._order_by_cluster)
+        self._add_menu_toggle(menu, 'Color conserved', self._conserved>0, self._color_conserved)
         menu.addAction('Save image', self._save_image)
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _add_menu_toggle(self, menu, text, checked, callback):
+        from Qt.QtGui import QAction
+        a = QAction(text, menu)
+        a.setCheckable(True)
+        a.setChecked(checked)
+        a.triggered.connect(callback)
+        menu.addAction(a)
         
     # ---------------------------------------------------------------------------
     #
@@ -128,7 +176,32 @@ class FoldseekCoveragePlot(ToolInstance):
         resspec = self._query_chain.string(style = 'command') + f':{res_num}'
         from chimerax.core.commands import run
         run(self.session, f'select {resspec}')
-    
+
+    # ---------------------------------------------------------------------------
+    #
+    def _order_by_evalue(self):
+        self._order = 'evalue'
+        rgb = self._sequence_image()
+        self._coverage_view.set_image(rgb)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _order_by_cluster(self):
+        self._order = 'cluster'
+        rgb = self._sequence_image()
+        self._coverage_view.set_image(rgb)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _color_conserved(self, color = True):
+        rgb = _coverage_image(self._coverage_array)
+        if color:
+            self._conserved = 0.30
+            _color_conserved(self._coverage_array, rgb, self._conserved)
+        else:
+            self._conserved = 0
+        self._coverage_view.set_image(rgb)
+
     # ---------------------------------------------------------------------------
     #
     def _save_image(self, default_suffix = '.png'):
@@ -192,36 +265,49 @@ class CoverageView(QGraphicsView):
 
 # -----------------------------------------------------------------------------
 #
-def coverage_image(hits, conserved = 0, conserved_color = (255,0,0), identity_color = (0,255,0)):
+def _coverage_array(hits):
+    qstart, qend = _query_residue_range(hits)
+    qlen = qend-qstart+1
+
+    from numpy import zeros, uint8
+    cover = zeros((len(hits), qlen), uint8)
+    for i,hit in enumerate(hits):
+        query_coverage(hit, qstart, cover[i,:])
+
+    return cover
+
+# -----------------------------------------------------------------------------
+#
+def _query_residue_range(hits):
     qstarts = []
     qends = []
     for hit in hits:
         qstarts.append(hit['qstart'])
         qends.append(hit['qend'])
     qstart, qend = min(qstarts), max(qends)
-    qlen = qend-qstart+1
-
-    shits = sorted_hits(hits)
-    from numpy import zeros, uint8, array
-    cover = zeros((len(hits), qlen), uint8)
-    for i,hit in enumerate(shits):
-        query_coverage(hit, qstart, cover[i,:])
-    
-    colors = array(((255,255,255), (0,0,0), identity_color), uint8)
-    rgb = colors[cover]
-
-    if conserved:
-        for i in range(qlen):
-            ci = cover[:,i]
-            ns,nd = (ci == 2).sum(), (ci == 1).sum()
-            if ns > conserved * (ns + nd):
-                rgb[ci==2,i,:] = conserved_color
-        
-    return rgb, shits, (qstart, qend)
+    return qstart, qend
 
 # -----------------------------------------------------------------------------
 #
-def sorted_hits(hits):
+def _coverage_image(coverage_array, identity_color = (0,255,0)):
+    from numpy import array, uint8
+    colors = array(((255,255,255), (0,0,0), identity_color), uint8)
+    rgb = colors[coverage_array]
+    return rgb
+
+# -----------------------------------------------------------------------------
+#
+def _color_conserved(coverage_array, rgb, conserved = 0.3, conserved_color = (255,0,0),
+                     identity_color = (0,255,0)):
+    for i in range(coverage_array.shape[1]):
+        ci = coverage_array[:,i]
+        ns,nd = (ci == 2).sum(), (ci == 1).sum()
+        color = conserved_color if ns > conserved * (ns + nd) else identity_color
+        rgb[ci==2,i,:] = color
+
+# -----------------------------------------------------------------------------
+#
+def hits_sorted_by_cluster(hits):
     from numpy import array, float32
     intervals = array([(hit['qstart'], hit['qend']) for hit in hits], float32)
 
