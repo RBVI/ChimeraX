@@ -79,7 +79,7 @@ class Foldseek(ToolInstance):
         bf = button_row(parent,
                         [('Search', self._search),
                          ('Open', self._open_selected),
-                         ('Coverage', self._show_coverage_plot),
+                         ('Sequences', self._show_sequences),
                          ('Options', self._show_or_hide_options),
                          ('Help', self._show_help)],
                         spacing = 10)
@@ -263,9 +263,9 @@ class Foldseek(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _show_coverage_plot(self):
+    def _show_sequences(self):
         from chimerax.core.commands import run
-        run(self.session, 'foldseek coverage')
+        run(self.session, 'foldseek sequences')
 
     # ---------------------------------------------------------------------------
     #

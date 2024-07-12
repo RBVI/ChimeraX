@@ -31,7 +31,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: foldseek :: Structure Comparison :: Search PDB or AlphaFold databases for protein structures matching the fold of a specified structure</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: foldseek coverage :: Structure Comparison :: Show an image of all aligned sequences from a foldseek search, one sequence per image row</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: foldseek sequences :: Structure Comparison :: Show an image of all aligned sequences from a foldseek search, one sequence per image row</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Foldseek :: Structure Analysis :: Search PDB or AlphaFold databases for protein structures matching the fold of a specified structure</ChimeraXClassifier>
   </Classifiers>
 

@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek_coverage(session, conserved = 0):
+def foldseek_sequences(session, show_conserved = True, conserved_threshold = 0.5):
     '''Show an image of all aligned sequences from a foldseek search, one sequence per image row.'''
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
@@ -30,23 +30,26 @@ def foldseek_coverage(session, conserved = 0):
         from chimerax.core.errors import UserError
         raise UserError('No Foldseek results are shown')
 
-    fcp = FoldseekCoveragePlot(session, fp.hits, fp.results_query_chain, conserved = conserved)
+    fcp = FoldseekSequencePlot(session, fp.hits, fp.results_query_chain,
+                               show_conserved = show_conserved, conserved_threshold = conserved_threshold)
     return fcp
 
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.tools import ToolInstance
-class FoldseekCoveragePlot(ToolInstance):
+class FoldseekSequencePlot(ToolInstance):
 
-    name = 'Foldseek Sequence Coverage'
-    help = 'help:user/tools/foldseek.html#coverage'
+    name = 'Foldseek Sequence Plot'
+    help = 'help:user/tools/foldseek.html#seqplot'
 
-    def __init__(self, session, hits, query_chain, conserved = 0, order = 'cluster'):
+    def __init__(self, session, hits, query_chain,
+                 show_conserved = True, conserved_threshold = 0.5, order = 'cluster'):
 
         self._hits = hits
         self._query_chain = query_chain
         self._order = order
-        self._conserved = conserved
+        self._show_conserved = show_conserved
+        self._conserved_threshold = conserved_threshold
         self._last_hover_xy = None
 
         ToolInstance.__init__(self, session, tool_name = self.name)
@@ -69,8 +72,8 @@ class FoldseekCoveragePlot(ToolInstance):
         layout.addWidget(hd.frame)
 
         rgb = self._sequence_image()
-        self._coverage_view = gv = CoverageView(parent, rgb, self._mouse_hover)
-        layout.addWidget(gv)
+        self._sequence_plot = sp = SequencePlot(parent, rgb, self._mouse_hover)
+        layout.addWidget(sp)
 
         tw.manage(placement=None)	# Start floating
         
@@ -89,9 +92,9 @@ class FoldseekCoveragePlot(ToolInstance):
         from .foldseek import query_alignment_range, sequence_alignment
         qstart, qend = query_alignment_range(hits)
         self._alignment_array = sequence_alignment(hits, qstart, qend)
-        rgb = _coverage_image(self._alignment_array)
-        if self._conserved > 0:
-            _color_conserved(self._alignment_array, rgb, self._conserved)
+        rgb = _sequence_image(self._alignment_array)
+        if self._show_conserved:
+            _color_conserved(self._alignment_array, rgb, self._conserved_threshold)
         return rgb
         
     # ---------------------------------------------------------------------------
@@ -102,7 +105,7 @@ class FoldseekCoveragePlot(ToolInstance):
             message = f'Hit {hit["database_full_id"]}   Query residue {res_type}{res_num}'
             self._last_hover_xy = x, y
         else:
-            message = f'Sequence coverage for {len(self._hits)} Foldseek hits'
+            message = f'Sequence plot for {len(self._hits)} Foldseek hits'
             self._last_hover_xy = None
         self._heading.setText(message)
         
@@ -151,7 +154,7 @@ class FoldseekCoveragePlot(ToolInstance):
 
         menu.addAction('Order by e-value', self._order_by_evalue)
         menu.addAction('Order by cluster', self._order_by_cluster)
-        self._add_menu_toggle(menu, 'Color conserved', self._conserved>0, self._color_conserved)
+        self._add_menu_toggle(menu, 'Color conserved', self._show_conserved, self._color_conserved)
         menu.addAction('Save image', self._save_image)
         
     # ---------------------------------------------------------------------------
@@ -185,43 +188,41 @@ class FoldseekCoveragePlot(ToolInstance):
     def _order_by_evalue(self):
         self._order = 'evalue'
         rgb = self._sequence_image()
-        self._coverage_view.set_image(rgb)
+        self._sequence_plot.set_image(rgb)
 
     # ---------------------------------------------------------------------------
     #
     def _order_by_cluster(self):
         self._order = 'cluster'
         rgb = self._sequence_image()
-        self._coverage_view.set_image(rgb)
+        self._sequence_plot.set_image(rgb)
 
     # ---------------------------------------------------------------------------
     #
-    def _color_conserved(self, color = True):
-        rgb = _coverage_image(self._alignment_array)
-        if color:
-            self._conserved = 0.30
-            _color_conserved(self._alignment_array, rgb, self._conserved)
-        else:
-            self._conserved = 0
-        self._coverage_view.set_image(rgb)
+    def _color_conserved(self, show = True):
+        rgb = _sequence_image(self._alignment_array)
+        if show:
+            _color_conserved(self._alignment_array, rgb, self._conserved_threshold)
+        self._sequence_plot.set_image(rgb)
+        self._show_conserved = show
 
     # ---------------------------------------------------------------------------
     #
     def _save_image(self, default_suffix = '.png'):
         from os import path, getcwd
-        suggested_path = path.join(getcwd(), 'coverage' + default_suffix)
+        suggested_path = path.join(getcwd(), 'sequences' + default_suffix)
         from Qt.QtWidgets import QFileDialog
         parent = self.tool_window.ui_area
-        save_path, ftype  = QFileDialog.getSaveFileName(parent, 'Foldseek Coverage Image', suggested_path)
+        save_path, ftype  = QFileDialog.getSaveFileName(parent, 'Foldseek Sequence Plot', suggested_path)
         if save_path:
             if not path.splitext(save_path)[1]:
                 save_path += default_suffix
-            self._coverage_view.save_image(save_path)
+            self._sequence_plot.save_image(save_path)
 
 # ---------------------------------------------------------------------------
 #
 from Qt.QtWidgets import QGraphicsView
-class CoverageView(QGraphicsView):
+class SequencePlot(QGraphicsView):
     def __init__(self, parent, rgb, hover_callback = None):
         self._hover_callback = hover_callback
 
@@ -268,20 +269,20 @@ class CoverageView(QGraphicsView):
 
 # -----------------------------------------------------------------------------
 #
-def _coverage_image(alignment_array, no_align_color = (255,255,255),
+def _sequence_image(alignment_array, no_align_color = (255,255,255),
                     align_color = (0,0,0), identity_color = (0,255,0)):
     hits_array = alignment_array[1:,:]	# First row is query sequence
     # Make a 2D array with values 0=unaligned, 1=aligned, 2=identical.
     # This avoids 2D masks that don't work well in numpy.
     from numpy import array, uint8
-    coverage = (hits_array != 0).astype(uint8) + (hits_array == alignment_array[0]).astype(uint8)
+    res_type = (hits_array != 0).astype(uint8) + (hits_array == alignment_array[0]).astype(uint8)
     colors = array((no_align_color, align_color, identity_color), uint8)
-    rgb = colors[coverage]
+    rgb = colors[res_type]
     return rgb
 
 # -----------------------------------------------------------------------------
 #
-def _color_conserved(alignment_array, rgb, conserved = 0.3,
+def _color_conserved(alignment_array, rgb, conserved = 0.3, min_seqs = 10,
                      conserved_color = (255,0,0), identity_color = (0,255,0)):
     seq_len = alignment_array.shape[1]
     from numpy import count_nonzero
@@ -289,7 +290,7 @@ def _color_conserved(alignment_array, rgb, conserved = 0.3,
         mi = (alignment_array[1:,i] == alignment_array[0,i])
         ni = mi.sum()	# Number of sequences with matching amino acid at column i
         na = count_nonzero(alignment_array[1:,i])  # Number of sequences aligned at column i
-        color = conserved_color if ni >= conserved * na else identity_color
+        color = conserved_color if na >= min_seqs and ni >= conserved * na else identity_color
         rgb[mi,i,:] = color
 
 # -----------------------------------------------------------------------------
@@ -327,12 +328,14 @@ def pixmap_from_rgb(rgb):
     pixmap = QPixmap.fromImage(im)
     return pixmap
     
-def register_foldseek_coverage_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg
+def register_foldseek_sequences_command(logger):
+    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, EnumOf
     from chimerax.atomic import ChainArg
     desc = CmdDesc(
         required = [],
-        keyword = [('conserved', FloatArg)],
+        keyword = [('show_conserved', BoolArg),
+                   ('conserved_threshold', FloatArg),
+                   ('order', EnumOf(['cluster', 'evalue']))],
         synopsis = 'Show an image of all aligned sequences from a foldseek search, one sequence per image row.'
     )
-    register('foldseek coverage', desc, foldseek_coverage, logger=logger)
+    register('foldseek sequences', desc, foldseek_sequences, logger=logger)

@@ -37,9 +37,9 @@ class _FoldseekBundle(BundleAPI):
         if command_name == 'foldseek':
             from . import foldseek
             foldseek.register_foldseek_command(logger)
-        elif command_name == 'foldseek coverage':
-            from . import coverage
-            coverage.register_foldseek_coverage_command(logger)
+        elif command_name == 'foldseek sequences':
+            from . import sequences
+            sequences.register_foldseek_sequences_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
