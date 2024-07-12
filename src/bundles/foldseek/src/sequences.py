@@ -30,9 +30,9 @@ def foldseek_sequences(session, show_conserved = True, conserved_threshold = 0.5
         from chimerax.core.errors import UserError
         raise UserError('No Foldseek results are shown')
 
-    fcp = FoldseekSequencePlot(session, fp.hits, fp.results_query_chain, order = order,
+    fsp = FoldseekSequencePlot(session, fp.hits, fp.results_query_chain, order = order,
                                show_conserved = show_conserved, conserved_threshold = conserved_threshold)
-    return fcp
+    return fsp
 
 # -----------------------------------------------------------------------------
 #
@@ -75,6 +75,9 @@ class FoldseekSequencePlot(ToolInstance):
         self._sequence_plot = sp = SequencePlot(parent, rgb, self._mouse_hover)
         layout.addWidget(sp)
 
+        self._set_coverage_attribute()
+        self._set_conservation_attribute()
+
         tw.manage(placement=None)	# Start floating
         
     # ---------------------------------------------------------------------------
@@ -90,12 +93,51 @@ class FoldseekSequencePlot(ToolInstance):
             hits = self._hits
         self._sorted_hits = hits
         from .foldseek import query_alignment_range, sequence_alignment
-        qstart, qend = query_alignment_range(hits)
+        self._alignment_range = qstart, qend = query_alignment_range(hits)
         self._alignment_array = sequence_alignment(hits, qstart, qend)
         rgb = _sequence_image(self._alignment_array)
         if self._show_conserved:
             _color_conserved(self._alignment_array, rgb, self._conserved_threshold)
         return rgb
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _set_coverage_attribute(self):
+        if self._query_chain is None:
+            return
+
+        from chimerax.atomic import Residue
+        Residue.register_attr(self.session, 'foldseek_coverage', "Foldseek", attr_type = int)
+
+        qstart, qend = self._alignment_range
+        from numpy import count_nonzero
+        for ri,r in enumerate(self._query_chain.existing_residues):
+            if ri >= qstart-1 and ri <= qend:
+                ai = ri-(qstart-1)
+                count = count_nonzero(self._alignment_array[1:,ai])
+            else:
+                count = 0
+            r.foldseek_coverage = count
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _set_conservation_attribute(self):
+        if self._query_chain is None:
+            return
+
+        from chimerax.atomic import Residue
+        Residue.register_attr(self.session, 'foldseek_conservation', "Foldseek", attr_type = float)
+
+        seq, count, total = _consensus_sequence(self._alignment_array)
+        qstart, qend = self._alignment_range
+        from numpy import count_nonzero
+        for ri,r in enumerate(self._query_chain.existing_residues):
+            if ri >= qstart-1 and ri <= qend:
+                ai = ri-(qstart-1)
+                conservation = count[ai] / total[ai]
+            else:
+                conservation = 0
+            r.foldseek_conservation = conservation
         
     # ---------------------------------------------------------------------------
     #
@@ -124,7 +166,7 @@ class FoldseekSequencePlot(ToolInstance):
     #
     def _column_query_residues(self):
         if not hasattr(self, '_query_res'):
-            qstart, qend = self._query_alignment_range()
+            qstart, qend = self._alignment_range
             qres = self._query_chain.existing_residues[qstart-1:qend]
             self._query_res = [(r.one_letter_code, r.number) for r in qres]
         return self._query_res
@@ -279,6 +321,23 @@ def _sequence_image(alignment_array, no_align_color = (255,255,255),
     colors = array((no_align_color, align_color, identity_color), uint8)
     rgb = colors[res_type]
     return rgb
+
+# -----------------------------------------------------------------------------
+#
+def _consensus_sequence(alignment_array):
+    seqlen = alignment_array.shape[1]
+    from numpy import count_nonzero, bincount, argmax, empty, byte, int32
+    seq = empty((seqlen,), byte)
+    count = empty((seqlen,), int32)
+    total = empty((seqlen,), int32)
+    for i in range(seqlen):
+        aa = alignment_array[:,i]
+        total[i] = count_nonzero(aa)
+        bc = bincount(aa)
+        mi = argmax(bc[1:]) + 1
+        seq[i] = mi
+        count[i] = bc[mi]
+    return seq, count, total
 
 # -----------------------------------------------------------------------------
 #
