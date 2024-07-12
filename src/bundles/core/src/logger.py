@@ -97,7 +97,7 @@ class Log:
             Message to log
 
         """
-        raise NotImplemented
+        raise NotImplementedError
 
 
 # note: HtmlLog and PlainTextLog were originally abstract classes, but
@@ -368,7 +368,7 @@ class Logger(StatusLogger):
             # move to top
             self.logs.discard(log)
         self.logs.add(log)
-        if self._early_collation == None:
+        if self._early_collation is None:
             self._early_collation = False
             early_collator.log_summary(self)
 
@@ -660,8 +660,6 @@ class CollatingLog(HtmlLog):
             for m, image_info, is_html in msgs
         ]
 
-        import sys
-
         if collapse_similar:
             summarized = []
             prev_msg = sim_info = None
@@ -787,9 +785,12 @@ class _EarlyCollator(CollatingLog):
         CollatingLog.log_summary(self, logger, title)
 
 
-# error_text_format = '<p style="color:crimson;font-weight:bold">%s</p>'
-# although the below isn't HTML5, it avoids the line break in the above
-error_text_format = '<font color="crimson"><b>%s</b></font>'
+def error_text_format(msg):
+    from .colors import scheme_color
+    color = scheme_color('error')
+    # f'<p style="color:{color};font-weight:bold">{msg}</p>'
+    # although the below isn't HTML5, it avoids the line break in the above
+    return f'<font color="{color}"><b>{msg}</b></font>'
 
 
 def html_to_plain(html):

@@ -362,9 +362,11 @@ class Log(ToolInstance, HtmlLog):
 
             if level == self.LEVEL_ERROR:
                 from chimerax.core.logger import error_text_format
-                msg = error_text_format % msg
+                msg = error_text_format(msg)
             elif level == self.LEVEL_WARNING:
-                msg = '<p style="color:darkorange">' + msg + '</p>'
+                from chimerax.core.colors import scheme_color
+                color = scheme_color('warning')
+                msg = f'<p style="color:{color}">{msg}</p>'
 
             # compact repeated output, e.g. ISOLDE's 'stepto' command
             #

@@ -1177,7 +1177,7 @@ _scheme_colors = {
     # log messages -- changes background color
     'info': 'Canvas',
     'warning': ('#ffb961', 'darkgoldenrod'),
-    'error':  ('#ff7882', 'darkred'),
+    'error':  ('crimson', 'darkred'),
     'bug': ('#dc1436', 'maroon'),
     # logged command background
     'command': ('#ddd', '#444'),
