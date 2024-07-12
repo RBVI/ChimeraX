@@ -63,18 +63,38 @@ static void change_exception_type(PyObject* etype)
     PyErr_Restore(etype, value, traceback);
 }
 
+static PyObject*
+new_objects_instance()
+{
+    auto objects_inst = PyObject_CallNoArgs(objects_class);
+    if (objects_inst == nullptr)
+        throw std::runtime_error("Cannot create Objects instance");
+    return objects_inst;
+}
+
 //TODO: accept find_match() keywords
 extern "C" PyObject *
 evaluate(PyObject *, PyObject *args)
 {
     const char* text;
-    if (!PyArg_ParseTuple(args, "Os", &session, &text))
+    int quoted;    
+    if (!PyArg_ParseTuple(args, "Osp", &session, &text, &quoted))
         return nullptr;
-    auto objects_inst = PyObject_CallNoArgs(objects_class);
-    if (objects_inst == nullptr)
-        return nullptr;
+    PyObject* returned_objects_instance = nullptr;
+    std::string trial_text = text;
     try {
-        spec_parser.parse(text, objects_inst);
+        spec_parser.parse(text, returned_objects_instance);
+        if (returned_objects_instance == nullptr && !quoted) {
+            // progressively lop off spaced-separated text and see if what remain is legal...
+            auto space_pos = trial_text.find_first_of(' ');
+            while (space_pos != std::string::npos) {
+                trial_text = trial_text.substr(0, space_pos);
+                spec_parser.parse(trial_text.c_str(), returned_objects_instance);
+                if (returned_objects_instance != nullptr)
+                    break;
+                space_pos = trial_text.find_first_of(' ');
+            }
+        }
     } catch (std::runtime_error& e) {
         if (use_python_error == e.what())
             change_exception_type(PyExc_RuntimeError);
@@ -88,7 +108,15 @@ evaluate(PyObject *, PyObject *args)
             PyErr_SetString(PyExc_ValueError, e.what());
         return nullptr;
     }
-    return objects_inst;
+    if (returned_objects_instance == nullptr) {
+        PyErr_SetString(PyExc_AssertionError, "parser did not set Objects instance");
+        return nullptr;
+    }
+    auto ret_val = PyTuple_New(3);
+    PyTuple_SetItem(ret_val, 0, returned_objects_instance);
+    PyTuple_SetItem(ret_val, 1, PyUnicode_FromString(trial_text.c_str()));
+    PyTuple_SetItem(ret_val, 2, PyUnicode_FromString(std::string(text).substr(trial_text.size()).c_str()));
+    return ret_val;
 }
 
 static struct PyMethodDef spec_parser_functions[] =
@@ -148,7 +176,6 @@ PyMODINIT_FUNC PyInit__spec_parser()
     if (combine_arg == nullptr)
         return nullptr;
     spec_parser["SELECTOR_NAME"] = [](const SemanticValues &vs) {
-        std::cerr << "selector name: '" << vs.token_to_string() << "'\n";
         auto sel_text = PyUnicode_FromString(vs.token_to_string().c_str());
         if (sel_text == nullptr)
             throw std::runtime_error("Could not convert token to string");
@@ -157,7 +184,6 @@ PyMODINIT_FUNC PyInit__spec_parser()
             Py_DECREF(sel_text);
             throw std::runtime_error("Could not convert token to string");
         }
-        std::cerr << "Selector: '" << vs.token_to_string() << "'\n";
         Py_DECREF(sel_text);
         if (selector == Py_None) {
             Py_DECREF(selector);
@@ -171,23 +197,23 @@ PyMODINIT_FUNC PyInit__spec_parser()
             Py_DECREF(selector);
             throw std::runtime_error(use_python_error);
         }
+        auto selector_objects = new_objects_instance();
         if (is_inst) {
-            if (PyObject_CallMethodOneArg(
-                    std::any_cast<PyObject*>(vs[0]), combine_arg, selector) == nullptr) {
+            if (PyObject_CallMethodOneArg(selector_objects, combine_arg, selector) == nullptr) {
                 Py_DECREF(selector);
                 throw std::logic_error(use_python_error);
             }
             Py_DECREF(selector);
         } else {
-            //TODO: actual 'models' arg in selector call
             auto args = PyTuple_New(3);
             if (args == nullptr) {
                 Py_DECREF(selector);
                 throw std::runtime_error("Could not create 3-tuple for selector args");
             }
             PyTuple_SetItem(args, 0, session);
-            PyTuple_SetItem(args, 1, Py_None);
-            PyTuple_SetItem(args, 2, std::any_cast<PyObject*>(vs[0]));
+            //TODO: actual 'models' arg in selector call
+            PyTuple_SetItem(args, 1, PyObject_GetAttrString(session, "models"));
+            PyTuple_SetItem(args, 2, selector_objects);
             auto ret = PyObject_CallObject(selector, args);
             Py_DECREF(selector);
             Py_DECREF(args);
@@ -195,7 +221,7 @@ PyMODINIT_FUNC PyInit__spec_parser()
                 throw std::logic_error(use_python_error);
             Py_DECREF(ret);
         }
-        return std::any_cast<PyObject*>(vs[0]);
+        return selector_objects;
             
     };
     return mod;
