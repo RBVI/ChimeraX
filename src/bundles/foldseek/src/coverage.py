@@ -86,10 +86,12 @@ class FoldseekCoveragePlot(ToolInstance):
         else:
             hits = self._hits
         self._sorted_hits = hits
-        self._coverage_array = _coverage_array(hits)
-        rgb = _coverage_image(self._coverage_array)
+        from .foldseek import query_alignment_range, sequence_alignment
+        qstart, qend = query_alignment_range(hits)
+        self._alignment_array = sequence_alignment(hits, qstart, qend)
+        rgb = _coverage_image(self._alignment_array)
         if self._conserved > 0:
-            _color_conserved(self._coverage_array, rgb, self._conserved)
+            _color_conserved(self._alignment_array, rgb, self._conserved)
         return rgb
         
     # ---------------------------------------------------------------------------
@@ -119,17 +121,18 @@ class FoldseekCoveragePlot(ToolInstance):
     #
     def _column_query_residues(self):
         if not hasattr(self, '_query_res'):
-            qstart, qend = self._query_residue_range()
+            qstart, qend = self._query_alignment_range()
             qres = self._query_chain.existing_residues[qstart-1:qend]
             self._query_res = [(r.one_letter_code, r.number) for r in qres]
         return self._query_res
 
     # ---------------------------------------------------------------------------
     #
-    def _query_residue_range(self):
-        if not hasattr(self, '_query_res_range'):
-            self._query_res_range = _query_residue_range(self._hits)
-        return self._query_res_range
+    def _query_alignment_range(self):
+        if not hasattr(self, '_query_align_range'):
+            from .foldseek import query_alignment_range
+            self._query_align_range = query_alignment_range(self._hits)
+        return self._query_align_range
 
     # ---------------------------------------------------------------------------
     #
@@ -194,10 +197,10 @@ class FoldseekCoveragePlot(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _color_conserved(self, color = True):
-        rgb = _coverage_image(self._coverage_array)
+        rgb = _coverage_image(self._alignment_array)
         if color:
             self._conserved = 0.30
-            _color_conserved(self._coverage_array, rgb, self._conserved)
+            _color_conserved(self._alignment_array, rgb, self._conserved)
         else:
             self._conserved = 0
         self._coverage_view.set_image(rgb)
@@ -265,45 +268,29 @@ class CoverageView(QGraphicsView):
 
 # -----------------------------------------------------------------------------
 #
-def _coverage_array(hits):
-    qstart, qend = _query_residue_range(hits)
-    qlen = qend-qstart+1
-
-    from numpy import zeros, uint8
-    cover = zeros((len(hits), qlen), uint8)
-    for i,hit in enumerate(hits):
-        query_coverage(hit, qstart, cover[i,:])
-
-    return cover
-
-# -----------------------------------------------------------------------------
-#
-def _query_residue_range(hits):
-    qstarts = []
-    qends = []
-    for hit in hits:
-        qstarts.append(hit['qstart'])
-        qends.append(hit['qend'])
-    qstart, qend = min(qstarts), max(qends)
-    return qstart, qend
-
-# -----------------------------------------------------------------------------
-#
-def _coverage_image(coverage_array, identity_color = (0,255,0)):
+def _coverage_image(alignment_array, no_align_color = (255,255,255),
+                    align_color = (0,0,0), identity_color = (0,255,0)):
+    hits_array = alignment_array[1:,:]	# First row is query sequence
+    # Make a 2D array with values 0=unaligned, 1=aligned, 2=identical.
+    # This avoids 2D masks that don't work well in numpy.
     from numpy import array, uint8
-    colors = array(((255,255,255), (0,0,0), identity_color), uint8)
-    rgb = colors[coverage_array]
+    coverage = (hits_array != 0).astype(uint8) + (hits_array == alignment_array[0]).astype(uint8)
+    colors = array((no_align_color, align_color, identity_color), uint8)
+    rgb = colors[coverage]
     return rgb
 
 # -----------------------------------------------------------------------------
 #
-def _color_conserved(coverage_array, rgb, conserved = 0.3, conserved_color = (255,0,0),
-                     identity_color = (0,255,0)):
-    for i in range(coverage_array.shape[1]):
-        ci = coverage_array[:,i]
-        ns,nd = (ci == 2).sum(), (ci == 1).sum()
-        color = conserved_color if ns > conserved * (ns + nd) else identity_color
-        rgb[ci==2,i,:] = color
+def _color_conserved(alignment_array, rgb, conserved = 0.3,
+                     conserved_color = (255,0,0), identity_color = (0,255,0)):
+    seq_len = alignment_array.shape[1]
+    from numpy import count_nonzero
+    for i in range(seq_len):
+        mi = (alignment_array[1:,i] == alignment_array[0,i])
+        ni = mi.sum()	# Number of sequences with matching amino acid at column i
+        na = count_nonzero(alignment_array[1:,i])  # Number of sequences aligned at column i
+        color = conserved_color if ni >= conserved * na else identity_color
+        rgb[mi,i,:] = color
 
 # -----------------------------------------------------------------------------
 #
@@ -329,17 +316,6 @@ def hits_sorted_by_cluster(hits):
     shits = [hits[j] for j in i]
 
     return shits
-    
-# -----------------------------------------------------------------------------
-#
-def query_coverage(hit, cover_start, cover):
-    qaln, taln = hit['qaln'], hit['taln']
-    qi = hit['qstart']
-    for qaa, taa in zip(qaln, taln):
-        if qaa != '-' and taa != '-':
-            cover[qi-cover_start] = 2 if taa == qaa else 1
-        if qaa != '-':
-            qi += 1
 
 # -----------------------------------------------------------------------------
 #

@@ -508,6 +508,38 @@ def alignment_residue_pairs(hit, aligned_res, query_chain):
                     
     return aligned_res.filter(ati), qres.filter(aqi)
 
+def query_alignment_range(hits):
+    '''Return the range of query residue numbers (qstart, qend) that includes all the hit alignments.'''
+    qstarts = []
+    qends = []
+    for hit in hits:
+        qstarts.append(hit['qstart'])
+        qends.append(hit['qend'])
+    qstart, qend = min(qstarts), max(qends)
+    return qstart, qend
+
+def sequence_alignment(hits, qstart, qend):
+    '''
+    Return the sequence alignment between hits and query as a numpy 2D array of bytes.
+    The first row is the query sequence with one subsequent row for each hit.
+    There are no gaps in the query, and gaps in the hit sequences have 0 byte values.
+    '''
+    nhit = len(hits)
+    qlen = qend - qstart + 1
+    from numpy import zeros, byte
+    alignment = zeros((nhit+1, qlen), byte)
+    for h, hit in enumerate(hits):
+        qaln, taln = hit['qaln'], hit['taln']
+        qi = hit['qstart']
+        for qaa, taa in zip(qaln, taln):
+            if qaa != '-' and taa != '-' and qi >= qstart and qi <= qend:
+                ai = qi-qstart
+                alignment[0,ai] = ord(qaa)
+                alignment[h+1,ai] = ord(taa)
+            if qaa != '-':
+                qi += 1
+    return alignment
+
 def alignment_transform(res, query_res, cutoff_distance = None):
     qxyz = query_res.existing_principal_atoms.scene_coords
     txyz = res.existing_principal_atoms.coords
