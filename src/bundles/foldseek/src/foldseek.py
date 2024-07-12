@@ -256,10 +256,6 @@ def _mmcif_as_string(chain):
         from chimerax.mmcif.mmcif_write import write_mmcif
         write_mmcif(chain.structure.session, f.name, models = [structure])
         mmcif_string = f.read()
-    # Strip initial comment lines since Foldseek service apparently changed its parsing July 10, 2024
-    # and now gives an error unless the entry starts with "data_somename".
-    start = mmcif_string.find('data_')
-    mmcif_string = mmcif_string[start:]
     return mmcif_string
 
 '''
