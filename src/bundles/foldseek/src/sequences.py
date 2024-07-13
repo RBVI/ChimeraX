@@ -243,8 +243,19 @@ class FoldseekSequencePlot(ToolInstance):
 
         menu.addAction('Order by e-value', self._order_by_evalue)
         menu.addAction('Order by cluster', self._order_by_cluster)
+
+        menu.addSeparator()
         self._add_menu_toggle(menu, 'Color conserved', self._show_conserved, self._color_conserved)
         self._add_menu_toggle(menu, 'Color by LDDT', self._color_by_lddt, self._show_lddt)
+
+        menu.addSeparator()
+        menu.addAction('Color query structure by:', lambda: 0)	# Section header
+        menu.addAction('    coverage', self._color_query_coverage)
+        menu.addAction('    conservation', self._color_query_conservation)
+        menu.addAction('    highly conserved', self._color_query_highly_conserved)
+        menu.addAction('    local alignment', self._color_query_lddt)
+                
+        menu.addSeparator()
         menu.addAction('Save image', self._save_image)
         
     # ---------------------------------------------------------------------------
@@ -336,6 +347,33 @@ class FoldseekSequencePlot(ToolInstance):
         scores = (0, 0.2, 0.4, 0.6, 0.8)
         cmap = Colormap(scores, colors)
         return cmap
+
+    # ---------------------------------------------------------------------------
+    #
+    def _color_query_coverage(self):
+        if self._query_chain:
+            qspec = self._query_chain.string(style = 'command')
+            from numpy import count_nonzero
+            n = count_nonzero(self._alignment_array[1:], axis=0).max()  # Max coverage
+            self._run_command(f'color byattribute r:foldseek_coverage {qspec} palette 0,red:{n//2},white:{n},blue')
+    def _color_query_conservation(self):
+        if self._query_chain:
+            qspec = self._query_chain.string(style = 'command')
+            self._run_command(f'color byattribute r:foldseek_conservation {qspec} palette 0,blue:0.25,white:0.5,red')
+    def _color_query_highly_conserved(self):
+        if self._query_chain:
+            qspec = self._query_chain.string(style = 'command')
+            threshold = self._conserved_threshold
+            self._run_command(f'color {qspec} gray')
+            self._run_command(f'color {qspec} & ::foldseek_conservation>={threshold} red')
+    def _color_query_lddt(self):
+        if self._query_chain:
+            self._set_lddt_attribute()
+            qspec = self._query_chain.string(style = 'command')
+            self._run_command(f'color byattribute r:foldseek_lddt {qspec} palette 0,red:0.2,orange:0.4,yellow:0.6,cornflowerblue:0.8,blue')
+    def _run_command(self, command):
+        from chimerax.core.commands import run
+        run(self.session, command)
 
     # ---------------------------------------------------------------------------
     #
