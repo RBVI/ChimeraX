@@ -334,12 +334,21 @@ def parse_pdb100_theader(theader):
     if id < iz:
         from chimerax.core.errors import UserError
         raise UserError(f'Foldseek results target header "{theader}" did not contain expected space character after chain id')
+
+    pdb_id = theader[:4]
+    assembly_id = theader[ia+9:iz]
+    chain_id = theader[iz+8:id]
+    if '-' in chain_id:
+        # RCSB bioassembly chains can have a dash in them e.g. H-2.
+        # Since we open non-assembly PDB entries remove the -# part to get correct chain id.
+        chain_id = chain_id[:chain_id.find('-')]
+    description = theader[id+1:]
     
     values = {
-        'pdb_id': theader[:4],
-        'pdb_assembly_id': theader[ia+9:iz],
-        'chain_id': theader[iz+8:id],
-        'description': theader[id+1:],
+        'pdb_id': pdb_id,
+        'pdb_assembly_id': assembly_id,
+        'chain_id': chain_id,
+        'description': description,
     }
     values['database_id'] = values['pdb_id']
     values['database_full_id'] = values['pdb_id'] + '_' + values['chain_id']
