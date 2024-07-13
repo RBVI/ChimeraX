@@ -536,6 +536,32 @@ def sequence_alignment(hits, qstart, qend):
                 qi += 1
     return alignment
 
+def alignment_coordinates(hits, qstart, qend):
+    '''
+    Return C-alpha atom coordinates for aligned sequences.
+    Also return a mask indicating positions that are not sequence gaps.
+    '''
+    nhit = len(hits)
+    qlen = qend - qstart + 1
+    from numpy import zeros, float32
+    xyz = zeros((nhit, qlen, 3), float32)
+    mask = zeros((nhit, qlen), bool)
+    for h, hit in enumerate(hits):
+        qaln, taln = hit['qaln'], hit['taln']
+        qi = hit['qstart']
+        hi = hit['tstart']
+        hxyz = _hit_coords(hit)
+        for qaa, taa in zip(qaln, taln):
+            if qaa != '-' and taa != '-' and qi >= qstart and qi <= qend:
+                ai = qi-qstart
+                xyz[h,ai,:] = hxyz[hi-1]
+                mask[h,ai] = True
+            if qaa != '-':
+                qi += 1
+            if taa != '-':
+                hi += 1
+    return xyz, mask
+
 def alignment_transform(res, query_res, cutoff_distance = None):
     qxyz = query_res.existing_principal_atoms.scene_coords
     txyz = res.existing_principal_atoms.coords

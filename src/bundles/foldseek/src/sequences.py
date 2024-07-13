@@ -42,14 +42,17 @@ class FoldseekSequencePlot(ToolInstance):
     name = 'Foldseek Sequence Plot'
     help = 'help:user/tools/foldseek.html#seqplot'
 
-    def __init__(self, session, hits, query_chain,
-                 show_conserved = True, conserved_threshold = 0.5, order = 'cluster'):
+    def __init__(self, session, hits, query_chain, order = 'cluster',
+                 show_conserved = True, conserved_threshold = 0.5,
+                 lddt_coloring = False):
 
         self._hits = hits
         self._query_chain = query_chain
         self._order = order
+        self._hit_order_array = None
         self._show_conserved = show_conserved
         self._conserved_threshold = conserved_threshold
+        self._color_by_lddt = lddt_coloring
         self._last_hover_xy = None
 
         ToolInstance.__init__(self, session, tool_name = self.name)
@@ -79,27 +82,49 @@ class FoldseekSequencePlot(ToolInstance):
         self._set_conservation_attribute()
 
         tw.manage(placement=None)	# Start floating
+
+    # ---------------------------------------------------------------------------
+    #
+    def _update_sequence_image(self):
+        rgb = self._sequence_image()
+        self._sequence_plot.set_image(rgb)
         
     # ---------------------------------------------------------------------------
     #
     def _sequence_image(self):
-        order = self._order
-        if order == 'cluster':
-            hits = hits_sorted_by_cluster(self._hits)
-        elif order == 'evalue':
-            hits = list(self._hits)
-            hits.sort(key = lambda hit: hit['evalue'])
-        else:
-            hits = self._hits
-        self._sorted_hits = hits
         from .foldseek import query_alignment_range, sequence_alignment
-        self._alignment_range = qstart, qend = query_alignment_range(hits)
-        self._alignment_array = sequence_alignment(hits, qstart, qend)
-        rgb = _sequence_image(self._alignment_array)
+        self._alignment_range = qstart, qend = query_alignment_range(self._hits)
+        self._alignment_array = sequence_alignment(self._hits, qstart, qend)
+        hit_order = self._hit_order()
+        rgb = _sequence_image(self._alignment_array, hit_order)
+        if self._color_by_lddt:
+            self._color_lddt(rgb)
         if self._show_conserved:
-            _color_conserved(self._alignment_array, rgb, self._conserved_threshold)
+            _color_conserved(self._alignment_array, hit_order, rgb, self._conserved_threshold)
         return rgb
-        
+
+    # ---------------------------------------------------------------------------
+    #
+    def _hit_order(self):
+        if self._hit_order_array is None:
+            order = self._order
+            hits = self._hits
+            if order == 'cluster':
+                hit_order = hits_cluster_order(self._hits)
+            elif order == 'evalue':
+                from numpy import array, float32, argsort
+                evalues = array([hit['evalue'] for hit in self._hits], float32)
+                hit_order = argsort(evalues)
+            else:
+                from numpy import arange
+                hit_order = arange(len(hits), dtype=int32)
+            self._hit_order_array = hit_order
+
+            from numpy import empty, int32, arange
+            self._inverse_order = io = empty((len(hits),), int32)
+            io[hit_order] = arange(len(hits), dtype=int32)
+        return self._hit_order_array
+
     # ---------------------------------------------------------------------------
     #
     def _set_coverage_attribute(self):
@@ -155,8 +180,8 @@ class FoldseekSequencePlot(ToolInstance):
     #
     def _hover_info(self, x, y):
         query_res = self._column_query_residues()
-        if y >= 0 and y < len(self._sorted_hits) and x >= 0 and x < len(query_res):
-            hit = self._sorted_hits[y]
+        if y >= 0 and y < len(self._hits) and x >= 0 and x < len(query_res):
+            hit = self._hits[self._inverse_order[y]]
             res_type, res_num = query_res[x]
         else:
             hit = res_type = res_num = None
@@ -197,6 +222,7 @@ class FoldseekSequencePlot(ToolInstance):
         menu.addAction('Order by e-value', self._order_by_evalue)
         menu.addAction('Order by cluster', self._order_by_cluster)
         self._add_menu_toggle(menu, 'Color conserved', self._show_conserved, self._color_conserved)
+        self._add_menu_toggle(menu, 'Color by LDDT', self._color_by_lddt, self._show_lddt)
         menu.addAction('Save image', self._save_image)
         
     # ---------------------------------------------------------------------------
@@ -229,24 +255,64 @@ class FoldseekSequencePlot(ToolInstance):
     #
     def _order_by_evalue(self):
         self._order = 'evalue'
-        rgb = self._sequence_image()
-        self._sequence_plot.set_image(rgb)
+        self._hit_order_array = None
+        self._update_sequence_image()
 
     # ---------------------------------------------------------------------------
     #
     def _order_by_cluster(self):
         self._order = 'cluster'
-        rgb = self._sequence_image()
-        self._sequence_plot.set_image(rgb)
+        self._hit_order_array = None
+        self._update_sequence_image()
 
     # ---------------------------------------------------------------------------
     #
     def _color_conserved(self, show = True):
-        rgb = _sequence_image(self._alignment_array)
-        if show:
-            _color_conserved(self._alignment_array, rgb, self._conserved_threshold)
-        self._sequence_plot.set_image(rgb)
         self._show_conserved = show
+        self._update_sequence_image()
+
+    # ---------------------------------------------------------------------------
+    #
+    def _show_lddt(self, show = True):
+        self._color_by_lddt = show
+        self._update_sequence_image()
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _color_lddt(self, rgb):
+        cmap = self._lddt_colormap()
+        lddt_scores = self._lddt_scores()
+        order = self._hit_order()
+        nhits = len(lddt_scores)
+        for i,h in enumerate(order):
+            smask = (lddt_scores[h] > 0)
+            rgba = cmap.interpolated_rgba8(lddt_scores[h,smask])
+            rgb[i,smask,:] = rgba[:,:3]
+
+    # ---------------------------------------------------------------------------
+    #
+    def _lddt_scores(self):
+        lddt_scores = getattr(self, '_lddt_score_array', None)
+        if lddt_scores is None:
+            qstart, qend = self._alignment_range
+            qres = self._query_chain.existing_residues
+            query_xyz = qres.existing_principal_atoms.coords[qstart-1:qend,:]
+            from .foldseek import alignment_coordinates
+            hits_xyz, hits_mask = alignment_coordinates(self._hits, qstart, qend)
+            from . import lddt
+            lddt_scores = lddt.local_distance_difference_test(query_xyz, hits_xyz, hits_mask)
+            self._lddt_score_array = lddt_scores
+        return lddt_scores
+
+    # ---------------------------------------------------------------------------
+    #
+    def _lddt_colormap(self):
+        from chimerax.core.colors import BuiltinColors, Colormap
+        color_names = ('red', 'orange', 'yellow', 'cornflowerblue', 'blue')
+        colors = [BuiltinColors[name] for name in color_names]
+        scores = (0, 0.2, 0.4, 0.6, 0.8)
+        cmap = Colormap(scores, colors)
+        return cmap
 
     # ---------------------------------------------------------------------------
     #
@@ -311,7 +377,7 @@ class SequencePlot(QGraphicsView):
 
 # -----------------------------------------------------------------------------
 #
-def _sequence_image(alignment_array, no_align_color = (255,255,255),
+def _sequence_image(alignment_array, order, no_align_color = (255,255,255),
                     align_color = (0,0,0), identity_color = (0,255,0)):
     hits_array = alignment_array[1:,:]	# First row is query sequence
     # Make a 2D array with values 0=unaligned, 1=aligned, 2=identical.
@@ -319,7 +385,7 @@ def _sequence_image(alignment_array, no_align_color = (255,255,255),
     from numpy import array, uint8
     res_type = (hits_array != 0).astype(uint8) + (hits_array == alignment_array[0]).astype(uint8)
     colors = array((no_align_color, align_color, identity_color), uint8)
-    rgb = colors[res_type]
+    rgb = colors[res_type[order,:]]
     return rgb
 
 # -----------------------------------------------------------------------------
@@ -341,7 +407,7 @@ def _consensus_sequence(alignment_array):
 
 # -----------------------------------------------------------------------------
 #
-def _color_conserved(alignment_array, rgb, conserved = 0.3, min_seqs = 10,
+def _color_conserved(alignment_array, order, rgb, conserved = 0.3, min_seqs = 10,
                      conserved_color = (255,0,0), identity_color = (0,255,0)):
     seq_len = alignment_array.shape[1]
     from numpy import count_nonzero
@@ -350,12 +416,12 @@ def _color_conserved(alignment_array, rgb, conserved = 0.3, min_seqs = 10,
         ni = mi.sum()	# Number of sequences with matching amino acid at column i
         na = count_nonzero(alignment_array[1:,i])  # Number of sequences aligned at column i
         color = conserved_color if na >= min_seqs and ni >= conserved * na else identity_color
-        rgb[mi,i,:] = color
+        rgb[mi[order],i,:] = color
 
 # -----------------------------------------------------------------------------
 #
-def hits_sorted_by_cluster(hits):
-    from numpy import array, float32
+def hits_cluster_order(hits):
+    from numpy import array, float32, int32
     intervals = array([(hit['qstart'], hit['qend']) for hit in hits], float32)
 
     # Cluster intervals using kmeans
@@ -373,9 +439,9 @@ def hits_sorted_by_cluster(hits):
     # Sort by cluster and within a cluster by start of interval
     i = list(range(len(hits)))
     i.sort(key = lambda j: (labels[j], hits[j]['qstart']))
-    shits = [hits[j] for j in i]
+    order = array(i, int32)
 
-    return shits
+    return order
 
 # -----------------------------------------------------------------------------
 #
@@ -394,6 +460,7 @@ def register_foldseek_sequences_command(logger):
         required = [],
         keyword = [('show_conserved', BoolArg),
                    ('conserved_threshold', FloatArg),
+                   ('lddt_coloring', BoolArg),
                    ('order', EnumOf(['cluster', 'evalue']))],
         synopsis = 'Show an image of all aligned sequences from a foldseek search, one sequence per image row.'
     )
