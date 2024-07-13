@@ -166,6 +166,28 @@ class FoldseekSequencePlot(ToolInstance):
         
     # ---------------------------------------------------------------------------
     #
+    def _set_lddt_attribute(self):
+        if self._query_chain is None or getattr(self, '_lddt_attribute_set', False):
+            return
+        self._lddt_attribute_set = True
+        
+        from chimerax.atomic import Residue
+        Residue.register_attr(self.session, 'foldseek_lddt', "Foldseek", attr_type = float)
+
+        lddt_scores = self._lddt_scores()
+        qstart, qend = self._alignment_range
+        from numpy import count_nonzero
+        for ri,r in enumerate(self._query_chain.existing_residues):
+            if ri >= qstart-1 and ri <= qend:
+                ai = ri-(qstart-1)
+                nscores = count_nonzero(self._alignment_array[1:,ai])
+                ave_lddt = lddt_scores[:,ai].sum() / nscores
+            else:
+                ave_lddt = 0
+            r.foldseek_lddt = ave_lddt
+
+    # ---------------------------------------------------------------------------
+    #
     def _mouse_hover(self, x, y):
         hit, res_type, res_num = self._hover_info(x, y)
         if hit and res_type:
@@ -302,6 +324,7 @@ class FoldseekSequencePlot(ToolInstance):
             from . import lddt
             lddt_scores = lddt.local_distance_difference_test(query_xyz, hits_xyz, hits_mask)
             self._lddt_score_array = lddt_scores
+        self._set_lddt_attribute()
         return lddt_scores
 
     # ---------------------------------------------------------------------------
