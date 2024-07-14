@@ -22,7 +22,8 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek_sequences(session, show_conserved = True, conserved_threshold = 0.5, order = 'cluster'):
+def foldseek_sequences(session, show_conserved = True, conserved_threshold = 0.5,
+                       order = 'cluster or evalue'):
     '''Show an image of all aligned sequences from a foldseek search, one sequence per image row.'''
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
@@ -42,7 +43,7 @@ class FoldseekSequencePlot(ToolInstance):
     name = 'Foldseek Sequence Plot'
     help = 'help:user/tools/foldseek.html#seqplot'
 
-    def __init__(self, session, hits, query_chain, order = 'cluster',
+    def __init__(self, session, hits, query_chain, order = 'cluster or evalue',
                  show_conserved = True, conserved_threshold = 0.5,
                  lddt_coloring = False):
 
@@ -110,11 +111,13 @@ class FoldseekSequencePlot(ToolInstance):
             order = self._order
             hits = self._hits
             if order == 'cluster':
-                hit_order = hits_cluster_order(self._hits)
+                hit_order, num_clusters = _hits_cluster_order(self._hits)
             elif order == 'evalue':
-                from numpy import array, float32, argsort
-                evalues = array([hit['evalue'] for hit in self._hits], float32)
-                hit_order = argsort(evalues)
+                hit_order = _hits_evalue_order(self._hits)
+            elif order == 'cluster or evalue':
+                hit_order, num_clusters = _hits_cluster_order(self._hits)
+                if num_clusters == 1:
+                    hit_order = _hits_evalue_order(self._hits)
             else:
                 from numpy import arange
                 hit_order = arange(len(hits), dtype=int32)
@@ -481,7 +484,7 @@ def _color_conserved(alignment_array, order, rgb, conserved = 0.3, min_seqs = 10
 
 # -----------------------------------------------------------------------------
 #
-def hits_cluster_order(hits):
+def _hits_cluster_order(hits):
     from numpy import array, float32, int32
     intervals = array([(hit['qstart'], hit['qend']) for hit in hits], float32)
 
@@ -491,6 +494,7 @@ def hits_cluster_order(hits):
         codebook, distortion = kmeans(intervals, k)
         if distortion <= 20:
             break
+    num_clusters = k
 
     # Order clusters longest interval first
     centers = list(codebook)
@@ -502,7 +506,15 @@ def hits_cluster_order(hits):
     i.sort(key = lambda j: (labels[j], hits[j]['qstart']))
     order = array(i, int32)
 
-    return order
+    return order, num_clusters
+
+# -----------------------------------------------------------------------------
+#
+def _hits_evalue_order(hits):
+    from numpy import array, float32, argsort
+    evalues = array([hit['evalue'] for hit in hits], float32)
+    hit_order = argsort(evalues)
+    return hit_order
 
 # -----------------------------------------------------------------------------
 #
