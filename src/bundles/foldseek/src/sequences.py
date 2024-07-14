@@ -122,10 +122,6 @@ class FoldseekSequencePlot(ToolInstance):
                 from numpy import arange
                 hit_order = arange(len(hits), dtype=int32)
             self._hit_order_array = hit_order
-
-            from numpy import empty, int32, arange
-            self._inverse_order = io = empty((len(hits),), int32)
-            io[hit_order] = arange(len(hits), dtype=int32)
         return self._hit_order_array
 
     # ---------------------------------------------------------------------------
@@ -206,7 +202,8 @@ class FoldseekSequencePlot(ToolInstance):
     def _hover_info(self, x, y):
         query_res = self._column_query_residues()
         if y >= 0 and y < len(self._hits) and x >= 0 and x < len(query_res):
-            hit = self._hits[self._inverse_order[y]]
+            order = self._hit_order()
+            hit = self._hits[order[y]]
             res_type, res_num = query_res[x]
         else:
             hit = res_type = res_num = None
