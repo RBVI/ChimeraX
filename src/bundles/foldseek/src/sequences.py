@@ -113,11 +113,18 @@ class FoldseekSequencePlot(ToolInstance):
             if order == 'cluster':
                 hit_order, num_clusters = _hits_cluster_order(self._hits)
             elif order == 'evalue':
-                hit_order = _hits_evalue_order(self._hits)
+                hit_order = _hits_order_by_attribute(self._hits, 'evalue')
             elif order == 'cluster or evalue':
                 hit_order, num_clusters = _hits_cluster_order(self._hits)
                 if num_clusters == 1:
-                    hit_order = _hits_evalue_order(self._hits)
+                    hit_order = _hits_order_by_attribute(self._hits, 'evalue')
+            elif order in 'identity':
+                hit_order = _hits_order_by_attribute(self._hits, 'pident', smallest_first = False)
+            elif order in 'lddt':
+                lddt = self._lddt_scores()
+                from numpy import argsort, count_nonzero
+                mean_lddt = lddt.sum(axis=1) / count_nonzero(lddt, axis=1)
+                hit_order = argsort(mean_lddt)[::-1]
             else:
                 from numpy import arange
                 hit_order = arange(len(hits), dtype=int32)
@@ -242,8 +249,11 @@ class FoldseekSequencePlot(ToolInstance):
                                lambda res_num=res_num: self._select_query_residue(res_num))
             menu.addSeparator()
 
-        menu.addAction('Order by e-value', self._order_by_evalue)
-        menu.addAction('Order by cluster', self._order_by_cluster)
+        menu.addAction('Order sequences by:', lambda: 0)
+        menu.addAction('   e-value', lambda: self._order_by('evalue'))
+        menu.addAction('   cluster', lambda: self._order_by('cluster'))
+        menu.addAction('   identity', lambda: self._order_by('identity'))
+        menu.addAction('   mean LDDT', lambda: self._order_by('lddt'))
 
         menu.addSeparator()
         self._add_menu_toggle(menu, 'Color conserved', self._show_conserved, self._color_conserved)
@@ -295,15 +305,8 @@ class FoldseekSequencePlot(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _order_by_evalue(self):
-        self._order = 'evalue'
-        self._hit_order_array = None
-        self._update_sequence_image()
-
-    # ---------------------------------------------------------------------------
-    #
-    def _order_by_cluster(self):
-        self._order = 'cluster'
+    def _order_by(self, ordering_name):
+        self._order = ordering_name
         self._hit_order_array = None
         self._update_sequence_image()
 
@@ -516,11 +519,11 @@ def _hits_cluster_order(hits):
 
 # -----------------------------------------------------------------------------
 #
-def _hits_evalue_order(hits):
+def _hits_order_by_attribute(hits, attribute, smallest_first = True):
     from numpy import array, float32, argsort
-    evalues = array([hit['evalue'] for hit in hits], float32)
-    hit_order = argsort(evalues)
-    return hit_order
+    evalues = array([hit[attribute] for hit in hits], float32)
+    order = argsort(evalues)
+    return order if smallest_first else order[::-1]
 
 # -----------------------------------------------------------------------------
 #
@@ -540,7 +543,7 @@ def register_foldseek_sequences_command(logger):
         keyword = [('show_conserved', BoolArg),
                    ('conserved_threshold', FloatArg),
                    ('lddt_coloring', BoolArg),
-                   ('order', EnumOf(['cluster', 'evalue']))],
+                   ('order', EnumOf(['cluster', 'evalue', 'identity', 'lddt']))],
         synopsis = 'Show an image of all aligned sequences from a foldseek search, one sequence per image row.'
     )
     register('foldseek sequences', desc, foldseek_sequences, logger=logger)
