@@ -234,8 +234,9 @@ class FoldseekSequencePlot(ToolInstance):
             hx, hy = self._last_hover_xy
             hit, res_type, res_num = self._hover_info(hx, hy)
             if hit:
-                menu.addAction(f'Open structure {hit["database_full_id"]}',
-                               lambda hit=hit: self._open_hit(hit))
+                db_id = hit["database_full_id"]
+                menu.addAction(f'Open structure {db_id}', lambda hit=hit: self._open_hit(hit))
+                menu.addAction(f'Show {db_id} in table', lambda hit=hit: self._show_hit_in_table(hit))
             if res_type:
                 menu.addAction(f'Select query residue {res_type}{res_num}',
                                lambda res_num=res_num: self._select_query_residue(res_num))
@@ -276,6 +277,14 @@ class FoldseekSequencePlot(ToolInstance):
         kw = {'trim': fp.trim, 'alignment_cutoff_distance': fp.alignment_cutoff_distance} if fp else {}
         from .foldseek import open_hit
         open_hit(self.session, hit, self._query_chain, **kw)
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _show_hit_in_table(self, hit):
+        from .gui import foldseek_panel
+        fp = foldseek_panel(self.session)
+        row = [r for r,h in enumerate(self._hits) if h is hit][0]
+        fp.select_table_row(row)
 
     # ---------------------------------------------------------------------------
     #

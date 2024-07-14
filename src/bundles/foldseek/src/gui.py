@@ -254,6 +254,17 @@ class Foldseek(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
+    def select_table_row(self, row):
+        t = self._results_table
+        item = t.data[row]
+        t.selected = [item]
+        t.scroll_to(item)
+# TODO: ItemTable.scroll_to() does nothing.  ChimeraX bug #15604
+#        print ('sel index', t._table_model.index(t.data.index(item), 0).row())
+#        t.scrollToBottom()
+        
+    # ---------------------------------------------------------------------------
+    #
     @property
     def results_query_chain(self):
         qc = self._results_query_chain
