@@ -24,17 +24,6 @@
  * === UCSF ChimeraX Copyright ===
  */
 
-#if 0
->>>>>>> 508c42ccc036391cf9467a417cada5ab4a498801
-#include <algorithm>  // for std::sort, std::find
-#include <cctype>
-#include <cmath> // abs
-#include <fstream>
-#include <set>
-#include <sstream>
-#include <stdio.h>  // fgets
-#include <unordered_map>
-#endif
 #include <utility>
 
 #include "Python.h"
@@ -46,6 +35,8 @@ using namespace peg;
 
 static parser spec_parser;
 static PyObject* objects_class;
+static PyObject* objects_intersect;
+static PyObject* objects_union;
 static PyObject* get_selector;
 static PyObject* add_implied_bonds;
 static PyObject* session;
@@ -152,7 +143,7 @@ static struct PyModuleDef spec_parser_def =
 };
 
 static auto grammar = (R"---(
-    atom_specifier <- as_term
+    atom_specifier <- as_term "&" atom_specifier / as_term "|" atom_specifier / as_term
     as_term <- SELECTOR_NAME zone_selector?
     zone_selector <- ZONE_OPERATOR real_number / ZONE_OPERATOR integer
     SELECTOR_NAME <- < [a-zA-Z_][-+a-zA-Z0-9_]* >
@@ -186,6 +177,12 @@ PyMODINIT_FUNC PyInit__spec_parser()
     objects_class = get_module_attribute("chimerax.core.objects", "Objects");
     if (objects_class == nullptr)
         return nullptr;
+    objects_intersect = PyObject_GetAttrString(objects_class, "intersect");
+    if (objects_intersect == nullptr)
+        return nullptr;
+    objects_union = PyObject_GetAttrString(objects_class, "union");
+    if (objects_union == nullptr)
+        return nullptr;
     get_selector = get_module_attribute("chimerax.core.commands.atomspec", "get_selector");
     if (get_selector == nullptr)
         return nullptr;
@@ -199,56 +196,30 @@ PyMODINIT_FUNC PyInit__spec_parser()
     if (list_arg == nullptr)
         return nullptr;
 
-    // SELECTOR_NAME
-    spec_parser["SELECTOR_NAME"] = [](const SemanticValues &vs) {
-        auto sel_text = PyUnicode_FromString(vs.token_to_string().c_str());
-        if (sel_text == nullptr)
-            throw std::runtime_error("Could not convert token to string");
-        auto selector = PyObject_CallOneArg(get_selector, sel_text);
-        if (selector == nullptr) {
-            Py_DECREF(sel_text);
-            throw std::runtime_error("Could not convert token to string");
-        }
-        Py_DECREF(sel_text);
-        if (selector == Py_None) {
-            Py_DECREF(selector);
-            std::string err_msg = "\"";
-            err_msg += vs.token_to_string();
-            err_msg += "\" is not a selector name";
-            throw std::logic_error(err_msg);
-        }
-        auto is_inst = PyObject_IsInstance(selector, objects_class);
-        if (is_inst < 0) {
-            Py_DECREF(selector);
-            throw std::runtime_error(use_python_error);
-        }
-        auto selector_objects = new_objects_instance();
-        if (is_inst) {
-            if (PyObject_CallMethodOneArg(selector_objects, combine_arg, selector) == nullptr) {
-                Py_DECREF(selector);
-                throw std::logic_error(use_python_error);
-            }
-            Py_DECREF(selector);
+    // atom_specifier
+    spec_parser["atom_specifier"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " atom_specifier semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        std::cerr << "choice: " << vs.choice() << "\n";
+        PyObject* results;
+        auto left_objects = std::any_cast<PyObject*>(vs[0]);
+        if (vs.choice() == 2) {
+            results = left_objects;
         } else {
-            auto args = PyTuple_New(3);
-            if (args == nullptr) {
-                Py_DECREF(selector);
-                throw std::runtime_error("Could not create 3-tuple for selector args");
-            }
-            PyTuple_SetItem(args, 0, session);
-            //TODO: actual 'models' arg in selector call
-            PyTuple_SetItem(args, 1, PyObject_GetAttrString(session, "models"));
-            PyTuple_SetItem(args, 2, selector_objects);
-            auto ret = PyObject_CallObject(selector, args);
-            Py_DECREF(selector);
-            Py_DECREF(args);
-            if (ret == nullptr)  
+            PyObject* op = vs.choice() == 0 ? objects_intersect : objects_union;
+            auto right_objects = std::any_cast<PyObject*>(vs[1]);
+            results = PyObject_CallFunctionObjArgs(op, left_objects, right_objects, nullptr);
+            Py_DECREF(left_objects);
+            Py_DECREF(right_objects);
+            if (results == nullptr)
                 throw std::logic_error(use_python_error);
-            Py_DECREF(ret);
         }
-        return selector_objects;
+        return results;
     };
-            
+
     // as_term
     spec_parser["as_term"] = [](const SemanticValues &vs) {
         std::cerr << vs.size() << " as_term semantic values\n";
@@ -305,6 +276,56 @@ PyMODINIT_FUNC PyInit__spec_parser()
         return zone_objects;
     };
 
+    // SELECTOR_NAME
+    spec_parser["SELECTOR_NAME"] = [](const SemanticValues &vs) {
+        auto sel_text = PyUnicode_FromString(vs.token_to_string().c_str());
+        if (sel_text == nullptr)
+            throw std::runtime_error("Could not convert token to string");
+        auto selector = PyObject_CallOneArg(get_selector, sel_text);
+        if (selector == nullptr) {
+            Py_DECREF(sel_text);
+            throw std::runtime_error("Could not convert token to string");
+        }
+        Py_DECREF(sel_text);
+        if (selector == Py_None) {
+            Py_DECREF(selector);
+            std::string err_msg = "\"";
+            err_msg += vs.token_to_string();
+            err_msg += "\" is not a selector name";
+            throw std::logic_error(err_msg);
+        }
+        auto is_inst = PyObject_IsInstance(selector, objects_class);
+        if (is_inst < 0) {
+            Py_DECREF(selector);
+            throw std::runtime_error(use_python_error);
+        }
+        auto selector_objects = new_objects_instance();
+        if (is_inst) {
+            if (PyObject_CallMethodOneArg(selector_objects, combine_arg, selector) == nullptr) {
+                Py_DECREF(selector);
+                throw std::logic_error(use_python_error);
+            }
+            Py_DECREF(selector);
+        } else {
+            auto args = PyTuple_New(3);
+            if (args == nullptr) {
+                Py_DECREF(selector);
+                throw std::runtime_error("Could not create 3-tuple for selector args");
+            }
+            PyTuple_SetItem(args, 0, session);
+            //TODO: actual 'models' arg in selector call
+            PyTuple_SetItem(args, 1, PyObject_GetAttrString(session, "models"));
+            PyTuple_SetItem(args, 2, selector_objects);
+            auto ret = PyObject_CallObject(selector, args);
+            Py_DECREF(selector);
+            Py_DECREF(args);
+            if (ret == nullptr)
+                throw std::logic_error(use_python_error);
+            Py_DECREF(ret);
+        }
+        return selector_objects;
+    };
+            
     // zone_selector
     spec_parser["zone_selector"] = [](const SemanticValues &vs) {
         std::cerr << vs.size() << " zone_selector semantic values\n";
