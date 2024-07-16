@@ -24,6 +24,7 @@
  * === UCSF ChimeraX Copyright ===
  */
 
+#if 0
 #include <algorithm>  // for std::sort, std::find
 #include <cctype>
 #include <cmath> // abs
@@ -32,6 +33,8 @@
 #include <sstream>
 #include <stdio.h>  // fgets
 #include <unordered_map>
+#endif
+#include <utility>
 
 #include "Python.h"
 #include "peglib.h"
@@ -43,8 +46,10 @@ using namespace peg;
 static parser spec_parser;
 static PyObject* objects_class;
 static PyObject* get_selector;
+static PyObject* add_implied_bonds;
 static PyObject* session;
 static PyObject* combine_arg;
+static PyObject* list_arg;
 static std::string use_python_error("Use Python error");
 
 static const char*
@@ -83,12 +88,14 @@ evaluate(PyObject *, PyObject *args)
     PyObject* returned_objects_instance = nullptr;
     std::string trial_text = text;
     try {
+std::cerr << "Parsing text " << text << "\n";
         spec_parser.parse(text, returned_objects_instance);
         if (returned_objects_instance == nullptr && !quoted) {
             // progressively lop off spaced-separated text and see if what remain is legal...
-            auto space_pos = trial_text.find_first_of(' ');
+            auto space_pos = trial_text.find_last_of(' ');
             while (space_pos != std::string::npos) {
                 trial_text = trial_text.substr(0, space_pos);
+std::cerr << "Parsing text " << trial_text << "\n";
                 spec_parser.parse(trial_text.c_str(), returned_objects_instance);
                 if (returned_objects_instance != nullptr)
                     break;
@@ -111,6 +118,11 @@ evaluate(PyObject *, PyObject *args)
     if (returned_objects_instance == nullptr) {
         PyErr_SetString(PyExc_AssertionError, "parser did not set Objects instance");
         return nullptr;
+    }
+    auto ret = PyObject_CallOneArg(add_implied_bonds, returned_objects_instance);
+    if (ret == nullptr) {
+        Py_DECREF(ret);
+        throw std::runtime_error(use_python_error);
     }
     auto ret_val = PyTuple_New(3);
     PyTuple_SetItem(ret_val, 0, returned_objects_instance);
@@ -140,8 +152,12 @@ static struct PyModuleDef spec_parser_def =
 
 static auto grammar = (R"---(
     atom_specifier <- as_term
-    as_term <- SELECTOR_NAME
+    as_term <- SELECTOR_NAME zone_selector?
+    zone_selector <- ZONE_OPERATOR real_number / ZONE_OPERATOR integer
     SELECTOR_NAME <- < [a-zA-Z_][-+a-zA-Z0-9_]* >
+    ZONE_OPERATOR <- "@>" | "@<" | ":>" | ":<" | "/>" | "/<" | "#>" | "#<"
+    integer <- < [1-9][0-9]* >
+    real_number <- < [0-9]* '.' [0-9]+ >
     %whitespace  <-  [ \t\r\n]*
 )---");
 
@@ -172,9 +188,17 @@ PyMODINIT_FUNC PyInit__spec_parser()
     get_selector = get_module_attribute("chimerax.core.commands.atomspec", "get_selector");
     if (get_selector == nullptr)
         return nullptr;
+    add_implied_bonds = get_module_attribute("chimerax.core.commands.atomspec", "add_implied_bonds");
+    if (add_implied_bonds == nullptr)
+        return nullptr;
     combine_arg = PyUnicode_FromString("combine");
     if (combine_arg == nullptr)
         return nullptr;
+    list_arg = PyUnicode_FromString("list");
+    if (list_arg == nullptr)
+        return nullptr;
+
+    // SELECTOR_NAME
     spec_parser["SELECTOR_NAME"] = [](const SemanticValues &vs) {
         auto sel_text = PyUnicode_FromString(vs.token_to_string().c_str());
         if (sel_text == nullptr)
@@ -222,7 +246,103 @@ PyMODINIT_FUNC PyInit__spec_parser()
             Py_DECREF(ret);
         }
         return selector_objects;
-            
     };
+            
+    // as_term
+    spec_parser["as_term"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " as_term semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        if (vs.size() == 1)
+            return std::any_cast<PyObject*>(vs[0]);
+        // there's a zone selector
+        auto zone_info = std::any_cast<std::pair<std::string_view, float>>(vs[1]);
+        auto zone_objects = new_objects_instance();
+        auto base_objects = std::any_cast<PyObject*>(vs[0]);
+        auto py_num_atoms = PyObject_GetAttrString(base_objects, "num_atoms");
+        if (!PyLong_Check(py_num_atoms)) {
+            Py_DECREF(base_objects);
+            Py_DECREF(py_num_atoms);
+            throw std::logic_error("Objects.num_atoms is not an integer!");
+        }
+        auto num_atoms = PyLong_AsLong(py_num_atoms);
+        Py_DECREF(py_num_atoms);
+        if (num_atoms > 0) {
+            auto coords = PyObject_GetAttrString(
+                PyObject_GetAttrString(base_objects, "atoms"), "scene_coords");
+            auto models = PyObject_GetAttrString(session, "models");
+            auto model_list = PyObject_CallMethodNoArgs(models, list_arg);
+            if (model_list == nullptr) {
+                Py_DECREF(base_objects);
+                Py_DECREF(zone_objects);
+                Py_DECREF(model_list);
+                throw std::logic_error(use_python_error);
+            }
+            if (!PyList_Check(model_list)) {
+                Py_DECREF(base_objects);
+                Py_DECREF(zone_objects);
+                Py_DECREF(model_list);
+                throw std::logic_error("session.models is not a list!");
+            }
+            auto list_size = PyList_GET_SIZE(model_list);
+            for (decltype(list_size) i = 0; i < list_size; ++i) {
+                auto m = PyList_GET_ITEM(model_list, i);
+                auto ret = PyObject_CallMethod(m, "atomspec_zone", "OOfCCO", session, coords,
+                    zone_info.second, zone_info.first[0], zone_info.first[1], zone_objects);
+                if (ret == nullptr) {
+                    Py_DECREF(base_objects);
+                    Py_DECREF(zone_objects);
+                    Py_DECREF(model_list);
+                    throw std::logic_error(use_python_error);
+                }
+            }
+            Py_DECREF(model_list);
+        }
+        Py_DECREF(base_objects);
+        return zone_objects;
+    };
+
+    // zone_selector
+    spec_parser["zone_selector"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " zone_selector semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        return std::make_pair(std::any_cast<std::string_view>(vs[0]), std::any_cast<float>(vs[1]));
+    };
+
+    // ZONE_OPERATOR
+    spec_parser["ZONE_OPERATOR"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " ZONE_OPERATOR semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        return vs.token();
+    };
+
+    // integer
+    spec_parser["integer"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " integer semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        return vs.token_to_number<float>();
+    };
+
+    // real_number
+    spec_parser["real_number"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " real_number semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        return vs.token_to_number<float>();
+    };
+
     return mod;
 }
