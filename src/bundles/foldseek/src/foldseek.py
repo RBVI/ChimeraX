@@ -559,7 +559,7 @@ def alignment_coordinates(hits, qstart, qend):
         qaln, taln = hit['qaln'], hit['taln']
         qi = hit['qstart']
         hi = hit['tstart']
-        hxyz = _hit_coords(hit)
+        hxyz = hit_coords(hit)
         for qaa, taa in zip(qaln, taln):
             if qaa != '-' and taa != '-' and qi >= qstart and qi <= qend:
                 ai = qi-qstart
@@ -647,8 +647,8 @@ def align_and_prune(xyz, ref_xyz, cutoff_distance, indices = None):
     
 def compute_rmsds(hits, query_xyz, cutoff_distance = None):
     for hit in hits:
-        hxyz = _hit_coords(hit)
-        hi, qi = _hit_residue_pairing(hit)
+        hxyz = hit_coords(hit)
+        hi, qi = hit_residue_pairing(hit)
 #        print(hit['database_full_id'])
         p, rms, npairs = align_xyz_transform(hxyz[hi], query_xyz[qi], cutoff_distance=cutoff_distance)
         hit['rmsd'] = rms
@@ -656,14 +656,14 @@ def compute_rmsds(hits, query_xyz, cutoff_distance = None):
         hit['cutoff_distance'] = cutoff_distance
         hit['coverage'] = 100 * len(qi) / len(query_xyz)
 
-def _hit_coords(hit):
+def hit_coords(hit):
     from numpy import array, float32
     xyz = array([float(x) for x in hit['tca'].split(',')], float32)
     n = len(xyz)//3
     hxyz = xyz.reshape((n,3))
     return hxyz
 
-def _hit_residue_pairing(hit):
+def hit_residue_pairing(hit):
     qaln, taln = hit['qaln'], hit['taln']
     ti = qi = 0
     ati, aqi = [], []
@@ -760,7 +760,7 @@ def _guess_database(path, hit_lines):
         database = 'pdb100'
 
     return None
-
+    
 def show_foldseek_hits(session, hit_lines, database, query_chain = None,
                        trim = None, alignment_cutoff_distance = None):
     msg = f'Foldseek search for similar structures to {query_chain} in {database} found {len(hit_lines)} hits'
@@ -768,6 +768,7 @@ def show_foldseek_hits(session, hit_lines, database, query_chain = None,
 
     hits = [parse_search_result(hit, database) for hit in hit_lines]
     if query_chain is not None:
+        # Compute percent coverage and percent close C-alpha values per hit.
         qxyz = query_chain.existing_residues.existing_principal_atoms.coords
         compute_rmsds(hits, qxyz, cutoff_distance = 2)
     from .gui import foldseek_panel, Foldseek
@@ -779,9 +780,32 @@ def show_foldseek_hits(session, hit_lines, database, query_chain = None,
         fp = Foldseek(session, query_chain = query_chain, database = database,
                       hits = hits, trim = trim, alignment_cutoff_distance = alignment_cutoff_distance)
     return fp
+
+def foldseek_open(session, hit_name):
+    from .gui import foldseek_panel
+    fp = foldseek_panel(session)
+    if fp is None:
+        from chimerax.core.errors import UserError
+        raise UserError('No foldseek results are available')
+    for hit in fp.hits:
+        if hit['database_full_id'] == hit_name:
+            fp.open_hit(hit)
+            break
+
+def foldseek_show(session, hit_name):
+    '''Show table row for this hit.'''
+    from .gui import foldseek_panel
+    fp = foldseek_panel(session)
+    if fp is None:
+        from chimerax.core.errors import UserError
+        raise UserError('No foldseek results are available')
+    for hit in fp.hits:
+        if hit['database_full_id'] == hit_name:
+            fp.select_table_row(hit)
+            break
     
 def register_foldseek_command(logger):
-    from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg
+    from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg, StringArg
     from chimerax.atomic import ChainArg
     desc = CmdDesc(
         required = [('chain', ChainArg)],
@@ -793,5 +817,16 @@ def register_foldseek_command(logger):
                    ],
         synopsis = 'Search for proteins with similar folds using Foldseek web service'
     )
-    
     register('foldseek', desc, foldseek, logger=logger)
+
+    desc = CmdDesc(
+        required = [('hit_name', StringArg)],
+        synopsis = 'Open Foldseek result structure and align to query'
+    )
+    register('foldseek open', desc, foldseek_open, logger=logger)
+
+    desc = CmdDesc(
+        required = [('hit_name', StringArg)],
+        synopsis = 'Show Foldseek result table row'
+    )
+    register('foldseek show', desc, foldseek_show, logger=logger)

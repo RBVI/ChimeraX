@@ -293,8 +293,7 @@ class FoldseekSequencePlot(ToolInstance):
     def _show_hit_in_table(self, hit):
         from .gui import foldseek_panel
         fp = foldseek_panel(self.session)
-        row = [r for r,h in enumerate(self._hits) if h is hit][0]
-        fp.select_table_row(row)
+        fp.select_table_row(hit)
 
     # ---------------------------------------------------------------------------
     #
