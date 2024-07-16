@@ -110,6 +110,16 @@ class IHMModel(Model):
         amodels = self.read_atomic_models(filename, mgroup)
         self.atomic_models = amodels
 
+        if amodels:
+            original_res_numbering = amodels[0].res_numbering
+        for m in amodels:
+            # We use mmCIF-provided seq_ids to, e.g., assign cross-links, so
+            # force canonical (rather than user-provided) residue numbering.
+            # We will reset this to the default once loading is complete.
+            # Note that we do not do this for sphere models, as there the only
+            # numbering system used is seq_id.
+            m.res_numbering = 'canonical'
+
         # Align 2DEM to projection position for first sphere or atomic model
         if smodels or amodels:
             s0 = smodels[0] if smodels else amodels[0]
@@ -152,7 +162,7 @@ class IHMModel(Model):
         # Reset residue numbering scheme to default, now that cross-links
         # and the like have been assigned
         for m in amodels:
-            m.res_numbering = 'author'
+            m.res_numbering = original_res_numbering
 
     def read_ihm_system(self, filename):
         with open(filename) as fh:
@@ -634,12 +644,6 @@ class IHMModel(Model):
             mnames = self.model_names()
         group_ids = set()
         for i,m in enumerate(models):
-            # We use mmCIF-provided seq_ids to, e.g., assign cross-links, so
-            # force canonical (rather than user-provided) residue numbering.
-            # We will reset this to the default once loading is complete.
-            # Note that we do not do this for sphere models, as there the only
-            # numbering system used is seq_id.
-            m.res_numbering = 'canonical'
             # TODO: Need to read model id from the ihm_model_id field in atom_site table.
             mid = str(i+1)
             m.ihm_model_ids = [mid]
