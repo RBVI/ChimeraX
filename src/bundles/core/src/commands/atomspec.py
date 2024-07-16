@@ -111,6 +111,14 @@ class AtomSpecArg(Annotation):
 
     use_cpp_peglib = True
 
+    @staticmethod
+    def evaluate(session, text):
+        from chimerax.core._spec_parser import evaluate
+        #TODO: handle quoting as per funcs below
+        objects, text, rest = evaluate(session, text, False)
+        objects.spec = text
+        return objects, text, rest
+
     @classmethod
     def parse(cls, text, session):
         """Parse text and return an atomspec parse tree"""

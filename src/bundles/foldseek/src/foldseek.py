@@ -252,7 +252,7 @@ def _mmcif_as_string(chain):
     extra_residues = structure.residues - cchain.existing_residues
     extra_residues.delete()
     import tempfile
-    with tempfile.NamedTemporaryFile(prefix = 'foldseek_mmcif_', suffix = '.cif') as f:
+    with tempfile.NamedTemporaryFile(prefix = 'foldseek_mmcif_', suffix = '.cif', mode = 'w+') as f:
         from chimerax.mmcif.mmcif_write import write_mmcif
         write_mmcif(chain.structure.session, f.name, models = [structure])
         mmcif_string = f.read()
@@ -334,12 +334,21 @@ def parse_pdb100_theader(theader):
     if id < iz:
         from chimerax.core.errors import UserError
         raise UserError(f'Foldseek results target header "{theader}" did not contain expected space character after chain id')
+
+    pdb_id = theader[:4]
+    assembly_id = theader[ia+9:iz]
+    chain_id = theader[iz+8:id]
+    if '-' in chain_id:
+        # RCSB bioassembly chains can have a dash in them e.g. H-2.
+        # Since we open non-assembly PDB entries remove the -# part to get correct chain id.
+        chain_id = chain_id[:chain_id.find('-')]
+    description = theader[id+1:]
     
     values = {
-        'pdb_id': theader[:4],
-        'pdb_assembly_id': theader[ia+9:iz],
-        'chain_id': theader[iz+8:id],
-        'description': theader[id+1:],
+        'pdb_id': pdb_id,
+        'pdb_assembly_id': assembly_id,
+        'chain_id': chain_id,
+        'description': description,
     }
     values['database_id'] = values['pdb_id']
     values['database_full_id'] = values['pdb_id'] + '_' + values['chain_id']
@@ -504,10 +513,71 @@ def alignment_residue_pairs(hit, aligned_res, query_chain):
                     
     return aligned_res.filter(ati), qres.filter(aqi)
 
+def query_alignment_range(hits):
+    '''Return the range of query residue numbers (qstart, qend) that includes all the hit alignments.'''
+    qstarts = []
+    qends = []
+    for hit in hits:
+        qstarts.append(hit['qstart'])
+        qends.append(hit['qend'])
+    qstart, qend = min(qstarts), max(qends)
+    return qstart, qend
+
+def sequence_alignment(hits, qstart, qend):
+    '''
+    Return the sequence alignment between hits and query as a numpy 2D array of bytes.
+    The first row is the query sequence with one subsequent row for each hit.
+    There are no gaps in the query, and gaps in the hit sequences have 0 byte values.
+    '''
+    nhit = len(hits)
+    qlen = qend - qstart + 1
+    from numpy import zeros, byte
+    alignment = zeros((nhit+1, qlen), byte)
+    for h, hit in enumerate(hits):
+        qaln, taln = hit['qaln'], hit['taln']
+        qi = hit['qstart']
+        for qaa, taa in zip(qaln, taln):
+            if qaa != '-' and taa != '-' and qi >= qstart and qi <= qend:
+                ai = qi-qstart
+                alignment[0,ai] = ord(qaa)
+                alignment[h+1,ai] = ord(taa)
+            if qaa != '-':
+                qi += 1
+    return alignment
+
+def alignment_coordinates(hits, qstart, qend):
+    '''
+    Return C-alpha atom coordinates for aligned sequences.
+    Also return a mask indicating positions that are not sequence gaps.
+    '''
+    nhit = len(hits)
+    qlen = qend - qstart + 1
+    from numpy import zeros, float32
+    xyz = zeros((nhit, qlen, 3), float32)
+    mask = zeros((nhit, qlen), bool)
+    for h, hit in enumerate(hits):
+        qaln, taln = hit['qaln'], hit['taln']
+        qi = hit['qstart']
+        hi = hit['tstart']
+        hxyz = hit_coords(hit)
+        for qaa, taa in zip(qaln, taln):
+            if qaa != '-' and taa != '-' and qi >= qstart and qi <= qend:
+                ai = qi-qstart
+                xyz[h,ai,:] = hxyz[hi-1]
+                mask[h,ai] = True
+            if qaa != '-':
+                qi += 1
+            if taa != '-':
+                hi += 1
+    return xyz, mask
+
 def alignment_transform(res, query_res, cutoff_distance = None):
-    # TODO: Do iterative pruning to get better core alignment.
     qxyz = query_res.existing_principal_atoms.scene_coords
     txyz = res.existing_principal_atoms.coords
+    p, rms, npairs = align_xyz_transform(txyz, qxyz, cutoff_distance = cutoff_distance)
+    return p, rms, npairs
+
+def align_xyz_transform(txyz, qxyz, cutoff_distance = None):
     if cutoff_distance is None or cutoff_distance <= 0:
         from chimerax.geometry import align_points
         p, rms = align_points(txyz, qxyz)
@@ -515,9 +585,102 @@ def alignment_transform(res, query_res, cutoff_distance = None):
     else:
         from chimerax.std_commands.align import align_and_prune
         p, rms, indices = align_and_prune(txyz, qxyz, cutoff_distance)
+#        look_for_more_alignments(txyz, qxyz, cutoff_distance, indices)
         npairs = len(indices)
     return p, rms, npairs
 
+def look_for_more_alignments(txyz, qxyz, cutoff_distance, indices):
+    sizes = [len(txyz), len(indices)]
+    from numpy import ones
+    mask = ones(len(txyz), bool)
+#    from chimerax.std_commands.align import align_and_prune, IterationError
+    while True:
+        mask[indices] = 0
+        if mask.sum() < 3:
+            break
+        try:
+#            p, rms, indices = align_and_prune(txyz, qxyz, cutoff_distance, mask.nonzero()[0])
+            p, rms, indices, close_mask = align_and_prune(txyz, qxyz, cutoff_distance, mask.nonzero()[0])
+            sizes.append(len(indices))
+            nclose = close_mask.sum()
+            if nclose > len(indices):
+                sizes.append(-nclose)
+                sizes.append(-(mask*close_mask).sum())
+        except IterationError:
+            break
+    print (' '.join(str(s) for s in sizes))
+
+from chimerax.core.errors import UserError
+class IterationError(UserError):
+    pass
+
+def align_and_prune(xyz, ref_xyz, cutoff_distance, indices = None):
+
+    import numpy
+    if indices is None:
+        indices = numpy.arange(len(xyz))
+    axyz, ref_axyz = xyz[indices], ref_xyz[indices]
+    from chimerax.geometry import align_points
+    p, rms = align_points(axyz, ref_axyz)
+    dxyz = p*axyz - ref_axyz
+    d2 = (dxyz*dxyz).sum(axis=1)
+    cutoff2 = cutoff_distance * cutoff_distance
+    i = d2.argsort()
+    if d2[i[-1]] <= cutoff2:
+        dxyz = p*xyz - ref_xyz
+        d2 = (dxyz*dxyz).sum(axis=1)
+        close_mask = (d2 <= cutoff2)
+        return p, rms, indices, close_mask
+
+    # cull 10% or...
+    index1 = int(len(d2) * 0.9)
+    # cull half the long pairings
+    index2 = int(((d2 <= cutoff2).sum() + len(d2)) / 2)
+    # whichever is fewer
+    index = max(index1, index2)
+    survivors = indices[i[:index]]
+
+    if len(survivors) < 3:
+        raise IterationError("Alignment failed;"
+            " pruning distances > %g left less than 3 atom pairs" % cutoff_distance)
+    return align_and_prune(xyz, ref_xyz, cutoff_distance, survivors)
+    
+def compute_rmsds(hits, query_xyz, cutoff_distance = None):
+    for hit in hits:
+        hxyz = hit_coords(hit)
+        hi, qi = hit_residue_pairing(hit)
+#        print(hit['database_full_id'])
+        p, rms, npairs = align_xyz_transform(hxyz[hi], query_xyz[qi], cutoff_distance=cutoff_distance)
+        hit['rmsd'] = rms
+        hit['close'] = 100*npairs/len(hi)
+        hit['cutoff_distance'] = cutoff_distance
+        hit['coverage'] = 100 * len(qi) / len(query_xyz)
+
+def hit_coords(hit):
+    from numpy import array, float32
+    xyz = array([float(x) for x in hit['tca'].split(',')], float32)
+    n = len(xyz)//3
+    hxyz = xyz.reshape((n,3))
+    return hxyz
+
+def hit_residue_pairing(hit):
+    qaln, taln = hit['qaln'], hit['taln']
+    ti = qi = 0
+    ati, aqi = [], []
+    for qaa, taa in zip(qaln, taln):
+        if qaa != '-' and taa != '-':
+            ati.append(ti)
+            aqi.append(qi)
+        if taa != '-':
+            ti += 1
+        if qaa != '-':
+            qi += 1
+    from numpy import array, int32
+    ati, aqi = array(ati, int32), array(aqi, int32)
+    ati += hit['tstart']-1
+    aqi += hit['qstart']-1
+    return ati, aqi
+    
 def _show_ribbons(structure):
     for c in structure.chains:
         cres = c.existing_residues
@@ -597,13 +760,17 @@ def _guess_database(path, hit_lines):
         database = 'pdb100'
 
     return None
-
+    
 def show_foldseek_hits(session, hit_lines, database, query_chain = None,
                        trim = None, alignment_cutoff_distance = None):
     msg = f'Foldseek search for similar structures to {query_chain} in {database} found {len(hit_lines)} hits'
     session.logger.info(msg)
 
     hits = [parse_search_result(hit, database) for hit in hit_lines]
+    if query_chain is not None:
+        # Compute percent coverage and percent close C-alpha values per hit.
+        qxyz = query_chain.existing_residues.existing_principal_atoms.coords
+        compute_rmsds(hits, qxyz, cutoff_distance = 2)
     from .gui import foldseek_panel, Foldseek
     fp = foldseek_panel(session)
     if fp:
@@ -613,9 +780,32 @@ def show_foldseek_hits(session, hit_lines, database, query_chain = None,
         fp = Foldseek(session, query_chain = query_chain, database = database,
                       hits = hits, trim = trim, alignment_cutoff_distance = alignment_cutoff_distance)
     return fp
+
+def foldseek_open(session, hit_name):
+    from .gui import foldseek_panel
+    fp = foldseek_panel(session)
+    if fp is None:
+        from chimerax.core.errors import UserError
+        raise UserError('No foldseek results are available')
+    for hit in fp.hits:
+        if hit['database_full_id'] == hit_name:
+            fp.open_hit(hit)
+            break
+
+def foldseek_show(session, hit_name):
+    '''Show table row for this hit.'''
+    from .gui import foldseek_panel
+    fp = foldseek_panel(session)
+    if fp is None:
+        from chimerax.core.errors import UserError
+        raise UserError('No foldseek results are available')
+    for hit in fp.hits:
+        if hit['database_full_id'] == hit_name:
+            fp.select_table_row(hit)
+            break
     
 def register_foldseek_command(logger):
-    from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg
+    from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg, StringArg
     from chimerax.atomic import ChainArg
     desc = CmdDesc(
         required = [('chain', ChainArg)],
@@ -627,5 +817,16 @@ def register_foldseek_command(logger):
                    ],
         synopsis = 'Search for proteins with similar folds using Foldseek web service'
     )
-    
     register('foldseek', desc, foldseek, logger=logger)
+
+    desc = CmdDesc(
+        required = [('hit_name', StringArg)],
+        synopsis = 'Open Foldseek result structure and align to query'
+    )
+    register('foldseek open', desc, foldseek_open, logger=logger)
+
+    desc = CmdDesc(
+        required = [('hit_name', StringArg)],
+        synopsis = 'Show Foldseek result table row'
+    )
+    register('foldseek show', desc, foldseek_show, logger=logger)
