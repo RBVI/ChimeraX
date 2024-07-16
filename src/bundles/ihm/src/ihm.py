@@ -149,6 +149,11 @@ class IHMModel(Model):
         # Put sphere, ensemble, atomic models and localization maps into parent group models.
         self.group_result_models(smodels, emodels, amodels, lmaps, mgroup)
 
+        # Reset residue numbering scheme to default, now that cross-links
+        # and the like have been assigned
+        for m in amodels:
+            m.res_numbering = 'author'
+
     def read_ihm_system(self, filename):
         with open(filename) as fh:
             # If multiple data blocks in the file, return just the first one.
@@ -629,6 +634,12 @@ class IHMModel(Model):
             mnames = self.model_names()
         group_ids = set()
         for i,m in enumerate(models):
+            # We use mmCIF-provided seq_ids to, e.g., assign cross-links, so
+            # force canonical (rather than user-provided) residue numbering.
+            # We will reset this to the default once loading is complete.
+            # Note that we do not do this for sphere models, as there the only
+            # numbering system used is seq_id.
+            m.res_numbering = 'canonical'
             # TODO: Need to read model id from the ihm_model_id field in atom_site table.
             mid = str(i+1)
             m.ihm_model_ids = [mid]
