@@ -496,13 +496,14 @@ class Render:
         self._depth_texture_scale = None # texture xscale, yscale and value zscale
 
         self.frame_number = 0
+        self.check_uniforms = True
 
         # Camera origin, y, and xshift for SHADER_STEREO_360 mode
         self._stereo_360_params = ((0,0,0),(0,1,0),0)
 
         # OpenGL texture size limit
         self._max_3d_texture_size = None
-        
+
     def delete(self):
         if self._opengl_context._deleted:
             raise RuntimeError('Render.delete(): OpenGL context deleted before Render instance')
@@ -644,7 +645,7 @@ class Render:
         if self._max_3d_texture_size is None:
             self._max_3d_texture_size = GL.glGetInteger(GL.GL_MAX_3D_TEXTURE_SIZE)
         return self._max_3d_texture_size
-    
+
     def framebuffer_rgba_bits(self):
         # This is only valid for default framebuffer.
         # Need to use GL_COLOR_ATTACHMENT0 for offscreen framebuffers.
@@ -702,6 +703,7 @@ class Render:
         '''
         Set the current shader.
         '''
+        shader.check_uniforms = self.check_uniforms
         if shader == self.current_shader_program:
             return
 
@@ -2787,6 +2789,8 @@ class Shader:
     def __init__(self, capabilities = 0, max_shadows = 0,
                  vertex_shader_path = None, fragment_shader_path = None):
 
+        self.check_uniforms = True
+
         self.capabilities = capabilities
 
         if vertex_shader_path is None:
@@ -2837,7 +2841,7 @@ class Shader:
         else:
             p = self.program_id
             uid = GL.glGetUniformLocation(p, name.encode('utf-8'))
-            if uid == -1:
+            if uid == -1 and self.check_uniforms:
                 raise OpenGLError('Shader does not have uniform variable "%s"\n shader capabilities %s'
                                    % (name, ', '.join(shader_capability_names(self.capabilities))))
             uids[name] = uid
