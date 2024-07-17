@@ -28,6 +28,7 @@ Thumbs.db
 .vscode
 .python-version
 .ropeproject
+*.org
 # Test files
 .coverage
 *htmlcov

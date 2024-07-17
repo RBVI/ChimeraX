@@ -625,7 +625,10 @@ class ItemTable(QTableView):
 
     def scroll_to(self, datum):
         """ Scroll the table to ensure that the given data item is visible """
-        self.scrollTo(self._table_model.index(self._data.index(datum), 0), self.PositionAtCenter)
+        index = self._table_model.index(self._data.index(datum), 0)
+        if self._allow_user_sorting:
+            index = self.model().mapFromSource(index)
+        self.scrollTo(index, self.PositionAtCenter)
 
     @property
     def selected(self):

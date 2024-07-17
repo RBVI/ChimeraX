@@ -256,7 +256,8 @@ class AlignmentsManager(StateManager, ProviderManager):
             self._alignments[identify_as] = alignment
         if viewer_text:
             self._viewers[viewer_name].run_provider(self.session, viewer_name, self, alignment=alignment)
-        self.triggers.activate_trigger("new alignment", alignment)
+        if identify_as is not False:
+            self.triggers.activate_trigger("new alignment", alignment)
         return alignment
 
     @property

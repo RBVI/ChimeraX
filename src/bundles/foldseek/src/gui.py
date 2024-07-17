@@ -80,6 +80,7 @@ class Foldseek(ToolInstance):
                         [('Search', self._search),
                          ('Open', self._open_selected),
                          ('Sequences', self._show_sequences),
+                         ('Traces', self._show_backbone_traces),
                          ('Options', self._show_or_hide_options),
                          ('Help', self._show_help)],
                         spacing = 10)
@@ -238,20 +239,33 @@ class Foldseek(ToolInstance):
             msg = 'You must press the Foldseek Search button before you can open matching structures.'
             self.session.logger.error(msg)
             return
-        hits = results_table.selected		# FoldseekRow instances
-        for hit in hits:
-            self._open_hit(hit)
+        hit_rows = results_table.selected		# FoldseekRow instances
+        for hit_row in hit_rows:
+            self.open_hit(hit_row.hit)
         if len(hits) == 0:
             msg = 'Click lines in the Foldseek results table and then press Open.'
             self.session.logger.error(msg)
 
     # ---------------------------------------------------------------------------
     #
-    def _open_hit(self, row):
+    def open_hit(self, hit):
         from .foldseek import open_hit
-        open_hit(self.session, row.hit, self.results_query_chain, trim = self.trim,
+        open_hit(self.session, hit, self.results_query_chain, trim = self.trim,
                  alignment_cutoff_distance = self._alignment_cutoff_distance.value)
 
+    # ---------------------------------------------------------------------------
+    #
+    def select_table_row(self, hit_or_row_number):
+        t = self._results_table
+        if isinstance(hit_or_row_number, int):
+            row = hit_or_row_number
+        else:
+            hit = hit_or_row_number
+            row = [r for r,h in enumerate(self._hits) if h is hit][0]
+        item = t.data[row]
+        t.selected = [item]
+        t.scroll_to(item)
+        
     # ---------------------------------------------------------------------------
     #
     @property
@@ -266,6 +280,12 @@ class Foldseek(ToolInstance):
     def _show_sequences(self):
         from chimerax.core.commands import run
         run(self.session, 'foldseek sequences')
+
+    # ---------------------------------------------------------------------------
+    #
+    def _show_backbone_traces(self):
+        from chimerax.core.commands import run
+        run(self.session, 'foldseek traces')
 
     # ---------------------------------------------------------------------------
     #

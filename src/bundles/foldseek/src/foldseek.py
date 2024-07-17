@@ -334,12 +334,21 @@ def parse_pdb100_theader(theader):
     if id < iz:
         from chimerax.core.errors import UserError
         raise UserError(f'Foldseek results target header "{theader}" did not contain expected space character after chain id')
+
+    pdb_id = theader[:4]
+    assembly_id = theader[ia+9:iz]
+    chain_id = theader[iz+8:id]
+    if '-' in chain_id:
+        # RCSB bioassembly chains can have a dash in them e.g. H-2.
+        # Since we open non-assembly PDB entries remove the -# part to get correct chain id.
+        chain_id = chain_id[:chain_id.find('-')]
+    description = theader[id+1:]
     
     values = {
-        'pdb_id': theader[:4],
-        'pdb_assembly_id': theader[ia+9:iz],
-        'chain_id': theader[iz+8:id],
-        'description': theader[id+1:],
+        'pdb_id': pdb_id,
+        'pdb_assembly_id': assembly_id,
+        'chain_id': chain_id,
+        'description': description,
     }
     values['database_id'] = values['pdb_id']
     values['database_full_id'] = values['pdb_id'] + '_' + values['chain_id']
@@ -536,6 +545,32 @@ def sequence_alignment(hits, qstart, qend):
                 qi += 1
     return alignment
 
+def alignment_coordinates(hits, qstart, qend):
+    '''
+    Return C-alpha atom coordinates for aligned sequences.
+    Also return a mask indicating positions that are not sequence gaps.
+    '''
+    nhit = len(hits)
+    qlen = qend - qstart + 1
+    from numpy import zeros, float32
+    xyz = zeros((nhit, qlen, 3), float32)
+    mask = zeros((nhit, qlen), bool)
+    for h, hit in enumerate(hits):
+        qaln, taln = hit['qaln'], hit['taln']
+        qi = hit['qstart']
+        hi = hit['tstart']
+        hxyz = hit_coords(hit)
+        for qaa, taa in zip(qaln, taln):
+            if qaa != '-' and taa != '-' and qi >= qstart and qi <= qend:
+                ai = qi-qstart
+                xyz[h,ai,:] = hxyz[hi-1]
+                mask[h,ai] = True
+            if qaa != '-':
+                qi += 1
+            if taa != '-':
+                hi += 1
+    return xyz, mask
+
 def alignment_transform(res, query_res, cutoff_distance = None):
     qxyz = query_res.existing_principal_atoms.scene_coords
     txyz = res.existing_principal_atoms.coords
@@ -612,8 +647,8 @@ def align_and_prune(xyz, ref_xyz, cutoff_distance, indices = None):
     
 def compute_rmsds(hits, query_xyz, cutoff_distance = None):
     for hit in hits:
-        hxyz = _hit_coords(hit)
-        hi, qi = _hit_residue_pairing(hit)
+        hxyz = hit_coords(hit)
+        hi, qi = hit_residue_pairing(hit)
 #        print(hit['database_full_id'])
         p, rms, npairs = align_xyz_transform(hxyz[hi], query_xyz[qi], cutoff_distance=cutoff_distance)
         hit['rmsd'] = rms
@@ -621,14 +656,14 @@ def compute_rmsds(hits, query_xyz, cutoff_distance = None):
         hit['cutoff_distance'] = cutoff_distance
         hit['coverage'] = 100 * len(qi) / len(query_xyz)
 
-def _hit_coords(hit):
+def hit_coords(hit):
     from numpy import array, float32
     xyz = array([float(x) for x in hit['tca'].split(',')], float32)
     n = len(xyz)//3
     hxyz = xyz.reshape((n,3))
     return hxyz
 
-def _hit_residue_pairing(hit):
+def hit_residue_pairing(hit):
     qaln, taln = hit['qaln'], hit['taln']
     ti = qi = 0
     ati, aqi = [], []
@@ -725,7 +760,7 @@ def _guess_database(path, hit_lines):
         database = 'pdb100'
 
     return None
-
+    
 def show_foldseek_hits(session, hit_lines, database, query_chain = None,
                        trim = None, alignment_cutoff_distance = None):
     msg = f'Foldseek search for similar structures to {query_chain} in {database} found {len(hit_lines)} hits'
@@ -733,6 +768,7 @@ def show_foldseek_hits(session, hit_lines, database, query_chain = None,
 
     hits = [parse_search_result(hit, database) for hit in hit_lines]
     if query_chain is not None:
+        # Compute percent coverage and percent close C-alpha values per hit.
         qxyz = query_chain.existing_residues.existing_principal_atoms.coords
         compute_rmsds(hits, qxyz, cutoff_distance = 2)
     from .gui import foldseek_panel, Foldseek
@@ -744,9 +780,32 @@ def show_foldseek_hits(session, hit_lines, database, query_chain = None,
         fp = Foldseek(session, query_chain = query_chain, database = database,
                       hits = hits, trim = trim, alignment_cutoff_distance = alignment_cutoff_distance)
     return fp
+
+def foldseek_open(session, hit_name):
+    from .gui import foldseek_panel
+    fp = foldseek_panel(session)
+    if fp is None:
+        from chimerax.core.errors import UserError
+        raise UserError('No foldseek results are available')
+    for hit in fp.hits:
+        if hit['database_full_id'] == hit_name:
+            fp.open_hit(hit)
+            break
+
+def foldseek_show(session, hit_name):
+    '''Show table row for this hit.'''
+    from .gui import foldseek_panel
+    fp = foldseek_panel(session)
+    if fp is None:
+        from chimerax.core.errors import UserError
+        raise UserError('No foldseek results are available')
+    for hit in fp.hits:
+        if hit['database_full_id'] == hit_name:
+            fp.select_table_row(hit)
+            break
     
 def register_foldseek_command(logger):
-    from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg
+    from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg, StringArg
     from chimerax.atomic import ChainArg
     desc = CmdDesc(
         required = [('chain', ChainArg)],
@@ -758,5 +817,16 @@ def register_foldseek_command(logger):
                    ],
         synopsis = 'Search for proteins with similar folds using Foldseek web service'
     )
-    
     register('foldseek', desc, foldseek, logger=logger)
+
+    desc = CmdDesc(
+        required = [('hit_name', StringArg)],
+        synopsis = 'Open Foldseek result structure and align to query'
+    )
+    register('foldseek open', desc, foldseek_open, logger=logger)
+
+    desc = CmdDesc(
+        required = [('hit_name', StringArg)],
+        synopsis = 'Show Foldseek result table row'
+    )
+    register('foldseek show', desc, foldseek_show, logger=logger)

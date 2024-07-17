@@ -34,12 +34,15 @@ class _FoldseekBundle(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        if command_name == 'foldseek':
+        if command_name in ('foldseek', 'foldseek open', 'foldseek show'):
             from . import foldseek
             foldseek.register_foldseek_command(logger)
         elif command_name == 'foldseek sequences':
             from . import sequences
             sequences.register_foldseek_sequences_command(logger)
+        elif command_name == 'foldseek traces':
+            from . import traces
+            traces.register_foldseek_traces_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
