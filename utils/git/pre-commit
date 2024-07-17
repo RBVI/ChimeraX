@@ -4,7 +4,7 @@ import os
 import codecs
 import sys
 import subprocess
-from lxml.etree import parse
+from lxml.etree import XML
 
 rotamer_lib_bundles = set(["Dunbrack", "Dynameomics", "Richardson"])
 
@@ -103,9 +103,8 @@ def parse_init_for_version(contents):
 
 
 def parse_xml_for_version(contents):
-    doc = parse(contents)
-    bi = doc.getroot()
-    version = bi.get("version")
+    doc = XML(contents)
+    version = doc.get("version")
     return version
 
 
