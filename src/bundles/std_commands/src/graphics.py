@@ -336,17 +336,12 @@ def graphics_restart(session):
     session.update_loop.unblock_redraw()
 
 
-def graphics_shader(session, flush=False, check_uniforms=None):
+def graphics_shader(session, flush=False, checkUniforms=None):
     r = session.main_view.render
-    # print_info = reload & check_uniforms & reload_automatically
-    # if print_info:
-    #    r.current_shader_program
-    #    return
     if flush:
         r.flush_shader_cache()
-    # if check_uniforms is not None and not check_uniforms:
-    #    r.check_uniforms = check_uniforms
-    # if check_uniforms is not None and check_uniforms:
+    if checkUniforms is not None:
+        r.check_uniforms = checkUniforms
 
 
 def register_command(logger):
@@ -427,7 +422,10 @@ def register_command(logger):
     )
     register("graphics driver", desc, graphics_driver, logger=logger)
 
-    desc = CmdDesc(synopsis="Control shader parameters", keyword=[("flush", NoArg)])
+    desc = CmdDesc(
+        synopsis="Control shader parameters",
+        keyword=[("flush", NoArg), ("checkUniforms", BoolArg)],
+    )
     register("graphics shader", desc, graphics_shader, logger=logger)
 
 
