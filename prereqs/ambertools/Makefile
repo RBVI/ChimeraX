@@ -152,12 +152,12 @@ ifeq ($(OS),Darwin)
 	cd $(AMBERBIN_DST) && for i in sqm; do \
 		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
 			cp $$j $(app_libdir); \
-			echo "copying 'main' lib" $$j ; \
 			filename=`basename $$j`; \
 			echo "$$filename " >> $(FLIB_NAMES_FILE); \
 			install_filename=$(app_libdir)/$$filename; \
 			install_name_tool -id @executable_path/$$filename $$install_filename; \
 			install_name_tool -change $$j @executable_path/../../../lib/$$filename $$i; \
+			codesign --force -s - $$install_filename ; \
 		done; \
 	done; \
 	for copied_lib in $(AMBERLIB_SRC)/*.$(SHLIB_EXT); do \
@@ -165,8 +165,8 @@ ifeq ($(OS),Darwin)
 		copy=$(app_libdir)/$$libname; \
 		for k in `otool -L $$copied_lib | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
 			subfilename=`basename $$k`; \
-			echo "fixing up" $$k "in" $$copy ; \
 			install_name_tool -change $$k @executable_path/../../../lib/$$subfilename $$copy; \
+			codesign --force -s - $$copy ; \
 		done; \
 	done;
 endif
