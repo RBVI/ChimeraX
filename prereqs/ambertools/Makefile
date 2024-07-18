@@ -16,7 +16,7 @@ endif
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
 ifeq ($(OS),Darwin)
 USE_PREBUILT=false
-UPLOAD_PREBUILT=true
+UPLOAD_PREBUILT=false
 else
 USE_PREBUILT=true
 UPLOAD_PREBUILT=false
@@ -80,33 +80,20 @@ else ifeq ($(OS),Darwin)
 CONFIG_ARGS = clang
 endif
 
+LIBGCCDIR=
 ifeq ($(wildcard /usr/local/gfortran/*),)
 ifeq ($(wildcard /usr/local/opt/gcc/lib/gcc/current/*),)
 ifeq ($(wildcard /opt/homebrew/opt/gcc/lib/gcc/current/*),)
 FLIBDIR = /usr/local/lib
 else
 FLIBDIR = /opt/homebrew/opt/gcc/lib/gcc/current
+LIBGCCDIR = /opt/homebrew/opt/gcc/lib/gcc/current
 endif
 else
 FLIBDIR = /usr/local/opt/gcc/lib/gcc/current
 endif
 else
 FLIBDIR = /usr/local/gfortran/lib
-endif
-
-
-ifeq ($(wildcard /usr/local/opt/gcc/lib/gcc/current/*),)
-ifeq ($(wildcard /opt/homebrew/opt/gcc/lib/gcc/current/*),)
-ifeq ($(wildcard /usr/local/gfortran/*),)
-LOCALLIBDIR = /usr/local/lib
-else
-LOCALLIBDIR = /usr/local/gfortran/lib
-endif
-else
-LOCALLIBDIR = /opt/homebrew/opt/gcc/lib/gcc/current
-endif
-else
-LOCALLIBDIR = /usr/local/opt/gcc/lib/gcc/current
 endif
 
 ifeq ($(USE_PREBUILT),true)
@@ -149,15 +136,10 @@ app-install: install
 	$(RSYNC) $(AMBERBIN_SRC)/wrapped_progs/* $(AMBERBIN_DST)
 	$(RSYNC) $(AMBERDAT_ANTECHAMBER_SRC)/* $(AMBERDAT_ANTECHAMBER_DST)
 	$(RSYNC) $(AMBERDAT_PARM_SRC)/gaff2.dat $(AMBERDAT_PARM_DST)
-ifeq ($(OS),Darwin)
-	for i in $(AMBERLIB_SRC)/*.$(SHLIB_EXT); do \
-		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(LOCALLIBDIR))/) { print $$1 }'`; do \
-			filename=`basename $$j`; \
-			install_name_tool -change $$j @executable_path/../../../lib/$$filename $$i; \
-		done; \
-	done
-endif
 	$(RSYNC) $(AMBERLIB_SRC)/*.$(SHLIB_EXT) $(app_libdir)
+ifneq ($(LIBGCCDIR),)
+	$(RSYNC) $(LIBGCCDIR)/libgcc*.$(SHLIB_EXT) $(app_libdir)
+endif
 ifeq ($(OS),Windows)
 	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /usr/bin/cygreadline*.dll /usr/bin/cygintl*.dll /usr/bin/cygncursesw*.dll /usr/bin/cygiconv*.dll /bin/sh.exe $(AMBERBIN_DST)
 endif
@@ -167,38 +149,26 @@ ifeq ($(OS),Darwin)
 	# copy the shared libraries needed by the fortran executables and fix up their paths
 	# then do the same for libs that those shared libraries use
 	cat /dev/null > $(FLIB_NAMES_FILE)
-	first_wave="" ; cd $(AMBERBIN_DST) && for i in sqm; do \
+	cd $(AMBERBIN_DST) && for i in sqm; do \
 		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
-			echo "first wave:" $$j ; \
 			cp $$j $(app_libdir); \
-			first_wave="$$first_wave $$j" ; \
+			echo "copying 'main' lib" $$j ; \
 			filename=`basename $$j`; \
 			echo "$$filename " >> $(FLIB_NAMES_FILE); \
 			install_filename=$(app_libdir)/$$filename; \
 			install_name_tool -id @executable_path/$$filename $$install_filename; \
 			install_name_tool -change $$j @executable_path/../../../lib/$$filename $$i; \
-			for k in `otool -L $$j | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
-				subfilename=`basename $$k`; \
-				install_name_tool -change $$k @executable_path/../../../lib/$$subfilename $$install_filename; \
-			done; \
 		done; \
 	done; \
-	for i in $$first_wave; do \
-		echo "looking for second wave in:" $$i ; \
-		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
-			echo "second wave:" $$j ; \
-			cp $$j $(app_libdir); \
-			filename=`basename $$j`; \
-			echo "$$filename " >> $(FLIB_NAMES_FILE); \
-			install_filename=$(app_libdir)/$$filename; \
-			install_name_tool -id @executable_path/$$filename $$install_filename; \
-			install_name_tool -change $$j @executable_path/../../../lib/$$filename $$i; \
-			for k in `otool -L $$j | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
-				subfilename=`basename $$k`; \
-				install_name_tool -change $$k @executable_path/../../../lib/$$subfilename $$install_filename; \
-			done; \
+	for copied_lib in $(AMBERLIB_SRC)/*.$(SHLIB_EXT); do \
+		libname=`basename $$copied_lib`; \
+		copy=$(app_libdir)/$$libname; \
+		for k in `otool -L $$copied_lib | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
+			subfilename=`basename $$k`; \
+			echo "fixing up" $$k "in" $$copy ; \
+			install_name_tool -change $$k @executable_path/../../../lib/$$subfilename $$copy; \
 		done; \
-	done
+	done;
 endif
 ifeq ($(UPLOAD_PREBUILT),true)
 	tar cjf $(AMBERTOOLS_PREBUILT) -C "$(AMBERBIN_DST_HOME)" .
