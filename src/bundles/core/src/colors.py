@@ -1135,6 +1135,8 @@ def scheme_color(name: str, *, expand: bool = False, scheme: str | ColorScheme =
     Don't use this function if a CSS4 system color name would work.  Instead,
     just the CSS4 system color name.
     """
+    if not name:
+        raise KeyError(name)
     if name[0].isupper() and not expand:
         return name
     colors = _scheme_colors[name]  # raises KeyError if not present
@@ -1159,9 +1161,10 @@ def scheme_color(name: str, *, expand: bool = False, scheme: str | ColorScheme =
 
 
 _scheme_colors = {
-    # Color names starting with a capital letter are
-    # CSS4 system color names
-    # https://www.w3.org/TR/css-color-4/#css-system-colors
+    # Use color names without spaces (i.e., valid HTML color from
+    # built-in colors), hex color, or CSS4 system color name
+    # (system color names start with a capital letter:
+    # https://www.w3.org/TR/css-color-4/#css-system-colors).
     # Entries are:
     #   symbolic name: color
     #   symbolic name: _alias
@@ -1173,8 +1176,8 @@ _scheme_colors = {
     'status': ('blue', 'dodgerblue'),
     # log messages -- changes background color
     'info': 'Canvas',
-    'warning': ('#ffb961', 'gold'),
-    'error':  ('#ff7882', 'dark red'),
+    'warning': ('#ffb961', 'darkgoldenrod'),
+    'error':  ('crimson', 'darkred'),
     'bug': ('#dc1436', 'maroon'),
     # logged command background
     'command': ('#ddd', '#444'),

@@ -5,18 +5,28 @@
 #
 import os
 import sys
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageMath
 
 verbose = False
 
 
-def invert_image(fn, inplace):
+def invert_image(fn, inplace=False, grayscale=False):
     im = Image.open(fn)
     if im.mode == 'RGBA':
         r, g, b, a = im.split()
         base = Image.merge('RGB', (r, g, b))
-        tmp = ImageOps.invert(base)
-        r2, g2, b2 = tmp.split()
+        if not grayscale:
+            tmp = ImageOps.invert(base)
+            r2, g2, b2 = tmp.split()
+        else:
+            width, height = base.size
+            tmp = base.load()
+            for i in range(width):
+                for j in range(height):
+                    r, g, b = base.getpixel((i, j))
+                    if r == g == b:
+                        tmp[i, j] = (255 - r, 255 - g, 255 - b)
+            r2, g2, b2 = base.split()
         invert = Image.merge('RGBA', (r2, g2, b2, a))
     elif im.mode == 'LA':
         lu, a = im.split()
@@ -44,8 +54,10 @@ def usage(file=sys.stderr):
             --inplace   Overwrite original file
             --verbose   Be chatty
 
-            Invert the colors in an image.  By default, the image is to a "-invert"
-            file unless --inplace is given.  The alpha mask is ignored.
+            Invert the colors in an image.  By default, the resulting image is
+            named with "-invert" unless --inplace is given.  The alpha mask is
+            ignored.  For RGB(A) images, the --grayscale limits the inversion
+            to gray pixels (Red==Green==Blue).
         """), file=file)
 
 
@@ -53,10 +65,11 @@ def main():
     import getopt
     global verbose
     inplace = False
+    grayscale = False
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hiv", [
-            "help", "inplace", "verbose"])
+        opts, args = getopt.getopt(sys.argv[1:], "ghiv", [
+            "grayscale", "help", "inplace", "verbose"])
     except getopt.GetoptError as err:
         print(err, file=sys.stderr)
         usage()
@@ -68,6 +81,8 @@ def main():
             raise SystemExit(0)
         elif opt in ("-i", "--inplace"):
             inplace = True
+        elif opt in ("-g", "--grayscale"):
+            grayscale = True
         elif opt in ("-v", "--verbose"):
             verbose = True
 
@@ -79,7 +94,7 @@ def main():
         if not os.path.exists(fn):
             print("warning: skipping missing file:", fn, file=sys.stderr)
             continue
-        invert_image(fn, inplace)
+        invert_image(fn, inplace, grayscale)
 
     raise SystemExit(0)
 
