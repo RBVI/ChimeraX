@@ -69,6 +69,10 @@ new_objects_instance()
     return objects_inst;
 }
 
+static size_t err_line, err_col;
+static std::string err_msg;
+static bool err_valid;
+
 //TODO: accept find_match() keywords
 extern "C" PyObject *
 evaluate(PyObject *, PyObject *args)
@@ -79,8 +83,15 @@ evaluate(PyObject *, PyObject *args)
         return nullptr;
     PyObject* returned_objects_instance = nullptr;
     std::string trial_text = text;
+    spec_parser.set_logger([](size_t line, size_t col, const std::string& msg) {
+        err_valid = true;
+        err_line = line;
+        err_col = col;
+        err_msg = msg;
+    });
     try {
 std::cerr << "Parsing text " << text << "\n";
+        err_valid = false;
         spec_parser.parse(text, returned_objects_instance);
         if (returned_objects_instance == nullptr && !quoted) {
             // progressively lop off spaced-separated text and see if what remain is legal...
@@ -88,10 +99,11 @@ std::cerr << "Parsing text " << text << "\n";
             while (space_pos != std::string::npos) {
                 trial_text = trial_text.substr(0, space_pos);
 std::cerr << "Parsing text " << trial_text << "\n";
+                err_valid = false;
                 spec_parser.parse(trial_text.c_str(), returned_objects_instance);
                 if (returned_objects_instance != nullptr)
                     break;
-                space_pos = trial_text.find_first_of(' ');
+                space_pos = trial_text.find_last_of(' ');
             }
         }
     } catch (std::runtime_error& e) {
@@ -106,6 +118,11 @@ std::cerr << "Parsing text " << trial_text << "\n";
         else
             PyErr_SetString(PyExc_ValueError, e.what());
         return nullptr;
+    }
+    if (err_valid) {
+        std::cerr << "error set, line " << err_line << ", column " << err_col << ", error message: " << err_msg << "\n";
+    } else {
+        std::cerr << "no error\n";
     }
     if (returned_objects_instance == nullptr) {
         PyErr_SetString(PyExc_AssertionError, "parser did not set Objects instance");
