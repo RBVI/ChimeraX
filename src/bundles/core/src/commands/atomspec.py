@@ -100,6 +100,11 @@ def maximum_stack(max_depth=MAX_STACK_DEPTH):
     sys.setrecursionlimit(save_current_limit)
 
 
+class PeglibParseError(SyntaxError):
+    pass
+class PeglibSemanticsError(ValueError):
+    pass
+
 class AtomSpecArg(Annotation):
     """Command line type annotation for atom specifiers.
 
@@ -114,10 +119,60 @@ class AtomSpecArg(Annotation):
     @staticmethod
     def evaluate(session, text):
         from chimerax.core._spec_parser import evaluate
+        from .cli import AnnotationError
         #TODO: handle quoting as per funcs below
-        objects, text, rest = evaluate(session, text, False)
-        objects.spec = text
-        return objects, text, rest
+        quoted = text[0] == '"'
+        if quoted:
+            # Split out quoted argument
+            start = 0
+            m = _double_quote.match(text, start)
+            if m is None:
+                raise AnnotationError("incomplete quoted text")
+            end = m.end()
+            # quote-matching expression ends with space or end-of-line; if a space, delete it
+            if text[end-1] == ' ':
+                end -= 1
+            quoted_text = text[start+1:end-1]
+            from .cli import unescape_with_index_map
+            parse_text, index_map = unescape_with_index_map(quoted_text)
+            def find_offset(e):
+                return 1 + index_map[e.args[0]] + 0 if add_implied else 1
+        else:
+            parse_text = text
+            def find_offset(e):
+                return e.args[0] + 0 if add_implied else 1
+        add_implied = parse_text[0] != '='
+        if not add_implied:
+            parse_text = parse_text[1:]
+        try:
+            objects, parsed, remainder = evaluate(session, parse_text, quoted, PeglibParseError,
+                PeglibSemanticsError, add_implied)
+        except PeglibParseError as e:
+            import sys
+            print("parse error", e.args, file=sys.__stderr__)
+            raise AnnotationError(e.args[1], offset=find_offset(e))
+        except PeglibSemanticsError as e:
+            import sys
+            print("semantics error", e.args, file=sys.__stderr__)
+            raise AnnotationError(e.args[1], offset=find_offset(e))
+        except RuntimeError as e:
+            import sys
+            print("runtime error", e.args, file=sys.__stderr__)
+            raise AssertionError(e.args[1], offset=find_offset(e))
+        objects.spec = parsed
+        if quoted:
+            if remainder:
+                # quoted text not completely consumed
+                offset = index_map[parsed] + 1 + (0 if add_implied else 1)
+                raise AnnotationError("mangled atom specifier", offset=offset)
+            used_text = text[:end]
+            rest = text[end:]
+            while rest.startswith(' '):
+                rest = rest[1:]
+        else:
+            used_text = ('' if add_implied else '=') + parsed
+            rest = remainder
+        return objects, used_text, rest
 
     @classmethod
     def parse(cls, text, session):

@@ -43,6 +43,7 @@ static PyObject* session;
 static PyObject* combine_arg;
 static PyObject* list_arg;
 static std::string use_python_error("Use Python error");
+static int add_implied;
 
 static const char*
 docstr_evaluate = \
@@ -51,14 +52,6 @@ docstr_evaluate = \
 "Evaluate the given text for an initial atom spec and if one is found" \
 " return a tuple containing a chimerax.core.objects.Objects instance," \
 " the part of text used for the atom spec, and the remaining text.";
-
-static void change_exception_type(PyObject* etype)
-{
-    //TODO: when we're at Python 3.12, instead use: PyException_SetCause(PyErr_GetRaisedException(), etype);
-    PyObject *type, *value, *traceback;
-    PyErr_Fetch(&type, &value, &traceback);
-    PyErr_Restore(etype, value, traceback);
-}
 
 static PyObject*
 new_objects_instance()
@@ -73,13 +66,28 @@ static size_t err_line, err_col;
 static std::string err_msg;
 static bool err_valid;
 
+static void
+set_error_info(PyObject* err_type, std::string msg)
+{
+    PyObject *type, *value, *traceback;
+    auto err_val = PyTuple_New(2);
+    if (err_val == nullptr)
+        throw std::runtime_error("Could not create tuple");
+    PyErr_Fetch(&type, &value, &traceback);
+    PyTuple_SetItem(err_val, 0, PyLong_FromSize_t( err_valid ? err_col-1 : (size_t)0));
+    PyTuple_SetItem(err_val, 1, (msg == use_python_error ? value : PyUnicode_FromString(msg.c_str())));
+    PyErr_Restore(err_type, err_val, traceback);
+}
+
 //TODO: accept find_match() keywords
 extern "C" PyObject *
 evaluate(PyObject *, PyObject *args)
 {
     const char* text;
     int quoted;    
-    if (!PyArg_ParseTuple(args, "Osp", &session, &text, &quoted))
+    PyObject *parse_error_class, *semantics_error_class;
+    if (!PyArg_ParseTuple(args, "OspOOp", &session, &text, &quoted, &parse_error_class,
+            &semantics_error_class, &add_implied))
         return nullptr;
     PyObject* returned_objects_instance = nullptr;
     std::string trial_text = text;
@@ -89,6 +97,9 @@ evaluate(PyObject *, PyObject *args)
         err_col = col;
         err_msg = msg;
     });
+    // logic_error for unexpected results from Python calls, e.g. add_implied_bonds throws an error
+    // invalid_argument for parsing failure
+    // runtime_error for basic failures like allocation failures or import failures
     try {
 std::cerr << "Parsing text " << text << "\n";
         err_valid = false;
@@ -107,33 +118,44 @@ std::cerr << "Parsing text " << trial_text << "\n";
             }
         }
     } catch (std::runtime_error& e) {
-        if (use_python_error == e.what())
-            change_exception_type(PyExc_RuntimeError);
-        else
-            PyErr_SetString(PyExc_RuntimeError, e.what());
+        try {
+            set_error_info(PyExc_RuntimeError, e.what());
+        } catch (std::runtime_error &e) {
+            return nullptr;
+        }
         return nullptr;
     } catch (std::logic_error& e) {
-        if (use_python_error == e.what())
-            change_exception_type(PyExc_ValueError);
-        else
-            PyErr_SetString(PyExc_ValueError, e.what());
+        try {
+            set_error_info(semantics_error_class, e.what());
+        } catch (std::runtime_error &e) {
+            return nullptr;
+        }
         return nullptr;
-    }
-    if (err_valid) {
-        std::cerr << "error set, line " << err_line << ", column " << err_col << ", error message: " << err_msg << "\n";
-    } else {
-        std::cerr << "no error\n";
+    } catch (std::invalid_argument& e) {
+        try {
+            set_error_info(parse_error_class, e.what());
+        } catch (std::runtime_error &e) {
+            return nullptr;
+        }
+        return nullptr;
     }
     if (returned_objects_instance == nullptr) {
-        PyErr_SetString(PyExc_AssertionError, "parser did not set Objects instance");
+        set_error_info(parse_error_class, "parser did not set Objects instance");
         return nullptr;
     }
-    auto ret = PyObject_CallOneArg(add_implied_bonds, returned_objects_instance);
-    if (ret == nullptr) {
-        Py_DECREF(ret);
-        throw std::runtime_error(use_python_error);
+    if (add_implied) {
+        auto ret = PyObject_CallOneArg(add_implied_bonds, returned_objects_instance);
+        if (ret == nullptr) {
+            Py_DECREF(ret);
+            set_error_info(semantics_error_class, use_python_error);
+            return nullptr;
+        }
     }
     auto ret_val = PyTuple_New(3);
+    if (ret_val == nullptr) {
+        set_error_info(PyExc_RuntimeError, use_python_error);
+        return nullptr;
+    }
     PyTuple_SetItem(ret_val, 0, returned_objects_instance);
     PyTuple_SetItem(ret_val, 1, PyUnicode_FromString(trial_text.c_str()));
     PyTuple_SetItem(ret_val, 2, PyUnicode_FromString(std::string(text).substr(trial_text.size()).c_str()));
@@ -301,7 +323,7 @@ PyMODINIT_FUNC PyInit__spec_parser()
         auto selector = PyObject_CallOneArg(get_selector, sel_text);
         if (selector == nullptr) {
             Py_DECREF(sel_text);
-            throw std::runtime_error("Could not convert token to string");
+            throw std::logic_error(use_python_error);
         }
         Py_DECREF(sel_text);
         if (selector == Py_None) {
@@ -309,7 +331,11 @@ PyMODINIT_FUNC PyInit__spec_parser()
             std::string err_msg = "\"";
             err_msg += vs.token_to_string();
             err_msg += "\" is not a selector name";
-            throw std::logic_error(err_msg);
+            err_valid = true;
+            auto line_info = vs.line_info();
+            err_line = line_info.first;
+            err_col = line_info.second;
+            throw std::invalid_argument(err_msg);
         }
         auto is_inst = PyObject_IsInstance(selector, objects_class);
         if (is_inst < 0) {
