@@ -781,15 +781,21 @@ def show_foldseek_hits(session, hit_lines, database, query_chain = None,
                       hits = hits, trim = trim, alignment_cutoff_distance = alignment_cutoff_distance)
     return fp
 
-def foldseek_open(session, hit_name):
+def foldseek_open(session, hit_name, trim = None, alignment_cutoff_distance = None):
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
     if fp is None:
         from chimerax.core.errors import UserError
         raise UserError('No foldseek results are available')
+    query_chain = fp.results_query_chain
+    if trim is None:
+        trim = fp.trim
+    if alignment_cutoff_distance is None:
+        alignment_cutoff_distance = fp.alignment_cutoff_distance
     for hit in fp.hits:
         if hit['database_full_id'] == hit_name:
-            fp.open_hit(hit)
+            open_hit(session, hit, query_chain, trim = trim,
+                     alignment_cutoff_distance = alignment_cutoff_distance)
             break
 
 def foldseek_show(session, hit_name):
@@ -807,10 +813,11 @@ def foldseek_show(session, hit_name):
 def register_foldseek_command(logger):
     from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg, StringArg
     from chimerax.atomic import ChainArg
+    TrimArg = Or(ListOf(EnumOf(['chains', 'sequence', 'ligands'])), BoolArg)
     desc = CmdDesc(
         required = [('chain', ChainArg)],
         keyword = [('database', EnumOf(foldseek_databases)),
-                   ('trim', Or(ListOf(EnumOf(['chains', 'sequence', 'ligands'])), BoolArg)),
+                   ('trim', TrimArg),
                    ('alignment_cutoff_distance', FloatArg),
                    ('save_directory', SaveFolderNameArg),
                    ('wait', BoolArg),
@@ -821,6 +828,9 @@ def register_foldseek_command(logger):
 
     desc = CmdDesc(
         required = [('hit_name', StringArg)],
+        keyword = [('trim', TrimArg),
+                   ('alignment_cutoff_distance', FloatArg),
+                   ],
         synopsis = 'Open Foldseek result structure and align to query'
     )
     register('foldseek open', desc, foldseek_open, logger=logger)

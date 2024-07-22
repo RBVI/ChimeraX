@@ -251,7 +251,7 @@ class Foldseek(ToolInstance):
     def open_hit(self, hit):
         from .foldseek import open_hit
         open_hit(self.session, hit, self.results_query_chain, trim = self.trim,
-                 alignment_cutoff_distance = self._alignment_cutoff_distance.value)
+                 alignment_cutoff_distance = self.alignment_cutoff_distance)
 
     # ---------------------------------------------------------------------------
     #
