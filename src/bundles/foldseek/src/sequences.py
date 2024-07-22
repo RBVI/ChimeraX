@@ -23,7 +23,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def foldseek_sequences(session, show_conserved = True, conserved_threshold = 0.5,
-                       order = 'cluster or evalue'):
+                       lddt_coloring = False, order = 'cluster or evalue'):
     '''Show an image of all aligned sequences from a foldseek search, one sequence per image row.'''
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
@@ -32,7 +32,8 @@ def foldseek_sequences(session, show_conserved = True, conserved_threshold = 0.5
         raise UserError('No Foldseek results are shown')
 
     fsp = FoldseekSequencePlot(session, fp.hits, fp.results_query_chain, order = order,
-                               show_conserved = show_conserved, conserved_threshold = conserved_threshold)
+                               show_conserved = show_conserved, conserved_threshold = conserved_threshold,
+                               lddt_coloring = lddt_coloring)
     return fsp
 
 # -----------------------------------------------------------------------------

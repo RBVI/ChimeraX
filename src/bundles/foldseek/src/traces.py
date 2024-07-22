@@ -76,16 +76,19 @@ def _create_line_traces_model(session, traces):
     normals = None
     ft = FoldseekTraces('Foldseek traces', session)
     ft.set_geometry(vertices, normals, lines)
-    ft.display_style = surf.Mesh
+    ft.display_style = ft.Mesh
     ft.set_trace_names(names)
     return ft
 
-def line_traces(traces):
+def _line_traces(traces):
+    traces_xyz = [t for t in traces if not isinstance(t, str)]	# Filter out labels
     from numpy import concatenate, float32, empty, int32, arange
-    vertices = concatenate(traces, dtype = float32)
-    nlines = sum([len(t)-1 for t in traces],0)
+    vertices = concatenate(traces_xyz, dtype = float32)
+    nlines = sum([len(t)-1 for t in traces_xyz],0)
     lines = empty((nlines,2), int32)
     vp = offset = 0
+    names = []
+    tstart = []
     for t in traces:
         if isinstance(t, str):
             names.append(t)
