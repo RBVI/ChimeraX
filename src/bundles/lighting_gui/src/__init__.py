@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2022 Regents of the University of California. All rights reserved.
+# Copyright 2024 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
 # <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
@@ -22,18 +22,22 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def pwd(session):
-    '''Report the current directory to the log.'''
-    import os
-    try:
-        directory = os.getcwd()
-    except FileNotFoundError:
-        session.logger.info('Current working directory no longer exists!')
-    else:
-        session.logger.info('Current working directory is: %s' % directory)
+__version__ = "1.0"
 
+from chimerax.core.toolshed import BundleAPI
+from chimerax.core.tools import get_singleton
+from chimerax.lighting_gui.tool import LightingGUI
 
-def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register
-    desc = CmdDesc(synopsis='print current working directory')
-    register('pwd', desc, pwd, logger=logger)
+class _LightingGUI(BundleAPI):
+    api_version=1
+
+    @staticmethod
+    def get_class(class_name):
+        class_names = { "LightingGUI": LightingGUI }
+        return class_names.get(class_name, None)
+
+    @staticmethod
+    def start_tool(session, bi, ti):
+        return get_singleton(session, LightingGUI, "Lighting GUI")
+
+bundle_api = _LightingGUI()

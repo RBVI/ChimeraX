@@ -17,7 +17,7 @@ include $(TOP)/mk/config.make
 DOCDIR = $(app_datadir)/docs/user/tools
 
 SRCS = $(wildcard *.html)
-IMAGES = $(wildcard *.png)
+IMAGES = $(wildcard *.png) $(wildcard *.svg)
 
 MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
 		$(TOP)/src/bundles/bond_rot/src/bondrot.png \
@@ -28,7 +28,7 @@ MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
 		$(TOP)/src/bundles/map/src/icons/*.png \
 		$(TOP)/src/bundles/map_series/src/vseries.png \
 		$(TOP)/src/bundles/markers/src/icons/*.png \
-		$(TOP)/src/bundles/segmentations/src/icons/*small.png \
+		$(TOP)/src/bundles/segmentations/src/icons/*small.svg \
 		$(TOP)/src/bundles/std_commands/src/coordset.png \
 		$(TOP)/src/bundles/swapaa/src/swapaa.png \
 		$(TOP)/src/bundles/tug/src/minimize.png \
