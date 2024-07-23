@@ -516,6 +516,14 @@ class SequenceViewer(ToolInstance):
         get_triggers().remove_handler(self._atomic_changes_handler)
         ToolInstance.delete(self)
 
+    def expand_selection_to_columns(self):
+        from chimerax.core.commands import StringArg, run
+        if len(self.session.alignments) > 1:
+            align_arg = ' ' + StringArg.unparse(self.alignment.ident)
+        else:
+            align_arg = ''
+        run(self.session, "seq expandsel" + align_arg)
+
     def fill_context_menu(self, menu, x, y):
         from Qt.QtGui import QAction
         file_menu = menu.addMenu("File")
@@ -564,6 +572,12 @@ class SequenceViewer(ToolInstance):
         else:
             assoc_action.setEnabled(False)
         structure_menu.addAction(assoc_action)
+        if len(self.alignment.seqs) > 1:
+            expand_action = QAction("Expand Selection to Columns", structure_menu)
+            expand_action.triggered.connect(self.expand_selection_to_columns)
+            from chimerax.atomic import AtomicStructure
+            expand_action.setEnabled(bool(self.alignment.associations))
+            structure_menu.addAction(expand_action)
         xfer_action = QAction("Update Chain Sequence...", structure_menu)
         xfer_action.triggered.connect(self.show_transfer_seq_dialog)
         xfer_action.setEnabled(bool(self.alignment.associations))

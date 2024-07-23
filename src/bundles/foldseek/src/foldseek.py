@@ -392,9 +392,12 @@ def open_hit(session, hit, query_chain, trim = True, alignment_cutoff_distance =
     from_db = 'from alphafold' if hit['database'].startswith('afdb') else ''
     from chimerax.core.commands import run
     structures = run(session, f'open {db_id} {from_db}')
+    name = hit.get('database_full_id')
     # Can get multiple structures such as NMR ensembles from PDB.
     stats = []
     for structure in structures:
+        structure.name = name
+        _remember_sequence_alignment(structure, query_chain, hit)
         aligned_res = trim_structure(structure, hit, trim)
         _show_ribbons(structure)
 
@@ -423,6 +426,30 @@ def open_hit(session, hit, query_chain, trim = True, alignment_cutoff_distance =
         msg += f' within cutoff distance {alignment_cutoff_distance}'
     session.logger.info(msg)
 
+def _remember_sequence_alignment(structure, query_chain, hit):
+    '''
+    Remember the positions of the aligned residues as part of the hit dictionary,
+    so that after hit residues are trimmed we can still deduce the hit to query
+    residue pairing.  The Foldseek hit and query alignment only includes a subset
+    of residues from the structures and only include residues that have atomic coordinates.
+    '''
+    chain_id = hit.get('chain_id')
+    chain = _structure_chain_with_id(structure, chain_id)
+    hit['aligned_residue_offsets'] = _indices_of_residues_with_coords(chain, hit['tstart'], hit['tend'])
+    hit['query_residue_offsets'] = _indices_of_residues_with_coords(query_chain, hit['qstart'], hit['qend'])
+
+def _indices_of_residues_with_coords(chain, start, end):
+    seqi = []
+    si = 0
+    for i, r in enumerate(chain.residues):
+        if r is not None and r.name in _foldseek_accepted_3_letter_codes:
+            si += 1
+            if si >= start and si <= end:
+                seqi.append(i)
+            elif si > end:
+                break
+    return seqi
+    
 def trim_structure(structure, hit, trim):
     res, chain_res = residue_range(structure, hit, structure.session.logger)
     rnum_start, rnum_end = res[0].number, res[-1].number
@@ -472,38 +499,67 @@ def residue_range(structure, hit, log):
     db_id = hit['database_id']
     chain_id = hit.get('chain_id')
     cname = '' if chain_id is None else f'chain {chain_id}'
-    schains = structure.chains if chain_id is None else [chain for chain in structure.chains
-                                                         if chain.chain_id == chain_id]
-    chain = schains[0] if len(schains) == 1 else None
+    chain = _structure_chain_with_id(structure, chain_id)
     if chain is None:
         log.warning(f'Foldseek result {db} {db_id} does not have expected chain {chain_id}.')
         return None, None
     tstart, tend, tlen, tseq = hit['tstart'], hit['tend'], hit['tlen'], hit['tseq']
-    res = chain.existing_residues
+    res = _standard_residues(chain.existing_residues)
     if len(res) != tlen:
         log.warning(f'Foldseek result {db} {db_id} {cname} number of residues {tlen} does not match residues in structure {len(res)}.')
         return None, None
     seq = ''.join(r.one_letter_code for r in res)
     if seq != tseq:
         log.warning(f'Foldseek result {db_id} {cname} target sequence {tseq} does not match sequence from database {seq}.')
-        return None, None
+        # Sometimes ChimeraX reports X where Foldseek gives K.  ChimeraX bug #15653.
+        for sc,tc in zip(seq, tseq):
+            if sc != tc and sc != 'X' and tc != 'X':
+                return None, None
     all = (tend == len(tseq))
     return res[tstart-1:tend], res
 
+def _structure_chain_with_id(structure, chain_id):
+    if chain_id is None:
+        chains = structure.chains
+    else:
+        chains = [chain for chain in structure.chains if chain.chain_id == chain_id]
+    chain = chains[0] if len(chains) == 1 else None
+    return chain
+
+_foldseek_accepted_3_letter_codes = set('ALA,ARG,ASN,ABA,ASP,ASX,CYS,CSH,GLN,GLU,GLX,GLY,HIS,ILE,LEU,LYS,MET,MSE,ORN,PHE,PRO,SER,THR,TRY,TRP,TYR,UNK,VAL,SEC,PYL,SEP,TPO,PCA,CSO,PTR,KCX,CSD,LLP,CME,MLY,DAL,TYS,OCS,M3L,FME,ALY,HYP,CAS,CRO,CSX,DPR,DGL,DVA,CSS,DPN,DSN,DLE,HIC,NLE,MVA,MLZ,CR2,SAR,DAR,DLY,YCM,NRQ,CGU,0TD,MLE,DAS,DTR,CXM,TPQ,DCY,DSG,DTY,DHI,MEN,DTH,SAC,DGN,AIB,SMC,IAS,CIR,BMT,DIL,FGA,PHI,CRQ,SME,GHP,MHO,NEP,TRQ,TOX,ALC,3FG,SCH,MDO,MAA,GYS,MK8,CR8,KPI,SCY,DHA,OMY,CAF,0AF,SNN,MHS,MLU,SNC,PHD,B3E,MEA,MED,OAS,GL3,FVA,PHL,CRF,OMZ,BFD,MEQ,DAB,AGM'.split(','))
+
+def _standard_residues(residues):
+    '''
+    Foldseek omits some non-standard residues.  It appears the ones it accepts are about 150
+    hardcoded in a C++ file
+
+        ​https://github.com/steineggerlab/foldseek/blob/master/lib/gemmi/resinfo.hpp
+    '''
+    rok = [r for r in residues if r.name in _foldseek_accepted_3_letter_codes]
+    if len(rok) < len(residues):
+        from chimerax.atomic import Residues
+        return Residues(rok)
+    return residues
+    
 def alignment_residue_pairs(hit, aligned_res, query_chain):
     qstart, qend = hit['qstart'], hit['qend']
-    qres = query_chain.existing_residues[qstart-1:qend]
+    qres_all = _standard_residues(query_chain.existing_residues)
+    qres = qres_all[qstart-1:qend]
     qaln, taln = hit['qaln'], hit['taln']
     ti = qi = 0
     ati, aqi = [], []
     for qaa, taa in zip(qaln, taln):
         if qaa != '-' and taa != '-':
-            if aligned_res[ti].one_letter_code != taa:
-                from chimerax.core.errors import UserError
-                raise UserError(f'Database structure {hit["database_full_id"]} sequence does not match Foldseek alignment sequence.  Database structure has residue {aligned_res[ti].one_letter_code}{aligned_res[ti].number} where Foldseek alignment has amino acid type {taa} at position {ti+1}')
-            if qres[qi].one_letter_code != qaa:
-                from chimerax.core.errors import UserError
-                raise UserError(f'Query chain {query_chain.string()} sequence does not match Foldseek alignment sequence. Query chain has residue {qres[qi].one_letter_code}{qres[qi].number} where Foldseek alignment has amino acid type {qaa} at position {qi+1}')
+            taa_db = aligned_res[ti].one_letter_code
+            if taa_db != taa:
+                if taa_db != 'X':  # ChimeraX sometimes reports an X while foldseek a K, bug #15653
+                    from chimerax.core.errors import UserError
+                    raise UserError(f'Database structure {hit["database_full_id"]} sequence does not match Foldseek alignment sequence.  Database structure has residue {taa_db}{aligned_res[ti].number} where Foldseek alignment has amino acid type {taa} at position {ti+1}')
+            qaa_db = qres[qi].one_letter_code
+            if qaa_db != qaa:
+                if qaa_db != 'X':  # ChimeraX sometimes reports an X while foldseek a K, bug #15653
+                    from chimerax.core.errors import UserError
+                    raise UserError(f'Query chain {query_chain.string()} sequence does not match Foldseek alignment sequence. Query chain has residue {qaa_db}{qres[qi].number} where Foldseek alignment has amino acid type {qaa} at position {qi+1}')
             ati.append(ti)
             aqi.append(qi)
         if taa != '-':
@@ -663,7 +719,7 @@ def hit_coords(hit):
     hxyz = xyz.reshape((n,3))
     return hxyz
 
-def hit_residue_pairing(hit):
+def hit_residue_pairing(hit, offset = True):
     qaln, taln = hit['qaln'], hit['taln']
     ti = qi = 0
     ati, aqi = [], []
@@ -677,8 +733,9 @@ def hit_residue_pairing(hit):
             qi += 1
     from numpy import array, int32
     ati, aqi = array(ati, int32), array(aqi, int32)
-    ati += hit['tstart']-1
-    aqi += hit['qstart']-1
+    if offset:
+        ati += hit['tstart']-1
+        aqi += hit['qstart']-1
     return ati, aqi
     
 def _show_ribbons(structure):
@@ -769,7 +826,8 @@ def show_foldseek_hits(session, hit_lines, database, query_chain = None,
     hits = [parse_search_result(hit, database) for hit in hit_lines]
     if query_chain is not None:
         # Compute percent coverage and percent close C-alpha values per hit.
-        qxyz = query_chain.existing_residues.existing_principal_atoms.coords
+        qres = _standard_residues(query_chain.existing_residues)
+        qxyz = qres.existing_principal_atoms.coords
         compute_rmsds(hits, qxyz, cutoff_distance = 2)
     from .gui import foldseek_panel, Foldseek
     fp = foldseek_panel(session)
@@ -781,36 +839,98 @@ def show_foldseek_hits(session, hit_lines, database, query_chain = None,
                       hits = hits, trim = trim, alignment_cutoff_distance = alignment_cutoff_distance)
     return fp
 
-def foldseek_open(session, hit_name):
+def foldseek_open(session, hit_name, trim = None, alignment_cutoff_distance = None):
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
     if fp is None:
         from chimerax.core.errors import UserError
         raise UserError('No foldseek results are available')
+    query_chain = fp.results_query_chain
+    if trim is None:
+        trim = fp.trim
+    if alignment_cutoff_distance is None:
+        alignment_cutoff_distance = fp.alignment_cutoff_distance
     for hit in fp.hits:
         if hit['database_full_id'] == hit_name:
-            fp.open_hit(hit)
+            open_hit(session, hit, query_chain, trim = trim,
+                     alignment_cutoff_distance = alignment_cutoff_distance)
             break
 
 def foldseek_show(session, hit_name):
     '''Show table row for this hit.'''
+    hit, panel = _foldseek_hit_by_name(session, hit_name)
+    if hit:
+        fp.select_table_row(hit)
+
+def _foldseek_hit_by_name(session, hit_name):
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
     if fp is None:
         from chimerax.core.errors import UserError
-        raise UserError('No foldseek results are available')
+        raise UserError('No foldseek results table is shown')
     for hit in fp.hits:
         if hit['database_full_id'] == hit_name:
-            fp.select_table_row(hit)
-            break
+            return hit, fp
+    return None, None
     
+def foldseek_pairing(session, hit_structure, color = None, radius = None,
+                     halfbond_coloring = None):
+    '''Show pseudobonds between foldseek hit and query paired residues.'''
+    hit_name = hit_structure.name
+    hit, panel = _foldseek_hit_by_name(session, hit_name)
+    if hit is None:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Did not find any Foldseek hit {hit_name}')
+    ho = hit.get('aligned_residue_offsets')
+    qo = hit.get('query_residue_offsets')
+    if ho is None or qo is None:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Could not find Foldseek alignment offsets for {hit_name}')
+    query_chain = panel.results_query_chain
+    qres = query_chain.residues
+    hit_chain = _structure_chain_with_id(hit_structure, hit.get('chain_id'))
+    hres = hit_chain.residues
+    ahi, aqi = hit_residue_pairing(hit, offset = False)
+    ca_pairs = []
+    for hi, qi in zip(ahi, aqi):
+        hr = hres[ho[hi]]
+        qr = qres[qo[qi]]
+        if hr is not None and qr is not None:
+            hca = hr.principal_atom
+            qca = qr.principal_atom
+            if hca and qca:
+                ca_pairs.append((hca, qca))
+
+    if len(ca_pairs) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Did not find any residues to pair for Foldseek hit {hit_name}')
+
+    g = session.pb_manager.get_group(f'{hit_name} pairing')
+    if g.id is not None:
+        g.clear()
+
+    for hca, qca in ca_pairs:
+        b = g.new_pseudobond(hca, qca)
+        if color is not None:
+            b.color = color
+        if radius is not None:
+            b.radius = radius
+        if halfbond_coloring is not None:
+            b.halfbond = halfbond_coloring
+
+    if g.id is None:
+        session.models.add([g])
+
+    return g
+        
 def register_foldseek_command(logger):
-    from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg, StringArg
-    from chimerax.atomic import ChainArg
+    from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg, StringArg, Color8Arg
+    from chimerax.atomic import ChainArg, StructureArg
+    TrimArg = Or(ListOf(EnumOf(['chains', 'sequence', 'ligands'])), BoolArg)
     desc = CmdDesc(
         required = [('chain', ChainArg)],
         keyword = [('database', EnumOf(foldseek_databases)),
-                   ('trim', Or(ListOf(EnumOf(['chains', 'sequence', 'ligands'])), BoolArg)),
+                   ('trim', TrimArg),
                    ('alignment_cutoff_distance', FloatArg),
                    ('save_directory', SaveFolderNameArg),
                    ('wait', BoolArg),
@@ -821,6 +941,9 @@ def register_foldseek_command(logger):
 
     desc = CmdDesc(
         required = [('hit_name', StringArg)],
+        keyword = [('trim', TrimArg),
+                   ('alignment_cutoff_distance', FloatArg),
+                   ],
         synopsis = 'Open Foldseek result structure and align to query'
     )
     register('foldseek open', desc, foldseek_open, logger=logger)
@@ -830,3 +953,13 @@ def register_foldseek_command(logger):
         synopsis = 'Show Foldseek result table row'
     )
     register('foldseek show', desc, foldseek_show, logger=logger)
+
+    desc = CmdDesc(
+        required = [('hit_structure', StructureArg)],
+        keyword = [('color', Color8Arg),
+                   ('radius', FloatArg),
+                   ('halfbond_coloring', BoolArg),
+                   ],
+        synopsis = 'Show Foldseek result table row'
+    )
+    register('foldseek pairing', desc, foldseek_pairing, logger=logger)
