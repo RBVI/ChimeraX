@@ -242,7 +242,7 @@ class Foldseek(ToolInstance):
         hit_rows = results_table.selected		# FoldseekRow instances
         for hit_row in hit_rows:
             self.open_hit(hit_row.hit)
-        if len(hits) == 0:
+        if len(hit_rows) == 0:
             msg = 'Click lines in the Foldseek results table and then press Open.'
             self.session.logger.error(msg)
 
