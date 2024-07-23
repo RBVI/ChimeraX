@@ -712,7 +712,7 @@ def enable_move_selected_mouse_mode(mouse_modes):
     from chimerax.mouse_modes import RotateSelectedModelsMouseMode, TranslateSelectedModelsMouseMode
     m = mouse_modes
     m.bind_mouse_mode('left', RotateSelectedModelsMouseMode(m.session))
-    m.bind_mouse_mode('middle', TranslateSelectedMOdelsMouseMode(m.session))
+    m.bind_mouse_mode('middle', TranslateSelectedModelsMouseMode(m.session))
 
 def enable_translate_selected_mouse_mode(mouse_modes, button = 'right'):
     from chimerax.mouse_modes import TranslateSelectedModelsMouseMode
@@ -760,7 +760,7 @@ def fit_subtract(session):
     mfitset = set(molfit)
     from chimerax.atomic import AtomicStructure
     molsub = [m for m in models
-              if isinstance(m, AtomicStructure) and m.visible and not m in mfitset]
+              if isinstance(m, AtomicStructure) and m.visible and m not in mfitset]
     print ('fs', len(maps), len(molfit), len(molsub))
     log = session.logger
     if len(maps) != 1:
@@ -1314,7 +1314,6 @@ def unused_file_name(directory, basename, suffix):
     dir = path.expanduser(directory)
     if not path.isdir(dir):
         directory = dir = default_save_directory()
-    from os import listdir
     try:
         files = listdir(dir)
     except PermissionError:
@@ -1387,4 +1386,4 @@ def run_provider(session, name):
     except NotABug as err:
         from html import escape
         from chimerax.core.logger import error_text_format
-        session.logger.info(error_text_format % escape(str(err)), is_html=True)
+        session.logger.info(error_text_format(escape(str(err))), is_html=True)

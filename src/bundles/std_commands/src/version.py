@@ -55,9 +55,9 @@ def version(session, format=None):
         # import pip
         # dists = pip.get_installed_distributions(local_only=True)
         # dists = list(dists)
-        import pkg_resources
-        dists = list(pkg_resources.WorkingSet())
-        dists.sort(key=lambda d: d.project_name.casefold())
+        import importlib.metadata
+        dists = list(importlib.metadata.distributions())
+        dists.sort(key=lambda d: d.name.casefold())
     if not dists:
         session.logger.error("no version information available")
         return os.EX_SOFTWARE
@@ -82,11 +82,8 @@ def version(session, format=None):
             if name.startswith('ChimeraX-'):
                 name = name[len('ChimeraX-'):]
         else:
-            name = d.project_name
-            if d.has_version():
-                version = d.version
-            else:
-                version = "unknown"
+            name = d.name
+            version = d.version
         info += "\n%s %s: %s" % (sep, escape(name), escape(version))
     if session.ui.is_gui:
         info += "\n</ul>"

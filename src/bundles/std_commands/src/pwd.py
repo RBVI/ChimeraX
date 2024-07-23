@@ -25,8 +25,12 @@
 def pwd(session):
     '''Report the current directory to the log.'''
     import os
-    directory = os.getcwd()
-    session.logger.info('Current working directory is: %s' % directory)
+    try:
+        directory = os.getcwd()
+    except FileNotFoundError:
+        session.logger.info('Current working directory no longer exists!')
+    else:
+        session.logger.info('Current working directory is: %s' % directory)
 
 
 def register_command(logger):

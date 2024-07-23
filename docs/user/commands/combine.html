@@ -16,12 +16,13 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command: combine</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: combine</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -38,6 +39,21 @@ atomic model to create a new model, optionally closing the
 originals (default <b>false</b>, keep all models).
 The ID number and name of the new model can be specified.
 </p><p>
+The input structures are not moved relative to one another; <i>i.e.</i>,
+there is no attempt to make any added bond physically reasonable.
+To combine two atomic models while automatically repositioning one of them
+to form a physically reasonable covalent bond, see
+<a href="build.html#join"><b>build join</b></a> instead.
+See also: 
+<a href="split.html"><b>split</b></a>,
+<a href="rename.html"><b>rename</b></a>,
+<a href="renumber.html"><b>renumber</b></a>,
+<a href="changechains.html"><b>changechains</b></a>,
+<a href="bond.html"><b>bond</b></a>,
+<a href="open.html"><b>open</b></a>,
+<a href="mcopy.html"><b>mcopy</b></a>,
+<a href="volume.html#copy"><b>volume copy</b></a>
+</p><p>
 By default (<b>retainIds false</b>), duplicate chain IDs are resolved 
 by assigning new chain IDs. Giving <b>retainIds true</b> indicates instead
 keeping all chain IDs the same as in the original models, as long as duplicate 
@@ -49,19 +65,6 @@ from different input models will be combined into the same chain,
 connected by a &ldquo;missing structure&rdquo;
 <a href="../pseudobonds.html">pseudobond</a> if separated by a gap in 
 numbering, or a covalent bond if numbered sequentially. 
-The input structures are not moved relative to one another; <i>i.e.</i>,
-there is no attempt to make any added bond physically reasonable.
-To combine two atomic models while automatically repositioning one of them
-to form a physically reasonable covalent bond, see
-<a href="build.html#join"><b>build join</b></a> instead.
-See also: 
-<a href="rename.html"><b>rename</b></a>,
-<a href="renumber.html"><b>renumber</b></a>,
-<a href="changechains.html"><b>changechains</b></a>,
-<a href="bond.html"><b>bond</b></a>,
-<a href="open.html"><b>open</b></a>,
-<a href="mcopy.html"><b>mcopy</b></a>,
-<a href="volume.html#copy"><b>volume copy</b></a>
 </p><p>
 A blank specification of input models means all current atomic models.
 When multiple models are combined, the order of specification has an effect:
@@ -74,5 +77,5 @@ keeping their original chain IDs.
 </ul>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2024</address>
+July 2024</address>
 </body></html>

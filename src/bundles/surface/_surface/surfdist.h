@@ -39,6 +39,10 @@ extern "C"
 // as an argument, it will only be modified by distances less those.  If no
 // distance array is provided, a newly allocated one will be returned.
 //
+// Limitation: The side -1 or +1 value can be wrong if the closest point
+// is at a surface cusp.  This is pretty comment when the surface is a
+// volume isosurface with small connected pieces.
+//
 // Args: points, vertex_array, triangle_array, distances
 // Return: distances
 PyObject *surface_distance(PyObject *s, PyObject *args, PyObject *keywds);

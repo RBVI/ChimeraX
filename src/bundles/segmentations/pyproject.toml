@@ -35,7 +35,7 @@ categories = ["Volume Data"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
 [chimerax.extra-files]
-"src/icons" = ["*.png"]
+"src/icons" = ["*.png", "*.svg"]
 
 [chimerax.initializations.manager]
 bundles = ["ChimeraX-MouseModes", "ChimeraX-UI"]
@@ -63,13 +63,13 @@ manager = "toolbar"
 tab = "Medical Image"
 section = "Segmentation Controls"
 display-name = "Toggle Mouse Modes"
-icon = "mouse_small.png"
+icon = "mouse_small.svg"
 description = "Toggle mouse modes"
 
 [chimerax.provider."toggle hand modes"]
 manager = "toolbar"
 tab = "Medical Image"
 section = "Segmentation Controls"
-icon = "right_controller_small.png"
+icon = "right_controller_small.svg"
 display-name = "Toggle Hand Modes"
 description = "toggle hand modes"

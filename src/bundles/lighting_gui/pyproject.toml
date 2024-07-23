@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-LightingGUI"
+license = { text = "Free for non-commercial use" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+description = "Change ChimeraX lighting using a GUI"
+dependencies = [
+	"ChimeraX-Core ~=1.0"
+	, "ChimeraX-UI ~=1.0"
+	, "ChimeraX-Graphics ~=1.0"
+]
+
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = """Interface to the ChimeraX lighting system that allows for fine control"""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[chimerax]
+min-session-version = 1
+max-session-version = 1
+module-name-override = "lighting_gui"
+categories = ["Sequence"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[chimerax.tool."Lighting"]
+category = "Depiction"
+description = "Change ChimeraX lighting using a GUI"

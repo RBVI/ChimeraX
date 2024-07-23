@@ -16,13 +16,13 @@ filelock==3.13.4
 html2text==2024.2.26
 ihm==1.0
 imagecodecs==2024.1.1
-ipykernel==6.29.2
+ipykernel==6.29.5
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi
-ipython==8.21.0
+ipython==8.26.0
 # the version of jedi that works with ipython
 jedi==0.19.1
-jupyter-client==8.6.0
+jupyter-client==8.6.2
 line_profiler==4.1.2
 lxml==5.2.1
 lz4==4.3.3
@@ -50,8 +50,8 @@ python-dateutil==2.9.0.post0
 # PyQt handled in prereqs/PyQt
 # sip handled in prereqs/PyQt
 #PySide2==5.15.2
-qtconsole==5.5.1
-requests==2.32.0
+qtconsole==5.5.2
+requests==2.32.3
 scipy==1.13.0
 six==1.16.0
 sortedcontainers==2.4.0

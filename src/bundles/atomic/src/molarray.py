@@ -165,7 +165,12 @@ class Collection(State):
         import numpy
         if isinstance(i,(int,integer)):
             v = self._object_class.c_ptr_to_py_inst(self._pointers[i])
-        elif isinstance(i, (slice, numpy.ndarray)):
+        elif isinstance(i, slice):
+            # Need to copy numpy array slice since it produces a view
+            # and elements can later be deleted and shifted in the unsliced array
+            # which would effect the view.  Ticket $15514
+            v = self.__class__(self._pointers[i].copy())
+        elif isinstance(i, numpy.ndarray):
             v = self.__class__(self._pointers[i])
         else:
             raise IndexError('Only integer indices allowed for %s, got %s'

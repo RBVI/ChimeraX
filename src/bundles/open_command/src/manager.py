@@ -116,7 +116,10 @@ class OpenManager(ProviderManager):
                 data_format = self.session.data_formats[format_name]
             except KeyError:
                 if get_toolshed().cache_initialized:
-                    raise ValueError("Database-fetch provider '%s' in bundle %s specified"
+                    # Throwing an error completely fouls up ChimeraX, so only issue a warning
+                    # despite this theoretically being an error, since it could be because of
+                    # a bad cache file, or a bad version of a bundle on the Toolshed
+                    raise logger.warning("Database-fetch provider '%s' in bundle %s specified"
                         " unknown data format '%s'" % (ui_name, bundle_name, format_name))
                 return
             if name in self._fetchers and format_name in self._fetchers[name]:

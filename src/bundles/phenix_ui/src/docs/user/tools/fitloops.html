@@ -16,12 +16,13 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Tool: Fit Loops</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Fit Loops</h3>
 <p>
@@ -32,6 +33,17 @@ target="_blank"><i>fit_loops</i></a> (included in the
 to build short peptides such as missing loops into density.
 The command implementation is 
 <a href="../commands/phenix.html#fitLoops"><b>phenix fitLoops</b></a>.
+Users should cite:
+</p>
+<blockquote>
+<a href="https://journals.iucr.org/d/issues/2019/10/00/di5033/index.html"
+target="_blank">
+Macromolecular structure determination using X-rays, neutrons and electrons:
+recent developments in Phenix.</a>
+Liebschner D, Afonine PV, Baker ML, Bunk&oacute;czi G, Chen VB, Croll TI, Hintze B, Hung LW, Jain S, McCoy AJ, Moriarty NW, Oeffner RD, Poon BK, Prisant MG, Read RJ, Richardson JS, Richardson DC, Sammito MD, Sobolev OV, Stockwell DH, Terwilliger TC, Urzhumtsev AG, Videau LL, Williams CJ, Adams PD.
+<i>Acta Crystallogr D Struct Biol.</i> 2019 Oct 1;75(Pt 10):861-877.
+</blockquote>
+<p>
 See also:
 <a href="localemfitting.html"><b>Local EM Fitting</b></a>,
 <a href="waterplacement.html"><b>Water Placement</b></a>
@@ -86,9 +98,14 @@ starts the calculation.
 <b>Close</b> dismisses the dialog without starting the calculation,
 whereas <b>Help</b> shows this page
 in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
+</p><p>
+If the <b>Fit Loops</b> calculation gives an unsatisfactory result,
+the structure can be reverted to its previous state with the
+<a href="../commands/undo.html"><b>undo</b></a> command or by choosing
+<a href="../menu.html#edit"><b>Edit... Undo</b></a> from the ChimeraX menu.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2024</address>
+July 2024</address>
 </body></html>

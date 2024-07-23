@@ -243,11 +243,13 @@ def surface_smooth(session, surfaces, factor = 0.3, iterations = 2, in_place = F
         raise UserError('No surfaces specified')
 
     from chimerax.surface import smooth_vertex_positions
+    from chimerax.geometry import normalize_vectors
     if in_place:
         for surface in surfaces:
             va, na, ta = surface.vertices, surface.normals, surface.triangles
             smooth_vertex_positions(va, ta, factor, iterations)
             smooth_vertex_positions(na, ta, factor, iterations)
+            normalize_vectors(na)            
             surface.set_geometry(va, na, ta)
         return surfaces
     else:
@@ -257,6 +259,7 @@ def surface_smooth(session, surfaces, factor = 0.3, iterations = 2, in_place = F
             va, na, ta = surface.vertices.copy(), surface.normals.copy(), surface.triangles.copy()
             smooth_vertex_positions(va, ta, factor, iterations)
             smooth_vertex_positions(na, ta, factor, iterations)
+            normalize_vectors(na)
             copy = Surface(surface.name + ' smooth', session)
             copy.SESSION_SAVE_DRAWING = True	# Save geometry in sessions
             copy.set_geometry(va, na, ta)

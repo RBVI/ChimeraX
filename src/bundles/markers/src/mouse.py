@@ -286,6 +286,9 @@ def _exclude_transparent_surfaces(drawing):
         any_opaque, any_transparent = drawing._transparency()
         if any_transparent:
             return True
+    from chimerax.map import Volume
+    if isinstance(drawing, Volume) and drawing.image_shown and drawing.image_model().showing_transparent():
+        return True
     return False
 
 # -----------------------------------------------------------------------------

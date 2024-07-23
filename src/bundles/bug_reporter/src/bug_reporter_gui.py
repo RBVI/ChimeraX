@@ -747,7 +747,7 @@ XDG_CURRENT_DESKTOP={os.environ.get("XDG_CURRENT_DESKTOP", "")}
 {newline.join(displays)}
 Manufacturer: {vendor}
 Model: {product}
-OS: {' '.join(distro.linux_distribution())}
+OS: {distro.name()} {distro.version()}
 Architecture: {' '.join(platform.architecture())}
 Virtual Machine: {virtual_machine}
 CPU: {count} {model_name}
@@ -794,16 +794,11 @@ def _qt_info(session):
 
 
 def _package_info():
-    import pkg_resources
-    dists = list(pkg_resources.WorkingSet())
-    dists.sort(key=lambda d: d.project_name.casefold())
+    import importlib.metadata
+    dists = list(importlib.metadata.distributions())
+    dists.sort(key=lambda d: d.name.casefold())
 
     info = "\nInstalled Packages:"
     for d in dists:
-        name = d.project_name
-        if d.has_version():
-            version = d.version
-        else:
-            version = "unknown"
-        info += f"\n    {name}: {version}"
+        info += f"\n    {d.name}: {d.version}"
     return info

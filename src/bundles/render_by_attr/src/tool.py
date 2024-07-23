@@ -347,6 +347,8 @@ class RenderByAttrTool(ToolInstance):
         attr_name = self.render_attr_menu_button.text()
         if attr_name == self.NO_ATTR_TEXT:
             raise UserError("No attribute chosen for rendering")
+        if isinstance(self.render_histogram.data_source, str):
+            raise UserError(self.render_histogram.data_source)
         tabs = self.render_type_widget
         tab_text = tabs.tabText(tabs.currentIndex()).lower()
         method = tab_text[:-1] if tab_text[-1] == 's' else "radius"
