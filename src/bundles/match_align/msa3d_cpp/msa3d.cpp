@@ -73,6 +73,26 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
     std::map<const Chain*, std::vector<Atom*>> pas;
     std::vector<std::vector<std::shared_ptr<Link>>> pairings;
     logger::status(py_logger, status_prefix, "Finding residue principal atoms");
+    for (auto chain: chains) {
+        pas.emplace_back();
+        auto& seqpas = pas.back();
+        pairings.emplace_back();
+        auto& pairing = pairings.back();
+        Atom* pa;
+        for (auto res: chain->residues()) {
+            pa = (res == nullptr ? nullptr : res->principal_atom());
+            pairing.emplace_back();
+            if (circular)
+                pairing.emplace_back();
+            if (pa == nullptr) {
+                if (res != nullptr)
+                    logger::warning(py_logger, "Cannot determine principal atom for residue", res->str());
+                seqpas.push_back(nullptr);
+                continue;
+            }
+            seqpas.append(pa);
+        }
+    }
     //TODO: lots
     PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align not implemented");
     return nullptr;
