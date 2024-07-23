@@ -504,7 +504,7 @@ def residue_range(structure, hit, log):
         log.warning(f'Foldseek result {db} {db_id} does not have expected chain {chain_id}.')
         return None, None
     tstart, tend, tlen, tseq = hit['tstart'], hit['tend'], hit['tlen'], hit['tseq']
-    res = _standard_residues(chain.existing_residues)
+    res = alignment_residues(chain.existing_residues)
     if len(res) != tlen:
         log.warning(f'Foldseek result {db} {db_id} {cname} number of residues {tlen} does not match residues in structure {len(res)}.')
         return None, None
@@ -528,7 +528,7 @@ def _structure_chain_with_id(structure, chain_id):
 
 _foldseek_accepted_3_letter_codes = set('ALA,ARG,ASN,ABA,ASP,ASX,CYS,CSH,GLN,GLU,GLX,GLY,HIS,ILE,LEU,LYS,MET,MSE,ORN,PHE,PRO,SER,THR,TRY,TRP,TYR,UNK,VAL,SEC,PYL,SEP,TPO,PCA,CSO,PTR,KCX,CSD,LLP,CME,MLY,DAL,TYS,OCS,M3L,FME,ALY,HYP,CAS,CRO,CSX,DPR,DGL,DVA,CSS,DPN,DSN,DLE,HIC,NLE,MVA,MLZ,CR2,SAR,DAR,DLY,YCM,NRQ,CGU,0TD,MLE,DAS,DTR,CXM,TPQ,DCY,DSG,DTY,DHI,MEN,DTH,SAC,DGN,AIB,SMC,IAS,CIR,BMT,DIL,FGA,PHI,CRQ,SME,GHP,MHO,NEP,TRQ,TOX,ALC,3FG,SCH,MDO,MAA,GYS,MK8,CR8,KPI,SCY,DHA,OMY,CAF,0AF,SNN,MHS,MLU,SNC,PHD,B3E,MEA,MED,OAS,GL3,FVA,PHL,CRF,OMZ,BFD,MEQ,DAB,AGM'.split(','))
 
-def _standard_residues(residues):
+def alignment_residues(residues):
     '''
     Foldseek omits some non-standard residues.  It appears the ones it accepts are about 150
     hardcoded in a C++ file
@@ -543,7 +543,7 @@ def _standard_residues(residues):
     
 def alignment_residue_pairs(hit, aligned_res, query_chain):
     qstart, qend = hit['qstart'], hit['qend']
-    qres_all = _standard_residues(query_chain.existing_residues)
+    qres_all = alignment_residues(query_chain.existing_residues)
     qres = qres_all[qstart-1:qend]
     qaln, taln = hit['qaln'], hit['taln']
     ti = qi = 0
@@ -826,7 +826,7 @@ def show_foldseek_hits(session, hit_lines, database, query_chain = None,
     hits = [parse_search_result(hit, database) for hit in hit_lines]
     if query_chain is not None:
         # Compute percent coverage and percent close C-alpha values per hit.
-        qres = _standard_residues(query_chain.existing_residues)
+        qres = alignment_residues(query_chain.existing_residues)
         qxyz = qres.existing_principal_atoms.coords
         compute_rmsds(hits, qxyz, cutoff_distance = 2)
     from .gui import foldseek_panel, Foldseek

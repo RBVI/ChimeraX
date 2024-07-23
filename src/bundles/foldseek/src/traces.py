@@ -39,8 +39,9 @@ def foldseek_traces(session, cutoff_distance = None, close_only = 4.0,
 def _show_backbone_traces(session, hits, query_chain, cutoff_distance = 2.0, close_only = 4.0,
                           tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
     traces = []
-    from .foldseek import hit_coords, hit_residue_pairing, align_xyz_transform
-    query_xyz = query_chain.existing_residues.existing_principal_atoms.coords
+    from .foldseek import alignment_residues, hit_coords, hit_residue_pairing, align_xyz_transform
+    qres = alignment_residues(query_chain.existing_residues)
+    query_xyz = qres.existing_principal_atoms.coords
     for hit in hits:
         hit_xyz = hit_coords(hit)
         hi, qi = hit_residue_pairing(hit)

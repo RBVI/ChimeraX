@@ -82,6 +82,7 @@ class FoldseekSequencePlot(ToolInstance):
 
         self._set_coverage_attribute()
         self._set_conservation_attribute()
+        self._set_entropy_attribute()
 
         tw.manage(placement=None)	# Start floating
 
@@ -143,14 +144,21 @@ class FoldseekSequencePlot(ToolInstance):
 
         qstart, qend = self._alignment_range
         from numpy import count_nonzero
-        for ri,r in enumerate(self._query_chain.existing_residues):
+        for ri,r in enumerate(self._query_residues):
             if ri >= qstart-1 and ri <= qend:
                 ai = ri-(qstart-1)
                 count = count_nonzero(self._alignment_array[1:,ai])
             else:
                 count = 0
             r.foldseek_coverage = count
-        
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def _query_residues(self):
+        from .foldseek import alignment_residues
+        return alignment_residues(self._query_chain.existing_residues)
+
     # ---------------------------------------------------------------------------
     #
     def _set_conservation_attribute(self):
@@ -163,13 +171,30 @@ class FoldseekSequencePlot(ToolInstance):
         seq, count, total = _consensus_sequence(self._alignment_array)
         qstart, qend = self._alignment_range
         from numpy import count_nonzero
-        for ri,r in enumerate(self._query_chain.existing_residues):
+        for ri,r in enumerate(self._query_residues):
             if ri >= qstart-1 and ri <= qend:
                 ai = ri-(qstart-1)
                 conservation = count[ai] / total[ai]
             else:
                 conservation = 0
             r.foldseek_conservation = conservation
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _set_entropy_attribute(self):
+        if self._query_chain is None:
+            return
+
+        from chimerax.atomic import Residue
+        Residue.register_attr(self.session, 'foldseek_entropy', "Foldseek", attr_type = float)
+
+        entropy = _sequence_entropy(self._alignment_array)
+        qstart, qend = self._alignment_range
+        from numpy import count_nonzero
+        for ri,r in enumerate(self._query_residues):
+            if ri >= qstart-1 and ri <= qend:
+                ai = ri-(qstart-1)
+                r.foldseek_entropy = entropy[ai]
         
     # ---------------------------------------------------------------------------
     #
@@ -184,7 +209,7 @@ class FoldseekSequencePlot(ToolInstance):
         lddt_scores = self._lddt_scores()
         qstart, qend = self._alignment_range
         from numpy import count_nonzero
-        for ri,r in enumerate(self._query_chain.existing_residues):
+        for ri,r in enumerate(self._query_residues):
             if ri >= qstart-1 and ri <= qend:
                 ai = ri-(qstart-1)
                 nscores = count_nonzero(self._alignment_array[1:,ai])
@@ -222,7 +247,7 @@ class FoldseekSequencePlot(ToolInstance):
     def _column_query_residues(self):
         if not hasattr(self, '_query_res'):
             qstart, qend = self._alignment_range
-            qres = self._query_chain.existing_residues[qstart-1:qend]
+            qres = self._query_residues[qstart-1:qend]
             self._query_res = [(r.one_letter_code, r.number) for r in qres]
         return self._query_res
 
@@ -340,7 +365,7 @@ class FoldseekSequencePlot(ToolInstance):
         lddt_scores = getattr(self, '_lddt_score_array', None)
         if lddt_scores is None:
             qstart, qend = self._alignment_range
-            qres = self._query_chain.existing_residues
+            qres = self._query_residues
             query_xyz = qres.existing_principal_atoms.coords[qstart-1:qend,:]
             from .foldseek import alignment_coordinates
             hits_xyz, hits_mask = alignment_coordinates(self._hits, qstart, qend)
@@ -477,6 +502,33 @@ def _consensus_sequence(alignment_array):
         seq[i] = mi
         count[i] = bc[mi]
     return seq, count, total
+
+# -----------------------------------------------------------------------------
+#
+def _sequence_entropy(alignment_array):
+    seqlen = alignment_array.shape[1]
+    from numpy import bincount, empty, float32, array, int32
+    entropy = empty((seqlen,), float32)
+    aa_1_letter_codes = 'ARNDCEQGHILKMFPSTWYV'
+    aa_char = array([ord(c) for c in aa_1_letter_codes], int32)
+    bins = aa_char.max() + 1
+    for i in range(seqlen):
+        aa = alignment_array[:,i]
+        bc = bincount(aa, minlength = bins)[aa_char]
+        entropy[i] = _entropy(bc)
+    return entropy
+    
+# -----------------------------------------------------------------------------
+#
+def _entropy(bin_counts):
+    total = bin_counts.sum()
+    if total == 0:
+        return 0.0
+    nonzero = (bin_counts > 0)
+    p = bin_counts[nonzero] / total
+    from numpy import log2
+    e = -(p*log2(p)).sum()
+    return e
 
 # -----------------------------------------------------------------------------
 #
