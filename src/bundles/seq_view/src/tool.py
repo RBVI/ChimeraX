@@ -522,7 +522,7 @@ class SequenceViewer(ToolInstance):
             align_arg = ' ' + StringArg.unparse(self.alignment.ident)
         else:
             align_arg = ''
-        run(self.session, "seq selexpand" + align_arg)
+        run(self.session, "seq expandsel" + align_arg)
 
     def fill_context_menu(self, menu, x, y):
         from Qt.QtGui import QAction

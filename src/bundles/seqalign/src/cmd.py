@@ -304,6 +304,38 @@ def seqalign_disassociate(session, chains, alignment=None):
             session.logger.warning("%s not associated with %s"
                 % (chain, " any alignment" if alignment is None else "alignment %s" % alignment.ident))
 
+def seqalign_expandsel(session, alignments):
+    from .alignment import Alignment
+    if alignments is None:
+        from .cmd import get_alignment_by_id
+        alignments = get_alignment_by_id(session, "", multiple_okay=True)
+        if not alignments:
+            raise UserError("No alignments open")
+    elif isinstance(alignments, Alignment):
+        alignments = [alignments]
+    no_sel = no_expand = okay = False
+    for alignment in alignments:
+        try:
+            alignment.expand_selection_by_columns()
+        except alignment.NoSelectionError:
+            no_sel = True
+        except alignment.NoSelectionExpansionError:
+            no_expand = True
+        else:
+            okay = True
+    if not okay:
+        from chimerax.core.commands import plural_form
+        aln_term = plural_form(alignments, "alignment")
+        if no_sel:
+            if no_expand:
+                tense = plural_form(alignments, "was", "were")
+                raise UserError(f"{aln_term.capitalize()} either had no selection, or the {aln_term}"
+                    " {tense} already fully selected in each column")
+            else:
+                raise UserError(f"There is no selection on the {aln_term}")
+        else:
+            raise UserError(f"Columns already fully selected on the {aln_term}")
+
 def seqalign_header(session, alignments, subcommand_text):
     from .alignment import Alignment
     if alignments is None:
@@ -347,38 +379,6 @@ def seqalign_refseq(session, ref_seq_info):
     else:
         aln, ref_seq = ref_seq_info, None
     aln.reference_seq = ref_seq
-
-def seqalign_selexpand(session, alignments):
-    from .alignment import Alignment
-    if alignments is None:
-        from .cmd import get_alignment_by_id
-        alignments = get_alignment_by_id(session, "", multiple_okay=True)
-        if not alignments:
-            raise UserError("No alignments open")
-    elif isinstance(alignments, Alignment):
-        alignments = [alignments]
-    no_sel = no_expand = okay = False
-    for alignment in alignments:
-        try:
-            alignment.expand_selection_by_columns()
-        except alignment.NoSelectionError:
-            no_sel = True
-        except alignment.NoSelectionExpansionError:
-            no_expand = True
-        else:
-            okay = True
-    if not okay:
-        from chimerax.core.commands import plural_form
-        aln_term = plural_form(alignments, "alignment")
-        if no_sel:
-            if no_expand:
-                tense = plural_form(alignments, "was", "were")
-                raise UserError(f"{aln_term.capitalize()} either had no selection, or the {aln_term}"
-                    " {tense} already fully selected in each column")
-            else:
-                raise UserError(f"There is no selection on the {aln_term}")
-        else:
-            raise UserError(f"Columns already fully selected on the {aln_term}")
 
 def seqalign_update(session, chains, *, alignment=None):
     if alignment is None:
@@ -501,7 +501,7 @@ def register_seqalign_command(logger):
         required = [('alignments', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg))],
         synopsis = "expand selection by columns"
     )
-    register('sequence selexpand', desc, seqalign_selexpand, logger=logger)
+    register('sequence expandsel', desc, seqalign_expandsel, logger=logger)
 
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
