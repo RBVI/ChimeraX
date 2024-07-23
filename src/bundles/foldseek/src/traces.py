@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek_traces(session, cutoff_distance = None, close_only = 4.0,
+def foldseek_traces(session, align_with = None, cutoff_distance = None, close_only = 4.0,
                     tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
@@ -30,24 +30,40 @@ def foldseek_traces(session, cutoff_distance = None, close_only = 4.0,
         return
     if cutoff_distance is None:
         cutoff_distance = fp.alignment_cutoff_distance
-    _show_backbone_traces(session, fp.hits, fp.results_query_chain,
+    _show_backbone_traces(session, fp.hits, fp.results_query_chain, align_with = align_with,
                           cutoff_distance = cutoff_distance, close_only = close_only,
                           tube = tube, radius = radius,
                           segment_subdivisions = segment_subdivisions,
                           circle_subdivisions = circle_subdivisions)
 
-def _show_backbone_traces(session, hits, query_chain, cutoff_distance = 2.0, close_only = 4.0,
+def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_distance = 2.0, close_only = 4.0,
                           tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
     traces = []
     from .foldseek import alignment_residues, hit_coords, hit_residue_pairing, align_xyz_transform
     qres = alignment_residues(query_chain.existing_residues)
-    query_xyz = qres.existing_principal_atoms.coords
+    qatoms = qres.existing_principal_atoms
+    query_xyz = qatoms.coords
+    if align_with is not None:
+        ai = set(qatoms.indices(align_with.existing_principal_atoms))
+        ai.discard(-1)
+        if len(ai) < 3:
+            from chimerax.core.errors import UserError
+            raise UserError('Foldseek traces align_with specifies fewer than 3 aligned query atoms')
     for hit in hits:
         hit_xyz = hit_coords(hit)
         hi, qi = hit_residue_pairing(hit)
         hxyz = hit_xyz[hi]
         qxyz = query_xyz[qi]
-        p, rms, npairs = align_xyz_transform(hxyz, qxyz, cutoff_distance=cutoff_distance)
+        if align_with is None:
+            ahxyz, aqxyz = hxyz, qxyz
+        else:
+            from numpy import array
+            mask = array([(i in ai) for i in qi], bool)
+            if mask.sum() < 3:
+                continue	# Not enough atoms to align.
+            ahxyz = hxyz[mask,:]
+            aqxyz = qxyz[mask,:]
+        p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=cutoff_distance)
         ahxyz = p.transform_points(hxyz)
         breaks = ((hi[1:] - hi[:-1]) > 1).nonzero()[0]
         if close_only is not None and close_only > 0:
@@ -60,6 +76,8 @@ def _show_backbone_traces(session, hits, query_chain, cutoff_distance = 2.0, clo
             traces.extend(_break_chain(ahxyz, breaks))
         else:
             traces.append(ahxyz)
+    if len(traces) == 0:
+        return None	# No hits had enough alignment atoms.
     if tube:
         surf = _create_tube_traces_model(session, traces, radius = radius,
                                          segment_subdivisions = segment_subdivisions,
@@ -69,7 +87,7 @@ def _show_backbone_traces(session, hits, query_chain, cutoff_distance = 2.0, clo
 
     surf.position = query_chain.structure.scene_position
     session.models.add([surf])
-    print (f'{len(traces)} traces have {len(surf.vertices)} vertices')
+    print (f'{surf.trace_count} traces have {len(surf.vertices)} vertices')
     return surf
 
 def _create_line_traces_model(session, traces):
@@ -168,6 +186,9 @@ class FoldseekTraces(Surface):
         register_context_menu()  # Register select mouse mode double click context menu
     def set_trace_names(self, trace_names):
         self._trace_names, self._trace_start_triangle = trace_names
+    @property
+    def trace_count(self):
+        return len(self._trace_names)
     def triangle_trace_name(self, triangle_number):
         from bisect import bisect_right
         i = bisect_right(self._trace_start_triangle, triangle_number) - 1
@@ -245,9 +266,11 @@ def register_context_menu():
     
 def register_foldseek_traces_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, IntArg, BoolArg
+    from chimerax.atomic import ResiduesArg
     desc = CmdDesc(
         required = [],
-        keyword = [('cutoff_distance', FloatArg),
+        keyword = [('align_with', ResiduesArg),
+                   ('cutoff_distance', FloatArg),
                    ('close_only', FloatArg),
                    ('tube', BoolArg),
                    ('radius', FloatArg),
