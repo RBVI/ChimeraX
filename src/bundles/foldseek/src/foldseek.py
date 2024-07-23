@@ -511,7 +511,10 @@ def residue_range(structure, hit, log):
     seq = ''.join(r.one_letter_code for r in res)
     if seq != tseq:
         log.warning(f'Foldseek result {db_id} {cname} target sequence {tseq} does not match sequence from database {seq}.')
-        return None, None
+        # Sometimes ChimeraX reports X where Foldseek gives K.  ChimeraX bug #15653.
+        for sc,tc in zip(seq, tseq):
+            if sc != tc and sc != 'X' and tc != 'X':
+                return None, None
     all = (tend == len(tseq))
     return res[tstart-1:tend], res
 
@@ -547,12 +550,16 @@ def alignment_residue_pairs(hit, aligned_res, query_chain):
     ati, aqi = [], []
     for qaa, taa in zip(qaln, taln):
         if qaa != '-' and taa != '-':
-            if aligned_res[ti].one_letter_code != taa:
-                from chimerax.core.errors import UserError
-                raise UserError(f'Database structure {hit["database_full_id"]} sequence does not match Foldseek alignment sequence.  Database structure has residue {aligned_res[ti].one_letter_code}{aligned_res[ti].number} where Foldseek alignment has amino acid type {taa} at position {ti+1}')
-            if qres[qi].one_letter_code != qaa:
-                from chimerax.core.errors import UserError
-                raise UserError(f'Query chain {query_chain.string()} sequence does not match Foldseek alignment sequence. Query chain has residue {qres[qi].one_letter_code}{qres[qi].number} where Foldseek alignment has amino acid type {qaa} at position {qi+1}')
+            taa_db = aligned_res[ti].one_letter_code
+            if taa_db != taa:
+                if taa_db != 'X':  # ChimeraX sometimes reports an X while foldseek a K, bug #15653
+                    from chimerax.core.errors import UserError
+                    raise UserError(f'Database structure {hit["database_full_id"]} sequence does not match Foldseek alignment sequence.  Database structure has residue {taa_db}{aligned_res[ti].number} where Foldseek alignment has amino acid type {taa} at position {ti+1}')
+            qaa_db = qres[qi].one_letter_code
+            if qaa_db != qaa:
+                if qaa_db != 'X':  # ChimeraX sometimes reports an X while foldseek a K, bug #15653
+                    from chimerax.core.errors import UserError
+                    raise UserError(f'Query chain {query_chain.string()} sequence does not match Foldseek alignment sequence. Query chain has residue {qaa_db}{qres[qi].number} where Foldseek alignment has amino acid type {qaa} at position {qi+1}')
             ati.append(ti)
             aqi.append(qi)
         if taa != '-':
