@@ -38,7 +38,6 @@ def foldseek_traces(session, align_with = None, cutoff_distance = None, close_on
 
 def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_distance = 2.0, close_only = 4.0,
                           tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
-    traces = []
     from .foldseek import alignment_residues, hit_coords, hit_residue_pairing, align_xyz_transform
     qres = alignment_residues(query_chain.existing_residues)
     qatoms = qres.existing_principal_atoms
@@ -49,6 +48,7 @@ def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_
         if len(ai) < 3:
             from chimerax.core.errors import UserError
             raise UserError('Foldseek traces align_with specifies fewer than 3 aligned query atoms')
+    traces = []
     for hit in hits:
         hit_xyz = hit_coords(hit)
         hi, qi = hit_residue_pairing(hit)
@@ -64,20 +64,22 @@ def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_
             ahxyz = hxyz[mask,:]
             aqxyz = qxyz[mask,:]
         p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=cutoff_distance)
-        ahxyz = p.transform_points(hxyz)
+        hxyz_aligned = p.transform_points(hxyz)
         breaks = ((hi[1:] - hi[:-1]) > 1).nonzero()[0]
         if close_only is not None and close_only > 0:
-            cmask = _close_mask(ahxyz, qxyz, close_only)
-            ahxyz = ahxyz[cmask]
+            cmask = _close_mask(hxyz_aligned, qxyz, close_only)
+            hxyz_aligned = hxyz_aligned[cmask]
             breaks = _mask_breaks(cmask, breaks)
         trace_name = hit['database_full_id']
         traces.append(trace_name)
         if len(breaks) > 0:
-            traces.extend(_break_chain(ahxyz, breaks))
+            traces.extend(_break_chain(hxyz_aligned, breaks))
         else:
-            traces.append(ahxyz)
+            traces.append(hxyz_aligned)
+
     if len(traces) == 0:
         return None	# No hits had enough alignment atoms.
+
     if tube:
         surf = _create_tube_traces_model(session, traces, radius = radius,
                                          segment_subdivisions = segment_subdivisions,
@@ -165,6 +167,9 @@ def _break_chain(xyz, break_after_indices):
         if b > b0:  # Exclude pieces of length 1
             pieces.append(xyz[b0:b+1,:])
         b0 = b+1
+    # Append last piece
+    if len(xyz) > b0:
+        pieces.append(xyz[b0:,:])
     return pieces
 
 def _mask_breaks(mask, breaks):
@@ -218,6 +223,14 @@ class FoldseekTraces(Surface):
             return None
         tnum = tmask.nonzero()[0][0]	# Unfortunately numpy does not have an argfirst().
         return self.triangle_trace_name(tnum)
+    def trace_vertex_ranges(self):
+        trace_start_vertex = [min(self.triangles[t]) for t in self._trace_start_triangle]
+        trace_start_vertex.append(len(self.vertices)+1)
+        return zip(self._trace_names, trace_start_vertex[:-1], trace_start_vertex[1:])
+    def trace_triangle_ranges(self):
+        from numpy import concatenate
+        trace_end_triangle = concatenate((self._trace_start_triangle[1:], [len(self.triangles)+1]))
+        return zip(self._trace_names, self._trace_start_triangle, trace_end_triangle)
 
 from chimerax.core.models import PickedModel
 class PickedFoldseekTrace(PickedModel):

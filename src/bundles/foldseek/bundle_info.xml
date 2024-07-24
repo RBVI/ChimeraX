@@ -35,6 +35,7 @@
     <ChimeraXClassifier>Command :: foldseek show :: Structure Comparison :: Show table row for a Foldseek hit</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: foldseek sequences :: Structure Comparison :: Show an image of all aligned sequences from a foldseek search, one sequence per image row</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: foldseek traces :: Structure Comparison :: Show backbone traces of Foldseek hits aligned to query structure</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: foldseek umap :: Structure Comparison :: Show umap plot of foldseek hit coordinates for specified residues</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: foldseek pairing :: Structure Comparison :: Show pseudobonds between paired Foldseek hit and query residues</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Foldseek :: Structure Analysis :: Search PDB or AlphaFold databases for protein structures matching the fold of a specified structure</ChimeraXClassifier>
   </Classifiers>
