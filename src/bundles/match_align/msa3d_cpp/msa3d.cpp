@@ -21,6 +21,7 @@
 #include <vector>
 
 #include <atomstruct/Chain.h>
+#include <atomstruct/Residue.h>
 #include <atomstruct/search.h>
 #include <logger/logger.h>
 
@@ -56,28 +57,38 @@ public:
     }
 };
 
+typedef std::vector<std::shared_ptr<Link>> LinkList;
+
+class CircularLinkData
+{
+public:
+    std::vector<LinkList> links1, links2;
+    LinkList link_list;
+};
+
 PyObject *
 multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all, char gap_char,
     bool circular, const char* status_prefix, PyObject* py_logger)
 {
-    // Create list of parings between chains and prune to be monotonic
-    std::map<const Chain, AtomSearchTree> trees;
+    // Create list of pairings between chains and prune to be monotonic
+    if (circular) {
+        PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align cicular permutation support not implemented");
+        return nullptr;
+    }
 
     // For each pair, go through the second chain residue by residue
     // and compile crosslinks to other chain.  As links are compiled,
     // figure out what previous links are crossed and keep a running
     // "penalty" for links based on what they cross.  Sort links by
     // penalty and keep pruning worst link until no links cross.
-    std::vector<Link*> all_links;
+    LinkList all_links;
 
     std::map<const Chain*, std::vector<Atom*>> pas;
-    std::vector<std::vector<std::shared_ptr<Link>>> pairings;
+    std::map<const Chain*, std::vector<LinkList>> pairings;
     logger::status(py_logger, status_prefix, "Finding residue principal atoms");
     for (auto chain: chains) {
-        pas.emplace_back();
-        auto& seqpas = pas.back();
-        pairings.emplace_back();
-        auto& pairing = pairings.back();
+        decltype(pas)::mapped_type seq_pas;
+        decltype(pairings)::mapped_type pairing;
         Atom* pa;
         for (auto res: chain->residues()) {
             pa = (res == nullptr ? nullptr : res->principal_atom());
@@ -86,14 +97,82 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
                 pairing.emplace_back();
             if (pa == nullptr) {
                 if (res != nullptr)
-                    logger::warning(py_logger, "Cannot determine principal atom for residue", res->str());
-                seqpas.push_back(nullptr);
+                    logger::warning(py_logger, "Cannot determine principal atom for residue ", res->str());
+                seq_pas.push_back(nullptr);
                 continue;
             }
-            seqpas.append(pa);
+            seq_pas.push_back(pa);
+        }
+        pas[chain] = seq_pas;
+        pairings[chain] = pairing;
+    }
+
+    //TODO: circular permutation support
+    //std::map<std::pair<const Chain*, const Chain*>, std::pair<int, int>> circular_pairs;
+    //std::map<std::pair<const Chain*, const Chain*>, CircularLinkData> hold_data;
+
+    std::map<const Chain*, AtomSearchTree*> trees;
+    auto num_chains = chains.size();
+    decltype(num_chains) loop_count = 0, loop_limit = (num_chains * (num_chains-1))/2;
+    std::map<const Chain*, std::map<Atom*, decltype(num_chains)>> datas;
+    for (decltype(num_chains) i = 0; i < num_chains; ++i) {
+        auto seq1 = chains[i];
+        auto len1 = pairings[seq1].size();
+        auto& seq1_pas = pas[seq1];
+        auto num_pas1 = seq1_pas.size();
+        for (decltype(i) j = i+1; j < num_chains; ++j) {
+            loop_count += 1;
+            auto seq2 = chains[j];
+            auto len2 = pairings[seq2].size();
+            LinkList links1(len1);
+            LinkList links2(len2);
+            LinkList link_list;
+            auto tree_i = trees.find(seq2);
+            decltype(trees)::mapped_type tree;
+            if (tree_i == trees.end()) {
+                logger::status(py_logger, status_prefix,
+                    "Building search tree (", j-i, "/", num_chains-1, ")");
+                auto& seq2_pas = pas[seq2];
+                auto num_pas = seq2_pas.size();
+                std::vector<Atom*> atoms;
+                auto& data = datas[seq2];
+                for (decltype(num_pas) k = 0; k < num_pas; ++k) {
+                    auto pa = seq2_pas[k];
+                    if (pa == nullptr)
+                        continue;
+                    atoms.push_back(pa);
+                    data[pa] = k;
+                }
+                tree = new AtomSearchTree(atoms, true, dist_cutoff);
+                trees[seq2] = tree;
+            } else {
+                tree = (*tree_i).second;
+            }
+            logger::status(py_logger, status_prefix,
+                    "Searching tree, building links (", loop_count, "/", loop_limit, ")");
+            for (decltype(num_pas1) k = 0; k < num_pas1; ++k) {
+                auto pa1 = seq1_pas[k];
+                if (pa1 == nullptr)
+                    continue;
+                auto crd1 = pa1->scene_coord();
+                auto matches = tree->search(pa1, dist_cutoff);
+                auto& data = datas[seq2];
+                for (auto pa2: matches) {
+                    auto dist = crd1.distance(pa2->scene_coord());
+                    auto val = dist_cutoff - dist;
+                    if (val <= 0.0)
+                        continue;
+                    auto i2 = data[pa2];
+                    //TODO
+                }
+            }
         }
     }
+    for (auto chain_tree: trees) {
+        delete chain_tree.second;
+    }
     //TODO: lots
+
     PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align not implemented");
     return nullptr;
 }
