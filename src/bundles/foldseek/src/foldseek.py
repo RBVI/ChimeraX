@@ -382,26 +382,35 @@ def parse_alphafold_theader(theader):
     
     return values
         
-def open_hit(session, hit, query_chain, trim = True, alignment_cutoff_distance = 2.0):
+def open_hit(session, hit, query_chain, trim = True, align = True, alignment_cutoff_distance = 2.0,
+             in_file_history = True, log = True):
     af_frag = hit.get('alphafold_fragment')
     if af_frag is not None and af_frag != 'F1':
         session.logger.warning(f'Foldseek AlphaFold database hit {hit["alphafold_id"]} was predicted in fragments and ChimeraX is not able to fetch the fragment structures')
         return
 
     db_id = hit.get('database_id')
-    from_db = 'from alphafold' if hit['database'].startswith('afdb') else ''
-    from chimerax.core.commands import run
-    structures = run(session, f'open {db_id} {from_db}')
+    if in_file_history:
+        from_db = 'from alphafold' if hit['database'].startswith('afdb') else ''
+        open_cmd = f'open {db_id} {from_db}'
+        if not log:
+            open_cmd += ' logInfo false'
+        from chimerax.core.commands import run
+        structures = run(session, open_cmd, log = log)
+    else:
+        kw = {'from_database': 'afdb'} if hit['database'].startswith('afdb') else {}
+        structures, status = session.open_command.open_data(db_id, log_info = log, **kw)
+        session.models.add(structures)
     name = hit.get('database_full_id')
     # Can get multiple structures such as NMR ensembles from PDB.
     stats = []
     for structure in structures:
         structure.name = name
         _remember_sequence_alignment(structure, query_chain, hit)
-        aligned_res = trim_structure(structure, hit, trim)
+        aligned_res = trim_structure(structure, hit, trim, log = log)
         _show_ribbons(structure)
 
-        if query_chain is not None:
+        if query_chain is not None and align:
             # Align the model to the query structure using Foldseek alignment.
             # Foldseek server does not return transform by default, so compute from sequence alignment.
             res, query_res = alignment_residue_pairs(hit, aligned_res, query_chain)
@@ -409,22 +418,22 @@ def open_hit(session, hit, query_chain, trim = True, alignment_cutoff_distance =
             stats.append((rms, npairs))
             structure.position = p
 
-    if query_chain is None:
-        return
+    if log and query_chain is not None and align:
+        chain_id = hit.get('chain_id')
+        cname = '' if chain_id is None else f' chain {chain_id}'
+        if len(structures) == 1:
+            msg = f'Alignment of {db_id}{cname} to query has RMSD {"%.3g" % rms} using {npairs} of {len(res)} paired residues'
+        else:
+            rms = [rms for rms,npair in stats]
+            rms_min, rms_max = min(rms), max(rms)
+            npair = [npair for rms,npair in stats]
+            npair_min, npair_max = min(npair), max(npair)
+            msg = f'Alignment of {db_id}{cname} ensemble of {len(structures)} structures to query has RMSD {"%.3g" % rms_min} - {"%.3g" % rms_max} using {npair_min}-{npair_max} of {len(res)} paired residues'      
+        if alignment_cutoff_distance is not None and alignment_cutoff_distance > 0:
+            msg += f' within cutoff distance {alignment_cutoff_distance}'
+        session.logger.info(msg)
 
-    chain_id = hit.get('chain_id')
-    cname = '' if chain_id is None else f' chain {chain_id}'
-    if len(structures) == 1:
-        msg = f'Alignment of {db_id}{cname} to query has RMSD {"%.3g" % rms} using {npairs} of {len(res)} paired residues'
-    else:
-        rms = [rms for rms,npair in stats]
-        rms_min, rms_max = min(rms), max(rms)
-        npair = [npair for rms,npair in stats]
-        npair_min, npair_max = min(npair), max(npair)
-        msg = f'Alignment of {db_id}{cname} ensemble of {len(structures)} structures to query has RMSD {"%.3g" % rms_min} - {"%.3g" % rms_max} using {npair_min}-{npair_max} of {len(res)} paired residues'      
-    if alignment_cutoff_distance is not None and alignment_cutoff_distance > 0:
-        msg += f' within cutoff distance {alignment_cutoff_distance}'
-    session.logger.info(msg)
+    return structures
 
 def _remember_sequence_alignment(structure, query_chain, hit):
     '''
@@ -450,8 +459,12 @@ def _indices_of_residues_with_coords(chain, start, end):
                 break
     return seqi
     
-def trim_structure(structure, hit, trim):
+def trim_structure(structure, hit, trim, ligand_range = 3.0, log = True):
     res, chain_res = residue_range(structure, hit, structure.session.logger)
+    if res is None:
+        name = hit.get('database_full_id')
+        structure.session.logger.warning('Because of a sequence mismatch between the database structure {name} and the Foldseek output, the alignment and residue pairing of this structure is probably wrong, and ChimeraX did not trim the structure.')
+        return res
     rnum_start, rnum_end = res[0].number, res[-1].number
     crnum_start, crnum_end = chain_res[0].number, chain_res[-1].number
 
@@ -464,7 +477,7 @@ def trim_structure(structure, hit, trim):
         if len(structure.chains) > 1:
             cmd = f'delete #{structure.id_string} & ~/{chain_id}'
             from chimerax.core.commands import run
-            run(structure.session, cmd)
+            run(structure.session, cmd, log = log)
 
     trim_seq = (trim is True or 'sequence' in trim)
     if trim_seq:
@@ -474,18 +487,19 @@ def trim_structure(structure, hit, trim):
                 res_ranges.append(f'{crnum_start}-{rnum_start-1}')
             if crnum_end > rnum_end:
                 res_ranges.append(f'{rnum_end+1}-{crnum_end}')
-            chain_spec = f'#{structure.id_string}' if chain_id is None else f'#{structure.id_string}/{chain_id}'
-            cmd = f'delete {chain_spec}:{",".join(res_ranges)}'
-            from chimerax.core.commands import run
-            run(structure.session, cmd)
+            if res_ranges:
+                chain_spec = f'#{structure.id_string}' if chain_id is None else f'#{structure.id_string}/{chain_id}'
+                cmd = f'delete {chain_spec}:{",".join(res_ranges)}'
+                from chimerax.core.commands import run
+                run(structure.session, cmd, log = log)
 
     if (trim is True or 'ligands' in trim) and hit['database'] == 'pdb100':
         if structure.num_residues > len(chain_res):
             # Delete non-polymer residues that are not in contact with trimmed chain residues.
             rstart, rend = (rnum_start, rnum_end) if trim_seq else (crnum_start, crnum_end)
-            cmd = f'delete (#{structure.id_string}/{chain_id}:{rstart}-{rend} :> 3) & #{structure.id_string} & (ligand | ions | solvent)'
+            cmd = f'delete (#{structure.id_string}/{chain_id}:{rstart}-{rend} :> {ligand_range}) & #{structure.id_string} & (ligand | ions | solvent)'
             from chimerax.core.commands import run
-            run(structure.session, cmd)
+            run(structure.session, cmd, log = log)
 
     return res
 
@@ -505,17 +519,16 @@ def residue_range(structure, hit, log):
         return None, None
     tstart, tend, tlen, tseq = hit['tstart'], hit['tend'], hit['tlen'], hit['tseq']
     res = alignment_residues(chain.existing_residues)
-    if len(res) != tlen:
-        log.warning(f'Foldseek result {db} {db_id} {cname} number of residues {tlen} does not match residues in structure {len(res)}.')
-        return None, None
     seq = ''.join(r.one_letter_code for r in res)
+    if len(res) != tlen:
+        log.warning(f'Foldseek result {db} {db_id} {cname} number of residues {tlen} does not match residues in structure {len(res)}, sequences {tseq} and {seq}.')
+        return None, None
     if seq != tseq:
         log.warning(f'Foldseek result {db_id} {cname} target sequence {tseq} does not match sequence from database {seq}.')
         # Sometimes ChimeraX reports X where Foldseek gives K.  ChimeraX bug #15653.
         for sc,tc in zip(seq, tseq):
             if sc != tc and sc != 'X' and tc != 'X':
                 return None, None
-    all = (tend == len(tseq))
     return res[tstart-1:tend], res
 
 def _structure_chain_with_id(structure, chain_id):
@@ -526,7 +539,9 @@ def _structure_chain_with_id(structure, chain_id):
     chain = chains[0] if len(chains) == 1 else None
     return chain
 
-_foldseek_accepted_3_letter_codes = set('ALA,ARG,ASN,ABA,ASP,ASX,CYS,CSH,GLN,GLU,GLX,GLY,HIS,ILE,LEU,LYS,MET,MSE,ORN,PHE,PRO,SER,THR,TRY,TRP,TYR,UNK,VAL,SEC,PYL,SEP,TPO,PCA,CSO,PTR,KCX,CSD,LLP,CME,MLY,DAL,TYS,OCS,M3L,FME,ALY,HYP,CAS,CRO,CSX,DPR,DGL,DVA,CSS,DPN,DSN,DLE,HIC,NLE,MVA,MLZ,CR2,SAR,DAR,DLY,YCM,NRQ,CGU,0TD,MLE,DAS,DTR,CXM,TPQ,DCY,DSG,DTY,DHI,MEN,DTH,SAC,DGN,AIB,SMC,IAS,CIR,BMT,DIL,FGA,PHI,CRQ,SME,GHP,MHO,NEP,TRQ,TOX,ALC,3FG,SCH,MDO,MAA,GYS,MK8,CR8,KPI,SCY,DHA,OMY,CAF,0AF,SNN,MHS,MLU,SNC,PHD,B3E,MEA,MED,OAS,GL3,FVA,PHL,CRF,OMZ,BFD,MEQ,DAB,AGM'.split(','))
+# Foldseek recognized residues from
+#   https://github.com/steineggerlab/foldseek/blob/master/src/strucclustutils/GemmiWrapper.cpp
+_foldseek_accepted_3_letter_codes = set('ALA,ARG,ASN,ASP,CYS,GLN,GLU,GLY,HIS,ILE,LEU,LYS,MET,PHE,PRO,SER,THR,TRP,TYR,VAL,MSE,MLY,FME,HYP,TPO,CSO,SEP,M3L,HSK,SAC,PCA,DAL,CME,CSD,OCS,DPR,B3K,ALY,YCM,MLZ,4BF,KCX,B3E,B3D,HZP,CSX,BAL,HIC,DBZ,DCY,DVA,NLE,SMC,AGM,B3A,DAS,DLY,DSN,DTH,GL3,HY3,LLP,MGN,MHS,TRQ,B3Y,PHI,PTR,TYS,IAS,GPL,KYN,CSD,SEC,UNK'.split(','))
 
 def alignment_residues(residues):
     '''
@@ -538,7 +553,12 @@ def alignment_residues(residues):
     rok = [r for r in residues if r.name in _foldseek_accepted_3_letter_codes]
     if len(rok) < len(residues):
         from chimerax.atomic import Residues
-        return Residues(rok)
+        residues = Residues(rok)
+    if len(residues.existing_principal_atoms) < len(residues):
+        # Some residues don't have a C-alpha atom.
+        from chimerax.atomic import Residues
+        residues = Residues([r for a,r in zip(residues.principal_atoms, residues) if a is not None])
+    # TODO: Need to also check that N atom exists. Missing in PDB 7w7g /B:654, bug #15668
     return residues
     
 def alignment_residue_pairs(hit, aligned_res, query_chain):
@@ -839,7 +859,8 @@ def show_foldseek_hits(session, hit_lines, database, query_chain = None,
                       hits = hits, trim = trim, alignment_cutoff_distance = alignment_cutoff_distance)
     return fp
 
-def foldseek_open(session, hit_name, trim = None, alignment_cutoff_distance = None):
+def foldseek_open(session, hit_name, trim = None, align = True, alignment_cutoff_distance = None,
+                  in_file_history = True, log = True):
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
     if fp is None:
@@ -853,7 +874,8 @@ def foldseek_open(session, hit_name, trim = None, alignment_cutoff_distance = No
     for hit in fp.hits:
         if hit['database_full_id'] == hit_name:
             open_hit(session, hit, query_chain, trim = trim,
-                     alignment_cutoff_distance = alignment_cutoff_distance)
+                     align = align, alignment_cutoff_distance = alignment_cutoff_distance,
+                     in_file_history = in_file_history, log = log)
             break
 
 def foldseek_show(session, hit_name):
@@ -881,25 +903,15 @@ def foldseek_pairing(session, hit_structure, color = None, radius = None,
     if hit is None:
         from chimerax.core.errors import UserError
         raise UserError(f'Did not find any Foldseek hit {hit_name}')
-    ho = hit.get('aligned_residue_offsets')
-    qo = hit.get('query_residue_offsets')
-    if ho is None or qo is None:
-        from chimerax.core.errors import UserError
-        raise UserError(f'Could not find Foldseek alignment offsets for {hit_name}')
+
     query_chain = panel.results_query_chain
-    qres = query_chain.residues
-    hit_chain = _structure_chain_with_id(hit_structure, hit.get('chain_id'))
-    hres = hit_chain.residues
-    ahi, aqi = hit_residue_pairing(hit, offset = False)
+    r_pairs = hit_and_query_residue_pairs(hit_structure, query_chain, hit)
     ca_pairs = []
-    for hi, qi in zip(ahi, aqi):
-        hr = hres[ho[hi]]
-        qr = qres[qo[qi]]
-        if hr is not None and qr is not None:
-            hca = hr.principal_atom
-            qca = qr.principal_atom
-            if hca and qca:
-                ca_pairs.append((hca, qca))
+    for hr, qr in r_pairs:
+        hca = hr.principal_atom
+        qca = qr.principal_atom
+        if hca and qca:
+            ca_pairs.append((hca, qca))
 
     if len(ca_pairs) == 0:
         from chimerax.core.errors import UserError
@@ -922,6 +934,26 @@ def foldseek_pairing(session, hit_structure, color = None, radius = None,
         session.models.add([g])
 
     return g
+
+def hit_and_query_residue_pairs(hit_structure, query_chain, hit):
+    ho = hit.get('aligned_residue_offsets')
+    qo = hit.get('query_residue_offsets')
+    if ho is None or qo is None:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Could not find Foldseek alignment offsets for {hit_name}')
+    
+    qres = query_chain.residues
+    hit_chain = _structure_chain_with_id(hit_structure, hit.get('chain_id'))
+    hres = hit_chain.residues
+    ahi, aqi = hit_residue_pairing(hit, offset = False)
+    r_pairs = []
+    for hi, qi in zip(ahi, aqi):
+        hr = hres[ho[hi]]
+        qr = qres[qo[qi]]
+        if hr is not None and qr is not None:
+            r_pairs.append((hr, qr))
+
+    return r_pairs
         
 def register_foldseek_command(logger):
     from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg, StringArg, Color8Arg
@@ -942,7 +974,10 @@ def register_foldseek_command(logger):
     desc = CmdDesc(
         required = [('hit_name', StringArg)],
         keyword = [('trim', TrimArg),
+                   ('align', BoolArg),
                    ('alignment_cutoff_distance', FloatArg),
+                   ('in_file_history', BoolArg),
+                   ('log', BoolArg),
                    ],
         synopsis = 'Open Foldseek result structure and align to query'
     )
