@@ -356,18 +356,30 @@ def run_preset(session, name, mgr):
             confidence_cmds = hide_AF_low_confidence(session)
         else:
             confidence_cmds = []
-        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + confidence_cmds + [
+        if "printable" in name:
+            initial_cmds = base_setup + base_macro_model + base_ribbon + print_ribbon
+            final_cmds = print_prep(session, pb_radius=None)
+        else:
+            initial_cmds = undo_printable + base_setup + base_macro_model + base_ribbon
+            final_cmds = []
+        cmd = initial_cmds + confidence_cmds + [
             f"color byattribute r:pLDDT_score {struct_spec} palette alphafold"
-        ]
+        ] + final_cmds
     elif name.startswith("ribbon AlphaFold/PAE domains"):
         struct_spec = check_AF(session, pae=True)
         if "high confidence" in name:
             confidence_cmds = hide_AF_low_confidence(session)
         else:
             confidence_cmds = []
-        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + confidence_cmds + [
+        if "printable" in name:
+            initial_cmds = base_setup + base_macro_model + base_ribbon + print_ribbon
+            final_cmds = print_prep(session, pb_radius=None)
+        else:
+            initial_cmds = undo_printable + base_setup + base_macro_model + base_ribbon
+            final_cmds = []
+        cmd = initial_cmds + confidence_cmds + [
             f"alphafold pae {struct_spec} colorDomains true"
-        ]
+        ] + final_cmds
     elif name.startswith("surface monochrome"):
         printable = "printable" in name
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
@@ -429,8 +441,9 @@ def run_preset(session, name, mgr):
             spec_lookup = get_AF_surf_spec(session)
         else:
             spec_lookup = None
+        printable = "printable" in name
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + \
-            surface_cmds(session, True, sharp=True, spec_lookup=spec_lookup) + [
+            surface_cmds(session, printable, sharp=True, spec_lookup=spec_lookup) + [
             f"color byattribute r:pLDDT_score {struct_spec} palette alphafold" ]
     elif name.startswith("surface AlphaFold/PAE domains"):
         struct_spec = check_AF(session, pae=True)
@@ -438,8 +451,9 @@ def run_preset(session, name, mgr):
             spec_lookup = get_AF_surf_spec(session)
         else:
             spec_lookup = None
+        printable = "printable" in name
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + \
-            surface_cmds(session, True, sharp=True, spec_lookup=spec_lookup) + [
+            surface_cmds(session, printable, sharp=True, spec_lookup=spec_lookup) + [
             f"alphafold pae {struct_spec} colorDomains true", f"color {struct_spec} fromAtoms" ]
     elif name == "sticks":
         cmd = undo_printable + base_setup + color_by_het + [
