@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def cmd_change_chains(session, residues, from_ids, to_ids=None):
+def cmd_change_chains(session, residues, from_ids, to_ids=None, log=True):
     from chimerax.core.errors import UserError
     # if to_ids is None, then map all residues to the (single element of) from_ids
     if to_ids is None:
@@ -96,7 +96,8 @@ def cmd_change_chains(session, residues, from_ids, to_ids=None):
                 r.chain.chain_id = cid
             else:
                 r.chain_id = cid
-    session.logger.info("Chain IDs of %d residues changed" % len(change_info))
+    if log:
+        session.logger.info("Chain IDs of %d residues changed" % len(change_info))
 
 def cmd_change_glys(session, chains=None):
     from chimerax.core.errors import UserError
@@ -122,11 +123,12 @@ def cmd_change_glys(session, chains=None):
     session.logger.info("Chain IDs of %d residues changed" % num_changed)
 
 def register_command(command_name, logger):
-    from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, StringArg, ListOf
+    from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, StringArg, ListOf, BoolArg
     from chimerax.atomic import ResiduesArg, UniqueChainsArg
     desc = CmdDesc(
         required=[('residues', Or(ResiduesArg,EmptyArg)), ('from_ids', ListOf(StringArg))],
         optional=[('to_ids', ListOf(StringArg))],
+        keyword=[('log', BoolArg)],
         synopsis = 'Change chain IDs'
     )
     register('changechains', desc, cmd_change_chains, logger=logger)
