@@ -217,7 +217,7 @@ class Foldseek(ToolInstance):
         layout = parent.layout()
         if rt:
             layout.removeWidget(rt)
-            rt.destroy()
+            rt.deleteLater()
         self._results_table = rt = self._create_results_table(parent, hits, database)
         layout.insertWidget(self._results_table_position, rt)
         self._show_hit_count(len(hits), query_chain, database)
