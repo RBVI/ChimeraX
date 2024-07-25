@@ -40,46 +40,51 @@ def foldseek_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_
         hname = hit['database_full_id']
         if hname == '3h7s_A':
             continue  # This PDB crashes ChimeraX, bug #15666
-        telapse = _minutes_and_seconds_string(time() - t0)
-        session.logger.status(f'Finding ligands in {hname} ({hnum+1} of {nhits}, time {telapse})')
 
         from .foldseek import open_hit
         structures = open_hit(session, hit, query_chain, align = False,
                               in_file_history = False, log = False)
+
+        telapse = _minutes_and_seconds_string(time() - t0)
+        session.logger.status(f'Finding ligands in {hname} ({hnum+1} of {nhits}, time {telapse})')
+
         found_lig = False
-        for structure in structures:
+        for si, structure in enumerate(structures):
             res = structure.residues
             from chimerax.atomic import Residue
             ligres = res[res.polymer_types == Residue.PT_NONE]
             keeplig = []
             if ligres:
-#                session.logger.info(f'{len(ligres)} ligands in {hname}')
                 from .foldseek import hit_and_query_residue_pairs
                 rmap = {hr:qr for hr,qr in hit_and_query_residue_pairs(structure, query_chain, hit)}
                 for lr in ligres:
                     cres = _find_close_residues(lr, res, alignment_range)
-#                    session.logger.info(f'{hname} ligand {lr.name}{lr.number} has {len(cres)} contacts')
                     if len(cres) >= 3:
                         pcres, qres = _paired_residues(rmap, cres)
-#                        session.logger.info(f'{hname} ligand {lr.name}{lr.number} has {len(qres)} paired contacts')
                         if len(qres) >= 3:
                             from .foldseek import alignment_transform
                             p, rms, npairs = alignment_transform(pcres, qres)
-#                            session.logger.info(f'{hname} ligand {lr.name}{lr.number} has RMSD {rms}')
                             if rms <= rmsd_cutoff:
                                 keeplig.append(lr)
                                 atoms = lr.atoms
                                 atoms.coords = p.transform_points(atoms.coords)
+                                # TODO: Need to move or remove other altlocs
                                 atoms.displays = True
             if keeplig:
                 _delete_extra_residues(res, keeplig)
                 keep_structs.append(structure)
+                if len(structures) > 1:
+                    structure.ensemble_id = si+1
                 found_lig = True
+                # TODO: Slows down a lot when many structures open in session
+                #   Takes 8 minutes instead of 45 minutes if I remove from session for 8jnb 845 hits.
+                session.models.remove([structure])
             else:
                 session.models.close([structure])
         if found_lig:
             nlighits += 1
 
+    session.models.add(keep_structs)
     nlig = 0
     lignames = set()
     for structure in keep_structs:
@@ -131,6 +136,8 @@ def _include_pdb_id_in_chain_ids(structure):
     cids = tuple(set(structure.residues.chain_ids))
     chain_ids = ','.join(cids)
     prefix = structure.name.split('_')[0] + '_'
+    if hasattr(structure, 'ensemble_id'):
+        prefix += str(structure.ensemble_id) + '_'
     new_chain_ids = ','.join(prefix + cid for cid in cids)
     cmd = f'changechains #{structure.id_string} {chain_ids} {new_chain_ids} log false'
     from chimerax.core.commands import run
