@@ -343,6 +343,8 @@ class FoldseekResultsTable(ItemTable):
         species_column_width = 120
         self.setColumnWidth(col_species_index, species_column_width)
         self.setAutoScroll(False)  # Otherwise click on Description column scrolls horizontally
+        from Qt.QtWidgets import QSizePolicy
+        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)  # Don't resize whole panel width
 
 # -----------------------------------------------------------------------------
 #
