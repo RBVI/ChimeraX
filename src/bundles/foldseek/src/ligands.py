@@ -94,7 +94,7 @@ def foldseek_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_
     lignames = ', '.join(sorted(lignames))
     session.logger.status(f'Found {nlig} ligands in {nlighits} hits: {lignames}', log = True)
 
-    if combine:
+    if combine and keep_structs:
         for structure in keep_structs:
             _include_pdb_id_in_chain_ids(structure)
         cmodel =_combine_structures(session, keep_structs)
