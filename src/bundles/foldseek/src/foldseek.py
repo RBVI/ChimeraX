@@ -401,6 +401,7 @@ def open_hit(session, hit, query_chain, trim = True, align = True, alignment_cut
         kw = {'from_database': 'afdb'} if hit['database'].startswith('afdb') else {}
         structures, status = session.open_command.open_data(db_id, log_info = log, **kw)
         session.models.add(structures)
+
     name = hit.get('database_full_id')
     # Can get multiple structures such as NMR ensembles from PDB.
     stats = []
@@ -463,7 +464,7 @@ def trim_structure(structure, hit, trim, ligand_range = 3.0, log = True):
     res, chain_res = residue_range(structure, hit, structure.session.logger)
     if res is None:
         name = hit.get('database_full_id')
-        structure.session.logger.warning('Because of a sequence mismatch between the database structure {name} and the Foldseek output, the alignment and residue pairing of this structure is probably wrong, and ChimeraX did not trim the structure.')
+        structure.session.logger.warning(f'Because of a sequence mismatch between the database structure {name} and the Foldseek output, the alignment and residue pairing of this structure is probably wrong, and ChimeraX did not trim the structure.')
         return res
     rnum_start, rnum_end = res[0].number, res[-1].number
     crnum_start, crnum_end = chain_res[0].number, chain_res[-1].number
