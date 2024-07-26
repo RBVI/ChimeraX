@@ -66,9 +66,10 @@ def foldseek_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_
                             p, rms, npairs = alignment_transform(pcres, qres)
                             if rms <= rmsd_cutoff:
                                 keeplig.append(lr)
+                                # Remove other alt locs so we don't have to move them.
+                                lr.clean_alt_locs()
                                 atoms = lr.atoms
                                 atoms.coords = p.transform_points(atoms.coords)
-                                # TODO: Need to move or remove other altlocs
                                 atoms.displays = True
             if keeplig:
                 _delete_extra_residues(res, keeplig)
