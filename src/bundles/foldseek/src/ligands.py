@@ -95,8 +95,7 @@ def foldseek_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_
     session.logger.status(f'Found {nlig} ligands in {nlighits} hits: {lignames}', log = True)
 
     if combine and keep_structs:
-        for structure in keep_structs:
-            _include_pdb_id_in_chain_ids(structure)
+        _include_pdb_id_in_chain_ids(keep_structs)
         cmodel =_combine_structures(session, keep_structs)
         return cmodel
 
@@ -133,21 +132,35 @@ def _delete_extra_residues(residues, keep_residues):
         from chimerax.atomic import Residues
         Residues(del_res).delete()
 
-def _include_pdb_id_in_chain_ids(structure):
-    cids = tuple(set(structure.residues.chain_ids))
-    chain_ids = ','.join(cids)
-    prefix = structure.name.split('_')[0] + '_'
-    if hasattr(structure, 'ensemble_id'):
-        prefix += str(structure.ensemble_id) + '_'
-    new_chain_ids = ','.join(prefix + cid for cid in cids)
-    cmd = f'changechains #{structure.id_string} {chain_ids} {new_chain_ids} log false'
-    from chimerax.core.commands import run
-    run(structure.session, cmd, log = False)
+def _include_pdb_id_in_chain_ids(structures):
+    # If hits for different chains of one PDB exist use longer chain prefixes.
+    # For example if 7mrj_A and 7mrj_B are hits and ligand /A:114 is found in both
+    # then use chain ids 7mrj_A_A and 7mrj_B_A so the combine command does not get
+    # clashing chain ids and residue numbers
+    pdb_ids = set()
+    multi_hit = set()
+    for structure in structures:
+        pdb_id = structure.name.split('_')[0]
+        if pdb_id in pdb_ids:
+            multi_hit.add(pdb_id)
+        pdb_ids.add(pdb_id)
+
+    for structure in structures:
+        cids = tuple(set(structure.residues.chain_ids))
+        chain_ids = ','.join(cids)
+        pdb_id = structure.name.split('_')[0]
+        prefix = (structure.name if pdb_id in multi_hit else pdb_id) + '_'
+        if hasattr(structure, 'ensemble_id'):
+            prefix += str(structure.ensemble_id) + '_'
+        new_chain_ids = ','.join(prefix + cid for cid in cids)
+        cmd = f'changechains #{structure.id_string} {chain_ids} {new_chain_ids} log false'
+        from chimerax.core.commands import run
+        run(structure.session, cmd, log = False)
     
 def _combine_structures(session, structures):
     from chimerax.core.commands import concise_model_spec, run
     mspec = concise_model_spec(session, structures)
-    cmd = f'combine {mspec} close true name "foldseek ligands"'
+    cmd = f'combine {mspec} close true retainIds true name "foldseek ligands"'
     cmodel = run(session, cmd, log = False)
     return cmodel
 
