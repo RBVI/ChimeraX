@@ -217,7 +217,7 @@ class Foldseek(ToolInstance):
         layout = parent.layout()
         if rt:
             layout.removeWidget(rt)
-            rt.destroy()
+            rt.deleteLater()
         self._results_table = rt = self._create_results_table(parent, hits, database)
         layout.insertWidget(self._results_table_position, rt)
         self._show_hit_count(len(hits), query_chain, database)
@@ -343,6 +343,8 @@ class FoldseekResultsTable(ItemTable):
         species_column_width = 120
         self.setColumnWidth(col_species_index, species_column_width)
         self.setAutoScroll(False)  # Otherwise click on Description column scrolls horizontally
+        from Qt.QtWidgets import QSizePolicy
+        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)  # Don't resize whole panel width
 
 # -----------------------------------------------------------------------------
 #

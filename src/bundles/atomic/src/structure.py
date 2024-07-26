@@ -194,7 +194,7 @@ class Structure(Model, StructureData):
 
         # Setup handler to manage C++ data changes that require graphics updates.
         self._graphics_updater.add_structure(self)
-        Model.added_to_session(self, session)
+        Model.added_to_session(self, session, log_info = self._log_info)
 
     def removed_from_session(self, session):
         self._graphics_updater.remove_structure(self)
