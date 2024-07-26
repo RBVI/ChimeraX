@@ -548,7 +548,8 @@ def _residue_range(structure, hit, log):
         log.warning(f'Foldseek result {db} {db_id} {cname} number of residues {tlen} does not match residues in structure {len(res)}, sequences {tseq} and {seq}.')
         return None, None, None
     if seq != tseq:
-        log.warning(f'Foldseek result {db_id} {cname} target sequence {tseq} does not match sequence from database {seq}.')
+        if seq.replace('?', 'X') != tseq:  # ChimeraX uses one letter code "?" for UNK residues while Foldseek uses "X"
+            log.warning(f'Foldseek result {db_id} {cname} target sequence {tseq} does not match sequence from database {seq}.')
         # Sometimes ChimeraX reports X where Foldseek gives K.  ChimeraX bug #15653.
         for sc,tc in zip(seq, tseq):
             if sc != tc and sc != 'X' and tc != 'X':
