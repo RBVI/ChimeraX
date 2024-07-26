@@ -555,11 +555,11 @@ def alignment_residues(residues):
     if len(rok) < len(residues):
         from chimerax.atomic import Residues
         residues = Residues(rok)
-    if len(residues.existing_principal_atoms) < len(residues):
-        # Some residues don't have a C-alpha atom.
+    if (residues.atoms.names == 'CA').sum() < len(residues):
+        # Residue.principal_atom() does not return a CA if the N atom is missing.
+        # For example, N missing in PDB 7w7g /B:654, bug #15668.
         from chimerax.atomic import Residues
-        residues = Residues([r for a,r in zip(residues.principal_atoms, residues) if a is not None])
-    # TODO: Need to also check that N atom exists. Missing in PDB 7w7g /B:654, bug #15668
+        residues = Residues([r for r in residues if 'CA' in r.atoms.names])
     return residues
     
 def alignment_residue_pairs(hit, aligned_res, query_chain):
