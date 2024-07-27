@@ -461,50 +461,73 @@ def _indices_of_residues_with_coords(chain, start, end):
     return seqi
     
 def trim_structure(structure, hit, trim, ligand_range = 3.0, log = True):
-    res, chain_res = residue_range(structure, hit, structure.session.logger)
-    if res is None:
+    chain_res, ri_start, ri_end = _residue_range(structure, hit, structure.session.logger)
+    if chain_res is None:
         name = hit.get('database_full_id')
         structure.session.logger.warning(f'Because of a sequence mismatch between the database structure {name} and the Foldseek output, the alignment and residue pairing of this structure is probably wrong, and ChimeraX did not trim the structure.')
-        return res
-    rnum_start, rnum_end = res[0].number, res[-1].number
-    crnum_start, crnum_end = chain_res[0].number, chain_res[-1].number
+        return None
 
+    res = chain_res[ri_start:ri_end+1]
     if not trim:
         return res
+
+    msg = []
     
+    trim_lig = (trim is True or 'ligands' in trim) and hit['database'] == 'pdb100'
     chain_id = hit.get('chain_id')
-    
     if (trim is True or 'chains' in trim) and chain_id is not None:
-        if len(structure.chains) > 1:
-            cmd = f'delete #{structure.id_string} & ~/{chain_id}'
-            from chimerax.core.commands import run
-            run(structure.session, cmd, log = log)
+        if trim_lig:
+            # Delete polymers in other chains, but not ligands from other chains.
+            ocres = [c.existing_residues for c in tuple(structure.chains) if c.chain_id != chain_id]
+            if ocres:
+                from chimerax.atomic import concatenate
+                ocres = concatenate(ocres)
+        else:
+            # Delete everything from other chain ids, including ligands.
+            sres = structure.residues
+            ocres = sres[sres.chain_ids != chain_id]
+        if ocres:
+            msg.append(f'{structure.num_chains-1} extra chains')
+            ocres.delete()
 
     trim_seq = (trim is True or 'sequence' in trim)
     if trim_seq:
-        if res is not None and len(res) < len(chain_res):
-            res_ranges = []
-            if crnum_start < rnum_start:
-                res_ranges.append(f'{crnum_start}-{rnum_start-1}')
-            if crnum_end > rnum_end:
-                res_ranges.append(f'{rnum_end+1}-{crnum_end}')
-            if res_ranges:
-                chain_spec = f'#{structure.id_string}' if chain_id is None else f'#{structure.id_string}/{chain_id}'
-                cmd = f'delete {chain_spec}:{",".join(res_ranges)}'
-                from chimerax.core.commands import run
-                run(structure.session, cmd, log = log)
+        # Trim end first because it changes the length of the res array.
+        if ri_end < len(chain_res)-1:
+            cterm = chain_res[ri_end+1:]
+            msg.append(f'{len(cterm)} C-terminal residues')
+            cterm.delete()
+        if ri_start > 0:
+            nterm = chain_res[:ri_start]
+            msg.append(f'{len(nterm)} N-terminal residues')
+            nterm.delete()
 
-    if (trim is True or 'ligands' in trim) and hit['database'] == 'pdb100':
+    if trim_lig:
         if structure.num_residues > len(chain_res):
-            # Delete non-polymer residues that are not in contact with trimmed chain residues.
-            rstart, rend = (rnum_start, rnum_end) if trim_seq else (crnum_start, crnum_end)
-            cmd = f'delete (#{structure.id_string}/{chain_id}:{rstart}-{rend} :> {ligand_range}) & #{structure.id_string} & (ligand | ions | solvent)'
-            from chimerax.core.commands import run
-            run(structure.session, cmd, log = log)
+            sres = structure.residues
+            from chimerax.atomic import Residue
+            npres = sres[sres.polymer_types == Residue.PT_NONE]
+            npnear = _find_close_residues(npres, chain_res, ligand_range)
+            npfar = npres.subtract(npnear)
+            if npfar:
+                msg.append(f'{len(npfar)} non-polymer residues more than {ligand_range} Angstroms away')
+                npfar.delete()
+                
+    if log and msg:
+        structure.session.logger.info(f'Deleted {", ".join(msg)}.')
 
     return res
 
-def residue_range(structure, hit, log):
+def _find_close_residues(residues1, residues2, distance):
+    a1 = residues1.atoms
+    axyz1 = a1.scene_coords
+    axyz2 = residues2.atoms.scene_coords
+    from chimerax.geometry import find_close_points
+    ai1, ai2 = find_close_points(axyz1, axyz2, distance)
+    r1near = a1[ai1].unique_residues
+    return r1near
+
+def _residue_range(structure, hit, log):
     '''
     Return the residue range for the subset of residues used in the hit alignment.
     Foldseek tstart and tend target residue numbers are not PDB residue numbers.
@@ -517,20 +540,21 @@ def residue_range(structure, hit, log):
     chain = _structure_chain_with_id(structure, chain_id)
     if chain is None:
         log.warning(f'Foldseek result {db} {db_id} does not have expected chain {chain_id}.')
-        return None, None
+        return None, None, None
     tstart, tend, tlen, tseq = hit['tstart'], hit['tend'], hit['tlen'], hit['tseq']
     res = alignment_residues(chain.existing_residues)
     seq = ''.join(r.one_letter_code for r in res)
     if len(res) != tlen:
         log.warning(f'Foldseek result {db} {db_id} {cname} number of residues {tlen} does not match residues in structure {len(res)}, sequences {tseq} and {seq}.')
-        return None, None
+        return None, None, None
     if seq != tseq:
-        log.warning(f'Foldseek result {db_id} {cname} target sequence {tseq} does not match sequence from database {seq}.')
+        if seq.replace('?', 'X') != tseq:  # ChimeraX uses one letter code "?" for UNK residues while Foldseek uses "X"
+            log.warning(f'Foldseek result {db_id} {cname} target sequence {tseq} does not match sequence from database {seq}.')
         # Sometimes ChimeraX reports X where Foldseek gives K.  ChimeraX bug #15653.
         for sc,tc in zip(seq, tseq):
             if sc != tc and sc != 'X' and tc != 'X':
-                return None, None
-    return res[tstart-1:tend], res
+                return None, None, None
+    return res, tstart-1, tend-1
 
 def _structure_chain_with_id(structure, chain_id):
     if chain_id is None:
@@ -555,11 +579,11 @@ def alignment_residues(residues):
     if len(rok) < len(residues):
         from chimerax.atomic import Residues
         residues = Residues(rok)
-    if len(residues.existing_principal_atoms) < len(residues):
-        # Some residues don't have a C-alpha atom.
+    if (residues.atoms.names == 'CA').sum() < len(residues):
+        # Residue.principal_atom() does not return a CA if the N atom is missing.
+        # For example, N missing in PDB 7w7g /B:654, bug #15668.
         from chimerax.atomic import Residues
-        residues = Residues([r for a,r in zip(residues.principal_atoms, residues) if a is not None])
-    # TODO: Need to also check that N atom exists. Missing in PDB 7w7g /B:654, bug #15668
+        residues = Residues([r for r in residues if 'CA' in r.atoms.names])
     return residues
     
 def alignment_residue_pairs(hit, aligned_res, query_chain):
