@@ -923,7 +923,7 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
         }
     }
     if (res_removals.size() > 0) {
-        if (_chains != nullptr) {
+        if (chains_made()) {
             std::map<Chain*, std::set<Residue*>> chain_res_removals;
             for (auto r: res_removals)
                 if (r->chain() != nullptr) {
