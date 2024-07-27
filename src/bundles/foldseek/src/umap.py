@@ -74,14 +74,14 @@ def _foldseek_trace_models(session):
 def _aligned_coords(hits, query_chain, query_residues, align_with = None, cutoff_distance = 2.0):
     from .foldseek import alignment_residues, hit_coords, hit_residue_pairing, align_xyz_transform
     qres = alignment_residues(query_chain.existing_residues)
-    qatoms = qres.existing_principal_atoms
+    qatoms = qres.find_existing_atoms('CA')
     query_xyz = qatoms.coords
-    qria = qatoms.indices(query_residues.existing_principal_atoms)
+    qria = qatoms.indices(query_residues.find_existing_atoms('CA'))
     qri = set(qria)
     qri.discard(-1)
     qres_xyz = query_xyz[qria]
     if align_with is not None:
-        ai = set(qatoms.indices(align_with.existing_principal_atoms))
+        ai = set(qatoms.indices(align_with.find_existing_atoms('CA')))
         ai.discard(-1)
         if len(ai) < 3:
             from chimerax.core.errors import UserError
@@ -204,7 +204,7 @@ def _cluster_by_distance(umap_xy, cluster_distance):
 
 def _show_reference_atoms(structure_plot):
     qres = structure_plot.query_residues
-    qatoms = qres.existing_principal_atoms
+    qatoms = qres.find_existing_atoms('CA')
     struct = qres[0].structure
     struct.display = True
     struct.atoms.displays = False
@@ -213,7 +213,7 @@ def _show_reference_atoms(structure_plot):
 
 def _select_reference_atoms(structure_plot):
     qres = structure_plot.query_residues
-    qatoms = qres.existing_principal_atoms
+    qatoms = qres.find_existing_atoms('CA')
     struct = qres[0].structure
     struct.session.selection.clear()
     qatoms.selected = True

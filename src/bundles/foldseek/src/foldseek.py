@@ -580,8 +580,6 @@ def alignment_residues(residues):
         from chimerax.atomic import Residues
         residues = Residues(rok)
     if (residues.atoms.names == 'CA').sum() < len(residues):
-        # Residue.principal_atom() does not return a CA if the N atom is missing.
-        # For example, N missing in PDB 7w7g /B:654, bug #15668.
         from chimerax.atomic import Residues
         residues = Residues([r for r in residues if 'CA' in r.atoms.names])
     return residues
@@ -673,8 +671,10 @@ def alignment_coordinates(hits, qstart, qend):
     return xyz, mask
 
 def alignment_transform(res, query_res, cutoff_distance = None):
-    qxyz = query_res.existing_principal_atoms.scene_coords
-    txyz = res.existing_principal_atoms.coords
+    qatoms = query_res.find_existing_atoms('CA')
+    qxyz = qatoms.scene_coords
+    tatoms = res.find_existing_atoms('CA')
+    txyz = tatoms.coords
     p, rms, npairs = align_xyz_transform(txyz, qxyz, cutoff_distance = cutoff_distance)
     return p, rms, npairs
 
@@ -872,7 +872,8 @@ def show_foldseek_hits(session, hit_lines, database, query_chain = None,
     if query_chain is not None:
         # Compute percent coverage and percent close C-alpha values per hit.
         qres = alignment_residues(query_chain.existing_residues)
-        qxyz = qres.existing_principal_atoms.coords
+        qatoms = qres.find_existing_atoms('CA')
+        qxyz = qatoms.coords
         compute_rmsds(hits, qxyz, cutoff_distance = 2)
     from .gui import foldseek_panel, Foldseek
     fp = foldseek_panel(session)
@@ -933,8 +934,8 @@ def foldseek_pairing(session, hit_structure, color = None, radius = None,
     r_pairs = hit_and_query_residue_pairs(hit_structure, query_chain, hit)
     ca_pairs = []
     for hr, qr in r_pairs:
-        hca = hr.principal_atom
-        qca = qr.principal_atom
+        hca = hr.find_atom('CA')
+        qca = qr.find_atom('CA')
         if hca and qca:
             ca_pairs.append((hca, qca))
 
