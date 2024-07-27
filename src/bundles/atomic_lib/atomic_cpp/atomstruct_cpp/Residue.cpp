@@ -408,28 +408,47 @@ Residue::principal_atom() const
     // Normally returns th C4' from a nucleic acid since that is always
     // present, but in the case of a P-only trace it returns the P
     auto am = atoms_map();
-    auto caf = am.find("CA");
-    if (caf != am.end()) {
-        auto ca = caf->second;
-        if (ca->element() != Element::C)
-            return nullptr;
-        if (am.find("N") != am.end() && am.find("C") != am.end())
-            return ca;
-        return am.size() == 1 ? ca : nullptr;
+    if (structure()->chains_made()) {
+        auto pt = polymer_type();
+        if (pt == PolymerType::PT_AMINO) {
+            auto caf = am.find("CA");
+            if (caf != am.end())
+                return caf->second;
+        } else if (pt == PolymerType::PT_NUCLEIC) {
+            auto c4f = am.find("C4'");
+            if (c4f == am.end()) {
+                if (am.size() == 1) {
+                    auto pf = am.find("P");
+                    if (pf != am.end())
+                        return pf->second;
+                }
+            } else
+                return c4f->second;
+        }
+    } else {
+        auto caf = am.find("CA");
+        if (caf != am.end()) {
+            auto ca = caf->second;
+            if (ca->element() != Element::C)
+                return nullptr;
+            if (am.find("N") != am.end() && am.find("C") != am.end())
+                return ca;
+            return am.size() == 1 ? ca : nullptr;
+        }
+        auto c4f = am.find("C4'");
+        if (c4f == am.end()) {
+            if (am.size() > 1)
+                return nullptr;
+            auto pf = am.find("P");
+            if (pf == am.end())
+                return nullptr;
+            auto p = pf->second;
+            return p->element() == Element::P ? p : nullptr;
+        }
+        auto c4 = c4f->second;
+        if (am.find("C3'") != am.end() && am.find("C5'") != am.end() && am.find("O5'") != am.end())
+            return c4;
     }
-    auto c4f = am.find("C4'");
-    if (c4f == am.end()) {
-        if (am.size() > 1)
-            return nullptr;
-        auto pf = am.find("P");
-        if (pf == am.end())
-            return nullptr;
-        auto p = pf->second;
-        return p->element() == Element::P ? p : nullptr;
-    }
-    auto c4 = c4f->second;
-    if (am.find("C3'") != am.end() && am.find("C5'") != am.end() && am.find("O5'") != am.end())
-        return c4;
     return nullptr;
 }
 
