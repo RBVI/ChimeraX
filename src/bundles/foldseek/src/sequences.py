@@ -23,6 +23,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def foldseek_sequences(session, show_conserved = True, conserved_threshold = 0.5,
+                       conserved_color = (225,190,106), identity_color = (64,176,166),
                        lddt_coloring = False, order = 'cluster or evalue'):
     '''Show an image of all aligned sequences from a foldseek search, one sequence per image row.'''
     from .gui import foldseek_panel
@@ -31,8 +32,11 @@ def foldseek_sequences(session, show_conserved = True, conserved_threshold = 0.5
         from chimerax.core.errors import UserError
         raise UserError('No Foldseek results are shown')
 
+    conserved_color = conserved_color[:3]	# Don't use transparency
+    identity_color = identity_color[:3]
     fsp = FoldseekSequencePlot(session, fp.hits, fp.results_query_chain, order = order,
                                show_conserved = show_conserved, conserved_threshold = conserved_threshold,
+                               conserved_color = conserved_color, identity_color = identity_color,
                                lddt_coloring = lddt_coloring)
     return fsp
 
@@ -46,6 +50,7 @@ class FoldseekSequencePlot(ToolInstance):
 
     def __init__(self, session, hits, query_chain, order = 'cluster or evalue',
                  show_conserved = True, conserved_threshold = 0.5,
+                 conserved_color = (225,190,106), identity_color = (64,176,166),
                  lddt_coloring = False):
 
         self._hits = hits
@@ -54,6 +59,8 @@ class FoldseekSequencePlot(ToolInstance):
         self._hit_order_array = None
         self._show_conserved = show_conserved
         self._conserved_threshold = conserved_threshold
+        self._conserved_color = conserved_color
+        self._identity_color = identity_color
         self._color_by_lddt = lddt_coloring
         self._last_hover_xy = None
 
@@ -99,11 +106,14 @@ class FoldseekSequencePlot(ToolInstance):
         self._alignment_range = qstart, qend = query_alignment_range(self._hits)
         self._alignment_array = sequence_alignment(self._hits, qstart, qend)
         hit_order = self._hit_order()
-        rgb = _sequence_image(self._alignment_array, hit_order)
+        rgb = _sequence_image(self._alignment_array, hit_order, identity_color = self._identity_color)
         if self._color_by_lddt:
             self._color_lddt(rgb)
         if self._show_conserved:
-            _color_conserved(self._alignment_array, hit_order, rgb, self._conserved_threshold)
+            _color_conserved(self._alignment_array, hit_order, rgb,
+                             threshold = self._conserved_threshold,
+                             conserved_color = self._conserved_color,
+                             identity_color = self._identity_color)
         return rgb
 
     # ---------------------------------------------------------------------------
@@ -477,7 +487,7 @@ class SequencePlot(QGraphicsView):
 # -----------------------------------------------------------------------------
 #
 def _sequence_image(alignment_array, order, no_align_color = (255,255,255),
-                    align_color = (0,0,0), identity_color = (0,255,0)):
+                    align_color = (0,0,0), identity_color = (254,254,98)):
     hits_array = alignment_array[1:,:]	# First row is query sequence
     # Make a 2D array with values 0=unaligned, 1=aligned, 2=identical.
     # This avoids 2D masks that don't work well in numpy.
@@ -533,15 +543,15 @@ def _entropy(bin_counts):
 
 # -----------------------------------------------------------------------------
 #
-def _color_conserved(alignment_array, order, rgb, conserved = 0.3, min_seqs = 10,
-                     conserved_color = (255,0,0), identity_color = (0,255,0)):
+def _color_conserved(alignment_array, order, rgb, threshold = 0.3, min_seqs = 10,
+                     conserved_color = (225,190,106), identity_color = (64,176,166)):
     seq_len = alignment_array.shape[1]
     from numpy import count_nonzero
     for i in range(seq_len):
         mi = (alignment_array[1:,i] == alignment_array[0,i])
         ni = mi.sum()	# Number of sequences with matching amino acid at column i
         na = count_nonzero(alignment_array[1:,i])  # Number of sequences aligned at column i
-        color = conserved_color if na >= min_seqs and ni >= conserved * na else identity_color
+        color = conserved_color if na >= min_seqs and ni >= threshold * na else identity_color
         rgb[mi[order],i,:] = color
 
 # -----------------------------------------------------------------------------
@@ -589,12 +599,14 @@ def pixmap_from_rgb(rgb):
     return pixmap
     
 def register_foldseek_sequences_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, EnumOf
+    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, EnumOf, Color8Arg
     from chimerax.atomic import ChainArg
     desc = CmdDesc(
         required = [],
         keyword = [('show_conserved', BoolArg),
                    ('conserved_threshold', FloatArg),
+                   ('conserved_color', Color8Arg),
+                   ('identity_color', Color8Arg),
                    ('lddt_coloring', BoolArg),
                    ('order', EnumOf(['cluster', 'evalue', 'identity', 'lddt']))],
         synopsis = 'Show an image of all aligned sequences from a foldseek search, one sequence per image row.'
