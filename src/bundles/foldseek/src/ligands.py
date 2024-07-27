@@ -36,15 +36,12 @@ def foldseek_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_
     nlighits = 0
     from time import time
     t0 = time()
+    from .foldseek import open_hit
     for hnum, hit in enumerate(fp.hits):
-        hname = hit['database_full_id']
-        if hname == '3h7s_A':
-            continue  # This PDB crashes ChimeraX, bug #15666
-
-        from .foldseek import open_hit
         structures = open_hit(session, hit, query_chain, align = False,
                               in_file_history = False, log = False)
 
+        hname = hit['database_full_id']
         telapse = _minutes_and_seconds_string(time() - t0)
         session.logger.status(f'Finding ligands in {hname} ({hnum+1} of {nhits}, time {telapse})')
 
