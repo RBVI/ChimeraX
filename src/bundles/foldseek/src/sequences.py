@@ -366,7 +366,8 @@ class FoldseekSequencePlot(ToolInstance):
         if lddt_scores is None:
             qstart, qend = self._alignment_range
             qres = self._query_residues
-            query_xyz = qres.existing_principal_atoms.coords[qstart-1:qend,:]
+            qatoms = qres.find_existing_atoms('CA')
+            query_xyz = qatoms.coords[qstart-1:qend,:]
             from .foldseek import alignment_coordinates
             hits_xyz, hits_mask = alignment_coordinates(self._hits, qstart, qend)
             from . import lddt

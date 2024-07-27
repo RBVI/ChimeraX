@@ -40,10 +40,10 @@ def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_
                           tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
     from .foldseek import alignment_residues, hit_coords, hit_residue_pairing, align_xyz_transform
     qres = alignment_residues(query_chain.existing_residues)
-    qatoms = qres.existing_principal_atoms
+    qatoms = qres.find_existing_atoms('CA')
     query_xyz = qatoms.coords
     if align_with is not None:
-        ai = set(qatoms.indices(align_with.existing_principal_atoms))
+        ai = set(qatoms.indices(align_with.find_existing_atoms('CA')))
         ai.discard(-1)
         if len(ai) < 3:
             from chimerax.core.errors import UserError
