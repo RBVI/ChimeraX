@@ -467,7 +467,9 @@ class Model(State, Drawing):
         self.clear_highlight()
         self._selection_changed()
 
-    def added_to_session(self, session):
+    def added_to_session(self, session, log_info = True):
+        if not log_info:
+            return
         html_title = self.get_html_title(session)
         if not html_title:
             return

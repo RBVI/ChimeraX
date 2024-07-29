@@ -80,8 +80,6 @@ from setuptools.build_meta import (
     suppress_known_deprecation,
 )  # noqa import not in __all__
 
-from pkg_resources import get_distribution, DistributionNotFound
-
 # TODO: Verify
 # Always import this because it changes the behavior of setuptools
 from numpy import get_include as get_numpy_include_dirs

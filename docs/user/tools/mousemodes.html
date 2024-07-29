@@ -16,12 +16,13 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Toolbar: Right Mouse</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <h3><a href="toolbar.html">Toolbar</a>: Right Mouse</h3>
 <p>
@@ -35,7 +36,7 @@ allow reassigning the function or &ldquo;mouse mode&rdquo; of:
 <a href="../vr.html">ChimeraX virtual reality</a>
 (<a href="../vr.html#mousemodes">details...</a>)
 <li>the right mouse button (= trackpad + <b>Alt</b> on Windows,
-trackpad + <img src="../icon-clover.png" width="12px"> on Mac)
+trackpad + <img src="../icon-clover.png" width="12px" style="background:white"> on Mac)
 in the <a href="../window.html">ChimeraX graphics window</a>
 </ul>
 <p>
@@ -64,7 +65,7 @@ See also:
 <i>function</i></b><br>(default assignment, if any)</td>
 <td align="center"><b>description</b></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/select.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/select.png" class="icon4"></td>
 <td align="center"><b>select</b><br>(control left)</td>
 <td align="center" class="text"><a href="../selection.html">select</a>
 items for subsequent operations, +<b>Shift</b> to toggle or add to selection;
@@ -72,7 +73,7 @@ see also <a href="../commands/select.html"><b>select</b></a>
 and <a href="#vr">differences in VR</a>
 </td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/rotate.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/rotate.png" class="icon4"></td>
 <td align="center"><b>rotate</b><br>(left)</td>
 <td align="center" class="text">XY-rotate 
 (<a href="../commands/view.html#screencoords">screen coordinates</a>)
@@ -86,7 +87,7 @@ see also <a href="../commands/turn.html"><b>turn</b></a>,
 switches to Z-rotation instead
 (or Z-translation with vertical drag, if <b>Shift</b> is also pressed)</td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/translate.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/translate.png" class="icon4"></td>
 <td align="center"><b>translate</b><br>(middle, right)</td>
 <td align="center" class="text">XY-translate
 (<a href="../commands/view.html#screencoords">screen coordinates</a>),
@@ -98,7 +99,7 @@ switches to Z-translation with vertical drag instead
 (or Z-rotation, if <b>Shift</b> is also pressed)</td>
 </tr><tr>
 <td align="center"><a name="zoom"></a>
-<img src="mouse-icons/zoom.png" width="35px"></td>
+<img src="mouse-icons/zoom.png" class="icon4"></td>
 <td align="center"><b>zoom</b><br>(wheel)</td>
 <td align="center">zoom the view
 (slightly <a href="#vr">different in VR</a> and
@@ -106,7 +107,7 @@ switches to Z-translation with vertical drag instead
 see also <a href="../commands/zoom.html"><b>zoom</b></a>
 </td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/move_h2o.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/move_h2o.png" class="icon4"></td>
 <td align="center"><b>translate selected models</b></td>
 <td align="center" class="text">translate models with any part 
 <a href="../selection.html">selected</a>, or if no selection, all models;
@@ -116,7 +117,7 @@ instead;
 switches to Z-translation with vertical drag instead
 (or Z-rotation, if <b>Shift</b> is also pressed)</td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/rotate_h2o.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/rotate_h2o.png" class="icon4"></td>
 <td align="center"><b>rotate selected models</b></td>
 <td align="center" class="text">rotate models with any part 
 <a href="../selection.html">selected</a>, or if no selection, all models;
@@ -126,7 +127,7 @@ instead;
 switches to Z-rotation instead
 (or Z-translation with vertical drag, if <b>Shift</b> is also pressed)</td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/move_picked_model.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/move_picked_model.png" class="icon4"></td>
 <td align="center"><b>move picked model</b></td>
 <td align="center" class="text">translate the model under the mouseclick;
 <br>assigned button + <b>Shift</b> switches to rotation instead;
@@ -134,7 +135,7 @@ switches to Z-rotation instead
 switches to Z-translation with vertical drag instead
 (or Z-rotation, if <b>Shift</b> is also pressed)</td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/move_atoms.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/move_atoms.png" class="icon4"></td>
 <td align="center"><b>translate selected atoms</b></td>
 <td align="center" class="text">translate any
 <a href="../selection.html">selected</a> atoms, or if no selection, all models;
@@ -144,7 +145,7 @@ instead;
 switches to Z-translation with vertical drag instead 
 (or Z-rotation, if <b>Shift</b> is also pressed)</td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/pivot.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/pivot.png" class="icon4"></td>
 <td align="center"><b>pivot</b></td>
 <td align="center" class="text">set center of rotation to clicked atom,
 bond, ribbon segment, or surface point;
@@ -152,7 +153,7 @@ see also <a href="../commands/cofr.html"><b>cofr</b></a></td>
 </tr><tr>
 <td align="center">
 <a name="distance"></a>
-<img src="mouse-icons/distance.png" width="35px"></td>
+<img src="mouse-icons/distance.png" class="icon4"></td>
 <td align="center"><b>distance</b></td>
 <td align="center" class="text">add distance monitor
 <a href="../pseudobonds.html">pseudobond</a>
@@ -161,21 +162,21 @@ see also <a href="../commands/distance.html"><b>distance</b></a>,
 <a href="../commands/label.html"><b>label</b></a>,
 and the <a href="#tape"><b>tape measure</b> mode</a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/label.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/label.png" class="icon4"></td>
 <td align="center"><b>label</b></td>
 <td align="center" class="text">label/unlabel clicked atom or ribbon segment 
 with residue name and number (slightly <a href="#vr">different in VR</a>),
 <br>unlabel all residues when background is clicked;
 see also <a href="../commands/label.html"><b>label</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/movelabel.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/movelabel.png" class="icon4"></td>
 <td align="center"><b>move label</b></td>
 <td align="center" class="text">
 move <a href="../commands/2dlabels.html">2D label</a>,
 <a href="../commands/2dlabels.html">2D arrow</a> (by dragging either end),
 or <a href="../commands/label.html">&ldquo;3D&rdquo; label</a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/ckiconvertical.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/ckiconvertical.png" class="icon4"></td>
 <td align="center"><b>color key</b></td>
 <td align="center" class="text">
 <a name="colorkey"></a>
@@ -184,7 +185,7 @@ by clicking and dragging; a previously created color key can be moved
 by clicking near its center and dragging, but clicking elsewhere will delete
 the key and start over</td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/clip.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/clip.png" class="icon4"></td>
 <td align="center"><b>clip</b> </td>
 <td align="center" class="text">
 click without dragging to activate/deactivate clipping,
@@ -199,7 +200,7 @@ that remain parallel to the screen is set in the
 <a href="../preferences.html#clipping"><b>Clipping</b> preferences</a>;
 see also <a href="../commands/clip.html"><b>clip</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/cliprot.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/cliprot.png" class="icon4"></td>
 <td align="center"><b>clip rotate</b></td>
 <td align="center" class="text">click without dragging to
 activate/deactivate clipping,
@@ -207,20 +208,20 @@ click-drag to activate (if not already active) and
 rotate front/back clipping planes;
 see also <a href="../commands/clip.html"><b>clip</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/zone.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/zone.png" class="icon4"></td>
 <td align="center"><b>zone</b></td>
 <td align="center" class="text">
 limit atomic and <a href="volumeviewer.html">volume data</a> display
 to a zone around the clicked residue
 (<a href="mousemodes.html#zone">details...</a>)</td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/contour.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/contour.png" class="icon4"></td>
 <td align="center"><b>contour level</b></td>
 <td align="center" class="text">adjust 
 <a href="volumeviewer.html">volume data</a> threshold level; see also 
 <a href="../commands/volume.html"><b>volume</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/moveplanes.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/moveplanes.png" class="icon4"></td>
 <td align="center"><b>move planes</b></td>
 <td align="center" class="text">
 show <a href="../commands/volume.html#planes">single plane</a> of clicked
@@ -229,7 +230,7 @@ if full region shown initially; move plane or slab along its axis to show
 a different section</td>
 </tr><tr>
 <td align="center">
-<img src="mouse-icons/rotateslab.png" width="35px"></td>
+<img src="mouse-icons/rotateslab.png" class="icon4"></td>
 <td align="center"><b>rotate slab</b></td>
 <td align="center" class="text">
 <a name="rotateslab"></a>
@@ -242,7 +243,7 @@ and from clicking elsewhere is the center of the volume box;
 in <a href="../vr.html">VR</a>, this mode
 both rotates and translates the slab</td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/crop.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/crop.png" class="icon4"></td>
 <td align="center"><b>crop volume</b></td>
 <td align="center" class="text">
 show <a href="volumeviewer.html">volume data</a> outline box
@@ -253,26 +254,26 @@ and <a href="#vr">differences in VR</a>
 </tr><tr>
 <td align="center">
 <a name="tape"></a>
-<img src="mouse-icons/tape.png" width="35px"></td>
+<img src="mouse-icons/tape.png" class="icon4"></td>
 <td align="center"><b>tape measure</b></td>
 <td align="center" class="text">click to anchor distance measurement, 
 drag to desired endpoint; click in empty space
 to &ldquo;erase&rdquo; (<a href="#tapemeasure">details...</a>);
 see also the <a href="#distance"><b>distance</b> mode</a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/pickblobs.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/pickblobs.png" class="icon4"></td>
 <td align="center"><b>pick blobs</b></td>
 <td align="center" class="text"><a href="measureblobs.html">pick 
 surface blob</a> to measure area, volume, size; see also
 <a href="../commands/measure.html#blob"><b>measure blob</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/eraser.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/eraser.png" class="icon4"></td>
 <td align="center"><b>map eraser</b></td>
 <td align="center" class="text">move 
 <a href="maperaser.html">map eraser</a> sphere; see also
 <a href="../commands/volume.html#erase"><b>volume erase</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/vseries.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/vseries.png" class="icon4"></td>
 <td align="center"><b>play map series</b></td>
 <td align="center" class="text">play 
 <a href="../trajectories.html#vseries">volume series</a>, with wrapping;
@@ -280,7 +281,7 @@ see also <a href="../commands/vseries.html"><b>vseries</b></a></td>
 </tr><tr>
 <td align="center">
 <a name="windowing"></a>
-<img src="mouse-icons/windowing.png" width="35px"></td>
+<img src="mouse-icons/windowing.png" class="icon4"></td>
 <td align="center"><b>windowing</b></td>
 <td align="center" class="text">adjust
 <a href="volumeviewer.html">volume data</a> image display
@@ -293,7 +294,7 @@ for adjusting multiple windows within a single histogram,
 see <a href="#multiwindowing">details</a>
 </td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/bondrot.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/bondrot.png" class="icon4"></td>
 <td align="center"><b>bond rotation</b></td>
 <td align="center" class="text">adjust torsion angle (original position not 
 retained) by clicking a bond and dragging vertically, <b>+Shift</b> to
@@ -301,7 +302,7 @@ move the larger set of atoms in the molecule instead of the smaller;
 see also <a href="../commands/torsion.html"><b>torsion</b></a>,
 <a href="buildstructure.html#adjust"><b>Adjust Torsions</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/swapaa.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/swapaa.png" class="icon4"></td>
 <td align="center"><b>swapaa</b></td>
 <td align="center" class="text">
 &ldquo;<a href="../commands/swapaa.html#mousemode">mutate</a>&rdquo;
@@ -310,7 +311,7 @@ under the mouseclick,
 with vertical drag cycling through the 20 standard types
 in arbitrary conformations; original sidechain not retained</td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/coordset.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/coordset.png" class="icon4"></td>
 <td align="center"><b>play coordinates</b></td>
 <td align="center" class="text">
 drag up/down or left/right to play through the coordinate sets
@@ -318,14 +319,14 @@ in each displayed <a href="../trajectories.html">trajectory</a>;
 dragging horizontally the full width of the graphics window (or in
 <a href="../vr.html">VR</a>, 50 cm vertically) plays the whole trajectory</td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/tug.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/tug.png" class="icon4"></td>
 <td align="center"><b>tug</b></td>
 <td align="center" class="text">drag atoms and apply OpenMM dynamics
 while button is held down (<a href="#openmm">details...</a>);
 original coordinates not retained;
 see also <a href="../commands/tug.html"><b>tug</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/minimize.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/minimize.png" class="icon4"></td>
 <td align="center"><b>minimize</b></td>
 <td align="center" class="text">
 jiggle residue and its neighbors with OpenMM dynamics
@@ -333,7 +334,7 @@ while button is held down (<a href="#openmm">details...</a>);
 original coordinates not retained</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/nextdocking.png"
-width="35px"></td>
+class="icon4"></td>
 <td align="center"><b>next docked</b></td>
 <td align="center" class="text">
 drag to show the next/previous docked ligand when docking results

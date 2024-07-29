@@ -94,7 +94,7 @@ class Volume(Model):
     # Image display submodel and parameters
     self._image = None
     self.image_levels = []                      # list of (threshold, scale)
-    self.image_colors = []
+    self.image_colors = []			# list of (r,g,b,a), float values 0-1
     self._mask_colors = None			# For coloring by segmentation
     self._segment_colors = None			# For coloring segmentations
     self.transparency_depth = 0.5               # for image rendering
@@ -2841,7 +2841,6 @@ class RenderingOptions:
     contrast (e.g. black backing when white background color in use).
   '''
   def __init__(self):
-
     self.show_outline_box = False
     self.outline_box_rgb = (1,1,1)
     self.outline_box_linewidth = 1
@@ -2861,7 +2860,7 @@ class RenderingOptions:
     self.colormap_extend_left = False
     self.colormap_extend_right = True
     self.blend_on_gpu = False	      # image rendering blend images on gpu instead of cpu
-    self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
+    self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d', 'rays')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
     self.plane_spacing = 'min'		    # "min", "max", "mean" or distance value
     self.full_region_on_gpu = False	    # for image rendering for fast cropping

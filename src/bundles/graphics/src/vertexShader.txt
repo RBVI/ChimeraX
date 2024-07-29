@@ -1,8 +1,9 @@
 #version 330 core
+// vim: set ft=glsl:
 
 /*
  * === UCSF ChimeraX Copyright ===
-# Copyright 2022 Regents of the University of California. All rights reserved.
+# Copyright 2024 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
 # <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
@@ -37,15 +38,22 @@ void main(void)
 
 #else
 
-#if defined(USE_CLIP_PLANES) || defined(USE_STEREO_360)
-uniform mat4 model_matrix;	// Map model coordinates to scene coordinates
+#if defined(USE_CLIP_PLANES) || defined(USE_STEREO_360) || defined(USE_VOLUME_RAYCASTING)
+uniform mat4 model_matrix; // Map model coordinates to scene coordinates
 #endif
 
-#if defined(USE_STEREO_360)
-uniform mat4 view_matrix;	// Map scene coordinates to camera coordinates
+#if defined(USE_STEREO_360) || defined(USE_VOLUME_RAYCASTING)
+uniform mat4 view_matrix; // Map scene coordinates to camera coordinates
 #endif
 
-uniform mat4 model_view_matrix;	// Map model coordinates to camera coordinates
+#if defined(USE_VOLUME_RAYCASTING)
+uniform vec3 step_size;
+uniform vec3 camera_pos;
+uniform float camera_fov;
+uniform vec2 window_size;
+#endif
+
+uniform mat4 model_view_matrix; // Map model coordinates to camera coordinates
 uniform mat4 projection_matrix;
 
 layout(location = 0) in vec3 position;
@@ -76,7 +84,7 @@ uniform mat4 ambient_tex3d_transform;
 out vec3 ambient_tex_coord;
 #endif
 
-#endif	// end USE_LIGHTING
+#endif // end USE_LIGHTING
 
 #ifdef USE_VERTEX_COLORS
 layout(location = 3) in vec4 vcolor;
@@ -120,7 +128,7 @@ uniform vec4 camera_vertical;
 
 #ifdef USE_CLIP_PLANES
 uniform int num_clip_planes;
-uniform vec4 clip_planes[8];	// Normal in scene coordinates and offset
+uniform vec4 clip_planes[8]; // Normal in scene coordinates and offset
 out float gl_ClipDistance[8];
 #endif
 
@@ -148,10 +156,10 @@ void main(void)
                                   camera_vertical.xyz));
   vec4 vsoffset = vec4(vscene_s.xyz - camera_origin_and_shift.w * eye_axis, 1);
   vec4 veye = view_matrix * vsoffset;
-#ifdef USE_LIGHTING
-  vshadow = (model_view_matrix * vi).xyz;
-  // vshadow = (model_matrix * vi).xyz;
-#endif
+  #ifdef USE_LIGHTING
+    vshadow = (model_view_matrix * vi).xyz;
+    // vshadow = (model_matrix * vi).xyz;
+  #endif
 #else
   vec4 veye = model_view_matrix * vi;
 #endif
@@ -177,14 +185,14 @@ void main(void)
     #endif
   #endif
   #ifdef USE_MULTISHADOW
-//    vscene = (model_matrix * vi).xyz;
-//    nscene = (model_matrix * vec4(ni,0)).xyz;
+    //    vscene = (model_matrix * vi).xyz;
+    //    nscene = (model_matrix * vec4(ni,0)).xyz;
   #endif
   #ifdef USE_TEXTURE_3D_AMBIENT
   // TODO: This should use vertex scene coords, not vertex model coordinates
     ambient_tex_coord = (ambient_tex3d_transform * vi).xyz;
   #endif
-#endif	// end USE_LIGHTING
+#endif // end USE_LIGHTING
 
 #ifdef USE_VERTEX_COLORS
   color = vcolor;

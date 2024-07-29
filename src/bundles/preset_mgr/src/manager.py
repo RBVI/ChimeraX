@@ -85,7 +85,9 @@ class PresetsManager(ProviderManager):
         A command string can have embedded ';' characters to separate commands.  It can also
         have embedded newlines to separate commands, in which case the newline-separated commands
         will be executed with separate calls to chimera.core.commands.run(), whereas ';' separated
-        commands will use a single run() call.
+        commands will use a single run() call.  It can be important in some scenarios to use
+        saparate run() calls so that the preset manager can run chimerax.atomic.check_for_changes()
+        in between calls.
         """
         if callable(preset):
             preset()
@@ -93,12 +95,15 @@ class PresetsManager(ProviderManager):
                 " commands available.")
         else:
             from chimerax.core.commands import run
-            num_lines = 0
+            from chimerax.atomic import check_for_changes
+            needs_reformatting = True
             with self.session.undo.aggregate("preset"):
                 for line in preset.splitlines():
                     run(self.session, line, log=False)
-                    num_lines += 1
-            if num_lines == 1:
+                    check_for_changes(self.session)
+                    if needs_reformatting and ';' not in line:
+                        needs_reformatting = False
+            if needs_reformatting:
                 parts = [p.strip() for p in preset.split(';')]
                 display_lines = '\n'.join(parts)
             else:

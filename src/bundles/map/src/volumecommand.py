@@ -194,24 +194,24 @@ def volume(session,
            show_outline_box = None,
            outline_box_rgb = None,
            outline_box_linewidth = None,
-           limit_voxel_count = None,          # auto-adjust step size
-           voxel_limit = None,               # Mvoxels
-           color_mode = None,                # image rendering pixel formats
-           colormap_on_gpu = None,           # image colormapping on gpu or cpu
-           colormap_size = None,             # image colormapping
+           limit_voxel_count = None,  # auto-adjust step size
+           voxel_limit = None,  # Mvoxels
+           color_mode = None,  # image rendering pixel formats
+           colormap_on_gpu = None,  # image colormapping on gpu or cpu
+           colormap_size = None,  # image colormapping
            colormap_extend_left = None,
            colormap_extend_right = None,
            backing_color = None,
-           blend_on_gpu = None,		     # image blending on gpu or cpu
-           projection_mode = None,           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
-           plane_spacing = None,	     # min, max, or numeric value
-           full_region_on_gpu = None,	     # for fast cropping with image rendering
-           bt_correction = None,             # brightness and transparency
+           blend_on_gpu = None,  # image blending on gpu or cpu
+           projection_mode = None,  # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
+           plane_spacing = None,  # min, max, or numeric value
+           full_region_on_gpu = None,  # for fast cropping with image rendering
+           bt_correction = None,  # brightness and transparency
            minimal_texture_memory = None,
            maximum_intensity_projection = None,
            linear_interpolation = None,
-           dim_transparency = None,          # for surfaces
-           dim_transparent_voxels = None,     # for image rendering
+           dim_transparency = None,  # for surfaces
+           dim_transparent_voxels = None,  # for image rendering
            line_thickness = None,
            smooth_lines = None,
            mesh_lighting = None,
@@ -311,7 +311,8 @@ def volume(session,
         blend_on_gpu: bool
             Whether image blending is done on gpu or cpu.
         projection_mode: string
-            One of 'auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d'
+            One of 'auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d', 'rays'
+            'rays' means 'volume raycasting' and implies colormap_on_gpu and full_region_on_gpu
         plane_spacing: "min", "max", "mean" or float
             Spacing between planes when using 3d projection mode.  "min", "max", "mean" use
             minimum, maximum or average grid spacing along x,y,z axes.
@@ -829,7 +830,7 @@ def camel_case(string):
             cc.append(c.upper() if up else c)
             up = False
     return ''.join(cc)
-    
+
 # -----------------------------------------------------------------------------
 #
 def volume_default_values(session,
@@ -844,24 +845,24 @@ def volume_default_values(session,
            show_outline_box = None,
            outline_box_rgb = None,
            outline_box_linewidth = None,
-           limit_voxel_count = None,          # auto-adjust step size
-           voxel_limit = None,               # Mvoxels
-           color_mode = None,                # image rendering pixel formats
-           colormap_on_gpu = None,           # image colormapping on gpu or cpu
-           colormap_size = None,             # image colormapping
+           limit_voxel_count = None,  # auto-adjust step size
+           voxel_limit = None,  # Mvoxels
+           color_mode = None,  # image rendering pixel formats
+           colormap_on_gpu = None,  # image colormapping on gpu or cpu
+           colormap_size = None,  # image colormapping
            colormap_extend_left = None,
            colormap_extend_right = None,
            backing_color = None,
-           blend_on_gpu = None,		     # image blending on gpu or cpu
-           projection_mode = None,           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
-           plane_spacing = None,	     # min, max, or numeric value
-           full_region_on_gpu = None,	     # for fast cropping with image rendering
-           bt_correction = None,             # brightness and transparency
+           blend_on_gpu = None,  # image blending on gpu or cpu
+           projection_mode = None,  # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d, rays
+           plane_spacing = None,  # min, max, or numeric value
+           full_region_on_gpu = None,  # for fast cropping with image rendering
+           bt_correction = None,  # brightness and transparency
            minimal_texture_memory = None,
            maximum_intensity_projection = None,
            linear_interpolation = None,
-           dim_transparency = None,          # for surfaces
-           dim_transparent_voxels = None,     # for image rendering
+           dim_transparency = None,  # for surfaces
+           dim_transparent_voxels = None,  # for image rendering
            line_thickness = None,
            smooth_lines = None,
            mesh_lighting = None,
@@ -924,5 +925,5 @@ def default_settings_text(session):
              ]
     lines += ['Default rendering settings'] + rendering_option_strings(session)
     return '\n'.join(lines)
-    
+
 

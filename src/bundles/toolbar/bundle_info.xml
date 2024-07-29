@@ -1,6 +1,6 @@
 <!-- vi:set shiftwidth=2: -->
 <BundleInfo name="ChimeraX-Toolbar"
-	    version="1.1.2" package="chimerax.toolbar"
+	    version="1.2.3" package="chimerax.toolbar"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -44,13 +44,14 @@ Provides a Windows ribbon-style toolbar interface
     <Provider tab="Extras" section="File" hidden="true"
       name="Open" icon="open-in-app.png" description="Open data file"/>
     <Provider tab="Extras" section="File" hidden="true"
-      name="Recent" icon="recentfiles.png" description="Open recent files" after="Open"/>
+      name="Recent" icon="recentfiles.png" darkIcon="recentfiles-dark.png"
+      description="Open recent files" after="Open"/>
     <Provider tab="Extras" section="File" hidden="true"
       name="Save" icon="content-save.png" description="Save session file" after="Recent"/>
     <Provider tab="Extras" section="File" hidden="true"
       name="Close" icon="close-box.png" description="Close current session" after="Save"/>
     <Provider tab="Extras" section="File" hidden="true"
-      name="Exit" icon="exit.png" description="Exit application" after="Close"/>
+      name="Exit" icon="exit.png" description="Exit application" after="Save"/>
 
     <!-- hidden Undo tab -->
     <Provider tab="Extras" section="Undo" hidden="true"

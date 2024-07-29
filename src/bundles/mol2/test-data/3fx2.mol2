@@ -2693,7 +2693,7 @@ NO_CHARGES
    145 GLY  1086 RESIDUE           4 A     GLY     2
    146 ALA  1090 RESIDUE           4 A     ALA     2
    147 ILE  1095 RESIDUE           4 A     ILE     1
-   148 FMN  1126 RESIDUE           4 A     FMN     0 ROOT
+   148 FMN  1103 RESIDUE           4 A     FMN     0 ROOT
    149 HOH  1134 RESIDUE           4 A     HOH     0 ROOT
    150 HOH  1135 RESIDUE           4 A     HOH     0 ROOT
    151 HOH  1136 RESIDUE           4 A     HOH     0 ROOT
