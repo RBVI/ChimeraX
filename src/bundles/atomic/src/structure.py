@@ -1784,11 +1784,12 @@ def assembly_html_table(mol):
         # chains are transformed. Requires reading more tables.
         return
 
-    lines = ['<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">',
-             '<tr><th colspan=2>%s mmCIF Assemblies' % mol.name]
+    from html import escape
+    lines = ['<table border=1 cellpadding=4 cellspacing=0>',
+             f'<tr><th colspan=3>{escape(mol.name)} mmCIF Assemblies']
     for id, details in sa:
         lines.append('<tr><td><a title="Generate assembly" href="cxcmd:sym #%s assembly %s ; view">%s</a><td>%s'
-                     % (mol.id_string, id, id, details))
+                     % (mol.id_string, id, id, escape(details)))
     lines.append('</table>')
     html = '\n'.join(lines)
     return html
