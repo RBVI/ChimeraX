@@ -34,7 +34,7 @@ class _FoldseekBundle(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        if command_name in ('foldseek', 'foldseek open', 'foldseek show'):
+        if command_name in ('foldseek', 'foldseek open', 'foldseek show', 'foldseek pairing'):
             from . import foldseek
             foldseek.register_foldseek_command(logger)
         elif command_name == 'foldseek sequences':
@@ -43,6 +43,12 @@ class _FoldseekBundle(BundleAPI):
         elif command_name == 'foldseek traces':
             from . import traces
             traces.register_foldseek_traces_command(logger)
+        elif command_name == 'foldseek umap':
+            from . import umap
+            umap.register_foldseek_umap_command(logger)
+        elif command_name == 'foldseek ligands':
+            from . import ligands
+            ligands.register_foldseek_ligands_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):

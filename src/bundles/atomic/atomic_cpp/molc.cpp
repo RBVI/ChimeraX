@@ -2784,6 +2784,27 @@ extern "C" EXPORT void* residue_find_atom(void *residue, char *atom_name)
     }
 }
 
+extern "C" EXPORT PyObject *residue_find_existing_atoms(void *residues, size_t n, char *atom_name)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    std::vector<Atom *> atoms;
+    try {
+      for (size_t i = 0 ; i < n ; ++i) {
+	Atom *a = r[i]->find_atom(atom_name);
+	if (a)
+	  atoms.push_back(a);
+      }
+      Atom **ap;
+      PyObject *a = python_voidp_array(atoms.size(), (void***)&ap);
+      for (size_t i = 0 ; i < atoms.size() ; ++i)
+	ap[i] = atoms[i];
+      return a;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" EXPORT PyObject *residue_ideal_chirality(const char *res_name, const char *atom_name)
 {
     std::string error_msg;

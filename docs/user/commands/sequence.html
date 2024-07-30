@@ -39,6 +39,11 @@ and associated structures:
 <li><a href="#chain"><b>sequence chain</b></a>
 &ndash; show the sequence of a structure chain (start the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>)
+<li><a href="#expandsel"><b>sequence expandsel</b></a>
+&ndash; expand the current <a href="../selection.html">selection</a>
+to all residues
+<a href="../tools/sequenceviewer.html#association">associated</a>
+with the same column(s) of the sequence alignment
 <li><a href="#header"><b>sequence header</b></a>
 &ndash; show, hide, save alignment headers
 <li><a href="#identity"><b>sequence identity</b></a>
@@ -154,6 +159,24 @@ not an individual sequence, because a structure chain can only be
 associated with one sequence per alignment.
 </p>
 
+<a name="expandsel"></a>
+<p class="nav">
+[<a href="#top">back to top: sequence</a>]
+</p>
+<h3>Expanding a Selection to Alignment Columns</h3>
+<blockquote>
+<a href="usageconventions.html">Usage</a>:
+<b>sequence &nbsp;expandsel</b> [&nbsp;<i>alignment-ID</i>&nbsp;]
+</blockquote>
+<p>
+Expand the current <a href="../selection.html">selection</a> to all residues
+<a href="../tools/sequenceviewer.html#association">associated</a>
+with the same column(s) of the specified sequence alignment, or if none
+is specified, all sequence alignments.
+The <i>alignment-ID</i> is shown in the title bar of the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window.
+</p>
+
 <a name="header"></a>
 <p class="nav">
 [<a href="#top">back to top: sequence</a>]
@@ -225,6 +248,8 @@ Omitting the sequence identifier returns to the default numbering:
 If more than one 
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window
 is present, the <i>alignment-ID</i> is required.
+The <i>alignment-ID</i> is shown in the title bar of the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window.
 </p>
 
 <a name="identity"></a>
@@ -423,5 +448,5 @@ Edgar RC.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2024</address>
+July 2024</address>
 </body></html>

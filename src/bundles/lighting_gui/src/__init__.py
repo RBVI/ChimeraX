@@ -1,7 +1,7 @@
-# vim: set expandtab ts=4 sw=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2022 Regents of the University of California. All rights reserved.
+# Copyright 2024 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
 # <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
@@ -21,19 +21,23 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "1.1"
+
+__version__ = "1.0"
 
 from chimerax.core.toolshed import BundleAPI
+from chimerax.core.tools import get_singleton
+from chimerax.lighting_gui.tool import LightingGUI
 
-
-class _MedicalToolbarAPI(BundleAPI):
+class _LightingGUI(BundleAPI):
+    api_version=1
 
     @staticmethod
-    def run_provider(session, name, mgr, **kw):
-        """Run toolbar provider"""
-        from . import actions
+    def get_class(class_name):
+        class_names = { "LightingGUI": LightingGUI }
+        return class_names.get(class_name, None)
 
-        actions.run_provider(session, name)
+    @staticmethod
+    def start_tool(session, bi, ti):
+        return get_singleton(session, LightingGUI, "Lighting GUI")
 
-
-bundle_api = _MedicalToolbarAPI()
+bundle_api = _LightingGUI()

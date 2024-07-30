@@ -2763,6 +2763,8 @@ class RenderingOptions:
     Determines what slices are used for image rendering.
   projection_modes : ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
     Allowed projection modes.  Read only.
+  ray_step:
+    Distance between samples when raycasting. Smaller values mean more samples.
   plane_spacing : 'min'
     Spacing of slices for image style rendering. Values "min", "max", "mean" use
     the grid spacing, or specific distance value can be given.
@@ -2841,7 +2843,6 @@ class RenderingOptions:
     contrast (e.g. black backing when white background color in use).
   '''
   def __init__(self):
-
     self.show_outline_box = False
     self.outline_box_rgb = (1,1,1)
     self.outline_box_linewidth = 1
@@ -2861,8 +2862,9 @@ class RenderingOptions:
     self.colormap_extend_left = False
     self.colormap_extend_right = True
     self.blend_on_gpu = False	      # image rendering blend images on gpu instead of cpu
-    self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
+    self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d', 'rays')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
+    self.ray_step = 0.01
     self.plane_spacing = 'min'		    # "min", "max", "mean" or distance value
     self.full_region_on_gpu = False	    # for image rendering for fast cropping
     self.bt_correction = False              # brightness and transparency

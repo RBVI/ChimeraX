@@ -23,7 +23,8 @@
 # === UCSF ChimeraX Copyright ===
 
 def foldseek_sequences(session, show_conserved = True, conserved_threshold = 0.5,
-                       order = 'cluster or evalue'):
+                       conserved_color = (225,190,106), identity_color = (64,176,166),
+                       lddt_coloring = False, order = 'cluster or evalue'):
     '''Show an image of all aligned sequences from a foldseek search, one sequence per image row.'''
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
@@ -31,8 +32,12 @@ def foldseek_sequences(session, show_conserved = True, conserved_threshold = 0.5
         from chimerax.core.errors import UserError
         raise UserError('No Foldseek results are shown')
 
+    conserved_color = conserved_color[:3]	# Don't use transparency
+    identity_color = identity_color[:3]
     fsp = FoldseekSequencePlot(session, fp.hits, fp.results_query_chain, order = order,
-                               show_conserved = show_conserved, conserved_threshold = conserved_threshold)
+                               show_conserved = show_conserved, conserved_threshold = conserved_threshold,
+                               conserved_color = conserved_color, identity_color = identity_color,
+                               lddt_coloring = lddt_coloring)
     return fsp
 
 # -----------------------------------------------------------------------------
@@ -45,6 +50,7 @@ class FoldseekSequencePlot(ToolInstance):
 
     def __init__(self, session, hits, query_chain, order = 'cluster or evalue',
                  show_conserved = True, conserved_threshold = 0.5,
+                 conserved_color = (225,190,106), identity_color = (64,176,166),
                  lddt_coloring = False):
 
         self._hits = hits
@@ -53,6 +59,8 @@ class FoldseekSequencePlot(ToolInstance):
         self._hit_order_array = None
         self._show_conserved = show_conserved
         self._conserved_threshold = conserved_threshold
+        self._conserved_color = conserved_color
+        self._identity_color = identity_color
         self._color_by_lddt = lddt_coloring
         self._last_hover_xy = None
 
@@ -81,6 +89,7 @@ class FoldseekSequencePlot(ToolInstance):
 
         self._set_coverage_attribute()
         self._set_conservation_attribute()
+        self._set_entropy_attribute()
 
         tw.manage(placement=None)	# Start floating
 
@@ -97,11 +106,14 @@ class FoldseekSequencePlot(ToolInstance):
         self._alignment_range = qstart, qend = query_alignment_range(self._hits)
         self._alignment_array = sequence_alignment(self._hits, qstart, qend)
         hit_order = self._hit_order()
-        rgb = _sequence_image(self._alignment_array, hit_order)
+        rgb = _sequence_image(self._alignment_array, hit_order, identity_color = self._identity_color)
         if self._color_by_lddt:
             self._color_lddt(rgb)
         if self._show_conserved:
-            _color_conserved(self._alignment_array, hit_order, rgb, self._conserved_threshold)
+            _color_conserved(self._alignment_array, hit_order, rgb,
+                             threshold = self._conserved_threshold,
+                             conserved_color = self._conserved_color,
+                             identity_color = self._identity_color)
         return rgb
 
     # ---------------------------------------------------------------------------
@@ -142,14 +154,21 @@ class FoldseekSequencePlot(ToolInstance):
 
         qstart, qend = self._alignment_range
         from numpy import count_nonzero
-        for ri,r in enumerate(self._query_chain.existing_residues):
+        for ri,r in enumerate(self._query_residues):
             if ri >= qstart-1 and ri <= qend:
                 ai = ri-(qstart-1)
                 count = count_nonzero(self._alignment_array[1:,ai])
             else:
                 count = 0
             r.foldseek_coverage = count
-        
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def _query_residues(self):
+        from .foldseek import alignment_residues
+        return alignment_residues(self._query_chain.existing_residues)
+
     # ---------------------------------------------------------------------------
     #
     def _set_conservation_attribute(self):
@@ -162,13 +181,30 @@ class FoldseekSequencePlot(ToolInstance):
         seq, count, total = _consensus_sequence(self._alignment_array)
         qstart, qend = self._alignment_range
         from numpy import count_nonzero
-        for ri,r in enumerate(self._query_chain.existing_residues):
+        for ri,r in enumerate(self._query_residues):
             if ri >= qstart-1 and ri <= qend:
                 ai = ri-(qstart-1)
                 conservation = count[ai] / total[ai]
             else:
                 conservation = 0
             r.foldseek_conservation = conservation
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _set_entropy_attribute(self):
+        if self._query_chain is None:
+            return
+
+        from chimerax.atomic import Residue
+        Residue.register_attr(self.session, 'foldseek_entropy', "Foldseek", attr_type = float)
+
+        entropy = _sequence_entropy(self._alignment_array)
+        qstart, qend = self._alignment_range
+        from numpy import count_nonzero
+        for ri,r in enumerate(self._query_residues):
+            if ri >= qstart-1 and ri <= qend:
+                ai = ri-(qstart-1)
+                r.foldseek_entropy = entropy[ai]
         
     # ---------------------------------------------------------------------------
     #
@@ -183,7 +219,7 @@ class FoldseekSequencePlot(ToolInstance):
         lddt_scores = self._lddt_scores()
         qstart, qend = self._alignment_range
         from numpy import count_nonzero
-        for ri,r in enumerate(self._query_chain.existing_residues):
+        for ri,r in enumerate(self._query_residues):
             if ri >= qstart-1 and ri <= qend:
                 ai = ri-(qstart-1)
                 nscores = count_nonzero(self._alignment_array[1:,ai])
@@ -221,7 +257,7 @@ class FoldseekSequencePlot(ToolInstance):
     def _column_query_residues(self):
         if not hasattr(self, '_query_res'):
             qstart, qend = self._alignment_range
-            qres = self._query_chain.existing_residues[qstart-1:qend]
+            qres = self._query_residues[qstart-1:qend]
             self._query_res = [(r.one_letter_code, r.number) for r in qres]
         return self._query_res
 
@@ -339,8 +375,9 @@ class FoldseekSequencePlot(ToolInstance):
         lddt_scores = getattr(self, '_lddt_score_array', None)
         if lddt_scores is None:
             qstart, qend = self._alignment_range
-            qres = self._query_chain.existing_residues
-            query_xyz = qres.existing_principal_atoms.coords[qstart-1:qend,:]
+            qres = self._query_residues
+            qatoms = qres.find_existing_atoms('CA')
+            query_xyz = qatoms.coords[qstart-1:qend,:]
             from .foldseek import alignment_coordinates
             hits_xyz, hits_mask = alignment_coordinates(self._hits, qstart, qend)
             from . import lddt
@@ -450,7 +487,7 @@ class SequencePlot(QGraphicsView):
 # -----------------------------------------------------------------------------
 #
 def _sequence_image(alignment_array, order, no_align_color = (255,255,255),
-                    align_color = (0,0,0), identity_color = (0,255,0)):
+                    align_color = (0,0,0), identity_color = (254,254,98)):
     hits_array = alignment_array[1:,:]	# First row is query sequence
     # Make a 2D array with values 0=unaligned, 1=aligned, 2=identical.
     # This avoids 2D masks that don't work well in numpy.
@@ -479,15 +516,42 @@ def _consensus_sequence(alignment_array):
 
 # -----------------------------------------------------------------------------
 #
-def _color_conserved(alignment_array, order, rgb, conserved = 0.3, min_seqs = 10,
-                     conserved_color = (255,0,0), identity_color = (0,255,0)):
+def _sequence_entropy(alignment_array):
+    seqlen = alignment_array.shape[1]
+    from numpy import bincount, empty, float32, array, int32
+    entropy = empty((seqlen,), float32)
+    aa_1_letter_codes = 'ARNDCEQGHILKMFPSTWYV'
+    aa_char = array([ord(c) for c in aa_1_letter_codes], int32)
+    bins = aa_char.max() + 1
+    for i in range(seqlen):
+        aa = alignment_array[:,i]
+        bc = bincount(aa, minlength = bins)[aa_char]
+        entropy[i] = _entropy(bc)
+    return entropy
+    
+# -----------------------------------------------------------------------------
+#
+def _entropy(bin_counts):
+    total = bin_counts.sum()
+    if total == 0:
+        return 0.0
+    nonzero = (bin_counts > 0)
+    p = bin_counts[nonzero] / total
+    from numpy import log2
+    e = -(p*log2(p)).sum()
+    return e
+
+# -----------------------------------------------------------------------------
+#
+def _color_conserved(alignment_array, order, rgb, threshold = 0.3, min_seqs = 10,
+                     conserved_color = (225,190,106), identity_color = (64,176,166)):
     seq_len = alignment_array.shape[1]
     from numpy import count_nonzero
     for i in range(seq_len):
         mi = (alignment_array[1:,i] == alignment_array[0,i])
         ni = mi.sum()	# Number of sequences with matching amino acid at column i
         na = count_nonzero(alignment_array[1:,i])  # Number of sequences aligned at column i
-        color = conserved_color if na >= min_seqs and ni >= conserved * na else identity_color
+        color = conserved_color if na >= min_seqs and ni >= threshold * na else identity_color
         rgb[mi[order],i,:] = color
 
 # -----------------------------------------------------------------------------
@@ -535,12 +599,14 @@ def pixmap_from_rgb(rgb):
     return pixmap
     
 def register_foldseek_sequences_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, EnumOf
+    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, EnumOf, Color8Arg
     from chimerax.atomic import ChainArg
     desc = CmdDesc(
         required = [],
         keyword = [('show_conserved', BoolArg),
                    ('conserved_threshold', FloatArg),
+                   ('conserved_color', Color8Arg),
+                   ('identity_color', Color8Arg),
                    ('lddt_coloring', BoolArg),
                    ('order', EnumOf(['cluster', 'evalue', 'identity', 'lddt']))],
         synopsis = 'Show an image of all aligned sequences from a foldseek search, one sequence per image row.'

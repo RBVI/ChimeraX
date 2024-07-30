@@ -303,7 +303,7 @@ AtomicStructure::_make_chains() const
         for (auto chain: *_chains)
             pre_existing.insert(chain->chain_id());
     }
-    _chains_made = true; // prevent resursion
+    _chains_made = true; // prevent recursion
 
     auto polys = polymers();
 

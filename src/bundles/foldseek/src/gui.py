@@ -217,7 +217,7 @@ class Foldseek(ToolInstance):
         layout = parent.layout()
         if rt:
             layout.removeWidget(rt)
-            rt.destroy()
+            rt.deleteLater()
         self._results_table = rt = self._create_results_table(parent, hits, database)
         layout.insertWidget(self._results_table_position, rt)
         self._show_hit_count(len(hits), query_chain, database)
@@ -242,7 +242,7 @@ class Foldseek(ToolInstance):
         hit_rows = results_table.selected		# FoldseekRow instances
         for hit_row in hit_rows:
             self.open_hit(hit_row.hit)
-        if len(hits) == 0:
+        if len(hit_rows) == 0:
             msg = 'Click lines in the Foldseek results table and then press Open.'
             self.session.logger.error(msg)
 
@@ -251,7 +251,7 @@ class Foldseek(ToolInstance):
     def open_hit(self, hit):
         from .foldseek import open_hit
         open_hit(self.session, hit, self.results_query_chain, trim = self.trim,
-                 alignment_cutoff_distance = self._alignment_cutoff_distance.value)
+                 alignment_cutoff_distance = self.alignment_cutoff_distance)
 
     # ---------------------------------------------------------------------------
     #
@@ -343,6 +343,8 @@ class FoldseekResultsTable(ItemTable):
         species_column_width = 120
         self.setColumnWidth(col_species_index, species_column_width)
         self.setAutoScroll(False)  # Otherwise click on Description column scrolls horizontally
+        from Qt.QtWidgets import QSizePolicy
+        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)  # Don't resize whole panel width
 
 # -----------------------------------------------------------------------------
 #
