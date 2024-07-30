@@ -117,10 +117,32 @@ class AtomSpecArg(Annotation):
     use_cpp_peglib = True
 
     @staticmethod
-    def evaluate(session, text):
+    def evaluate(session, text, models=None, *, order_implicit_atoms=False, add_implied=None, **kw):
+        """Return results of evaluating atom specifier for given models.
+
+        Parameters
+        ----------
+        session : chimerax.core.session.Session instance
+            The session in which to evaluate atom specifier.
+        models : list of chimerax.core.models.Model instances
+            Defaults to None, which uses all models in 'session'.
+        order_implicit_atoms : whether to order atoms that aren't
+            explicitly specified (e.g. ":5") [which can be costly]
+        **kw : keyword arguments
+            If 'models' is None, 'kw' is passed through to call to
+            'session.models.list' to generate the model list.
+
+        Returns
+        -------
+        Objects instance
+            Instance containing data (atoms, bonds, etc) that match
+            this atom specifier.
+        """
         from chimerax.core._spec_parser import evaluate
         from .cli import AnnotationError
-        #TODO: handle quoting as per funcs below
+        if models is None:
+            models = session.models.list(**kw)
+            models.sort(key=lambda m: m.id)
         quoted = text[0] == '"'
         if quoted:
             # Split out quoted argument
@@ -141,12 +163,14 @@ class AtomSpecArg(Annotation):
             parse_text = text
             def find_offset(e):
                 return e.args[0] + 0 if add_implied else 1
-        add_implied = parse_text[0] != '='
-        if not add_implied:
+        spec_add_implied = parse_text[0] != '='
+        if not spec_add_implied:
             parse_text = parse_text[1:]
+        if add_implied is None:
+            add_implied = spec_add_implied
         try:
-            objects, parsed, remainder = evaluate(session, parse_text, quoted, PeglibParseError,
-                PeglibSemanticsError, add_implied)
+            objects, parsed, remainder = evaluate(session, models, parse_text, quoted, PeglibParseError,
+                PeglibSemanticsError, add_implied, order_implicit_atoms)
         except PeglibParseError as e:
             import sys
             print("parse error", e.args, file=sys.__stderr__)
@@ -1152,8 +1176,8 @@ class AtomSpec:
         order_implicit_atoms : whether to order atoms that aren't
             explicitly specified (e.g. ":5") [which can be costly]
         **kw : keyword arguments
-            If 'models' is None, 'kw' is passed through to call to
-            'session.models.list' to generate the model list.
+            If 'models' is None, 'kw' is passed through to the call
+            to 'session.models.list' that generates the model list.
 
         Returns
         -------

@@ -40,10 +40,11 @@ static PyObject* objects_union;
 static PyObject* get_selector;
 static PyObject* add_implied_bonds;
 static PyObject* session;
+static PyObject* models;
 static PyObject* combine_arg;
 static PyObject* list_arg;
 static std::string use_python_error("Use Python error");
-static int add_implied;
+static bool add_implied, order_implicit_atoms;
 
 static const char*
 docstr_evaluate = \
@@ -84,10 +85,16 @@ extern "C" PyObject *
 evaluate(PyObject *, PyObject *args)
 {
     const char* text;
-    int quoted;    
+    int c_quoted, c_add_implied, c_order_implicit;
     PyObject *parse_error_class, *semantics_error_class;
-    if (!PyArg_ParseTuple(args, "OspOOp", &session, &text, &quoted, &parse_error_class,
-            &semantics_error_class, &add_implied))
+    if (!PyArg_ParseTuple(args, "OOspOOpp", &session, &models, &text, &c_quoted, &parse_error_class,
+            &semantics_error_class, &c_add_implied, &c_order_implicit))
+        return nullptr;
+    bool quoted = static_cast<bool>(c_quoted);
+    add_implied = static_cast<bool>(c_add_implied);
+    order_implicit_atoms = static_cast<bool>(c_order_implicit);
+    models = PySequence_Fast(models, "evaluate() arg 'models' is not a sequence");
+    if (models == nullptr)
         return nullptr;
     PyObject* returned_objects_instance = nullptr;
     std::string trial_text = text;
@@ -118,6 +125,7 @@ std::cerr << "Parsing text " << trial_text << "\n";
             }
         }
     } catch (std::runtime_error& e) {
+        Py_DECREF(models);
         try {
             set_error_info(PyExc_RuntimeError, e.what());
         } catch (std::runtime_error &e) {
@@ -125,6 +133,7 @@ std::cerr << "Parsing text " << trial_text << "\n";
         }
         return nullptr;
     } catch (std::logic_error& e) {
+        Py_DECREF(models);
         try {
             set_error_info(semantics_error_class, e.what());
         } catch (std::runtime_error &e) {
@@ -132,6 +141,7 @@ std::cerr << "Parsing text " << trial_text << "\n";
         }
         return nullptr;
     } catch (std::invalid_argument& e) {
+        Py_DECREF(models);
         try {
             set_error_info(parse_error_class, e.what());
         } catch (std::runtime_error &e) {
@@ -139,6 +149,7 @@ std::cerr << "Parsing text " << trial_text << "\n";
         }
         return nullptr;
     }
+    Py_DECREF(models);
     if (returned_objects_instance == nullptr) {
         set_error_info(parse_error_class, "parser did not set Objects instance");
         return nullptr;
@@ -283,33 +294,17 @@ PyMODINIT_FUNC PyInit__spec_parser()
         if (num_atoms > 0) {
             auto coords = PyObject_GetAttrString(
                 PyObject_GetAttrString(base_objects, "atoms"), "scene_coords");
-            auto models = PyObject_GetAttrString(session, "models");
-            auto model_list = PyObject_CallMethodNoArgs(models, list_arg);
-            if (model_list == nullptr) {
-                Py_DECREF(base_objects);
-                Py_DECREF(zone_objects);
-                Py_DECREF(model_list);
-                throw std::logic_error(use_python_error);
-            }
-            if (!PyList_Check(model_list)) {
-                Py_DECREF(base_objects);
-                Py_DECREF(zone_objects);
-                Py_DECREF(model_list);
-                throw std::logic_error("session.models is not a list!");
-            }
-            auto list_size = PyList_GET_SIZE(model_list);
+            auto list_size = PySequence_Fast_GET_SIZE(models);
             for (decltype(list_size) i = 0; i < list_size; ++i) {
-                auto m = PyList_GET_ITEM(model_list, i);
+                auto m = PySequence_Fast_GET_ITEM(models, i);
                 auto ret = PyObject_CallMethod(m, "atomspec_zone", "OOfCCO", session, coords,
                     zone_info.second, zone_info.first[0], zone_info.first[1], zone_objects);
                 if (ret == nullptr) {
                     Py_DECREF(base_objects);
                     Py_DECREF(zone_objects);
-                    Py_DECREF(model_list);
                     throw std::logic_error(use_python_error);
                 }
             }
-            Py_DECREF(model_list);
         }
         Py_DECREF(base_objects);
         return zone_objects;
@@ -356,8 +351,7 @@ PyMODINIT_FUNC PyInit__spec_parser()
                 throw std::runtime_error("Could not create 3-tuple for selector args");
             }
             PyTuple_SetItem(args, 0, session);
-            //TODO: actual 'models' arg in selector call
-            PyTuple_SetItem(args, 1, PyObject_GetAttrString(session, "models"));
+            PyTuple_SetItem(args, 1, models);
             PyTuple_SetItem(args, 2, selector_objects);
             auto ret = PyObject_CallObject(selector, args);
             Py_DECREF(selector);
