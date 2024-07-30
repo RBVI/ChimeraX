@@ -67,8 +67,6 @@ class ProfileGridsTool(ToolInstance):
         self.tool_window.manage('side')
 
     def alignment_notification(self, note_name, note_data):
-        import sys
-        print("tool notification", note_name, file=sys.__stderr__)
         alignment = self.alignment
         if note_name == alignment.NOTE_DESTROYED:
             self.delete()
