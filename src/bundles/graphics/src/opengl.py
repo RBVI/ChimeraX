@@ -1444,7 +1444,7 @@ class Render:
     ) -> None:
         p = self.current_shader_program
         if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
-            p.set_vector3("step_size", step)
+            p.set_float("step_size", step)
             p.set_vector3("full_region_min", full_region_min)
             p.set_vector3("full_region_max", full_region_max)
 

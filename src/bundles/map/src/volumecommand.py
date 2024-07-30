@@ -58,6 +58,7 @@ def register_volume_command(logger):
                ('colormap_extend_right', BoolArg),
                ('blend_on_gpu', BoolArg),
                ('projection_mode', EnumOf(ro.projection_modes)),
+               ('ray_step', FloatArg),
                ('plane_spacing', Or(EnumOf(('min', 'max', 'mean')), FloatArg)),
                ('full_region_on_gpu', BoolArg),
                ('bt_correction', BoolArg),
@@ -204,6 +205,7 @@ def volume(session,
            backing_color = None,
            blend_on_gpu = None,  # image blending on gpu or cpu
            projection_mode = None,  # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
+           ray_step = None,
            plane_spacing = None,  # min, max, or numeric value
            full_region_on_gpu = None,  # for fast cropping with image rendering
            bt_correction = None,  # brightness and transparency
@@ -313,6 +315,8 @@ def volume(session,
         projection_mode: string
             One of 'auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d', 'rays'
             'rays' means 'volume raycasting' and implies colormap_on_gpu and full_region_on_gpu
+        ray_step: float
+            Spacing between steps in raycasting. Smaller values mean more samples.
         plane_spacing: "min", "max", "mean" or float
             Spacing between planes when using 3d projection mode.  "min", "max", "mean" use
             minimum, maximum or average grid spacing along x,y,z axes.
@@ -429,7 +433,7 @@ def _render_settings(options):
         'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth',
         'limit_voxel_count', 'voxel_limit', 'color_mode', 'colormap_on_gpu',
         'colormap_size', 'colormap_extend_left', 'colormap_extend_right',
-        'blend_on_gpu', 'projection_mode', 'plane_spacing', 'full_region_on_gpu',
+        'blend_on_gpu', 'projection_mode', 'ray_step', 'plane_spacing', 'full_region_on_gpu',
         'bt_correction', 'minimal_texture_memory', 'maximum_intensity_projection',
         'linear_interpolation', 'dim_transparency', 'dim_transparent_voxels',
         'line_thickness', 'smooth_lines', 'mesh_lighting',
@@ -855,6 +859,7 @@ def volume_default_values(session,
            backing_color = None,
            blend_on_gpu = None,  # image blending on gpu or cpu
            projection_mode = None,  # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d, rays
+           ray_step = None,
            plane_spacing = None,  # min, max, or numeric value
            full_region_on_gpu = None,  # for fast cropping with image rendering
            bt_correction = None,  # brightness and transparency

@@ -170,6 +170,7 @@ class Image3d(Model):
             "colormap_extend_right",
             "dim_transparent_voxels",
             "projection_mode",
+            "ray_step",
             "plane_spacing",
             "full_region_on_gpu",
             "image_mode",
@@ -1233,6 +1234,7 @@ class VolumeRaycastDrawing(Drawing):
         depth_cue_enabled = renderer.enable_capabilities & renderer.SHADER_DEPTH_CUE
         renderer.enable_capabilities &= ~renderer.SHADER_DEPTH_CUE
         view = self._image_render._session.main_view
+        step_size = self._image_render._rendering_options.ray_step
         from chimerax.graphics.camera import MonoCamera
 
         if isinstance(view.camera, MonoCamera):
@@ -1260,17 +1262,17 @@ class VolumeRaycastDrawing(Drawing):
         )
 
         # See VTK
-        step_size = 1
-        spacing_adjusted_step_size = (dx + dy + dz) / 6
-        avg_voxels = prod(max_corner - min_corner) ** 0.333
-        if avg_voxels < 100:
-            spacing_adjusted_step_size *= 0.01 + (1 - 0.01) * avg_voxels / 100
-        if (
-            1 / spacing_adjusted_step_size < 0.999
-            or 1 / spacing_adjusted_step_size > 1.001
-        ):
-            step_size = spacing_adjusted_step_size
-
+        #step_size = 1
+        #spacing_adjusted_step_size = (dx + dy + dz) / 6
+        #avg_voxels = prod(max_corner - min_corner) ** 0.333
+        #if avg_voxels < 100:
+        #    spacing_adjusted_step_size *= 0.01 + (1 - 0.01) * avg_voxels / 100
+        #if (
+        #    1 / spacing_adjusted_step_size < 0.999
+        #    or 1 / spacing_adjusted_step_size > 1.001
+        #):
+        #    step_size = spacing_adjusted_step_size
+        # TODO: Make step size user configurable
         renderer.set_volume_parameters(step_size, full_region_min, full_region_max)
         renderer.set_bounding_box_planes(max_corner, min_corner)
         Drawing.draw(self, renderer, draw_pass)
