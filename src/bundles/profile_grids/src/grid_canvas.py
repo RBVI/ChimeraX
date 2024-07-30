@@ -131,8 +131,6 @@ class GridCanvas:
         self.handlers = [ self.pg.session.triggers.add_handler(SELECTION_CHANGED, self.update_selection) ]
 
     def alignment_notification(self, note_name, note_data):
-        import sys
-        print("canvas notification", note_name, file=sys.__stderr__)
         alignment = self.alignment
         if note_name == alignment.NOTE_MOD_ASSOC:
             self.update_selection()
@@ -160,6 +158,7 @@ class GridCanvas:
                 self.hide_header(hdr)
         elif hdr.shown:
             #TODO
+            raise NotImplementedError("Updating header label/values not implemented")
             if note_name == self.alignment.NOTE_HDR_VALUES:
                 if bounds is None:
                     bounds = (0, len(hdr)-1)
@@ -179,9 +178,17 @@ class GridCanvas:
             handler.remove()
 
     def hide_header(self, header):
-        raise NotImplementedError("hide_header")
-        self.lead_block.hide_header(header)
-        self.sv.region_browser.redraw_regions()
+        header_group = self.header_groups[header]
+        del self.header_groups[header]
+        for item in header_group.childItems():
+            item.hide()
+            self.header_scene.removeItem(item)
+        self.header_scene.destroyItemGroup(header_group)
+        label_item = self.header_label_items[header]
+        del self.header_label_items[header]
+        label_item.hide()
+        self.header_label_scene.removeItem(label_item)
+        self.displayed_headers.remove(header)
         self._update_scene_rects()
 
     def layout_alignment(self):
@@ -220,6 +227,7 @@ class GridCanvas:
             y += height
         self.header_groups = {}
         self.header_label_items = {}
+        self.displayed_headers = []
         for hdr in self.alignment.headers:
             if hdr.shown:
                 self.show_header(hdr)
@@ -288,14 +296,14 @@ class GridCanvas:
         self.main_scene.update()
 
     def show_header(self, header):
+        self.displayed_headers.append(header)
         width, height = self.font_pixels
-        if not self.header_groups:
-            y = 0
-        else:
-            y = max([grp.boundingRect().y() for grp in self.header_groups.values()]) + height
-        import sys
-        print("show header", header.name, "at", y, file=sys.__stderr__)
         x = width / 2
+        #if not self.header_groups:
+        #    y = 0
+        #else:
+        #    y = max([grp.boundingRect().y() for grp in self.header_groups.values()]) + height + 2
+        y = len(self.header_groups) * height
         items = []
         if hasattr(header, 'depiction_val'):
             val_func = lambda i, hdr=header: hdr.depiction_val(i)
@@ -309,11 +317,11 @@ class GridCanvas:
             if isinstance(val, str):
                 text = self.header_scene.addSimpleText(val, font=self.font)
                 rect = text.sceneBoundingRect()
-                text.setPos(x - rect.width()/2, y - rect.height())
+                text.setPos(x - rect.width()/2, y+2)
                 text.setBrush(QBrush(color))
                 items.append(text)
             elif val != None and val > 0.0:
-                items.append(self.header_scene.addRect(x - width/2, y - height, width, -val * height,
+                items.append(self.header_scene.addRect(x - width/2, y+height, width, -val * height,
                     brush=QBrush(color)))
             x += width
 
