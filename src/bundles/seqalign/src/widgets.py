@@ -131,4 +131,3 @@ class AlignSeqMenuOption(Option):
     def _make_widget(self, **kw):
         self.widget = AlignSeqMenuButton(self.alignment, **kw)
         return self.widget
-
