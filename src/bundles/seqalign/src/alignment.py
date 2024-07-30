@@ -178,6 +178,34 @@ class Alignment(State):
         header.shown = shown
         return header
 
+    def add_headers_menu_entry(self, menu):
+        headers_menu = menu.addMenu("Headers")
+        headers = self.headers
+        headers.sort(key=lambda hdr: hdr.ident.casefold())
+        from chimerax.core.commands import run, StringArg
+        align_arg = "%s " % self if len(self.session.alignments.alignments) > 1 else ""
+        from Qt.QtGui import QAction
+        for hdr in headers:
+            action = QAction(hdr.name, headers_menu)
+            action.setCheckable(True)
+            action.setChecked(hdr.shown)
+            if not hdr.relevant:
+                action.setEnabled(False)
+            action.triggered.connect(lambda *, action=action, hdr=hdr, align_arg=align_arg, ses=self.session:
+                run(ses, "seq header %s%s %s" % (align_arg, hdr.ident,
+                "show" if action.isChecked() else "hide")))
+            headers_menu.addAction(action)
+        headers_menu.addSeparator()
+        hdr_save_menu = headers_menu.addMenu("Save")
+        for hdr in headers:
+            if not hdr.relevant:
+                continue
+            action = QAction(hdr.name, hdr_save_menu)
+            action.triggered.connect(lambda *, hdr=hdr, align_arg=align_arg, ses=self.session: run(
+                ses, "seq header %s%s save browse" % (align_arg, hdr.ident)))
+            hdr_save_menu.addAction(action)
+        return headers_menu
+
     def add_observer(self, observer):
         """Called by objects that care about alignment changes that are not themselves viewer
            (e.g. alignment headers).  Most of the documentation for attach_viewer() applies."""
