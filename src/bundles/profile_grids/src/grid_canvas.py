@@ -33,7 +33,7 @@ class GridCanvas:
         import numpy
         self.empty_rows = numpy.where(~self.grid_data.any(axis=1))[0]
         self.existing_row_labels = [rl for i, rl in enumerate(self.row_labels) if i not in self.empty_rows]
-        from Qt.QtGui import QFont, QFontMetrics
+        from Qt.QtGui import QFont, QFontMetrics, QPalette
         self.font = QFont("Helvetica")
         self.font_metrics = QFontMetrics(self.font)
         self.max_label_width = 0
@@ -41,6 +41,12 @@ class GridCanvas:
             if i in self.empty_rows:
                 continue
             self.max_label_width = max(self.max_label_width, self.font_metrics.horizontalAdvance(text + ' '))
+        self.max_main_label_width = self.max_label_width
+
+        #palette = QPalette()
+        #palette.setColor(QPalette.Window, Qt.white)
+        #parent.setAutoFillBackground(True)
+        #parent.setPalette(palette)
 
         self.main_label_scene = QGraphicsScene()
         """
@@ -48,7 +54,7 @@ class GridCanvas:
         """
         self.main_label_scene.setBackgroundBrush(Qt.white)
         self.main_label_view = QGraphicsView(self.main_label_scene)
-        self.main_label_view.setMaximumWidth(self.max_label_width)
+        self.main_label_view.setAlignment(Qt.AlignRight|Qt.AlignTop)
         self.main_label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         self.header_scene = QGraphicsScene()
         """
@@ -57,7 +63,17 @@ class GridCanvas:
         self.header_scene.setBackgroundBrush(Qt.white)
         self.header_view = QGraphicsView(self.header_scene)
         self.header_view.setAttribute(Qt.WA_AlwaysShowToolTips)
+        self.header_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.header_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.header_view.setAlignment(Qt.AlignLeft|Qt.AlignBottom)
+        self.header_label_scene = QGraphicsScene()
+        """
+        self.header_label_scene.setBackgroundBrush(Qt.lightGray)
+        """
+        self.header_label_scene.setBackgroundBrush(Qt.white)
+        self.header_label_view = QGraphicsView(self.header_label_scene)
+        self.header_label_view.setAlignment(Qt.AlignRight|Qt.AlignBottom)
+        self.header_label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
 
         self.main_scene = QGraphicsScene()
         self.main_scene.setBackgroundBrush(Qt.white)
@@ -96,11 +112,10 @@ class GridCanvas:
         layout = QGridLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
+        layout.addWidget(self.header_label_view, 0, 0, alignment=Qt.AlignRight | Qt.AlignBottom)
         layout.addWidget(self.header_view, 0, 1, alignment=Qt.AlignLeft | Qt.AlignBottom)
         layout.addWidget(self.main_label_view, 1, 0, alignment=Qt.AlignRight | Qt.AlignTop)
         layout.addWidget(self.main_view, 1, 1, alignment=Qt.AlignLeft | Qt.AlignTop)
-        from Qt.QtWidgets import QLabel
-        layout.addWidget(QLabel("test"), 0, 0)
         layout.setColumnStretch(0, 0)
         layout.setColumnStretch(1, 1)
         layout.setRowStretch(0, 0)
@@ -116,46 +131,48 @@ class GridCanvas:
         self.handlers = [ self.pg.session.triggers.add_handler(SELECTION_CHANGED, self.update_selection) ]
 
     def alignment_notification(self, note_name, note_data):
+        import sys
+        print("canvas notification", note_name, file=sys.__stderr__)
         alignment = self.alignment
         if note_name == alignment.NOTE_MOD_ASSOC:
             self.update_selection()
         '''
-        if hasattr(self, 'lead_block'):
-            if note_name == self.alignment.NOTE_REF_SEQ:
-                self.lead_block.rerule()
-            elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
-                self.refresh(note_data)
-            elif note_name == self.alignment.NOTE_REALIGNMENT:
-                # headers are notified before us, so they should be "ready to go"
-                self.sv.region_browser.clear_regions()
-                self._reformat()
-            if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
-                    self.alignment.NOTE_HDR_NAME):
-                return
-            if type(note_data) == tuple:
-                hdr, bounds = note_data
-            else:
-                hdr = note_data
-            if note_name == self.alignment.NOTE_HDR_SHOWN:
-                if hdr.shown:
-                    self.show_header(hdr)
-                else:
-                    self.hide_header(hdr)
-            elif hdr.shown:
-                if note_name == self.alignment.NOTE_HDR_VALUES:
-                    if bounds is None:
-                        bounds = (0, len(hdr)-1)
-                    self.lead_block.refresh(hdr, *bounds)
-                    self.main_scene.update()
-                elif note_name == self.alignment.NOTE_HDR_NAME:
-                    if self.label_width == _find_label_width(self.alignment.seqs +
-                            [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
-                            self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
-                        self.lead_block.replace_label(hdr)
-                        self.main_label_scene.update()
-                    else:
-                        self._reformat()
+        if note_name == self.alignment.NOTE_REF_SEQ:
+            self.lead_block.rerule()
+        elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
+            self.refresh(note_data)
+        elif note_name == self.alignment.NOTE_REALIGNMENT:
+            # headers are notified before us, so they should be "ready to go"
+            self.sv.region_browser.clear_regions()
+            self._reformat()
         '''
+        if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
+                self.alignment.NOTE_HDR_NAME):
+            return
+        if type(note_data) == tuple:
+            hdr, bounds = note_data
+        else:
+            hdr = note_data
+        if note_name == self.alignment.NOTE_HDR_SHOWN:
+            if hdr.shown:
+                self.show_header(hdr)
+            else:
+                self.hide_header(hdr)
+        elif hdr.shown:
+            #TODO
+            if note_name == self.alignment.NOTE_HDR_VALUES:
+                if bounds is None:
+                    bounds = (0, len(hdr)-1)
+                self.lead_block.refresh(hdr, *bounds)
+                self.main_scene.update()
+            elif note_name == self.alignment.NOTE_HDR_NAME:
+                if self.label_width == _find_label_width(self.alignment.seqs +
+                        [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
+                        self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
+                    self.lead_block.replace_label(hdr)
+                    self.main_label_scene.update()
+                else:
+                    self._reformat()
 
     def destroy(self):
         for handler in self.handlers:
@@ -202,6 +219,7 @@ class GridCanvas:
             label_text.moveBy((self.max_label_width - label_width) / 2, y + y_adjust)
             y += height
         self.header_groups = {}
+        self.header_label_items = {}
         for hdr in self.alignment.headers:
             if hdr.shown:
                 self.show_header(hdr)
@@ -275,10 +293,14 @@ class GridCanvas:
             y = 0
         else:
             y = max([grp.boundingRect().y() for grp in self.header_groups.values()]) + height
+        import sys
+        print("show header", header.name, "at", y, file=sys.__stderr__)
         x = width / 2
         items = []
-        val_func = lambda i, hdr=header: hdr.depiction_val(i) if hasattr(hdr, 'depiction_val') \
-            else lambda i, hdr=header: hdr[i]
+        if hasattr(header, 'depiction_val'):
+            val_func = lambda i, hdr=header: hdr.depiction_val(i)
+        else:
+            val_func = lambda i, hdr=header: hdr[i]
         from chimerax.alignment_headers import position_color_to_qcolor as qcolor
         from Qt.QtGui import QBrush
         for i in range(len(header)):
@@ -295,7 +317,12 @@ class GridCanvas:
                     brush=QBrush(color)))
             x += width
 
-        self.header_groups[header] = self.header_scene.createItemGroup(items);
+        self.header_groups[header] = group = self.header_scene.createItemGroup(items);
+        self.header_label_items[header] = label = self.header_label_scene.addSimpleText(header.name,
+            font=self.font)
+        label_rect = label.sceneBoundingRect()
+        group_rect = group.boundingRect()
+        label.setPos(-label_rect.width(), group_rect.y() - label_rect.height())
         self.header_view.show()
         self._update_scene_rects()
 
@@ -366,15 +393,6 @@ class GridCanvas:
         self.main_scene.setSceneRect(mbr.x(), y, mbr.width(), height)
         self.header_scene.setSceneRect(mr.x(), hbr.y(), mr.width(), hbr.height())
         from math import ceil
-        #from Qt.QtCore import QTimer
-        #QTimer.singleShot(100, lambda *args, view=self.header_view, val=ceil(hbr.height())+14: view.setFixedHeight(val))
-        #self.header_view.setFixedHeight(ceil(hbr.height()))
-        print("label boundng:", lbr.x(), lbr.y(), lbr.width(), lbr.height())
-        print("grid boundng:", mbr.x(), mbr.y(), mbr.width(), mbr.height())
-        print("header boundng:", hbr.x(), hbr.y(), hbr.width(), hbr.height())
-        sr = self.header_scene.sceneRect()
-        print("resulting header scene:", sr.x(), sr.y(), sr.width(), sr.height())
-        sh = self.header_view.sizeHint()
-        print("header view size hint:", sh.width(), sh.height())
-        vsh = self.header_view.viewportSizeHint()
-        print("header viewport size hint:", vsh.width(), vsh.height())
+        max_header_height = ceil(max(hbr.height(), self.header_label_scene.itemsBoundingRect().height())) + 7
+        self.header_view.setMaximumHeight(max_header_height)
+        self.header_label_view.setMaximumHeight(max_header_height)

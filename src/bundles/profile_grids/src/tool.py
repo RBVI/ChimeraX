@@ -39,7 +39,7 @@ class ProfileGridsTool(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=True, statusbar=True)
         self.tool_window._dock_widget.setMouseTracking(True)
-        #self.tool_window.fill_context_menu = self.fill_context_menu
+        self.tool_window.fill_context_menu = self.fill_context_menu
         self.status = self.tool_window.status
         parent = self.tool_window.ui_area
         parent.setMouseTracking(True)
@@ -67,6 +67,8 @@ class ProfileGridsTool(ToolInstance):
         self.tool_window.manage('side')
 
     def alignment_notification(self, note_name, note_data):
+        import sys
+        print("tool notification", note_name, file=sys.__stderr__)
         alignment = self.alignment
         if note_name == alignment.NOTE_DESTROYED:
             self.delete()
@@ -108,7 +110,8 @@ class ProfileGridsTool(ToolInstance):
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):
-        raise NotImplementedError("fill_context_menu")
+        self.alignment.add_headers_menu_entry(menu)
+        return
         from Qt.QtGui import QAction
         file_menu = menu.addMenu("File")
         save_as_menu = file_menu.addMenu("Save As")
