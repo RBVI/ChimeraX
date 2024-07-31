@@ -786,6 +786,7 @@ class _EarlyCollator(CollatingLog):
 
 
 def error_text_format(msg):
+    # msg should already be escaped with html.escape()
     from .colors import scheme_color
     color = scheme_color('error')
     # f'<p style="color:{color};font-weight:bold">{msg}</p>'
