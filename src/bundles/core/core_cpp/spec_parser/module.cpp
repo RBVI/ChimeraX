@@ -42,6 +42,7 @@ static PyObject* add_implied_bonds;
 static PyObject* session;
 static PyObject* models;
 static PyObject* combine_arg;
+static PyObject* invert_arg;
 static PyObject* list_arg;
 static std::string use_python_error("Use Python error");
 static bool add_implied, order_implicit_atoms;
@@ -194,7 +195,7 @@ static struct PyModuleDef spec_parser_def =
 
 static auto grammar = (R"---(
     atom_specifier <- as_term "&" atom_specifier / as_term "|" atom_specifier / as_term
-    as_term <- SELECTOR_NAME zone_selector?
+    as_term <- "(" atom_specifier ")" zone_selector? / "~" as_term zone_selector? / SELECTOR_NAME zone_selector?
     zone_selector <- ZONE_OPERATOR real_number / ZONE_OPERATOR integer
     SELECTOR_NAME <- < [a-zA-Z_][-+a-zA-Z0-9_]* >
     ZONE_OPERATOR <- "@>" | "@<" | ":>" | ":<" | "/>" | "/<" | "#>" | "#<"
@@ -242,6 +243,9 @@ PyMODINIT_FUNC PyInit__spec_parser()
     combine_arg = PyUnicode_FromString("combine");
     if (combine_arg == nullptr)
         return nullptr;
+    invert_arg = PyUnicode_FromString("invert");
+    if (invert_arg == nullptr)
+        return nullptr;
     list_arg = PyUnicode_FromString("list");
     if (list_arg == nullptr)
         return nullptr;
@@ -277,8 +281,18 @@ PyMODINIT_FUNC PyInit__spec_parser()
         for (auto tk: vs.tokens)
             std::cerr << " " << tk;
         std::cerr << "\n";
+        std::cerr << "choice: " << vs.choice() << "\n";
+        auto objects_inst = std::any_cast<PyObject*>(vs[0]);
+        if (vs.choice() == 1) {
+            // tilde
+            auto ret = PyObject_CallMethodObjArgs(objects_inst, invert_arg, session, models, nullptr);
+            if (ret == nullptr)
+                throw std::logic_error(use_python_error);
+            Py_DECREF(ret);
+        }
         if (vs.size() == 1)
-            return std::any_cast<PyObject*>(vs[0]);
+            return objects_inst;
+
         // there's a zone selector
         auto zone_info = std::any_cast<std::pair<std::string_view, float>>(vs[1]);
         auto zone_objects = new_objects_instance();
