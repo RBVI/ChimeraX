@@ -45,7 +45,7 @@ static PyObject* combine_arg;
 static PyObject* invert_arg;
 static PyObject* list_arg;
 static std::string use_python_error("Use Python error");
-static bool add_implied, order_implicit_atoms;
+static bool add_implied, order_implicit_atoms, outermost_inversion;
 
 static const char*
 docstr_evaluate = \
@@ -108,6 +108,7 @@ evaluate(PyObject *, PyObject *args)
     // logic_error for unexpected results from Python calls, e.g. add_implied_bonds throws an error
     // invalid_argument for parsing failure
     // runtime_error for basic failures like allocation failures or import failures
+    outermost_inversion = false;
     try {
 std::cerr << "Parsing text " << text << "\n";
         err_valid = false;
@@ -159,9 +160,16 @@ std::cerr << "Parsing text " << trial_text << "\n";
         auto ret = PyObject_CallOneArg(add_implied_bonds, returned_objects_instance);
         if (ret == nullptr) {
             Py_DECREF(ret);
+            Py_DECREF(returned_objects_instance);
             set_error_info(semantics_error_class, use_python_error);
             return nullptr;
         }
+    }
+    if (PyObject_SetAttrString(returned_objects_instance, "outermost_inversion",
+            outermost_inversion ? Py_True : Py_False) < 0) {
+        Py_DECREF(returned_objects_instance);
+        set_error_info(semantics_error_class, use_python_error);
+        return nullptr;
     }
     auto ret_val = PyTuple_New(3);
     if (ret_val == nullptr) {
@@ -263,6 +271,7 @@ PyMODINIT_FUNC PyInit__spec_parser()
         if (vs.choice() == 2) {
             results = left_objects;
         } else {
+            outermost_inversion = false;
             PyObject* op = vs.choice() == 0 ? objects_intersect : objects_union;
             auto right_objects = std::any_cast<PyObject*>(vs[1]);
             results = PyObject_CallFunctionObjArgs(op, left_objects, right_objects, nullptr);
@@ -289,7 +298,9 @@ PyMODINIT_FUNC PyInit__spec_parser()
             if (ret == nullptr)
                 throw std::logic_error(use_python_error);
             Py_DECREF(ret);
-        }
+            outermost_inversion = true;
+        } else
+            outermost_inversion = false;
         if (vs.size() == 1)
             return objects_inst;
 
