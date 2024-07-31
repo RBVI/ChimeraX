@@ -1581,20 +1581,6 @@ class SegmentationVolumePanel(Histogram_Pane):
 
         layout.addStretch(1)
 
-        # Close map button
-        cb = QPushButton(df)
-        cb.setAttribute(Qt.WA_LayoutUsesWidgetRect)  # Avoid extra padding on Mac
-        cb.setMaximumSize(20, 20)
-        cb.setFlat(True)
-        layout.addWidget(cb)
-        from chimerax.ui.icons import get_qt_icon
-
-        cb_icon = get_qt_icon("minus")
-        cb.setIcon(cb_icon)
-        cb.setIconSize(QSize(20, 20))
-        cb.clicked.connect(self.close_map_cb)
-        cb.setToolTip("Close data set")
-
         # Add histogram below row of controls
         h = self.make_histogram(f, histogram_height, new_marker_color=(1, 1, 1, 1))
         flayout.addWidget(h)
