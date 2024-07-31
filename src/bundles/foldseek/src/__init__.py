@@ -70,8 +70,12 @@ class _FoldseekBundle(BundleAPI):
     # Make class name to class for session restore
     @staticmethod
     def get_class(class_name):
-        if class_name == 'Foldseek':
-            from .gui import Foldseek
-            return Foldseek
+        if class_name == 'FoldseekPanel':
+            from .gui import FoldseekPanel
+            return FoldseekPanel
+        elif class_name == 'FoldseekResults':
+            from .foldseek import FoldseekResults
+            return FoldseekResults
+            
 
 bundle_api = _FoldseekBundle()

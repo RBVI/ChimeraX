@@ -26,11 +26,11 @@ def foldseek_traces(session, align_with = None, cutoff_distance = None, close_on
                     tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
-    if fp is None:
+    if fp is None or fp.results is None:
         return
     if cutoff_distance is None:
         cutoff_distance = fp.alignment_cutoff_distance
-    _show_backbone_traces(session, fp.hits, fp.results_query_chain, align_with = align_with,
+    _show_backbone_traces(session, fp.hits, fp.results.query_chain, align_with = align_with,
                           cutoff_distance = cutoff_distance, close_only = close_only,
                           tube = tube, radius = radius,
                           segment_subdivisions = segment_subdivisions,
