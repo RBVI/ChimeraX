@@ -26,10 +26,10 @@ def foldseek_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_
                      combine = True):
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
-    if fp is None:
+    if fp is None or fp.results is None:
         return
 
-    query_chain = fp.results_query_chain
+    query_chain = fp.results.query_chain
 
     keep_structs = []
     nhits = len(fp.hits)

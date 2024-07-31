@@ -26,14 +26,18 @@ def foldseek_umap(session, query_residues = None, align_with = None, cutoff_dist
                   cluster_count = None, cluster_distance = None, replace = True):
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
-    if fp is None:
+    if fp is None or fp.results is None:
         return
 
-    query_chain = fp.results_query_chain
+    query_chain = fp.results.query_chain
     if query_residues is None:
         from .foldseek import alignment_residues
         query_residues = alignment_residues(query_chain.existing_residues)
 
+    if len(query_residues) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('Must specify at least 1 residue to compute Foldseek clusters')
+    
     _show_umap(session, fp.hits, query_chain, query_residues,
                align_with = align_with, cutoff_distance = cutoff_distance,
                cluster_count = cluster_count, cluster_distance = cluster_distance,
@@ -44,8 +48,12 @@ def _show_umap(session, hits, query_chain, query_residues, align_with = None, cu
 
     coord_offsets, hit_names = _aligned_coords(hits, query_chain, query_residues,
                                                align_with = align_with, cutoff_distance = cutoff_distance)
+    if len(coord_offsets) == 0:
+        session.logger.error(f'Foldseek results contains no structures with all of the specified {len(query_residues)}')
+        return
 
-    from chimerax.diffplot.diffplot import _umap_embed, _plot_embedding
+    from chimerax.diffplot.diffplot import _umap_embed, _plot_embedding, _install_umap
+    _install_umap(session)
     umap_xy = _umap_embed(coord_offsets)
 
     if cluster_count:
@@ -197,6 +205,9 @@ def _change_cluster_color(structure_plot, node):
     structure_plot.draw_graph()  # Redraw nodes.
 
 def _cluster_by_distance(umap_xy, cluster_distance):
+    if len(umap_xy) <= 1:
+        from numpy import ones, int32
+        return ones((len(umap_xy),), int32)
     from scipy.cluster.hierarchy import linkage, fcluster
     Z = linkage(umap_xy)
     cluster_numbers = fcluster(Z, cluster_distance, criterion = 'distance')

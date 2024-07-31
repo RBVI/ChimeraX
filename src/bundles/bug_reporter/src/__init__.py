@@ -41,8 +41,8 @@ class _BugReporterAPI(BundleAPI):
             crash_report.register_log_recorder(session)
 
         # Add Report a Bug to Help menu
-        from . import bug_reporter_gui
-        bug_reporter_gui.add_help_menu_entry(session)
+        from . import tool
+        tool.add_help_menu_entry(session)
 
 bundle_api = _BugReporterAPI()
 
