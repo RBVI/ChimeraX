@@ -1,7 +1,7 @@
-# vim: set expandtab ts=4 sw=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2022 Regents of the University of California. All rights reserved.
+# Copyright 2024 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
 # <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
@@ -22,28 +22,22 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.toolshed import BundleAPI
+__version__ = "1.0"
 
-class _BugReporterAPI(BundleAPI):
+from chimerax.core.toolshed import BundleAPI
+from chimerax.core.tools import get_singleton
+from chimerax.lighting_gui.tool import LightingGUI
+
+class _LightingGUI(BundleAPI):
+    api_version=1
 
     @staticmethod
-    def initialize(session, bundle_info):
-        '''
-        Check crash logs at startup and register faulthandler
-        and the log recording temporary file to record if the
-        current session crashes.
-        '''
-        from sys import platform
-        if platform != 'win32':
-            from . import crash_report
-            crash_report.check_for_crash(session)
-            crash_report.register_signal_handler(session)
-            crash_report.register_log_recorder(session)
+    def get_class(class_name):
+        class_names = { "LightingGUI": LightingGUI }
+        return class_names.get(class_name, None)
 
-        # Add Report a Bug to Help menu
-        from . import tool
-        tool.add_help_menu_entry(session)
+    @staticmethod
+    def start_tool(session, bi, ti):
+        return get_singleton(session, LightingGUI, "Lighting GUI")
 
-bundle_api = _BugReporterAPI()
-
-from .bug_reporter_gui import show_bug_reporter, system_summary, opengl_info
+bundle_api = _LightingGUI()

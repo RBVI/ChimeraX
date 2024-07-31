@@ -605,8 +605,9 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
             char aloc = a->alt_loc();	// Remember original alt loc.
             for (auto ali = alocs.begin() ; ali != alocs.end() ; ++ali) {
                 char al = *ali;
-                a->set_alt_loc(al);
-                ca->set_alt_loc(al, true);
+                // set "from residue" true so avoid setting "related" alt locs
+                a->set_alt_loc(al, false, true);
+                ca->set_alt_loc(al, true, true);
                 auto crd = a->coord();
                 if (coord_adjust != nullptr)
                     crd = crd.mat_mul(coord_adjust);
@@ -614,8 +615,8 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
                 ca->set_bfactor(a->bfactor());
                 ca->set_occupancy(a->occupancy());
             }
-            a->set_alt_loc(aloc);	// Restore original alt loc.
-            ca->set_alt_loc(aloc);
+            a->set_alt_loc(aloc, false, true);	// Restore original alt loc.
+            ca->set_alt_loc(aloc, false, true);
         } else {
             ca->set_bfactor(a->bfactor());
             ca->set_occupancy(a->occupancy());
@@ -922,7 +923,7 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
         }
     }
     if (res_removals.size() > 0) {
-        if (_chains != nullptr) {
+        if (chains_made()) {
             std::map<Chain*, std::set<Residue*>> chain_res_removals;
             for (auto r: res_removals)
                 if (r->chain() != nullptr) {

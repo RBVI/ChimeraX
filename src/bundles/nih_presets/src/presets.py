@@ -94,7 +94,7 @@ print_ribbon = [
     #"size hbonds pseudobondRadius 0.6",
     "size pseudobondRadius 0.6",
     # ribbons need to be up to date for struts to work right
-    "wait 1; struts @ca|ligand|P length 8 loop 60 rad 0.75 color struts_grey",
+    "wait 1; struts (@ca|ligand|P)&(@@display|::ribbon_display) length 8 loop 60 rad 0.75 color struts_grey",
     "~struts @PB,PG resetRibbon false",
     "~struts adenine|cytosine|guanine|thymine|uracil resetRibbon false",
     #"color struts_grey pseudobonds",

@@ -29,7 +29,7 @@ def get_bin() -> str:
     return os.path.join(os.path.dirname(__file__), "bin")
 
 from .header_sequence import HeaderSequence, FixedHeaderSequence, DynamicHeaderSequence, \
-    DynamicStructureHeaderSequence
+    DynamicStructureHeaderSequence, position_color_to_qcolor
 
 from chimerax.core.toolshed import BundleAPI
 
