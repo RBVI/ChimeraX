@@ -102,7 +102,8 @@ class BugReporter(ToolInstance):
         dl.setAlignment(align_right)
         layout.addWidget(dl, row, 1)
         self.description = d = TextEdit('', 3)
-        d.setText('<font color=blue>(Describe the actions that caused this problem to occur here)</font>')
+        d.setPlainText("Replace this text with list of actions that caused this problem to occur")
+        d.selectAll()
         layout.addWidget(d, row, 2)
         row += 1
 
@@ -203,6 +204,7 @@ class BugReporter(ToolInstance):
 
     def set_description(self, text):
         self.description.setText(text)
+        self.description.selectAll()
 
     def submit(self):
 
@@ -295,29 +297,37 @@ class BugReporter(ToolInstance):
             file_list = []
         return file_list
 
-    def status(self, text, color = None):
+    def status(self, text, color=None):
+        from html import escape
+        text = escape(text)
         if color is not None:
-            text = '<font color="%s">%s</font>' % (color, text)
+            text = "<font color='{color}'>{text}</font>"
         self.result.setText(text)
         
     def report_success(self):
-        thanks = ("<font color=blue><h3>Thank you for your report.</h3></font>"
+        from chimerax.core.colors import scheme_color
+        color = scheme_color('status')
+        thanks = (f"<h3><font color='{color}'>Thank you for your report</font></h3>"
                 "<p>Your report will be evaluated by a Chimera developer"
                 " and if you provided an e-mail address,"
                 " then you will be contacted with a report status.")
         self.result.setText(thanks)
 
     def report_failure(self, reason = None):
+        from chimerax.core.colors import scheme_color
+        color = scheme_color("error")
+        link = scheme_color("LinkText", expand=True)
         detail = ('<p>%s</p>' % reason) if reason else ''
         
-        oops = ("<font color=red><h3>Error while submitting feedback.</h3></font>"
+        # QLabel doesn't support <a> nor LinkText color
+        oops = (f"<h3><font color='{color}'>Error while submitting feedback</font></h3>"
                 + detail +
                 "<p>An error occurred when trying to submit your feedback."
                 "  No information was received by the Computer Graphics Lab."
                 "  This could be due to network problems, but more likely,"
                 " there is a problem with Computer Graphics Lab's server."
                 "  Please report this problem by sending email to"
-                " <font color=\"blue\">chimerax-bugs@cgl.ucsf.edu</font>"
+                " <font color='{link}'>chimerax-bugs@cgl.ucsf.edu</font>"
                 " and paste a copy of the ChimeraX log into the email.</p>"
                 "<p>We apologize for any inconvenience, and do appreciate"
                 " you taking the time to provide us with valuable feedback.")
@@ -349,8 +359,12 @@ class BugReporter(ToolInstance):
         return values
 
 def show_bug_reporter(session):
+    from Qt.QtCore import QTimer
     tool_name = 'Bug Reporter'
     tool = BugReporter(session, tool_name)
+    # make sure bug report is active and description has focus
+    QTimer.singleShot(0, lambda *args, tool=tool:
+          (tool.tool_window.ui_area.activateWindow(), tool.description.setFocus()))
     return tool
 
 def add_help_menu_entry(session):
