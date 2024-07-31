@@ -137,6 +137,8 @@ def fill_context_menu(self, menu, item):
                             lambda self=self, item=item: _change_cluster_color(self, item))
     self.add_menu_entry(menu, 'Color traces to match plot',
                         lambda self=self: _color_traces(self))
+    self.add_menu_entry(menu, 'Show one trace per cluster',
+                        lambda self=self: _show_one_trace_per_cluster(self))
     self.add_menu_entry(menu, 'Show traces not on plot',
                         lambda self=self: _show_unplotted_traces(self))
     self.add_menu_entry(menu, 'Hide traces not on plot',
@@ -170,6 +172,34 @@ def _show_traces(session, names, show = True, other = False):
             if change:
                 tmask[tstart:tend] = show
         tmodel.triangle_mask = tmask
+
+def _show_one_trace_per_cluster(structure_plot):
+    cnames = _cluster_center_names(structure_plot)
+    _show_traces(structure_plot.session, cnames)
+    _show_traces(structure_plot.session, cnames, show = False, other = True)
+
+def _cluster_center_names(structure_plot):
+    cnodes = _nodes_by_color(structure_plot.nodes).values()
+    center_names = []
+    from numpy import array, float32, argmin
+    for nodes in cnodes:
+        umap_xy = array([n.position[:2] for n in nodes], float32)
+        center = umap_xy.mean(axis = 0)
+        umap_xy -= center
+        d2 = (umap_xy * umap_xy).sum(axis = 1)
+        i = argmin(d2)
+        center_names.append(nodes[i].name)
+    return center_names
+
+def _nodes_by_color(nodes):
+    c2n = {}
+    for n in nodes:
+        color = n.color
+        if color in c2n:
+            c2n[color].append(n)
+        else:
+            c2n[color] = [n]
+    return c2n
 
 def _show_unplotted_traces(structure_plot):
     _show_traces(structure_plot.session, [n.name for n in structure_plot.nodes],
