@@ -1,7 +1,7 @@
 name: Nightly Build
 on:
   schedule:
-    - cron: '30 10 * * *' # 2:30AM PT/10:30AM UTC
+    - cron: "30 10 * * *" # 2:30AM PT/10:30AM UTC
 
 jobs:
   build-ubuntu:
@@ -32,6 +32,7 @@ jobs:
       - run: dnf update -y
       - run: dnf install -y git-all
       - uses: actions/checkout@v3
+      - run: git config --global --add safe.directory ${PWD}
       - run: ${PWD}/utils/set_up_centos.sh
       - run: source /opt/rh/gcc-toolset-10/enable && make -f Makefile.centos install
   build-rocky9-docker:
@@ -47,6 +48,7 @@ jobs:
       - run: dnf update -y
       - run: dnf install -y git-all
       - uses: actions/checkout@v3
+      - run: git config --global --add safe.directory ${PWD}
       - run: ${PWD}/utils/set_up_centos.sh
       - run: make -f Makefile.centos install
   # TODO: Build Generic Linux
