@@ -2683,6 +2683,7 @@ class _Qt:
             self.dock_widget.show()
             #ensure it's on top
             self.dock_widget.raise_()
+            self.dock_widget.activateWindow()
         else:
             self.dock_widget.hide()
 
