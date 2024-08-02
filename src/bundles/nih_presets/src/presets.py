@@ -440,7 +440,9 @@ def run_preset(session, name, mgr):
             spec_lookup = None
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + \
             surface_cmds(session, True, sharp=True, spec_lookup=spec_lookup) + [
-            f"alphafold pae {struct_spec} colorDomains true", f"color {struct_spec} fromAtoms" ]
+            f"alphafold pae {struct_spec} colorDomains true",
+            f"color {struct_spec} & ~::pae_domain light gray",
+            f"color {struct_spec} fromAtoms" ]
     elif name == "sticks":
         cmd = undo_printable + base_setup + color_by_het + [
             "style stick",
