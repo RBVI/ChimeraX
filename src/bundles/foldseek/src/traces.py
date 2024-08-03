@@ -22,7 +22,8 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek_traces(session, align_with = None, cutoff_distance = None, close_only = 4.0,
+def foldseek_traces(session, align_with = None, cutoff_distance = None,
+                    close_only = 4.0, min_residues = 2,
                     tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
@@ -31,12 +32,14 @@ def foldseek_traces(session, align_with = None, cutoff_distance = None, close_on
     if cutoff_distance is None:
         cutoff_distance = fp.alignment_cutoff_distance
     _show_backbone_traces(session, fp.hits, fp.results.query_chain, align_with = align_with,
-                          cutoff_distance = cutoff_distance, close_only = close_only,
+                          cutoff_distance = cutoff_distance,
+                          close_only = close_only, min_residues = min_residues,
                           tube = tube, radius = radius,
                           segment_subdivisions = segment_subdivisions,
                           circle_subdivisions = circle_subdivisions)
 
-def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_distance = 2.0, close_only = 4.0,
+def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_distance = 2.0,
+                          close_only = 4.0, min_residues = 2,
                           tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
     from .foldseek import alignment_residues, hit_coords, hit_residue_pairing, align_xyz_transform
     qres = alignment_residues(query_chain.existing_residues)
@@ -65,17 +68,18 @@ def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_
             aqxyz = qxyz[mask,:]
         p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=cutoff_distance)
         hxyz_aligned = p.transform_points(hxyz)
-        breaks = ((hi[1:] - hi[:-1]) > 1).nonzero()[0]
+        breaks = _distant_c_alpha_breaks(hxyz)
+#        breaks = ((hi[1:] - hi[:-1]) > 1).nonzero()[0]
         if close_only is not None and close_only > 0:
             cmask = _close_mask(hxyz_aligned, qxyz, close_only)
             hxyz_aligned = hxyz_aligned[cmask]
             breaks = _mask_breaks(cmask, breaks)
-        trace_name = hit['database_full_id']
-        traces.append(trace_name)
-        if len(breaks) > 0:
-            traces.extend(_break_chain(hxyz_aligned, breaks))
-        else:
-            traces.append(hxyz_aligned)
+        hit_traces = _break_chain(hxyz_aligned, breaks) if len(breaks) > 0 else [hxyz_aligned]
+        hit_traces = [t for t in hit_traces if len(t) >= min_residues and len(t) >= 2]
+        if len(hit_traces) > 0:
+            trace_name = hit['database_full_id']
+            traces.append(trace_name)
+            traces.extend(hit_traces)
 
     if len(traces) == 0:
         return None	# No hits had enough alignment atoms.
@@ -91,6 +95,12 @@ def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_
     session.models.add([surf])
     print (f'{surf.trace_count} traces have {len(surf.vertices)} vertices')
     return surf
+
+def _distant_c_alpha_breaks(hxyz, max_distance = 5):
+    d = hxyz[1:,:] - hxyz[:-1,:]
+    d2 = (d*d).sum(axis = 1)
+    breaks = (d2 > max_distance*max_distance).nonzero()[0]
+    return breaks
 
 def _create_line_traces_model(session, traces):
     vertices, lines, names = _line_traces(traces)
@@ -164,12 +174,10 @@ def _break_chain(xyz, break_after_indices):
     pieces = []
     b0 = 0
     for b in break_after_indices:
-        if b > b0:  # Exclude pieces of length 1
-            pieces.append(xyz[b0:b+1,:])
+        pieces.append(xyz[b0:b+1,:])
         b0 = b+1
     # Append last piece
-    if len(xyz) > b0:
-        pieces.append(xyz[b0:,:])
+    pieces.append(xyz[b0:,:])
     return pieces
 
 def _mask_breaks(mask, breaks):
@@ -322,6 +330,7 @@ def register_foldseek_traces_command(logger):
         keyword = [('align_with', ResiduesArg),
                    ('cutoff_distance', FloatArg),
                    ('close_only', FloatArg),
+                   ('min_residues', IntArg),
                    ('tube', BoolArg),
                    ('radius', FloatArg),
                    ('segment_subdivisions', IntArg),
