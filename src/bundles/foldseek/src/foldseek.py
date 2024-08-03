@@ -1109,7 +1109,7 @@ def foldseek_open(session, hit_name, trim = None, align = True, alignment_cutoff
                      in_file_history = in_file_history, log = log)
             break
 
-def foldseek_show(session, hit_name):
+def foldseek_scroll_to(session, hit_name):
     '''Show table row for this hit.'''
     hit, panel = _foldseek_hit_by_name(session, hit_name)
     if hit:
@@ -1218,7 +1218,7 @@ def register_foldseek_command(logger):
         required = [('hit_name', StringArg)],
         synopsis = 'Show Foldseek result table row'
     )
-    register('foldseek show', desc, foldseek_show, logger=logger)
+    register('foldseek scrollto', desc, foldseek_scroll_to, logger=logger)
 
     desc = CmdDesc(
         required = [('hit_structure', StructureArg)],
