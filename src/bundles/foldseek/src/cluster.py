@@ -166,18 +166,8 @@ def _hide_cluster_traces(structure_plot, node):
     _show_traces(structure_plot.session, _cluster_names(structure_plot, node), show = False)
 
 def _show_traces(session, names, show = True, other = False):
-    tmodels = _foldseek_trace_models(session)
-    names_set = set(names)
-    for tmodel in tmodels:
-        tmask = tmodel.triangle_mask
-        if tmask is None:
-            from numpy import ones
-            tmask = ones((len(tmodel.triangles),), bool)
-        for name, tstart, tend in tmodel.trace_triangle_ranges():
-            change = (name not in names_set) if other else (name in names_set)
-            if change:
-                tmask[tstart:tend] = show
-        tmodel.triangle_mask = tmask
+    for tmodel in _foldseek_trace_models(session):
+        tmodel.show_traces(names, show=show, other=other)
 
 def _show_one_trace_per_cluster(structure_plot):
     cnames = _cluster_center_names(structure_plot)

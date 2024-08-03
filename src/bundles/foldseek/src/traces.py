@@ -231,6 +231,19 @@ class FoldseekTraces(Surface):
         from numpy import concatenate
         trace_end_triangle = concatenate((self._trace_start_triangle[1:], [len(self.triangles)+1]))
         return zip(self._trace_names, self._trace_start_triangle, trace_end_triangle)
+    def show_traces(self, names, show = True, other = False):
+        names_set = set(names)
+        tmask = self.triangle_mask
+        if tmask is None:
+            from numpy import ones
+            tmask = ones((len(self.triangles),), bool)
+        for name, tstart, tend in self.trace_triangle_ranges():
+            change = (name not in names_set) if other else (name in names_set)
+            if change:
+                tmask[tstart:tend] = show
+        self.triangle_mask = tmask
+    def show_all_traces(self):
+        self.triangle_mask = None
 
 from chimerax.core.models import PickedModel
 class PickedFoldseekTrace(PickedModel):
@@ -251,22 +264,44 @@ class FoldseekHitMenuEntry(SelectContextMenuAction):
     def __init__(self, action, menu_text):
         self.action = action
         self.menu_text = menu_text
-    def label(self, ses):
-        hname = self._hit_name(ses)
-        return self.menu_text % hname
-    def criteria(self, ses):
-        return self._hit_name(ses) is not None
+    def label(self, session):
+        hname = self._hit_name(session)
+        label = self.menu_text
+        if '%s' in label:
+            label = label % hname
+        return label
+    def criteria(self, session):
+        return self._hit_name(session) is not None
+    def callback(self, session):
+        hname = self._hit_name(session)
+        if not hname:
+            return
+        from chimerax.core.commands import run
+        a = self.action
+        if a == 'open':
+            run(session, f'foldseek open {hname}')            
+        elif a == 'scroll to':
+            run(session, f'foldseek scrollto {hname}')
+        elif a == 'show only':
+            self._show_only(session)
+        elif a == 'show all':
+            self._show_all(session)
     def _hit_name(self, session):
         for ft in session.models.list(type = FoldseekTraces):
             hname = ft.selected_hit
             if hname:
                 return hname
         return None
-    def callback(self, ses):
-        hname = self._hit_name(ses)
-        if hname:
-            from chimerax.core.commands import run
-            run(ses, f'foldseek {self.action} {hname}')
+    def _show_all(self, session):
+        for ft in session.models.list(type = FoldseekTraces):
+            if ft.selected_hit:
+                ft.show_all_traces()
+    def _show_only(self, session):
+        for ft in session.models.list(type = FoldseekTraces):
+            hname = ft.selected_hit
+            if hname:
+                ft.show_traces([hname])
+                ft.show_traces([hname], show=False, other=True)
     
 _registered_context_menu = False
 def register_context_menu():
@@ -274,7 +309,9 @@ def register_context_menu():
     if not _registered_context_menu:
         from chimerax.mouse_modes import SelectMouseMode
         SelectMouseMode.register_menu_entry(FoldseekHitMenuEntry('open', 'Open Foldseek hit %s'))
-        SelectMouseMode.register_menu_entry(FoldseekHitMenuEntry('show', 'Show %s in Foldseek results table'))
+        SelectMouseMode.register_menu_entry(FoldseekHitMenuEntry('scroll to', 'Show %s in Foldseek results table'))
+        SelectMouseMode.register_menu_entry(FoldseekHitMenuEntry('show only', 'Show only trace %s'))
+        SelectMouseMode.register_menu_entry(FoldseekHitMenuEntry('show all', 'Show all traces'))
         _registered_context_menu = True
     
 def register_foldseek_traces_command(logger):
