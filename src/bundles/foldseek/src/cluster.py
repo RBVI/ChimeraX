@@ -221,10 +221,37 @@ def _cluster_names(structure_plot, node):
     return [n.name for n in structure_plot.nodes if n.color == node.color]
 
 def _change_cluster_color(structure_plot, node):
+    _show_color_panel(structure_plot, node)
+
+_color_dialog = None
+def _show_color_panel(structure_plot, node):
+    global _color_dialog
+    cd = _color_dialog
+    if cd is None:
+        parent = structure_plot.tool_window.ui_area
+        from Qt.QtWidgets import QColorDialog
+        _color_dialog = cd = QColorDialog(parent)
+        cd.setOption(cd.NoButtons, True)
+    else:
+        # On Mac, Qt doesn't realize when the color dialog has been hidden by the red 'X' button, so
+        # "hide" it now so that Qt doesn't believe that the later show() is a no op.  Whereas on Windows
+        # doing a hide followed by a show causes the dialog to jump back to it's original screen
+        # position, so do the hide _only_ on Mac.
+        import sys
+        if sys.platform == "darwin":
+            cd.hide()
+        cd.currentColorChanged.disconnect()
+    from Qt.QtGui import QColor
+    cur_color = QColor.fromRgbF(*tuple(node.color))
+    cd.setCurrentColor(cur_color)
+    def use_color(color, *, structure_plot=structure_plot, node=node):
+        rgba = (color.redF(), color.greenF(), color.blueF(), color.alphaF())
+        _color_cluster(structure_plot, node, rgba)
+    cd.currentColorChanged.connect(use_color)
+    cd.show()
+
+def _color_cluster(structure_plot, node, color):
     cur_color = node.color
-    from chimerax.core.colors import distinguish_from
-    opacity = 1
-    color = distinguish_from([cur_color]) + (opacity,)
     for n in structure_plot.nodes:
         if n.color == cur_color:
             n.color = color
