@@ -43,9 +43,9 @@ class _FoldseekBundle(BundleAPI):
         elif command_name == 'foldseek traces':
             from . import traces
             traces.register_foldseek_traces_command(logger)
-        elif command_name == 'foldseek umap':
-            from . import umap
-            umap.register_foldseek_umap_command(logger)
+        elif command_name == 'foldseek cluster':
+            from . import cluster
+            cluster.register_foldseek_cluster_command(logger)
         elif command_name == 'foldseek ligands':
             from . import ligands
             ligands.register_foldseek_ligands_command(logger)

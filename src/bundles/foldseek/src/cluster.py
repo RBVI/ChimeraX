@@ -22,8 +22,8 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek_umap(session, query_residues = None, align_with = None, cutoff_distance = 2.0,
-                  cluster_count = None, cluster_distance = None, replace = True):
+def foldseek_cluster(session, query_residues = None, align_with = None, cutoff_distance = 2.0,
+                     cluster_count = None, cluster_distance = None, replace = True):
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
     if fp is None or fp.results is None:
@@ -65,6 +65,7 @@ def _show_umap(session, hits, query_chain, query_residues, align_with = None, cu
         cluster_numbers = _cluster_by_distance(umap_xy, cluster_distance)
         colors = _color_by_cluster(cluster_numbers)
     else:
+        cluster_numbers = None
         colors = None
 
     from chimerax.diffplot.diffplot import _plot_embedding
@@ -74,6 +75,11 @@ def _show_umap(session, hits, query_chain, query_residues, align_with = None, cu
     # Set the plot context menu to contain foldseek actions
     from types import MethodType
     p.fill_context_menu = MethodType(fill_context_menu, p)
+
+    msg = f'Clustered {len(hit_names)} of {len(hits)} hits that have the specified {len(query_residues)} residues'
+    if cluster_numbers is not None:
+        msg += f' into {max(cluster_numbers)} groups'
+    session.logger.info(msg)
 
 def _foldseek_trace_models(session):
     from .traces import FoldseekTraces
@@ -259,7 +265,7 @@ def _select_reference_atoms(structure_plot):
     struct.session.selection.clear()
     qatoms.selected = True
 
-def register_foldseek_umap_command(logger):
+def register_foldseek_cluster_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, IntArg
     from chimerax.atomic import ResiduesArg
     desc = CmdDesc(
@@ -271,4 +277,4 @@ def register_foldseek_umap_command(logger):
                    ('replace', BoolArg)],
         synopsis = 'Show umap plot of foldseek hit coordinates for specified residues.'
     )
-    register('foldseek umap', desc, foldseek_umap, logger=logger)
+    register('foldseek cluster', desc, foldseek_cluster, logger=logger)

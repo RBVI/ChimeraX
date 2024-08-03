@@ -67,7 +67,7 @@ class FoldseekPanel(ToolInstance):
                          ('Open', self._open_selected),
                          ('Sequences', self._show_sequences),
                          ('Traces', self._show_backbone_traces),
-                         ('Clusters', self._show_umap_plot),
+                         ('Clusters', self._show_cluster_plot),
                          ('Ligands', self._show_ligands),
                          ('Options', self._show_or_hide_options),
                          ('Help', self._show_help)],
@@ -269,7 +269,7 @@ class FoldseekPanel(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _show_umap_plot(self, *, nres = 10):
+    def _show_cluster_plot(self, *, nres = 10):
         r = self.results
         r.set_conservation_attribute()
         cr = [(res.foldseek_conservation, res) for res in r.query_residues]
@@ -279,7 +279,7 @@ class FoldseekPanel(ToolInstance):
         rspec = concise_residue_spec(self.session, most_conserved_res)
 
         from chimerax.core.commands import run
-        run(self.session, f'foldseek umap {rspec} clusterDistance 1.5')
+        run(self.session, f'foldseek cluster {rspec} clusterDistance 1.5')
 
     # ---------------------------------------------------------------------------
     #
