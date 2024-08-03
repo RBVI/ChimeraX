@@ -143,6 +143,8 @@ def fill_context_menu(self, menu, item):
                             lambda self=self, item=item: _change_cluster_color(self, item))
     self.add_menu_entry(menu, 'Color traces to match plot',
                         lambda self=self: _color_traces(self))
+    self.add_menu_entry(menu, 'Show all traces',
+                        lambda self=self: _show_all_traces(self))
     self.add_menu_entry(menu, 'Show one trace per cluster',
                         lambda self=self: _show_one_trace_per_cluster(self))
     self.add_menu_entry(menu, 'Show traces not on plot',
@@ -168,6 +170,10 @@ def _hide_cluster_traces(structure_plot, node):
 def _show_traces(session, names, show = True, other = False):
     for tmodel in _foldseek_trace_models(session):
         tmodel.show_traces(names, show=show, other=other)
+
+def _show_all_traces(structure_plot):
+    cnames = []
+    _show_traces(structure_plot.session, cnames, show = True, other = True)
 
 def _show_one_trace_per_cluster(structure_plot):
     cnames = _cluster_center_names(structure_plot)
