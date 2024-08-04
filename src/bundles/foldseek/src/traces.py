@@ -23,26 +23,22 @@
 # === UCSF ChimeraX Copyright ===
 
 def foldseek_traces(session, align_with = None, cutoff_distance = None,
-                    close_only = 4.0, min_residues = 2,
+                    close_only = 4.0, gap_distance_limit = 10.0, min_residues = 5,
                     tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
     if fp is None or fp.results is None:
         return
+
     if cutoff_distance is None:
         cutoff_distance = fp.alignment_cutoff_distance
-    _show_backbone_traces(session, fp.hits, fp.results.query_chain, align_with = align_with,
-                          cutoff_distance = cutoff_distance,
-                          close_only = close_only, min_residues = min_residues,
-                          tube = tube, radius = radius,
-                          segment_subdivisions = segment_subdivisions,
-                          circle_subdivisions = circle_subdivisions)
 
-def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_distance = 2.0,
-                          close_only = 4.0, min_residues = 2,
-                          tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
     from .foldseek import alignment_residues, hit_coords, hit_residue_pairing, align_xyz_transform
-    qres = alignment_residues(query_chain.existing_residues)
+    qchain = fp.results.query_chain
+    if qchain is None:
+        from chimerax.core.errors import UserError
+        raise UserError('Cannot position traces without query structure')
+    qres = alignment_residues(qchain.existing_residues)
     qatoms = qres.find_existing_atoms('CA')
     query_xyz = qatoms.coords
     if align_with is not None:
@@ -51,8 +47,10 @@ def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_
         if len(ai) < 3:
             from chimerax.core.errors import UserError
             raise UserError('Foldseek traces align_with specifies fewer than 3 aligned query atoms')
+
     traces = []
-    for hit in hits:
+    rtot = rshown = 0
+    for hit in fp.hits:
         hit_xyz = hit_coords(hit)
         hi, qi = hit_residue_pairing(hit)
         hxyz = hit_xyz[hi]
@@ -68,18 +66,23 @@ def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_
             aqxyz = qxyz[mask,:]
         p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=cutoff_distance)
         hxyz_aligned = p.transform_points(hxyz)
-        breaks = _distant_c_alpha_breaks(hxyz)
-#        breaks = ((hi[1:] - hi[:-1]) > 1).nonzero()[0]
+        fragments = _distant_c_alpha_fragments(hxyz_aligned)
         if close_only is not None and close_only > 0:
-            cmask = _close_mask(hxyz_aligned, qxyz, close_only)
-            hxyz_aligned = hxyz_aligned[cmask]
-            breaks = _mask_breaks(cmask, breaks)
-        hit_traces = _break_chain(hxyz_aligned, breaks) if len(breaks) > 0 else [hxyz_aligned]
-        hit_traces = [t for t in hit_traces if len(t) >= min_residues and len(t) >= 2]
+            cfrags = []
+            for start,end in fragments:
+                cfrags.extend(_close_fragments(hxyz_aligned[start:end], qxyz[start:end],
+                                               close_only, keep_gap_distance=gap_distance_limit, offset=start))
+            fragments = cfrags
+        min_res = max(2, min_residues)
+        fragments = [(s,e) for s,e in fragments if e-s >= min_res]
+        hit_traces = [hxyz_aligned[start:end] for start,end in fragments]
         if len(hit_traces) > 0:
             trace_name = hit['database_full_id']
             traces.append(trace_name)
             traces.extend(hit_traces)
+            rtot += len(hi)
+            for s,e in fragments:
+                rshown += e-s
 
     if len(traces) == 0:
         return None	# No hits had enough alignment atoms.
@@ -91,17 +94,47 @@ def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_
     else:
         surf = _create_line_traces_model(session, traces)
 
-    surf.position = query_chain.structure.scene_position
+    surf.position = fp.results.query_chain.structure.scene_position
     session.models.add([surf])
-    print (f'{surf.trace_count} traces have {len(surf.vertices)} vertices')
+    msg = f'{surf.trace_count} traces showing {rshown} residues with {rtot-rshown} far or short segment residues hidden'
+    session.logger.info(msg)
     return surf
 
-def _distant_c_alpha_breaks(hxyz, max_distance = 5):
+def _distant_c_alpha_fragments(hxyz, max_distance = 5):
     d = hxyz[1:,:] - hxyz[:-1,:]
     d2 = (d*d).sum(axis = 1)
     breaks = (d2 > max_distance*max_distance).nonzero()[0]
-    return breaks
+    fragments = []
+    start = 0
+    for b in breaks:
+        fragments.append((start, b+1))
+        start = b+1
+    fragments.append((start, len(hxyz)))
+    return fragments
 
+def _close_fragments(xyz, ref_xyz, distance, offset = 0, keep_gap_distance = None):
+    d = xyz - ref_xyz
+    d2 = (d*d).sum(axis = 1)
+    mask = (d2 <= distance*distance)
+    if keep_gap_distance is not None:
+        n = len(xyz)
+        keep_dist2 = keep_gap_distance * keep_gap_distance
+        for start, end in _mask_intervals(~mask):
+            if start > 0 and end < n and d2[start:end].max() <= keep_dist2:
+                mask[start:end] = True  # Keep interior interval if largest distance is not too large.
+    fragments = _mask_intervals(mask)
+    if offset != 0:
+        fragments = [(start+offset, end+offset) for start, end in fragments]
+    return fragments
+
+def _mask_intervals(mask):
+    ends = list((mask[1:] != mask[:-1]).nonzero()[0]+1)
+    if mask[0]:
+        ends.insert(0, 0)
+    if mask[-1]:
+        ends.append(len(mask))
+    return tuple(zip(ends[0::2], ends[1::2]))
+    
 def _create_line_traces_model(session, traces):
     vertices, lines, names = _line_traces(traces)
     normals = None
@@ -163,33 +196,6 @@ def _tube_traces(traces, radius = 0.1, segment_subdivisions = 5, circle_subdivis
     vertices, normals, triangles = combine_geometry_vnt(vnt)
 
     return vertices, normals, triangles, (names, tstart)
-
-def _close_mask(xyz, ref_xyz, distance):
-    d = xyz - ref_xyz
-    d2 = (d*d).sum(axis = 1)
-    mask = (d2 <= distance*distance)
-    return mask
-
-def _break_chain(xyz, break_after_indices):
-    pieces = []
-    b0 = 0
-    for b in break_after_indices:
-        pieces.append(xyz[b0:b+1,:])
-        b0 = b+1
-    # Append last piece
-    pieces.append(xyz[b0:,:])
-    return pieces
-
-def _mask_breaks(mask, breaks):
-    mbreaks = (mask[1:] != mask[:-1]).nonzero()[0]
-    from numpy import concatenate, cumsum, unique
-    abreaks = concatenate((breaks, mbreaks))
-    reindex = cumsum(mask)-1
-    ribreaks = reindex[abreaks]
-    uribreaks = unique(ribreaks)
-    max = reindex[-1]
-    nbreaks = uribreaks[(uribreaks >= 0) & (uribreaks < max)]  # Remove breaks beyond ends
-    return nbreaks
 
 # Allow mouse hover to identify hits
 from chimerax.core.models import Surface
@@ -330,6 +336,7 @@ def register_foldseek_traces_command(logger):
         keyword = [('align_with', ResiduesArg),
                    ('cutoff_distance', FloatArg),
                    ('close_only', FloatArg),
+                   ('gap_distance_limit', FloatArg),
                    ('min_residues', IntArg),
                    ('tube', BoolArg),
                    ('radius', FloatArg),
