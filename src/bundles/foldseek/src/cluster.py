@@ -233,7 +233,8 @@ _color_dialog = None
 def _show_color_panel(structure_plot, node):
     global _color_dialog
     cd = _color_dialog
-    if cd is None:
+    from Qt import qt_object_is_deleted
+    if cd is None or qt_object_is_deleted(cd):
         parent = structure_plot.tool_window.ui_area
         from Qt.QtWidgets import QColorDialog
         _color_dialog = cd = QColorDialog(parent)

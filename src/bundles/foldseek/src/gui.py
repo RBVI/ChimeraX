@@ -271,6 +271,9 @@ class FoldseekPanel(ToolInstance):
     #
     def _show_cluster_plot(self, *, nres = 5):
         r = self.results
+        if r.query_chain is None:
+            self.session.logger.error('Cannot compute Foldseek clusters without query structure')
+            return
         r.set_conservation_attribute()
         r.set_coverage_attribute()
         cr = [(res.foldseek_conservation * res.foldseek_coverage, res) for res in r.query_residues]
