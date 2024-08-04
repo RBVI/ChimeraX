@@ -269,14 +269,16 @@ class FoldseekPanel(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _show_cluster_plot(self, *, nres = 10):
+    def _show_cluster_plot(self, *, nres = 5):
         r = self.results
         r.set_conservation_attribute()
-        cr = [(res.foldseek_conservation, res) for res in r.query_residues]
-        cr.sort()
-        most_conserved_res = [res for c,res in cr[-nres:]]
-        from chimerax.atomic import concise_residue_spec
-        rspec = concise_residue_spec(self.session, most_conserved_res)
+        r.set_coverage_attribute()
+        cr = [(res.foldseek_conservation * res.foldseek_coverage, res) for res in r.query_residues]
+        cr.sort(reverse = True)
+        most_conserved_res = [res for c,res in cr[0:nres]]
+        rnums = ','.join(str(res.number) for res in most_conserved_res)
+        cspec = r.query_chain.string(style = 'command')
+        rspec = cspec + f':{rnums}'
 
         from chimerax.core.commands import run
         run(self.session, f'foldseek cluster {rspec} clusterDistance 1.5')

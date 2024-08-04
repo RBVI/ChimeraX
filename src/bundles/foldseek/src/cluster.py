@@ -49,7 +49,7 @@ def _show_umap(session, hits, query_chain, query_residues, align_with = None, cu
     coord_offsets, hit_names = _aligned_coords(hits, query_chain, query_residues,
                                                align_with = align_with, cutoff_distance = cutoff_distance)
     if len(coord_offsets) == 0:
-        session.logger.error(f'Foldseek results contains no structures with all of the specified {len(query_residues)}')
+        session.logger.error(f'Foldseek results contains no structures with all of the specified {len(query_residues)} residues')
         return
 
     from chimerax.diffplot.diffplot import _umap_embed, _plot_embedding, _install_umap
