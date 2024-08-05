@@ -211,6 +211,7 @@ class CategorizedOptionsPanel(QTabWidget):
 
     def hide_tab(self, category):
         self._show_tab(category, False)
+    hide_category = hide_tab
 
     def options(self, category):
         return self._category_to_panel[category].options()
@@ -241,6 +242,7 @@ class CategorizedOptionsPanel(QTabWidget):
 
     def show_tab(self, category):
         self._show_tab(category, True)
+    show_category = show_tab
 
     def show_option(self, option, *, missing_okay=False):
         return self.set_option_shown(option, True, missing_okay=missing_okay)
