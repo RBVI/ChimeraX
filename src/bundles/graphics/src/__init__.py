@@ -24,13 +24,23 @@
 
 # The following are intentionally exported
 __all__ = [
-    'Drawing', 'Pick',
-    'Camera', 'MonoCamera', 'OrthographicCamera',
-    'StereoCamera', 'SplitStereoCamera',
-    'Mono360Camera', 'Stereo360Camera', 'DomeCamera',
-    'CrossFade', 'MotionBlur',
-    'Texture', 'Lighting', 'Material',
-    'View', 'OpenGLContext',
+    "Drawing",
+    "Pick",
+    "Camera",
+    "MonoCamera",
+    "OrthographicCamera",
+    "StereoCamera",
+    "SplitStereoCamera",
+    "Mono360Camera",
+    "Stereo360Camera",
+    "DomeCamera",
+    "CrossFade",
+    "MotionBlur",
+    "Texture",
+    "Lighting",
+    "Material",
+    "View",
+    "OpenGLContext",
 ]
 
 # Make sure _graphics can runtime link shared library libarrays.
@@ -40,7 +50,13 @@ from .drawing import Drawing, Pick, PickedTriangle, PickedTriangles
 from .drawing import text_image_rgba, qimage_to_numpy
 from .drawing import concatenate_geometry
 
-from .camera import Camera, MonoCamera, OrthographicCamera, StereoCamera, SplitStereoCamera
+from .camera import (
+    Camera,
+    MonoCamera,
+    OrthographicCamera,
+    StereoCamera,
+    SplitStereoCamera,
+)
 from .camera360 import Mono360Camera, Stereo360Camera, DomeCamera
 
 from .crossfade import CrossFade, MotionBlur
@@ -54,20 +70,30 @@ from .view import View
 from .clipping import SceneClipPlane, CameraClipPlane, ClipPlane
 
 from chimerax.core.toolshed import BundleAPI
+
+
 class _GraphicsBundleAPI(BundleAPI):
     _classes = {
-        'View': View,
-        'MonoCamera': MonoCamera,
-        'OrthographicCamera': OrthographicCamera,
-        'Lighting': Lighting,
-        'Material': Material,
-        'ClipPlane': ClipPlane,
-        'SceneClipPlane': SceneClipPlane,
-        'CameraClipPlane': CameraClipPlane,
-        'Drawing': Drawing,
-        }
+        "View": View,
+        "MonoCamera": MonoCamera,
+        "OrthographicCamera": OrthographicCamera,
+        "Lighting": Lighting,
+        "Material": Material,
+        "ClipPlane": ClipPlane,
+        "SceneClipPlane": SceneClipPlane,
+        "CameraClipPlane": CameraClipPlane,
+        "Drawing": Drawing,
+    }
+
     @staticmethod
     def get_class(class_name):
         return _GraphicsBundleAPI._classes.get(class_name)
+
+    @staticmethod
+    def start_tool(session, _):
+        from .tool import RenderingOptionsTool
+
+        return RenderingOptionsTool(session)
+
 
 bundle_api = _GraphicsBundleAPI()

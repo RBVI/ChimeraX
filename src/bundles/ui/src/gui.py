@@ -596,6 +596,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             from chimerax.graphics import StereoCamera
 
             session.main_view.camera = StereoCamera()
+        self._set_graphics_settings()
         self.graphics_window = g = GraphicsWindow(self._stack, ui, stereo)
         # Always remember the graphics window, so it can be restored later if consumers forget to
         self._backup_main_view = g.widget
@@ -745,6 +746,21 @@ class MainWindow(QMainWindow, PlainTextLog):
         height = round(min(height, 8192, vg.height()))
         self.resize(width, height)
         return width, height
+
+    def _set_graphics_settings(self):
+        from chimerax.graphics.settings import get_graphics_settings, GraphicsSetting
+        from chimerax.std_commands.graphics import graphics_rate
+
+        graphics_settings = get_graphics_settings(self.session)
+        self.session.update_loop.set_redraw_interval(
+            1000.0 / graphics_settings[GraphicsSetting.MAX_FRAMERATE]
+        )
+        if graphics_settings[GraphicsSetting.SHOW_FRAMERATE]:
+            graphics_rate(self.session, report_frame_rate=True)
+        if graphics_settings[GraphicsSetting.VSYNC]:
+            graphics_rate(self.session, wait_for_vsync=True)
+        if graphics_settings[GraphicsSetting.SILHOUETTES]:
+            self.session.main_view.silhouette.enabled = True
 
     @property
     def main_view(self):

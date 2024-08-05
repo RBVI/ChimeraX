@@ -201,6 +201,9 @@ class Settings(ConfigFile):
         else:
             ConfigFile.__setattr__(self, name, value)
 
+    def __getitem__(self, item):
+        return self.__getattr__(item)
+
     def default_value(self, name):
         return self.PROPERTY_INFO[name].default
 
