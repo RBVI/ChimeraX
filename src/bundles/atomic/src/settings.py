@@ -50,7 +50,7 @@ def register_settings_options(session):
             <tr><td>serial number</td><td>&nbsp;</td><td>Atom serial number</td></tr>
             </table>"""),
         label_missing_attr: (
-            "Label missing-structure segments (<= N chains)",
+            "Label missing-structure segments in models with \N{LESS-THAN OR EQUAL TO} N chains",
             (IntOption, {'min': 0}),
             "Label missing-structure pseudobonds with the number of residues that are missing"
             "\nif the structure has no more than N chains"),
