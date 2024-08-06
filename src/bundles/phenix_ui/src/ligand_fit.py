@@ -94,7 +94,7 @@ command_defaults = {
     'verbose': False
 }
 def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, *, block=None,
-        ligand_format=None, phenix_location=None, verbose=command_defaults['verbose'],
+        phenix_location=None, verbose=command_defaults['verbose'],
         option_arg=[], position_arg=[]):
 
     # Find the phenix.ligandfit executable
@@ -122,16 +122,33 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, *, block
     from chimerax.pdb import save_pdb
     save_pdb(session, path.join(temp_dir,'model.pdb'), models=[model], rel_model=in_map)
 
-    if ligand_format is None:
+    if ligand.startswith(('smiles:', 'ccd:', 'pubchem:')):
+        ligand_data = ligand
+    elif ligand,startswith('file:')
+        ligand_format, ligand_data = ligand.split(':', 1)
+    else:
         import os
         if os.path.exists(ligand):
+            ligand_data = ligand
             ligand_format = 'file'
-        elif ligand.isdigit() and len(ligand) != 3:
-            ligand = 'pubchem'
-        elif len(ligand) in (3,5) and ligand.isalnum():
-            ligand = 'ccd'
         else:
-            ligand = 'smiles'
+            if ligand.isdigit() and len(ligand) != 3:
+                ligand_format = 'pubchem'
+            elif len(ligand) in (3,5) and ligand.isalnum():
+                ligand_format = 'ccd'
+            else:
+                ligand_format = 'smiles'
+            ligand_data = ligand_format + ':' + ligand
+        session.logger.info(f"Guessing ligand format to be '{ligand_format}'")
+
+    try:
+        ligand_model = session.open_command.open_data(ligand_data)
+    except Exception as e:
+        raise UserError(f"Cannot open ligand '{ligand}': {str(e)}")
+
+    # Save ligand to file.
+    from chimerax.pdb import save_pdb
+    save_pdb(session, path.join(temp_dir,'ligand.pdb'), models=[ligand_model])
 
     # Run phenix.ligandfit
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
@@ -308,12 +325,11 @@ def register_command(logger):
     from chimerax.atomic import AtomicStructureArg
     desc = CmdDesc(
         required = [('model', AtomicStructureArg),
-                    ('ligand', EnumOf(['smiles', 'file', 'ccd', 'pubchem')]),
+                    ('ligand', Or(OpenFileNameArg,StringArg)),
         ],
         required_arguments = ['center', 'in_map'],
         keyword = [('block', BoolArg),
                    ('center', CenterArg),
-                   ('ligand', Or(OpenFileNameArg,StringArg)),
                    ('in_map', MapArg),
                    ('phenix_location', OpenFolderNameArg),
                    ('verbose', BoolArg),
