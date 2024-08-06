@@ -1647,6 +1647,7 @@ class NewerVersionQuery(Task):
             # use cxservices API names for keys
             "uuid": str(chimerax_uuid()),
             "os": system,
+            "arch": platform.machine(),
             "os_version": version,
             "chimera_x_version": buildinfo.version,
         }
