@@ -1632,9 +1632,11 @@ class NewerVersionQuery(Task):
         if system == "Darwin":
             system = "macosx"
             version = platform.mac_ver()[0]
+            arch = "arm64" if "arm64" in platform.uname().version.lower() else "x86_64"
         elif system == "Windows":
             system = "windows"
             version = platform.version()
+            arch = None
         elif system == "Linux":
             import distro
 
@@ -1643,11 +1645,12 @@ class NewerVersionQuery(Task):
             if like:
                 system = f"{system} {like}"
             version = distro.version(best=True)
+            arch = None
         params = {
             # use cxservices API names for keys
             "uuid": str(chimerax_uuid()),
             "os": system,
-            "arch": platform.machine(),
+            "arch": arch,
             "os_version": version,
             "chimera_x_version": buildinfo.version,
         }
