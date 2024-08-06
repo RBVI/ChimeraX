@@ -63,12 +63,6 @@ class FoldseekWebQuery:
         self._user_agent = {'User-Agent': f'ChimeraX {cx_version}'}	# Identify ChimeraX to Foldseek server
         self._download_chunk_size = 64 * 1024	# bytes
 
-        # Use cached 8jnb results for developing user interface so I don't have to wait for server every test.
-#        with open('/Users/goddard/ucsf/chimerax/src/bundles/foldseek_example/alis_pdb100.m8', 'r') as mfile:
-#            results = {database: mfile.readlines()}
-#        self.report_results(results)
-#        return
-        
         mmcif_string = _mmcif_as_string(chain)
         self._save('query.cif', mmcif_string)
         self._save_query_path(chain)
@@ -81,9 +75,10 @@ class FoldseekWebQuery:
             self.query_in_thread(mmcif_string, database)
 
     def report_results(self, results):
-        hits = results[self.database]
-        show_foldseek_hits(self.session, hits, self.database, self.chain,
-                           trim = self.trim, alignment_cutoff_distance = self.alignment_cutoff_distance)
+        hit_lines = results[self.database]
+        results = FoldseekResults(hit_lines, self.database, self.chain)
+        show_foldseek_results(self.session, results, trim = self.trim,
+                              alignment_cutoff_distance = self.alignment_cutoff_distance)
         self._log_open_results_command()
 
     def submit_query(self, mmcif_string, databases = ['pdb100']):
@@ -137,6 +132,7 @@ class FoldseekWebQuery:
     def download_results(self, ticket_id, report_progress = None):
         '''
         Return a dictionary mapping database name to results as m8 format tab-separated values.
+        This may be done in a separate thread, so don't do any user interface calls that would use Qt.
         '''
         result_url = self.foldseek_url + f'/result/download/{ticket_id}'
         import requests
@@ -171,9 +167,17 @@ class FoldseekWebQuery:
 
         # Save results to a file
         for dbname, hit_lines in m8_results.items():
-            self._save(dbname + '.m8', ''.join(hit_lines))
+            filename = self._results_file_name(dbname)
+            self._save(filename, ''.join(hit_lines))
 
         return m8_results
+
+    def _results_file_name(self, database = None):
+        dbname = self.database if database is None else database
+        c = self.chain
+        structure_name = c.structure.name.replace(' ', '_')
+        file_name = f'{structure_name}_{c.chain_id}_{dbname}.m8'
+        return file_name
 
     def _report_progress(self, message):
         self.session.logger.status(message)
@@ -223,11 +227,12 @@ class FoldseekWebQuery:
         save_directory = self.save_directory
         if save_directory is None:
             return
-        from os import path, makedirs
-        if not path.exists(save_directory):
-            makedirs(save_directory)
+        import os, os.path
+        if not os.path.exists(save_directory):
+            os.makedirs(save_directory)
         file_mode = 'w' if isinstance(data, str) else 'wb'
-        with open(path.join(save_directory, filename), file_mode) as file:
+        path = os.path.join(save_directory, filename)
+        with open(path, file_mode) as file:
             file.write(data)
 
     def _save_query_path(self, chain):
@@ -240,11 +245,15 @@ class FoldseekWebQuery:
         if not self.save_directory:
             return
         from os.path import join
-        m8_path = join(self.save_directory, self.database + '.m8')
+        m8_path = join(self.save_directory, self._results_file_name())
         cspec = self.chain.string(style='command')
         from chimerax.core.commands import log_equivalent_command, quote_path_if_necessary
         cmd = f'open {quote_path_if_necessary(m8_path)} database {self.database} chain {cspec}'
         log_equivalent_command(self.session, cmd)
+
+        # Record in file history so it is easy to reopen Foldseek results.
+        from chimerax.core.filehistory import remember_file
+        remember_file(self.session, m8_path, 'foldseek', [self.chain.structure], file_saved=True)
 
 def _mmcif_as_string(chain):
     structure = chain.structure.copy()
@@ -311,6 +320,10 @@ def parse_search_result(line, database):
         values[int_field] = int(values[int_field])
     for float_field in ['pident', 'gapopen', 'prob', 'evalue', 'bits']:
         values[float_field] = float(values[float_field])
+    from numpy import array, float32
+    xyz = array([float(x) for x in values['tca'].split(',')], float32)
+    n = len(xyz)//3
+    values['tca'] = xyz.reshape((n,3))
     values['database'] = database
     if database == 'pdb100':
         values.update(parse_pdb100_theader(values['theader']))
@@ -612,16 +625,6 @@ def alignment_residue_pairs(hit, aligned_res, query_chain):
                     
     return aligned_res.filter(ati), qres.filter(aqi)
 
-def query_alignment_range(hits):
-    '''Return the range of query residue numbers (qstart, qend) that includes all the hit alignments.'''
-    qstarts = []
-    qends = []
-    for hit in hits:
-        qstarts.append(hit['qstart'])
-        qends.append(hit['qend'])
-    qstart, qend = min(qstarts), max(qends)
-    return qstart, qend
-
 def sequence_alignment(hits, qstart, qend):
     '''
     Return the sequence alignment between hits and query as a numpy 2D array of bytes.
@@ -745,23 +748,9 @@ def align_and_prune(xyz, ref_xyz, cutoff_distance, indices = None):
         raise IterationError("Alignment failed;"
             " pruning distances > %g left less than 3 atom pairs" % cutoff_distance)
     return align_and_prune(xyz, ref_xyz, cutoff_distance, survivors)
-    
-def compute_rmsds(hits, query_xyz, cutoff_distance = None):
-    for hit in hits:
-        hxyz = hit_coords(hit)
-        hi, qi = hit_residue_pairing(hit)
-#        print(hit['database_full_id'])
-        p, rms, npairs = align_xyz_transform(hxyz[hi], query_xyz[qi], cutoff_distance=cutoff_distance)
-        hit['rmsd'] = rms
-        hit['close'] = 100*npairs/len(hi)
-        hit['cutoff_distance'] = cutoff_distance
-        hit['coverage'] = 100 * len(qi) / len(query_xyz)
 
 def hit_coords(hit):
-    from numpy import array, float32
-    xyz = array([float(x) for x in hit['tca'].split(',')], float32)
-    n = len(xyz)//3
-    hxyz = xyz.reshape((n,3))
+    hxyz = hit['tca']
     return hxyz
 
 def hit_residue_pairing(hit, offset = True):
@@ -813,7 +802,8 @@ def open_foldseek_m8(session, path, query_chain = None, database = None):
         session.models.add(models)
         models = []
 
-    show_foldseek_hits(session, hit_lines, database, query_chain)
+    results = FoldseekResults(hit_lines, database, query_chain)
+    show_foldseek_results(session, results)
 
     return models, ''
 
@@ -863,36 +853,251 @@ def _guess_database(path, hit_lines):
 
     return None
     
-def show_foldseek_hits(session, hit_lines, database, query_chain = None,
-                       trim = None, alignment_cutoff_distance = None):
-    msg = f'Foldseek search for similar structures to {query_chain} in {database} found {len(hit_lines)} hits'
+def show_foldseek_results(session, results, trim = None, alignment_cutoff_distance = None):
+    msg = f'Foldseek search for similar structures to {results.query_chain} in {results.database} found {len(results.hits)} hits'
     session.logger.info(msg)
 
-    hits = [parse_search_result(hit, database) for hit in hit_lines]
-    if query_chain is not None:
-        # Compute percent coverage and percent close C-alpha values per hit.
-        qres = alignment_residues(query_chain.existing_residues)
-        qatoms = qres.find_existing_atoms('CA')
-        qxyz = qatoms.coords
-        compute_rmsds(hits, qxyz, cutoff_distance = 2)
-    from .gui import foldseek_panel, Foldseek
-    fp = foldseek_panel(session)
-    if fp:
-        fp.show_results(hits, query_chain = query_chain, database = database,
-                        trim = trim, alignment_cutoff_distance = alignment_cutoff_distance)
-    else:
-        fp = Foldseek(session, query_chain = query_chain, database = database,
-                      hits = hits, trim = trim, alignment_cutoff_distance = alignment_cutoff_distance)
+    from .gui import foldseek_panel
+    fp = foldseek_panel(session, create = True)
+    fp.set_trim_options(trim)
+    fp.set_alignment_cutoff_option(alignment_cutoff_distance)
+    fp.show_results(results)
     return fp
+
+class FoldseekResults:
+    def __init__(self, hit_lines, database, query_chain):
+        self.hits = [parse_search_result(hit, database) for hit in hit_lines]
+        self.database = database
+        self._query_chain = query_chain
+        self._query_residues = None
+        self._query_alignment_range = None
+        self._sequence_alignment_array = None
+        self._alignment_coordinates = None
+        self._lddt_score_array = None
+
+    @property
+    def num_hits(self):
+        return len(self.hits)
+
+    @property
+    def session(self):
+        qc = self.query_chain
+        return qc.structure.session if qc else None
+
+    @property
+    def query_chain(self):
+        qc = self._query_chain
+        if qc is not None and qc.structure is None:
+            self._query_chain = qc = None
+        return qc
+
+    @property
+    def query_residues(self):
+        qres = self._query_residues
+        if qres is None:
+            self._query_residues = qres = alignment_residues(self._query_chain.existing_residues)
+        return qres
+
+    def query_alignment_range(self):
+        '''Return the range of query residue numbers (qstart, qend) that includes all the hit alignments.'''
+        qar = self._query_alignment_range
+        if qar is not None:
+            return qar
+        qstarts = []
+        qends = []
+        for hit in self.hits:
+            qstarts.append(hit['qstart'])
+            qends.append(hit['qend'])
+        qar = qstart, qend = min(qstarts), max(qends)
+        return qar
+
+    def sequence_alignment_array(self):
+        saa = self._sequence_alignment_array
+        if saa is not None:
+            return saa
+        qstart, qend = self.query_alignment_range()
+        self._sequence_alignment_array = saa = sequence_alignment(self.hits, qstart, qend)
+        return saa
+
+    def alignment_coordinates(self):
+        ac = self._alignment_coordinates
+        if ac is not None:
+            return ac
+        qstart, qend = self.query_alignment_range()
+        self._alignment_coordinates = hits_xyz, hits_mask = alignment_coordinates(self.hits, qstart, qend)
+        return hits_xyz, hits_mask
+    
+    def compute_rmsds(self, alignment_cutoff_distance = None):
+        if self.query_chain is None:
+            return False
+        # Compute percent coverage and percent close C-alpha values per hit.
+        qres = alignment_residues(self.query_chain.existing_residues)
+        qatoms = qres.find_existing_atoms('CA')
+        query_xyz = qatoms.coords
+        for hit in self.hits:
+            hxyz = hit_coords(hit)
+            hi, qi = hit_residue_pairing(hit)
+            p, rms, npairs = align_xyz_transform(hxyz[hi], query_xyz[qi],
+                                                 cutoff_distance=alignment_cutoff_distance)
+            hit['rmsd'] = rms
+            hit['close'] = 100*npairs/len(hi)
+            hit['cutoff_distance'] = alignment_cutoff_distance
+            hit['coverage'] = 100 * len(qi) / len(query_xyz)
+        return True
+
+    def set_coverage_attribute(self):
+        if self.query_chain is None  or getattr(self, '_coverage_attribute_set', False):
+            return
+        self._coverage_attribute_set = True
+
+        from chimerax.atomic import Residue
+        Residue.register_attr(self.session, 'foldseek_coverage', "Foldseek", attr_type = int)
+
+        qstart, qend = self.query_alignment_range()
+        from numpy import count_nonzero
+        for ri,r in enumerate(self.query_residues):
+            if ri >= qstart-1 and ri <= qend:
+                ai = ri-(qstart-1)
+                alignment_array = self.sequence_alignment_array()
+                count = count_nonzero(alignment_array[1:,ai])
+            else:
+                count = 0
+            r.foldseek_coverage = count
+
+    def set_conservation_attribute(self):
+        if self.query_chain is None  or getattr(self, '_conservation_attribute_set', False):
+            return
+        self._conservation_attribute_set = True
+
+        from chimerax.atomic import Residue
+        Residue.register_attr(self.session, 'foldseek_conservation', "Foldseek", attr_type = float)
+
+        alignment_array = self.sequence_alignment_array()
+        seq, count, total = _consensus_sequence(alignment_array)
+        qstart, qend = self.query_alignment_range()
+        from numpy import count_nonzero
+        for ri,r in enumerate(self.query_residues):
+            if ri >= qstart-1 and ri <= qend:
+                ai = ri-(qstart-1)
+                conservation = count[ai] / total[ai]
+            else:
+                conservation = 0
+            r.foldseek_conservation = conservation
+
+    def set_entropy_attribute(self):
+        if self.query_chain is None or getattr(self, '_entropy_attribute_set', False):
+            return
+        self._entropy_attribute_set = True
+        
+        from chimerax.atomic import Residue
+        Residue.register_attr(self.session, 'foldseek_entropy', "Foldseek", attr_type = float)
+
+        alignment_array = self.sequence_alignment_array()
+        entropy = _sequence_entropy(alignment_array)
+        qstart, qend = self.query_alignment_range()
+        from numpy import count_nonzero
+        for ri,r in enumerate(self.query_residues):
+            if ri >= qstart-1 and ri <= qend:
+                ai = ri-(qstart-1)
+                r.foldseek_entropy = entropy[ai]
+
+    def set_lddt_attribute(self):
+        if self.query_chain is None or getattr(self, '_lddt_attribute_set', False):
+            return
+        self._lddt_attribute_set = True
+
+        from chimerax.atomic import Residue
+        Residue.register_attr(self.session, 'foldseek_lddt', "Foldseek", attr_type = float)
+
+        lddt_scores = self.lddt_scores()
+        qstart, qend = self.query_alignment_range()
+        from numpy import count_nonzero
+        for ri,r in enumerate(self.query_residues):
+            if ri >= qstart-1 and ri <= qend:
+                ai = ri-(qstart-1)
+                alignment_array = self.sequence_alignment_array()
+                nscores = count_nonzero(alignment_array[1:,ai])
+                ave_lddt = lddt_scores[:,ai].sum() / nscores
+            else:
+                ave_lddt = 0
+            r.foldseek_lddt = ave_lddt
+
+    def lddt_scores(self):
+        lddt_scores = self._lddt_score_array
+        if lddt_scores is None:
+            qstart, qend = self.query_alignment_range()
+            qres = self.query_residues
+            qatoms = qres.find_existing_atoms('CA')
+            query_xyz = qatoms.coords[qstart-1:qend,:]
+            hits_xyz, hits_mask = self.alignment_coordinates()
+            from . import lddt
+            lddt_scores = lddt.local_distance_difference_test(query_xyz, hits_xyz, hits_mask)
+            self._lddt_score_array = lddt_scores
+        return lddt_scores
+
+    def take_snapshot(self, session, flags):
+        data = {'hits': self.hits,
+                'query_chain': self.query_chain,
+                'database': self.database,
+                'version': '1'}
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        return FoldseekResults(data['hits'], data['database'], data['query_chain'])
+
+# -----------------------------------------------------------------------------
+#
+def _consensus_sequence(alignment_array):
+    seqlen = alignment_array.shape[1]
+    from numpy import count_nonzero, bincount, argmax, empty, byte, int32
+    seq = empty((seqlen,), byte)
+    count = empty((seqlen,), int32)
+    total = empty((seqlen,), int32)
+    for i in range(seqlen):
+        aa = alignment_array[:,i]
+        total[i] = count_nonzero(aa)
+        bc = bincount(aa)
+        mi = argmax(bc[1:]) + 1
+        seq[i] = mi
+        count[i] = bc[mi]
+    return seq, count, total
+
+# -----------------------------------------------------------------------------
+#
+def _sequence_entropy(alignment_array):
+    seqlen = alignment_array.shape[1]
+    from numpy import bincount, empty, float32, array, int32
+    entropy = empty((seqlen,), float32)
+    aa_1_letter_codes = 'ARNDCEQGHILKMFPSTWYV'
+    aa_char = array([ord(c) for c in aa_1_letter_codes], int32)
+    bins = aa_char.max() + 1
+    for i in range(seqlen):
+        aa = alignment_array[:,i]
+        bc = bincount(aa, minlength = bins)[aa_char]
+        entropy[i] = _entropy(bc)
+    return entropy
+    
+# -----------------------------------------------------------------------------
+#
+def _entropy(bin_counts):
+    total = bin_counts.sum()
+    if total == 0:
+        return 0.0
+    nonzero = (bin_counts > 0)
+    p = bin_counts[nonzero] / total
+    from numpy import log2
+    e = -(p*log2(p)).sum()
+    return e
 
 def foldseek_open(session, hit_name, trim = None, align = True, alignment_cutoff_distance = None,
                   in_file_history = True, log = True):
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
-    if fp is None:
+    if fp is None or len(fp.hits) == 0:
         from chimerax.core.errors import UserError
         raise UserError('No foldseek results are available')
-    query_chain = fp.results_query_chain
+    query_chain = fp.results.query_chain
     if trim is None:
         trim = fp.trim
     if alignment_cutoff_distance is None:
@@ -904,11 +1109,11 @@ def foldseek_open(session, hit_name, trim = None, align = True, alignment_cutoff
                      in_file_history = in_file_history, log = log)
             break
 
-def foldseek_show(session, hit_name):
+def foldseek_scroll_to(session, hit_name):
     '''Show table row for this hit.'''
     hit, panel = _foldseek_hit_by_name(session, hit_name)
     if hit:
-        fp.select_table_row(hit)
+        panel.select_table_row(hit)
 
 def _foldseek_hit_by_name(session, hit_name):
     from .gui import foldseek_panel
@@ -930,7 +1135,7 @@ def foldseek_pairing(session, hit_structure, color = None, radius = None,
         from chimerax.core.errors import UserError
         raise UserError(f'Did not find any Foldseek hit {hit_name}')
 
-    query_chain = panel.results_query_chain
+    query_chain = panel.results.query_chain
     r_pairs = hit_and_query_residue_pairs(hit_structure, query_chain, hit)
     ca_pairs = []
     for hr, qr in r_pairs:
@@ -1013,7 +1218,7 @@ def register_foldseek_command(logger):
         required = [('hit_name', StringArg)],
         synopsis = 'Show Foldseek result table row'
     )
-    register('foldseek show', desc, foldseek_show, logger=logger)
+    register('foldseek scrollto', desc, foldseek_scroll_to, logger=logger)
 
     desc = CmdDesc(
         required = [('hit_structure', StructureArg)],

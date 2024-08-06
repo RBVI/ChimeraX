@@ -600,9 +600,6 @@ class Bundle:
         else:
             # pure Python
             platform_classifiers = pure_wheel_platforms.split("\n")
-        if sys.platform == "darwin" and 'MACOSX_DEPLOYMENT_TARGET' not in os.environ:
-            # enable access to modern language features, like std::any_cast
-            os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.13'
         self.setup_arguments["ext_modules"] = cythonize(ext_mods)
         self.classifiers.extend(metadata_preamble.split("\n"))
         self.classifiers.extend(platform_classifiers)
@@ -835,6 +832,8 @@ class _CompiledCode:
         self.frameworks = attrs.get("frameworks", [])
         self.libraries = attrs.get("libraries", [])
         self.compile_arguments = attrs.get("extra-compile-args", [])
+        if sys.platform == "darwin":
+            self.compile_arguments.append("-mmacos-version-min=11")
         self.link_arguments = attrs.get("extra-link-args", [])
         self.include_dirs = attrs.get("include-dirs", [])
         self.include_modules = attrs.get("include-modules", [])

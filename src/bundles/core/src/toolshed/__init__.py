@@ -218,7 +218,7 @@ Categories = [
     VOLUME,
 ]
 
-_TIMESTAMP = 'install-timestamp'
+_TIMESTAMP = "install-timestamp"
 _debug_toolshed = False
 
 
@@ -226,6 +226,7 @@ def _debug(*args, file=None, flush=True, **kw):
     if _debug_toolshed:
         if file is None:
             import sys
+
             file = sys.__stderr__
         print("Toolshed:", *args, file=file, flush=flush, **kw)
 
@@ -289,8 +290,15 @@ class Toolshed:
         Where to register handlers for toolshed triggers
     """
 
-    def __init__(self, logger, rebuild_cache=False, check_remote=False,
-                 remote_url=None, check_available=True, session=None):
+    def __init__(
+        self,
+        logger,
+        rebuild_cache=False,
+        check_remote=False,
+        remote_url=None,
+        check_available=True,
+        session=None,
+    ):
         """Initialize Toolshed instance.
 
         Parameters
@@ -317,14 +325,16 @@ class Toolshed:
         self._repo_locator = None
         self._installed_bundle_info = None
         self._available_bundle_info = None
-        self._installed_packages = {}   # cache mapping packages to bundles
+        self._installed_packages = {}  # cache mapping packages to bundles
         # map from manager name to manager instance
         from weakref import WeakValueDictionary
+
         self._manager_instances = WeakValueDictionary()
 
         # Compute base directories
         import os
         from chimerax import app_dirs
+
         if os.path.exists(app_dirs.user_cache_dir):
             self._cache_dir = os.path.join(app_dirs.user_cache_dir, _ToolshedFolder)
         else:
@@ -340,6 +350,7 @@ class Toolshed:
         import site
         import os
         import sys
+
         self._site_dir = site.USER_SITE
         _debug("site dir: %s" % self._site_dir)
         os.makedirs(self._site_dir, exist_ok=True)
@@ -348,6 +359,7 @@ class Toolshed:
 
         # Create triggers
         from .. import triggerset
+
         self.triggers = triggerset.TriggerSet()
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INFO_ADDED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INSTALLED)
@@ -359,6 +371,7 @@ class Toolshed:
 
         # Variables for updating list of available bundles
         from threading import RLock
+
         self._abc_lock = RLock()
         self._abc_updating = False
 
@@ -368,47 +381,73 @@ class Toolshed:
             self.init_available_from_cache(logger)
         except Exception:
             logger.report_exception("Error preloading available bundles")
-        if (check_available and self._available_bundle_info is not None and
-                                self._available_bundle_info.toolshed_url != self.remote_url):
+        if (
+            check_available
+            and self._available_bundle_info is not None
+            and self._available_bundle_info.toolshed_url != self.remote_url
+        ):
             self._available_bundle_info = None
-        self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache, _session=session)
+        self.reload(
+            logger,
+            check_remote=check_remote,
+            rebuild_cache=rebuild_cache,
+            _session=session,
+        )
         from datetime import datetime
         from ..core_settings import settings
+
         now = datetime.now()
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
             # so start a thread and do it asynchronously if necessary
             from . import available
+
             if not available.has_cache_file(self._cache_dir):
                 need_check = True
             else:
                 need_check = need_to_check(
-                    settings.toolshed_last_check, settings.toolshed_update_interval, now)
+                    settings.toolshed_last_check, settings.toolshed_update_interval, now
+                )
             if need_check:
                 if session is None or not session.ui.is_gui:
                     self.async_reload_available(logger)
                 else:
-                    def delayed_available(trigger_name, data, toolshed=self, logger=logger):
+
+                    def delayed_available(
+                        trigger_name, data, toolshed=self, logger=logger
+                    ):
                         toolshed.async_reload_available(logger)
-                    session.ui.triggers.add_handler('ready', delayed_available)
+
+                    session.ui.triggers.add_handler("ready", delayed_available)
                 settings.toolshed_last_check = now.isoformat()
-                _debug("Initiated toolshed check: %s" %
-                       settings.toolshed_last_check)
+                _debug("Initiated toolshed check: %s" % settings.toolshed_last_check)
         if check_available:
             need_check = need_to_check(
-                settings.newer_last_check, settings.newer_update_interval, now)
+                settings.newer_last_check, settings.newer_update_interval, now
+            )
             # need_check = True  # DEBUG
             if session and need_check:
                 if not session.ui.is_gui or session.ui.main_window:
                     NewerVersionQuery(session)
                 else:
                     session.ui.triggers.add_handler(
-                        'ready', lambda *args, sesssion=session: NewerVersionQuery(session))
+                        "ready",
+                        lambda *args, sesssion=session: NewerVersionQuery(session),
+                    )
                 settings.newer_last_check = now.isoformat()
         _debug("finished loading bundles")
 
-    def reload(self, logger, *, session=None, reread_cache=True, rebuild_cache=False,
-               check_remote=False, report=False, _session=None):
+    def reload(
+        self,
+        logger,
+        *,
+        session=None,
+        reread_cache=True,
+        rebuild_cache=False,
+        check_remote=False,
+        report=False,
+        _session=None,
+    ):
         """Supported API. Discard and reread bundle info.
 
         Parameters
@@ -427,23 +466,30 @@ class Toolshed:
         changes = {}
         if reread_cache or rebuild_cache:
             from .installed import InstalledBundleCache
+
             save = self._installed_bundle_info
             self._installed_bundle_info = InstalledBundleCache()
             cache_file = self._bundle_cache(False, logger)
-            self._installed_bundle_info.load(logger, cache_file=cache_file,
-                                             rebuild_cache=rebuild_cache,
-                                             write_cache=cache_file is not None)
+            self._installed_bundle_info.load(
+                logger,
+                cache_file=cache_file,
+                rebuild_cache=rebuild_cache,
+                write_cache=cache_file is not None,
+            )
             if report:
                 if save is None:
                     logger.info("Initial installed bundles.")
                 else:
                     from .installed import _report_difference
-                    changes = _report_difference(logger, save,
-                                                 self._installed_bundle_info)
+
+                    changes = _report_difference(
+                        logger, save, self._installed_bundle_info
+                    )
             if save is not None:
                 save.deregister_all(logger, session, self._installed_packages)
-            self._installed_bundle_info.register_all(logger, session,
-                                                     self._installed_packages)
+            self._installed_bundle_info.register_all(
+                logger, session, self._installed_packages
+            )
         if check_remote:
             self.reload_available(logger, _session=_session)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
@@ -453,26 +499,31 @@ class Toolshed:
         with self._abc_lock:
             self._abc_updating = True
         from threading import Thread
-        t = Thread(target=self.reload_available, args=(logger,),
-                   name="Update list of available bundles")
+
+        t = Thread(
+            target=self.reload_available,
+            args=(logger,),
+            name="Update list of available bundles",
+        )
         t.start()
 
     def reload_available(self, logger, _session=None):
         from urllib.error import URLError
         from .available import AvailableBundleCache
+
         abc = AvailableBundleCache(self._cache_dir)
         try:
             abc.load(logger, self.remote_url)
         except URLError as e:
             if _session is not None and _session.ui.is_gui:
-                logger.info("Updating list of available bundles failed: %s"
-                            % str(e.reason))
+                logger.info(
+                    "Updating list of available bundles failed: %s" % str(e.reason)
+                )
             with self._abc_lock:
                 self._abc_updating = False
         except Exception as e:
             if _session is not None and _session.ui.is_gui:
-                logger.info("Updating list of available bundles failed: %s"
-                            % str(e))
+                logger.info("Updating list of available bundles failed: %s" % str(e))
             with self._abc_lock:
                 self._abc_updating = False
         else:
@@ -480,9 +531,11 @@ class Toolshed:
                 self._available_bundle_info = abc
                 self._abc_updating = False
                 from ..commands import cli
+
                 cli.clear_available()
         # check if there are newer version of installed bundles
         from packaging.version import Version
+
         has_out_of_date = False
         installed_name = None
         installed_version = None
@@ -506,12 +559,17 @@ class Toolshed:
             else:
                 # too early for trigger handler to be registered
                 if _session.ui.is_gui:
+
                     def when_ready(trigger_name, data, toolshed=self):
-                        toolshed.triggers.activate_trigger(TOOLSHED_OUT_OF_DATE_BUNDLES, toolshed)
-                    _session.ui.triggers.add_handler('ready', when_ready)
+                        toolshed.triggers.activate_trigger(
+                            TOOLSHED_OUT_OF_DATE_BUNDLES, toolshed
+                        )
+
+                    _session.ui.triggers.add_handler("ready", when_ready)
 
     def init_available_from_cache(self, logger):
         from .available import AvailableBundleCache
+
         abc = AvailableBundleCache(self._cache_dir)
         try:
             abc.load_from_cache()
@@ -526,6 +584,7 @@ class Toolshed:
 
     def register_available_commands(self, logger):
         from sortedcontainers import SortedDict
+
         available = SortedDict()
         for bi in self._get_available_bundles(logger):
             # bi.register_available_commands(logger)
@@ -539,37 +598,52 @@ class Toolshed:
                     bundles.add(b)
                     # TODO: update synopsis if newer version of bundle
         from chimerax.core.commands import cli, CmdDesc, WholeRestOfLine
+
         for name in available:
             bundles, synopsis = available[name]
             cd = CmdDesc(
-                optional=[('unknown_arguments', WholeRestOfLine)],
-                synopsis=synopsis)
+                optional=[("unknown_arguments", WholeRestOfLine)], synopsis=synopsis
+            )
 
-            def cb(session, s=self, name=name, bundles=bundles, logger=logger, unknown_arguments=None):
+            def cb(
+                session,
+                s=self,
+                name=name,
+                bundles=bundles,
+                logger=logger,
+                unknown_arguments=None,
+            ):
                 s._available_cmd(name, bundles, logger)
+
             try:
                 cli.register_available(name, cd, function=cb, logger=logger)
             except Exception as e:
-                logger.warning("Unable to register available command %s: %s" % (ci.name, str(e)))
+                logger.warning(
+                    "Unable to register available command %s: %s" % (ci.name, str(e))
+                )
 
     def _available_cmd(self, name, bundles, logger):
         from chimerax.core.commands import commas, plural_form
+
         bundle_names, bundle_refs = self._bundle_names_and_refs(bundles)
         log_msg = "<b>%s</b> is provided by the uninstalled %s %s" % (
-           name, plural_form(bundle_refs, "bundle"),
-           commas(bundle_refs, 'and')
+            name,
+            plural_form(bundle_refs, "bundle"),
+            commas(bundle_refs, "and"),
         )
         logger.info(log_msg, is_html=True)
         # TODO: if not self.session.ui.is_gui:
         #     return
         status_msg = '"%s" is provided by the uninstalled %s %s' % (
-           name, plural_form(bundle_names, "bundle"),
-           commas(['"%s"' % b for b in bundle_names], 'and')
+            name,
+            plural_form(bundle_names, "bundle"),
+            commas(['"%s"' % b for b in bundle_names], "and"),
         )
         logger.status(status_msg)
 
     def _bundle_names_and_refs(self, bundles):
         from packaging.version import Version
+
         bundle_names = set()
         bundle_refs = []
         version_info = {}
@@ -581,19 +655,21 @@ class Toolshed:
             bname = name
             all_versions = version_info[name]
             all_versions.sort()
-            if bname.startswith('ChimeraX-'):
-                bname = bname[len('ChimeraX-'):]
+            if bname.startswith("ChimeraX-"):
+                bname = bname[len("ChimeraX-") :]
             if bname in bundle_names:
                 continue
             bundle_names.add(bname)
             if len(all_versions) == 1:
-                versions = f' version {all_versions[0]}'
+                versions = f" version {all_versions[0]}"
             else:
-                versions = f' versions {all_versions[0]} &ndash; {all_versions[-1]}'
+                versions = f" versions {all_versions[0]} &ndash; {all_versions[-1]}"
             # TODO: what are the app store rules for toolshed names?
-            toolshed_name = name.casefold().replace('-', '')
+            toolshed_name = name.casefold().replace("-", "")
             ref = '<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/%s">%s</a> %s' % (
-                    toolshed_name, bname, versions
+                toolshed_name,
+                bname,
+                versions,
             )
             bundle_refs.append(ref)
         return bundle_names, bundle_refs
@@ -603,16 +679,20 @@ class Toolshed:
         self._installed_bundle_info.set_install_timestamp(per_user=per_user)
 
     def bundle_url(self, bundle_name):
-        app_name = bundle_name.casefold().replace('-', '').replace('_', '')
+        app_name = bundle_name.casefold().replace("-", "").replace("_", "")
         return f"{self.remote_url}/apps/{app_name}"
 
     def bundle_link(self, bundle_name, if_available=True):
         from html import escape
+
         if bundle_name.startswith("ChimeraX-"):
-            short_name = bundle_name[len("ChimeraX-"):]
+            short_name = bundle_name[len("ChimeraX-") :]
         else:
             short_name = bundle_name
-        if self._available_bundle_info is None or not self._available_bundle_info.find_by_name(bundle_name):
+        if (
+            self._available_bundle_info is None
+            or not self._available_bundle_info.find_by_name(bundle_name)
+        ):
             # not available, so link would not work
             return escape(short_name)
         return f'<a href="{self.bundle_url(bundle_name)}">{escape(short_name)}</a>'
@@ -632,7 +712,7 @@ class Toolshed:
         Returns
         -------
         list of :py:class:`BundleInfo` instances
-            Combined list of all selected types of bundle metadata.  """
+            Combined list of all selected types of bundle metadata."""
 
         # _installed_bundle_info should always be defined
         # but _available_bundle_info may need to be initialized
@@ -669,6 +749,7 @@ class Toolshed:
         else:
             container = self._get_available_bundles(logger)
         from packaging.version import Version
+
         # put the below kludge in to allow sessions saved before some
         # bundles got renamed to restore
         name = {
@@ -690,7 +771,7 @@ class Toolshed:
             "ChimeraX-SEQ-VIEW": "ChimeraX-SeqView",
             "ChimeraX-Std-Commands": "ChimeraX-StdCommands",
         }.get(name, name)
-        lc_name = name.casefold().replace('_', '-')
+        lc_name = name.casefold().replace("_", "-")
         lc_names = [lc_name]
         if not lc_name.startswith("chimerax-"):
             lc_names.append("chimerax-" + lc_name)
@@ -710,7 +791,10 @@ class Toolshed:
                     best_bi = bi
                     best_version = Version(bi.version)
                 elif best_bi.name != bi.name:
-                    logger.warning("%r matches multiple bundles %s, %s" % (name, best_bi.name, bi.name))
+                    logger.warning(
+                        "%r matches multiple bundles %s, %s"
+                        % (name, best_bi.name, bi.name)
+                    )
                     return None
                 else:
                     v = Version(bi.version)
@@ -754,7 +838,7 @@ class Toolshed:
     def find_bundle_for_class(self, cls):
         """Supported API. Find bundle that has given class"""
 
-        package = tuple(cls.__module__.split('.'))
+        package = tuple(cls.__module__.split("."))
         while package:
             try:
                 return self._installed_packages[package]
@@ -776,13 +860,12 @@ class Toolshed:
         if safe_mode:
             return
         for bi in self._installed_bundle_info:
-            bi.update_library_path()    # for bundles with dynamic libraries
+            bi.update_library_path()  # for bundles with dynamic libraries
         failed = self._init_managers(session)
         failed += self._init_custom(session)
         bad_packages = set()
         for bi in failed:
-            session.logger.error("Bundle %r custom initialization failed" %
-                                 bi.name)
+            session.logger.error("Bundle %r custom initialization failed" % bi.name)
             try:
                 self._installed_bundle_info.remove(bi)
             except ValueError:
@@ -812,7 +895,9 @@ class Toolshed:
                 dbi = self.find_bundle(bundle_name, None)
                 if dbi:
                     if dbi in initializing:
-                        raise ToolshedInitializationError("circular dependency in bundle custom initialization")
+                        raise ToolshedInitializationError(
+                            "circular dependency in bundle custom initialization"
+                        )
                     self._init_bundle_custom(session, dbi, done, initializing, failed)
             initializing.remove(bi)
         try:
@@ -843,7 +928,9 @@ class Toolshed:
                 dbi = self.find_bundle(bundle_name, None)
                 if dbi:
                     if dbi in initializing:
-                        raise ToolshedInitializationError("circular dependency in bundle manager initialization")
+                        raise ToolshedInitializationError(
+                            "circular dependency in bundle manager initialization"
+                        )
                     self._init_bundle_manager(session, dbi, done, initializing, failed)
             initializing.remove(bi)
         try:
@@ -852,7 +939,9 @@ class Toolshed:
                     _debug("skip non-GUI manager %s for bundle %r" % (mgr, bi.name))
                     continue
                 if kw.pop("autostart", "true") == "false":
-                    _debug("skip non-autostart manager %s for bundle %r" % (mgr, bi.name))
+                    _debug(
+                        "skip non-autostart manager %s for bundle %r" % (mgr, bi.name)
+                    )
                     continue
                 _debug("initialize manager %s for bundle %r" % (mgr, bi.name))
                 bi.init_manager(session, mgr, **kw)
@@ -868,13 +957,12 @@ class Toolshed:
         self._manager_instances[mgr.name] = mgr
         for pbi in all_bundles:
             for name, kw in pbi.providers.items():
-                p_mgr, pvdr = name.split('/', 1)
+                p_mgr, pvdr = name.split("/", 1)
                 if p_mgr == mgr.name:
                     mgr.add_provider(pbi, pvdr, **kw)
         mgr.end_providers()
 
-    def import_bundle(self, bundle_name, logger,
-                      install="ask", session=None):
+    def import_bundle(self, bundle_name, logger, install="ask", session=None):
         """Supported API. Return the module for the bundle with the given name.
 
         Parameters
@@ -897,9 +985,19 @@ class Toolshed:
             Raised if a module for the bundle cannot be found.
         """
         from chimerax.toolshed_utils import _import_bundle
+
         _import_bundle(self, bundle_name, logger, install, session)
 
-    def install_bundle(self, bundle, logger, *, per_user=True, reinstall=False, session=None, no_deps=False):
+    def install_bundle(
+        self,
+        bundle,
+        logger,
+        *,
+        per_user=True,
+        reinstall=False,
+        session=None,
+        no_deps=False,
+    ):
         """Supported API. Install the bundle by retrieving it from the remote shed.
 
         Parameters
@@ -925,8 +1023,17 @@ class Toolshed:
         A :py:const:`TOOLSHED_BUNDLE_INSTALLED` trigger is fired after installation.
         """
         from chimerax.toolshed_utils import _install_bundle
+
         try:
-            _install_bundle(self, bundle, logger, per_user=per_user, reinstall=reinstall, session=session, no_deps=no_deps)
+            _install_bundle(
+                self,
+                bundle,
+                logger,
+                per_user=per_user,
+                reinstall=reinstall,
+                session=session,
+                no_deps=no_deps,
+            )
         except ToolshedInstalledError as e:
             logger.error(str(e))
 
@@ -951,7 +1058,10 @@ class Toolshed:
         A :py:const:`TOOLSHED_BUNDLE_UNINSTALLED` trigger is fired after package removal.
         """
         from chimerax.toolshed_utils import _uninstall_bundle
-        _uninstall_bundle(self, bundle, logger, session=session, force_remove=force_remove)
+
+        _uninstall_bundle(
+            self, bundle, logger, session=session, force_remove=force_remove
+        )
 
     #
     # End public API
@@ -967,6 +1077,7 @@ class Toolshed:
                     pass  # Fix #1254 -- already warned during initialization
                     # logger.warning("could not retrieve bundle list from toolshed")
                 from .available import AvailableBundleCache
+
                 self._available_bundle_info = AvailableBundleCache(self._cache_dir)
                 # TODO: trigger have available bundle information
             elif self._abc_updating:
@@ -980,8 +1091,10 @@ class Toolshed:
             return None
         if must_exist:
             import os
+
             os.makedirs(self._cache_dir, exist_ok=True)
         import os.path
+
         return os.path.join(self._cache_dir, "bundle_info.cache")
 
 
@@ -1265,7 +1378,9 @@ class BundleAPI:
         try:
             return _CallBundleAPI[self.api_version]
         except KeyError:
-            raise ToolshedError("bundle uses unsupport bundle API version %s" % self.api_version)
+            raise ToolshedError(
+                "bundle uses unsupport bundle API version %s" % self.api_version
+            )
 
 
 #
@@ -1408,12 +1523,14 @@ def get_help_directories():
     global _default_help_dirs
     if _default_help_dirs is None:
         import chimerax
-        if hasattr(chimerax, 'app_dirs'):
+
+        if hasattr(chimerax, "app_dirs"):
             from chimerax import app_data_dir, app_dirs
             import os
+
             _default_help_dirs = [
-                os.path.join(app_dirs.user_cache_dir, 'docs'),  # for generated files
-                os.path.join(app_data_dir, 'docs')              # for builtin files
+                os.path.join(app_dirs.user_cache_dir, "docs"),  # for generated files
+                os.path.join(app_data_dir, "docs"),  # for builtin files
             ]
         else:
             _default_help_dirs = []
@@ -1434,6 +1551,7 @@ def preview_toolshed_url():
 def restart_action_info():
     import chimerax
     import os
+
     inst_dir = os.path.join(chimerax.app_dirs.user_cache_dir, "installers")
     restart_file = os.path.join(inst_dir, "on_restart")
     return inst_dir, restart_file
@@ -1442,15 +1560,19 @@ def restart_action_info():
 def _get_user():
     # robust version of getpass.getuser
     import os
+
     user = os.getenv("LOGNAME") or os.getenv("USER") or os.getenv("USERNAME")
     if user:
         return user
     import sys
+
     if sys.platform.startswith("win"):
         import win32api
+
         return win32api.GetUserName()
     try:
         import pwd
+
         return pwd.getpwuid(os.getuid())[0]
     except Exception:
         return f"uid-{os.getuid()}"
@@ -1460,7 +1582,8 @@ def chimerax_uuid():
     # Return anonymous unique string that represents
     # the current user for accessing ChimeraX toolshed
     import uuid
-    node = uuid.getnode()   # Locality
+
+    node = uuid.getnode()  # Locality
     name = _get_user()
     dn = "CN=%s, L=%s" % (name, node)
     # and now make it anonymous
@@ -1475,6 +1598,7 @@ def need_to_check(last_check, update_interval, now):
         return True
 
     from datetime import datetime, timedelta
+
     last_check = datetime.strptime(last_check, "%Y-%m-%dT%H:%M:%S.%f")
     delta = now - last_check
     max_delta = timedelta(days=1)
@@ -1501,26 +1625,32 @@ class NewerVersionQuery(Task):
         from .. import buildinfo
         from cxservices.api import default_api
         from . import chimerax_uuid
+
         self.api = default_api.DefaultApi()
         self.result = None
         system = platform.system()
         if system == "Darwin":
             system = "macosx"
             version = platform.mac_ver()[0]
+            arch = "arm64" if "arm64" in platform.uname().version.lower() else "x86_64"
         elif system == "Windows":
             system = "windows"
             version = platform.version()
+            arch = None
         elif system == "Linux":
             import distro
+
             system = distro.id()
             like = distro.like()
             if like:
                 system = f"{system} {like}"
             version = distro.version(best=True)
+            arch = None
         params = {
             # use cxservices API names for keys
             "uuid": str(chimerax_uuid()),
             "os": system,
+            "arch": arch,
             "os_version": version,
             "chimera_x_version": buildinfo.version,
         }
@@ -1548,6 +1678,7 @@ class NewerVersionQuery(Task):
 
         # don't bother user about releases they've choosen to ignore
         from ..core_settings import settings
+
         versions = [v for v in self.versions if v[0] not in settings.ignore_update]
         if not versions:
             return
@@ -1555,6 +1686,7 @@ class NewerVersionQuery(Task):
         # notify user of newer versions
         from chimerax.core.commands import plural_form
         from .. import buildinfo
+
         # TODO: would like link to release notes and/or change log
 
         if not self.session.ui.is_gui:
@@ -1570,10 +1702,20 @@ class NewerVersionQuery(Task):
         class NewerDialog(QDialog):
 
             def __init__(self, parent):
-                from Qt.QtWidgets import QDialogButtonBox, QGridLayout, QLabel, QStyle, QFrame, QCheckBox
+                from Qt.QtWidgets import (
+                    QDialogButtonBox,
+                    QGridLayout,
+                    QLabel,
+                    QStyle,
+                    QFrame,
+                    QCheckBox,
+                )
                 from Qt.QtCore import Qt, QSize
                 from Qt.QtGui import QPalette
-                super().__init__(parent, Qt.WindowType.Dialog | Qt.WindowType.WindowCloseButtonHint)
+
+                super().__init__(
+                    parent, Qt.WindowType.Dialog | Qt.WindowType.WindowCloseButtonHint
+                )
                 self.setWindowTitle("ChimeraX Update Available")
                 self.setModal(False)
                 self.setBackgroundRole(QPalette.Base)
@@ -1581,7 +1723,9 @@ class NewerVersionQuery(Task):
                 self.ignored = {}
 
                 info = QLabel()
-                icon = info.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation)
+                icon = info.style().standardIcon(
+                    QStyle.StandardPixmap.SP_MessageBoxInformation
+                )
                 info.setMinimumSize(64, 64)
                 info.setPixmap(icon.pixmap(QSize(64, 64)))
 
@@ -1596,7 +1740,9 @@ class NewerVersionQuery(Task):
                     "<a href='https://www.rbvi.ucsf.edu/chimerax/download.html'>"
                     "ChimeraX download page</a>."
                 )
-                footer.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+                footer.setTextInteractionFlags(
+                    Qt.TextInteractionFlag.TextBrowserInteraction
+                )
                 footer.setOpenExternalLinks(True)
 
                 updates = QFrame()
@@ -1606,12 +1752,16 @@ class NewerVersionQuery(Task):
                 for row, (version, link) in enumerate(reversed(versions)):
                     html = f"&bull; <a href='{link}'>UCSF ChimeraX {version}</a>\n"
                     w = QLabel(html)
-                    w.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+                    w.setTextInteractionFlags(
+                        Qt.TextInteractionFlag.TextBrowserInteraction
+                    )
                     w.setOpenExternalLinks(True)
                     remind = QCheckBox("Remind me later")
                     remind.setToolTip("Show this release in future update checks")
                     remind.setChecked(True)
-                    remind.stateChanged.connect(lambda state, version=version: self.remind_later(state, version))
+                    remind.stateChanged.connect(
+                        lambda state, version=version: self.remind_later(state, version)
+                    )
                     layout.addWidget(w, row, 0)
                     layout.addWidget(remind, row, 1)
 
@@ -1653,7 +1803,9 @@ class NewerVersionQuery(Task):
                 self.ignored[version] = not state
 
             def done(self, result):
-                all_ignored = [version for version in self.ignored if self.ignored[version]]
+                all_ignored = [
+                    version for version in self.ignored if self.ignored[version]
+                ]
                 if all_ignored:
                     # don't use += or .extend() to guarantee that Settings.__setattr__
                     # will see that ignore_update has changed

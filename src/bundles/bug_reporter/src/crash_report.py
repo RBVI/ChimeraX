@@ -207,8 +207,10 @@ def _last_log_file_path():
 #
 def _show_bug_report_dialog(session, traceback):
     from chimerax.bug_reporter import show_bug_reporter
+    from chimerax.core.colors import scheme_color
+    color = scheme_color('error')
     br = show_bug_reporter(session)
-    msg = ('<p><font color=red>Last time you used ChimeraX it crashed.</font><br>'
-           'Please describe steps that led to the crash here.</p>'
+    msg = (f'<h3><font color="{color}">Last time you used ChimeraX it crashed.</font></h3>'
+           '<p>Please describe steps that led to the crash here.</p>'
            '<pre>\n%s\n</pre>' % traceback)
     br.set_description(msg)

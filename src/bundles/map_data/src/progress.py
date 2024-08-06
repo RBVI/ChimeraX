@@ -163,7 +163,8 @@ class ProgressReporter:
       asize = '%.1f Mb' % (float(bytes)/2**20)
     else:
       asize = '%.0f Kb' % (float(bytes)/2**10)
-    format = '%s %s ' % (self.operation, asize) + '%.0f%%'
+    op = self.operation.replace('%', '%%')  # Protect against filename % characters
+    format = '%s %s ' % (op, asize) + '%.0f%%'
     return format
     
   # ---------------------------------------------------------------------------
