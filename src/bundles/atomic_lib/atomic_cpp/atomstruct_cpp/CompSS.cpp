@@ -883,6 +883,11 @@ void
 AtomicStructure::compute_secondary_structure(float energy_cutoff,
     int min_helix_length, int min_strand_length, bool report, CompSSInfo* ss_info)
 {
+	auto instance = py_instance(false);
+	if (instance != Py_None)
+		logger::info(_logger, "Computing secondary structure");
+	Py_DECREF(instance);
+
     // initialize
     KsdsspParams params;
     try {
@@ -945,7 +950,7 @@ AtomicStructure::compute_secondary_structure(float energy_cutoff,
             delete crd;
         for (auto ih: params.imide_Hs)
             delete ih;
-        logger::error(logger(), e.what());
+        logger::error(_logger, e.what());
     } catch (...) {
         set_ss_assigned(true); // leave as all-turn; don't try again
         for (auto crd: params.coords)

@@ -337,9 +337,9 @@ class Structure(Model, StructureData):
             if pbg.name == self.PBG_MISSING_STRUCTURE and self.session.main_view.render is not None:
                 # Can't add labels if no renderer
                 from .settings import settings, label_missing_attr
-                if getattr(settings, label_missing_attr):
+                if self.num_chains <= getattr(settings, label_missing_attr):
                    from .cmd import label_missing_cmd
-                   label_missing_cmd(self.session, [self], True)
+                   label_missing_cmd(self.session, [self], self.num_chains)
         self._create_ribbon_graphics()
 
     @property

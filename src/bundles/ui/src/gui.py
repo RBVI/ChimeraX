@@ -28,6 +28,7 @@ in a thread-safe manner.  The UI instance is accessed as session.ui.
 
 from Qt.QtWidgets import QApplication
 from chimerax.core.logger import PlainTextLog
+import site
 import sys
 from contextlib import contextmanager
 from chimerax.core.colors import scheme_color, set_default_color_scheme
@@ -2105,6 +2106,13 @@ def _find_child_menu(w, name):
 def _open_dropped_file(session, path):
     if not path:
         return
+    # Ignore debugpy passing the path to itself to ChimeraX when debugging. This is for some reason
+    # not caught in __main__
+    if any(
+        path == spp + "/debugpy/launcher/../../debugpy"
+        for spp in site.getsitepackages()
+    ):
+        return
     from chimerax.core.commands import run, FileNameArg
     run(session, 'open %s' % FileNameArg.unparse(path))
 
@@ -2675,6 +2683,7 @@ class _Qt:
             self.dock_widget.show()
             #ensure it's on top
             self.dock_widget.raise_()
+            self.dock_widget.activateWindow()
         else:
             self.dock_widget.hide()
 

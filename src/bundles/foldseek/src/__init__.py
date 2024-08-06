@@ -34,7 +34,7 @@ class _FoldseekBundle(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        if command_name in ('foldseek', 'foldseek open', 'foldseek show', 'foldseek pairing'):
+        if command_name in ('foldseek', 'foldseek open', 'foldseek scrollto', 'foldseek pairing'):
             from . import foldseek
             foldseek.register_foldseek_command(logger)
         elif command_name == 'foldseek sequences':
@@ -43,9 +43,9 @@ class _FoldseekBundle(BundleAPI):
         elif command_name == 'foldseek traces':
             from . import traces
             traces.register_foldseek_traces_command(logger)
-        elif command_name == 'foldseek umap':
-            from . import umap
-            umap.register_foldseek_umap_command(logger)
+        elif command_name == 'foldseek cluster':
+            from . import cluster
+            cluster.register_foldseek_cluster_command(logger)
         elif command_name == 'foldseek ligands':
             from . import ligands
             ligands.register_foldseek_ligands_command(logger)
@@ -70,8 +70,12 @@ class _FoldseekBundle(BundleAPI):
     # Make class name to class for session restore
     @staticmethod
     def get_class(class_name):
-        if class_name == 'Foldseek':
-            from .gui import Foldseek
-            return Foldseek
+        if class_name == 'FoldseekPanel':
+            from .gui import FoldseekPanel
+            return FoldseekPanel
+        elif class_name == 'FoldseekResults':
+            from .foldseek import FoldseekResults
+            return FoldseekResults
+            
 
 bundle_api = _FoldseekBundle()

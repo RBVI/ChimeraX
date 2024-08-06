@@ -169,7 +169,7 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None, r
     session.models.add([combination])
     return combination
 
-def label_missing_cmd(session, structures, show):
+def label_missing_cmd(session, structures, max_chains):
     from . import all_atomic_structures, Pseudobonds
     lm_group_name = 'missing-structure length labels'
     if structures is None:
@@ -183,6 +183,7 @@ def label_missing_cmd(session, structures, show):
             pbg = structure.pbg_map[structure.PBG_MISSING_STRUCTURE]
         except KeyError:
             continue
+        show = structure.num_chains <= max_chains
         if show:
             for pb in pbg.pseudobonds:
                 a1, a2 = pb.atoms
@@ -322,7 +323,7 @@ def register_command(logger):
     label_missing_desc = CmdDesc(
         required=[
             ('structures', Or(AtomicStructuresArg,EmptyArg)),
-            ('show', BoolArg),
+            ('max_chains', NonNegativeIntArg),
         ],
         synopsis = 'Show/hide missing-structure pseudobond labels')
     register('label missing', label_missing_desc, label_missing_cmd, logger=logger)
