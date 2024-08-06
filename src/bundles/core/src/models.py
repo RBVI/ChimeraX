@@ -431,12 +431,12 @@ class Model(State, Drawing):
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
         '''
         Restore model to state interpolated as a fraction between the two scene datas.
-        For parts of the model that aren't interpolable, chenge to the second state
+        For parts of the model that aren't interpolable, change to the second state
         when 'switchover' is True.  If no parts of the model are interpolable then
-        you needn't implement this method (restore_scene() is sufficient.
+        you needn't implement this method (restore_scene() is sufficient).
 
         '''
-        #TODO: interepolate base Model state here
+        #TODO: interpolate base Model state here
         raise NotImplementedError("interpolate_scene not implemented")
 
     def save_geometry(self, session, flags):

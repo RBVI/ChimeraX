@@ -247,7 +247,7 @@ class CategorizedOptionsPanel(QTabWidget):
     def show_option(self, option, *, missing_okay=False):
         return self.set_option_shown(option, True, missing_okay=missing_okay)
 
-    def _show_tab(self, tab, show)
+    def _show_tab(self, tab, show):
         tab = tab.casefold()
         for index in range(self.count()):
             if tab == self.tabText(index).casefold():
