@@ -41,15 +41,20 @@ delete</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 <b>~label</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<i>level</i>&nbsp;]
 </h3>
-<a name="listfonts"></a>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>label listfonts</b>
-</h3>
 <p>
 The <b>label</b> command shows labels that move along with the associated
 items in 3D. These &ldquo;3D&rdquo; (although flat in appearance)
 labels can be of multiple colors and sizes. 
 A label is automatically hidden, however, when the corresponding item is hidden.
+Subcommands include: 
+<ul>
+<li><a href="#listfonts"><b>label listfonts</b></a>
+&ndash; list possible fonts in the <a href="../tools/log.html"><b>Log</b></a>
+<li><a href="#missing"><b>label missing</b></a>
+&ndash; label missing-segment <a href="../pseudobonds.html">pseudobonds</a>
+with the number of missing residues
+</ul>
+<p>
 See also: 
 <a href="#settings">label settings</a>,
 <a href="distance.html"><b>distance</b></a>,
@@ -66,7 +71,7 @@ The type of items to label can be indicated with one of the following
 <li><b>models</b> &ndash; model name
 <li><b>bonds</b> &ndash; bond length
 <li><b>pseudobonds</b>
-&ndash; <a href="../pseudobonds.html">pseudobond</a> length
+&ndash; <a href="../pseudobonds.html">pseudobond</a> length (&Aring;)
 </ul>
 <p>
 Adding new labels with the <b>label</b> command requires a
@@ -96,9 +101,6 @@ all types of 3D labels unless explicitly limited to one of the types
 with the corresonding keyword (<b>atoms</b>, <b>residues</b>, <i>etc.</i>).
 The command <b>~label</b> is the same as <b>label delete</b>.
 </p><p>
-The command <b>label listfonts</b> lists the possible <a href="#font">fonts</a>
-in the <a href="../tools/log.html"><b>Log</b></a>.
-</p><p>
 3D labels can also be added/deleted by clicking in the graphics window
 with the <b>label</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
@@ -116,7 +118,7 @@ Both kinds of labels can be repositioned with the <b>move label</b>
 <p class="nav">
 [<a href="#top">back to top: label</a>]
 </p>
-<h3>Options</h3>
+<h3>Label Options</h3>
 <p>
 Parameters that are not specified retain their current values.
 </p>
@@ -239,7 +241,8 @@ or if <a href="#height"><b>height</b></a> is <b>fixed</b>, larger labels.
 <a name="font"></a>
 <b>font</b>&nbsp;&nbsp;<i>font-type</i>&nbsp;|&nbsp;<b>default</b>
 <br>
-Specify label font (default <b>Arial</b>); the command <b>label listfonts</b>
+Specify label font (default <b>Arial</b>); the command 
+<a href="#listfonts"><b>label listfonts</b></a>
 lists the possible values of <i>font-type</i> in the 
 <a href="../tools/log.html"><b>Log</b></a>.
 Those containing spaces must be enclosed in quotation marks.
@@ -276,11 +279,50 @@ unless <i>all</i> of the labels displayed for that model have a
 <a href="#bgColor">background</a>.
 </blockquote>
 
+<a name="listfonts"></a>
+<p class="nav">
+[<a href="#top">back to top: label</a>]
+</p>
+<h3>Listing Label Fonts</h3>
+<blockquote>
+<a href="usageconventions.html">Usage</a>:
+<b>label listfonts</b>
+</blockquote>
+<p>
+The <b>label listfonts</b> command lists the possible <a href="#font">fonts</a>
+in the <a href="../tools/log.html"><b>Log</b></a>.
+</p>
+
+<a name="missing"></a>
+<p class="nav">
+[<a href="#top">back to top: label</a>]
+</p>
+<h3>Labeling Missing Segments </h3>
+<blockquote>
+<a href="usageconventions.html">Usage</a>:
+<b>label missing</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+<i>maxchains</i>
+</blockquote>
+<p>
+The <b>label missing</b> command labels missing-structure
+<a href="../pseudobonds.html">pseudobonds</a> with the number of biopolymer
+residues that they represent, according to PDB SEQRES information or
+the mmCIF equivalent. As per the normal convention, the
+<a href="atomspec.html#hierarchy"><i>model-spec</i></a> may be left
+blank to indicate all applicable models.
+A <i>maxchains</i> value is required to specify the maximum number of chains 
+in an atomic model for missing-segment labels to be shown in that model
+(can be set to 0 to remove all missing-segment labels).
+The corresponding preference can be set in the
+<a href="../preferences.html#labels"><b>Labels</b> preferences</a>.
+</p>
+
 <a name="settings"></a>
 <p class="nav">
 [<a href="#top">back to top: label</a>]
 </p>
-<h3>Label Settings</h3>
+<h3>Label Settings (Preferences)</h3>
 
 <blockquote>
 <a name="defaultHeight"></a>
@@ -325,5 +367,5 @@ those with <a href="#height">fixed heights</a> always face the viewer.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2024</address>
+August 2024</address>
 </body></html> 
