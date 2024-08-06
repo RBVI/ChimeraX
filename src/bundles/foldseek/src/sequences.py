@@ -157,8 +157,10 @@ class FoldseekSequencePlot(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _hover_info(self, x, y):
-        query_res = self._column_query_residues()
         r = self._results
+        if r.query_chain is None:
+            return None, None, None
+        query_res = self._column_query_residues()
         if y >= 0 and y < r.num_hits and x >= 0 and x < len(query_res):
             order = self._hit_order()
             hit = r.hits[order[y]]

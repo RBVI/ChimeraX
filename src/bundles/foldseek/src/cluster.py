@@ -49,7 +49,7 @@ def _show_umap(session, hits, query_chain, query_residues, align_with = None, cu
     coord_offsets, hit_names = _aligned_coords(hits, query_chain, query_residues,
                                                align_with = align_with, cutoff_distance = cutoff_distance)
     if len(coord_offsets) == 0:
-        session.logger.error(f'Foldseek results contains no structures with all of the specified {len(query_residues)}')
+        session.logger.error(f'Foldseek results contains no structures with all of the specified {len(query_residues)} residues')
         return
 
     from chimerax.diffplot.diffplot import _umap_embed, _plot_embedding, _install_umap
@@ -143,6 +143,8 @@ def fill_context_menu(self, menu, item):
                             lambda self=self, item=item: _change_cluster_color(self, item))
     self.add_menu_entry(menu, 'Color traces to match plot',
                         lambda self=self: _color_traces(self))
+    self.add_menu_entry(menu, 'Show all traces',
+                        lambda self=self: _show_all_traces(self))
     self.add_menu_entry(menu, 'Show one trace per cluster',
                         lambda self=self: _show_one_trace_per_cluster(self))
     self.add_menu_entry(menu, 'Show traces not on plot',
@@ -166,18 +168,12 @@ def _hide_cluster_traces(structure_plot, node):
     _show_traces(structure_plot.session, _cluster_names(structure_plot, node), show = False)
 
 def _show_traces(session, names, show = True, other = False):
-    tmodels = _foldseek_trace_models(session)
-    names_set = set(names)
-    for tmodel in tmodels:
-        tmask = tmodel.triangle_mask
-        if tmask is None:
-            from numpy import ones
-            tmask = ones((len(tmodel.triangles),), bool)
-        for name, tstart, tend in tmodel.trace_triangle_ranges():
-            change = (name not in names_set) if other else (name in names_set)
-            if change:
-                tmask[tstart:tend] = show
-        tmodel.triangle_mask = tmask
+    for tmodel in _foldseek_trace_models(session):
+        tmodel.show_traces(names, show=show, other=other)
+
+def _show_all_traces(structure_plot):
+    cnames = []
+    _show_traces(structure_plot.session, cnames, show = True, other = True)
 
 def _show_one_trace_per_cluster(structure_plot):
     cnames = _cluster_center_names(structure_plot)
@@ -231,10 +227,38 @@ def _cluster_names(structure_plot, node):
     return [n.name for n in structure_plot.nodes if n.color == node.color]
 
 def _change_cluster_color(structure_plot, node):
+    _show_color_panel(structure_plot, node)
+
+_color_dialog = None
+def _show_color_panel(structure_plot, node):
+    global _color_dialog
+    cd = _color_dialog
+    from Qt import qt_object_is_deleted
+    if cd is None or qt_object_is_deleted(cd):
+        parent = structure_plot.tool_window.ui_area
+        from Qt.QtWidgets import QColorDialog
+        _color_dialog = cd = QColorDialog(parent)
+        cd.setOption(cd.NoButtons, True)
+    else:
+        # On Mac, Qt doesn't realize when the color dialog has been hidden by the red 'X' button, so
+        # "hide" it now so that Qt doesn't believe that the later show() is a no op.  Whereas on Windows
+        # doing a hide followed by a show causes the dialog to jump back to it's original screen
+        # position, so do the hide _only_ on Mac.
+        import sys
+        if sys.platform == "darwin":
+            cd.hide()
+        cd.currentColorChanged.disconnect()
+    from Qt.QtGui import QColor
+    cur_color = QColor.fromRgbF(*tuple(node.color))
+    cd.setCurrentColor(cur_color)
+    def use_color(color, *, structure_plot=structure_plot, node=node):
+        rgba = (color.redF(), color.greenF(), color.blueF(), color.alphaF())
+        _color_cluster(structure_plot, node, rgba)
+    cd.currentColorChanged.connect(use_color)
+    cd.show()
+
+def _color_cluster(structure_plot, node, color):
     cur_color = node.color
-    from chimerax.core.colors import distinguish_from
-    opacity = 1
-    color = distinguish_from([cur_color]) + (opacity,)
     for n in structure_plot.nodes:
         if n.color == cur_color:
             n.color = color
