@@ -66,7 +66,7 @@ wheel-filename==1.4.1
 # Documentation
 #
 blockdiag==3.0.0
-docutils==0.21.2
+docutils==0.20.1
 Jinja2==3.1.4
 Pygments==2.18.0
 Sphinx==8.0.2
