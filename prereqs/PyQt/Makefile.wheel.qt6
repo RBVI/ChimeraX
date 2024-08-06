@@ -49,8 +49,8 @@ WHEEL_ABI = abi3
 
 ifeq ($(OS),Darwin)
 BIN_PLATFORM = macos
-WHEEL_PLATFORM = macosx_10_14_universal2
-WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
+WHEEL_PLATFORM = macosx_11_0_universal2
+WE_WHEEL_PLATFORM = macosx_10_14_universal2
 MISSING_QTWEBENGINE_DICT = PyQt6/Qt6/lib/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents/MacOS/qtwebengine_dictionaries
 else ifeq ($(OS),Linux)
 BIN_PLATFORM = linux

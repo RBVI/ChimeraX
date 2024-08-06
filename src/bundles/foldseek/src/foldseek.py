@@ -63,12 +63,6 @@ class FoldseekWebQuery:
         self._user_agent = {'User-Agent': f'ChimeraX {cx_version}'}	# Identify ChimeraX to Foldseek server
         self._download_chunk_size = 64 * 1024	# bytes
 
-        # Use cached 8jnb results for developing user interface so I don't have to wait for server every test.
-#        with open('/Users/goddard/ucsf/chimerax/src/bundles/foldseek_example/alis_pdb100.m8', 'r') as mfile:
-#            results = {database: mfile.readlines()}
-#        self.report_results(results)
-#        return
-        
         mmcif_string = _mmcif_as_string(chain)
         self._save('query.cif', mmcif_string)
         self._save_query_path(chain)
@@ -138,6 +132,7 @@ class FoldseekWebQuery:
     def download_results(self, ticket_id, report_progress = None):
         '''
         Return a dictionary mapping database name to results as m8 format tab-separated values.
+        This may be done in a separate thread, so don't do any user interface calls that would use Qt.
         '''
         result_url = self.foldseek_url + f'/result/download/{ticket_id}'
         import requests
@@ -172,9 +167,17 @@ class FoldseekWebQuery:
 
         # Save results to a file
         for dbname, hit_lines in m8_results.items():
-            self._save(dbname + '.m8', ''.join(hit_lines))
+            filename = self._results_file_name(dbname)
+            self._save(filename, ''.join(hit_lines))
 
         return m8_results
+
+    def _results_file_name(self, database = None):
+        dbname = self.database if database is None else database
+        c = self.chain
+        structure_name = c.structure.name.replace(' ', '_')
+        file_name = f'{structure_name}_{c.chain_id}_{dbname}.m8'
+        return file_name
 
     def _report_progress(self, message):
         self.session.logger.status(message)
@@ -224,11 +227,12 @@ class FoldseekWebQuery:
         save_directory = self.save_directory
         if save_directory is None:
             return
-        from os import path, makedirs
-        if not path.exists(save_directory):
-            makedirs(save_directory)
+        import os, os.path
+        if not os.path.exists(save_directory):
+            os.makedirs(save_directory)
         file_mode = 'w' if isinstance(data, str) else 'wb'
-        with open(path.join(save_directory, filename), file_mode) as file:
+        path = os.path.join(save_directory, filename)
+        with open(path, file_mode) as file:
             file.write(data)
 
     def _save_query_path(self, chain):
@@ -241,11 +245,15 @@ class FoldseekWebQuery:
         if not self.save_directory:
             return
         from os.path import join
-        m8_path = join(self.save_directory, self.database + '.m8')
+        m8_path = join(self.save_directory, self._results_file_name())
         cspec = self.chain.string(style='command')
         from chimerax.core.commands import log_equivalent_command, quote_path_if_necessary
         cmd = f'open {quote_path_if_necessary(m8_path)} database {self.database} chain {cspec}'
         log_equivalent_command(self.session, cmd)
+
+        # Record in file history so it is easy to reopen Foldseek results.
+        from chimerax.core.filehistory import remember_file
+        remember_file(self.session, m8_path, 'foldseek', [self.chain.structure], file_saved=True)
 
 def _mmcif_as_string(chain):
     structure = chain.structure.copy()
@@ -1101,7 +1109,7 @@ def foldseek_open(session, hit_name, trim = None, align = True, alignment_cutoff
                      in_file_history = in_file_history, log = log)
             break
 
-def foldseek_show(session, hit_name):
+def foldseek_scroll_to(session, hit_name):
     '''Show table row for this hit.'''
     hit, panel = _foldseek_hit_by_name(session, hit_name)
     if hit:
@@ -1210,7 +1218,7 @@ def register_foldseek_command(logger):
         required = [('hit_name', StringArg)],
         synopsis = 'Show Foldseek result table row'
     )
-    register('foldseek show', desc, foldseek_show, logger=logger)
+    register('foldseek scrollto', desc, foldseek_scroll_to, logger=logger)
 
     desc = CmdDesc(
         required = [('hit_structure', StructureArg)],

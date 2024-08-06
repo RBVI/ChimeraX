@@ -30,6 +30,9 @@ def foldseek_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_
         return
 
     query_chain = fp.results.query_chain
+    if query_chain is None:
+        from chimerax.core.errors import UserError
+        raise UserError('Cannot position Foldseek ligands without query structure')
 
     keep_structs = []
     nhits = len(fp.hits)

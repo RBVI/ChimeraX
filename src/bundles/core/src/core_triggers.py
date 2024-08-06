@@ -30,20 +30,34 @@ Some core triggers are registered elsewhere, such as in the View constructor.
 
 """
 
+APP_QUIT = "app quit"
+BEGIN_RESTORE_SESSION = "begin restore session"
+BEGIN_SAVE_SESSION = "begin save session"
+COMMAND_FAILED = "command failed"
+COMMAND_FINISHED = "command finished"
+COMMAND_STARTED = "command started"
+END_RESTORE_SESSION = "end restore session"
+END_SAVE_SESSION = "end save session"
+FRAME_DRAWN = "frame drawn"
+GRAPHICS_UPDATE = "graphics update"
+NEW_FRAME = "new frame"
+SHAPE_CHANGED = "shape changed"
+
 trigger_info = {
-    "app quit": True,
-    "begin restore session": False,
-    "begin save session": False,
-    "command failed": False,
-    "command finished": False,
-    "command started": False,
-    "end restore session": False,
-    "end save session": False,
-    "frame drawn": True,
-    "graphics update": True,
-    "new frame": True,
-    "shape changed": False,
+    APP_QUIT: True,
+    BEGIN_RESTORE_SESSION: False,
+    BEGIN_SAVE_SESSION: False,
+    COMMAND_FAILED: False,
+    COMMAND_FINISHED: False,
+    COMMAND_STARTED: False,
+    END_RESTORE_SESSION: False,
+    END_SAVE_SESSION: False,
+    FRAME_DRAWN: True,
+    GRAPHICS_UPDATE: True,
+    NEW_FRAME: True,
+    SHAPE_CHANGED: False,
 }
+
 
 def register_core_triggers(core_triggerset):
     for tn, rbh in trigger_info.items():

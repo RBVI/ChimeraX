@@ -67,7 +67,7 @@ class FoldseekPanel(ToolInstance):
                          ('Open', self._open_selected),
                          ('Sequences', self._show_sequences),
                          ('Traces', self._show_backbone_traces),
-                         ('Clusters', self._show_umap_plot),
+                         ('Clusters', self._show_cluster_plot),
                          ('Ligands', self._show_ligands),
                          ('Options', self._show_or_hide_options),
                          ('Help', self._show_help)],
@@ -269,17 +269,22 @@ class FoldseekPanel(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _show_umap_plot(self, *, nres = 10):
+    def _show_cluster_plot(self, *, nres = 5):
         r = self.results
+        if r.query_chain is None:
+            self.session.logger.error('Cannot compute Foldseek clusters without query structure')
+            return
         r.set_conservation_attribute()
-        cr = [(res.foldseek_conservation, res) for res in r.query_residues]
-        cr.sort()
-        most_conserved_res = [res for c,res in cr[-nres:]]
-        from chimerax.atomic import concise_residue_spec
-        rspec = concise_residue_spec(self.session, most_conserved_res)
+        r.set_coverage_attribute()
+        cr = [(res.foldseek_conservation * res.foldseek_coverage, res) for res in r.query_residues]
+        cr.sort(reverse = True)
+        most_conserved_res = [res for c,res in cr[0:nres]]
+        rnums = ','.join(str(res.number) for res in most_conserved_res)
+        cspec = r.query_chain.string(style = 'command')
+        rspec = cspec + f':{rnums}'
 
         from chimerax.core.commands import run
-        run(self.session, f'foldseek umap {rspec} clusterDistance 1.5')
+        run(self.session, f'foldseek cluster {rspec} clusterDistance 1.5')
 
     # ---------------------------------------------------------------------------
     #
