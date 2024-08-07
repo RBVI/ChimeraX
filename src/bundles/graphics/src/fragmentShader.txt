@@ -26,9 +26,23 @@
  */
 
 /* ----------------------------------------------------------------------------
+* Various debugging shaders
+*/
+#ifdef USE_SHOW_DEPTH_BUFFER
+uniform sampler2D depth_texture;
+in vec2 tex_coord_2d;
+out vec4 frag_color;
+
+void main()
+{
+    float c = texture(depth_texture, tex_coord_2d).x;
+    frag_color = vec4(c, c, c, 1.0);
+}
+
+/* ----------------------------------------------------------------------------
 * Shader for drawing selection outlines.
 */
-#ifdef USE_TEXTURE_OUTLINE
+#elif defined(USE_TEXTURE_OUTLINE)
 
 in vec2 tex_coord_2d;
 uniform sampler2D tex2d;
