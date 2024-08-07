@@ -33,27 +33,23 @@ class FitJob(Job):
 
     SESSION_SAVE = False
 
-    def __init__(self, session, executable_location, optional_args, map1_file_name,
-            map2_file_name, search_center, model_file_name,
-            positional_args, temp_dir, resolution, verbose, callback, block):
+    def __init__(self, session, executable_location, optional_args, search_center, positional_args,
+            temp_dir, verbose, callback, block):
         super().__init__(session)
         self._running = False
         self._monitor_time = 0
         self._monitor_interval = 10
-        self.start(session, executable_location, optional_args, map1_file_name,
-            map2_file_name, search_center, model_file_name, positional_args, temp_dir, resolution,
+        self.start(session, executable_location, optional_args, search_center, positional_args, temp_dir,
             verbose, callback, blocking=block)
 
-    def run(self, session, executable_location, optional_args, map1_file_name,
-            map2_file_name, search_center, model_file_name, positional_args, temp_dir, resolution,
+    def run(self, session, executable_location, optional_args, search_center, positional_args, temp_dir,
             verbose, callback, **kw):
         self._running = True
         self.start_t = time()
         def threaded_run(self=self):
             try:
                 results = _run_fit_subprocess(session, executable_location, optional_args,
-                    map1_file_name, map2_file_name, search_center, model_file_name,
-                    positional_args, temp_dir, resolution, verbose)
+                    search_center, positional_args, temp_dir, verbose)
             finally:
                 self._running = False
             self.session.ui.thread_safe(callback, *results)
@@ -112,6 +108,9 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, *, block
     from tempfile import TemporaryDirectory
     d = TemporaryDirectory(prefix = 'phenix_ligandfit_')  # Will be cleaned up when object deleted.
     temp_dir = d.name
+    session.hold_temp_ref = d
+    import sys
+    print("temp dir is", temp_dir, file=sys.__stderr__)
 
     # Check map_data arg and save map data
     from os import path
@@ -124,7 +123,7 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, *, block
 
     if ligand.startswith(('smiles:', 'ccd:', 'pubchem:')):
         ligand_data = ligand
-    elif ligand,startswith('file:')
+    elif ligand.startswith('file:'):
         ligand_format, ligand_data = ligand.split(':', 1)
     else:
         import os
@@ -142,22 +141,20 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, *, block
         session.logger.info(f"Guessing ligand format to be '{ligand_format}'")
 
     try:
-        ligand_model = session.open_command.open_data(ligand_data)
+        ligand_models, status = session.open_command.open_data(ligand_data)
     except Exception as e:
         raise UserError(f"Cannot open ligand '{ligand}': {str(e)}")
 
     # Save ligand to file.
     from chimerax.pdb import save_pdb
-    save_pdb(session, path.join(temp_dir,'ligand.pdb'), models=[ligand_model])
+    save_pdb(session, path.join(temp_dir,'ligand.pdb'), models=ligand_models)
 
     # Run phenix.ligandfit
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # the program runs
-    callback = lambda transform, sharpened_map, *args, session=session, maps=map_data, \
-        ssm=show_sharpened_map, app_sym=apply_symmetry, d_ref=d: _process_results(session,
-        transform, sharpened_map, model, maps, ssm, app_sym)
-    FitJob(session, exe_path, option_arg, map_arg1, map_arg2, search_center,
-        "model.pdb", position_arg, temp_dir, resolution, verbose, callback, block)
+    callback = lambda placed_ligand, *args, session=session, model=model, d_ref=d: _process_results(
+        session, placed_ligand, model)
+    FitJob(session, exe_path, option_arg, search_center, position_arg, temp_dir, verbose, callback, block)
 
 class ViewBoxError(ValueError):
     pass
@@ -221,8 +218,10 @@ def view_box(session, model):
         return (face_intercepts[0] + face_intercepts[1]) / 2
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
-def _process_results(session, transform, sharpened_map, orig_model, maps, show_sharpened_map,
-        apply_symmetry):
+def _process_results(session, place_ligand, model):
+    import sys
+    print("done", file=sys.__stderr__)
+    return
     if orig_model.deleted:
         raise UserError("Structure being fitting was deleted during fitting")
     from chimerax.geometry import Place
@@ -254,24 +253,17 @@ def _process_results(session, transform, sharpened_map, orig_model, maps, show_s
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
-def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name,
-        map2_file_name, search_center, model_file_name, positional_args, temp_dir, resolution, verbose):
+def _run_fit_subprocess(session, exe_path, optional_args, search_center, positional_args, temp_dir, verbose):
     '''
-    Run emplace_local in a subprocess and return the model.
+    Run ligandfit in a subprocess and return the ligand.
     '''
     from chimerax.core.commands import StringArg
-    if map2_file_name is None:
-        map_args = ["map=%s" % StringArg.unparse(map1_file_name)]
-    else:
-        map_args = [
-            "map1=%s" % StringArg.unparse(map1_file_name),
-            "map2=%s" % StringArg.unparse(map2_file_name),
-        ]
-    args = [exe_path] + optional_args + map_args + [
-            "d_min=%g" % resolution,
-            "model_file=%s" % StringArg.unparse(model_file_name),
-            "sphere_center=(%g,%g,%g)" % tuple(search_center.scene_coordinates()),
-            "--json",
+    args = [exe_path] + optional_args + [
+            "ligand=ligand.pdb",
+            "map_in=map.mrc",
+            "model=model.pdb",
+            "resolution=3.40",
+            "search_center=%g %g %g" % tuple(search_center.scene_coordinates()),
         ] + positional_args
     tsafe=session.ui.thread_safe
     logger = session.logger
@@ -281,7 +273,7 @@ def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name,
     if p.returncode != 0:
         cmd = " ".join(args)
         out, err = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
-        msg = (f'phenix.voyager.emplace_local exited with error code {p.returncode}\n\n' +
+        msg = (f'phenix.ligandfit exited with error code {p.returncode}\n\n' +
                f'Command: {cmd}\n\n' +
                f'stdout:\n{out}\n\n' +
                f'stderr:\n{err}')
@@ -296,6 +288,8 @@ def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name,
             msg += f'\n\n<b>stderr</b>:\n\n{err}'
         msg += '</pre>'
         tsafe(logger.info, msg, is_html=True)
+
+    return (None,)
 
     # Open new model with added waters
     from os import path
@@ -320,7 +314,7 @@ def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name,
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
     from chimerax.core.commands import (CenterArg, OpenFolderNameArg, BoolArg, RepeatOf, StringArg,
-        OpenFileNameArg, EnumOf)
+        OpenFileNameArg, EnumOf, Or)
     from chimerax.map import MapArg
     from chimerax.atomic import AtomicStructureArg
     desc = CmdDesc(
@@ -328,9 +322,10 @@ def register_command(logger):
                     ('ligand', Or(OpenFileNameArg,StringArg)),
         ],
         required_arguments = ['center', 'in_map'],
-        keyword = [('block', BoolArg),
-                   ('center', CenterArg),
+        keyword = [('center', CenterArg),
                    ('in_map', MapArg),
+                   # put the above two first so that they show up in usage before the optional keywords
+                   ('block', BoolArg),
                    ('phenix_location', OpenFolderNameArg),
                    ('verbose', BoolArg),
                    ('option_arg', RepeatOf(StringArg)),
