@@ -281,8 +281,8 @@ void main (void)
             texture(tex3d, position + vec3(0.0, 0.0, step_length)).r - texture(tex3d, position - vec3(0.0, 0.0, step_length)).r
         ));
 
-    float keyDiffuse = max(0.0, dot(gradientVec, key_light_direction));
-    float fillDiffuse = max(0.0, dot(gradientVec, fill_light_direction));
+    float keyDiffuse = max(0.0, -dot(gradientVec, key_light_direction));
+    float fillDiffuse = max(0.0, -dot(gradientVec, fill_light_direction));
     vec3 R = normalize(reflect(key_light_direction,gradientVec));
     float specular_factor = pow(max(-dot(R,normalize(ray_direction)),0.0), key_light_specular_exponent);
 
