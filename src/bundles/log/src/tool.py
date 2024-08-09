@@ -160,7 +160,7 @@ class Log(ToolInstance, HtmlLog):
                 menu.addAction("Select All", lambda:
                     log_window.page().triggerAction(log_window.page().SelectAll))
                 from Qt.QtGui import QAction
-                show_action = QAction("Show Log If New Content", menu)
+                show_action = QAction("Raise Log If New Content", menu)
                 show_action.setCheckable(True)
                 show_action.setChecked(self.tool_instance.settings.show_if_new_content)
                 show_action.triggered.connect(lambda checked, settings=self.tool_instance.settings:

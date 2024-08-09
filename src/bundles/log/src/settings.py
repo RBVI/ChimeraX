@@ -55,7 +55,7 @@ def register_settings_options(session):
             BooleanOption,
             'Restoring session clears log'),
         'show_if_new_content': (
-            CustomSortString('Show log if new content', 2),
+            CustomSortString('Raise log if new content', 2),
             BooleanOption,
             'Show and raise the log if new content is logged'),
     }
