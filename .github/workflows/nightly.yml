@@ -25,7 +25,6 @@ jobs:
       image: rockylinux:8
     env:
       SHELL: /bin/bash
-      LANG: en_US.UTF-8
       PATH: /usr/bin:/usr/sbin:/bin:/sbin
     steps:
       - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
@@ -42,7 +41,6 @@ jobs:
       image: rockylinux:9
     env:
       SHELL: /bin/bash
-      LANG: en_US.UTF-8
       PATH: /usr/bin:/usr/sbin:/bin:/sbin
     steps:
       - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
