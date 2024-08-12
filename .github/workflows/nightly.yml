@@ -32,7 +32,8 @@ jobs:
       - run: dnf update -y
       - run: dnf install -y git-all
       - uses: actions/checkout@v4
-      - run: git config --global --add safe.directory ${PWD}
+      # buildinfo.py breaks without this
+      - run: chown -R $(id -u):$(id -g) $PWD
       - run: ${PWD}/utils/set_up_centos.sh
       - run: source /opt/rh/gcc-toolset-10/enable && make -f Makefile.centos install
   build-rocky9-docker:
@@ -48,6 +49,8 @@ jobs:
       - run: dnf update -y
       - run: dnf install -y git-all
       - uses: actions/checkout@v4
+      # buildinfo.py breaks without this
+      - run: chown -R $(id -u):$(id -g) $PWD
       - run: ${PWD}/utils/set_up_centos.sh
       - run: make -f Makefile.centos install
   # TODO: Build Generic Linux
