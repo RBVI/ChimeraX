@@ -10,7 +10,7 @@ jobs:
         os: [ubuntu-22.04, ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
       - run: make install
         #      - run: tar -cvzf ChimeraX.tar.gz ChimeraX.app
@@ -31,7 +31,7 @@ jobs:
       - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
       - run: dnf update -y
       - run: dnf install -y git-all
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: git config --global --add safe.directory ${PWD}
       - run: ${PWD}/utils/set_up_centos.sh
       - run: source /opt/rh/gcc-toolset-10/enable && make -f Makefile.centos install
@@ -47,8 +47,7 @@ jobs:
       - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
       - run: dnf update -y
       - run: dnf install -y git-all
-      - uses: actions/checkout@v3
-      - run: git config --global --add safe.directory ${PWD}
+      - uses: actions/checkout@v4
       - run: ${PWD}/utils/set_up_centos.sh
       - run: make -f Makefile.centos install
   # TODO: Build Generic Linux
@@ -70,7 +69,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
