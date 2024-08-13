@@ -1,7 +1,7 @@
 name: Nightly Build
 on:
   schedule:
-    - cron: '30 10 * * *' # 2:30AM PT/10:30AM UTC
+    - cron: "30 10 * * *" # 2:30AM PT/10:30AM UTC
 
 jobs:
   build-ubuntu:
@@ -10,7 +10,7 @@ jobs:
         os: [ubuntu-22.04, ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
       - run: make install
         #      - run: tar -cvzf ChimeraX.tar.gz ChimeraX.app
@@ -25,13 +25,14 @@ jobs:
       image: rockylinux:8
     env:
       SHELL: /bin/bash
-      LANG: en_US.UTF-8
       PATH: /usr/bin:/usr/sbin:/bin:/sbin
     steps:
       - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
       - run: dnf update -y
       - run: dnf install -y git-all
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      # buildinfo.py breaks without this
+      - run: chown -R $(id -u):$(id -g) $PWD
       - run: ${PWD}/utils/set_up_centos.sh
       - run: source /opt/rh/gcc-toolset-10/enable && make -f Makefile.centos install
   build-rocky9-docker:
@@ -40,13 +41,14 @@ jobs:
       image: rockylinux:9
     env:
       SHELL: /bin/bash
-      LANG: en_US.UTF-8
       PATH: /usr/bin:/usr/sbin:/bin:/sbin
     steps:
       - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
       - run: dnf update -y
       - run: dnf install -y git-all
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      # buildinfo.py breaks without this
+      - run: chown -R $(id -u):$(id -g) $PWD
       - run: ${PWD}/utils/set_up_centos.sh
       - run: make -f Makefile.centos install
   # TODO: Build Generic Linux
@@ -68,7 +70,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64

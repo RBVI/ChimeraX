@@ -23,14 +23,6 @@ PATCHES = tcia_utils.patch tcia_utils_metadata.patch
 PYTABLES_DYLIBS = libblosc.1.dylib libhdf5.200.dylib libsnappy.1.dylib \
 				  libc++.1.dylib libcrypto.3.dylib libssl.3.dylib
 
-# Notarized macOS application will not launch first time if it contains
-# libraries or executables with references to non-system libraries outside the application.
-# Remove these inessential libraries from PySide2 that link to external libraries.
-# See ChimeraX ticket #4013 for details.
-PYSIDE2_MACOS_REMOVE = PySide2/pyside2-lupdate \
-			PySide2/Qt/plugins/sqldrivers/libqsqlodbc.dylib \
-			PySide2/Qt/plugins/sqldrivers/libqsqlpsql.dylib
-
 
 GRAKO_WHEEL = grako-3.16.5-py2.py3-none-any.whl
 ifeq ($(OS),Windows)
@@ -108,7 +100,6 @@ endif
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
-	-cd $(APP_PYSITEDIR) ; rm -f $(PYSIDE2_MACOS_REMOVE)
 	# tcia_utils (a DICOM dependency) pulls in Pandas, but it is patched
 	# so that pandas is not needed. When those patches are upstreamed 
 	# and pandas is optional this line can be removed
@@ -143,6 +134,7 @@ outdated:
 	$(PIP) list --outdated --format=columns
 	@echo ""
 	@echo "Known issues:"
+	@echo "  tcia_utils versions >1.5.1 make no API changes and add more dependencies to patch out"
 	@echo "  distlib 0.2.7 last version that works with 'toolshed uninstall'"
 	@echo "  grako (3.16.5 is the last version that works [see #3460])"
 	@echo "  lineprofiler 2.1.2, newer versions 3.0 and above require cmake"
@@ -150,6 +142,7 @@ outdated:
 	@echo "  MarkupSafe (pulled in by Jinja2)"
 	@echo "  parso (pulled in by line-profiler via jedi)"
 	@echo "  pip, wheel, setuptools versions are set in ../python/Makefile"
+	@echo "  pyopenxr use 1.0.3401, newer 1.1.3601 is not supported by SteamVR or Meta App, Aug 2024"
 	@echo "  pyzmq (pulled in by ipykernel via jupyter-client)"
 	@echo "  snowballstemmer (pulled in by Sphinx)"
 	@echo "  tables hdf5 package, 3.8.0 because 3.9.x exhibits bug #14935"

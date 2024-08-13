@@ -581,11 +581,12 @@ def parse_operator_expression(expr):
     return product
 
 def assembly_info(mol, assemblies):
-    lines = ['<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">',
-             '<tr><th colspan=3>%s mmCIF Assemblies' % mol.name]
+    from html import escape
+    lines = ['<table border=1 cellpadding=4 cellspacing=0>',
+             f'<tr><th colspan=3>{escape(mol.name)} mmCIF Assemblies']
     for a in assemblies:
         lines.append('<tr><td><a href="cxcmd:sym #%s assembly %s ; view">%s</a><td>%s<td>%s'
-                     % (mol.id_string, a.id, a.id, a.description, a.copy_description(mol)))
+                     % (mol.id_string, a.id, a.id, a.description, escape(a.copy_description(mol))))
     lines.append('</table>')
     html = '\n'.join(lines)
     return html

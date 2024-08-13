@@ -622,28 +622,7 @@ class SequenceViewer(ToolInstance):
             view_action.setEnabled(False)
             structure_menu.addAction(view_action)
 
-        headers_menu = menu.addMenu("Headers")
-        headers = self.alignment.headers
-        headers.sort(key=lambda hdr: hdr.ident.casefold())
-        from chimerax.core.commands import run
-        for hdr in headers:
-            action = QAction(hdr.name, headers_menu)
-            action.setCheckable(True)
-            action.setChecked(hdr.shown)
-            if not hdr.relevant:
-                action.setEnabled(False)
-            action.triggered.connect(lambda *, action=action, hdr=hdr, align_arg=align_arg, self=self: run(
-                self.session, "seq header %s%s %s" % (align_arg, hdr.ident, "show" if action.isChecked() else "hide")))
-            headers_menu.addAction(action)
-        headers_menu.addSeparator()
-        hdr_save_menu = headers_menu.addMenu("Save")
-        for hdr in headers:
-            if not hdr.relevant:
-                continue
-            action = QAction(hdr.name, hdr_save_menu)
-            action.triggered.connect(lambda *, hdr=hdr, align_arg=align_arg, self=self: run(
-                self.session, "seq header %s%s save browse" % (align_arg, hdr.ident)))
-            hdr_save_menu.addAction(action)
+        self.alignment.add_headers_menu_entry(menu)
 
         numberings_menu = menu.addMenu("Numberings")
         action = QAction("Overall", numberings_menu)

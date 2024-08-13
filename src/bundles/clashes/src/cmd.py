@@ -181,17 +181,22 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
     else:
         from chimerax.atomic import concatenate
         attr_atoms = concatenate([test_atoms, restrict], remove_duplicates=True)
-    from chimerax.atomic import Atoms
+    from chimerax.atomic import Atoms, Atom
     clash_atoms = Atoms([a for a in attr_atoms if a in clashes])
     if set_attrs:
         # delete the attribute in _all_ atoms...
+        del_atoms = []
         for a in all_atoms(session):
             if hasattr(a, attr_name):
                 delattr(a, attr_name)
+                del_atoms.append(a)
         for a in clash_atoms:
             clash_vals = list(clashes[a].values())
             clash_vals.sort()
             setattr(a, attr_name, clash_vals[-1])
+        Atom.register_attr(session, attr_name, "clashes/contacts", attr_type=float)
+        if clash_atoms or del_atoms:
+            session.change_tracker.add_modified(clash_atoms | Atoms(del_atoms), attr_name + " changed")
     if reveal:
         # display sidechain or backbone as appropriate for undisplayed atoms
         reveal_atoms = clash_atoms.filter(clash_atoms.displays == False)

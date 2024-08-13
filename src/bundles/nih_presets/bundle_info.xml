@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 <BundleInfo name="ChimeraX-NIHPresets" version="1.2.3" package="chimerax.nih_presets"
+=======
+<BundleInfo name="ChimeraX-NIHPresets" version="1.2.4" package="chimerax.nih_presets"
+>>>>>>> 3857f04a443e5b7d33fa49036296d0ff7a260c4e
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -33,6 +37,8 @@
     <Provider category="NIH3D" name="ribbon by polymer (printable)"/>
     <Provider category="NIH3D" name="ribbon monochrome"/>
     <Provider category="NIH3D" name="ribbon monochrome (printable)"/>
+    <Provider category="NIH3D" name="ribbon monochrome [AlphaFold high confidence]"/>
+    <Provider category="NIH3D" name="ribbon monochrome [AlphaFold high confidence] (printable)"/>
     <Provider category="NIH3D" name="ribbon AlphaFold/pLDDT [all residues]"/>
     <Provider category="NIH3D" name="ribbon AlphaFold/pLDDT [all residues] (printable)"/>
     <Provider category="NIH3D" name="ribbon AlphaFold/PAE domains [all residues]"/>
@@ -65,6 +71,11 @@
     <Provider category="NIH3D" name="surface AlphaFold/pLDDT [high confidence] (printable)"/>
     <Provider category="NIH3D" name="surface AlphaFold/PAE domains [high confidence]"/>
     <Provider category="NIH3D" name="surface AlphaFold/PAE domains [high confidence] (printable)"/>
+<<<<<<< HEAD
+=======
+    <Provider category="NIH3D" name="surface monochrome [AlphaFold high confidence]"/>
+    <Provider category="NIH3D" name="surface monochrome [AlphaFold high confidence] (printable)"/>
+>>>>>>> 3857f04a443e5b7d33fa49036296d0ff7a260c4e
     <Provider category="NIH3D" name="surface coulombic [AlphaFold high confidence]"/>
     <Provider category="NIH3D" name="surface coulombic [AlphaFold high confidence] (printable)"/>
     <Provider category="NIH3D" name="surface hydrophobicity [AlphaFold high confidence]"/>

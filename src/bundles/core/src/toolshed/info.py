@@ -612,7 +612,10 @@ class BundleInfo:
         from packaging.requirements import Requirement, InvalidRequirement
         keep = set()
         for d in distributions():
-            for req in d.requires:
+            requires = d.requires
+            if not requires:
+                continue
+            for req in requires:
                 try:
                     r = Requirement(req)
                 except InvalidRequirement:
