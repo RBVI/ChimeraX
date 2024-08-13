@@ -108,7 +108,7 @@ class RenderByAttrTool(ToolInstance):
         self.render_color_markers = rh.add_markers(activate=True, coord_type='relative',
             move_callback=self._render_marker_moved,
             color_change_callback=lambda mrk, cb=self._update_palettes: cb())
-        self.render_color_markers.extend([((0.0, 0.0), "blue"), ((0.5, 0.0), "white"), ((1.0, 0.0), "red")])
+        self.render_color_markers.extend([((0.0, 0.0), "red"), ((0.5, 0.0), "white"), ((1.0, 0.0), "blue")])
         self.render_color_markers.add_del_callback = lambda mrk=None, cb=self._update_palettes: cb()
         self.render_markers[self.RENDER_COLORS] = self.render_color_markers
         color_render_tab = QWidget()
@@ -322,6 +322,7 @@ class RenderByAttrTool(ToolInstance):
 
         self.mode_widget.addTab(select_tab, "Select")
 
+        self._attr_monitorings = {}
         self._update_target_menu()
         self._new_render_attr()
         self._new_select_attr()
@@ -500,11 +501,13 @@ class RenderByAttrTool(ToolInstance):
                 enabled = False
             else:
                 attr_name = self.NO_ATTR_TEXT
+            monitored_attr = None
         else:
             if isinstance(attr_name_info, str):
                 attr_name = attr_name_info
             else:
                 attr_name = attr_name_info.text()
+            monitored_attr = attr_name
         if attr_name != self.render_attr_menu_button.text():
             self.render_attr_menu_button.setText(attr_name)
             if attr_name_info is None:
@@ -513,6 +516,7 @@ class RenderByAttrTool(ToolInstance):
                 self._update_render_histogram(attr_name)
             self._update_palettes()
         self.render_attr_menu_button.setEnabled(enabled)
+        self._update_attr_monitoring(True, monitored_attr)
 
     def _new_select_attr(self, attr_name_info=None):
         enabled = True
@@ -522,11 +526,13 @@ class RenderByAttrTool(ToolInstance):
                 enabled = False
             else:
                 attr_name = self.NO_ATTR_TEXT
+            monitored_attr = None
         else:
             if isinstance(attr_name_info, str):
                 attr_name = attr_name_info
             else:
                 attr_name = attr_name_info.text()
+            monitored_attr = attr_name
         if attr_name != self.select_attr_menu_button.text():
             self.select_attr_menu_button.setText(attr_name)
             if attr_name_info is None:
@@ -534,6 +540,7 @@ class RenderByAttrTool(ToolInstance):
             else:
                 self._update_select_widget(attr_name)
         self.select_attr_menu_button.setEnabled(enabled)
+        self._update_attr_monitoring(False, monitored_attr)
 
     def _new_classes(self):
         self._update_target_menu()
@@ -661,6 +668,29 @@ class RenderByAttrTool(ToolInstance):
             no_val_button.setHidden(not any_None)
             if no_val_button.isChecked() and not any_None:
                 self.select_histogram_buttons.button(0).setChecked(True)
+
+    def _update_attr_monitoring(self, rendering, monitored_attr):
+        index = 0 if rendering else 1
+        for attr_info, attr_monitorings in list(self._attr_monitorings.items()):
+            for attr_name, mode_monitoring in list(attr_monitorings.items()):
+                if mode_monitoring[index]:
+                    attr_info.attr_change_notify(attr_name, None)
+                    mode_monitoring[index] = None
+                    if not mode_monitoring[1-index]:
+                        del attr_monitorings[attr_name]
+                        if not attr_monitorings:
+                            del self._attr_monitorings[attr_info]
+        if monitored_attr is not None:
+            attr_info = self._cur_attr_info()
+            def update_hist(*, attr_name=monitored_attr, rendering=rendering):
+                if rendering:
+                    self._update_render_histogram(attr_name)
+                else:
+                    self._update_histogram(self.select_histogram, attr_name)
+            attr_info.attr_change_notify(monitored_attr, update_hist)
+            attr_monitorings = self._attr_monitorings.setdefault(attr_info, {})
+            monitorings = attr_monitorings.setdefault(monitored_attr, [False, False])
+            monitorings[index] = True
 
     def _update_deworm_button(self):
         models = self.model_list.value

@@ -22,34 +22,35 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek_traces(session, align_with = None, cutoff_distance = None, close_only = 4.0,
+def foldseek_traces(session, align_with = None, cutoff_distance = None,
+                    close_only = 4.0, gap_distance_limit = 10.0, min_residues = 5,
                     tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
-    if fp is None:
+    if fp is None or fp.results is None:
         return
+
     if cutoff_distance is None:
         cutoff_distance = fp.alignment_cutoff_distance
-    _show_backbone_traces(session, fp.hits, fp.results_query_chain, align_with = align_with,
-                          cutoff_distance = cutoff_distance, close_only = close_only,
-                          tube = tube, radius = radius,
-                          segment_subdivisions = segment_subdivisions,
-                          circle_subdivisions = circle_subdivisions)
 
-def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_distance = 2.0, close_only = 4.0,
-                          tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
     from .foldseek import alignment_residues, hit_coords, hit_residue_pairing, align_xyz_transform
-    qres = alignment_residues(query_chain.existing_residues)
-    qatoms = qres.existing_principal_atoms
+    qchain = fp.results.query_chain
+    if qchain is None:
+        from chimerax.core.errors import UserError
+        raise UserError('Cannot position traces without query structure')
+    qres = alignment_residues(qchain.existing_residues)
+    qatoms = qres.find_existing_atoms('CA')
     query_xyz = qatoms.coords
     if align_with is not None:
-        ai = set(qatoms.indices(align_with.existing_principal_atoms))
+        ai = set(qatoms.indices(align_with.find_existing_atoms('CA')))
         ai.discard(-1)
         if len(ai) < 3:
             from chimerax.core.errors import UserError
             raise UserError('Foldseek traces align_with specifies fewer than 3 aligned query atoms')
+
     traces = []
-    for hit in hits:
+    rtot = rshown = 0
+    for hit in fp.hits:
         hit_xyz = hit_coords(hit)
         hi, qi = hit_residue_pairing(hit)
         hxyz = hit_xyz[hi]
@@ -65,17 +66,23 @@ def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_
             aqxyz = qxyz[mask,:]
         p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=cutoff_distance)
         hxyz_aligned = p.transform_points(hxyz)
-        breaks = ((hi[1:] - hi[:-1]) > 1).nonzero()[0]
+        fragments = _distant_c_alpha_fragments(hxyz_aligned)
         if close_only is not None and close_only > 0:
-            cmask = _close_mask(hxyz_aligned, qxyz, close_only)
-            hxyz_aligned = hxyz_aligned[cmask]
-            breaks = _mask_breaks(cmask, breaks)
-        trace_name = hit['database_full_id']
-        traces.append(trace_name)
-        if len(breaks) > 0:
-            traces.extend(_break_chain(hxyz_aligned, breaks))
-        else:
-            traces.append(hxyz_aligned)
+            cfrags = []
+            for start,end in fragments:
+                cfrags.extend(_close_fragments(hxyz_aligned[start:end], qxyz[start:end],
+                                               close_only, keep_gap_distance=gap_distance_limit, offset=start))
+            fragments = cfrags
+        min_res = max(2, min_residues)
+        fragments = [(s,e) for s,e in fragments if e-s >= min_res]
+        hit_traces = [hxyz_aligned[start:end] for start,end in fragments]
+        if len(hit_traces) > 0:
+            trace_name = hit['database_full_id']
+            traces.append(trace_name)
+            traces.extend(hit_traces)
+            rtot += len(hi)
+            for s,e in fragments:
+                rshown += e-s
 
     if len(traces) == 0:
         return None	# No hits had enough alignment atoms.
@@ -87,11 +94,47 @@ def _show_backbone_traces(session, hits, query_chain, align_with = None, cutoff_
     else:
         surf = _create_line_traces_model(session, traces)
 
-    surf.position = query_chain.structure.scene_position
+    surf.position = fp.results.query_chain.structure.scene_position
     session.models.add([surf])
-    print (f'{surf.trace_count} traces have {len(surf.vertices)} vertices')
+    msg = f'{surf.trace_count} traces showing {rshown} residues with {rtot-rshown} far or short segment residues hidden'
+    session.logger.info(msg)
     return surf
 
+def _distant_c_alpha_fragments(hxyz, max_distance = 5):
+    d = hxyz[1:,:] - hxyz[:-1,:]
+    d2 = (d*d).sum(axis = 1)
+    breaks = (d2 > max_distance*max_distance).nonzero()[0]
+    fragments = []
+    start = 0
+    for b in breaks:
+        fragments.append((start, b+1))
+        start = b+1
+    fragments.append((start, len(hxyz)))
+    return fragments
+
+def _close_fragments(xyz, ref_xyz, distance, offset = 0, keep_gap_distance = None):
+    d = xyz - ref_xyz
+    d2 = (d*d).sum(axis = 1)
+    mask = (d2 <= distance*distance)
+    if keep_gap_distance is not None:
+        n = len(xyz)
+        keep_dist2 = keep_gap_distance * keep_gap_distance
+        for start, end in _mask_intervals(~mask):
+            if start > 0 and end < n and d2[start:end].max() <= keep_dist2:
+                mask[start:end] = True  # Keep interior interval if largest distance is not too large.
+    fragments = _mask_intervals(mask)
+    if offset != 0:
+        fragments = [(start+offset, end+offset) for start, end in fragments]
+    return fragments
+
+def _mask_intervals(mask):
+    ends = list((mask[1:] != mask[:-1]).nonzero()[0]+1)
+    if mask[0]:
+        ends.insert(0, 0)
+    if mask[-1]:
+        ends.append(len(mask))
+    return tuple(zip(ends[0::2], ends[1::2]))
+    
 def _create_line_traces_model(session, traces):
     vertices, lines, names = _line_traces(traces)
     normals = None
@@ -154,35 +197,6 @@ def _tube_traces(traces, radius = 0.1, segment_subdivisions = 5, circle_subdivis
 
     return vertices, normals, triangles, (names, tstart)
 
-def _close_mask(xyz, ref_xyz, distance):
-    d = xyz - ref_xyz
-    d2 = (d*d).sum(axis = 1)
-    mask = (d2 <= distance*distance)
-    return mask
-
-def _break_chain(xyz, break_after_indices):
-    pieces = []
-    b0 = 0
-    for b in break_after_indices:
-        if b > b0:  # Exclude pieces of length 1
-            pieces.append(xyz[b0:b+1,:])
-        b0 = b+1
-    # Append last piece
-    if len(xyz) > b0:
-        pieces.append(xyz[b0:,:])
-    return pieces
-
-def _mask_breaks(mask, breaks):
-    mbreaks = (mask[1:] != mask[:-1]).nonzero()[0]
-    from numpy import concatenate, cumsum, unique
-    abreaks = concatenate((breaks, mbreaks))
-    reindex = cumsum(mask)-1
-    ribreaks = reindex[abreaks]
-    uribreaks = unique(ribreaks)
-    max = reindex[-1]
-    nbreaks = uribreaks[(uribreaks >= 0) & (uribreaks < max)]  # Remove breaks beyond ends
-    return nbreaks
-
 # Allow mouse hover to identify hits
 from chimerax.core.models import Surface
 class FoldseekTraces(Surface):
@@ -231,6 +245,19 @@ class FoldseekTraces(Surface):
         from numpy import concatenate
         trace_end_triangle = concatenate((self._trace_start_triangle[1:], [len(self.triangles)+1]))
         return zip(self._trace_names, self._trace_start_triangle, trace_end_triangle)
+    def show_traces(self, names, show = True, other = False):
+        names_set = set(names)
+        tmask = self.triangle_mask
+        if tmask is None:
+            from numpy import ones
+            tmask = ones((len(self.triangles),), bool)
+        for name, tstart, tend in self.trace_triangle_ranges():
+            change = (name not in names_set) if other else (name in names_set)
+            if change:
+                tmask[tstart:tend] = show
+        self.triangle_mask = tmask
+    def show_all_traces(self):
+        self.triangle_mask = None
 
 from chimerax.core.models import PickedModel
 class PickedFoldseekTrace(PickedModel):
@@ -251,22 +278,44 @@ class FoldseekHitMenuEntry(SelectContextMenuAction):
     def __init__(self, action, menu_text):
         self.action = action
         self.menu_text = menu_text
-    def label(self, ses):
-        hname = self._hit_name(ses)
-        return self.menu_text % hname
-    def criteria(self, ses):
-        return self._hit_name(ses) is not None
+    def label(self, session):
+        hname = self._hit_name(session)
+        label = self.menu_text
+        if '%s' in label:
+            label = label % hname
+        return label
+    def criteria(self, session):
+        return self._hit_name(session) is not None
+    def callback(self, session):
+        hname = self._hit_name(session)
+        if not hname:
+            return
+        from chimerax.core.commands import run
+        a = self.action
+        if a == 'open':
+            run(session, f'foldseek open {hname}')            
+        elif a == 'scroll to':
+            run(session, f'foldseek scrollto {hname}')
+        elif a == 'show only':
+            self._show_only(session)
+        elif a == 'show all':
+            self._show_all(session)
     def _hit_name(self, session):
         for ft in session.models.list(type = FoldseekTraces):
             hname = ft.selected_hit
             if hname:
                 return hname
         return None
-    def callback(self, ses):
-        hname = self._hit_name(ses)
-        if hname:
-            from chimerax.core.commands import run
-            run(ses, f'foldseek {self.action} {hname}')
+    def _show_all(self, session):
+        for ft in session.models.list(type = FoldseekTraces):
+            if ft.selected_hit:
+                ft.show_all_traces()
+    def _show_only(self, session):
+        for ft in session.models.list(type = FoldseekTraces):
+            hname = ft.selected_hit
+            if hname:
+                ft.show_traces([hname])
+                ft.show_traces([hname], show=False, other=True)
     
 _registered_context_menu = False
 def register_context_menu():
@@ -274,7 +323,9 @@ def register_context_menu():
     if not _registered_context_menu:
         from chimerax.mouse_modes import SelectMouseMode
         SelectMouseMode.register_menu_entry(FoldseekHitMenuEntry('open', 'Open Foldseek hit %s'))
-        SelectMouseMode.register_menu_entry(FoldseekHitMenuEntry('show', 'Show %s in Foldseek results table'))
+        SelectMouseMode.register_menu_entry(FoldseekHitMenuEntry('scroll to', 'Show %s in Foldseek results table'))
+        SelectMouseMode.register_menu_entry(FoldseekHitMenuEntry('show only', 'Show only trace %s'))
+        SelectMouseMode.register_menu_entry(FoldseekHitMenuEntry('show all', 'Show all traces'))
         _registered_context_menu = True
     
 def register_foldseek_traces_command(logger):
@@ -285,6 +336,8 @@ def register_foldseek_traces_command(logger):
         keyword = [('align_with', ResiduesArg),
                    ('cutoff_distance', FloatArg),
                    ('close_only', FloatArg),
+                   ('gap_distance_limit', FloatArg),
+                   ('min_residues', IntArg),
                    ('tube', BoolArg),
                    ('radius', FloatArg),
                    ('segment_subdivisions', IntArg),

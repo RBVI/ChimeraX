@@ -26,60 +26,66 @@ def foldseek_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_
                      combine = True):
     from .gui import foldseek_panel
     fp = foldseek_panel(session)
-    if fp is None:
+    if fp is None or fp.results is None:
         return
 
-    query_chain = fp.results_query_chain
+    query_chain = fp.results.query_chain
+    if query_chain is None:
+        from chimerax.core.errors import UserError
+        raise UserError('Cannot position Foldseek ligands without query structure')
 
     keep_structs = []
     nhits = len(fp.hits)
     nlighits = 0
     from time import time
     t0 = time()
+    from .foldseek import open_hit
     for hnum, hit in enumerate(fp.hits):
+        structures = open_hit(session, hit, query_chain, align = False,
+                              in_file_history = False, log = False)
+
         hname = hit['database_full_id']
-        if hname == '3h7s_A':
-            continue  # This PDB crashes ChimeraX, bug #15666
         telapse = _minutes_and_seconds_string(time() - t0)
         session.logger.status(f'Finding ligands in {hname} ({hnum+1} of {nhits}, time {telapse})')
 
-        from .foldseek import open_hit
-        structures = open_hit(session, hit, query_chain, align = False,
-                              in_file_history = False, log = False)
         found_lig = False
-        for structure in structures:
+        for si, structure in enumerate(structures):
             res = structure.residues
             from chimerax.atomic import Residue
             ligres = res[res.polymer_types == Residue.PT_NONE]
             keeplig = []
             if ligres:
-#                session.logger.info(f'{len(ligres)} ligands in {hname}')
                 from .foldseek import hit_and_query_residue_pairs
                 rmap = {hr:qr for hr,qr in hit_and_query_residue_pairs(structure, query_chain, hit)}
                 for lr in ligres:
                     cres = _find_close_residues(lr, res, alignment_range)
-#                    session.logger.info(f'{hname} ligand {lr.name}{lr.number} has {len(cres)} contacts')
                     if len(cres) >= 3:
                         pcres, qres = _paired_residues(rmap, cres)
-#                        session.logger.info(f'{hname} ligand {lr.name}{lr.number} has {len(qres)} paired contacts')
                         if len(qres) >= 3:
                             from .foldseek import alignment_transform
                             p, rms, npairs = alignment_transform(pcres, qres)
-#                            session.logger.info(f'{hname} ligand {lr.name}{lr.number} has RMSD {rms}')
                             if rms <= rmsd_cutoff:
                                 keeplig.append(lr)
+                                # Remove other alt locs so we don't have to move them.
+                                lr.clean_alt_locs()
                                 atoms = lr.atoms
                                 atoms.coords = p.transform_points(atoms.coords)
                                 atoms.displays = True
             if keeplig:
                 _delete_extra_residues(res, keeplig)
                 keep_structs.append(structure)
+                if len(structures) > 1:
+                    structure.ensemble_id = si+1
                 found_lig = True
+                # TODO: Slows down a lot when many structures open in session
+                #   Takes 8 minutes instead of 45 minutes if I remove from session for 8jnb 845 hits.
+                session.models.remove([structure])
             else:
                 session.models.close([structure])
         if found_lig:
             nlighits += 1
 
+    session.models.add(keep_structs)
     nlig = 0
     lignames = set()
     for structure in keep_structs:
@@ -88,9 +94,8 @@ def foldseek_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_
     lignames = ', '.join(sorted(lignames))
     session.logger.status(f'Found {nlig} ligands in {nlighits} hits: {lignames}', log = True)
 
-    if combine:
-        for structure in keep_structs:
-            _include_pdb_id_in_chain_ids(structure)
+    if combine and keep_structs:
+        _include_pdb_id_in_chain_ids(keep_structs)
         cmodel =_combine_structures(session, keep_structs)
         return cmodel
 
@@ -127,19 +132,35 @@ def _delete_extra_residues(residues, keep_residues):
         from chimerax.atomic import Residues
         Residues(del_res).delete()
 
-def _include_pdb_id_in_chain_ids(structure):
-    cids = tuple(set(structure.residues.chain_ids))
-    chain_ids = ','.join(cids)
-    prefix = structure.name.split('_')[0] + '_'
-    new_chain_ids = ','.join(prefix + cid for cid in cids)
-    cmd = f'changechains #{structure.id_string} {chain_ids} {new_chain_ids} log false'
-    from chimerax.core.commands import run
-    run(structure.session, cmd, log = False)
+def _include_pdb_id_in_chain_ids(structures):
+    # If hits for different chains of one PDB exist use longer chain prefixes.
+    # For example if 7mrj_A and 7mrj_B are hits and ligand /A:114 is found in both
+    # then use chain ids 7mrj_A_A and 7mrj_B_A so the combine command does not get
+    # clashing chain ids and residue numbers
+    pdb_ids = set()
+    multi_hit = set()
+    for structure in structures:
+        pdb_id = structure.name.split('_')[0]
+        if pdb_id in pdb_ids:
+            multi_hit.add(pdb_id)
+        pdb_ids.add(pdb_id)
+
+    for structure in structures:
+        cids = tuple(set(structure.residues.chain_ids))
+        chain_ids = ','.join(cids)
+        pdb_id = structure.name.split('_')[0]
+        prefix = (structure.name if pdb_id in multi_hit else pdb_id) + '_'
+        if hasattr(structure, 'ensemble_id'):
+            prefix += str(structure.ensemble_id) + '_'
+        new_chain_ids = ','.join(prefix + cid for cid in cids)
+        cmd = f'changechains #{structure.id_string} {chain_ids} {new_chain_ids} log false'
+        from chimerax.core.commands import run
+        run(structure.session, cmd, log = False)
     
 def _combine_structures(session, structures):
     from chimerax.core.commands import concise_model_spec, run
     mspec = concise_model_spec(session, structures)
-    cmd = f'combine {mspec} close true name "foldseek ligands"'
+    cmd = f'combine {mspec} close true retainIds true name "foldseek ligands"'
     cmodel = run(session, cmd, log = False)
     return cmodel
 

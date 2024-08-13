@@ -3,6 +3,7 @@
 # Force import in a particular order since both Cython and
 # setuptools patch distutils, and we want Cython to win
 import setuptools
+import sys
 import setuptools._distutils as distutils
 from Cython.Build import cythonize
 from packaging.version import Version
@@ -204,7 +205,6 @@ class BundleBuilder:
 
     def _read_bundle_info(self, bundle_info):
         # Setup platform variable so we can skip non-matching elements
-        import sys
 
         if sys.platform == "darwin":
             # Tested with macOS 10.12
@@ -506,6 +506,8 @@ class BundleBuilder:
             c.add_library_dir(self._get_element_text(e))
         for e in self._get_elements(ce, "CompileArgument"):
             c.add_compile_argument(self._get_element_text(e))
+        if sys.platform == "darwin":
+            c.add_compile_argument("-mmacos-version-min=11")
         for e in self._get_elements(ce, "LinkArgument"):
             c.add_link_argument(self._get_element_text(e))
         for e in self._get_elements(ce, "Framework"):
@@ -692,7 +694,6 @@ class BundleBuilder:
                 rel = CHIMERAX1_0_PYTHON_VERSION.release
         elif binary_files:
             # Binary files are tied to the current version of Python
-            import sys
 
             rel = sys.version_info[:2]
         else:
@@ -724,7 +725,6 @@ class BundleBuilder:
             if em is not None
         ]
         if not self._is_pure_python():
-            import sys
 
             if sys.platform == "darwin":
                 env = ("Environment :: MacOS X :: Aqua",)
@@ -791,7 +791,6 @@ class BundleBuilder:
 
     def _run_setup(self, cmd):
         import os
-        import sys
 
         cwd = os.getcwd()
         save = sys.argv
@@ -914,7 +913,6 @@ class _CompiledCode:
         self.macros.append((m,))
 
     def _compile_options(self, logger, dependencies):
-        import sys
         import os
 
         for req in self.requires:
@@ -1003,7 +1001,6 @@ class _CompiledCode:
         return inc, lib
 
     def compile_objects(self, logger, dependencies, static, debug):
-        import sys
         import os
         import distutils.ccompiler
         import distutils.sysconfig
@@ -1092,7 +1089,6 @@ class _CModule(_CompiledCode):
             )
         except ValueError:
             return None
-        import sys
 
         if self.install_dir:
             install_dir = "/" + self.install_dir
@@ -1122,7 +1118,6 @@ class _CLibrary(_CompiledCode):
         self.static = static
 
     def compile(self, logger, dependencies, debug=False):
-        import sys
 
         compiler, objs, extra_link_args = self.compile_objects(
             logger, dependencies, self.static, debug
@@ -1194,7 +1189,6 @@ class _CLibrary(_CompiledCode):
         return lib
 
     def paths(self):
-        import sys
         import os
         import distutils.ccompiler
         import distutils.sysconfig
@@ -1225,7 +1219,6 @@ class _CLibrary(_CompiledCode):
 class _CExecutable(_CompiledCode):
 
     def __init__(self, name, execdir, limited_api):
-        import sys
 
         if sys.platform == "win32":
             # Remove .exe suffix because it will be added
@@ -1234,7 +1227,6 @@ class _CExecutable(_CompiledCode):
         super().__init__(name, False, execdir, limited_api)
 
     def compile(self, logger, dependencies, debug=False):
-        import sys
 
         compiler, objs, extra_link_args = self.compile_objects(
             logger, dependencies, False, debug
@@ -1273,7 +1265,6 @@ class _CExecutable(_CompiledCode):
 
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
-    import sys
 
     bb = BundleBuilder()
     for cmd in sys.argv[1:]:

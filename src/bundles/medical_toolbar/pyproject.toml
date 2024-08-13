@@ -17,7 +17,7 @@ dynamic = ["classifiers", "requires-python", "version"]
 [project.readme]
 content-type = "text"
 text="""Provide a toolbar tab including buttons useful for medical image visualization."""
-	
+
 [project.urls]
 Home = "https://www.rbvi.ucsf.edu/chimerax/"
 
@@ -59,15 +59,15 @@ link = "ChimeraX-Shortcuts:sx"
 after = "File"
 
 [[chimerax.toolbar."Medical Image".sections."Style".button]]
-name="plane style" 
+name="plane style"
 link="ChimeraX-Shortcuts:pl"
 
 [[chimerax.toolbar."Medical Image".sections."Style".button]]
-name="slab style" 
+name="slab style"
 link="ChimeraX-Shortcuts:is"
 
 [[chimerax.toolbar."Medical Image".sections."Style".button]]
-name="orthoplanes style" 
+name="orthoplanes style"
 link="ChimeraX-Shortcuts:o3"
 
 [[chimerax.toolbar."Medical Image".sections."Style".button]]
@@ -82,30 +82,30 @@ link="ChimeraX-Shortcuts:ob"
 after = "Style"
 
 [[chimerax.toolbar."Medical Image".sections."Color".button]]
-name="airways" 
+name="airways"
 link="ChimeraX-Shortcuts:aw"
 
 [[chimerax.toolbar."Medical Image".sections."Color".button]]
-name="chest" 
+name="chest"
 link="ChimeraX-Shortcuts:ch"
 
 [[chimerax.toolbar."Medical Image".sections."Color".button]]
-name="brain" 
+name="brain"
 link="ChimeraX-Shortcuts:bc"
 
 [[chimerax.toolbar."Medical Image".sections."Color".button]]
-name="default thresholds" 
+name="default thresholds"
 link="ChimeraX-Shortcuts:dc"
 
 [chimerax.toolbar."Medical Image".sections."Graphics"]
 after = "Color"
 
 [[chimerax.toolbar."Medical Image".sections."Graphics".button]]
-name="orient" 
+name="orient"
 link="ChimeraX-Shortcuts:dv"
 
 [[chimerax.toolbar."Medical Image".sections."Graphics".button]]
-name="step 1" 
+name="step 1"
 link="ChimeraX-Shortcuts:s1"
 
 [[chimerax.toolbar."Medical Image".sections."Graphics".button]]
@@ -116,12 +116,16 @@ link="ChimeraX-Shortcuts:s2"
 after = "Graphics"
 
 [[chimerax.toolbar."Medical Image".sections."Rendering Modes".button]]
-name="xyz slices" 
+name="xyz slices"
 link="ChimeraX-Shortcuts:zs"
 
 [[chimerax.toolbar."Medical Image".sections."Rendering Modes".button]]
-name="perpendicular slices" 
+name="perpendicular slices"
 link="ChimeraX-Shortcuts:ps"
+
+[[chimerax.toolbar."Medical Image".sections."Rendering Modes".button]]
+name="raycasting"
+link="ChimeraX-Shortcuts:rs"
 
 [chimerax.toolbar."Medical Image".sections."Mouse Mode"]
 after = "Rendering Modes"
@@ -146,12 +150,12 @@ description="Tilt image planes, hold shift key to translate"
 
 [[chimerax.toolbar."Medical Image".sections."Mouse Mode".button]]
 name = "mm4"
-mouse-mode = "tape measure" 
+mouse-mode = "tape measure"
 display-name = "Tape"
 description = "Measure distance between two points"
 
 [[chimerax.toolbar."Medical Image".sections."Mouse Mode".button]]
 name = "mm5"
-mouse-mode = "windowing" 
+mouse-mode = "windowing"
 display-name = "Windowing"
 description = "Adjust volume data thresholds collectively"

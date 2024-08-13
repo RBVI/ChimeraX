@@ -402,8 +402,15 @@ def run_preset(session, name, mgr):
             [f"color byattribute r:pLDDT_score {struct_spec} palette alphafold"], sharp=True)
     elif name.startswith("surface AlphaFold/PAE domains"):
         struct_spec = check_AF(session, pae=True)
-        cmd = alphafold_surface_command(session, name,
-            [f"alphafold pae {struct_spec} colorDomains true", f"color {struct_spec} fromAtoms"], sharp=True)
+        if "high confidence" in name:
+            spec_lookup = get_AF_surf_spec(session)
+        else:
+            spec_lookup = None
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + \
+            surface_cmds(session, True, sharp=True, spec_lookup=spec_lookup) + [
+            f"alphafold pae {struct_spec} colorDomains true",
+            f"color {struct_spec} & ~::pae_domain dark gray",
+            f"color {struct_spec} fromAtoms" ]
     elif name == "sticks":
         cmd = undo_printable + base_setup + color_by_het + [
             "style stick",

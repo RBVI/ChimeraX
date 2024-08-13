@@ -229,7 +229,13 @@ def _process_results(session, transform, sharpened_map, orig_model, maps, show_s
             run(session, "combine " + concise_model_spec(session, [orig_model] + added) + " close true"
                 " modelId %d name %s" % (orig_model.id[0], StringArg.unparse(orig_model.name)))
         else:
-            session.logger.warning("Could not determine symmetry for %s" % sym_map)
+            session.logger.warning(
+                'Could not determine symmetry for %s<br><br>'
+                'If you know the symmetry of the map, you can create symmetry copies of the structure'
+                ' with the <a href="help:user/commands/sym.html">sym</a> command and then combine the'
+                ' symmetry copies with the original structure with the <a'
+                ' href="help:user/commands/combine.html">combine</a> command'
+                % sym_map, is_html=True)
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 

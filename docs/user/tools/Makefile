@@ -39,7 +39,8 @@ MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
 		$(TOP)/src/bundles/tape_measure/src/tape.png \
 		$(TOP)/src/bundles/viewdockx/src/nextdocking.png
 MICONDIR = $(DOCDIR)/mouse-icons
-SHORTCUTICONS = $(TOP)/src/bundles/shortcuts/src/icons/*.png
+SCICONDIR = $(TOP)/src/bundles/shortcuts/src/icons
+SHORTCUTICONS = $(SCICONDIR)/*.png $(SCICONDIR)/*.svg
 SICONDIR = $(DOCDIR)/shortcut-icons
 TOOLBARICONS = $(TOP)/src/bundles/toolbar/src/icons/*.png \
 		$(TOP)/src/bundles/medical_toolbar/src/icons/opendicom.png \
