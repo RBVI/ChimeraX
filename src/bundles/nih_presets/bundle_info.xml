@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-<BundleInfo name="ChimeraX-NIHPresets" version="1.2.3" package="chimerax.nih_presets"
-=======
 <BundleInfo name="ChimeraX-NIHPresets" version="1.2.4" package="chimerax.nih_presets"
->>>>>>> 3857f04a443e5b7d33fa49036296d0ff7a260c4e
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
