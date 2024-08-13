@@ -67,11 +67,8 @@
     <Provider category="NIH3D" name="surface AlphaFold/pLDDT [high confidence] (printable)"/>
     <Provider category="NIH3D" name="surface AlphaFold/PAE domains [high confidence]"/>
     <Provider category="NIH3D" name="surface AlphaFold/PAE domains [high confidence] (printable)"/>
-<<<<<<< HEAD
-=======
     <Provider category="NIH3D" name="surface monochrome [AlphaFold high confidence]"/>
     <Provider category="NIH3D" name="surface monochrome [AlphaFold high confidence] (printable)"/>
->>>>>>> 3857f04a443e5b7d33fa49036296d0ff7a260c4e
     <Provider category="NIH3D" name="surface coulombic [AlphaFold high confidence]"/>
     <Provider category="NIH3D" name="surface coulombic [AlphaFold high confidence] (printable)"/>
     <Provider category="NIH3D" name="surface hydrophobicity [AlphaFold high confidence]"/>
