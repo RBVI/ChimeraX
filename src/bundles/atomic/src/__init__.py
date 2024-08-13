@@ -157,6 +157,24 @@ class _AtomicBundleAPI(BundleAPI):
             from chimerax.render_by_attr import RenderAttrInfo
             class Info(RenderAttrInfo):
                 _class_obj = class_obj
+                monitorings = set()
+                handler = None
+
+                def attr_change_notify(self, attr_name, callback, *, prefix=name[:-1]):
+                    if callback is None:
+                        self.monitorings.discard(attr_name)
+                        if not self.monitorings and self.handler:
+                            self.handler.remove()
+                            self.handler = None
+                    else:
+                        self.monitorings.add(attr_name)
+                        if not self.handler:
+                            def handler(trig_name, changes, *, attr_name=attr_name, prefix=prefix,
+                                    callback=callback):
+                                if attr_name + " changed" in getattr(changes, prefix + "_reasons")():
+                                    callback()
+                            from .triggers import get_triggers
+                            self.handler = get_triggers().add_handler('changes', handler)
 
                 @property
                 def class_object(self):
