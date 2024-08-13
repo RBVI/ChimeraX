@@ -1185,6 +1185,46 @@ def hit_and_query_residue_pairs(hit_structure, query_chain, hit):
             r_pairs.append((hr, qr))
 
     return r_pairs
+    
+def foldseek_sequence_alignment(session, hit_structure):
+    '''Show pairwise sequence alignment returned by Foldseek.'''
+    hit_name = hit_structure.name
+    hit, panel = _foldseek_hit_by_name(session, hit_name)
+    if hit is None:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Did not find any Foldseek hit {hit_name}')
+
+    # Create query and hit gapped aligned sequences
+    query_chain = panel.results.query_chain
+    qname = f'{query_chain.structure.name}_{query_chain.chain_id}'
+    from chimerax.atomic import Sequence, SeqMatchMap
+    qseq = Sequence(name = qname, characters = hit['qaln'])
+    hseq = Sequence(name = hit_name, characters = hit['taln'])
+
+    # Create alignment
+    seqs = [qseq, hseq]
+    am = session.alignments
+    a = am.new_alignment(seqs, identify_as = hit_name, name = f'Foldseek query {qname} and hit {hit_name}',
+                         auto_associate = False, intrinsic = True)
+
+    # Create query structure association with sequence
+    reassoc = None  # Not used
+    errors = 0
+    query_match_map = SeqMatchMap(qseq, query_chain)
+    qres = query_chain.residues
+    for pos,qo in enumerate(hit.get('query_residue_offsets')):
+        query_match_map.match(qres[qo], pos)
+    a.prematched_assoc_structure(query_match_map, errors, reassoc)  # Associate query
+
+    # Create hit structure association with sequence
+    hit_chain = _structure_chain_with_id(hit_structure, hit.get('chain_id'))
+    hit_match_map = SeqMatchMap(hseq, hit_chain)
+    hres = hit_chain.residues
+    for pos,ho in enumerate(hit.get('aligned_residue_offsets')):
+        hit_match_map.match(hres[ho], pos)
+    a.prematched_assoc_structure(hit_match_map, errors, reassoc)  # Associate hit
+
+    return a
         
 def register_foldseek_command(logger):
     from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg, StringArg, Color8Arg
@@ -1229,3 +1269,9 @@ def register_foldseek_command(logger):
         synopsis = 'Show Foldseek result table row'
     )
     register('foldseek pairing', desc, foldseek_pairing, logger=logger)
+
+    desc = CmdDesc(
+        required = [('hit_structure', StructureArg)],
+        synopsis = 'Show Foldseek sequence alignment for one hit'
+    )
+    register('foldseek seqalign', desc, foldseek_sequence_alignment, logger=logger)

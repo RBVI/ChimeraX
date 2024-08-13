@@ -277,7 +277,6 @@ class View:
             if offscreen:
                 offscreen.finish(r)
 
-                
     def _drawings_by_pass(self, drawings):
         pass_drawings = {}
         for d in drawings:

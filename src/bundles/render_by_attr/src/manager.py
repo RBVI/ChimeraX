@@ -29,6 +29,13 @@ class RenderAttrInfo(metaclass=abc.ABCMeta):
     def __init__(self, session):
         self.session = session
 
+    def attr_change_notify(self, attr_name, callback):
+        """Set up monitoring of attr_name value changes and call callback (with no args) when they change.
+           If callback is None, stop monitoring the attribute.  More than one attribute may be being
+           monitored at once.
+        """
+        pass
+
     @abc.abstractproperty
     def class_object(self):
         """Return the class object (which must offer the core attribute-registration API)"""

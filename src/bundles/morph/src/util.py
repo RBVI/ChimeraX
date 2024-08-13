@@ -73,7 +73,11 @@ def copyMolecule(m):
         c = m.copy()
         c.delete_alt_locs()
         if c.num_coordsets != 1 or c.active_coordset_id != 1:
-                xyz = c.atoms.coords
+                nc = c.coordset_size
+                from numpy import empty, float64
+                xyz = empty((nc,3), float64)
+                atoms = c.atoms
+                xyz[atoms.coord_indices] = atoms.coords
                 c.remove_coordsets()
                 c.add_coordset(1, xyz)
                 c.active_coordset_id = 1
