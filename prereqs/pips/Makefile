@@ -134,6 +134,7 @@ outdated:
 	$(PIP) list --outdated --format=columns
 	@echo ""
 	@echo "Known issues:"
+	@echo "  tcia_utils versions >1.5.1 make no API changes and add more dependencies to patch out"
 	@echo "  distlib 0.2.7 last version that works with 'toolshed uninstall'"
 	@echo "  grako (3.16.5 is the last version that works [see #3460])"
 	@echo "  lineprofiler 2.1.2, newer versions 3.0 and above require cmake"
