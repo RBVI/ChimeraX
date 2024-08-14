@@ -639,10 +639,12 @@ def sequence_alignment(hits, qstart, qend):
         qaln, taln = hit['qaln'], hit['taln']
         qi = hit['qstart']
         for qaa, taa in zip(qaln, taln):
-            if qaa != '-' and taa != '-' and qi >= qstart and qi <= qend:
-                ai = qi-qstart
-                alignment[0,ai] = ord(qaa)
-                alignment[h+1,ai] = ord(taa)
+            if qi >= qstart and qi <= qend:
+                if qaa != '-':
+                    ai = qi-qstart
+                    alignment[0,ai] = ord(qaa)	# First row is query sequence
+                    if taa != '-':
+                        alignment[h+1,ai] = ord(taa)
             if qaa != '-':
                 qi += 1
     return alignment
@@ -956,7 +958,7 @@ class FoldseekResults:
         qstart, qend = self.query_alignment_range()
         from numpy import count_nonzero
         for ri,r in enumerate(self.query_residues):
-            if ri >= qstart-1 and ri <= qend:
+            if ri >= qstart-1 and ri <= qend-1:
                 ai = ri-(qstart-1)
                 alignment_array = self.sequence_alignment_array()
                 count = count_nonzero(alignment_array[1:,ai])
@@ -977,7 +979,7 @@ class FoldseekResults:
         qstart, qend = self.query_alignment_range()
         from numpy import count_nonzero
         for ri,r in enumerate(self.query_residues):
-            if ri >= qstart-1 and ri <= qend:
+            if ri >= qstart-1 and ri <= qend-1:
                 ai = ri-(qstart-1)
                 conservation = count[ai] / total[ai]
             else:
@@ -997,7 +999,7 @@ class FoldseekResults:
         qstart, qend = self.query_alignment_range()
         from numpy import count_nonzero
         for ri,r in enumerate(self.query_residues):
-            if ri >= qstart-1 and ri <= qend:
+            if ri >= qstart-1 and ri <= qend-1:
                 ai = ri-(qstart-1)
                 r.foldseek_entropy = entropy[ai]
 
@@ -1013,7 +1015,7 @@ class FoldseekResults:
         qstart, qend = self.query_alignment_range()
         from numpy import count_nonzero
         for ri,r in enumerate(self.query_residues):
-            if ri >= qstart-1 and ri <= qend:
+            if ri >= qstart-1 and ri <= qend-1:
                 ai = ri-(qstart-1)
                 alignment_array = self.sequence_alignment_array()
                 nscores = count_nonzero(alignment_array[1:,ai])
@@ -1056,11 +1058,15 @@ def _consensus_sequence(alignment_array):
     total = empty((seqlen,), int32)
     for i in range(seqlen):
         aa = alignment_array[:,i]
-        total[i] = count_nonzero(aa)
-        bc = bincount(aa)
-        mi = argmax(bc[1:]) + 1
-        seq[i] = mi
-        count[i] = bc[mi]
+        total[i] = t = count_nonzero(aa)
+        if t > 0:
+            bc = bincount(aa)
+            mi = argmax(bc[1:]) + 1
+            seq[i] = mi
+            count[i] = bc[mi]
+        else:
+            # No hit aligns with this column.
+            seq[i] = count[i] = 0
     return seq, count, total
 
 # -----------------------------------------------------------------------------
@@ -1200,6 +1206,12 @@ def foldseek_sequence_alignment(session, hit_structure):
     from chimerax.atomic import Sequence, SeqMatchMap
     qseq = Sequence(name = qname, characters = hit['qaln'])
     hseq = Sequence(name = hit_name, characters = hit['taln'])
+
+    matches = len([1 for qc,tc in zip(hit['qaln'], hit['taln']) if qc == tc])
+    paired = len([1 for qc,tc in zip(hit['qaln'], hit['taln']) if qc != '-' and tc != '-'])
+    qlen = len([1 for qc in hit['qaln'] if qc != '-'])
+    tlen = len([1 for qc in hit['taln'] if qc != '-'])
+#    print (f'{matches} identical, {len(hit["qaln"])} gapped alignment length, query length {qlen}, hit length {tlen}, paired {paired}')
 
     # Create alignment
     seqs = [qseq, hseq]

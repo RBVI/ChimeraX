@@ -386,7 +386,9 @@ def _sequence_image(alignment_array, order, no_align_color = (255,255,255),
     # Make a 2D array with values 0=unaligned, 1=aligned, 2=identical.
     # This avoids 2D masks that don't work well in numpy.
     from numpy import array, uint8
-    res_type = (hits_array != 0).astype(uint8) + (hits_array == alignment_array[0]).astype(uint8)
+    aligned_mask = (hits_array != 0)
+    identical_mask = (hits_array == alignment_array[0])
+    res_type = aligned_mask.astype(uint8) + identical_mask.astype(uint8)
     colors = array((no_align_color, align_color, identity_color), uint8)
     rgb = colors[res_type[order,:]]
     return rgb
@@ -398,6 +400,8 @@ def _color_conserved(alignment_array, order, rgb, threshold = 0.3, min_seqs = 10
     seq_len = alignment_array.shape[1]
     from numpy import count_nonzero
     for i in range(seq_len):
+        if alignment_array[0,i] == 0:
+            continue
         mi = (alignment_array[1:,i] == alignment_array[0,i])
         ni = mi.sum()	# Number of sequences with matching amino acid at column i
         na = count_nonzero(alignment_array[1:,i])  # Number of sequences aligned at column i
