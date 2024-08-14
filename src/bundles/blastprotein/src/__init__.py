@@ -10,7 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "2.4.6"
+__version__ = "2.4.7"
 
 from chimerax.core.toolshed import BundleAPI
 

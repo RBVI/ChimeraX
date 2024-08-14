@@ -554,10 +554,21 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                     if hasattr(s, '_dm_rebuild_info'):
                         residues = s.residues
                         characters = list(s.characters)
+                        if alg == 'sw':
+                            for i, r in enumerate(residues):
+                                if r:
+                                    offset = r.chain.residues.index(r) - i
+                                    break
+                        else:
+                            offset = 0
                         for i, c, r in s._dm_rebuild_info:
-                            g = s.ungapped_to_gapped(i)
+                            if i < offset:
+                                continue
+                            if i - offset >= len(s):
+                                break
+                            g = s.ungapped_to_gapped(i-offset)
                             characters[g] = c
-                            residues[i] = r
+                            residues[i-offset] = r
                             skip.add(r)
                         s.bulk_set(residues, characters)
                 with show_context():
