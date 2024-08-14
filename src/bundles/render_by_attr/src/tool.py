@@ -401,6 +401,8 @@ class RenderByAttrTool(ToolInstance):
         attr_name = self.select_attr_menu_button.text()
         if attr_name == self.NO_ATTR_TEXT:
             raise UserError("No attribute chosen for selection")
+        if isinstance(self.select_histogram.data_source, str):
+            raise UserError(self.select_histogram.data_source)
         cur_widget = self.select_widgets.currentWidget()
         if cur_widget == self.select_message_widget:
             raise UserError("Can't select using attribute '%s'" % attr_name)
