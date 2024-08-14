@@ -85,13 +85,13 @@ def interface_confidence(session, directory, distance = 4, max_pae = 5, results_
                 return iclist
 
     from os import listdir
-    pdb_files = [f for f in listdir(directory) if f.endswith('.pdb')]
+    pdb_files = [f for f in listdir(directory) if f.endswith('.pdb') or f.endswith('.cif')]
 
     iclist = []
     for fi, file in enumerate(pdb_files):
         from os.path import join
         pdb_path = join(directory, file)
-        pae_file = file.replace('unrelaxed', 'scores').replace('.pdb','.json')
+        pae_file = _pae_filename_from_structure_filename(file)
         pae_path = join(directory, pae_file)
         dc = dimer_confidence(session, pdb_path, pae_path)
         iclist.append(dc)
@@ -104,13 +104,27 @@ def interface_confidence(session, directory, distance = 4, max_pae = 5, results_
 
 # -----------------------------------------------------------------------------
 #
+def _pae_filename_from_structure_filename(structure_filename):
+    if structure_filename.endswith('.pdb'):
+        # Colabfold / AlphaFold 2
+        pae_filename = structure_filename.replace('unrelaxed', 'scores').replace('.pdb','.json')
+    elif structure_filename.endswith('.cif'):
+        pae_filename = structure_filename.replace('model', 'full_data').replace('.cif','.json')
+    return pae_filename
+
+# -----------------------------------------------------------------------------
+#
 def dimer_confidence(session, pdb_path, pae_path, distance = 4, max_pae = 5):
     '''
     Load AlphaFold PDB dimer predictions and PAE files and score the confidence of interactions between
     the two chains.
     '''
-    from chimerax.pdb import open_pdb
-    m = open_pdb(session, pdb_path, log_info = False)[0][0]
+    if pdb_path.endswith('.pdb'):
+        from chimerax.pdb import open_pdb
+        m = open_pdb(session, pdb_path, log_info = False)[0][0]
+    elif pdb_path.endswith('.cif'):
+        from chimerax.mmcif import open_mmcif
+        m = open_mmcif(session, pdb_path, log_info = False)[0][0]
     chains = m.chains
     if len(chains) == 2:
         res1 = chains[0].existing_residues
@@ -199,8 +213,14 @@ class InterfaceConfidence:
 def sequences_name_from_file_name(file):
     from os.path import basename
     file = basename(file)
-    i = file.find('_unrelaxed')
-    seqs_name = file[:i] if i >= 0 else file
+    if file.endswith('.pdb'):
+        i = file.find('_unrelaxed')  # AlphaFold 2
+        seqs_name = file[:i] if i >= 0 else file
+    elif file.endswith('.cif'):
+        i = file.find('_model')  # AlphaFold 3
+        seqs_name = file[:i] if i >= 0 else file
+        if seqs_name.startswith('fold_'):
+            seqs_name = seqs_name[5:]
     return seqs_name
 
 # -----------------------------------------------------------------------------
