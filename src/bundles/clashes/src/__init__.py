@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .clashes import find_clashes
+from .clashes import find_clashes, defaults
 
 from chimerax.core.toolshed import BundleAPI
 
