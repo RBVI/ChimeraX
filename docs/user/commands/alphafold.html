@@ -1031,9 +1031,11 @@ predicted structures for each sequence, but using fewer neural networks
 will decrease the run time.
 The sequences for which predictions would be run (filtered by uniqueness 
 and maximum length, if any) can be written to a new FASTA file using the 
-<b>outputFasta</b> option, and/or to a JSON file using the <b>outputJson</b>
-option as a convenience for running AlphaFold 3. Substituting the word 
-<a href="usageconventions.html#browse"><b>browse</b></a>
+<b>outputFasta</b> option as a convenience for running Colabfold,
+and/or to a JSON file using the <b>outputJson</b>
+option as a convenience for running AlphaFold 3
+(see <a href="https://github.com/google-deepmind/alphafold/blob/main/server/README.md" target="_blank">AlphaFold 3 JSON specifications</a>).
+Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
 for <i>filename</i> brings up a file browser window for choosing the
 name and location interactively.
 <p>
@@ -1081,10 +1083,13 @@ Only protein sequences are considered, and duplicates are eliminated,
 except that the <b>homodimers</b> option indicates whether to predict
 structures for pairs of chains with identical sequences (default <b>true</b>).
 The sequence pairs for which predictions would be run
-can be written to a new FASTA file using the
-<b>outputFasta</b> option, and/or to a JSON file using the <b>outputJson</b>
-option as a convenience for running AlphaFold 3. Substituting the word 
-<a href="usageconventions.html#browse"><b>browse</b></a>
+can be written to a new FASTA file using the <b>outputFasta</b> option
+(in the arrangement expected by ColabFold: a separate entry for each 
+dimer, in which the two sequences are separated by a colon),
+and/or to a JSON file using the <b>outputJson</b> option
+as a convenience for running AlphaFold 3
+(see <a href="https://github.com/google-deepmind/alphafold/blob/main/server/README.md" target="_blank">AlphaFold 3 JSON specifications</a>).
+Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
 for <i>filename</i> brings up a file browser window for choosing the
 name and location interactively.
 The <b>maxLength</b>, <b>recycles</b>, and <b>models</b> options are the same
