@@ -2,7 +2,7 @@ TOP	= ../../..
 include $(TOP)/mk/config.make
 
 CHIMERAX_APP = $(realpath $(wildcard ../../../ChimeraX*.app))
-SEGGER_SRC = seggerx_2024_02_08.tar.gz
+SEGGER_SRC = seggerx_2024_08_12.tar.gz
 CLEAN = seggerx
 DISTCLEAN = $(SEGGER_SRC)
 

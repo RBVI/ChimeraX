@@ -34,7 +34,7 @@ class _FoldseekBundle(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        if command_name in ('foldseek', 'foldseek open', 'foldseek scrollto', 'foldseek pairing'):
+        if command_name in ('foldseek', 'foldseek open', 'foldseek scrollto', 'foldseek pairing', 'foldseek seqalign'):
             from . import foldseek
             foldseek.register_foldseek_command(logger)
         elif command_name == 'foldseek sequences':

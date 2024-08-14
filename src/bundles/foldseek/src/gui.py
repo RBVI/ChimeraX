@@ -353,7 +353,7 @@ class FoldseekResultsTable(ItemTable):
         rows = [FoldseekRow(hit) for hit in hits]
         self.data = rows
         self.launch()
-        self.sort_by(col_identity, self.SORT_DESCENDING)
+        self.sort_by(col_evalue, self.SORT_ASCENDING)
         col_species_index = self.columns.index(col_species)
         species_column_width = 120
         self.setColumnWidth(col_species_index, species_column_width)
