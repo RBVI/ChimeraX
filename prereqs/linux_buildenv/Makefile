@@ -1,6 +1,5 @@
-RECIPES = ubuntu-20.04.def ubuntu-22.04.def \
-	  rhel-8.def rhel-9.def \
-	  debian-10.def
+RECIPES = ubuntu-20.04.def ubuntu-22.04.def ubuntu-24.04.def \
+	  rhel-8.def rhel-9.def
 IMAGES = $(RECIPES:.def=.img)
 SUDO =
 
