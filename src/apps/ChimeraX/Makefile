@@ -200,6 +200,6 @@ $(APP_NAME).ico: $(APP_NAME)-icon512.png
 icon.$(OBJ_EXT): $(APP_NAME).ico
 
 icon.rc: icon.rc.in
-	sed -e 's/YEAR/$(YEAR)/' -e 's/CHIMERAX_VERSION/$(VER)/' -e 's/CHIMERAX_PRODUCT/$(PRODVER)/' -e 's/CHIMERAX_FLAGS/$(FLAGS)/' < icon.rc.in > icon.rc
+	sed -e 's/YEAR/$(YEAR)/' -e 's/CHIMERAX_VERSION/$(VER)/' -e 's/CHIMERAX_PRODUCT/$(PRODVER)/' -e 's/CHIMERAX_FLAGS/$(FLAGS)/' < icon.rc.in > icon.rc || (rm $@ ; exit 1)
 
 endif

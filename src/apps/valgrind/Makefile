@@ -23,4 +23,4 @@ clean:
 	rm -f $(SUPPRESS)
 
 $(SUPPRESS): $(wildcard *.supp $(datadir)/valgrind-python.supp)
-	cat $^ > $@
+	cat $^ > $@ || (rm $@ ; exit 1)
