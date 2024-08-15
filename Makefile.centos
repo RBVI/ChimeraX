@@ -16,6 +16,9 @@ endif
 install: centos
 	env HOME=`pwd` $(MAKE) install CENTOS_DIST=$(CENTOS)
 
+build-minimal: centos
+	env HOME=`pwd` $(MAKE) build-minimal CENTOS_DIST=$(CENTOS)
+
 install-rbvi: centos
 	env HOME=`pwd` $(MAKE) install-rbvi CENTOS_DIST=$(CENTOS)
 
