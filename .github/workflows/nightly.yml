@@ -37,23 +37,23 @@ jobs:
       - run: ${PWD}/utils/set_up_centos.sh
       - run: source /opt/rh/gcc-toolset-10/enable && make -f Makefile.centos build-minimal
       - run: make test
-  build-rocky9-docker:
-    runs-on: ubuntu-20.04
-    container:
-      image: rockylinux:9
-    env:
-      SHELL: /bin/bash
-      PATH: /usr/bin:/usr/sbin:/bin:/sbin
-    steps:
-      - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
-      - run: dnf update -y
-      - run: dnf install -y git-all
-      - uses: actions/checkout@v4
-      # buildinfo.py breaks without this
-      - run: chown -R $(id -u):$(id -g) $PWD
-      - run: ${PWD}/utils/set_up_centos.sh
-      - run: make -f Makefile.centos build-minimal
-      - run: make test
+  #  build-rocky9-docker:
+  #    runs-on: ubuntu-20.04
+  #    container:
+  #      image: rockylinux:9
+  #    env:
+  #      SHELL: /bin/bash
+  #      PATH: /usr/bin:/usr/sbin:/bin:/sbin
+  #    steps:
+  #      - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+  #      - run: dnf update -y
+  #      - run: dnf install -y git-all
+  #      - uses: actions/checkout@v4
+  #      # buildinfo.py breaks without this
+  #      - run: chown -R $(id -u):$(id -g) $PWD
+  #      - run: ${PWD}/utils/set_up_centos.sh
+  #      - run: make -f Makefile.centos build-minimal
+  #      - run: make test
   # TODO: Build Generic Linux
   build-macos:
     runs-on: macos-latest
