@@ -26,7 +26,7 @@ jobs:
         id: changes
         with:
           token: ${{ github.token }}
-          filters: .github/file-filters.yml
+          filters: .github/prereq-file-filters.yml
 
   call-rebuild-pyqt:
     needs: files-changed
