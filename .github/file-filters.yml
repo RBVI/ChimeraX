@@ -16,8 +16,6 @@ change_in_linux_buildenv: &change_in_linux_buildenv
   - "prereqs/linux_buildenv/**"
 change_in_openmm: &change_in_openmm
   - "prereqs/openmm/**"
-change_in_openssl: &change_in_openssl
-  - "prereqs/openssl/**"
 change_in_pips: &change_in_pips
   - "prereqs/pips/**"
 change_in_qtshim: &change_in_qtshim
@@ -26,5 +24,3 @@ change_in_rsync: &change_in_rsync
   - "prereqs/rsync/**"
 change_in_win32: &change_in_win32
   - "prereqs/win32/**"
-change_in_zlib: &change_in_zlib
-  - "prereqs/zlib/**"
