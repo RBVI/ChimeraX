@@ -123,7 +123,7 @@ vdocs.install:
 
 build-dirs:
 	-mkdir -p $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
-		$(build_prefix)/sync/
+		$(build_prefix)/sync/ $(tmpdir)
 ifndef WIN32
 	-cd $(build_prefix) && ln -nfs lib lib64
 endif
