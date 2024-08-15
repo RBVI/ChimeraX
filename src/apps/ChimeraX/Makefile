@@ -1,9 +1,6 @@
 TOP	= ../../..
 include $(TOP)/mk/config.make
 
-ifeq ($(OS),Linux)
-LDFLAGS	+= -Wl,-rpath,'$$ORIGIN/../lib'
-endif
 ifeq ($(OS),Darwin)
 LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib'
 endif
@@ -131,10 +128,7 @@ pylint:
 $(PROG): $(OBJS)
 	$(PROG_LINK)
 ifeq ($(OS),Linux)
-	# convert to RPATH
-	if objdump -p $(PROG) | grep RUNPATH > /dev/null; then \
-		$(bindir)/chrpath -C $(PROG); \
-	fi
+	patchelf --force-rpath --set-rpath '$$ORIGIN/../lib' $(PROG)
 endif
 ifeq ($(OS),Darwin)
 	# Add RPATH so Python ssl module can find libssl.dylib.
