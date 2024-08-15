@@ -61,6 +61,30 @@ endif
 install-rbvi:
 	$(MAKE) PYQT_LICENSE=commercial install
 
+ifdef WIN32
+build-minimal:	vsdefined
+else
+build-minimal:
+endif
+	$(MAKE) build-dirs
+	$(MAKE) build-app-dirs
+ifeq ($(OS),Linux)
+	$(MAKE) -C prereqs/chrpath install
+endif
+ifdef WIN32
+	$(MAKE) -C prereqs/win32 app-install
+endif
+	$(MAKE) -C prereqs/Python install
+	$(MAKE) -C prereqs/Python app-install
+	$(MAKE) -C prereqs/pips install
+	$(MAKE) -C prereqs/pips app-install
+	$(MAKE) -C prereqs/PyQt app-install
+	$(MAKE) -C prereqs/qtshim app-install
+	$(MAKE) -C prereqs/ambertools app-install
+	$(MAKE) -C prereqs/cxservices app-install
+	$(MAKE) -C src/bundles install
+	$(MAKE) -C src/apps/ChimeraX install
+
 test src.test: testimports
 	$(MAKE) -C src test
 
@@ -105,7 +129,7 @@ vdocs.install:
 
 build-dirs:
 	-mkdir -p $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
-		$(build_prefix)/sync/
+		$(build_prefix)/sync/ $(tmpdir)
 ifndef WIN32
 	-cd $(build_prefix) && ln -nfs lib lib64
 endif
