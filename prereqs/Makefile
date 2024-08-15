@@ -100,7 +100,6 @@ $(SUBDIR_INSTALL): build-dirs
 
 build-dirs:
 	$(MAKE) -C $(TOP) build-dirs
-	-mkdir $(tmpdir)
 
 build-app-dirs:
 	$(MAKE) -C $(TOP) build-app-dirs

@@ -134,7 +134,7 @@ endif
 ifndef WIN32
 RSYNC = rsync -rltWv --executability
 else
-RSYNC = $(bindir)/rsync.convert -rlptWv
+RSYNC = $(TOP)/prereqs/win32/rsync.convert -rlptWv
 endif
 ifdef FLATPAK_DIST
 RSYNC := $(bindir)/$(RSYNC)
