@@ -19,4 +19,4 @@ jobs:
         id: changes
         with:
           token: ${{ github.token }}
-          filters: .github/srcapps-file-filters.yml
+          filters: .github/srcapp-file-filters.yml
