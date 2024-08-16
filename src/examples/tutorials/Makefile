@@ -13,7 +13,6 @@
 # with the appropriate license.
 
 TOP = ../../..
-NO_SUBDIR_ALL = 1
 
 include $(TOP)/mk/config.make
 
