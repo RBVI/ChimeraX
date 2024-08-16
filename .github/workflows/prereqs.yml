@@ -31,4 +31,4 @@ jobs:
   call-rebuild-pyqt:
     needs: files-changed
     if: needs.files-changed.outputs.change_in_pyqt == 'true'
-    uses: ./.github/workflows/rebuild-pyqt.yml
+    uses: ./.github/workflows/prereqs/rebuild-pyqt.yml
