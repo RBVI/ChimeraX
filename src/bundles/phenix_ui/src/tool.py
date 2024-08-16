@@ -340,6 +340,12 @@ class LaunchEmplaceLocalTool(ToolInstance):
         checkbox_layout.addWidget(self.symmetry_checkbox, alignment=Qt.AlignLeft)
         layout.addSpacing(10)
 
+        layout.addWidget(PhenixCitation(session, tool_name, "ligandFit",
+            title="Likelihood-based interactive local docking into cryo-EM maps in ChimeraX",
+            info=["Read RJ, Pettersen EF, McCoy AJ, Croll TI, Terwilliger TC, Poon BK, Meng EC",
+                "Liebschner D, Adams PD", "Acta Cryst. D80, 588-598 (2024)"],
+            pubmed_id=39058381), alignment=Qt.AlignCenter)
+
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_emplace_local)
