@@ -1,8 +1,8 @@
 Bootstrap: docker
-From: ubuntu:18.04
+From: ubuntu:24.04
 
 %help
-Ubuntu 18.04 containter that can build ChimeraX
+Ubuntu 24.04 containter that can build ChimeraX
 
 %labels
     Maintainer "Chimera Staff <chimera-staff@cgl.ucsf.edu>"
@@ -10,15 +10,16 @@ Ubuntu 18.04 containter that can build ChimeraX
     org.label-scheme.description "This image has the right compiler environment to build and run ChimeraX"
 
 %post
+    export DEBIAN_FRONTEND=noninteractive
     apt-get -y update
     apt-get install -y --no-install-recommends \
-	language-selector-common ffmpeg \
-	build-essential g++ gfortran binutils-gold \
-	tcsh python \
-	chrpath patch openssh-client rsync ca-certificates \
+	language-selector-common ffmpeg vim-nox \
+	build-essential g++ gfortran gfortran-9 \
+	tcsh cmake bc \
+	patchelf patch openssh-client rsync ca-certificates \
 	make autoconf automake libtool pkg-config \
 	flex bison yasm unzip tar fakeroot curl wget \
-	python2.7 \
+	python3 python-is-python3 \
 	imagemagick \
 	libasound2-dev \
 	libatk1.0-dev \
@@ -28,6 +29,7 @@ Ubuntu 18.04 containter that can build ChimeraX
 	libdbus-1-dev \
 	libegl1-mesa-dev \
 	libexpat1-dev \
+	libffi-dev \
 	libfftw3-dev \
 	libfreetype6-dev \
 	libgdk-pixbuf2.0-dev \
@@ -47,13 +49,13 @@ Ubuntu 18.04 containter that can build ChimeraX
 	libpcre3-dev \
 	libpng-dev \
 	libpulse-dev \
-	libqgsttools-p1 \
 	libsqlite3-dev \
 	libssl-dev \
 	libtiff-dev \
 	libx11-dev \
 	libxcomposite-dev \
 	libxcursor-dev \
+	libxext-dev \
 	libxft-dev \
 	libxi-dev \
 	libxmu-dev \
@@ -64,6 +66,7 @@ Ubuntu 18.04 containter that can build ChimeraX
 	libxt-dev \
 	libxtst-dev \
 	llvm-dev \
+	libz-dev \
 	x11proto-scrnsaver-dev \
 	xdg-utils \
 	zlib1g-dev

@@ -1,0 +1,34 @@
+name: prerequisites
+
+on: push
+
+jobs:
+  files-changed:
+    name: Detect which prerequsites had changes
+    runs-on: ubuntu-20.04
+    outputs:
+      change_in_pyqt: ${{ steps.changes.outputs.change_in_pyqt }}
+      change_in_python: ${{ steps.changes.outputs.change_in_python }}
+      change_in_ambertools: ${{ steps.changes.outputs.change_in_ambertools }}
+      change_in_cxservices: ${{ steps.changes.outputs.change_in_cxservices }}
+      change_in_ffmpeg: ${{ steps.changes.outputs.change_in_ffmpeg }}
+      change_in_imex: ${{ steps.changes.outputs.change_in_imex }}
+      change_in_libglu: ${{ steps.changes.outputs.change_in_libglu }}
+      change_in_linux_buildenv: ${{ steps.changes.outputs.change_in_linux_buildenv }}
+      change_in_openmm: ${{ steps.changes.outputs.change_in_openmm }}
+      change_in_pips: ${{ steps.changes.outputs.change_in_pips }}
+      change_in_qtshim: ${{ steps.changes.outputs.change_in_qtshim }}
+      change_in_rsync: ${{ steps.changes.outputs.change_in_rsync }}
+      change_in_win32: ${{ steps.changes.outputs.change_in_win32 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/prereq-file-filters.yml
+
+  call-rebuild-pyqt:
+    needs: files-changed
+    if: needs.files-changed.outputs.change_in_pyqt == 'true'
+    uses: ./.github/workflows/rebuild-pyqt.yml

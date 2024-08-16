@@ -47,7 +47,7 @@ endif
 ifeq ($(OS),Linux)
 # -Wl,-rpath ends up in shared libraries in addition to executables,
 # which we do not want, so only add the rpath when linking the executable
-ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)' LINKCC="gcc '-Wl,-rpath,\$$\$$ORIGIN/../lib'"
+ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 ifdef HARDENING
 ENV_CONFIGURE += CFLAGS='-D_FORTIFY=2 -fstack-protector-strong'
 endif
@@ -124,14 +124,10 @@ else
 	# Linux or Mac OS X without framework
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
 ifeq ($(OS),Linux)
-	-for lib in $(PYTHON_LIBRARY_DIR)/lib-dynload/*.so; do \
-		$(bindir)/chrpath -d $$lib; \
-	done
-	chmod 755  $(libdir)/libpython*.so; $(bindir)/chrpath -d $(libdir)/libpython*.so
 	# convert to RPATH
-	if objdump -p $(PYTHON_BIN) | grep RUNPATH > /dev/null; then \
-	       $(bindir)/chrpath -C $(PYTHON_BIN); \
-	fi
+	patchelf --remove-rpath $(PYTHON_LIBRARY_DIR)/lib-dynload/*.so
+	chmod 755 $(libdir)/libpython*.so; patchelf --remove-rpath $(libdir)/libpython*.so
+	patchelf --force-rpath --set-rpath '$$ORIGIN/../lib' $(PYTHON_BIN)
 endif
 	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp
