@@ -1,6 +1,6 @@
 name: bundles
 
-on: push
+on: workflow_call
 
 jobs:
   files-changed:
