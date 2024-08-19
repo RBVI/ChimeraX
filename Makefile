@@ -67,9 +67,6 @@ build-minimal:
 endif
 	$(MAKE) build-dirs
 	$(MAKE) build-app-dirs
-ifeq ($(OS),Linux)
-	$(MAKE) -C prereqs/chrpath install
-endif
 ifdef WIN32
 	$(MAKE) -C prereqs/win32 app-install
 endif
