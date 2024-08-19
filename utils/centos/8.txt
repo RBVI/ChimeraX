@@ -64,6 +64,7 @@ openssl-libs
 openssl-devel
 pango
 patch
+patchelf
 pulseaudio-libs
 pulseaudio-libs-glib2
 rsync
