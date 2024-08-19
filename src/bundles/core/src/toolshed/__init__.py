@@ -1630,7 +1630,7 @@ class NewerVersionQuery(Task):
             "aarch64": "arm64",
             "arm64": "arm64",
             "x86_64": "x86_64",
-            "AMD64": "x86_64",
+            "amd64": "x86_64",
         }
 
         self.api = default_api.DefaultApi()
