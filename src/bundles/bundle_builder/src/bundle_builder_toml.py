@@ -646,7 +646,7 @@ class Bundle:
                     if os.path.isdir(entry):
                         shutil.copytree(entry, destination)
                     else:
-                        shutil.copyfile(entry, destination)
+                        shutil.copy2(entry, destination)
 
     # Since we aren't trusting setuptools to compile libraries properly we have
     # to remove them ourselves. Work around the prepare_metadata_for_build_editable
