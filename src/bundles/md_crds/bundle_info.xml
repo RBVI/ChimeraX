@@ -18,11 +18,11 @@
   </Categories>
 
   <CModule name="_gromacs" usesNumpy="true">
-    <IncludeDir>gromacs/xdrfile-1.1b/include</IncludeDir>
+    <IncludeDir>gromacs/xdrfile-1.1.4/include</IncludeDir>
     <SourceFile>gromacs/gromacs.cpp</SourceFile>
-    <LinkArgument platform="win32">gromacs/xdrfile-1.1b/src/.libs/libxdrfile.lib</LinkArgument>
-    <LinkArgument platform="mac">gromacs/xdrfile-1.1b/src/.libs/libxdrfile.a</LinkArgument>
-    <LinkArgument platform="linux">gromacs/xdrfile-1.1b/src/.libs/libxdrfile.a</LinkArgument>
+    <LinkArgument platform="win32">gromacs/xdrfile-1.1.4/src/.libs/libxdrfile.lib</LinkArgument>
+    <LinkArgument platform="mac">gromacs/xdrfile-1.1.4/src/.libs/libxdrfile.a</LinkArgument>
+    <LinkArgument platform="linux">gromacs/xdrfile-1.1.4/src/.libs/libxdrfile.a</LinkArgument>
   </CModule>
 
   <Dependencies>
