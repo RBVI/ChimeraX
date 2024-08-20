@@ -1,4 +1,4 @@
-name: bundles
+name: Rebuild on change
 
 on: push
 
