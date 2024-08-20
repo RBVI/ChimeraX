@@ -160,8 +160,15 @@ class Bundle:
         self.logger = logger
         self.bundle_info = bundle_info
         project_data = bundle_info["project"]
-        chimerax_data = bundle_info["chimerax"]
-
+        # If you use something with an automated TOML linter it's never going to shut up
+        # about how additional properties are illegal, so accept 'tool.chimerax' as well
+        # as 'chimerax'
+        if "chimerax" in bundle_info:
+            chimerax_data = bundle_info["chimerax"]
+        elif "chimerax" in bundle_info["tool"]:
+            chimerax_data = bundle_info["tool"]["chimerax"]
+        else:
+            raise ValueError("No [chimerax] or [tool.chimerax] table in pyproject.toml")
         self.pure_python = not (
             bool(chimerax_data.get("extension", {}))
             or bool(chimerax_data.get("library", {}))
