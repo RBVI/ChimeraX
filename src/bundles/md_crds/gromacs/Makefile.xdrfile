@@ -15,15 +15,11 @@ include $(TOP)/mk/config.make
 
 include Makefile.common
 
-QUOTE_CC := $(subst ','\'',$(CFLAGS) $(TARGET_ARCH))
-QUOTE_CXX := $(subst ','\'',$(CXXFLAGS) $(TARGET_ARCH))
+QUOTE_CC := $(subst ','\'',$(CC) $(TARGET_ARCH))
+QUOTE_CXX := $(subst ','\'',$(CXX) $(TARGET_ARCH))
 
 # Make xdrfile use our compiler options
-ifneq ($(filter $(MSYSTEM),MSYS MINGW64),)
-ENV_CONFIGURE =
-else
-ENV_CONFIGURE = CFLAGS='$(QUOTE_CC)' CXXFLAGS='$(QUOTE_CXX)' LDFLAGS="$(TARGET_ARCH) $(LDFLAGS)"
-endif
+ENV_CONFIGURE = env CC='$(QUOTE_CC)' CXX='$(QUOTE_CXX)' LDFLAGS="$(TARGET_ARCH) $(LDFLAGS)"
 
 PATCHES = patch
 
@@ -34,7 +30,6 @@ $(XDRFILE_LIB): $(XDRFILE_LIB_SOURCE)
 
 $(XDRFILE_LIB_SOURCE):
 	tar zxf $(XDRFILE_ARCHIVE)
-	cd $(XDRFILE_LIB_SOURCE) && autoreconf -fiv
 ifneq ($(PATCHES),)
 	for p in $(PATCHES); do \
 		if [ -f $$p ] ; then \
