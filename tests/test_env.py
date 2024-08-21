@@ -11,4 +11,7 @@ chimerax_test_utils.ensure_chimerax_initialized()
 
 def test_chimerax_module_attrs():
     bin_dir = chimerax.app_bin_dir
-    assert os.path.exists(os.path.join(bin_dir, "ChimeraX"))
+    if sys.platform == "win32":
+        assert os.path.exists(os.path.join(bin_dir, "ChimeraX.exe"))
+    else:
+        assert os.path.exists(os.path.join(bin_dir, "ChimeraX"))

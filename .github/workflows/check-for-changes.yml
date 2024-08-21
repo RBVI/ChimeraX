@@ -30,7 +30,7 @@ jobs:
       - run: make build-minimal
       - run: make test
       - name: Install Pytest
-        run: /ChimeraX.app/bin/python3.11 -I -m pip install pytest
+        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest
       - name: Run Pytest
         run: make pytest
   build-and-test-rocky8-docker:
@@ -53,7 +53,7 @@ jobs:
       - run: source /opt/rh/gcc-toolset-10/enable && make -f Makefile.centos build-minimal
       - run: make test
       - name: Install Pytest
-        run: /ChimeraX.app/bin/python3.11 -I -m pip install pytest
+        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest
       - name: Run Pytest
         run: make pytest
   build-and-test-macos:
