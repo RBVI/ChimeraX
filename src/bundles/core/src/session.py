@@ -230,14 +230,15 @@ def _obj_stack(parents, obj):
 class _SaveManager:
     """Manage session saving"""
 
-    def __init__(self, session, state_flags):
+    def __init__(self, session, state_flags, unique_name=_UniqueName):
         self.session = session
         self.state_flags = state_flags
         self.graph = {}         # dependency graph
         self.unprocessed = []   # item: LIFO [obj]
         self.processed = {}     # item: {_UniqueName(obj)/attr_name: data}
         self._found_objs = []
-        _UniqueName.reset()
+        self.unique_name = unique_name
+        self.unique_name.reset()
 
     def cleanup(self):
         # remove references
@@ -245,7 +246,7 @@ class _SaveManager:
         self.unprocessed.clear()
         self.processed.clear()
         self._found_objs.clear()
-        _UniqueName.reset()
+        self.unique_name.reset()
 
     def discovery(self, containers):
         for key, value in containers.items():
@@ -260,25 +261,25 @@ class _SaveManager:
                     if hasattr(sm, 'include_state') and not sm.include_state(value):
                         continue
                     self.unprocessed.append((value, (key,)))
-                    uid = _UniqueName.from_obj(self.session, value)
+                    uid = self.unique_name.from_obj(self.session, value)
                     self.processed[key] = uid
                     self.graph[key] = [uid]
             except ValueError:
                 raise ValueError("error processing state container: %r" % key)
         while self.unprocessed:
             obj, parents = self.unprocessed.pop()
-            key = _UniqueName.from_obj(self.session, obj)
+            key = self.unique_name.from_obj(self.session, obj)
             if key not in self.processed:
                 try:
                     self.processed[key] = self.process(obj, parents)
                 except UserError:
-                    raise	# For example map size is larger than 4 Gbyte msgpack limit.
+                    raise  # For example map size is larger than 4 Gbyte msgpack limit.
                 except Exception as e:
                     raise ValueError("error processing: %s: %s" % (_obj_stack(parents, obj), e))
                 self.graph[key] = self._found_objs
 
     def _add_obj(self, obj, parents=()):
-        uid = _UniqueName.from_obj(self.session, obj)
+        uid = self.unique_name.from_obj(self.session, obj)
         self._found_objs.append(uid)
         if uid not in self.processed:
             self.unprocessed.append((obj, parents))
@@ -295,7 +296,7 @@ class _SaveManager:
             try:
                 data = sm.take_snapshot(obj, session, self.state_flags)
             except UserError:
-                raise	# For example map size is larger than 4 Gbyte msgpack limit.
+                raise  # For example map size is larger than 4 Gbyte msgpack limit.
             except Exception as e:
                 msg = 'Error while saving session data for %s' % _obj_stack(parents, obj)
                 raise RuntimeError(msg) from e
@@ -323,20 +324,21 @@ class _SaveManager:
 
     def bundle_infos(self):
         bundle_infos = {}
-        for bi in _UniqueName._bundle_infos:
+        for bi in self.unique_name._bundle_infos:
             bundle_infos[bi.name] = (bi.version, bi.session_write_version)
         return bundle_infos
 
 
 class _RestoreManager:
 
-    def __init__(self):
-        _UniqueName.reset()
+    def __init__(self, unique_name=_UniqueName):
+        self.unique_name = unique_name
+        self.unique_name.reset()
         self.bundle_infos = {}
 
     def cleanup(self):
         # remove references
-        _UniqueName.reset()
+        self.unique_name.reset()
         self.bundle_infos.clear()
 
     def check_bundles(self, session, bundle_infos):
@@ -376,10 +378,10 @@ class _RestoreManager:
 
     def resolve_references(self, data):
         # resolve references in data
-        return dereference_state(data, _UniqueName.lookup, _UniqueName)
+        return dereference_state(data, self.unique_name.lookup, self.unique_name)
 
     def add_reference(self, name, obj):
-        _UniqueName.add(name.uid, obj)
+        self.unique_name.add(name.uid, obj)
 
     def log_bundles(self, session, missing_bundles, out_of_date_bundles):
 
@@ -589,7 +591,7 @@ class Session:
     def state_managers_by_tag(self, class_obj):
         # in the unusual case where you need to call a Session API requiring a tag,
         # and you don't already know the tag
-        return {tag:mgr for tag,mgr in self._state_containers.items() if isinstance(mgr, class_obj)}
+        return {tag: mgr for tag, mgr in self._state_containers.items() if isinstance(mgr, class_obj)}
 
     def snapshot_methods(self, obj, instance=True, base_type=State):
         """Return an object having take_snapshot(), restore_snapshot(),

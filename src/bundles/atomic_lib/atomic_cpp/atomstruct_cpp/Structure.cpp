@@ -1120,6 +1120,33 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
             return;
         start_r = start_a->residue();
         other_r = b->other_atom(start_a)->residue();
+        // verify that this bond is actually between chain-terminal atoms
+        auto start_chain = start_r->chain();
+        if (start_chain != nullptr) {
+            // "start" atom is C, look backwards from the end of the chain
+            auto& start_residues = start_chain->residues();
+            for (int i = start_residues.size()-1; i >= 0; --i) {
+                auto r = start_residues[i];
+                if (r == nullptr)
+                    continue;
+                if (r == start_r)
+                    break;
+                else
+                    return;
+            }
+        }
+        auto other_chain = other_r->chain();
+        if (other_chain != nullptr) {
+            // "other" atom is N, look from the start of the chain
+            for (auto r: other_chain->residues()) {
+                if (r == nullptr)
+                    continue;
+                if (r == other_r)
+                    break;
+                else
+                    return;
+            }
+        }
     }
     if (start_r->chain() == nullptr) {
         if (other_r->chain() == nullptr) {

@@ -6,7 +6,6 @@
 unexport CDPATH
 
 TOP	= ..
-NO_SUBDIR_ALL = 1
 NO_SUBDIR_TEST = 1
 
 include $(TOP)/mk/config.make
@@ -81,7 +80,7 @@ ifeq ($(OS),Linux)
 GCC_VER = $(shell $(CC) -dumpversion)
 PREBUILT = prebuilt-$(OSARCH)-$(GCC_VER).tar.bz2
 else ifeq ($(OS),Darwin)
-PREBUILT = prebuilt-$(OSARCH)-$(MACOSX_DEPLOYMENT_TARGET).tar.bz2
+PREBUILT = prebuilt-$(OSARCH).tar.bz2
 else ifeq ($(OS),Windows)
 PREBUILT = prebuilt-$(OSARCH).tar.bz2
 else

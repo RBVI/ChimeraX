@@ -29,6 +29,7 @@ Thumbs.db
 .python-version
 .ropeproject
 *.org
+launch.json
 # Test files
 .coverage
 *htmlcov

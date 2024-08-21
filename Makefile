@@ -11,7 +11,6 @@
 
 TOP = .
 TOP := $(shell (cd "$(TOP)"; pwd))
-NO_SUBDIR_ALL=1
 NO_SUBDIR_INSTALL=1
 NO_SUBDIR_TEST=1
 SUBDIRS = prereqs src
@@ -68,9 +67,6 @@ build-minimal:
 endif
 	$(MAKE) build-dirs
 	$(MAKE) build-app-dirs
-ifeq ($(OS),Linux)
-	$(MAKE) -C prereqs/chrpath install
-endif
 ifdef WIN32
 	$(MAKE) -C prereqs/win32 app-install
 endif

@@ -29,7 +29,11 @@ ifeq ($(OS),Windows)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-win_amd64.whl
 else
 ifeq ($(OS),Linux)
+ifeq ($(OSARCH),LinuxArm64)
+TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-linux_aarch64.whl
+else
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+endif
 else
 ifeq ($(OS),Darwin)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
