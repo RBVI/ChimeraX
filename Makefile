@@ -87,6 +87,10 @@ test src.test: testimports
 testimports:
 	$(APP_EXE) --exit --nogui --silent cxtestimports.py
 
+pytest:
+	./tests/env.sh
+	$(APP_PYTHON_EXE) -m pytest
+
 sync:
 	mkdir -p $(build_prefix)/sync/
 	$(MAKE) -C src/bundles sync
