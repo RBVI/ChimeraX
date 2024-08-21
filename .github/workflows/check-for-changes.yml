@@ -57,7 +57,7 @@ jobs:
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
       - uses: actions/checkout@v4
-      - run: brew bundle -f ./utils/Brewfile
+      - run: ${PWD}/utils/set_up_macos.sh
       - run: make build-minimal
       - run: make test
   build-and-test-windows:
