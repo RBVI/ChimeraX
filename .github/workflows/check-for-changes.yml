@@ -53,7 +53,11 @@ jobs:
       [rebuild-changed-prereqs, rebuild-changed-bundles, rebuild-changed-apps]
     runs-on: macos-latest
     steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
       - uses: actions/checkout@v4
+      - run: brew bundle
       - run: make build-minimal
       - run: make test
   build-and-test-windows:
