@@ -108,9 +108,6 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, *, block
     from tempfile import TemporaryDirectory
     d = TemporaryDirectory(prefix = 'phenix_ligandfit_')  # Will be cleaned up when object deleted.
     temp_dir = d.name
-    session.hold_temp_ref = d
-    import sys
-    print("temp dir is", temp_dir, file=sys.__stderr__)
 
     # Check map_data arg and save map data
     from os import path
@@ -218,38 +215,15 @@ def view_box(session, model):
         return (face_intercepts[0] + face_intercepts[1]) / 2
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
-def _process_results(session, place_ligand, model):
-    import sys
-    print("done", file=sys.__stderr__)
-    return
-    if orig_model.deleted:
+def _process_results(session, placed_ligand, model):
+    if model.deleted:
+        placed_ligand.delete()
         raise UserError("Structure being fitting was deleted during fitting")
-    from chimerax.geometry import Place
-    orig_model.scene_position = Place(transform) * orig_model.scene_position
-    sharpened_map.name = "sharpened local map"
-    sharpened_map.display = show_sharpened_map
-    session.models.add([sharpened_map])
-    session.logger.status("Fitting job finished")
-    if apply_symmetry:
-        sym_map = maps[0]
-        if sym_map.deleted:
-            raise UserError("Map being fitted has been deleted; not applying symmetry")
-        from chimerax.core.commands import run, concise_model_spec, StringArg
-        run(session, "measure symmetry " + sym_map.atomspec)
-        if maps[0].data.symmetries:
-            prev_models = set(session.models[:])
-            run(session, "sym " + orig_model.atomspec + " symmetry " + sym_map.atomspec + " copies true")
-            added = [m for m in session.models if m not in prev_models]
-            run(session, "combine " + concise_model_spec(session, [orig_model] + added) + " close true"
-                " modelId %d name %s" % (orig_model.id[0], StringArg.unparse(orig_model.name)))
-        else:
-            session.logger.warning(
-                'Could not determine symmetry for %s<br><br>'
-                'If you know the symmetry of the map, you can create symmetry copies of the structure'
-                ' with the <a href="help:user/commands/sym.html">sym</a> command and then combine the'
-                ' symmetry copies with the original structure with the <a'
-                ' href="help:user/commands/combine.html">combine</a> command'
-                % sym_map, is_html=True)
+    from chimerax.atomic import Atom, colors
+    ligand_atoms = placed_ligand.atoms
+    ligand_atoms.draw_modes = Atom.STICK_STYLE
+    ligand_atoms.colors = colors.element_colors(ligand_atoms.element_numbers)
+    model.combine(placed_ligand, {}, model.scene_position)
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
@@ -257,14 +231,25 @@ def _run_fit_subprocess(session, exe_path, optional_args, search_center, positio
     '''
     Run ligandfit in a subprocess and return the ligand.
     '''
+    import os
+    if hasattr(os, 'sched_getaffinity'):
+        processors = max(1, len(os.sched_getaffinity(0)))
+    else:
+        processors = os.cpu_count()
+        if processors is None:
+            processors = 1
+    if processors == 1:
+        procs_arg = []
+    else:
+        procs_arg = ["nproc=%d" % min(5, processors)]
     from chimerax.core.commands import StringArg
     args = [exe_path] + optional_args + [
             "ligand=ligand.pdb",
             "map_in=map.mrc",
             "model=model.pdb",
-            "resolution=3.40",
+            "resolution=2.90",
             "search_center=%g %g %g" % tuple(search_center.scene_coordinates()),
-        ] + positional_args
+        ] + procs_arg + positional_args
     tsafe=session.ui.thread_safe
     logger = session.logger
     tsafe(logger.status, f'Running {exe_path} in directory {temp_dir}')
@@ -289,27 +274,14 @@ def _run_fit_subprocess(session, exe_path, optional_args, search_center, positio
         msg += '</pre>'
         tsafe(logger.info, msg, is_html=True)
 
-    return (None,)
-
-    # Open new model with added waters
-    from os import path
-    json_path = path.join(temp_dir,'emplace_local_result.json')
-    import json
-    with open(json_path, 'r') as f:
-        info = json.load(f)
-    model_path = path.join(temp_dir, info["model_filename"])
-    map_path = path.join(temp_dir, info["map_filename"])
-    sharpened_maps, status = session.open_command.open_data(map_path)
-    from chimerax.core.commands import plural_form
-    num_solutions = info["n_solutions"]
-    tsafe(logger.info, "%d fitting %s" % (num_solutions, plural_form(num_solutions, "solution")))
-    tsafe(logger.info, "map LLG %s: %s" % (plural_form(num_solutions, "value"),
-        ', '.join(["%g" % v for v in info["mapLLG"]])))
-    tsafe(logger.info, "map CC %s: %s" % (plural_form(num_solutions, "value"),
-        ', '.join(["%g" % v for v in info["mapCC"]])))
-
-    from numpy import array
-    return array(info['RT'][0]), sharpened_maps[0]
+    output_marker = "FULL LIGAND MODEL:"
+    for line in p.stdout.decode("utf-8").splitlines():
+        if line.startswith(output_marker):
+            ligand_path = line[len(output_marker):].strip()
+            break
+    else:
+        raise RuntimeError("Could not find ligand file path in ligandFit output")
+    return (session.open_command.open_data(ligand_path)[0][0],)
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
