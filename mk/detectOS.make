@@ -29,6 +29,8 @@ ifeq ($(OS),Linux)
 		OSARCH = Linux64
 	else ifeq ($(MACHINE),ia64)
 		OSARCH = LinuxIA64
+	else ifeq ($(MACHINE),aarch64)
+		OSARCH = LinuxArm64
 	else
 		# MACHINE is i686
 		OSARCH	= Linux

@@ -9,6 +9,8 @@ jobs:
       matrix:
         os: [ubuntu-22.04, ubuntu-20.04]
     runs-on: ${{ matrix.os }}
+    env:
+      PYOPENGL_PLATFORM: egl
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
