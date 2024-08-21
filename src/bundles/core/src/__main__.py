@@ -158,7 +158,7 @@ def _parse_python_args(argv, usage):
                     if opt == "m" or opt == "c":
                         # special case, eats rest of arguments
                         yield f"-{opt}", argv[cur_index]
-                        yield None, argv[cur_index + 1:]
+                        yield None, argv[cur_index + 1 :]
                         return
                     arg = argv[cur_index]
                     cur_index += 1
@@ -285,7 +285,7 @@ def _parse_chimerax_args(argv, arguments, usage):
         elif opt == "--disable-qt":
             opts.disable_qt = True
         elif opt == "--color-scheme":
-            if optarg not in ('light', 'dark'):
+            if optarg not in ("light", "dark"):
                 print(f"{argv[0]}: unknown color scheme", file=sys.stderr)
                 raise SystemExit(os.EX_USAGE)
             opts.color_scheme = optarg
@@ -537,6 +537,15 @@ def init(argv, event_loop=True):
     #     ChimeraX: /../ChimeraX.app/Contents/MacOS/ChimeraX
     dn = os.path.dirname
     rootdir = dn(dn(os.path.realpath(sys.executable)))
+    if sys.platform.startswith("darwin"):
+        # On macOS, if you're using the Python executable, it is symlinked to
+        # the real Python binary in the Framework directory, so realpath puts you
+        # there.
+        import platform
+
+        py_ver = ".".join(platform.python_version_tuple()[0:2])
+        if os.path.basename(rootdir) == py_ver:
+            rootdir = dn(dn(dn(dn(dn(rootdir)))))
     # On Linux, don't create user directories if root (the installer uid)
     is_root = False
     if sys.platform.startswith("linux"):
@@ -1018,7 +1027,11 @@ def init(argv, event_loop=True):
 
     # Open files dropped on application
     if opts.gui:
-        sess.ui.open_pending_files(ignore_files=(args+opts.scripts+opts.commands if bad_drop_events else []))
+        sess.ui.open_pending_files(
+            ignore_files=(
+                args + opts.scripts + opts.commands if bad_drop_events else []
+            )
+        )
 
     # By this point the GUI module will have redirected stdout if it's going to
     if opts.debug:

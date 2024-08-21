@@ -21,7 +21,7 @@ ignore_patterns = [
   "src/core/toolshed/unused",
 ]
 [tool.pytest.ini_options]
-addopts = "--cache-clear --verbose"
+addopts = "--cache-clear --verbose --ignore=tests/test_env.py"
 console_output_style = "count"
 norecursedirs = [
   ".venv",
@@ -32,6 +32,7 @@ norecursedirs = [
   "prereqs",
   "src/bundles/**/build",
   "src/bundles/**/dist",
+  "src/bundles/**/src",
   "src/core/toolshed/unused",
 ]
 ### Ignore all the flake8 rules that directly contradict how

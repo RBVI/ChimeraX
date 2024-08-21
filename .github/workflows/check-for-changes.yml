@@ -29,6 +29,10 @@ jobs:
       - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
       - run: make build-minimal
       - run: make test
+      - name: Install Pytest
+        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest
+      - name: Run Pytest
+        run: make pytest
   build-and-test-rocky8-docker:
     needs:
       [rebuild-changed-prereqs, rebuild-changed-bundles, rebuild-changed-apps]
@@ -48,6 +52,10 @@ jobs:
       - run: ${PWD}/utils/set_up_centos.sh
       - run: source /opt/rh/gcc-toolset-10/enable && make -f Makefile.centos build-minimal
       - run: make test
+      - name: Install Pytest
+        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest
+      - name: Run Pytest
+        run: make pytest
   build-and-test-macos:
     needs:
       [rebuild-changed-prereqs, rebuild-changed-bundles, rebuild-changed-apps]
@@ -57,9 +65,13 @@ jobs:
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
       - uses: actions/checkout@v4
-      - run: brew bundle -f ./utils/Brewfile
+      - run: ${PWD}/utils/set_up_macos.sh
       - run: make build-minimal
       - run: make test
+      - name: Install Pytest
+        run: ./ChimeraX.app/Contents/bin/python3.11 -I -m pip install pytest
+      - name: Run Pytest
+        run: make pytest
   build-and-test-windows:
     needs:
       [rebuild-changed-prereqs, rebuild-changed-bundles, rebuild-changed-apps]
@@ -76,3 +88,7 @@ jobs:
           install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
       - run: GITHUB_ACTIONS_CI=1 . ./vsvars.sh && make build-minimal
       - run: GITHUB_ACTIONS_CI=1 . ./vsvars.sh && make test
+      - name: Install Pytest
+        run: ./ChimeraX.app/bin/python.exe -I -m pip install pytest
+      - name: Run Pytest
+        run: make pytest
