@@ -415,12 +415,13 @@ def alphafold_ribbon_command(session, name, coloring_cmds):
     else:
         confidence_cmds = []
     if printable:
-        initial_cmds = base_setup + base_macro_model + base_ribbon + print_ribbon
+        # confidence_cmds needs to be before print_ribbon so that the correct struts get placed
+        initial_cmds = base_setup + base_macro_model + base_ribbon + confidence_cmds + print_ribbon
         final_cmds = print_prep(session, pb_radius=None)
     else:
-        initial_cmds = undo_printable + base_setup + base_macro_model + base_ribbon
+        initial_cmds = undo_printable + base_setup + base_macro_model + base_ribbon + confidence_cmds
         final_cmds = []
-    return initial_cmds + confidence_cmds + coloring_cmds + final_cmds
+    return initial_cmds + coloring_cmds + final_cmds
 
 def alphafold_surface_command(session, name, coloring_cmds, **kw):
     printable = "printable" in name
