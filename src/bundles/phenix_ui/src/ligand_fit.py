@@ -33,23 +33,23 @@ class FitJob(Job):
 
     SESSION_SAVE = False
 
-    def __init__(self, session, executable_location, optional_args, search_center, positional_args,
-            temp_dir, verbose, callback, block):
+    def __init__(self, session, executable_location, optional_args, search_center, resolution,
+            positional_args, temp_dir, verbose, callback, block):
         super().__init__(session)
         self._running = False
         self._monitor_time = 0
         self._monitor_interval = 10
-        self.start(session, executable_location, optional_args, search_center, positional_args, temp_dir,
-            verbose, callback, blocking=block)
+        self.start(session, executable_location, optional_args, search_center, resolution, positional_args,
+            temp_dir, verbose, callback, blocking=block)
 
-    def run(self, session, executable_location, optional_args, search_center, positional_args, temp_dir,
-            verbose, callback, **kw):
+    def run(self, session, executable_location, optional_args, search_center, resolution, positional_args,
+            temp_dir, verbose, callback, **kw):
         self._running = True
         self.start_t = time()
         def threaded_run(self=self):
             try:
                 results = _run_fit_subprocess(session, executable_location, optional_args,
-                    search_center, positional_args, temp_dir, verbose)
+                    search_center, resolution, positional_args, temp_dir, verbose)
             finally:
                 self._running = False
             self.session.ui.thread_safe(callback, *results)
@@ -89,8 +89,8 @@ class FitJob(Job):
 command_defaults = {
     'verbose': False
 }
-def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, *, block=None,
-        phenix_location=None, verbose=command_defaults['verbose'],
+def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resolution=None, *, block=None,
+        chain_id=None, phenix_location=None, residue_number=None, verbose=command_defaults['verbose'],
         option_arg=[], position_arg=[]):
 
     # Find the phenix.ligandfit executable
@@ -142,6 +142,21 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, *, block
     except Exception as e:
         raise UserError(f"Cannot open ligand '{ligand}': {str(e)}")
 
+    check_needed = chain_id is not None and residue_number is not None
+    if chain_id is None:
+        chain_id = sorted(model.residues.unique_chain_ids)[0]
+    if residue_number is None:
+        residues = model.residues
+        residue_number = max(residues.filter(residues.chain_ids == chain_id).numbers) + 1
+    if check_needed:
+        residues = model.residues
+        chain_residues = residues.filter(residues.chain_ids == chain_id)
+        match_residues = chain_residues.filter(chain_residues.numbers == residue_number)
+        for match_res in match_residues:
+            if not match_res.insertion_code:
+                raise UserError("A residue with chain_id '%s' and number '%d' already exists in %s" %
+                    (chain_id, residue_number, model))
+
     # Save ligand to file.
     from chimerax.pdb import save_pdb
     save_pdb(session, path.join(temp_dir,'ligand.pdb'), models=ligand_models)
@@ -149,9 +164,11 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, *, block
     # Run phenix.ligandfit
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # the program runs
-    callback = lambda placed_ligand, *args, session=session, model=model, d_ref=d: _process_results(
-        session, placed_ligand, model)
-    FitJob(session, exe_path, option_arg, search_center, position_arg, temp_dir, verbose, callback, block)
+    callback = lambda placed_ligand, *args, session=session, model=model, chain_id=chain_id, \
+        residue_number=residue_number, d_ref=d: _process_results(
+        session, placed_ligand, model, chain_id, residue_number)
+    FitJob(session, exe_path, option_arg, search_center, resolution, position_arg, temp_dir, verbose,
+        callback, block)
 
 class ViewBoxError(ValueError):
     pass
@@ -215,19 +232,24 @@ def view_box(session, model):
         return (face_intercepts[0] + face_intercepts[1]) / 2
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
-def _process_results(session, placed_ligand, model):
+def _process_results(session, placed_ligand, model, chain_id, residue_number):
     if model.deleted:
         placed_ligand.delete()
-        raise UserError("Structure being fitting was deleted during fitting")
+        raise UserError("Receptor structure was deleted during ligand fitting")
     from chimerax.atomic import Atom, colors
+    res = placed_ligand.residues[0]
+    res.chain_id = chain_id
+    res.number = residue_number
     ligand_atoms = placed_ligand.atoms
     ligand_atoms.draw_modes = Atom.STICK_STYLE
     ligand_atoms.colors = colors.element_colors(ligand_atoms.element_numbers)
     model.combine(placed_ligand, {}, model.scene_position)
+    session.logger.info("Ligand added to %s as residue %d in chain %s" % (model,  residue_number, chain_id))
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
-def _run_fit_subprocess(session, exe_path, optional_args, search_center, positional_args, temp_dir, verbose):
+def _run_fit_subprocess(session, exe_path, optional_args, search_center, resolution, positional_args,
+        temp_dir, verbose):
     '''
     Run ligandfit in a subprocess and return the ligand.
     '''
@@ -247,7 +269,7 @@ def _run_fit_subprocess(session, exe_path, optional_args, search_center, positio
             "ligand=ligand.pdb",
             "map_in=map.mrc",
             "model=model.pdb",
-            "resolution=2.90",
+            "resolution=%g" % resolution,
             "search_center=%g %g %g" % tuple(search_center.scene_coordinates()),
         ] + procs_arg + positional_args
     tsafe=session.ui.thread_safe
@@ -285,20 +307,23 @@ def _run_fit_subprocess(session, exe_path, optional_args, search_center, positio
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
-    from chimerax.core.commands import (CenterArg, OpenFolderNameArg, BoolArg, RepeatOf, StringArg,
-        OpenFileNameArg, EnumOf, Or)
+    from chimerax.core.commands import (CenterArg, OpenFolderNameArg, BoolArg, RepeatOf, StringArg, IntArg,
+        OpenFileNameArg, EnumOf, Or, PositiveFloatArg)
     from chimerax.map import MapArg
     from chimerax.atomic import AtomicStructureArg
     desc = CmdDesc(
         required = [('model', AtomicStructureArg),
                     ('ligand', Or(OpenFileNameArg,StringArg)),
         ],
-        required_arguments = ['center', 'in_map'],
+        required_arguments = ['center', 'in_map', 'resolution'],
         keyword = [('center', CenterArg),
                    ('in_map', MapArg),
-                   # put the above two first so that they show up in usage before the optional keywords
+                   ('resolution', PositiveFloatArg),
+                   # put the above three first so that they show up in usage before the optional keywords
                    ('block', BoolArg),
+                   ('chain_id', StringArg),
                    ('phenix_location', OpenFolderNameArg),
+                   ('residue_number', IntArg),
                    ('verbose', BoolArg),
                    ('option_arg', RepeatOf(StringArg)),
                    ('position_arg', RepeatOf(StringArg)),
