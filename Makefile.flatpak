@@ -61,8 +61,8 @@ install:
 	curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/linux-shared/${BUILD_TYPE}.tar.bz2 | tar jxf -
 	cp -rp include /app
 	/app/bin/python3.* -m pip install wheels/*.whl
-	$(MAKE) -C src/apps install BUILD_TYPE=${BUILD_TYPE}
-	$(MAKE) -C docs install BUILD_TYPE=${BUILD_TYPE}
+	$(MAKE) -C src/apps install FLATPAK_DIST=${RUNTIME_VER} BUILD_TYPE=${BUILD_TYPE}
+	$(MAKE) -C docs install FLATPAK_DIST=${RUNTIME_VER} BUILD_TYPE=${BUILD_TYPE}
 	/app/bin/ChimeraX --nogui --exit --cmd "linux flatpak-files ${APPNAME}"
 	install -Dm644 -t /app/share/metainfo ${APPNAME}.metainfo.xml
 	install -Dm644 -t /app/share/applications ${APPNAME}.desktop
