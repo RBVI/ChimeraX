@@ -265,10 +265,12 @@ def _file_output(file_name, info, naming_style):
     print("Detect intra-molecule %s:" % test_type, intra_mol, file=out_file)
     granularity, data = _make_data(clashes, naming_style, output_grouping)
     print("\n%d %s" % (len(data), test_type), file=out_file)
-    field_width1 = max([len(l1) for v, l1, l2, d in data] + [len(granularity)+1])
-    field_width2 = max([len(l2) for v, l1, l2, d in data] + [len(granularity)+1])
+    title1 = granularity + '1'
+    title2 = granularity + '2'
+    field_width1 = max([len(l1) for v, l1, l2, d in data] + [len(title1)])
+    field_width2 = max([len(l2) for v, l1, l2, d in data] + [len(title2)])
     #print("%*s  %*s  overlap  distance" % (0-field_width1, "atom1", 0-field_width2, "atom2"),
-    print(f"{'{granularity}1':^{field_width1}}  {'{granularity}2':^{field_width2}}{overlap_title}  distance",
+    print(f"{title1:^{field_width1}}  {title2:^{field_width2}}{overlap_title}  distance",
         file=out_file)
     for v, l1, l2, d in data:
         if overlap_title:
@@ -282,27 +284,28 @@ def _file_output(file_name, info, naming_style):
 
 def _make_data(clashes, naming_style, output_grouping):
     data = []
+    from chimerax.geometry import distance
     if naming_style == "residue":
         granularity = "residue"
+        best_vals = {}
         for a, aclashes in clashes.items():
             a_r = a.residue
             for c, val in aclashes.items():
                 c_r = c.residue
                 if a_r == c_r:
                     continue
-                #TODO: collate only highest-value per residue
-                if (c, a) in seen:
+                key = (a_r, c_r) if a_r < c_r else (c_r, a_r)
+                if key in best_vals and best_vals[key][0] > val:
                     continue
-                seen.add((a, c))
                 if a in output_grouping:
                     out1, out2 = a_r, c_r
                 else:
                     out1, out2 = c_r, a_r
-                l1, l2 = out1.string(style=naming_style), out2.string(style=naming_style)
-                data.append((val, l1, l2, distance(a.scene_coord, c.scene_coord)))
+                l1, l2 = out1.string(), out2.string()
+                best_vals[key] = (val, l1, l2, distance(a.scene_coord, c.scene_coord))
+        data = list(best_vals.values())
     else:
         granularity = "atom"
-        from chimerax.geometry import distance
         seen = set()
         for a, aclashes in clashes.items():
             for c, val in aclashes.items():
@@ -353,8 +356,8 @@ def register_command(command_name, logger):
                 ('distance_only', FloatArg), ('ignore_hidden_models', BoolArg), ('inter_model', BoolArg),
                 ('inter_submodel', BoolArg), ('intra_model', BoolArg), ('intra_mol', BoolArg),
                 ('intra_res', BoolArg), ('log', BoolArg), ('make_pseudobonds', BoolArg),
-                ('naming_style', EnumOf(('simple', 'command', 'serial'))), ('color', Or(NoneArg,ColorArg)),
-                ('radius', FloatArg), ('res_separation', PositiveIntArg),
+                ('naming_style', EnumOf(('simple', 'command', 'serial', 'residue'))),
+                ('color', Or(NoneArg,ColorArg)), ('radius', FloatArg), ('res_separation', PositiveIntArg),
                 ('restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)), ('reveal', BoolArg),
                 ('save_file', SaveFileNameArg), ('set_attrs', BoolArg), ('select', BoolArg),
                 ('show_dist', BoolArg), ('dashes', NonNegativeIntArg), ('summary', BoolArg)], }
