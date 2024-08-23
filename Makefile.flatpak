@@ -36,10 +36,10 @@ flatpak-prereq:
 
 prereqs:
 	# normally the wheels and include directories are created by the build_tools process
-	$(MAKE) -C prereqs install NO_PREBUILT=1
-	$(MAKE) -C prereqs app-install NO_PREBUILT=1
-	$(MAKE) -C src/apps/ChimeraX install BUILD_TYPE=${BUILD_TYPE}
-	$(MAKE) -C src/bundles install BUILD_TYPE=${BUILD_TYPE}
+	$(MAKE) -C prereqs install NO_PREBUILT=1 FLATPAK_DIST=${RUNTIME_VER} BUILD_TYPE=${BUILD_TYPE}
+	$(MAKE) -C prereqs app-install NO_PREBUILT=1 FLATPAK_DIST=${RUNTIME_VER} BUILD_TYPE=${BUILD_TYPE}
+	$(MAKE) -C src/apps/ChimeraX install FLATPAK_DIST=${RUNTIME_VER} BUILD_TYPE=${BUILD_TYPE}
+	$(MAKE) -C src/bundles install FLATPAK_DIST=${RUNTIME_VER} BUILD_TYPE=${BUILD_TYPE}
 	rm -rf wheels include
 	mv build/sync wheels
 	mv build/include .
@@ -61,8 +61,8 @@ install:
 	curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/linux-shared/${BUILD_TYPE}.tar.bz2 | tar jxf -
 	cp -rp include /app
 	/app/bin/python3.* -m pip install wheels/*.whl
-	$(MAKE) -C src/apps install BUILD_TYPE=${BUILD_TYPE}
-	$(MAKE) -C docs install BUILD_TYPE=${BUILD_TYPE}
+	$(MAKE) -C src/apps install FLATPAK_DIST=${RUNTIME_VER} BUILD_TYPE=${BUILD_TYPE}
+	$(MAKE) -C docs install FLATPAK_DIST=${RUNTIME_VER} BUILD_TYPE=${BUILD_TYPE}
 	/app/bin/ChimeraX --nogui --exit --cmd "linux flatpak-files ${APPNAME}"
 	install -Dm644 -t /app/share/metainfo ${APPNAME}.metainfo.xml
 	install -Dm644 -t /app/share/applications ${APPNAME}.desktop

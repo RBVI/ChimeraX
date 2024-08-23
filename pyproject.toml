@@ -23,6 +23,7 @@ ignore_patterns = [
 [tool.pytest.ini_options]
 addopts = "--cache-clear --verbose --ignore=tests/test_env.py"
 console_output_style = "count"
+testpaths = ["tests", "src/bundles/**/tests"]
 norecursedirs = [
   ".venv",
   "ChimeraX.app",

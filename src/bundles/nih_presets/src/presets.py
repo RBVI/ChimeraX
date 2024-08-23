@@ -23,7 +23,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.atomic import all_atomic_structures, Residue, Structure, all_residues, concise_residue_spec, \
-    Atoms
+    Atoms, all_atoms
 
 ball_and_stick = [
     "style ball",
@@ -95,6 +95,7 @@ print_ribbon = [
     #"size hbonds pseudobondRadius 0.6",
     "size pseudobondRadius 0.6",
     # ribbons need to be up to date for struts to work right
+    # also, these struts parameters need to be mirrored in AF_single_biggest()
     "wait 1; struts (@ca|ligand|P)&(@@display|::ribbon_display) length 8 loop 60 rad 0.75 color struts_grey",
     "~struts @PB,PG resetRibbon false",
     "~struts adenine|cytosine|guanine|thymine|uracil resetRibbon false",
@@ -185,7 +186,7 @@ def color_by_hydrophobicity_cmds(session, target="rs"):
     ]
 
 def get_AF_surf_spec(session, printable):
-    high = connected_high_AF_confidence(session, single_biggest=printable)
+    high = connected_high_AF_confidence(session, single_biggest=printable, surface=True)
     spec_lookup = {}
     for s in all_atomic_structures(session):
         s_residues = [r for r in high if r.structure == s]
@@ -208,10 +209,10 @@ def hide_AF_low_confidence(session, printable):
         return ["~ribbon " + concise_residue_spec(session, hide_residues)]
     return []
 
-def connected_high_AF_confidence(session, *, single_biggest=False):
+def connected_high_AF_confidence(session, *, single_biggest=False, surface=False):
     high = set()
     if single_biggest:
-        high.update(AF_single_biggest(session))
+        high.update(AF_single_biggest(session, surface))
     else:
         for s in all_atomic_structures(session):
             for chain in s.chains:
@@ -227,7 +228,7 @@ def connected_high_AF_confidence(session, *, single_biggest=False):
                     high.update(connected)
     return high
 
-def AF_single_biggest(session):
+def AF_single_biggest(session, surface):
     segments = []
     for s in all_atomic_structures(session):
         for chain in s.chains:
@@ -243,25 +244,83 @@ def AF_single_biggest(session):
                 segments.append(segment)
     if not segments:
         return set()
+    class HashAtoms(Atoms):
+        def __hash__(self):
+            # Atoms are mutable, so no __hash__, but we know no atoms are going to be deleted during
+            # the lifetime of this object, so...
+            return id(self)
     segment_info = []
     for segment in segments:
-        segment_info.append((len(segment), Atoms([a for r in segment for a in r.atoms])))
+        segment_info.append((len(segment), HashAtoms([a for r in segment for a in r.atoms])))
     segment_info.sort(key=lambda tup: -tup[0])
     biggest_size = 0
-    from chimerax.clashes.clashes import find_clashes, defaults
+    if surface:
+        from chimerax.clashes.clashes import find_clashes, defaults
+    else:
+        from chimerax.struts.struts import struts
+        # struts (@ca|ligand|P)&(@@display|::ribbon_display) length 8 loop 60 rad 0.75 color struts_grey",
+        plddt_atoms = HashAtoms()
+        seg_lookup = {}
+        seg_connect = {}
+        for seg_len, seg_atoms in segment_info:
+            seg_connect[seg_atoms] = set()
+            for a  in seg_atoms:
+                seg_lookup[a] = seg_atoms
+            plddt_atoms += seg_atoms
+        strutable_atoms = plddt_atoms.filter(
+            (plddt_atoms.names == "CA") | (plddt_atoms.element_names == "P"))
+        strutable_atoms.spec = "custom NIH preset"
+        struts_pbg = struts(session, strutable_atoms, length=8, loop=60, radius=0.75, fatten_ribbon=False)
+        for strut in struts_pbg.pseudobonds:
+            a1, a2 = strut.atoms
+            seg1, seg2 = seg_lookup[a1], seg_lookup[a2]
+            if seg1 is seg2:
+                continue
+            if seg2 not in seg_connect[seg1]:
+                print("Strut between", a1, "and", a2, "connects", concise_residue_spec(session, seg1.unique_residues), "with",
+                    concise_residue_spec(session, seg2.unique_residues))
+                seg_connect[seg1].add(seg2)
+                seg_connect[seg2].add(seg1)
+        session.models.close([struts_pbg])
+
     while sum([si[0] for si in segment_info]) > biggest_size:
         group_size, group_atoms = segment_info.pop(0)
         added_one = True
         while added_one:
             added_one = False
             for size, atoms in segment_info:
-                if find_clashes(session, group_atoms, clash_threshold=defaults["contact_threshold"],
-                        restrict=atoms):
-                    group_size += size
-                    group_atoms += atoms
-                    segment_info.remove((size, atoms))
+                if surface:
+                    if find_clashes(session, group_atoms, clash_threshold=defaults["contact_threshold"],
+                            restrict=atoms):
+                        group_size += size
+                        group_atoms += atoms
+                        segment_info.remove((size, atoms))
+                    else:
+                        continue
                 else:
-                    continue
+                    # ribbon
+                    if atoms in seg_connect[group_atoms]:
+                        group_size += size
+                        next_atoms = group_atoms + atoms
+                        next_connect = set()
+                        next_connect.update(seg_connect[group_atoms])
+                        next_connect.update(seg_connect[atoms])
+                        next_connect.discard(group_atoms)
+                        next_connect.discard(atoms)
+                        del seg_connect[atoms]
+                        del seg_connect[group_atoms]
+                        for seg, connected_segs in seg_connect.items():
+                            if atoms in connected_segs:
+                                connected_segs.discard(atoms)
+                                connected_segs.add(next_atoms)
+                            if group_atoms in connected_segs:
+                                connected_segs.discard(group_atoms)
+                                connected_segs.add(next_atoms)
+                        seg_connect[next_atoms] = next_connect
+                        group_atoms = next_atoms
+                        segment_info.remove((size, atoms))
+                    else:
+                        continue
                 added_one = True
                 break
         if group_size > biggest_size:
@@ -356,12 +415,13 @@ def alphafold_ribbon_command(session, name, coloring_cmds):
     else:
         confidence_cmds = []
     if printable:
-        initial_cmds = base_setup + base_macro_model + base_ribbon + print_ribbon
+        # confidence_cmds needs to be before print_ribbon so that the correct struts get placed
+        initial_cmds = base_setup + base_macro_model + base_ribbon + confidence_cmds + print_ribbon
         final_cmds = print_prep(session, pb_radius=None)
     else:
-        initial_cmds = undo_printable + base_setup + base_macro_model + base_ribbon
+        initial_cmds = undo_printable + base_setup + base_macro_model + base_ribbon + confidence_cmds
         final_cmds = []
-    return initial_cmds + confidence_cmds + coloring_cmds + final_cmds
+    return initial_cmds + coloring_cmds + final_cmds
 
 def alphafold_surface_command(session, name, coloring_cmds, **kw):
     printable = "printable" in name

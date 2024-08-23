@@ -57,7 +57,7 @@ six==1.16.0
 sortedcontainers==2.4.0
 # Used by the DICOM bundle for a double-ended QSlider
 superqt==0.6.3
-tables==3.8.0 ; platform_machine != 'arm64'
+tables==3.10.1
 tifffile==2024.7.24
 # tinyarray==1.2.4 # 3.11 requires getting this from Plato
 webcolors==24.6.0
