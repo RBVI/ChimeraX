@@ -89,6 +89,7 @@ testimports:
 
 pytest:
 	./tests/env.sh
+	$(APP_PYTHON_EXE) -m pytest tests/test_imports.py
 	$(APP_PYTHON_EXE) -m pytest
 
 sync:
