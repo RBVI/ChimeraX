@@ -8,11 +8,7 @@ import pytest
 import chimerax
 import chimerax.core.__main__
 
-sys.path.append(os.path.join(os.path.dirname(__file__)))
-
-import chimerax_test_utils
-
-chimerax_test_utils.ensure_chimerax_initialized()
+from conftest import _ensure_chimerax_initialized  # noqa
 
 blacklist = set(
     [
@@ -49,8 +45,13 @@ blacklist = set(
     ]
 )
 
+
+_ensure_chimerax_initialized()
 modules = []
-for info in pkgutil.walk_packages(chimerax.__path__, prefix=chimerax.__name__ + "."):
+
+for info in pkgutil.walk_packages(
+    chimerax.__path__, prefix=chimerax.__name__ + "."
+):  # noqa
     module_finder, name, is_pkg = info
     if name not in blacklist:
         modules.append(name)

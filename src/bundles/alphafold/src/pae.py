@@ -1402,13 +1402,18 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
                           ignore_cache = ignore_cache)
         
     if file:
-        pae = AlphaFoldPAE(file, structure)
-        if structure:
-            if not pae.reduce_matrix_to_residues_in_structure():
+        if structure is None:
+            structure = _guess_pae_associated_structure(session, file)
+            if structure is None:
                 from chimerax.core.errors import UserError
-                raise UserError(f'Structure {structure} does not match PAE matrix size {pae.matrix_size}.'
-                                f'The structure has {pae.num_residue_rows} polymer residues and {pae.num_atom_rows} non-polymer atoms'
-                                '\n\nThis can happen if chains or atoms were deleted from the AlphaFold model or if the PAE data was applied to a structure that was not the one predicted by AlphaFold.  Use the full-length AlphaFold model to show predicted aligned error.')
+                raise UserError(f'Opening an AlphaFold PAE file requires first opening the predicted atomic model.  Did not find an open atomic model from the same directory.  If the atomic model is already open choose it using menu\n\n\tTools / Structure Prediction / AlphaFold Error Plot\n\nor use the open command structure option, for example\n\n\topen {file} structure #1\n\nIf you are trying to open a JSON file that is not AlphaFold PAE data then you need to specify the specific JSON format such as \n\n\topen mole_channels.json format mole')
+
+        pae = AlphaFoldPAE(file, structure)
+        if not pae.reduce_matrix_to_residues_in_structure():
+            from chimerax.core.errors import UserError
+            raise UserError(f'Structure {structure} does not match PAE matrix size {pae.matrix_size}.'
+                            f'The structure has {pae.num_residue_rows} polymer residues and {pae.num_atom_rows} non-polymer atoms'
+                            '\n\nThis can happen if chains or atoms were deleted from the AlphaFold model or if the PAE data was applied to a structure that was not the one predicted by AlphaFold.  Use the full-length AlphaFold model to show predicted aligned error.')
             structure.alphafold_pae = pae
     elif structure is None:
         from chimerax.core.errors import UserError
@@ -1449,6 +1454,15 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
         pae.color_domains(connect_max_pae, cluster, min_size)
 
     return pae
+
+# -----------------------------------------------------------------------------
+#
+def _guess_pae_associated_structure(session, pae_path):
+    from chimerax.atomic import AtomicStructure
+    from os.path import dirname
+    structs = [m for m in session.models.list(type = AtomicStructure)
+               if hasattr(m, 'filename') and dirname(m.filename) == dirname(pae_path)]
+    return structs[0] if len(structs) == 1 else None
 
 # -----------------------------------------------------------------------------
 #

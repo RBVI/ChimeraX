@@ -125,7 +125,9 @@ else
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
 ifeq ($(OS),Linux)
 	# convert to RPATH
+ifndef FLATPAK_DIST
 	patchelf --remove-rpath $(PYTHON_LIBRARY_DIR)/lib-dynload/*.so
+endif
 	chmod 755 $(libdir)/libpython*.so; patchelf --remove-rpath $(libdir)/libpython*.so
 	patchelf --force-rpath --set-rpath '$$ORIGIN/../lib' $(PYTHON_BIN)
 endif
