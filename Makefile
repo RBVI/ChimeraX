@@ -71,8 +71,8 @@ ifdef WIN32
 	$(MAKE) -C prereqs/win32 app-install
 endif
 	$(MAKE) -C prereqs/Python install
-	$(MAKE) -C prereqs/Python app-install
 	$(MAKE) -C prereqs/pips install
+	$(MAKE) -C prereqs/Python app-install
 	$(MAKE) -C prereqs/pips app-install
 	$(MAKE) -C prereqs/PyQt app-install
 	$(MAKE) -C prereqs/qtshim app-install
