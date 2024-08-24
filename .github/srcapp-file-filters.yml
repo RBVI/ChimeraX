@@ -1,0 +1,12 @@
+change_in_chimerax: &change_in_chimerax
+  - "src/apps/ChimeraX/**"
+change_in_scanpdb: &change_in_scanpdb
+  - "src/apps/scanpdb/**"
+change_in_icon-tools: &change_in_icon-tools
+  - "src/apps/icon-tools/**"
+change_in_moduleapp: &change_in_moduleapp
+  - "src/apps/moduleapp/**"
+change_in_valgrind: &change_in_valgrind
+  - "src/apps/valgrind/**"
+change_in_structcomp: &change_in_structcomp
+  - "src/apps/structcomp/**"

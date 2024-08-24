@@ -20,8 +20,6 @@ CYTHON_VERSION = $(shell grep Cython= app_requirements.txt  | sed -e 's/ ;.*//' 
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
 PATCHES = tcia_utils.patch tcia_utils_metadata.patch
-PYTABLES_DYLIBS = libblosc.1.dylib libhdf5.200.dylib libsnappy.1.dylib \
-				  libc++.1.dylib libcrypto.3.dylib libssl.3.dylib
 
 
 GRAKO_WHEEL = grako-3.16.5-py2.py3-none-any.whl
@@ -29,12 +27,15 @@ ifeq ($(OS),Windows)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-win_amd64.whl
 else
 ifeq ($(OS),Linux)
+ifeq ($(OSARCH),LinuxArm64)
+TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-linux_aarch64.whl
+else
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+endif
 else
 ifeq ($(OS),Darwin)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
 ifeq ($(OSARCH),DarwinArm64)
-PYTABLES_WHEEL = tables-3.8.0-cp311-cp311-macosx_11_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
 endif
@@ -52,8 +53,6 @@ ifeq ($(OS),Linux)
 else
 ifeq ($(OS),Darwin)
 ifeq ($(OSARCH),DarwinArm64)
-PLATO_PREREQS += $(PYTABLES_PREREQ)
-PLATO_WHEELS += $(PYTABLES_WHEEL)
 SOURCE_WHEELS += Cython
 SOURCE_VERSIONS += Cython==$(CYTHON_VERSION)
 else
@@ -126,8 +125,7 @@ app-upgrade:
 #	done
 
 clean:
-	-rm -f pip.log $(PYTABLES_DYLIBS) \
-		tables-3.7.0-cp39-cp39-macosx_12_0_arm64.whl
+	-rm -f pip.log 
 	make -C package_checker clean	
 
 outdated:
@@ -145,7 +143,6 @@ outdated:
 	@echo "  pyopenxr use 1.0.3401, newer 1.1.3601 is not supported by SteamVR or Meta App, Aug 2024"
 	@echo "  pyzmq (pulled in by ipykernel via jupyter-client)"
 	@echo "  snowballstemmer (pulled in by Sphinx)"
-	@echo "  tables hdf5 package, 3.8.0 because 3.9.x exhibits bug #14935"
 	@echo "  tornado (pulled in by ipykernel)"
 
 app-outdated:
@@ -159,8 +156,3 @@ $(GRAKO_WHEEL):
 
 $(TINYARRAY_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/tinyarray/$(TINYARRAY_WHEEL)
-
-ifneq (,$(PYTABLES_WHEEL))
-$(PYTABLES_WHEEL):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pytables/$(PYTABLES_WHEEL)
-endif

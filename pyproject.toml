@@ -1,42 +1,40 @@
 [tool.pyright]
 include = ["src"]
-exclude = [
-    "ChimeraX.app/**"
-]
-ignore = [
-    "src/bundles/**/build"
-]
+exclude = ["ChimeraX.app/**"]
+ignore = ["src/bundles/**/build"]
 [tool.yapf]
 # All changes must be PEP8 compatible
-blank_line_before_nested_class_or_def=true
-column_limit=95
-dedent_closing_brackets=true
-space_between_ending_comma_and_closing_bracket=false
+blank_line_before_nested_class_or_def = true
+column_limit = 95
+dedent_closing_brackets = true
+space_between_ending_comma_and_closing_bracket = false
 [tool.yapfignore]
 ignore_patterns = [
-    ".venv",
-    "ChimeraX.app",
-    "build",
-    "wheel",
-    "docs",
-    "prereqs",
-    "src/bundles/**/build",
-    "src/bundles/**/dist",
-    "src/core/toolshed/unused"
+  ".venv",
+  "ChimeraX.app",
+  "build",
+  "wheel",
+  "docs",
+  "prereqs",
+  "src/bundles/**/build",
+  "src/bundles/**/dist",
+  "src/core/toolshed/unused",
 ]
 [tool.pytest.ini_options]
-addopts = "--cache-clear --verbose --order-dependencies" 
+addopts = "--cache-clear --verbose --ignore=tests/test_env.py --ignore=tests/test_imports.py"
 console_output_style = "count"
+testpaths = ["tests", "src/bundles/**/tests"]
 norecursedirs = [
-    ".venv",
-    "ChimeraX.app",
-    "build",
-    "wheel",
-    "docs",
-    "prereqs",
-    "src/bundles/**/build",
-    "src/bundles/**/dist",
-    "src/core/toolshed/unused"
+  ".venv",
+  "ChimeraX.app",
+  "build",
+  "wheel",
+  "docs",
+  "prereqs",
+  "src/bundles/**/build",
+  "src/bundles/**/dist",
+  "src/bundles/**/src",
+  "src/core/toolshed/unused",
 ]
 ### Ignore all the flake8 rules that directly contradict how
 ### real life actual people write code in the real world

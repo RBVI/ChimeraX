@@ -217,7 +217,8 @@ def pbond_cmd(session, atoms, *, color=BuiltinColors["slate gray"], current_coor
         if current_coordset_only:
             raise UserError("Cannot create per-coordset pseudobonds for global pseudobond groups")
         pbg = session.pb_manager.get_group(name, create=True)
-        session.models.add([pbg])
+        if pbg.id is None:
+            session.models.add([pbg])
     else:
         try:
             pbg = a1.structure.pseudobond_group(name,
@@ -257,17 +258,18 @@ def xpbond_cmd(session, atoms, *, global_=False, name="custom"):
     if global_ or a1.structure != a2.structure:
         pbg = session.pb_manager.get_group(name, create=False)
         if not pbg:
-            raise UserError("Cannot find global psudobond group named '%s'" % name)
+            raise UserError("Cannot find global pseudobond group named '%s'" % name)
     else:
         pbg = a1.structure.pseudobond_group(name, create_type=None)
         if not pbg:
-            raise UserError("Cannot find psudobond group named '%s' for structure %s" % (name, a1.structure))
-    for pb in pbg.pseudobonds:
+            raise UserError("Cannot find pseudobond group named '%s' for structure %s"
+                % (name, a1.structure))
+    for pb in pbg.pseudobonds[:]:
         if a1 in pb.atoms and a2 in pb.atoms:
             pbg.delete_pseudobond(pb)
             if pbg.num_pseudobonds == 0:
                 session.models.close([pbg])
-            break
+                break
     else:
         raise UserError("No pseudobond between %s and %s found for %s" % (a1, a2, pbg))
 

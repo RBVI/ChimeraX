@@ -11,7 +11,6 @@
 
 TOP = .
 TOP := $(shell (cd "$(TOP)"; pwd))
-NO_SUBDIR_ALL=1
 NO_SUBDIR_INSTALL=1
 NO_SUBDIR_TEST=1
 SUBDIRS = prereqs src
@@ -68,15 +67,12 @@ build-minimal:
 endif
 	$(MAKE) build-dirs
 	$(MAKE) build-app-dirs
-ifeq ($(OS),Linux)
-	$(MAKE) -C prereqs/chrpath install
-endif
 ifdef WIN32
 	$(MAKE) -C prereqs/win32 app-install
 endif
 	$(MAKE) -C prereqs/Python install
-	$(MAKE) -C prereqs/Python app-install
 	$(MAKE) -C prereqs/pips install
+	$(MAKE) -C prereqs/Python app-install
 	$(MAKE) -C prereqs/pips app-install
 	$(MAKE) -C prereqs/PyQt app-install
 	$(MAKE) -C prereqs/qtshim app-install
@@ -90,6 +86,11 @@ test src.test: testimports
 
 testimports:
 	$(APP_EXE) --exit --nogui --silent cxtestimports.py
+
+pytest:
+	./tests/env.sh
+	$(APP_PYTHON_EXE) -m pytest tests/test_imports.py
+	$(APP_PYTHON_EXE) -m pytest
 
 sync:
 	mkdir -p $(build_prefix)/sync/

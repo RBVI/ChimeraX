@@ -3,6 +3,9 @@ brew "netcdf"
 brew "hdf5"    # tables
 brew "lz4"     # tables
 brew "c-blosc" # tables
+brew "autoconf"
+brew "automake"
+brew "libtool"
 # if installing scipy from source
 brew "openblas" 
 
