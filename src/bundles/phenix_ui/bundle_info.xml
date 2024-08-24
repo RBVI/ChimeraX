@@ -40,6 +40,7 @@
     <ChimeraXClassifier>Tool :: Water Placement :: Structure Editing, Phenix :: Place waters in a map</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Local EM Fitting :: Structure Editing, Phenix :: Place structure in a map using localized search</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Fit Loops :: Structure Editing, Phenix :: Fill in missing structure or remodel structure guided by Cryo-EM map</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Fit Ligand :: Structure Editing, Phenix :: Place a ligand based on map density</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
