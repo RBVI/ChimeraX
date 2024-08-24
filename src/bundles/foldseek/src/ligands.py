@@ -24,23 +24,23 @@
 
 def foldseek_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_paired = 0.5,
                      combine = True):
-    from .gui import foldseek_panel
-    fp = foldseek_panel(session)
-    if fp is None or fp.results is None:
+    from .foldseek import foldseek_results
+    results = foldseek_results(session)
+    if results is None:
         return
 
-    query_chain = fp.results.query_chain
+    query_chain = results.query_chain
     if query_chain is None:
         from chimerax.core.errors import UserError
         raise UserError('Cannot position Foldseek ligands without query structure')
 
     keep_structs = []
-    nhits = len(fp.hits)
+    nhits = len(results.hits)
     nlighits = 0
     from time import time
     t0 = time()
     from .foldseek import open_hit
-    for hnum, hit in enumerate(fp.hits):
+    for hnum, hit in enumerate(results.hits):
         structures = open_hit(session, hit, query_chain, align = False,
                               in_file_history = False, log = False)
 

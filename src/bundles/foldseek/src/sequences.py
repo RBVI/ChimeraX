@@ -26,15 +26,15 @@ def foldseek_sequences(session, show_conserved = True, conserved_threshold = 0.5
                        conserved_color = (225,190,106), identity_color = (64,176,166),
                        lddt_coloring = False, order = 'cluster or evalue'):
     '''Show an image of all aligned sequences from a foldseek search, one sequence per image row.'''
-    from .gui import foldseek_panel
-    fp = foldseek_panel(session)
-    if fp is None or fp.results == 0:
+    from .foldseek import foldseek_results
+    results = foldseek_results(session)
+    if results is None:
         from chimerax.core.errors import UserError
-        raise UserError('No Foldseek results are shown')
+        raise UserError('No Foldseek results are open')
 
     conserved_color = conserved_color[:3]	# Don't use transparency
     identity_color = identity_color[:3]
-    fsp = FoldseekSequencePlot(session, fp.results, order = order,
+    fsp = FoldseekSequencePlot(session, results, order = order,
                                show_conserved = show_conserved, conserved_threshold = conserved_threshold,
                                conserved_color = conserved_color, identity_color = identity_color,
                                lddt_coloring = lddt_coloring)
@@ -228,18 +228,15 @@ class FoldseekSequencePlot(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _open_hit(self, hit):
-        from .gui import foldseek_panel
-        fp = foldseek_panel(self.session)
-        kw = {'trim': fp.trim, 'alignment_cutoff_distance': fp.alignment_cutoff_distance} if fp else {}
-        from .foldseek import open_hit
-        open_hit(self.session, hit, self._query_chain, **kw)
+        self._results.open_hit(self.session, hit)
         
     # ---------------------------------------------------------------------------
     #
     def _show_hit_in_table(self, hit):
         from .gui import foldseek_panel
         fp = foldseek_panel(self.session)
-        fp.select_table_row(hit)
+        if fp:
+            fp.select_table_row(hit)
 
     # ---------------------------------------------------------------------------
     #
