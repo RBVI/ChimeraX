@@ -30,9 +30,9 @@ jobs:
       - run: make build-minimal
       - run: make test
       - name: Install Pytest
-        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest
+        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
       - name: Run Pytest
-        run: make pytest
+        run: make pytest-with-coverage
   build-and-test-rocky8-docker:
     needs:
       [rebuild-changed-prereqs, rebuild-changed-bundles, rebuild-changed-apps]
@@ -53,9 +53,9 @@ jobs:
       - run: source /opt/rh/gcc-toolset-10/enable && make -f Makefile.centos build-minimal
       - run: make test
       - name: Install Pytest
-        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest
+        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
       - name: Run Pytest
-        run: make pytest
+        run: make pytest-with-coverage
   build-and-test-macos:
     needs:
       [rebuild-changed-prereqs, rebuild-changed-bundles, rebuild-changed-apps]
@@ -69,9 +69,9 @@ jobs:
       - run: make build-minimal
       - run: make test
       - name: Install Pytest
-        run: ./ChimeraX.app/Contents/bin/python3.11 -I -m pip install pytest
+        run: ./ChimeraX.app/Contents/bin/python3.11 -I -m pip install pytest pytest-cov
       - name: Run Pytest
-        run: make pytest
+        run: make pytest-with-coverage
   build-and-test-windows:
     needs:
       [rebuild-changed-prereqs, rebuild-changed-bundles, rebuild-changed-apps]
@@ -89,6 +89,6 @@ jobs:
       - run: GITHUB_ACTIONS_CI=1 . ./vsvars.sh && make build-minimal
       - run: GITHUB_ACTIONS_CI=1 . ./vsvars.sh && make test
       - name: Install Pytest
-        run: ./ChimeraX.app/bin/python.exe -I -m pip install pytest
+        run: ./ChimeraX.app/bin/python.exe -I -m pip install pytest pytest-cov
       - name: Run Pytest
-        run: make pytest
+        run: make pytest-with-coverage

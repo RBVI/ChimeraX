@@ -97,8 +97,12 @@ pytest-with-coverage:
 	# python's path. This will cause the coverage report to be generated 
 	# with paths like 'chimerax/addh/foo.py' instead of with paths deep in
 	# the ChimeraX.app folder
+	-rm .coverage
+	-rm -rf chimerax
 	cp -r $(APP_PYSITEDIR)/chimerax .
-	$(APP_PYTHON_EXE) -m pytest --cov=chimerax --cov-report=html
+	./tests/env.sh
+	$(APP_PYTHON_EXE) -m pytest tests/test_imports.py
+	$(APP_PYTHON_EXE) -m pytest --cov=chimerax
 
 sync:
 	mkdir -p $(build_prefix)/sync/
