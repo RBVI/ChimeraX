@@ -11,7 +11,6 @@
 
 TOP = .
 TOP := $(shell (cd "$(TOP)"; pwd))
-NO_SUBDIR_ALL=1
 NO_SUBDIR_INSTALL=1
 NO_SUBDIR_TEST=1
 SUBDIRS = prereqs src
@@ -61,11 +60,49 @@ endif
 install-rbvi:
 	$(MAKE) PYQT_LICENSE=commercial install
 
+ifdef WIN32
+build-minimal:	vsdefined
+else
+build-minimal:
+endif
+	$(MAKE) build-dirs
+	$(MAKE) build-app-dirs
+ifdef WIN32
+	$(MAKE) -C prereqs/win32 app-install
+endif
+	$(MAKE) -C prereqs/Python install
+	$(MAKE) -C prereqs/pips install
+	$(MAKE) -C prereqs/Python app-install
+	$(MAKE) -C prereqs/pips app-install
+	$(MAKE) -C prereqs/PyQt app-install
+	$(MAKE) -C prereqs/qtshim app-install
+	$(MAKE) -C prereqs/ambertools app-install
+	$(MAKE) -C prereqs/cxservices app-install
+	$(MAKE) -C src/bundles install
+	$(MAKE) -C src/apps/ChimeraX install
+
 test src.test: testimports
 	$(MAKE) -C src test
 
 testimports:
 	$(APP_EXE) --exit --nogui --silent cxtestimports.py
+
+pytest:
+	./tests/env.sh
+	$(APP_PYTHON_EXE) -m pytest tests/test_imports.py
+	$(APP_PYTHON_EXE) -m pytest
+
+pytest-with-coverage:
+	# Copy the chimerax package to the repo root so that it comes first in 
+	# python's path. This will cause the coverage report to be generated 
+	# with paths like 'chimerax/addh/foo.py' instead of with paths deep in
+	# the ChimeraX.app folder
+	-rm .coverage
+	-rm -rf chimerax
+	cp -r $(APP_PYSITEDIR)/chimerax .
+	./tests/env.sh
+	$(APP_PYTHON_EXE) -m pytest tests/test_imports.py
+	$(APP_PYTHON_EXE) -m pytest --cov=chimerax
 
 sync:
 	mkdir -p $(build_prefix)/sync/
@@ -105,7 +142,7 @@ vdocs.install:
 
 build-dirs:
 	-mkdir -p $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
-		$(build_prefix)/sync/
+		$(build_prefix)/sync/ $(tmpdir)
 ifndef WIN32
 	-cd $(build_prefix) && ln -nfs lib lib64
 endif

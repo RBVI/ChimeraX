@@ -884,8 +884,14 @@ AtomicStructure::compute_secondary_structure(float energy_cutoff,
     int min_helix_length, int min_strand_length, bool report, CompSSInfo* ss_info)
 {
 	auto instance = py_instance(false);
-	if (instance != Py_None)
-		logger::info(_logger, "Computing secondary structure");
+	if (instance != Py_None) {
+		auto id_attr = PyObject_GetAttrString(instance, "id");
+		if (id_attr != nullptr) {
+			if (id_attr != Py_None)
+				logger::info(_logger, "Computing secondary structure");
+			Py_DECREF(id_attr);
+		}
+	}
 	Py_DECREF(instance);
 
     // initialize

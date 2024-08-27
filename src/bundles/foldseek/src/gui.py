@@ -102,7 +102,7 @@ class FoldseekPanel(ToolInstance):
                                 no_value_button_text="No chain chosen")
 
         from chimerax.ui.widgets import EntriesRow
-        from .foldseek import foldseek_databases
+        from .search import foldseek_databases
         fd = EntriesRow(parent, 'Query chain', cmenu, 'from database', tuple(foldseek_databases))
         dbmenu = fd.values[0]
         
@@ -134,13 +134,15 @@ class FoldseekPanel(ToolInstance):
         from chimerax.ui.widgets import EntriesRow
         tr = EntriesRow(f, 'Trim', True, 'extra chains,', True, 'sequence ends,', True, 'and far ligands')
         self._trim_extra_chains, self._trim_sequences, self._trim_ligands = tr.values
+        for cb in tr.values:
+            cb.changed.connect(self._trim_changed)
         self.set_trim_options(trim)
 
         # For pruning aligned residues when opening hits and aligning them to query chain
         pd = EntriesRow(f, 'Alignment pruning C-alpha atom distance', 2.0)
-        self._alignment_cutoff_distance = pd.values[0]
+        self._alignment_cutoff_distance = acd = pd.values[0]
         self.set_alignment_cutoff_option(alignment_cutoff_distance)
-
+        acd.return_pressed.connect(self._alignment_cutoff_distance_changed)
         return p
 
     # ---------------------------------------------------------------------------
@@ -159,6 +161,7 @@ class FoldseekPanel(ToolInstance):
             self._trim_extra_chains.value = ('chains' in trim)
             self._trim_sequences.value = ('sequence' in trim)
             self._trim_ligands.value = ('ligands' in trim)
+        self._trim_changed()
         
     # ---------------------------------------------------------------------------
     #
@@ -169,6 +172,13 @@ class FoldseekPanel(ToolInstance):
         if len(trim) == 3: trim = True
         elif len(trim) == 0: trim = False
         return trim
+            
+    # ---------------------------------------------------------------------------
+    #
+    def _trim_changed(self):
+        r = self.results
+        if r:
+            r.trim = self.trim
 
     # ---------------------------------------------------------------------------
     #
@@ -178,6 +188,11 @@ class FoldseekPanel(ToolInstance):
     def set_alignment_cutoff_option(self, alignment_cutoff_distance):
         if alignment_cutoff_distance is not None:
             self._alignment_cutoff_distance.value = alignment_cutoff_distance
+            self._alignment_cutoff_distance_changed()
+    def _alignment_cutoff_distance_changed(self):
+        r = self.results
+        if r:
+            r.alignment_cutoff_distance = self.alignment_cutoff_distance
 
     # ---------------------------------------------------------------------------
     #
@@ -197,6 +212,8 @@ class FoldseekPanel(ToolInstance):
     #
     def show_results(self, results):
         self.results = results
+        results.trim = self.trim
+        results.alignment_cutoff_distance = self.alignment_cutoff_distance
         self._chain_menu.value = results.query_chain
         self._database_menu.value = results.database
         rt = self._results_table
@@ -353,7 +370,7 @@ class FoldseekResultsTable(ItemTable):
         rows = [FoldseekRow(hit) for hit in hits]
         self.data = rows
         self.launch()
-        self.sort_by(col_identity, self.SORT_DESCENDING)
+        self.sort_by(col_evalue, self.SORT_ASCENDING)
         col_species_index = self.columns.index(col_species)
         species_column_width = 120
         self.setColumnWidth(col_species_index, species_column_width)
@@ -368,6 +385,38 @@ class FoldseekRow:
         self.hit = hit
     def __getattr__(self, attribute_name):
         return self.hit.get(attribute_name)
+
+# -----------------------------------------------------------------------------
+#
+def foldseek_scroll_to(session, hit_name):
+    '''Show table row for this hit.'''
+    hit, results = _foldseek_hit_by_name(session, hit_name)
+    if hit:
+        panel = foldseek_panel(session)
+        if panel:
+            panel.select_table_row(hit)
+
+# -----------------------------------------------------------------------------
+#
+def show_foldseek_results(session, results):
+    msg = f'Foldseek search for similar structures to {results.query_chain} in {results.database} found {len(results.hits)} hits'
+    session.logger.info(msg)
+
+    fp = foldseek_panel(session, create = True)
+    fp.set_trim_options(results.trim)
+    fp.set_alignment_cutoff_option(results.alignment_cutoff_distance)
+    fp.show_results(results)
+    return fp
+
+# -----------------------------------------------------------------------------
+#
+def register_foldseek_scrollto_command(logger):
+    from chimerax.core.commands import CmdDesc, register, StringArg
+    desc = CmdDesc(
+        required = [('hit_name', StringArg)],
+        synopsis = 'Show Foldseek result table row'
+    )
+    register('foldseek scrollto', desc, foldseek_scroll_to, logger=logger)
 
 # -----------------------------------------------------------------------------
 #

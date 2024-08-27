@@ -22,6 +22,7 @@ glibc
 gtk3
 ImageMagick
 ImageMagick-devel
+libatomic
 libdrm
 libffi
 libffi-devel
@@ -48,6 +49,7 @@ libXfixes
 libXi
 libxkbcommon
 libxkbcommon-x11
+libxkbfile
 libXrandr
 libXrender
 libXtst
@@ -64,10 +66,12 @@ openssl-libs
 openssl-devel
 pango
 patch
+patchelf
 pulseaudio-libs
 pulseaudio-libs-glib2
 rsync
 sqlite
+sqlite-devel
 unzip
 xcb-util-image
 xcb-util-keysyms

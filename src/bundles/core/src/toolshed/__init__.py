@@ -1626,17 +1626,26 @@ class NewerVersionQuery(Task):
         from cxservices.api import default_api
         from . import chimerax_uuid
 
+        _platforms = {
+            "aarch64": "arm64",
+            "arm64": "arm64",
+            "x86_64": "x86_64",
+            "amd64": "x86_64",
+        }
+
         self.api = default_api.DefaultApi()
         self.result = None
         system = platform.system()
         if system == "Darwin":
             system = "macosx"
             version = platform.mac_ver()[0]
-            arch = "arm64" if "arm64" in platform.uname().version.lower() else "x86_64"
+            arch = _platforms[
+                "arm64" if "arm64" in platform.uname().version.lower() else "x86_64"
+            ]
         elif system == "Windows":
             system = "windows"
             version = platform.version()
-            arch = None
+            arch = _platforms[platform.machine().lower()]
         elif system == "Linux":
             import distro
 
@@ -1645,7 +1654,7 @@ class NewerVersionQuery(Task):
             if like:
                 system = f"{system} {like}"
             version = distro.version(best=True)
-            arch = None
+            arch = _platforms[platform.machine().lower()]
         params = {
             # use cxservices API names for keys
             "uuid": str(chimerax_uuid()),

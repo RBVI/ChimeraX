@@ -13,12 +13,7 @@ INNOSETUP_INSTALLER = innosetup-5.5.9-unicode.exe
 
 all:
 
-install:
-	cp rsync.convert $(bindir)
-	if [ -d $(DLL_DIR) ]; then $(RSYNC) $(DLL_DIR)/*.dll $(bindir); fi
-
-
-app-install:;
+app-install install:
 	if [ -d $(DLL_DIR) ]; then $(RSYNC) $(DLL_DIR)/*.dll $(bindir); fi
 
 fetch-cmake: $(CMAKE_INSTALLER)

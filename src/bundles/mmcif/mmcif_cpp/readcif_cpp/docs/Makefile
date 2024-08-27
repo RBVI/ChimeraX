@@ -46,7 +46,7 @@ clean:
 	-rm -rf $(BUILDDIR)/* conf.py
 
 conf.py: conf.py.in
-	sed 's/PYTHON_VERSION/$(PYTHON_VERSION)/' < $< > $@
+	sed 's/PYTHON_VERSION/$(PYTHON_VERSION)/' < $< > $@ || (rm $@ ; exit 1)
 
 html: conf.py
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
@@ -158,6 +158,3 @@ doctest: conf.py
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
-
-llgr:
-	$(PYTHON_EXE) $(bindir)/rst2html.py --config=conf.py ../src/llgr/llgr.rst > llgr.html

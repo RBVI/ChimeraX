@@ -41,3 +41,6 @@ def register_command(logger):
 
     from . import fit_loops
     fit_loops.register_command(logger)
+
+    from . import ligand_fit
+    ligand_fit.register_command(logger)

@@ -13,11 +13,10 @@ TOP = ..
 
 include $(TOP)/mk/config.make
 
+RST2HTML = -c 'from importlib.metadata import entry_points; (ep,*_) = entry_points(name="rst2html5"); main = ep.load(); main()'
+
 ifdef WIN32
-RST2HTML = $(shell cygpath -m $(app_bindir)/Scripts/rst2html.py)
 HTML2TEXT = $(app_bindir)/Scripts/html2text.exe
-else
-RST2HTML = $(app_bindir)/rst2html.py
 endif
 
 SUBDIRS = devel pdbimages quickstart user js
@@ -57,7 +56,7 @@ license.html: license.rst need_app
 		| sed -e 's/\o342\o200\o234/\&ldquo;/g' \
 			-e 's/\o342\o200\o235/\&rdquo;/g' \
 			-e "s/\o342\o200\o231/'/g" \
-		> license.html
+		> license.html || (rm $@ ; exit 1)
 ifdef WIN32
 	$(APP_PYTHON_EXE) -m pip install html2text
 	$(HTML2TEXT) --body-width=0 license.html > license.txt

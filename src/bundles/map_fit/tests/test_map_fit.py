@@ -1,0 +1,15 @@
+def test_map_fit(test_production_session):
+    from chimerax.core.commands import run
+    run(test_production_session, "open 1a0m")
+    run(test_production_session, "molmap #1 5")
+    run(test_production_session, "molmap /A 5")
+    run(test_production_session, "molmap /B 5")
+    run(test_production_session, "volume #2-4 calculateSurfaces true")
+    run(test_production_session, "fit #1 in #2")
+    run(test_production_session, "fit #3 in #2")
+    run(test_production_session, "fit #3 in #2 subtract #4")
+    run(test_production_session, "fit #3,4 in #2 sequence 4")
+    run(test_production_session, "fit #1 in #2 search 3")
+    run(test_production_session, "vol #2 sym C2")
+    run(test_production_session, "fit #3 in #2 sym true")
+    run(test_production_session, "fit #4 in #2 envelope false zeros true")

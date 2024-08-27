@@ -24,12 +24,12 @@
 
 def foldseek_cluster(session, query_residues = None, align_with = None, cutoff_distance = 2.0,
                      cluster_count = None, cluster_distance = None, replace = True):
-    from .gui import foldseek_panel
-    fp = foldseek_panel(session)
-    if fp is None or fp.results is None:
+    from .foldseek import foldseek_results
+    results = foldseek_results(session)
+    if results is None:
         return
 
-    query_chain = fp.results.query_chain
+    query_chain = results.query_chain
     if query_residues is None:
         from .foldseek import alignment_residues
         query_residues = alignment_residues(query_chain.existing_residues)
@@ -38,7 +38,7 @@ def foldseek_cluster(session, query_residues = None, align_with = None, cutoff_d
         from chimerax.core.errors import UserError
         raise UserError('Must specify at least 1 residue to compute Foldseek clusters')
     
-    _show_umap(session, fp.hits, query_chain, query_residues,
+    _show_umap(session, results.hits, query_chain, query_residues,
                align_with = align_with, cutoff_distance = cutoff_distance,
                cluster_count = cluster_count, cluster_distance = cluster_distance,
                replace = replace)

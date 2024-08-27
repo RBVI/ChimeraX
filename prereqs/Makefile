@@ -6,7 +6,6 @@
 unexport CDPATH
 
 TOP	= ..
-NO_SUBDIR_ALL = 1
 NO_SUBDIR_TEST = 1
 
 include $(TOP)/mk/config.make
@@ -27,28 +26,9 @@ ifdef WIN32
 SUBDIRS += win32
 endif
 
-ifeq ($(OS),Linux)
-NEED_CHRPATH=1
-ifndef UBUNTU_DIST
-ifndef CENTOS_DIST
-ifndef FLATPAK_DIST
-NEED_OPENSSL=1
-NEED_ZLIB=1
-endif
-endif
-endif
-endif
-
 ifdef FLATPAK_DIST
 NEED_RSYNC=1
 NEED_LIBGLU=1
-endif
-
-ifdef NEED_CHRPATH
-SUBDIRS += chrpath
-else
-chrpath.install:
-chrpath.app-install:
 endif
 
 ifdef NEED_FFMPEG
@@ -56,20 +36,6 @@ SUBDIRS += ffmpeg
 else
 ffmpeg.install:
 ffmpeg.app-install:
-endif
-
-ifdef NEED_OPENSSL
-SUBDIRS += openssl
-else
-openssl.install:
-openssl.app-install:
-endif
-
-ifdef NEED_ZLIB
-SUBDIRS += zlib
-else
-zlib.install:
-zlib.app-install:
 endif
 
 ifdef NEED_RSYNC
@@ -100,7 +66,6 @@ $(SUBDIR_INSTALL): build-dirs
 
 build-dirs:
 	$(MAKE) -C $(TOP) build-dirs
-	-mkdir $(tmpdir)
 
 build-app-dirs:
 	$(MAKE) -C $(TOP) build-app-dirs
@@ -115,7 +80,7 @@ ifeq ($(OS),Linux)
 GCC_VER = $(shell $(CC) -dumpversion)
 PREBUILT = prebuilt-$(OSARCH)-$(GCC_VER).tar.bz2
 else ifeq ($(OS),Darwin)
-PREBUILT = prebuilt-$(OSARCH)-$(MACOSX_DEPLOYMENT_TARGET).tar.bz2
+PREBUILT = prebuilt-$(OSARCH).tar.bz2
 else ifeq ($(OS),Windows)
 PREBUILT = prebuilt-$(OSARCH).tar.bz2
 else
@@ -163,9 +128,5 @@ cxservices.install: pips.install
 cxservices.app-install: pips.app-install
 openmm.app-install: Python.app-install pips.app-install
 openmm.install: Python.install pips.install
-openssl.app-install: chrpath.app-install
-openssl.install: chrpath.install
 pips.app-install: Python.app-install
 pips.install: Python.install
-Python.app-install: zlib.app-install openssl.app-install chrpath.app-install
-Python.install: zlib.install openssl.install chrpath.install

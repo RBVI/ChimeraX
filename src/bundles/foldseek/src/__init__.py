@@ -34,7 +34,10 @@ class _FoldseekBundle(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        if command_name in ('foldseek', 'foldseek open', 'foldseek scrollto', 'foldseek pairing'):
+        if command_name == 'foldseek':
+            from . import search
+            search.register_foldseek_command(logger)
+        elif command_name in ('foldseek open', 'foldseek pairing', 'foldseek seqalign'):
             from . import foldseek
             foldseek.register_foldseek_command(logger)
         elif command_name == 'foldseek sequences':
@@ -49,6 +52,9 @@ class _FoldseekBundle(BundleAPI):
         elif command_name == 'foldseek ligands':
             from . import ligands
             ligands.register_foldseek_ligands_command(logger)
+        elif command_name == 'foldseek scrollto':
+            from . import gui
+            gui.register_foldseek_scrollto_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
@@ -62,7 +68,7 @@ class _FoldseekBundle(BundleAPI):
                 def open_args(self):
                     from chimerax.core.commands import EnumOf
                     from chimerax.atomic import ChainArg
-                    from .foldseek import foldseek_databases
+                    from .search import foldseek_databases
                     return { 'chain': ChainArg,
                              'database': EnumOf(foldseek_databases)}
             return FoldseekInfo()

@@ -26,9 +26,23 @@
  */
 
 /* ----------------------------------------------------------------------------
+* Various debugging shaders
+*/
+#ifdef USE_SHOW_DEPTH_BUFFER
+uniform sampler2D depth_texture;
+in vec2 tex_coord_2d;
+out vec4 frag_color;
+
+void main()
+{
+    float c = texture(depth_texture, tex_coord_2d).x;
+    frag_color = vec4(c, c, c, 1.0);
+}
+
+/* ----------------------------------------------------------------------------
 * Shader for drawing selection outlines.
 */
-#ifdef USE_TEXTURE_OUTLINE
+#elif defined(USE_TEXTURE_OUTLINE)
 
 in vec2 tex_coord_2d;
 uniform sampler2D tex2d;
@@ -281,8 +295,8 @@ void main (void)
             texture(tex3d, position + vec3(0.0, 0.0, step_length)).r - texture(tex3d, position - vec3(0.0, 0.0, step_length)).r
         ));
 
-    float keyDiffuse = max(0.0, dot(gradientVec, key_light_direction));
-    float fillDiffuse = max(0.0, dot(gradientVec, fill_light_direction));
+    float keyDiffuse = max(0.0, -dot(gradientVec, key_light_direction));
+    float fillDiffuse = max(0.0, -dot(gradientVec, fill_light_direction));
     vec3 R = normalize(reflect(key_light_direction,gradientVec));
     float specular_factor = pow(max(-dot(R,normalize(ray_direction)),0.0), key_light_specular_exponent);
 

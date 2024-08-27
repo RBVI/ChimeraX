@@ -47,5 +47,8 @@ class _PhenixBundle(BundleAPI):
         if tool_name == 'Fit Loops':
             from .tool import LaunchFitLoopsTool
             return LaunchFitLoopsTool(session, tool_name)
+        if tool_name == 'Fit Ligand':
+            from .tool import LaunchLigandFitTool
+            return LaunchLigandFitTool(session, tool_name)
 
 bundle_api = _PhenixBundle()

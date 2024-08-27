@@ -59,5 +59,6 @@ libxkbcommon0
 libxrender1
 libxtst6
 mesa-common-dev
+patchelf
 xdg-utils
 zlib1g

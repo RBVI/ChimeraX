@@ -434,9 +434,9 @@ Disallowed with <a href="#continuous">continuous monitoring</a>.
 </blockquote>
 <blockquote>
 <a name="namingStyle"></a>
-<b>namingStyle</b> &nbsp;simple&nbsp;|&nbsp;command&nbsp;|&nbsp;serial
+<b>namingStyle</b> &nbsp;simple&nbsp;|&nbsp;command&nbsp;|&nbsp;serial&nbsp;|&nbsp;residue
 <br>
-How to describe atoms in contact/clash information written
+How to describe atoms/residues in contact/clash information written
 to a <a href="#saveFile">file</a> or the <a href="#log">log</a>:
 <ul>
 <li><b>simple</b> &ndash; chain ID (preceded by slash),
@@ -446,10 +446,15 @@ residue name, residue number, atom name (for example, /B ASN 21 OD1)
 (for example, /B:21@OD1)
 <li><b>serial</b> &ndash; atom serial number
 (for example, 126)
+<li><b>residue</b> &ndash; condense all results to the residue level,
+omitting atom names and reporting only the largest (or least negative) 
+overlap per unique pair of residues 
 </ul>
 Model number will be included when multiple models are present.
 The <a href="../preferences.html#labels"><b>Labels</b> preference</a>
-<b>Balloon-help specifier style</b> sets which is the default.
+<b>Balloon-help specifier style</b> sets which is the default (atom)
+naming style, as well as how residues are listed if
+<b>namingStyle residue</b> is used.
 </blockquote>
 <blockquote>
 <a name="summary"><b>summary</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>
@@ -466,5 +471,5 @@ but only the initial and final summaries are reported in the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2023</address>
+August 2024</address>
 </body></html>
