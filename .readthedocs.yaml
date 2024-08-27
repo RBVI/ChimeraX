@@ -6,7 +6,7 @@ build:
     - libglu1-mesa-dev
     - rsync
   tools:
-    python: "3.9"
+    python: "3.11"
   jobs:
     post_checkout:
       - git fetch --unshallow
@@ -16,7 +16,7 @@ build:
       - python -I -m pip install -r prereqs/pips/build_requirements.txt
       - python -I -m pip install prereqs/qtshim
       - python -I -m pip install PyQt6 PyQt6-WebEngine sphinx sphinx-autodoc-typehints
-      - python -I -m pip install sortedcontainers filelock appdirs pkginfo lxml msgpack 
+      - python -I -m pip install sortedcontainers filelock appdirs pkginfo lxml msgpack
       - python -I -m pip install build wheel numpy tinyarray pillow
       - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/bundle_builder install-editable
       - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/toolshed_utils install-editable
