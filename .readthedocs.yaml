@@ -20,7 +20,7 @@ build:
       - python -I -m pip install build wheel numpy tinyarray pillow
       - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/bundle_builder install-editable
       - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/toolshed_utils install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/core install-editable
+      - BUILD_TYPE=production BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/core install-editable
       - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/arrays install-editable
       - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/segment install-editable
       - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/sim_matrices install-editable
