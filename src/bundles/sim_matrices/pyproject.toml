@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-AlignmentMatrices"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Sequence alignment similarity matrices"
+dependencies = ["ChimeraX-Core ~=1.0", "ChimeraX-Alignments ~=2.0"]
+
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = """Provide common sequence alignment BLOSUM similarity matrices."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Sequence alignment"]
+module-name-override = "sim_matrices"
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.package-data]
+# Bundle builder's regex is not that smart so you can't condense
+# these to "*.(dna)?matrix"
+"src/matrices" = ["*.matrix", "*.dnamatrix"]
