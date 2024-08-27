@@ -71,6 +71,7 @@ pulseaudio-libs
 pulseaudio-libs-glib2
 rsync
 sqlite
+sqlite-devel
 unzip
 xcb-util-image
 xcb-util-keysyms
