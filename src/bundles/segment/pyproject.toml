@@ -40,3 +40,4 @@ sources = [
 ]
 library-modules = ["chimerax.arrays"]
 include-modules = ["chimerax.arrays"]
+libraries = ["arrays"]
