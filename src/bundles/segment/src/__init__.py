@@ -22,6 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+__version__ = "1.0.1"
 
 # ----------------------------------------------------------------------------
 # Compute watershed regions putting numeric indices for each region in region map

@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder", "ChimeraX-Arrays"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Segment"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Watershed segment calculations"
+dependencies = ["ChimeraX-Core ~=1.0", "ChimeraX-Arrays ~=1.0"]
+
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = """Calculate watershed segmentation regions for density maps."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Volume data"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.segmentation]
+category = "Volume data"
+description = "color and surface segmentations"
+
+[tool.chimerax.extension._segment]
+sources = [
+  "_segment/bin.cpp",
+  "_segment/pysegment.cpp",
+  "_segment/segment.cpp",
+  "_segment/segsurf.cpp",
+]
+library-modules = ["chimerax.arrays"]
+include-modules = ["chimerax.arrays"]
