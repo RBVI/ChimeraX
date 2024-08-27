@@ -21,6 +21,7 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+__version__ = 1.1
 from ._pyarrays import get_lib, get_include, load_libarrays
 
 __all__ = ["get_lib", "get_include", "load_libarrays"]
@@ -31,4 +32,5 @@ __all__ = ["get_lib", "get_include", "load_libarrays"]
 #     running_as_application = False
 # if running_as_application:
 from ._pyarrays import bundle_api
+
 __all__.append("bundle_api")

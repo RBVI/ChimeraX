@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder", "numpy~=1.26"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Arrays"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "C++ library for parsing numpy arrays"
+dependencies = ["ChimeraX-Core ~=1.0"]
+
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = """C++ library for parsing numpy arrays passed from Python to C++ modules."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Utility"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.extra-files]
+"src/include/arrays" = ["_arrays/*.h"]
+
+[tool.chimerax.library.arrays]
+sources = [
+  "_arrays/pythonarray.cpp",
+  "_arrays/rcarray.cpp",
+  "_arrays/refcount.cpp",
+]
+include-modules = ["numpy"]
+extra-link-args = ["-dynamic"]
+
+[tool.chimerax.extension._arrays]
+sources = ["_arrays/load_arrays.cpp"]
+library-dirs = ["src/lib"]
+include-dirs = ["src/include"]
+libraries = ["arrays"]
