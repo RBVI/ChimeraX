@@ -71,10 +71,6 @@ ifneq (,$(SOURCE_WHEELS))
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
 endif
 	$(PIP_INSTALL) $(GRAKO_WHEEL)
-ifeq ($(OS),Darwin)
-	# Link cython in Python framework to build/bin, used compiling core/serialize.pyx.
-	ln -s ../Library/Frameworks/Python.Framework/Versions/$(PYTHON_VERSION)/bin/cython $(bindir)
-endif
 
 list:
 	$(PIP) list
