@@ -923,8 +923,9 @@ class LaunchLigandFitTool(ToolInstance):
 
     LIGAND_FMT_CCD = "CCD identifier"
     LIGAND_FMT_MODEL = "existing structure"
+    LIGAND_FMT_PUBCHEM = "PubChem identifier"
     LIGAND_FMT_SMILES = "SMILES string"
-    LIGAND_FORMATS = [LIGAND_FMT_CCD, LIGAND_FMT_MODEL, LIGAND_FMT_SMILES]
+    LIGAND_FORMATS = [LIGAND_FMT_CCD, LIGAND_FMT_MODEL, LIGAND_FMT_PUBCHEM, LIGAND_FMT_SMILES]
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -1102,8 +1103,8 @@ class LaunchLigandFitTool(ToolInstance):
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
-        #bbox.accepted.connect(self.launch_emplace_local)
-        #bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_emplace_local(apply=True))
+        bbox.accepted.connect(self.launch_ligand_fit)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_ligand_fit(apply=True))
         bbox.rejected.connect(self.delete)
         if self.help:
             from chimerax.core.commands import run
@@ -1113,6 +1114,92 @@ class LaunchLigandFitTool(ToolInstance):
         layout.addWidget(bbox)
 
         tw.manage(placement=None)
+
+    def launch_ligand_fit(self, apply=False):
+        ligand_fmt = self.ligand_fmt_button.text()
+        ligand_widget = self.ligand_stack.currentWidget()
+        if ligand_fmt == self.LIGAND_FMT_MODEL:
+            ligand_value = ligand_widget.value
+            if not ligand_value:
+                raise UserError("No ligand model specified")
+        else:
+            ligand_value = ligand_widget.text()
+            if not ligand_value:
+                raise UserError("No " + ligand_fmt + " text provided")
+
+        receptor = self.receptor_menu.value
+        if not receptor:
+            raise UserError("Must specify a receptor structure")
+        map = self.map_menu.value
+        if map:
+            if self.resolution_entry.hasAcceptableInput():
+                resolution = float(self.resolution_entry.text())
+            else:
+                raise UserError("Must specify a resolution value for the map")
+        else:
+            raise UserError("Must specify map for fitting")
+        method = self.centering_button.text()
+        if method == self.CENTER_XYZ:
+            center = [float(widget.text()) for widget in self.xyz_widgets]
+        elif method == self.CENTER_MODEL:
+            centering_model = self.model_menu.value
+            if centering_model is None:
+                raise UserError("No model chosen for specifying search center")
+            bnds = centering_model.bounds()
+            if bnds is None:
+                raise UserError("No part of model for specifying search center is displayed")
+            center = bnds.center()
+        elif method == self.CENTER_VIEW:
+            # If pivot point shown or using fixed center of rotation, use that.
+            # Otherwise, midpoint where center of window intersects front and back of halfmap bounding box.
+            view_center = None
+            mv = self.session.main_view
+            for d in mv.drawing.child_drawings():
+                if d.__class__.__name__ == "PivotIndicator":
+                    view_center = d.position.origin()
+                    break
+            else:
+                if mv.center_of_rotation_method == "fixed":
+                    view_center = mv.center_of_rotation
+            if view_center is None:
+                from chimerax.map import Volume
+                shown_vols = [v for v in self.session.models if isinstance(v, Volume) and v.display]
+                if len(shown_vols) == 1:
+                    view_map = shown_vols[0]
+                else:
+                    view_map = maps[0]
+                from .emplace_local import view_box, ViewBoxError
+                try:
+                    view_center = view_box(self.session, view_map)
+                except ViewBoxError as e:
+                    raise UserError(str(e))
+            center = view_center
+        elif method == self.CENTER_SELECTION:
+            if self.session.selection.empty():
+                raise UserError("Nothing selected")
+            from chimerax.atomic import selected_atoms
+            sel_atoms = selected_atoms(self.session)
+            from chimerax.geometry import point_bounds, union_bounds
+            atom_bbox = point_bounds(sel_atoms.scene_coords)
+            atom_models = set(sel_atoms.unique_structures)
+            bbox = union_bounds([atom_bbox]
+                + [m.bounds() for m in self.session.selection.models() if m not in atom_models])
+            if bbox is None:
+                raise UserError("No bounding box for selected items")
+            center = bbox.center()
+        else:
+            raise AssertionError("Unknown centering method")
+        self.settings.search_center = method
+        if self.verify_center_checkbox.isChecked():
+            raise NotImplementedError("Interactive center adjustment not yet implemented")
+            self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
+            VerifyELCenterDialog(self.session, receptor, maps, res, center, self.settings.opaque_maps, ssm,
+                apply_symmetry)
+        else:
+            _run_ligand_fit_command(self.session, ligand_fmt, ligand_value, receptor, map, resolution,
+                center)
+        if not apply:
+            self.display(False)
 
     def _fmt_menu_cb(self, action):
         self._update_fmt_widgets(action.text())
@@ -1177,6 +1264,17 @@ def _run_emplace_local_command(session, structure, maps, resolution, center, sho
         " applySymmetry %s" % (
         structure.atomspec, concise_model_spec(session, maps, relevant_types=Volume, allow_empty_spec=False),
         resolution, *center, BoolArg.unparse(show_sharpened_map), BoolArg.unparse(apply_symmetry))
+    run(session, cmd)
+
+def _run_ligand_fit_command(session, ligand_fmt, ligand_value, receptor, map, resolution, center):
+    from chimerax.core.commands import run, StringArg
+    from chimerax.map import Volume
+    LLFT = LaunchLigandFitTool
+    lig_arg = "%s:%s" % ({LLFT.LIGAND_FMT_CCD: "ccd", LLFT.LIGAND_FMT_MODEL: "file",
+        LLFT.LIGAND_FMT_PUBCHEM: "pubchem", LLFT.LIGAND_FMT_SMILES: "smiles"}[ligand_fmt],
+        (ligand_value.atomspec if ligand_fmt == LLFT.LIGAND_FMT_MODEL else ligand_value))
+    cmd = "phenix ligandFit %s %s center %g,%g,%g inMap %s resolution %g" % (
+        receptor.atomspec, StringArg.unparse(lig_arg), *center, map.atomspec, resolution)
     run(session, cmd)
 
 class FitLoopsResultsSettings(Settings):
