@@ -26,6 +26,7 @@
 # other C++ modules to parse numpy arrays.  This code loads
 # the library into the ChimeraX process so it does not need
 # to be on the runtime loader search path.
+__version__ = "1.3"
 import chimerax.arrays
 
 from .place import Place, Places, identity
