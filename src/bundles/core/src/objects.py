@@ -51,6 +51,11 @@ class Objects:
     models : readonly list of chimerax.core.models.Model
     """
     def __init__(self, atoms = None, bonds = None, pseudobonds = None, models = None):
+        import sys
+        if models is None:
+            print("Objects: models is None", file=sys.__stderr__)
+        else:
+            print("Objects: models is", [str(m) for m in models], file=sys.__stderr__)
         from .orderedset import OrderedSet
         self._models = OrderedSet() if models is None else OrderedSet(models)
         self._models.discard(None)
@@ -123,6 +128,8 @@ class Objects:
         self._pseudobonds = [pbonds]
 
     def combine(self, other):
+        import sys
+        print("Object.combine", [str(m) for m in other.models], "with", [str(m) for m in self.models], file=sys.__stderr__)
         for m in other.models:
             self.add_model(m)
         self.add_atoms(other.atoms)

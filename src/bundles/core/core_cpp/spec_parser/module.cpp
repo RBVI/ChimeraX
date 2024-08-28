@@ -24,6 +24,7 @@
  * === UCSF ChimeraX Copyright ===
  */
 
+#include <vector>
 #include <utility>
 
 #include "Python.h"
@@ -44,6 +45,9 @@ static PyObject* models;
 static PyObject* combine_arg;
 static PyObject* invert_arg;
 static PyObject* list_arg;
+static PyObject* add_model_arg;
+static PyObject* add_atoms_arg;
+static PyObject* atomspec_has_atoms_arg;
 static std::string use_python_error("Use Python error");
 static bool add_implied, order_implicit_atoms, outermost_inversion;
 
@@ -55,12 +59,147 @@ docstr_evaluate = \
 " return a tuple containing a chimerax.core.objects.Objects instance," \
 " the part of text used for the atom spec, and the remaining text.";
 
+class ModelPart {
+public:
+    bool  any = false;
+    int   num;
+    ModelPart() { any = true; }
+    ModelPart(int x) { num = x; }
+};
+
+class ModelMatcher {
+public:
+    bool  range = false;
+    ModelPart   start, end;
+    ModelMatcher() { start.any = true; }
+    ModelMatcher(ModelPart mp) { start = mp; }
+    ModelMatcher(ModelPart mp1, ModelPart mp2) { range = true; start = mp1; end = mp2; }
+    bool  matches_id_val(long id_val) {
+        if (range)
+            return (start.any || id_val >= start.num) && (end.any || id_val <= end.num);
+        return start.any || id_val == start.num;
+    }
+};
+
+class GlobalModelMatcher {
+public:
+    bool  exact_match;
+    std::vector<std::vector<ModelMatcher>> levels;
+    GlobalModelMatcher(bool em, std::vector<std::vector<ModelMatcher>> ls) { exact_match = em; levels = ls; }
+    std::vector<PyObject*>  matches();
+};
+
+std::vector<PyObject*>
+GlobalModelMatcher::matches()
+{
+    std::vector<PyObject*> matched_models;
+    auto list_size = PySequence_Fast_GET_SIZE(models);
+    for (decltype(list_size) i = 0; i < list_size; ++i) {
+        auto m = PySequence_Fast_GET_ITEM(models, i);
+        auto id_tuple = PyObject_GetAttrString(m, "id");
+        if (id_tuple == nullptr)
+            throw std::logic_error(use_python_error);
+        if (!PyTuple_Check(id_tuple)) {
+            Py_DECREF(id_tuple);
+            throw std::logic_error("Model ID is not a tuple");
+        }
+        auto num_levels = levels.size();
+        decltype(num_levels) tuple_size = PyTuple_GET_SIZE(id_tuple);
+        if ((exact_match && num_levels == tuple_size)
+        || (!exact_match && num_levels <= tuple_size)) {
+            bool matched_all_levels = true;
+            for (decltype(num_levels) i = 0; i < num_levels; ++i) {
+                auto& model_matchers = levels[i];
+                auto id_item = PyTuple_GET_ITEM(id_tuple, i);
+                if (!PyLong_Check(id_item)) {
+                    Py_DECREF(id_tuple);
+                    throw std::logic_error("Model ID tuple contains non-integer");
+                }
+                int id_val = PyLong_AsLong(id_item);
+                bool matched_level = false;
+                for (auto& model_matcher: model_matchers) {
+                    if (model_matcher.matches_id_val(id_val)) {
+                        matched_level = true;
+                        break;
+                    }
+                }
+                if (!matched_level) {
+                    matched_all_levels = false;
+                    break;
+                }
+            }
+            if (matched_all_levels)
+                matched_models.push_back(m);
+        }
+        Py_DECREF(id_tuple);
+    }
+    return matched_models;
+}
+
 static PyObject*
 new_objects_instance()
 {
     auto objects_inst = PyObject_CallNoArgs(objects_class);
     if (objects_inst == nullptr)
         throw std::runtime_error("Cannot create Objects instance");
+    return objects_inst;
+}
+
+static PyObject*
+new_models_objects_instance(std::vector<PyObject*> init_models)
+{
+    auto objects_inst = new_objects_instance();
+    for (auto py_model: init_models) {
+        if (PyObject_CallMethodOneArg(objects_inst, add_model_arg, py_model) == nullptr) {
+            Py_DECREF(objects_inst);
+            throw std::logic_error(use_python_error);
+        }
+        // kludge so that for now some things gets selected, needs work once sub-parts are supported
+        auto ret = PyObject_CallMethodNoArgs(py_model, atomspec_has_atoms_arg);
+        if (!PyBool_Check(ret)) {
+            Py_DECREF(objects_inst);
+            Py_DECREF(ret);
+            throw std::logic_error("model.atomspec_has_atom() did not return a boolean value");
+        }
+        if (ret == Py_True) {
+            auto method = PyObject_GetAttrString(py_model, "atomspec_atoms");
+            if (method == nullptr) {
+                Py_DECREF(objects_inst);
+                throw std::logic_error(use_python_error);
+            }
+            if (!PyCallable_Check(method)) {
+                Py_DECREF(objects_inst);
+                Py_DECREF(method);
+                throw std::logic_error("model.atomspec_atom is not callable");
+            }
+            auto no_args = PyTuple_New(0);
+            if (no_args == nullptr)
+                throw std::runtime_error("Cannot create zero-length tuple");
+            auto kw_args = PyDict_New();
+            if (kw_args == nullptr) {
+                Py_DECREF(no_args);
+                throw std::runtime_error("Cannot create keyword dictionary");
+            }
+            if (PyDict_SetItemString(kw_args, "ordered", order_implicit_atoms ? Py_True : Py_False) < 0) {
+                Py_DECREF(no_args);
+                Py_DECREF(kw_args);
+                Py_DECREF(objects_inst);
+                throw std::logic_error(use_python_error);
+            }
+            auto py_atoms = PyObject_Call(method, no_args, kw_args);
+            if (PyObject_CallMethodOneArg(objects_inst, add_atoms_arg, py_atoms) == nullptr) {
+                Py_DECREF(objects_inst);
+                Py_DECREF(py_atoms);
+                Py_DECREF(no_args);
+                Py_DECREF(kw_args);
+                throw std::logic_error(use_python_error);
+            }
+            Py_DECREF(no_args);
+            Py_DECREF(kw_args);
+            Py_DECREF(py_atoms);
+        }
+        Py_DECREF(ret);
+    }
     return objects_inst;
 }
 
@@ -203,10 +342,23 @@ static struct PyModuleDef spec_parser_def =
 
 static auto grammar = (R"---(
     atom_specifier <- as_term "&" atom_specifier / as_term "|" atom_specifier / as_term
-    as_term <- "(" atom_specifier ")" zone_selector? / "~" as_term zone_selector? / SELECTOR_NAME zone_selector?
+    as_term <- "(" atom_specifier ")" zone_selector? / "~" as_term zone_selector? / SELECTOR_NAME zone_selector? / model_list
+    model_list <- model+
+    model <- HASH_TYPE model_hierarchy zone_selector?
+    model_hierarchy <- < model_range_list (!Space "." !Space model_hierarchy)* >
+    model_range_list <- model_range ("," model_range_list)*
+    model_range <- MODEL_SPEC_START "-" MODEL_SPEC_END / MODEL_SPEC_ANY
     zone_selector <- ZONE_OPERATOR real_number / ZONE_OPERATOR integer
+    # limit model numbers to 5 digits to avoid conflicts with hex colors
+    HASH_TYPE <- "#!" / "#"
+    MODEL_SPEC <- < [0-9]{1,5} > ![0-9A-Fa-f]
+    MODEL_SPEC_ANY <- MODEL_SPEC / "*"
+    MODEL_SPEC_END <- MODEL_SPEC / "end" / "*"
+    MODEL_SPEC_START <- MODEL_SPEC / "start" / "*"
     SELECTOR_NAME <- < [a-zA-Z_][-+a-zA-Z0-9_]* >
     ZONE_OPERATOR <- "@>" | "@<" | ":>" | ":<" | "/>" | "/<" | "#>" | "#<"
+    EndOfLine <- "\r\n" / "\n" / "\r"
+    Space <- ' ' / '\t' / EndOfLine
     integer <- < [1-9][0-9]* >
     real_number <- < [0-9]* '.' [0-9]+ >
     %whitespace  <-  [ \t\r\n]*
@@ -256,6 +408,15 @@ PyMODINIT_FUNC PyInit__spec_parser()
         return nullptr;
     list_arg = PyUnicode_FromString("list");
     if (list_arg == nullptr)
+        return nullptr;
+    add_model_arg = PyUnicode_FromString("add_model");
+    if (add_model_arg == nullptr)
+        return nullptr;
+    add_atoms_arg = PyUnicode_FromString("add_atoms");
+    if (add_atoms_arg == nullptr)
+        return nullptr;
+    atomspec_has_atoms_arg = PyUnicode_FromString("atomspec_has_atoms");
+    if (atomspec_has_atoms_arg == nullptr)
         return nullptr;
 
     // atom_specifier
@@ -388,6 +549,150 @@ PyMODINIT_FUNC PyInit__spec_parser()
         return selector_objects;
     };
             
+    // model_list
+    spec_parser["model_list"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " model_list semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        PyObject* all_model_objects = nullptr;
+        auto num_hierarchies = vs.size();
+        for (decltype(num_hierarchies) i = 0; i < num_hierarchies; ++i) {
+            auto model_objects = std::any_cast<PyObject*>(vs[i]);
+            if (all_model_objects == nullptr)
+                all_model_objects = model_objects;
+            else {
+                if (PyObject_CallMethodOneArg(all_model_objects, combine_arg, model_objects) == nullptr) {
+                    Py_DECREF(model_objects);
+                    throw std::logic_error(use_python_error);
+                }
+                Py_DECREF(model_objects);
+            }
+        }
+        return all_model_objects;
+    };
+            
+    // model
+    spec_parser["model"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " model semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        auto gmatcher = GlobalModelMatcher(std::any_cast<bool>(vs[0]), 
+            std::any_cast<std::vector<std::vector<ModelMatcher>>>(vs[1]));
+        auto objects = new_models_objects_instance(gmatcher.matches());
+        //TODO: zone
+        return objects;
+    };
+            
+    // model_hierarchy
+    spec_parser["model_hierarchy"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " model_hierarchy semantic values\n";
+        std::cerr << "model_hierarchy choice:" << vs.choice() << "\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        std::vector<std::vector<ModelMatcher>> levels;
+        levels.push_back(std::any_cast<std::vector<ModelMatcher>>(vs[0]));
+        if (vs.size() == 2) {
+            auto back_levels = std::any_cast<std::vector<std::vector<ModelMatcher>>>(vs[1]);
+            levels.insert(levels.end(), back_levels.begin(), back_levels.end());
+        }
+        return levels;
+    };
+            
+    // model_range_list
+    spec_parser["model_range_list"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " model_range_list semantic values\n";
+        std::cerr << "model_range_list choice:" << vs.choice() << "\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        std::vector<ModelMatcher> ranges;
+        ranges.push_back(std::any_cast<ModelMatcher>(vs[0]));
+        if (vs.size() == 2) {
+            auto back_ranges = std::any_cast<std::vector<ModelMatcher>>(vs[1]);
+            ranges.insert(ranges.end(), back_ranges.begin(), back_ranges.end());
+        }
+        return ranges;
+    };
+            
+    // model_range
+    spec_parser["model_range"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " model_range semantic values\n";
+        std::cerr << "model_range choice:" << vs.choice() << "\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        if (vs.choice() == 0)
+            return ModelMatcher(std::any_cast<ModelPart>(vs[0]), std::any_cast<ModelPart>(vs[1]));
+        return ModelMatcher(std::any_cast<ModelPart>(vs[0]));
+    };
+            
+    // HASH_TYPE
+    spec_parser["HASH_TYPE"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " HASH_TYPE semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        return vs.tokens[0][1] == '!';
+    };
+            
+    // MODEL_SPEC
+    spec_parser["MODEL_SPEC"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " MODEL_SPEC semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        return ModelPart(vs.token_to_number<int>());
+    };
+            
+    // MODEL_SPEC_ANY
+    spec_parser["MODEL_SPEC_ANY"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " MODEL_SPEC_ANY semantic values\n";
+        std::cerr << "MODEL_SPEC_ANY choice:" << vs.choice() << "\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        if (vs.choice() == 1)
+            return ModelPart();
+        return std::any_cast<ModelPart>(vs[0]);
+    };
+            
+    // MODEL_SPEC_START
+    spec_parser["MODEL_SPEC_START"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " MODEL_SPEC_START semantic values\n";
+        std::cerr << "MODEL_SPEC_START choice:" << vs.choice() << "\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        if (vs.choice() > 0)
+            return ModelPart();
+        return std::any_cast<ModelPart>(vs[0]);
+    };
+            
+    // MODEL_SPEC_END
+    spec_parser["MODEL_SPEC_END"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " MODEL_SPEC_END semantic values\n";
+        std::cerr << "MODEL_SPEC_END choice:" << vs.choice() << "\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        if (vs.choice() > 0)
+            return ModelPart();
+        return std::any_cast<ModelPart>(vs[0]);
+    };
+            
     // zone_selector
     spec_parser["zone_selector"] = [](const SemanticValues &vs) {
         std::cerr << vs.size() << " zone_selector semantic values\n";
@@ -415,7 +720,7 @@ PyMODINIT_FUNC PyInit__spec_parser()
         for (auto tk: vs.tokens)
             std::cerr << " " << tk;
         std::cerr << "\n";
-        return vs.token_to_number<float>();
+        return vs.token_to_number<int>();
     };
 
     // real_number
