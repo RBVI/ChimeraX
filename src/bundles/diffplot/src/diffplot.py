@@ -391,6 +391,7 @@ class StructurePlot(Graph):
         self.font_size = 5	# Override graph default value of 12 points
         self.set_nodes(pdb_names, umap_xy, colors)
     def set_nodes(self, pdb_names, umap_xy, colors = None):
+        self._have_colors = (colors is not None)
         self.nodes = self._make_nodes(pdb_names, umap_xy, colors)
         self.graph = self._make_graph()
         self.draw_graph()
