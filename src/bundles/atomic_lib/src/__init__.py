@@ -21,6 +21,8 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+__version__ = "14.1.5"
+
 import os
 
 def path_to_src() -> str:

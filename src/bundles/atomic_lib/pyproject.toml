@@ -1,0 +1,129 @@
+[build-system]
+requires = [
+  "setuptools",
+  "ChimeraX-BundleBuilder",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Core ~=1.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-AtomicLibrary"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Atomic-structure C++ library"
+dependencies = ["ChimeraX-Core ~=1.0", "ChimeraX-Arrays ~=1.0"]
+
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = """C++ support for handling atomic structures"""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Structure Analysis", "Structure Editing"]
+module-name-override = "atomic_lib"
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.extra-files]
+"src/include/pyinstance" = ["atomic_cpp/pyinstance_cpp/*.h"]
+"src/include/element" = ["atomic_cpp/element_cpp/*.h"]
+"src/include/atomstruct" = ["atomic_cpp/atomstruct_cpp/*.h"]
+"src/include/atomstruct/tmpl" = ["atomic_cpp/atomstruct_cpp/tmpl/*.h"]
+"src/data/idatm/templates" = [
+  "atomic_cpp/atomstruct_cpp/tmpl/idatm/templates/*",
+]
+
+[tool.chimerax.library.pyinstance]
+sources = ["atomic_cpp/pyinstance_cpp/PythonInstance.cpp"]
+
+[tool.chimerax.library.element]
+sources = ["atomic_cpp/element_cpp/Element.cpp"]
+include-dirs = ["src/include"]
+library-dirs = ["src/lib"]
+libraries = ["pyinstance"]
+
+[tool.chimerax.library.element.linux]
+extra-link-args = ["-Wl,-rpath,$ORIGIN", "-Wl,-rpath,$ORIGIN/../../../../.."]
+
+[tool.chimerax.library.atomstruct_tmpl]
+static = true
+sources = [
+  "atomic_cpp/atomstruct_cpp/tmpl/Atom.cpp",
+  "atomic_cpp/atomstruct_cpp/tmpl/Bond.cpp",
+  "atomic_cpp/atomstruct_cpp/tmpl/CoordSet.cpp",
+  "atomic_cpp/atomstruct_cpp/tmpl/Molecule.cpp",
+  "atomic_cpp/atomstruct_cpp/tmpl/Residue.cpp",
+  "atomic_cpp/atomstruct_cpp/tmpl/TemplateCache.cpp",
+  "atomic_cpp/atomstruct_cpp/tmpl/amino.cpp",
+  "atomic_cpp/atomstruct_cpp/tmpl/camino.cpp",
+  "atomic_cpp/atomstruct_cpp/tmpl/findres.cpp",
+  "atomic_cpp/atomstruct_cpp/tmpl/general.cpp",
+  "atomic_cpp/atomstruct_cpp/tmpl/ions.cpp",
+  "atomic_cpp/atomstruct_cpp/tmpl/namino.cpp",
+  "atomic_cpp/atomstruct_cpp/tmpl/nucleic.cpp",
+]
+include-dirs = ["src/include"]
+library-dirs = ["src/lib"]
+include-modules = ["chimerax.core"]
+libraries = ["pyinstance"]
+
+[tool.chimerax.library.atomstruct]
+sources = [
+  "atomic_cpp/atomstruct_cpp/Atom.cpp",
+  "atomic_cpp/atomstruct_cpp/AtomTypes.cpp",
+  "atomic_cpp/atomstruct_cpp/AtomicStructure.cpp",
+  "atomic_cpp/atomstruct_cpp/Bond.cpp",
+  "atomic_cpp/atomstruct_cpp/Chain.cpp",
+  "atomic_cpp/atomstruct_cpp/ChangeTracker.cpp",
+  "atomic_cpp/atomstruct_cpp/CompSS.cpp",
+  "atomic_cpp/atomstruct_cpp/CoordSet.cpp",
+  "atomic_cpp/atomstruct_cpp/MolResId.cpp",
+  "atomic_cpp/atomstruct_cpp/PBGroup.cpp",
+  "atomic_cpp/atomstruct_cpp/PBManager.cpp",
+  "atomic_cpp/atomstruct_cpp/Point.cpp",
+  "atomic_cpp/atomstruct_cpp/Pseudobond.cpp",
+  "atomic_cpp/atomstruct_cpp/Residue.cpp",
+  "atomic_cpp/atomstruct_cpp/Ring.cpp",
+  "atomic_cpp/atomstruct_cpp/RingCalc.cpp",
+  "atomic_cpp/atomstruct_cpp/Sequence.cpp",
+  "atomic_cpp/atomstruct_cpp/Structure.cpp",
+  "atomic_cpp/atomstruct_cpp/StructureSeq.cpp",
+  "atomic_cpp/atomstruct_cpp/destruct.cpp",
+  "atomic_cpp/atomstruct_cpp/search.cpp",
+  "atomic_cpp/atomstruct_cpp/seq_assoc.cpp",
+]
+include-dirs = ["src/include"]
+library-dirs = ["src/lib"]
+include-modules = ["chimerax.core", "chimerax.arrays"]
+libraries = [
+  "pyinstance",
+  "element",
+  "atomstruct_tmpl",
+  "ioutil",
+  "chutil",
+  "logger",
+  "arrays",
+]
+library-modules = ["chimerax.core", "chimerax.arrays"]
+
+[tool.chimerax.library.atomstruct.linux]
+extra-link-args = ["-Wl,-rpath,$ORIGIN", "-Wl,-rpath,$ORIGIN/../../../../.."]
+
+[tool.chimerax.library.atomstruct.darwin]
+extra-compile-args = ["-Wno-unreachable-code-loop-increment"]
+
+[tool.chimerax.extension._load_libs]
+sources = ["atomic_cpp/load_libs.cpp"]
+include-dirs = ["src/include"]
+library-dirs = ["src/lib"]
+include-modules = ["chimerax.core"]
+libraries = ["atomstruct", "element"]
