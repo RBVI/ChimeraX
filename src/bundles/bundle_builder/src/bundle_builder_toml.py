@@ -302,14 +302,19 @@ class Bundle:
             for manager_name, attrs in chimerax_data["manager"].items():
                 self.managers.append(Manager(manager_name, attrs))
         if "provider" in chimerax_data:
-            for provider_name, attrs in chimerax_data["provider"].items():
-                try:
-                    manager = attrs.pop("manager")
-                except KeyError:
-                    raise ValueError(
-                        "No manager specified for provider %s" % provider_name
-                    )
-                self.providers.append(Provider(manager, provider_name, attrs))
+            for name, attrs in chimerax_data["provider"].items():
+                if type(attrs) is list:
+                    # This is a list of providers for which the name of the table is the name of the manager
+                    for provider in attrs:
+                        provider_name = provider.pop("name")
+                        self.providers.append(Provider(name, provider_name, provider))
+                else:
+                    # This is a single provider for which the name is the name of the provider
+                    try:
+                        manager_name = attrs.pop("manager")
+                    except KeyError:
+                        raise ValueError("No manager specified for provider %s" % name)
+                    self.providers.append(Provider(manager_name, name, attrs))
         if "data-format" in chimerax_data:
             for format_name, attrs in chimerax_data["data-format"].items():
                 if "open" in attrs:
