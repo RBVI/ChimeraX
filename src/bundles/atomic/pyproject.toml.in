@@ -1,0 +1,192 @@
+# Edit pyproject.toml.in, not pyproject.toml; then run make_selectors.py
+[build-system]
+requires = [
+  "setuptools"
+  , "ChimeraX-BundleBuilder"
+  , "ChimeraX-Arrays ~=1.0"
+  , "ChimeraX-PDBLibrary ~=1.0"
+  , "ChimeraX-Graphics ~=1.0"
+  , "ChimeraX-Geometry ~= 1.0"
+  , "ChimeraX-AtomicLibrary ~= 14.0"
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Atomic"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Atomic-structure functionality"
+dependencies = [
+  "ChimeraX-Core ~=1.0"
+  , "ChimeraX-AtomicLibrary ~=14.0"
+  , "ChimeraX-ConnectStructure ~=2.0"
+  , "ChimeraX-Geometry ~=1.0"
+  , "ChimeraX-Graphics ~=1.0"
+  , "ChimeraX-mmCIF ~=2.0"
+  , "ChimeraX-Nucleotides ~=2.0"
+  , "ChimeraX-PDB ~=2.0"
+  , "ChimeraX-PDBLibrary ~=1.0"
+  , "ChimeraX-Arrays ~=1.0"
+]
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = """Python support for handling atomic structures"""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 5
+custom-init = true
+categories = ["Structure Analysis", "Structure Editing"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+#[tool.chimerax.extra-files]
+#  <ExtraFiles>
+#    <ExtraFile source="atomic_cpp/cymol.pyx">cymol.pyx</ExtraFile>
+#    <ExtraFile source="atomic_cpp/cytmpl.pyx">cytmpl.pyx</ExtraFile>
+#    <ExtraFile source="atomic_cpp/connect.pyx">connect.pyx</ExtraFile>
+#  </ExtraFiles>
+
+[tool.chimerax.command."log chains"]
+category = "General"
+description = "show chain info in log"
+
+[tool.chimerax.command."combine"]
+category = "Structure Editing"
+description = "copy or combine structure models"
+
+[tool.chimerax.command."pbond"]
+category = "Structure Editing"
+description = "create a pseudobond"
+
+[tool.chimerax.command."~pbond"]
+category = "Structure Analysis"
+description = "delete a pseudobond"
+
+[tool.chimerax.command."label missing"]
+category = "Structure Analysis"
+description = "label missing-structure pseudobonds"
+
+
+[tool.chimerax.library.molc]
+sources = ["atomic_cpp/molc.cpp"]
+libraries = ["atomstruct", "element", "pyinstance", "arrays"]
+library-modules = ["chimerax.atomic_lib", "chimerax.arrays", "numpy"]
+
+[tool.chimerax.extension.cymol]
+sources = ["atomic_cpp/cymol.pyx"]
+libraries = ["atomstruct", "element"]
+library-modules = ["chimerax.atomic_lib", "numpy"]
+
+[tool.chimerax.extension.cytmpl]
+sources = ["atomic_cpp/cytmpl.pyx"]
+libraries = ["atomstruct", "element"]
+library-modules = ["chimerax.atomic_lib", "numpy"]
+
+[tool.chimerax.extension.connect]
+sources = ["atomic_cpp/connect.pyx"]
+libraries = ["atomstruct", "pdbconnect"]
+library-modules = ["chimerax.atomic_lib", "chimerax.pdb_connect"]
+
+[tool.chimerax.extension._ribbons]
+sources = [
+  "ribbon_cpp/normals.cpp"
+  , "ribbon_cpp/parse.cpp"
+  , "ribbon_cpp/ribbons.cpp"
+  , "ribbon_cpp/spline.cpp"
+  , "ribbon_cpp/xsection.cpp"
+]
+libraries = ["atomstruct", "arrays"]
+library-modules = ["chimerax.atomic_lib", "chimerax.arrays", "numpy"]
+
+[tool.chimerax.manager."sequence features"]
+autostart = false
+
+[[tool.chimerax.provider.presets]]
+name = "Original Look"
+category = "Initial Styles"
+order = "0"
+[[tool.chimerax.provider.presets]]
+name = "Sticks"
+category = "Initial Styles"
+order = "1"
+[[tool.chimerax.provider.presets]]
+name = "Cartoon"
+category = "Initial Styles"
+order = "2"
+[[tool.chimerax.provider.presets]]
+name = "Space-Filling (chain colors)"
+category = "Initial Styles"
+order = "3"
+[[tool.chimerax.provider.presets]]
+name = "Space-Filling (single color)"
+category = "Initial Styles"
+order = "4"
+
+[[tool.chimerax.provider."items inspection"]]
+name = "atoms"
+[[tool.chimerax.provider."items inspection"]]
+name = "bonds"
+[[tool.chimerax.provider."items inspection"]]
+name = "pseudobond groups"
+ui-name = "pseudobond models"
+[[tool.chimerax.provider."items inspection"]]
+name = "pseudobonds"
+[[tool.chimerax.provider."items inspection"]]
+name = "residues"
+[[tool.chimerax.provider."items inspection"]]
+name = "structures"
+ui-name = "atomic models"
+
+[[tool.chimerax.provider."render by attribute"]]
+name = "atoms"
+[[tool.chimerax.provider."render by attribute"]]
+name = "residues"
+[[tool.chimerax.provider."render by attribute"]]
+name = "structures"
+
+[tool.chimerax.selector.backbone]
+description = "backbone atoms"
+[tool.chimerax.selector.mainchain]
+description = "backbone atoms"
+[tool.chimerax.selector.min-backbone]
+description = "minimal backbone atoms"
+[tool.chimerax.selector.ions]
+description = "ions"
+[tool.chimerax.selector.ligand]
+description = "ligands"
+[tool.chimerax.selector.main]
+description = "main structure"
+[tool.chimerax.selector.solvent]
+description = "solvent"
+[tool.chimerax.selector.protein]
+description = "proteins"
+[tool.chimerax.selector.nucleic]
+description = "nucleic acids"
+[tool.chimerax.selector.nucleic-acid]
+description = "nucleic acids"
+[tool.chimerax.selector.sel-residues]
+description = "current selection promoted to full residues"
+[tool.chimerax.selector.strand]
+description = "beta sheet strands"
+[tool.chimerax.selector.helix]
+description = "protein helices"
+[tool.chimerax.selector.coil]
+description = "protein coils"
+[tool.chimerax.selector.sidechain]
+description = "side-chain atoms"
+[tool.chimerax.selector.sideonly]
+description = "side-chain atoms"
+[tool.chimerax.selector.ribose]
+description = "ribose"
+[tool.chimerax.selector.template-mismatch]
+description = "residues whose heavy atoms don't match the residue template"
+
+ELEMENT_AND_IDATM_SELECTOR_CLASSIFIERS
