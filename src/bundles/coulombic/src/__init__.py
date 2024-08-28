@@ -23,6 +23,7 @@
 # === UCSF ChimeraX Copyright ===
 
 #from ._dssp import compute_ss
+__version__ = "1.4.4"
 
 from chimerax.core.toolshed import BundleAPI
 
