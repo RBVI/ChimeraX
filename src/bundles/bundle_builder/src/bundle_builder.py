@@ -48,14 +48,17 @@ CHIMERAX1_0_PYTHON_VERSION = Version("3.7")
 
 class BundleBuilder:
 
-    def __init__(self, logger, bundle_path=None):
+    def __init__(self, logger, bundle_path=None, bundle_xml=None):
         import os
 
         self.logger = logger
         if bundle_path is None:
             bundle_path = os.getcwd()
         self.path = bundle_path
-        info_file = os.path.join(bundle_path, "bundle_info.xml")
+        if not bundle_xml:
+            info_file = os.path.join(bundle_path, "bundle_info.xml")
+        else:
+            info_file = bundle_xml
         if not os.path.exists(info_file):
             raise IOError("Bundle info file %s is missing" % repr(info_file))
         try:
@@ -303,10 +306,10 @@ class BundleBuilder:
             pkg_name = dfs.get("package")
             files = []
             for e in self._get_elements(dfs, "DataFile"):
-                filename = self._get_element_text(e)
+                filename = BundleBuilder._get_element_text(e)
                 files.append(("file", filename))
             for e in self._get_elements(dfs, "DataDir"):
-                dirname = self._get_element_text(e)
+                dirname = BundleBuilder._get_element_text(e)
                 files.append(("dir", dirname))
             if files:
                 if not pkg_name:
@@ -324,7 +327,7 @@ class BundleBuilder:
                     raise ValueError(
                         "Missing ExtraFiles's source at line %d" % e.sourceline
                     )
-                filename = self._get_element_text(e)
+                filename = BundleBuilder._get_element_text(e)
                 files.append(("file", source, filename))
             for e in self._get_elements(dfs, "ExtraFileGroup"):
                 import os
@@ -338,7 +341,7 @@ class BundleBuilder:
                 source_base_dir = os.path.dirname(source)
                 while "*" in source_base_dir or "?" in source_base_dir:
                     source_base_dir = os.path.split(source_base_dir)[0]
-                dirname = self._get_element_text(e)
+                dirname = BundleBuilder._get_element_text(e)
                 sourcefiles = glob.glob(source, recursive=True)
                 if not len(sourcefiles):
                     raise RuntimeError(
@@ -360,7 +363,7 @@ class BundleBuilder:
                     raise ValueError(
                         "Missing ExtraDir's source at line %d" % e.sourceline
                     )
-                dirname = self._get_element_text(e)
+                dirname = BundleBuilder._get_element_text(e)
                 files.append(("dir", source, dirname))
             if files:
                 if not pkg_name:
@@ -495,32 +498,34 @@ class BundleBuilder:
 
     def _add_c_options(self, c, ce):
         for e in self._get_elements(ce, "Requires"):
-            c.add_require(self._get_element_text(e))
+            c.add_require(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "SourceFile"):
-            c.add_source_file(self._get_element_text(e))
+            c.add_source_file(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "IncludeDir"):
-            c.add_include_dir(self._get_element_text(e))
+            c.add_include_dir(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "Library"):
-            c.add_library(self._get_element_text(e))
+            c.add_library(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "LibraryDir"):
-            c.add_library_dir(self._get_element_text(e))
+            c.add_library_dir(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "CompileArgument"):
             c.add_compile_argument(self._get_element_text(e))
+        if sys.platform == "darwin":
+            c.add_compile_argument("-mmacos-version-min=11")
         for e in self._get_elements(ce, "LinkArgument"):
-            c.add_link_argument(self._get_element_text(e))
+            c.add_link_argument(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "Framework"):
-            c.add_framework(self._get_element_text(e))
+            c.add_framework(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "FrameworkDir"):
-            c.add_framework_dir(self._get_element_text(e))
+            c.add_framework_dir(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "Define"):
-            edef = self._get_element_text(e).split("=")
+            edef = BundleBuilder._get_element_text(e).split("=")
             if len(edef) > 2:
                 raise TypeError("Too many arguments for macro " "definition: %s" % edef)
             elif len(edef) == 1:
                 edef.append(None)
             c.add_macro_define(*edef)
         for e in self._get_elements(ce, "Undefine"):
-            c.add_macro_undef(self._get_element_text(e))
+            c.add_macro_undef(BundleBuilder._get_element_text(e))
         if self.limited_api:
             v = self.limited_api
             if v < CHIMERAX1_0_PYTHON_VERSION:
@@ -558,7 +563,7 @@ class BundleBuilder:
         ]
         cls = self._get_singleton(bi, "Classifiers")
         for e in self._get_elements(cls, "PythonClassifier"):
-            self.python_classifiers.append(self._get_element_text(e))
+            self.python_classifiers.append(BundleBuilder._get_element_text(e))
         self.chimerax_classifiers = [
             (
                 "ChimeraX :: Bundle :: "
@@ -609,7 +614,7 @@ class BundleBuilder:
                 "ChimeraX :: InitAfter :: " + " :: ".join(args)
             )
         for e in self._get_elements(cls, "ChimeraXClassifier"):
-            classifier = self._get_element_text(e)
+            classifier = BundleBuilder._get_element_text(e)
             if not classifier.startswith("ChimeraX"):
                 classifier = "ChimeraX :: " + classifier
             self.chimerax_classifiers.append(classifier)
@@ -835,7 +840,8 @@ class BundleBuilder:
                         break
         return elements
 
-    def _get_element_text(self, e):
+    @staticmethod
+    def _get_element_text(e):
         return "".join(e.itertext()).strip()
 
     def _get_singleton(self, bi, tag):
@@ -848,7 +854,7 @@ class BundleBuilder:
         return elements[0]
 
     def _get_singleton_text(self, bi, tag):
-        return self._get_element_text(self._get_singleton(bi, tag))
+        return BundleBuilder._get_element_text(self._get_singleton(bi, tag))
 
     def _check_unused_elements(self, bi):
         for node in bi:

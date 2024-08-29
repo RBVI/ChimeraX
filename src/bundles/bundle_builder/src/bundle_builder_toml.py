@@ -54,6 +54,7 @@ import re
 import shutil
 import sys
 import sysconfig
+from typing import Optional
 
 if sys.version_info < (3, 11, 0):
     import tomli as tomllib
@@ -218,13 +219,13 @@ class Bundle:
                 "Bundle renamed to %r after replacing "
                 "underscores with hyphens." % self.name
             )
-
-        self.bundle_base_name = self.name.replace("ChimeraX-", "")
         if "module-name-override" in chimerax_data:
-            self.module_name = f'chimerax.{chimerax_data.get("module-name-override")}'
+            override = chimerax_data.get("module-name-override")
         else:
-            self.module_name = self.name.replace("-", ".").lower()
-        self.dist_info_name = self.name.replace("-", "_")
+            override = None
+        self.bundle_base_name, self.module_name, self.dist_info_name = (
+            self.format_module_name(self.name, override)
+        )
 
         # If version is dynamic then we'll attempt to build the wheel and use the version number
         # that setuptools found to check the built wheel
@@ -492,6 +493,16 @@ class Bundle:
         distname = bdist_wheel_cmd.wheel_dist_name
         tag = "-".join(bdist_wheel_cmd.get_tag())
         self._expected_wheel_name = f"{distname}-{tag}.whl"
+
+    @staticmethod
+    def format_module_name(name: str, override: Optional[str] = None):
+        bundle_base_name = name.replace("ChimeraX-", "")
+        if override:
+            module_name = f"chimerax.{override}"
+        else:
+            module_name = name.replace("-", ".").lower()
+        dist_info_name = name.replace("-", "_")
+        return bundle_base_name, module_name, dist_info_name
 
     @classmethod
     def from_toml_file(cls, logger, toml_file):
