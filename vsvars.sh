@@ -81,10 +81,9 @@ else
 		B64=64
 		X64="\\x64"
 
-		Framework40Version=v4.0       # referenced nowhere else??
-		FrameworkVersion=v4.0.30319   # still valid on Windows Server 2022 runner
-		FrameworkVersion64=v4.0.30319 # still valid on Windows Server 2022 runner
-		VCToolsVersion=14.40.33807    # could be 14.16.27023 or 14.29.30133 instead
+		# If the windows build is ever spuriously breaking, GitHub probably changed the version
+		# of the tools out from under us. 
+		VCToolsVersion=14.41.34120    # could be 14.16.27023 or 14.29.30133 instead
 		VisualStudioVersion=17.0
 		# Could be 10.0.10240.0; 10.0.17763.0; 10.0.19041.0; 10.0.20348.0; 10.0.22000.0; 10.0.22621.0
 		WindowsSDKLibVersion=10.0.19041.0
