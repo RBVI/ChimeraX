@@ -22,6 +22,8 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+__version__ = "2.7.6"
+
 # ensure C++ shared libs we need are linkable by us
 import chimerax.atomic_lib  # noqa
 import chimerax.pdb_lib  # noqa
@@ -32,6 +34,7 @@ from .pdb import process_chem_name, format_nonstd_res_info
 
 from chimerax.core.toolshed import BundleAPI
 
+
 class _PDBioAPI(BundleAPI):
 
     @staticmethod
@@ -39,67 +42,97 @@ class _PDBioAPI(BundleAPI):
         if mgr == session.open_command:
             if name == "PDB":
                 from chimerax.open_command import OpenerInfo
+
                 class Info(OpenerInfo):
                     def open(self, session, data, file_name, **kw):
                         from . import pdb
+
                         return pdb.open_pdb(session, data, file_name, **kw)
 
                     @property
                     def open_args(self):
-                        from chimerax.core.commands import BoolArg, IntArg, FloatArg, EnumOf
+                        from chimerax.core.commands import (
+                            BoolArg,
+                            IntArg,
+                            FloatArg,
+                            EnumOf,
+                        )
+
                         return {
-                            'atomic': BoolArg,
-                            'auto_style': BoolArg,
-                            'combine_sym_atoms': BoolArg,
-                            'coordsets': BoolArg,
-                            'log_info': BoolArg,
-                            'max_models': IntArg,
-                            'segid_chains': BoolArg,
-                            'slider': BoolArg,
-                            'missing_coordsets': EnumOf(('fill','ignore','renumber')),
+                            "atomic": BoolArg,
+                            "auto_style": BoolArg,
+                            "combine_sym_atoms": BoolArg,
+                            "coordsets": BoolArg,
+                            "log_info": BoolArg,
+                            "max_models": IntArg,
+                            "segid_chains": BoolArg,
+                            "slider": BoolArg,
+                            "missing_coordsets": EnumOf(("fill", "ignore", "renumber")),
                         }
+
             else:
                 from chimerax.open_command import FetcherInfo
                 from . import pdb
+
                 fetcher = {
-                    'pdb': pdb.fetch_pdb,
-                    'pdbe': pdb.fetch_pdb_pdbe,
-                    'pdbj': pdb.fetch_pdb_pdbj,
-                    'redo': pdb.fetch_pdb_redo,
+                    "pdb": pdb.fetch_pdb,
+                    "pdbe": pdb.fetch_pdb_pdbe,
+                    "pdbj": pdb.fetch_pdb_pdbj,
+                    "redo": pdb.fetch_pdb_redo,
                 }[name]
+
                 class Info(FetcherInfo):
-                    def fetch(self, session, ident, format_name, ignore_cache, fetcher=fetcher, **kw):
+                    def fetch(
+                        self,
+                        session,
+                        ident,
+                        format_name,
+                        ignore_cache,
+                        fetcher=fetcher,
+                        **kw
+                    ):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
 
                     @property
                     def fetch_args(self):
                         from chimerax.core.commands import BoolArg, IntArg, FloatArg
+
                         return {
-                            'over_sampling': FloatArg,
-                            'structure_factors': BoolArg,
+                            "over_sampling": FloatArg,
+                            "structure_factors": BoolArg,
                         }
+
         else:
             from chimerax.save_command import SaverInfo
+
             class Info(SaverInfo):
                 def save(self, session, path, **kw):
                     from . import pdb
+
                     pdb.save_pdb(session, path, **kw)
 
                 @property
                 def save_args(self):
-                    from chimerax.core.commands import BoolArg, ModelsArg, ModelArg, EnumOf
+                    from chimerax.core.commands import (
+                        BoolArg,
+                        ModelsArg,
+                        ModelArg,
+                        EnumOf,
+                    )
+
                     return {
-                        'all_coordsets': BoolArg,
-                        'displayed_only': BoolArg,
-                        'models': ModelsArg,
-                        'pqr': BoolArg,
-                        'rel_model': ModelArg,
-                        'selected_only': BoolArg,
-                        'serial_numbering': EnumOf(("amber","h36"))
+                        "all_coordsets": BoolArg,
+                        "displayed_only": BoolArg,
+                        "models": ModelsArg,
+                        "pqr": BoolArg,
+                        "rel_model": ModelArg,
+                        "selected_only": BoolArg,
+                        "serial_numbering": EnumOf(("amber", "h36")),
                     }
 
                 def save_args_widget(self, session):
                     from .gui import SaveOptionsWidget
+
                     return SaveOptionsWidget(session)
 
                 def save_args_string_from_widget(self, widget):
