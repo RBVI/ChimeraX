@@ -508,7 +508,7 @@ class BundleBuilder:
         for e in self._get_elements(ce, "LibraryDir"):
             c.add_library_dir(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "CompileArgument"):
-            c.add_compile_argument(self._get_element_text(e))
+            c.add_compile_argument(BundleBuilder._get_element_text(e))
         if sys.platform == "darwin":
             c.add_compile_argument("-mmacos-version-min=11")
         for e in self._get_elements(ce, "LinkArgument"):
