@@ -139,6 +139,12 @@ def _chain_from_structure_name(structure):
 
 def _associate_chains_to_sequence_alignment_by_name(alignment, chains):
     alignment_sequences = {seq.name:seq for seq in alignment.seqs}
+
+    # Make sure association makes an exact match, using Needleman-Wunsch if needed, bug #15106
+    from chimerax.seqalign.settings import settings
+    original_aer = settings.assoc_error_rate
+    settings.assoc_error_rate = 10000
+
     for chain in chains:
         name = chain.structure.name
         if name not in alignment_sequences:
@@ -148,6 +154,8 @@ def _associate_chains_to_sequence_alignment_by_name(alignment, chains):
         if chain not in alignment.associations or alignment.associations[chain] != aseq:
             alignment.associate(chain, aseq)
 
+    settings.assoc_error_rate = original_aer	# Restore original association error tolerance
+    
     # Remove associations of all other chains
     chainset = set(chains)
     for chain in tuple(alignment.associations.keys()):
@@ -383,6 +391,7 @@ class StructurePlot(Graph):
         self.font_size = 5	# Override graph default value of 12 points
         self.set_nodes(pdb_names, umap_xy, colors)
     def set_nodes(self, pdb_names, umap_xy, colors = None):
+        self._have_colors = (colors is not None)
         self.nodes = self._make_nodes(pdb_names, umap_xy, colors)
         self.graph = self._make_graph()
         self.draw_graph()
