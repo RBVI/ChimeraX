@@ -21,7 +21,15 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "1.2.10"
+__version__ = "1.2.11"
+import importlib.metadata
+import logging
+import sys
+
+from collections import defaultdict
+from typing import Optional
+
+from packaging.requirements import Requirement
 
 from .bundle_builder import BundleBuilder  # noqa
 from .bundle_builder_toml import Bundle as BundleBuilderTOML
