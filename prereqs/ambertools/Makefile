@@ -4,23 +4,23 @@ include $(TOP)/mk/config.make
 
 # Using AmberTools distribution from https://ambermd.org
 
-#ifeq ($(OS),Darwin)
-#VERSION = 24
-#SRC_VERSION = 24
-#else
+ifeq ($(OS),Darwin)
+VERSION = 24
+SRC_VERSION = 24
+else
 VERSION = 20
 SRC_VERSION = 20
-#endif
+endif
 
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
-#ifeq ($(OS),Darwin)
-#USE_PREBUILT=false
-#UPLOAD_PREBUILT=true
-#else
+ifeq ($(OS),Darwin)
+USE_PREBUILT=false
+UPLOAD_PREBUILT=true
+else
 USE_PREBUILT=true
 UPLOAD_PREBUILT=false
-#endif
+endif
 ifeq ($(OS),Linux)
 SUPPORTED_DISTROS := Ubuntu CentOS Debian Rocky Freedesktop
 # CentOS uses "CentOS Linux", hence the second awk in the following line
@@ -138,7 +138,11 @@ app-install: install
 	$(RSYNC) $(AMBERDAT_PARM_SRC)/gaff2.dat $(AMBERDAT_PARM_DST)
 	$(RSYNC) $(AMBERLIB_SRC)/*.$(SHLIB_EXT) $(app_libdir)
 ifneq ($(LIBGCCDIR),)
-	$(RSYNC) $(LIBGCCDIR)/libgcc*.$(SHLIB_EXT) $(app_libdir)
+	for gcclib in $(LIBGCCDIR)/libgcc*.$(SHLIB_EXT) ; do \
+		$(RSYNC) $$gcclib $(app_libdir); \
+		filename=`basename $$gcclib`; \
+		install_name_tool -id @executable_path/$$filename $(app_libdir)/$$filename; \
+	done;
 endif
 ifeq ($(OS),Windows)
 	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /usr/bin/cygreadline*.dll /usr/bin/cygintl*.dll /usr/bin/cygncursesw*.dll /usr/bin/cygiconv*.dll /bin/sh.exe $(AMBERBIN_DST)
