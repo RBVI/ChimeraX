@@ -62,6 +62,7 @@ prereqs/pips/netCDF4*.whl
 prereqs/pips/tables*.whl
 prereqs/pips/grako*.whl
 prereqs/pips/tinyarray*.whl
+prereqs/pips/Cython*.whl
 prereqs/pips/PyOpenGL*.whl
 prereqs/pips/*.dylib.arm64
 prereqs/pips/*.dylib

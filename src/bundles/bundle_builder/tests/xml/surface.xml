@@ -1,0 +1,104 @@
+<BundleInfo name="ChimeraX-Surface" version="1.0.1"
+	    package="chimerax.surface" customInit="true"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Surface calculations</Synopsis>
+  <Description>Routines to calculate and manipulate triangulated surfaces.</Description>
+
+  <Categories>
+    <Category name="Generic 3D objects"/>
+  </Categories>
+
+  <CModule name="_surface">
+    <SourceFile>_surface/border.cpp</SourceFile>
+    <SourceFile>_surface/capper.cpp</SourceFile>
+    <SourceFile>_surface/connected.cpp</SourceFile>
+    <SourceFile>_surface/convexity.cpp</SourceFile>
+    <SourceFile>_surface/measure.cpp</SourceFile>
+    <SourceFile>_surface/normals.cpp</SourceFile>
+    <SourceFile>_surface/patches.cpp</SourceFile>
+    <SourceFile>_surface/refinemesh.cpp</SourceFile>
+    <SourceFile>_surface/sasa.cpp</SourceFile>
+    <SourceFile>_surface/smooth.cpp</SourceFile>
+    <SourceFile>_surface/subdivide.cpp</SourceFile>
+    <SourceFile>_surface/surface.cpp</SourceFile>
+    <SourceFile>_surface/surfdist.cpp</SourceFile>
+    <SourceFile>_surface/triangulate.cpp</SourceFile>
+    <SourceFile>_surface/tube.cpp</SourceFile>
+    <Library>arrays</Library>
+    <Library platform="windows">glu32.lib</Library>
+    <Library platform="windows">opengl32.lib</Library>
+    <Library platform="linux">GLU</Library>
+    <Library platform="linux">GL</Library>
+    <Framework>OpenGL</Framework>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
+    <Dependency name="ChimeraX-Map" version="~=1.0"/>
+    <Dependency name="ChimeraX-MapData" version="~=2.0"/>
+    <Dependency name="ChimeraX-StdCommands" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="COLLADA" category="Generic 3D objects"
+		reference_url="https://www.khronos.org/collada"
+		suffixes=".dae" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="collada" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: color electrostatic :: Surfaces :: color surface by electrostatic potential map</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: color sample :: Surfaces :: color surface by map value</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: color gradient :: Surfaces :: color surface by map gradient norm</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: color radial :: Surfaces :: color surface by distance from a point</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: color cylindrical :: Surfaces :: color surface by distance from an axis</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: color height :: Surfaces :: color surface by distance from a plane</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: color image :: Surfaces :: color surface using an image file</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface :: Surfaces :: create/modify surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ~surface :: Surfaces :: delete surface</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface showPatches :: Surfaces :: show atom surface patches for existing surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface hidePatches :: Surfaces :: hide patches of existing surfaces for specified atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface close :: Surfaces :: close surfaces for specified atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface style :: Surfaces :: set surface mesh, solid, or dot display style</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface squaremesh :: Surfaces :: mask mesh lines that are not parallel x, y or z</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface showall :: Surfaces :: turn of maskig of triangles and edges</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface cap :: Surfaces :: control surface caps when clipping</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface dust :: Surfaces :: hide small pieces of surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface undust :: Surfaces :: show small pieces of surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface hidefarblobs :: Surfaces :: hide connected pieces of a surface that are far from another surface</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface invertShown :: Surfaces :: Show hidden part of surface and hide shown part</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface transform :: Surfaces :: Scale, rotate or move surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface zone :: Surfaces :: show surface near atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface unzone :: Surfaces :: show all of surface</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface check :: Surfaces :: check surface topology</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface splitbycolor :: Surfaces :: Split surface by color</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: sop :: Surfaces :: alias for surface commands</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume splitbyzone :: Volume Data :: split volume by color zone</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure sasa :: Surfaces :: measure solvent-accessible surface area</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure volume :: Surfaces :: measure enclosed surface volume</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure area :: Surfaces :: measure surface area</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure contactArea :: Surfaces :: measure and contact area between two surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Hide Dust :: Volume Data :: hide small surface blobs</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Surface Zone :: Volume Data :: show surface near atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Color Zone :: Volume Data :: color surface to match nearby atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Measure Volume and Area :: Volume Data :: measure surface area and enclosed volume</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Surface Color :: Volume Data, Depiction :: Color surface by geometry or map value</ChimeraXClassifier>
+  </Classifiers>
+
+
+</BundleInfo>

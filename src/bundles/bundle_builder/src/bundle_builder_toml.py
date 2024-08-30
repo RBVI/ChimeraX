@@ -54,6 +54,7 @@ import re
 import shutil
 import sys
 import sysconfig
+from typing import Optional
 
 if sys.version_info < (3, 11, 0):
     import tomli as tomllib
@@ -223,13 +224,13 @@ class Bundle:
                 "Bundle renamed to %r after replacing "
                 "underscores with hyphens." % self.name
             )
-
-        self.bundle_base_name = self.name.replace("ChimeraX-", "")
         if "module-name-override" in chimerax_data:
-            self.module_name = f'chimerax.{chimerax_data.get("module-name-override")}'
+            override = chimerax_data.get("module-name-override")
         else:
-            self.module_name = self.name.replace("-", ".").lower()
-        self.dist_info_name = self.name.replace("-", "_")
+            override = None
+        self.bundle_base_name, self.module_name, self.dist_info_name = (
+            self.format_module_name(self.name, override)
+        )
 
         # If version is dynamic then we'll attempt to build the wheel and use the version number
         # that setuptools found to check the built wheel
@@ -307,14 +308,19 @@ class Bundle:
             for manager_name, attrs in chimerax_data["manager"].items():
                 self.managers.append(Manager(manager_name, attrs))
         if "provider" in chimerax_data:
-            for provider_name, attrs in chimerax_data["provider"].items():
-                try:
-                    manager = attrs.pop("manager")
-                except KeyError:
-                    raise ValueError(
-                        "No manager specified for provider %s" % provider_name
-                    )
-                self.providers.append(Provider(manager, provider_name, attrs))
+            for name, attrs in chimerax_data["provider"].items():
+                if type(attrs) is list:
+                    # This is a list of providers for which the name of the table is the name of the manager
+                    for provider in attrs:
+                        provider_name = provider.pop("name")
+                        self.providers.append(Provider(name, provider_name, provider))
+                else:
+                    # This is a single provider for which the name is the name of the provider
+                    try:
+                        manager_name = attrs.pop("manager")
+                    except KeyError:
+                        raise ValueError("No manager specified for provider %s" % name)
+                    self.providers.append(Provider(manager_name, name, attrs))
         if "data-format" in chimerax_data:
             for format_name, attrs in chimerax_data["data-format"].items():
                 if "open" in attrs:
@@ -493,6 +499,16 @@ class Bundle:
         tag = "-".join(bdist_wheel_cmd.get_tag())
         self._expected_wheel_name = f"{distname}-{tag}.whl"
 
+    @staticmethod
+    def format_module_name(name: str, override: Optional[str] = None):
+        bundle_base_name = name.replace("ChimeraX-", "")
+        if override:
+            module_name = f"chimerax.{override}"
+        else:
+            module_name = name.replace("-", ".").lower()
+        dist_info_name = name.replace("-", "_")
+        return bundle_base_name, module_name, dist_info_name
+
     @classmethod
     def from_toml_file(cls, logger, toml_file):
         return cls(logger, read_toml(toml_file))
@@ -655,16 +671,30 @@ class Bundle:
         for lib in self.c_libraries:
             if lib.static:
                 if sys.platform == "win32":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".lib"])))
+                    try:
+                        os.remove(os.path.join("src/lib/", "".join([lib.name, ".lib"])))
+                    except FileNotFoundError:
+                        pass
                 else:
-                    os.remove(
-                        os.path.join("src/lib/", "".join(["lib", lib.name, ".a"]))
-                    )
+                    try:
+                        os.remove(
+                            os.path.join("src/lib/", "".join(["lib", lib.name, ".a"]))
+                        )
+                    except FileNotFoundError:
+                        pass
             else:
                 if sys.platform == "darwin":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".dylib"])))
+                    try:
+                        os.remove(
+                            os.path.join("src/lib/", "".join([lib.name, ".dylib"]))
+                        )
+                    except FileNotFoundError:
+                        pass
                 elif sys.platform == "linux":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".so"])))
+                    try:
+                        os.remove(os.path.join("src/lib/", "".join([lib.name, ".so"])))
+                    except FileNotFoundError:
+                        pass
 
     def _clean_extrafiles(self):
         for pkg_name, items in self.extra_files.items():
@@ -706,6 +736,10 @@ class Bundle:
             os.chdir(self.path)
             kw = self.setup_arguments.copy()
             kw["package_dir"], kw["packages"] = self._make_package_arguments()
+            # So far as I can tell this instructs setuptools to stop sticking its
+            # nose where it doesn't belong and trust that we've set up our packages
+            # and package data correctly.
+            kw["include_package_data"] = False
             sys.argv = ["setup.py"] + cmd
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)

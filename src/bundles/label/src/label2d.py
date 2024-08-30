@@ -101,11 +101,12 @@ def label_create(session, name, text = '', color = None, bg_color = None,
     elif isinstance(bg_color, str) and bg_color == 'none':
         kw['background'] = None
 
-    has_graphics = session.main_view.render is not None
-    if not has_graphics:
-        from chimerax.core.errors import LimitationError
-        raise LimitationError("Unable to draw 2D labels without rendering images")
-        
+    try:
+        from Qt.QtGui import QImage
+    except ImportError:
+        session.logger.warning("Cannot create 2D label without Qt windowing system -- skipping")
+        return
+
     return Label(session, name, **kw)
 
 
