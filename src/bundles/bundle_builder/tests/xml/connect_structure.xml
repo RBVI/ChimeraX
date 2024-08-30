@@ -1,0 +1,33 @@
+<BundleInfo name="ChimeraX-ConnectStructure" version="2.0.1"
+	    package="chimerax.connect_structure"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Add bonds to structures that lack them</Synopsis>
+  <Description>Add bonds to structures based on inter-atomic distances</Description>
+
+  <Categories>
+    <Category name="Structure Analysis"/>
+  </Categories>
+
+  <CModule name="_cs">
+    <SourceFile>connect_cpp/connect.cpp</SourceFile>
+    <Library>atomstruct</Library>
+    <Library>element</Library>
+    <Library>pyinstance</Library>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=14.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

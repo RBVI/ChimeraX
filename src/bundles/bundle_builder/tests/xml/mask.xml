@@ -1,0 +1,42 @@
+<BundleInfo name="ChimeraX-Mask" version="1.0.2" package="chimerax.mask"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <!-- Additional information about bundle source -->
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <!-- Synopsis is a one-line description
+       Description is a full multi-line description -->
+  <Synopsis>Mask a volume to a surface</Synopsis>
+  <Description>Copy a volume setting values outside a surface to zero</Description>
+
+  <!-- Categories is a list where this bundle should appear -->
+  <Categories>
+    <Category name="Volume Data"/>
+  </Categories>
+
+  <CModule name="_mask">
+    <SourceFile>_mask/mask.cpp</SourceFile>
+    <Library>arrays</Library>
+  </CModule>
+
+  <!-- Dependencies on other ChimeraX/Python packages -->
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Map" version="~=1.0"/>
+    <Dependency name="ChimeraX-MapData" version="~=2.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <!-- Development Status should be compatible with bundle version number -->
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: volume mask :: Volume data :: Mask a map to a surface</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume onesmask :: Volume data :: Create a onesmask inside a surface</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

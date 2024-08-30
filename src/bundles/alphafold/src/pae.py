@@ -1198,10 +1198,11 @@ def read_json_pae_matrix(path):
     j = json.load(f)
     f.close()
 
-    if isinstance(j, dict) and 'pae' in j:
+    if isinstance(j, dict) and ('pae' in j or 'predicted_aligned_error' in j):
         # ColabFold 1.3 produces a JSON file different from AlphaFold database.
+        key = 'pae' if 'pae' in j else 'predicted_aligned_error'
         from numpy import array, float32
-        pae = array(j['pae'], float32)
+        pae = array(j[key], float32)
         return pae
     
     if not isinstance(j, list):

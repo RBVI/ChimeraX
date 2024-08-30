@@ -1,0 +1,127 @@
+<BundleInfo name="ChimeraX-Map" version="1.3"
+	    package="chimerax.map"
+	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Density maps</Synopsis>
+  <Description>Display and analyze 3d image data</Description>
+
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+    <DataFile>colortables/presets/*.plist</DataFile>
+    <DataFile>colortables/cluts/*.plist</DataFile>
+    <DataFile>colortables/cluts/*.clut</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="Volume Data"/>
+  </Categories>
+
+  <CModule name="_map">
+    <SourceFile>_map/boxcut.cpp</SourceFile>
+    <SourceFile>_map/colors.cpp</SourceFile>
+    <SourceFile>_map/contourpy.cpp</SourceFile>
+    <SourceFile>_map/fittingpy.cpp</SourceFile>
+    <SourceFile>_map/interpolatepy.cpp</SourceFile>
+    <SourceFile>_map/occupancy.cpp</SourceFile>
+    <SourceFile>_map/combine.cpp</SourceFile>
+    <SourceFile>_map/distgrid.cpp</SourceFile>
+    <SourceFile>_map/gaussian.cpp</SourceFile>
+    <SourceFile>_map/localcorr.cpp</SourceFile>
+    <SourceFile>_map/squaremesh.cpp</SourceFile>
+    <SourceFile>_map/extendmap.cpp</SourceFile>
+    <SourceFile>_map/histogram.cpp</SourceFile>
+    <SourceFile>_map/module.cpp</SourceFile>
+    <SourceFile>_map/transfer.cpp</SourceFile>
+    <SourceFile>_map/contourdata.cpp</SourceFile>
+    <SourceFile>_map/fitting.cpp</SourceFile>
+    <SourceFile>_map/interpolate.cpp</SourceFile>
+    <SourceFile>_map/moments.cpp</SourceFile>
+    <Library>arrays</Library>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
+    <Dependency name="ChimeraX-MapData" version="~=2.0"/>
+    <Dependency name="ChimeraX-MapFilter" version="~=2.0"/>
+    <Dependency name="ChimeraX-MapSeries" version="~=2.0"/>
+    <Dependency name="ChimeraX-MouseModes" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+    <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="open command">
+    <Provider name="Amira mesh" want_path="true" batch="true" />
+    <Provider name="APBS potential" want_path="true" batch="true" />
+    <Provider name="BRIX density map" want_path="true" batch="true" />
+    <Provider name="CCP4 density map" want_path="true" batch="true" />
+    <Provider name="Chimera map" want_path="true" batch="true" />
+    <Provider name="CNS or XPLOR density map" want_path="true" />
+    <Provider name="DelPhi or GRASP potential" want_path="true" />
+    <Provider name="DeltaVision map" want_path="true" batch="true" />
+    <Provider name="DSN6 density map" want_path="true" batch="true" />
+    <Provider name="DOCK scoring grid" want_path="true" batch="true" />
+    <Provider name="EMAN HDF map" want_path="true" batch="true" />
+    <Provider name="Gaussian cube grid" want_path="true" batch="true" />
+    <Provider name="gOpenMol grid" want_path="true" batch="true" />
+    <Provider name="HDF map" want_path="true" batch="true" />
+    <Provider name="Image stack" want_path="true" batch="true" check_path="false" />
+    <Provider name="IMAGIC density map" want_path="true" batch="true" />
+    <Provider name="Imaris map" want_path="true" batch="true" />
+    <Provider name="IMOD map" want_path="true" batch="true" />
+    <Provider name="MacMolPlt grid" want_path="true" batch="true" />
+    <Provider name="MRC density map" want_path="true" batch="true" />
+    <Provider name="NetCDF map" want_path="true" batch="true" />
+    <Provider name="Priism microscope image" want_path="true" batch="true" />
+    <Provider name="PROFEC free energy grid" want_path="true" batch="true" />
+    <Provider name="Purdue image format" want_path="true" batch="true" />
+    <Provider name="SITUS map file" want_path="true" batch="true" />
+    <Provider name="SPIDER volume data" want_path="true" batch="true" />
+    <Provider name="TOM toolbox EM density map" want_path="true" batch="true" />
+    <Provider name="UHBD grid, binary" want_path="true" batch="true" />
+
+    <Provider name="eds" type="fetch" format_name="CCP4 density map"
+		synopsis="EDS (2Fo-Fc)" example_ids="1a0m" />
+    <Provider name="edsdiff" type="fetch" format_name="CCP4 density map"
+		synopsis="EDS (Fo-Fc)" example_ids="1a0m" />
+    <Provider name="emdb" type="fetch" format_name="CCP4 density map" group_multiple_models="false"
+		synopsis="EMDB" example_ids="5625" />
+    <Provider name="emdb_europe" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
+    <Provider name="emdb_us" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
+    <Provider name="emdb_japan" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
+    <Provider name="emdb_china" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
+    <Provider name="emdb_fits" type="fetch" format_name="CCP4 density map" group_multiple_models="false"
+		synopsis="EMDB &amp; fit PDBs" example_ids="1048" />
+    <Provider name="redo" type="fetch" format_name="MTZ" is_default="false" synopsis="PDB-REDO (map)" example_ids="1cbs" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="BRIX density map" />
+    <Provider name="CCP4 density map" />
+    <Provider name="Chimera map" />
+    <Provider name="ImageJ TIFF map" />
+    <Provider name="IMAGIC density map" />
+    <Provider name="MRC density map" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    
+    <ChimeraXClassifier>Command :: volume :: Volume data :: control volume data display</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: molmap :: Volume data :: create density map for molecule</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure mapstats :: Volume data :: report map statistics</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure mapvalues :: Volume data :: Intepolate map at atom positions</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Volume Viewer :: Volume Data :: Show density maps info</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Map Coordinates :: Volume Data :: Adjust density map coordinates</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Map Statistics :: Volume Data :: Report map minimum, maximum, mean, standard deviation, and root mean square</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
