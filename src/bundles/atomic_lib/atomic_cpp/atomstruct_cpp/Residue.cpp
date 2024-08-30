@@ -115,6 +115,10 @@ Residue::add_atom(Atom* a, bool copying_or_restoring)
     auto pbg = structure()->pb_mgr().get_group(Structure::PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
     if (pbg == nullptr)
         return;
+    // an additional test to avoid doing the expensive computation below if possible, which can
+    // severely impact addh for instance [#15840]
+    if (a->element().valence() < 2)
+        return;
     // Okay, make residue-index map so that we can see if missing-structure bonds are relevant to our residue
     std::map<Residue*, Structure::Residues::size_type> res_map;
     Structure::Residues::size_type i = 0;

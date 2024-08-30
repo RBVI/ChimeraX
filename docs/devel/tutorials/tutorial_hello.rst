@@ -115,6 +115,11 @@ additional bundle that must be installed.  During installation
 for this bundle, if any of the bundles listed in ``Dependency``
 tags are missing, they are automatically installed as well.
 
+A ``Dependency`` tag can also list non-ChimeraX PyPi packages 
+needed by the bundle, such as *pandas* or *pytorch*, along with
+required version numbers, and such packages will be installed 
+with the bundle.
+
 Finally, there are ``Classifier`` tags, of which there are two
 flavors: Python and ChimeraX.  Values for Python classifiers
 are the same as those found in standard `Python package setup

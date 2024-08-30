@@ -431,7 +431,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
         apply_symmetry = self.symmetry_checkbox.isChecked()
         if self.verify_center_checkbox.isChecked():
             self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
-            VerifyCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps, ssm,
+            VerifyELCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps, ssm,
                 apply_symmetry)
         else:
             _run_emplace_local_command(self.session, structure, maps, res, center, ssm, apply_symmetry)
@@ -454,6 +454,13 @@ class LaunchEmplaceLocalTool(ToolInstance):
             self.xyz_area.setHidden(False)
         elif method == self.CENTER_MODEL:
             self.model_menu.setHidden(False)
+
+class LaunchEmplaceLocalSettings(Settings):
+    AUTO_SAVE = {
+        'search_center': LaunchEmplaceLocalTool.CENTER_MODEL,
+        'opaque_maps': True,
+        'show_sharpened_map': False
+    }
 
 class LaunchFitLoopsTool(ToolInstance):
     help = "help:user/tools/fitloops.html"
@@ -813,7 +820,7 @@ class LaunchFitLoopsTool(ToolInstance):
             self.no_table_label.setText(self.need_input_message)
             self.target_area.setCurrentWidget(self.no_table_label)
 
-class VerifyCenterDialog(QDialog):
+class VerifyELCenterDialog(QDialog):
     def __init__(self, session, structure, maps, resolution, initial_center, opaque_maps,
             show_sharpened_map, apply_symmetry):
         super().__init__()
@@ -904,11 +911,349 @@ class VerifyCenterDialog(QDialog):
                 self.close()
                 break
 
-class LaunchEmplaceLocalSettings(Settings):
+class LaunchLigandFitTool(ToolInstance):
+    #help = "help:user/tools/localemfitting.html"
+    help = None
+
+    CENTER_MODEL = "center of model..."
+    CENTER_SELECTION = "center of selection"
+    CENTER_VIEW = "center of view"
+    CENTER_XYZ = "specified xyz position..."
+    CENTERING_METHODS = [CENTER_MODEL, CENTER_SELECTION, CENTER_VIEW, CENTER_XYZ]
+
+    LIGAND_FMT_CCD = "CCD identifier"
+    LIGAND_FMT_MODEL = "existing structure"
+    LIGAND_FMT_PUBCHEM = "PubChem identifier"
+    LIGAND_FMT_SMILES = "SMILES string"
+    LIGAND_FORMATS = [LIGAND_FMT_CCD, LIGAND_FMT_MODEL, LIGAND_FMT_PUBCHEM, LIGAND_FMT_SMILES]
+
+    def __init__(self, session, tool_name):
+        super().__init__(session, tool_name)
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
+
+        if not hasattr(self.__class__, 'settings'):
+            self.__class__.settings = LaunchLigandFitSettings(session, "launch ligandFit")
+
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
+        from Qt.QtWidgets import QCheckBox, QGridLayout, QGroupBox, QStackedWidget
+        from Qt.QtGui import QDoubleValidator, QIntValidator
+        from Qt.QtCore import Qt
+        layout = QVBoxLayout()
+        parent.setLayout(layout)
+        layout.setSpacing(1)
+
+        ligand_layout = QHBoxLayout()
+        ligand_layout.setContentsMargins(2,2,2,2)
+        layout.addLayout(ligand_layout)
+        ligand_layout.addWidget(QLabel("Ligand from:"))
+        self.ligand_fmt_to_index = {}
+        self.ligand_fmt_button = QPushButton()
+        ligand_layout.addWidget(self.ligand_fmt_button)
+        fmt_menu = QMenu(self.ligand_fmt_button)
+        fmt_menu.triggered.connect(self._fmt_menu_cb)
+        self.ligand_fmt_button.setMenu(fmt_menu)
+        self.ligand_stack = QStackedWidget()
+        ligand_layout.addWidget(self.ligand_stack, stretch=1)
+        from chimerax.atomic.widgets import AtomicStructureMenuButton
+        for ligand_fmt in self.LIGAND_FORMATS:
+            fmt_menu.addAction(ligand_fmt)
+            if ligand_fmt == self.LIGAND_FMT_MODEL:
+                widget = AtomicStructureMenuButton(session)
+            else:
+                widget = QLineEdit()
+                widget.setPlaceholderText("Enter " + ligand_fmt
+                    + (" (a.k.a. PDB 3- or 5-letter residue code)"
+                    if ligand_fmt == self.LIGAND_FMT_CCD else ""))
+            self.ligand_fmt_to_index[ligand_fmt] = self.ligand_stack.addWidget(widget)
+        self._update_fmt_widgets(self.settings.ligand_format)
+
+        spec_centering_widget = QWidget()
+        layout.addWidget(spec_centering_widget, alignment=Qt.AlignCenter)
+        spec_layout = QHBoxLayout()
+        spec_layout.setContentsMargins(2,2,2,2)
+        spec_centering_widget.setLayout(spec_layout)
+        spec_layout.addWidget(QLabel("With chain ID"))
+        self.chain_id_entry = QLineEdit()
+        self.chain_id_entry.setMaximumWidth(5 * self.chain_id_entry.fontMetrics().averageCharWidth())
+        self.chain_id_entry.editingFinished.connect(self._update_res_num_widget)
+        spec_layout.addWidget(self.chain_id_entry)
+        spec_layout.addWidget(QLabel("and residue number"))
+        self.res_num_entry = QLineEdit()
+        self.res_num_entry.setMaximumWidth(5 * self.res_num_entry.fontMetrics().averageCharWidth())
+        self.res_num_entry.setValidator(QIntValidator())
+        spec_layout.addWidget(self.res_num_entry)
+
+        non_lig_layout = QHBoxLayout()
+        layout.addLayout(non_lig_layout)
+        receptor_centering_widget = QWidget()
+        non_lig_layout.addWidget(receptor_centering_widget)
+        receptor_layout = QHBoxLayout()
+        receptor_layout.setSpacing(3)
+        receptor_centering_widget.setLayout(receptor_layout)
+        receptor_layout.addWidget(QLabel("Receptor"))
+        self.receptor_menu = AtomicStructureMenuButton(session)
+        self.receptor_menu.value_changed.connect(self._update_spec_widgets)
+        receptor_layout.addWidget(self.receptor_menu)
+        map_info_centering_widget = QWidget()
+        non_lig_layout.addWidget(map_info_centering_widget)
+        map_info_layout = QVBoxLayout()
+        map_info_layout.setSpacing(0)
+        map_info_centering_widget.setLayout(map_info_layout)
+        map_centering_widget = QWidget()
+        map_info_layout.addWidget(map_centering_widget, alignment=Qt.AlignBottom|Qt.AlignHCenter)
+        map_layout = QHBoxLayout()
+        map_layout.setContentsMargins(0,0,0,0)
+        map_layout.setSpacing(3)
+        map_centering_widget.setLayout(map_layout)
+        map_layout.addWidget(QLabel("Map:"))
+        from chimerax.map import Volume
+        from chimerax.ui.widgets import ModelMenuButton
+        self.map_menu = ModelMenuButton(session, class_filter=Volume)
+        map_layout.addWidget(self.map_menu)
+        res_centering_widget = QWidget()
+        map_info_layout.addWidget(res_centering_widget, alignment=Qt.AlignTop|Qt.AlignHCenter)
+        res_layout = QHBoxLayout()
+        res_layout.setContentsMargins(0,0,0,0)
+        res_centering_widget.setLayout(res_layout)
+        res_layout.addWidget(QLabel("Resolution:"))
+        self.resolution_entry = QLineEdit()
+        self.resolution_entry.setMaximumWidth(5 * self.resolution_entry.fontMetrics().averageCharWidth())
+        self.resolution_entry.setValidator(QDoubleValidator(0.001, 1000.0, 6))
+        res_layout.addWidget(self.resolution_entry)
+        self._update_spec_widgets()
+
+        centering_widget = QWidget()
+        layout.addWidget(centering_widget, alignment=Qt.AlignCenter, stretch=1)
+        centering_layout = QHBoxLayout()
+        centering_layout.setSpacing(1)
+        centering_widget.setLayout(centering_layout)
+        centering_tip = '''How to specify the center of the fitting search.  Choices are:
+
+%s — If the center of rotation is being displayed ("cofr showPivot true") use that.  Otherwise,
+    if the center of rotation is a fixed point ("cofr fixed") use that.  If neither of those is
+    true, use the midpoint of where the center of the window intersects the front and back of
+    the bounding box of the map.
+
+%s — The center of a particular model, frequently the map, or the structure to be fitted once
+    it has been approximately positioned.
+
+%s - The center of the bounding box enclosing currently selected objects.
+
+%s — A specific X/Y/Z position, given in angstroms relative to the origin of the map.
+        ''' % (self.CENTER_VIEW.rstrip('.'), self.CENTER_MODEL.rstrip('.'),
+            self.CENTER_SELECTION.rstrip('.'), self.CENTER_XYZ.rstrip('.'))
+        centering_label = QLabel("Center search at")
+        centering_label.setToolTip(centering_tip)
+        centering_layout.addWidget(centering_label, alignment=Qt.AlignRight)
+        self.centering_button = QPushButton()
+        self.centering_button.setToolTip(centering_tip)
+        centering_layout.addWidget(self.centering_button)
+        centering_menu = QMenu(self.centering_button)
+        for method in self.CENTERING_METHODS:
+            centering_menu.addAction(method)
+        centering_menu.triggered.connect(lambda act: self._set_centering_method(act.text()))
+        self.centering_button.setMenu(centering_menu)
+        self.xyz_area = QWidget()
+        xyz_layout = QHBoxLayout()
+        xyz_layout.setSpacing(1)
+        self.xyz_area.setLayout(xyz_layout)
+        self.xyz_widgets = []
+        for lab in ["X", " Y", " Z"]:
+            xyz_layout.addWidget(QLabel(lab), alignment=Qt.AlignRight)
+            entry = QLineEdit()
+            entry.setValidator(QDoubleValidator())
+            entry.setAlignment(Qt.AlignCenter)
+            entry.setMaximumWidth(50)
+            entry.setText("0")
+            xyz_layout.addWidget(entry, alignment=Qt.AlignLeft)
+            self.xyz_widgets.append(entry)
+        self.model_menu = ModelMenuButton(session)
+        centering_layout.addWidget(self.model_menu)
+        centering_layout.addWidget(self.xyz_area)
+        self._set_centering_method()
+
+        checkbox_area = QWidget()
+        layout.addWidget(checkbox_area, alignment=Qt.AlignCenter)
+        checkbox_layout = QVBoxLayout()
+        checkbox_layout.setContentsMargins(0,0,0,0)
+        checkbox_area.setLayout(checkbox_layout)
+        self.verify_center_checkbox = QCheckBox("Interactively verify/adjust center before searching")
+        self.verify_center_checkbox.setChecked(True)
+        checkbox_layout.addWidget(self.verify_center_checkbox, alignment=Qt.AlignLeft)
+        self.opaque_maps_checkbox = QCheckBox("Make maps opaque while verifying center")
+        self.opaque_maps_checkbox.setToolTip(
+            "ChimeraX cannot show multiple transparent objects correctly, so make maps opaque\n"
+            "while transparent interactive search-center sphere is being displayed"
+        )
+        self.opaque_maps_checkbox.setChecked(self.settings.opaque_maps)
+        self.verify_center_checkbox.clicked.connect(lambda checked, b=self.opaque_maps_checkbox:
+            b.setHidden(not checked))
+        checkbox_layout.addWidget(self.opaque_maps_checkbox, alignment=Qt.AlignLeft)
+        """
+        layout.addSpacing(10)
+
+        layout.addWidget(PhenixCitation(session, tool_name, "emplace_local",
+            title="Likelihood-based interactive local docking into cryo-EM maps in ChimeraX",
+            info=["Read RJ, Pettersen EF, McCoy AJ, Croll TI, Terwilliger TC, Poon BK, Meng EC",
+                "Liebschner D, Adams PD", "Acta Cryst. D80, 588-598 (2024)"],
+            pubmed_id=39058381), alignment=Qt.AlignCenter)
+        """
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.launch_ligand_fit)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_ligand_fit(apply=True))
+        bbox.rejected.connect(self.delete)
+        if self.help:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
+        tw.manage(placement=None)
+
+    def launch_ligand_fit(self, apply=False):
+        ligand_fmt = self.ligand_fmt_button.text()
+        ligand_widget = self.ligand_stack.currentWidget()
+        if ligand_fmt == self.LIGAND_FMT_MODEL:
+            ligand_value = ligand_widget.value
+            if not ligand_value:
+                raise UserError("No ligand model specified")
+        else:
+            ligand_value = ligand_widget.text()
+            if not ligand_value:
+                raise UserError("No " + ligand_fmt + " text provided")
+
+        receptor = self.receptor_menu.value
+        if not receptor:
+            raise UserError("Must specify a receptor structure")
+        map = self.map_menu.value
+        if map:
+            if self.resolution_entry.hasAcceptableInput():
+                resolution = float(self.resolution_entry.text())
+            else:
+                raise UserError("Must specify a resolution value for the map")
+        else:
+            raise UserError("Must specify map for fitting")
+        method = self.centering_button.text()
+        if method == self.CENTER_XYZ:
+            center = [float(widget.text()) for widget in self.xyz_widgets]
+        elif method == self.CENTER_MODEL:
+            centering_model = self.model_menu.value
+            if centering_model is None:
+                raise UserError("No model chosen for specifying search center")
+            bnds = centering_model.bounds()
+            if bnds is None:
+                raise UserError("No part of model for specifying search center is displayed")
+            center = bnds.center()
+        elif method == self.CENTER_VIEW:
+            # If pivot point shown or using fixed center of rotation, use that.
+            # Otherwise, midpoint where center of window intersects front and back of halfmap bounding box.
+            view_center = None
+            mv = self.session.main_view
+            for d in mv.drawing.child_drawings():
+                if d.__class__.__name__ == "PivotIndicator":
+                    view_center = d.position.origin()
+                    break
+            else:
+                if mv.center_of_rotation_method == "fixed":
+                    view_center = mv.center_of_rotation
+            if view_center is None:
+                from chimerax.map import Volume
+                shown_vols = [v for v in self.session.models if isinstance(v, Volume) and v.display]
+                if len(shown_vols) == 1:
+                    view_map = shown_vols[0]
+                else:
+                    view_map = maps[0]
+                from .emplace_local import view_box, ViewBoxError
+                try:
+                    view_center = view_box(self.session, view_map)
+                except ViewBoxError as e:
+                    raise UserError(str(e))
+            center = view_center
+        elif method == self.CENTER_SELECTION:
+            if self.session.selection.empty():
+                raise UserError("Nothing selected")
+            from chimerax.atomic import selected_atoms
+            sel_atoms = selected_atoms(self.session)
+            from chimerax.geometry import point_bounds, union_bounds
+            atom_bbox = point_bounds(sel_atoms.scene_coords)
+            atom_models = set(sel_atoms.unique_structures)
+            bbox = union_bounds([atom_bbox]
+                + [m.bounds() for m in self.session.selection.models() if m not in atom_models])
+            if bbox is None:
+                raise UserError("No bounding box for selected items")
+            center = bbox.center()
+        else:
+            raise AssertionError("Unknown centering method")
+        self.settings.search_center = method
+        if self.verify_center_checkbox.isChecked():
+            raise NotImplementedError("Interactive center adjustment not yet implemented")
+            self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
+            VerifyELCenterDialog(self.session, receptor, maps, res, center, self.settings.opaque_maps, ssm,
+                apply_symmetry)
+        else:
+            _run_ligand_fit_command(self.session, ligand_fmt, ligand_value, receptor, map, resolution,
+                center)
+        if not apply:
+            self.display(False)
+
+    def _fmt_menu_cb(self, action):
+        self._update_fmt_widgets(action.text())
+
+    def _set_centering_method(self, method=None):
+        if method is None:
+            method = self.settings.search_center
+            if method not in self.CENTERING_METHODS:
+                method = self.CENTER_MODEL
+        self.centering_button.setText(method)
+        self.xyz_area.setHidden(True)
+        self.model_menu.setHidden(True)
+        if method == self.CENTER_XYZ:
+            self.xyz_area.setHidden(False)
+        elif method == self.CENTER_MODEL:
+            self.model_menu.setHidden(False)
+
+    def _update_fmt_widgets(self, fmt):
+        self.ligand_fmt_button.setText(fmt)
+        self.ligand_stack.setCurrentIndex(self.ligand_fmt_to_index[fmt])
+        h = self.ligand_stack.currentWidget().sizeHint().height()
+        self.ligand_stack.setFixedHeight(h)
+
+    def _update_res_num_widget(self, receptor=None):
+        if receptor is None:
+            receptor = self.receptor_menu.value
+            if not receptor:
+                return
+        chain_id = self.chain_id_entry.text()
+        residues = receptor.residues
+        chain_residues = residues.filter(residues.chain_ids == chain_id)
+        if chain_residues:
+            next_res_num = max(chain_residues.numbers) + 1
+        else:
+            next_res_num = 1
+        self.res_num_entry.setText(str(next_res_num))
+
+    def _update_spec_widgets(self):
+        receptor = self.receptor_menu.value
+        if not receptor:
+            return
+        if self.res_num_entry.text() or self.chain_id_entry.text():
+            return
+        if receptor.num_chains != 1:
+            return
+        chain = receptor.chains[0]
+        self.chain_id_entry.setText(chain.chain_id)
+        self._update_res_num_widget(receptor)
+
+class LaunchLigandFitSettings(Settings):
     AUTO_SAVE = {
-        'search_center': LaunchEmplaceLocalTool.CENTER_MODEL,
+        'ligand_format': LaunchLigandFitTool.LIGAND_FMT_CCD,
+        'search_center': LaunchLigandFitTool.CENTER_MODEL,
         'opaque_maps': True,
-        'show_sharpened_map': False
     }
 
 def _run_emplace_local_command(session, structure, maps, resolution, center, show_sharpened_map,
@@ -919,6 +1264,17 @@ def _run_emplace_local_command(session, structure, maps, resolution, center, sho
         " applySymmetry %s" % (
         structure.atomspec, concise_model_spec(session, maps, relevant_types=Volume, allow_empty_spec=False),
         resolution, *center, BoolArg.unparse(show_sharpened_map), BoolArg.unparse(apply_symmetry))
+    run(session, cmd)
+
+def _run_ligand_fit_command(session, ligand_fmt, ligand_value, receptor, map, resolution, center):
+    from chimerax.core.commands import run, StringArg
+    from chimerax.map import Volume
+    LLFT = LaunchLigandFitTool
+    lig_arg = "%s:%s" % ({LLFT.LIGAND_FMT_CCD: "ccd", LLFT.LIGAND_FMT_MODEL: "file",
+        LLFT.LIGAND_FMT_PUBCHEM: "pubchem", LLFT.LIGAND_FMT_SMILES: "smiles"}[ligand_fmt],
+        (ligand_value.atomspec if ligand_fmt == LLFT.LIGAND_FMT_MODEL else ligand_value))
+    cmd = "phenix ligandFit %s %s center %g,%g,%g inMap %s resolution %g" % (
+        receptor.atomspec, StringArg.unparse(lig_arg), *center, map.atomspec, resolution)
     run(session, cmd)
 
 class FitLoopsResultsSettings(Settings):

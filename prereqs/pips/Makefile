@@ -36,6 +36,7 @@ else
 ifeq ($(OS),Darwin)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
 ifeq ($(OSARCH),DarwinArm64)
+CYTHON_WHEEL = Cython-$(CYTHON_VERSION)-cp311-cp311-macosx_10_9_universal2.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
 endif
@@ -44,37 +45,14 @@ endif
 endif
 endif
 
-PLATO_PREREQS = $(TINYARRAY_PREREQ)
-PLATO_WHEELS = $(TINYARRAY_WHEEL)
-
-ifeq ($(OS),Windows)
-else
-ifeq ($(OS),Linux)
-else
-ifeq ($(OS),Darwin)
+PLATO_WHEELS = $(GRAKO_WHEEL) $(TINYARRAY_WHEEL)
 ifeq ($(OSARCH),DarwinArm64)
-SOURCE_WHEELS += Cython
-SOURCE_VERSIONS += Cython==$(CYTHON_VERSION)
-else
-ifeq ($(OSARCH),DarwinIntel64)
-endif
-endif
-endif
-endif
+PLATO_WHEELS += $(CYTHON_WHEEL)
 endif
 
 all:
 
-install: $(GRAKO_WHEEL)
-	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation -r build_requirements.txt
-ifneq (,$(SOURCE_WHEELS))
-	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
-endif
-	$(PIP_INSTALL) $(GRAKO_WHEEL)
-ifeq ($(OS),Darwin)
-	# Link cython in Python framework to build/bin, used compiling core/serialize.pyx.
-	ln -s ../Library/Frameworks/Python.Framework/Versions/$(PYTHON_VERSION)/bin/cython $(bindir)
-endif
+install:
 
 list:
 	$(PIP) list
@@ -83,15 +61,12 @@ app-list:
 	$(APP_PIP) list
 
 upgrade:
-	$(PIP_INSTALL) -U --no-build-isolation -r build_requirements.txt
 
-app-install: $(GRAKO_WHEEL) $(PLATO_WHEELS)
+app-install: $(PLATO_WHEELS)
 	$(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifneq (,$(SOURCE_WHEELS))
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
 endif
-	# Will be downloaded from install step
-	$(APP_PIP_INSTALL) $(GRAKO_WHEEL)
 ifdef DEV_DEPENDENCIES
 	$(APP_PIP_INSTALL) --no-build-isolation -r dev_requirements.txt
 endif
@@ -156,3 +131,6 @@ $(GRAKO_WHEEL):
 
 $(TINYARRAY_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/tinyarray/$(TINYARRAY_WHEEL)
+
+$(CYTHON_WHEEL):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cython/$(CYTHON_WHEEL)

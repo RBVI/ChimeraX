@@ -25,16 +25,16 @@
 def foldseek_traces(session, align_with = None, cutoff_distance = None,
                     close_only = 4.0, gap_distance_limit = 10.0, min_residues = 5,
                     tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
-    from .gui import foldseek_panel
-    fp = foldseek_panel(session)
-    if fp is None or fp.results is None:
+    from .foldseek import foldseek_results
+    results = foldseek_results(session)
+    if results is None:
         return
 
     if cutoff_distance is None:
-        cutoff_distance = fp.alignment_cutoff_distance
+        cutoff_distance = results.alignment_cutoff_distance
 
     from .foldseek import alignment_residues, hit_coords, hit_residue_pairing, align_xyz_transform
-    qchain = fp.results.query_chain
+    qchain = results.query_chain
     if qchain is None:
         from chimerax.core.errors import UserError
         raise UserError('Cannot position traces without query structure')
@@ -50,7 +50,7 @@ def foldseek_traces(session, align_with = None, cutoff_distance = None,
 
     traces = []
     rtot = rshown = 0
-    for hit in fp.hits:
+    for hit in results.hits:
         hit_xyz = hit_coords(hit)
         hi, qi = hit_residue_pairing(hit)
         hxyz = hit_xyz[hi]
@@ -94,7 +94,7 @@ def foldseek_traces(session, align_with = None, cutoff_distance = None,
     else:
         surf = _create_line_traces_model(session, traces)
 
-    surf.position = fp.results.query_chain.structure.scene_position
+    surf.position = qchain.structure.scene_position
     session.models.add([surf])
     msg = f'{surf.trace_count} traces showing {rshown} residues with {rtot-rshown} far or short segment residues hidden'
     session.logger.info(msg)

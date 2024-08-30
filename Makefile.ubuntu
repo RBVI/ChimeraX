@@ -21,16 +21,16 @@ install-rbvi:
 	env HOME=`pwd` $(MAKE) install-rbvi UBUNTU_DIST=$(UBUNTU)
 
 package: ubuntu
-	$(PYTHON_EXE) mkubuntu.py $(UBUNTU)
+	$(APP_PYTHON_EXE) mkubuntu.py $(UBUNTU)
 
 daily-package: ubuntu
-	$(PYTHON_EXE) mkubuntu.py $(UBUNTU) daily
+	$(APP_PYTHON_EXE) mkubuntu.py $(UBUNTU) daily
 
 techpreview-package: ubuntu
-	$(PYTHON_EXE) mkubuntu.py $(UBUNTU) techpreview
+	$(APP_PYTHON_EXE) mkubuntu.py $(UBUNTU) techpreview
 
 candidate-package: ubuntu
-	$(PYTHON_EXE) mkubuntu.py $(UBUNTU) candidate
+	$(APP_PYTHON_EXE) mkubuntu.py $(UBUNTU) candidate
 
 #clean:
 #	rm -rf ucsf-chimerax

@@ -125,16 +125,6 @@ class _AlphaFoldBundle(BundleAPI):
                 from chimerax.open_command import OpenerInfo
                 class AlphaFoldPAEInfo(OpenerInfo):
                     def open(self, session, path, file_name, **kw):
-                        if 'structure' not in kw:
-                            from chimerax.atomic import AtomicStructure
-                            from os.path import dirname
-                            structs = [m for m in session.models.list(type = AtomicStructure)
-                                       if hasattr(m, 'filename') and dirname(m.filename) == dirname(path)]
-                            if len(structs) == 1:
-                                kw['structure'] = structs[0]
-                            else:
-                                from chimerax.core.errors import UserError
-                                raise UserError(f'Opening an AlphaFold PAE file requires specifying the structure to associate.  Did not find an open structure from the same directory.  To specify the structure use menu\n\n\tTools / Structure Prediction / AlphaFold Error Plot\n\nor use the open command, for example\n\n\topen {path} format pae structure #1\n\nIf you are trying to open a JSON file that is not AlphaFold PAE data then you need to specify the format such as \n\n\topen mole_channels.json format mole')
                         from .pae import alphafold_pae
                         pae = alphafold_pae(session, file = path, **kw)
                         return [], f'Opened AlphaFold PAE with values for {pae.matrix_size} residues and atoms'

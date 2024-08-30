@@ -183,8 +183,6 @@ UPLIBNAME = $(shell echo $(LIBNAME) | tr "[:lower:]" "[:upper:]" | tr '-' '_')
 imex.h:
 	sed -e 's/LIBNAME/$(UPLIBNAME)/' < $(includedir)/imex.i > imex.h
 
-NUMPY_INC += -I"$(shell $(PYTHON_EXE) -c "import numpy; print(numpy.get_include())")"
-
 PYOBJS = $(addprefix __pycache__/,$(addsuffix .cpython-$(PYVER_NODOT).pyc,$(basename $(PYSRCS))))
 
 .SUFFIXES: .rst .html
