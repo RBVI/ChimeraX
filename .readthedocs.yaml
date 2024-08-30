@@ -37,7 +37,7 @@ build:
       - cd src/bundles/surface && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
       - cd src/bundles/webcam && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
       - cd src/bundles/atom_search && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
-      - cd src/bundles/chem_group && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/chem_group && python make_selectors.py && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
       - cd src/bundles/connect_structure && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
       - cd src/bundles/dssp && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
       - cd src/bundles/pdb_lib && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
