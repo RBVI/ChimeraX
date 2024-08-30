@@ -30,15 +30,19 @@ def foldseek_traces(session, align_with = None, cutoff_distance = None,
     if results is None:
         return
 
+    if not results.have_c_alpha_coordinates():
+        from chimerax.core.errors import UserError
+        raise UserError('Search results do not include C-alpha atom coordinates used to draw traces.  Run the "foldseek fetchcoords" command to fetch the coordinates')
+    
     if cutoff_distance is None:
         cutoff_distance = results.alignment_cutoff_distance
 
-    from .foldseek import alignment_residues, hit_coords, hit_residue_pairing, align_xyz_transform
+    from .foldseek import hit_coords, hit_residue_pairing, align_xyz_transform
     qchain = results.query_chain
     if qchain is None:
         from chimerax.core.errors import UserError
         raise UserError('Cannot position traces without query structure')
-    qres = alignment_residues(qchain.existing_residues)
+    qres = results.query_residues
     qatoms = qres.find_existing_atoms('CA')
     query_xyz = qatoms.coords
     if align_with is not None:
