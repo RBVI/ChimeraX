@@ -39,6 +39,7 @@
     <ChimeraXClassifier>Command :: foldseek scrollto :: Structure Comparison :: Show table row for a Foldseek hit</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: foldseek pairing :: Structure Comparison :: Show pseudobonds between paired Foldseek hit and query residues</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: foldseek seqalign :: Structure Comparison :: Show sequence alignement for one foldseek hit</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: foldseek fetchcoords :: Structure Comparison :: Fetch C-alpha coordinates of foldseek hits for clustering and showing backbone traces</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Foldseek :: Structure Analysis :: Search PDB or AlphaFold databases for protein structures matching the fold of a specified structure</ChimeraXClassifier>
   </Classifiers>
 

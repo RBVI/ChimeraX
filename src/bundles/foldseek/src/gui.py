@@ -390,7 +390,8 @@ class FoldseekRow:
 #
 def foldseek_scroll_to(session, hit_name):
     '''Show table row for this hit.'''
-    hit, results = _foldseek_hit_by_name(session, hit_name)
+    from .foldseek import foldseek_hit_by_name
+    hit, results = foldseek_hit_by_name(session, hit_name)
     if hit:
         panel = foldseek_panel(session)
         if panel:

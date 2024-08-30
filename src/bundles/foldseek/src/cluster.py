@@ -29,24 +29,27 @@ def foldseek_cluster(session, query_residues = None, align_with = None, cutoff_d
     if results is None:
         return
 
-    query_chain = results.query_chain
+    if not results.have_c_alpha_coordinates():
+        from chimerax.core.errors import UserError
+        raise UserError('Search results do not include C-alpha atom coordinates used for clustering.  Run the "foldseek fetchcoords" command to fetch the coordinates')
+
     if query_residues is None:
-        from .foldseek import alignment_residues
-        query_residues = alignment_residues(query_chain.existing_residues)
+        query_residues = results.query_residues
 
     if len(query_residues) == 0:
         from chimerax.core.errors import UserError
         raise UserError('Must specify at least 1 residue to compute Foldseek clusters')
     
-    _show_umap(session, results.hits, query_chain, query_residues,
+    _show_umap(session, results, query_residues,
                align_with = align_with, cutoff_distance = cutoff_distance,
                cluster_count = cluster_count, cluster_distance = cluster_distance,
                replace = replace)
 
-def _show_umap(session, hits, query_chain, query_residues, align_with = None, cutoff_distance = 2.0,
+def _show_umap(session, results, query_residues, align_with = None, cutoff_distance = 2.0,
                cluster_count = None, cluster_distance = None, replace = True):
 
-    coord_offsets, hit_names = _aligned_coords(hits, query_chain, query_residues,
+    hits = results.hits
+    coord_offsets, hit_names = _aligned_coords(hits, results.query_residues, query_residues,
                                                align_with = align_with, cutoff_distance = cutoff_distance)
     if len(coord_offsets) == 0:
         session.logger.error(f'Foldseek results contains no structures with all of the specified {len(query_residues)} residues')
@@ -85,10 +88,9 @@ def _foldseek_trace_models(session):
     from .traces import FoldseekTraces
     return session.models.list(type = FoldseekTraces)
 
-def _aligned_coords(hits, query_chain, query_residues, align_with = None, cutoff_distance = 2.0):
-    from .foldseek import alignment_residues, hit_coords, hit_residue_pairing, align_xyz_transform
-    qres = alignment_residues(query_chain.existing_residues)
-    qatoms = qres.find_existing_atoms('CA')
+def _aligned_coords(hits, query_chain_residues, query_residues, align_with = None, cutoff_distance = 2.0):
+    from .foldseek import hit_coords, hit_residue_pairing, align_xyz_transform
+    qatoms = query_chain_residues.find_existing_atoms('CA')
     query_xyz = qatoms.coords
     qria = qatoms.indices(query_residues.find_existing_atoms('CA'))
     qri = set(qria)
