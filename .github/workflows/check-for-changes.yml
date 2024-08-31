@@ -50,7 +50,7 @@ jobs:
       # buildinfo.py breaks without this
       - run: chown -R $(id -u):$(id -g) $PWD
       - run: ${PWD}/utils/set_up_centos.sh
-      - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc) make -f Makefile.centos build-minimal
+      - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -f Makefile.centos build-minimal
       - run: make test
       - name: Install Pytest
         run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
