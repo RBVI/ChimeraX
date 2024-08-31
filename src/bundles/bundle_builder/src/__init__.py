@@ -21,7 +21,7 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "1.3.2"
+__version__ = "1.3.3"
 import importlib.metadata
 import logging
 import sys
@@ -581,7 +581,7 @@ def _extract_selectors(bundle_info) -> list[dict[str, str]]:
 
 
 def xml_to_toml(
-    bundle_info, dynamic_version=False, write: bool = False
+    bundle_info, dynamic_version=False, write: bool = False, quiet: bool = False
 ) -> Optional[str]:
     bundle = BundleBuilder(logger=log, bundle_xml=bundle_info)
     python_classifiers = bundle.python_classifiers
@@ -857,12 +857,13 @@ def xml_to_toml(
     # description = "Get results for a finished BlastProtein job"
     # """
 
-    if dynamic_version:
-        print(
-            "\nYou enabled dynamic versioning; you must add the following to your top level __init__.py:"
-        )
-        print('__version__ = "%s"' % bundle.version)
-        print("This must be the first uncommented line in the file.\n")
+    if not quiet:
+        if dynamic_version:
+            print(
+                "\nYou enabled dynamic versioning; you must add the following to your top level __init__.py:"
+            )
+            print('__version__ = "%s"' % bundle.version)
+            print("This must be the first uncommented line in the file.\n")
 
-    print(toml)
+        print(toml)
     return toml
