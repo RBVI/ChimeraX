@@ -2,7 +2,15 @@ import os
 
 import pytest
 
-from chimerax.bundle_builder import xml_to_toml
+from chimerax.bundle_builder import xml_to_toml, __version__
+import importlib.metadata
+
+bb_toml = os.path.join(os.path.dirname(os.path.dirname(__file__)), "pyproject.toml")
+with open(bb_toml, "r") as f:
+    for line in f:
+        if "numpy" in line:
+            break
+    numpy_version = line.split("==")[1][:-3].strip().rstrip()
 
 
 @pytest.mark.parametrize(
@@ -37,6 +45,9 @@ from chimerax.bundle_builder import xml_to_toml
 def test_xml_to_toml(xml, toml):
     xml_file = os.path.join(os.path.dirname(__file__), "xml", xml)
     toml_file = os.path.join(os.path.dirname(__file__), "toml", toml)
+    print(numpy_version)
     with open(toml_file, "r") as f:
         expected = f.read().strip()
+        expected = expected.replace("CURRENT_NUMPY_VERSION", numpy_version)
+        expected = expected.replace("CURRENT_BUNDLE_BUILDER_VERSION", __version__)
         assert xml_to_toml(xml_file).strip() == str(expected)
