@@ -21,7 +21,7 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "1.3.3"
+__version__ = "1.3.4"
 import importlib.metadata
 import logging
 import sys
@@ -614,7 +614,7 @@ def xml_to_toml(
         if reqs:
             for dep in reqs:
                 if dep.startswith("numpy"):
-                    build_dependencies.append(dep)
+                    build_dependencies.append(dep.replace(" ", ""))
                     break
 
     # Set the build backend to require this version of bundle builder or greater.
