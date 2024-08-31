@@ -47,7 +47,10 @@ static PyObject* invert_arg;
 static PyObject* list_arg;
 static PyObject* add_model_arg;
 static PyObject* add_atoms_arg;
+static PyObject* add_pseudobonds_arg;
 static PyObject* atomspec_has_atoms_arg;
+static PyObject* atomspec_has_pseudobonds_arg;
+static PyObject* atomspec_pseudobonds_arg;
 static std::string use_python_error("Use Python error");
 static bool add_implied, order_implicit_atoms, outermost_inversion;
 
@@ -142,64 +145,6 @@ new_objects_instance()
     auto objects_inst = PyObject_CallNoArgs(objects_class);
     if (objects_inst == nullptr)
         throw std::runtime_error("Cannot create Objects instance");
-    return objects_inst;
-}
-
-static PyObject*
-new_models_objects_instance(std::vector<PyObject*> init_models)
-{
-    auto objects_inst = new_objects_instance();
-    for (auto py_model: init_models) {
-        if (PyObject_CallMethodOneArg(objects_inst, add_model_arg, py_model) == nullptr) {
-            Py_DECREF(objects_inst);
-            throw std::logic_error(use_python_error);
-        }
-        // kludge so that for now some things gets selected, needs work once sub-parts are supported
-        auto ret = PyObject_CallMethodNoArgs(py_model, atomspec_has_atoms_arg);
-        if (!PyBool_Check(ret)) {
-            Py_DECREF(objects_inst);
-            Py_DECREF(ret);
-            throw std::logic_error("model.atomspec_has_atom() did not return a boolean value");
-        }
-        if (ret == Py_True) {
-            auto method = PyObject_GetAttrString(py_model, "atomspec_atoms");
-            if (method == nullptr) {
-                Py_DECREF(objects_inst);
-                throw std::logic_error(use_python_error);
-            }
-            if (!PyCallable_Check(method)) {
-                Py_DECREF(objects_inst);
-                Py_DECREF(method);
-                throw std::logic_error("model.atomspec_atom is not callable");
-            }
-            auto no_args = PyTuple_New(0);
-            if (no_args == nullptr)
-                throw std::runtime_error("Cannot create zero-length tuple");
-            auto kw_args = PyDict_New();
-            if (kw_args == nullptr) {
-                Py_DECREF(no_args);
-                throw std::runtime_error("Cannot create keyword dictionary");
-            }
-            if (PyDict_SetItemString(kw_args, "ordered", order_implicit_atoms ? Py_True : Py_False) < 0) {
-                Py_DECREF(no_args);
-                Py_DECREF(kw_args);
-                Py_DECREF(objects_inst);
-                throw std::logic_error(use_python_error);
-            }
-            auto py_atoms = PyObject_Call(method, no_args, kw_args);
-            if (PyObject_CallMethodOneArg(objects_inst, add_atoms_arg, py_atoms) == nullptr) {
-                Py_DECREF(objects_inst);
-                Py_DECREF(py_atoms);
-                Py_DECREF(no_args);
-                Py_DECREF(kw_args);
-                throw std::logic_error(use_python_error);
-            }
-            Py_DECREF(no_args);
-            Py_DECREF(kw_args);
-            Py_DECREF(py_atoms);
-        }
-        Py_DECREF(ret);
-    }
     return objects_inst;
 }
 
@@ -376,6 +321,20 @@ static PyObject* get_module_attribute(const char* mod_name, const char* attr_nam
     return attr;
 }
 
+static bool py_bool_method(PyObject* py_model, PyObject* method_name)
+{
+    auto bool_result = PyObject_CallMethodNoArgs(py_model, method_name);
+    if (bool_result == nullptr) {
+        throw std::logic_error(use_python_error);
+    }
+    if (!PyBool_Check(bool_result)) {
+        Py_DECREF(bool_result);
+        throw std::domain_error("method did not return a boolean value");
+    }
+    // boolean constants are immortal, so don't sweat the DECREF
+    return bool_result == Py_True;
+}
+
 PyMODINIT_FUNC PyInit__spec_parser()
 {
     auto mod = PyModule_Create(&spec_parser_def);
@@ -415,8 +374,17 @@ PyMODINIT_FUNC PyInit__spec_parser()
     add_atoms_arg = PyUnicode_FromString("add_atoms");
     if (add_atoms_arg == nullptr)
         return nullptr;
+    add_pseudobonds_arg = PyUnicode_FromString("add_pseudobonds");
+    if (add_pseudobonds_arg == nullptr)
+        return nullptr;
     atomspec_has_atoms_arg = PyUnicode_FromString("atomspec_has_atoms");
     if (atomspec_has_atoms_arg == nullptr)
+        return nullptr;
+    atomspec_has_pseudobonds_arg = PyUnicode_FromString("atomspec_has_pseudobonds");
+    if (atomspec_has_pseudobonds_arg == nullptr)
+        return nullptr;
+    atomspec_pseudobonds_arg = PyUnicode_FromString("atomspec_pseudobonds");
+    if (atomspec_pseudobonds_arg == nullptr)
         return nullptr;
 
     // atom_specifier
@@ -582,9 +550,97 @@ PyMODINIT_FUNC PyInit__spec_parser()
         std::cerr << "\n";
         auto gmatcher = GlobalModelMatcher(std::any_cast<bool>(vs[0]), 
             std::any_cast<std::vector<std::vector<ModelMatcher>>>(vs[1]));
-        auto objects = new_models_objects_instance(gmatcher.matches());
-        //TODO: zone
-        return objects;
+        //TODO: attrs, parts, zone
+        auto objects_inst = new_objects_instance();
+        for (auto py_model: gmatcher.matches()) {
+            bool add_model = true, has_atoms;
+            try {
+                has_atoms = py_bool_method(py_model, atomspec_has_atoms_arg);
+            } catch (std::domain_error& e) {
+                Py_DECREF(objects_inst);
+                throw std::logic_error("model.atomspec_has_atoms() did not return a boolean value");
+            } catch (std::exception& e) {
+                Py_DECREF(objects_inst);
+                throw;
+            }
+            if (has_atoms) {
+                auto method = PyObject_GetAttrString(py_model, "atomspec_atoms");
+                if (method == nullptr) {
+                    Py_DECREF(objects_inst);
+                    throw std::logic_error(use_python_error);
+                }
+                if (!PyCallable_Check(method)) {
+                    Py_DECREF(objects_inst);
+                    Py_DECREF(method);
+                    throw std::logic_error("model.atomspec_atom is not callable");
+                }
+                auto no_args = PyTuple_New(0);
+                if (no_args == nullptr)
+                    throw std::runtime_error("Cannot create zero-length tuple");
+                auto kw_args = PyDict_New();
+                if (kw_args == nullptr) {
+                    Py_DECREF(objects_inst);
+                    Py_DECREF(method);
+                    Py_DECREF(no_args);
+                    throw std::runtime_error("Cannot create keyword dictionary");
+                }
+                if (PyDict_SetItemString(kw_args, "ordered", order_implicit_atoms ? Py_True : Py_False) < 0) {
+                    Py_DECREF(objects_inst);
+                    Py_DECREF(method);
+                    Py_DECREF(no_args);
+                    Py_DECREF(kw_args);
+                    throw std::logic_error(use_python_error);
+                }
+                auto py_atoms = PyObject_Call(method, no_args, kw_args);
+                if (PyObject_CallMethodOneArg(objects_inst, add_atoms_arg, py_atoms) == nullptr) {
+                    Py_DECREF(objects_inst);
+                    Py_DECREF(method);
+                    Py_DECREF(no_args);
+                    Py_DECREF(kw_args);
+                    Py_DECREF(py_atoms);
+                    throw std::logic_error(use_python_error);
+                }
+                Py_DECREF(method);
+                Py_DECREF(no_args);
+                Py_DECREF(kw_args);
+                //TODO: filtering, and set add_model false if no atoms after filtering
+                Py_DECREF(py_atoms);
+            } else {
+                bool has_pseudobonds;
+                try {
+                    has_pseudobonds = py_bool_method(py_model, atomspec_has_pseudobonds_arg);
+                } catch (std::domain_error& e) {
+                    Py_DECREF(objects_inst);
+                    throw std::logic_error(
+                        "model.atomspec_has_pseudobonds() did not return a boolean value");
+                } catch (std::exception& e) {
+                    Py_DECREF(objects_inst);
+                    throw;
+                }
+                if (has_pseudobonds) {
+                    auto pbonds = PyObject_CallMethodNoArgs(py_model, atomspec_pseudobonds_arg);
+                    if (pbonds == nullptr) {
+                        Py_DECREF(objects_inst);
+                        throw std::logic_error(use_python_error);
+                    }
+                    auto ret_val = PyObject_CallMethodOneArg(objects_inst, add_pseudobonds_arg, pbonds);
+                    if (ret_val == nullptr) {
+                        Py_DECREF(objects_inst);
+                        throw std::logic_error(use_python_error);
+                    }
+                    Py_DECREF(ret_val);
+                }
+            }
+            if (add_model) {
+                auto ret_val = PyObject_CallMethodOneArg(objects_inst, add_model_arg, py_model);
+                if (ret_val == nullptr) {
+                    Py_DECREF(objects_inst);
+                    throw std::logic_error(use_python_error);
+                }
+                Py_DECREF(ret_val);
+            }
+        }
+        return objects_inst;
     };
             
     // model_hierarchy
