@@ -13,10 +13,23 @@
     <Category name="Molecular structure"/>
   </Categories>
 
+  <CLibrary name="pdb">
+    <SourceFile>pdb_cpp/pdb.cpp</SourceFile>
+    <SourceFile>pdb_cpp/pdb_chars.cpp</SourceFile>
+    <SourceFile>pdb_cpp/pdb_read.cpp</SourceFile>
+    <SourceFile>pdb_cpp/pdb_sprntf.cpp</SourceFile>
+    <SourceFile>pdb_cpp/pdb_sscanf.cpp</SourceFile>
+    <SourceFile>pdb_cpp/pdb_type.cpp</SourceFile>
+    <SourceFile>pdb_cpp/pdbinput.cpp</SourceFile>
+    <IncludeDir>pdb_cpp/pdb_cpp</IncludeDir>
+  </CLibrary>
+
   <CModule name="_pdbio">
     <SourceFile>pdbio_cpp/PDBio.cpp</SourceFile>
-    <IncludeDir>pdb_cpp/include</IncludeDir>
+    <IncludeDir>pdb_cpp/</IncludeDir>
     <LibraryDir>pdb_cpp/lib</LibraryDir>
+    <LibraryDir>pdb_cpp/</LibraryDir>
+    <LibraryDir>src/</LibraryDir>
     <Library>atomstruct</Library>
     <Library>element</Library>
     <Library>pyinstance</Library>
