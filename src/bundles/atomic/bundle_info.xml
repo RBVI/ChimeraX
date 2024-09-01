@@ -65,7 +65,7 @@
     <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=14.0"/>
     <Dependency name="ChimeraX-ConnectStructure" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
-    <Dependency name="ChimeraX-Graphics" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
     <Dependency name="ChimeraX-mmCIF" version="~=2.0"/>
     <Dependency name="ChimeraX-Nucleotides" version="~=2.0"/>
     <Dependency name="ChimeraX-PDB" version="~=2.0"/>
