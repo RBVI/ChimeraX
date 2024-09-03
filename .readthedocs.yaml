@@ -43,7 +43,7 @@ build:
       - cd src/bundles/pdb_lib && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
       # No idea why we need to toolshed reload installed here.
       - python -I -m chimerax.core --nogui --exit --safemode --cmd "toolshed reload installed"
-      - cd src/bundles/mmcif && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/mmcif && make lib && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
       - cd src/bundles/mmtf && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
       - cd src/bundles/pdb && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
       - cd src/bundles/atomic && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
