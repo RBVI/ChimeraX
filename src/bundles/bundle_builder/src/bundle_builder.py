@@ -2,6 +2,7 @@
 
 # Force import in a particular order since both Cython and
 # setuptools patch distutils, and we want Cython to win
+import sys
 import setuptools
 import setuptools._distutils as distutils
 from Cython.Build import cythonize
