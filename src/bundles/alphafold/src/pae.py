@@ -1415,7 +1415,7 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
             raise UserError(f'Structure {structure} does not match PAE matrix size {pae.matrix_size}.'
                             f'The structure has {pae.num_residue_rows} polymer residues and {pae.num_atom_rows} non-polymer atoms'
                             '\n\nThis can happen if chains or atoms were deleted from the AlphaFold model or if the PAE data was applied to a structure that was not the one predicted by AlphaFold.  Use the full-length AlphaFold model to show predicted aligned error.')
-            structure.alphafold_pae = pae
+        structure.alphafold_pae = pae
     elif structure is None:
         from chimerax.core.errors import UserError
         raise UserError('No structure or PAE file specified.')
