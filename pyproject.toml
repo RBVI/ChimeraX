@@ -36,6 +36,9 @@ norecursedirs = [
   "src/bundles/**/src",
   "src/core/toolshed/unused",
 ]
+markers = [
+  "wheel: marks tests to run only for the PyPi wheel (deselect with '-m \"not wheel\"')",
+]
 ### Ignore all the flake8 rules that directly contradict how
 ### real life actual people write code in the real world
 #flake8-ignore = [
