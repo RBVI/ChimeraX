@@ -1138,6 +1138,14 @@ class LaunchLigandFitTool(ToolInstance):
                 raise UserError("Must specify a resolution value for the map")
         else:
             raise UserError("Must specify map for fitting")
+        chain_id = self.chain_id_entry.text().strip()
+        if self.res_num_entry.text().strip():
+            if self.res_num_entry.hasAcceptableInput():
+                res_num = int(self.res_num_entry.text())
+            else:
+                raise UserError("Residue number must be an integer")
+        else:
+            res_num = None
         method = self.centering_button.text()
         if method == self.CENTER_XYZ:
             center = [float(widget.text()) for widget in self.xyz_widgets]
@@ -1196,8 +1204,8 @@ class LaunchLigandFitTool(ToolInstance):
             VerifyELCenterDialog(self.session, receptor, maps, res, center, self.settings.opaque_maps, ssm,
                 apply_symmetry)
         else:
-            _run_ligand_fit_command(self.session, ligand_fmt, ligand_value, receptor, map, resolution,
-                center)
+            _run_ligand_fit_command(self.session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
+                resolution, center)
         if not apply:
             self.display(False)
 
@@ -1266,7 +1274,8 @@ def _run_emplace_local_command(session, structure, maps, resolution, center, sho
         resolution, *center, BoolArg.unparse(show_sharpened_map), BoolArg.unparse(apply_symmetry))
     run(session, cmd)
 
-def _run_ligand_fit_command(session, ligand_fmt, ligand_value, receptor, map, resolution, center):
+def _run_ligand_fit_command(session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution,
+        center):
     from chimerax.core.commands import run, StringArg
     from chimerax.map import Volume
     LLFT = LaunchLigandFitTool
@@ -1275,6 +1284,10 @@ def _run_ligand_fit_command(session, ligand_fmt, ligand_value, receptor, map, re
         (ligand_value.atomspec if ligand_fmt == LLFT.LIGAND_FMT_MODEL else ligand_value))
     cmd = "phenix ligandFit %s %s center %g,%g,%g inMap %s resolution %g" % (
         receptor.atomspec, StringArg.unparse(lig_arg), *center, map.atomspec, resolution)
+    if chain_id:
+        cmd += " chain " + chain_id
+    if res_num is not None:
+        cmd += " residueNum " + str(res_num)
     run(session, cmd)
 
 class FitLoopsResultsSettings(Settings):
