@@ -16,12 +16,15 @@ SOURCE_VERSIONS =
 # On macOS, only the x86_64 version of Cython is available from pypi.
 # So we install the same version on arm64, but from source.
 CYTHON_VERSION = $(shell grep Cython= app_requirements.txt  | sed -e 's/ ;.*//' -e 's/.*=//')
+CXSERVICES_VER = 1.2.3
+CXSERVICES_DEPLOYMENT_VER ?= production
 
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
 PATCHES = tcia_utils.patch tcia_utils_metadata.patch
 
-
+QTSHIM_WHEEL = qtshim-1.0-py3-none-any.whl
+CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 GRAKO_WHEEL = grako-3.16.5-py2.py3-none-any.whl
 ifeq ($(OS),Windows)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-win_amd64.whl
@@ -45,7 +48,7 @@ endif
 endif
 endif
 
-PLATO_WHEELS = $(GRAKO_WHEEL) $(TINYARRAY_WHEEL)
+PLATO_WHEELS = $(GRAKO_WHEEL) $(TINYARRAY_WHEEL) $(CXSERVICES_WHEEL) $(QTSHIM_WHEEL)
 ifeq ($(OSARCH),DarwinArm64)
 PLATO_WHEELS += $(CYTHON_WHEEL)
 endif
@@ -134,3 +137,10 @@ $(TINYARRAY_WHEEL):
 
 $(CYTHON_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cython/$(CYTHON_WHEEL)
+
+$(CXSERVICES_WHEEL):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cxservices/cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl
+	mv cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl $(CXSERVICES_WHEEL)
+
+$(QTSHIM_WHEEL):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/qt/$(QTSHIM_WHEEL)
