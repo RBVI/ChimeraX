@@ -31,6 +31,13 @@ from .buildinfo import version
 
 __version__ = version
 
+
+def runtime_env_is_chimerax_app():
+    import chimerax
+
+    return hasattr(chimerax, "app_dirs")
+
+
 import os
 
 
