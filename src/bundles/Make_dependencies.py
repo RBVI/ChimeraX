@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
+
 import os
 from packaging.requirements import Requirement
+from collections import defaultdict
 from xml.dom import minidom
+from typing import Optional
 import tomllib
+import argparse
 
 
-def make_dependencies(dir_path, output_name):
-    # remove when toml is part of the standard Python library
-
+def make_dependencies(dir_path):
     if not dir_path:
         dir_path = "."
 
     # Construct mappings from directory name to bundle dependencies
     # and bundle name to directory name
-    dependencies = {}
+    dependencies = defaultdict(list)
+    reverse_dependencies = defaultdict(list)
     bundle2dirname = {}
     for dir_name in os.listdir(dir_path):
         bundle_info = True
@@ -40,45 +43,43 @@ def make_dependencies(dir_path, output_name):
                 continue
             bundle_name = bundle_tags[0].getAttribute("name")
             bundle2dirname[bundle_name] = dir_name
-            dependencies[dir_name] = deps = []
             for e in doc.getElementsByTagName("Dependency"):
                 build_dep = e.getAttribute("build")
                 if not build_dep or build_dep.lower() == "false":
                     continue
                 dep_name = e.getAttribute("name")
-                deps.append(dep_name)
+                dependencies[dir_name].append(dep_name)
+                reverse_dependencies[dep_name].append(dir_name)
         elif pyproject:
-            bundle_toml: dict = None
+            bundle_toml: Optional[dict] = None
             try:
                 with open(p) as f:
                     bundle_toml = tomllib.loads(f.read())
             except Exception as e:
                 print(str(e))
-            build_dependencies = bundle_toml["build-system"]["requires"]
-            bundle_name = bundle_toml["project"]["name"]
-            bundle2dirname[bundle_name] = dir_name
-            dependencies[dir_name] = deps = []
-            for dep in build_dependencies:
-                # Toss the dependency on core because we build it first in all cases
-                if (
-                    dep.startswith("ChimeraX")
-                    # TODO: These should not really be necessary; all bundles should be made the same way
-                    # but we special case bundle builder and core
-                    and not dep.startswith("ChimeraX-BundleBuilder")
-                    and not dep.startswith("ChimeraX-Core")
-                ):
-                    # Strip the version because we don't need it for our internal system
-                    dep_as_req = Requirement(dep)
-                    deps.append(dep_as_req.name)
+            if bundle_toml:
+                build_dependencies = bundle_toml["build-system"]["requires"]
+                bundle_name = bundle_toml["project"]["name"]
+                bundle2dirname[bundle_name] = dir_name
+                for dep in build_dependencies:
+                    if dep.startswith("ChimeraX") and dep != "ChimeraX-BundleBuilder":
+                        # Strip the version because we don't need it for our internal system
+                        dep_as_req = Requirement(dep)
+                        dependencies[dir_name].append(dep_as_req.name)
+                        reverse_dependencies[dep_as_req.name].append(dir_name)
+    return bundle2dirname, dependencies, reverse_dependencies
+
+
+def write_makefile_dependencies(folder_map, dependencies, dir_path, output_name):
+    # Loop over all directories and emit one dependency line each
     missing = set()
     clean = {}
-    # Loop over all directories and emit one dependency line each
     with open(os.path.join(dir_path, output_name), "w") as f:
         for dir_name in sorted(dependencies.keys()):
             dep_dirs = []
             for dep in dependencies[dir_name]:
                 try:
-                    dep_dir = bundle2dirname[dep]
+                    dep_dir = folder_map[dep]
                 except KeyError:
                     missing.add(dep)
                     continue
@@ -90,7 +91,6 @@ def make_dependencies(dir_path, output_name):
         for dir_name in sorted(clean.keys()):
             clean_dirs = clean[dir_name]
             print(f"{dir_name}.clean: {' '.join(clean_dirs)}", file=f)
-
     # Report any bundle dependencies that is not found
     missing.discard("qtconsole")
     missing.discard("PyAudio")
@@ -105,4 +105,9 @@ def make_dependencies(dir_path, output_name):
 
 
 if __name__ == "__main__":
-    make_dependencies(os.path.dirname(__file__), "Makefile.dependencies")
+    bundle_dirs, dependencies, reverse_dependencies = make_dependencies(
+        os.path.dirname(__file__)
+    )
+    write_makefile_dependencies(
+        bundle_dirs, dependencies, os.path.dirname(__file__), "Makefile.dependencies"
+    )
