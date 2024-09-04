@@ -75,9 +75,7 @@ endif
 	$(MAKE) -C prereqs/Python app-install
 	$(MAKE) -C prereqs/pips app-install
 	$(MAKE) -C prereqs/PyQt app-install
-	$(MAKE) -C prereqs/qtshim app-install
 	$(MAKE) -C prereqs/ambertools app-install
-	$(MAKE) -C prereqs/cxservices app-install
 	$(MAKE) -C src/bundles install
 	$(MAKE) -C src/apps/ChimeraX install
 
