@@ -1264,14 +1264,20 @@ class StructureSeq(Sequence):
         if "name changed" in changes.residue_reasons():
             updated_chars = []
             some_changed = False
-            for res, cur_char in zip(self.residues, self.characters):
-                if res:
-                    uc = Sequence.rname3to1(res.name)
-                    updated_chars.append(uc)
-                    if uc != cur_char:
-                        some_changed = True
+            for gi, c in enumerate(self.characters):
+                ugi = self.gapped_to_ungapped(gi)
+                if ugi is None:
+                    updated_chars.append(c)
                 else:
-                    updated_chars.append(cur_char)
+                    res = self.residues[ugi]
+                    if res:
+                        uc = Sequence.rname3to1(res.name)
+                        updated_chars.append(uc)
+                        if uc != c:
+                            some_changed = True
+                    else:
+                        updated_chars.append(c)
+
             if some_changed:
                 self.bulk_set(self.residues, ''.join(updated_chars), fire_triggers=False)
                 self._fire_trigger('characters changed', self)

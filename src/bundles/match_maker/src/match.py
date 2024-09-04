@@ -83,7 +83,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
             gap_open_strand=-gap_open_strand,
             gap_open_other=-gap_open_other)
         gapped_ref, gapped_match = seqs
-    elif algorithm =="sw":
+    elif algorithm == "sw":
         def ss_let(r):
             if not r:
                 return ' '
