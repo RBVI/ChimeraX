@@ -59,6 +59,7 @@ def foldseek_fetch_coordinates(session, min_aligned_coords = 10):
 
     nremove = len(results.hits) - len(keep_hits)
     if nremove:
+        # TODO: The call to replace hits needs to update the GUI table.
         results.replace_hits(keep_hits)
         msg = f'Removed {nremove} hits that had less than {min_aligned_coords} aligned residues with coordinates.  Kept {len(keep_hits)} hits.'
         session.logger.info(msg)
