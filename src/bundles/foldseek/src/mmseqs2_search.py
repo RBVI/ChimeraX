@@ -280,7 +280,8 @@ def parse_pdb_entity_info(info):
     for pe in pe_list:
         entity_id = pe['rcsb_id']
         pdb_id = entity_id.split('_')[0]
-        species = pe['entity_src_gen'][0]['pdbx_gene_src_scientific_name']
+        esg = pe['entity_src_gen']
+        species = '' if not esg else esg[0]['pdbx_gene_src_scientific_name']
         description = pe['rcsb_polymer_entity']['pdbx_description']
         asym_ids = pe['rcsb_polymer_entity_container_identifiers']['asym_ids']
         auth_asym_ids = pe['rcsb_polymer_entity_container_identifiers'].get('auth_asym_ids')
