@@ -58,6 +58,8 @@ def open_hit(session, hit, query_chain, trim = True, align = True, alignment_cut
             # Align the model to the query structure using Foldseek alignment.
             # Foldseek server does not return transform by default, so compute from sequence alignment.
             hit_chain = _hit_chain(structure, hit)
+            if hit_chain is None:
+                continue	# Hit hand no aligned residues with coordinates
             res, query_res = _alignment_residue_pairs(hit, hit_chain, query_chain)
             if len(res) >= 3:
                 p, rms, npairs = alignment_transform(res, query_res, alignment_cutoff_distance)
@@ -118,13 +120,13 @@ def _trim_structure(structure, hit, trim, ligand_range = 3.0, log = True):
     chain_res, ri_start, ri_end = _residue_range(structure, hit, structure.session.logger)
     if ri_start is None:
         name = hit.get('database_full_id')
-        msg = f'Hit {name} has no aligned residues with coordinates'
+        msg = f'Hit {name} has no coordinates for aligned residues'
         structure.session.logger.warning(msg)
 
     msg = []
     logger = structure.session.logger  # Get logger before structure deleted.
     
-    trim_lig = (trim is True or 'ligands' in trim) and hit['database'] == 'pdb100'
+    trim_lig = (trim is True or 'ligands' in trim) and hit['database'].startswith('pdb')
     chain_id = hit.get('chain_id')
     if (trim is True or 'chains' in trim) and chain_id is not None:
         if trim_lig:
@@ -161,11 +163,14 @@ def _trim_structure(structure, hit, trim, ligand_range = 3.0, log = True):
             sres = structure.residues
             from chimerax.atomic import Residue
             npres = sres[sres.polymer_types == Residue.PT_NONE]
-            npnear = _find_close_residues(npres, chain_res, ligand_range)
-            npfar = npres.subtract(npnear)
-            if npfar:
-                msg.append(f'{len(npfar)} non-polymer residues more than {ligand_range} Angstroms away')
-                npfar.delete()
+            if len(chain_res) == 0:
+                npres.delete()
+            else:
+                npnear = _find_close_residues(npres, chain_res, ligand_range)
+                npfar = npres.subtract(npnear)
+                if npfar:
+                    msg.append(f'{len(npfar)} non-polymer residues more than {ligand_range} Angstroms away')
+                    npfar.delete()
                 
     if log and msg:
         logger.info(f'Deleted {", ".join(msg)}.')
