@@ -33,9 +33,12 @@ bundles = [
 def get_bundle_name(bundle_path):
     # e.g. ./segger/seggerx/Segger/src/fit_dialog.py
     path_as_list = bundle_path.split("/")
-    bundle_name = path_as_list[2]
-    if bundle_name == "rotamer_libs":
-        bundle_name = path_as_list[3]
+    try:
+        bundle_name = path_as_list[2]
+        if bundle_name == "rotamer_libs":
+            bundle_name = path_as_list[3]
+    except IndexError:
+        return ""
     return bundle_name
 
 

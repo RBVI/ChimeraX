@@ -122,7 +122,9 @@ class Provider(ChimeraXClassifier):
 
     def __str__(self):
         attrs = self.misc_attrs_to_list()
-        return f"ChimeraX :: Provider :: {self.name} :: {self.manager} :: {self.classifier_separator.join(attrs)}"
+        if attrs:
+            return f"ChimeraX :: Provider :: {self.name} :: {self.manager} :: {self.classifier_separator.join(attrs)}"
+        return f"ChimeraX :: Provider :: {self.name} :: {self.manager}"
 
 
 class DataFormat(Provider):

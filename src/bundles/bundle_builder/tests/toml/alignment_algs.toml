@@ -1,0 +1,105 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Core ~=1.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-AlignmentAlgorithms"
+version = "2.0.2"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Sequence alignment algorithms"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-Alignments ~=2.0",
+  "ChimeraX-Arrays ~=1.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """This bundle provides a collection of sequence alignment algorithms."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+module-name-override = "alignment_algs"
+categories = ["Sequence alignment"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.package-data]
+"src/include/align_algs" = [
+  "*",
+]
+"src/lib" = [
+  "*",
+]
+
+[tool.chimerax.extension._nw]
+sources = [
+  "_nw/nw.cpp",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src",
+  "src/lib",
+]
+libraries = [
+  "align_algs",
+  "arrays",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+
+[tool.chimerax.extension._sw]
+sources = [
+  "_sw/sw.cpp",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src",
+  "src/lib",
+]
+libraries = [
+  "align_algs",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+
+[tool.chimerax.library.align_algs]
+sources = [
+  "src/support.cpp",
+]
+include-dirs = [
+  "src/include/align_algs",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]

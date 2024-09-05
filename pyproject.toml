@@ -21,7 +21,7 @@ ignore_patterns = [
   "src/core/toolshed/unused",
 ]
 [tool.pytest.ini_options]
-addopts = "--cache-clear --verbose --ignore=tests/test_env.py --ignore=tests/test_imports.py"
+addopts = "--cache-clear --verbose --ignore=tests/test_env.py --ignore=tests/test_imports_app.py --ignore=tests/test_imports_wheel.py"
 console_output_style = "count"
 testpaths = ["tests", "src/bundles/**/tests"]
 norecursedirs = [
@@ -35,6 +35,9 @@ norecursedirs = [
   "src/bundles/**/dist",
   "src/bundles/**/src",
   "src/core/toolshed/unused",
+]
+markers = [
+  "wheel: marks tests to run only for the PyPi wheel (deselect with '-m \"not wheel\"')",
 ]
 ### Ignore all the flake8 rules that directly contradict how
 ### real life actual people write code in the real world

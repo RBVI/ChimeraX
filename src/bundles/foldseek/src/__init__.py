@@ -55,6 +55,12 @@ class _FoldseekBundle(BundleAPI):
         elif command_name == 'foldseek scrollto':
             from . import gui
             gui.register_foldseek_scrollto_command(logger)
+        elif command_name == 'foldseek fetchcoords':
+            from . import coords
+            coords.register_foldseek_fetchcoords_command(logger)
+        elif command_name == 'sequence search':
+            from . import mmseqs2_search
+            mmseqs2_search.register_mmseqs2_search_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):

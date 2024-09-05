@@ -47,7 +47,7 @@
 #include <atomstruct/tmpl/residues.h>
 #include <logger/logger.h>
 #include "pdb/connect.h"
-#include <pdb/PDB.h>
+#include <PDB.h>
 
 using atomstruct::Atom;
 using atomstruct::AtomicStructure;
