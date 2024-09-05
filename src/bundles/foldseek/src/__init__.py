@@ -58,7 +58,7 @@ class _FoldseekBundle(BundleAPI):
         elif command_name == 'foldseek fetchcoords':
             from . import coords
             coords.register_foldseek_fetchcoords_command(logger)
-        elif command_name == 'mmseqs2 search':
+        elif command_name == 'sequence search':
             from . import mmseqs2_search
             mmseqs2_search.register_mmseqs2_search_command(logger)
 

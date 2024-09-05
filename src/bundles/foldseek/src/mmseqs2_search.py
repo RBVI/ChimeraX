@@ -310,4 +310,4 @@ def register_mmseqs2_search_command(logger):
                    ],
         synopsis = 'Search for proteins with similar sequences using RCSB mmseqs2 web service'
     )
-    register('mmseqs2 search', desc, mmseqs2_search, logger=logger)
+    register('sequence search', desc, mmseqs2_search, logger=logger)
