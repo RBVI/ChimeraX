@@ -56,6 +56,8 @@ venv
 .virtualenv
 .makerc
 .idea
+# Test data that gets fetched from Plato
+src/bundles/*/tests/data
 # Fetched tarballs and dylibs for M1 port
 prereqs/pips/imagecodecs*.whl
 prereqs/pips/netCDF4*.whl
