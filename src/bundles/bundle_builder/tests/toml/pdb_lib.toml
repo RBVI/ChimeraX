@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-  "ChimeraX-BundleBuilder>=1.3.0",
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
   "ChimeraX-AtomicLibrary ~=14.0",
   "ChimeraX-Core ~=1.0",
 ]

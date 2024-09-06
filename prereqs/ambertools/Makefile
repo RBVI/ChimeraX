@@ -138,7 +138,11 @@ app-install: install
 	$(RSYNC) $(AMBERDAT_PARM_SRC)/gaff2.dat $(AMBERDAT_PARM_DST)
 	$(RSYNC) $(AMBERLIB_SRC)/*.$(SHLIB_EXT) $(app_libdir)
 ifneq ($(LIBGCCDIR),)
-	$(RSYNC) $(LIBGCCDIR)/libgcc*.$(SHLIB_EXT) $(app_libdir)
+	for gcclib in $(LIBGCCDIR)/libgcc*.$(SHLIB_EXT) ; do \
+		$(RSYNC) $$gcclib $(app_libdir); \
+		filename=`basename $$gcclib`; \
+		install_name_tool -id @executable_path/$$filename $(app_libdir)/$$filename; \
+	done;
 endif
 ifeq ($(OS),Windows)
 	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /usr/bin/cygreadline*.dll /usr/bin/cygintl*.dll /usr/bin/cygncursesw*.dll /usr/bin/cygiconv*.dll /bin/sh.exe $(AMBERBIN_DST)

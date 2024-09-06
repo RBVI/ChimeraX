@@ -58,6 +58,8 @@ def open_hit(session, hit, query_chain, trim = True, align = True, alignment_cut
             # Align the model to the query structure using Foldseek alignment.
             # Foldseek server does not return transform by default, so compute from sequence alignment.
             hit_chain = _hit_chain(structure, hit)
+            if hit_chain is None:
+                continue	# Hit hand no aligned residues with coordinates
             res, query_res = _alignment_residue_pairs(hit, hit_chain, query_chain)
             if len(res) >= 3:
                 p, rms, npairs = alignment_transform(res, query_res, alignment_cutoff_distance)
@@ -118,13 +120,13 @@ def _trim_structure(structure, hit, trim, ligand_range = 3.0, log = True):
     chain_res, ri_start, ri_end = _residue_range(structure, hit, structure.session.logger)
     if ri_start is None:
         name = hit.get('database_full_id')
-        msg = f'Hit {name} has no aligned residues with coordinates'
+        msg = f'Hit {name} has no coordinates for aligned residues'
         structure.session.logger.warning(msg)
 
     msg = []
     logger = structure.session.logger  # Get logger before structure deleted.
     
-    trim_lig = (trim is True or 'ligands' in trim) and hit['database'] == 'pdb100'
+    trim_lig = (trim is True or 'ligands' in trim) and hit['database'].startswith('pdb')
     chain_id = hit.get('chain_id')
     if (trim is True or 'chains' in trim) and chain_id is not None:
         if trim_lig:
@@ -161,11 +163,14 @@ def _trim_structure(structure, hit, trim, ligand_range = 3.0, log = True):
             sres = structure.residues
             from chimerax.atomic import Residue
             npres = sres[sres.polymer_types == Residue.PT_NONE]
-            npnear = _find_close_residues(npres, chain_res, ligand_range)
-            npfar = npres.subtract(npnear)
-            if npfar:
-                msg.append(f'{len(npfar)} non-polymer residues more than {ligand_range} Angstroms away')
-                npfar.delete()
+            if len(chain_res) == 0:
+                npres.delete()
+            else:
+                npnear = _find_close_residues(npres, chain_res, ligand_range)
+                npfar = npres.subtract(npnear)
+                if npfar:
+                    msg.append(f'{len(npfar)} non-polymer residues more than {ligand_range} Angstroms away')
+                    npfar.delete()
                 
     if log and msg:
         logger.info(f'Deleted {", ".join(msg)}.')
@@ -309,6 +314,9 @@ def alignment_coordinates(hits, qstart, qend):
     Return C-alpha atom coordinates for aligned sequences.
     Also return a mask indicating positions that are not sequence gaps.
     '''
+    # TODO: This code only handles Foldseek hits where sequences do not include
+    #  residues that lack coordinates.  For mmseqs2 or blast results the code
+    #  needs to be fixed to account for the sequences including residues without coordinates.
     nhit = len(hits)
     qlen = qend - qstart + 1
     from numpy import zeros, float32
@@ -411,7 +419,7 @@ def hit_coords(hit):
     Returns the C-alpha atom positions for each residue that has such coordinates in the hit structure
     including residues outsides the aligned interval.
     '''
-    hxyz = hit['tca']
+    hxyz = hit.get('tca')
     return hxyz
 
 def hit_residue_pairing(hit):
@@ -440,7 +448,9 @@ def hit_residue_pairing_blast(hit):
 
     # Convert to indices relative to coordinate arrays
     # Paired residues may not have coordinates and those are eliminated.
-    c2f = hit['tca_index']  # Array mapping coordinate index to full sequence index
+    c2f = hit.get('tca_index')  # Array mapping coordinate index to full sequence index
+    if c2f is None:
+        return None, None
     f2c = {fi:ci for ci, fi in enumerate(c2f)}
     qc2f = hit['qcoord_index']  # Array mapping coordinate index to full sequence index for query
     qf2c = {fi:ci for ci, fi in enumerate(qc2f)}
@@ -622,6 +632,9 @@ class FoldseekResults:
 
     def query_alignment_range(self):
         '''Return the range of query residue numbers (qstart, qend) that includes all the hit alignments.'''
+        # TODO: Some uses of this assume the range uses sequence numbering, and other uses like lddt
+        #  assume it uses the numbering of residues with coordinates.  Those are the same for Foldseek
+        #  but not for mmseqs2 or blast.
         qar = self._query_alignment_range
         if qar is not None:
             return qar
@@ -667,14 +680,16 @@ class FoldseekResults:
         qatoms = qres.find_existing_atoms('CA')
         query_xyz = qatoms.coords
         for hit in self.hits:
-            hxyz = hit_coords(hit)
             hi, qi = hit_residue_pairing(hit)
-            p, rms, npairs = align_xyz_transform(hxyz[hi], query_xyz[qi],
-                                                 cutoff_distance=alignment_cutoff_distance)
-            hit['rmsd'] = rms
-            hit['close'] = 100*npairs/len(hi)
-            hit['cutoff_distance'] = alignment_cutoff_distance
-            hit['coverage'] = 100 * len(qi) / len(query_xyz)
+            if hi is not None and qi is not None:
+                hxyz = hit_coords(hit)
+                if hxyz is not None:
+                    p, rms, npairs = align_xyz_transform(hxyz[hi], query_xyz[qi],
+                                                         cutoff_distance=alignment_cutoff_distance)
+                    hit['rmsd'] = rms
+                    hit['close'] = 100*npairs/len(hi)
+                    hit['cutoff_distance'] = alignment_cutoff_distance
+                hit['coverage'] = 100 * len(qi) / len(query_xyz)
         return True
 
     def set_coverage_attribute(self):
