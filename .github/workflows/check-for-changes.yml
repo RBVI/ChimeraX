@@ -32,6 +32,8 @@ jobs:
         run: make test
       - name: Install Pytest
         run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
         run: USE_COVERAGE=1 make pytest-both-exes
       - name: Run wheel tests
@@ -62,6 +64,8 @@ jobs:
         run: make test
       - name: Install Pytest
         run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
         run: USE_COVERAGE=1 make pytest-both-exes
       - name: Run wheel tests
@@ -86,6 +90,8 @@ jobs:
         run: make test
       - name: Install Pytest
         run: ./ChimeraX.app/Contents/bin/python3.11 -I -m pip install pytest pytest-cov
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
         run: USE_COVERAGE=1 make pytest-both-exes
       - name: Run wheel tests
@@ -114,6 +120,8 @@ jobs:
         run: GITHUB_ACTIONS_CI=1 . ./vsvars.sh && make test
       - name: Install Pytest
         run: ./ChimeraX.app/bin/python.exe -I -m pip install pytest pytest-cov
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
         run: USE_COVERAGE=1 make pytest-both-exes
       - name: Run wheel tests
