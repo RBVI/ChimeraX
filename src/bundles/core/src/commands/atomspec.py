@@ -172,16 +172,10 @@ class AtomSpecArg(Annotation):
             objects, parsed, remainder = evaluate(session, models, parse_text, quoted, PeglibParseError,
                 PeglibSemanticsError, add_implied, order_implicit_atoms)
         except PeglibParseError as e:
-            import sys
-            print("parse error", e.args, file=sys.__stderr__)
             raise AnnotationError(e.args[1], offset=find_offset(e))
         except PeglibSemanticsError as e:
-            import sys
-            print("semantics error", e.args, file=sys.__stderr__)
             raise AnnotationError(e.args[1], offset=find_offset(e))
         except RuntimeError as e:
-            import sys
-            print("runtime error", e.args, file=sys.__stderr__)
             raise AssertionError(e.args[1], offset=find_offset(e))
         objects.spec = parsed
         if quoted:

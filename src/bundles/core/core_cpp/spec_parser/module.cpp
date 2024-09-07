@@ -62,6 +62,16 @@ docstr_evaluate = \
 " return a tuple containing a chimerax.core.objects.Objects instance," \
 " the part of text used for the atom spec, and the remaining text.";
 
+template <class ValType>
+class AttrTester {
+public:
+    std::string  name, op;
+    bool  exists;
+    ValType  val;
+    AttrTester(std::string n, std::string o, ValType v) { name = n; op = o; val = v; }
+    AttrTester(std::string n, bool e) { name = n; exists = e; }
+};
+
 class ModelPart {
 public:
     bool  any = false;
@@ -289,12 +299,18 @@ static auto grammar = (R"---(
     atom_specifier <- as_term "&" atom_specifier / as_term "|" atom_specifier / as_term
     as_term <- "(" atom_specifier ")" zone_selector? / "~" as_term zone_selector? / SELECTOR_NAME zone_selector? / model_list
     model_list <- model+
-    model <- HASH_TYPE model_hierarchy zone_selector?
+    model <- HASH_TYPE model_hierarchy ("##" attribute_list)? zone_selector? / "##" attribute_list zone_selector?
     model_hierarchy <- < model_range_list (!Space "." !Space model_hierarchy)* >
     model_range_list <- model_range ("," model_range_list)*
     model_range <- MODEL_SPEC_START "-" MODEL_SPEC_END / MODEL_SPEC_ANY
+    attribute_list <- attr_test ("," attr_test)*
+    attr_test <- ATTR_NAME ATTR_OPERATOR ATTR_VALUE / ATTR_NAME / "~" ATTR_NAME
     zone_selector <- ZONE_OPERATOR real_number / ZONE_OPERATOR integer
     # limit model numbers to 5 digits to avoid conflicts with hex colors
+    ATTR_NAME <- < [a-zA-Z_] [a-zA-Z0-9_]* >
+    ATTR_OPERATOR <- ">=" | ">" | "<=" | "<" | "==" | "=" | "!==" | "!=" | "<>"
+    # Outer token delimiters to prevent automatic whitespace elimination inside quotes
+    ATTR_VALUE <- < '"' < [^"]+ > '"' > / < "'" < [^']+ > "'" > / < [^#/:@,;"' ]+ >
     HASH_TYPE <- "#!" / "#"
     MODEL_SPEC <- < [0-9]{1,5} > ![0-9A-Fa-f]
     MODEL_SPEC_ANY <- MODEL_SPEC / "*"
@@ -464,59 +480,6 @@ PyMODINIT_FUNC PyInit__spec_parser()
         return zone_objects;
     };
 
-    // SELECTOR_NAME
-    spec_parser["SELECTOR_NAME"] = [](const SemanticValues &vs) {
-        auto sel_text = PyUnicode_FromString(vs.token_to_string().c_str());
-        if (sel_text == nullptr)
-            throw std::runtime_error("Could not convert token to string");
-        auto selector = PyObject_CallOneArg(get_selector, sel_text);
-        if (selector == nullptr) {
-            Py_DECREF(sel_text);
-            throw std::logic_error(use_python_error);
-        }
-        Py_DECREF(sel_text);
-        if (selector == Py_None) {
-            Py_DECREF(selector);
-            std::string err_msg = "\"";
-            err_msg += vs.token_to_string();
-            err_msg += "\" is not a selector name";
-            err_valid = true;
-            auto line_info = vs.line_info();
-            err_line = line_info.first;
-            err_col = line_info.second;
-            throw std::invalid_argument(err_msg);
-        }
-        auto is_inst = PyObject_IsInstance(selector, objects_class);
-        if (is_inst < 0) {
-            Py_DECREF(selector);
-            throw std::runtime_error(use_python_error);
-        }
-        auto selector_objects = new_objects_instance();
-        if (is_inst) {
-            if (PyObject_CallMethodOneArg(selector_objects, combine_arg, selector) == nullptr) {
-                Py_DECREF(selector);
-                throw std::logic_error(use_python_error);
-            }
-            Py_DECREF(selector);
-        } else {
-            auto args = PyTuple_New(3);
-            if (args == nullptr) {
-                Py_DECREF(selector);
-                throw std::runtime_error("Could not create 3-tuple for selector args");
-            }
-            PyTuple_SetItem(args, 0, session);
-            PyTuple_SetItem(args, 1, models);
-            PyTuple_SetItem(args, 2, selector_objects);
-            auto ret = PyObject_CallObject(selector, args);
-            Py_DECREF(selector);
-            Py_DECREF(args);
-            if (ret == nullptr)
-                throw std::logic_error(use_python_error);
-            Py_DECREF(ret);
-        }
-        return selector_objects;
-    };
-            
     // model_list
     spec_parser["model_list"] = [](const SemanticValues &vs) {
         std::cerr << vs.size() << " model_list semantic values\n";
@@ -548,82 +511,92 @@ PyMODINIT_FUNC PyInit__spec_parser()
         for (auto tk: vs.tokens)
             std::cerr << " " << tk;
         std::cerr << "\n";
-        auto gmatcher = GlobalModelMatcher(std::any_cast<bool>(vs[0]), 
-            std::any_cast<std::vector<std::vector<ModelMatcher>>>(vs[1]));
-        //TODO: attrs, parts, zone
         auto objects_inst = new_objects_instance();
-        for (auto py_model: gmatcher.matches()) {
-            bool add_model = true, has_atoms;
-            try {
-                has_atoms = py_bool_method(py_model, atomspec_has_atoms_arg);
-            } catch (std::domain_error& e) {
-                Py_DECREF(objects_inst);
-                throw std::logic_error("model.atomspec_has_atoms() did not return a boolean value");
-            } catch (std::exception& e) {
-                Py_DECREF(objects_inst);
-                throw;
-            }
-            if (has_atoms) {
-                auto method = PyObject_GetAttrString(py_model, "atomspec_atoms");
-                if (method == nullptr) {
-                    Py_DECREF(objects_inst);
-                    throw std::logic_error(use_python_error);
-                }
-                if (!PyCallable_Check(method)) {
-                    Py_DECREF(objects_inst);
-                    Py_DECREF(method);
-                    throw std::logic_error("model.atomspec_atom is not callable");
-                }
-                auto no_args = PyTuple_New(0);
-                if (no_args == nullptr)
-                    throw std::runtime_error("Cannot create zero-length tuple");
-                auto kw_args = PyDict_New();
-                if (kw_args == nullptr) {
-                    Py_DECREF(objects_inst);
-                    Py_DECREF(method);
-                    Py_DECREF(no_args);
-                    throw std::runtime_error("Cannot create keyword dictionary");
-                }
-                if (PyDict_SetItemString(kw_args, "ordered", order_implicit_atoms ? Py_True : Py_False) < 0) {
-                    Py_DECREF(objects_inst);
-                    Py_DECREF(method);
-                    Py_DECREF(no_args);
-                    Py_DECREF(kw_args);
-                    throw std::logic_error(use_python_error);
-                }
-                auto py_atoms = PyObject_Call(method, no_args, kw_args);
-                if (PyObject_CallMethodOneArg(objects_inst, add_atoms_arg, py_atoms) == nullptr) {
-                    Py_DECREF(objects_inst);
-                    Py_DECREF(method);
-                    Py_DECREF(no_args);
-                    Py_DECREF(kw_args);
-                    Py_DECREF(py_atoms);
-                    throw std::logic_error(use_python_error);
-                }
-                Py_DECREF(method);
-                Py_DECREF(no_args);
-                Py_DECREF(kw_args);
-                //TODO: filtering, and set add_model false if no atoms after filtering
-                Py_DECREF(py_atoms);
-            } else {
-                bool has_pseudobonds;
+        //TODO: attrs, parts, zone
+        if (vs.choice() == 0) {
+            auto gmatcher = GlobalModelMatcher(std::any_cast<bool>(vs[0]), 
+                std::any_cast<std::vector<std::vector<ModelMatcher>>>(vs[1]));
+            for (auto py_model: gmatcher.matches()) {
+                bool add_model = true, has_atoms;
                 try {
-                    has_pseudobonds = py_bool_method(py_model, atomspec_has_pseudobonds_arg);
+                    has_atoms = py_bool_method(py_model, atomspec_has_atoms_arg);
                 } catch (std::domain_error& e) {
                     Py_DECREF(objects_inst);
-                    throw std::logic_error(
-                        "model.atomspec_has_pseudobonds() did not return a boolean value");
+                    throw std::logic_error("model.atomspec_has_atoms() did not return a boolean value");
                 } catch (std::exception& e) {
                     Py_DECREF(objects_inst);
                     throw;
                 }
-                if (has_pseudobonds) {
-                    auto pbonds = PyObject_CallMethodNoArgs(py_model, atomspec_pseudobonds_arg);
-                    if (pbonds == nullptr) {
+                if (has_atoms) {
+                    auto method = PyObject_GetAttrString(py_model, "atomspec_atoms");
+                    if (method == nullptr) {
                         Py_DECREF(objects_inst);
                         throw std::logic_error(use_python_error);
                     }
-                    auto ret_val = PyObject_CallMethodOneArg(objects_inst, add_pseudobonds_arg, pbonds);
+                    if (!PyCallable_Check(method)) {
+                        Py_DECREF(objects_inst);
+                        Py_DECREF(method);
+                        throw std::logic_error("model.atomspec_atom is not callable");
+                    }
+                    auto no_args = PyTuple_New(0);
+                    if (no_args == nullptr)
+                        throw std::runtime_error("Cannot create zero-length tuple");
+                    auto kw_args = PyDict_New();
+                    if (kw_args == nullptr) {
+                        Py_DECREF(objects_inst);
+                        Py_DECREF(method);
+                        Py_DECREF(no_args);
+                        throw std::runtime_error("Cannot create keyword dictionary");
+                    }
+                    if (PyDict_SetItemString(kw_args, "ordered", order_implicit_atoms ? Py_True : Py_False) < 0) {
+                        Py_DECREF(objects_inst);
+                        Py_DECREF(method);
+                        Py_DECREF(no_args);
+                        Py_DECREF(kw_args);
+                        throw std::logic_error(use_python_error);
+                    }
+                    auto py_atoms = PyObject_Call(method, no_args, kw_args);
+                    if (PyObject_CallMethodOneArg(objects_inst, add_atoms_arg, py_atoms) == nullptr) {
+                        Py_DECREF(objects_inst);
+                        Py_DECREF(method);
+                        Py_DECREF(no_args);
+                        Py_DECREF(kw_args);
+                        Py_DECREF(py_atoms);
+                        throw std::logic_error(use_python_error);
+                    }
+                    Py_DECREF(method);
+                    Py_DECREF(no_args);
+                    Py_DECREF(kw_args);
+                    //TODO: filtering, and set add_model false if no atoms after filtering
+                    Py_DECREF(py_atoms);
+                } else {
+                    bool has_pseudobonds;
+                    try {
+                        has_pseudobonds = py_bool_method(py_model, atomspec_has_pseudobonds_arg);
+                    } catch (std::domain_error& e) {
+                        Py_DECREF(objects_inst);
+                        throw std::logic_error(
+                            "model.atomspec_has_pseudobonds() did not return a boolean value");
+                    } catch (std::exception& e) {
+                        Py_DECREF(objects_inst);
+                        throw;
+                    }
+                    if (has_pseudobonds) {
+                        auto pbonds = PyObject_CallMethodNoArgs(py_model, atomspec_pseudobonds_arg);
+                        if (pbonds == nullptr) {
+                            Py_DECREF(objects_inst);
+                            throw std::logic_error(use_python_error);
+                        }
+                        auto ret_val = PyObject_CallMethodOneArg(objects_inst, add_pseudobonds_arg, pbonds);
+                        if (ret_val == nullptr) {
+                            Py_DECREF(objects_inst);
+                            throw std::logic_error(use_python_error);
+                        }
+                        Py_DECREF(ret_val);
+                    }
+                }
+                if (add_model) {
+                    auto ret_val = PyObject_CallMethodOneArg(objects_inst, add_model_arg, py_model);
                     if (ret_val == nullptr) {
                         Py_DECREF(objects_inst);
                         throw std::logic_error(use_python_error);
@@ -631,15 +604,8 @@ PyMODINIT_FUNC PyInit__spec_parser()
                     Py_DECREF(ret_val);
                 }
             }
-            if (add_model) {
-                auto ret_val = PyObject_CallMethodOneArg(objects_inst, add_model_arg, py_model);
-                if (ret_val == nullptr) {
-                    Py_DECREF(objects_inst);
-                    throw std::logic_error(use_python_error);
-                }
-                Py_DECREF(ret_val);
-            }
         }
+        //TODO else attribute test...
         return objects_inst;
     };
             
@@ -688,6 +654,63 @@ PyMODINIT_FUNC PyInit__spec_parser()
         if (vs.choice() == 0)
             return ModelMatcher(std::any_cast<ModelPart>(vs[0]), std::any_cast<ModelPart>(vs[1]));
         return ModelMatcher(std::any_cast<ModelPart>(vs[0]));
+    };
+            
+    // attr_test
+    spec_parser["attr_test"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " attr_test semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+//TODO: emulate the code in commands.atomspec._AtomSpecSemantics.attr_test
+#if 0
+        if (vs.choice() == 0) {
+            return AttrTester
+        } else if (vs.choice() == 1)
+            return AttrTester<int>(vs.token(), true);
+        return AttrTester<int>(vs.token(), false);
+#endif
+    };
+
+    // zone_selector
+    spec_parser["zone_selector"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " zone_selector semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        return std::make_pair(std::any_cast<std::string_view>(vs[0]), std::any_cast<float>(vs[1]));
+    };
+
+    // ATTR_NAME
+    spec_parser["ATTR_NAME"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " ATTR_NAME semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        return vs.token();
+    };
+            
+    // ATTR_OPERATOR
+    spec_parser["ATTR_OPERATOR"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " ATTR_OPERATOR semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        return vs.token();
+    };
+            
+    // ATTR_VALUE
+    spec_parser["ATTR_VALUE"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " ATTR_VALUE semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        return vs.token();
     };
             
     // HASH_TYPE
@@ -749,16 +772,59 @@ PyMODINIT_FUNC PyInit__spec_parser()
         return std::any_cast<ModelPart>(vs[0]);
     };
             
-    // zone_selector
-    spec_parser["zone_selector"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " zone_selector semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
-        return std::make_pair(std::any_cast<std::string_view>(vs[0]), std::any_cast<float>(vs[1]));
+    // SELECTOR_NAME
+    spec_parser["SELECTOR_NAME"] = [](const SemanticValues &vs) {
+        auto sel_text = PyUnicode_FromString(vs.token_to_string().c_str());
+        if (sel_text == nullptr)
+            throw std::runtime_error("Could not convert token to string");
+        auto selector = PyObject_CallOneArg(get_selector, sel_text);
+        if (selector == nullptr) {
+            Py_DECREF(sel_text);
+            throw std::logic_error(use_python_error);
+        }
+        Py_DECREF(sel_text);
+        if (selector == Py_None) {
+            Py_DECREF(selector);
+            std::string err_msg = "\"";
+            err_msg += vs.token_to_string();
+            err_msg += "\" is not a selector name";
+            err_valid = true;
+            auto line_info = vs.line_info();
+            err_line = line_info.first;
+            err_col = line_info.second;
+            throw std::invalid_argument(err_msg);
+        }
+        auto is_inst = PyObject_IsInstance(selector, objects_class);
+        if (is_inst < 0) {
+            Py_DECREF(selector);
+            throw std::runtime_error(use_python_error);
+        }
+        auto selector_objects = new_objects_instance();
+        if (is_inst) {
+            if (PyObject_CallMethodOneArg(selector_objects, combine_arg, selector) == nullptr) {
+                Py_DECREF(selector);
+                throw std::logic_error(use_python_error);
+            }
+            Py_DECREF(selector);
+        } else {
+            auto args = PyTuple_New(3);
+            if (args == nullptr) {
+                Py_DECREF(selector);
+                throw std::runtime_error("Could not create 3-tuple for selector args");
+            }
+            PyTuple_SetItem(args, 0, session);
+            PyTuple_SetItem(args, 1, models);
+            PyTuple_SetItem(args, 2, selector_objects);
+            auto ret = PyObject_CallObject(selector, args);
+            Py_DECREF(selector);
+            Py_DECREF(args);
+            if (ret == nullptr)
+                throw std::logic_error(use_python_error);
+            Py_DECREF(ret);
+        }
+        return selector_objects;
     };
-
+            
     // ZONE_OPERATOR
     spec_parser["ZONE_OPERATOR"] = [](const SemanticValues &vs) {
         std::cerr << vs.size() << " ZONE_OPERATOR semantic values\n";
