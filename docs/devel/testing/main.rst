@@ -79,7 +79,7 @@ Downloading Test Data
 There is a script at ``utils/sync-test-data.sh`` that will download test data from Plato given the
 name of a bundle's folder, e.g. ::
 
-    ./utils/sync-test-data.sh dicom
+    ./utils/sync-test-data.sh -b dicom
 
 will download the test data for the ``dicom`` bundle to ``src/bundles/dicom/tests/data``.
 
