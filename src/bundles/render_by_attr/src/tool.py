@@ -32,6 +32,7 @@ class RenderByAttrTool(ToolInstance):
         self.display_name = "Render/Select by Attribute"
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, statusbar=True)
+        tw.fill_context_menu = self.fill_context_menu
         parent = tw.ui_area
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QDialogButtonBox, QPushButton, QMenu, QLabel
         from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox, QLineEdit, QStackedWidget, QListWidget
@@ -340,6 +341,32 @@ class RenderByAttrTool(ToolInstance):
         overall_layout.addWidget(bbox)
 
         tw.manage(placement=None)
+
+    def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        scaling_menu = menu.addMenu("Histogram Scaling")
+        def set_histograms(linear):
+            for h in [self.render_histogram, self.select_histogram]:
+                h.scaling = "linear" if linear else "logarithmic"
+        linear = self.select_histogram.scaling == "linear"
+        action = QAction("Linear", scaling_menu)
+        action.setCheckable(True)
+        action.setChecked(linear)
+        action.triggered.connect(lambda *args, action=action: set_histograms(action.isChecked()))
+        scaling_menu.addAction(action)
+        action = QAction("Logarithmic", scaling_menu)
+        action.setCheckable(True)
+        action.setChecked(not linear)
+        action.triggered.connect(lambda *args, action=action: set_histograms(not action.isChecked()))
+        scaling_menu.addAction(action)
+
+        fmt = self.session.data_formats.save_format_from_suffix(".defattr")
+        if fmt is None:
+            return
+        action = QAction("Save Attribute...", menu)
+        from chimerax.save_command import show_save_file_dialog as show_dialog
+        action.triggered.connect(lambda *args: show_dialog(self.session, format=fmt.name))
+        menu.addAction(action)
 
     def render(self, *, apply=False):
         models = self.model_list.value
