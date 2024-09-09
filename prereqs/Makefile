@@ -124,8 +124,6 @@ endif
 # All packages that have dependencies should depend on the .install
 # target of the other packages.
 
-cxservices.install: pips.install
-cxservices.app-install: pips.app-install
 openmm.app-install: Python.app-install pips.app-install
 openmm.install: Python.install pips.install
 pips.app-install: Python.app-install

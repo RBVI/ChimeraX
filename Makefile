@@ -183,7 +183,6 @@ distclean: clean
 	-$(MAKE) -C docs clean
 	-$(MAKE) -C vdocs clean
 	-rm -rf prereqs/prebuilt-*.tar.bz2
-	-$(MAKE) -C prereqs/cxservices clean
 
 reallyclean:
 	rm -rf $$(git status --short --ignored --porcelain=v1 | sed -e '/^!!/!d' -e 's/^!! //')
