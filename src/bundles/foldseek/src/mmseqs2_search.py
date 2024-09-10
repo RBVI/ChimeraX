@@ -201,37 +201,64 @@ def parse_pdb_search_results(results):
     ]
     hits = []
     for r in results['result_set']:
-        entity_id = r['identifier']	#  "1XOM_1"
-        pdb_id = entity_id.split('_')[0]
+        entity_id = r['identifier']	#  "1XOM_1", "AF_AFP00442F1_1"
+        if entity_id.startswith('MA_'): # Skip computational models that are not from AlphaFold
+            continue
+        alphafold = entity_id.startswith("AF_")
+        if alphafold:
+            fields = entity_id.split('_')
+            alphafold_id = fields[1][2:-2]
+            alphafold_fragment = fields[1][-2:]
+            alphafold_version = fields[2] if len(fields) >= 3 else ''
+        else:
+            pdb_id = entity_id.split('_')[0]
         nodes = r['services'][0]['nodes']
         for node in nodes:
             for mc in node['match_context']:
                 hit = {foldseek_attr:mc[rcsb_attr] for rcsb_attr, foldseek_attr in rcsb_to_foldseek_names}
-                hit['pdb_entity_id'] = entity_id
-                hit['pdb_id'] = pdb_id
-                hit['database_id'] = pdb_id
-                hit['database'] = 'pdb'
+                if alphafold:
+                    hit['alphafold_id'] = alphafold_id
+                    hit['alphafold_fragment'] = alphafold_fragment
+                    hit['alphafold_version'] = alphafold_version
+                    hit['database_id'] = alphafold_id
+                    hit['database_full_id'] = alphafold_id
+                    hit['database'] = 'afdb'
+                else:
+                    hit['pdb_entity_id'] = entity_id
+                    hit['pdb_id'] = pdb_id
+                    hit['database_id'] = pdb_id
+                    hit['database'] = 'pdb'
                 hits.append(hit)
     return hits
 
 def add_chains_descrip_species(hits):
-    entity_ids = set(hit['pdb_entity_id'] for hit in hits)
+    entity_ids = pdb_entity_ids(hits)
     if len(entity_ids) == 0:
         return
-    pdb_info = fetch_pdb_entity_info(entity_ids)
+    pdb_info = fetch_pdb_entity_info(set(entity_ids))
+    print (pdb_info)
     einfo = parse_pdb_entity_info(pdb_info)
     chits = []	# Chain hits
-    for hit in hits:
-        entity_id = hit['pdb_entity_id']
+    for hit, entity_id in zip(hits, entity_ids):
         ei = einfo[entity_id]
         hit['description'] = ei['description']
         hit['taxname'] = ei['species']
         for chain_id in ei['chain_ids']:
             hc = hit.copy()
             hc['chain_id'] = chain_id
-            hc['database_full_id'] = f'{hit["pdb_id"]}_{chain_id}'
+            if 'pdb_id' in hit:
+                hc['database_full_id'] = f'{hit["pdb_id"]}_{chain_id}'
             chits.append(hc)
     return chits
+
+def pdb_entity_ids(hits):
+    ids = []
+    for hit in hits:
+        if hit['database'] == 'pdb':
+            ids.append(hit['pdb_entity_id'])
+        elif hit['database'] == 'afdb':
+            ids.append(f"AF_AF{hit['alphafold_id']}{hit['alphafold_fragment']}_{hit['alphafold_version']}")
+    return ids
     
 # -----------------------------------------------------------------------------
 # Fetch additional information about PDB hits using the RCSB GraphQL web service.
@@ -239,11 +266,11 @@ def add_chains_descrip_species(hits):
 entity_info_query = """{
   polymer_entities(entity_ids: [%s]) {
     rcsb_id
-    entity_src_gen {
-        pdbx_gene_src_scientific_name
-    }
     rcsb_polymer_entity {
         pdbx_description
+    }
+    rcsb_entity_source_organism {
+        scientific_name
     }
     rcsb_polymer_entity_container_identifiers {
         asym_ids
@@ -280,7 +307,8 @@ def parse_pdb_entity_info(info):
     for pe in pe_list:
         entity_id = pe['rcsb_id']
         pdb_id = entity_id.split('_')[0]
-        species = pe['entity_src_gen'][0]['pdbx_gene_src_scientific_name']
+        reso = pe['rcsb_entity_source_organism']
+        species = reso[0]['scientific_name'] if reso else ''
         description = pe['rcsb_polymer_entity']['pdbx_description']
         asym_ids = pe['rcsb_polymer_entity_container_identifiers']['asym_ids']
         auth_asym_ids = pe['rcsb_polymer_entity_container_identifiers'].get('auth_asym_ids')
@@ -310,4 +338,4 @@ def register_mmseqs2_search_command(logger):
                    ],
         synopsis = 'Search for proteins with similar sequences using RCSB mmseqs2 web service'
     )
-    register('mmseqs2 search', desc, mmseqs2_search, logger=logger)
+    register('sequence search', desc, mmseqs2_search, logger=logger)

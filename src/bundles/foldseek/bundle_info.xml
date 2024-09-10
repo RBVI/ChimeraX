@@ -40,7 +40,7 @@
     <ChimeraXClassifier>Command :: foldseek pairing :: Structure Comparison :: Show pseudobonds between paired Foldseek hit and query residues</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: foldseek seqalign :: Structure Comparison :: Show sequence alignement for one foldseek hit</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: foldseek fetchcoords :: Structure Comparison :: Fetch C-alpha coordinates of foldseek hits for clustering and showing backbone traces</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: mmseqs2 search :: Sequence :: Search for similar sequences at PDB</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: sequence search :: Sequence :: Search for similar sequences using mmseqs2 at PDB</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Foldseek :: Structure Analysis :: Search PDB or AlphaFold databases for protein structures matching the fold of a specified structure</ChimeraXClassifier>
   </Classifiers>
 

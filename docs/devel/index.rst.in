@@ -47,6 +47,7 @@ contribute to ChimeraX read all sections.
    building.rst
    ides_debugging_profiling.rst
    conventions.rst
+   testing/main.rst
    apps/ChimeraX/ChimeraX.rst
    writing_bundles.rst
    core.rst
