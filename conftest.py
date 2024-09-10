@@ -73,3 +73,12 @@ def test_production_session():
     session = get_test_session()
     yield session
     session.reset()
+
+def pytest_configure(config):
+    markexpr = config.getoption("markexpr")
+    if "not wheel" in markexpr:
+        # Initialize the test session before tests are even collected, because
+        # pytest's usual schtick of importing modules BEFORE the tests are collected
+        # totally breaks code that modifies __all__s at runtime. We need ChimeraX to
+        # always be the first thing that runs in any tool.
+        _ = get_test_session()
