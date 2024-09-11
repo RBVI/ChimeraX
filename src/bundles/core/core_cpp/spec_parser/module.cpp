@@ -710,7 +710,10 @@ PyMODINIT_FUNC PyInit__spec_parser()
         for (auto tk: vs.tokens)
             std::cerr << " " << tk;
         std::cerr << "\n";
-        return vs.token();
+        std::cerr << "choice: " << vs.choice() << "\n";
+        // Return pair with unquoted token and boolean indicating whether it was originally quoted;
+        // quoted values have two vs.tokens() -- unquoted and quoted, so always return the first
+        return std::make_pair(vs.tokens[0], vs.choice() < 2);
     };
             
     // HASH_TYPE
