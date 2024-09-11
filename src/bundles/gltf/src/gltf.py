@@ -807,6 +807,8 @@ class Mesh:
         # Get triangles, lines or points
         if d.display_style == d.Solid:
             ta = d.masked_triangles
+            if len(ta) < len(d.triangles):
+                va, na, vc, tc, ta = remove_unused_vertices(va, na, vc, tc, ta)
         else:
             ta = d._draw_shape.elements	# Lines or points
             
@@ -879,7 +881,22 @@ class Mesh:
         ti = b.add_array(ea, target=b.GLTF_ELEMENT_ARRAY_BUFFER)
         mode = _mesh_style(ta)
         return (vi,ni,ci,tci,ti,mode,single_vertex_color)
-    
+
+# -----------------------------------------------------------------------------
+#
+def remove_unused_vertices(va, na, vc, tc, ta):
+    import numpy
+    vshown = numpy.unique(ta)
+    va_trim = va[vshown,:]
+    na_trim = None if na is None else na[vshown,:]
+    vc_trim = None if vc is None else vc[vshown,:]
+    tc_trim = None if tc is None else tc[vshown,:]
+    from numpy import zeros, int32, arange
+    vmap = zeros(len(va), int32)
+    vmap[vshown] = arange(len(vshown), dtype = int32)
+    ta_trim = vmap.take(ta.ravel()).reshape((len(ta),3))
+    return va_trim, na_trim, vc_trim, tc_trim, ta_trim
+
 # -----------------------------------------------------------------------------
 #
 def _single_vertex_color(vertex_colors):
