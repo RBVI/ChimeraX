@@ -330,6 +330,8 @@ class RenderByAttrTool(ToolInstance):
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        self.save_file_button = bbox.addButton("Save File...", qbbox.ActionRole)
+        bbox.clicked.connect(self._button_clicked)
         bbox.accepted.connect(self._dispatch)
         bbox.button(qbbox.Apply).clicked.connect(lambda: self._dispatch(apply=True))
         bbox.rejected.connect(self.delete)
@@ -359,14 +361,6 @@ class RenderByAttrTool(ToolInstance):
         action.setChecked(not linear)
         action.triggered.connect(lambda *args, action=action: set_histograms(not action.isChecked()))
         scaling_menu.addAction(action)
-
-        fmt = self.session.data_formats.save_format_from_suffix(".defattr")
-        if fmt is None:
-            return
-        action = QAction("Save Attribute...", menu)
-        from chimerax.save_command import show_save_file_dialog as show_dialog
-        action.triggered.connect(lambda *args: show_dialog(self.session, format=fmt.name))
-        menu.addAction(action)
 
     def render(self, *, apply=False):
         models = self.model_list.value
@@ -471,6 +465,12 @@ class RenderByAttrTool(ToolInstance):
         return [attr_name for attr_name in attr_mgr.attributes_returning(
             attr_info.class_object, types, none_okay=True) if not attr_info.hide_attr(
             attr_name, self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render")]
+
+    def _button_clicked(self, button):
+        if button == self.save_file_button:
+            fmt = self.session.data_formats.save_format_from_suffix(".defattr")
+            from chimerax.save_command import show_save_file_dialog as show_dialog
+            show_dialog(self.session, format=fmt.name)
 
     def _create_key(self):
         from chimerax.core.colors import Colormap, Color
