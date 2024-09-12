@@ -57,6 +57,7 @@ class _gltfBundle(BundleAPI):
                         FloatArg, Or
                     return {
                         'center': Or(BoolArg, Float3Arg),
+                        'center_each_node': BoolArg,
                         'float_colors': BoolArg,
                         'models': ModelsArg,
                         'preserve_transparency': BoolArg,
