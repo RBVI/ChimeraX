@@ -516,78 +516,86 @@ def center_nodes_and_meshes(nodes, meshes, buffers):
 
     check_node_centering_possible(nodes, meshes)
 
-    node_bounds = node_bounding_boxes(nodes, meshes, buffers)
+    ncenters, mcenters = node_and_mesh_centers(nodes, meshes, buffers)
 
-    recentered_vertex_arrays = {}  # Don't recenter vertex buffers twice when used by multiple instance nodes
-    for node in nodes:
-        bounds, varrays = node_bounds[id(node)]
-        c = bounds.center()
+    # Recenter meshes
+    recentered_vertex_arrays = set()  # Don't recenter vertex buffers twice when used by multiple instance nodes
+    for mi, (center,nv) in mcenters.items():
+        varrays = mesh_vertex_arrays(mi, meshes, buffers)
+        for va,vi in varrays:
+            if vi not in recentered_vertex_arrays:
+                va -= center
+                buffers.update_array(vi, va)
+                recentered_vertex_arrays.add(vi)
+
+    # Recenter nodes
+    for node, (center,nv) in zip(nodes, ncenters):
         if 'mesh' in node:
-            # Center meshes by shifting buffers and record the original mesh center.
-            for varray, vi, place in varrays:
-                if vi not in recentered_vertex_arrays:
-                    varray -= c
-                    recentered_vertex_arrays[vi] = varray
-            # Adjust node matrix to reposition mesh.
-            node['matrix'] = right_shift_matrix(node.get('matrix'), c)
+            # Adjust node matrix to compensate for repositioned mesh.
+            node['matrix'] = right_shift_matrix(node.get('matrix'), center)
         elif 'children' in node:
             cnodes = [nodes[ci] for ci in node['children']]
             for cnode in cnodes:
-                cnode['matrix'] = left_shift_matrix(cnode.get('matrix'), -c)
-            node['matrix'] = right_shift_matrix(node.get('matrix'), c)
-
-    # Rewrite buffers with shifted vertices
-    for vi, va in recentered_vertex_arrays.items():
-        buffers.update_array(vi, va)
+                cnode['matrix'] = left_shift_matrix(cnode.get('matrix'), -center)
+            node['matrix'] = right_shift_matrix(node.get('matrix'), center)
 
 # -----------------------------------------------------------------------------
 #
-def node_bounding_boxes(nodes, meshes, buffers, node_bounds = None, next_nodes = None):
+def node_and_mesh_centers(nodes, meshes, buffers):
     '''
-    Compute bounding box of every node including its children.
-    Also return a list of pairs or vertex arrays and Place transforms that
-    come from buffers in meshes that were used to compute these bounds.
+    Compute a center of geometry for every node (including its children) and mesh.
     '''
+    mcenters = mesh_centers(nodes, meshes, buffers)
+    ncenters = node_centers(nodes, mcenters)
+    return ncenters, mcenters
 
-    if node_bounds is None:
-        node_bounds = {}
-        next_nodes = nodes
-
-    from chimerax.geometry import point_bounds, union_bounds, identity, Places
-    for node in next_nodes:
-        if id(node) in node_bounds:
-            continue
+# -----------------------------------------------------------------------------
+#
+def mesh_centers(nodes, meshes, buffers):
+    mcenters = {}
+    for node in nodes:
         if 'mesh' in node:
-            varrays = mesh_vertex_arrays(node['mesh'], meshes, buffers)
-            bounds = union_bounds([point_bounds(va) for va,vi,p in varrays])
-            node_bounds[id(node)] = (bounds, varrays)
-        elif 'children' in node:
-            cnodes = [nodes[ci] for ci in node['children']]
-            node_bounding_boxes(nodes, meshes, buffers, node_bounds, cnodes)
-            cbounds = []
-            varrays = []
-            for cnode in cnodes:
-                cbound, cvarrays = node_bounds[id(cnode)]
-                if 'matrix'not in cnode or is_identity_gltf_matrix(cnode['matrix']):
-                    cbounds.append(cbound)
-                    varrays.extend(cvarrays)
-                else:
-                    cp = gltf_place(cnode.get('matrix'))
-                    cpvarrays = [(va, cp*p, vi) for va,vi,p in cvarrays]
-                    varrays.extend(cpvarrays)
-                    cpbounds = union_bounds([point_bounds(va, Places([p])) for va,p,vi in cpvarrays])
-                    cbounds.append(cpbounds)
-            bounds = union_bounds(cbounds)
-            node_bounds[id(node)] = (bounds, varrays)
-        
-    return node_bounds
+            mi = node['mesh']
+            varrays = mesh_vertex_arrays(mi, meshes, buffers)
+            mcenters[mi] = weighted_center([(va.mean(axis = 0), len(va)) for va,vi in varrays])
+    return mcenters
 
+# -----------------------------------------------------------------------------
+#
+def node_centers(nodes, mesh_centers, node_indices = None, ncenters = None):
+    if ncenters is None:
+        ncenters = [None] * len(nodes)
+        node_indices = range(len(nodes))
+
+    for ni in node_indices:
+        if ncenters[ni] is not None:
+            continue
+        node = nodes[ni]
+        if 'mesh' in node:
+            ncenters[ni] = mesh_centers[node['mesh']]
+        elif 'children' in node:
+            node_centers(nodes, mesh_centers, node['children'], ncenters)
+            centers = []
+            for ci in node['children']:
+                center, nv = ncenters[ci]
+                centers.append((gltf_place(nodes[ci].get('matrix'))*center, nv))
+            ncenters[ni] = weighted_center(centers)
+        
+    return ncenters
+    
+# -----------------------------------------------------------------------------
+#
+def weighted_center(centers):
+    w = sum(weight for center,weight in centers)
+    import numpy
+    wcenter = numpy.sum([weight*center for center,weight in centers], axis = 0)/w
+    return (wcenter, w)
+    
 # -----------------------------------------------------------------------------
 #
 def mesh_vertex_arrays(mesh_id, meshes, buffers):
     vertex_arrays = []
     from numpy import frombuffer, float32
-    from chimerax.geometry import identity
     mesh = meshes.mesh_specs[mesh_id]
     for prim in mesh['primitives']:
         vi = prim['attributes']['POSITION']
@@ -597,7 +605,7 @@ def mesh_vertex_arrays(mesh_id, meshes, buffers):
         vflat = frombuffer(bytes, dtype = float32).copy()	# Makes 1-D array
         n3 = len(vflat)
         va = vflat.reshape((n3//3, 3))
-        vertex_arrays.append((va, vi, identity()))
+        vertex_arrays.append((va, vi))
     return vertex_arrays
     
 # -----------------------------------------------------------------------------
@@ -608,7 +616,6 @@ def check_node_centering_possible(nodes, meshes):
     # any new nodes.  I think the current code always meets all the conditions.
     # But it is a good idea to check in case the code changes in the future
     # that violates some of these centering conditions.
-    from chimerax.core.errors import UserError
     
     # We require meshes that reuse the same vertex buffer from another mesh
     # have to use exactly the same set of buffers.  This is what the code
@@ -622,6 +629,7 @@ def check_node_centering_possible(nodes, meshes):
     # If that happens consider it an error.
     for node in nodes:
         if 'mesh' in node and 'children' in node and len(node['children']) > 0:
+            from chimerax.core.errors import UserError
             raise UserError('Cannot center nodes because a node has both a mesh and children')
                 
 # -----------------------------------------------------------------------------
