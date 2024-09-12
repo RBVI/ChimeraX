@@ -820,7 +820,7 @@ class Mesh:
         # Combine instances into a single triangle set.
         if not self._leaf_instancing:
             positions = d.get_positions(displayed_only = True)
-            if not positions.is_identity():
+            if len(positions) > 1 and not positions.is_identity():
                 instance_colors = d.get_colors(displayed_only = True)
                 va,na,vc,tc,ta = combine_instance_geometry(va, na, vc, tc, ta,
                                                            positions, instance_colors)
