@@ -23,13 +23,14 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# Panel for choosing structure and database for Foldseek search.
+# Panel for choosing structure and database for Foldseek, MMseqs2 or BLAST search
+# and for showing results.
 #
 from chimerax.core.tools import ToolInstance
-class FoldseekPanel(ToolInstance):
-    help = 'help:user/tools/foldseek.html'
+class SimilarStructuresPanel(ToolInstance):
+    help = 'help:user/tools/similarstructures.html'
 
-    def __init__(self, session, tool_name = 'Foldseek'):
+    def __init__(self, session, tool_name = 'Similar Structures'):
 
         self.results = None
         ToolInstance.__init__(self, session, tool_name)
@@ -43,13 +44,13 @@ class FoldseekPanel(ToolInstance):
         layout = vertical_layout(parent, margins = (5,0,0,0))
 
         from chimerax.ui.widgets import EntriesRow
-        heading = 'Search for structures with the same fold using Foldseek'
+        heading = 'Search for structures with the similar fold or sequence'
         hl = EntriesRow(parent, heading)
         self._heading = hl.labels[0]
         layout.addWidget(hl.frame)
         
         # Make menus to choose chain and databases
-        self._chain_menu, self._database_menu, mf = self._create_chain_and_database_menus(parent)
+        self._chain_menu, self._database_menu, self._program_menu, mf = self._create_chain_and_database_menus(parent)
         layout.addWidget(mf)
 
         # Results table
@@ -63,8 +64,7 @@ class FoldseekPanel(ToolInstance):
         # Buttons
         from chimerax.ui.widgets import button_row
         bf = button_row(parent,
-                        [('Search', self._search),
-                         ('Open', self._open_selected),
+                        [('Open', self._open_selected),
                          ('Sequences', self._show_sequences),
                          ('Traces', self._show_backbone_traces),
                          ('Clusters', self._show_cluster_plot),
@@ -84,7 +84,7 @@ class FoldseekPanel(ToolInstance):
     @classmethod
     def get_singleton(cls, session, create=True):
         from chimerax.core import tools
-        return tools.get_singleton(session, cls, 'Foldseek', create=create)
+        return tools.get_singleton(session, cls, 'Similar Structures', create=create)
     
     # ---------------------------------------------------------------------------
     #
@@ -97,29 +97,34 @@ class FoldseekPanel(ToolInstance):
     def _create_chain_and_database_menus(self, parent):
         from chimerax.atomic.widgets import ChainMenuButton
         from chimerax.atomic import Residue
-        cmenu = ChainMenuButton(self.session, parent=parent,
-                                filter_func=lambda c: c.polymer_type == Residue.PT_AMINO,
-                                no_value_button_text="No chain chosen")
+        chain_menu = ChainMenuButton(self.session, parent=parent,
+                                     filter_func=lambda c: c.polymer_type == Residue.PT_AMINO,
+                                     no_value_button_text="No chain chosen")
 
         from chimerax.ui.widgets import EntriesRow
-        from .search import foldseek_databases
-        fd = EntriesRow(parent, 'Query chain', cmenu, 'from database', tuple(foldseek_databases))
-        dbmenu = fd.values[0]
+        fd = EntriesRow(parent,
+                        ('Search', self._search),
+                        'similar to', chain_menu,
+                        'in database', ('PDB', 'Alphafold DB'),
+                        'using', ('Foldseek', 'MMseqs2', 'BLAST'))
+        database_menu, program_menu = fd.values
+
+
         
-        return cmenu, dbmenu, fd.frame
+        return chain_menu, database_menu, program_menu, fd.frame
 
     # ---------------------------------------------------------------------------
     #
     def _create_results_table(self, parent):
         r = self.results
-        database = r.database
+        database = r.program_database
         if database.startswith('pdb'):
             database_name = 'PDB'
         elif database.startswith('afdb'):
             database_name = 'AFDB'
         else:
             database_name = 'Id'
-        fr = FoldseekResultsTable(r.hits, database_name, parent = parent)
+        fr = SimilarStructuresTable(r.hits, database_name, parent = parent)
         return fr
     
     # ---------------------------------------------------------------------------
@@ -199,12 +204,23 @@ class FoldseekPanel(ToolInstance):
     def _search(self):
         chain = self._chain_menu.value
         if chain is None:
-            self.session.logger.error('Must choose a chain in the Foldseek panel before running search')
+            self.session.logger.error('Must choose a chain in the similar structures panel before running search')
             return
+        chain_spec = f'{chain.string(style="command")}'
         db = self._database_menu.value
-        cmd = f'foldseek {chain.string(style="command")}'
-        if db != 'pdb100':
-            cmd += f' database {db}'
+        program = self._program_menu.value
+        if program == 'Foldseek':
+            cmd = f'foldseek {chain_spec}'
+            if db == 'Alphafold DB':
+                cmd += f' database afdb50'
+        elif program == 'MMseqs2':
+            cmd = f'sequence search {chain_spec} '
+            if db == 'Alphafold DB':
+                cmd += f' database afdb'
+        elif program == 'BLAST':
+            cmd = f'sequence blast {chain_spec}'
+            if db == 'Alphafold DB':
+                cmd += f' database afdb'
         from chimerax.core.commands import run
         run(self.session, cmd)
 
@@ -215,7 +231,10 @@ class FoldseekPanel(ToolInstance):
         results.trim = self.trim
         results.alignment_cutoff_distance = self.alignment_cutoff_distance
         self._chain_menu.value = results.query_chain
-        self._database_menu.value = results.database
+        database = 'PDB' if results.program_database.startswith('pdb') else 'Alphafold DB'
+        self._database_menu.value = database
+        program = {'foldseek':'Foldseek', 'mmseqs2':'MMseqs2', 'blast':'BLAST'}.get(results.program, 'Foldseek')
+        self._program_menu.value = program
         rt = self._results_table
         parent = self.tool_window.ui_area
         layout = parent.layout()
@@ -230,34 +249,28 @@ class FoldseekPanel(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _show_hit_count(self):
-        r = self.results
-        heading = f'Foldseek search found {r.num_hits} {r.database} hits'
-        if r.query_chain:
-            q = r.query_chain.string(include_structure = True)
-            heading += f' similar to {q}'
-        self._heading.setText(heading)
+        self._heading.setText('Found ' + self.results.description)
             
     # ---------------------------------------------------------------------------
     #
     def _open_selected(self):
         results_table = self._results_table
         if results_table is None:
-            msg = 'You must press the Foldseek Search button before you can open matching structures.'
+            msg = 'You must press the similar structures Search button before you can open matching structures.'
             self.session.logger.error(msg)
             return
-        hit_rows = results_table.selected		# FoldseekRow instances
+        hit_rows = results_table.selected		# SimilarStructuresRow instances
         for hit_row in hit_rows:
             self.open_hit(hit_row.hit)
         if len(hit_rows) == 0:
-            msg = 'Click lines in the Foldseek results table and then press Open.'
+            msg = 'Click lines in the structure results table and then press Open.'
             self.session.logger.error(msg)
 
     # ---------------------------------------------------------------------------
     #
     def open_hit(self, hit):
-        from .foldseek import open_hit
-        open_hit(self.session, hit, self.results.query_chain, trim = self.trim,
-                 alignment_cutoff_distance = self.alignment_cutoff_distance)
+        self.results.open_hit(self.session, hit, trim = self.trim,
+                              alignment_cutoff_distance = self.alignment_cutoff_distance)
 
     # ---------------------------------------------------------------------------
     #
@@ -276,24 +289,24 @@ class FoldseekPanel(ToolInstance):
     #
     def _show_sequences(self):
         from chimerax.core.commands import run
-        run(self.session, 'foldseek sequences')
+        run(self.session, 'similarstructures sequences')
 
     # ---------------------------------------------------------------------------
     #
     def _show_backbone_traces(self):
         from chimerax.core.commands import run
-        run(self.session, 'foldseek traces')
+        run(self.session, 'similarstructures traces')
 
     # ---------------------------------------------------------------------------
     #
     def _show_cluster_plot(self, *, nres = 5):
         r = self.results
         if r.query_chain is None:
-            self.session.logger.error('Cannot compute Foldseek clusters without query structure')
+            self.session.logger.error('Cannot compute similar structure clusters without query structure')
             return
         r.set_conservation_attribute()
         r.set_coverage_attribute()
-        cr = [(res.foldseek_conservation * res.foldseek_coverage, res) for res in r.query_residues]
+        cr = [(res.conservation * res.coverage, res) for res in r.query_residues]
         cr.sort(reverse = True)
         most_conserved_res = [res for c,res in cr[0:nres]]
         rnums = ','.join(str(res.number) for res in most_conserved_res)
@@ -301,24 +314,25 @@ class FoldseekPanel(ToolInstance):
         rspec = cspec + f':{rnums}'
 
         from chimerax.core.commands import run
-        run(self.session, f'foldseek cluster {rspec} clusterDistance 1.5')
+        run(self.session, f'similarstructures cluster {rspec} clusterDistance 1.5')
 
     # ---------------------------------------------------------------------------
     #
     def _show_ligands(self):
-        if self.results.database != 'pdb100':
-            self.session.logger.error('Only Foldseek results from the Protein Databank have ligands')
+        pdb_hits = [hit for hit in self.results.hits if hit['database'].startswith('pdb')]
+        if len(pdb_hits) == 0:
+            self.session.logger.error('Only search results from the Protein Databank have ligands')
             return
 
-        nhits = self.results.num_hits
+        nhits = len(pdb_hits)
         message = f'This will fetch {nhits} PDB structures and align their ligands to the query structure.  It may take several minutes to fetch those structures during which ChimeraX will be frozen.  Do you want to proceed?'
         from chimerax.ui.ask import ask
-        answer = ask(self.session, message, title='Fetch Foldseek ligands')
+        answer = ask(self.session, message, title='Fetch similar structure ligands')
         if answer == 'no':
             return
         
         from chimerax.core.commands import run
-        run(self.session, 'foldseek ligands')
+        run(self.session, 'similarstructures ligands')
 
     # ---------------------------------------------------------------------------
     #
@@ -345,7 +359,7 @@ class FoldseekPanel(ToolInstance):
     #
     @classmethod
     def restore_snapshot(cls, session, data):
-        fp = foldseek_panel(session, create = True)
+        fp = similar_structures_panel(session, create = True)
         fp.show_results(data['hits'], data['query_chain'], data['database'])
         fp.set_trim_options(data['trim'])
         fp.set_alignment_cutoff_option(data['alignment_cutoff_distance'])
@@ -354,11 +368,11 @@ class FoldseekPanel(ToolInstance):
 # -----------------------------------------------------------------------------
 #
 from chimerax.ui.widgets import ItemTable
-class FoldseekResultsTable(ItemTable):
+class SimilarStructuresTable(ItemTable):
     def __init__(self, hits, database_name, parent = None):
         ItemTable.__init__(self, parent = parent)
         self.add_column(database_name, 'database_full_id')
-        col_identity = self.add_column('Identity', 'pident')
+        col_identity = self.add_column('Identity', 'pident', format = '%.0f')
         col_evalue = self.add_column('E-value', 'evalue', format = '%.2g')
         if hits and hits[0]:
             if 'close' in hits[0]:
@@ -367,7 +381,7 @@ class FoldseekResultsTable(ItemTable):
                 col_coverage = self.add_column('% Cover', 'coverage', format = '%.0f')
         col_species = self.add_column('Species', 'taxname')
         self.add_column('Description', 'description', justification = 'left')
-        rows = [FoldseekRow(hit) for hit in hits]
+        rows = [SimilarStructuresRow(hit) for hit in hits]
         self.data = rows
         self.launch()
         self.sort_by(col_evalue, self.SORT_ASCENDING)
@@ -380,7 +394,7 @@ class FoldseekResultsTable(ItemTable):
 
 # -----------------------------------------------------------------------------
 #
-class FoldseekRow:
+class SimilarStructuresRow:
     def __init__(self, hit):
         self.hit = hit
     def __getattr__(self, attribute_name):
@@ -388,43 +402,42 @@ class FoldseekRow:
 
 # -----------------------------------------------------------------------------
 #
-def foldseek_scroll_to(session, hit_name):
+def similar_structures_scroll_to(session, hit_name):
     '''Show table row for this hit.'''
-    from .foldseek import foldseek_hit_by_name
-    hit, results = foldseek_hit_by_name(session, hit_name)
+    from .simstruct import similar_structure_hit_by_name
+    hit, results = similar_structure_hit_by_name(session, hit_name)
     if hit:
-        panel = foldseek_panel(session)
+        panel = similar_structures_panel(session)
         if panel:
             panel.select_table_row(hit)
 
 # -----------------------------------------------------------------------------
 #
-def show_foldseek_results(session, results):
-    msg = f'Foldseek search for similar structures to {results.query_chain} in {results.database} found {len(results.hits)} hits'
-    session.logger.info(msg)
+def show_similar_structures_table(session, results):
+    session.logger.info(f'Found {results.description}')
 
-    fp = foldseek_panel(session, create = True)
-    fp.set_trim_options(results.trim)
-    fp.set_alignment_cutoff_option(results.alignment_cutoff_distance)
-    fp.show_results(results)
-    return fp
+    ssp = similar_structures_panel(session, create = True)
+    ssp.set_trim_options(results.trim)
+    ssp.set_alignment_cutoff_option(results.alignment_cutoff_distance)
+    ssp.show_results(results)
+    return ssp
 
 # -----------------------------------------------------------------------------
 #
-def register_foldseek_scrollto_command(logger):
+def register_similar_structures_scrollto_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg
     desc = CmdDesc(
         required = [('hit_name', StringArg)],
-        synopsis = 'Show Foldseek result table row'
+        synopsis = 'Show similar structures result table row'
     )
-    register('foldseek scrollto', desc, foldseek_scroll_to, logger=logger)
+    register('similarstructures scrollto', desc, similar_structures_scroll_to, logger=logger)
 
 # -----------------------------------------------------------------------------
 #
-def foldseek_panel(session, create = False):
-    return FoldseekPanel.get_singleton(session, create=create)
+def similar_structures_panel(session, create = False):
+    return SimilarStructuresPanel.get_singleton(session, create=create)
   
 # -----------------------------------------------------------------------------
 #
-def show_foldseek_panel(session):
-    return foldseek_panel(session, create = True)
+def show_similar_structures_panel(session):
+    return similar_structures_panel(session, create = True)

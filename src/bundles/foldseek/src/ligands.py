@@ -22,10 +22,10 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_paired = 0.5,
-                     combine = True):
-    from .foldseek import foldseek_results
-    results = foldseek_results(session)
+def similar_structures_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_paired = 0.5,
+                               combine = True):
+    from .simstruct import similar_structure_results
+    results = similar_structure_results(session)
     if results is None:
         return
 
@@ -39,10 +39,9 @@ def foldseek_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_
     nlighits = 0
     from time import time
     t0 = time()
-    from .foldseek import open_hit
     for hnum, hit in enumerate(results.hits):
-        structures = open_hit(session, hit, query_chain, align = False,
-                              in_file_history = False, log = False)
+        structures = results.open_hit(session, hit, align = False,
+                                      in_file_history = False, log = False)
 
         hname = hit['database_full_id']
         telapse = _minutes_and_seconds_string(time() - t0)
@@ -55,14 +54,14 @@ def foldseek_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_
             ligres = res[res.polymer_types == Residue.PT_NONE]
             keeplig = []
             if ligres:
-                from .foldseek import hit_and_query_residue_pairs
+                from .simstruct import hit_and_query_residue_pairs
                 rmap = {hr:qr for hr,qr in hit_and_query_residue_pairs(structure, query_chain, hit)}
                 for lr in ligres:
                     cres = _find_close_residues(lr, res, alignment_range)
                     if len(cres) >= 3:
                         pcres, qres = _paired_residues(rmap, cres)
                         if len(qres) >= 3:
-                            from .foldseek import alignment_transform
+                            from .simstruct import alignment_transform
                             p, rms, npairs = alignment_transform(pcres, qres)
                             if rms <= rmsd_cutoff:
                                 keeplig.append(lr)
@@ -160,11 +159,11 @@ def _include_pdb_id_in_chain_ids(structures):
 def _combine_structures(session, structures):
     from chimerax.core.commands import concise_model_spec, run
     mspec = concise_model_spec(session, structures)
-    cmd = f'combine {mspec} close true retainIds true name "foldseek ligands"'
+    cmd = f'combine {mspec} close true retainIds true name "similar structure ligands"'
     cmodel = run(session, cmd, log = False)
     return cmodel
 
-def register_foldseek_ligands_command(logger):
+def register_similar_structures_ligands_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg
     desc = CmdDesc(
         keyword = [('rmsd_cutoff', FloatArg),
@@ -174,4 +173,4 @@ def register_foldseek_ligands_command(logger):
                    ],
         synopsis = 'Find ligands in Foldseek hits and align to query.'
     )
-    register('foldseek ligands', desc, foldseek_ligands, logger=logger)
+    register('similarstructures ligands', desc, similar_structures_ligands, logger=logger)

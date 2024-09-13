@@ -22,31 +22,31 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek_sequences(session, show_conserved = True, conserved_threshold = 0.5,
-                       conserved_color = (225,190,106), identity_color = (64,176,166),
-                       lddt_coloring = False, order = 'cluster or evalue'):
-    '''Show an image of all aligned sequences from a foldseek search, one sequence per image row.'''
-    from .foldseek import foldseek_results
-    results = foldseek_results(session)
+def similar_structures_sequences(session, show_conserved = True, conserved_threshold = 0.5,
+                                 conserved_color = (225,190,106), identity_color = (64,176,166),
+                                 lddt_coloring = False, order = 'cluster or evalue'):
+    '''Show an image of all aligned sequences from a similar structure search, one sequence per image row.'''
+    from .simstruct import similar_structure_results
+    results = similar_structure_results(session)
     if results is None:
         from chimerax.core.errors import UserError
-        raise UserError('No Foldseek results are open')
+        raise UserError('No similar structure results are open')
 
     conserved_color = conserved_color[:3]	# Don't use transparency
     identity_color = identity_color[:3]
-    fsp = FoldseekSequencePlot(session, results, order = order,
-                               show_conserved = show_conserved, conserved_threshold = conserved_threshold,
-                               conserved_color = conserved_color, identity_color = identity_color,
-                               lddt_coloring = lddt_coloring)
+    fsp = SequencePlotPanel(session, results, order = order,
+                            show_conserved = show_conserved, conserved_threshold = conserved_threshold,
+                            conserved_color = conserved_color, identity_color = identity_color,
+                            lddt_coloring = lddt_coloring)
     return fsp
 
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.tools import ToolInstance
-class FoldseekSequencePlot(ToolInstance):
+class SequencePlotPanel(ToolInstance):
 
-    name = 'Foldseek Sequence Plot'
-    help = 'help:user/tools/foldseek.html#seqplot'
+    name = 'Sequence Plot'
+    help = 'help:user/tools/similarstructures.html#seqplot'
 
     def __init__(self, session, results, order = 'cluster or evalue',
                  show_conserved = True, conserved_threshold = 0.5,
@@ -145,8 +145,10 @@ class FoldseekSequencePlot(ToolInstance):
     #
     def _mouse_hover(self, x, y):
         hit, res_type, res_num = self._hover_info(x, y)
-        if hit and res_type:
-            message = f'Hit {hit["database_full_id"]}   Query residue {res_type}{res_num}'
+        if hit:
+            message = f'Hit {hit["database_full_id"]}'
+            if res_type:
+                message += f'     Query residue {res_type}{res_num}'
             self._last_hover_xy = x, y
         else:
             nhits = self._results.num_hits
@@ -160,24 +162,15 @@ class FoldseekSequencePlot(ToolInstance):
         r = self._results
         if r.query_chain is None:
             return None, None, None
-        query_res = self._column_query_residues()
+        query_res = r.query_residue_names()
         if y >= 0 and y < r.num_hits and x >= 0 and x < len(query_res):
             order = self._hit_order()
             hit = r.hits[order[y]]
-            res_type, res_num = query_res[x]
+            rname = query_res[x]
+            res_type, res_num = (None, None) if rname is None else rname
         else:
             hit = res_type = res_num = None
         return hit, res_type, res_num
-
-    # ---------------------------------------------------------------------------
-    #
-    def _column_query_residues(self):
-        if not hasattr(self, '_query_res'):
-            r = self._results
-            qstart, qend = r.query_alignment_range()
-            qres = r.query_residues[qstart-1:qend]
-            self._query_res = [(r.one_letter_code, r.number) for r in qres]
-        return self._query_res
 
     # ---------------------------------------------------------------------------
     #
@@ -233,10 +226,10 @@ class FoldseekSequencePlot(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _show_hit_in_table(self, hit):
-        from .gui import foldseek_panel
-        fp = foldseek_panel(self.session)
-        if fp:
-            fp.select_table_row(hit)
+        from .gui import similar_structures_panel
+        ssp = similar_structures_panel(self.session)
+        if ssp:
+            ssp.select_table_row(hit)
 
     # ---------------------------------------------------------------------------
     #
@@ -262,6 +255,8 @@ class FoldseekSequencePlot(ToolInstance):
     #
     def _show_lddt(self, show = True):
         self._color_by_lddt = show
+        if show:
+            self._show_conserved = False
         self._update_sequence_image()
         
     # ---------------------------------------------------------------------------
@@ -294,22 +289,22 @@ class FoldseekSequencePlot(ToolInstance):
             alignment_array = self._results.sequence_alignment_array()
             from numpy import count_nonzero
             n = count_nonzero(alignment_array[1:], axis=0).max()  # Max coverage
-            self._run_command(f'color byattribute r:foldseek_coverage {qspec} palette 0,red:{n//2},white:{n},blue')
+            self._run_command(f'color byattribute r:coverage {qspec} palette 0,red:{n//2},white:{n},blue')
     def _color_query_conservation(self):
         if self._query_chain:
             qspec = self._query_chain.string(style = 'command')
-            self._run_command(f'color byattribute r:foldseek_conservation {qspec} palette 0,blue:0.25,white:0.5,red')
+            self._run_command(f'color byattribute r:conservation {qspec} palette 0,blue:0.25,white:0.5,red')
     def _color_query_highly_conserved(self):
         if self._query_chain:
             qspec = self._query_chain.string(style = 'command')
             threshold = self._conserved_threshold
             self._run_command(f'color {qspec} gray')
-            self._run_command(f'color {qspec} & ::foldseek_conservation>={threshold} red')
+            self._run_command(f'color {qspec} & ::conservation>={threshold} red')
     def _color_query_lddt(self):
         if self._query_chain:
             self._results.set_lddt_attribute()
             qspec = self._query_chain.string(style = 'command')
-            self._run_command(f'color byattribute r:foldseek_lddt {qspec} palette 0,red:0.2,orange:0.4,yellow:0.6,cornflowerblue:0.8,blue')
+            self._run_command(f'color byattribute r:lddt {qspec} palette 0,red:0.2,orange:0.4,yellow:0.6,cornflowerblue:0.8,blue')
     def _run_command(self, command):
         from chimerax.core.commands import run
         run(self.session, command)
@@ -321,7 +316,7 @@ class FoldseekSequencePlot(ToolInstance):
         suggested_path = path.join(getcwd(), 'sequences' + default_suffix)
         from Qt.QtWidgets import QFileDialog
         parent = self.tool_window.ui_area
-        save_path, ftype  = QFileDialog.getSaveFileName(parent, 'Foldseek Sequence Plot', suggested_path)
+        save_path, ftype  = QFileDialog.getSaveFileName(parent, 'Sequence Plot', suggested_path)
         if save_path:
             if not path.splitext(save_path)[1]:
                 save_path += default_suffix
@@ -449,7 +444,7 @@ def pixmap_from_rgb(rgb):
     pixmap = QPixmap.fromImage(im)
     return pixmap
     
-def register_foldseek_sequences_command(logger):
+def register_similar_structures_sequences_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, EnumOf, Color8Arg
     from chimerax.atomic import ChainArg
     desc = CmdDesc(
@@ -460,6 +455,6 @@ def register_foldseek_sequences_command(logger):
                    ('identity_color', Color8Arg),
                    ('lddt_coloring', BoolArg),
                    ('order', EnumOf(['cluster', 'evalue', 'identity', 'lddt']))],
-        synopsis = 'Show an image of all aligned sequences from a foldseek search, one sequence per image row.'
+        synopsis = 'Show an image of all aligned sequences from a similar structure search, one sequence per image row.'
     )
-    register('foldseek sequences', desc, foldseek_sequences, logger=logger)
+    register('similarstructures sequences', desc, similar_structures_sequences, logger=logger)

@@ -22,23 +22,24 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek_cluster(session, query_residues = None, align_with = None, cutoff_distance = 2.0,
-                     cluster_count = None, cluster_distance = None, replace = True):
-    from .foldseek import foldseek_results
-    results = foldseek_results(session)
+def similar_structures_cluster(session, query_residues = None, align_with = None, cutoff_distance = 2.0,
+                               cluster_count = None, cluster_distance = None, replace = True):
+    from .simstruct import similar_structure_results
+    results = similar_structure_results(session)
     if results is None:
         return
 
     if not results.have_c_alpha_coordinates():
-        from chimerax.core.errors import UserError
-        raise UserError('Search results do not include C-alpha atom coordinates used for clustering.  Run the "foldseek fetchcoords" command to fetch the coordinates')
+        from . import coords
+        if not coords.similar_structures_fetch_coordinates(session, ask = True):
+            return
 
     if query_residues is None:
         query_residues = results.query_residues
 
     if len(query_residues) == 0:
         from chimerax.core.errors import UserError
-        raise UserError('Must specify at least 1 residue to compute Foldseek clusters')
+        raise UserError('Must specify at least 1 residue to compute similar structure clusters')
     
     _show_umap(session, results, query_residues,
                align_with = align_with, cutoff_distance = cutoff_distance,
@@ -49,10 +50,10 @@ def _show_umap(session, results, query_residues, align_with = None, cutoff_dista
                cluster_count = None, cluster_distance = None, replace = True):
 
     hits = results.hits
-    coord_offsets, hit_names = _aligned_coords(hits, results.query_residues, query_residues,
+    coord_offsets, hit_names = _aligned_coords(results, query_residues,
                                                align_with = align_with, cutoff_distance = cutoff_distance)
     if len(coord_offsets) == 0:
-        session.logger.error(f'Foldseek results contains no structures with all of the specified {len(query_residues)} residues')
+        session.logger.error(f'Similar structure results contains no structures with all of the specified {len(query_residues)} residues')
         return
 
     from chimerax.diffplot.diffplot import _umap_embed, _plot_embedding, _install_umap
@@ -75,7 +76,7 @@ def _show_umap(session, results, query_residues, align_with = None, cutoff_dista
     p = _plot_embedding(session, hit_names, umap_xy, colors, replace=replace)
     p.query_residues = query_residues
     
-    # Set the plot context menu to contain foldseek actions
+    # Set the plot context menu to contain similar structure actions
     from types import MethodType
     p.fill_context_menu = MethodType(fill_context_menu, p)
 
@@ -84,12 +85,14 @@ def _show_umap(session, results, query_residues, align_with = None, cutoff_dista
         msg += f' into {max(cluster_numbers)} groups'
     session.logger.info(msg)
 
-def _foldseek_trace_models(session):
-    from .traces import FoldseekTraces
-    return session.models.list(type = FoldseekTraces)
+def _backbone_trace_models(session):
+    from .traces import BackboneTraces
+    return session.models.list(type = BackboneTraces)
 
-def _aligned_coords(hits, query_chain_residues, query_residues, align_with = None, cutoff_distance = 2.0):
-    from .foldseek import hit_coords, hit_residue_pairing, align_xyz_transform
+def _aligned_coords(results, query_residues, align_with = None, cutoff_distance = 2.0):
+    hits = results.hits
+    query_chain_residues = results.query_residues
+    from .simstruct import hit_coords, align_xyz_transform
     qatoms = query_chain_residues.find_existing_atoms('CA')
     query_xyz = qatoms.coords
     qria = qatoms.indices(query_residues.find_existing_atoms('CA'))
@@ -101,13 +104,13 @@ def _aligned_coords(hits, query_chain_residues, query_residues, align_with = Non
         ai.discard(-1)
         if len(ai) < 3:
             from chimerax.core.errors import UserError
-            raise UserError('Foldseek umap align_with specifies fewer than 3 aligned query atoms')
+            raise UserError('Similar structure clustering align_with option specifies fewer than 3 aligned query atoms')
 
     offsets = []
     names = []
     for hit in hits:
         hit_xyz = hit_coords(hit)
-        hi, qi = hit_residue_pairing(hit)
+        hi, qi = results.hit_residue_pairing(hit)
         hri = [j for i,j in zip(qi,hi) if i in qri]
         if len(hri) < len(qri):
             continue
@@ -170,7 +173,7 @@ def _hide_cluster_traces(structure_plot, node):
     _show_traces(structure_plot.session, _cluster_names(structure_plot, node), show = False)
 
 def _show_traces(session, names, show = True, other = False):
-    for tmodel in _foldseek_trace_models(session):
+    for tmodel in _backbone_trace_models(session):
         tmodel.show_traces(names, show=show, other=other)
 
 def _show_all_traces(structure_plot):
@@ -214,7 +217,7 @@ def _hide_unplotted_traces(structure_plot):
                  show = False, other = True)
 
 def _color_traces(structure_plot):
-    tmodels = _foldseek_trace_models(structure_plot.session)
+    tmodels = _backbone_trace_models(structure_plot.session)
     if tmodels:
         from chimerax.core.colors import rgba_to_rgba8
         n2c = {node.name:rgba_to_rgba8(node.color) for node in structure_plot.nodes}
@@ -291,7 +294,7 @@ def _select_reference_atoms(structure_plot):
     struct.session.selection.clear()
     qatoms.selected = True
 
-def register_foldseek_cluster_command(logger):
+def register_similar_structures_cluster_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, IntArg
     from chimerax.atomic import ResiduesArg
     desc = CmdDesc(
@@ -301,6 +304,6 @@ def register_foldseek_cluster_command(logger):
                    ('cluster_count', IntArg),
                    ('cluster_distance', FloatArg),
                    ('replace', BoolArg)],
-        synopsis = 'Show umap plot of foldseek hit coordinates for specified residues.'
+        synopsis = 'Show umap plot of similar structure hit coordinates for specified residues.'
     )
-    register('foldseek cluster', desc, foldseek_cluster, logger=logger)
+    register('similarstructures cluster', desc, similar_structures_cluster, logger=logger)

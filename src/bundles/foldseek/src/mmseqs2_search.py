@@ -34,7 +34,7 @@ def mmseqs2_search(session, chain, database = 'pdb',
 
     if save_directory is None:
         from os.path import expanduser
-        save_directory = expanduser(f'~/Downloads/ChimeraX/mmseqs2/{chain.structure.name}_{chain.chain_id}')
+        save_directory = expanduser('~/Downloads/ChimeraX/MMseqs2')
 
     Mmseqs2WebQuery(session, chain, database=database,
                     evalue_cutoff = evalue_cutoff, identity_cutoff = identity_cutoff, max_hits = max_hits,
@@ -65,8 +65,8 @@ class Mmseqs2WebQuery:
         self.rcsb_search_url = rcsb_search_url
         self.rcsb_graphql_url = rcsb_graphql_url
 
-        self._save_chain_path(chain)
-        self._save_query_sequence(chain)        
+#        self._save_chain_path(chain)
+#        self._save_query_sequence(chain)        
         results = self.submit_query()
         entity_hits = parse_pdb_search_results(results)
         chain_hits = add_chains_descrip_species(entity_hits)
@@ -97,40 +97,18 @@ class Mmseqs2WebQuery:
             raise UserError(f'RCSB sequence search failed: {error_msg}')
 
         results = r.json()
-        self._save(f'results_{self.database}.json', r.text)
         return results
 
     def report_results(self, hits):
-        database = self.database
-        from .foldseek import FoldseekResults
-        results = FoldseekResults(hits, database, self.chain, trim = self.trim,
-                                  alignment_cutoff_distance = self.alignment_cutoff_distance,
-                                  program = 'mmseqs2')
-        from .gui import show_foldseek_results
-        show_foldseek_results(self.session, results)
+        from .simstruct import SimilarStructures
+        results = SimilarStructures(hits, self.chain, program = 'mmseqs2', database = self.database,
+                                    trim = self.trim, alignment_cutoff_distance = self.alignment_cutoff_distance)
+
+        results.save_to_directory(self.save_directory)
+
+        from .gui import show_similar_structures_table
+        show_similar_structures_table(self.session, results)
 #        self._log_open_results_command()
-
-    def _save(self, filename, data):
-        save_directory = self.save_directory
-        if save_directory is None:
-            return
-        import os, os.path
-        if not os.path.exists(save_directory):
-            os.makedirs(save_directory)
-        file_mode = 'w' if isinstance(data, str) else 'wb'
-        path = os.path.join(save_directory, filename)
-        with open(path, file_mode) as file:
-            file.write(data)
-
-    def _save_chain_path(self, chain):
-        if chain:
-            path = getattr(chain.structure, 'filename', None)
-            if path:
-                self._save('chain', f'{path}\t{chain.chain_id}')
-
-    def _save_query_sequence(self, chain):
-        if chain:
-            self._save('sequence', chain.characters)
 
     '''
     def _log_open_results_command(self):
@@ -183,7 +161,7 @@ rcsb_search_template = '''{{
 }}'''
 
 def parse_pdb_search_results(results):
-    rcsb_to_foldseek_names = [
+    rcsb_to_simstruct_names = [
         ('sequence_identity', 'pident'),
         ('evalue', 'evalue'),
         ('bitscore', 'bits'),
@@ -215,7 +193,8 @@ def parse_pdb_search_results(results):
         nodes = r['services'][0]['nodes']
         for node in nodes:
             for mc in node['match_context']:
-                hit = {foldseek_attr:mc[rcsb_attr] for rcsb_attr, foldseek_attr in rcsb_to_foldseek_names}
+                hit = {simstruct_attr:mc[rcsb_attr] for rcsb_attr, simstruct_attr in rcsb_to_simstruct_names}
+                hit['pident'] *= 100	# Convert from fraction to percent
                 if alphafold:
                     hit['alphafold_id'] = alphafold_id
                     hit['alphafold_fragment'] = alphafold_fragment
@@ -236,7 +215,6 @@ def add_chains_descrip_species(hits):
     if len(entity_ids) == 0:
         return
     pdb_info = fetch_pdb_entity_info(set(entity_ids))
-    print (pdb_info)
     einfo = parse_pdb_entity_info(pdb_info)
     chits = []	# Chain hits
     for hit, entity_id in zip(hits, entity_ids):

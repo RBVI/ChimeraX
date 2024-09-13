@@ -22,22 +22,23 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek_traces(session, align_with = None, cutoff_distance = None,
-                    close_only = 4.0, gap_distance_limit = 10.0, min_residues = 5,
-                    tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
-    from .foldseek import foldseek_results
-    results = foldseek_results(session)
+def similar_structures_traces(session, align_with = None, cutoff_distance = None,
+                              close_only = 4.0, gap_distance_limit = 10.0, min_residues = 5,
+                              tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
+    from .simstruct import similar_structure_results
+    results = similar_structure_results(session)
     if results is None:
         return
 
     if not results.have_c_alpha_coordinates():
-        from chimerax.core.errors import UserError
-        raise UserError('Search results do not include C-alpha atom coordinates used to draw traces.  Run the "foldseek fetchcoords" command to fetch the coordinates')
+        from . import coords
+        if not coords.similar_structures_fetch_coordinates(session, ask = True):
+            return
     
     if cutoff_distance is None:
         cutoff_distance = results.alignment_cutoff_distance
 
-    from .foldseek import hit_coords, hit_residue_pairing, align_xyz_transform
+    from .simstruct import hit_coords, align_xyz_transform
     qchain = results.query_chain
     if qchain is None:
         from chimerax.core.errors import UserError
@@ -50,13 +51,13 @@ def foldseek_traces(session, align_with = None, cutoff_distance = None,
         ai.discard(-1)
         if len(ai) < 3:
             from chimerax.core.errors import UserError
-            raise UserError('Foldseek traces align_with specifies fewer than 3 aligned query atoms')
+            raise UserError('Similar structure traces align_with option specifies fewer than 3 aligned query atoms')
 
     traces = []
     rtot = rshown = 0
     for hit in results.hits:
         hit_xyz = hit_coords(hit)
-        hi, qi = hit_residue_pairing(hit)
+        hi, qi = results.hit_residue_pairing(hit)
         hxyz = hit_xyz[hi]
         qxyz = query_xyz[qi]
         if align_with is None:
@@ -142,7 +143,7 @@ def _mask_intervals(mask):
 def _create_line_traces_model(session, traces):
     vertices, lines, names = _line_traces(traces)
     normals = None
-    ft = FoldseekTraces('Foldseek traces', session)
+    ft = BackboneTraces('Backbone traces', session)
     ft.set_geometry(vertices, normals, lines)
     ft.display_style = ft.Mesh
     ft.set_trace_names(names)
@@ -174,7 +175,7 @@ def _create_tube_traces_model(session, traces, radius = 0.1, segment_subdivision
     vertices, normals, triangles, names = _tube_traces(traces, radius = radius,
                                                        segment_subdivisions = segment_subdivisions,
                                                        circle_subdivisions = circle_subdivisions)
-    ft = FoldseekTraces('Foldseek traces', session)
+    ft = BackboneTraces('Backbone traces', session)
     ft.set_geometry(vertices, normals, triangles)
     ft.set_trace_names(names)
     return ft
@@ -203,7 +204,7 @@ def _tube_traces(traces, radius = 0.1, segment_subdivisions = 5, circle_subdivis
 
 # Allow mouse hover to identify hits
 from chimerax.core.models import Surface
-class FoldseekTraces(Surface):
+class BackboneTraces(Surface):
     def __init__(self, name, session):
         Surface.__init__(self, name, session)
         register_context_menu()  # Register select mouse mode double click context menu
@@ -232,7 +233,7 @@ class FoldseekTraces(Surface):
         pick = super().first_intercept(mxyz1, mxyz2, exclude=exclude)
         from chimerax.graphics import PickedTriangle
         if isinstance(pick, PickedModel) and hasattr(pick, 'picked_triangle'):
-            pick = PickedFoldseekTrace(self, pick.picked_triangle.triangle_number, pick.distance)
+            pick = PickedBackboneTrace(self, pick.picked_triangle.triangle_number, pick.distance)
         return pick
     @property
     def selected_hit(self):
@@ -264,13 +265,13 @@ class FoldseekTraces(Surface):
         self.triangle_mask = None
 
 from chimerax.core.models import PickedModel
-class PickedFoldseekTrace(PickedModel):
+class PickedBackboneTrace(PickedModel):
     def __init__(self, model, triangle_number, distance):
         super().__init__(model, distance)
         self.triangle_number = triangle_number
     def description(self):
         trace_name = self.model.triangle_trace_name(self.triangle_number)
-        return f'Foldseek trace {trace_name}'
+        return f'Backbone trace {trace_name}'
     def select(self, mode='add'):
         self.model.select_trace(self.triangle_number)
     def specifier(self):
@@ -278,7 +279,7 @@ class PickedFoldseekTrace(PickedModel):
     
 # Add hide and delete atoms/bonds/pseudobonds to double-click selection context menu
 from chimerax.mouse_modes import SelectContextMenuAction
-class FoldseekHitMenuEntry(SelectContextMenuAction):
+class BackboneTraceMenuEntry(SelectContextMenuAction):
     def __init__(self, action, menu_text):
         self.action = action
         self.menu_text = menu_text
@@ -297,25 +298,25 @@ class FoldseekHitMenuEntry(SelectContextMenuAction):
         from chimerax.core.commands import run
         a = self.action
         if a == 'open':
-            run(session, f'foldseek open {hname}')            
+            run(session, f'similarstructures open {hname}')            
         elif a == 'scroll to':
-            run(session, f'foldseek scrollto {hname}')
+            run(session, f'similarstructures scrollto {hname}')
         elif a == 'show only':
             self._show_only(session)
         elif a == 'show all':
             self._show_all(session)
     def _hit_name(self, session):
-        for ft in session.models.list(type = FoldseekTraces):
+        for ft in session.models.list(type = BackboneTraces):
             hname = ft.selected_hit
             if hname:
                 return hname
         return None
     def _show_all(self, session):
-        for ft in session.models.list(type = FoldseekTraces):
+        for ft in session.models.list(type = BackboneTraces):
             if ft.selected_hit:
                 ft.show_all_traces()
     def _show_only(self, session):
-        for ft in session.models.list(type = FoldseekTraces):
+        for ft in session.models.list(type = BackboneTraces):
             hname = ft.selected_hit
             if hname:
                 ft.show_traces([hname])
@@ -326,13 +327,13 @@ def register_context_menu():
     global _registered_context_menu
     if not _registered_context_menu:
         from chimerax.mouse_modes import SelectMouseMode
-        SelectMouseMode.register_menu_entry(FoldseekHitMenuEntry('open', 'Open Foldseek hit %s'))
-        SelectMouseMode.register_menu_entry(FoldseekHitMenuEntry('scroll to', 'Show %s in Foldseek results table'))
-        SelectMouseMode.register_menu_entry(FoldseekHitMenuEntry('show only', 'Show only trace %s'))
-        SelectMouseMode.register_menu_entry(FoldseekHitMenuEntry('show all', 'Show all traces'))
+        SelectMouseMode.register_menu_entry(BackboneTraceMenuEntry('open', 'Open similar structure %s'))
+        SelectMouseMode.register_menu_entry(BackboneTraceMenuEntry('scroll to', 'Show %s in similar structures table'))
+        SelectMouseMode.register_menu_entry(BackboneTraceMenuEntry('show only', 'Show only trace %s'))
+        SelectMouseMode.register_menu_entry(BackboneTraceMenuEntry('show all', 'Show all traces'))
         _registered_context_menu = True
     
-def register_foldseek_traces_command(logger):
+def register_similar_structures_traces_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, IntArg, BoolArg
     from chimerax.atomic import ResiduesArg
     desc = CmdDesc(
@@ -347,6 +348,6 @@ def register_foldseek_traces_command(logger):
                    ('segment_subdivisions', IntArg),
                    ('circle_subdivisions', IntArg),
                    ],
-        synopsis = 'Show backbone traces of Foldseek hits aligned to query structure.'
+        synopsis = 'Show backbone traces of similar structures aligned to query structure.'
     )
-    register('foldseek traces', desc, foldseek_traces, logger=logger)
+    register('similarstructures traces', desc, similar_structures_traces, logger=logger)

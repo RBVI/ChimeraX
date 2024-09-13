@@ -22,25 +22,32 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def foldseek_fetch_coordinates(session, min_aligned_coords = 10):
+def similar_structures_fetch_coordinates(session, min_aligned_coords = 10, ask = False, rewrite_sms_file = True):
 
-    from .foldseek import foldseek_results
-    results = foldseek_results(session)
+    from .simstruct import similar_structure_results
+    results = similar_structure_results(session)
     if results is None:
-        return
+        return False
+
+    nhits = len(results.hits)
+    if ask and session.ui.is_gui:
+        message = f'Do you want to fetch coordinates for {nhits} structures?  It may take several minutes during which ChimeraX will be frozen.'
+        from chimerax.ui.ask import ask
+        answer = ask(session, message, title='Fetch structure coordinates')
+        if answer == 'no':
+            return False
 
     keep_hits = []
     nc = 0
-    nhits = len(results.hits)
     from time import time
     t0 = time()
-    from .foldseek import open_hit, structure_chain_with_id
+    from .simstruct import structure_chain_with_id
     for hnum, hit in enumerate(results.hits):
         if 'tca' in hit:
             keep_hits.append(hit)
             continue	# Already has coordinates
-        structures = open_hit(session, hit, query_chain = None, trim = False, align = False,
-                              in_file_history = False, log = False)
+        structures = resuls.open_hit(session, hit, trim = False, align = False,
+                                     in_file_history = False, log = False)
         
         hit_chain = structure_chain_with_id(structures[0], hit.get('chain_id'))
         catoms = hit_chain.existing_residues.find_existing_atoms('CA')
@@ -67,6 +74,11 @@ def foldseek_fetch_coordinates(session, min_aligned_coords = 10):
     telapse = _minutes_and_seconds_string(time() - t0)
     session.logger.status(f'Fetched coordinates for {nc} hits, time {telapse}', log = True)
 
+    if rewrite_sms_file and hasattr(results, 'sms_path'):
+        results.save_sms_file(results.sms_path)
+        
+    return True
+
 def _num_aligned_coords(hit):
     return len(set(hit['tca_index']) & set(hit['aligned_residue_offsets']))
 
@@ -75,11 +87,11 @@ def _minutes_and_seconds_string(tsec):
     ts = int(tsec - tmin*60)
     return '%d:%02d' % (tmin, ts)
 
-def register_foldseek_fetchcoords_command(logger):
+def register_fetchcoords_command(logger):
     from chimerax.core.commands import CmdDesc, register, IntArg
     desc = CmdDesc(
         keyword = [('min_aligned_coords', IntArg),
                    ],
         synopsis = 'Fetch structures and get C-alpha coordinates for clustering and backbone trace display.'
     )
-    register('foldseek fetchcoords', desc, foldseek_fetch_coordinates, logger=logger)
+    register('similarstructures fetchcoords', desc, similar_structures_fetch_coordinates, logger=logger)
