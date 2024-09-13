@@ -88,7 +88,7 @@ html: clean conf.py index.rst _static/cxlinks.js _static/devdocs.css
 	# symlinks are made in Makefile.readthedocs
 	if [ -d $(APP_PYSITEDIR) ]; then \
 		ln -s $(realpath $(APP_PYSITEDIR)/chimerax) chimerax ; \
-		INTERNAL_CHIMERAX=1 $(TOP)/utils/doc_symlinks.sh ; \
+		INTERNAL_CHIMERAX=1 $(TOP)/utils/build/doc_symlinks.sh ; \
 	fi
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
