@@ -1,13 +1,13 @@
-<BundleInfo name="ChimeraX-Foldseek" version="1.0.1"
-	    package="chimerax.foldseek"
+<BundleInfo name="ChimeraX-SimilarStructures" version="1.0.1"
+	    package="chimerax.similarstructures"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
 
-  <Synopsis>Search for proteins with similar folds using Foldseek web service</Synopsis>
-  <Description>Search for proteins with similar folds using Foldseek web service</Description>
+  <Synopsis>Visualize similar structures found using Foldseek, MMseqs2 or BLAST</Synopsis>
+  <Description>Visualize similar structures found using Foldseek, MMseqs2 or BLAST</Description>
 
   <Categories>
     <Category name="Structure Comparison"/>
@@ -46,8 +46,8 @@
     <ChimeraXClassifier>Command :: sequence search :: Sequence :: Search for similar sequences using MMseqs2 at PDB</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: sequence blast :: Sequence :: Search for similar sequences using BLAST at RBVI</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: similarstructures fromblast :: Structure Comparison :: Convert blast results to a similar structures table</ChimeraXClassifier>
-    <ChimeraXClassifier>Tool :: Foldseek :: Structure Analysis :: Search PDB or AlphaFold databases for protein structures matching the fold of a specified structure</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Similar Structures :: Structure Analysis :: Search PDB or AlphaFold databases for protein structures with similar fold or sequence to a specified structure</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Foldseek :: Structure Analysis :: Search PDB or AlphaFold databases for protein structures matching the fold of a specified structure</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

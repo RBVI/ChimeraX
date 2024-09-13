@@ -24,7 +24,7 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _FoldseekBundle(BundleAPI):
+class _SimilarStructuresBundle(BundleAPI):
 
     @staticmethod
     def start_tool(session, tool_name):
@@ -107,4 +107,4 @@ class _FoldseekBundle(BundleAPI):
             return SimilarStructures
             
 
-bundle_api = _FoldseekBundle()
+bundle_api = _SimilarStructuresBundle()
