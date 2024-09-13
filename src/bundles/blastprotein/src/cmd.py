@@ -103,6 +103,7 @@ def blastprotein(
     )
     job.start()
 
+    return job
 
 blastprotein_desc = CmdDesc(
     required=[("atoms", Or(AtomSpecArg, AlignSeqPairArg, SequenceArg))],
