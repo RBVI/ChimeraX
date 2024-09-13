@@ -61,8 +61,8 @@ if [ ! -z "$AUTOMATIC_DISCOVERY" ]; then
 		export INCLUDE="${VCTIncludeDir};${VCTATLMFCIncDir};${WindowsSDKUmIncDir};${WindowsSDKUCRTIncDir};${WindowsSDKSharedIncDir};${WindowsSDKWinRTIncDir};${WindowsSDKCPPWinRTIncDir};$INCLUDE"
 		export LIB="${VCTLibDir};${VCTATLMFCLibDir};${WindowsSDKUCRTDir};${WindowsSDKUmDir};$LIB"
 		export LIBPATH="${VCTLibDir};${VCTATLMFCLibDir};${VCTRefDir};${WindowsSDKLibRefDir};${WindowsSDKLibUMDir};$LIBPATH"
-
-		echo "VC Tools Version: ${$(echo ${VCTIncludeDir} | cut -d'\' -f 9)}"
+		VCToolsVersion=$(echo "${VCTIncludeDir}" | cut -d'\' -f 9)
+		echo "VC Tools Version: ${VCToolsVersion}"
 		echo "Windows SDK Version: ${WindowsSDKVer}"
 
 		return 0
