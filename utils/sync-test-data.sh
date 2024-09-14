@@ -1,19 +1,15 @@
 #!/usr/bin/env bash
 
-while getopts sb: flag; do
+while getopts ub: flag; do
 	case "${flag}" in
 	b) BUNDLE=${OPTARG} ;;
+  u) UPDATE=true;;
 	*)
-		echo "Usage: $0 [-b <bundle>]"
+		echo "Usage: $0 [-b <bundle>] [-u]"
 		exit 1
 		;;
 	esac
 done
-
-if [ -z "${BUNDLE}" ] && [ -z "${SESSION_DATA}" ]; then
-	echo "Usage: $0 [-b <bundle>]"
-	exit 1
-fi
 
 ROOT=$(dirname "$(dirname "$(realpath "$0")")")
 
@@ -28,8 +24,15 @@ if [ -n "${BUNDLE}" ]; then
 
 	DATADIR="${ROOT}/src/bundles/${BUNDLE}/tests/data"
 
+  WGET_ARGS=" -np -nH -r --cut-dirs=4 --reject="index.html*" --reject="robots.txt" "
+
+  if [ "${UPDATE}" = true ]; then
+    # Add the 'no clobber' flag to skip previously downloaded files
+    WGET_ARGS="-nc "${WGET_ARGS}""
+  fi
+
 	mkdir -p "${DATADIR}"
-	wget -np -nH -r --cut-dirs=4 --reject="index.html*" --reject="robots.txt" https://rbvi.ucsf.edu/chimerax/data/test-data/"${BUNDLE}"/ -P "${DATADIR}"
+	wget ${WGET_ARGS} https://rbvi.ucsf.edu/chimerax/data/test-data/"${BUNDLE}"/ -P "${DATADIR}"
 
 	exit 0
 fi
