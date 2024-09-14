@@ -22,9 +22,16 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def get_struct_input(structure):
+def prep_input(structure, origin, extent, probe_in, probe_out, step):
     atom_infos = []
-    for a in structure.atoms:
+    atoms = structure.atoms
+    for a in atoms.filter(atoms.structure_categories == "main"):
         atom_infos.append((a.residue.number, a.residue.chain_id, a.residue.name, a.name, *a.coord, a.radius))
     import numpy
-    return numpy.asarray(atom_infos)
+    atom_infos = numpy.asarray(atom_infos)
+    if origin is None:
+        from pyKVFinder import get_vertices
+        vertices = get_vertices(atom_infos, probe_out, step)
+    else:
+        raise NotImplementedError("Call to get_vertices_from_file() not implemented")
+    return atom_infos, vertices
