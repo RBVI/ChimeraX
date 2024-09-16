@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -575,7 +575,7 @@ def R_to_axis_angle(matrix):
     Conversion equations
     ====================
 
-    From Wikipedia (http://en.wikipedia.org/wiki/Rotation_matrix),
+    From Wikipedia (https://en.wikipedia.org/wiki/Rotation_matrix),
     the conversion is given by::
 
         x = Qzy - Qyz
@@ -747,7 +747,7 @@ def euler_xform(euler_angles, translation):
 # Uses the most common Euler angle convention z-x-z (the chi-convention)
 # described at
 #
-#   http://mathworld.wolfram.com/EulerAngles.html
+#   https://mathworld.wolfram.com/EulerAngles.html
 #
 def euler_rotation(phi, theta, psi):
     from chimera import Xform, Vector

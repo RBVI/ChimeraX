@@ -30,7 +30,7 @@
 
   <Providers manager="data formats">
     <Provider name="Marker model" category="Generic 3D objects"
-		reference_url="http://rbvi.ucsf.edu/chimerax/docs/user/markers.html#markerfiles"
+		reference_url="https://rbvi.ucsf.edu/chimerax/docs/user/markers.html#markerfiles"
 		nicknames="markers" suffixes=".cmm" />
   </Providers>
 

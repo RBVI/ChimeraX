@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -1034,7 +1034,7 @@ class Elements(Collection):
     '''Returns a :mod:`numpy` array of atomic numbers (integers). Read only.'''
     masses = cvec_property('element_mass', float32, read_only = True)
     '''Returns a :mod:`numpy` array of atomic masses,
-    taken from http://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.
+    taken from https://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.
     Read only.'''
     is_alkali_metal = cvec_property('element_is_alkali_metal', npy_bool, read_only = True)
     '''Returns a :mod:`numpy` array of booleans, where True indicates the

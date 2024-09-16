@@ -297,7 +297,7 @@ intersphinx_mapping = {
 # -- Options for extlinks --------------------------------------------
 
 extlinks = {
-    "jquery": ("http://api.jquery.com/jQuery.%s/", "jQuery APIs"),
+    "jquery": ("https://api.jquery.com/jQuery.%s/", "jQuery APIs"),
 }
 
 

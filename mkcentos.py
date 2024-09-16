@@ -8,8 +8,8 @@ Expects ChimeraX.app to be in the current directory.
 Uses ~/rpmbuild -- change HOME environment variable if need be.
 
 References:
-http://rpm-guide.readthedocs.io/en/latest/rpm-guide.html
-http://rpm.org/documentation.html
+https://rpm-guide.readthedocs.io/en/latest/rpm-guide.html
+https://rpm.org/documentation.html
 http://ftp.rpm.org/max-rpm/ch-rpm-inside.html
 https://stackoverflow.com/questions/880227/what-is-the-minimum-i-have-to-do-to-create-an-rpm-file
 #
@@ -417,7 +417,7 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
             EOF
             cat > %{{buildroot}}{doc_dir}/README << EOF
             Package is maintained by the ChimeraX team
-            http://www.rbvi.ucsf.edu/chimerax
+            https://www.rbvi.ucsf.edu/chimerax
 
             Copyrights for embedded code are given in the documentation
             in {PREFIX}/{APP_DIR}/share/docs/embeded.html

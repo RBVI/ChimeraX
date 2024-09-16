@@ -23,7 +23,7 @@
   <Providers manager="data formats">
     <Provider name="HTML" category="Documentation"
 		suffixes=".html,.htm,.xhtml,.xht,.xml" encoding="utf-8"
-		reference_url="http://en.wikipedia.org/wiki/Html "
+		reference_url="https://en.wikipedia.org/wiki/Html "
 		mime_types="text/html,application/xhtml+xml" />
   </Providers>
 
