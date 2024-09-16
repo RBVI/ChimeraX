@@ -44,7 +44,7 @@ Source Code Organization
 
 The source code for this example may be downloaded
 as a `zip-format file
-<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial.zip?name=tut_fetch>`_
+<https://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial.zip?name=tut_fetch>`_
 containing a folder named `tut_fetch`.
 Alternatively, one can start with an empty folder
 and create source files based on the samples below.
