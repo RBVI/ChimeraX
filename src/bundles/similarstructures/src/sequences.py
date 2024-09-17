@@ -32,13 +32,26 @@ def similar_structures_sequences(session, show_conserved = True, conserved_thres
         from chimerax.core.errors import UserError
         raise UserError('No similar structure results are open')
 
+    sp = _existing_sequence_plot(session, results)
+    if sp:
+        sp.display(True)
+        return sp
+    
     conserved_color = conserved_color[:3]	# Don't use transparency
     identity_color = identity_color[:3]
-    fsp = SequencePlotPanel(session, results, order = order,
-                            show_conserved = show_conserved, conserved_threshold = conserved_threshold,
-                            conserved_color = conserved_color, identity_color = identity_color,
-                            lddt_coloring = lddt_coloring)
-    return fsp
+    sp = SequencePlotPanel(session, results, order = order,
+                           show_conserved = show_conserved, conserved_threshold = conserved_threshold,
+                           conserved_color = conserved_color, identity_color = identity_color,
+                           lddt_coloring = lddt_coloring)
+    return sp
+
+# -----------------------------------------------------------------------------
+#
+def _existing_sequence_plot(session, results):
+    for tool in session.tools.list():
+        if isinstance(tool, SequencePlotPanel) and tool._results is results:
+            return tool
+    return None
 
 # -----------------------------------------------------------------------------
 #
