@@ -158,7 +158,7 @@ class SimilarStructuresPanel(ToolInstance):
         acd.return_pressed.connect(self._alignment_cutoff_distance_changed)
 
         # For pruning aligned residues when opening hits and aligning them to query chain
-        sr = EntriesRow(f, 'Traces and ligands for selected rows only', False)
+        sr = EntriesRow(f, 'Traces, clusters and ligands for selected rows only', False)
         self._selected_rows_only = sr.values[0]
 
         return p
@@ -347,7 +347,7 @@ class SimilarStructuresPanel(ToolInstance):
         rnums = ','.join(str(res.number) for res in most_conserved_res)
         cspec = r.query_chain.string(style = 'command')
         rspec = cspec + f':{rnums}'
-        cmd = f'similarstructures cluster {rspec} clusterDistance 1.5' + self._from_set_option()
+        cmd = f'similarstructures cluster {rspec} clusterDistance 1.5' + self._from_set_option() + self._hit_names_option()
 
         from chimerax.core.commands import run
         run(self.session, cmd)
