@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -22,12 +22,11 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def similar_structures_fetch_coordinates(session, min_aligned_coords = 10, ask = False, rewrite_sms_file = True):
+def similar_structures_fetch_coordinates(session, min_aligned_coords = 10, ask = False, rewrite_sms_file = True,
+                                         from_set = None):
 
     from .simstruct import similar_structure_results
-    results = similar_structure_results(session)
-    if results is None:
-        return False
+    results = similar_structure_results(session, from_set)
 
     nhits = len(results.hits)
     if ask and session.ui.is_gui:
@@ -88,10 +87,10 @@ def _minutes_and_seconds_string(tsec):
     return '%d:%02d' % (tmin, ts)
 
 def register_fetchcoords_command(logger):
-    from chimerax.core.commands import CmdDesc, register, IntArg
+    from chimerax.core.commands import CmdDesc, register, IntArg, StringArg
     desc = CmdDesc(
         keyword = [('min_aligned_coords', IntArg),
-                   ],
+                   ('from_set', StringArg)],
         synopsis = 'Fetch structures and get C-alpha coordinates for clustering and backbone trace display.'
     )
     register('similarstructures fetchcoords', desc, similar_structures_fetch_coordinates, logger=logger)

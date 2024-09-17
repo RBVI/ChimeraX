@@ -35,6 +35,8 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: foldseek :: Structure Comparison :: Search PDB or AlphaFold databases for protein structures matching the fold of a specified structure</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: similarstructures open :: Structure Comparison :: Open and align a hit from a similar structure search</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: similarstructures close :: Structure Comparison :: Close a table of similar structures</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: similarstructures list :: Structure Comparison :: List the names of open sets of similar structures</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: similarstructures sequences :: Structure Comparison :: Show an image of all aligned sequences from a similar structure search, one sequence per image row</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: similarstructures traces :: Structure Comparison :: Show backbone traces of similar structure hits aligned to query structure</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: similarstructures cluster :: Structure Comparison :: Show plot of similar structure backbone conformation clusters</ChimeraXClassifier>

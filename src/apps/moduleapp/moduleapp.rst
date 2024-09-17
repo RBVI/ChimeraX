@@ -5,7 +5,7 @@
     Copyright 2022 Regents of the University of California. All rights reserved.
     This software is provided pursuant to the ChimeraX license agreement, which
     covers academic and commercial uses. For more information, see
-    <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+    <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
    
     This file is part of the ChimeraX library. You can also redistribute and/or
     modify it under the GNU Lesser General Public License version 2.1 as

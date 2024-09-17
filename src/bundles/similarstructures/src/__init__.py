@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -37,7 +37,8 @@ class _SimilarStructuresBundle(BundleAPI):
         if command_name == 'foldseek':
             from . import foldseek_search
             foldseek_search.register_foldseek_command(logger)
-        elif command_name in ('similarstructures open', 'similarstructures pairing', 'similarstructures seqalign'):
+        elif command_name in ('similarstructures open', 'similarstructures close', 'similarstructures list',
+                              'similarstructures pairing', 'similarstructures seqalign'):
             from . import simstruct
             simstruct.register_similar_structures_command(logger)
         elif command_name == 'similarstructures sequences':
@@ -90,10 +91,14 @@ class _SimilarStructuresBundle(BundleAPI):
                     def open(self, session, path, file_name, **kw):
                         from .simstruct import SimilarStructures
                         results = SimilarStructures.read_sms_file(session, path)
-                        if session.ui.is_gui:
+                        if session.ui.is_gui and kw.get('show_table', True):
                             from .gui import show_similar_structures_table
                             show_similar_structures_table(session, results)
                         return [], f'Read {results.description}'
+                    @property
+                    def open_args(self):
+                        from chimerax.core.commands import EnumOf, BoolArg
+                        return { 'show_table': BoolArg, }
                 return SimilarStructuresInfo()
 
     # Make class name to class for session restore
@@ -105,6 +110,9 @@ class _SimilarStructuresBundle(BundleAPI):
         elif class_name == 'SimilarStructures':
             from .simstruct import SimilarStructures
             return SimilarStructures
+        elif class_name == 'SimilarStructuresManager':
+            from .simstruct import SimilarStructuresManager
+            return SimilarStructuresManager
             
 
 bundle_api = _SimilarStructuresBundle()

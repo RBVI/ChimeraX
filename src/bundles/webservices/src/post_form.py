@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -26,7 +26,10 @@ def post_multipart_formdata(host, url, fields, ssl=False, *, accept_type=None, t
     from urllib import request
     proxies = request.getproxies_environment()
     try:
-        realhost = proxies["http"]
+        if ssl:
+            realhost = proxies["https"]
+        else:
+            realhost = proxies["http"]
     except KeyError:
         realhost = host
     from http.client import HTTPConnection, HTTPSConnection

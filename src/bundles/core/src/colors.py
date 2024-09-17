@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -475,7 +475,7 @@ def _read_colorbrewer(colormaps):
     import os.path
     my_dir = os.path.dirname(__file__)
     # colorbrewer.json is downloaded from
-    # http://colorbrewer2.org/export/colorbrewer.json
+    # https://colorbrewer2.org/export/colorbrewer.json
     brewer_filename = os.path.join(my_dir, "colorbrewer.json")
     try:
         with open(brewer_filename) as f:
