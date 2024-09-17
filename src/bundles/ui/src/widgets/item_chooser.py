@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -166,8 +166,16 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
             del_recursion = True
         sel = [si.text() for si in self.selectedItems()]
         prev_value = self.get_value()
-        item_names = self._item_names()
-        filtered_sel = [s for s in sel if s in item_names]
+        item_names = self._item_names() # updates things
+        # Can't directly compare the text of old vs. new selections, since the new one
+        # could be different for the same item (e.g. model number prepended) [#15551]
+        if prev_value is None:
+            test_value = []
+        elif self.selectionMode() == self.SingleSelection:
+            test_value = [prev_value]
+        else:
+            test_value = prev_value
+        filtered_sel = [self.value_map[v] for v in self.value_map.keys() if v in test_value]
         if not filtered_sel and self.autoselect != self.AUTOSELECT_NONE:
             # no previously selected items still listed -- use autoselect
             if self.autoselect == self.AUTOSELECT_ALL:

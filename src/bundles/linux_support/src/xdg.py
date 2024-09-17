@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -124,7 +124,7 @@ def arg_quote(arg):
     return result
 
 # <?xml version="1.0"?>
-# <mime-info xmlns='http://www.freedesktop.org/standards/shared-mime-info'>
+# <mime-info xmlns='https://www.freedesktop.org/standards/shared-mime-info'>
 #   <mime-type type="text/x-shiny">
 #     <comment>Shiny new file type</comment>
 #     <glob pattern="*.shiny"/>
@@ -160,7 +160,7 @@ class MimeInfo:
     def __enter__(self):
         self.output.write(
             """<?xml version="1.0" encoding="UTF-8"?>
-            <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+            <mime-info xmlns="https://www.freedesktop.org/standards/shared-mime-info">
             """)
         self.level = 1
 
@@ -493,14 +493,11 @@ def get_info(session, system, create=False, verbose=False):
     info.app_name = app_dirs.appname
     info.app_author = app_dirs.appauthor
     info.name = '%s-%s' % (info.app_author, info.app_name)
-    version = None
     from chimerax.core import BUNDLE_NAME as CORE_BUNDLE_NAME
-    import pkg_resources
-    for d in pkg_resources.working_set:
-        if d.project_name == CORE_BUNDLE_NAME:
-            version = d.version
-            break
-    if version is None:
+    import importlib.metadata
+    try:
+        version = importlib.metadata.version(CORE_BUNDLE_NAME)
+    except importlib.metadata.PackageNotFoundError:
         version = 'unknown'
     info.version = version
     info.desktop = '%s/%s-%s.desktop' % (

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -77,24 +77,74 @@ class _AlphaFoldBundle(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
-            from chimerax.open_command import FetcherInfo
-            class Info(FetcherInfo):
-                def fetch(self, session, ident, format_name, ignore_cache, **kw):
-                    from .fetch import alphafold_fetch
-                    return alphafold_fetch(session, ident, ignore_cache=ignore_cache,
-                                           add_to_session=False, in_file_history=False,
-                                           **kw)
-                @property
-                def fetch_args(self):
-                    from chimerax.core.commands import BoolArg, Or, EnumOf
-                    from chimerax.atomic import ChainArg
-                    return {
-                        'color_confidence': BoolArg,
-                        'align_to': ChainArg,
-                        'trim': BoolArg,
-                    }
-            return Info()
+            if name == 'alphafold':
+                from chimerax.open_command import FetcherInfo
+                class AlphaFoldDatabaseInfo(FetcherInfo):
+                    def fetch(self, session, ident, format_name, ignore_cache, **kw):
+                        from .fetch import alphafold_fetch
+                        return alphafold_fetch(session, ident, ignore_cache=ignore_cache,
+                                               add_to_session=False, in_file_history=False,
+                                               **kw)
+                    @property
+                    def fetch_args(self):
+                        from chimerax.core.commands import BoolArg, Or, EnumOf, IntArg
+                        from chimerax.atomic import ChainArg
+                        return {
+                            'color_confidence': BoolArg,
+                            'align_to': ChainArg,
+                            'trim': BoolArg,
+                            'pae': BoolArg,
+                            'version': IntArg,
+                        }
+                return AlphaFoldDatabaseInfo()
+            elif name == 'alphafold_pae':
+                from chimerax.open_command import FetcherInfo
+                class AlphaFoldDatabasePAEInfo(FetcherInfo):
+                    def fetch(self, session, ident, format_name, ignore_cache, **kw):
+                        if 'structure' not in kw:
+                            from chimerax.core.errors import UserError
+                            raise UserError('Fetching an AlphaFold database PAE file requires specifying the structure to associate.  For example "open P29474 from alphafold_pae structure #1"')
+                        from . import pae
+                        pae.alphafold_pae(session, uniprot_id = ident, ignore_cache = ignore_cache, **kw)
+                        return [], f'Opened AlphaFold database PAE for UniProt id {ident}'
+                    @property
+                    def fetch_args(self):
+                        from chimerax.core.commands import BoolArg, FloatArg, IntArg
+                        from chimerax.atomic import AtomicStructureArg
+                        return {
+                            'structure': AtomicStructureArg,
+                            'plot': BoolArg,
+                            'divider_lines': BoolArg,
+                            'color_domains': BoolArg,
+                            'connext_max_pae': FloatArg,
+                            'cluster': FloatArg,
+                            'min_size': IntArg,
+                        }
+                return AlphaFoldDatabasePAEInfo()
+            elif name == 'AlphaFold PAE':
+                from chimerax.open_command import OpenerInfo
+                class AlphaFoldPAEInfo(OpenerInfo):
+                    def open(self, session, path, file_name, **kw):
+                        from .pae import alphafold_pae
+                        pae = alphafold_pae(session, file = path, **kw)
+                        return [], f'Opened AlphaFold PAE with values for {pae.matrix_size} residues and atoms'
 
+                    @property
+                    def open_args(self):
+                        from chimerax.core.commands import BoolArg, FloatArg, IntArg
+                        from chimerax.atomic import AtomicStructureArg
+                        return {
+                            'structure': AtomicStructureArg,
+                            'plot': BoolArg,
+                            'divider_lines': BoolArg,
+                            'color_domains': BoolArg,
+                            'connext_max_pae': FloatArg,
+                            'cluster': FloatArg,
+                            'min_size': IntArg,
+                        }
+
+                return AlphaFoldPAEInfo()
+            
     @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session

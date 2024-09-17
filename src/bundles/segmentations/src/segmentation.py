@@ -17,7 +17,6 @@ from chimerax.map.volume import (
     volume_from_grid_data,
     _reset_color_sequence,
 )
-from chimerax.save_command import SaverInfo
 
 
 class SegmentationStrategy:
@@ -38,10 +37,13 @@ class Segmentation(Volume):
 
     def copy(self):
         v = segmentation_from_grid_data(
-            self.data, self.session, open_model=False, style=None, show_dialog=False
+            self.data, self.session, open_model=False, style="", show_dialog=False
         )
         v.copy_settings_from(self)
         return v
+
+    def world_coordinates_for_data_point(self, xyz):
+        return self.data.ijk_to_xyz(xyz)
 
     # TODO: Should probably be upstream in Volume
     def set_step(self, step):
@@ -51,9 +53,8 @@ class Segmentation(Volume):
         strategy.execute(self.data, self.reference_volume.data)
         self.data.values_changed()
 
-    def save(self, path, saver: SaverInfo):
-        # TODO: Saver could be one of the Manager-Provider interfaces
-        saver.save(self.session, path)
+    def save(self, path):
+        self.session.save_command.save_data(path, models=[self])
 
     def take_snapshot(self, session, flags):
         data = super().take_snapshot(session, flags)
@@ -94,7 +95,7 @@ def segment_volume(volume, number: int) -> Segmentation:
         cell_angles=volume.data.cell_angles,
         rotation=volume.data.rotation,
         symmetries=volume.data.symmetries,
-        name="segmentation of %s (#%d)" % (volume.name, number),
+        name="segmentation %d of %s" % (number, volume.name),
     )
     new_grid.initial_plane_display = False
     new_seg_model = open_grids_as_segmentation(

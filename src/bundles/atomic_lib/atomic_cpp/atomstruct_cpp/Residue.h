@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -222,7 +222,10 @@ inline ChangeTracker*
 Residue::change_tracker() const { return structure()->change_tracker(); }
 
 inline void
-Residue::clean_alt_locs() { for (auto a: atoms()) a->clean_alt_locs(); }
+Residue::clean_alt_locs() {
+    for (auto a: atoms()) a->clean_alt_locs();
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_ALT_LOCS);
+}
 
 inline const std::set<AtomName>*
 Residue::backbone_atom_names(BackboneExtent bbe) const

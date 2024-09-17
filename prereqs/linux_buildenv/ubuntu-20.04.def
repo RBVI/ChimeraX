@@ -16,7 +16,7 @@ Ubuntu 20.04 containter that can build ChimeraX
 	language-selector-common ffmpeg vim-nox \
 	build-essential g++ gfortran \
 	tcsh python2 python-is-python2 \
-	chrpath patch openssh-client rsync ca-certificates \
+	patchelf patch openssh-client rsync ca-certificates \
 	make autoconf automake libtool pkg-config \
 	flex bison yasm unzip tar fakeroot curl wget \
 	python2.7 \

@@ -1,0 +1,67 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Core ~=1.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Geometry"
+version = "1.3"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Vector and coordinate system routines"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-Arrays ~=1.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """Routines for vectors, rotations, coordinate transformations, bounding boxes and
+  miscellaneous 3D scene geometry calculations."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Utility"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.extension._geometry]
+sources = [
+  "_geometry/bounds.cpp",
+  "_geometry/closepoints.cpp",
+  "_geometry/cylinderrot.cpp",
+  "_geometry/distances.cpp",
+  "_geometry/distancespy.cpp",
+  "_geometry/fill_ring.cpp",
+  "_geometry/geometry.cpp",
+  "_geometry/intercept.cpp",
+  "_geometry/matrix.cpp",
+  "_geometry/spline.cpp",
+  "_geometry/transform.cpp",
+  "_geometry/vector_ops.cpp",
+]
+libraries = [
+  "arrays",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]
+

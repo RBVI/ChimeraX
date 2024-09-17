@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -26,6 +26,7 @@ clustal_strong_groups = ["STA", "NEQK", "NHQK", "NDEQ", "QHRK", "MILV", "MILF", 
 clustal_weak_groups = ["CSA", "ATV", "SAG", "STNK", "STPA", "SGND", "SNDEQK", "NDEQHK",
     "NEQHRK", "FVLIM", "HFY"]
 
+from chimerax.core.errors import NotABug
 from chimerax.core.state import State
 class Alignment(State):
     """A sequence alignment,
@@ -78,6 +79,9 @@ class Alignment(State):
     # associated note_data for the above is just the header except for:
     #   NOTE_HDR_VALUES: a 2-tuple of the header and where the values changed (either a 2-tuple of 0-based
     #       indices into the header, or None -- which indicates the entire header)
+
+    class NoSelectionError(NotABug): pass
+    class NoSelectionExpansionError(NotABug): pass
 
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
             description, intrinsic, *, create_headers=True, session_restore=False):
@@ -173,6 +177,34 @@ class Alignment(State):
         self._headers.sort(key=lambda hdr: hdr.name.casefold())
         header.shown = shown
         return header
+
+    def add_headers_menu_entry(self, menu):
+        headers_menu = menu.addMenu("Headers")
+        headers = self.headers
+        headers.sort(key=lambda hdr: hdr.ident.casefold())
+        from chimerax.core.commands import run, StringArg
+        align_arg = "%s " % self if len(self.session.alignments.alignments) > 1 else ""
+        from Qt.QtGui import QAction
+        for hdr in headers:
+            action = QAction(hdr.name, headers_menu)
+            action.setCheckable(True)
+            action.setChecked(hdr.shown)
+            if not hdr.relevant:
+                action.setEnabled(False)
+            action.triggered.connect(lambda *, action=action, hdr=hdr, align_arg=align_arg, ses=self.session:
+                run(ses, "seq header %s%s %s" % (align_arg, hdr.ident,
+                "show" if action.isChecked() else "hide")))
+            headers_menu.addAction(action)
+        headers_menu.addSeparator()
+        hdr_save_menu = headers_menu.addMenu("Save")
+        for hdr in headers:
+            if not hdr.relevant:
+                continue
+            action = QAction(hdr.name, hdr_save_menu)
+            action.triggered.connect(lambda *, hdr=hdr, align_arg=align_arg, ses=self.session: run(
+                ses, "seq header %s%s save browse" % (align_arg, hdr.ident)))
+            hdr_save_menu.addAction(action)
+        return headers_menu
 
     def add_observer(self, observer):
         """Called by objects that care about alignment changes that are not themselves viewer
@@ -493,6 +525,41 @@ class Alignment(State):
             return DEREGISTER
         from chimerax import atomic
         atomic.get_triggers().add_handler('changes done', _delay_disassoc)
+
+    def expand_selection_by_columns(self):
+        from chimerax.atomic import selected_residues, Residues
+        sel_residues = set(selected_residues(self.session))
+        if not sel_residues:
+            raise self.NoSelectionError("No selection to expand")
+
+        sel_columns = set()
+        for aseq in self.seqs:
+            for mm in aseq.match_maps.values():
+                for sr in sel_residues:
+                    try:
+                        ungapped = mm[sr]
+                    except KeyError:
+                        continue
+                    sel_columns.add(aseq.ungapped_to_gapped(ungapped))
+
+        expansion = []
+        for aseq in self.seqs:
+            for mm in aseq.match_maps.values():
+                for sc in sel_columns:
+                    ungapped = aseq.gapped_to_ungapped(sc)
+                    if ungapped is None:
+                        continue
+                    try:
+                        sr = mm[ungapped]
+                    except KeyError:
+                        continue
+                    if sr not in sel_residues:
+                        expansion.append(sr)
+        if not expansion:
+            raise self.NoSelectionExpansionError("No extra residues selected by expanding columns")
+        from chimerax.std_commands.select import select_add
+        from chimerax.core.objects import Objects
+        select_add(self.session, Objects(atoms=Residues(expansion).atoms))
 
     @property
     def headers(self):

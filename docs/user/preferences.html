@@ -17,12 +17,13 @@ or derivations thereof.
 <title>ChimeraX Settings (Preferences)</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <link rel="stylesheet" type="text/css" href="userdocs.css" />
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="index.html">
 <img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <h2>ChimeraX Settings (Preferences)</h2>
 <p>
@@ -60,17 +61,26 @@ Several <a href="#other">other preferences</a> do not appear in this
 dialog, but in separate interfaces. 
 </p><p>
 ChimeraX preferences are stored as multiple files
-in a standard platform-dependent location (for example, under
-<span class="nowrap"><b>~/Library/Application Support/ChimeraX/</b></span>
-on a Mac).
+in a standard platform-dependent location:
 <!--
 see <a href="https://pypi.python.org/pypi/appdirs/1.4.3"
 target="_blank">python appdirs</a>
 -->
+<ul class="none">
+<li><span class="nowrap"><b>~/Library/Application Support/ChimeraX/</b></span>
+&nbsp;on Mac
+<li><span class="nowrap"><b>~/.local/share/ChimeraX/</b></span>
+&nbsp;on Linux
+<li><span class="nowrap"><b>C:\Users\</b>&lt;<i>user-name</i>&gt;<b>\AppData\Local\UCSF\ChimeraX\</b></span>
+&nbsp;on Windows
+</ul>
+<p>
 The location can be reported with command: 
+</p>
 <blockquote>
 <b><a href="commands/info.html#path">info path</a> user unversioned config</b>
 </blockquote>
+<p>
 Preferences files are named according to the modules to which they apply,
 and are not created until nondefault settings are saved.
 </p>
@@ -187,13 +197,22 @@ an object in the <a href="window.html">main window</a> (see the
   <li><b>serial number</b> &ndash; atom serial number (for example, 126)
   <li><b>simple</b> (initial default) &ndash; chain ID (preceded by slash),
   residue name, residue number, atom name (for example, /B ASN 21 OD1)
-</ul>
+  </ul>
 Model number will be included when multiple models are present.
 This setting is also the default style for atom logging by
 the <a href="tools/hbonds.html"><b>H-Bonds</b></a> tool and
 the <a href="commands/hbonds.html"><b>hbonds</b></a> and
 <a href="commands/clashes.html"><b>clashes/contacts</b></a> commands
 (see their <b>namingStyle</b> options).
+<li><b>Label missing-structure segments in models with &le; N chains</b> 
+(initial default <b>4</b>) &ndash; label missing-structure 
+<a href="pseudobonds.html">pseudobonds</a> with the number of biopolymer
+residues that they represent, according to PDB SEQRES information or 
+the mmCIF equivalent, depending on the number of chains in the atomic model
+(initial default <b>4</b> chains; 0 would indicate no missing-segment
+labels regardless of model size).  The chain limit can be adjusted temporarily
+(without changing this preference) by using the 
+<a href="commands/label.html#missing"><b>label missing</b></a> command.
 </ul>
 
 <a name="log"></a>
@@ -211,6 +230,11 @@ See also: <a href="commands/log.html"><b>log</b></a>
 (initial default <b>true</b>)
 &ndash; whether error messages in the <a href="tools/log.html"><b>Log</b></a>
 should also generate a separate dialog window
+<li><b>Raise log when logging occurs</b>
+(initial default <b>false</b>)
+&ndash; whether to show the <a href="tools/log.html"><b>Log</b></a>
+(bring to front if tabbed behind another panel, or reopen if closed) 
+whenever some action or message adds to its contents
 <li><b>Warnings shown in dialog</b>
 (initial default <b>false</b>)
 &ndash; whether warning messages in the <a href="tools/log.html"><b>Log</b></a>
@@ -447,5 +471,5 @@ Examples:
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2024</address>
+September 2024</address>
 </body></html> 

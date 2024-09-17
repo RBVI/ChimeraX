@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -151,7 +151,8 @@ class Study(Model):
         self.patient = patient
         Model.__init__(self, "Study (%s)" % uid, session)
         self.series = []  # regular images
-        self._drawn_series = set()
+        self._model_watchers = {}
+        self.series_models: dict[str, list] = {}
 
     def series_from_files(self, files) -> None:
         series = defaultdict(list)
@@ -210,13 +211,31 @@ class Study(Model):
             all_opened_models = []
             for s in self.series:
                 try:
-                    if s.uid not in self._drawn_series:
+                    if s.uid not in self.series_models:
                         models = s.to_models(all_opened_models, derived, sgrids)
                         all_opened_models.extend(models)
+                        for model in models:
+                            self._model_watchers[model] = model.triggers.add_handler(
+                                "deleted", self._on_child_model_deleted
+                            )
                         self.add(models)
-                        self._drawn_series.add(s.uid)
+                        self.series_models[s.uid] = models
                 except UnrenderableSeriesError as e:
                     self.session.logger.warning(str(e))
+
+    def _on_child_model_deleted(self, _, model):
+        for s in self.series:
+            try:
+                smodels = self.series_models[s.uid]
+                if model in smodels:
+                    smodels.remove(model)
+                    if not smodels:
+                        del self.series_models[s.uid]
+            except KeyError:
+                # This can happen if we remove all models
+                pass
+        model.triggers.remove_handler(self._model_watchers[model])
+        del self._model_watchers[model]
 
     def __str__(self):
         return f"Study {self.uid} with {len(self.series)} series"
@@ -1098,9 +1117,10 @@ class SeriesFile:
         # So maybe we take this and move it to somewhere with more context
         pos = self.data.get("ImagePositionPatient", None)
         if self._num_frames is not None and pos is None:
-            pos_x, pos_y = self.frame_positions[0][:2]
-            z_origin = min(x[2] for x in self.frame_positions)
-            pos = [pos_x, pos_y, z_origin]
+            if self.frame_positions is not None:
+                pos_x, pos_y = self.frame_positions[0][:2]
+                z_origin = min(x[2] for x in self.frame_positions)
+                pos = [pos_x, pos_y, z_origin]
         return tuple(float(p) for p in pos) if pos else (0, 0, 0)
 
     @property

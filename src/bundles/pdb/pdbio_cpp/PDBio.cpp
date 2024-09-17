@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -47,7 +47,7 @@
 #include <atomstruct/tmpl/residues.h>
 #include <logger/logger.h>
 #include "pdb/connect.h"
-#include <pdb/PDB.h>
+#include <PDB.h>
 
 using atomstruct::Atom;
 using atomstruct::AtomicStructure;
@@ -768,7 +768,7 @@ start_t = end_t;
             start_connect = true;
             recent_TER = true;
             break_hets = false;
-            if (second_chain_let_okay)
+            if (second_chain_let_okay && chain_residues.size() > 1)
                 correct_chain_ids(chain_residues, second_chain_id_let, two_let_chains);
             second_chain_let_okay = true;
             second_chain_id_let = '\0';
@@ -2286,7 +2286,7 @@ docstr_write_pdb_file =
 " 5 digits (maximum supported by PDB standard).  If False, then the sixth"
 " column of ATOM records will be stolen for an additional digit (AMBER style), so up to"
 " 999,999 atoms.  If True, then hybrid-36 encoding will be used (see"
-" http://cci.lbl.gov/hybrid_36), so up to 87,440,031 atoms."
+" https://cci.lbl.gov/hybrid_36), so up to 87,440,031 atoms."
 " 'polymeric_res_names' is a sequence of residue names that"
 " should be output using ATOM records rather than HETATM records."
 "\n";

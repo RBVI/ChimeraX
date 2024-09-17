@@ -1,0 +1,98 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-AtomicLibrary ~=14.0",
+  "ChimeraX-PDBLibrary ~=1.0",
+  "ChimeraX-Core ~=1.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-MMTF"
+version = "2.2"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "MMTF format read/write"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Atomic ~=1.0",
+  "ChimeraX-AtomicLibrary ~=14.0",
+  "ChimeraX-PDB ~=2.0",
+  "ChimeraX-PDBLibrary ~=1.0",
+  "ChimeraX-DataFormats ~=1.0",
+  "ChimeraX-OpenCommand ~=1.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """This bundle provides the abiility to fetch and read MMTF files."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Molecular structure"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[[tool.chimerax.provider."data formats"]]
+name = "Macromolecular Transmission"
+category = "Molecular structure"
+nicknames = "mmtf"
+suffixes = ".mmtf"
+reference-url = "http://mmtf.rcsb.org/"
+
+[[tool.chimerax.provider."open command"]]
+name = "Macromolecular Transmission"
+
+[[tool.chimerax.provider."open command"]]
+name = "pdb"
+type = "fetch"
+format-name = "mmtf"
+is-default = false
+
+[tool.chimerax.extension._mmtf]
+sources = [
+  "_mmtf/mmtf.cpp",
+]
+include-dirs = [
+  "mmtf-cpp-1.1.0/include",
+  "msgpack-c-cpp-4.1.2/include",
+  "boost_1_80_0",
+  "src/include",
+]
+libraries = [
+  "atomstruct",
+  "element",
+  "logger",
+  "arrays",
+  "pdbconnect",
+]
+define-macros = [
+  "MSGPACK_ENDIAN_LITTLE_BYTE=1",
+  "MSGPACK_NO_BOOST=1",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.core",
+]
+library-dirs = [
+  "src/lib",
+]
+
+[tool.chimerax.extension._mmtf.win32]
+extra-link-args = [
+  "ws2_32.lib",
+]

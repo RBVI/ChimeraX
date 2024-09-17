@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -127,6 +127,10 @@ def save_image(session, path, format_name=None, width=None, height=None,
         raise UserError('Image size %d x %d too large, exceeds maximum OpenGL render buffer size %d'
                         % (width, height, max_size))
 
+    if session.in_script:
+        # Update clip planes before saving image.  Bug #15308
+        session.update_loop.update_graphics_now()
+        
     i = view.image(width, height, supersample=supersample,
                    transparent_background=transparent_background)
     if i is not None:

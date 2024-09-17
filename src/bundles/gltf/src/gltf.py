@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -430,7 +430,8 @@ def colors_to_uint8(vc):
 # -----------------------------------------------------------------------------
 #
 def write_gltf(session, filename = None, models = None,
-               center = True, size = None, short_vertex_indices = False,
+               center = True, center_each_node = True, size = None,
+               short_vertex_indices = False,
                float_colors = False, preserve_transparency = True,
                texture_colors = False, prune_vertex_colors = True,
                instancing = False,
@@ -449,6 +450,9 @@ def write_gltf(session, filename = None, models = None,
                                      short_vertex_indices, prune_vertex_colors,
                                      instancing)
 
+    if center_each_node:
+        center_nodes_and_meshes(nodes, meshes, buffers)
+
     if center is True:
         center = (0,0,0)
     elif center is False:
@@ -458,9 +462,16 @@ def write_gltf(session, filename = None, models = None,
         from chimerax.geometry import union_bounds
         bounds = union_bounds(m.bounds() for m in models if m.visible)
         if bounds is not None:
-            # Place positioning node above top-level nodes.
-            cs_node = center_and_size(top_nodes(nodes), bounds, center, size)
-            nodes.append(cs_node)
+            if center is not None and center_each_node:
+                shift = center - bounds.center()
+                for ni in top_nodes(nodes):
+                    node = nodes[ni]
+                    node['matrix'] = left_shift_matrix(node.get('matrix'), shift)
+                center = None
+            if center is not None or size is not None:
+                # Place positioning node above top-level nodes.
+                cs_node = center_and_size(top_nodes(nodes), bounds, center, size)
+                nodes.append(cs_node)
 
     glb = encode_gltf(nodes, buffers, meshes, materials)
 
@@ -494,6 +505,133 @@ def center_and_size(nodes, bounds, center, size):
                'matrix': matrix}
     return cs_node
 
+# -----------------------------------------------------------------------------
+#
+def center_nodes_and_meshes(nodes, meshes, buffers):
+    '''
+    Make each node and mesh have bounding box centered at 0,0,0 in the local
+    node or mesh coordinate system.  This makes it easy to rotate the nodes
+    about their centers in Blender.
+    '''
+
+    check_node_centering_possible(nodes, meshes)
+
+    ncenters, mcenters = node_and_mesh_centers(nodes, meshes, buffers)
+
+    # Recenter meshes
+    recentered_vertex_arrays = set()  # Don't recenter vertex buffers twice when used by multiple instance nodes
+    for mi, (center,nv) in mcenters.items():
+        varrays = mesh_vertex_arrays(mi, meshes, buffers)
+        for va,vi in varrays:
+            if vi not in recentered_vertex_arrays:
+                va -= center
+                buffers.update_array(vi, va)
+                recentered_vertex_arrays.add(vi)
+
+    # Recenter nodes
+    for node, (center,nv) in zip(nodes, ncenters):
+        if 'mesh' in node:
+            # Adjust node matrix to compensate for repositioned mesh.
+            node['matrix'] = right_shift_matrix(node.get('matrix'), center)
+        elif 'children' in node:
+            cnodes = [nodes[ci] for ci in node['children']]
+            for cnode in cnodes:
+                cnode['matrix'] = left_shift_matrix(cnode.get('matrix'), -center)
+            node['matrix'] = right_shift_matrix(node.get('matrix'), center)
+
+# -----------------------------------------------------------------------------
+#
+def node_and_mesh_centers(nodes, meshes, buffers):
+    '''
+    Compute a center of geometry for every node (including its children) and mesh.
+    '''
+    mcenters = mesh_centers(nodes, meshes, buffers)
+    ncenters = node_centers(nodes, mcenters)
+    return ncenters, mcenters
+
+# -----------------------------------------------------------------------------
+#
+def mesh_centers(nodes, meshes, buffers):
+    mcenters = {}
+    for node in nodes:
+        if 'mesh' in node:
+            mi = node['mesh']
+            varrays = mesh_vertex_arrays(mi, meshes, buffers)
+            mcenters[mi] = weighted_center([(va.mean(axis = 0), len(va)) for va,vi in varrays])
+    return mcenters
+
+# -----------------------------------------------------------------------------
+#
+def node_centers(nodes, mesh_centers, node_indices = None, ncenters = None):
+    if ncenters is None:
+        ncenters = [None] * len(nodes)
+        node_indices = range(len(nodes))
+
+    for ni in node_indices:
+        if ncenters[ni] is not None:
+            continue
+        node = nodes[ni]
+        if 'mesh' in node:
+            ncenters[ni] = mesh_centers[node['mesh']]
+        elif 'children' in node:
+            node_centers(nodes, mesh_centers, node['children'], ncenters)
+            centers = []
+            for ci in node['children']:
+                center, nv = ncenters[ci]
+                centers.append((gltf_place(nodes[ci].get('matrix'))*center, nv))
+            ncenters[ni] = weighted_center(centers)
+        
+    return ncenters
+    
+# -----------------------------------------------------------------------------
+#
+def weighted_center(centers):
+    w = sum(weight for center,weight in centers)
+    import numpy
+    wcenter = numpy.sum([weight*center for center,weight in centers], axis = 0)/w
+    return (wcenter, w)
+    
+# -----------------------------------------------------------------------------
+#
+def mesh_vertex_arrays(mesh_id, meshes, buffers):
+    vertex_arrays = []
+    from numpy import frombuffer, float32
+    mesh = meshes.mesh_specs[mesh_id]
+    for prim in mesh['primitives']:
+        vi = prim['attributes']['POSITION']
+        a = buffers.accessors[vi]
+        bvi = a['bufferView']
+        bytes = buffers.buffer_bytes[bvi]
+        vflat = frombuffer(bytes, dtype = float32).copy()	# Makes 1-D array
+        n3 = len(vflat)
+        va = vflat.reshape((n3//3, 3))
+        vertex_arrays.append((va, vi))
+    return vertex_arrays
+    
+# -----------------------------------------------------------------------------
+#
+def check_node_centering_possible(nodes, meshes):
+    # The node, mesh and buffer graph needs to meet several conditions
+    # for it to be possible to locally center every node without introducing
+    # any new nodes.  I think the current code always meets all the conditions.
+    # But it is a good idea to check in case the code changes in the future
+    # that violates some of these centering conditions.
+    
+    # We require meshes that reuse the same vertex buffer from another mesh
+    # have to use exactly the same set of buffers.  This is what the code
+    # does for instancing.  A different mesh is needed to support different
+    # instance colors, but identical geometry is used.
+    # We could verify this same mesh geometry holds, but I'm going to skip it.
+    
+    # Only leaf nodes can have a mesh.  If a node has children and a mesh we
+    # can't do local centering without putting the mesh in a new node
+    # so that the centered mesh can be placed to center the original node.
+    # If that happens consider it an error.
+    for node in nodes:
+        if 'mesh' in node and 'children' in node and len(node['children']) > 0:
+            from chimerax.core.errors import UserError
+            raise UserError('Cannot center nodes because a node has both a mesh and children')
+                
 # -----------------------------------------------------------------------------
 #
 def encode_gltf(nodes, buffers, meshes, materials):
@@ -578,8 +716,8 @@ def all_visible_drawings(models):
 # -----------------------------------------------------------------------------
 #
 def any_triangles_shown(d, drawings, ts):
-    if d in ts:
-        return ts[d]
+    if d in ts: 
+       return ts[d]
     if not d.display:
         ts[d] = False
     elif d.num_masked_triangles > 0:
@@ -688,6 +826,41 @@ def gltf_transform(place):
             m01,m11,m21,0,
             m02,m12,m22,0,
             m03,m13,m23,1]
+    
+# -----------------------------------------------------------------------------
+#
+def gltf_place(matrix):
+    from chimerax.geometry import identity, Place
+    if matrix is None:
+        return identity()
+    (m00,m10,m20,m30,
+     m01,m11,m21,m31,
+     m02,m12,m22,m32,
+     m03,m13,m23,m33) = matrix
+    p = Place(matrix = ((m00,m01,m02,m03),(m10,m11,m12,m13),(m20,m21,m22,m23)))
+    return p
+
+# -----------------------------------------------------------------------------
+#
+def is_identity_gltf_matrix(matrix):
+    return matrix == [1,0,0,0,
+                      0,1,0,0,
+                      0,0,1,0,
+                      0,0,0,1]
+
+# -----------------------------------------------------------------------------
+#
+def right_shift_matrix(matrix, shift):
+    from chimerax.geometry import identity, translation
+    m = identity() if matrix is None else gltf_place(matrix)
+    return gltf_transform(m * translation(shift))
+
+# -----------------------------------------------------------------------------
+#
+def left_shift_matrix(matrix, shift):
+    from chimerax.geometry import identity, translation
+    m = identity() if matrix is None else gltf_place(matrix)
+    return gltf_transform(translation(shift) * m)
 
 # -----------------------------------------------------------------------------
 #
@@ -807,6 +980,8 @@ class Mesh:
         # Get triangles, lines or points
         if d.display_style == d.Solid:
             ta = d.masked_triangles
+            if len(ta) < len(d.triangles):
+                va, na, vc, tc, ta = remove_unused_vertices(va, na, vc, tc, ta)
         else:
             ta = d._draw_shape.elements	# Lines or points
             
@@ -818,7 +993,7 @@ class Mesh:
         # Combine instances into a single triangle set.
         if not self._leaf_instancing:
             positions = d.get_positions(displayed_only = True)
-            if not positions.is_identity():
+            if len(positions) > 1 and not positions.is_identity():
                 instance_colors = d.get_colors(displayed_only = True)
                 va,na,vc,tc,ta = combine_instance_geometry(va, na, vc, tc, ta,
                                                            positions, instance_colors)
@@ -879,7 +1054,22 @@ class Mesh:
         ti = b.add_array(ea, target=b.GLTF_ELEMENT_ARRAY_BUFFER)
         mode = _mesh_style(ta)
         return (vi,ni,ci,tci,ti,mode,single_vertex_color)
-    
+
+# -----------------------------------------------------------------------------
+#
+def remove_unused_vertices(va, na, vc, tc, ta):
+    import numpy
+    vshown = numpy.unique(ta)
+    va_trim = va[vshown,:]
+    na_trim = None if na is None else na[vshown,:]
+    vc_trim = None if vc is None else vc[vshown,:]
+    tc_trim = None if tc is None else tc[vshown,:]
+    from numpy import zeros, int32, arange
+    vmap = zeros(len(va), int32)
+    vmap[vshown] = arange(len(vshown), dtype = int32)
+    ta_trim = vmap.take(ta.ravel()).reshape((len(ta),3))
+    return va_trim, na_trim, vc_trim, tc_trim, ta_trim
+
 # -----------------------------------------------------------------------------
 #
 def _single_vertex_color(vertex_colors):
@@ -1134,20 +1324,35 @@ class Buffers:
             a['normalized'] = True	# Required for COLOR_0
 
         if bounds:
-            nd = array.ndim
-            # TODO: Handle integer min/max
-            if nd == 2:
-                a['min'],a['max'] = (tuple(float(x) for x in array.min(axis=0)),
-                                     tuple(float(x) for x in array.max(axis=0)))
-            else:
-                a['min'],a['max'] = float(array.min(axis=0)), float(array.max(axis=0))
-                
-        self.accessors.append(a)
+            self.set_accessor_bounds(a, array)
 
         b = array.tobytes()
         a['bufferView'] = self.add_buffer(b, target=target)
+                
+        self.accessors.append(a)
 
         return len(self.accessors) - 1
+
+    # -----------------------------------------------------------------------------
+    #
+    def update_array(self, buffer_index, array):
+        '''Array must be same value type and size as original.'''
+        a = self.accessors[buffer_index]
+        if 'min' in a:
+            self.set_accessor_bounds(a, array)
+        bvi = a['bufferView']
+        self.buffer_bytes[bvi] = array.tobytes()
+
+    # -----------------------------------------------------------------------------
+    #
+    def set_accessor_bounds(self, a, array):
+        nd = array.ndim
+        # TODO: Handle integer min/max
+        if nd == 2:
+            a['min'],a['max'] = (tuple(float(x) for x in array.min(axis=0)),
+                                 tuple(float(x) for x in array.max(axis=0)))
+        else:
+            a['min'],a['max'] = float(array.min(axis=0)), float(array.max(axis=0))
 
     # -----------------------------------------------------------------------------
     # Possible bufferView targets.

@@ -16,12 +16,13 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command: color, rainbow</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: color, rainbow</h3>
 <p>
@@ -600,7 +601,7 @@ to make the cap match the nearby atoms.
 <b>color</b> (&nbsp;<b>sample</b>&nbsp;|&nbsp;<b>electrostatic</b>&nbsp;|&nbsp;<b>gradient</b>&nbsp;)
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
 [&nbsp;<b>map</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;]
-[&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;|&nbsp;<i>start,end,increment</i>&nbsp;]
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#palette"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
@@ -663,7 +664,12 @@ The value for each surface vertex is found by trilinear interpolation
 from the eight corners of the enclosing data grid cell.
 The <a name="offset"><b>offset</b></a> <i>d</i> is how far out 
 from each surface vertex, along its normal, to evaluate the data
-(default <b>0.0</b> &Aring;). The <a href="#range"><b>range</b></a>
+(default <b>0.0</b> &Aring;); alternatively, to average over multiple
+<b>offset</b> distances, three values can be given: 
+the <i>start</i> and <i>end</i> distances and the 
+<i>increment</i> or spacing of additional sample points between the two
+(see the <a href="#examples-map">examples</a>).
+The <a href="#range"><b>range</b></a>
 specifies what data values the palette colors should span
 (default <b>full</b>, the full range of values found at the surface).
 <br><br>
@@ -703,7 +709,13 @@ model as the surface being colored.
 <!--
 <h4><a href="#map" class="nounder">&larr;</a> Examples</h4>
 -->
+<a name="examples-map"></a>
 <h4>Examples (<a href="#map">Map</a>)</h4>
+Color surface #5 by map #1 using the average of values measured at
+offsets of 60, 70, 80, 90, and 100 &Aring; from the surface:
+<blockquote>
+<b>color sample #5 map #1 offset 60,100,10</b>
+</blockquote>
 Color molecular surface of #1 by the electrostatic potential in map #2,
 from red at -10 (and below) to white in the middle to blue at +10 (and above):
 <blockquote>
@@ -1028,7 +1040,7 @@ align="center"><font size="-1" color="white">0</font></td>
 <td bgcolor=orange width="30px" title="orange"
 align="center"><font size="-1">50</font></td>
 <td bgcolor=yellow width="30px" title="yellow"
-align="center"><font size="-1">70</font></td>
+align="center"><font size="-1" color="black">70</font></td>
 <td bgcolor=cornflowerblue width="30px" title="cornflowerblue"
 align="center"><font size="-1" color="white">90</font></td>
 <td bgcolor=blue width="30px" title="blue"
@@ -1046,7 +1058,7 @@ align="center"><font size="-1" color="white">0.0</font></td>
 <td bgcolor=orange width="30px" title="orange"
 align="center"><font size="-1">0.5</font></td>
 <td bgcolor=yellow width="30px" title="yellow"
-align="center"><font size="-1">0.7</font></td>
+align="center"><font size="-1" color="black">0.7</font></td>
 <td bgcolor=cornflowerblue width="30px" title="cornflowerblue"
 align="center"><font size="-1" color="white">0.9</font></td>
 <td bgcolor=blue width="30px" title="blue"
@@ -1064,15 +1076,15 @@ align="center"><font size="-1" color="white">0</font></td>
 <td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
 align="center"><font size="-1" color="white">5</font></td>
 <td bgcolor="yellow" width="30px" title="yellow"
-align="center"><font size="-1">10</font></td>
+align="center"><font size="-1" color="black">10</font></td>
 <td bgcolor="orange" width="30px" title="orange"
 align="center"><font size="-1">15</font></td>
 <td bgcolor="gray" width="30px" title="gray"
 align="center"><font size="-1" color="white">20</font></td>
 <td bgcolor="lightgray" width="30px" title="lightgray"
-align="center"><font size="-1">25</font></td>
+align="center"><font size="-1" color="black">25</font></td>
 <td bgcolor="white" width="30px" title="white"
-align="center"><font size="-1">30</font></td>
+align="center"><font size="-1" color="black">30</font></td>
 </tr></table>
 (the default for plotting PAE
 <a href="alphafold.html#pae">from AlphaFold</a>
@@ -1089,11 +1101,11 @@ align="center"><font size="-1" color="white">10</font></td>
 <td bgcolor="#5687c9ba5687" width="30px" title="#5687c9ba5687"
 align="center"><font size="-1">15</font></td>
 <td bgcolor="#828fddf3828f" width="30px" title="#828fddf3828f"
-align="center"><font size="-1">20</font></td>
+align="center"><font size="-1" color="black">20</font></td>
 <td bgcolor="#bae1efdebae1" width="30px" title="#bae1efdebae1"
-align="center"><font size="-1">25</font></td>
+align="center"><font size="-1" color="black">25</font></td>
 <td bgcolor=white width="30px" title="white"
-align="center"><font size="-1">30</font></td>
+align="center"><font size="-1" color="black">30</font></td>
 </tr></table>
 <li><b>paecontacts</b>
 <table border cellpadding="0" cellspacing="0"
@@ -1103,7 +1115,7 @@ align="center"><font size="-1" color="white">0</font></td>
 <td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
 align="center"><font size="-1" color="white">5</font></td>
 <td bgcolor="yellow" width="30px" title="yellow"
-align="center"><font size="-1">10</font></td>
+align="center"><font size="-1" color="black">10</font></td>
 <td bgcolor="orange" width="30px" title="orange"
 align="center"><font size="-1">15</font></td>
 <td bgcolor="red" width="30px" title="red"
@@ -1298,5 +1310,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2024</address>
+May 2024</address>
 </body></html>

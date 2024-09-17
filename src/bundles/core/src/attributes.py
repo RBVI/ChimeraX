@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -66,7 +66,8 @@ def type_attrs(t):
     from types import GetSetDescriptorType
     attrs = [name for name in dir(t)
         if name[0] != '_' and type(getattr(t, name)) in [property, GetSetDescriptorType]]
-    attrs.extend(t._attr_registration.reg_attr_info.keys())
+    if hasattr(t, '_attr_registration'):
+        attrs.extend(t._attr_registration.reg_attr_info.keys())
     attrs.sort()
     return attrs
 
@@ -235,7 +236,7 @@ class RegAttrManager(StateManager):
         for reg_attr_name, attr_info in class_obj._attr_registration.reg_attr_info.items():
             if reg_attr_name != attr_name:
                 continue
-            return attr_info
+            return attr_info[1]
         raise ValueError("Class '%s' has not registered attribute named '%s'"
             % (class_obj.__name__, attr_name))
 

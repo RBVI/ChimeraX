@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -110,6 +110,16 @@ class IHMModel(Model):
         amodels = self.read_atomic_models(filename, mgroup)
         self.atomic_models = amodels
 
+        if amodels:
+            original_res_numbering = amodels[0].res_numbering
+        for m in amodels:
+            # We use mmCIF-provided seq_ids to, e.g., assign cross-links, so
+            # force canonical (rather than user-provided) residue numbering.
+            # We will reset this to the default once loading is complete.
+            # Note that we do not do this for sphere models, as there the only
+            # numbering system used is seq_id.
+            m.res_numbering = 'canonical'
+
         # Align 2DEM to projection position for first sphere or atomic model
         if smodels or amodels:
             s0 = smodels[0] if smodels else amodels[0]
@@ -148,6 +158,11 @@ class IHMModel(Model):
 
         # Put sphere, ensemble, atomic models and localization maps into parent group models.
         self.group_result_models(smodels, emodels, amodels, lmaps, mgroup)
+
+        # Reset residue numbering scheme to default, now that cross-links
+        # and the like have been assigned
+        for m in amodels:
+            m.res_numbering = original_res_numbering
 
     def read_ihm_system(self, filename):
         with open(filename) as fh:

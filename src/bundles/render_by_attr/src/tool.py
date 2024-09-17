@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -32,6 +32,7 @@ class RenderByAttrTool(ToolInstance):
         self.display_name = "Render/Select by Attribute"
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, statusbar=True)
+        tw.fill_context_menu = self.fill_context_menu
         parent = tw.ui_area
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QDialogButtonBox, QPushButton, QMenu, QLabel
         from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox, QLineEdit, QStackedWidget, QListWidget
@@ -108,7 +109,7 @@ class RenderByAttrTool(ToolInstance):
         self.render_color_markers = rh.add_markers(activate=True, coord_type='relative',
             move_callback=self._render_marker_moved,
             color_change_callback=lambda mrk, cb=self._update_palettes: cb())
-        self.render_color_markers.extend([((0.0, 0.0), "blue"), ((0.5, 0.0), "white"), ((1.0, 0.0), "red")])
+        self.render_color_markers.extend([((0.0, 0.0), "red"), ((0.5, 0.0), "white"), ((1.0, 0.0), "blue")])
         self.render_color_markers.add_del_callback = lambda mrk=None, cb=self._update_palettes: cb()
         self.render_markers[self.RENDER_COLORS] = self.render_color_markers
         color_render_tab = QWidget()
@@ -322,12 +323,15 @@ class RenderByAttrTool(ToolInstance):
 
         self.mode_widget.addTab(select_tab, "Select")
 
+        self._attr_monitorings = {}
         self._update_target_menu()
         self._new_render_attr()
         self._new_select_attr()
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        self.save_file_button = bbox.addButton("Save File...", qbbox.ActionRole)
+        bbox.clicked.connect(self._button_clicked)
         bbox.accepted.connect(self._dispatch)
         bbox.button(qbbox.Apply).clicked.connect(lambda: self._dispatch(apply=True))
         bbox.rejected.connect(self.delete)
@@ -340,6 +344,24 @@ class RenderByAttrTool(ToolInstance):
 
         tw.manage(placement=None)
 
+    def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        scaling_menu = menu.addMenu("Histogram Scaling")
+        def set_histograms(linear):
+            for h in [self.render_histogram, self.select_histogram]:
+                h.scaling = "linear" if linear else "logarithmic"
+        linear = self.select_histogram.scaling == "linear"
+        action = QAction("Linear", scaling_menu)
+        action.setCheckable(True)
+        action.setChecked(linear)
+        action.triggered.connect(lambda *args, action=action: set_histograms(action.isChecked()))
+        scaling_menu.addAction(action)
+        action = QAction("Logarithmic", scaling_menu)
+        action.setCheckable(True)
+        action.setChecked(not linear)
+        action.triggered.connect(lambda *args, action=action: set_histograms(not action.isChecked()))
+        scaling_menu.addAction(action)
+
     def render(self, *, apply=False):
         models = self.model_list.value
         if not models:
@@ -347,6 +369,8 @@ class RenderByAttrTool(ToolInstance):
         attr_name = self.render_attr_menu_button.text()
         if attr_name == self.NO_ATTR_TEXT:
             raise UserError("No attribute chosen for rendering")
+        if isinstance(self.render_histogram.data_source, str):
+            raise UserError(self.render_histogram.data_source)
         tabs = self.render_type_widget
         tab_text = tabs.tabText(tabs.currentIndex()).lower()
         method = tab_text[:-1] if tab_text[-1] == 's' else "radius"
@@ -398,6 +422,8 @@ class RenderByAttrTool(ToolInstance):
         attr_name = self.select_attr_menu_button.text()
         if attr_name == self.NO_ATTR_TEXT:
             raise UserError("No attribute chosen for selection")
+        if isinstance(self.select_histogram.data_source, str):
+            raise UserError(self.select_histogram.data_source)
         cur_widget = self.select_widgets.currentWidget()
         if cur_widget == self.select_message_widget:
             raise UserError("Can't select using attribute '%s'" % attr_name)
@@ -439,6 +465,12 @@ class RenderByAttrTool(ToolInstance):
         return [attr_name for attr_name in attr_mgr.attributes_returning(
             attr_info.class_object, types, none_okay=True) if not attr_info.hide_attr(
             attr_name, self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render")]
+
+    def _button_clicked(self, button):
+        if button == self.save_file_button:
+            fmt = self.session.data_formats.save_format_from_suffix(".defattr")
+            from chimerax.save_command import show_save_file_dialog as show_dialog
+            show_dialog(self.session, format=fmt.name)
 
     def _create_key(self):
         from chimerax.core.colors import Colormap, Color
@@ -498,11 +530,13 @@ class RenderByAttrTool(ToolInstance):
                 enabled = False
             else:
                 attr_name = self.NO_ATTR_TEXT
+            monitored_attr = None
         else:
             if isinstance(attr_name_info, str):
                 attr_name = attr_name_info
             else:
                 attr_name = attr_name_info.text()
+            monitored_attr = attr_name
         if attr_name != self.render_attr_menu_button.text():
             self.render_attr_menu_button.setText(attr_name)
             if attr_name_info is None:
@@ -511,6 +545,7 @@ class RenderByAttrTool(ToolInstance):
                 self._update_render_histogram(attr_name)
             self._update_palettes()
         self.render_attr_menu_button.setEnabled(enabled)
+        self._update_attr_monitoring(True, monitored_attr)
 
     def _new_select_attr(self, attr_name_info=None):
         enabled = True
@@ -520,11 +555,13 @@ class RenderByAttrTool(ToolInstance):
                 enabled = False
             else:
                 attr_name = self.NO_ATTR_TEXT
+            monitored_attr = None
         else:
             if isinstance(attr_name_info, str):
                 attr_name = attr_name_info
             else:
                 attr_name = attr_name_info.text()
+            monitored_attr = attr_name
         if attr_name != self.select_attr_menu_button.text():
             self.select_attr_menu_button.setText(attr_name)
             if attr_name_info is None:
@@ -532,6 +569,7 @@ class RenderByAttrTool(ToolInstance):
             else:
                 self._update_select_widget(attr_name)
         self.select_attr_menu_button.setEnabled(enabled)
+        self._update_attr_monitoring(False, monitored_attr)
 
     def _new_classes(self):
         self._update_target_menu()
@@ -659,6 +697,29 @@ class RenderByAttrTool(ToolInstance):
             no_val_button.setHidden(not any_None)
             if no_val_button.isChecked() and not any_None:
                 self.select_histogram_buttons.button(0).setChecked(True)
+
+    def _update_attr_monitoring(self, rendering, monitored_attr):
+        index = 0 if rendering else 1
+        for attr_info, attr_monitorings in list(self._attr_monitorings.items()):
+            for attr_name, mode_monitoring in list(attr_monitorings.items()):
+                if mode_monitoring[index]:
+                    attr_info.attr_change_notify(attr_name, None)
+                    mode_monitoring[index] = None
+                    if not mode_monitoring[1-index]:
+                        del attr_monitorings[attr_name]
+                        if not attr_monitorings:
+                            del self._attr_monitorings[attr_info]
+        if monitored_attr is not None:
+            attr_info = self._cur_attr_info()
+            def update_hist(*, attr_name=monitored_attr, rendering=rendering):
+                if rendering:
+                    self._update_render_histogram(attr_name)
+                else:
+                    self._update_histogram(self.select_histogram, attr_name)
+            attr_info.attr_change_notify(monitored_attr, update_hist)
+            attr_monitorings = self._attr_monitorings.setdefault(attr_info, {})
+            monitorings = attr_monitorings.setdefault(monitored_attr, [False, False])
+            monitorings[index] = True
 
     def _update_deworm_button(self):
         models = self.model_list.value

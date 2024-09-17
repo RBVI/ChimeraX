@@ -3,7 +3,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -38,6 +38,10 @@ extern "C"
 // is inside or outside the surface.  If a distance array (N by 5) is passed
 // as an argument, it will only be modified by distances less those.  If no
 // distance array is provided, a newly allocated one will be returned.
+//
+// Limitation: The side -1 or +1 value can be wrong if the closest point
+// is at a surface cusp.  This is pretty comment when the surface is a
+// volume isosurface with small connected pieces.
 //
 // Args: points, vertex_array, triangle_array, distances
 // Return: distances

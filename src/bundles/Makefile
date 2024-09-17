@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -26,7 +26,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  clashes cmd_line color_actions \
 	  color_globe color_key connect_structure core_formats \
 	  coulombic crosslinks crystal crystal_contacts data_formats \
-	  dicom diffplot dist_monitor dock_prep dssp \
+	  deep_mutational_scan dicom diffplot dist_monitor dock_prep dssp \
 	  emdb_sff esmfold file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
@@ -36,13 +36,13 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  markers mask match_maker mcopy md_crds \
 	  medical_toolbar meeting mlp model_series \
 	  mmcif mmtf model_panel modeller mol2 mole morph mouse_modes movie nmrstar \
-	  neuron nifti nrrd nucleotides open_command pdb pdb_bio pdb_lib pdb_matrices \
+	  neuron nifti nrrd nucleotides open_command orthopick pdb pdb_bio pdb_lib pdb_matrices \
 	  pick_blobs positions preset_mgr pubchem read_pbonds registration \
 	  remote_control render_by_attr renumber_residues rest_server \
 	  residue_fit rna_layout rotamers rotamer_libs \
 	  save_command scheme_mgr \
 	  sdf sel_inspector segger segment segmentations seqalign seq_view shape \
-	  shell shortcuts show_sequences sideview sim_matrices smiles \
+	  shell shortcuts show_sequences sideview sim_matrices similarstructures smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \
 	  tape_measure task_manager test toolbar topography to_quest tug ui uniprot \

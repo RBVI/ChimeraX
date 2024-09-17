@@ -6,7 +6,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -38,30 +38,16 @@ _builtin_open = open
 _initialized = False
 
 _additional_categories = (
-    "pdbx_struct_assembly",
-    "pdbx_struct_assembly_gen",
-    "pdbx_struct_oper_list",
-    "entity_src_gen",
-    "entity_src_nat",
-    "cell",
-    "symmetry",
-    "struct_ncs_oper",
     "atom_sites",
-    "software",
-    "struct",
+    "cell",
     "citation",
     "citation_author",
     "citation_editor",
     "database_2",	# EMDB map reference
-    "pdbx_database_related",    # EMDB map reference (also, sigh, e.g. 4udv)
-    "pdbx_database_status",	# Specifies if NMR restraints available
-    "exptl",
-    "refine",
-    "reflns",
     "em_3d_reconstruction",
+    "entity_src_gen",
+    "entity_src_nat",
     "exptl",
-    "struct_ref",	# Uniprot data base id
-    "struct_ref_seq",	# Sequence range for uniprot id
     "ma_alignment",	# 'Model Archive' alignment [#5601]
     "ma_template_details",
     "ma_template_ref_db_details",
@@ -69,6 +55,20 @@ _additional_categories = (
     "ma_qa_metric",
     "ma_qa_metric_global",
     "ma_qa_metric_local",
+    "pdbe_chain_remapping", # So that NIH presets can determine original asymmetic chain ID
+    "pdbx_database_related",    # EMDB map reference (also, sigh, e.g. 4udv)
+    "pdbx_database_status",	# Specifies if NMR restraints available
+    "pdbx_struct_assembly",
+    "pdbx_struct_assembly_gen",
+    "pdbx_struct_oper_list",
+    "refine",
+    "reflns",
+    "software",
+    "struct",
+    "struct_ncs_oper",
+    "struct_ref",	# Uniprot data base id
+    "struct_ref_seq",	# Sequence range for uniprot id
+    "symmetry",
 )
 # _reserved_words = {
 #     'loop_', 'stop_', 'global_', "data_", "save_"
@@ -537,8 +537,13 @@ def _get_template(session, name):
         session.logger.warning("Non-printable residue name.  Corrupt mmCIF file?")
         return None
     filename = '%s.cif' % name
-    url_path = url_quote(f"pub/pdb/refdata/chem_comp/{name[-1]}/{name}/{name}.cif")
-    url = f"https://files.wwpdb.org/{url_path}"
+    if '_' in name:
+        url_path = url_quote(f"reports/{name[0]}/{name}/{name}.cif")
+        url = f"http://ligand-expo.rcsb.org/{url_path}"
+    else:
+        url_path = url_quote(f"pub/pdb/refdata/chem_comp/{name[-1]}/{name}/{name}.cif")
+        url = f"https://files.wwpdb.org/{url_path}"
+    print(url)  # DEBUG
     try:
         return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD')
     except (UserError, OSError):
@@ -687,7 +692,7 @@ def citations(model, only=None, metadata=None):
             if c[-1] != '.':
                 c += '.'
             d = escape(doi)
-            c += ' DOI: <a href="http://dx.doi.org/%s">%s</a>' % (d, d)
+            c += ' DOI: <a href="https://dx.doi.org/%s">%s</a>' % (d, d)
         citations.append(c)
     return citations
 
@@ -714,7 +719,7 @@ def add_citation(model, citation_id, info, authors=(), editors=(), *, metadata=N
     citation table, then nothing is done.
 
     The `info` dictionary is for the relevant data items from the mmCIF citation category,
-    http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/citation.html
+    https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/citation.html
     except for the citation `id` which is given as an argument to this function.
     The capitalization should match that in the mmCIF dictionary.
     In particular, the following data items are supported:
@@ -830,7 +835,7 @@ def add_software(model, name, info, *, metadata=None):
     already present in the software table, then nothing is done.
 
     The `info` dictionary is for the relevant data items from the mmCIF softare category,
-    http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/software.html
+    https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/software.html
     except for the `name`, which is given as an argument to the function, and `pdbx_ordinal`,
     which is computed.  The capitalization should match that in the mmCIF dictionary.
     In particular, the following data items are supported:
@@ -957,7 +962,7 @@ def get_mmcif_tables_from_metadata(obj, table_names, *, metadata=None):
     metadata : optional metadata dictonary
         Allow reuse of existing metadata dictionary.
 
-    Returns a list of :py:class:`CIFtable`s or :external+python:ref:`None`,
+    Returns a list of :py:class:`CIFTable`s or :external+python:ref:`None`,
     one for each table name.
     """
     if metadata is None:

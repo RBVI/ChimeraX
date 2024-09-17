@@ -14,7 +14,7 @@ import copy
 from html import escape
 import os
 import pathlib
-import pkg_resources
+import importlib.metadata
 import shutil
 
 ffmpeg_doc = """
@@ -68,21 +68,12 @@ def get_packages_info():
         empty_info[name] = ""
 
     infos = []
-    for pkg in pkg_resources.working_set:
-        if pkg.project_name.startswith('ChimeraX-'):
+    for pkg in importlib.metadata.distributions():
+        if pkg.name.startswith('ChimeraX-'):
             continue
         info = copy.deepcopy(empty_info)
-        try:
-            lines = pkg.get_metadata_lines('METADATA')
-        except (KeyError, IOError):
-            lines = pkg.get_metadata_lines('PKG-INFO')
-
         classifier_licenses = []
-        for line in lines:
-            try:
-                key, value = line.split(': ', 1)
-            except ValueError:
-                pass
+        for key, value in pkg.metadata.items():
             value = value.strip()
             if key in KEY_MAP:
                 info[KEY_MAP[key]] = value
@@ -99,7 +90,7 @@ def get_packages_info():
                         text = extract[1].strip()
                 classifier_licenses.append(text)
         if classifier_licenses:
-            #? if not info['license'].startswith('http'):
+            # TODO? if not info['license'].startswith('http'):
             info['license'] = ', '.join(classifier_licenses)
 
         license_file = find_license_file(pkg)
@@ -113,59 +104,50 @@ def get_packages_info():
 def find_license_file(pkg):
     # return absolute path to a file with the license for a package if found
     import os
-    import fnmatch
     import re
-    license_file = None
 
-    # scan egg/wheel info for a license
-    dir_re = re.compile(fnmatch.translate('%s-*.dist-info' % pkg.project_name))
-    for filename in os.listdir(pkg.location):
-        if dir_re.match(filename):
-            break
-    else:
-        return license_file
-
+    license_re = re.compile('^(LICENSE|COPYING)')
+    license_files = []
     top_levels = []
-    license_re = re.compile('licen[sc]e', re.I)
-    dirname = os.path.join(pkg.location, filename)
-    for filename in os.listdir(dirname):
-        if filename == 'top_level.txt':
-            fn = os.path.join(dirname, 'top_level.txt')
-            with open(fn) as f:
+
+    for path in pkg.files:
+        if not path.parts[0].endswith("-info"):
+            continue
+        if path.name == "top_level.txt":
+            with open(pkg.locate_file(path), 'rt') as f:
                 top_levels = [x.strip() for x in f.readlines()]
-        elif license_re.match(filename):
-            entry = os.path.join(dirname, filename)
-            if not os.path.isdir(entry):
-                license_file = entry
-            else:
-                files = os.listdir(entry)
+        elif path.name == 'licenses':
+            entry = pkg.locate_file(path)
+            if entry.is_dir():
+                files = list(entry.iterdir())
                 if len(files) == 1:
-                    license_file = os.path.join(entry, files[0])
+                    license_files.append(str(files[0]))
                 else:
                     for filename in files:
-                        if filename.startswith(('LICENSE', 'COPYING')):
-                            license_file = os.path.join(entry, filename)
-                            break
-                    else:
-                        raise AssertionError("License-file directory (%s) for %s has multiple"
-                            " choices" % (entry, pkg.project_name))
+                        if license_re.match(filename.name):
+                            license_files.append(str(filename))
+        elif license_re.match(path.name):
+            entry = pkg.locate_file(path)
+            if entry.is_file():
+                license_files.append(str(entry))
 
     # scan modules provided by egg/wheel for a license
-    if not license_file and top_levels:
+    if not license_files and top_levels:
         import importlib
         for t in top_levels:
             try:
                 m = importlib.import_module(t)
-            except:
+            except Exception:
                 continue
             if not hasattr(m, '__path__'):
                 continue
             for dirname in m.__path__:
                 for filename in os.listdir(dirname):
                     if license_re.match(filename):
-                        license_file = os.path.join(dirname, filename)
-                        return license_file
-    return license_file
+                        license_files.append(os.path.join(dirname, filename))
+    if not license_files:
+        return None
+    return sorted(license_files, key=len)[0]
 
 
 def html4_id(name):
@@ -212,7 +194,7 @@ def extract_version(srcdir, var_name):
     makefile = os.path.join(srcdir, 'Makefile')
     version_str = f"{var_name} ="
     with open(makefile) as f:
-        #var_name = 7.3.0
+        # var_name = 7.3.0
         for line in f.readlines():
             if line.startswith(version_str):
                 version = line.split()[2]
@@ -271,7 +253,6 @@ def openmm_licenses():
     tarfiles = openmm_srcdir.glob(f'openmm-{version}-*.tar*')
     for filename in tarfiles:
         # TODO: select tarfile for our platform
-        part = filename.parts[-1]
         with tarfile.open(filename) as f:
             try:
                 member = f.getmember("licenses/Licenses.txt")
@@ -285,6 +266,7 @@ def openmm_licenses():
             with open(out_filename, 'wb') as out:
                 out.write(content)
             break
+
 
 infos = get_packages_info()
 infos.sort(key=(lambda info: info['name'].casefold()))
@@ -312,12 +294,12 @@ with open('embedded.html.in') as src:
 try:
     if include_ffmpeg:
         ffmpeg_licenses()
-except:
+except Exception:
     pass
 try:
     if include_openmm:
         openmm_licenses()
-except:
+except Exception:
     pass
 
 raise SystemExit(0)

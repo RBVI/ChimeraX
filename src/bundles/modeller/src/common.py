@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -41,7 +41,7 @@ def modeller_copy(seq):
     return mseq
 
 def opal_safe_file_name(fn):
-    return fn.replace(':', '_').replace(' ', '_').replace('|', '_').replace('[', '(').replace(']', ')')
+    return fn.replace(':', '_').replace(' ', '_').replace('|', '_').replace('[', '(').replace(']', ')').replace('#', '_')
 
 def structure_save_name(s):
     return s.name.replace(':', '_').replace(' ', '_') + "_" + s.id_string

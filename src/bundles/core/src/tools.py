@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -49,8 +49,9 @@ and `session.trigger.remove_handler`.
 
 # Tools and ToolInstance are session-specific
 from .state import State, StateManager
-ADD_TOOL_INSTANCE = 'add tool instance'
-REMOVE_TOOL_INSTANCE = 'remove tool instance'
+
+ADD_TOOL_INSTANCE = "add tool instance"
+REMOVE_TOOL_INSTANCE = "remove tool instance"
 # If any of the *STATE_VERSIONs change, then increase the (maximum) core session
 # number in setup.py.in
 TOOL_INSTANCE_STATE_VERSION = 2
@@ -92,6 +93,7 @@ class ToolInstance(State):
     def __init__(self, session, tool_name):
         self._id = None
         import weakref
+
         self._session = weakref.ref(session)
         self.tool_name = tool_name
         self.display_name = tool_name
@@ -99,12 +101,9 @@ class ToolInstance(State):
         session.tools.add([self])
 
     def take_snapshot(self, session, flags):
-        data = {
-            'name': self.display_name,
-            'version': TOOL_INSTANCE_STATE_VERSION
-        }
-        if hasattr(self, 'tool_window'):
-            data['shown'] = self.tool_window.shown
+        data = {"name": self.display_name, "version": TOOL_INSTANCE_STATE_VERSION}
+        if hasattr(self, "tool_window"):
+            data["shown"] = self.tool_window.shown
         return data
 
     @classmethod
@@ -112,17 +111,25 @@ class ToolInstance(State):
         if data is None:
             return None
         bundle_info = session.toolshed.find_bundle_for_class(cls)
-        tool_name = data['name']
+        tool_name = data["name"]
         # dropped data['id'] from version 1
         if bundle_info is None:
             print("can't find bundle info", data)
             return
-        if 'version' in data and data['version'] not in range(1, TOOL_INSTANCE_STATE_VERSION + 1):
+        if "version" in data and data["version"] not in range(
+            1, TOOL_INSTANCE_STATE_VERSION + 1
+        ):
             from chimerax.core.state import RestoreError
-            raise RestoreError('unexpected version restoring tool "%s", got %d, expected %s'
-                               % (tool_name, data['version'],
-                                  ', '.join(str(v) for v in bundle_info.session_versions)))
-        if hasattr(cls, 'get_singleton'):
+
+            raise RestoreError(
+                'unexpected version restoring tool "%s", got %d, expected %s'
+                % (
+                    tool_name,
+                    data["version"],
+                    ", ".join(str(v) for v in bundle_info.session_versions),
+                )
+            )
+        if hasattr(cls, "get_singleton"):
             ti = cls.get_singleton(session)
         else:
             ti = cls(session, tool_name)
@@ -131,8 +138,8 @@ class ToolInstance(State):
         return ti
 
     def set_state_from_snapshot(self, session, data):
-        if 'shown' in data:
-            self.display(data['shown'])
+        if "shown" in data:
+            self.display(data["shown"])
 
     def reset_state(self, session):
         pass
@@ -167,10 +174,11 @@ class ToolInstance(State):
         # TODO: track.deleted(ToolInstance, [self])
 
     def displayed(self):
-        if hasattr(self, 'tool_window'):
+        if hasattr(self, "tool_window"):
             return self.tool_window.shown
         raise NotImplementedError(
-            "%s tool has not implemented 'displayed' method" % self.display_name)
+            "%s tool has not implemented 'displayed' method" % self.display_name
+        )
 
     def display(self, b):
         """Show or hide this tool instance in the user interface.
@@ -183,20 +191,24 @@ class ToolInstance(State):
         """
         if self.session.ui.is_gui:
             self.session.ui.thread_safe(
-                lambda s=self, show=b: s.session.ui.set_tool_shown(s, show))
+                lambda s=self, show=b: s.session.ui.set_tool_shown(s, show)
+            )
 
     def display_help(self):
         """Show the help for this tool in the help viewer."""
         from chimerax.core.commands import run
-        run(self.session,
-            'help %s' % self.help if self.help is not None else "")
+
+        run(self.session, "help %s" % self.help if self.help is not None else "")
 
 
 def get_singleton(session, tool_class, tool_name, create=True, display=False, **kw):
     if not session.ui.is_gui:
         return None
-    running = [t for t in session.tools.find_by_class(tool_class)
-               if t.display_name == tool_name]
+    running = [
+        t
+        for t in session.tools.find_by_class(tool_class)
+        if t.display_name == tool_name
+    ]
     if len(running) > 1:
         raise RuntimeError("too many %s instances running" % tool_name)
     if not running:
@@ -218,6 +230,7 @@ class Tools(StateManager):
     running tool instances in the session, as well as managing
     saving and restoring tool states for scenes and sessions.
     """
+
     # Most of this code is modeled after models.Models
 
     def __init__(self, session, first=False):
@@ -230,12 +243,14 @@ class Tools(StateManager):
 
         """
         import weakref
+
         self._session = weakref.ref(session)
         if first:
             session.triggers.add_trigger(ADD_TOOL_INSTANCE)
             session.triggers.add_trigger(REMOVE_TOOL_INSTANCE)
         self._tool_instances = set()
         import itertools
+
         self._id_counter = itertools.count(1)
 
     def take_snapshot(self, session, flags):
@@ -259,14 +274,11 @@ class Tools(StateManager):
         """
         tlist = []
         for tool_inst in self._tool_instances:
-            assert(isinstance(tool_inst, ToolInstance))
+            assert isinstance(tool_inst, ToolInstance)
             if not tool_inst.SESSION_SAVE:
                 continue
             tlist.append(tool_inst)
-        data = {
-            'tools': tlist,
-            'version': TOOLS_STATE_VERSION
-        }
+        data = {"tools": tlist, "version": TOOLS_STATE_VERSION}
         return data
 
     @staticmethod
@@ -316,15 +328,15 @@ class Tools(StateManager):
         return list(self._tool_instances)
 
     def __getitem__(self, i):
-        '''index into tools using square brackets (e.g. session.models[i])'''
+        """index into tools using square brackets (e.g. session.models[i])"""
         return list(self._tool_instances)[i]
 
     def __iter__(self):
-        '''iterator over tools'''
+        """iterator over tools"""
         return iter(self._tool_instances)
 
     def __len__(self):
-        '''number of tools'''
+        """number of tools"""
         return len(self._tool_instances)
 
     def __bool__(self):
@@ -339,7 +351,7 @@ class Tools(StateManager):
             List of newly created running tool instances.
 
         """
-        session = self._session()   # resolve back reference
+        session = self._session()  # resolve back reference
         self._tool_instances.update(ti_list)
         session.triggers.activate_trigger(ADD_TOOL_INSTANCE, ti_list)
 
@@ -352,7 +364,7 @@ class Tools(StateManager):
             List of registered running tool instances.
 
         """
-        session = self._session()   # resolve back reference
+        session = self._session()  # resolve back reference
         self._tool_instances -= set(ti_list)
         session.triggers.activate_trigger(REMOVE_TOOL_INSTANCE, ti_list)
 
@@ -371,16 +383,17 @@ class Tools(StateManager):
         return [ti for ti in self._tool_instances if isinstance(ti, cls)]
 
     def __iter__(self):
-        '''iterator over tools'''
+        """iterator over tools"""
         return iter(self._tool_instances)
 
     def __len__(self):
-        '''number of tools'''
+        """number of tools"""
         return len(self._tool_instances)
 
     def autostart(self):
         """Start tools that should start when applications starts up."""
         from .core_settings import settings
+
         self.start_tools(settings.autostart)
 
     def start_tools(self, tool_names):
@@ -388,7 +401,7 @@ class Tools(StateManager):
         # Errors are printed instead of logged, since logging goes to
         # the splash screen, and that disappears before the user can
         # see it.
-        session = self._session()   # resolve back reference
+        session = self._session()  # resolve back reference
         start_bi = [None] * len(tool_names)
         for bi in session.toolshed.bundle_info(session.logger):
             for ti in bi.tools:
@@ -399,10 +412,10 @@ class Tools(StateManager):
         # start them in the same order as given in the setting
         for tool_name, bi in zip(tool_names, start_bi):
             if bi is None:
-                print("Could not find tool \"%s\"" % tool_name)
+                print('Could not find tool "%s"' % tool_name)
                 continue
             try:
                 bi.start_tool(session, tool_name)
             except Exception:
-                msg = "Tool \"%s\" failed to start" % tool_name
+                msg = 'Tool "%s" failed to start' % tool_name
                 session.logger.report_exception(preface=msg)

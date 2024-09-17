@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -33,7 +33,7 @@ def esmfold_pae(session, structure = None, file = None, mgnify_id = None,
         pae_url, file_name = esmfold_pae_url(session, mgnify_id, database_version=version)
         from chimerax.core.fetch import fetch_file
         file = fetch_file(session, pae_url, 'ESM Metagenomics Atlas PAE %s' % mgnify_id,
-                          file_name, 'ESMFold', error_status = False)
+                          file_name, 'ESMFold',  check_certificates = False, error_status = False)
         
     if file:
         from chimerax.alphafold.pae import AlphaFoldPAE
@@ -42,9 +42,9 @@ def esmfold_pae(session, structure = None, file = None, mgnify_id = None,
         if structure:
             if not pae.reduce_matrix_to_residues_in_structure():
                 from chimerax.core.errors import UserError
-                raise UserError('Number of residues in structure "%s" is %d which does not match PAE matrix size %d.'
-                                % (str(structure), structure.num_residues, pae.matrix_size) +
-                                '\n\nThis can happen if residues were deleted from the ESMFold model or if the PAE data was applied to a structure that was not the one predicted by ESMFold.  Use the full-length ESMFold model to show predicted aligned error.')
+                raise UserError(f'Structure {structure} does not match PAE matrix size {pae.matrix_size}.'
+                                f'The structure has {pae.num_residue_rows} polymer residues and {pae.num_atom_rows} non-polymer atoms'
+                                '\n\nThis can happen if chains or atoms were deleted from the AlphaFold model or if the PAE data was applied to a structure that was not the one predicted by AlphaFold.  Use the full-length AlphaFold model to show predicted aligned error.')
             structure.esmfold_pae = pae
     elif structure is None:
         from chimerax.core.errors import UserError

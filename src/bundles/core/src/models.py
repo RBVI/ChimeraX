@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -431,12 +431,12 @@ class Model(State, Drawing):
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
         '''
         Restore model to state interpolated as a fraction between the two scene datas.
-        For parts of the model that aren't interpolable, chenge to the second state
+        For parts of the model that aren't interpolable, change to the second state
         when 'switchover' is True.  If no parts of the model are interpolable then
-        you needn't implement this method (restore_scene() is sufficient.
+        you needn't implement this method (restore_scene() is sufficient).
 
         '''
-        #TODO: interepolate base Model state here
+        #TODO: interpolate base Model state here
         raise NotImplementedError("interpolate_scene not implemented")
 
     def save_geometry(self, session, flags):
@@ -467,7 +467,9 @@ class Model(State, Drawing):
         self.clear_highlight()
         self._selection_changed()
 
-    def added_to_session(self, session):
+    def added_to_session(self, session, log_info = True):
+        if not log_info:
+            return
         html_title = self.get_html_title(session)
         if not html_title:
             return

@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -31,14 +31,18 @@ class _StatusBarOpenGL:
         self._window = None
         self._drawing = None
         self._drawing2 = None	# Secondary status
-        self.background_color = (0.85,0.85,0.85,1.0)
-        self.text_color = (0,0,0,255)
+        if session.ui.dark_mode():
+            self.background_color = (0.125,0.125,0.125,1.0)
+            self.text_color = (255,255,255,255)
+        else:
+            self.background_color = (0.85,0.85,0.85,1.0)
+            self.text_color = (0,0,0,255)
         self.font = 'Arial'
         self.pad_vert = 0.2 		# Fraction of status bar height
         self.pad_horz = 0.3 		# Fraction of status bar height (not width)
         self.widget = self._make_widget()
         self._last_message = ''
-        self._last_color = 'black'
+        self._last_color = 'CanvasText'
 
     def destroy(self):
         self.widget.destroy()
@@ -120,7 +124,7 @@ class _StatusBarOpenGL:
     # TODO: Handle expose events on status bar windows so resizes show label.
     #  Should probably handle status bar as one QWindow created by this class.
     #  Can put primary and secondary areas in same window.
-    def status(self, msg, color = 'black', secondary = False):
+    def status(self, msg, color = 'CanvasText', secondary = False):
         if not secondary:
             self._last_message = msg
             self._last_color = color
@@ -173,7 +177,11 @@ class _StatusBarOpenGL:
         aspect = lh/lw
         xpad,ypad = self.pad_horz, self.pad_vert
 
-        from chimerax.core.colors import BuiltinColors
+        from chimerax.core.colors import BuiltinColors, scheme_color
+        try:
+            color = scheme_color(color, expand=True)
+        except KeyError:
+            pass
         tcolor = BuiltinColors[color].uint8x4() if color in BuiltinColors else self.text_color
         image_height = lh
         ixpad, iypad = max(1, int(xpad*lh)), max(1, int(ypad*lh))
@@ -246,7 +254,7 @@ class _StatusBarQt:
         sb.addPermanentWidget(sb._secondary_status_label)
         return sb
 
-    def status(self, msg, color = 'black', secondary = False):
+    def status(self, msg, color = 'CanvasText', secondary = False):
         sb = self.widget
         sb.clearMessage()
         if secondary:

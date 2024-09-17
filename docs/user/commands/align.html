@@ -16,12 +16,13 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command: align</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: align</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -104,18 +105,23 @@ in the <a href="../tools/log.html"><b>Log</b></a>.
 </p>
 <h3>Pairing Options</h3>
 <p>
-The options below restrict how <i>matchatoms</i> are paired with <i>refatoms</i>.
+The options below restrict how <i>matchatoms</i> are paired with 
+<i>refatoms</i>.
 Unpaired atoms are ignored, so these options may help to limit broader
 specifications to the equal numbers of atoms required for the calculation.
 </p>
 <blockquote>
 <b>matchAtomNames</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
-<br>Only pair atoms with the same atom names.
+<br>Only pair atoms with the same atom names, regardless of their order.
+Using <b>matchAtomNames true</b> is not recommended for matching atoms from
+multiple residues per model unless <b>matchNumbering true</b> can also be used.
 </blockquote>
 <blockquote>
 <b>matchNumbering</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>Only pair atoms with the same residue numbers. 
 Atoms are assumed to be in residue-number order.
+Using <b>matchNumbering true</b> is not recommended when matching atoms from
+multiple chains per model unless <b>matchChainIds true</b> can also be used.
 </blockquote>
 <blockquote>
 <b>matchChainIds</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -124,5 +130,5 @@ Atoms are assumed to be in residue-number order.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2020</address>
+May 2024</address>
 </body></html>

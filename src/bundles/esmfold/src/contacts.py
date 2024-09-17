@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -24,7 +24,7 @@
 
 # -----------------------------------------------------------------------------
 #
-def esmfold_contacts(session, residues, to_residues = None, distance = 3,
+def esmfold_contacts(session, atoms, to_atoms = None, distance = 3, max_pae = None,
                      flip = False, palette = None, range = None, radius = 0.2, dashes = 1,
                      name = 'PAE Contacts', replace = True, output_file = None):
     '''
@@ -34,7 +34,7 @@ def esmfold_contacts(session, residues, to_residues = None, distance = 3,
     Pseudobonds are drawn between CA atoms.
     '''
     from chimerax.alphafold.contacts import alphafold_contacts
-    return alphafold_contacts(session, residues, to_residues = to_residues, distance = distance,
+    return alphafold_contacts(session, atoms, to_atoms = to_atoms, distance = distance, max_pae = max_pae,
                               flip = flip, palette = palette, range = range, radius = radius, dashes = dashes,
                               name = name, replace = replace, output_file = output_file, method = 'esmfold')
     

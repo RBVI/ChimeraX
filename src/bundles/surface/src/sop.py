@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -243,11 +243,13 @@ def surface_smooth(session, surfaces, factor = 0.3, iterations = 2, in_place = F
         raise UserError('No surfaces specified')
 
     from chimerax.surface import smooth_vertex_positions
+    from chimerax.geometry import normalize_vectors
     if in_place:
         for surface in surfaces:
             va, na, ta = surface.vertices, surface.normals, surface.triangles
             smooth_vertex_positions(va, ta, factor, iterations)
             smooth_vertex_positions(na, ta, factor, iterations)
+            normalize_vectors(na)            
             surface.set_geometry(va, na, ta)
         return surfaces
     else:
@@ -257,7 +259,9 @@ def surface_smooth(session, surfaces, factor = 0.3, iterations = 2, in_place = F
             va, na, ta = surface.vertices.copy(), surface.normals.copy(), surface.triangles.copy()
             smooth_vertex_positions(va, ta, factor, iterations)
             smooth_vertex_positions(na, ta, factor, iterations)
+            normalize_vectors(na)
             copy = Surface(surface.name + ' smooth', session)
+            copy.SESSION_SAVE_DRAWING = True	# Save geometry in sessions
             copy.set_geometry(va, na, ta)
             copy.positions = surface.get_scene_positions()
             _copy_surface_attributes(surface, copy)

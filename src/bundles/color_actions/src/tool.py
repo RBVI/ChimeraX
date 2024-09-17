@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -119,8 +119,17 @@ class ColorActions(ToolInstance):
             but = QPushButton("By " + label)
             if tooltip:
                 but.setToolTip(tooltip)
-            but.clicked.connect(lambda *, run=run, ses=self.session, get_target=self._target_arg, arg=arg:
-                run(ses, "color " + ("" if ses.selection.empty() else "sel ") + "by" + arg + get_target()))
+            def do_color(*args, coloring=arg, ses=self.session):
+                target = self._target_arg()
+                if target is None:
+                    for button, command in self.global_button_info:
+                        if button.isChecked():
+                            raise UserError("Cannot color %s by %s"
+                                % (button.text().lower(), coloring.lower()))
+                    raise AssertionError("No global button checked?!?")
+                run(ses, "color " + ("" if ses.selection.empty() else "sel ") + "by" + coloring + target)
+
+            but.clicked.connect(do_color)
             grp_layout.addWidget(but)
         but = QPushButton("From Editor")
         but.setToolTip("Bring up a color editor to choose the color")
@@ -223,9 +232,10 @@ class ColorActions(ToolInstance):
         from chimerax.core.commands import run
         commands = []
         try:
-            commands.append("color "
-                + ("" if self.session.selection.empty() else "sel ") + color_name
-                + self._target_arg())
+            target = self._target_arg()
+            if target is not None:
+                commands.append("color "
+                    + ("" if self.session.selection.empty() else "sel ") + color_name + target)
         except NoTargetError:
             pass
 

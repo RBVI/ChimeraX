@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -605,8 +605,9 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
             char aloc = a->alt_loc();	// Remember original alt loc.
             for (auto ali = alocs.begin() ; ali != alocs.end() ; ++ali) {
                 char al = *ali;
-                a->set_alt_loc(al);
-                ca->set_alt_loc(al, true);
+                // set "from residue" true so avoid setting "related" alt locs
+                a->set_alt_loc(al, false, true);
+                ca->set_alt_loc(al, true, true);
                 auto crd = a->coord();
                 if (coord_adjust != nullptr)
                     crd = crd.mat_mul(coord_adjust);
@@ -614,8 +615,8 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
                 ca->set_bfactor(a->bfactor());
                 ca->set_occupancy(a->occupancy());
             }
-            a->set_alt_loc(aloc);	// Restore original alt loc.
-            ca->set_alt_loc(aloc);
+            a->set_alt_loc(aloc, false, true);	// Restore original alt loc.
+            ca->set_alt_loc(aloc, false, true);
         } else {
             ca->set_bfactor(a->bfactor());
             ca->set_occupancy(a->occupancy());
@@ -922,7 +923,7 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
         }
     }
     if (res_removals.size() > 0) {
-        if (_chains != nullptr) {
+        if (chains_made()) {
             std::map<Chain*, std::set<Residue*>> chain_res_removals;
             for (auto r: res_removals)
                 if (r->chain() != nullptr) {
@@ -1119,6 +1120,33 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
             return;
         start_r = start_a->residue();
         other_r = b->other_atom(start_a)->residue();
+        // verify that this bond is actually between chain-terminal atoms
+        auto start_chain = start_r->chain();
+        if (start_chain != nullptr) {
+            // "start" atom is C, look backwards from the end of the chain
+            auto& start_residues = start_chain->residues();
+            for (int i = start_residues.size()-1; i >= 0; --i) {
+                auto r = start_residues[i];
+                if (r == nullptr)
+                    continue;
+                if (r == start_r)
+                    break;
+                else
+                    return;
+            }
+        }
+        auto other_chain = other_r->chain();
+        if (other_chain != nullptr) {
+            // "other" atom is N, look from the start of the chain
+            for (auto r: other_chain->residues()) {
+                if (r == nullptr)
+                    continue;
+                if (r == other_r)
+                    break;
+                else
+                    return;
+            }
+        }
     }
     if (start_r->chain() == nullptr) {
         if (other_r->chain() == nullptr) {

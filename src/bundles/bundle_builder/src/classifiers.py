@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -99,7 +99,7 @@ class Selector(ChimeraXClassifier):
 
 
 class Manager(ChimeraXClassifier):
-    default_attrs = {"gui-only": False, "autostart": False}
+    default_attrs = {"gui-only": False, "autostart": True}
 
     def __init__(self, name, attrs):
         if not attrs:
@@ -122,7 +122,9 @@ class Provider(ChimeraXClassifier):
 
     def __str__(self):
         attrs = self.misc_attrs_to_list()
-        return f"ChimeraX :: Provider :: {self.name} :: {self.manager} :: {self.classifier_separator.join(attrs)}"
+        if attrs:
+            return f"ChimeraX :: Provider :: {self.name} :: {self.manager} :: {self.classifier_separator.join(attrs)}"
+        return f"ChimeraX :: Provider :: {self.name} :: {self.manager}"
 
 
 class DataFormat(Provider):
@@ -215,17 +217,36 @@ class Preset(Provider):
         super().__init__("presets", name, attrs)
 
 
-class Toolbar(Provider):
-    default_attrs = {}
+class ToolbarTab(Provider):
 
-    def __init__(self, tab, name, attrs):
-        if not attrs:
-            attrs = self.default_attrs
-        else:
-            for key, val in self.default_attrs.items():
-                if key not in attrs:
-                    attrs[key] = val
-        attrs["tab"] = tab
+    def __init__(self, tab_name, attrs):
+        attrs["tab"] = tab_name
+        name = "tab-" + tab_name.lower().replace(" ", "-")
+        super().__init__("toolbar", name, attrs)
+
+    def __str__(self):
+        attrs = self.misc_attrs_to_list()
+        return f"ChimeraX :: Provider :: {self.name} :: {self.manager} :: {self.classifier_separator.join(attrs)}"
+
+
+class ToolbarSection(Provider):
+    def __init__(self, tab_name, section_name, attrs):
+        self.tab_name = tab_name
+        attrs["tab"] = tab_name
+        attrs["section"] = section_name
+        name = "section-" + section_name.lower().replace(" ", "-")
+        super().__init__("toolbar", name, attrs)
+
+    def __str__(self):
+        attrs = self.misc_attrs_to_list()
+        return f"ChimeraX :: Provider :: {self.name} :: {self.manager} :: {self.classifier_separator.join(attrs)}"
+
+
+class ToolbarButton(Provider):
+    def __init__(self, tab_name, section_name, button_name, attrs):
+        attrs["tab"] = tab_name
+        attrs["section"] = section_name
+        name = "button-" + button_name.lower().replace(" ", "-")
         super().__init__("toolbar", name, attrs)
 
     def __str__(self):
@@ -234,8 +255,10 @@ class Toolbar(Provider):
 
 
 class Initialization:
-    def __init__(self, type_, bundles):
+    def __init__(self, type_=None, bundles=None):
         self.type_ = type_
+        if not bundles:
+            bundles = []
         self.bundles = bundles
 
     def __str__(self):

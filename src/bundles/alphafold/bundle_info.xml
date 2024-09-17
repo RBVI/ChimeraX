@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-AlphaFold" version="1.0"
+<BundleInfo name="ChimeraX-AlphaFold" version="1.0.1"
 	    package="chimerax.alphafold"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -19,8 +19,16 @@
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="AlphaFold PAE" synopsis="AlphaFold predicted aligned error" category="Structure analysis"
+		suffixes=".json" default_for=".json" nicknames="pae"
+		reference_url="https://en.wikipedia.org/wiki/Predicted_Aligned_Error" />
+  </Providers>
+
   <Providers manager="open command">
-      <Provider name="alphafold" type="fetch" format_name="mmCIF" synopsis="AlphaFold" example_ids="p29474"/>
+    <Provider name="AlphaFold PAE" want_path="true" />
+    <Provider name="alphafold" type="fetch" format_name="mmCIF" synopsis="AlphaFold database" example_ids="P29474"/>
+    <Provider name="alphafold_pae" type="fetch" format_name="pae" synopsis="AlphaFold database PAE" example_ids="P29474"/>
   </Providers>
 
   <Classifiers>

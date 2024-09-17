@@ -1,0 +1,74 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Core ~=1.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-STL"
+version = "1.0.1"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "STL file read/write"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Geometry ~=1.0",
+  "ChimeraX-DataFormats ~=1.0",
+  "ChimeraX-OpenCommand ~=1.0",
+  "ChimeraX-SaveCommand ~=1.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """This bundle provides the ability to read and write
+StereoLithography (STL) files."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Generic 3D objects"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[[tool.chimerax.provider."data formats"]]
+name = "Stereolithography"
+synopsis = "STL (3D printing)"
+category = "Generic 3D objects"
+suffixes = ".stl"
+nicknames = "stl"
+reference-url = "http://en.wikipedia.org/wiki/STL_(file_format)"
+
+[[tool.chimerax.provider."open command"]]
+name = "Stereolithography"
+want-path = true
+
+[[tool.chimerax.provider."save command"]]
+name = "Stereolithography"
+
+[tool.chimerax.extension._stl]
+sources = [
+  "_stl/stl.cpp",
+]
+libraries = [
+  "arrays",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]

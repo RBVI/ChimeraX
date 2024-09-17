@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -166,7 +166,7 @@ class Graph(Plot):
     Middle and right mouse drags move the plotted objects.
     '''
     
-    def __init__(self, session, nodes, edges, tool_name, title):
+    def __init__(self, session, nodes, edges, tool_name, title, hide_ticks = True):
 
         # Create matplotlib panel
         Plot.__init__(self, session, tool_name, title = title)
@@ -179,6 +179,8 @@ class Graph(Plot):
         self.font_size = 12
         self.font_family = 'sans-serif'
 
+        self.hide_ticks = hide_ticks
+        
         # Create graph
         self.graph = self._make_graph()
 
@@ -237,7 +239,8 @@ class Graph(Plot):
         node_colors = tuple(n.color for n in nodes)
         import networkx as nx
         na = nx.draw_networkx_nodes(G, node_pos, nodelist = nodes,
-                                    node_size=node_sizes, node_color=node_colors, ax=self.axes)
+                                    node_size=node_sizes, node_color=node_colors, ax=self.axes,
+                                    hide_ticks = self.hide_ticks)
         na.set_picker(True)	# Generate mouse pick events for clicks on nodes
         if self._node_artist:
             self._node_artist.remove()
@@ -250,7 +253,8 @@ class Graph(Plot):
             ba = nx.draw_networkx_nodes(G, node_pos, nodelist = bnodes,
                                         node_size=tuple(n.size for n in bnodes),
                                         node_color=tuple(n.color for n in bnodes),
-                                        linewidths=0, ax=self.axes)
+                                        linewidths=0, ax=self.axes,
+                                        hide_ticks = self.hide_ticks)
             ba.set_zorder(-10)
 
         return node_pos
@@ -299,7 +303,7 @@ class Graph(Plot):
             return
         import networkx as nx
         ea = nx.draw_networkx_edges(G, node_pos, edgelist=edges, width=widths,
-                                    style=styles, ax=self.axes)
+                                    style=styles, ax=self.axes, hide_ticks = self.hide_ticks)
         ea.set_picker(True)
         if self._edge_artist:
             self._edge_artist.remove()
@@ -310,7 +314,8 @@ class Graph(Plot):
         import networkx as nx
         labels = nx.draw_networkx_labels(self.graph, node_pos, labels=node_names,
                                          font_size=self.font_size,
-                                         font_family=self.font_family, ax=self.axes)
+                                         font_family=self.font_family, ax=self.axes,
+                                         hide_ticks = self.hide_ticks)
 
         elabel = [e for e in self.edges if e.label]
         if elabel:
@@ -318,7 +323,8 @@ class Graph(Plot):
             elab = nx.draw_networkx_edge_labels(self.graph, node_pos, edge_labels=ed,
                                                 font_size=self.font_size,
                                                 font_family=self.font_family,
-                                                rotate = False, ax=self.axes)
+                                                rotate = False, ax=self.axes,
+                                                hide_ticks = self.hide_ticks)
             labels.update(elab)
 
         if self._labels:

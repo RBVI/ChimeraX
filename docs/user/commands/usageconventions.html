@@ -16,12 +16,13 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Usage Conventions in Command Documentation</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <h3>Command Usage Conventions</h3>
 <p>
@@ -177,9 +178,15 @@ The <a href="wait.html"><b>wait</b></a> command is used to enforce
 completion of a multi-frame action before initiation of the next command in 
 a script; omitting it or waiting for fewer frames allows successive actions 
 to overlap or run concurrently.
+<br><br>
+<li><b>Working directory</b>:
+Opening a command file changes the current directory to the directory 
+containing that file. After execution of the file finishes,
+the current directory is changed back to what it was previously.
+See also: <a href="cd.html"><b>cd</b></a>
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2021</address>
+May 2024</address>
 </body></html>

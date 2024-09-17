@@ -18,7 +18,7 @@ RHEL 8 compatible containter that can build ChimeraX
 	gcc-toolset-10 \
 	gcc-toolset-10-binutils-devel gcc-toolset-10-elfutils-devel gcc-toolset-10-valgrind-devel \
 	tcsh python2 \
-	chrpath patch openssh-clients rsync ca-certificates \
+	patchelf patch openssh-clients rsync ca-certificates \
 	autoconf automake libtool pkgconfig \
 	flex bison yasm unzip tar gzip bzip2 xz p7zip \
 	rpm-build rpmdevtools rpmlint \
@@ -37,6 +37,7 @@ RHEL 8 compatible containter that can build ChimeraX
 	gdk-pixbuf2-devel \
 	glib2-devel \
 	glibc-devel \
+	glibc-langpack-en \
 	gtk3-devel \
 	hdf5-devel \
 	libdrm-devel \

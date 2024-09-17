@@ -7,6 +7,7 @@
 # software or any revisions or derivations thereof.
 import logging
 import os
+import platform
 import sys
 
 __version__ = "0.2.0a0"  # version of this file -- PEP 440 compatible
@@ -64,7 +65,7 @@ if sys.platform.startswith("win"):
     os.EX_NOPERM = 77  # permission denied
     os.EX_CONFIG = 78  # configuration error
 
-    if "LANG" in os.environ and sys.stdout is not None:
+    if "LANG" in os.environ and sys.stdout is not None and platform.system().startswith("CYGWIN_NT"):
         # Double check that stdout matches what LANG asks for.
         # This is a problem when running in nogui mode from inside a cygwin
         # shell -- the console is supposed to use UTF-8 encoding in Python
@@ -121,6 +122,7 @@ class Opts:
         self.safe_mode = False
         self.toolshed = None
         self.disable_qt = False
+        self.color_scheme = None
 
 
 def _parse_python_args(argv, usage):
@@ -283,6 +285,11 @@ def _parse_chimerax_args(argv, arguments, usage):
             opts.toolshed = optarg
         elif opt == "--disable-qt":
             opts.disable_qt = True
+        elif opt == "--color-scheme":
+            if optarg not in ("light", "dark"):
+                print(f"{argv[0]}: unknown color scheme", file=sys.stderr)
+                raise SystemExit(os.EX_USAGE)
+            opts.color_scheme = optarg
         else:
             print("Unknown option: ", opt)
             opts.help = True
@@ -331,6 +338,7 @@ def parse_arguments(argv):
         "--qtscalefactor <factor>",
         "--toolshed preview|<url>",
         "--disable-qt",
+        "--color-scheme <light|dark>",
     ]
     if sys.platform.startswith("win"):
         arguments += ["--console", "--noconsole"]
@@ -401,100 +409,31 @@ def disable_external_logs(debug: bool) -> None:
         logging.getLogger("urllib3").setLevel(100)
 
 
-def init(argv, event_loop=True):
-    import sys
+def dedup_sys_path():
+    """remove duplicate entries on sys.path"""
+    # importlib.metadata.distributions() will return duplicates if there is more
+    # than one entry for a directory on sys.path
+    # This is a problem on macOS because the symbolic link lib/pythonVER/site-packages
+    # is found in addtion to the Python.Framework one
+    import itertools
 
-    # MacOS 10.12+ generates drop event for command-line argument before main()
-    # is even called; compensate
-    bad_drop_events = False
-    if sys.platform.startswith("darwin"):
-        paths = os.environ["PATH"].split(":")
-        if "/usr/sbin" not in paths:
-            # numpy, numexpr, and pytables need sysctl in path
-            paths.append("/usr/sbin")
-            os.environ["PATH"] = ":".join(paths)
-        del paths
-        # ChimeraX is only distributed for 10.13+, so don't need to check version
-        bad_drop_events = True
-
-    if sys.platform.startswith("linux"):
-        # Workaround for #638:
-        # "any number of threads more than one leads to 200% CPU usage"
-        os.environ["OPENBLAS_NUM_THREADS"] = "1"
-
-    # Setup SSL CA certificates file
-    # This used to be only necessary for darwin, but Windows
-    # appears to need it as well.  So use it for all platforms.
-    import certifi
-
-    os.environ["SSL_CERT_FILE"] = certifi.where()
-
-    if len(argv) > 1 and argv[1].startswith("--"):
-        # MacOS doesn't generate these drop events for args after '--' flags
-        bad_drop_events = False
-    opts, args = parse_arguments(argv)
-    if not opts.devel:
-        import warnings
-
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-    if not opts.gui and opts.disable_qt:
-        # Disable importing Qt in nogui mode to catch imports that
-        # would affect that would break ChimeraX pypi library
-        sys.modules["qtpy"] = None
-        sys.modules["Qt"] = None
-        sys.modules["PyQt5"] = None
-        sys.modules["PyQt6"] = None
-        sys.modules["PySide6"] = None
-        sys.modules["PySide2"] = None
-
-    # install line_profile decorator, and install it before
-    # initialize_ssl_cert_dir() in case the line profiling is in the
-    # core (which would cause initialize_ssl_cert_dir() to fail)
-    import builtins
-
-    if not opts.line_profile:
-        builtins.__dict__["line_profile"] = lambda x: x
-    else:
+    def stat_or_unique(path, _u=[0]):
         try:
-            import line_profiler
+            return os.stat(path)
+        except FileNotFoundError:
+            _u[0] += 1
+            return _u[0]
 
-            prof = line_profiler.LineProfiler()
-            builtins.__dict__["line_profile"] = prof
-        except ImportError:
-            print("warning: line_profiler is not available", file=sys.stderr)
-            builtins.__dict__["line_profile"] = lambda x: x
-        else:
-            # write profile results on exit
-            import atexit
+    dups = []
+    for _, paths in itertools.groupby(sys.path, key=stat_or_unique):
+        paths = list(paths)
+        if len(paths) <= 1:
+            continue
+        dups += paths[1:]
+    for dup in dups:
+        sys.path.remove(dup)
 
-            atexit.register(prof.dump_stats, "%s.lprof" % app_name)
-
-    from chimerax.core.utils import initialize_ssl_cert_dir
-
-    initialize_ssl_cert_dir()
-
-    # find chimerax.core's version
-    # we cannot use pip for this because we want to update
-    # site.USER_SITE before importing pip, and site.USER_SITE
-    # depends on the version
-    try:
-        from chimerax.core import version
-    except ImportError:
-        print("error: unable to figure out %s's version" % app_name)
-        return os.EX_SOFTWARE
-
-    if opts.use_defaults:
-        from chimerax.core import configinfo
-
-        configinfo.only_use_defaults = True
-
-    if opts.offscreen:
-        opts.gui = False
-
-    if not opts.gui and opts.load_tools:
-        # only load tools if we have a GUI
-        opts.load_tools = False
-
+def _set_app_dirs(version):
     # Windows:
     #     python: C:\\...\\ChimeraX.app\\bin\\python.exe
     #     ChimeraX: C:\\...\\ChimeraX.app\\bin\\ChimeraX
@@ -506,6 +445,15 @@ def init(argv, event_loop=True):
     #     ChimeraX: /../ChimeraX.app/Contents/MacOS/ChimeraX
     dn = os.path.dirname
     rootdir = dn(dn(os.path.realpath(sys.executable)))
+    if sys.platform.startswith("darwin"):
+        # On macOS, if you're using the Python executable, it is symlinked to
+        # the real Python binary in the Framework directory, so realpath puts you
+        # there.
+        import platform
+
+        py_ver = ".".join(platform.python_version_tuple()[0:2])
+        if os.path.basename(rootdir) == py_ver:
+            rootdir = dn(dn(dn(dn(dn(rootdir)))))
     # On Linux, don't create user directories if root (the installer uid)
     is_root = False
     if sys.platform.startswith("linux"):
@@ -603,6 +551,102 @@ def init(argv, event_loop=True):
     chimerax.app_data_dir = os.path.join(rootdir, "share")
     chimerax.app_lib_dir = os.path.join(rootdir, "lib")
 
+
+def init(argv, event_loop=True):
+    import sys
+
+    # MacOS 10.12+ generates drop event for command-line argument before main()
+    # is even called; compensate
+    bad_drop_events = False
+    if sys.platform.startswith("darwin"):
+        paths = os.environ["PATH"].split(":")
+        if "/usr/sbin" not in paths:
+            # numpy, numexpr, and pytables need sysctl in path
+            paths.append("/usr/sbin")
+            os.environ["PATH"] = ":".join(paths)
+        del paths
+        # ChimeraX is only distributed for 10.13+, so don't need to check version
+        bad_drop_events = True
+
+    dedup_sys_path()
+
+    if sys.platform.startswith("linux"):
+        # Workaround for #638:
+        # "any number of threads more than one leads to 200% CPU usage"
+        os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
+    # Setup SSL CA certificates file
+    # This used to be only necessary for darwin, but Windows
+    # appears to need it as well.  So use it for all platforms.
+    import certifi
+
+    os.environ["SSL_CERT_FILE"] = certifi.where()
+
+    opts, args = parse_arguments(argv)
+    if not opts.devel:
+        import warnings
+
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+    if not opts.gui and opts.disable_qt:
+        # Disable importing Qt in nogui mode to catch imports that
+        # would affect that would break ChimeraX pypi library
+        sys.modules["qtpy"] = None
+        sys.modules["Qt"] = None
+        sys.modules["PyQt5"] = None
+        sys.modules["PyQt6"] = None
+        sys.modules["PySide6"] = None
+        sys.modules["PySide2"] = None
+
+    # install line_profile decorator, and install it before
+    # initialize_ssl_cert_dir() in case the line profiling is in the
+    # core (which would cause initialize_ssl_cert_dir() to fail)
+    import builtins
+
+    if not opts.line_profile:
+        builtins.__dict__["line_profile"] = lambda x: x
+    else:
+        try:
+            import line_profiler
+
+            prof = line_profiler.LineProfiler()
+            builtins.__dict__["line_profile"] = prof
+        except ImportError:
+            print("warning: line_profiler is not available", file=sys.stderr)
+            builtins.__dict__["line_profile"] = lambda x: x
+        else:
+            # write profile results on exit
+            import atexit
+
+            atexit.register(prof.dump_stats, "%s.lprof" % app_name)
+
+    from chimerax.core.utils import initialize_ssl_cert_dir
+
+    initialize_ssl_cert_dir()
+
+    # find chimerax.core's version
+    # we cannot use pip for this because we want to update
+    # site.USER_SITE before importing pip, and site.USER_SITE
+    # depends on the version
+    try:
+        from chimerax.core import version
+    except ImportError:
+        print("error: unable to figure out %s's version" % app_name)
+        return os.EX_SOFTWARE
+
+    if opts.use_defaults:
+        from chimerax.core import configinfo
+
+        configinfo.only_use_defaults = True
+
+    if opts.offscreen:
+        opts.gui = False
+
+    if not opts.gui and opts.load_tools:
+        # only load tools if we have a GUI
+        opts.load_tools = False
+
+    _set_app_dirs(version)
+
     from chimerax.core import session
 
     try:
@@ -653,7 +697,7 @@ def init(argv, event_loop=True):
     if opts.gui:
         from chimerax.ui import gui
 
-        sess.ui = gui.UI(sess)
+        sess.ui = gui.UI(sess, color_scheme=opts.color_scheme)
     else:
         from chimerax.core.nogui import NoGuiLog
 
@@ -987,7 +1031,11 @@ def init(argv, event_loop=True):
 
     # Open files dropped on application
     if opts.gui:
-        sess.ui.open_pending_files(ignore_files=(args if bad_drop_events else []))
+        sess.ui.open_pending_files(
+            ignore_files=(
+                args + opts.scripts + opts.commands if bad_drop_events else []
+            )
+        )
 
     # By this point the GUI module will have redirected stdout if it's going to
     if opts.debug:

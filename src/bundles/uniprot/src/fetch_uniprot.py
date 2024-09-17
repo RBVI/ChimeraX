@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -131,7 +131,16 @@ def fetch_uniprot_accession_info(session, accession, ignore_cache=False):
     except IndexError:
         raise InvalidAccessionError("Invalid UniProt accession number: %s" % accession)
 
-    entry = get_child(uniprot, "entry")
+    try:
+        entry = get_child(uniprot, "entry")
+    except IndexError:
+        from chimerax.core.commands import run
+        try:
+            run(session, "open https://www.uniprot.org/uniprotkb/%s" % accession)
+        except Exception:
+            pass
+        raise InvalidAccessionError("No entry information for %s; possibly deleted by UniProt"
+            " -- attempting to show UniProt page for %s" % (accession, accession))
     try:
         seq_node = get_child(entry, "sequence")
     except (KeyError, IndexError):

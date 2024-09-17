@@ -16,12 +16,13 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="userdocs.css" />
 <title>ChimeraX: DICOM Reference</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="index.html">
 <img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <h3>ChimeraX: DICOM Reference</h3>
 
@@ -54,7 +55,8 @@ See also:
 <a href="tools/segmentations.html"><b>Segmentations</b></a>,
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>,
 <a href="commands/ui.html#view"><b>ui view</b></a>,
-<a href="tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html">DICOM segmentation tutorial</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
 target="_blank">ChimeraX for Medical Image Analysis</a>
 </p>
@@ -140,6 +142,9 @@ contains an application-specific collection of icons:
 (<a href="commands/volume.html#pmode">details...</a>)
 <li><img class="icon" border=1 src="tools/shortcut-icons/perpslice.png">
 &nbsp;3D projection mode
+(<a href="commands/volume.html#pmode">details...</a>)
+<li><img class="icon" border=1 src="tools/shortcut-icons/raycasting.svg">
+&nbsp;raycasting projection mode
 (<a href="commands/volume.html#pmode">details...</a>)
 </ul>
 <a name="medmouse"></a>
@@ -310,8 +315,7 @@ Default assignments:
 <td class="text">trackpad click-drag
 <br>Mac: also trackpad 2-finger rotation if multitouch* is on</td>
 </tr><tr>
-<td class="text">rotate VR 
-<a href="tutorials/dicom-vr.html#manipulation">hand controller</a>
+<td class="text">rotate VR hand controller
 with trigger pressed</td>
 </tr><tr>
 <td align="center" rowspan="3"><b>translate</b>
@@ -329,8 +333,7 @@ enabled in Trackpad system preferences,
 Windows: trackpad + <b>Ctrl-Alt</b>
 </td>
 </tr><tr>
-<td>move VR 
-<a href="tutorials/dicom-vr.html#manipulation">hand controller</a>
+<td>move VR hand controller
 with trigger pressed</td>
 </tr><tr>
 <td align="center" rowspan="3"><b>zoom</b>
@@ -344,8 +347,7 @@ otherwise 2-finger drag
 Windows: trackpad 2-finger drag
 </td>
 </tr><tr>
-<td class="text">move VR 
-<a href="tutorials/dicom-vr.html#manipulation">hand controllers</a>
+<td class="text">move VR hand controllers
 farther apart or closer together with both trigger buttons pressed</td>
 </tr></table>
 *Use of Mac multitouch gestures can be turned on and off in the ChimeraX
@@ -488,6 +490,7 @@ render using planes perpendicular to the line of sight
 see also <a href="#icons">toolbar icons</a>
 <img class="icon" border=1 src="tools/shortcut-icons/xyzslice.png">
 <img class="icon" border=1 src="tools/shortcut-icons/perpslice.png">
+<img class="icon" border=1 src="tools/shortcut-icons/raycasting.svg">
 <li><b>planeSpacing</b> &ndash; plane spacing for 3D projection mode
 (<a href="commands/volume.html#planeSpacing">details...</a>)
 <li><b>brightness</b> &nbsp;<i>value</i>
@@ -597,7 +600,7 @@ speed up rendering include subsampling (<b>step</b> &gt 1),
 <a href="#clipping">cropping</a>, and 
 <a href="commands/volume.html#colormapOnGpu">using the GPU</a>.
 <br><br>
-<li>VR <a href="tutorials/dicom-vr.html#manipulation">hand controllers</a>
+<li>VR hand controllers
 are used for <a href="#manipulation">manipulation</a> and clicking icons.
 Clicking the hand-controller <i>menu</i> button (on Vive, analogous 
 on other systems) shows the ChimeraX user interface with icons in the headset.
@@ -620,7 +623,8 @@ and <b>windowing</b>
 </ul>
 <p>
 See also:
-<a href="tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html">DICOM segmentation tutorial</a>,
 the <a href="https://vr.ucsf.edu/" target="_blank">VR at UCSF</a> website,
 VR setup advice and observations on different systems:
 <a href="https://www.cgl.ucsf.edu/chimera/data/laptop-vr-nov2018/laptopvr.html"
@@ -674,5 +678,5 @@ makes it easy to browse and download TCIA datasets from within ChimeraX.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2024</address>
+July 2024</address>
 </body></html>

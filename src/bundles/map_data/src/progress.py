@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -163,7 +163,8 @@ class ProgressReporter:
       asize = '%.1f Mb' % (float(bytes)/2**20)
     else:
       asize = '%.0f Kb' % (float(bytes)/2**10)
-    format = '%s %s ' % (self.operation, asize) + '%.0f%%'
+    op = self.operation.replace('%', '%%')  # Protect against filename % characters
+    format = '%s %s ' % (op, asize) + '%.0f%%'
     return format
     
   # ---------------------------------------------------------------------------

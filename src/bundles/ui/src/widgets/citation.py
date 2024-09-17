@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -68,7 +68,7 @@ class Citation(QFrame):
             button = QToolButton()
             button.setDefaultAction(action)
             button.setAutoRaise(True)
-            layout.addWidget(button, 1, 1, Qt.AlignLeft | Qt.AlignBottom)
+            layout.addWidget(button, 1, 1, Qt.AlignLeft | Qt.AlignVCenter)
         if suffix is not None:
             layout.addWidget(QLabel(suffix), 2, 0, Qt.AlignLeft)
 

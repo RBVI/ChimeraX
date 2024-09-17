@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -49,7 +49,7 @@ class FetcherProviderInfo:
         self.pregrouped_structures = pregrouped_structures
         self.group_multiple_models = group_multiple_models
 
-from chimerax.core.toolshed import ProviderManager
+from chimerax.core.toolshed import ProviderManager, get_toolshed
 class OpenManager(ProviderManager):
     """Manager for open command"""
 
@@ -88,8 +88,12 @@ class OpenManager(ProviderManager):
             try:
                 data_format = self.session.data_formats[ui_name]
             except KeyError:
-                logger.warning("Open-command provider in bundle %s specified unknown"
-                    " data format '%s';" " skipping" % (bundle_name, ui_name))
+                if get_toolshed().cache_initialized:
+                    # Throwing an error completely fouls up ChimeraX, so only issue a warning
+                    # despite this theoretically being an error, since it could be because of
+                    # a bad cache file, or a bad version of a bundle on the Toolshed
+                    logger.warning("Open-command provider in bundle %s specified unknown"
+                        " data format '%s'" % (bundle_name, ui_name))
                 return
             if data_format in self._openers and self._openers[data_format].bundle_info.installed:
                 if not bundle_info.installed:
@@ -111,8 +115,12 @@ class OpenManager(ProviderManager):
             try:
                 data_format = self.session.data_formats[format_name]
             except KeyError:
-                self.session.logger.info("Database-fetch provider '%s' in bundle %s specified"
-                    " unknown data format '%s'" % (ui_name, bundle_name, format_name))
+                if get_toolshed().cache_initialized:
+                    # Throwing an error completely fouls up ChimeraX, so only issue a warning
+                    # despite this theoretically being an error, since it could be because of
+                    # a bad cache file, or a bad version of a bundle on the Toolshed
+                    raise logger.warning("Database-fetch provider '%s' in bundle %s specified"
+                        " unknown data format '%s'" % (ui_name, bundle_name, format_name))
                 return
             if name in self._fetchers and format_name in self._fetchers[name]:
                 if not bundle_info.installed:

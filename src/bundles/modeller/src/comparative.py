@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -428,7 +428,8 @@ def form_strings(target, templates, chain_info):
                     if next_index is None or check_index > next_index:
                         chars.append('-')
                     else:
-                        chars.append(template.characters[template_index])
+                        char = template.characters[template_index]
+                        chars.append(char if char != 'X' else '.')
                         template_state[template] = (chars, template_index+1, mmap)
             else:
                 assert(next_index is None)

@@ -5,7 +5,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -53,7 +53,8 @@ def _extract(file, branch=None):
             branch = line.split()[-1]
             continue
         if line.startswith('commit'):
-            commit = line.split()[-1]
+            if ' ' in line:
+                commit = line.split()[1]
             continue
         if line.startswith('CommitDate:'):
             tokens = line.split()
@@ -166,6 +167,7 @@ def main():
         copyright = extract_copyright()
         write_buildinfo(version, branch, commit, daytime, copyright)
     raise SystemExit(0)
+
 
 if __name__ == '__main__':
     main()

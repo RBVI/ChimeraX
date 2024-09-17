@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -54,6 +54,7 @@ import re
 import shutil
 import sys
 import sysconfig
+from typing import Optional
 
 if sys.version_info < (3, 11, 0):
     import tomli as tomllib
@@ -79,8 +80,6 @@ from setuptools.extension import Library  # noqa
 from setuptools.build_meta import (
     suppress_known_deprecation,
 )  # noqa import not in __all__
-
-from pkg_resources import get_distribution, DistributionNotFound
 
 # TODO: Verify
 # Always import this because it changes the behavior of setuptools
@@ -127,7 +126,9 @@ from .classifiers import (
     FormatFetcher,
     FormatReader,
     FormatSaver,
-    Toolbar,
+    ToolbarTab,
+    ToolbarSection,
+    ToolbarButton,
     Preset,
     Initialization,
 )
@@ -157,8 +158,15 @@ class Bundle:
         self.logger = logger
         self.bundle_info = bundle_info
         project_data = bundle_info["project"]
-        chimerax_data = bundle_info["chimerax"]
-
+        # If you use something with an automated TOML linter it's never going to shut up
+        # about how additional properties are illegal, so accept 'tool.chimerax' as well
+        # as 'chimerax'
+        if "chimerax" in bundle_info:
+            chimerax_data = bundle_info["chimerax"]
+        elif "chimerax" in bundle_info["tool"]:
+            chimerax_data = bundle_info["tool"]["chimerax"]
+        else:
+            raise ValueError("No [chimerax] or [tool.chimerax] table in pyproject.toml")
         self.pure_python = not (
             bool(chimerax_data.get("extension", {}))
             or bool(chimerax_data.get("library", {}))
@@ -216,13 +224,13 @@ class Bundle:
                 "Bundle renamed to %r after replacing "
                 "underscores with hyphens." % self.name
             )
-
-        self.bundle_base_name = self.name.replace("ChimeraX-", "")
         if "module-name-override" in chimerax_data:
-            self.module_name = f'chimerax.{chimerax_data.get("module-name-override")}'
+            override = chimerax_data.get("module-name-override")
         else:
-            self.module_name = self.name.replace("-", ".").lower()
-        self.dist_info_name = self.name.replace("-", "_")
+            override = None
+        self.bundle_base_name, self.module_name, self.dist_info_name = (
+            self.format_module_name(self.name, override)
+        )
 
         # If version is dynamic then we'll attempt to build the wheel and use the version number
         # that setuptools found to check the built wheel
@@ -264,7 +272,9 @@ class Bundle:
         if len(self.categories) == 0:
             category = chimerax_data.get("category", "")
             if not category:
-                raise ValueError("At least one category is required under the [chimerax] table.")
+                raise ValueError(
+                    "At least one category is required under the [chimerax] table."
+                )
             self.categories = [category]
 
         self.classifiers = chimerax_data.get("classifiers", [])
@@ -298,14 +308,19 @@ class Bundle:
             for manager_name, attrs in chimerax_data["manager"].items():
                 self.managers.append(Manager(manager_name, attrs))
         if "provider" in chimerax_data:
-            for provider_name, attrs in chimerax_data["provider"].items():
-                try:
-                    manager = attrs.pop("manager")
-                except KeyError:
-                    raise ValueError(
-                        "No manager specified for provider %s" % provider_name
-                    )
-                self.providers.append(Provider(manager, provider_name, attrs))
+            for name, attrs in chimerax_data["provider"].items():
+                if type(attrs) is list:
+                    # This is a list of providers for which the name of the table is the name of the manager
+                    for provider in attrs:
+                        provider_name = provider.pop("name")
+                        self.providers.append(Provider(name, provider_name, provider))
+                else:
+                    # This is a single provider for which the name is the name of the provider
+                    try:
+                        manager_name = attrs.pop("manager")
+                    except KeyError:
+                        raise ValueError("No manager specified for provider %s" % name)
+                    self.providers.append(Provider(manager_name, name, attrs))
         if "data-format" in chimerax_data:
             for format_name, attrs in chimerax_data["data-format"].items():
                 if "open" in attrs:
@@ -342,31 +357,33 @@ class Bundle:
                         self.format_savers.append(FormatSaver(format_name, saver))
                 self.data_formats.append(DataFormat(format_name, attrs))
         if "toolbar" in chimerax_data:
-            for section, attrs in chimerax_data["toolbar"].items():
-                buttons = attrs.pop("button", [])
-                name = attrs.pop("name", None)
-                if not name:
-                    raise ValueError("A toolbar section must have a name")
-                self.toolbars.append(Toolbar(section, name, attrs))
-                for button in buttons:
-                    name = button.pop("name", None)
-                    if not name:
+            for tab, attrs in chimerax_data["toolbar"].items():
+                tab_name = tab
+                sections = attrs.pop("sections", [])
+                self.toolbars.append(ToolbarTab(tab_name, attrs))
+                for section_name, attrs in sections.items():
+                    if not section_name:
                         raise ValueError("A toolbar button must have a name")
-                    self.toolbars.append(Toolbar(section, name, button))
+                    buttons = attrs.pop("button", [])
+                    self.toolbars.append(ToolbarSection(tab_name, section_name, attrs))
+                    for button in buttons:
+                        button_name = button.pop("name", None)
+                        button_attrs = button
+                        if not button_name:
+                            raise ValueError("A toolbar button must have a name")
+                        self.toolbars.append(
+                            ToolbarButton(
+                                tab_name, section_name, button_name, button_attrs
+                            )
+                        )
         if "preset" in chimerax_data:
             for preset_name, attrs in chimerax_data["preset"].items():
                 self.presets.append(Preset(preset_name, attrs))
-        if "initialization" in chimerax_data:
-            init = chimerax_data["initialization"]
-            if type(init) is list:
-                for entry in chimerax_data["initialization"]:
-                    self.initializations.append(
-                        Initialization(entry["type"], entry["bundles"])
-                    )
-            else:
-                self.initializations.append(
-                    Initialization(init["type"], init["bundles"])
-                )
+        if "initializations" in chimerax_data:
+            init = chimerax_data["initializations"]
+            for entry_type, bundles in init.items():
+                _bundles = bundles.get("bundles", bundles.get("bundle", None))
+                self.initializations.append(Initialization(entry_type, _bundles))
         if "extension" in chimerax_data:
             for name, attrs in chimerax_data["extension"].items():
                 self.c_modules.append(_CModule(name, attrs))
@@ -481,6 +498,16 @@ class Bundle:
         distname = bdist_wheel_cmd.wheel_dist_name
         tag = "-".join(bdist_wheel_cmd.get_tag())
         self._expected_wheel_name = f"{distname}-{tag}.whl"
+
+    @staticmethod
+    def format_module_name(name: str, override: Optional[str] = None):
+        bundle_base_name = name.replace("ChimeraX-", "")
+        if override:
+            module_name = f"chimerax.{override}"
+        else:
+            module_name = name.replace("-", ".").lower()
+        dist_info_name = name.replace("-", "_")
+        return bundle_base_name, module_name, dist_info_name
 
     @classmethod
     def from_toml_file(cls, logger, toml_file):
@@ -635,7 +662,7 @@ class Bundle:
                     if os.path.isdir(entry):
                         shutil.copytree(entry, destination)
                     else:
-                        shutil.copyfile(entry, destination)
+                        shutil.copy2(entry, destination)
 
     # Since we aren't trusting setuptools to compile libraries properly we have
     # to remove them ourselves. Work around the prepare_metadata_for_build_editable
@@ -644,16 +671,30 @@ class Bundle:
         for lib in self.c_libraries:
             if lib.static:
                 if sys.platform == "win32":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".lib"])))
+                    try:
+                        os.remove(os.path.join("src/lib/", "".join([lib.name, ".lib"])))
+                    except FileNotFoundError:
+                        pass
                 else:
-                    os.remove(
-                        os.path.join("src/lib/", "".join(["lib", lib.name, ".a"]))
-                    )
+                    try:
+                        os.remove(
+                            os.path.join("src/lib/", "".join(["lib", lib.name, ".a"]))
+                        )
+                    except FileNotFoundError:
+                        pass
             else:
                 if sys.platform == "darwin":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".dylib"])))
+                    try:
+                        os.remove(
+                            os.path.join("src/lib/", "".join([lib.name, ".dylib"]))
+                        )
+                    except FileNotFoundError:
+                        pass
                 elif sys.platform == "linux":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".so"])))
+                    try:
+                        os.remove(os.path.join("src/lib/", "".join([lib.name, ".so"])))
+                    except FileNotFoundError:
+                        pass
 
     def _clean_extrafiles(self):
         for pkg_name, items in self.extra_files.items():
@@ -695,6 +736,10 @@ class Bundle:
             os.chdir(self.path)
             kw = self.setup_arguments.copy()
             kw["package_dir"], kw["packages"] = self._make_package_arguments()
+            # So far as I can tell this instructs setuptools to stop sticking its
+            # nose where it doesn't belong and trust that we've set up our packages
+            # and package data correctly.
+            kw["include_package_data"] = False
             sys.argv = ["setup.py"] + cmd
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)
@@ -828,6 +873,8 @@ class _CompiledCode:
         self.frameworks = attrs.get("frameworks", [])
         self.libraries = attrs.get("libraries", [])
         self.compile_arguments = attrs.get("extra-compile-args", [])
+        if sys.platform == "darwin":
+            self.compile_arguments.append("-mmacos-version-min=11")
         self.link_arguments = attrs.get("extra-link-args", [])
         self.include_dirs = attrs.get("include-dirs", [])
         self.include_modules = attrs.get("include-modules", [])

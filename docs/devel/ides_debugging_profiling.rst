@@ -6,7 +6,7 @@
     All rights reserved.  This software provided pursuant to a
     license agreement containing restrictions on its disclosure,
     duplication and use.  For details see:
-    http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+    https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
     This notice must be embedded in or attached to all copies,
     including partial copies, of the software or any revisions
     or derivations thereof.
@@ -118,6 +118,29 @@ into the context of the GUI module.
 
 There, the GUI module's reference to the program's session will be available so
 that you can get an idea of what's going on in your debugging session.
+
+==============
+Remote Control
+==============
+
+For developers who wish for the tightest possible development loop, ChimeraX offers
+a REST interface that can be started with the `remotecontrol rest` command. ::
+
+    remotecontrol rest start 
+
+Commands can be sent to the REST interface using curl. An example (setting the background color) 
+is given below: :: 
+
+    curl -v -X POST -F 'command=set bgColor black' http://localhost:3000/run
+
+And in Preferences → Startup, ChimeraX can be configured to run `remotecontrol rest` on startup
+using the same port every time. ::
+
+    remotecontrol rest start port 3000
+
+Optionally, the command can also log to both ChimeraX and the client (`log true`) and return results
+in JSON (`json true`). You might configure your editor to send commands to the REST interface or even
+program a REPL plugin for your editor.
 
 .. _line-profiling:
 

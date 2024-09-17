@@ -13,6 +13,7 @@ module.exports = {
       [
         "feat",
         "fix",
+        "refactor",
         "revert",
         "build",
         "chore",

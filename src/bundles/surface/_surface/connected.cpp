@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -39,7 +39,7 @@
 
 static void connected_triangles(const IArray &tarray, int tindex,
 				std::vector<int> &tlist);
-static void triangle_vertices(int *tarray, int *tlist, int nt,
+static void triangle_vertices(int *tarray, int *tlist, int64_t nt,
 			      std::vector<int> &vlist);
 static int maximum_triangle_vertex_index(const IArray &tarray);
 static int calculate_components(const IArray &tarray, int *vmap, int vc);
@@ -94,12 +94,13 @@ static void connected_triangles(const IArray &tarray, int tindex,
   int vc = maximum_triangle_vertex_index(tarray) + 1;
   int *vmap = new int[vc];
   calculate_components(tarray, vmap, vc);
-  int *ta = tarray.values(), ts = tarray.stride(0);
+  int *ta = tarray.values();
+  int64_t ts = tarray.stride(0);
   int v = vmap[ta[ts*tindex]];
 
   // Find all triangles connected to tindex triangle.
-  int nt = tarray.size(0);
-  for (int t = 0 ; t < nt ; ++t)
+  int64_t nt = tarray.size(0);
+  for (int64_t t = 0 ; t < nt ; ++t)
     if (vmap[ta[ts*t]] == v)
       tlist.push_back(t);
 
@@ -108,13 +109,13 @@ static void connected_triangles(const IArray &tarray, int tindex,
 
 // ----------------------------------------------------------------------------
 //
-static void triangle_vertices(int *tarray, int *tlist, int nt,
+static void triangle_vertices(int *tarray, int *tlist, int64_t nt,
 			      std::vector<int> &vlist)
 {
   std::set<int> vset;
-  for (int k = 0 ; k < nt ; ++k)
+  for (int64_t k = 0 ; k < nt ; ++k)
     {
-      int t = tlist[k];
+      int64_t t = tlist[k];
       vset.insert(tarray[3*t]);
       vset.insert(tarray[3*t+1]);
       vset.insert(tarray[3*t+2]);
@@ -156,9 +157,9 @@ Surface_Pieces::Surface_Pieces(const IArray &tarray)
       pieces[vmap[v]].first->push_back(v);
 
   // Fill triangle index piece arrays.
-  int tc = tarray.size(0), s0 = tarray.stride(0);
+  int64_t tc = tarray.size(0), s0 = tarray.stride(0);
   const int *tv = tarray.values();
-  for (int t = 0 ; t < tc ; ++t)
+  for (int64_t t = 0 ; t < tc ; ++t)
     pieces[vmap[tv[s0*t]]].second->push_back(t);
 
   delete [] vmap;
@@ -181,9 +182,9 @@ Surface_Pieces::~Surface_Pieces()
 static int maximum_triangle_vertex_index(const IArray &tarray)
 {
   int vmax = 0;
-  int tc = tarray.size(0), s0 = tarray.stride(0), s1 = tarray.stride(1);
+  int64_t tc = tarray.size(0), s0 = tarray.stride(0), s1 = tarray.stride(1);
   const int *tv = tarray.values();
-  for (int t = 0 ; t < tc ; ++t)
+  for (int64_t t = 0 ; t < tc ; ++t)
     {
       int v0 = tv[s0*t], v1 = tv[s0*t+s1], v2 = tv[s0*t+2*s1];
       if (v0 > vmax) vmax = v0;
@@ -213,10 +214,10 @@ static int calculate_components(const IArray &tarray, int *vmap, int vc)
   for (int v = 0 ; v < vc ; ++v)
     vmap[v] = vc;
 
-  int tc = tarray.size(0);
-  int s0 = tarray.stride(0), s1 = tarray.stride(1);
+  int64_t tc = tarray.size(0);
+  int64_t s0 = tarray.stride(0), s1 = tarray.stride(1);
   const int *tv = tarray.values();
-  for (int t = 0 ; t < tc ; ++t)
+  for (int64_t t = 0 ; t < tc ; ++t)
     {
       int v0 = min_connected_vertex(tv[s0*t], vmap);
       int v1 = min_connected_vertex(tv[s0*t+s1], vmap);

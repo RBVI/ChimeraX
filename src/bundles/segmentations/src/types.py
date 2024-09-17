@@ -17,6 +17,17 @@ class Axis(IntEnum):
     def __str__(self):
         return self.name.lower()
 
+    @classmethod
+    def from_string(cls, _str):
+        if _str == "axial":
+            return cls.AXIAL
+        elif _str == "coronal":
+            return cls.CORONAL
+        elif _str == "sagittal":
+            return cls.SAGITTAL
+        else:
+            raise ValueError("Invalid axis")
+
     @property
     def transform(self):
         if self.value == 2:

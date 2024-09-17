@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import Annotation, AnnotationError, next_token, DynamicEnum
+from chimerax.core.commands import Annotation, AnnotationError, next_token, DynamicEnum, StringArg
 class SeqArg(Annotation):
     '''A single sequence (in a single alignment)
 
@@ -68,7 +68,8 @@ class SeqRegionArg(Annotation):
             align_seq_text, region_text = token.rsplit(':', 1)
         except ValueError:
             raise AnnotationError("Must include at least one ':' character")
-        align_seq, _text, _rest = AlignSeqPairArg.parse(align_seq_text, session, empty_okay=True)
+        align_seq, _text, _rest = AlignSeqPairArg.parse(StringArg.unparse(align_seq_text), session,
+            empty_okay=True)
         if _rest:
             raise AnnotationError("Unexpected text (%s) after alignment/sequence name and before range"
                 % _rest)
@@ -303,6 +304,38 @@ def seqalign_disassociate(session, chains, alignment=None):
             session.logger.warning("%s not associated with %s"
                 % (chain, " any alignment" if alignment is None else "alignment %s" % alignment.ident))
 
+def seqalign_expandsel(session, alignments):
+    from .alignment import Alignment
+    if alignments is None:
+        from .cmd import get_alignment_by_id
+        alignments = get_alignment_by_id(session, "", multiple_okay=True)
+        if not alignments:
+            raise UserError("No alignments open")
+    elif isinstance(alignments, Alignment):
+        alignments = [alignments]
+    no_sel = no_expand = okay = False
+    for alignment in alignments:
+        try:
+            alignment.expand_selection_by_columns()
+        except alignment.NoSelectionError:
+            no_sel = True
+        except alignment.NoSelectionExpansionError:
+            no_expand = True
+        else:
+            okay = True
+    if not okay:
+        from chimerax.core.commands import plural_form
+        aln_term = plural_form(alignments, "alignment")
+        if no_sel:
+            if no_expand:
+                tense = plural_form(alignments, "was", "were")
+                raise UserError(f"{aln_term.capitalize()} either had no selection, or the {aln_term}"
+                    " {tense} already fully selected in each column")
+            else:
+                raise UserError(f"There is no selection on the {aln_term}")
+        else:
+            raise UserError(f"Columns already fully selected on the {aln_term}")
+
 def seqalign_header(session, alignments, subcommand_text):
     from .alignment import Alignment
     if alignments is None:
@@ -346,6 +379,40 @@ def seqalign_refseq(session, ref_seq_info):
     else:
         aln, ref_seq = ref_seq_info, None
     aln.reference_seq = ref_seq
+
+def seqalign_update(session, chains, *, alignment=None):
+    if alignment is None:
+        alignments = session.alignments.alignments
+    else:
+        alignments = [alignment]
+
+    for chain in chains:
+        did_xfer = False
+        for aln in alignments:
+            if chain in aln.associations:
+                did_xfer = True
+                aseq = aln.associations[chain]
+                match_map = aseq.match_maps[chain]
+                residues = set()
+                seq_residues = []
+                ungapped = aseq.ungapped()
+                for i in range(len(ungapped)):
+                    try:
+                        r = match_map[i]
+                    except KeyError:
+                        seq_residues.append(None)
+                    else:
+                        seq_residues.append(r)
+                        residues.add(r)
+                cur_residues = set(chain.existing_residues)
+                if len(cur_residues) > len(residues):
+                    raise UserError("Alignment sequence does not cover all chain residues (e.g. %s)"
+                        % ((cur_residues - residues).pop()))
+                chain.bulk_set(seq_residues, ungapped)
+                chain.from_seqres = True
+        if not did_xfer:
+            session.logger.warning("%s not associated with %s"
+                % (chain, " any alignment" if alignment is None else "alignment %s" % alignment.ident))
 
 MUSCLE = "MUSCLE"
 CLUSTAL_OMEGA = "Clustal Omega"
@@ -429,6 +496,19 @@ def register_seqalign_command(logger):
         synopsis = "set alignment reference sequence"
     )
     register('sequence refseq', desc, seqalign_refseq, logger=logger)
+
+    desc = CmdDesc(
+        required = [('alignments', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg))],
+        synopsis = "expand selection by columns"
+    )
+    register('sequence expandsel', desc, seqalign_expandsel, logger=logger)
+
+    desc = CmdDesc(
+        required = [('chains', UniqueChainsArg)],
+        keyword = [('alignment', AlignmentArg)],
+        synopsis = 'transfer alignment sequences to associated chains'
+    )
+    register('sequence update', desc, seqalign_update, logger=logger)
 
     from . import manager
     manager._register_viewer_subcommands(logger)

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -1212,11 +1212,12 @@ class StructureSeq(Sequence):
 
     @staticmethod
     def restore_snapshot(session, data):
+        if data['structure'] is None:
+            return Sequence.restore_snapshot(session, data['Sequence'])
         sseq = StructureSeq(chain_id=data['chain_id'], structure=data['structure'])
         Sequence.set_state_from_snapshot(sseq, session, data['Sequence'])
         sseq.description = data['description']
         sseq.bulk_set(data['residues'], sseq.characters, fire_triggers=False)
-        sseq.description = data.get('description', None)
         sseq.set_custom_attrs(data)
         return sseq
 
@@ -1263,14 +1264,20 @@ class StructureSeq(Sequence):
         if "name changed" in changes.residue_reasons():
             updated_chars = []
             some_changed = False
-            for res, cur_char in zip(self.residues, self.characters):
-                if res:
-                    uc = Sequence.rname3to1(res.name)
-                    updated_chars.append(uc)
-                    if uc != cur_char:
-                        some_changed = True
+            for gi, c in enumerate(self.characters):
+                ugi = self.gapped_to_ungapped(gi)
+                if ugi is None:
+                    updated_chars.append(c)
                 else:
-                    updated_chars.append(cur_char)
+                    res = self.residues[ugi]
+                    if res:
+                        uc = Sequence.rname3to1(res.name)
+                        updated_chars.append(uc)
+                        if uc != c:
+                            some_changed = True
+                    else:
+                        updated_chars.append(c)
+
             if some_changed:
                 self.bulk_set(self.residues, ''.join(updated_chars), fire_triggers=False)
                 self._fire_trigger('characters changed', self)

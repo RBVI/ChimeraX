@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -857,11 +857,31 @@ t0 = t1;
                             for (auto bondee: a->neighbors()) {
                                 const Element &bondee_element = bondee->element();
                                 Real sqlen = bondee->coord().sqdistance(a->coord());
-                                if ((sqlen <= p4n2c && bondee_element == Element::C)
-                                || (sqlen <= p4n2n && bondee_element == Element::N)) {
+                                if (sqlen <= p4n2n && bondee_element == Element::N) {
                                     set_N2 = true;
                                     break;
                                 }
+                                if (bondee_element != Element::C)
+                                    continue;
+                                if (sqlen > p4n2c)
+                                    continue;
+                                if (bondee->idatm_type() == "Cac")
+                                    continue;
+                                if (bondee->idatm_type() == "C2") {
+                                    bool grand_O2 = false;
+                                    for (auto gnb: bondee->neighbors()) {
+                                        if (gnb->element() == Element::O && gnb->bonds().size() == 1) {
+                                            if (bondee->coord().sqdistance(gnb->coord()) <= p3o2c2) {
+                                                grand_O2 = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (grand_O2)
+                                        continue;
+                                }
+                                set_N2 = true;
+                                break;
                             }
                         }
                         a->set_computed_idatm_type(set_N2 ? "N2" : "Npl");

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -207,8 +207,10 @@ def _last_log_file_path():
 #
 def _show_bug_report_dialog(session, traceback):
     from chimerax.bug_reporter import show_bug_reporter
+    from chimerax.core.colors import scheme_color
+    color = scheme_color('error')
     br = show_bug_reporter(session)
-    msg = ('<p><font color=red>Last time you used ChimeraX it crashed.</font><br>'
-           'Please describe steps that led to the crash here.</p>'
+    msg = (f'<h3><font color="{color}">Last time you used ChimeraX it crashed.</font></h3>'
+           '<p>Please describe steps that led to the crash here.</p>'
            '<pre>\n%s\n</pre>' % traceback)
     br.set_description(msg)

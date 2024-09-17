@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -81,10 +81,11 @@ def label(session, objects = None, object_type = None, text = None,
     if text is not None and attribute is not None:
         raise UserError("Cannot specify both 'text' and 'attribute' keywords")
 
-    has_graphics = session.main_view.render is not None
-    if not has_graphics:
-        from chimerax.core.errors import LimitationError
-        raise LimitationError("Unable to draw 3D labels without rendering images")
+    try:
+        from Qt.QtGui import QImage
+    except ImportError:
+        session.logger.warning("Cannot create 3D label without Qt windowing system -- skipping")
+        return
 
     settings = {}
     if text == 'default':
@@ -474,13 +475,21 @@ class ObjectLabels(Model):
         return [l.object for l in self._labels
                 if label_class is None or isinstance(l, label_class)]
 
+    def _changes_attr(self, class_obj):
+        attr_name = class_obj.__name__[0].lower()
+        for char in class_obj.__name__[1:]:
+            if char.isupper():
+                attr_name += '_'
+            attr_name += char.lower()
+        return attr_name
+
     def _structure_changed(self, tname, changes):
         # If atoms undisplayed, or radii change, or names change, can effect label display.
         if 'name changed' in changes.atom_reasons() or 'name changed' in changes.residue_reasons():
             self._texture_needs_update = True
         else:
             for monitored_class, attr_name_info in self._monitored_attr_info.items():
-                reasons = getattr(changes, monitored_class.__name__.lower() + '_reasons')()
+                reasons = getattr(changes, self._changes_attr(monitored_class) + '_reasons')()
                 for attr_name in attr_name_info.keys():
                     if attr_name + ' changed' in reasons:
                         self._texture_needs_update = True

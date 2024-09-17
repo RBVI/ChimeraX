@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -69,7 +69,8 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
 
     if pae:
         from .pae import alphafold_pae
-        alphafold_pae(session, structure = models[0], uniprot_id = uniprot_id, version = version)
+        alphafold_pae(session, structure = models[0], uniprot_id = uniprot_id, version = version,
+                      ignore_cache = ignore_cache)
         
     return models, status
 

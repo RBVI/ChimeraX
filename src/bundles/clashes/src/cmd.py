@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -181,17 +181,22 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
     else:
         from chimerax.atomic import concatenate
         attr_atoms = concatenate([test_atoms, restrict], remove_duplicates=True)
-    from chimerax.atomic import Atoms
+    from chimerax.atomic import Atoms, Atom
     clash_atoms = Atoms([a for a in attr_atoms if a in clashes])
     if set_attrs:
         # delete the attribute in _all_ atoms...
+        del_atoms = []
         for a in all_atoms(session):
             if hasattr(a, attr_name):
                 delattr(a, attr_name)
+                del_atoms.append(a)
         for a in clash_atoms:
             clash_vals = list(clashes[a].values())
             clash_vals.sort()
             setattr(a, attr_name, clash_vals[-1])
+        Atom.register_attr(session, attr_name, "clashes/contacts", attr_type=float)
+        if clash_atoms or del_atoms:
+            session.change_tracker.add_modified(clash_atoms | Atoms(del_atoms), attr_name + " changed")
     if reveal:
         # display sidechain or backbone as appropriate for undisplayed atoms
         reveal_atoms = clash_atoms.filter(clash_atoms.displays == False)
@@ -258,27 +263,14 @@ def _file_output(file_name, info, naming_style):
             res_separation), file=out_file)
     print("Detect intra-residue %s:" % test_type, intra_res, file=out_file)
     print("Detect intra-molecule %s:" % test_type, intra_mol, file=out_file)
-    seen = set()
-    data = []
-    from chimerax.geometry import distance
-    for a, aclashes in clashes.items():
-        for c, val in aclashes.items():
-            if (c, a) in seen:
-                continue
-            seen.add((a, c))
-            if a in output_grouping:
-                out1, out2 = a, c
-            else:
-                out1, out2 = c, a
-            l1, l2 = out1.string(style=naming_style), out2.string(style=naming_style)
-            data.append((val, l1, l2, distance(out1.scene_coord, out2.scene_coord)))
-    data.sort()
-    data.reverse()
+    granularity, data = _make_data(clashes, naming_style, output_grouping)
     print("\n%d %s" % (len(data), test_type), file=out_file)
-    field_width1 = max([len(l1) for v, l1, l2, d in data] + [5])
-    field_width2 = max([len(l2) for v, l1, l2, d in data] + [5])
+    title1 = granularity + '1'
+    title2 = granularity + '2'
+    field_width1 = max([len(l1) for v, l1, l2, d in data] + [len(title1)])
+    field_width2 = max([len(l2) for v, l1, l2, d in data] + [len(title2)])
     #print("%*s  %*s  overlap  distance" % (0-field_width1, "atom1", 0-field_width2, "atom2"),
-    print(f"{'atom1':^{field_width1}}  {'atom2':^{field_width2}}{overlap_title}  distance",
+    print(f"{title1:^{field_width1}}  {title2:^{field_width2}}{overlap_title}  distance",
         file=out_file)
     for v, l1, l2, d in data:
         if overlap_title:
@@ -289,6 +281,46 @@ def _file_output(file_name, info, naming_style):
     if file_name != out_file:
         # only close file if we opened it...
         out_file.close()
+
+def _make_data(clashes, naming_style, output_grouping):
+    data = []
+    from chimerax.geometry import distance
+    if naming_style == "residue":
+        granularity = "residue"
+        best_vals = {}
+        for a, aclashes in clashes.items():
+            a_r = a.residue
+            for c, val in aclashes.items():
+                c_r = c.residue
+                if a_r == c_r:
+                    continue
+                key = (a_r, c_r) if a_r < c_r else (c_r, a_r)
+                if key in best_vals and best_vals[key][0] > val:
+                    continue
+                if a in output_grouping:
+                    out1, out2 = a_r, c_r
+                else:
+                    out1, out2 = c_r, a_r
+                l1, l2 = out1.string(), out2.string()
+                best_vals[key] = (val, l1, l2, distance(a.scene_coord, c.scene_coord))
+        data = list(best_vals.values())
+    else:
+        granularity = "atom"
+        seen = set()
+        for a, aclashes in clashes.items():
+            for c, val in aclashes.items():
+                if (c, a) in seen:
+                    continue
+                seen.add((a, c))
+                if a in output_grouping:
+                    out1, out2 = a, c
+                else:
+                    out1, out2 = c, a
+                l1, l2 = out1.string(style=naming_style), out2.string(style=naming_style)
+                data.append((val, l1, l2, distance(out1.scene_coord, out2.scene_coord)))
+    data.sort()
+    data.reverse()
+    return granularity, data
 
 def cmd_xclashes(session, name="clashes"):
     _xcmd(session, name)
@@ -324,8 +356,8 @@ def register_command(command_name, logger):
                 ('distance_only', FloatArg), ('ignore_hidden_models', BoolArg), ('inter_model', BoolArg),
                 ('inter_submodel', BoolArg), ('intra_model', BoolArg), ('intra_mol', BoolArg),
                 ('intra_res', BoolArg), ('log', BoolArg), ('make_pseudobonds', BoolArg),
-                ('naming_style', EnumOf(('simple', 'command', 'serial'))), ('color', Or(NoneArg,ColorArg)),
-                ('radius', FloatArg), ('res_separation', PositiveIntArg),
+                ('naming_style', EnumOf(('simple', 'command', 'serial', 'residue'))),
+                ('color', Or(NoneArg,ColorArg)), ('radius', FloatArg), ('res_separation', PositiveIntArg),
                 ('restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)), ('reveal', BoolArg),
                 ('save_file', SaveFileNameArg), ('set_attrs', BoolArg), ('select', BoolArg),
                 ('show_dist', BoolArg), ('dashes', NonNegativeIntArg), ('summary', BoolArg)], }

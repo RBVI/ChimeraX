@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -32,8 +32,9 @@ _color_map_args_doc = '''
       Specifies the range of map values used for sampling from a palette.
     map : Volume
       Color specified surfaces by sampling from this density map using palette, range, and offset options.
-    offset : float
+    offset : float or 3 floats
       Displacement distance along surface normals for sampling map when using map option.  Default 0.
+      If 3 floats are given they are the starting offset, ending offset and step size.
     transparency : float
       Percent transparency to use.  If not specified then palette transparency values are used.
     update : bool
@@ -107,7 +108,7 @@ def color_surfaces_by_map_value(atoms = None, opacity = None, map = None,
     for s in surfs:
         if undo_state:
             cprev = s.color_undo_state
-        cs = VolumeColor(s, map, palette, range, offset = offset)
+        cs = VolumeColor(s, map, palette, range, offset = _offsets(offset))
         satoms = s.atoms if atoms is None else atoms
         colored = s.color_atom_patches(satoms, vertex_colors = cs.vertex_colors(), opacity = opacity)
         if undo_state and colored:
@@ -141,7 +142,7 @@ def _color_by_map_value(session, surfaces, map, palette = None, range = None, ke
     for surf in surfs:
         cprev = surf.color_undo_state
         cs = cs_class(surf, map, palette, range, transparency = transparency,
-                      offset = offset, auto_recolor = auto_update)
+                      offset = _offsets(offset), auto_recolor = auto_update)
         cs.set_vertex_colors()
         undo.add(surf, 'color_undo_state', cprev, surf.color_undo_state)
         if key:
@@ -493,3 +494,17 @@ def _offset_vertices(vertices, normals, offset):
     vo = offset * normals
     vo += vertices
     return vo
+
+# -----------------------------------------------------------------------------
+#
+def _offsets(offset):
+    if isinstance(offset, (tuple, list)):
+        start, end, step = offset
+        if step == 0 or start == end:
+            offsets = [start]
+        else:
+            step = abs(step) if start < end else -abs(step)
+            offsets = [start + i*step for i in range(int((end-start+step)/step))]
+    else:
+        offsets = offset
+    return offsets

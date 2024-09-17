@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -26,7 +26,7 @@
 #
 def alphafold_dimers(session, sequences, with_sequences = None,
                      homodimers = True, max_length = None, recycles = 3,
-                     models = (1,2,3,4,5), output_fasta = None):
+                     models = (1,2,3,4,5), output_fasta = None, output_json = None):
     '''
     Create dimer sequence file to run predictions of all combinations for a given set of sequences
     using localcolabfold (https://github.com/YoshitakaMo/localcolabfold).
@@ -50,6 +50,9 @@ def alphafold_dimers(session, sequences, with_sequences = None,
         write_dimers_fasta(output_fasta, seq_pairs)
         cmd = colabfold_batch_command(output_fasta, recycles, models)
         session.logger.info(f'Prediction command: {cmd}')
+
+    if output_json:
+        write_dimers_json(output_json, seq_pairs)
         
 # -----------------------------------------------------------------------------
 #
@@ -94,12 +97,47 @@ def write_dimers_fasta(output_fasta, seq_pairs):
 
 # -----------------------------------------------------------------------------
 #
+def write_dimers_json(output_json, seq_pairs, seeds = [1]):
+    '''Write AlphaFold 3 server json format.'''
+    jobs = []
+    for (name1, seq1), (name2, seq2) in seq_pairs:
+        job = {
+            'name': f'{name1}-{name2}',
+            'sequences': [{'proteinChain': {'sequence':seq1, 'count':1}},
+                          {'proteinChain': {'sequence':seq2, 'count':1}}]
+        }
+        if seeds is not None:
+            job['modelSeeds'] = [str(seed) for seed in seeds]
+        jobs.append(job)
+    import json
+    with open(output_json, 'w') as f:
+        json.dump(jobs, f)
+
+# -----------------------------------------------------------------------------
+#
 def write_monomers_fasta(output_fasta, named_seqs):
     lines = []
     for name, seq in named_seqs:
         lines.extend([f'>{name}', seq])
     with open(output_fasta, 'w') as f:
         f.write('\n'.join(lines))
+
+# -----------------------------------------------------------------------------
+#
+def write_monomers_json(output_json, named_seqs, seeds = [1]):
+    '''Write AlphaFold 3 server json format.'''
+    jobs = []
+    for name, seq in named_seqs:
+        job = {
+            'name': name,
+            'sequences': [{'proteinChain': {'sequence':seq, 'count':1}}]
+        }
+        if seeds is not None:
+            job['modelSeeds'] = [str(seed) for seed in seeds]
+        jobs.append(job)
+    import json
+    with open(output_json, 'w') as f:
+        json.dump(jobs, f)
         
 # -----------------------------------------------------------------------------
 #
@@ -291,7 +329,8 @@ def _chain_sequence_name(chain):
 # -----------------------------------------------------------------------------
 #
 def alphafold_monomers(session, sequences = None, max_length = None, recycles = 3,
-                       models = (1,2,3,4,5), output_fasta = None, open = '.'):
+                       models = (1,2,3,4,5), output_fasta = None, output_json = None,
+                       open = '.'):
     '''
     Estimate time for predicting a set of monomers using
     localcolabfold (https://github.com/YoshitakaMo/localcolabfold).
@@ -327,6 +366,9 @@ def alphafold_monomers(session, sequences = None, max_length = None, recycles = 
 
     if output_fasta:
         write_monomers_fasta(output_fasta, seqs)
+
+    if output_json:
+        write_monomers_json(output_json, seqs)
         
 # -----------------------------------------------------------------------------
 #
@@ -366,6 +408,7 @@ def register_alphafold_monomers_command(logger):
                    ('recycles', IntArg),
                    ('models', IntsArg),
                    ('output_fasta', SaveFileNameArg),
+                   ('output_json', SaveFileNameArg),
                    ('open', OpenFolderNameArg),
                    ],
         synopsis = 'Estimate runtime for monomer AlphaFold predictions using colabfold_batch'
@@ -385,6 +428,7 @@ def register_alphafold_dimers_command(logger):
                    ('recycles', IntArg),
                    ('models', IntsArg),
                    ('output_fasta', SaveFileNameArg),
+                   ('output_json', SaveFileNameArg),
                    ],
         synopsis = 'Setup AlphaFold predictions for all dimers for a set of sequences using colabfold_batch'
     )

@@ -5,13 +5,13 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from Qt.QtWidgets import QWidget, QCheckBox, QTableView, QMenu, QAbstractItemView, QFileDialog
+from Qt.QtWidgets import QWidget, QCheckBox, QTableView, QMenu, QAbstractItemView, QFileDialog, QLabel
 from Qt.QtGui import QAction
 from Qt.QtCore import QAbstractTableModel, Qt, QModelIndex, Signal, QSortFilterProxyModel, QSize, QTimer
 # Qt has no QVariant; None can be used in place of an invalid QVariant
@@ -36,7 +36,7 @@ class QCxTableModel(QAbstractTableModel):
             from chimerax.core.colors import Color
             if isinstance(val, bool):
                 return None
-            elif col.display_format in ItemTable.color_formats:
+            if col.display_format in ItemTable.color_formats:
                 if self._item_table._allow_user_sorting:
                     sorted_index = self._item_table.model().mapFromSource(index)
                 else:
@@ -49,6 +49,17 @@ class QCxTableModel(QAbstractTableModel):
                     widget.color_changed.connect(lambda clr, c=col, i=item: c.set_value(i, clr))
                     self._item_table.setIndexWidget(sorted_index, widget)
                 widget.color = val
+                return None
+            if col.is_html:
+                if self._item_table._allow_user_sorting:
+                    sorted_index = self._item_table.model().mapFromSource(index)
+                else:
+                    sorted_index = index
+                widget = self._item_table.indexWidget(sorted_index)
+                if not widget:
+                    widget = QLabel()
+                    self._item_table.setIndexWidget(sorted_index, widget)
+                widget.setText(val)
                 return None
             return str(val)
         if role == Qt.FontRole and (item in self._item_table._highlighted or col.justification == "decimal"
@@ -65,6 +76,17 @@ class QCxTableModel(QAbstractTableModel):
                 font = QFont(font)
                 font.setBold(True)
             return font
+        if role == Qt.ForegroundRole:
+            if col.data_color is None:
+                return None
+            color_val = col.data_color(item)
+            from chimerax.core.colors import Color
+            if isinstance(color_val, Color):
+                color = color_val
+            else:
+                color = Color(color_val)
+            return QBrush(QColor(*color.uint8x4()))
+
         if role == Qt.TextAlignmentRole:
             return self._convert_justification(col.justification)
         if role == Qt.CheckStateRole:
@@ -110,12 +132,12 @@ class QCxTableModel(QAbstractTableModel):
             return self._convert_justification(col.header_justification)
 
         elif role == Qt.ForegroundRole:
-            if col.color is not None:
+            if col.header_color is not None:
                 from chimerax.core.colors import Color
-                if isinstance(col.color, Color):
-                    color = col.color
+                if isinstance(col.header_color, Color):
+                    color = col.header_color
                 else:
-                    color = Color(col.color)
+                    color = Color(col.header_color)
                 return QBrush(QColor(*color.uint8x4()))
 
         elif role == Qt.ToolTipRole:
@@ -341,7 +363,8 @@ class ItemTable(QTableView):
 
     def add_column(self, title, data_fetch, *, format="%s", data_set=None, display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,
-            header_justification=None, icon=None, editable=False, validator=None, sort_func=None, show_tooltips=False):
+            header_justification=None, icon=None, editable=False, validator=None, sort_func=None,
+            show_tooltips=False, data_color=None, is_html=False):
         """ Add a column who's header text is 'title'.  It is allowable to add a column with the
             same title multiple times.  The duplicative additions will be ignored.
 
@@ -414,6 +437,14 @@ class ItemTable(QTableView):
 
             If 'show_tooltips' is True, then hovering over cells in that column will show the cell contents
             in a tooltip.  Useful in cases where cell values might exceed the width of the column.
+
+            'data_color', if not None, is a function that returns the _foreground_ (text) color of a
+            row entry. The function take the row's data item as its only argument.  The returned value
+            should be a chimerax.core.Color instance or a value that can be used as the Color constructor
+            first argument.
+
+            Set 'is_html' to True if you need HTML formatting.  This uses a QLabel for each cell in the
+            column so is somewhat higher overhead, so only use it when actually needed if possible.
         """
         titles = [c.title for c in self._columns]
         if title in titles:
@@ -438,7 +469,8 @@ class ItemTable(QTableView):
             header_justification = justification if justification != "decimal" else "right"
 
         c = _ItemColumn(title, data_fetch, format, data_set, title_display, justification, font, color,
-            header_justification, balloon, icon, self._session, editable, validator, sort_func, show_tooltips)
+            header_justification, balloon, icon, self._session, editable, validator, sort_func,
+            show_tooltips, data_color, is_html)
 
         if self._column_control_info:
             self._add_column_control_entry(c)
@@ -593,7 +625,10 @@ class ItemTable(QTableView):
 
     def scroll_to(self, datum):
         """ Scroll the table to ensure that the given data item is visible """
-        self.scrollTo(self._table_model.index(self._data.index(datum), 0), self.PositionAtCenter)
+        index = self._table_model.index(self._data.index(datum), 0)
+        if self._allow_user_sorting:
+            index = self.model().mapFromSource(index)
+        self.scrollTo(index, self.PositionAtCenter)
 
     @property
     def selected(self):
@@ -637,7 +672,7 @@ class ItemTable(QTableView):
     def sort_by(self, column, order):
         if not self._allow_user_sorting:
             raise ValueError("Table was not configured to allow sorting")
-        self.model().sort(self._columns.index(column), order)
+        self.sortByColumn(self._columns.index(column), order)
 
     @property
     def sorted_data(self):
@@ -812,7 +847,8 @@ class ItemTable(QTableView):
 
 class _ItemColumn:
     def __init__(self, title, data_fetch, display_format, data_set, title_display, justification, font,
-            color, header_justification, balloon, icon, session, editable, validator, sort_func, show_tooltips):
+            header_color, header_justification, balloon, icon, session, editable, validator, sort_func,
+            show_tooltips, data_color, is_html):
         # set all args to corresponding 'self' attributes...
         import inspect
         args, varargs, keywords, locals = inspect.getargvalues(inspect.currentframe())
@@ -872,7 +908,7 @@ class _ItemColumn:
             run(self.session, cmd)
 
     def _update(self, data=False, data_fetch=None, format=None, display=None, justification=None, font=None,
-            icon=None):
+            icon=None, data_color=False):
         changed = []
         if data:
             changed.append(Qt.DisplayRole)
@@ -893,4 +929,6 @@ class _ItemColumn:
         if icon is not None and icon != self.icon:
             self.icon = icon
             changed.append(Qt.DecorationRole)
+        if data_color:
+            changed.append(Qt.ForegroundRole)
         return changed

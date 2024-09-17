@@ -3,6 +3,7 @@
 # Force import in a particular order since both Cython and
 # setuptools patch distutils, and we want Cython to win
 import setuptools
+import sys
 import setuptools._distutils as distutils
 from Cython.Build import cythonize
 from packaging.version import Version
@@ -48,14 +49,17 @@ CHIMERAX1_0_PYTHON_VERSION = Version("3.7")
 
 class BundleBuilder:
 
-    def __init__(self, logger, bundle_path=None):
+    def __init__(self, logger, bundle_path=None, bundle_xml=None):
         import os
 
         self.logger = logger
         if bundle_path is None:
             bundle_path = os.getcwd()
         self.path = bundle_path
-        info_file = os.path.join(bundle_path, "bundle_info.xml")
+        if not bundle_xml:
+            info_file = os.path.join(bundle_path, "bundle_info.xml")
+        else:
+            info_file = bundle_xml
         if not os.path.exists(info_file):
             raise IOError("Bundle info file %s is missing" % repr(info_file))
         try:
@@ -204,7 +208,6 @@ class BundleBuilder:
 
     def _read_bundle_info(self, bundle_info):
         # Setup platform variable so we can skip non-matching elements
-        import sys
 
         if sys.platform == "darwin":
             # Tested with macOS 10.12
@@ -303,10 +306,10 @@ class BundleBuilder:
             pkg_name = dfs.get("package")
             files = []
             for e in self._get_elements(dfs, "DataFile"):
-                filename = self._get_element_text(e)
+                filename = BundleBuilder._get_element_text(e)
                 files.append(("file", filename))
             for e in self._get_elements(dfs, "DataDir"):
-                dirname = self._get_element_text(e)
+                dirname = BundleBuilder._get_element_text(e)
                 files.append(("dir", dirname))
             if files:
                 if not pkg_name:
@@ -324,7 +327,7 @@ class BundleBuilder:
                     raise ValueError(
                         "Missing ExtraFiles's source at line %d" % e.sourceline
                     )
-                filename = self._get_element_text(e)
+                filename = BundleBuilder._get_element_text(e)
                 files.append(("file", source, filename))
             for e in self._get_elements(dfs, "ExtraFileGroup"):
                 import os
@@ -338,7 +341,7 @@ class BundleBuilder:
                 source_base_dir = os.path.dirname(source)
                 while "*" in source_base_dir or "?" in source_base_dir:
                     source_base_dir = os.path.split(source_base_dir)[0]
-                dirname = self._get_element_text(e)
+                dirname = BundleBuilder._get_element_text(e)
                 sourcefiles = glob.glob(source, recursive=True)
                 if not len(sourcefiles):
                     raise RuntimeError(
@@ -360,7 +363,7 @@ class BundleBuilder:
                     raise ValueError(
                         "Missing ExtraDir's source at line %d" % e.sourceline
                     )
-                dirname = self._get_element_text(e)
+                dirname = BundleBuilder._get_element_text(e)
                 files.append(("dir", source, dirname))
             if files:
                 if not pkg_name:
@@ -495,32 +498,34 @@ class BundleBuilder:
 
     def _add_c_options(self, c, ce):
         for e in self._get_elements(ce, "Requires"):
-            c.add_require(self._get_element_text(e))
+            c.add_require(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "SourceFile"):
-            c.add_source_file(self._get_element_text(e))
+            c.add_source_file(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "IncludeDir"):
-            c.add_include_dir(self._get_element_text(e))
+            c.add_include_dir(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "Library"):
-            c.add_library(self._get_element_text(e))
+            c.add_library(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "LibraryDir"):
-            c.add_library_dir(self._get_element_text(e))
+            c.add_library_dir(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "CompileArgument"):
-            c.add_compile_argument(self._get_element_text(e))
+            c.add_compile_argument(BundleBuilder._get_element_text(e))
+        if sys.platform == "darwin":
+            c.add_compile_argument("-mmacos-version-min=11")
         for e in self._get_elements(ce, "LinkArgument"):
-            c.add_link_argument(self._get_element_text(e))
+            c.add_link_argument(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "Framework"):
-            c.add_framework(self._get_element_text(e))
+            c.add_framework(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "FrameworkDir"):
-            c.add_framework_dir(self._get_element_text(e))
+            c.add_framework_dir(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "Define"):
-            edef = self._get_element_text(e).split("=")
+            edef = BundleBuilder._get_element_text(e).split("=")
             if len(edef) > 2:
                 raise TypeError("Too many arguments for macro " "definition: %s" % edef)
             elif len(edef) == 1:
                 edef.append(None)
             c.add_macro_define(*edef)
         for e in self._get_elements(ce, "Undefine"):
-            c.add_macro_undef(self._get_element_text(e))
+            c.add_macro_undef(BundleBuilder._get_element_text(e))
         if self.limited_api:
             v = self.limited_api
             if v < CHIMERAX1_0_PYTHON_VERSION:
@@ -558,7 +563,7 @@ class BundleBuilder:
         ]
         cls = self._get_singleton(bi, "Classifiers")
         for e in self._get_elements(cls, "PythonClassifier"):
-            self.python_classifiers.append(self._get_element_text(e))
+            self.python_classifiers.append(BundleBuilder._get_element_text(e))
         self.chimerax_classifiers = [
             (
                 "ChimeraX :: Bundle :: "
@@ -609,7 +614,7 @@ class BundleBuilder:
                 "ChimeraX :: InitAfter :: " + " :: ".join(args)
             )
         for e in self._get_elements(cls, "ChimeraXClassifier"):
-            classifier = self._get_element_text(e)
+            classifier = BundleBuilder._get_element_text(e)
             if not classifier.startswith("ChimeraX"):
                 classifier = "ChimeraX :: " + classifier
             self.chimerax_classifiers.append(classifier)
@@ -692,7 +697,6 @@ class BundleBuilder:
                 rel = CHIMERAX1_0_PYTHON_VERSION.release
         elif binary_files:
             # Binary files are tied to the current version of Python
-            import sys
 
             rel = sys.version_info[:2]
         else:
@@ -724,7 +728,6 @@ class BundleBuilder:
             if em is not None
         ]
         if not self._is_pure_python():
-            import sys
 
             if sys.platform == "darwin":
                 env = ("Environment :: MacOS X :: Aqua",)
@@ -791,7 +794,6 @@ class BundleBuilder:
 
     def _run_setup(self, cmd):
         import os
-        import sys
 
         cwd = os.getcwd()
         save = sys.argv
@@ -835,7 +837,8 @@ class BundleBuilder:
                         break
         return elements
 
-    def _get_element_text(self, e):
+    @staticmethod
+    def _get_element_text(e):
         return "".join(e.itertext()).strip()
 
     def _get_singleton(self, bi, tag):
@@ -848,7 +851,7 @@ class BundleBuilder:
         return elements[0]
 
     def _get_singleton_text(self, bi, tag):
-        return self._get_element_text(self._get_singleton(bi, tag))
+        return BundleBuilder._get_element_text(self._get_singleton(bi, tag))
 
     def _check_unused_elements(self, bi):
         for node in bi:
@@ -914,7 +917,6 @@ class _CompiledCode:
         self.macros.append((m,))
 
     def _compile_options(self, logger, dependencies):
-        import sys
         import os
 
         for req in self.requires:
@@ -957,12 +959,12 @@ class _CompiledCode:
                 return None
         inc_dirs.extend(self.include_dirs)
         lib_dirs.extend(self.library_dirs)
-        from pkg_resources import DistributionNotFound
+        from importlib.metadata import PackageNotFoundError
 
         for dep in dependencies:
             try:
                 d_inc, d_lib = self._get_bundle_dirs(logger, dep)
-            except (RuntimeError, DistributionNotFound):
+            except (RuntimeError, PackageNotFoundError):
                 pass
             else:
                 if d_inc:
@@ -974,13 +976,15 @@ class _CompiledCode:
 
     def _get_bundle_dirs(self, logger, dep):
         from chimerax.core import toolshed
-        from pkg_resources import Requirement, get_distribution
+        import importlib.metadata
+        from packaging.requirements import Requirement
 
-        req = Requirement.parse(dep)
-        if not get_distribution(req):
+        req = Requirement(dep)
+        d = importlib.metadata.distribution(req.name)
+        if not req.specifier.contains(d.version, prereleases=True):
             raise RuntimeError("unsatisfied dependency: %s" % dep)
         ts = toolshed.get_toolshed()
-        bundle = ts.find_bundle(req.project_name, logger)
+        bundle = ts.find_bundle(req.name, logger)
         if not bundle:
             # The requirement is satisfied but is not recognized
             # as a bundle.  Probably just a regular Python package.
@@ -1001,7 +1005,6 @@ class _CompiledCode:
         return inc, lib
 
     def compile_objects(self, logger, dependencies, static, debug):
-        import sys
         import os
         import distutils.ccompiler
         import distutils.sysconfig
@@ -1090,7 +1093,6 @@ class _CModule(_CompiledCode):
             )
         except ValueError:
             return None
-        import sys
 
         if self.install_dir:
             install_dir = "/" + self.install_dir
@@ -1120,7 +1122,6 @@ class _CLibrary(_CompiledCode):
         self.static = static
 
     def compile(self, logger, dependencies, debug=False):
-        import sys
 
         compiler, objs, extra_link_args = self.compile_objects(
             logger, dependencies, self.static, debug
@@ -1192,7 +1193,6 @@ class _CLibrary(_CompiledCode):
         return lib
 
     def paths(self):
-        import sys
         import os
         import distutils.ccompiler
         import distutils.sysconfig
@@ -1223,7 +1223,6 @@ class _CLibrary(_CompiledCode):
 class _CExecutable(_CompiledCode):
 
     def __init__(self, name, execdir, limited_api):
-        import sys
 
         if sys.platform == "win32":
             # Remove .exe suffix because it will be added
@@ -1232,7 +1231,6 @@ class _CExecutable(_CompiledCode):
         super().__init__(name, False, execdir, limited_api)
 
     def compile(self, logger, dependencies, debug=False):
-        import sys
 
         compiler, objs, extra_link_args = self.compile_objects(
             logger, dependencies, False, debug
@@ -1271,7 +1269,6 @@ class _CExecutable(_CompiledCode):
 
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
-    import sys
 
     bb = BundleBuilder()
     for cmd in sys.argv[1:]:

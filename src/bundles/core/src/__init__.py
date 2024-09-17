@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -31,19 +31,26 @@ from .buildinfo import version
 
 __version__ = version
 
+
+def runtime_env_is_chimerax_app():
+    import chimerax
+
+    return hasattr(chimerax, "app_dirs")
+
+
 import os
 
 
-def path_to_src() -> str:
+def _path_to_src() -> str:
     return os.path.dirname(__file__)
 
 
 def get_lib() -> str:
-    return os.path.join(path_to_src(), "lib")
+    return os.path.join(_path_to_src(), "lib")
 
 
 def get_include() -> str:
-    return os.path.join(path_to_src(), "include")
+    return os.path.join(_path_to_src(), "include")
 
 
 from .toolshed import BundleAPI

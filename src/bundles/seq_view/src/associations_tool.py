@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -85,7 +85,7 @@ class AssociationsTool:
         self.single_seq_area.setLayout(ss_layout)
 
         ss_layout.addWidget(
-            QLabel("Chains chosen/unchosen below will be associated/disassocated with sequence"))
+            QLabel("Chains chosen/unchosen below will be associated/dissociated immediately"))
 
         from chimerax.atomic.widgets import ChainListWidget
         self.ss_chain_list = ChainListWidget(sv.session, autoselect=ChainListWidget.AUTOSELECT_NONE)

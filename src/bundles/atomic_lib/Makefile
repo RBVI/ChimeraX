@@ -9,13 +9,13 @@ CLEAN_ALWAYS =	src/lib src/include src/data atomic_cpp/*/*.$(OBJ_EXT) \
 install: atomic_cpp/pyinstance_cpp/imex.map.h atomic_cpp/element_cpp/imex.h atomic_cpp/atomstruct_cpp/imex.h
 
 atomic_cpp/atomstruct_cpp/imex.h:
-	sed -e 's/LIBNAME/ATOMSTRUCT/' < $(TOP)/prereqs/imex/imex.i > $@
+	sed -e 's/LIBNAME/ATOMSTRUCT/' < $(TOP)/prereqs/imex/imex.i > $@ || (rm $@ ; exit 1)
 
 atomic_cpp/element_cpp/imex.h:
-	sed -e 's/LIBNAME/ELEMENT/' < $(TOP)/prereqs/imex/imex.i > $@
+	sed -e 's/LIBNAME/ELEMENT/' < $(TOP)/prereqs/imex/imex.i > $@ || (rm $@ ; exit 1)
 
 atomic_cpp/pyinstance_cpp/imex.h:
-	sed -e 's/LIBNAME/PYINSTANCE/' < $(TOP)/prereqs/imex/imex.i > $@
+	sed -e 's/LIBNAME/PYINSTANCE/' < $(TOP)/prereqs/imex/imex.i > $@ || (rm $@ ; exit 1)
 
 atomic_cpp/pyinstance_cpp/imex.map.h: atomic_cpp/pyinstance_cpp/imex.h
-	sed -e 's/PYINSTANCE/PYINSTANCE_MAP/' < $< > $@
+	sed -e 's/PYINSTANCE/PYINSTANCE_MAP/' < $< > $@ || (rm $@ ; exit 1)

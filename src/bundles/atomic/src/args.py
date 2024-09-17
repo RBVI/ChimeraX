@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -487,6 +487,7 @@ def group_symmetries(session, group, molecule):
 
     g0 = group[:1].lower()
     gfields = group.split(',')
+    g = gfields[0].lower()
     nf = len(gfields)
     recenter = True
     if g0 in ('c', 'd'):
@@ -501,7 +502,7 @@ def group_symmetries(session, group, molecule):
             tflist = geometry.cyclic_symmetry_matrices(n)
         else:
             tflist = geometry.dihedral_symmetry_matrices(n)
-    elif g0 == 'i':
+    elif g == 'i':
         # Icosahedral symmetry: i[,<orientation>]
         if nf == 1:
             orientation = '222'
@@ -513,7 +514,7 @@ def group_symmetries(session, group, molecule):
         else:
             raise UserError('Invalid symmetry group syntax "%s"' % group)
         tflist = geometry.icosahedral_symmetry_matrices(orientation)
-    elif g0 == 't' and nf <= 2:
+    elif g == 't' and nf <= 2:
         # Tetrahedral symmetry t[,<orientation]
         if nf == 1:
             orientation = '222'
@@ -526,13 +527,13 @@ def group_symmetries(session, group, molecule):
         else:
             raise UserError('Invalid symmetry group syntax "%s"' % group)
         tflist = geometry.tetrahedral_symmetry_matrices(orientation)
-    elif g0 == 'o':
+    elif g == 'o':
         # Octahedral symmetry
         if nf == 1:
             tflist = geometry.octahedral_symmetry_matrices()
         else:
             raise UserError('Invalid symmetry group syntax "%s"' % group)
-    elif g0 == 'h':
+    elif g == 'h':
         # Helical symmetry: h,<rise>,<angle>,<n>[,<offset>]
         if nf < 4 or nf > 5:
             raise UserError('Invalid symmetry group syntax "%s"' % group)

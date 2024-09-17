@@ -1,0 +1,12 @@
+name: Package Windows
+description: Package ChimeraX for Windows
+
+inputs:
+  chimerax:
+    description: "The built ChimeraX folder from another workflow"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Environment

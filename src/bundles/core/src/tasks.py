@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -259,6 +259,14 @@ class Task(State):
     def restore(self, *args, **kw):
         """Like start, but for restoring a task from a snapshot."""
         blocking = kw.get("blocking", False)  # since _run_thread will pop() it
+        if self.state in [
+            TaskState.FINISHED,
+            TaskState.FAILED,
+            TaskState.DELETED,
+            TaskState.CANCELED,
+        ]:
+            return
+
         self._thread = threading.Thread(
             target=self._run_function,
             daemon=True,
@@ -507,7 +515,7 @@ class Tasks(StateManager):
     task states for scenes and sessions.
     """
 
-    def __init__(self, session, ids_start_from=1):
+    def __init__(self, session):
         """Initialize per-session state manager for tasks.
 
         Parameters
@@ -517,7 +525,7 @@ class Tasks(StateManager):
 
         """
         self._session = weakref.ref(session)
-        self._id_counter = itertools.count(ids_start_from)
+        self._id_counter = itertools.count(1)
         self._tasks = {}
 
     def __len__(self) -> int:
@@ -563,6 +571,8 @@ class Tasks(StateManager):
             raise ValueError("Attempted to record task ID already in task list")
         if key is None:
             id = next(self._id_counter)
+            while id in self._tasks:
+                id = next(self._id_counter)
             task.id = id
             dict.__setitem__(self._tasks, id, task)
         else:
@@ -632,12 +642,16 @@ class Tasks(StateManager):
         tasks = {}
         for tid, task in self._tasks.items():
             assert isinstance(task, Task)
-            if task.SESSION_SAVE:
+            if task.SESSION_SAVE and task.state not in [
+                TaskState.FINISHED,
+                TaskState.FAILED,
+                TaskState.DELETED,
+                TaskState.CANCELED,
+            ]:
                 tasks[tid] = task
         data = {
             "tasks": tasks,
             "version": TASKS_STATE_VERSION,
-            "counter": next(self._id_counter) - 1,
         }
         return data
 
@@ -659,7 +673,16 @@ class Tasks(StateManager):
         """
         t = session.tasks
         for tid, task in data["tasks"].items():
-            t._tasks[tid] = task
+            if task.state not in [
+                TaskState.FINISHED,
+                TaskState.FAILED,
+                TaskState.DELETED,
+                TaskState.CANCELED,
+            ]:
+                while tid in t._tasks:
+                    tid += 1
+                    task.id = tid
+                t._tasks[tid] = task
         return t
 
     def reset_state(self, session):

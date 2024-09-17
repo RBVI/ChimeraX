@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -88,10 +88,12 @@ PythonInstance<C>::~PythonInstance() {
     if (i == _pyinstance_object_map.end())
         return;
     PyObject* py_inst = (*i).second;
-    AcquireGIL gil; // Py_DECREF can cause code to run
-    PyObject_DelAttrString(py_inst, "_c_pointer");
-    PyObject_DelAttrString(py_inst, "_c_pointer_ref");
-    Py_DECREF(py_inst);
+    if (!PyObject_GC_IsFinalized(py_inst)) {
+        AcquireGIL gil; // Py_DECREF can cause code to run
+        PyObject_DelAttrString(py_inst, "_c_pointer");
+        PyObject_DelAttrString(py_inst, "_c_pointer_ref");
+        Py_DECREF(py_inst);
+    }
     _pyinstance_object_map.erase(i);
 }
 

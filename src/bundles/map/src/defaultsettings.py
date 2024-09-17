@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -47,7 +47,7 @@ class _VolumeSettings(Settings):
                            (.9,.75,.6,1),
                            (.6,.75,.9,1),
                            (.8,.8,.6,1)),
-	'data_cache_size': 512.0,                # Mbytes
+	'data_cache_size': None,                # None or float value in Mbytes.  None means use half physical memory.
         'selectable_subregions': False,
         'subregion_button': 'middle',
         'box_padding': 0.0,

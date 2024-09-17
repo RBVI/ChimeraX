@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -24,14 +24,17 @@
 
 from http.server import BaseHTTPRequestHandler
 from chimerax.core.tasks import Task
-from chimerax.core.logger import PlainTextLog
+from chimerax.core.logger import PlainTextLog, StringPlainTextLog
+
 
 class RESTServer(Task):
     """Listen for HTTP/REST requests, execute them and return output."""
 
     def __init__(self, *args, **kw):
         import threading
+
         self.httpd = None
+        self.log = kw.pop("log", False)
         self.run_count = 0
         self.run_lock = threading.Lock()
         super().__init__(*args, **kw)
@@ -49,12 +52,22 @@ class RESTServer(Task):
         pass
 
     @property
+    def log(self):
+        return self._log
+
+    @log.setter
+    def log(self, value):
+        self._log = value
+        RESTHandler.log = value
+
+    @property
     def server_address(self):
         return self.httpd.server_address
 
     def run(self, port, use_ssl, json):
         from http.server import HTTPServer
         import sys
+
         if port is None:
             # Defaults to any available port
             port = 0
@@ -72,20 +85,19 @@ class RESTServer(Task):
                 import os.path, ssl
             except ImportError:
                 from chimerax.core.errors import LimitationError
+
                 raise LimitationError("SSL is not supported")
             context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             cert = os.path.join(os.path.dirname(__file__), "server.pem")
             context.load_cert_chain(cert)
             # self.httpd.socket = ssl.wrap_socket(self.httpd.socket,
             #                                     certfile=cert)
-            self.httpd.socket = context.wrap_socket(self.httpd.socket,
-                                                    server_side=True)
-        self.run_increment()    # To match decrement in terminate()
+            self.httpd.socket = context.wrap_socket(self.httpd.socket, server_side=True)
+        self.run_increment()  # To match decrement in terminate()
         host, port = self.httpd.server_address
-        msg = ("REST server started on host %s port %d" % (host, port))
+        msg = "REST server started on host %s port %d" % (host, port)
         self.session.ui.thread_safe(print, msg, file=sys.__stdout__, flush=True)
-        msg += ('\nVisit %s://%s:%d/cmdline.html for CLI interface' %
-               (proto, host, port))
+        msg += "\nVisit %s://%s:%d/cmdline.html for CLI interface" % (proto, host, port)
         self.session.ui.thread_safe(self.session.logger.info, msg)
         self.httpd.serve_forever()
 
@@ -119,11 +131,16 @@ class RESTHandler(BaseHTTPRequestHandler):
         (".ico", "image/png"),
     ]
 
+    # Whether to log to the ChimeraX log as well as whatever client is being
+    # used
+    log = False
+
     def do_GET(self):
         if not self.server.chimerax_restserver.run_increment():
             return
         try:
             from urllib.parse import urlparse, parse_qs
+
             r = urlparse(self.path)
             if r.path == "/run":
                 # Execute a command
@@ -140,8 +157,8 @@ class RESTHandler(BaseHTTPRequestHandler):
             else:
                 # Serve up some static files for testing
                 import os.path
-                fn = os.path.join(os.path.dirname(__file__),
-                                  "static", r.path[1:])
+
+                fn = os.path.join(os.path.dirname(__file__), "static", r.path[1:])
                 try:
                     with open(fn, "rb") as f:
                         data = f.read()
@@ -159,7 +176,7 @@ class RESTHandler(BaseHTTPRequestHandler):
 
     do_POST = do_GET
 
-    def log_request(self, code='-', size='-'):
+    def log_request(self, code="-", size="-"):
         pass
 
     def _parse_post(self):
@@ -167,6 +184,7 @@ class RESTHandler(BaseHTTPRequestHandler):
         if not ctype:
             return {}
         from . import cgi
+
         ctype, pdict = cgi.parse_header(ctype)
         if ctype == "multipart/form-data":
             pdict["boundary"] = pdict["boundary"].encode("utf-8")
@@ -174,6 +192,7 @@ class RESTHandler(BaseHTTPRequestHandler):
             return parts
         elif ctype == "application/x-www-form-urlencoded":
             from urllib.parse import parse_qs
+
             clength = int(self.headers.get("content-length"))
             fields = parse_qs(self.rfile.read(clength), True)
             return fields
@@ -191,27 +210,39 @@ class RESTHandler(BaseHTTPRequestHandler):
         from queue import Queue
         from chimerax.core.errors import NotABug
         from chimerax.core.logger import StringPlainTextLog
+
         session = self.server.chimerax_restserver.session
         q = Queue()
-        def f(args=args, session=session, q=q, json=self.server.chimerax_restserver.json):
+
+        def f(
+            args=args, session=session, q=q, json=self.server.chimerax_restserver.json
+        ):
             logger = session.logger
             # rest_log.log_summary gets called at the end
             # of the "with" statement
             log_class = ByLevelPlainTextLog if json else StringPlainTextLog
+            log_class.propagate_to_chimerax = RESTHandler.log
             with log_class(logger) as rest_log:
                 from chimerax.core.commands import run
+
                 error_info = None
                 try:
                     commands = args["command"]
                 except KeyError:
-                    logger.error("\"command\" parameter missing")
+                    logger.error('"command" parameter missing')
                     ret_val = []
                 else:
                     try:
                         for cmd in commands:
                             if isinstance(cmd, bytes):
-                                cmd = cmd.decode('utf-8')
-                            ret_val = run(session, cmd, log=False, return_json=json, return_list=True)
+                                cmd = cmd.decode("utf-8")
+                            ret_val = run(
+                                session,
+                                cmd,
+                                log=RESTHandler.log,
+                                return_json=json,
+                                return_list=True,
+                            )
                     except NotABug as e:
                         if json:
                             ret_val = []
@@ -228,6 +259,7 @@ class RESTHandler(BaseHTTPRequestHandler):
                 if json:
                     from chimerax.core.commands import JSONResult
                     from json import JSONEncoder
+
                     json_vals = []
                     python_vals = []
                     for val in ret_val:
@@ -238,33 +270,36 @@ class RESTHandler(BaseHTTPRequestHandler):
                             json_vals.append(None)
                             python_vals.append(val)
                     response = {}
-                    response['json values'] = json_vals
-                    response['python values'] = python_vals
-                    response['log messages'] = rest_log.getvalue()
+                    response["json values"] = json_vals
+                    response["python values"] = python_vals
+                    response["log messages"] = rest_log.getvalue()
                     if error_info is None:
-                        response['error'] = None
+                        response["error"] = None
                     else:
-                        response['error'] = {
-                            'type': error_info.__class__.__name__,
-                            'message': str(error_info)
+                        response["error"] = {
+                            "type": error_info.__class__.__name__,
+                            "message": str(error_info),
                         }
                     q.put(JSONEncoder(default=lambda x: None).encode(response))
                 else:
                     q.put(rest_log.getvalue())
+
         session.ui.thread_safe(f)
         data = bytes(q.get(), "utf-8")
         self._header(200, "text/plain", len(data))
         self.wfile.write(data)
 
-from chimerax.core.logger import StringPlainTextLog
+
 class ByLevelPlainTextLog(StringPlainTextLog):
+    propagate_to_chimerax = False
+
     def __init__(self, logger):
         super().__init__(logger)
-        self._msgs = { descript:[] for descript in self.LEVEL_DESCRIPTS }
+        self._msgs = {descript: [] for descript in self.LEVEL_DESCRIPTS}
 
     def log(self, level, msg):
         self._msgs[self.LEVEL_DESCRIPTS[level]].append(msg)
-        return True
+        return not ByLevelPlainTextLog.propagate_to_chimerax
 
     def getvalue(self):
         return self._msgs

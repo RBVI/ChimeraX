@@ -16,20 +16,23 @@ endif
 install: centos
 	env HOME=`pwd` $(MAKE) install CENTOS_DIST=$(CENTOS)
 
+build-minimal: centos
+	env HOME=`pwd` $(MAKE) build-minimal CENTOS_DIST=$(CENTOS)
+
 install-rbvi: centos
 	env HOME=`pwd` $(MAKE) install-rbvi CENTOS_DIST=$(CENTOS)
 
 package: centos
-	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS)
+	env HOME=`pwd` $(APP_PYTHON_EXE) mkcentos.py $(CENTOS)
 
 daily-package: centos
-	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS) daily
+	env HOME=`pwd` $(APP_PYTHON_EXE) mkcentos.py $(CENTOS) daily
 
 techpreview-package: centos
-	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS) techpreview
+	env HOME=`pwd` $(APP_PYTHON_EXE) mkcentos.py $(CENTOS) techpreview
 
 candidate-package: centos
-	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS) candidate
+	env HOME=`pwd` $(APP_PYTHON_EXE) mkcentos.py $(CENTOS) candidate
 
 centos:
 ifeq (,$(CENTOS))

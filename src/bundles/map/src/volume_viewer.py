@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -41,6 +41,7 @@ class VolumeViewer(ToolInstance):
         self.redisplay_in_progress = False
         self._redisplay_handler = None
         self._last_redisplay_frame_number = None
+        self._ignore_volume_changed = False
 
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
@@ -237,6 +238,9 @@ class VolumeViewer(ToolInstance):
     #
     def data_region_changed(self, v, type):
 
+        if self._ignore_volume_changed:
+            return
+        
         tp = self.thresholds_panel
 
         if type == 'data values changed':
@@ -298,7 +302,14 @@ class VolumeViewer(ToolInstance):
       for p in self.gui_panels:
         if hasattr(p, 'display_style_changed'):
           p.display_style_changed(style)
-
+        
+    # ---------------------------------------------------------------------------
+    #
+    def notify_volume_changed(self, volume, change_type):
+        self._ignore_volume_changed = True
+        volume.call_change_callbacks(change_type)
+        self._ignore_volume_changed = False
+        
     # ---------------------------------------------------------------------------
     #
     def redisplay_needed_cb(self, event = None):
@@ -2843,6 +2854,9 @@ class Histogram_Pane:
     if not array_equal(icolors, v.image_colors):
         v.image_colors = icolors
         image_colors_changed = True
+
+    if surf_levels_changed or image_levels_changed:
+        self.dialog.notify_volume_changed(v, 'thresholds changed')
 
     if log:
         self._log_image_change(v, image_levels_changed, image_colors_changed)

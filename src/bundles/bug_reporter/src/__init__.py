@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -41,9 +41,9 @@ class _BugReporterAPI(BundleAPI):
             crash_report.register_log_recorder(session)
 
         # Add Report a Bug to Help menu
-        from . import bug_reporter_gui
-        bug_reporter_gui.add_help_menu_entry(session)
+        from . import tool
+        tool.add_help_menu_entry(session)
 
 bundle_api = _BugReporterAPI()
 
-from .bug_reporter_gui import show_bug_reporter, system_summary, opengl_info
+from .tool import show_bug_reporter, system_summary, opengl_info

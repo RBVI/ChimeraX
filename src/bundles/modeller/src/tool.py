@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -326,15 +326,10 @@ class ModellerLauncher(ToolInstance):
 
     def _list_selection_cb(self):
         layout = self.targets_layout
-        while layout.count() > 0:
-            item = layout.takeAt(0)
-            if not item:
-                break
-            widget = item.widget()
-            if isinstance(widget, AlignSeqMenuButton):
-                widget.setHidden(True)
-            else:
-                widget.deleteLater()
+        while layout.rowCount() > 0:
+            row_info = layout.takeRow(0)
+            row_info.fieldItem.widget().setHidden(True)
+            row_info.labelItem.widget().deleteLater()
         for sel_aln in self.alignment_list.value:
             mb = self.seq_menu[sel_aln]
             mb.setHidden(False)
@@ -346,7 +341,11 @@ class ModellerLauncher(ToolInstance):
             if aln not in alignment_set:
                 row, role = self.targets_layout.getWidgetPosition(mb)
                 if row >= 0:
-                    self.targets_layout.removeRow(row)
+                    # using removeRow, which immediately destroys the widgets, can result in
+                    # a seg fault [#15753]
+                    row_info = self.targets_layout.takeRow(row)
+                    row_info.fieldItem.widget().destroy()
+                    row_info.labelItem.widget().deleteLater()
                 del self.seq_menu[aln]
         for aln in alignments:
             if aln not in self.seq_menu:

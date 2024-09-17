@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -155,6 +155,7 @@ def create_patch(session, v, n, t, position, color, offset = 0, slab = None):
 
   from chimerax.core.models import Surface
   s = Surface('contact patch', session)
+  s.SESSION_SAVE_DRAWING = True	# Save geometry in sessions
   s.position = position
   s.color = color
 

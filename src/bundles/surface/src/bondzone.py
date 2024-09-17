@@ -40,9 +40,9 @@ def bond_point_colors(bonds, bond_point_spacing):
         c = bond_point_count(b, bond_point_spacing)
         if c > 0:
             if b.halfbond:
-                rgba1, rgba2 = [atom.color for a in b.atoms]
-                rgba_list.extend([rgba1]*(c/2))
-                rgba_list.extend([rgba2]*(c-c/2))
+                rgba1, rgba2 = [atom.color for atom in b.atoms]
+                rgba_list.extend([rgba1]*(c//2))
+                rgba_list.extend([rgba2]*(c-c//2))
             else:
                 rgba_list.extend([b.color]*c)
     return rgba_list

@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -209,6 +209,13 @@ class CategorizedOptionsPanel(QTabWidget):
     def hide_option(self, option):
         return self.set_option_shown(option, False)
 
+    def hide_tab(self, category):
+        self._show_tab(category, False)
+    hide_category = hide_tab
+
+    def options(self, category):
+        return self._category_to_panel[category].options()
+
     def set_current_category(self, category):
         category = category.casefold()
         for index in range(self.count()):
@@ -233,11 +240,21 @@ class CategorizedOptionsPanel(QTabWidget):
     def show_option(self, option):
         return self.set_option_shown(option, True)
 
-    def options(self, category):
-        return self._category_to_panel[category].options()
+    def show_tab(self, category):
+        self._show_tab(category, True)
+    show_category = show_tab
 
     def show_option(self, option, *, missing_okay=False):
         return self.set_option_shown(option, True, missing_okay=missing_okay)
+
+    def _show_tab(self, tab, show):
+        tab = tab.casefold()
+        for index in range(self.count()):
+            if tab == self.tabText(index).casefold():
+                self.setTabVisible(index, show)
+                break
+        else:
+            raise ValueError("tab not found")
 
 class SettingsPanelBase(QWidget):
     def __init__(self, parent, option_sorting, multicategory,

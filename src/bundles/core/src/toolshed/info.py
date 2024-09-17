@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -591,8 +591,8 @@ class BundleInfo:
         Boolean
             True if this instance is newer; False if 'bi' is newer.
         """
-        from pkg_resources import parse_version
-        return parse_version(self.version) > parse_version(bi.version)
+        from packaging.version import Version
+        return Version(self.version) > Version(bi.version)
 
     def dependents(self, logger):
         """Supported API. Return set of bundles that directly depends on this one.
@@ -608,17 +608,25 @@ class BundleInfo:
             Dependent bundles.
         """
         from . import get_toolshed
-        from pkg_resources import working_set
+        from importlib.metadata import distributions
+        from packaging.requirements import Requirement, InvalidRequirement
         keep = set()
-        for d in working_set:
-            for req in d.requires():
-                if req.name == self.name:
+        for d in distributions():
+            requires = d.requires
+            if not requires:
+                continue
+            for req in requires:
+                try:
+                    r = Requirement(req)
+                except InvalidRequirement:
+                    continue
+                if r.name == self.name:
                     keep.add(d)
                     break
         ts = get_toolshed()
         deps = set()
         for d in keep:
-            bi = ts.find_bundle(d.project_name, logger)
+            bi = ts.find_bundle(d.name, logger)
             if bi:
                 deps.add(bi)
         return deps

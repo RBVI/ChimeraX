@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -2260,7 +2260,7 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     if outline_width > 0:
         if outline_color is None:
             from chimerax.core.colors import contrast_with
-            outline_color = [c * 255.0 for c in contrast_with([c/255.0 for c in bg[:3]])] + [255]
+            outline_color = [int(c * 255.0) for c in contrast_with([c/255.0 for c in bg[:3]])] + [255]
         fill_color = tuple(outline_color)
     else:
         fill_color = bg

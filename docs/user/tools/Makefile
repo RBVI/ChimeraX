@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -17,7 +17,7 @@ include $(TOP)/mk/config.make
 DOCDIR = $(app_datadir)/docs/user/tools
 
 SRCS = $(wildcard *.html)
-IMAGES = $(wildcard *.png)
+IMAGES = $(wildcard *.png) $(wildcard *.svg)
 
 MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
 		$(TOP)/src/bundles/bond_rot/src/bondrot.png \
@@ -28,6 +28,7 @@ MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
 		$(TOP)/src/bundles/map/src/icons/*.png \
 		$(TOP)/src/bundles/map_series/src/vseries.png \
 		$(TOP)/src/bundles/markers/src/icons/*.png \
+		$(TOP)/src/bundles/segmentations/src/icons/*small.svg \
 		$(TOP)/src/bundles/std_commands/src/coordset.png \
 		$(TOP)/src/bundles/swapaa/src/swapaa.png \
 		$(TOP)/src/bundles/tug/src/minimize.png \
@@ -38,7 +39,8 @@ MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
 		$(TOP)/src/bundles/tape_measure/src/tape.png \
 		$(TOP)/src/bundles/viewdockx/src/nextdocking.png
 MICONDIR = $(DOCDIR)/mouse-icons
-SHORTCUTICONS = $(TOP)/src/bundles/shortcuts/src/icons/*.png
+SCICONDIR = $(TOP)/src/bundles/shortcuts/src/icons
+SHORTCUTICONS = $(SCICONDIR)/*.png $(SCICONDIR)/*.svg
 SICONDIR = $(DOCDIR)/shortcut-icons
 TOOLBARICONS = $(TOP)/src/bundles/toolbar/src/icons/*.png \
 		$(TOP)/src/bundles/medical_toolbar/src/icons/opendicom.png \

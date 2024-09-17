@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -52,6 +52,8 @@ class BundleNameArg(StringArg):
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % BundleNameArg.name)
         import re
         token, text, rest = next_token(text, convert=True)
         canonical = re.sub(r"[^\w\d.]+", "_", token, re.UNICODE)
@@ -162,7 +164,7 @@ th.bundle {
 
 
 def _newest_by_name(bi_list):
-    from pkg_resources import parse_version
+    from packaging.version import Version
     bundle_map = {}
     for bi in bi_list:
         try:
@@ -170,7 +172,7 @@ def _newest_by_name(bi_list):
         except KeyError:
             bundle_map[bi.name] = bi
         else:
-            if parse_version(bi.version) > parse_version(seen.version):
+            if Version(bi.version) > Version(seen.version):
                 bundle_map[bi.name] = bi
     return bundle_map.values()
 
