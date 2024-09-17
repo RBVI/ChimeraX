@@ -47,7 +47,7 @@ class AltlocExplorerTool(ToolInstance):
         main_layout.addLayout(widgets_layout)
         # the altlocs get their own layout so they can be replaced without moving to the end
         self._altlocs_layout = QHBoxLayout()
-        widgets_layout.addLayout(self._altlocs_layout)
+        widgets_layout.addLayout(self._altlocs_layout, stretch=1)
         self._no_structure_label = QLabel("No atomic model chosen")
         self._altlocs_layout.addWidget(self._no_structure_label)
         side_layout = QVBoxLayout()
