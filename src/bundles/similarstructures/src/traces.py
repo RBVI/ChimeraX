@@ -25,13 +25,15 @@
 def similar_structures_traces(session, align_with = None, cutoff_distance = None,
                               close_only = 4.0, gap_distance_limit = 10.0, min_residues = 5,
                               tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6,
-                              from_set = None, replace = True):
+                              from_set = None, of_structures = None, replace = True):
     from .simstruct import similar_structure_results
     results = similar_structure_results(session, from_set)
+    hits = results.named_hits(of_structures)
 
     if not results.have_c_alpha_coordinates():
         from . import coords
-        if not coords.similar_structures_fetch_coordinates(session, ask = True, from_set = from_set):
+        if not coords.similar_structures_fetch_coordinates(session, ask = True, from_set = from_set,
+                                                           of_structures = of_structures):
             return
 
     if cutoff_distance is None:
@@ -55,7 +57,7 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
 
     traces = []
     rtot = rshown = 0
-    for hit in results.hits:
+    for hit in hits:
         hit_xyz = hit_coords(hit)
         hi, qi = results.hit_residue_pairing(hit)
         hxyz = hit_xyz[hi]
@@ -92,8 +94,9 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
     if len(traces) == 0:
         return None	# No hits had enough alignment atoms.
 
+    hit_names = [hit['database_full_id'] for hit in hits]
     if replace:
-        tmodels = _existing_trace_models(session, results)
+        tmodels = _existing_trace_models(session, results, hit_names)
         if tmodels:
             session.models.close(tmodels)
 
@@ -105,6 +108,7 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
     else:
         surf = _create_line_traces_model(session, traces, results.name)
 
+    surf.hit_names = hit_names
     surf.position = qchain.structure.scene_position
     session.models.add([surf])
     msg = f'{surf.trace_count} traces showing {rshown} residues with {rtot-rshown} far or short segment residues hidden'
@@ -209,10 +213,10 @@ def _tube_traces(traces, radius = 0.1, segment_subdivisions = 5, circle_subdivis
 
     return vertices, normals, triangles, (names, tstart)
 
-def _existing_trace_models(session, results):
+def _existing_trace_models(session, results, hit_names):
     from .simstruct import similar_structure_results
     tmodels = [m for m in session.models.list(type = BackboneTraces)
-               if similar_structure_results(session, m.similar_structures_id, raise_error = False) is results]
+               if similar_structure_results(session, m.similar_structures_id, raise_error = False) is results and m.hit_names == hit_names]
     return tmodels
         
 # Allow mouse hover to identify hits
@@ -362,6 +366,7 @@ def register_similar_structures_traces_command(logger):
                    ('segment_subdivisions', IntArg),
                    ('circle_subdivisions', IntArg),
                    ('from_set', StringArg),
+                   ('of_structures', StringArg),
                    ('replace', BoolArg),
                    ],
         synopsis = 'Show backbone traces of similar structures aligned to query structure.'

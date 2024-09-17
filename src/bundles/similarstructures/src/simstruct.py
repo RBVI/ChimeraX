@@ -59,11 +59,22 @@ class SimilarStructures:
         self._alignment_coordinates = None
         self._lddt_score_array = None
 
-    def named_hits(self, hit_names):
+    def named_hits(self, hit_names, raise_error = True):
+        if isinstance(hit_names, str):
+            hit_names = hit_names.split(',')
         if hit_names is None:
-            return self.hits
-        names = set(hit_names)
-        hits = [hit for hit in self.hits if hit['database_full_id'] in names]
+            hits = self.hits
+        else:
+            names = set(hit_names)
+            hits = [hit for hit in self.hits if hit['database_full_id'] in names]
+
+        if raise_error and len(hits) == 0:
+            msg = 'No similar structures specified'
+            if hit_names:
+                msg += ' by ' + ', '.join(hit_names)
+            from chimerax.core.errors import UserError
+            raise UserError(msg)
+
         return hits
         
     def replace_hits(self, hits):

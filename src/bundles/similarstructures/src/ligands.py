@@ -23,13 +23,10 @@
 # === UCSF ChimeraX Copyright ===
 
 def similar_structures_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_paired = 0.5,
-                               combine = True, from_set = None, of_structures = ''):
+                               combine = True, from_set = None, of_structures = None):
     from .simstruct import similar_structure_results
     results = similar_structure_results(session, from_set)
-    hits = results.named_hits(of_structures.split(','))
-    if len(hits) == 0:
-        from chimerax.core.errors import UserError
-        raise UserError('No similar structures specified')
+    hits = results.named_hits(of_structures)
 
     query_chain = results.query_chain
     if query_chain is None:
