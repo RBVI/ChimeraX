@@ -27,7 +27,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  color_globe color_key connect_structure core_formats \
 	  coulombic crosslinks crystal crystal_contacts data_formats \
 	  deep_mutational_scan dicom diffplot dist_monitor dock_prep dssp \
-	  emdb_sff esmfold file_history foldseek function_key \
+	  emdb_sff esmfold file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
 	  interfaces items_inspection io label iupac \
@@ -42,7 +42,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  residue_fit rna_layout rotamers rotamer_libs \
 	  save_command scheme_mgr \
 	  sdf sel_inspector segger segment segmentations seqalign seq_view shape \
-	  shell shortcuts show_sequences sideview sim_matrices smiles \
+	  shell shortcuts show_sequences sideview sim_matrices similarstructures smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \
 	  tape_measure task_manager test toolbar topography to_quest tug ui uniprot \

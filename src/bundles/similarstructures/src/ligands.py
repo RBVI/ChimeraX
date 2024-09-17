@@ -23,11 +23,9 @@
 # === UCSF ChimeraX Copyright ===
 
 def similar_structures_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_paired = 0.5,
-                               combine = True):
+                               combine = True, from_set = None):
     from .simstruct import similar_structure_results
-    results = similar_structure_results(session)
-    if results is None:
-        return
+    results = similar_structure_results(session, from_set)
 
     query_chain = results.query_chain
     if query_chain is None:
@@ -164,12 +162,13 @@ def _combine_structures(session, structures):
     return cmodel
 
 def register_similar_structures_ligands_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, StringArg
     desc = CmdDesc(
         keyword = [('rmsd_cutoff', FloatArg),
                    ('alignment_range', FloatArg),
                    ('minimum_paired', FloatArg),
                    ('combine', BoolArg),
+                   ('from_set', StringArg),
                    ],
         synopsis = 'Find ligands in Foldseek hits and align to query.'
     )
