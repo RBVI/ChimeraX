@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -2286,7 +2286,7 @@ docstr_write_pdb_file =
 " 5 digits (maximum supported by PDB standard).  If False, then the sixth"
 " column of ATOM records will be stolen for an additional digit (AMBER style), so up to"
 " 999,999 atoms.  If True, then hybrid-36 encoding will be used (see"
-" http://cci.lbl.gov/hybrid_36), so up to 87,440,031 atoms."
+" https://cci.lbl.gov/hybrid_36), so up to 87,440,031 atoms."
 " 'polymeric_res_names' is a sequence of residue names that"
 " should be output using ATOM records rather than HETATM records."
 "\n";

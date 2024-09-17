@@ -2,7 +2,7 @@
 
 Written by James Phillips, University of Illinois.
 
-WWW: http://www.ks.uiuc.edu/~jim/mdtools/
+WWW: https://www.ks.uiuc.edu/~jim/mdtools/
 
 RCS: $Id: md.py 26655 2009-01-07 22:02:30Z gregc $
 

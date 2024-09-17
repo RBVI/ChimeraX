@@ -42,5 +42,5 @@ OPTIONS
 SEE ALSO
 ========
 
-* `CIF resources <http://www.iucr.org/resources/cif>`_
-* `mmCIF resources <http://mmcif.wwpdb.org/>`_
+* `CIF resources <https://www.iucr.org/resources/cif>`_
+* `mmCIF resources <https://mmcif.wwpdb.org/>`_
