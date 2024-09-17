@@ -46,7 +46,7 @@
     <Provider name="Pfam" synopsis="Pfam sequence" category="Sequence"
 		suffixes=".selex,.slx,.pfam" encoding="utf-8" />
     <Provider name="NBRF/PIR" synopsis="PIR sequence" category="Sequence" nicknames="pir"
-		reference_url="http://www.bioinformatics.nl/tools/crab_pir.html"
+		reference_url="https://www.bioinformatics.nl/tools/crab_pir.html"
 		suffixes=".ali,.pir" encoding="utf-8" />
     <Provider name="GCG Rich Sequence" synopsis="RSF sequence" category="Sequence"
 		nicknames="rsf" suffixes=".rsf" encoding="utf-8" />
