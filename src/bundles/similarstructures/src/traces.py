@@ -25,7 +25,7 @@
 def similar_structures_traces(session, align_with = None, cutoff_distance = None,
                               close_only = 4.0, gap_distance_limit = 10.0, min_residues = 5,
                               tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6,
-                              from_set = None):
+                              from_set = None, replace = True):
     from .simstruct import similar_structure_results
     results = similar_structure_results(session, from_set)
 
@@ -33,7 +33,7 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
         from . import coords
         if not coords.similar_structures_fetch_coordinates(session, ask = True, from_set = from_set):
             return
-    
+
     if cutoff_distance is None:
         cutoff_distance = results.alignment_cutoff_distance
 
@@ -42,6 +42,7 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
     if qchain is None:
         from chimerax.core.errors import UserError
         raise UserError('Cannot position traces without query structure')
+
     qres = results.query_residues
     qatoms = qres.find_existing_atoms('CA')
     query_xyz = qatoms.coords
@@ -90,6 +91,11 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
 
     if len(traces) == 0:
         return None	# No hits had enough alignment atoms.
+
+    if replace:
+        tmodels = _existing_trace_models(session, results)
+        if tmodels:
+            session.models.close(tmodels)
 
     if tube:
         surf = _create_tube_traces_model(session, traces, radius = radius,
@@ -203,6 +209,12 @@ def _tube_traces(traces, radius = 0.1, segment_subdivisions = 5, circle_subdivis
 
     return vertices, normals, triangles, (names, tstart)
 
+def _existing_trace_models(session, results):
+    from .simstruct import similar_structure_results
+    tmodels = [m for m in session.models.list(type = BackboneTraces)
+               if similar_structure_results(session, m.similar_structures_id, raise_error = False) is results]
+    return tmodels
+        
 # Allow mouse hover to identify hits
 from chimerax.core.models import Surface
 class BackboneTraces(Surface):
@@ -350,6 +362,7 @@ def register_similar_structures_traces_command(logger):
                    ('segment_subdivisions', IntArg),
                    ('circle_subdivisions', IntArg),
                    ('from_set', StringArg),
+                   ('replace', BoolArg),
                    ],
         synopsis = 'Show backbone traces of similar structures aligned to query structure.'
     )
