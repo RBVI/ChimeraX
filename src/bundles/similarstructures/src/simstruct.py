@@ -59,6 +59,13 @@ class SimilarStructures:
         self._alignment_coordinates = None
         self._lddt_score_array = None
 
+    def named_hits(self, hit_names):
+        if hit_names is None:
+            return self.hits
+        names = set(hit_names)
+        hits = [hit for hit in self.hits if hit['database_full_id'] in names]
+        return hits
+        
     def replace_hits(self, hits):
         self.hits = hits
         self._clear_cached_values()

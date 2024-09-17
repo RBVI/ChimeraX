@@ -156,6 +156,11 @@ class SimilarStructuresPanel(ToolInstance):
         self._alignment_cutoff_distance = acd = pd.values[0]
         self.set_alignment_cutoff_option(alignment_cutoff_distance)
         acd.return_pressed.connect(self._alignment_cutoff_distance_changed)
+
+        # For pruning aligned residues when opening hits and aligning them to query chain
+        sr = EntriesRow(f, 'Ligands for selected rows only', False)
+        self._selected_rows_only = sr.values[0]
+
         return p
 
     # ---------------------------------------------------------------------------
@@ -346,16 +351,28 @@ class SimilarStructuresPanel(ToolInstance):
         if len(pdb_hits) == 0:
             self.session.logger.error('Only search results from the Protein Databank have ligands')
             return
-
         nhits = len(pdb_hits)
-        message = f'This will fetch {nhits} PDB structures and align their ligands to the query structure.  It may take several minutes to fetch those structures during which ChimeraX will be frozen.  Do you want to proceed?'
-        from chimerax.ui.ask import ask
-        answer = ask(self.session, message, title='Fetch similar structure ligands')
-        if answer == 'no':
-            return
-        
+
+        if self._selected_rows_only.enabled:
+            hit_names = [hit_row.hit['database_full_id'] for hit_row in self._results_table.selected]
+            if len(hit_names) == 0:
+                self.session.logger.error('No table rows selected')
+                return
+            hits_option = ' of ' + ','.join(hit_names)
+            nhits = len(hit_names)
+        else:
+            hits_option = ''
+
+        if nhits > 10:
+            message = f'This will fetch {nhits} PDB structures and align their ligands to the query structure.  It may take several minutes to fetch those structures during which ChimeraX will be frozen.  Do you want to proceed?'
+            from chimerax.ui.ask import ask
+            answer = ask(self.session, message, title='Fetch similar structure ligands')
+            if answer == 'no':
+                return
+
+        cmd = 'similarstructures ligands' + self._from_set_option() + hits_option
         from chimerax.core.commands import run
-        run(self.session, 'similarstructures ligands' + self._from_set_option())
+        run(self.session, cmd)
 
     # ---------------------------------------------------------------------------
     #

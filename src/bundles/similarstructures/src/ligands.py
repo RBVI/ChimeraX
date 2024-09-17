@@ -23,9 +23,13 @@
 # === UCSF ChimeraX Copyright ===
 
 def similar_structures_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_paired = 0.5,
-                               combine = True, from_set = None):
+                               combine = True, from_set = None, of_structures = ''):
     from .simstruct import similar_structure_results
     results = similar_structure_results(session, from_set)
+    hits = results.named_hits(of_structures.split(','))
+    if len(hits) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('No similar structures specified')
 
     query_chain = results.query_chain
     if query_chain is None:
@@ -33,17 +37,16 @@ def similar_structures_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0
         raise UserError('Cannot position Foldseek ligands without query structure')
 
     keep_structs = []
-    nhits = len(results.hits)
     nlighits = 0
     from time import time
     t0 = time()
-    for hnum, hit in enumerate(results.hits):
+    for hnum, hit in enumerate(hits):
         structures = results.open_hit(session, hit, align = False,
                                       in_file_history = False, log = False)
 
         hname = hit['database_full_id']
         telapse = _minutes_and_seconds_string(time() - t0)
-        session.logger.status(f'Finding ligands in {hname} ({hnum+1} of {nhits}, time {telapse})')
+        session.logger.status(f'Finding ligands in {hname} ({hnum+1} of {len(hits)}, time {telapse})')
 
         found_lig = False
         for si, structure in enumerate(structures):
@@ -169,6 +172,7 @@ def register_similar_structures_ligands_command(logger):
                    ('minimum_paired', FloatArg),
                    ('combine', BoolArg),
                    ('from_set', StringArg),
+                   ('of_structures', StringArg),
                    ],
         synopsis = 'Find ligands in Foldseek hits and align to query.'
     )
