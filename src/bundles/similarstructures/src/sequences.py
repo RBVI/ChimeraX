@@ -24,10 +24,10 @@
 
 def similar_structures_sequences(session, show_conserved = True, conserved_threshold = 0.5,
                                  conserved_color = (225,190,106), identity_color = (64,176,166),
-                                 lddt_coloring = False, order = 'cluster or evalue'):
+                                 lddt_coloring = False, order = 'cluster or evalue', from_set = None):
     '''Show an image of all aligned sequences from a similar structure search, one sequence per image row.'''
     from .simstruct import similar_structure_results
-    results = similar_structure_results(session)
+    results = similar_structure_results(session, from_set)
     if results is None:
         from chimerax.core.errors import UserError
         raise UserError('No similar structure results are open')
@@ -228,7 +228,7 @@ class SequencePlotPanel(ToolInstance):
     def _show_hit_in_table(self, hit):
         from .gui import similar_structures_panel
         ssp = similar_structures_panel(self.session)
-        if ssp:
+        if ssp and self._results is ssp.results:
             ssp.select_table_row(hit)
 
     # ---------------------------------------------------------------------------
@@ -445,7 +445,7 @@ def pixmap_from_rgb(rgb):
     return pixmap
     
 def register_similar_structures_sequences_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, EnumOf, Color8Arg
+    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, EnumOf, Color8Arg, StringArg
     from chimerax.atomic import ChainArg
     desc = CmdDesc(
         required = [],
@@ -454,7 +454,8 @@ def register_similar_structures_sequences_command(logger):
                    ('conserved_color', Color8Arg),
                    ('identity_color', Color8Arg),
                    ('lddt_coloring', BoolArg),
-                   ('order', EnumOf(['cluster', 'evalue', 'identity', 'lddt']))],
+                   ('order', EnumOf(['cluster', 'evalue', 'identity', 'lddt'])),
+                   ('from_set', StringArg)],
         synopsis = 'Show an image of all aligned sequences from a similar structure search, one sequence per image row.'
     )
     register('similarstructures sequences', desc, similar_structures_sequences, logger=logger)
