@@ -307,7 +307,7 @@ of ``mac``.
     - Directory name (no wildcard characters) relative to package
       source.  For example, because current package source is expected
       to be in folder **src**, a directory **extradir** in the
-      same folder is referenced as ``extradir``, not ``src/extrafile``.
+      same folder is referenced as ``extradir``, not ``src/extradir``.
       All files and subdirectories in the specified directory are
       included in the bundle.
 
