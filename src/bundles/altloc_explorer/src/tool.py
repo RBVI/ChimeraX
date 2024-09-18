@@ -52,12 +52,6 @@ class AltlocExplorerTool(ToolInstance):
         self._altlocs_layout.addWidget(self._no_structure_label)
         side_layout = QVBoxLayout()
         widgets_layout.addLayout(side_layout)
-        self._all_widget = QWidget()
-        side_layout.addWidget(self._all_widget, alignment=Qt.AlignCenter)
-        self._all_layout = QHBoxLayout()
-        self._all_layout.setSpacing(2)
-        self._all_widget.setLayout(self._all_layout)
-        self._all_layout.addWidget(QLabel("Set all to: "), alignment=Qt.AlignRight)
         from chimerax.ui.options import OptionsPanel, BooleanOption
         panel = OptionsPanel(scrolled=False)
         side_layout.addWidget(panel, alignment=Qt.AlignHCenter|Qt.AlignBottom)
@@ -97,21 +91,28 @@ class AltlocExplorerTool(ToolInstance):
         if hide:
             self.hbond_params_window.shown = False
 
-    def _atomic_changes(self, trig_name, trig_data):
+    def _atomic_changes(self, trig_name, struct_trig_data):
+        struct, trig_data = struct_trig_data
+        if trig_data.num_deleted_residues() > 0:
+            for r in self._button_lookup.keys():
+                if r.deleted:
+                    self._structure_change()
+                    return
         if "alt_loc changed" in trig_data.atom_reasons():
             all_loc = None
             if self._structure_widget:
-                for i in range(1, self._all_layout.count()):
+                for i in range(self._all_layout.count()):
                     but = self._all_layout.itemAt(i).widget()
                     if but.isChecked():
                         all_loc = but.text()
+                        break
             changed_residues = set()
             for r, but_map in self._button_lookup.items():
                 r_al = r.alt_loc
                 if r_al != all_loc and all_loc in but_map:
                     all_loc = None
                     # to uncheck all buttons, have to turn auto-exclusvity off tempoarily
-                    for i in range(1, self._all_layout.count()):
+                    for i in range(self._all_layout.count()):
                         but = self._all_layout.itemAt(i).widget()
                         but.setAutoExclusive(False)
                         but.setChecked(False)
@@ -149,6 +150,17 @@ class AltlocExplorerTool(ToolInstance):
         alt_loc_rs = [r for r in structure.residues if r.alt_locs]
         col_offset = 0
         letters = set()
+        from math import sqrt, ceil
+        needed_rows = len(alt_loc_rs) + 2
+        num_columns = max(1, round(sqrt((len(alt_loc_rs)+2)/5)))
+        # divide such that all but the last column have the same number of entries,
+        # and the last column has the same or fewer than the earlier columns
+        rows_per_column = ceil(needed_rows / num_columns)
+        if num_columns > 1:
+            for rpc in range(rows_per_column-1, 1, -1):
+                last = needed_rows - rpc * num_columns
+                if last <= rpc:
+                    rows_per_column = rpc
         for r in alt_loc_rs:
             row = next(rows)
             button = QPushButton(r.string(omit_structure=True))
@@ -170,18 +182,30 @@ class AltlocExplorerTool(ToolInstance):
                     and self._apply_hb_params(residues=[r]))
                 button_group.addButton(but)
                 but_layout.addWidget(but, alignment=Qt.AlignCenter)
-            if row < len(alt_loc_rs)-1 and row >= int(len(alt_loc_rs)/2):
+            if row == rows_per_column-1:
                 layout.setColumnStretch(2+col_offset, 1)
                 layout.setColumnMinimumWidth(2+col_offset, 5)
                 col_offset += 3
                 rows = count()
+        row = next(rows)
+        row = next(rows)
+        if row >= rows_per_column:
+            layout.setColumnStretch(2+col_offset, 1)
+            layout.setColumnMinimumWidth(2+col_offset, 5)
+            col_offset += 3
+            row = 0
+            layout.setColumnStretch(2+col_offset, 1)
+            layout.setColumnMinimumWidth(2+col_offset, 5)
+        layout.addWidget(QLabel("Set all to: "), row, 0 + col_offset, alignment=Qt.AlignRight)
+        self._all_layout = QHBoxLayout()
+        layout.addLayout(self._all_layout, row, 1 + col_offset, alignment=Qt.AlignLeft)
         from chimerax.core.commands import concise_model_spec
         for let in sorted(list(letters)):
             but = QRadioButton(let)
             but.clicked.connect(lambda *args, ses=self.session, run=run, s=structure, loc=let,
                 concise=concise_model_spec:
                 run(ses, "altlocs change %s %s" % (loc, concise(ses, [s], relevant_types=s.__class__))))
-            self._all_layout.addWidget(but)
+            self._all_layout.addWidget(but, alignment=Qt.AlignCenter)
 
         if not alt_loc_rs:
             layout.addWidget(QLabel("No alternate locations in this structure"), 0, 0)
@@ -221,10 +245,6 @@ class AltlocExplorerTool(ToolInstance):
             self._changes_handler.remove()
             self._changes_handler = None
             self._button_lookup.clear()
-            while self._all_layout.count() > 1:
-                but = self._all_layout.takeAt(self._all_layout.count()-1).widget()
-                but.hide()
-                but.destroy()
 
         structure = self._structure_button.value
         if structure:
@@ -232,11 +252,9 @@ class AltlocExplorerTool(ToolInstance):
             self._structure_widget = self._make_structure_widget(structure)
             self._altlocs_layout.addWidget(self._structure_widget)
             from chimerax.atomic import get_triggers
-            self._changes_handler = get_triggers().add_handler('changes', self._atomic_changes)
+            self._changes_handler = structure.triggers.add_handler('changes', self._atomic_changes)
             self._hbonds_shown_change(self._show_hbonds_opt)
-            self._all_widget.show()
         else:
             self._no_structure_label.show()
-            self._all_widget.hide()
             self._structure_widget = None
 
