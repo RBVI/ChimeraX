@@ -53,9 +53,12 @@ def _show_umap(session, results, hits, query_residues, align_with = None, cutoff
     coord_offsets, hit_names = _aligned_coords(results, hits, query_residues,
                                                align_with = align_with, cutoff_distance = cutoff_distance)
     if len(coord_offsets) == 0:
-        session.logger.error(f'Similar structure results contains no structures with all of the specified {len(query_residues)} residues')
-        return
-
+        from chimerax.core.errors import UserError
+        raise UserError(f'Similar structure results contains no structures with all of the specified {len(query_residues)} residues')
+    if coord_offsets.shape[1] == 0:
+        from chimerax.core.errors import UserError
+        raise UserError(f'No query structure residues were specified.')
+        
     from chimerax.diffplot.diffplot import _umap_embed, _plot_embedding, _install_umap
     _install_umap(session)
     umap_xy = _umap_embed(coord_offsets)
