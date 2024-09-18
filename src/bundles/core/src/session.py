@@ -501,7 +501,7 @@ class Session:
 
     def __init__(
         self,
-        app_name,
+        app_name = "ChimeraX",
         *,
         debug=False,
         silent=False,
