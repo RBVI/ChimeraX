@@ -46,8 +46,8 @@ def similar_structures_fetch_coordinates(session, min_aligned_coords = 10, ask =
         if 'tca' in hit:
             keep_hits.append(hit)
             continue	# Already has coordinates
-        structures = resuls.open_hit(session, hit, trim = False, align = False,
-                                     in_file_history = False, log = False)
+        structures = results.open_hit(session, hit, trim = False, align = False,
+                                      in_file_history = False, log = False)
         
         hit_chain = structure_chain_with_id(structures[0], hit.get('chain_id'))
         catoms = hit_chain.existing_residues.find_existing_atoms('CA')
