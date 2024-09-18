@@ -267,6 +267,13 @@ class SequencePlotPanel(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _show_lddt(self, show = True):
+        if show:
+            r = self._results
+            if not r.have_c_alpha_coordinates():
+                from .coords import similar_structures_fetch_coordinates
+                if not similar_structures_fetch_coordinates(self.session, ask = True, from_set = r.name):
+                    return
+
         self._color_by_lddt = show
         if show:
             self._show_conserved = False
