@@ -37,6 +37,7 @@ debugging_scripts
 #
 errs*
 build
+!utils/build
 pip.log
 prebuilt*.bz2
 ChimeraX.app
@@ -56,6 +57,8 @@ venv
 .virtualenv
 .makerc
 .idea
+# Test data that gets fetched from Plato
+src/bundles/*/tests/data
 # Fetched tarballs and dylibs for M1 port
 prereqs/pips/imagecodecs*.whl
 prereqs/pips/netCDF4*.whl
@@ -133,6 +136,8 @@ prereqs/ambertools/Ambertools*.tar.bz2
 prereqs/ambertools/AmberTools*.tar.bz2
 prereqs/chrpath/*.tar.gz
 prereqs/cxservices/cxservices-*.whl
+prereqs/pips/cxservices-*.whl
+prereqs/pips/grako-*.whl
 prereqs/ffmpeg/ffmpeg-*.tar.bz2
 prereqs/ffmpeg/libogg-*.tar.xz
 prereqs/ffmpeg/libtheora-*.tar.xz

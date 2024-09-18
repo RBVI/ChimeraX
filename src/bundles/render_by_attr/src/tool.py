@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -32,6 +32,7 @@ class RenderByAttrTool(ToolInstance):
         self.display_name = "Render/Select by Attribute"
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, statusbar=True)
+        tw.fill_context_menu = self.fill_context_menu
         parent = tw.ui_area
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QDialogButtonBox, QPushButton, QMenu, QLabel
         from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox, QLineEdit, QStackedWidget, QListWidget
@@ -329,6 +330,8 @@ class RenderByAttrTool(ToolInstance):
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        self.save_file_button = bbox.addButton("Save File...", qbbox.ActionRole)
+        bbox.clicked.connect(self._button_clicked)
         bbox.accepted.connect(self._dispatch)
         bbox.button(qbbox.Apply).clicked.connect(lambda: self._dispatch(apply=True))
         bbox.rejected.connect(self.delete)
@@ -340,6 +343,24 @@ class RenderByAttrTool(ToolInstance):
         overall_layout.addWidget(bbox)
 
         tw.manage(placement=None)
+
+    def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        scaling_menu = menu.addMenu("Histogram Scaling")
+        def set_histograms(linear):
+            for h in [self.render_histogram, self.select_histogram]:
+                h.scaling = "linear" if linear else "logarithmic"
+        linear = self.select_histogram.scaling == "linear"
+        action = QAction("Linear", scaling_menu)
+        action.setCheckable(True)
+        action.setChecked(linear)
+        action.triggered.connect(lambda *args, action=action: set_histograms(action.isChecked()))
+        scaling_menu.addAction(action)
+        action = QAction("Logarithmic", scaling_menu)
+        action.setCheckable(True)
+        action.setChecked(not linear)
+        action.triggered.connect(lambda *args, action=action: set_histograms(not action.isChecked()))
+        scaling_menu.addAction(action)
 
     def render(self, *, apply=False):
         models = self.model_list.value
@@ -444,6 +465,12 @@ class RenderByAttrTool(ToolInstance):
         return [attr_name for attr_name in attr_mgr.attributes_returning(
             attr_info.class_object, types, none_okay=True) if not attr_info.hide_attr(
             attr_name, self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render")]
+
+    def _button_clicked(self, button):
+        if button == self.save_file_button:
+            fmt = self.session.data_formats.save_format_from_suffix(".defattr")
+            from chimerax.save_command import show_save_file_dialog as show_dialog
+            show_dialog(self.session, format=fmt.name)
 
     def _create_key(self):
         from chimerax.core.colors import Colormap, Color

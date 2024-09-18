@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -70,7 +70,7 @@ PSEUDO_PYRIMIDINE = 'pseudo-pyrimidine'
 # From "A Standard Reference Frame for the Description of Nucleic Acid
 # Base-pair Geometry", Olsen et. al., J. Mol. Biol. (2001) V. 313, pp.
 # 229-237.  A preliminary version is available for free at
-# <http://ndbserver.rutgers.edu/ndbmodule/archives/reports/tsukuba/tsukuba.pdf>.
+# <https://ndbserver.rutgers.edu/ndbmodule/archives/reports/tsukuba/tsukuba.pdf>.
 # DOI: 10.1006/jmbi.2001.4987
 _purine_C2_index = _full_purine.index("C2")
 _pyrimidine_C2_index = _pyrimidine.index("C2")

@@ -28,11 +28,20 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
       - run: MAKEOPTS="-j$(nproc)" make -j$(nproc) build-minimal
-      - run: make test
+      - name: Run the legacy test suite
+        run: make test
       - name: Install Pytest
         run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
-      - name: Run Pytest
-        run: make pytest-with-coverage
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage
   build-and-test-rocky8-docker:
     needs:
       [rebuild-changed-prereqs, rebuild-changed-bundles, rebuild-changed-apps]
@@ -51,11 +60,20 @@ jobs:
       - run: chown -R $(id -u):$(id -g) $PWD
       - run: ${PWD}/utils/set_up_centos.sh
       - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos build-minimal
-      - run: make test
+      - name: Run the legacy test suite
+        run: make test
       - name: Install Pytest
         run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
-      - name: Run Pytest
-        run: make pytest-with-coverage
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage
   build-and-test-macos:
     needs:
       [rebuild-changed-prereqs, rebuild-changed-bundles, rebuild-changed-apps]
@@ -67,11 +85,31 @@ jobs:
       - uses: actions/checkout@v4
       - run: ${PWD}/utils/set_up_macos.sh
       - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) build-minimal
-      - run: make test
+      - name: Run the legacy test suite
+        run: make test
       - name: Install Pytest
         run: ./ChimeraX.app/Contents/bin/python3.11 -I -m pip install pytest pytest-cov
-      - name: Run Pytest
-        run: make pytest-with-coverage
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage
+      - name: Sign the macOS package
+        uses: ./utils/ci/sign_macos/
+        with:
+          build_certificate: ${{ secrets.MAC_CERT_BASE64 }}
+          p12_pw: ${{ secrets.MAC_CERT_P12_PASSWD }}
+          build_profile: ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }}
+          kc_pw: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
+          team_id: ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
+          app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
+          provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
+          email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
   build-and-test-windows:
     needs:
       [rebuild-changed-prereqs, rebuild-changed-bundles, rebuild-changed-apps]
@@ -86,9 +124,18 @@ jobs:
           msystem: MINGW64
           update: true
           install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
-      - run: GITHUB_ACTIONS_CI=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) build-minimal
-      - run: GITHUB_ACTIONS_CI=1 . ./vsvars.sh && make test
+      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) build-minimal
+      - name: Run the legacy test suite
+        run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test
       - name: Install Pytest
         run: ./ChimeraX.app/bin/python.exe -I -m pip install pytest pytest-cov
-      - name: Run Pytest
-        run: make pytest-with-coverage
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage

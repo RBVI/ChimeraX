@@ -66,6 +66,8 @@ jobs:
       - run: make venv
       - name: Run Pytest
         run: source .venv/bin/activate && python3 -m pip install pytest && pytest
+      - name: Sign the macOS package
+        uses: ./utils/ci/sign_macos
   build-and-test-windows:
     needs:
       [rebuild-changed-prereqs, rebuild-changed-bundles, rebuild-changed-apps]

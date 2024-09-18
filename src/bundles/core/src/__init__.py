@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -31,19 +31,81 @@ from .buildinfo import version
 
 __version__ = version
 
+
+def get_minimal_test_session():
+    """Experimental API"""
+    # Highly experimental API that sets up a minimal test session. This code is
+    # here because we cannot ship our internal conftest.py with ChimeraX. Users would
+    # have to figure out how to set up their own test sessions, which would inevitably
+    # involve copying our conftest.py and never updating it again. So that code lives
+    # here now, where everyone can get updates.
+    import warnings
+    from chimerax.core.__main__ import _set_app_dirs
+    from chimerax.core import version
+    from chimerax.core.session import Session, register_misc_commands
+    from chimerax.core import core_settings
+    from chimerax.core import toolshed
+    from chimerax.atomic import initialize_atomic
+    from chimerax.dist_monitor import _DistMonitorBundleAPI
+    from chimerax.core.session import register_misc_commands
+
+    warnings.warn(
+        "This function is not intended for use in the ChimeraX library. It is for testing ChimeraX modules and bundles. If and only if you are, as intended, calling it in your test harness, catch and ignore this warning. We will close without investigation tickets that are reported if this session is being used."
+    )
+
+    _set_app_dirs(version)
+    session = Session(minimal=False)
+    session.ui.is_gui = False
+    core_settings.init(session)
+    register_misc_commands(session)
+
+    from chimerax.core import attributes
+
+    from chimerax.core.nogui import NoGuiLog
+
+    session.logger.add_log(NoGuiLog())
+
+    attributes.RegAttrManager(session)
+
+    toolshed.init(
+        session.logger,
+        debug=session.debug,
+        check_available=False,
+        remote_url=toolshed.default_toolshed_url(),
+        session=session,
+    )
+
+    session.toolshed = toolshed.get_toolshed()
+
+    session.toolshed.bootstrap_bundles(session, safe_mode=False)
+    from chimerax.core import tools
+
+    session.tools = tools.Tools(session, first=True)
+    from chimerax.core import undo
+
+    session.undo = undo.Undo(session, first=True)
+    return session
+
+
+def runtime_env_is_chimerax_app():
+    import chimerax
+
+    return hasattr(chimerax, "app_dirs")
+
+
 import os
 
 
-def path_to_src() -> str:
+def _path_to_src() -> str:
     return os.path.dirname(__file__)
 
 
 def get_lib() -> str:
-    return os.path.join(path_to_src(), "lib")
+    return os.path.join(_path_to_src(), "lib")
 
 
 def get_include() -> str:
-    return os.path.join(path_to_src(), "include")
+    return os.path.join(_path_to_src(), "include")
 
 
 from .toolshed import BundleAPI
