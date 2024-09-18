@@ -67,10 +67,10 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
         else:
             from numpy import array
             mask = array([(i in ai) for i in qi], bool)
-            if mask.sum() < 3:
-                continue	# Not enough atoms to align.
             ahxyz = hxyz[mask,:]
             aqxyz = qxyz[mask,:]
+        if len(ahxyz) < 3:
+                continue	# Not enough atoms to align.
         p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=cutoff_distance)
         hxyz_aligned = p.transform_points(hxyz)
         fragments = _distant_c_alpha_fragments(hxyz_aligned)

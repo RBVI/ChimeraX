@@ -123,10 +123,10 @@ def _aligned_coords(results, hits, query_residues, align_with = None, cutoff_dis
         else:
             from numpy import array
             mask = array([(i in ai) for i in qi], bool)
-            if mask.sum() < 3:
-                continue	# Not enough atoms to align.
             ahxyz = hxyz[mask,:]
             aqxyz = qxyz[mask,:]
+        if len(ahxyz) < 3:
+                continue	# Not enough atoms to align.
         p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=cutoff_distance)
         hxyz_aligned = p.transform_points(hit_xyz[hri])
         hxyz_offset = (hxyz_aligned - qres_xyz).flat
