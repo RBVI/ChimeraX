@@ -53,9 +53,12 @@ def _show_umap(session, results, hits, query_residues, align_with = None, cutoff
     coord_offsets, hit_names = _aligned_coords(results, hits, query_residues,
                                                align_with = align_with, cutoff_distance = cutoff_distance)
     if len(coord_offsets) == 0:
-        session.logger.error(f'Similar structure results contains no structures with all of the specified {len(query_residues)} residues')
-        return
-
+        from chimerax.core.errors import UserError
+        raise UserError(f'Similar structure results contains no structures with all of the specified {len(query_residues)} residues')
+    if coord_offsets.shape[1] == 0:
+        from chimerax.core.errors import UserError
+        raise UserError(f'No query structure residues were specified.')
+        
     from chimerax.diffplot.diffplot import _umap_embed, _plot_embedding, _install_umap
     _install_umap(session)
     umap_xy = _umap_embed(coord_offsets)
@@ -123,10 +126,10 @@ def _aligned_coords(results, hits, query_residues, align_with = None, cutoff_dis
         else:
             from numpy import array
             mask = array([(i in ai) for i in qi], bool)
-            if mask.sum() < 3:
-                continue	# Not enough atoms to align.
             ahxyz = hxyz[mask,:]
             aqxyz = qxyz[mask,:]
+        if len(ahxyz) < 3:
+                continue	# Not enough atoms to align.
         p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=cutoff_distance)
         hxyz_aligned = p.transform_points(hit_xyz[hri])
         hxyz_offset = (hxyz_aligned - qres_xyz).flat

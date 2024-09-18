@@ -935,7 +935,7 @@ def _hit_sequence_to_coordinate_index(hit):
     '''Return dictionary mapping hit sequence indices (0-based) to coordinate indices (0-based).'''
     hit_coord_to_seq_index = hit.get('tca_index')  # Array mapping coordinate index to full sequence index
     if hit_coord_to_seq_index is None:
-        return None, None
+        return None
     hit_seq_to_coord_index = {fi:ci for ci, fi in enumerate(hit_coord_to_seq_index)}
     return hit_seq_to_coord_index
 
