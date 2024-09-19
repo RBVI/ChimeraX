@@ -93,9 +93,16 @@ class AltlocExplorerTool(ToolInstance):
 
     def _atomic_changes(self, trig_name, struct_trig_data):
         struct, trig_data = struct_trig_data
-        if trig_data.num_deleted_residues() > 0:
+        if trig_data.num_deleted_atoms() > 0:
             for r in self._button_lookup.keys():
                 if r.deleted:
+                    self._structure_change()
+                    return
+                for a in r.atoms:
+                    if a.num_alt_locs > 1:
+                        break
+                else:
+                    # all atoms with altlocs gone
                     self._structure_change()
                     return
         if "alt_loc changed" in trig_data.atom_reasons():
