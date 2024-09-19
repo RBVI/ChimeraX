@@ -24,13 +24,15 @@
 
 def similar_structures_cluster(session, query_residues = None, align_with = None, cutoff_distance = 2.0,
                                cluster_count = None, cluster_distance = None, replace = True,
-                               from_set = None):
+                               from_set = None, of_structures = None):
     from .simstruct import similar_structure_results
     results = similar_structure_results(session, from_set)
+    hits = results.named_hits(of_structures)
 
     if not results.have_c_alpha_coordinates():
         from . import coords
-        if not coords.similar_structures_fetch_coordinates(session, ask = True, from_set = from_set):
+        if not coords.similar_structures_fetch_coordinates(session, ask = True, from_set = from_set,
+                                                           of_structures = of_structures):
             return
 
     if query_residues is None:
@@ -40,21 +42,23 @@ def similar_structures_cluster(session, query_residues = None, align_with = None
         from chimerax.core.errors import UserError
         raise UserError('Must specify at least 1 residue to compute similar structure clusters')
     
-    _show_umap(session, results, query_residues,
+    _show_umap(session, results, hits, query_residues,
                align_with = align_with, cutoff_distance = cutoff_distance,
                cluster_count = cluster_count, cluster_distance = cluster_distance,
                replace = replace)
 
-def _show_umap(session, results, query_residues, align_with = None, cutoff_distance = 2.0,
+def _show_umap(session, results, hits, query_residues, align_with = None, cutoff_distance = 2.0,
                cluster_count = None, cluster_distance = None, replace = True):
 
-    hits = results.hits
-    coord_offsets, hit_names = _aligned_coords(results, query_residues,
+    coord_offsets, hit_names = _aligned_coords(results, hits, query_residues,
                                                align_with = align_with, cutoff_distance = cutoff_distance)
     if len(coord_offsets) == 0:
-        session.logger.error(f'Similar structure results contains no structures with all of the specified {len(query_residues)} residues')
-        return
-
+        from chimerax.core.errors import UserError
+        raise UserError(f'Similar structure results contains no structures with all of the specified {len(query_residues)} residues')
+    if coord_offsets.shape[1] == 0:
+        from chimerax.core.errors import UserError
+        raise UserError(f'No query structure residues were specified.')
+        
     from chimerax.diffplot.diffplot import _umap_embed, _plot_embedding, _install_umap
     _install_umap(session)
     umap_xy = _umap_embed(coord_offsets)
@@ -91,8 +95,7 @@ def _backbone_trace_models(session, similar_structures_id):
                 if bt.similar_structures_id == similar_structures_id]
     return btmodels
 
-def _aligned_coords(results, query_residues, align_with = None, cutoff_distance = 2.0):
-    hits = results.hits
+def _aligned_coords(results, hits, query_residues, align_with = None, cutoff_distance = 2.0):
     query_chain_residues = results.query_residues
     from .simstruct import hit_coords, align_xyz_transform
     qatoms = query_chain_residues.find_existing_atoms('CA')
@@ -123,10 +126,10 @@ def _aligned_coords(results, query_residues, align_with = None, cutoff_distance 
         else:
             from numpy import array
             mask = array([(i in ai) for i in qi], bool)
-            if mask.sum() < 3:
-                continue	# Not enough atoms to align.
             ahxyz = hxyz[mask,:]
             aqxyz = qxyz[mask,:]
+        if len(ahxyz) < 3:
+                continue	# Not enough atoms to align.
         p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=cutoff_distance)
         hxyz_aligned = p.transform_points(hit_xyz[hri])
         hxyz_offset = (hxyz_aligned - qres_xyz).flat
@@ -307,7 +310,9 @@ def register_similar_structures_cluster_command(logger):
                    ('cluster_count', IntArg),
                    ('cluster_distance', FloatArg),
                    ('replace', BoolArg),
-                   ('from_set', StringArg)],
+                   ('from_set', StringArg),
+                   ('of_structures', StringArg),
+                   ],
         synopsis = 'Show umap plot of similar structure hit coordinates for specified residues.'
     )
     register('similarstructures cluster', desc, similar_structures_cluster, logger=logger)

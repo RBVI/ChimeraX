@@ -25,15 +25,17 @@
 def similar_structures_traces(session, align_with = None, cutoff_distance = None,
                               close_only = 4.0, gap_distance_limit = 10.0, min_residues = 5,
                               tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6,
-                              from_set = None):
+                              from_set = None, of_structures = None, replace = True):
     from .simstruct import similar_structure_results
     results = similar_structure_results(session, from_set)
+    hits = results.named_hits(of_structures)
 
     if not results.have_c_alpha_coordinates():
         from . import coords
-        if not coords.similar_structures_fetch_coordinates(session, ask = True, from_set = from_set):
+        if not coords.similar_structures_fetch_coordinates(session, ask = True, from_set = from_set,
+                                                           of_structures = of_structures):
             return
-    
+
     if cutoff_distance is None:
         cutoff_distance = results.alignment_cutoff_distance
 
@@ -42,6 +44,7 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
     if qchain is None:
         from chimerax.core.errors import UserError
         raise UserError('Cannot position traces without query structure')
+
     qres = results.query_residues
     qatoms = qres.find_existing_atoms('CA')
     query_xyz = qatoms.coords
@@ -54,7 +57,7 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
 
     traces = []
     rtot = rshown = 0
-    for hit in results.hits:
+    for hit in hits:
         hit_xyz = hit_coords(hit)
         hi, qi = results.hit_residue_pairing(hit)
         hxyz = hit_xyz[hi]
@@ -64,10 +67,10 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
         else:
             from numpy import array
             mask = array([(i in ai) for i in qi], bool)
-            if mask.sum() < 3:
-                continue	# Not enough atoms to align.
             ahxyz = hxyz[mask,:]
             aqxyz = qxyz[mask,:]
+        if len(ahxyz) < 3:
+                continue	# Not enough atoms to align.
         p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=cutoff_distance)
         hxyz_aligned = p.transform_points(hxyz)
         fragments = _distant_c_alpha_fragments(hxyz_aligned)
@@ -91,6 +94,12 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
     if len(traces) == 0:
         return None	# No hits had enough alignment atoms.
 
+    hit_names = [hit['database_full_id'] for hit in hits]
+    if replace:
+        tmodels = _existing_trace_models(session, results, hit_names)
+        if tmodels:
+            session.models.close(tmodels)
+
     if tube:
         surf = _create_tube_traces_model(session, traces, radius = radius,
                                          segment_subdivisions = segment_subdivisions,
@@ -99,6 +108,7 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
     else:
         surf = _create_line_traces_model(session, traces, results.name)
 
+    surf.hit_names = hit_names
     surf.position = qchain.structure.scene_position
     session.models.add([surf])
     msg = f'{surf.trace_count} traces showing {rshown} residues with {rtot-rshown} far or short segment residues hidden'
@@ -203,6 +213,12 @@ def _tube_traces(traces, radius = 0.1, segment_subdivisions = 5, circle_subdivis
 
     return vertices, normals, triangles, (names, tstart)
 
+def _existing_trace_models(session, results, hit_names):
+    from .simstruct import similar_structure_results
+    tmodels = [m for m in session.models.list(type = BackboneTraces)
+               if similar_structure_results(session, m.similar_structures_id, raise_error = False) is results and m.hit_names == hit_names]
+    return tmodels
+        
 # Allow mouse hover to identify hits
 from chimerax.core.models import Surface
 class BackboneTraces(Surface):
@@ -350,6 +366,8 @@ def register_similar_structures_traces_command(logger):
                    ('segment_subdivisions', IntArg),
                    ('circle_subdivisions', IntArg),
                    ('from_set', StringArg),
+                   ('of_structures', StringArg),
+                   ('replace', BoolArg),
                    ],
         synopsis = 'Show backbone traces of similar structures aligned to query structure.'
     )

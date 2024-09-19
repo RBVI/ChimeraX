@@ -23,12 +23,13 @@
 # === UCSF ChimeraX Copyright ===
 
 def similar_structures_fetch_coordinates(session, min_aligned_coords = 10, ask = False, rewrite_sms_file = True,
-                                         from_set = None):
+                                         from_set = None, of_structures = None):
 
     from .simstruct import similar_structure_results
     results = similar_structure_results(session, from_set)
+    hits = results.named_hits(of_structures)
 
-    nhits = len(results.hits)
+    nhits = len(hits)
     if ask and session.ui.is_gui:
         message = f'Do you want to fetch coordinates for {nhits} structures?  It may take several minutes during which ChimeraX will be frozen.'
         from chimerax.ui.ask import ask
@@ -41,12 +42,12 @@ def similar_structures_fetch_coordinates(session, min_aligned_coords = 10, ask =
     from time import time
     t0 = time()
     from .simstruct import structure_chain_with_id
-    for hnum, hit in enumerate(results.hits):
+    for hnum, hit in enumerate(hits):
         if 'tca' in hit:
             keep_hits.append(hit)
             continue	# Already has coordinates
-        structures = resuls.open_hit(session, hit, trim = False, align = False,
-                                     in_file_history = False, log = False)
+        structures = results.open_hit(session, hit, trim = False, align = False,
+                                      in_file_history = False, log = False)
         
         hit_chain = structure_chain_with_id(structures[0], hit.get('chain_id'))
         catoms = hit_chain.existing_residues.find_existing_atoms('CA')
@@ -63,7 +64,7 @@ def similar_structures_fetch_coordinates(session, min_aligned_coords = 10, ask =
         telapse = _minutes_and_seconds_string(time() - t0)
         session.logger.status(f'Finding coordinates for {hname} ({hnum+1} of {nhits}, time {telapse})')
 
-    nremove = len(results.hits) - len(keep_hits)
+    nremove = len(hits) - len(keep_hits)
     if nremove:
         # TODO: The call to replace hits needs to update the GUI table.
         results.replace_hits(keep_hits)
@@ -90,7 +91,9 @@ def register_fetchcoords_command(logger):
     from chimerax.core.commands import CmdDesc, register, IntArg, StringArg
     desc = CmdDesc(
         keyword = [('min_aligned_coords', IntArg),
-                   ('from_set', StringArg)],
+                   ('from_set', StringArg),
+                   ('of_structures', StringArg),
+                   ],
         synopsis = 'Fetch structures and get C-alpha coordinates for clustering and backbone trace display.'
     )
     register('similarstructures fetchcoords', desc, similar_structures_fetch_coordinates, logger=logger)
