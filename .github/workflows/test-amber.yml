@@ -1,8 +1,8 @@
 name: Rebuild on change
 
 on:
-	push:
-		branch:  feature/ambertools
+  push:
+    branches: [feature/ambertools]
 
 jobs:
   rebuild-changed-prereqs:
