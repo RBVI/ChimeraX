@@ -308,8 +308,8 @@ was ::
 Then your TOML would include: ::
 
   [chimerax.extra-files]
-  "src/docs/user/commands" = ["docs/commands/\*"]
-  "src/docs/user/tools" = ["docs/tools/\*"]
+  "src/docs/user/commands" = ["docs/commands/*"]
+  "src/docs/user/tools" = ["docs/tools/*"]
 
 Cleaning Up ChimeraX Bundle Source Folders
 ------------------------------------------
