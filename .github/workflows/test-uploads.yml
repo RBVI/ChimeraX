@@ -1,7 +1,7 @@
-name: Nightly Build
+name: Test uploading artifacts to Plato
 on:
-  schedule:
-    - cron: "30 10 * * *" # 2:30AM PT/10:30AM UTC
+  push:
+    branches: [upload-artifacts]
 
 jobs:
   build-ubuntu:
@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
-      - run: MAKEOPTS="-j$(nproc)" make -j$(nproc) install
+      - run: MAKEOPTS="-j$(nproc)" make -j$(nproc) build-minimal
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
@@ -45,7 +45,7 @@ jobs:
       # buildinfo.py breaks without this
       - run: chown -R $(id -u):$(id -g) $PWD
       - run: ${PWD}/utils/set_up_centos.sh
-      - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos install
+      - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos build-minimal
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
@@ -68,7 +68,7 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@master
       - uses: actions/checkout@v4
       - run: ${PWD}/utils/set_up_macos.sh
-      - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) install
+      - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) build-minimal
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
@@ -94,6 +94,15 @@ jobs:
           app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
           provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
           email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
+      - name: Upload ChimeraX
+        uses: ./utils/ci/upload_artifact
+        with:
+          artifact_path: ChimeraX.dmg
+          full_build: true
+          release_type: github-techpreview
+          platform: mac_arm64
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+
   build-windows:
     runs-on: windows-latest
     defaults:
@@ -106,7 +115,7 @@ jobs:
           msystem: MINGW64
           update: true
           install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
-      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) install
+      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) build-minimal
       - name: Run the legacy test suite
         run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test
       - name: Install Pytest
