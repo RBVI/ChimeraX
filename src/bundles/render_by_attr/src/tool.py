@@ -109,7 +109,7 @@ class RenderByAttrTool(ToolInstance):
         self.render_color_markers = rh.add_markers(activate=True, coord_type='relative',
             move_callback=self._render_marker_moved,
             color_change_callback=lambda mrk, cb=self._update_palettes: cb())
-        self.render_color_markers.extend([((0.0, 0.0), "red"), ((0.5, 0.0), "white"), ((1.0, 0.0), "blue")])
+        self.render_color_markers.extend([((0.0, 0.0), "blue"), ((0.5, 0.0), "white"), ((1.0, 0.0), "red")])
         self.render_color_markers.add_del_callback = lambda mrk=None, cb=self._update_palettes: cb()
         self.render_markers[self.RENDER_COLORS] = self.render_color_markers
         color_render_tab = QWidget()
