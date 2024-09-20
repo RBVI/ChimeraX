@@ -280,7 +280,8 @@ Bundle Documentation
 
 Your bundle's documentation can be found and shown by ChimeraX's
 help tool. The help tool will look for documentation in
-``docs/user/commands`` and ``docs/user/tools``.
+``docs/user/commands/COMMANDNAME.html`` and
+``docs/user/tools/TOOLNAME.html``.
 
 You can store your documentation in your bundle's ``src`` tree, or
 next to it as long as you use the appropriate ``ExtraDir`` (XML)
