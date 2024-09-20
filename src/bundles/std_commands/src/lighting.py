@@ -131,10 +131,8 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     ms_directions = lighting_settings(session).lighting_multishadow_directions
     sil = v.silhouette
     if preset == 'default' or preset == 'simple':
-        lp.shadows = False
-        lp.multishadow = 0
-        sil.depth_jump = 0.03
         lp.set_default_parameters(v.background_color)
+        sil.depth_jump = 0.03
     elif preset == 'full':
         lp.shadows = True
         lp.multishadow = ms_directions

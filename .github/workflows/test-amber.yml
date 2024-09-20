@@ -1,10 +1,24 @@
-name: Nightly Build
+name: Rebuild on change
+
 on:
-  schedule:
-    - cron: "30 10 * * *" # 2:30AM PT/10:30AM UTC
+  push:
+    branches: [feature/ambertools]
 
 jobs:
-  build-ubuntu:
+  rebuild-changed-prereqs:
+    name: Rebuild changed prereqs
+    uses: ./.github/workflows/prereqs.yml
+  rebuild-changed-bundles:
+    needs: rebuild-changed-prereqs
+    name: Rebuild changed bundles
+    uses: ./.github/workflows/bundle-changes.yml
+  rebuild-changed-apps:
+    needs: rebuild-changed-prereqs
+    name: Rebuild changed apps
+    uses: ./.github/workflows/srcapps.yml
+  build-and-test-ubuntu:
+    needs:
+      [rebuild-changed-prereqs, rebuild-changed-bundles, rebuild-changed-apps]
     name: Build ChimeraX
     strategy:
       matrix:
@@ -30,7 +44,9 @@ jobs:
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
-  build-rocky8-docker:
+  build-and-test-rocky8-docker:
+    needs:
+      [rebuild-changed-prereqs, rebuild-changed-bundles, rebuild-changed-apps]
     runs-on: ubuntu-20.04
     container:
       image: rockylinux:8
@@ -60,7 +76,9 @@ jobs:
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
-  build-macos:
+  build-and-test-macos:
+    needs:
+      [rebuild-changed-prereqs, rebuild-changed-bundles, rebuild-changed-apps]
     runs-on: macos-latest
     steps:
       - name: Set up Homebrew
@@ -83,18 +101,9 @@ jobs:
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
-      - name: Sign the macOS package
-        uses: ./utils/ci/sign_macos/
-        with:
-          build_certificate: ${{ secrets.MAC_CERT_BASE64 }}
-          p12_pw: ${{ secrets.MAC_CERT_P12_PASSWD }}
-          build_profile: ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }}
-          kc_pw: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
-          team_id: ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
-          app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
-          provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
-          email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
-  build-windows:
+  build-and-test-windows:
+    needs:
+      [rebuild-changed-prereqs, rebuild-changed-bundles, rebuild-changed-apps]
     runs-on: windows-latest
     defaults:
       run:
