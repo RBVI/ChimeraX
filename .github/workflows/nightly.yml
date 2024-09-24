@@ -8,7 +8,7 @@ jobs:
     name: Build ChimeraX
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04]
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
     env:
       PYOPENGL_PLATFORM: egl
     runs-on: ${{ matrix.os }}
@@ -30,6 +30,17 @@ jobs:
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
+      - name: Make the package
+        run: make -f Makefile.ubuntu github-techpreview-package
+      - run: mv ${{ matrix.os }}/ucsf-chimerax-*.deb ./chimerax.deb
+      - name: Upload ChimeraX
+        uses: ./utils/ci/upload_artifact
+        with:
+          artifact_path: chimerax.deb
+          full_build: true
+          release_type: github-techpreview
+          platform: ${{ matrix.os }}
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
   build-rocky8-docker:
     runs-on: ubuntu-20.04
     container:
@@ -94,6 +105,14 @@ jobs:
           app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
           provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
           email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
+      - name: Upload ChimeraX
+        uses: ./utils/ci/upload_artifact
+        with:
+          artifact_path: ChimeraX.dmg
+          full_build: true
+          release_type: github-techpreview
+          platform: mac_arm64
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
   build-windows:
     runs-on: windows-latest
     defaults:
