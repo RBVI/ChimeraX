@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -575,9 +575,9 @@ def _get_formatted_metadata(model, session, *, verbose=False):
     if 'TITL' in cite:
         cite_text = process_chem_name(cite['TITL'], sentences=True)
         if 'DOI' in cite:
-            cite_text = '<a href="http://dx.doi.org/%s">%s</a>' % (cite['DOI'], cite_text)
+            cite_text = '<a href="https://dx.doi.org/%s">%s</a>' % (cite['DOI'], cite_text)
         if 'PMID' in cite:
-            cite_text += ' PMID: <a href="http://www.ncbi.nlm.nih.gov/pubmed/%s">%s</a>' % (
+            cite_text += ' PMID: <a href="https://www.ncbi.nlm.nih.gov/pubmed/%s">%s</a>' % (
                 cite['PMID'], cite['PMID'])
         html += '  <tr>\n'
         html += '   <th>Citation</th>\n'

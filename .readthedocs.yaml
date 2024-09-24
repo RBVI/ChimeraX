@@ -54,7 +54,7 @@ build:
       - mv docs/devel .
       - rm -rf docs
       - mv devel docs
-      - DEV_DOCS_IN_ROOT=1 ./utils/doc_symlinks.sh
+      - DEV_DOCS_IN_ROOT=1 ./utils/build/doc_symlinks.sh
 
 sphinx:
   builder: "html"

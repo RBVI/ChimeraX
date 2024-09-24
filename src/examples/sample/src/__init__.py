@@ -53,7 +53,7 @@ class _MyAPI(BundleAPI):
         # argument or by testing the 'mgr' argument against
         # session.open_command or session.fetch_command.  See
         # the developer tutorial here: 
-        #   http://www.cgl.ucsf.edu/chimerax/docs/devel/tutorials/introduction.html#writing-bundles-in-seven-easy-steps
+        #   https://www.cgl.ucsf.edu/chimerax/docs/devel/tutorials/introduction.html#writing-bundles-in-seven-easy-steps
         # for more info
         from chimerax.open_command import OpenerInfo
         class XyzOpenerInfo(OpenerInfo):

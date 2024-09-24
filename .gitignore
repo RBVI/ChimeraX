@@ -37,6 +37,7 @@ debugging_scripts
 #
 errs*
 build
+!utils/build
 pip.log
 prebuilt*.bz2
 ChimeraX.app

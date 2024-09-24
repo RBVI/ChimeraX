@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -70,7 +70,7 @@ PSEUDO_PYRIMIDINE = 'pseudo-pyrimidine'
 # From "A Standard Reference Frame for the Description of Nucleic Acid
 # Base-pair Geometry", Olsen et. al., J. Mol. Biol. (2001) V. 313, pp.
 # 229-237.  A preliminary version is available for free at
-# <http://ndbserver.rutgers.edu/ndbmodule/archives/reports/tsukuba/tsukuba.pdf>.
+# <https://ndbserver.rutgers.edu/ndbmodule/archives/reports/tsukuba/tsukuba.pdf>.
 # DOI: 10.1006/jmbi.2001.4987
 _purine_C2_index = _full_purine.index("C2")
 _pyrimidine_C2_index = _pyrimidine.index("C2")
@@ -681,7 +681,7 @@ def _rebuild_molecule(trigger_name, mol):
     residues = sides['orient']
     if residues:
         for r in residues:
-            shapes = draw_orientation(nd, r)
+            shapes = draw_orientation(nd, r, nuc_info[r]['name'])
             all_shapes.extend(shapes)
     hide_riboses = Residues(hide_riboses)
     hide_bases = Residues(hide_bases)
@@ -876,7 +876,7 @@ def bonds_between(atoms):
     return bonds
 
 
-def orient_planar_ring(nd, atoms, ring_indices):
+def orient_planar_ring(nd, atoms, ring_indices, description):
     shapes = []
     r = atoms[0].residue
     # TODO:
@@ -901,20 +901,23 @@ def orient_planar_ring(nd, atoms, ring_indices):
     for r in ring_indices:
         center = numpy.average([pts[i] for i in r], axis=0) + offset
         va, na, ta = get_sphere(radius, center)
-        shapes.append(AtomicShapeInfo(va, na, ta, color, str(atoms)))
+        shapes.append(AtomicShapeInfo(va, na, ta, color, atoms, description))
     return shapes
 
 
-def draw_orientation(nd, residue):
+def draw_orientation(nd, residue, name):
+    standard = standard_bases[name]
+    tag = standard['tag']
+    description = '%s %s' % (residue, tag)
     shapes = []
     ring = get_ring(residue, _full_purine)
     if ring:
         indices = [_full_purine_1, _full_purine_2]
-        shapes.extend(orient_planar_ring(nd, ring, indices))
+        shapes.extend(orient_planar_ring(nd, ring, indices, description))
     ring = get_ring(residue, _pyrimidine)
     if ring:
         indices = [_pyrimidine_1]
-        shapes.extend(orient_planar_ring(nd, ring, indices))
+        shapes.extend(orient_planar_ring(nd, ring, indices, description))
     return shapes
 
 

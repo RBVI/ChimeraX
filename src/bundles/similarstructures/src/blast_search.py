@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -22,57 +22,79 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# Create foldseek results from blast results so foldseek visualization can be used.
+def sequence_blast(session, chain, database = 'pdb',
+                   evalue_cutoff = 1e-3, max_hits = 1000,
+                   trim = None, alignment_cutoff_distance = None,
+                   save_directory = None, wait = False):
+    '''Search PDB for similar sequences and display results in a table.'''
 
-# TODO: The part of a BLAST hit sequence may have no atomic coordinates in the hit structure
-#       (for example 8u1l_C with query 8jnp) or may align to a part of the query sequence
-#       with no atomic coordinates. Do we want to filter those out?  We don't know which
-#       residues of the hits have coordinates so we can't filter them out unless the
-#       hit structures are loaded.
+    from chimerax.blastprotein import blastprotein
+    job = blastprotein(session, chain, database = database, cutoff = evalue_cutoff,
+                       maxSeqs = max_hits, showResultsTable = False)
 
-# TODO: Since foldseek uses qstart,qend and tstart,tend indices into the sequence of
-#       residues with atomic coordinates, and blast uses start/end values relative to
-#       the full sequence including residues without atomic coordinates, any code
-#       that uses these values is probably wrong unless it handles both cases.
-#	Also qaln and taln sequence strings include only residues with coordinates
-#       in foldseek results, but include residues without coordinates in blast.
+    def show_results(job, session=session, chain=chain, database=database, save_directory=save_directory):
+        print ('In blast show results')
+        hits = _blast_job_hits(job, database)
 
-# TODO: Both query and hit residues in the alignment may not have atomic coordinates.
-#       With foldseek results they always have atomic coordinates.  The traces and clustering
-#       and LDDT code has to be modified to handle the aligned residues with missing coordinates.
+        from .simstruct import SimilarStructures
+        results = SimilarStructures(hits, chain, program = 'blast', database = database)
+
+        if save_directory is None:
+            from os.path import expanduser
+            save_directory = expanduser('~/Downloads/ChimeraX/BLAST')
+        results.save_to_directory(save_directory)
+
+        from .gui import show_similar_structures_table
+        show_similar_structures_table(session, results)
+        
+    from types import MethodType
+    job.on_finish = MethodType(show_results, job)
+
+
+def similar_structures_from_blast(session, save = True, save_directory = None):
+    br = blast_results(session)
+    if br is None:
+        from chimerax.core.errors import UserError
+        raise UserError('No BLAST search has been done')
+    
+    from .gui import show_similar_structures_table
+    show_similar_structures_table(session, br)
+
+    if save:
+        if save_directory is None:
+            from os.path import expanduser
+            save_directory = expanduser('~/Downloads/ChimeraX/BLAST')
+        br.save_to_directory(save_directory)
+
+    return br
 
 def blast_results(session):
     bpr = _blast_results(session)
     if bpr is None:
         return None
 
-    if hasattr(bpr, '_foldseek_results'):
-        return bpr._foldseek_results
-
     database = bpr.params.database
-    if database == 'pdb':
-        database = 'pdb100'	# Use Foldseek name
-    elif database == 'alphafold':
-        database = 'afdb50'	# Use Foldseek name
-    else:
+    if database == 'alphafold':
+        database = 'afdb'	# Name used by SimilarStructures class
+    elif database != 'pdb':
         return None
 
     chain = _blast_query_chain(bpr)
+    hits = _blast_job_hits(bpr.job, database)
     
-    # Extract hit info from raw blast results in blast json output format 15
-    j = bpr.job
-    r = j.get_results()
-    blast_hits = r['BlastOutput2'][0]['report']['results']['search']['hits']
-    print (blast_hits[0])
-    hits = []
-    for hit in blast_hits:
-        hits.extend(_blast_hit_to_foldseek(hit, database))
-
-    from .foldseek import FoldseekResults
-    results = FoldseekResults(hits, database, chain, program = 'blast')
-    bpr._foldseek_results = results
+    from .simstruct import SimilarStructures
+    results = SimilarStructures(hits, chain, program = 'blast', database = database)
     
     return results
+
+def _blast_job_hits(job, database):
+    # Extract hit info from raw blast results in blast json output format 15
+    r = job.get_results()
+    blast_hits = r['BlastOutput2'][0]['report']['results']['search']['hits']
+    hits = []
+    for hit in blast_hits:
+        hits.extend(_blast_hit_to_simstruct(hit, database))
+    return hits
 
 def _blast_results(session):
     from chimerax.blastprotein.ui.results import BlastProteinResults
@@ -89,7 +111,7 @@ def _blast_query_chain(blast_results):
         chain = None
     return chain
 
-def _blast_hit_to_foldseek(hit, database):
+def _blast_hit_to_simstruct(hit, database):
     hits = []
     # Description list gives multiple PDB entries with identical sequences.
     for desc in hit['description']:
@@ -101,6 +123,7 @@ def _blast_hit_to_foldseek(hit, database):
         for hsp in hit['hsps']:
             hdict = {
                 'evalue': hsp['evalue'],
+                'pident': 100*hsp['identity']/hsp['align_len'],
                 'database': database,
                 'qstart': hsp['query_from'],	# Base 1 index
                 'qend': hsp['query_to'],
@@ -179,3 +202,29 @@ def _parse_key_values(line):
 Alphafold blast hit
 {'num': 1, 'description': [{'id': 'gnl|BL_ORD_ID|46458633', 'accession': '46458633', 'title': 'AFDB:AF-A0A2J8NNQ8-F1 Uncharacterized protein UA=A0A2J8NNQ8 UI=A0A2J8NNQ8_PANTR OS=Pan troglodytes OX=9598 GN=CK820_G0008765'}], 'len': 226, 'hsps': [{'num': 1, 'bit_score': 160.999, 'score': 406, 'evalue': 7.98027e-48, 'identity': 78, 'positive': 83, 'query_from': 5, 'query_to': 94, 'hit_from': 49, 'hit_to': 141, 'align_len': 93, 'gaps': 3, 'qseq': 'SDPSKTSNTIRVFLPNSQRTVVNVRNGMSLHDCLMKALKVRGLQPECCAVYRL---QDGEKKPIGWNTDAAWLIGEELQVEFLDHVPLTTHNF', 'hseq': 'TDPSKTSNTIRVFLPNKQRTVVNVRNGMSLHDCLMKALKVRGLQPECCAVFRLLHEHKGKKARLDWNTDAASLIGEELQVDFLDHVPLTTHNF', 'midline': '+DPSKTSNTIRVFLPN QRTVVNVRNGMSLHDCLMKALKVRGLQPECCAV+RL G+K + WNTDAA LIGEELQV+FLDHVPLTTHNF'}]}
 '''
+        
+def register_similar_structures_from_blast_command(logger):
+    from chimerax.core.commands import CmdDesc, register, BoolArg, SaveFolderNameArg
+    desc = CmdDesc(
+        keyword = [('save', BoolArg),
+                   ('save_directory', SaveFolderNameArg)],
+        synopsis = 'Make a similar structures table from currently shown blast results'
+    )
+    register('similarstructures fromblast', desc, similar_structures_from_blast, logger=logger)
+        
+def register_sequence_blast_command(logger):
+    from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg, IntArg
+    from chimerax.atomic import ChainArg
+    TrimArg = Or(ListOf(EnumOf(['chains', 'sequence', 'ligands'])), BoolArg)
+    desc = CmdDesc(
+        required = [('chain', ChainArg)],
+        keyword = [('database', EnumOf(['pdb', 'afdb'])),
+                   ('evalue_cutoff', FloatArg),
+                   ('max_hits', IntArg),
+                   ('trim', TrimArg),
+                   ('alignment_cutoff_distance', FloatArg),
+                   ('save_directory', SaveFolderNameArg),
+                   ],
+        synopsis = 'Search for proteins with similar sequences using RBVI BLAST web service'
+    )
+    register('sequence blast', desc, sequence_blast, logger=logger)

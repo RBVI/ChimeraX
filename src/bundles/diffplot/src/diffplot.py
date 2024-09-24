@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -308,8 +308,9 @@ def _flatten_xyz_lists(xyz_lists):
     return coords
 
 def _umap_embed(data, random_seed = 0):
+    n_neighbors = min(15, data.shape[0]-1) # Avoid warning when fewer data points then default n_neighbors value
     import umap
-    reducer = umap.UMAP(random_state = random_seed, n_jobs = 1)
+    reducer = umap.UMAP(n_neighbors = n_neighbors, random_state = random_seed, n_jobs = 1)
     mapper = reducer.fit(data)
     return reducer.embedding_
 

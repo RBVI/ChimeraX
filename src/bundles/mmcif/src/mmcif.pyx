@@ -6,7 +6,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -692,7 +692,7 @@ def citations(model, only=None, metadata=None):
             if c[-1] != '.':
                 c += '.'
             d = escape(doi)
-            c += ' DOI: <a href="http://dx.doi.org/%s">%s</a>' % (d, d)
+            c += ' DOI: <a href="https://dx.doi.org/%s">%s</a>' % (d, d)
         citations.append(c)
     return citations
 
@@ -719,7 +719,7 @@ def add_citation(model, citation_id, info, authors=(), editors=(), *, metadata=N
     citation table, then nothing is done.
 
     The `info` dictionary is for the relevant data items from the mmCIF citation category,
-    http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/citation.html
+    https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/citation.html
     except for the citation `id` which is given as an argument to this function.
     The capitalization should match that in the mmCIF dictionary.
     In particular, the following data items are supported:
@@ -835,7 +835,7 @@ def add_software(model, name, info, *, metadata=None):
     already present in the software table, then nothing is done.
 
     The `info` dictionary is for the relevant data items from the mmCIF softare category,
-    http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/software.html
+    https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/software.html
     except for the `name`, which is given as an argument to the function, and `pdbx_ordinal`,
     which is computed.  The capitalization should match that in the mmCIF dictionary.
     In particular, the following data items are supported:
