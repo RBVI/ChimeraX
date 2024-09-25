@@ -681,7 +681,7 @@ def _rebuild_molecule(trigger_name, mol):
     residues = sides['orient']
     if residues:
         for r in residues:
-            shapes = draw_orientation(nd, r, nuc_info[r]['name'])
+            shapes = draw_orientation(nd, r, nuc_info[r].get('name'))
             all_shapes.extend(shapes)
     hide_riboses = Residues(hide_riboses)
     hide_bases = Residues(hide_bases)
@@ -906,14 +906,18 @@ def orient_planar_ring(nd, atoms, ring_indices, description):
 
 
 def draw_orientation(nd, residue, name):
-    standard = standard_bases[name]
-    tag = standard['tag']
-    description = '%s %s' % (residue, tag)
+    if name is None:
+        description = None
+    else:
+        standard = standard_bases[name]
+        tag = standard['tag']
+        description = '%s %s' % (residue, tag)
     shapes = []
     ring = get_ring(residue, _full_purine)
     if ring:
         indices = [_full_purine_1, _full_purine_2]
         shapes.extend(orient_planar_ring(nd, ring, indices, description))
+        return shapes
     ring = get_ring(residue, _pyrimidine)
     if ring:
         indices = [_pyrimidine_1]
