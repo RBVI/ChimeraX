@@ -24,6 +24,7 @@
  * === UCSF ChimeraX Copyright ===
  */
 
+#include <cstdlib>
 #include <vector>
 #include <utility>
 
@@ -33,6 +34,8 @@
 //#include <logger/logger.h>
 
 using namespace peg;
+
+typedef std::vector<unsigned char> RGBA;
 
 static parser spec_parser;
 static PyObject* objects_class;
@@ -51,6 +54,10 @@ static PyObject* add_pseudobonds_arg;
 static PyObject* atomspec_has_atoms_arg;
 static PyObject* atomspec_has_pseudobonds_arg;
 static PyObject* atomspec_pseudobonds_arg;
+static PyObject* ColorArg;
+static PyObject* make_converter;
+static PyObject* converter;
+static PyObject* uint8x4_arg;
 static std::string use_python_error("Use Python error");
 static bool add_implied, order_implicit_atoms, outermost_inversion;
 
@@ -62,14 +69,31 @@ docstr_evaluate = \
 " return a tuple containing a chimerax.core.objects.Objects instance," \
 " the part of text used for the atom spec, and the remaining text.";
 
-template <class ValType>
+class Value {
+public:
+    // Can't put the next four fields in a union because the first two have constructors
+    std::string  str;
+    RGBA  rgba;
+    long  integer;
+    double  floating_point;
+    enum ValType { STR_TYPE, RGBA_TYPE, INT_TYPE, FLOAT_TYPE };
+    ValType  val_type;
+    Value() { } // so that AttrTester can declare it
+    Value(std::string v) { val_type = STR_TYPE; str = v; }
+    Value(RGBA v) { val_type = RGBA_TYPE; rgba = v; }
+    Value(long v) { val_type = INT_TYPE; integer = v; }
+    Value(double v) { val_type = FLOAT_TYPE; floating_point = v; }
+};
+
 class AttrTester {
 public:
-    std::string  name, op;
+    std::string  name, op = "";
     bool  exists;
-    ValType  val;
-    AttrTester(std::string n, std::string o, ValType v) { name = n; op = o; val = v; }
+    Value  val;
+    AttrTester(std::string n, std::string o, Value v) { name = n; op = o; val = v; }
+    AttrTester(std::string_view n, std::string o, Value v) { name = n; op = o; val = v; }
     AttrTester(std::string n, bool e) { name = n; exists = e; }
+    AttrTester(std::string_view n, bool e) { name = n; exists = e; }
 };
 
 class ModelPart {
@@ -351,6 +375,42 @@ static bool py_bool_method(PyObject* py_model, PyObject* method_name)
     return bool_result == Py_True;
 }
 
+static RGBA make_color_val(std::string& val_str)
+{
+    auto py_val_str = PyUnicode_FromString(val_str.c_str());
+    auto color_val = PyObject_CallFunctionObjArgs(converter, session, py_val_str, nullptr);
+    Py_DECREF(py_val_str);
+    auto uint8x4 = PyObject_CallMethodNoArgs(color_val, uint8x4_arg);
+    Py_DECREF(color_val);
+    if (uint8x4 == nullptr)
+        throw std::logic_error(use_python_error);
+    if (!PySequence_Check(uint8x4)) {
+        Py_DECREF(uint8x4);
+        throw std::logic_error("Color.uint8x4() is not a sequence!");
+    }
+    if (PySequence_Length(uint8x4) != 4) {
+        Py_DECREF(uint8x4);
+        throw std::logic_error("Color.uint8x4() is not a sequence of 4 items!");
+    }
+    RGBA rgba;
+    for (int i = 0; i < 4; ++i) {
+        auto component = PySequence_GetItem(uint8x4, i);
+        if (!PyNumber_Check(component)) {
+            Py_DECREF(uint8x4);
+            throw std::logic_error("Color.uint8x4() contains non-numbers!");
+        }
+        auto val = PyNumber_Long(component);
+        if (val == nullptr) {
+            Py_DECREF(uint8x4);
+            throw std::logic_error("Color.uint8x4() contains non-integers!");
+        }
+        rgba.push_back(static_cast<unsigned char>(PyLong_AsLong(val)));
+        Py_DECREF(val);
+    }
+    Py_DECREF(uint8x4);
+    return rgba;
+}
+
 PyMODINIT_FUNC PyInit__spec_parser()
 {
     auto mod = PyModule_Create(&spec_parser_def);
@@ -401,6 +461,18 @@ PyMODINIT_FUNC PyInit__spec_parser()
         return nullptr;
     atomspec_pseudobonds_arg = PyUnicode_FromString("atomspec_pseudobonds");
     if (atomspec_pseudobonds_arg == nullptr)
+        return nullptr;
+    ColorArg = get_module_attribute("chimerax.core.commands", "ColorArg");
+    if (ColorArg == nullptr)
+        return nullptr;
+    make_converter = get_module_attribute("chimerax.core.commands", "make_converter");
+    if (make_converter == nullptr)
+        return nullptr;
+    converter = PyObject_CallOneArg(make_converter, ColorArg);
+    if (converter == nullptr)
+        return nullptr;
+    uint8x4_arg = PyUnicode_FromString("uint8x4");
+    if (uint8x4_arg == nullptr)
         return nullptr;
 
     // atom_specifier
@@ -663,14 +735,61 @@ PyMODINIT_FUNC PyInit__spec_parser()
         for (auto tk: vs.tokens)
             std::cerr << " " << tk;
         std::cerr << "\n";
-//TODO: emulate the code in commands.atomspec._AtomSpecSemantics.attr_test
-#if 0
+        // emulates the code in commands.atomspec._AtomSpecSemantics.attr_test
         if (vs.choice() == 0) {
-            return AttrTester
+            auto name = std::any_cast<std::string>(vs[0]);
+            auto op = std::any_cast<std::string>(vs[1]);
+            auto vstr_isquoted = std::any_cast<std::pair<std::string, bool>>(vs[2]);
+            auto val_str = vstr_isquoted.first;
+            auto quoted = vstr_isquoted.second;
+            auto name_len = name.size();
+            if (name_len >= 5 && name.substr(name_len-4) == "olor"
+            && (name[name_len-5] == 'C' || name[name_len-5] == 'c')) {
+                // val_str is color name
+                return AttrTester(name, op, Value(make_color_val(val_str)));
+            }
+            if (quoted || op == "==" || op == "!==") {
+                // quoted args are always strings, and case-sensitive compare must be a string
+                return AttrTester(name, op, Value(val_str));
+            }
+            char* end_ptr;
+            auto c_str = val_str.c_str();
+            auto int_val = std::strtol(c_str, &end_ptr, 10);
+            bool is_int = true;
+            if (end_ptr == c_str)
+                is_int = false;
+            else {
+                while (*end_ptr != '\0') {
+                    if (!isspace(*end_ptr++)) {
+                        is_int = false;
+                        break;
+                    }
+                }
+                if (is_int && (int_val == LONG_MAX || int_val == LONG_MIN))
+                    throw std::invalid_argument("Integer value too large");
+            }
+            if (is_int)
+                return AttrTester(name, op, Value(int_val));
+            auto float_val = std::strtod(c_str, &end_ptr);
+            bool is_float = true;
+            if (end_ptr == c_str)
+                is_float = false;
+            else {
+                while (*end_ptr != '\0') {
+                    if (!isspace(*end_ptr++)) {
+                        is_float = false;
+                        break;
+                    }
+                }
+                if (is_float && (float_val == HUGE_VALF || float_val == -HUGE_VALF))
+                    throw std::invalid_argument("Floating-point value too large");
+            }
+            if (is_float)
+                return AttrTester(name, op, Value(float_val));
+            return AttrTester(name, op, Value(val_str));
         } else if (vs.choice() == 1)
-            return AttrTester<int>(vs.token(), true);
-        return AttrTester<int>(vs.token(), false);
-#endif
+            return AttrTester(vs.token(), true);
+        return AttrTester(vs.token(), false);
     };
 
     // zone_selector
