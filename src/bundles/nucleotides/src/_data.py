@@ -343,6 +343,30 @@ _BaseAnchors = {
 }
 
 
+class Plane:
+    """Override chimerax.geometry.Plane to preserve chirality"""
+
+    def __init__(self, pts):
+        # Newell's algorithm
+        normal = numpy.array((0.0, 0.0, 0.0))
+        accum = numpy.array((0.0, 0.0, 0.0))
+        for i, pt1 in enumerate(pts):
+            pt2 = pts[(i + 1) % len(pts)]
+            normal[0] += (pt1[1] - pt2[1]) * (pt1[2] + pt2[2])
+            normal[1] += (pt1[2] - pt2[2]) * (pt1[0] + pt2[0])
+            normal[2] += (pt1[0] - pt2[0]) * (pt1[1] + pt2[1])
+            accum += pt1
+        n = self.normal = normalize_vector(normal)
+        o = self.origin = accum / len(pts)
+        self.offset = -(n[0] * o[0] + n[1] * o[1] + n[2] * o[2])
+
+    def nearest(self, pt):
+        return pt - self.normal * self.distance(pt)
+
+    def distance(self, pt):
+        return numpy.sum(self.normal * pt) + self.offset
+
+
 def anchor(ribose_or_base, tag):
     if ribose_or_base == RIBOSE:
         return "C1'"
