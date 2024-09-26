@@ -15,7 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
-      - run: MAKEOPTS="-j$(nproc)" make -j$(nproc) install
+      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
+        uses: ./utils/ci/cache_pyqt
+        with:
+          platform: linux
+          architecture: x86_64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - run: MAKEOPTS="-j$(nproc)" make -j$(nproc) install-rbvi
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
@@ -79,7 +85,13 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@master
       - uses: actions/checkout@v4
       - run: ${PWD}/utils/set_up_macos.sh
-      - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) install
+      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
+        uses: ./utils/ci/cache_pyqt
+        with:
+          platform: macos
+          architecture: universal2
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) install-rbvi
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
