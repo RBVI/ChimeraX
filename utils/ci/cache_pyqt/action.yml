@@ -63,8 +63,6 @@ runs:
         export PYQTWE_VERSION=6.7.0
         export PYQT_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_pyqt.py?platform=${{ inputs.platform }}&version=${PYQT_VERSION}&webengine=false&architecture=${{ inputs.architecture }}"
         export PYQTWE_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_pyqt.py?platform=${{ inputs.platform }}&version=${PYQTWE_VERSION}&webengine=true&architecture=${{ inputs.architecture }}"
-        echo $PYQT_URL
-        echo $PYQTWE_URL
         curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${PYQT_URL} -O -J
         curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${PYQTWE_URL} -O -J
         mv PyQt6*.whl prereqs/PyQt/

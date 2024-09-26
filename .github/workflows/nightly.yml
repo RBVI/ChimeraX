@@ -5,7 +5,7 @@ on:
 
 jobs:
   build-ubuntu:
-    name: Build ChimeraX
+    name: Build ChimeraX for Ubuntu
     strategy:
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
@@ -48,6 +48,7 @@ jobs:
           platform: ${{ matrix.os }}
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
   build-rocky8-docker:
+    name: Build ChimeraX for Rocky 8
     runs-on: ubuntu-20.04
     container:
       image: rockylinux:8
@@ -78,6 +79,7 @@ jobs:
       - name: Report coverage
         run: make report-coverage
   build-macos:
+    name: Build ChimeraX for Apple Silicon
     runs-on: macos-latest
     steps:
       - name: Set up Homebrew
@@ -126,6 +128,7 @@ jobs:
           platform: mac_arm64
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
   build-windows:
+    name: Build ChimeraX for Windows
     runs-on: windows-latest
     defaults:
       run:
@@ -137,6 +140,12 @@ jobs:
           msystem: MINGW64
           update: true
           install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
+      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
+        uses: ./utils/ci/cache_pyqt
+        with:
+          platform: windows
+          architecture: x86
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) install
       - name: Run the legacy test suite
         run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test
