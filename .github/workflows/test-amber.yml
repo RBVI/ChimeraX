@@ -1,9 +1,8 @@
-# Copy this file into a new one named something like test-branch.yml
-# and move the copy down into the workflows folder.
-name: Nightly Build
+name: Ambertools canary build
+
 on:
   push:
-    branches: [YOUR_BRANCH_NAME_HERE]
+    branches: [feature/ambertools]
 
 jobs:
   build-ubuntu:

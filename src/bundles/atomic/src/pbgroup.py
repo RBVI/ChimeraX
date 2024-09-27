@@ -372,9 +372,13 @@ class PromotePseudobondSelection(SelectionPromotion):
         self._pbgroup = pbgroup
         self._prev_pbond_sel_mask = prev_pbond_sel_mask
     def promote(self):
+        if self._pbgroup.deleted:
+            return
         pbonds = self._pbgroup.pseudobonds
         pbonds.selected = True
     def demote(self):
+        if self._pbgroup.deleted:
+            return
         pbonds = self._pbgroup.pseudobonds
         pbonds.selected = self._prev_pbond_sel_mask
 
