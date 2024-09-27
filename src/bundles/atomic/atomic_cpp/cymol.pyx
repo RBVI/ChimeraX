@@ -54,6 +54,7 @@ cdef class CyAtom:
     HIDE_RIBBON = 0x1
     HIDE_ISOLDE = 0x2
     HIDE_NUCLEOTIDE = 0x4
+    HIDE_ANISO = 0x8
     BBE_MIN, BBE_RIBBON, BBE_MAX = range(3)
 
     _idatm_tuple = collections.namedtuple('idatm', ['geometry', 'substituents', 'description'])
