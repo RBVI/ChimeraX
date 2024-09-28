@@ -956,10 +956,12 @@ class SegmentationTool(ToolInstance):
             self.session.ui.main_window.main_view.redraw_all()
 
     def hide_active_segmentation(self):
-        self.segmentation_tracker.active_segmentation.display = False
+        if self.segmentation_tracker.active_segmentation is not None:
+            self.segmentation_tracker.active_segmentation.display = False
 
     def show_active_segmentation(self):
-        self.segmentation_tracker.active_segmentation.display = True
+        if self.segmentation_tracker.active_segmentation is not None:
+            self.segmentation_tracker.active_segmentation.display = True
 
     def _on_current_menu_item_changed(self, new, prev):
         if new:
