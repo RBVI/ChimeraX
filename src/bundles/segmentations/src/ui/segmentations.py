@@ -1026,6 +1026,7 @@ class SegmentationTool(ToolInstance):
                 if self.settings.set_mouse_modes_automatically:
                     self._set_3d_mouse_modes()
             if self.view_dropdown.currentIndex() == ViewMode.DEFAULT_VR:
+                self._reset_3d_mouse_modes()
                 if self.settings.start_vr_automatically:
                     self._start_vr()
         if need_to_register:
