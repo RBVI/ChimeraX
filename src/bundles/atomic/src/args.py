@@ -231,7 +231,7 @@ class UniProtSequenceArg(Annotation):
             try:
                 uid = map_uniprot_ident(uid, return_value = 'entry')
             except Exception as e:
-                raise AnnotationError(f'Could not lookup UniProt accession code for "{uid}". {e}')
+                raise AnnotationError(f'Could not look up UniProt accession code for "{uid}". {e}')
         else:
             uname = None
         if len(uid) not in (6, 10):
