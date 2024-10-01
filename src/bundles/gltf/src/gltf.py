@@ -619,8 +619,6 @@ def make_mesh_leaf_nodes(nodes):
     for node in nodes:
         if 'mesh' in node and 'children' in node and len(node['children']) > 0:
             mnode = {'name': f'{node["name"]} mesh', 'mesh': node['mesh']}
-            if 'single_color' in node:
-                mnode['single_color'] = node['single_color']
             mnode_index = len(nodes) + len(new_nodes)
             new_nodes.append(mnode)
             node['children'].insert(0, mnode_index)
