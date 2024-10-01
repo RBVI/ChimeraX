@@ -60,8 +60,30 @@ Some or all of the residues in a single chain of an atomic model
 should be specified, along with the corresponding <b>map</b> model.
 </p><p>
 In the resulting slider interface, the slider can be dragged, a
-<b>Residue</b> number entered directly, or the play/pause button pressed 
-to cycle through the residues continuously.
+or a <b>Residue</b> number entered directly. 
+The interface also includes a play/pause button, a
+&nbsp;<img style="height:16px; margin: 1px -1px; vertical-align:top"
+src="../tools/ui-icons/snail.png">&nbsp; value to increase for slower playback,
+and a button for recording a movie
+(<img class="iconbar" src="../tools/ui-icons/record.png">).
+Sequential integers are added to the movie filename (movie1.mp4, movie2.mp4, ...)
+so that repeated recordings will not overwrite the previous ones, and the save
+location can be set with the <a href="snapshot.html"><b>snapshot</b></a> command.
+The movie will start at the current slider position, so
+to include the whole morph, place the slider at the far left
+before clicking the record button.
+</p><p>
+The <b>Loop Playback</b> setting in the slider
+<a href="../window.html#context-menu">context menu</a> controls whether
+interactive playback should continue until explicitly paused (initially on).
+The <b>Bounce Playback</b> setting in the slider
+<a href="../window.html#context-menu">context menu</a> is only available
+when <b>Loop Playback</b> is on, and controls whether looping wraps from
+end to beginning so that playback is only in the forward direction
+(initial setting, <b>Bounce Playback</b> off) or alternates between forward
+and backward (<b>Bounce Playback</b> on). These loop/bounce settings apply only
+to interactive viewing, not recording a movie with the button mentioned above.
+</p><p>
 Each residue is oriented and centered in the view, in turn.
 The <b>residueRange</b> option indicates
 how many flanking residues should be shown along with the featured residue
@@ -90,5 +112,5 @@ its color, size, <i>etc.</i> can be changed with the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2021</address>
+September 2024</address>
 </body></html>
