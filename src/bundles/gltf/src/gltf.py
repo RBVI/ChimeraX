@@ -800,7 +800,7 @@ def create_node(drawing, drawing_set, nodes, drawing_nodes, leaf_instancing):
         # Copying leaf node geometry so don't make child nodes.
         gnodes = [dn]
         dn['single_color'] = (255,255,255,255)	# color factor if texture colors used.
-        
+
     if drawing not in drawing_nodes:
         drawing_nodes[drawing] = []
     drawing_nodes[drawing].extend(gnodes)
@@ -903,7 +903,6 @@ class Mesh:
         self._prune_vertex_colors = prune_vertex_colors
         self._leaf_instancing = leaf_instancing
         
-        self._primitives = None
         self._geom_buffers = None
         self._texture_images = []
         self._converted_vertex_to_texture_colors = False
@@ -939,11 +938,7 @@ class Mesh:
     # -----------------------------------------------------------------------------
     #
     def _geometry_primitives(self):
-        prims = self._primitives
-        if prims is not None:
-            return prims
-        
-        self._primitives = prims = []
+        prims = []
         for vi,ni,ci,tci,ti,mode,single_vertex_color in self._geometry_buffers():
             attr = {'POSITION': vi}
             prim = {'attributes': attr,
@@ -958,7 +953,7 @@ class Mesh:
             if tci is not None:
                 attr['TEXCOORD_0'] = tci
             prims.append(prim)
-            
+
         return prims
 
     # -----------------------------------------------------------------------------
