@@ -636,6 +636,12 @@ class MarkedHistogram(QWidget):
             hist_size.width() - 2*dx, hist_size.height()
         self._min_val, self._max_val, self._bins = ds
         filled_range = self._max_val - self._min_val
+        temp_abs_markers = False
+        if self._draw_min != None or self._draw_max != None:
+            if self._active_markers is not None and self._active_markers.coord_type == "relative":
+                # keep markers at their same absolute positions as the range expands
+                temp_abs_markers = True
+                self._active_markers.coord_type = "absolute"
         empty_ranges = [0, 0]
         if self._draw_min != None:
             empty_ranges[0] = self._min_val - self._draw_min
@@ -643,6 +649,8 @@ class MarkedHistogram(QWidget):
         if self._draw_max != None:
             empty_ranges[1] = self._draw_max - self._max_val
             self._max_val = self._draw_max
+        if temp_abs_markers:
+            self._active_markers.coord_type = "relative"
         def handle_list(left, bins, right):
             # can't '+' a list to a numpy array (#9328)...
             bins = list(bins)
@@ -713,7 +721,8 @@ class MarkedHistogram(QWidget):
                 rect.setZValue(-1) # keep bars below markers
         self._markable = True
         if self._active_markers is not None:
-            self._active_markers._update_plot()
+            if not temp_abs_markers:
+                self._active_markers._update_plot()
             marker = self._active_markers._sel_marker
             if marker:
                 self._set_value_entry(self._marker2abs(marker)[0])
