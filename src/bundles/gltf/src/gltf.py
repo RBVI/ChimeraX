@@ -514,7 +514,7 @@ def center_nodes_and_meshes(nodes, meshes, buffers):
     about their centers in Blender.
     '''
 
-    check_node_centering_possible(nodes, meshes)
+    make_mesh_leaf_nodes(nodes)  # Meshes must be only on leaf nodes to perform centering.
 
     ncenters, mcenters = node_and_mesh_centers(nodes, meshes, buffers)
 
@@ -610,28 +610,24 @@ def mesh_vertex_arrays(mesh_id, meshes, buffers):
     
 # -----------------------------------------------------------------------------
 #
-def check_node_centering_possible(nodes, meshes):
-    # The node, mesh and buffer graph needs to meet several conditions
-    # for it to be possible to locally center every node without introducing
-    # any new nodes.  I think the current code always meets all the conditions.
-    # But it is a good idea to check in case the code changes in the future
-    # that violates some of these centering conditions.
-    
-    # We require meshes that reuse the same vertex buffer from another mesh
-    # have to use exactly the same set of buffers.  This is what the code
-    # does for instancing.  A different mesh is needed to support different
-    # instance colors, but identical geometry is used.
-    # We could verify this same mesh geometry holds, but I'm going to skip it.
-    
-    # Only leaf nodes can have a mesh.  If a node has children and a mesh we
-    # can't do local centering without putting the mesh in a new node
-    # so that the centered mesh can be placed to center the original node.
-    # If that happens consider it an error.
+def make_mesh_leaf_nodes(nodes):
+    '''
+    If a node has a mesh and children then put the mesh under a new node which is also a child.
+    This allows recentering since the new node has a transform which the mesh does not have.
+    '''
+    new_nodes = []
     for node in nodes:
         if 'mesh' in node and 'children' in node and len(node['children']) > 0:
-            from chimerax.core.errors import UserError
-            raise UserError('Cannot center nodes because a node has both a mesh and children')
-                
+            mnode = {'name': f'{node["name"]} mesh', 'mesh': node['mesh']}
+            if 'single_color' in node:
+                mnode['single_color'] = node['single_color']
+            mnode_index = len(nodes) + len(new_nodes)
+            new_nodes.append(mnode)
+            node['children'].insert(0, mnode_index)
+            del node['mesh']
+    if new_nodes:
+        nodes.extend(new_nodes)
+
 # -----------------------------------------------------------------------------
 #
 def encode_gltf(nodes, buffers, meshes, materials):
