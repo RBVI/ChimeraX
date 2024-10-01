@@ -184,8 +184,13 @@ class SequencesArg(Annotation):
         return seqs, used, rest
 
 def _parse_sequence(seq_text, session):
+    if is_uniprot_id(seq_text):
+        seq, sused, srest = UniProtSequenceArg.parse(seq_text, session)
+        if len(srest) == 0:
+            return seq
+            
     from chimerax.seqalign import SeqArg
-    for arg_type in (ChainArg, UniProtSequenceArg, SeqArg, RawSequenceArg):
+    for arg_type in (ChainArg, SeqArg, RawSequenceArg):
         try:
             seq, sused, srest = arg_type.parse(seq_text, session)
             if len(srest) == 0:
@@ -225,8 +230,8 @@ class UniProtSequenceArg(Annotation):
             from chimerax.uniprot import map_uniprot_ident
             try:
                 uid = map_uniprot_ident(uid, return_value = 'entry')
-            except Exception:
-                raise AnnotationError('UniProt name "%s" must be 1-5 characters followed by an underscore followed by 1-5 characters' % uid)
+            except Exception as e:
+                raise AnnotationError(f'Could not lookup UniProt accession code for "{uid}". {e}')
         else:
             uname = None
         if len(uid) not in (6, 10):
@@ -234,8 +239,8 @@ class UniProtSequenceArg(Annotation):
         from chimerax.uniprot.fetch_uniprot import fetch_uniprot_accession_info
         try:
             seq_string, full_name, features = fetch_uniprot_accession_info(session, uid)
-        except Exception:
-            raise AnnotationError('Failed getting sequence for UniProt id "%s"' % uid)
+        except Exception as e:
+            raise AnnotationError(f'Could not fetch sequence for UniProt id "{uid}". {e}')
         from . import Sequence
         seq = Sequence(name = (uname or uid), characters = seq_string)
         seq.uniprot_accession = uid
