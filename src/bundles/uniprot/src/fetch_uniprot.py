@@ -61,8 +61,9 @@ def map_uniprot_ident(ident, *, return_value="identifier"):
     }
     data = urlencode(params)
     from urllib.request import Request, urlopen
-    from urllib.error import HTTPError
-    request = Request("https://rest.uniprot.org/idmapping/run", bytes(data, 'utf-8'),
+    from urllib.error import HTTPError, URLError
+    mapping_url = "https://rest.uniprot.org/idmapping/run"
+    request = Request(mapping_url, bytes(data, 'utf-8'),
         headers={ "User-Agent": "Python chimerax-bugs@cgl.ucsf.edu" })
     from chimerax.core.errors import NonChimeraError
     try:
@@ -72,6 +73,8 @@ def map_uniprot_ident(ident, *, return_value="identifier"):
             "Try again later.  If you then still get the error, you could use"
             " Help->Report a Bug to report the error to the ChimeraX team."
             " They may be able to help you work around the problem." % e)
+    except URLError as e:
+        raise NonChimeraError(f"Request url {mapping_url} failed: {e}")
     job_page = response.read().decode('utf-8')
     if not job_page:
         raise InvalidAccessionError("Invalid UniProt entry name / accession number: %s" % ident)

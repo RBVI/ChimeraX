@@ -56,7 +56,7 @@ class Handedness(IntEnum):
     RIGHT = 1
 
     def __str__(self):
-        return self.name.title()
+        return self.name.title().lower()
 
 
 def run_toolbar_button(session, name):

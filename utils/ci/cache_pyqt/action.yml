@@ -47,7 +47,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/PyQt6_commercial-6.7.1-cp38-abi3-macosx_10_14_universal2.whl
+          prereqs/PyQt/PyQt6_commercial-6.7.1-cp38-abi3-macosx_11_0_universal2.whl
           prereqs/PyQt/PyQt6_WebEngine_commercial-6.7.0-cp38-abi3-macosx_10_14_universal2.whl
         key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
 
