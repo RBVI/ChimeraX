@@ -915,11 +915,11 @@ def get_cif_tables(filename, table_names, *, all_data_blocks=False):
 
     Returns
     -------
-        list or dictionary
+        list
             If all_data_blocks is false, return list of CIF tables found and
             all of the data values in a :py:class:`CIFTable`.
-            If all_data_blocks is true, return an ordered dictionary of tables
-            per data block.
+            If all_data_blocks is true, return a list of (dat-block-name,
+            list of CIP-tables) tuples.
     """
     from os import path
     if path.exists(filename):
@@ -930,6 +930,8 @@ def get_cif_tables(filename, table_names, *, all_data_blocks=False):
 
     def convert_tables(data, table_names):
         tlist = []
+        if not data:
+            return tlist
         for name in table_names:
             if name not in data:
                 tlist.append(CIFTable(name))
