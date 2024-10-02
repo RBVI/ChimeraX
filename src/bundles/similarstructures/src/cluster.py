@@ -79,6 +79,8 @@ def _show_umap(session, results, hits, query_residues, align_with = None, cutoff
     p = _plot_embedding(session, hit_names, umap_xy, colors, replace=replace)
     p._similar_structures_id = results.name
     p.query_residues = query_residues
+    if colors is not None:
+        p.cluster_colors = dict(zip(hit_names, colors))
     
     # Set the plot context menu to contain similar structure actions
     from types import MethodType
@@ -161,6 +163,19 @@ def fill_context_menu(self, menu, item):
                         lambda self=self: _show_unplotted_traces(self))
     self.add_menu_entry(menu, 'Hide traces not on plot',
                         lambda self=self: _hide_unplotted_traces(self))
+
+    self.add_menu_separator(menu)
+    self.add_menu_entry(menu, 'Color by cluster',
+                        lambda self=self: _color_by_cluster(self))
+    self.add_menu_entry(menu, 'Color by species',
+                        lambda self=self: _color_by_species(self))
+
+    if item is not None:
+        self.add_menu_separator(menu)
+        self.add_menu_entry(menu, f'Show table row for {item.name}',
+                            lambda self=self, item=item: _show_table_row(self, item))
+
+    self.add_menu_separator(menu)
     self.add_menu_entry(menu, 'Show reference atoms',
                         lambda self=self: _show_reference_atoms(self))
     self.add_menu_entry(menu, 'Select reference atoms',
@@ -267,10 +282,53 @@ def _show_color_panel(structure_plot, node):
 
 def _color_cluster(structure_plot, node, color):
     cur_color = node.color
+    cluster_colors = structure_plot.get('cluster_colors')
     for n in structure_plot.nodes:
         if n.color == cur_color:
             n.color = color
+            if cluster_colors:
+                cluster_colors[n.name] = color
     structure_plot.draw_graph()  # Redraw nodes.
+
+def _color_by_cluster(structure_plot, no_cluster_color = (178,178,178,255)):
+    cluster_colors = getattr(structure_plot, 'cluster_colors', None)
+    if cluster_colors is None:
+        return
+    from chimerax.core.colors import rgba8_to_rgba
+    for node in structure_plot.nodes:
+        node.color = rgba8_to_rgba(cluster_colors.get(node.name, no_cluster_color))
+    structure_plot.draw_graph()  # Redraw nodes.
+    
+def _color_by_species(structure_plot):
+    from .simstruct import similar_structure_results
+    results = similar_structure_results(structure_plot.session, structure_plot._similar_structures_id)
+    nodes = structure_plot.nodes
+    node_names = set(node.name for node in nodes)
+    species = {hit['database_full_id']:hit.get('taxname') for hit in results.hits
+               if hit['database_full_id'] in node_names}
+    unique_species = list(set(species.values()))
+    species_number =  {sname:i for i,sname in enumerate(unique_species)}
+    species_colors = getattr(structure_plot, 'species_colors', None)
+    if species_colors is None:
+        from chimerax.core.colors import random_colors, rgba8_to_rgba
+        scolors = [rgba8_to_rgba(c) for c in random_colors(len(unique_species))]
+        species_colors = dict(zip(unique_species, scolors))
+        structure_plot.species_colors = species_colors
+    for node in nodes:
+        if node.name in species:
+            node.color = species_colors[species[node.name]]
+    structure_plot.draw_graph()  # Redraw nodes.
+
+def _show_table_row(structure_plot, node):
+    from .simstruct import similar_structure_results
+    results = similar_structure_results(structure_plot.session, structure_plot._similar_structures_id)
+    from .gui import similar_structures_panel
+    ssp = similar_structures_panel(structure_plot.session)
+    if ssp and results is ssp.results:
+        hit_nums = [i for i,hit in enumerate(results.hits) if hit['database_full_id'] == node.name]
+        if hit_nums:
+            ssp.select_table_row(hit_nums[0])
+    ssp.display(True)
 
 def _cluster_by_distance(umap_xy, cluster_distance):
     if len(umap_xy) <= 1:
