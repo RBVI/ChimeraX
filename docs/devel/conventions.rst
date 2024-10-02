@@ -6,7 +6,7 @@
     All rights reserved.  This software provided pursuant to a
     license agreement containing restrictions on its disclosure,
     duplication and use.  For details see:
-    http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+    https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
     This notice must be embedded in or attached to all copies,
     including partial copies, of the software or any revisions
     or derivations thereof.
@@ -20,9 +20,9 @@ Style
 Python code should follow the Python Style Guide: :pep:`8`.
 
 Documentation Strings should follow Python's documentation style
-given in `Chapter 7 <http://docs.python.org/devguide/documenting.html>`_
-of the `Python Developer's Guide <http://docs.python.org/devguide/index.html>`_.
-Use `reStructuredText (reST) as extended by Sphinx <http://sphinx-doc.org/latest/rest.html>`_.
+given in `Chapter 7 <https://docs.python.org/devguide/documenting.html>`_
+of the `Python Developer's Guide <https://docs.python.org/devguide/index.html>`_.
+Use `reStructuredText (reST) as extended by Sphinx <https://sphinx-doc.org/latest/rest.html>`_.
 
 The docstrings of :class:`.MainToolWindow` and :py:meth:`.MainToolWindow.create_child_window()`
 can serve as reference docstrings. Specifying an argument's type is not necessary; if :pep:`484`
@@ -31,7 +31,7 @@ them up automatically.
 
 Editor Defaults
 ---------------
-.. From <http://wiki.python.org/moin/Vim>:
+.. From <https://wiki.python.org/moin/Vim>:
 
 All python files should have the following modeline at the top: ::
 

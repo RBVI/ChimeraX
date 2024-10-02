@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -24,17 +24,18 @@
 
 def similar_structures_traces(session, align_with = None, cutoff_distance = None,
                               close_only = 4.0, gap_distance_limit = 10.0, min_residues = 5,
-                              tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
+                              tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6,
+                              from_set = None, of_structures = None, replace = True):
     from .simstruct import similar_structure_results
-    results = similar_structure_results(session)
-    if results is None:
-        return
+    results = similar_structure_results(session, from_set)
+    hits = results.named_hits(of_structures)
 
     if not results.have_c_alpha_coordinates():
         from . import coords
-        if not coords.similar_structures_fetch_coordinates(session, ask = True):
+        if not coords.similar_structures_fetch_coordinates(session, ask = True, from_set = from_set,
+                                                           of_structures = of_structures):
             return
-    
+
     if cutoff_distance is None:
         cutoff_distance = results.alignment_cutoff_distance
 
@@ -43,6 +44,7 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
     if qchain is None:
         from chimerax.core.errors import UserError
         raise UserError('Cannot position traces without query structure')
+
     qres = results.query_residues
     qatoms = qres.find_existing_atoms('CA')
     query_xyz = qatoms.coords
@@ -55,7 +57,7 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
 
     traces = []
     rtot = rshown = 0
-    for hit in results.hits:
+    for hit in hits:
         hit_xyz = hit_coords(hit)
         hi, qi = results.hit_residue_pairing(hit)
         hxyz = hit_xyz[hi]
@@ -65,10 +67,10 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
         else:
             from numpy import array
             mask = array([(i in ai) for i in qi], bool)
-            if mask.sum() < 3:
-                continue	# Not enough atoms to align.
             ahxyz = hxyz[mask,:]
             aqxyz = qxyz[mask,:]
+        if len(ahxyz) < 3:
+                continue	# Not enough atoms to align.
         p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=cutoff_distance)
         hxyz_aligned = p.transform_points(hxyz)
         fragments = _distant_c_alpha_fragments(hxyz_aligned)
@@ -92,13 +94,21 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
     if len(traces) == 0:
         return None	# No hits had enough alignment atoms.
 
+    hit_names = [hit['database_full_id'] for hit in hits]
+    if replace:
+        tmodels = _existing_trace_models(session, results, hit_names)
+        if tmodels:
+            session.models.close(tmodels)
+
     if tube:
         surf = _create_tube_traces_model(session, traces, radius = radius,
                                          segment_subdivisions = segment_subdivisions,
-                                         circle_subdivisions = circle_subdivisions)
+                                         circle_subdivisions = circle_subdivisions,
+                                         similar_structures_id = results.name)
     else:
-        surf = _create_line_traces_model(session, traces)
+        surf = _create_line_traces_model(session, traces, results.name)
 
+    surf.hit_names = hit_names
     surf.position = qchain.structure.scene_position
     session.models.add([surf])
     msg = f'{surf.trace_count} traces showing {rshown} residues with {rtot-rshown} far or short segment residues hidden'
@@ -140,10 +150,10 @@ def _mask_intervals(mask):
         ends.append(len(mask))
     return tuple(zip(ends[0::2], ends[1::2]))
     
-def _create_line_traces_model(session, traces):
+def _create_line_traces_model(session, traces, similar_structures_id):
     vertices, lines, names = _line_traces(traces)
     normals = None
-    ft = BackboneTraces('Backbone traces', session)
+    ft = BackboneTraces('Backbone traces', session, similar_structures_id)
     ft.set_geometry(vertices, normals, lines)
     ft.display_style = ft.Mesh
     ft.set_trace_names(names)
@@ -171,11 +181,12 @@ def _line_traces(traces):
             offset += tlen-1
     return vertices, lines, (names, tstart)
 
-def _create_tube_traces_model(session, traces, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6):
+def _create_tube_traces_model(session, traces, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6,
+                              similar_structures_id = ''):
     vertices, normals, triangles, names = _tube_traces(traces, radius = radius,
                                                        segment_subdivisions = segment_subdivisions,
                                                        circle_subdivisions = circle_subdivisions)
-    ft = BackboneTraces('Backbone traces', session)
+    ft = BackboneTraces('Backbone traces', session, similar_structures_id)
     ft.set_geometry(vertices, normals, triangles)
     ft.set_trace_names(names)
     return ft
@@ -202,10 +213,17 @@ def _tube_traces(traces, radius = 0.1, segment_subdivisions = 5, circle_subdivis
 
     return vertices, normals, triangles, (names, tstart)
 
+def _existing_trace_models(session, results, hit_names):
+    from .simstruct import similar_structure_results
+    tmodels = [m for m in session.models.list(type = BackboneTraces)
+               if similar_structure_results(session, m.similar_structures_id, raise_error = False) is results and m.hit_names == hit_names]
+    return tmodels
+        
 # Allow mouse hover to identify hits
 from chimerax.core.models import Surface
 class BackboneTraces(Surface):
-    def __init__(self, name, session):
+    def __init__(self, name, session, similar_structures_id):
+        self.similar_structures_id = similar_structures_id
         Surface.__init__(self, name, session)
         register_context_menu()  # Register select mouse mode double click context menu
     def set_trace_names(self, trace_names):
@@ -284,23 +302,23 @@ class BackboneTraceMenuEntry(SelectContextMenuAction):
         self.action = action
         self.menu_text = menu_text
     def label(self, session):
-        hname = self._hit_name(session)
+        hname = self._hit_name(session)[0]
         label = self.menu_text
         if '%s' in label:
             label = label % hname
         return label
     def criteria(self, session):
-        return self._hit_name(session) is not None
+        return self._hit_name(session)[0] is not None
     def callback(self, session):
-        hname = self._hit_name(session)
+        hname, ssid = self._hit_name(session)
         if not hname:
             return
         from chimerax.core.commands import run
         a = self.action
         if a == 'open':
-            run(session, f'similarstructures open {hname}')            
+            run(session, f'similarstructures open {hname} from {ssid}')
         elif a == 'scroll to':
-            run(session, f'similarstructures scrollto {hname}')
+            run(session, f'similarstructures scrollto {hname} from {ssid}')
         elif a == 'show only':
             self._show_only(session)
         elif a == 'show all':
@@ -309,8 +327,8 @@ class BackboneTraceMenuEntry(SelectContextMenuAction):
         for ft in session.models.list(type = BackboneTraces):
             hname = ft.selected_hit
             if hname:
-                return hname
-        return None
+                return hname, ft.similar_structures_id
+        return None, None
     def _show_all(self, session):
         for ft in session.models.list(type = BackboneTraces):
             if ft.selected_hit:
@@ -334,7 +352,7 @@ def register_context_menu():
         _registered_context_menu = True
     
 def register_similar_structures_traces_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, IntArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, FloatArg, IntArg, BoolArg, StringArg
     from chimerax.atomic import ResiduesArg
     desc = CmdDesc(
         required = [],
@@ -347,6 +365,9 @@ def register_similar_structures_traces_command(logger):
                    ('radius', FloatArg),
                    ('segment_subdivisions', IntArg),
                    ('circle_subdivisions', IntArg),
+                   ('from_set', StringArg),
+                   ('of_structures', StringArg),
+                   ('replace', BoolArg),
                    ],
         synopsis = 'Show backbone traces of similar structures aligned to query structure.'
     )

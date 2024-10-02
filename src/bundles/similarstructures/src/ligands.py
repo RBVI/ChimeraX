@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -23,11 +23,10 @@
 # === UCSF ChimeraX Copyright ===
 
 def similar_structures_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_paired = 0.5,
-                               combine = True):
+                               combine = True, from_set = None, of_structures = None):
     from .simstruct import similar_structure_results
-    results = similar_structure_results(session)
-    if results is None:
-        return
+    results = similar_structure_results(session, from_set)
+    hits = results.named_hits(of_structures)
 
     query_chain = results.query_chain
     if query_chain is None:
@@ -35,17 +34,16 @@ def similar_structures_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0
         raise UserError('Cannot position Foldseek ligands without query structure')
 
     keep_structs = []
-    nhits = len(results.hits)
     nlighits = 0
     from time import time
     t0 = time()
-    for hnum, hit in enumerate(results.hits):
+    for hnum, hit in enumerate(hits):
         structures = results.open_hit(session, hit, align = False,
                                       in_file_history = False, log = False)
 
         hname = hit['database_full_id']
         telapse = _minutes_and_seconds_string(time() - t0)
-        session.logger.status(f'Finding ligands in {hname} ({hnum+1} of {nhits}, time {telapse})')
+        session.logger.status(f'Finding ligands in {hname} ({hnum+1} of {len(hits)}, time {telapse})')
 
         found_lig = False
         for si, structure in enumerate(structures):
@@ -164,12 +162,14 @@ def _combine_structures(session, structures):
     return cmodel
 
 def register_similar_structures_ligands_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, StringArg
     desc = CmdDesc(
         keyword = [('rmsd_cutoff', FloatArg),
                    ('alignment_range', FloatArg),
                    ('minimum_paired', FloatArg),
                    ('combine', BoolArg),
+                   ('from_set', StringArg),
+                   ('of_structures', StringArg),
                    ],
         synopsis = 'Find ligands in Foldseek hits and align to query.'
     )

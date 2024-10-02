@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -211,7 +211,6 @@ class _StructureAltlocManager(StateManager):
             f(change_info, res, al))
 
     def _add_handlers(self):
-        print("Adding altloc handlers")
         from chimerax.core.models import REMOVE_MODELS
         self.handlers = [
             self.structure.triggers.add_handler('changes', self._changes_cb),

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -23,7 +23,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def foldseek_search(session, chain, database = 'pdb100', trim = None, alignment_cutoff_distance = None,
-                    save_directory = None, wait = False):
+                    save_directory = None, wait = False, show_table = True):
     '''Submit a Foldseek search for similar structures and display results in a table.'''
     global _query_in_progress
     if _query_in_progress:
@@ -36,7 +36,7 @@ def foldseek_search(session, chain, database = 'pdb100', trim = None, alignment_
 
     FoldseekWebQuery(session, chain, database=database,
                      trim=trim, alignment_cutoff_distance=alignment_cutoff_distance,
-                     save_directory = save_directory, wait=wait)
+                     save_directory = save_directory, wait=wait, show_table=show_table)
 
 foldseek_databases = ['pdb100', 'afdb50', 'afdb-swissprot', 'afdb-proteome']
 
@@ -56,13 +56,14 @@ class FoldseekWebQuery:
 
     def __init__(self, session, chain, database = 'pdb100', trim = True,
                  alignment_cutoff_distance = 2.0, save_directory = None, wait = False,
-                 foldseek_url = 'https://search.foldseek.com/api'):
+                 show_table = True, foldseek_url = 'https://search.foldseek.com/api'):
         self.session = session
         self.chain = chain
         self.database = database
         self.trim = trim
         self.alignment_cutoff_distance = alignment_cutoff_distance
         self.save_directory = save_directory
+        self.show_table = show_table
         self.foldseek_url = foldseek_url
         self._last_check_time = None
         self._status_interval = 1.0	# Seconds.  Frequency to check for search completion
@@ -88,8 +89,9 @@ class FoldseekWebQuery:
         from .simstruct import SimilarStructures
         results = SimilarStructures(hits, self.chain, program = 'foldseek', database = db,
                                     trim = self.trim, alignment_cutoff_distance = self.alignment_cutoff_distance)
-        from .gui import show_similar_structures_table
-        show_similar_structures_table(self.session, results)
+        if self.show_table:
+            from .gui import show_similar_structures_table
+            show_similar_structures_table(self.session, results)
         results.save_to_directory(self.save_directory)
         # self._log_open_results_command()
 
@@ -500,6 +502,7 @@ def register_foldseek_command(logger):
                    ('alignment_cutoff_distance', FloatArg),
                    ('save_directory', SaveFolderNameArg),
                    ('wait', BoolArg),
+                   ('show_table', BoolArg),
                    ],
         synopsis = 'Search for proteins with similar folds using Foldseek web service'
     )

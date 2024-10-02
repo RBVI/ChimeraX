@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -19,7 +19,8 @@ class Slider(ToolInstance):
 
     def __init__(self, session, tool_name, value_name, title, value_range = (1,10),
                  loop = True, pause_frames = 50, pause_when_recording = True,
-                 movie_filename = 'movie.mp4', movie_framerate = 25, placement = 'side'):
+                 movie_filename = 'movie.mp4', movie_framerate = 25, placement = 'side',
+                 bounce = False):
         ToolInstance.__init__(self, session, tool_name)
 
         self.value_range = value_range
@@ -30,6 +31,8 @@ class Slider(ToolInstance):
         self.movie_filename = movie_filename
         self.movie_framerate = movie_framerate
         self._last_shown_value = None
+        self._bounce = bounce
+        self._play_dir = 1
         
         self._play_handler = None
         self.recording = False
@@ -155,16 +158,21 @@ class Slider(ToolInstance):
                     self.session.main_view.redraw_needed = True
                 return
         v = self._last_shown_value
-        if v is None or v >= self.value_range[1]:
+        if v is None or (self._play_dir > 0 and v >= self.value_range[1]) \
+        or (self._play_dir < 0 and v <= self.value_range[0]):
             if (self.recording and v is not None) or (not self.loop and not self._loop_once):
                 self.stop()
                 return
             self._loop_once = False
-            v = self.value_range[0]
+            if self._bounce:
+                v = self.value_range[1] if self._play_dir > 0 else self.value_range[0]
+                self._play_dir = -self._play_dir
+            else:
+                v = self.value_range[0]
         else:
-            v += 1
+            v += self._play_dir
         while not self.valid_value(v):
-            v += 1
+            v += self._play_dir
                     
         self._block_update = True # Don't update display when slider changes
         self.value_box.setValue(v)
@@ -226,8 +234,21 @@ class Slider(ToolInstance):
         action = QAction("Loop Playback", menu)
         action.setCheckable(True)
         action.setChecked(self.loop)
-        action.triggered.connect(lambda*, self=self, action=action:
-            setattr(self, 'loop', action.isChecked()))
+        def set_loop(*args, self=self, action=action):
+            self.loop = action.isChecked()
+            self._bounce = False
+            self._play_dir = 1
+        action.triggered.connect(set_loop)
+        menu.addAction(action)
+
+        action = QAction("Bounce Playback", menu)
+        action.setCheckable(True)
+        action.setChecked(self._bounce)
+        action.setEnabled(self.loop)
+        def set_bounce(*args, self=self, action=action):
+            self._bounce = action.isChecked()
+            self._play_dir = 1
+        action.triggered.connect(set_bounce)
         menu.addAction(action)
         
 # -----------------------------------------------------------------------------

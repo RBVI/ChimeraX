@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -49,6 +49,8 @@ class SimilarStructures:
         self._query_sequence_to_coord_index = qf2c
         self._alignment_indexing = 'coordinates' if hits[0].get('coordinate_indexing') else 'sequence'
 
+        self.name = add_similar_structures(self.session, self)
+
     def _clear_cached_values(self):
         self._query_residues = None
         self._query_alignment_range = None
@@ -57,6 +59,24 @@ class SimilarStructures:
         self._alignment_coordinates = None
         self._lddt_score_array = None
 
+    def named_hits(self, hit_names, raise_error = True):
+        if isinstance(hit_names, str):
+            hit_names = hit_names.split(',')
+        if hit_names is None:
+            hits = self.hits
+        else:
+            names = set(hit_names)
+            hits = [hit for hit in self.hits if hit['database_full_id'] in names]
+
+        if raise_error and len(hits) == 0:
+            msg = 'No similar structures specified'
+            if hit_names:
+                msg += ' by ' + ', '.join(hit_names)
+            from chimerax.core.errors import UserError
+            raise UserError(msg)
+
+        return hits
+        
     def replace_hits(self, hits):
         self.hits = hits
         self._clear_cached_values()
@@ -117,6 +137,8 @@ class SimilarStructures:
             msg += f' in {self.program_database} database'
         if self.program:
             msg += f' using {self.program}'
+        if self.name:
+            msg += f', name {self.name}'
         return msg
 
     def query_alignment_range(self):
@@ -411,7 +433,7 @@ class SimilarStructures:
             r._query_chain_id = data['query_chain_id']
 
         r.sms_path = path
-
+        
         return r
         
     def open_hit(self, session, hit, trim = None, align = True, alignment_cutoff_distance = None,
@@ -501,7 +523,87 @@ class SimilarStructures:
             qro = list(range(hit['qstart']-1, hit['qend']))
         hit['aligned_residue_offsets'] = hro
         hit['query_residue_offsets'] = qro
-        
+
+from chimerax.core.state import State
+class SimilarStructuresManager(State):
+    def __init__(self):
+        self._name_to_simstruct = {}
+    def add_similar_structures(self, results, name = None):
+        uname = self._unique_name(name, results.program)
+        self._name_to_simstruct[uname] = results
+        return uname
+    def remove_similar_structures(self, results):
+        names = [name for name,r in self._name_to_simstruct.items() if r is results]
+        for name in names:
+            del self._name_to_simstruct[name]
+    def find_similar_structures(self, name):
+        n2s = self._name_to_simstruct
+        if name is None and len(n2s) == 1:
+            for name, s in n2s.items():
+                return s
+        return n2s.get(name)
+    def _unique_name(self, name, program):
+        if name is None:
+            prefix = {'foldseek':'fs', 'mmseqs2':'mm', 'blast':'bl'}.get(program, 'sim')
+            name = self._add_numeric_suffix(prefix)
+        elif name in self._name_to_simstruct:
+            name = self._add_numeric_suffix(name)
+        return name
+    def _add_numeric_suffix(self, prefix):
+            i = 1
+            while True:
+                name = prefix + str(i)
+                if name in self._name_to_simstruct:
+                    i += 1
+                else:
+                    return name
+    @property
+    def count(self):
+        return len(self._name_to_simstruct)
+    @property
+    def names(self):
+        return list(self._name_to_simstruct.keys())
+    def take_snapshot(self, session, flags):
+        return {'name_to_simstruct': self._name_to_simstruct,
+                'version': 1}
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        ssm = cls()
+        ssm._name_to_simstruct = data['name_to_simstruct']
+        return ssm
+
+def similar_structures_manager(session, create = True):
+    ssm = getattr(session, 'similar_structures', None)
+    if ssm is None and create:
+        session.similar_structures = ssm = SimilarStructuresManager()
+    return ssm
+
+def add_similar_structures(session, results, name = None):
+    ssm = similar_structures_manager(session)
+    name = ssm.add_similar_structures(results, name = name)
+    return name
+
+def remove_similar_structures(session, results):
+    ssm = similar_structures_manager(session)
+    ssm.remove_similar_structures(results)
+            
+def similar_structure_results(session, name = None, raise_error = True):
+    '''Return currently open similar structure results.'''
+    ssm = similar_structures_manager(session, create = False)
+    s = ssm.find_similar_structures(name) if ssm else None
+    if raise_error and s is None:
+        if ssm is None or ssm.count == 0:
+            msg = 'There are no open sets of similar structures'
+        elif name is None:
+            names = ', '.join(ssm.names)
+            msg = f'There are multiple open sets of similar structures ({names}). Specify one with the fromSet option'
+        else:
+            names = ', '.join(ssm.names)
+            msg = f'There is no set of similar structures named "{name}". Available names are {names}.'
+        from chimerax.core.errors import UserError
+        raise UserError(msg)
+    return s
+    
 def _indices_of_residues_with_coords(chain, start, end, allowed_residue_names):
     seqi = []
     si = 0
@@ -833,7 +935,7 @@ def _hit_sequence_to_coordinate_index(hit):
     '''Return dictionary mapping hit sequence indices (0-based) to coordinate indices (0-based).'''
     hit_coord_to_seq_index = hit.get('tca_index')  # Array mapping coordinate index to full sequence index
     if hit_coord_to_seq_index is None:
-        return None, None
+        return None
     hit_seq_to_coord_index = {fi:ci for ci, fi in enumerate(hit_coord_to_seq_index)}
     return hit_seq_to_coord_index
 
@@ -914,17 +1016,6 @@ def _find_chain(session, structure_path, chain_id):
         query_chain = None
 
     return query_chain
-            
-# -----------------------------------------------------------------------------
-#
-def similar_structure_results(session):
-    '''Return currently open similar structure results.'''
-    from .gui import similar_structures_panel
-    ssp = similar_structures_panel(session)
-    if ssp:
-        return ssp.results
-    
-    return None
 
 # -----------------------------------------------------------------------------
 #
@@ -977,11 +1068,8 @@ def _entropy(bin_counts):
 # -----------------------------------------------------------------------------
 #
 def similar_structures_open(session, hit_name, trim = None, align = True, alignment_cutoff_distance = None,
-                            in_file_history = True, log = True):
-    results = similar_structure_results(session)
-    if results is None:
-        from chimerax.core.errors import UserError
-        raise UserError('No similar structure results are available')
+                            in_file_history = True, log = True, from_set = None):
+    results = similar_structure_results(session, from_set)
 
     matches = [hit for hit in results.hits if hit['database_full_id'] == hit_name]
     for hit in matches:
@@ -990,22 +1078,38 @@ def similar_structures_open(session, hit_name, trim = None, align = True, alignm
                          in_file_history = in_file_history, log = log)
     if len(matches) == 0:
         session.logger.error(f'No similar structure {hit_name} in table')
+    
+# -----------------------------------------------------------------------------
+#
+def similar_structures_close(session, set_name):
+    results = similar_structure_results(session, set_name)
+    from .gui import similar_structures_panel
+    panel = similar_structures_panel(session)
+    if panel and panel.results is results:
+        panel.delete()
+    else:
+        remove_similar_structures(session, results)
+    
+# -----------------------------------------------------------------------------
+#
+def similar_structures_list(session):
+    ssm = similar_structures_manager(session)
+    names = ', '.join(ssm.names)
+    msg = f'There are {ssm.count} open sets of similar structures: {names}'
+    session.logger.status(msg, log=True)
 
-def similar_structure_hit_by_name(session, hit_name):
-    results = similar_structure_results(session)
-    if results is None:
-        from chimerax.core.errors import UserError
-        raise UserError('No similar structures results table is open')
+def similar_structure_hit_by_name(session, hit_name, from_set = None):
+    results = similar_structure_results(session, from_set)
     for hit in results.hits:
         if hit['database_full_id'] == hit_name:
             return hit, results
     return None, None
     
 def similar_structures_pairing(session, hit_structure, color = None, radius = None,
-                               halfbond_coloring = None):
+                               halfbond_coloring = None, from_set = None):
     '''Show pseudobonds between aligned residues for a similar structures hit and query.'''
     hit_name = hit_structure.name
-    hit, results = similar_structure_hit_by_name(session, hit_name)
+    hit, results = similar_structure_hit_by_name(session, hit_name, from_set)
     if hit is None:
         from chimerax.core.errors import UserError
         raise UserError(f'Did not find any hit {hit_name} in similar structures table')
@@ -1061,10 +1165,10 @@ def hit_and_query_residue_pairs(hit_structure, query_chain, hit):
 
     return r_pairs
     
-def similar_structures_sequence_alignment(session, hit_structure):
+def similar_structures_sequence_alignment(session, hit_structure, from_set = None):
     '''Show pairwise sequence alignment returned by similar structure search.'''
     hit_name = hit_structure.name
-    hit, results = similar_structure_hit_by_name(session, hit_name)
+    hit, results = similar_structure_hit_by_name(session, hit_name, from_set)
     if hit is None:
         from chimerax.core.errors import UserError
         raise UserError(f'Did not find any hit named {hit_name} in similar structures table')
@@ -1121,16 +1225,29 @@ def register_similar_structures_command(logger):
                    ('alignment_cutoff_distance', FloatArg),
                    ('in_file_history', BoolArg),
                    ('log', BoolArg),
+                   ('from_set', StringArg),
                    ],
         synopsis = 'Open a structure from similar structure search results and align to query'
     )
     register('similarstructures open', desc, similar_structures_open, logger=logger)
 
     desc = CmdDesc(
+        required = [('set_name', StringArg)],
+        synopsis = 'Close set of similar structure search results'
+    )
+    register('similarstructures close', desc, similar_structures_close, logger=logger)
+
+    desc = CmdDesc(
+        synopsis = 'List names of open similar structure sets'
+    )
+    register('similarstructures list', desc, similar_structures_list, logger=logger)
+
+    desc = CmdDesc(
         required = [('hit_structure', StructureArg)],
         keyword = [('color', Color8Arg),
                    ('radius', FloatArg),
                    ('halfbond_coloring', BoolArg),
+                   ('from_set', StringArg),
                    ],
         synopsis = 'Show pseudobonds between paired residues between a similar structure search result and the query structure'
     )
@@ -1138,6 +1255,7 @@ def register_similar_structures_command(logger):
 
     desc = CmdDesc(
         required = [('hit_structure', StructureArg)],
+        keyword = [('from_set', StringArg)],
         synopsis = 'Show sequence alignment from a similar structures search for one hit'
     )
     register('similarstructures seqalign', desc, similar_structures_sequence_alignment, logger=logger)

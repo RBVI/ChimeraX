@@ -7,7 +7,6 @@ jobs:
     name: Detect which prerequsites had changes
     runs-on: ubuntu-20.04
     outputs:
-      change_in_pyqt: ${{ steps.changes.outputs.change_in_pyqt }}
       change_in_python: ${{ steps.changes.outputs.change_in_python }}
       change_in_ambertools: ${{ steps.changes.outputs.change_in_ambertools }}
       change_in_ffmpeg: ${{ steps.changes.outputs.change_in_ffmpeg }}
@@ -16,7 +15,7 @@ jobs:
       change_in_qtshim: ${{ steps.changes.outputs.change_in_qtshim }}
       change_in_rsync: ${{ steps.changes.outputs.change_in_rsync }}
       change_in_win32: ${{ steps.changes.outputs.change_in_win32 }}
-      any_changed: ${{ steps.changes.outputs.change_in_pyqt == 'true' || steps.changes.outputs.change_in_python == 'true' || steps.changes.outputs.change_in_ambertools == 'true' || steps.changes.outputs.change_in_ffmpeg == 'true' || steps.changes.outputs.change_in_cxservicemexs == 'true' ||  steps.changes.outputs.change_in_libglu == 'true' || steps.changes.outputs.change_in_libglu == 'true' || steps.changes.outputs.change_in_openmm == 'true' || steps.changes.outputs.change_in_qtshim == 'true' || steps.changes.outputs.change_in_rsync == 'true' || steps.changes.outputs.change_in_win32 }}
+      any_changed: ${{ steps.changes.outputs.change_in_python == 'true' || steps.changes.outputs.change_in_ambertools == 'true' || steps.changes.outputs.change_in_ffmpeg == 'true' || steps.changes.outputs.change_in_cxservicemexs == 'true' ||  steps.changes.outputs.change_in_libglu == 'true' || steps.changes.outputs.change_in_libglu == 'true' || steps.changes.outputs.change_in_openmm == 'true' || steps.changes.outputs.change_in_qtshim == 'true' || steps.changes.outputs.change_in_rsync == 'true' || steps.changes.outputs.change_in_win32 }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -90,10 +89,6 @@ jobs:
 
       - run: make build-dirs build-app-dirs
 
-      - name: Rebuild PyQt
-        if: needs.files-changed.outputs.change_in_pyqt == 'true'
-        run: source /opt/rh/gcc-toolset-10/enable && make -C prereqs/pyqt install
-
       - name: Rebuild Python
         if: needs.files-changed.outputs.change_in_python == 'true'
         run: source /opt/rh/gcc-toolset-10/enable && make -C prereqs/Python install
@@ -134,10 +129,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - run: make build-dirs build-app-dirs
-
-      - name: Rebuild PyQt
-        if: needs.files-changed.outputs.change_in_pyqt == 'true'
-        run: make -C prereqs/pyqt install
 
       - name: Rebuild Python
         if: needs.files-changed.outputs.change_in_python == 'true'
@@ -187,10 +178,6 @@ jobs:
           install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make
 
       - run: make build-dirs build-app-dirs
-
-      - name: Rebuild PyQt
-        if: needs.files-changed.outputs.change_in_pyqt == 'true'
-        run: make -C prereqs/pyqt install
 
       - name: Rebuild Python
         if: needs.files-changed.outputs.change_in_python == 'true'

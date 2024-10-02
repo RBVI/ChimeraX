@@ -7,16 +7,16 @@ Benchmarking readcif
     :Copyright: © Copyright 2014 by the Regents of the University of Californa.  All Rights reserved.
     :Last modified: 2014-6-17
 
-.. _RBVI: http://www.rbvi.ucsf.edu/
-.. _University of California at San Francisco: http://www.ucsf.edu/
+.. _RBVI: https://www.rbvi.ucsf.edu/
+.. _University of California at San Francisco: https://www.ucsf.edu/
 
 The goal of this benchmark is to compare the performance of
 readcif versus other C++ mmCIF readers, `cifparse-obj`_ and ucif_,
 and to quantify how much faster the stylized PDBx/mmCIF can be parsed.
 
-.. _cifparse-obj: http://sw-tools.pdb.org/apps/CIFPARSE-OBJ/
-.. _ucif: http://cctbx.sourceforge.net/ucif/
-.. _iotbx.cif: http://dx.doi.org/10.1107/S0021889811041161
+.. _cifparse-obj: https://sw-tools.pdb.org/apps/CIFPARSE-OBJ/
+.. _ucif: https://cctbx.sourceforge.net/ucif/
+.. _iotbx.cif: https://dx.doi.org/10.1107/S0021889811041161
 
 
 Benchmark Results
@@ -150,7 +150,7 @@ As of 10 June 2014,
 the above heuristic appears to work for the mmCIF files for PDB entries
 appears to work.
 However, the PDB's `large structure examples
-<http://mmcif.wwpdb.org/docs/large-pdbx-examples/index.html>`_
+<https://mmcif.wwpdb.org/docs/large-pdbx-examples/index.html>`_
 files have the numbers in tables right-justified
 instead of left-justified, so the stylized reading might fail.
 Luckily, those file names are not a 4-character PDB identifier.

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -24,21 +24,34 @@
 
 def similar_structures_sequences(session, show_conserved = True, conserved_threshold = 0.5,
                                  conserved_color = (225,190,106), identity_color = (64,176,166),
-                                 lddt_coloring = False, order = 'cluster or evalue'):
+                                 lddt_coloring = False, order = 'cluster or evalue', from_set = None):
     '''Show an image of all aligned sequences from a similar structure search, one sequence per image row.'''
     from .simstruct import similar_structure_results
-    results = similar_structure_results(session)
+    results = similar_structure_results(session, from_set)
     if results is None:
         from chimerax.core.errors import UserError
         raise UserError('No similar structure results are open')
 
+    sp = _existing_sequence_plot(session, results)
+    if sp:
+        sp.display(True)
+        return sp
+    
     conserved_color = conserved_color[:3]	# Don't use transparency
     identity_color = identity_color[:3]
-    fsp = SequencePlotPanel(session, results, order = order,
-                            show_conserved = show_conserved, conserved_threshold = conserved_threshold,
-                            conserved_color = conserved_color, identity_color = identity_color,
-                            lddt_coloring = lddt_coloring)
-    return fsp
+    sp = SequencePlotPanel(session, results, order = order,
+                           show_conserved = show_conserved, conserved_threshold = conserved_threshold,
+                           conserved_color = conserved_color, identity_color = identity_color,
+                           lddt_coloring = lddt_coloring)
+    return sp
+
+# -----------------------------------------------------------------------------
+#
+def _existing_sequence_plot(session, results):
+    for tool in session.tools.list():
+        if isinstance(tool, SequencePlotPanel) and tool._results is results:
+            return tool
+    return None
 
 # -----------------------------------------------------------------------------
 #
@@ -228,7 +241,7 @@ class SequencePlotPanel(ToolInstance):
     def _show_hit_in_table(self, hit):
         from .gui import similar_structures_panel
         ssp = similar_structures_panel(self.session)
-        if ssp:
+        if ssp and self._results is ssp.results:
             ssp.select_table_row(hit)
 
     # ---------------------------------------------------------------------------
@@ -254,6 +267,13 @@ class SequencePlotPanel(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _show_lddt(self, show = True):
+        if show:
+            r = self._results
+            if not r.have_c_alpha_coordinates():
+                from .coords import similar_structures_fetch_coordinates
+                if not similar_structures_fetch_coordinates(self.session, ask = True, from_set = r.name):
+                    return
+
         self._color_by_lddt = show
         if show:
             self._show_conserved = False
@@ -445,7 +465,7 @@ def pixmap_from_rgb(rgb):
     return pixmap
     
 def register_similar_structures_sequences_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, EnumOf, Color8Arg
+    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, EnumOf, Color8Arg, StringArg
     from chimerax.atomic import ChainArg
     desc = CmdDesc(
         required = [],
@@ -454,7 +474,8 @@ def register_similar_structures_sequences_command(logger):
                    ('conserved_color', Color8Arg),
                    ('identity_color', Color8Arg),
                    ('lddt_coloring', BoolArg),
-                   ('order', EnumOf(['cluster', 'evalue', 'identity', 'lddt']))],
+                   ('order', EnumOf(['cluster', 'evalue', 'identity', 'lddt'])),
+                   ('from_set', StringArg)],
         synopsis = 'Show an image of all aligned sequences from a similar structure search, one sequence per image row.'
     )
     register('similarstructures sequences', desc, similar_structures_sequences, logger=logger)

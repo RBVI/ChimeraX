@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -78,7 +78,15 @@ class SimilarStructuresPanel(ToolInstance):
         layout.addStretch(1)    # Extra space at end
 
         tw.manage(placement="side")
-
+        
+    # ---------------------------------------------------------------------------
+    #
+    def delete(self):
+        if self.results is not None:
+            from .simstruct import remove_similar_structures
+            remove_similar_structures(self.session, self.results)
+        ToolInstance.delete(self)
+        
     # ---------------------------------------------------------------------------
     #
     @classmethod
@@ -148,6 +156,11 @@ class SimilarStructuresPanel(ToolInstance):
         self._alignment_cutoff_distance = acd = pd.values[0]
         self.set_alignment_cutoff_option(alignment_cutoff_distance)
         acd.return_pressed.connect(self._alignment_cutoff_distance_changed)
+
+        # For pruning aligned residues when opening hits and aligning them to query chain
+        sr = EntriesRow(f, 'Traces, clusters and ligands for selected rows only', False)
+        self._selected_rows_only = sr.values[0]
+
         return p
 
     # ---------------------------------------------------------------------------
@@ -227,6 +240,9 @@ class SimilarStructuresPanel(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def show_results(self, results):
+        if self.results and results is not self.results:
+            from .simstruct import remove_similar_structures
+            remove_similar_structures(self.session, self.results)
         self.results = results
         results.trim = self.trim
         results.alignment_cutoff_distance = self.alignment_cutoff_distance
@@ -268,6 +284,13 @@ class SimilarStructuresPanel(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
+    @property
+    def _selected_rows(self):
+        rt = self._results_table
+        return rt.selected if rt else []
+
+    # ---------------------------------------------------------------------------
+    #
     def open_hit(self, hit):
         self.results.open_hit(self.session, hit, trim = self.trim,
                               alignment_cutoff_distance = self.alignment_cutoff_distance)
@@ -289,13 +312,25 @@ class SimilarStructuresPanel(ToolInstance):
     #
     def _show_sequences(self):
         from chimerax.core.commands import run
-        run(self.session, 'similarstructures sequences')
+        run(self.session, 'similarstructures sequences' + self._from_set_option())
+
+    # ---------------------------------------------------------------------------
+    #
+    def _from_set_option(self):
+        if self.results is None:
+            from chimerax.core.errors import UserError
+            raise UserError('Must run search first')
+        from .simstruct import similar_structures_manager
+        ssm = similar_structures_manager(self.session)
+        option = f' from {self.results.name}' if ssm.count > 1 else ''
+        return option
 
     # ---------------------------------------------------------------------------
     #
     def _show_backbone_traces(self):
+        cmd = 'similarstructures traces' + self._from_set_option() + self._hit_names_option()
         from chimerax.core.commands import run
-        run(self.session, 'similarstructures traces')
+        run(self.session, cmd)
 
     # ---------------------------------------------------------------------------
     #
@@ -312,9 +347,10 @@ class SimilarStructuresPanel(ToolInstance):
         rnums = ','.join(str(res.number) for res in most_conserved_res)
         cspec = r.query_chain.string(style = 'command')
         rspec = cspec + f':{rnums}'
+        cmd = f'similarstructures cluster {rspec} clusterDistance 1.5' + self._from_set_option() + self._hit_names_option()
 
         from chimerax.core.commands import run
-        run(self.session, f'similarstructures cluster {rspec} clusterDistance 1.5')
+        run(self.session, cmd)
 
     # ---------------------------------------------------------------------------
     #
@@ -324,15 +360,31 @@ class SimilarStructuresPanel(ToolInstance):
             self.session.logger.error('Only search results from the Protein Databank have ligands')
             return
 
-        nhits = len(pdb_hits)
-        message = f'This will fetch {nhits} PDB structures and align their ligands to the query structure.  It may take several minutes to fetch those structures during which ChimeraX will be frozen.  Do you want to proceed?'
-        from chimerax.ui.ask import ask
-        answer = ask(self.session, message, title='Fetch similar structure ligands')
-        if answer == 'no':
-            return
-        
+        nhits = len(self._selected_rows) if self._selected_rows_only.enabled else len(pdb_hits)
+        if nhits > 10:
+            message = f'This will fetch {nhits} PDB structures and align their ligands to the query structure.  It may take several minutes to fetch those structures during which ChimeraX will be frozen.  Do you want to proceed?'
+            from chimerax.ui.ask import ask
+            answer = ask(self.session, message, title='Fetch similar structure ligands')
+            if answer == 'no':
+                return
+
+        cmd = 'similarstructures ligands' + self._from_set_option() + self._hit_names_option()
         from chimerax.core.commands import run
-        run(self.session, 'similarstructures ligands')
+        run(self.session, cmd)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _hit_names_option(self):
+        if self._selected_rows_only.enabled:
+            hit_names = [hit_row.hit['database_full_id'] for hit_row in self._selected_rows]
+            if len(hit_names) == 0:
+                from chimerax.core.errors import UserError
+                raise UserError('No table rows selected')
+            hits_option = ' of ' + ','.join(hit_names)
+            nhits = len(hit_names)
+        else:
+            hits_option = ''
+        return hits_option
 
     # ---------------------------------------------------------------------------
     #
@@ -402,10 +454,10 @@ class SimilarStructuresRow:
 
 # -----------------------------------------------------------------------------
 #
-def similar_structures_scroll_to(session, hit_name):
+def similar_structures_scroll_to(session, hit_name, from_set = None):
     '''Show table row for this hit.'''
     from .simstruct import similar_structure_hit_by_name
-    hit, results = similar_structure_hit_by_name(session, hit_name)
+    hit, results = similar_structure_hit_by_name(session, hit_name, from_set)
     if hit:
         panel = similar_structures_panel(session)
         if panel:
@@ -428,6 +480,7 @@ def register_similar_structures_scrollto_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg
     desc = CmdDesc(
         required = [('hit_name', StringArg)],
+        keyword = [('from_set', StringArg)],
         synopsis = 'Show similar structures result table row'
     )
     register('similarstructures scrollto', desc, similar_structures_scroll_to, logger=logger)
