@@ -33,5 +33,16 @@ def prep_input(structure, origin, extent, probe_in, probe_out, step):
         from pyKVFinder import get_vertices
         vertices = get_vertices(atom_infos, probe_out, step)
     else:
-        raise NotImplementedError("Call to get_vertices_from_file() not implemented")
+        if isinstance(extent, float):
+            extents = [extent, extent, extent]
+        else:
+            extents = extent
+        box_info = {
+            "p1": list(origin),
+            "p2": [origin[0], origin[1], origin[2] + extents[2]],
+            "p3": [origin[0], origin[1] + extents[1], origin[2]],
+            "p4": [origin[0] + extents[0], origin[1], origin[2]]
+        }
+        from pyKVFinder.grid import _get_vertices_from_box
+        vertices = _get_vertices_from_box(box_info, probe_out)
     return atom_infos, vertices

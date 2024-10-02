@@ -32,8 +32,6 @@ def cmd_kvfinder(session, structures=None, *, extent=None, origin=None, probe_in
     from chimerax.atomic import all_atomic_structures, Structure
     if structures is None:
         structures = all_atomic_structures(session)
-    if origin is not None:
-        raise NotImplementedError("origin/extent keywords not yet implmented")
     from .prep import prep_input
     from chimerax.atomic.struct_edit import add_atom
     import numpy
