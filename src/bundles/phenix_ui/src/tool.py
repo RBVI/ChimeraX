@@ -215,7 +215,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
         structure_layout.setSpacing(1)
         centering_widget.setLayout(structure_layout)
         structure_layout.addWidget(QLabel("Fit "), 0, 0, alignment=Qt.AlignRight)
-        from chimerax.atomic.widgets import AtomicStructureMenuButton
+        from chimerax.atomic.widgets import AtomicStructureMenuButton, AtomicStructureListWidget
         self.structure_menu = AtomicStructureMenuButton(session)
         structure_layout.addWidget(self.structure_menu, 0, 1)
         structure_layout.addWidget(QLabel(" using "), 0, 2)
@@ -258,6 +258,26 @@ class LaunchEmplaceLocalTool(ToolInstance):
             "If unknown, and using half maps, providing a value of zero will cause an estimated\n"
             "resolution to be used.  For full maps, providing the resolution is mandatory.")
         res_options.add_option(self.res_option)
+
+        prefitted_widget = QWidget()
+        layout.addWidget(prefitted_widget, alignment=Qt.AlignCenter, stretch=1)
+        prefitted_layout = QHBoxLayout()
+        prefitted_layout.setSpacing(1)
+        prefitted_widget.setLayout(prefitted_layout)
+        prefitted_tip = '''If any structures have already been fit into
+other parts of the map, specify those here.'''
+        prefitted_label = QLabel("Pre-fitted structures (if any):")
+        prefitted_label.setToolTip(prefitted_tip)
+        prefitted_layout.addWidget(prefitted_label, alignment=Qt.AlignRight)
+        class ShortASLWidget(AtomicStructureListWidget):
+            def sizeHint(self):
+                hint = super().sizeHint()
+                hint.setHeight(hint.height()//2)
+                return hint
+        self.prefitted_list = ShortASLWidget(session, autoselect=ShortASLWidget.AUTOSELECT_NONE,
+            filter_func=lambda s, *args, sm=self.structure_menu: s != sm.value)
+        self.structure_menu.value_changed.connect(self.prefitted_list.refresh)
+        prefitted_layout.addWidget(self.prefitted_list, alignment=Qt.AlignLeft)
 
         centering_widget = QWidget()
         layout.addWidget(centering_widget, alignment=Qt.AlignCenter, stretch=1)
@@ -375,6 +395,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
                 raise UserError("Must specify exactly one full map for fitting")
             if res == 0.0:
                 raise UserError("Must specify a resolution value for the full map")
+        prefitted = self.prefitted_list.value
         method = self.centering_button.text()
         if method == self.CENTER_XYZ:
             center = [float(widget.text()) for widget in self.xyz_widgets]
@@ -431,10 +452,11 @@ class LaunchEmplaceLocalTool(ToolInstance):
         apply_symmetry = self.symmetry_checkbox.isChecked()
         if self.verify_center_checkbox.isChecked():
             self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
-            VerifyELCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps, ssm,
-                apply_symmetry)
+            VerifyELCenterDialog(self.session, structure, maps, res, prefitted, center,
+                self.settings.opaque_maps, ssm, apply_symmetry)
         else:
-            _run_emplace_local_command(self.session, structure, maps, res, center, ssm, apply_symmetry)
+            _run_emplace_local_command(self.session, structure, maps, res, prefitted, center,
+                ssm, apply_symmetry)
         if not apply:
             self.display(False)
 
@@ -902,7 +924,7 @@ class VerifyCenterDialog(QDialog):
                 break
 
 class VerifyELCenterDialog(VerifyCenterDialog):
-    def __init__(self, session, structure, maps, resolution, initial_center, opaque_maps,
+    def __init__(self, session, structure, maps, resolution, prefitted, initial_center, opaque_maps,
             show_sharpened_map, apply_symmetry):
         self._search_radius = None
         self.structure = structure
@@ -910,6 +932,7 @@ class VerifyELCenterDialog(VerifyCenterDialog):
         self.resolution = resolution
         self.show_sharpened_map = show_sharpened_map
         self.apply_symmetry = apply_symmetry
+        self.prefitted = prefitted
         super().__init__(session, initial_center, opaque_maps)
 
 
@@ -939,8 +962,8 @@ class VerifyELCenterDialog(VerifyCenterDialog):
                     rgba[-1] = alpha
                     m.rgba = tuple(rgba)
         center = self.marker.scene_coord
-        _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution, center,
-            self.show_sharpened_map, self.apply_symmetry)
+        _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution, self.prefitted,
+            center, self.show_sharpened_map, self.apply_symmetry)
 
     @property
     def search_button_label(self):
@@ -1361,7 +1384,7 @@ class LaunchLigandFitSettings(Settings):
         'opaque_maps': True,
     }
 
-def _run_emplace_local_command(session, structure, maps, resolution, center, show_sharpened_map,
+def _run_emplace_local_command(session, structure, maps, resolution, prefitted, center, show_sharpened_map,
         apply_symmetry):
     from chimerax.core.commands import run, concise_model_spec, BoolArg, StringArg
     from chimerax.map import Volume
@@ -1369,6 +1392,10 @@ def _run_emplace_local_command(session, structure, maps, resolution, center, sho
         " applySymmetry %s" % (
         structure.atomspec, concise_model_spec(session, maps, relevant_types=Volume, allow_empty_spec=False),
         resolution, *center, BoolArg.unparse(show_sharpened_map), BoolArg.unparse(apply_symmetry))
+    if prefitted:
+        from chimerax.atomic import AtomicStructure
+        cmd += " prefitted %s" % concise_model_spec(session, prefitted, relevant_types=AtomicStructure,
+            allow_empty_spec=False)
     run(session, cmd)
 
 def _run_ligand_fit_command(session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution,
