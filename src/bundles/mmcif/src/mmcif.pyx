@@ -543,7 +543,6 @@ def _get_template(session, name):
     else:
         url_path = url_quote(f"pub/pdb/refdata/chem_comp/{name[-1]}/{name}/{name}.cif")
         url = f"https://files.wwpdb.org/{url_path}"
-    print(url)  # DEBUG
     try:
         return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD')
     except (UserError, OSError):
