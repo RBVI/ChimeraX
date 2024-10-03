@@ -23,8 +23,8 @@
 # === UCSF ChimeraX Copyright ===
 
 def similar_structures_cluster(session, query_residues = None, align_with = None, cutoff_distance = 2.0,
-                               cluster_count = None, cluster_distance = None, replace = True,
-                               from_set = None, of_structures = None):
+                               cluster_count = None, cluster_distance = None, color_by_species = False,
+                               replace = True, from_set = None, of_structures = None):
     from .simstruct import similar_structure_results
     results = similar_structure_results(session, from_set)
     hits = results.named_hits(of_structures)
@@ -45,10 +45,10 @@ def similar_structures_cluster(session, query_residues = None, align_with = None
     _show_umap(session, results, hits, query_residues,
                align_with = align_with, cutoff_distance = cutoff_distance,
                cluster_count = cluster_count, cluster_distance = cluster_distance,
-               replace = replace)
+               color_by_species = color_by_species, replace = replace)
 
 def _show_umap(session, results, hits, query_residues, align_with = None, cutoff_distance = 2.0,
-               cluster_count = None, cluster_distance = None, replace = True):
+               cluster_count = None, cluster_distance = None, color_by_species = False, replace = True):
 
     coord_offsets, hit_names = _aligned_coords(results, hits, query_residues,
                                                align_with = align_with, cutoff_distance = cutoff_distance)
@@ -58,7 +58,7 @@ def _show_umap(session, results, hits, query_residues, align_with = None, cutoff
     if coord_offsets.shape[1] == 0:
         from chimerax.core.errors import UserError
         raise UserError(f'No query structure residues were specified.')
-        
+
     from chimerax.diffplot.diffplot import _umap_embed, _plot_embedding, _install_umap
     _install_umap(session)
     umap_xy = _umap_embed(coord_offsets)
@@ -81,7 +81,10 @@ def _show_umap(session, results, hits, query_residues, align_with = None, cutoff
     p.query_residues = query_residues
     if colors is not None:
         p.cluster_colors = dict(zip(hit_names, colors))
-    
+    if color_by_species:
+        p.species_colors = None
+        _color_by_species(p)
+
     # Set the plot context menu to contain similar structure actions
     from types import MethodType
     p.fill_context_menu = MethodType(fill_context_menu, p)
@@ -367,6 +370,7 @@ def register_similar_structures_cluster_command(logger):
                    ('cutoff_distance', FloatArg),
                    ('cluster_count', IntArg),
                    ('cluster_distance', FloatArg),
+                   ('color_by_species', BoolArg),
                    ('replace', BoolArg),
                    ('from_set', StringArg),
                    ('of_structures', StringArg),
