@@ -285,12 +285,13 @@ def _show_color_panel(structure_plot, node):
 
 def _color_cluster(structure_plot, node, color):
     cur_color = node.color
-    cluster_colors = structure_plot.get('cluster_colors')
+    cluster_colors = getattr(structure_plot, 'cluster_colors', None)
     for n in structure_plot.nodes:
         if n.color == cur_color:
             n.color = color
             if cluster_colors:
-                cluster_colors[n.name] = color
+                from chimerax.core.colors import rgba_to_rgba8
+                cluster_colors[n.name] = rgba_to_rgba8(color)
     structure_plot.draw_graph()  # Redraw nodes.
 
 def _color_by_cluster(structure_plot, no_cluster_color = (178,178,178,255)):
