@@ -29,12 +29,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: kvfinder :: Binding Analysis :: Find pockets</ChimeraXClassifier>
-	<!--
-    <ChimeraXClassifier>Tool :: Water Placement :: Structure Editing, Phenix :: Place waters in a map</ChimeraXClassifier>
-    <ChimeraXClassifier>Tool :: Local EM Fitting :: Structure Editing, Phenix :: Place structure in a map using localized search</ChimeraXClassifier>
-    <ChimeraXClassifier>Tool :: Fit Loops :: Structure Editing, Phenix :: Fill in missing structure or remodel structure guided by Cryo-EM map</ChimeraXClassifier>
-    <ChimeraXClassifier>Tool :: Fit Ligand :: Structure Editing, Phenix :: Place a ligand based on map density</ChimeraXClassifier>
-	-->
+    <ChimeraXClassifier>Tool :: Find Cavities :: Binding Analysis :: Find potential binding pockets</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

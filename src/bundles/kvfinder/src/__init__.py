@@ -47,21 +47,9 @@ class _KVFinderBundle(BundleAPI):
         from . import cmd
         cmd.register_command(command_name, logger)
 
-    """
     @staticmethod
     def start_tool(session, tool_name):
-        if tool_name == 'Water Placement':
-            from .tool import LaunchDouseTool
-            return LaunchDouseTool(session, tool_name)
-        if tool_name == 'Local EM Fitting':
-            from .tool import LaunchEmplaceLocalTool
-            return LaunchEmplaceLocalTool(session, tool_name)
-        if tool_name == 'Fit Loops':
-            from .tool import LaunchFitLoopsTool
-            return LaunchFitLoopsTool(session, tool_name)
-        if tool_name == 'Fit Ligand':
-            from .tool import LaunchLigandFitTool
-            return LaunchLigandFitTool(session, tool_name)
-    """
+        from .tool import LaunchKVFinderTool
+        return LaunchKVFinderTool(session, tool_name)
 
 bundle_api = _KVFinderBundle()
