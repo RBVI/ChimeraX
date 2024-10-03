@@ -309,18 +309,31 @@ def _color_by_species(structure_plot):
     node_names = set(node.name for node in nodes)
     species = {hit['database_full_id']:hit.get('taxname') for hit in results.hits
                if hit['database_full_id'] in node_names}
-    unique_species = list(set(species.values()))
-    species_number =  {sname:i for i,sname in enumerate(unique_species)}
-    species_colors = getattr(structure_plot, 'species_colors', None)
-    if species_colors is None:
-        from chimerax.core.colors import random_colors, rgba8_to_rgba
-        scolors = [rgba8_to_rgba(c) for c in random_colors(len(unique_species))]
-        species_colors = dict(zip(unique_species, scolors))
-        structure_plot.species_colors = species_colors
+    species_colors = _species_colors(structure_plot, species)
     for node in nodes:
         if node.name in species:
             node.color = species_colors[species[node.name]]
     structure_plot.draw_graph()  # Redraw nodes.
+
+def _species_colors(structure_plot, species):
+    species_colors = getattr(structure_plot, 'species_colors', None)
+    if species_colors is None:
+        unique_species = list(set(species.values()))
+        unique_species.sort()
+        from chimerax.core.colors import random_colors, rgba8_to_rgba
+        scolors8 = random_colors(len(unique_species))
+        scolors = [rgba8_to_rgba(c) for c in scolors8]
+        species_colors = dict(zip(unique_species, scolors))
+        structure_plot.species_colors = species_colors
+        species_colors_html = '<br>'.join(f'{s} {_html_color_square(c)}' for s,c in zip(unique_species, scolors8))
+        msg = f'Coloring {len(unique_species)} different species:<br>{species_colors_html}'
+        structure_plot.session.logger.info(msg, is_html = True)
+    return species_colors
+
+def _html_color_square(rgba8):
+    from chimerax.core.colors import hex_color
+    color = hex_color(rgba8)
+    return f'&nbsp;<div style="width:10px; height:10px; display:inline-block; border:1px solid #000; background-color:{color}"></div>'
 
 def _show_table_row(structure_plot, node):
     from .simstruct import similar_structure_results
