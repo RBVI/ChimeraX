@@ -26,7 +26,7 @@ from chimerax.core.errors import LimitationError, UserError
 import pyKVFinder
 
 def cmd_kvfinder(session, structures=None, *, extent=None, origin=None, probe_in=1.4, probe_out=4.0,
-        removal_distance=2.4, step=0.6, surface='SES', volume_cutoff=5.0):
+        removal_distance=2.4, show_tool=True, step=0.6, surface='SES', volume_cutoff=5.0):
     if [origin, extent].count(None) == 1:
         raise UserError("Must specify both 'origin' and 'extent' or neither")
     from chimerax.atomic import all_atomic_structures, Structure
@@ -80,11 +80,15 @@ def cmd_kvfinder(session, structures=None, *, extent=None, origin=None, probe_in
                     a.radius = 0.1
         for cav_s, r, rgba in model_lookup.values():
             cav_s.overall_color = [255.0 * c for c in rgba]
+        if show_tool:
+            from .tool import KVFinderResultsDialog
+            KVFinderResultsDialog(session, "KVFinder Results", s, cavity_group,
+                [ml[0] for ml in model_lookup.values()])
 
     return return_values
 
 def register_command(command_name, logger):
-    from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, Float3Arg, FloatArg, EnumOf
+    from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, Float3Arg, FloatArg, EnumOf, BoolArg
     from chimerax.atomic import AtomicStructuresArg
     kw = {
         'required': [('structures', Or(AtomicStructuresArg, EmptyArg))],
@@ -94,6 +98,7 @@ def register_command(command_name, logger):
             ('probe_in', FloatArg),
             ('probe_out', FloatArg),
             ('removal_distance', FloatArg),
+            ('show_tool', BoolArg),
             ('step', FloatArg),
             ('surface', EnumOf(['SAS', 'SES'])),
             ('volume_cutoff', FloatArg),
