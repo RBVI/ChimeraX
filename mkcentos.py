@@ -251,7 +251,7 @@ def main():
             file=sys.stderr,
         )
         print(
-            '  Build-type is one of "release", "candidate", or "daily"', file=sys.stderr
+            '  Build-type is one of "release", "candidate", "techpreview", "github-techpreview", or "daily"', file=sys.stderr
         )
         raise SystemExit(2)
     dependencies = CENTOS_DEPENDENCIES[os_version]

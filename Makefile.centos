@@ -10,7 +10,7 @@ TOP := $(shell (cd "$(TOP)"; pwd))
 include $(TOP)/mk/config.make
 
 ifeq (,$(CENTOS))
-CENTOS = $(shell . /etc/os-release && echo $$VERSION_ID)
+CENTOS = $(shell . /etc/os-release && echo $$VERSION_ID | cut -d'.' -f 1)
 endif
 
 install: centos
