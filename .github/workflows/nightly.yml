@@ -4,49 +4,6 @@ on:
     - cron: "30 10 * * *" # 2:30AM PT/10:30AM UTC
 
 jobs:
-  build-ubuntu:
-    name: Build ChimeraX for Ubuntu
-    strategy:
-      matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
-    env:
-      PYOPENGL_PLATFORM: egl
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
-        with:
-          platform: linux
-          architecture: x86_64
-          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - run: MAKEOPTS="-j$(nproc)" make -j$(nproc) install-rbvi
-      - name: Run the legacy test suite
-        run: make test
-      - name: Install Pytest
-        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
-      - name: Set up the repo for coverage reporting
-        run: make prepare-coverage
-      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
-        run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        run: USE_COVERAGE=1 make pytest-wheel
-      - name: Run distribution tests
-        run: USE_COVERAGE=1 make pytest-app
-      - name: Report coverage
-        run: make report-coverage
-      - name: Make the package
-        run: make -f Makefile.ubuntu github-techpreview-package
-      - run: mv ${{ matrix.os }}/ucsf-chimerax-*.deb ./chimerax.deb
-      - name: Upload ChimeraX
-        uses: ./utils/ci/upload_artifact
-        with:
-          artifact_path: chimerax.deb
-          full_build: true
-          release_type: github-techpreview
-          platform: ${{ matrix.os }}
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
   build-rocky8-docker:
     name: Build ChimeraX for Rocky 8
     runs-on: ubuntu-20.04
@@ -94,6 +51,71 @@ jobs:
           full_build: true
           release_type: github-techpreview
           platform: centos-8
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - uses: ./utils/ci/upload_bundles
+        with:
+          platform: linux
+          build_type: daily
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+  build-ubuntu:
+    name: Build ChimeraX for Ubuntu
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+    env:
+      PYOPENGL_PLATFORM: egl
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
+      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
+        uses: ./utils/ci/cache_pyqt
+        with:
+          platform: linux
+          architecture: x86_64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - uses: ./utils/ci/download_lcd_linux_bundles
+        with:
+          platform: linux
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          build_type: daily
+      - name: Unpack the bundles to build/sync
+        run: |
+          mkdir wheels
+          tar -xvf linux-bundles.tar.gz -C wheels
+      - name: Build the rest of ChimeraX
+        run: |
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial make -j$(nproc) -C prereqs install
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial make -j$(nproc) -C prereqs app-install
+          make -C src/apps/ChimeraX install BUILD_TYPE=daily
+          ChimeraX.app/bin/python3.11 -m pip install wheels/*.whl
+          cp -rp include ChimeraX.app
+          make -C src/apps install BUILD_TYPE=daily
+          make -C docs install BUILD_TYPE=daily
+      - name: Run the legacy test suite
+        run: make test
+      - name: Install Pytest
+        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage
+      - name: Make the package
+        run: make -f Makefile.ubuntu github-techpreview-package
+      - run: mv ${{ matrix.os }}/ucsf-chimerax-*.deb ./chimerax.deb
+      - name: Upload ChimeraX
+        uses: ./utils/ci/upload_artifact
+        with:
+          artifact_path: chimerax.deb
+          full_build: true
+          release_type: github-techpreview
+          platform: ${{ matrix.os }}
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
   build-macos:
     name: Build ChimeraX for Apple Silicon
