@@ -26,6 +26,5 @@ runs:
       shell: bash
       run: |
         export BUNDLE_REPO_DIR=$(git rev-parse --show-toplevel)/build/sync
-        for bundle in $BUNDLE_REPO_DIR/*.whl; do \
-          curl -v -F "key=${{ inputs.deploy_key }}" -F "platform=${{ inputs.platform }}" -F "build_type=${{ inputs.build_type }} -F "file=@$bundle" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_bundles.py
-        done
+        tar -cvzf ${{ inputs.platform }}-bundles.tar.gz -C $BUNDLE_REPO_DIR .
+        curl -v -F "key=${{ inputs.deploy_key }}" -F "platform=${{ inputs.platform }}" -F "build_type=${{ inputs.build_type }} -F "file=${{ inputs.platform }}-bundles.tar.gz" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_bundles.py
