@@ -236,6 +236,55 @@ jobs:
           release_type: github-techpreview
           platform: mac_arm64
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+  build-intel-macos:
+    name: Build ChimeraX for Intel Macs
+    runs-on: macos-13
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - uses: actions/checkout@v4
+      - run: ${PWD}/utils/set_up_macos.sh
+      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
+        uses: ./utils/ci/cache_pyqt
+        with:
+          platform: macos
+          architecture: universal2
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) install-rbvi
+      - name: Run the legacy test suite
+        run: make test
+      - name: Install Pytest
+        run: ./ChimeraX.app/Contents/bin/python3.11 -I -m pip install pytest pytest-cov
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage
+      - name: Sign the macOS package
+        uses: ./utils/ci/sign_macos/
+        with:
+          build_certificate: ${{ secrets.MAC_CERT_BASE64 }}
+          p12_pw: ${{ secrets.MAC_CERT_P12_PASSWD }}
+          build_profile: ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }}
+          kc_pw: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
+          team_id: ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
+          app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
+          provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
+          email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
+      - name: Upload ChimeraX
+        uses: ./utils/ci/upload_artifact
+        with:
+          artifact_path: ChimeraX.dmg
+          full_build: true
+          release_type: github-techpreview
+          platform: macosx
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
   # TODO: Decide whether to dupe the arm64 build but make it universal
   # or to upload an Intel and Apple Silicon ChimeraX, then download,
   # combine, sign, and reupload them. The first seems simpler.
