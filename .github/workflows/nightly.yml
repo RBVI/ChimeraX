@@ -44,6 +44,7 @@ jobs:
         run: make report-coverage
       - name: Build the Rocky 8 package
         run: make -f Makefile.centos github-techpreview-package
+      - run: mv rpmbuild/RPMS/x86_64/ucsf-chimerax*.rpm ./chimerax.rpm
       - name: "Debug: Package dependancies for tmate"
         run: |
           dnf install -y xz
@@ -53,7 +54,6 @@ jobs:
         with:
           limit-access-to-actor: true
           sudo: false
-      - run: mv rpmbuild/RPMS/x86_64/ucsf-chimerax-*.rpm ./chimerax.rpm
       - name: Upload ChimeraX
         uses: ./utils/ci/upload_artifact
         with:
