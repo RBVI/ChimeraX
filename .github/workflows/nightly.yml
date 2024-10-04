@@ -63,7 +63,13 @@ jobs:
       # buildinfo.py breaks without this
       - run: chown -R $(id -u):$(id -g) $PWD
       - run: ${PWD}/utils/set_up_centos.sh
-      - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos install
+      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
+        uses: ./utils/ci/cache_pyqt
+        with:
+          platform: linux
+          architecture: x86_64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos install-rbvi
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
@@ -78,6 +84,17 @@ jobs:
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
+      - name: Build the Rocky 8 package
+        run: make -f Makefile.centos github-techpreview-package
+      - run: mv rpmbuild/RPMS/x86_64/ucsf-chimerax-*.rpm ./chimerax.rpm
+      - name: Upload ChimeraX
+        uses: ./utils/ci/upload_artifact
+        with:
+          artifact_path: chimerax.rpm
+          full_build: true
+          release_type: github-techpreview
+          platform: centos-8
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
   build-macos:
     name: Build ChimeraX for Apple Silicon
     runs-on: macos-latest
