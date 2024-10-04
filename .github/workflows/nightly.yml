@@ -144,6 +144,12 @@ jobs:
           release_type: github-techpreview
           platform: mac_arm64
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Upload bundles for other builds
+        uses: ./utils/ci/upload_bundles
+        with:
+          platform: linux
+          build_type: daily
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
   build-windows:
     name: Build ChimeraX for Windows
     runs-on: windows-latest
