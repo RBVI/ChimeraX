@@ -59,6 +59,13 @@ jobs:
           platform: linux
           build_type: daily
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Upload the include directory for other builds
+        uses: ./utils/ci/upload_includes
+        with:
+          platform: linux
+          build_type: daily
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+
   build-rocky9-docker:
     name: Build ChimeraX for Rocky 9
     needs: [build-rocky8-docker]
