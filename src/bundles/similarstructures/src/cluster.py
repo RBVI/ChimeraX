@@ -23,8 +23,8 @@
 # === UCSF ChimeraX Copyright ===
 
 def similar_structures_cluster(session, query_residues = None, align_with = None, cutoff_distance = 2.0,
-                               cluster_count = None, cluster_distance = None, replace = True,
-                               from_set = None, of_structures = None):
+                               cluster_count = None, cluster_distance = None, color_by_species = False,
+                               replace = True, from_set = None, of_structures = None):
     from .simstruct import similar_structure_results
     results = similar_structure_results(session, from_set)
     hits = results.named_hits(of_structures)
@@ -45,10 +45,10 @@ def similar_structures_cluster(session, query_residues = None, align_with = None
     _show_umap(session, results, hits, query_residues,
                align_with = align_with, cutoff_distance = cutoff_distance,
                cluster_count = cluster_count, cluster_distance = cluster_distance,
-               replace = replace)
+               color_by_species = color_by_species, replace = replace)
 
 def _show_umap(session, results, hits, query_residues, align_with = None, cutoff_distance = 2.0,
-               cluster_count = None, cluster_distance = None, replace = True):
+               cluster_count = None, cluster_distance = None, color_by_species = False, replace = True):
 
     coord_offsets, hit_names = _aligned_coords(results, hits, query_residues,
                                                align_with = align_with, cutoff_distance = cutoff_distance)
@@ -58,7 +58,7 @@ def _show_umap(session, results, hits, query_residues, align_with = None, cutoff
     if coord_offsets.shape[1] == 0:
         from chimerax.core.errors import UserError
         raise UserError(f'No query structure residues were specified.')
-        
+
     from chimerax.diffplot.diffplot import _umap_embed, _plot_embedding, _install_umap
     _install_umap(session)
     umap_xy = _umap_embed(coord_offsets)
@@ -79,7 +79,12 @@ def _show_umap(session, results, hits, query_residues, align_with = None, cutoff
     p = _plot_embedding(session, hit_names, umap_xy, colors, replace=replace)
     p._similar_structures_id = results.name
     p.query_residues = query_residues
-    
+    if colors is not None:
+        p.cluster_colors = dict(zip(hit_names, colors))
+    if color_by_species:
+        p.species_colors = None
+        _color_by_species(p)
+
     # Set the plot context menu to contain similar structure actions
     from types import MethodType
     p.fill_context_menu = MethodType(fill_context_menu, p)
@@ -161,6 +166,19 @@ def fill_context_menu(self, menu, item):
                         lambda self=self: _show_unplotted_traces(self))
     self.add_menu_entry(menu, 'Hide traces not on plot',
                         lambda self=self: _hide_unplotted_traces(self))
+
+    self.add_menu_separator(menu)
+    self.add_menu_entry(menu, 'Color by cluster',
+                        lambda self=self: _color_by_cluster(self))
+    self.add_menu_entry(menu, 'Color by species',
+                        lambda self=self: _color_by_species(self))
+
+    if item is not None:
+        self.add_menu_separator(menu)
+        self.add_menu_entry(menu, f'Show table row for {item.name}',
+                            lambda self=self, item=item: _show_table_row(self, item))
+
+    self.add_menu_separator(menu)
     self.add_menu_entry(menu, 'Show reference atoms',
                         lambda self=self: _show_reference_atoms(self))
     self.add_menu_entry(menu, 'Select reference atoms',
@@ -267,10 +285,67 @@ def _show_color_panel(structure_plot, node):
 
 def _color_cluster(structure_plot, node, color):
     cur_color = node.color
+    cluster_colors = getattr(structure_plot, 'cluster_colors', None)
     for n in structure_plot.nodes:
         if n.color == cur_color:
             n.color = color
+            if cluster_colors:
+                from chimerax.core.colors import rgba_to_rgba8
+                cluster_colors[n.name] = rgba_to_rgba8(color)
     structure_plot.draw_graph()  # Redraw nodes.
+
+def _color_by_cluster(structure_plot, no_cluster_color = (178,178,178,255)):
+    cluster_colors = getattr(structure_plot, 'cluster_colors', None)
+    if cluster_colors is None:
+        return
+    from chimerax.core.colors import rgba8_to_rgba
+    for node in structure_plot.nodes:
+        node.color = rgba8_to_rgba(cluster_colors.get(node.name, no_cluster_color))
+    structure_plot.draw_graph()  # Redraw nodes.
+    
+def _color_by_species(structure_plot):
+    from .simstruct import similar_structure_results
+    results = similar_structure_results(structure_plot.session, structure_plot._similar_structures_id)
+    nodes = structure_plot.nodes
+    node_names = set(node.name for node in nodes)
+    species = {hit['database_full_id']:hit.get('taxname') for hit in results.hits
+               if hit['database_full_id'] in node_names}
+    species_colors = _species_colors(structure_plot, species)
+    for node in nodes:
+        if node.name in species:
+            node.color = species_colors[species[node.name]]
+    structure_plot.draw_graph()  # Redraw nodes.
+
+def _species_colors(structure_plot, species):
+    species_colors = getattr(structure_plot, 'species_colors', None)
+    if species_colors is None:
+        unique_species = list(set(species.values()))
+        unique_species.sort()
+        from chimerax.core.colors import random_colors, rgba8_to_rgba
+        scolors8 = random_colors(len(unique_species))
+        scolors = [rgba8_to_rgba(c) for c in scolors8]
+        species_colors = dict(zip(unique_species, scolors))
+        structure_plot.species_colors = species_colors
+        species_colors_html = '<br>'.join(f'{s} {_html_color_square(c)}' for s,c in zip(unique_species, scolors8))
+        msg = f'Coloring {len(unique_species)} different species:<br>{species_colors_html}'
+        structure_plot.session.logger.info(msg, is_html = True)
+    return species_colors
+
+def _html_color_square(rgba8):
+    from chimerax.core.colors import hex_color
+    color = hex_color(rgba8)
+    return f'&nbsp;<div style="width:10px; height:10px; display:inline-block; border:1px solid #000; background-color:{color}"></div>'
+
+def _show_table_row(structure_plot, node):
+    from .simstruct import similar_structure_results
+    results = similar_structure_results(structure_plot.session, structure_plot._similar_structures_id)
+    from .gui import similar_structures_panel
+    ssp = similar_structures_panel(structure_plot.session)
+    if ssp and results is ssp.results:
+        hit_nums = [i for i,hit in enumerate(results.hits) if hit['database_full_id'] == node.name]
+        if hit_nums:
+            ssp.select_table_row(hit_nums[0])
+    ssp.display(True)
 
 def _cluster_by_distance(umap_xy, cluster_distance):
     if len(umap_xy) <= 1:
@@ -309,6 +384,7 @@ def register_similar_structures_cluster_command(logger):
                    ('cutoff_distance', FloatArg),
                    ('cluster_count', IntArg),
                    ('cluster_distance', FloatArg),
+                   ('color_by_species', BoolArg),
                    ('replace', BoolArg),
                    ('from_set', StringArg),
                    ('of_structures', StringArg),

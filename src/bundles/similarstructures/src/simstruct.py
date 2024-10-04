@@ -356,6 +356,8 @@ class SimilarStructures:
             from chimerax.core.filehistory import remember_file
             remember_file(self.session, path, 'sms', models, file_saved=True)
 
+        return path
+
     def _sms_filename(self, directory):
         qc = self.query_chain
         from os.path import splitext, exists, join

@@ -42,7 +42,7 @@ def sequence_blast(session, chain, database = 'pdb',
         if save_directory is None:
             from os.path import expanduser
             save_directory = expanduser('~/Downloads/ChimeraX/BLAST')
-        results.save_to_directory(save_directory)
+        results.sms_path = results.save_to_directory(save_directory)
 
         from .gui import show_similar_structures_table
         show_similar_structures_table(session, results)
