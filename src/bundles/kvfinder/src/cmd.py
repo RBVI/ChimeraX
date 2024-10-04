@@ -83,7 +83,7 @@ def cmd_kvfinder(session, structures=None, *, extent=None, origin=None, probe_in
         if show_tool:
             from .tool import KVFinderResultsDialog
             KVFinderResultsDialog(session, "KVFinder Results", s, cavity_group,
-                [ml[0] for ml in model_lookup.values()])
+                [ml[0] for ml in model_lookup.values()], probe_radius=probe_in)
 
     return return_values
 

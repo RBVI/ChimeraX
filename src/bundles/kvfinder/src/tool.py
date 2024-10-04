@@ -75,15 +75,16 @@ class KVFinderResultsDialog(ToolInstance):
     #help = "help:user/tools/rotamers.html"
     SESSION_SAVE = True
 
-    def __init__(self, session, tool_name, *args):
+    def __init__(self, session, tool_name, *args, **kw):
         ToolInstance.__init__(self, session, tool_name)
         if args:
             # being called directly rather than during session restore
             self.finalize_init(*args)
 
-    def finalize_init(self, structure, cavity_group, cavity_models, *, table_state=None):
+    def finalize_init(self, structure, cavity_group, cavity_models, *, probe_radius=1.4, table_state=None):
         self.structure = structure
         self.cavity_group = cavity_group
+        self.probe_radius = probe_radius
 
         from chimerax.ui.widgets import ItemTable
         global _settings
@@ -91,13 +92,16 @@ class KVFinderResultsDialog(ToolInstance):
             from chimerax.core.settings import Settings
             class _KVFinderSettings(Settings):
                 AUTO_SAVE = {
-                    'focus': True
+                    'focus': True,
+                    'nearby': 3.5,
+                    'surface': False,
                 }
             _settings = _KVFinderSettings(self.session, "KVFinder")
 
         from chimerax.core.models import REMOVE_MODELS
         self.handlers = [
-            _settings.triggers.add_handler('setting changed', self._action_changed_cb),
+            #TODO: decide if we should directly react to setting changes
+            #_settings.triggers.add_handler('setting changed', self._action_changed_cb),
             self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
         ]
 
@@ -106,13 +110,15 @@ class KVFinderResultsDialog(ToolInstance):
         tw.title = "%s Cavities" % structure.name
         parent = tw.ui_area
         from Qt.QtWidgets import QVBoxLayout, QLabel, QCheckBox, QGroupBox, QWidget, QHBoxLayout, \
-            QPushButton, QRadioButton, QButtonGroup, QGridLayout
+            QPushButton, QRadioButton, QButtonGroup, QGridLayout, QLineEdit
+        from Qt.QtGui import QDoubleValidator
         from Qt.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
-        self.table = ItemTable()
+        self.table = ItemTable(session=self.session)
+        self.table.add_column("ID", "atomspec")
         self.table.add_column("Color", "overall_color", format=self.table.COL_FORMAT_TRANSPARENT_COLOR,
-            title_display=False)
+            title_display=False, data_set="color {item.atomspec} {value}")
         self.table.add_column("Cavity Size (voxels)", "num_atoms", format="%d ")
         def color_refresh_cb(trig_name, change_info, *args, table=self.table):
             s, changes = change_info
@@ -124,21 +130,41 @@ class KVFinderResultsDialog(ToolInstance):
         self.table.data = cavity_models
         self.table.launch(session_info=table_state)
         if not table_state:
-            self.table.sortByColumn(1, Qt.DescendingOrder)
-        #TODO
-        #self.table.selection_changed.connect(self._selection_change)
+            self.table.sortByColumn(2, Qt.DescendingOrder)
+        self.table.selection_changed.connect(self._selection_change)
         layout.addWidget(self.table, alignment=Qt.AlignCenter, stretch=1)
 
         gbox = QGroupBox("Choosing row in above table will...")
         layout.addWidget(gbox, alignment=Qt.AlignCenter)
         gbox_layout = QVBoxLayout()
+        gbox_layout.setSpacing(2)
         gbox.setLayout(gbox_layout)
-        for attr_name, text in [("focus", "Focus view on cavity")]:
+        for attr_name, text in [
+                ("focus", "Focus view on cavity"),
+                ("surface", "Surface nearby atoms"),
+                ]:
             ckbox = QCheckBox(text)
             ckbox.setChecked(getattr(_settings, attr_name))
             ckbox.toggled.connect(lambda checked, *args, settings=_settings, attr_name=attr_name:
                 setattr(settings, attr_name, checked))
             gbox_layout.addWidget(ckbox, alignment=Qt.AlignLeft)
+
+        nearby_widget = QWidget()
+        layout.addWidget(nearby_widget, alignment=Qt.AlignCenter)
+        nearby_layout = QHBoxLayout()
+        nearby_layout.setSpacing(0)
+        nearby_widget.setLayout(nearby_layout)
+        nearby_layout.addWidget(QLabel('"Nearby" atoms are within '))
+        self.nearby_entry = QLineEdit()
+        self.nearby_entry.setMaximumWidth(5 * self.nearby_entry.fontMetrics().averageCharWidth())
+        self.nearby_entry.setAlignment(Qt.AlignCenter)
+        self.nearby_entry.setText(str(_settings.nearby))
+        validator = QDoubleValidator()
+        validator.setBottom(0.0)
+        self.nearby_entry.setValidator(validator)
+        nearby_layout.addWidget(self.nearby_entry)
+        nearby_layout.addWidget(QLabel(" angstroms of cavity voxels"))
+
         from chimerax.ui.widgets import Citation
         layout.addWidget(Citation(self.session,
             "<b>pyKVFinder: an efficient and integrable Python package for biomolecular<br>cavity detection"
@@ -192,7 +218,6 @@ class KVFinderResultsDialog(ToolInstance):
 
     def _action_changed_cb(self, trig_name, trig_data):
         attr_name, previous, current = trig_data
-        #TODO
 
     def _models_removed_cb(self, trig_name, removed_models):
         if self.structure in removed_models or self.cavity_group in removed_models:
@@ -206,11 +231,21 @@ class KVFinderResultsDialog(ToolInstance):
         if len(new_data) < len(old_data):
             self.table.data = new_data
 
-    def _selection_change(self, selected, deselected):
-        if self.table.selected:
-            display = set(self.table.selected)
-        else:
-            display = set(self.mgr.rotamers)
-        for rot in self.mgr.rotamers:
-            rot.display = rot in display
+    def _selection_change(self, *args):
+        selected = self.table.selected
+        if not selected:
+            return
 
+        from chimerax.core.commands import concise_model_spec, run
+        model_spec = concise_model_spec(self.session, selected)
+        global _settings
+        if _settings.focus:
+            run(self.session, f"view {model_spec}")
+        if _settings.surface:
+            if self.nearby_entry.hasAcceptableInput():
+                _settings.nearby = float(self.nearby_entry.text())
+            else:
+                raise UserError('"Nearby" atom distance not valid')
+            probe_arg = "" if self.probe_radius == 1.4 else f" probeRadius {self.probe_radius}"
+            run(self.session, f"surface #!{self.structure.id_string} & ({model_spec} @< {_settings.nearby})"
+                f"{probe_arg} gridSpacing 0.3")
