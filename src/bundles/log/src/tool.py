@@ -528,6 +528,8 @@ class Log(ToolInstance, HtmlLog):
             date = "unknown"
         from lxml import html
         contents = log_data['contents']
+        if not contents:
+            contents = '<html></html>'
         tmp = html.fromstring(contents)
         script_elements = tmp.findall(".//script")
         if script_elements:
