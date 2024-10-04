@@ -104,7 +104,8 @@ class Mmseqs2WebQuery:
         results = SimilarStructures(hits, self.chain, program = 'mmseqs2', database = self.database,
                                     trim = self.trim, alignment_cutoff_distance = self.alignment_cutoff_distance)
 
-        results.save_to_directory(self.save_directory)
+        results.sms_path = results.save_to_directory(self.save_directory)
+        
 
         from .gui import show_similar_structures_table
         show_similar_structures_table(self.session, results)
