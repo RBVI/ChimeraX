@@ -55,7 +55,10 @@ def cmd_kvfinder(session, structures=None, *, extent=None, origin=None, probe_in
         s.add([cavity_group])
         return_values.append((s, num_cavities, cavity_matrix, cavity_group))
         model_lookup = {}
-        used_colors = [[c/255 for c in s.overall_color], (0,0,0), (1,1,1)]
+        used_colors = [(0,0,0), (1,1,1)]
+        overall_color = s.overall_color
+        if overall_color is not None:
+            used_colors.append([c/255 for c in overall_color])
         from chimerax.core.colors import distinguish_from
         for i in range(num_cavities):
             cav_s = Structure(session, name="cavity %d" % (i+1), auto_style=False, log_info=False)
@@ -83,7 +86,7 @@ def cmd_kvfinder(session, structures=None, *, extent=None, origin=None, probe_in
         if show_tool:
             from .tool import KVFinderResultsDialog
             KVFinderResultsDialog(session, "KVFinder Results", s, cavity_group,
-                [ml[0] for ml in model_lookup.values()], probe_radius=probe_in)
+                [ml[0] for ml in model_lookup.values()], probe_in)
 
     return return_values
 

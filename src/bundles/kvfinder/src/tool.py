@@ -75,13 +75,13 @@ class KVFinderResultsDialog(ToolInstance):
     #help = "help:user/tools/rotamers.html"
     SESSION_SAVE = True
 
-    def __init__(self, session, tool_name, *args, **kw):
+    def __init__(self, session, tool_name, *args):
         ToolInstance.__init__(self, session, tool_name)
         if args:
             # being called directly rather than during session restore
             self.finalize_init(*args)
 
-    def finalize_init(self, structure, cavity_group, cavity_models, *, probe_radius=1.4, table_state=None):
+    def finalize_init(self, structure, cavity_group, cavity_models, probe_radius, *, table_state=None):
         self.structure = structure
         self.cavity_group = cavity_group
         self.probe_radius = probe_radius
@@ -94,14 +94,13 @@ class KVFinderResultsDialog(ToolInstance):
                 AUTO_SAVE = {
                     'focus': True,
                     'nearby': 3.5,
+                    'select': False,
                     'surface': False,
                 }
             _settings = _KVFinderSettings(self.session, "KVFinder")
 
         from chimerax.core.models import REMOVE_MODELS
         self.handlers = [
-            #TODO: decide if we should directly react to setting changes
-            #_settings.triggers.add_handler('setting changed', self._action_changed_cb),
             self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
         ]
 
@@ -141,6 +140,7 @@ class KVFinderResultsDialog(ToolInstance):
         gbox.setLayout(gbox_layout)
         for attr_name, text in [
                 ("focus", "Focus view on cavity"),
+                ("select", "Select nearby residues"),
                 ("surface", "Surface nearby atoms"),
                 ]:
             ckbox = QCheckBox(text)
@@ -154,7 +154,7 @@ class KVFinderResultsDialog(ToolInstance):
         nearby_layout = QHBoxLayout()
         nearby_layout.setSpacing(0)
         nearby_widget.setLayout(nearby_layout)
-        nearby_layout.addWidget(QLabel('"Nearby" atoms are within '))
+        nearby_layout.addWidget(QLabel('"Nearby" atoms/residues are within '))
         self.nearby_entry = QLineEdit()
         self.nearby_entry.setMaximumWidth(5 * self.nearby_entry.fontMetrics().averageCharWidth())
         self.nearby_entry.setAlignment(Qt.AlignCenter)
@@ -173,8 +173,6 @@ class KVFinderResultsDialog(ToolInstance):
             prefix="The Find Cavities tool uses the <i>pyKVFinder</i> package.  Please cite:",
             pubmed_id=34930115), alignment=Qt.AlignCenter)
 
-        #TODO?
-        #tw.fill_context_menu = self.fill_context_menu
         self.tool_window.manage(placement=None)
 
     def delete(self, from_mgr=False):
@@ -182,42 +180,23 @@ class KVFinderResultsDialog(ToolInstance):
             handler.remove()
         super().delete()
 
-    def fill_context_menu(self, menu, x, y):
-        from Qt.QtGui import QAction
-        act = QAction("Save CSV or TSV File...", parent=menu)
-        act.triggered.connect(lambda *args, tab=self.table: tab.write_values())
-        menu.addAction(act)
-
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        if "rot_lib_name" in data:
-            lib_name = data['rot_lib_name']
-            lib_names = session.rotamers.library_names(installed_only=True)
-            ui_name = session.rotamers.ui_name(lib_name)
-        else:
-            lib_name = ui_name = data['lib_display_name']
-            lib_names = session.rotamers.library_names(installed_only=True, for_display=True)
-        if lib_name not in lib_names:
-            raise RuntimeError("Cannot restore Rotamers tool because %s rotamer library is not installed"
-                % ui_name)
-        inst.finalize_init(data['mgr'], data['res_type'], session.rotamers.library(lib_name).name,
-            table_info=data['table info'])
+        inst.finalize_init(data['structure'], data['cavity_group'], data['cavity_models'],
+            data['probe_radius'], table_state=data['table state'])
         return inst
 
     def take_snapshot(self, session, flags):
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
-            'mgr': self.mgr,
-            'res_type': self.res_type,
-            'rot_lib_name': self.rot_lib_name,
-            'table info': (self.table.session_info(), [(col_type, c.title, c.data_fetch, c.display_format)
-                for col_type, c in self.opt_columns.items()])
+            'structure': self.structure,
+            'cavity_group': self.cavity_group,
+            'cavity_models': self.table.data,
+            'probe_radius': self.probe_radius,
+            'table state': self.table.session_info()
         }
         return data
-
-    def _action_changed_cb(self, trig_name, trig_data):
-        attr_name, previous, current = trig_data
 
     def _models_removed_cb(self, trig_name, removed_models):
         if self.structure in removed_models or self.cavity_group in removed_models:
@@ -241,11 +220,14 @@ class KVFinderResultsDialog(ToolInstance):
         global _settings
         if _settings.focus:
             run(self.session, f"view {model_spec}")
-        if _settings.surface:
+        if _settings.select or _settings.surface:
             if self.nearby_entry.hasAcceptableInput():
                 _settings.nearby = float(self.nearby_entry.text())
             else:
-                raise UserError('"Nearby" atom distance not valid')
+                raise UserError('"Nearby" atom/residue distance not valid')
+        if _settings.select:
+            run(self.session, f"select #!{self.structure.id_string} & ({model_spec} :< {_settings.nearby})")
+        if _settings.surface:
             probe_arg = "" if self.probe_radius == 1.4 else f" probeRadius {self.probe_radius}"
             run(self.session, f"surface #!{self.structure.id_string} & ({model_spec} @< {_settings.nearby})"
-                f"{probe_arg} gridSpacing 0.3")
+                f"{probe_arg} gridSpacing 0.3 visiblePatches 1")
