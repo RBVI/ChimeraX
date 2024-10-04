@@ -25,6 +25,5 @@ runs:
     - name: Upload the bundles
       shell: bash
       run: |
-        export BUILD_INCLUDE_DIR=$(git rev-parse --show-toplevel)/build/include
-        tar -cvzf ${{ inputs.platform }}-include.tar.gz -C $BUILD_INCLUDE_DIR .
-        curl -v -F "key=${{ inputs.deploy_key }}" -F "platform=${{ inputs.platform }}" -F "build_type=${{ inputs.build_type }}" -F "file=@$GITHUB_WORKSPACE/${{ inputs.platform }}-includes.tar.gz" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_includes.py
+        tar -cvzf ${{ inputs.platform }}-include.tar.gz -C build include
+        curl -v -F "key=${{ inputs.deploy_key }}" -F "platform=${{ inputs.platform }}" -F "build_type=${{ inputs.build_type }}" -F "file=@$GITHUB_WORKSPACE/${{ inputs.platform }}-include.tar.gz" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_includes.py
