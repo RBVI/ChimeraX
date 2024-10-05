@@ -94,10 +94,18 @@ jobs:
           platform: linux
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
           build_type: daily
+      - uses: ./utils/ci/download_lcd_linux_include
+        with:
+          platform: linux
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          build_type: daily
       - name: Unpack the bundles to build/sync
         run: |
           mkdir wheels
           tar -xvf linux-bundles.tar.gz -C wheels
+      - name: Unpack the include tarball to include
+        run: |
+          tar -xvf linux-include.tar.gz
       - name: Build the rest of ChimeraX
         run: |
           MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial make -j$(nproc) -C prereqs install
@@ -155,10 +163,19 @@ jobs:
           platform: linux
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
           build_type: daily
-      - name: Unpack the bundles to build/sync
+      - uses: ./utils/ci/download_lcd_linux_include
+        with:
+          platform: linux
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          build_type: daily
+      - name: Unpack the bundles tarball to wheels
         run: |
           mkdir wheels
           tar -xvf linux-bundles.tar.gz -C wheels
+      - name: Unpack the include tarball to include
+        run: |
+          mkdir wheels
+          tar -xvf linux-include.tar.gz
       - name: Build the rest of ChimeraX
         run: |
           MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial make -j$(nproc) -C prereqs install
