@@ -75,6 +75,7 @@ jobs:
     env:
       SHELL: /bin/bash
       PATH: /usr/bin:/usr/sbin:/bin:/sbin
+      PYOPENGL_PLATFORM: egl
     steps:
       - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
       - run: dnf update -y
