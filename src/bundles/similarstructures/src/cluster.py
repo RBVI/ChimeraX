@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def similar_structures_cluster(session, query_residues = None, align_with = None, cutoff_distance = 2.0,
+def similar_structures_cluster(session, query_residues = None, align_with = None, alignment_cutoff_distance = None,
                                cluster_count = None, cluster_distance = None, color_by_species = False,
                                replace = True, from_set = None, of_structures = None):
     from .simstruct import similar_structure_results
@@ -41,17 +41,21 @@ def similar_structures_cluster(session, query_residues = None, align_with = None
     if len(query_residues) == 0:
         from chimerax.core.errors import UserError
         raise UserError('Must specify at least 1 residue to compute similar structure clusters')
+
+    if alignment_cutoff_distance is None:
+        alignment_cutoff_distance = results.alignment_cutoff_distance
     
     _show_umap(session, results, hits, query_residues,
-               align_with = align_with, cutoff_distance = cutoff_distance,
+               align_with = align_with, alignment_cutoff_distance = alignment_cutoff_distance,
                cluster_count = cluster_count, cluster_distance = cluster_distance,
                color_by_species = color_by_species, replace = replace)
 
-def _show_umap(session, results, hits, query_residues, align_with = None, cutoff_distance = 2.0,
+def _show_umap(session, results, hits, query_residues, align_with = None, alignment_cutoff_distance = 2.0,
                cluster_count = None, cluster_distance = None, color_by_species = False, replace = True):
 
     coord_offsets, hit_names = _aligned_coords(results, hits, query_residues,
-                                               align_with = align_with, cutoff_distance = cutoff_distance)
+                                               align_with = align_with,
+                                               cutoff_distance = alignment_cutoff_distance)
     if len(coord_offsets) == 0:
         from chimerax.core.errors import UserError
         raise UserError(f'Similar structure results contains no structures with all of the specified {len(query_residues)} residues')
@@ -383,7 +387,7 @@ def register_similar_structures_cluster_command(logger):
     desc = CmdDesc(
         optional = [('query_residues', ResiduesArg)],
         keyword = [('align_with', ResiduesArg),
-                   ('cutoff_distance', FloatArg),
+                   ('alignment_cutoff_distance', FloatArg),
                    ('cluster_count', IntArg),
                    ('cluster_distance', FloatArg),
                    ('color_by_species', BoolArg),

@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def similar_structures_traces(session, align_with = None, cutoff_distance = None,
+def similar_structures_traces(session, align_with = None, alignment_cutoff_distance = None,
                               close_only = 4.0, gap_distance_limit = 10.0,
                               min_residues = 5, break_distance = 5.0,
                               tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6,
@@ -37,8 +37,8 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
                                                            of_structures = of_structures):
             return
 
-    if cutoff_distance is None:
-        cutoff_distance = results.alignment_cutoff_distance
+    if alignment_cutoff_distance is None:
+        alignment_cutoff_distance = results.alignment_cutoff_distance
 
     from .simstruct import hit_coords, align_xyz_transform
     qchain = results.query_chain
@@ -72,7 +72,7 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
             aqxyz = qxyz[mask,:]
         if len(ahxyz) < 3:
                 continue	# Not enough atoms to align.
-        p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=cutoff_distance)
+        p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=alignment_cutoff_distance)
         hxyz_aligned = p.transform_points(hxyz)
         fragments = _distant_c_alpha_fragments(hxyz_aligned, break_distance)
         if close_only is not None and close_only > 0:
@@ -358,7 +358,7 @@ def register_similar_structures_traces_command(logger):
     desc = CmdDesc(
         required = [],
         keyword = [('align_with', ResiduesArg),
-                   ('cutoff_distance', FloatArg),
+                   ('alignment_cutoff_distance', FloatArg),
                    ('close_only', FloatArg),
                    ('gap_distance_limit', FloatArg),
                    ('min_residues', IntArg),
