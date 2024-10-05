@@ -1,5 +1,5 @@
-name: Upload LCD Linux Bundles to Plato
-description: Upload bundles from the lowest common denominator Linux build
+name: Upload LCD Linux Include Folder to Plato
+description: Upload the include directory from the lowest common denominator Linux build
 # That's the platform we support that ships with the lowest version of glibc
 
 inputs:
@@ -25,6 +25,5 @@ runs:
     - name: Upload the bundles
       shell: bash
       run: |
-        export BUNDLE_REPO_DIR=$(git rev-parse --show-toplevel)/build/sync
-        tar -cvzf ${{ inputs.platform }}-bundles.tar.gz -C $BUNDLE_REPO_DIR .
-        curl -v -F "key=${{ inputs.deploy_key }}" -F "platform=${{ inputs.platform }}" -F "build_type=${{ inputs.build_type }}" -F "file=@$GITHUB_WORKSPACE/${{ inputs.platform }}-bundles.tar.gz" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_bundle.py
+        tar -cvzf ${{ inputs.platform }}-include.tar.gz -C build include
+        curl -v -F "key=${{ inputs.deploy_key }}" -F "platform=${{ inputs.platform }}" -F "build_type=${{ inputs.build_type }}" -F "file=@$GITHUB_WORKSPACE/${{ inputs.platform }}-include.tar.gz" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_includes.py
