@@ -30,6 +30,8 @@ def cmd_kvfinder(session, structures=None, *, extent=None, origin=None, probe_in
     if [origin, extent].count(None) == 1:
         raise UserError("Must specify both 'origin' and 'extent' or neither")
     from chimerax.atomic import all_atomic_structures, Structure
+    Structure.register_attr(session, "kvfinder_area", "KVFinder", attr_type=float)
+    Structure.register_attr(session, "kvfinder_volume", "KVFinder", attr_type=float)
     if structures is None:
         structures = all_atomic_structures(session)
     from .prep import prep_input
@@ -37,19 +39,25 @@ def cmd_kvfinder(session, structures=None, *, extent=None, origin=None, probe_in
     import numpy
     return_values = []
     for s in structures:
+        session.logger.status("Find Cavities for %s: preparing KVFinder input" % s)
         insert_codes = s.residues.insertion_codes
         if len(insert_codes[insert_codes != '']) > 0:
             session.logger.warning("%s contains residue insertion codes; KVFinder may not work correctly"
                 % s)
         struct_input, vertices = prep_input(s, origin, extent, probe_in, probe_out, step)
+        session.logger.status("Find Cavities for %s: getting grid dimensions" % s)
         nx, ny, nz = pyKVFinder.grid._get_dimensions(vertices, step)
         sincos = pyKVFinder.grid._get_sincos(vertices)
+        session.logger.status("Find Cavities for %s: finding cavities" % s)
         num_cavities, cavity_matrix = pyKVFinder.detect(struct_input, vertices, step, probe_in, probe_out,
             removal_distance, volume_cutoff, None, 5.0, origin is not None, surface, None, False)
         session.logger.info("%d cavities found for %s" % (num_cavities, s))
         if num_cavities == 0:
             return_values.append((s, num_cavities, cavity_matrix, None))
             continue
+        session.logger.status("Find Cavities for %s: determining cavities' surface/volume" % s)
+        surface, k_volume, k_area = pyKVFinder.spatial(cavity_matrix)
+        session.logger.status("Find Cavities for %s: creating cavity models" % s)
         from chimerax.core.models import Model
         cavity_group = Model("cavities", session)
         s.add([cavity_group])
@@ -67,14 +75,31 @@ def cmd_kvfinder(session, structures=None, *, extent=None, origin=None, probe_in
             rgb = distinguish_from(used_colors, num_candidates=5, seed=71428)
             used_colors.append(rgb)
             model_lookup[i+2] = (cav_s, r, rgb + (1.0,))
+            # map 'KXX"-indexed volume/area to usable indices
+            k_index = pyKVFinder.grid._get_cavity_name(i)
+            cav_s.kvfinder_area = k_area[k_index]
+            cav_s.kvfinder_volume = k_volume[k_index]
         origin, *args = vertices
         assert (nx, ny, nz) == cavity_matrix.shape
+        # Using the explicit triple loop instead of more numpy-like code, because AFAICT the
+        # numpy code would have to process the matrix 'num_cavities' times, so therefore winds up
+        # being slower than non-numpy code processing it once.
+        # Example numpy code:
+        #    for val in range(2, 2+num_cavities):
+        #        cav_s, r, rgba = model_lookup[val]
+        #        xyzs = numpy.argwhere(cavity_matrix == val) * step + origin
+        #        for xyz in xyzs:
+        #            a = add_atom("Z%d" % cav_s.num_atoms, "He", r, xyz))
+        #            a.radius = 0.1
+        session.logger.status("Find Cavities for %s: filling in cavity models" % s)
+        cavity_iter = cavity_matrix.flat
         for xi in range(nx):
             x = origin[0] + xi * step
             for yi in range(ny):
                 y = origin[1] + yi * step
                 for zi in range(nz):
-                    val = cavity_matrix[xi][yi][zi]
+                    #val = cavity_matrix[xi][yi][zi]
+                    val = int(next(cavity_iter))
                     if val < 2:
                         continue
                     z = origin[2] + zi * step
@@ -87,6 +112,7 @@ def cmd_kvfinder(session, structures=None, *, extent=None, origin=None, probe_in
             from .tool import KVFinderResultsDialog
             KVFinderResultsDialog(session, "KVFinder Results", s, cavity_group,
                 [ml[0] for ml in model_lookup.values()], probe_in)
+        session.logger.status("Find Cavities for %s: done" % s)
 
     return return_values
 
