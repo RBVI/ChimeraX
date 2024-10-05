@@ -96,6 +96,7 @@ class KVFinderResultsDialog(ToolInstance):
                     'nearby': 3.5,
                     'select': False,
                     'surface': False,
+                    "mlp": False,
                 }
             _settings = _KVFinderSettings(self.session, "KVFinder")
 
@@ -113,12 +114,15 @@ class KVFinderResultsDialog(ToolInstance):
         from Qt.QtGui import QDoubleValidator
         from Qt.QtCore import Qt
         self.layout = layout = QVBoxLayout()
+        layout.setSpacing(0)
         parent.setLayout(layout)
         self.table = ItemTable(session=self.session)
         self.table.add_column("ID", "atomspec")
         self.table.add_column("Color", "overall_color", format=self.table.COL_FORMAT_TRANSPARENT_COLOR,
             title_display=False, data_set="color {item.atomspec} {value}")
-        self.table.add_column("Cavity Size (voxels)", "num_atoms", format="%d ")
+        self.table.add_column("Volume", "kvfinder_volume", format="%g")
+        self.table.add_column("Surface Area", "kvfinder_area", format="%g")
+        self.table.add_column("Points", "num_atoms", format="%d")
         def color_refresh_cb(trig_name, change_info, *args, table=self.table):
             s, changes = change_info
             if "color changed" in changes.atom_reasons():
@@ -153,6 +157,7 @@ class KVFinderResultsDialog(ToolInstance):
         layout.addWidget(nearby_widget, alignment=Qt.AlignCenter)
         nearby_layout = QHBoxLayout()
         nearby_layout.setSpacing(0)
+        nearby_layout.setContentsMargins(1,1,1,1)
         nearby_widget.setLayout(nearby_layout)
         nearby_layout.addWidget(QLabel('"Nearby" atoms/residues are within '))
         self.nearby_entry = QLineEdit()
@@ -163,7 +168,15 @@ class KVFinderResultsDialog(ToolInstance):
         validator.setBottom(0.0)
         self.nearby_entry.setValidator(validator)
         nearby_layout.addWidget(self.nearby_entry)
-        nearby_layout.addWidget(QLabel(" angstroms of cavity voxels"))
+        nearby_layout.addWidget(QLabel(" angstroms of cavity points"))
+
+        mlp_checkbox = QCheckBox("Color nearby atom surfaces by lipophilicity potential")
+        mlp_checkbox.setChecked(_settings.mlp)
+        mlp_checkbox.clicked.connect(
+            lambda checked, *args, settings=_settings: setattr(settings, "mlp", checked))
+        layout.addWidget(mlp_checkbox, alignment=Qt.AlignCenter)
+
+        layout.addSpacing(10)
 
         from chimerax.ui.widgets import Citation
         layout.addWidget(Citation(self.session,
@@ -229,5 +242,8 @@ class KVFinderResultsDialog(ToolInstance):
             run(self.session, f"select #!{self.structure.id_string} & ({model_spec} :< {_settings.nearby})")
         if _settings.surface:
             probe_arg = "" if self.probe_radius == 1.4 else f" probeRadius {self.probe_radius}"
-            run(self.session, f"surface #!{self.structure.id_string} & ({model_spec} @< {_settings.nearby})"
-                f"{probe_arg} gridSpacing 0.3 visiblePatches 1")
+            surfs = run(self.session, f"surface #!{self.structure.id_string} & ({model_spec}"
+                f" @< {_settings.nearby}){probe_arg} gridSpacing 0.3 visiblePatches 1")
+            if surfs and _settings.mlp:
+                run(self.session, f"mlp #!{self.structure.id_string} & @@structure_category=main surfaces %s"
+                    % concise_model_spec(self.session, surfs))
