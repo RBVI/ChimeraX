@@ -23,7 +23,8 @@
 # === UCSF ChimeraX Copyright ===
 
 def similar_structures_traces(session, align_with = None, cutoff_distance = None,
-                              close_only = 4.0, gap_distance_limit = 10.0, min_residues = 5,
+                              close_only = 4.0, gap_distance_limit = 10.0,
+                              min_residues = 5, break_distance = 5.0,
                               tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6,
                               from_set = None, of_structures = None, replace = True):
     from .simstruct import similar_structure_results
@@ -73,7 +74,7 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
                 continue	# Not enough atoms to align.
         p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=cutoff_distance)
         hxyz_aligned = p.transform_points(hxyz)
-        fragments = _distant_c_alpha_fragments(hxyz_aligned)
+        fragments = _distant_c_alpha_fragments(hxyz_aligned, break_distance)
         if close_only is not None and close_only > 0:
             cfrags = []
             for start,end in fragments:
@@ -115,10 +116,10 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
     session.logger.info(msg)
     return surf
 
-def _distant_c_alpha_fragments(hxyz, max_distance = 5):
+def _distant_c_alpha_fragments(hxyz, break_distance = 5):
     d = hxyz[1:,:] - hxyz[:-1,:]
     d2 = (d*d).sum(axis = 1)
-    breaks = (d2 > max_distance*max_distance).nonzero()[0]
+    breaks = (d2 > break_distance*break_distance).nonzero()[0]
     fragments = []
     start = 0
     for b in breaks:
@@ -361,6 +362,7 @@ def register_similar_structures_traces_command(logger):
                    ('close_only', FloatArg),
                    ('gap_distance_limit', FloatArg),
                    ('min_residues', IntArg),
+                   ('break_distance', FloatArg),
                    ('tube', BoolArg),
                    ('radius', FloatArg),
                    ('segment_subdivisions', IntArg),
