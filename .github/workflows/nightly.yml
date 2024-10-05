@@ -174,7 +174,6 @@ jobs:
           tar -xvf linux-bundles.tar.gz -C wheels
       - name: Unpack the include tarball to include
         run: |
-          mkdir wheels
           tar -xvf linux-include.tar.gz
       - name: Build the rest of ChimeraX
         run: |
