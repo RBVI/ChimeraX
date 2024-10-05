@@ -23,7 +23,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def similar_structures_traces(session, align_with = None, alignment_cutoff_distance = None,
-                              close_only = 4.0, gap_distance_limit = 10.0,
+                              keep_close = 4.0, keep_segment = 10.0,
                               min_residues = 5, break_distance = 5.0,
                               tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6,
                               from_set = None, of_structures = None, replace = True):
@@ -75,11 +75,11 @@ def similar_structures_traces(session, align_with = None, alignment_cutoff_dista
         p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=alignment_cutoff_distance)
         hxyz_aligned = p.transform_points(hxyz)
         fragments = _distant_c_alpha_fragments(hxyz_aligned, break_distance)
-        if close_only is not None and close_only > 0:
+        if keep_close is not None and keep_close > 0:
             cfrags = []
             for start,end in fragments:
                 cfrags.extend(_close_fragments(hxyz_aligned[start:end], qxyz[start:end],
-                                               close_only, keep_gap_distance=gap_distance_limit, offset=start))
+                                               keep_close, keep_segment_distance=keep_segment, offset=start))
             fragments = cfrags
         min_res = max(2, min_residues)
         fragments = [(s,e) for s,e in fragments if e-s >= min_res]
@@ -128,13 +128,13 @@ def _distant_c_alpha_fragments(hxyz, break_distance = 5):
     fragments.append((start, len(hxyz)))
     return fragments
 
-def _close_fragments(xyz, ref_xyz, distance, offset = 0, keep_gap_distance = None):
+def _close_fragments(xyz, ref_xyz, distance, offset = 0, keep_segment_distance = None):
     d = xyz - ref_xyz
     d2 = (d*d).sum(axis = 1)
     mask = (d2 <= distance*distance)
-    if keep_gap_distance is not None:
+    if keep_segment_distance is not None:
         n = len(xyz)
-        keep_dist2 = keep_gap_distance * keep_gap_distance
+        keep_dist2 = keep_segment_distance * keep_segment_distance
         for start, end in _mask_intervals(~mask):
             if start > 0 and end < n and d2[start:end].max() <= keep_dist2:
                 mask[start:end] = True  # Keep interior interval if largest distance is not too large.
@@ -359,8 +359,8 @@ def register_similar_structures_traces_command(logger):
         required = [],
         keyword = [('align_with', ResiduesArg),
                    ('alignment_cutoff_distance', FloatArg),
-                   ('close_only', FloatArg),
-                   ('gap_distance_limit', FloatArg),
+                   ('keep_close', FloatArg),
+                   ('keep_segment', FloatArg),
                    ('min_residues', IntArg),
                    ('break_distance', FloatArg),
                    ('tube', BoolArg),
