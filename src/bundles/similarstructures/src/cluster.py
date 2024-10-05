@@ -147,17 +147,14 @@ def _aligned_coords(results, hits, query_residues, align_with = None, cutoff_dis
     return offsets, names
 
 def fill_context_menu(self, menu, item):
-    if item is not None and self._have_colors:
+    clustered_item = (item is not None and self._have_colors)
+    if clustered_item:
         self.add_menu_entry(menu, f'Show traces for cluster {item.name}',
                             lambda self=self, item=item: _show_cluster_traces(self, item))
         self.add_menu_entry(menu, f'Show only traces for cluster {item.name}',
                             lambda self=self, item=item: _show_only_cluster_traces(self, item))
         self.add_menu_entry(menu, f'Hide traces for cluster {item.name}',
                             lambda self=self, item=item: _hide_cluster_traces(self, item))
-        self.add_menu_entry(menu, 'Change cluster color',
-                            lambda self=self, item=item: _change_cluster_color(self, item))
-    self.add_menu_entry(menu, 'Color traces to match plot',
-                        lambda self=self: _color_traces(self))
     self.add_menu_entry(menu, 'Show all traces',
                         lambda self=self: _show_all_traces(self))
     self.add_menu_entry(menu, 'Show one trace per cluster',
@@ -168,6 +165,11 @@ def fill_context_menu(self, menu, item):
                         lambda self=self: _hide_unplotted_traces(self))
 
     self.add_menu_separator(menu)
+    self.add_menu_entry(menu, 'Color traces to match plot',
+                        lambda self=self: _color_traces(self))
+    if clustered_item:
+        self.add_menu_entry(menu, f'Change cluster {item.name} color',
+                            lambda self=self, item=item: _change_cluster_color(self, item))
     self.add_menu_entry(menu, 'Color by cluster',
                         lambda self=self: _color_by_cluster(self))
     self.add_menu_entry(menu, 'Color by species',
