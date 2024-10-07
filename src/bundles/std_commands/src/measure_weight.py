@@ -28,7 +28,7 @@ def measure_weight(session, atoms):
     '''
     weight = sum(atoms.elements.masses)
     spec = getattr(atoms, 'spec', '')
-    msg = f'Molecular weight of {len(atoms)} atoms {spec} is {"%.0f"%weight} Daltons'
+    msg = f'Molecular weight of {len(atoms)} atoms {spec} is {"%.0f"%weight} daltons'
     session.logger.status(msg, log = True)
     return weight
             
