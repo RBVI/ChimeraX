@@ -132,7 +132,7 @@ jobs:
         run: make report-coverage
       - name: Make the package
         run: make -f Makefile.centos github-techpreview-package
-      - run: mv ${{ matrix.os }}/ucsf-chimerax-*.rpm ./chimerax.rpm
+      - run: mv rpmbuild/RPMS/x86_64/ucsf-chimerax*.rpm ./chimerax.rpm
       - name: Upload ChimeraX
         uses: ./utils/ci/upload_artifact
         with:
