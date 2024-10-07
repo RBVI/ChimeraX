@@ -1,0 +1,90 @@
+name: Test Rocky 9
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-rocky9-docker:
+    name: Build ChimeraX for Rocky 9
+    needs: [build-rocky8-docker]
+    runs-on: ubuntu-20.04
+    container:
+      image: rockylinux:9
+    env:
+      SHELL: /bin/bash
+      PATH: /usr/bin:/usr/sbin:/bin:/sbin
+      PYOPENGL_PLATFORM: egl
+    steps:
+      - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+      - run: dnf update -y
+      - run: dnf install -y git-all
+      - uses: actions/checkout@v4
+      # buildinfo.py breaks without this
+      - run: chown -R $(id -u):$(id -g) $PWD
+      - run: ${PWD}/utils/set_up_centos.sh
+      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
+        uses: ./utils/ci/cache_pyqt
+        with:
+          platform: linux
+          architecture: x86_64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - uses: ./utils/ci/download_lcd_linux_bundles
+        with:
+          platform: linux
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          build_type: daily
+      - uses: ./utils/ci/download_lcd_linux_include
+        with:
+          platform: linux
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          build_type: daily
+      - name: Unpack the bundles to build/sync
+        run: |
+          mkdir wheels
+          tar -xvf linux-bundles.tar.gz -C wheels
+      - name: Unpack the include tarball to include
+        run: |
+          tar -xvf linux-include.tar.gz
+      - name: Build the rest of ChimeraX
+        run: |
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial make -j$(nproc) -C prereqs install
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial make -j$(nproc) -C prereqs app-install
+          make -C src/apps/ChimeraX install BUILD_TYPE=daily
+          ChimeraX.app/bin/python3.11 -m pip install wheels/*.whl
+          cp -rp include ChimeraX.app
+          make -C src/apps install BUILD_TYPE=daily
+          make -C docs install BUILD_TYPE=daily
+      - name: "Debug: Package dependancies for tmate"
+        run: |
+          dnf install -y xz
+          ln -s /bin/true /bin/apt-get
+      - name: "Debug: Start tmate"
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+          sudo: false
+      - name: Run the legacy test suite
+        run: make test
+      - name: Install Pytest
+        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage
+      - name: Make the package
+        run: make -f Makefile.centos github-techpreview-package
+      - run: mv ${{ matrix.os }}/ucsf-chimerax-*.rpm ./chimerax.rpm
+      - name: Upload ChimeraX
+        uses: ./utils/ci/upload_artifact
+        with:
+          artifact_path: chimerax.rpm
+          full_build: true
+          release_type: github-techpreview
+          platform: centos-9
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
