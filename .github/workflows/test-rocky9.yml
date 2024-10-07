@@ -6,7 +6,6 @@ on:
 jobs:
   build-rocky9-docker:
     name: Build ChimeraX for Rocky 9
-    needs: [build-rocky8-docker]
     runs-on: ubuntu-20.04
     container:
       image: rockylinux:9
