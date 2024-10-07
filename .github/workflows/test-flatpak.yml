@@ -38,7 +38,7 @@ jobs:
           tar -xvf linux-include.tar.gz
       - name: Install Flatpak dependencies
         run: |
-          make -f Makefile.flatpak prereqs-ubuntu
+          sudo make -f Makefile.flatpak prereqs-ubuntu
           make -f Makefile.flatpak flatpak-prereq
       - name: Remove curl call from Makefile.flatpak install
         # This is done by the two actions above
