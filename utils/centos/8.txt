@@ -82,3 +82,4 @@ xdg-utils
 xz
 xz-libs
 zlib
+zlib-devel
