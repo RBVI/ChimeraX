@@ -90,6 +90,7 @@
     <ChimeraXClassifier>Command :: measure length :: Volume :: measure path length of connected markers</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure rotation :: Volume :: measure rotation of one model relative to another</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure symmetry :: Volume :: compute map symmetry</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure weight :: Structure Analysis :: measure molecular weight of specified atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: move :: General Controls :: move (parts of) a model relative to others</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: move cofr :: General Controls :: move models to center of rotation</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: palette :: General Controls :: list available color palettes</ChimeraXClassifier>
