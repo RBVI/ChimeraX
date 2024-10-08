@@ -95,6 +95,7 @@ class KVFinderResultsDialog(ToolInstance):
                     'focus': True,
                     'nearby': 3.5,
                     'select': False,
+                    'show': True,
                     'surface': False,
                     "mlp": False,
                 }
@@ -103,11 +104,11 @@ class KVFinderResultsDialog(ToolInstance):
         from chimerax.core.models import REMOVE_MODELS
         self.handlers = [
             self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
+            _settings.triggers.add_handler('setting changed', self._setting_changed_cb)
         ]
 
         from chimerax.ui import MainToolWindow
-        self.tool_window = tw = MainToolWindow(self)
-        tw.title = "%s Cavities" % structure.name
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
         parent = tw.ui_area
         from Qt.QtWidgets import QVBoxLayout, QLabel, QCheckBox, QGroupBox, QWidget, QHBoxLayout, \
             QPushButton, QRadioButton, QButtonGroup, QGridLayout, QLineEdit
@@ -142,16 +143,27 @@ class KVFinderResultsDialog(ToolInstance):
         gbox_layout = QVBoxLayout()
         gbox_layout.setSpacing(2)
         gbox.setLayout(gbox_layout)
-        for attr_name, text in [
-                ("focus", "Focus view on cavity"),
-                ("select", "Select nearby residues"),
-                ("surface", "Surface nearby atoms"),
+        from chimerax.ui import shrink_font
+        self.suboptions = {}
+        prev_checked = None
+        for attr_name, text, is_sub_option in [
+                ("focus", "Focus view on cavity", False),
+                ("select", "Select nearby atoms", False),
+                ("show", "Show nearby residues", False),
+                ("surface", "Surface nearby atoms", False),
+                ("mlp", "Color surface by lipophilicity", True),
                 ]:
             ckbox = QCheckBox(text)
+            checked = getattr(_settings, attr_name)
             ckbox.setChecked(getattr(_settings, attr_name))
             ckbox.toggled.connect(lambda checked, *args, settings=_settings, attr_name=attr_name:
                 setattr(settings, attr_name, checked))
-            gbox_layout.addWidget(ckbox, alignment=Qt.AlignLeft)
+            gbox_layout.addWidget(ckbox, alignment=(Qt.AlignCenter if is_sub_option else Qt.AlignLeft))
+            if is_sub_option:
+                self.suboptions["mlp"] = ckbox
+                shrink_font(ckbox)
+                ckbox.setEnabled(prev_checked)
+            prev_checked = checked
 
         nearby_widget = QWidget()
         layout.addWidget(nearby_widget, alignment=Qt.AlignCenter)
@@ -169,12 +181,6 @@ class KVFinderResultsDialog(ToolInstance):
         self.nearby_entry.setValidator(validator)
         nearby_layout.addWidget(self.nearby_entry)
         nearby_layout.addWidget(QLabel(" angstroms of cavity points"))
-
-        mlp_checkbox = QCheckBox("Color nearby atom surfaces by lipophilicity potential")
-        mlp_checkbox.setChecked(_settings.mlp)
-        mlp_checkbox.clicked.connect(
-            lambda checked, *args, settings=_settings: setattr(settings, "mlp", checked))
-        layout.addWidget(mlp_checkbox, alignment=Qt.AlignCenter)
 
         layout.addSpacing(10)
 
@@ -223,7 +229,7 @@ class KVFinderResultsDialog(ToolInstance):
         if len(new_data) < len(old_data):
             self.table.data = new_data
 
-    def _selection_change(self, *args):
+    def _process_settings(self, setting_name=None):
         selected = self.table.selected
         if not selected:
             return
@@ -231,19 +237,47 @@ class KVFinderResultsDialog(ToolInstance):
         from chimerax.core.commands import concise_model_spec, run
         model_spec = concise_model_spec(self.session, selected)
         global _settings
-        if _settings.focus:
-            run(self.session, f"view {model_spec}")
-        if _settings.select or _settings.surface:
+        # setting_name is none when the selection changes, so only process the "on" settings in that case...
+        if setting_name is None or setting_name == "focus":
+            if _settings.focus:
+                run(self.session, f"view {model_spec} clip false ; zoom 0.75")
+            elif setting_name is not None:
+                run(self.session, f"view {self.structure.atomspec} clip false")
+        if setting_name in ["select", "surface"] \
+        or setting_name is None and (_settings.select or _settings.surface):
             if self.nearby_entry.hasAcceptableInput():
                 _settings.nearby = float(self.nearby_entry.text())
             else:
                 raise UserError('"Nearby" atom/residue distance not valid')
-        if _settings.select:
-            run(self.session, f"select #!{self.structure.id_string} & ({model_spec} :< {_settings.nearby})")
-        if _settings.surface:
-            probe_arg = "" if self.probe_radius == 1.4 else f" probeRadius {self.probe_radius}"
-            surfs = run(self.session, f"surface #!{self.structure.id_string} & ({model_spec}"
-                f" @< {_settings.nearby}){probe_arg} gridSpacing 0.3 visiblePatches 1")
-            if surfs and _settings.mlp:
-                run(self.session, f"mlp #!{self.structure.id_string} & @@structure_category=main surfaces %s"
-                    % concise_model_spec(self.session, surfs))
+        if setting_name is None or setting_name == "select":
+            spec = f"#!{self.structure.id_string} & ({model_spec} @< {_settings.nearby})"
+            if _settings.select:
+                run(self.session, "select " + spec)
+            elif setting_name is not None:
+                run(self.session, "~select " + spec)
+        if setting_name is None or setting_name == "show":
+            spec = f"#!{self.structure.id_string} & ({model_spec} :< {_settings.nearby})"
+            if _settings.show:
+                run(self.session, "show " + spec)
+            elif setting_name is not None:
+                run(self.session, "hide " + spec)
+        if setting_name is None or setting_name == "surface":
+            spec = f"#!{self.structure.id_string} & ({model_spec} @< {_settings.nearby})"
+            if _settings.surface:
+                probe_arg = "" if self.probe_radius == 1.4 else f" probeRadius {self.probe_radius}"
+                surfs = run(self.session, f"surface {spec}{probe_arg} gridSpacing 0.3 visiblePatches 1")
+                if surfs and _settings.mlp:
+                    run(self.session,
+                        f"mlp #!{self.structure.id_string} & @@structure_category=main surfaces %s"
+                        % concise_model_spec(self.session, surfs))
+            elif setting_name is not None:
+                run(self.session, f"~surface {spec}")
+
+    def _selection_change(self, *args):
+        self._process_settings()
+
+    def _setting_changed_cb(self, trig_name, trig_data):
+        setting_name, prev_val, new_val = trig_data
+        self._process_settings(setting_name)
+        if setting_name == "surface":
+            self.suboptions["mlp"].setEnabled(new_val)

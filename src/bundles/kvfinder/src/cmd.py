@@ -110,7 +110,7 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
             cav_s.overall_color = [255.0 * c for c in rgba]
         if show_tool:
             from .tool import KVFinderResultsDialog
-            KVFinderResultsDialog(session, "KVFinder Results", s, cavity_group,
+            KVFinderResultsDialog(session, "%s Cavities" % s.name, s, cavity_group,
                 [ml[0] for ml in model_lookup.values()], probe_in)
         session.logger.status("Find Cavities for %s: done" % s)
 
