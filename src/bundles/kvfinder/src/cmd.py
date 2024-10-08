@@ -25,10 +25,10 @@
 from chimerax.core.errors import LimitationError, UserError
 import pyKVFinder
 
-def cmd_kvfinder(session, structures=None, *, extent=None, origin=None, probe_in=1.4, probe_out=4.0,
+def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, probe_in=1.4, probe_out=4.0,
         removal_distance=2.4, show_tool=True, step=0.6, surface='SES', volume_cutoff=5.0):
-    if [origin, extent].count(None) == 1:
-        raise UserError("Must specify both 'origin' and 'extent' or neither")
+    if [box_origin, box_extent].count(None) == 1:
+        raise UserError("Must specify both 'boxOrigin' and 'boxExtent' or neither")
     from chimerax.atomic import all_atomic_structures, Structure
     Structure.register_attr(session, "kvfinder_area", "KVFinder", attr_type=float)
     Structure.register_attr(session, "kvfinder_volume", "KVFinder", attr_type=float)
@@ -44,19 +44,19 @@ def cmd_kvfinder(session, structures=None, *, extent=None, origin=None, probe_in
         if len(insert_codes[insert_codes != '']) > 0:
             session.logger.warning("%s contains residue insertion codes; KVFinder may not work correctly"
                 % s)
-        struct_input, vertices = prep_input(s, origin, extent, probe_in, probe_out, step)
+        struct_input, vertices = prep_input(s, box_origin, box_extent, probe_in, probe_out, step)
         session.logger.status("Find Cavities for %s: getting grid dimensions" % s)
         nx, ny, nz = pyKVFinder.grid._get_dimensions(vertices, step)
         sincos = pyKVFinder.grid._get_sincos(vertices)
         session.logger.status("Find Cavities for %s: finding cavities" % s)
         num_cavities, cavity_matrix = pyKVFinder.detect(struct_input, vertices, step, probe_in, probe_out,
-            removal_distance, volume_cutoff, None, 5.0, origin is not None, surface, None, False)
+            removal_distance, volume_cutoff, None, 5.0, box_origin is not None, surface, None, False)
         session.logger.info("%d cavities found for %s" % (num_cavities, s))
         if num_cavities == 0:
             return_values.append((s, num_cavities, cavity_matrix, None))
             continue
         session.logger.status("Find Cavities for %s: determining cavities' surface/volume" % s)
-        surface, k_volume, k_area = pyKVFinder.spatial(cavity_matrix)
+        surface_grid, k_volume, k_area = pyKVFinder.spatial(cavity_matrix)
         session.logger.status("Find Cavities for %s: creating cavity models" % s)
         from chimerax.core.models import Model
         cavity_group = Model("cavities", session)
@@ -122,8 +122,8 @@ def register_command(command_name, logger):
     kw = {
         'required': [('structures', Or(AtomicStructuresArg, EmptyArg))],
         'keyword': [
-            ('extent', Or(Float3Arg, FloatArg)),
-            ('origin', Float3Arg),
+            ('box_extent', Or(Float3Arg, FloatArg)),
+            ('box_origin', Float3Arg),
             ('probe_in', FloatArg),
             ('probe_out', FloatArg),
             ('removal_distance', FloatArg),
