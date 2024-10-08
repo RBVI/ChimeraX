@@ -26,7 +26,7 @@ from chimerax.core.errors import LimitationError, UserError
 import pyKVFinder
 
 def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, probe_in=1.4, probe_out=4.0,
-        removal_distance=2.4, show_tool=True, step=0.6, surface='SES', volume_cutoff=5.0):
+        removal_distance=2.4, show_tool=True, step=0.6, surface_type='SES', volume_cutoff=5.0):
     if [box_origin, box_extent].count(None) == 1:
         raise UserError("Must specify both 'boxOrigin' and 'boxExtent' or neither")
     from chimerax.atomic import all_atomic_structures, Structure
@@ -50,7 +50,7 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
         sincos = pyKVFinder.grid._get_sincos(vertices)
         session.logger.status("Find Cavities for %s: finding cavities" % s)
         num_cavities, cavity_matrix = pyKVFinder.detect(struct_input, vertices, step, probe_in, probe_out,
-            removal_distance, volume_cutoff, None, 5.0, box_origin is not None, surface, None, False)
+            removal_distance, volume_cutoff, None, 5.0, box_origin is not None, surface_type, None, False)
         session.logger.info("%d cavities found for %s" % (num_cavities, s))
         if num_cavities == 0:
             return_values.append((s, num_cavities, cavity_matrix, None))
@@ -108,6 +108,41 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
                     a.radius = 0.1
         for cav_s, r, rgba in model_lookup.values():
             cav_s.overall_color = [255.0 * c for c in rgba]
+        from chimerax.core.logger import html_table_params
+        table_lines = [
+            '<table %s>' % html_table_params,
+            '  <thead>',
+            '    <tr>',
+            '      <th colspan="5">%s Cavities</th>' % s.name,
+            '    </tr>',
+            '    <tr>',
+            '      <th>ID</th>',
+            '      <th></th>',
+            '      <th>Volume</th>',
+            '      <th>Area</th>',
+            '      <th>Points</th>',
+            '    </tr>',
+            '  </thead>',
+            '  <tbody>',
+        ]
+        cavity_info = [(v[0], v[-1]) for v in model_lookup.values()]
+        cavity_info.sort(key=lambda info: -info[0].kvfinder_volume)
+        for cav_s, rgba in cavity_info:
+            table_lines.extend([
+            '    <tr>',
+            '      <td style="text-align:center">%s</td>' % cav_s.id_string,
+            '      <td style="background-color:rgb(%d, %d, %d)"></td>'
+                        % tuple([round(255.0 * c) for c in rgba[:3]]),
+            '      <td style="text-align:center">%g</td>' % cav_s.kvfinder_volume,
+            '      <td style="text-align:center">%g</td>' % cav_s.kvfinder_area,
+            '      <td style="text-align:center">%d</td>' % cav_s.num_atoms,
+            '    </tr>',
+            ])
+        table_lines.extend([
+            '  </tbody>',
+            '</table>'
+        ])
+        session.logger.info('\n'.join(table_lines), is_html=True)
         if show_tool:
             from .tool import KVFinderResultsDialog
             KVFinderResultsDialog(session, "%s Cavities" % s.name, s, cavity_group,
@@ -129,7 +164,7 @@ def register_command(command_name, logger):
             ('removal_distance', FloatArg),
             ('show_tool', BoolArg),
             ('step', FloatArg),
-            ('surface', EnumOf(['SAS', 'SES'])),
+            ('surface_type', EnumOf(['SAS', 'SES'])),
             ('volume_cutoff', FloatArg),
         ]
     }

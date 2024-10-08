@@ -118,7 +118,7 @@ class KVFinderResultsDialog(ToolInstance):
         layout.setSpacing(0)
         parent.setLayout(layout)
         self.table = ItemTable(session=self.session)
-        self.table.add_column("ID", "atomspec")
+        self.table.add_column("ID", "atomspec", sort_func=lambda cav1, cav2: cav1.id < cav2.id)
         self.table.add_column("Color", "overall_color", format=self.table.COL_FORMAT_TRANSPARENT_COLOR,
             title_display=False, data_set="color {item.atomspec} {value}")
         self.table.add_column("Volume", "kvfinder_volume", format="%g")
