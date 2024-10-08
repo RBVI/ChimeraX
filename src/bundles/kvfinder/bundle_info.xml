@@ -17,6 +17,7 @@
 
   <Categories>
     <Category name="Binding Analysis"/>
+    <Category name="Structure Analysis"/>
   </Categories>
 
   <Dependencies>
@@ -29,7 +30,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: kvfinder :: Binding Analysis :: Find pockets</ChimeraXClassifier>
-    <ChimeraXClassifier>Tool :: Find Cavities :: Binding Analysis :: Find potential binding pockets</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Find Cavities :: Binding Analysis, Structure Analysis :: Find potential binding pockets</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

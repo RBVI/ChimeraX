@@ -40,7 +40,7 @@ class LaunchKVFinderTool(ToolInstance):
                 hint = super().sizeHint()
                 hint.setHeight(hint.height()//2)
                 return hint
-        self.structures_list = ShortASLWidget(session)
+        self.structures_list = ShortASLWidget(session, autoselect=ShortASLWidget.AUTOSELECT_SINGLE)
         structures_layout.addWidget(self.structures_list, alignment=Qt.AlignRight)
 
 

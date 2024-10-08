@@ -25,14 +25,12 @@ preqreqs-rhel:
 prereqs-ubuntu:
 	apt install flatpak flatpak-builder gnome-software-plugin-flatpak
 
-prereqs-flatpak:
-	flatpak install -y org.freedesktop.Sdk//${RUNTIME_VER} org.freedesktop.Platform//${RUNTIME_VER}
-
 build-flatpak: ${APPNAME}.yaml
 	flatpak-builder --force-clean ${BUILD_DIR} ${APPNAME}.yaml
 
 flatpak-prereq:
-	flatpak install flathub org.freedesktop.Platform//${RUNTIME_VER} org.freedesktop.Sdk//${RUNTIME_VER}
+	flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+	flatpak install -y --user flathub org.freedesktop.Platform//${RUNTIME_VER} org.freedesktop.Sdk//${RUNTIME_VER}
 
 prereqs:
 	# normally the wheels and include directories are created by the build_tools process

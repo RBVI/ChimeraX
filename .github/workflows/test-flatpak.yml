@@ -1,0 +1,58 @@
+name: Test Flatpak build
+on:
+  workflow_dispatch:
+
+jobs:
+  build-flatpak:
+    name: Build ChimeraX Flatpak
+    runs-on: ubuntu-20.04
+    env:
+      SHELL: /bin/bash
+      PATH: /usr/bin:/usr/sbin:/bin:/sbin
+      PYOPENGL_PLATFORM: egl
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
+      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
+        uses: ./utils/ci/cache_pyqt
+        with:
+          platform: linux
+          architecture: x86_64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - uses: ./utils/ci/download_lcd_linux_bundles
+        with:
+          platform: linux
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          build_type: daily
+      - uses: ./utils/ci/download_lcd_linux_include
+        with:
+          platform: linux
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          build_type: daily
+      - name: Unpack the bundles to build/sync
+        run: |
+          mkdir wheels
+          tar -xvf linux-bundles.tar.gz -C wheels
+      - name: Unpack the include tarball to include
+        run: |
+          tar -xvf linux-include.tar.gz
+      - name: Install Flatpak dependencies
+        run: |
+          sudo make -f Makefile.flatpak prereqs-ubuntu
+          make -f Makefile.flatpak flatpak-prereq
+      - name: Remove curl call from Makefile.flatpak install
+        # This is done by the two actions above
+        run: sed -i -e '/cxtoolshed/d' Makefile.flatpak
+      - name: Build the rest of ChimeraX
+        run: |
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial BUILD_TYPE=daily make -j$(nproc) -f Makefile.flatpak build-flatpak
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial BUILD_TYPE=daily make -j$(nproc) -f Makefile.flatpak export-flatpak
+      # For now, we're skipping tests for the Flatpak
+      - name: Upload ChimeraX
+        uses: ./utils/ci/upload_artifact
+        with:
+          artifact_path: ChimeraX.flatpak
+          full_build: true
+          release_type: github-techpreview
+          platform: flatpak
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}

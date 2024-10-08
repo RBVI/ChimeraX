@@ -1,6 +1,7 @@
 alsa-lib
 atk
 bzip2
+bzip2-devel
 cairo
 cairo-gobject
 cups-libs
@@ -82,3 +83,4 @@ xdg-utils
 xz
 xz-libs
 zlib
+zlib-devel
