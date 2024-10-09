@@ -149,14 +149,14 @@ link, but briefly:
    function use the :py:func:`chimerax.core.fetch.fetch_file` routine, which takes an
    *ignore_cache* keyword argument.
 3. If there are fetch-specific keyword arguments that the ``open`` command should
-   handle, then a :py:meth:`fetch_args` property should be implemented, which
+   handle, then a :py:attr:`fetch_args` property should be implemented, which
    returns a dictionary mapping **Python** keyword names to :ref:`Annotation <Type Annotations>`
    subclasses.  Such keywords will be passed to your :py:meth:`fetch` method,
    along with format-specific keywords.
-   Note that format-specific keywords are known from the :py:meth:`open_args` property
+   Note that format-specific keywords are known from the :py:attr:`open_args` property
    of the bundle that opens the data's format, and should *not* be included in the
-   dictionary returned by :py:meth:`fetch_args`, so therefore it is rarely necessary
-   to actually implement the :py:meth:`fetch_args` property.
+   dictionary returned by :py:attr:`fetch_args`, so therefore it is rarely necessary
+   to actually implement the :py:attr:`fetch_args` property.
 
 For this example, the *format_name* argument is omitted because
 the bundle only supports FASTA format.
