@@ -641,17 +641,17 @@ class AlphaFoldPAEPlot(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _report_residues_or_atoms(self, index1, index2):
+    def _report_residues_or_atoms(self, column_index, row_index):
         pae = self._pae
         m = pae.pae_matrix
         msize = m.shape[0]
-        if index1 < 0 or index2 < 0 or index1 >= msize or index2 >= msize:
+        if column_index < 0 or row_index < 0 or column_index >= msize or row_index >= msize:
             msg = ''
         else:
-            name1, name2 = [pae.row_residue_or_atom_name(i) for i in (index1, index2)]
-            d = m[index1,index2]
+            column_name, row_name = [pae.row_residue_or_atom_name(i) for i in (column_index, row_index)]
+            d = m[row_index,column_index]
             dstr = '%.1f' % d
-            msg = f'{name1} {name2} = {dstr}'
+            msg = f'{column_name} {row_name} = {dstr}'
         self._info_label.setText(msg)
         
     # ---------------------------------------------------------------------------
