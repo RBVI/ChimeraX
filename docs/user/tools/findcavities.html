@@ -1,0 +1,144 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Find Cavities</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Find Cavities</h3>
+<p>
+<b>Find Cavities</b> detects cavities or pockets in an atomic structure using 
+<b><i>KVFinder</i></b>, a method based on surface shape, as described in:
+<blockquote>
+<a href="https://www.sciencedirect.com/science/article/pii/S2352711020303198"
+target="_blank">parKVFinder: A thread-level parallel approach in biomolecular cavity detection.</a>
+Guerra JVDS, Ribeiro-Filho HV, Bortot LO, Honorato RV, Pereira JGC, Lopes-de-Oliveira PS.
+<i>SoftwareX.</i> 2020 Jul-Dec;100606.
+<br>
+<a href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-021-04519-4"
+target="_blank">
+pyKVFinder: an efficient and integrable Python package for biomolecular cavity detection and characterization in data science.</a>
+Guerra JVDS, Ribeiro-Filho HV, Jara GE, Bortot LO, Pereira JGC, Lopes-de-Oliveira PS.
+<i>BMC Bioinformatics.</i> 2021 Dec 20;22(1):607.
+</blockquote>
+<p>
+<b>Find Cavities</b> installs and runs 
+<a href="https://lbc-lnbio.github.io/pyKVFinder/"
+target="_blank"><i>pyKVFinder</i></a> locally. It is also implemented as the
+<a href="../commands/kvfinder.html"><b>kvfinder</b></a> command.
+The authors of KVFinder (at the Brazilian Biosciences National Lab) also provide
+a <a href="https://kvfinder-web.cnpem.br/" target="_blank">web service</a>,
+but it is not used in the ChimeraX implementation.
+See also:
+<a href="../measurements.html">measurements</a>,
+<a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
+tutorial</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+target="_blank">MOLE Channel Coloring tutorial</a>,
+<a href="https://rbvi.github.io/chimerax-recipes/castp/castp.html" 
+target="_blank">recipe for reading CASTp pockets</a>
+</p><p>
+<b>Find Cavities</b> can be started from the 
+<b>Binding Analysis</b> or <b>Structure Analysis</b>
+section of the <b>Tools</b> menu.
+One or more atomic models should be chosen from the list that appears.
+Clicking <b>OK</b> runs the calculation, and tabulates the results for 
+each atomic model in a separate <a href="#cavitylist">cavity list</a> window.
+These results are also reported in the <a href="log.html"><b>Log</b></a>.
+Default parameters are used;
+for details on the method and/or to use nondefault values, see the
+<a href="../commands/kvfinder.html"><b>kvfinder</b></a> command.
+</p><p>
+In the graphics window, the cavities are shown as clouds of points 
+on a grid. These collections of dots are opened as (pseudo)atomic models
+in ChimeraX, each cavity as a separate submodel assigned a unique color.
+</p>
+
+<a name="cavitylist"></a>
+<p class="nav">
+[<a href="#top">back to top: Find Cavities</a>]
+</p>
+<h3>Cavity List</h3>
+<p>
+Running <b>Find Cavities</b> (or the
+<a href="../commands/kvfinder.html"><b>kvfinder</b></a> command
+with <b>showTool true</b>) on an atomic model opens a separate window 
+listing the cavities that were found in the model, with sortable columns:
+</p>
+<ul>
+<li><b>ID</b> &ndash; cavity model number (these models are also listed
+in the <a href="modelpanel.html"><b>Model Panel</b></a>)
+<li>a color well; click to change the color interactively
+<li><b>Volume</b> &ndash; cavity volume as determined by <b><i>KVFinder</i></b>
+<li><b>Surface Area</b> &ndash; cavity surface area
+as determined by <b><i>KVFinder</i></b>
+<li><b>Points</b> &ndash; number of grid points in the cavity,
+displayed as (pseudo)atoms in ChimeraX
+</ul>
+<p>
+If a cavity list is closed but the corresponding cavity models still exist,
+the list can be reshown by choosing it from the bottom section of the 
+<b>Tools</b> menu.
+</p><p>
+<a name="chosen"></a>
+One or more cavities can be <b><i>chosen</i></b> from the list
+by clicking and dragging with the left mouse button;
+<b>Ctrl</b>-click (or <b>command</b>-click if using a Mac)
+toggles whether a row is chosen.
+Chosen rows are highlighted in the dialog, and the following options
+(if turned on) are applied to the corresponding cavity models:
+</p>
+<ul>
+<li><b>Focus view on cavity</b>
+<li><b>Select nearby atoms</b> &dash; <a href="../selection.html">select</a>
+atoms within the specified <a href="#nearby">nearby distance</a>
+of any cavity point
+<li><b>Show nearby residues</b> &dash; show all atoms of residues with 
+any nearby atoms. Other atoms are not hidden, however.
+<li><b>Surface nearby atoms</b> &dash; show the molecular surface of nearby 
+atoms. The surface area calculated by <b><i>KVFinder</i></b> for the cavity
+is <i>not</i> based on this patch of molecular surface.
+  <ul>
+  <li><b>Color surface by lipophilicity</b> &dash; color the molecular surface
+by <a href="../commands/mlp.html">molecular lipophilicity potential</a> (MLP)
+using <table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=darkcyan width="10px" title="darkcyan"></td>
+<td bgcolor=white width="10px" title="white"></td>
+<td bgcolor=darkgoldenrod width="10px" title="darkgoldenrod"></td>
+</tr></table> over the range -20 (hydrophilic) to 20 (hydrophobic).
+Note that once this coloring has been applied to a given molecular surface, 
+it persists even if this option is turned off. The surface would need to be 
+removed and recreated or manually recolored to get rid of the coloring by MLP.
+  </ul>
+</ul>
+<p>
+<a name="nearby"></a>
+<b>"Nearby" atoms/residues are within</b> [<i>distance</i>] <b>angstroms
+of cavity points</b>
+&ndash; <i>distance</i> criterion for the checkbox options above
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2024</address>
+</body></html>

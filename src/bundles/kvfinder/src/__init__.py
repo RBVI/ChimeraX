@@ -33,24 +33,23 @@ class _KVFinderBundle(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
+        try:
+            import pyKVFinder
+        except ImportError:
+            from chimerax.core.commands import run
+            logger.info("pyKVFinder module not installed; fetching from PyPi repository...")
+            try:
+                run(logger.session, "pip install pyKVFinder", log=False)
+            except Exception:
+                from chimerax.core.logger import report_exception
+                report_exception(preface="Could not install pyKVFinder module from PyPi repository")
+                return
         from . import cmd
         cmd.register_command(command_name, logger)
 
-    """
     @staticmethod
     def start_tool(session, tool_name):
-        if tool_name == 'Water Placement':
-            from .tool import LaunchDouseTool
-            return LaunchDouseTool(session, tool_name)
-        if tool_name == 'Local EM Fitting':
-            from .tool import LaunchEmplaceLocalTool
-            return LaunchEmplaceLocalTool(session, tool_name)
-        if tool_name == 'Fit Loops':
-            from .tool import LaunchFitLoopsTool
-            return LaunchFitLoopsTool(session, tool_name)
-        if tool_name == 'Fit Ligand':
-            from .tool import LaunchLigandFitTool
-            return LaunchLigandFitTool(session, tool_name)
-    """
+        from .tool import LaunchKVFinderTool
+        return LaunchKVFinderTool(session, tool_name)
 
 bundle_api = _KVFinderBundle()
