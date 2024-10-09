@@ -155,7 +155,7 @@ def read_ma_qa_metric_local_pairwise_table(session, path):
     for file_id, file_url, file_content in associated_files:
         if file_content == "local pairwise QA scores":
             assoc_file_path = fetch_file_url(session, file_url, path, f"{file_prefix}_assoc.cif")
-            if file_path is not None:
+            if assoc_file_path is not None:
                 qa_files_to_load.append(assoc_file_path)
         elif file_content == "archive with multiple files":
             zip_files[file_id] = file_url
