@@ -240,9 +240,9 @@ class KVFinderResultsDialog(ToolInstance):
         # setting_name is none when the selection changes, so only process the "on" settings in that case...
         if setting_name is None or setting_name == "focus":
             if _settings.focus:
-                run(self.session, f"view {model_spec} clip false ; zoom 0.75")
+                run(self.session, f"view {model_spec} @< {_settings.nearby} ; zoom 0.75")
             elif setting_name is not None:
-                run(self.session, f"view {self.structure.atomspec} clip false")
+                run(self.session, f"view {self.structure.atomspec}")
         if setting_name in ["select", "surface"] \
         or setting_name is None and (_settings.select or _settings.surface):
             if self.nearby_entry.hasAcceptableInput():
@@ -272,6 +272,9 @@ class KVFinderResultsDialog(ToolInstance):
                         % concise_model_spec(self.session, surfs))
             elif setting_name is not None:
                 run(self.session, f"~surface {spec}")
+
+        if setting_name == "mlp" and _settings.mlp:
+            run(self.session, f"mlp #!{self.structure.id_string} & @@structure_category=main")
 
     def _selection_change(self, *args):
         self._process_settings()
