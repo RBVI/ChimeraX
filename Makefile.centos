@@ -10,7 +10,7 @@ TOP := $(shell (cd "$(TOP)"; pwd))
 include $(TOP)/mk/config.make
 
 ifeq (,$(CENTOS))
-CENTOS = $(shell . /etc/os-release && echo $$VERSION_ID)
+CENTOS = $(shell . /etc/os-release && echo $$VERSION_ID | cut -d'.' -f 1)
 endif
 
 install: centos
@@ -30,6 +30,9 @@ daily-package: centos
 
 techpreview-package: centos
 	env HOME=`pwd` $(APP_PYTHON_EXE) mkcentos.py $(CENTOS) techpreview
+
+github-techpreview-package: centos
+	env HOME=`pwd` $(APP_PYTHON_EXE) mkcentos.py $(CENTOS) github-techpreview
 
 candidate-package: centos
 	env HOME=`pwd` $(APP_PYTHON_EXE) mkcentos.py $(CENTOS) candidate

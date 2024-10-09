@@ -789,7 +789,8 @@ class Models(StateManager):
                 session.triggers.activate_trigger(MODEL_ID_CHANGED, id_changed_model)
 
         # Initialize view if first model added
-        if self._initialize_camera and _notify and not _from_session:
+        if self._initialize_camera and _notify and not _from_session \
+        and not session.triggers.is_trigger_blocked(ADD_MODELS):
             v = session.main_view
             if v.drawing_bounds():
                 self._initialize_camera = False

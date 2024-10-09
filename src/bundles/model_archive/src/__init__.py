@@ -22,34 +22,34 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+# -----------------------------------------------------------------------------
+#
 from chimerax.core.toolshed import BundleAPI
 
-class _KVFinderBundle(BundleAPI):
-
-    @staticmethod
-    def get_class(class_name):
-        from . import tool
-        return getattr(tool, class_name)
-
+class _ModelArchiveBundle(BundleAPI):
+            
     @staticmethod
     def register_command(command_name, logger):
-        try:
-            import pyKVFinder
-        except ImportError:
-            from chimerax.core.commands import run
-            logger.info("pyKVFinder module not installed; fetching from PyPi repository...")
-            try:
-                run(logger.session, "pip install pyKVFinder", log=False)
-            except Exception:
-                from chimerax.core.logger import report_exception
-                report_exception(preface="Could not install pyKVFinder module from PyPi repository")
-                return
-        from . import cmd
-        cmd.register_command(command_name, logger)
+        # 'register_command' is lazily called when the command is referenced
+        if command_name == 'modelcif pae':
+            from . import modelcif_pae
+            modelcif_pae.register_command(logger)
 
     @staticmethod
-    def start_tool(session, tool_name):
-        from .tool import LaunchKVFinderTool
-        return LaunchKVFinderTool(session, tool_name)
+    def run_provider(session, name, mgr):
+        if mgr == session.open_command:
+            if name == 'modelarchive':
+                from chimerax.open_command import FetcherInfo
+                class MAInfo(FetcherInfo):
+                    def fetch(self, session, ident, format_name, ignore_cache, **kw):
+                        from .ma_fetch import fetch_model_archive
+                        return fetch_model_archive(session, ident, ignore_cache=ignore_cache, **kw)
+                    @property
+                    def fetch_args(self):
+                        from chimerax.core.commands import EnumOf, BoolArg
+                        return {
+                            'pae': BoolArg,
+                        }
+                return MAInfo()
 
-bundle_api = _KVFinderBundle()
+bundle_api = _ModelArchiveBundle()

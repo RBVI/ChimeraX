@@ -22,34 +22,20 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.toolshed import BundleAPI
-
-class _KVFinderBundle(BundleAPI):
-
-    @staticmethod
-    def get_class(class_name):
-        from . import tool
-        return getattr(tool, class_name)
-
-    @staticmethod
-    def register_command(command_name, logger):
-        try:
-            import pyKVFinder
-        except ImportError:
-            from chimerax.core.commands import run
-            logger.info("pyKVFinder module not installed; fetching from PyPi repository...")
-            try:
-                run(logger.session, "pip install pyKVFinder", log=False)
-            except Exception:
-                from chimerax.core.logger import report_exception
-                report_exception(preface="Could not install pyKVFinder module from PyPi repository")
-                return
-        from . import cmd
-        cmd.register_command(command_name, logger)
-
-    @staticmethod
-    def start_tool(session, tool_name):
-        from .tool import LaunchKVFinderTool
-        return LaunchKVFinderTool(session, tool_name)
-
-bundle_api = _KVFinderBundle()
+def measure_weight(session, atoms):
+    '''
+    Report the molecular weight in Daltons of the specified atoms.
+    '''
+    weight = sum(atoms.elements.masses)
+    spec = getattr(atoms, 'spec', '')
+    msg = f'Molecular weight of {len(atoms)} atoms {spec} is {"%.0f"%weight} daltons'
+    session.logger.status(msg, log = True)
+    return weight
+            
+def register_command(logger):
+    from chimerax.core.commands import CmdDesc, register
+    from chimerax.atomic import AtomsArg
+    desc = CmdDesc(
+        required = [('atoms', AtomsArg)],
+        synopsis = 'compute molecular weight of specified atoms')
+    register('measure weight', desc, measure_weight, logger=logger)

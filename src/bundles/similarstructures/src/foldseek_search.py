@@ -331,7 +331,7 @@ foldseek does -- iterative pruning may give a better alignment.
 '''
 
 def parse_search_result(line, database):
-    fields = line.split('\t')
+    fields = line.strip().split('\t')
     field_names = ['query', 'theader', 'pident', 'alnlen', 'mismatch', 'gapopen', 'qstart', 'qend', 'tstart', 'tend', 'prob', 'evalue', 'bits', 'qlen', 'tlen', 'qaln', 'taln', 'tca', 'tseq', 'taxid', 'taxname']
     values = dict(zip(field_names, fields))
     for int_field in ['alnlen', 'mismatch', 'qstart', 'qend', 'tstart', 'tend', 'qlen', 'tlen']:

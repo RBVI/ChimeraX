@@ -25,7 +25,7 @@
 def mmseqs2_search(session, chain, database = 'pdb',
                    evalue_cutoff = 1e-3, identity_cutoff = 0, max_hits = 1000,
                    trim = None, alignment_cutoff_distance = None,
-                   save_directory = None, wait = False):
+                   save_directory = None):
     '''Search PDB for similar sequences and display results in a table.'''
     global _query_in_progress
     if _query_in_progress:
@@ -104,7 +104,8 @@ class Mmseqs2WebQuery:
         results = SimilarStructures(hits, self.chain, program = 'mmseqs2', database = self.database,
                                     trim = self.trim, alignment_cutoff_distance = self.alignment_cutoff_distance)
 
-        results.save_to_directory(self.save_directory)
+        results.sms_path = results.save_to_directory(self.save_directory)
+        
 
         from .gui import show_similar_structures_table
         show_similar_structures_table(self.session, results)
