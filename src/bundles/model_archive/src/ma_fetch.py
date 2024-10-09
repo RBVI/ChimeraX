@@ -22,34 +22,31 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.toolshed import BundleAPI
+def fetch_model_archive(session, ma_identifier, ignore_cache = False, pae = False, in_file_history = True):
 
-class _KVFinderBundle(BundleAPI):
+    # fetch file
+    from chimerax.core.fetch import fetch_file
+    file_url = f"https://www.modelarchive.org/doi/10.5452/{ma_identifier}.cif"
+    model_name = f'MA {ma_identifier}'
+    file_path = fetch_file(
+        session, file_url, name=model_name,
+        save_name=f"{ma_identifier}.cif", save_dir="ModelArchive",
+        ignore_cache = ignore_cache
+    )
 
-    @staticmethod
-    def get_class(class_name):
-        from . import tool
-        return getattr(tool, class_name)
+    # open file
+    models, status = session.open_command.open_data(file_path, format = 'mmCIF',
+                                                    name = model_name,
+                                                    in_file_history = in_file_history)
 
-    @staticmethod
-    def register_command(command_name, logger):
+    if pae:
+        # try to add PAE
+        from .modelcif_pae import modelcif_pae
+        from chimerax.core.errors import UserError
         try:
-            import pyKVFinder
-        except ImportError:
-            from chimerax.core.commands import run
-            logger.info("pyKVFinder module not installed; fetching from PyPi repository...")
-            try:
-                run(logger.session, "pip install pyKVFinder", log=False)
-            except Exception:
-                from chimerax.core.logger import report_exception
-                report_exception(preface="Could not install pyKVFinder module from PyPi repository")
-                return
-        from . import cmd
-        cmd.register_command(command_name, logger)
+            modelcif_pae(session, models[0])
+        except UserError as e:
+            # ok for it not to have PAE...
+            session.logger.info(f'No PAE data for {model_name} found: {str(e) }')
 
-    @staticmethod
-    def start_tool(session, tool_name):
-        from .tool import LaunchKVFinderTool
-        return LaunchKVFinderTool(session, tool_name)
-
-bundle_api = _KVFinderBundle()
+    return models, status
