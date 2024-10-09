@@ -16,7 +16,7 @@ from chimerax.core.errors import UserError
 
 class LaunchKVFinderTool(ToolInstance):
 
-    #help = "help:user/tools/rotamers.html"
+    help = "help:user/tools/findcavities.html"
     SESSION_SAVE = False
 
     def __init__(self, session, tool_name):
@@ -72,7 +72,7 @@ _settings = None
 
 class KVFinderResultsDialog(ToolInstance):
 
-    #help = "help:user/tools/rotamers.html"
+    help = "help:user/tools/findcavities.html#cavitylist"
     SESSION_SAVE = True
 
     def __init__(self, session, tool_name, *args):
