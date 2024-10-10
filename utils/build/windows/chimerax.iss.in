@@ -69,7 +69,7 @@ OutputBaseFilename=chimerax-installer
 OutputDir=$(BUILD_ROOT)
 PrivilegesRequired=none
 SignTool=byparam signtool.exe sign /f $q$(HERE)/CodeSign.pfx$q /p CODESIGN /fd sha1 /t http://timestamp.comodoca.com/authenticode /d $qUCSF ChimeraX$q $f
-SignTool=byparam signtool.exe sign /f $(HERE)/CodeSign.pfx /p CODESIGN /as /fd sha256 /td sha256 /tr http://timestamp.comodoca.com/rfc3161 /d $qUCSF ChimeraX$q $f 
+SignTool=byparam signtool.exe sign /f $(HERE)/CodeSign.pfx /p CODESIGN /as /fd sha256 /td sha256 /tr http://timestamp.comodoca.com/rfc3161 /d $qUCSF ChimeraX$q $f
 SourceDir=$(BUILD_ROOT)
 UninstallDisplayIcon={app}\bin\share\ChimeraX.ico,0
 WizardImageFile=$(HERE)\chimerax-wizard.bmp
@@ -91,7 +91,7 @@ Name: "quickchimeraxicon"; Description: "Create a ChimeraX &Quick Launch icon"; 
 Name: {commonappdata}\ChimeraX
 
 [Files]
-Source: "{VCTRedistDir}\..\..\v143\vc_redist.x64.exe"; DestDir: "{tmp}"
+Source: "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.40.33807\x64\v143\vc_redist.x64.exe"; DestDir: "{tmp}"
 ; TODO: Send the rest of the app to {app} instead of {app}\bin
 Source: "ChimeraX.app\bin\*"; DestDir: "{app}\bin"; Excludes: "__pycache__"; Flags: ignoreversion recursesubdirs
 ; Add other non-empty directories as needed

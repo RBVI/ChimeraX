@@ -20,7 +20,7 @@ magick "$srcicon" -geometry 48x48 chimerax-wizard-small.bmp
 
 # Create the innosetup script
 version=$(awk '$1 == "version" { print $3 }' <$build_root/src/bundles/core/src/buildinfo.py | sed 's/"//g')
-root=$(cygpath -m "$build_root")
+root=$(cygpath -m "$(realpath $build_root)")
 here=$(cygpath -m "$(pwd)")
 sed -e "s,\$(VERSION),$version,g" \
 	-e "s,\$(BUILD_ROOT),$root,g" \
@@ -31,4 +31,4 @@ sed -e "s,\$(VERSION),$version,g" \
 # Create installer
 INNOSETUP_PATH=$(regtool --wow32 get "/machine/software/Microsoft/Windows/CurrentVersion/Uninstall/Inno Setup 6_is1/InstallLocation")
 ISCC_PATH="$(cygpath -u "$INNOSETUP_PATH")ISCC"
-"$ISCC_PATH" /Sbyparam='$p' chimerax.iss
+"$ISCC_PATH" -Sbyparam='$p' chimerax.iss
