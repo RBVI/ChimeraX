@@ -94,7 +94,7 @@ def octahedral_symmetry_matrices(center = (0,0,0)):
 def helical_symmetry_matrices(rise, angle, axis = (0,0,1), center = (0,0,0),
                               n = 1):
     
-    zlist = [(i if i <= n/2 else n/2 - i) for i in range(n)]
+    zlist = [(i if i <= n//2 else n//2 - i) for i in range(n)]
     from . import Places
     syms = Places([helical_symmetry_matrix(rise, angle, axis, center, z)
                    for z in zlist])

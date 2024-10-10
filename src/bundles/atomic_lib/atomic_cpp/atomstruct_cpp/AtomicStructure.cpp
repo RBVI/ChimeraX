@@ -352,7 +352,7 @@ AtomicStructure::_make_chains() const
                     else
                         break;
                     last_res = next_res;
-                    next_res = residues()[next_res_i++];
+                    next_res = residues()[++next_res_i];
                 }
             }
         }

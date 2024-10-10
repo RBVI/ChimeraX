@@ -433,7 +433,7 @@ class Graph(Plot):
         c,d = self._node_artist.contains(e)
         item = None
         if c:
-            i = d['ind'][0]
+            i = d['ind'][-1]   # Top most node is last in list.
             item = self._node_objects[i]
         elif self._edge_artist:
             # Check for edge click

@@ -56,7 +56,7 @@ class _DeepMutationalScanAPI(BundleAPI):
                     @property
                     def open_args(self):
                         from chimerax.atomic import ChainArg
-                        return {'Chain': ChainArg}
+                        return {'chain': ChainArg}
 
                 return DeepMutationalScanInfo()
 

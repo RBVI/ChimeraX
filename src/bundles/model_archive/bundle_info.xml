@@ -22,7 +22,7 @@
 
   <Providers manager="open command">
     <Provider name="modelarchive" type="fetch" format_name="mmcif"
-		synopsis="Model Archive computed structures" example_ids="ma-bak-cepc-0944" />
+		synopsis="Model Archive" example_ids="ma-bak-cepc-0944" />
   </Providers>
 
   <Classifiers>

@@ -27,6 +27,7 @@ jobs:
           platform: linux
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - uses: ./utils/ci/cache_mmtf/
       - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos install-rbvi
       - name: Run the legacy test suite
         run: make test
@@ -226,6 +227,7 @@ jobs:
           platform: macos
           architecture: universal2
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - uses: ./utils/ci/cache_mmtf/
       - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) install-rbvi
       - name: Run the legacy test suite
         run: make test
@@ -277,6 +279,7 @@ jobs:
           platform: macos
           architecture: universal2
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - uses: ./utils/ci/cache_mmtf/
       - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) install-rbvi
       - name: Run the legacy test suite
         run: make test
@@ -333,6 +336,7 @@ jobs:
           platform: windows
           architecture: x86
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - uses: ./utils/ci/cache_mmtf/
       - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) install
       - name: Run the legacy test suite
         run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test

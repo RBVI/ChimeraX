@@ -22,11 +22,11 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def modelcif_pae(session, structure, metric_id = None, palette = None, range = None,
+def modelcif_pae(session, structure, metric_name = None, palette = None, range = None,
                  default_score = 100, json_output_path = None):
     '''Read pairwise residue scores from a ModelCIF file and plot them.'''
 
-    matrix = read_pairwise_scores(structure, metric_id = metric_id, default_score = default_score)
+    matrix = read_pairwise_scores(structure, metric_name = metric_name, default_score = default_score)
 
     if json_output_path is None:
         import tempfile
@@ -39,7 +39,7 @@ def modelcif_pae(session, structure, metric_id = None, palette = None, range = N
     from chimerax.alphafold.pae import alphafold_pae
     alphafold_pae(session, structure = structure, file = json_output_path, palette = palette, range = range)
 
-def read_pairwise_scores(structure, metric_id = None, default_score = 100):
+def read_pairwise_scores(structure, metric_name = 'PAE', default_score = 100):
     if not hasattr(structure, 'filename'):
         from chimerax.core.errors import UserError
         raise UserError(f'Structure {structure} has no associated file')
@@ -47,28 +47,34 @@ def read_pairwise_scores(structure, metric_id = None, default_score = 100):
 
     # fetch data from ModelCIF
     values, metrics = read_ma_qa_metric_local_pairwise_table(structure.session, mmcif_path)
+
     if values is None:
         from chimerax.core.errors import UserError
         raise UserError(f'Structure file {mmcif_path} contains no pairwise residue scores (i.e. no table "ma_qa_metric_local_pairwise")')
-    
+
     # use only the scores with the given metric id.
     metrics_dict = {
         met_id: (met_name, met_type) \
         for met_id, met_name, met_type in metrics
     }
-    if metric_id is None and len(metrics) > 0:
-        # look for PAE type
-        pae_met_ids = [met_id for met_id, _, met_type in metrics if met_type == "PAE"]
-        metric_id = pae_met_ids[0] if pae_met_ids else metrics[0][0]
+    if metric_name is None:
+        met_ids = [met_id for met_id, _, met_type in metrics if met_type == "PAE"]        # look for PAE type
+        if len(met_ids) == 0:
+            met_ids = [met_id for met_id, _, _ in metrics]
+    else:
+        met_ids = [met_id for met_id, met_name, _ in metrics if met_name == metric_name]
+        if len(met_ids) == 0:
+            mnames = ', '.join([f'"{met_name}"' for _, met_name, _ in metrics])
+            from chimerax.core.errors import UserError
+            raise UserError(f'Structure file {mmcif_path} has no metric with name "{metric_name}", available names are: {mnames}')
+    metric_id = met_ids[0] if met_ids else values[0][5]
+        
+    msg = f"Displaying local-pairwise metric with ID {metric_id} "
     if metric_id in metrics_dict:
         met_name, met_type = metrics_dict[metric_id]
-        structure.session.logger.info(
-            f"Displaying local-pairwise metric with ID {metric_id} " \
-            f"with type '{met_type}' and name '{met_name}'"
-        )
-    else:
-        from chimerax.core.errors import UserError
-        raise UserError(f'Structure file {mmcif_path} has no metric for metric id "{metric_id}"')
+        msg += f"with type '{met_type}' and name '{met_name}'"
+    structure.session.logger.info(msg)
+
     values = [v for v in values if v[5] == metric_id]
     if len(values) == 0:
         from chimerax.core.errors import UserError
@@ -155,7 +161,7 @@ def read_ma_qa_metric_local_pairwise_table(session, path):
     for file_id, file_url, file_content in associated_files:
         if file_content == "local pairwise QA scores":
             assoc_file_path = fetch_file_url(session, file_url, path, f"{file_prefix}_assoc.cif")
-            if file_path is not None:
+            if assoc_file_path is not None:
                 qa_files_to_load.append(assoc_file_path)
         elif file_content == "archive with multiple files":
             zip_files[file_id] = file_url
@@ -238,7 +244,7 @@ def register_command(logger):
     from chimerax.atomic import StructureArg
     desc = CmdDesc(
         required = [('structure', StructureArg)],
-        keyword = [('metric_id', StringArg),
+        keyword = [('metric_name', StringArg),
                    ('palette', ColormapArg),
                    ('range', ColormapRangeArg),
                    ('default_score', FloatArg),
