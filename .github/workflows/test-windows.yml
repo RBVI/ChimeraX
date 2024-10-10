@@ -15,9 +15,19 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
+          install: >-
+            git
+            make
+            mingw-w64-x86_64-autotools
+            mingw-w64-x86_64-binutils
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-gcc-objc
+            mingw-w64-x86_64-gcc-fortran
+            mingw-w64-x86_64-imagemagick
+            openssh
+            patch
+            rsync
+            unzip
       - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
         uses: ./utils/ci/cache_pyqt
         with:
