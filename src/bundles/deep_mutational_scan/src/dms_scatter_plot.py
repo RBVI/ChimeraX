@@ -134,9 +134,14 @@ class ResidueScatterPlot(Graph):
         if item is not None:
             r = item.residue
             name = item.description
+            rname = name[:-1]
             self.add_menu_entry(menu, f'Mutation {name}', lambda: None)
-            self.add_menu_entry(menu, f'Color residue {name[:-1]} on plot',
-                                lambda self=self, n=name: self._color_residue_on_plot(name[:-1]))
+            self.add_menu_entry(menu, f'Color mutations for {rname}',
+                                lambda self=self, rnamen=rname: self._color_residue_on_plot(rname))
+
+        self.add_menu_entry(menu, f'Color synonymous mutations blue', self._color_synonymous)
+
+        if item is not None:
             self.add_menu_separator(menu)
             if r is None or r.deleted:
                 self.add_menu_entry(menu, f'{name} residue not in structure', lambda: None)
@@ -146,8 +151,8 @@ class ResidueScatterPlot(Graph):
                 self.add_menu_entry(menu, f'Select', lambda self=self, r=r: self._select_residue(r))
                 self.add_menu_entry(menu, f'Color green', lambda self=self, r=r: self._highlight_residue(r))
                 self.add_menu_entry(menu, f'Zoom to residue', lambda self=self, r=r: self._zoom_to_residue(r))
-        else:
-            self.add_menu_entry(menu, 'Save Plot As...', self.save_plot_as)
+
+        self.add_menu_entry(menu, 'Save Plot As...', self.save_plot_as)
 
     def _select_residue(self, r):
         self._run_residue_command(r, 'select %s')
@@ -166,6 +171,15 @@ class ResidueScatterPlot(Graph):
                 node.color = node.original_color
         # Put the colored nodes first so they are drawn on top
         self.nodes.sort(key = lambda n: 1 if n.description[:-1] == r_name_num else 0)
+        self.graph = self._make_graph()  # Remake graph to get new node order
+        self.draw_graph()
+    def _color_synonymous(self, color = (0,0,1,1)):
+        syn = [node for node in self.nodes if (node.description[0] == node.description[-1])]
+        for node in syn:
+            node.color = color
+        # Put the colored nodes first so they are drawn on top
+        synset = set(syn)
+        self.nodes.sort(key = lambda n: 1 if n in synset else 0)
         self.graph = self._make_graph()  # Remake graph to get new node order
         self.draw_graph()
     def _run_residue_command(self, r, command):
