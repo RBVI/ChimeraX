@@ -3,11 +3,6 @@
 # Name of app in build directory
 app=ChimeraX.app
 
-# Set where the app is built
-if [ "$#" -ne 1 ]; then 
-	echo "Usage: $0 build_dir"
-	exit 1
-fi
 build_root="$1"
 if [ ! -d "$build_root" ]; then
 	echo "$build_root: not a directory"
@@ -16,26 +11,21 @@ fi
 
 # Set directory where the script resides so we can find support files
 mydir=$(dirname "$0")
+sig="$2" || unset sig
 
 # Create images needed to create installer
 srcicon="$build_root"/src/apps/ChimeraX/ChimeraX-icon512.png
-convert "$srcicon" -geometry 192x192 chimerax-wizard.bmp
-convert "$srcicon" -geometry 48x48 chimerax-wizard-small.bmp
+magick "$srcicon" -geometry 192x192 chimerax-wizard.bmp
+magick "$srcicon" -geometry 48x48 chimerax-wizard-small.bmp
 #version=$(grep ^CORE_VERSION "$build_root/src/core/Makefile" | awk '{print $NF}')
-version=$(awk '$1 == "version" { print $3 }' < $build_root/src/bundles/core/src/buildinfo.py | sed 's/"//g')
+version=$(awk '$1 == "version" { print $3 }' <$build_root/src/bundles/core/src/buildinfo.py | sed 's/"//g')
 root=$(cygpath -m "$build_root")
 here=$(cygpath -m "$(pwd)")
 sed -e "s,\$(VERSION),$version,g" \
 	-e "s,\$(BUILD_ROOT),$root,g" \
 	-e "s,\$(HERE),$here,g" \
-	"$mydir"/chimerax.iss.in > chimerax.iss.codesign
-if [[ -e sig ]]; then
-    sed -e "s/CODESIGN/$(cat sig)/" \
-        chimerax.iss.codesign > chimerax.iss
-else
-    sed -e "/CODESIGN/d" \
-        chimerax.iss.codesign > chimerax.iss
-fi
+	"$mydir"/chimerax.iss.in >chimerax.iss.codesign
+sed -e "s/CODESIGN/$sig/" chimerax.iss.codesign >chimerax.iss
 
 # Put additional scripts into app
 inst_scripts="remove_pycache.py"
@@ -43,8 +33,5 @@ rsync -a $inst_scripts "$build_root/$app/bin"
 
 # Create installer
 is_dir=$(regtool --wow32 get "/machine/software/Microsoft/Windows/CurrentVersion/Uninstall/Inno Setup 6_is1/InstallLocation")
-iscc=$(cygpath -u "$is_dir")/ISCC
+iscc=$(cygpath -u "$is_dir")ISCC
 "$iscc" /Sbyparam='$p' chimerax.iss
-if [[ -e sig ]]; then
-    echo rm sig CodeSign.pfx chimerax.iss
-fi
