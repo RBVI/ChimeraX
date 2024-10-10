@@ -15,29 +15,45 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-      #- name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-      #  uses: ./utils/ci/cache_pyqt
-      #  with:
-      #    platform: windows
-      #    architecture: x86
-      #    cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      #- run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) install
-      #- name: Run the legacy test suite
-      #  run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test
-      #- name: Install Pytest
-      #  run: ./ChimeraX.app/bin/python.exe -I -m pip install pytest pytest-cov
-      #- name: Set up the repo for coverage reporting
-      #  run: make prepare-coverage
-      #- name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
-      #  run: USE_COVERAGE=1 make pytest-both-exes
-      #- name: Run wheel tests
-      #  run: USE_COVERAGE=1 make pytest-wheel
-      #- name: Run distribution tests
-      #  run: USE_COVERAGE=1 make pytest-app
-      #- name: Report coverage
-      #  run: make report-coverage
-      #- name: Build the Windows Package
-      #  run: ./utils/build/windows/build_package .
+          install: >-
+            git
+            make
+            mingw-w64-x86_64-autotools
+            mingw-w64-x86_64-binutils
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-gcc-objc
+            mingw-w64-x86_64-gcc-fortran
+            mingw-w64-x86_64-imagemagick
+            openssh
+            patch
+            rsync
+            unzip
+      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
+        uses: ./utils/ci/cache_pyqt
+        with:
+          platform: windows
+          architecture: x86
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) install
+      - name: Run the legacy test suite
+        run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test
+      - name: Install Pytest
+        run: ./ChimeraX.app/bin/python.exe -I -m pip install pytest pytest-cov
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage
+      - name: Copy scripts into the package
+        run: |
+          cp remove_pycache.py ChimeraX.app/bin/
+      - name: Sign the Windows Package
+        uses: ./utils/ci/sign_windows
+        with:
+          build_certificate: ${{ secrets.WINDOWS_SIGNING_CERT }}
+          cert_password: ${{ secrets.WINDOWS_SIGNING_PASS }}
