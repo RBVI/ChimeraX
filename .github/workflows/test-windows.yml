@@ -49,6 +49,9 @@ jobs:
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
+      - name: Copy scripts into the package
+        run: |
+          cp remove_pycache.py ChimeraX.app/bin/
       - name: Sign the Windows Package
         uses: ./utils/ci/sign_windows
         with:

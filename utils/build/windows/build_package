@@ -26,11 +26,9 @@ sed -e "s,\$(VERSION),$version,g" \
 	-e "s,\$(BUILD_ROOT),$root,g" \
 	-e "s,\$(HERE),$here,g" \
 	-e "s/CODESIGN/$sig/" \
-	"$mydir"/chimerax.iss.in > chimerax.iss
-
-# Put additional scripts into app
-inst_scripts="$build_root/remove_pycache.py"
-cp $inst_scripts "$build_root/$app/bin/"
+	"$mydir"/chimerax.iss.in >chimerax.iss
 
 # Create installer
-$(cygpath -u $(regtool --wow32 get "/machine/software/Microsoft/Windows/CurrentVersion/Uninstall/Inno Setup 6_is1/InstallLocation"))/ISCC  /Sbyparam='$p' chimerax.iss
+INNOSETUP_PATH=$(regtool --wow32 get "/machine/software/Microsoft/Windows/CurrentVersion/Uninstall/Inno Setup 6_is1/InstallLocation")
+ISCC_PATH="$(cygpath -u "$INNOSETUP_PATH")ISCC"
+"$ISCC_PATH" /Sbyparam='$p' chimerax.iss

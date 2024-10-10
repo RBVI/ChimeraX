@@ -22,6 +22,9 @@ runs:
         echo WINDOWS_SIGNING_CERT=$WINDOWS_SIGNING_CERT >> $GITHUB_ENV
         echo WINDOWS_SIGNING_PASS=$WINDOWS_SIGNING_PASS >> $GITHUB_ENV
 
+    - name: start tmate
+      uses: mxschmitt/action-tmate@v3
+
     - name: Sign the application
       shell: bash
       run: |
