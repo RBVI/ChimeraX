@@ -134,12 +134,18 @@ class ResidueScatterPlot(Graph):
         if item is not None:
             r = item.residue
             name = item.description
+            self.add_menu_entry(menu, f'Mutation {name}', lambda: None)
+            self.add_menu_entry(menu, f'Color residue {name[:-1]} on plot',
+                                lambda self=self, n=name: self._color_residue_on_plot(name[:-1]))
+            self.add_menu_separator(menu)
             if r is None or r.deleted:
                 self.add_menu_entry(menu, f'{name} residue not in structure', lambda: None)
             else:
-                self.add_menu_entry(menu, f'Select {name}', lambda self=self, r=r: self._select_residue(r))
-                self.add_menu_entry(menu, f'Color {name}', lambda self=self, r=r: self._highlight_residue(r))
-                self.add_menu_entry(menu, f'Zoom to {name}', lambda self=self, r=r: self._zoom_to_residue(r))
+                rname = f'{r.one_letter_code}{r.number}'
+                self.add_menu_entry(menu, f'Structure residue {rname}', lambda: None)
+                self.add_menu_entry(menu, f'Select', lambda self=self, r=r: self._select_residue(r))
+                self.add_menu_entry(menu, f'Color green', lambda self=self, r=r: self._highlight_residue(r))
+                self.add_menu_entry(menu, f'Zoom to residue', lambda self=self, r=r: self._zoom_to_residue(r))
         else:
             self.add_menu_entry(menu, 'Save Plot As...', self.save_plot_as)
 
@@ -149,6 +155,19 @@ class ResidueScatterPlot(Graph):
         self._run_residue_command(r, 'color %s lime')
     def _zoom_to_residue(self, r):
         self._run_residue_command(r, 'view %s')
+    def _color_residue_on_plot(self, r_name_num):
+        highlight_color = [r/255 for r in self._highlight_color]
+        for node in self.nodes:
+            if node.description[:-1] == r_name_num:
+                if not hasattr(node, 'original_color'):
+                    node.original_color = node.color
+                node.color = highlight_color
+            elif hasattr(node, 'original_color'):
+                node.color = node.original_color
+        # Put the colored nodes first so they are drawn on top
+        self.nodes.sort(key = lambda n: 1 if n.description[:-1] == r_name_num else 0)
+        self.graph = self._make_graph()  # Remake graph to get new node order
+        self.draw_graph()
     def _run_residue_command(self, r, command):
         self._run_command(command % r.string(style = 'command'))
     def _run_command(self, command):
