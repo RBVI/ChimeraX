@@ -22,11 +22,6 @@ runs:
         echo WINDOWS_SIGNING_CERT=$WINDOWS_SIGNING_CERT >> $GITHUB_ENV
         echo WINDOWS_SIGNING_PASS=$WINDOWS_SIGNING_PASS >> $GITHUB_ENV
 
-    - name: Install the certificate
-      shell: bash
-      run: |
-        true
-
     - name: Sign the application
       shell: bash
       run: |
