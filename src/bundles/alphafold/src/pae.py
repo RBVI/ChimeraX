@@ -522,6 +522,12 @@ class AlphaFoldPAEPlot(ToolInstance):
         
     # ---------------------------------------------------------------------------
     #
+    def set_pae(self, pae, colormap = None):
+        self._pae = pae
+        self.set_colormap(colormap)
+
+    # ---------------------------------------------------------------------------
+    #
     def set_colormap(self, colormap = None):
         if colormap is None:
             from chimerax.core.colors import BuiltinColormaps
@@ -1442,7 +1448,9 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
                 structure._alphafold_pae_plot = p
         else:
             p.display(True)
-            if palette is not None or range is not None:
+            if file is not None:
+                p.set_pae(pae, colormap)
+            elif palette is not None or range is not None:
                 p.set_colormap(colormap)
             if divider_lines is not None:
                 p.show_chain_dividers(divider_lines)
