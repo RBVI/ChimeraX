@@ -91,7 +91,7 @@ Name: "quickchimeraxicon"; Description: "Create a ChimeraX &Quick Launch icon"; 
 Name: {commonappdata}\ChimeraX
 
 [Files]
-Source: "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.40.33807\x64\v143\vc_redist.x64.exe"; DestDir: "{tmp}"
+Source: "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\v143\vc_redist.x64.exe"; DestDir: "{tmp}"
 ; TODO: Send the rest of the app to {app} instead of {app}\bin
 Source: "ChimeraX.app\bin\*"; DestDir: "{app}\bin"; Excludes: "__pycache__"; Flags: ignoreversion recursesubdirs
 ; Add other non-empty directories as needed
