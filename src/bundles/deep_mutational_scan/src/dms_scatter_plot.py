@@ -57,9 +57,8 @@ class ResidueScatterPlot(Graph):
     def __init__(self, session):
         nodes = edges = []
         Graph.__init__(self, session, nodes, edges, tool_name = 'DeepMutationalScan',
-                       title = 'Deep mutational scan scatter plot', hide_ticks = False)
-        self._highlight_color = (0,255,0,255)
-        self._unhighlight_color = (150,150,150,255)
+                       title = 'Deep mutational scan scatter plot', hide_ticks = False,
+                       drag_select_callback = self._rectangle_selected)
 
     def set_nodes(self, xy, residues, point_names = None, colors = None, correlation = False,
                   title = '', x_label = '', y_label = '',
@@ -123,12 +122,39 @@ class ResidueScatterPlot(Graph):
     def mouse_click(self, node, event):
         '''Ctrl click handler.'''
         if node is None:
+            self._run_command('select clear')
+            self._color_and_raise_nodes([], color = (0,1,0,1), tag = 'sel')
             return
         r = node.residue
         if r is not None and not r.deleted:
-            r.chain.existing_residues.ribbon_colors = self._unhighlight_color
-            r.ribbon_color = self._highlight_color
-            r.atoms.colors = self._highlight_color
+            self._select_residue(r)
+            self._color_and_raise_nodes([node], color = (0,1,0,1), tag = 'sel')
+
+    def _rectangle_selected(self, event1, event2):
+        x1, y1, x2, y2 = event1.xdata, event1.ydata, event2.xdata, event2.ydata
+        xmin, xmax = min(x1,x2), max(x1,x2)
+        ymin, ymax = min(y1,y2), max(y1,y2)
+        rnodes = []
+        for node in self.nodes:
+            x,y,z = node.position
+            if x >= xmin and x <= xmax and y >= ymin and y <= ymax:
+                rnodes.append(node)
+
+        if len(rnodes) > 0:
+            from chimerax.atomic import Residues, concise_residue_spec
+            res = Residues(tuple(set([node.residue for node in rnodes if node.residue is not None])))
+            rspec = concise_residue_spec(self.session, res)
+            cmd = f'select {rspec}'
+        else:
+            cmd = 'select clear'
+        self._run_command(cmd)
+
+        # The matplotlig RectangleSelector with useblit restores old matplotlib artists after the selection
+        # callback and our coloring code replaces the node drawing artist, so matplotlib brings it back
+        # to life.  So we need to delay the coloring until later.
+        #self._color_and_raise_nodes(rnodes, color = (0,1,0,1), tag = 'sel')
+        t = self.session.ui.timer(0, self._color_and_raise_nodes, rnodes, color = (0,1,0,1), tag = 'sel')
+        self._keep_timer_alive = t
 
     def fill_context_menu(self, menu, item):
         if item is not None:
@@ -211,6 +237,7 @@ class ResidueScatterPlot(Graph):
         self.nodes.sort(key = lambda n: 1 if n in nodeset else 0)
         self.graph = self._make_graph()  # Remake graph to get new node order
         self.draw_graph()
+        self.canvas.draw()
     def _color_selected(self, color = (0,1,1,1)):
         sel = [node for node in self.nodes if node.residue and node.residue.selected]
         self._color_and_raise_nodes(sel, color, tag = 'sel')
