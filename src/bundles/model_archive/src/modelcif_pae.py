@@ -48,7 +48,7 @@ def read_pairwise_scores(structure, metric_name = 'PAE', default_score = 100):
     # fetch data from ModelCIF
     values, metrics = read_ma_qa_metric_local_pairwise_table(structure.session, mmcif_path)
 
-    if values is None:
+    if len(values) == 0:
         from chimerax.core.errors import UserError
         raise UserError(f'Structure file {mmcif_path} contains no pairwise residue scores (i.e. no table "ma_qa_metric_local_pairwise")')
 
