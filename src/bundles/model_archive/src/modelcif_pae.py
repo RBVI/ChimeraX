@@ -26,6 +26,12 @@ def modelcif_pae(session, structure, metric_name = None, palette = None, range =
                  default_score = 100, json_output_path = None):
     '''Read pairwise residue scores from a ModelCIF file and plot them.'''
 
+    from chimerax.atomic import Residue
+    npn = (structure.residues.polymer_types == Residue.PT_NONE).sum()
+    if npn > 0:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Cannot display PAE data for structures with non-polymer residues.  Structure {structure} has {npn} non-polymer residues.')
+        
     matrix = read_pairwise_scores(structure, metric_name = metric_name, default_score = default_score)
 
     if json_output_path is None:
