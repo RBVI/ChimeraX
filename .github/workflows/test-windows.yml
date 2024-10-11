@@ -57,3 +57,11 @@ jobs:
         with:
           build_certificate: ${{ secrets.WINDOWS_SIGNING_CERT }}
           cert_password: ${{ secrets.WINDOWS_SIGNING_PASS }}
+      - name: Upload ChimeraX
+        uses: ./utils/ci/upload_artifact
+        with:
+          artifact_path: chimerax-installer.exe
+          full_build: true
+          release_type: github-techpreview
+          platform: windows
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
