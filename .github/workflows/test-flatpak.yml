@@ -31,6 +31,7 @@ jobs:
           platform: linux
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
           build_type: daily
+      - run: chown -R $(id -u):$(id -g) $PWD
       - name: Unpack the bundles to build/sync
         run: |
           mkdir wheels
