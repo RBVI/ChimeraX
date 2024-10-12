@@ -42,7 +42,7 @@ jobs:
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           bundle: chimerax.flatpak
-          manifest-path: github-flatpak.yml
+          manifest-path: github-flatpak.yaml
           cache-key: flatpak-builder-${{ github.sha }}
       # For now, we're skipping tests for the Flatpak
       - name: Upload ChimeraX
