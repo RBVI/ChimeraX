@@ -51,16 +51,17 @@ modules:
         path: .
     build-commands:
       - mkdir -p /app
-      - $(MAKE) -C prereqs install NO_PREBUILT=1 FLATPAK_DIST=${RUNTIME_VER} FLATPAK_APPNAME=${APPNAME}
-      - $(MAKE) -C prereqs app-install NO_PREBUILT=1 FLATPAK_DIST=${RUNTIME_VER} FLATPAK_APPNAME=${APPNAME}
-      - $(MAKE) -C src/apps/ChimeraX install FLATPAK_DIST=${RUNTIME_VER} FLATPAK_APPNAME=${APPNAME} BUILD_TYPE=${BUILD_TYPE}
+      - NO_PREBUILT=1 FLATPAK_DIST=1 make -C prereqs install
+      - NO_PREBUILT=1 FLATPAK_DIST=1 make -C prereqs app-install
+      # TODO Move FLATPAK_APPNAME to config.mk and define it if FLATPAK_DIST is defined
+      - FLATPAK_DIST=1 FLATPAK_APPNAME=edu.ucsf.rbvi.ChimeraX make -C src/apps/ChimeraX install FLATPAK_DIST=23.08 FLATPAK_APPNAME=edu.ucsf.rbvi.ChimeraX
       - cp -rp include /app
       - /app/bin/python3.* -m pip install wheels/*.whl
-      - $(MAKE) -C src/apps install FLATPAK_DIST=${RUNTIME_VER} BUILD_TYPE=${BUILD_TYPE}
-      - $(MAKE) -C docs install FLATPAK_DIST=${RUNTIME_VER} BUILD_TYPE=${BUILD_TYPE}
-      - /app/bin/ChimeraX --nogui --exit --cmd "linux flatpak-files ${APPNAME}"
-      - install -Dm644 -t /app/share/metainfo ${APPNAME}.metainfo.xml
-      - install -Dm644 -t /app/share/applications ${APPNAME}.desktop
+      - FLATPAK_DIST=1 make -C src/apps install
+      - make -C docs install
+      - /app/bin/ChimeraX --nogui --exit --cmd "linux flatpak-files edu.ucsf.rbvi.ChimeraX"
+      - install -Dm644 -t /app/share/metainfo edu.ucsf.rbvi.ChimeraX.metainfo.xml
+      - install -Dm644 -t /app/share/applications edu.ucsf.rbvi.ChimeraX.desktop
 
   # libQt6Network.so.6 from the Qt Group needs
   # libgssapi_krb5.so.2, but is not in flatpak runtime environment
