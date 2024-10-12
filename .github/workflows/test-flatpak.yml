@@ -15,7 +15,6 @@ jobs:
       options: --privileged
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
       - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
         uses: ./utils/ci/cache_pyqt
         with:
@@ -39,9 +38,6 @@ jobs:
       - name: Unpack the include tarball to include
         run: |
           tar -xvf linux-include.tar.gz
-      - name: Remove curl call from Makefile.flatpak install
-        # This is done by the two actions above
-        run: sed -i -e '/cxtoolshed/d' Makefile.flatpak
       - name: Build the rest of ChimeraX
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
