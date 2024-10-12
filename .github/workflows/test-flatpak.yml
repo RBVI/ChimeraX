@@ -44,7 +44,6 @@ jobs:
           bundle: chimerax.flatpak
           manifest-path: github-flatpak.yml
           cache-key: flatpak-builder-${{ github.sha }}
-          upload-artifact: false
       # For now, we're skipping tests for the Flatpak
       - name: Upload ChimeraX
         uses: ./utils/ci/upload_artifact
