@@ -773,6 +773,45 @@ class Alignment(State):
         with io.open_output(output, 'utf-8') as stream:
             mod.save(self.session, self, stream)
 
+    def select_by_conservation(self, conservation):
+        """Conservation is a percentage identity (i.e. 0-100).  Columns conserved >= that percentage
+           will have their associated residues selected.  The percentage can also be negative, in which
+           case columns conserved less than that percentage will be selected.
+        """
+        if not self.associations:
+            return
+        sel_residues = []
+        for i in range(len(self._seqs[0])):
+            counts = {}
+            for seq in self._seqs:
+                c = seq[i]
+                counts[c] = counts.get(c, 0) + 1
+            max_count = None
+            for c, count in counts.items():
+                if max_count is None or count > max_count:
+                    max_count = count
+                    max_c = c
+            percent = 100.0 * max_count / len(self._seqs)
+            if conservation >= 0:
+                if percent < conservation or not max_c.isalnum():
+                    continue
+            else:
+                if percent >= conservation:
+                    continue
+            for sseq, aseq in self.associations.items():
+                ungapped = sseq.gapped_to_ungapped(i)
+                if ungapped is None:
+                    continue
+                r = aseq.match_maps[sseq][ungapped]
+                if r:
+                    sel_residues.append(r)
+        from chimerax.atomic import concise_residue_spec
+        from chimerax.core.commands import run
+        if sel_residues:
+            run(self.session, "select " + concise_residue_spec(self.session, sel_residues))
+        else:
+            run(self.session, "~select")
+
     @property
     def seqs(self):
         return self._seqs[:]
