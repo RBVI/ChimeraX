@@ -109,16 +109,22 @@ Chosen rows are highlighted in the dialog, and the following options
 </p>
 <ul>
 <li><b>Focus view on cavity</b>
-<li><b>Select nearby atoms</b> &dash; <a href="../selection.html">select</a>
+<li><b>Show cavity surface</b>
+<li><b>Select cavity points</b> &ndash; <a href="../selection.html">select</a>
+the grid points (pseudoatoms) defining the cavity
+<li><b>Select nearby atoms</b> &ndash; <a href="../selection.html">select</a>
 atoms within the specified <a href="#nearby">nearby distance</a>
 of any cavity point
-<li><b>Show nearby residues</b> &dash; show all atoms of residues with 
-any nearby atoms. Other atoms are not hidden, however.
-<li><b>Surface nearby atoms</b> &dash; show the molecular surface of nearby 
+<li><b>Show nearby residues</b> &ndash; show all atoms of residues with 
+any nearby atoms; although other atoms (not nearby) are not hidden, 
+unchecking the option will hide the nearby residues of the currently 
+chosen cavities
+<!--
+<li><b>Surface nearby atoms</b> &ndash; show the molecular surface of nearby 
 atoms. The surface area calculated by <b><i>KVFinder</i></b> for the cavity
 is <i>not</i> based on this patch of molecular surface.
   <ul>
-  <li><b>Color surface by lipophilicity</b> &dash; color the molecular surface
+  <li><b>Color surface by lipophilicity</b> &ndash; color the molecular surface
 by <a href="../commands/mlp.html">molecular lipophilicity potential</a> (MLP)
 using <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
@@ -130,12 +136,49 @@ Note that once this coloring has been applied to a given molecular surface,
 it persists even if this option is turned off. The surface would need to be 
 removed and recreated or manually recolored to get rid of the coloring by MLP.
   </ul>
+-->
 </ul>
 <p>
 <a name="nearby"></a>
 <b>"Nearby" atoms/residues are within</b> [<i>distance</i>] <b>angstroms
 of cavity points</b>
-&ndash; <i>distance</i> criterion for the checkbox options above
+&ndash; distance criterion for the <b>nearby</b> checkbox options above
+</p>
+
+<a name="coloring"></a>
+<p class="nav">
+[<a href="#top">back to top: Find Cavities</a>]
+</p>
+<h3>Coloring Cavity Surfaces by Protein Properties</h3>
+<p>
+The <b>Find Cavities</b> tool includes the option to show surfaces around
+the clouds of grid points.
+It might be interesting to color these surfaces by properties 
+from the surrounding protein. Since the tool uses only the cavity
+grid points to calculate the surfaces, however,
+the coloring commands need to specify using the protein atoms 
+to calculate the properties even though they were not used to make
+the surfaces.
+</p><p>
+For example, if the protein structure is model #1 and the 
+computed cavity models are #1.2.1, #1.2.2, ... #1.2.12, then the following
+commands could be used to color the cavity surfaces by 
+molecular lipophilic potential (MLP) and 
+Coulombic electrostatic potential (ESP), respectively:
+</p>
+<blockquote>
+<b><a href="../commands/mlp.html">mlp</a> (#1 & protein) surfaces #1.2</b>
+<br><br>
+<b><a href="../commands/coulombic.html">coulombic</a>
+(#1 & protein) surfaces #1.2 offset -1</b>
+</blockquote>
+<p>
+A negative offset was used to show the electrostatic
+potential <b><i>inside</i></b> the cavity surfaces, where binding might occur.
+For the usual case of coloring a protein surface by its own potential,
+a positive offset (default <b>1.4</b> &Aring;) is used to show the potential
+<b><i>outside</i></b> the surface, where interactions with other molecules 
+would occur.
 </p>
 
 <hr>

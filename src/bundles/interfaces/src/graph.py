@@ -170,7 +170,8 @@ class Graph(Plot):
     Middle and right mouse drags move the plotted objects.
     '''
     
-    def __init__(self, session, nodes, edges, tool_name, title, hide_ticks = True):
+    def __init__(self, session, nodes, edges, tool_name, title, hide_ticks = True,
+                 drag_select_callback = None):
 
         # Create matplotlib panel
         Plot.__init__(self, session, tool_name, title = title)
@@ -205,6 +206,16 @@ class Graph(Plot):
         self._dragged = False
         self._min_drag = 10	# pixels
         self._drag_mode = None
+
+        self._drag_select_callback = drag_select_callback
+        if drag_select_callback is not None:
+            from matplotlib.widgets import RectangleSelector
+            class DragSelect(RectangleSelector):
+                def connect_default_events(self):
+                    pass  # Use our own mouse event handler
+            self._drag_selector = DragSelect(self.axes, self._drag_select_callback, useblit = True)
+        else:
+            self._drag_selector = None
 
     def _make_graph(self):
         import networkx as nx
@@ -362,7 +373,12 @@ class Graph(Plot):
             drag_mode = None
 
         self._drag_mode = drag_mode
-        
+
+        if drag_mode == 'select' and self._drag_selector is not None:
+            e = self.matplotlib_mouse_event(pos.x(),pos.y())
+            self._drag_selector.background = None  # Needed so useblit does not draw stale plot image
+            self._drag_selector.press(e)
+            
     def _mouse_move(self, event):
         if self._last_mouse_xy is None:
             self._mouse_press(event)
@@ -387,12 +403,23 @@ class Graph(Plot):
         elif mode == 'translate':
             # Translate plot
             self.move(dx, -dy)
+        elif mode == 'select' and self._drag_selector is not None:
+            e = self.matplotlib_mouse_event(x,y)
+            self._drag_selector.onmove(e)
     
     def _mouse_release(self, event):
-        if not self._dragged and self._drag_mode == 'select':
+        if self._drag_mode == 'select':
             pos = event.pos()
-            item = self._clicked_item(pos.x(), pos.y())
-            self.mouse_click(item, event)
+            x, y = pos.x(), pos.y()
+            if self._drag_selector is not None:
+                if self._dragged:
+                    e = self.matplotlib_mouse_event(x,y)
+                    self._drag_selector.release(e)
+                else:
+                    self._drag_selector.clear()
+            if not self._dragged:
+                item = self._clicked_item(x,y)
+                self.mouse_click(item, event)
 
         self._last_mouse_xy = None
         self._dragged = False

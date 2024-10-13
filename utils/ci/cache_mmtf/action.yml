@@ -17,7 +17,7 @@ runs:
       shell: bash
       if: ${{ steps.cache-mmtf.outputs.cache-hit != 'true' }}
       run: |
-        curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/msgpack-c-cpp-4.1.2.zip
-        curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/mmtf-cpp-1.1.0.zip
+        curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/mmtf/msgpack-c-cpp-4.1.2.zip
+        curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/mmtf/mmtf-cpp-1.1.0.zip
         mv mmtf*.zip src/bundles/mmtf/
         mv msgpack*.zip src/bundles/mmtf/

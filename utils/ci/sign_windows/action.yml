@@ -22,12 +22,9 @@ runs:
         echo WINDOWS_SIGNING_CERT=$WINDOWS_SIGNING_CERT >> $GITHUB_ENV
         echo WINDOWS_SIGNING_PASS=$WINDOWS_SIGNING_PASS >> $GITHUB_ENV
 
-    - name: start tmate
-      uses: mxschmitt/action-tmate@v3
-
     - name: Sign the application
       shell: bash
       run: |
-        echo $WINDOWS_SIGNING_CERT > CodeSign.pfx
-        ./utils/build/windows/build_package . $WINDOWS_SIGNING_PASS
+        echo $WINDOWS_SIGNING_CERT | base64 --decode > CodeSign.pfx
+        AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && ./utils/build/windows/build_package . $WINDOWS_SIGNING_PASS
         rm CodeSign.pfx

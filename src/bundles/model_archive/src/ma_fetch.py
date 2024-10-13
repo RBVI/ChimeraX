@@ -47,6 +47,6 @@ def fetch_model_archive(session, ma_identifier, ignore_cache = False, pae = Fals
             modelcif_pae(session, models[0])
         except UserError as e:
             # ok for it not to have PAE...
-            session.logger.info(f'No PAE data for {model_name} found: {str(e) }')
+            session.logger.info(f'Could not open PAE data for {model_name} found: {str(e) }')
 
     return models, status
