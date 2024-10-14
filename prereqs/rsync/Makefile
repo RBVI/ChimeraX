@@ -19,7 +19,7 @@ app-install:
 	cp $(bindir)/rsync $(app_bindir)
 
 $(SOURCE): $(DISTRIBUTION)
-	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+	tar zxf $(DISTRIBUTION) -C $(tmpdir) --no-same-owner
 	cd $(SOURCE) && ./configure $(CONFIG_OPTS)
 
 $(DISTRIBUTION):
