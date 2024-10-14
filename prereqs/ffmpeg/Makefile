@@ -150,7 +150,7 @@ $(FFMPEG_EXE): $(FFMPEG_SOURCE) video_codecs
 	cd $(FFMPEG_SOURCE); ./configure $(FFMPEG_OPTS) ; $(MAKE)
 
 $(FFMPEG_SOURCE): $(FFMPEG_DISTRIB)
-	tar -xf $(FFMPEG_DISTRIB) -C $(tmpdir)
+	tar -xf $(FFMPEG_DISTRIB) -C $(tmpdir) --no-same-owner
 
 $(FFMPEG_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(FFMPEG_DISTRIB)
