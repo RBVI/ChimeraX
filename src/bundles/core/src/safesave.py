@@ -120,6 +120,7 @@ class SaveFile:
                         except PermissionError:
                             if i == 2:
                                 raise
+                            continue
                         break
                 else:
                     raise
