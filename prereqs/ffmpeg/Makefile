@@ -161,7 +161,7 @@ yasm $(YASM_EXE): $(YASM_SOURCE)
 	cd $(YASM_SOURCE) ; ./configure --prefix=$(build_prefix); $(MAKE) install
 
 $(YASM_SOURCE): $(YASM_DISTRIB)
-	tar -xf $(YASM_DISTRIB) -C $(tmpdir)
+	tar -xf $(YASM_DISTRIB) -C $(tmpdir) --no-same-owner
 
 $(YASM_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(YASM_DISTRIB)
@@ -172,7 +172,7 @@ libx264 $(LIBX264): $(LIBX264_SOURCE) $(YASM_EXE)
 	env PATH=$(bindir):$(PATH) $(MAKE) lib-static install install-lib-static install-lib-dev
 
 $(LIBX264_SOURCE): $(LIBX264_DISTRIB)
-	tar -xf $(LIBX264_DISTRIB) -C $(tmpdir)
+	tar -xf $(LIBX264_DISTRIB) -C $(tmpdir) --no-same-owner
 
 $(LIBX264_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBX264_DISTRIB)
@@ -183,7 +183,7 @@ libogg $(LIBOGG): $(LIBOGG_SOURCE)
 	env PATH=$(bindir):$(PATH) $(MAKE) install
 
 $(LIBOGG_SOURCE): $(LIBOGG_DISTRIB)
-	tar -xf $(LIBOGG_DISTRIB) -C $(tmpdir)
+	tar -xf $(LIBOGG_DISTRIB) -C $(tmpdir) --no-same-owner
 
 $(LIBOGG_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBOGG_DISTRIB)
