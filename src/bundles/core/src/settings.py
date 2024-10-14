@@ -191,7 +191,7 @@ class Settings(ConfigFile):
             import warnings
             import numpy as np
             with warnings.catch_warnings():
-                warnings.simplefilter('ignore', category=np.VisibleDeprecationWarning)
+                warnings.simplefilter('ignore', category=np.exceptions.VisibleDeprecationWarning)
                 unequal = not np.array_equal(cur_val, value)
             if unequal:
                 self._cur_settings[name] = value
