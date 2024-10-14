@@ -206,7 +206,7 @@ ifeq ($(OS),Darwin)
 endif
 
 $(LIBTHEORA_SOURCE): $(LIBTHEORA_DISTRIB)
-	tar -xf $(LIBTHEORA_DISTRIB) -C $(tmpdir)
+	tar -xf $(LIBTHEORA_DISTRIB) -C $(tmpdir) --no-same-owner
 
 $(LIBTHEORA_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBTHEORA_DISTRIB)
@@ -217,7 +217,7 @@ libvpx $(LIBVPX): $(LIBVPX_SOURCE) $(YASM_EXE)
 	env PATH=$(bindir):$(PATH) $(MAKE) install
 
 $(LIBVPX_SOURCE): $(LIBVPX_DISTRIB)
-	tar -xf $(LIBVPX_DISTRIB) -C $(tmpdir)
+	tar -xf $(LIBVPX_DISTRIB) -C $(tmpdir) --no-same-owner
 
 $(LIBVPX_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBVPX_DISTRIB)
