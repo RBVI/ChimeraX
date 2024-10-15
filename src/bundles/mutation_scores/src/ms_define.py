@@ -24,6 +24,9 @@ def mutation_scores_define(session, score_name, from_score_name, scores_name = N
         value = _residue_value(svalues, res_num, value_type=operation, above=above, below=below)
         if value is not None:
             res_values.append((res_num, aa_type, to_aa, value))
+    if len(res_values) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError(f'No residues have score {score_name}')
     rvalues = ScoreValues(res_values, per_residue = True)
     scores.set_computed_values(score_name, rvalues)
 
@@ -34,11 +37,9 @@ def mutation_scores_define(session, score_name, from_score_name, scores_name = N
             from chimerax.atomic import Residue
             Residue.register_attr(session, score_name, "Deep Mutational Scan", attr_type=float)
 
-            residues = chain.existing_residues
             count = 0
-            rval = rvalues.values_by_residue_number
-            for res in residues:
-                value = rval.get(res.number)
+            for res in chain.existing_residues:
+                value = rvalues.residue_value(res.number)
                 if value is not None:
                     setattr(res, score_name, value)
                     count += 1
@@ -60,7 +61,8 @@ def _attribute_name(column_name, type, above, below):
 amino_acid_types = {'ala':'A','arg':'R','asn':'N','asp':'D','cys':'C','glu':'E','gln':'Q','gly':'G',
                     'his':'H','ile':'I','leu':'L','lys':'K','met':'M','phe':'F','pro':'P','ser':'S',
                     'thr':'T','trp':'W','tyr':'Y','val':'V'}
-residue_value_types = ('sum', 'sum_absolute', 'synonymous', 'mean', 'stddev') + tuple(amino_acid_types.keys())
+combine_operations = ('sum', 'sum_absolute', 'mean', 'stddev', 'count')
+residue_value_types = combine_operations + ('synonymous',) + tuple(amino_acid_types.keys())
     
 def _residue_value(score_values, residue_number, value_type='sum_absolute', above=None, below=None):
     dms_values = score_values.mutation_values(residue_number)
@@ -68,7 +70,7 @@ def _residue_value(score_values, residue_number, value_type='sum_absolute', abov
         return None
 
     value = None
-    if value_type in ('sum_absolute', 'sum', 'mean', 'stddev'):
+    if value_type in combine_operations:
         values = [value for from_aa, to_aa, value in dms_values
                   if ((above is None and below is None)
                       or (above is not None and value >= above)
@@ -85,6 +87,8 @@ def _residue_value(score_values, residue_number, value_type='sum_absolute', abov
         elif value_type == 'stddev':
             from numpy import std
             value = std(values)
+        elif value_type == 'count':
+            value = len(values)
         else:
             value = None
     elif value_type == 'synonymous':
