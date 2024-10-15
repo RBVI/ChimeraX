@@ -1,8 +1,8 @@
 # Project a vector of mutation scores for each residue to 2D using UMAP.
-def mutation_scores_umap(session, score_name = None, scores_name = None, subtract_fit = None):
+def mutation_scores_umap(session, score_name = None, scores_name = None):
     from .ms_data import mutation_scores
     scores = mutation_scores(session, scores_name)
-    score_values = scores.score_values(score_name, subtract_fit = subtract_fit)
+    score_values = scores.score_values(score_name)
 
     amino_acids = 'PRKHDEFWYNQCSTILVMGA'
     aa_index = {c:i for i,c in enumerate(amino_acids)}
@@ -37,7 +37,6 @@ def register_command(logger):
     desc = CmdDesc(
         required = [('score_name', StringArg)],
         keyword = [('scores_name', StringArg),
-                   ('subtract_fit', StringArg),
                    ],
         synopsis = 'Project residues in umap plot according to mutation scores'
     )

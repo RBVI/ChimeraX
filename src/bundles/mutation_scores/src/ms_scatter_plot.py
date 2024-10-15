@@ -1,16 +1,34 @@
 # Make a scatter plot for residues using two mutation scores.
 def mutation_scores_scatter_plot(session, x_score_name, y_score_name, scores_name = None,
-                                 correlation = False, subtract_x_fit = None, subtract_y_fit = None,
-                                 type = 'all_mutations', above = None, below = None, replace = True):
+                                 correlation = False, replace = True):
     from .ms_data import mutation_scores
     scores = mutation_scores(session, scores_name)
-    x_scores = scores.score_values(x_score_name, subtract_fit = subtract_x_fit)
-    y_scores = scores.score_values(y_score_name, subtract_fit = subtract_y_fit)
+    x_scores = scores.score_values(x_score_name)
+    y_scores = scores.score_values(y_score_name)
     
     res_nums = []
     points = []
     point_names = []
-    if type == 'all_mutations':
+    if x_scores.per_residue and y_scores.per_residue:
+        for res_num in x_scores.residue_numbers():
+            x_value = x_scores.residue_value(res_num)
+            y_value = y_scores.residue_value(res_num)
+            if x_value is not None and y_value is not None:
+                res_nums.append(res_num)
+                points.append((x_value, y_value))
+                point_names.append(f'{res_num}')
+        is_mutation_plot = False	# Residues plotted instead of mutations
+    elif x_scores.per_residue or y_scores.per_residue:
+        rscores, mscores = (x_scores,y_scores) if x_scores.per_residue else (y_scores,x_scores)
+        r_values = {(res_num,from_aa):r_value for res_num, from_aa, to_aa, r_value in rscores.all_values()}
+        for res_num, from_aa, to_aa, m_value in mscores.all_values():
+            r_value = r_values.get((res_num, from_aa))
+            if r_value is not None:
+                res_nums.append(res_num)
+                points.append((r_value, m_value) if x_scores.per_residue else (m_value, r_value))
+                point_names.append(f'{from_aa}{res_num}{to_aa}')
+        is_mutation_plot = True
+    else:
         y_values = {(res_num,from_aa,to_aa):y_value for res_num, from_aa, to_aa, y_value in y_scores.all_values()}
         for res_num, from_aa, to_aa, x_value in x_scores.all_values():
             y_value = y_values.get((res_num, from_aa, to_aa))
@@ -19,15 +37,6 @@ def mutation_scores_scatter_plot(session, x_score_name, y_score_name, scores_nam
                 points.append((x_value, y_value))
                 point_names.append(f'{from_aa}{res_num}{to_aa}')
         is_mutation_plot = True
-    else:
-        for res_num in x_scores.residue_numbers():
-            x_value = x_scores.residue_value(res_num, value_type = type, above = above, below = below)
-            y_value = y_scores.residue_value(res_num, value_type = type, above = above, below = below)
-            if x_value is not None and y_value is not None:
-                res_nums.append(res_num)
-                points.append((x_value, y_value))
-                point_names.append(f'{res_num}')
-        is_mutation_plot = False	# Residues plotted instead of mutations
 
     chain = scores.chain
     if chain:
@@ -50,7 +59,7 @@ def mutation_scores_scatter_plot(session, x_score_name, y_score_name, scores_nam
     scores._last_mutation_scores_plot = plot
 
     title = f'File {scores.name}'
-    label_nodes, node_area = (False, 20) if type == 'all_mutations' else (True, 200)
+    label_nodes, node_area = (False, 20) if is_mutation_plot else (True, 200)
     plot.set_nodes(xy, residues, point_names=point_names, correlation=correlation,
                    title=title, x_label=x_score_name, y_label=y_score_name,
                    node_area = node_area, label_nodes = label_nodes, is_mutation_plot = is_mutation_plot)
@@ -106,6 +115,10 @@ class ResidueScatterPlot(Graph):
 
     def tight_layout(self):
         # Don't hide axes and reduce padding
+        pass
+
+    def equal_aspect(self):
+        # Don't require both plot axes to have the same scale
         pass
 
     def _make_nodes(self, xy, residues, point_names = None, colors = None, node_area = 200, label_nodes = True):
@@ -276,18 +289,12 @@ def _find_close_residues(residue, residues, distance):
     return close_res
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, EnumOf, BoolArg, FloatArg
-    from .ms_data import ColumnValues
+    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg
     desc = CmdDesc(
         required = [('x_score_name', StringArg),
                     ('y_score_name', StringArg)],
         keyword = [('scores_name', StringArg),
                    ('correlation', BoolArg),
-                   ('subtract_x_fit', StringArg),
-                   ('subtract_y_fit', StringArg),
-                   ('type', EnumOf(('all_mutations',) + ColumnValues.residue_value_types)),
-                   ('above', FloatArg),
-                   ('below', FloatArg),
                    ('replace', BoolArg),
                    ],
         synopsis = 'Show scatter plot of residues using two mutation scores'

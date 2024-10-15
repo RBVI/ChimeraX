@@ -31,7 +31,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: mutationscores label :: Molecular structure :: Label residues with mutation scores</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: mutationscores attribute :: Molecular structure :: Assign a residue attribute computed from mutation scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores define :: Molecular structure :: Compute new scores from existing mutation scores</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mutationscores scatterplot :: Molecular structure :: Show a scatter plot for two mutations scores</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mutationscores statistics :: Molecular structure :: Report mean and standard deviation of mutation scores</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mutationscores histogram :: Molecular structure :: Show histogram of mutation scores</ChimeraXClassifier>

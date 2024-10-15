@@ -33,6 +33,7 @@ class DeepMutationScores:
         self.name = basename(csv_path)
         self.headings, self.scores, self.res_types = self.read_deep_mutation_csv(csv_path)
         self._chain = None	# Associated Chain instance
+        self._computed_scores = {}	# Map computed score name to ScoreValues instance
 
     def read_deep_mutation_csv(self, path):
         with open(path, 'r') as f:
@@ -65,18 +66,27 @@ class DeepMutationScores:
             res_types[res_num] = res_type
         return headings, scores, res_types
 
-    def score_values(self, score_name, subtract_fit = None):
+    def score_values(self, score_name, raise_error = True):
         cvalues = self._column_value_list(score_name)
+        if cvalues is None:
+            values = self.computed_values(score_name)
+        else:
+            values = ScoreValues(cvalues)
+        if raise_error and values is None:
+            from chimerax.core.errors import UserError
+            raise UserError(f'No score named "{score_name}" in mutation scores {self.name}.')
+        return values
 
-        if subtract_fit is not None:
-            svalues = self._column_value_list(subtract_fit)
-            cvalues = _subtract_fit_values(cvalues, svalues)
-            
-        return ColumnValues(cvalues)
-
+    def computed_values(self, score_name):
+        return self._computed_scores.get(score_name)
+    def set_computed_values(self, score_name, score_values):
+        self._computed_scores[score_name] = score_values
+    
     def _column_value_list(self, column_name):
-        cvalues = []
         c = self.column_index(column_name)
+        if c is None:
+            return None
+        cvalues = []
         for res_num, rscores in self.scores.items():
             for res_type, fields in rscores.items():
                 if fields[c] != 'NA':
@@ -125,58 +135,24 @@ class DeepMutationScores:
                     return c
         return None
     
-class ColumnValues:
-    def __init__(self, mutation_values):
+class ScoreValues:
+    def __init__(self, mutation_values, per_residue = False):
         self._mutation_values = mutation_values # List of (res_num, from_aa, to_aa, value)
         self._values_by_residue_number = None	# res_num -> (from_aa, to_aa, value)
+        self.per_residue = per_residue
 
     def all_values(self):
         return self._mutation_values
 
     def residue_numbers(self):
         return tuple(self.values_by_residue_number.keys())
-    
-    # Allowed value_type in residue_value() function.
-    amino_acid_types = {'ala':'A','arg':'R','asn':'N','asp':'D','cys':'C','glu':'E','gln':'Q','gly':'G',
-                        'his':'H','ile':'I','leu':'L','lys':'K','met':'M','phe':'F','pro':'P','ser':'S',
-                        'thr':'T','trp':'W','tyr':'Y','val':'V'}
-    residue_value_types = ('sum', 'sum_absolute', 'synonymous', 'mean', 'stddev') + tuple(amino_acid_types.keys())
-        
-    def residue_value(self, residue_number, value_type='sum_absolute', above=None, below=None):
-        dms_values = self.mutation_values(residue_number)
-        if len(dms_values) == 0:
-            return None
 
-        value = None
-        if value_type in ('sum_absolute', 'sum', 'mean', 'stddev'):
-            values = [value for from_aa, to_aa, value in dms_values
-                      if ((above is None and below is None)
-                          or (above is not None and value >= above)
-                          or (below is not None and value <= below))]
-            if len(values) == 0:
-                value = None
-            elif value_type == 'sum':
-                value = sum(values)
-            elif value_type == 'sum_absolute':
-                value = sum([abs(v) for v in values])
-            elif value_type == 'mean':
-                from numpy import mean
-                value = mean(values)
-            elif value_type == 'stddev':
-                from numpy import std
-                value = std(values)
-            else:
-                value = None
-        elif value_type == 'synonymous':
-            values = [value for from_aa, to_aa, value in dms_values if to_aa == from_aa]
-            if values:
-                value = values[0]
-        elif value_type in self.amino_acid_types:
-            one_letter_code = self.amino_acid_types[value_type]
-            values = [value for from_aa, to_aa, value in dms_values if to_aa == one_letter_code]
-            if len(values) == 1:
-                value = values[0]
-        return value
+    def residue_numbers_and_types(self):
+        return tuple((rnum, rvals[0][0]) for rnum, rvals in self.values_by_residue_number.items())
+
+    def residue_value(self, residue_number):
+        mvalues = self.mutation_values(residue_number)
+        return None if len(mvalues) == 0 else sum(value for from_aa, to_aa, value in mvalues)
 
     def mutation_values(self, residue_number):
         '''Return list of (from_aa, to_aa, value).'''
@@ -197,23 +173,6 @@ class ColumnValues:
     def value_range(self):
         values = [val[3] for val in self._mutation_values]
         return min(values), max(values)
-
-def _subtract_fit_values(cvalues, svalues):
-    smap = {(res_num,from_aa,to_aa):value for res_num, from_aa, to_aa, value in svalues}
-    x = []
-    y = []
-    for res_num, from_aa, to_aa, value in cvalues:
-        svalue = smap.get((res_num,from_aa,to_aa))
-        if svalue is not None:
-            x.append(svalue)
-            y.append(value)
-    from numpy import polyfit
-    degree = 1
-    m,b = polyfit(x, y, degree)
-    sfvalues = [(res_num, from_aa, to_aa, value - (m*smap[(res_num,from_aa,to_aa)] + b))
-                for res_num, from_aa, to_aa, value in cvalues
-                if (res_num,from_aa,to_aa) in smap]
-    return sfvalues
 
 class MutationScoresManager:
     def __init__(self):

@@ -31,8 +31,8 @@ class _DeepMutationalScanAPI(BundleAPI):
         # 'register_command' is called by the toolshed on start up
         from . import ms_label
         ms_label.register_command(logger)
-        from . import ms_attribute
-        ms_attribute.register_command(logger)
+        from . import ms_define
+        ms_define.register_command(logger)
         from . import ms_scatter_plot
         ms_scatter_plot.register_command(logger)
         from . import ms_stats

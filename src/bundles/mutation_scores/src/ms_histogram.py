@@ -1,26 +1,26 @@
 # Plot a histogram of mutation scores.
-def mutation_scores_histogram(session, score_name, scores_name = None, subtract_fit = None,
+def mutation_scores_histogram(session, score_name, scores_name = None,
                               bins = 20, curve = True, smooth_width = None,
-                              type = 'all_mutations', above = None, below = None, replace = True):
+                              replace = True):
     from .ms_data import mutation_scores
     scores = mutation_scores(session, scores_name)
-    score_values = scores.score_values(score_name, subtract_fit = subtract_fit)
+    score_values = scores.score_values(score_name)
 
     res_nums = []
     res_scores = []
     score_names = []
-    if type == 'all_mutations':
-        for res_num, from_aa, to_aa, value in score_values.all_values():
-            res_nums.append(res_num)
-            res_scores.append(value)
-            score_names.append(f'{from_aa}{res_num}{to_aa}')
-    else:
+    if score_values.per_residue:
         for res_num in score_values.residue_numbers():
-            value = score_values.residue_value(res_num, value_type = type, above = above, below = below)
+            value = score_values.residue_value(res_num)
             if value is not None:
                 res_nums.append(res_num)
                 res_scores.append(value)
                 score_names.append(f'{res_num}')
+    else:
+        for res_num, from_aa, to_aa, value in score_values.all_values():
+            res_nums.append(res_num)
+            res_scores.append(value)
+            score_names.append(f'{from_aa}{res_num}{to_aa}')
     
     from numpy import array, float32
     res_scores = array(res_scores, float32)
@@ -119,18 +119,13 @@ def gaussian_histogram(values, sdev = None, pad = 5, bins = 256):
     return x, y
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, EnumOf, BoolArg, FloatArg, IntArg
-    from .ms_data import ColumnValues
+    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, FloatArg, IntArg
     desc = CmdDesc(
         required = [('score_name', StringArg)],
         keyword = [('scores_name', StringArg),
-                   ('subtract_fit', StringArg),
                    ('bins', IntArg),
                    ('curve', BoolArg),
                    ('smooth_width', FloatArg),
-                   ('type', EnumOf(('all_mutations',) + ColumnValues.residue_value_types)),
-                   ('above', FloatArg),
-                   ('below', FloatArg),
                    ('replace', BoolArg),
                    ],
         synopsis = 'Show histogram of mutation scores'
