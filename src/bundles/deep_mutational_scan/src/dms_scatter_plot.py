@@ -21,6 +21,7 @@ def dms_scatter_plot(session, chain, x_column_name, y_column_name,
                 res_nums.append(res_num)
                 points.append((x_value, y_value))
                 point_names.append(f'{from_aa}{res_num}{to_aa}')
+        is_mutation_plot = True
     else:
         for res_num in x_scores.residue_numbers():
             x_value = x_scores.residue_value(res_num, value_type = type, above = above, below = below)
@@ -29,6 +30,7 @@ def dms_scatter_plot(session, chain, x_column_name, y_column_name,
                 res_nums.append(res_num)
                 points.append((x_value, y_value))
                 point_names.append(f'{res_num}')
+        is_mutation_plot = False	# Residues plotted instead of mutations
 
     resnum_to_res = {r.number:r for r in chain.existing_residues}
     residues = [resnum_to_res.get(res_num) for res_num in res_nums]
@@ -44,7 +46,7 @@ def dms_scatter_plot(session, chain, x_column_name, y_column_name,
     label_nodes, node_area = (False, 20) if type == 'all_mutations' else (True, 200)
     plot.set_nodes(xy, residues, point_names=point_names, correlation=correlation,
                    title=title, x_label=x_column_name, y_label=y_column_name,
-                   node_area = node_area, label_nodes = label_nodes)
+                   node_area = node_area, label_nodes = label_nodes, is_mutation_plot = is_mutation_plot)
     
     message = f'Plotted {len(points)} mutations in chain {chain} with {x_column_name} on x-axis and {y_column_name} on y-axis'
     if correlation:
@@ -62,7 +64,8 @@ class ResidueScatterPlot(Graph):
 
     def set_nodes(self, xy, residues, point_names = None, colors = None, correlation = False,
                   title = '', x_label = '', y_label = '',
-                  node_font_size = 5, node_area = 200, label_nodes = True):
+                  node_font_size = 5, node_area = 200, label_nodes = True, is_mutation_plot = True):
+        self.is_mutation_plot = is_mutation_plot
         self.font_size = node_font_size	# Override graph default value of 12 points
         self.nodes = self._make_nodes(xy, residues, point_names=point_names, colors=colors,
                                       node_area=node_area, label_nodes=label_nodes)
@@ -161,20 +164,27 @@ class ResidueScatterPlot(Graph):
             r = item.residue
             name = item.description
             rname = name[:-1]
-            self.add_menu_entry(menu, f'Mutation {name}', lambda: None)
-            self.add_menu_entry(menu, f'Color mutations for {rname}',
-                                lambda self=self, r=r: self._color_residue_mutations(r))
-            self.add_menu_entry(menu, f'Color mutations near residue {rname}',
-                                lambda self=self, r=r: self._color_near(r))
-
-        self.add_menu_entry(menu, f'Color mutations for selected residues', self._color_selected)
-        self.add_menu_entry(menu, f'Color synonymous mutations blue', self._color_synonymous)
+            if self.is_mutation_plot:
+                self.add_menu_entry(menu, f'Mutation {name}', lambda: None)
+                self.add_menu_entry(menu, f'Color mutations for {rname}',
+                                    lambda self=self, rname=rname: self._color_residue_mutations(rname))
+                if r:
+                    self.add_menu_entry(menu, f'Color mutations near residue {rname}',
+                                        lambda self=self, r=r: self._color_near(r))
+            elif r:
+                self.add_menu_entry(menu, f'Color residues near {name}',
+                                    lambda self=self, r=r: self._color_near(r))
+        if self.is_mutation_plot:
+            self.add_menu_entry(menu, f'Color mutations for selected residues', self._color_selected)
+            self.add_menu_entry(menu, f'Color synonymous mutations blue', self._color_synonymous)
+        else:
+            self.add_menu_entry(menu, f'Color selected residues on plot', self._color_selected)
         self.add_menu_entry(menu, f'Clear plot colors', self._clear_colors)
 
         if item is not None:
             self.add_menu_separator(menu)
             if r is None or r.deleted:
-                self.add_menu_entry(menu, f'{name} residue not in structure', lambda: None)
+                self.add_menu_entry(menu, f'{rname} residue not in structure', lambda: None)
             else:
                 rname = f'{r.one_letter_code}{r.number}'
                 self.add_menu_entry(menu, f'Structure residue {rname}', lambda: None)
@@ -182,7 +192,7 @@ class ResidueScatterPlot(Graph):
                                     lambda self=self, r=r: self._select_residue(r))
                 self.add_menu_entry(menu, f'Color green',
                                     lambda self=self, r=r, c=(0,1,0,1): self._color_residue(r,c))
-                self.add_menu_entry(menu, f'Color to match mutation',
+                self.add_menu_entry(menu, f'Color to match plot',
                                     lambda self=self, r=r, c=item.color: self._color_residue(r,c))
                 self.add_menu_entry(menu, f'Show side chain',
                                     lambda self=self, r=r: self._show_atoms(r))
@@ -203,8 +213,8 @@ class ResidueScatterPlot(Graph):
         self._run_residue_command(r, 'show %s atoms')
     def _zoom_to_residue(self, r):
         self._run_residue_command(r, 'view %s')
-    def _color_residue_mutations(self, r, color = (0,1,0,1)):
-        rnodes = [node for node in self.nodes if node.residue is r]
+    def _color_residue_mutations(self, rname, color = (0,1,0,1)):
+        rnodes = [node for node in self.nodes if node.description[:-1] == rname]
         self._color_and_raise_nodes(rnodes, color, tag = 'res')
     def _color_near(self, residue, distance = 3.5):
         cres = set(_find_close_residues(residue, residue.chain.existing_residues, distance))
