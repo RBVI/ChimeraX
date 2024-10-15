@@ -1,41 +1,38 @@
-def open_deep_mutational_scan_csv(session, path, chain = None):
-    dms_data = DeepMutationScores(path)
+def open_deep_mutational_scan_csv(session, path, chain = None, name = None):
+    dms_data = DeepMutationScores(session, path)
 
-    if chain is None:
-        chain = _matching_chain(session, dms_data)
-        if chain is None:
-            from chimerax.core.errors import UserError
-            raise UserError(f'Opening a deep mutational scan data requires specifying the structure to associate. If there is one open structure it will be associated, otherwise use the open command structure option, for example\n\n\topen {path} format dms chain #2/B')
+    msm = _mutation_scores_manager(session)
+    if name is None:
+        from os.path import basename, splitext
+        name = splitext(basename(path))[0]
+    msm.add_scores(name, dms_data)
 
-    chain._deep_mutation_data = dms_data
+    if chain:
+        dms_data.chain = chain
 
-    cres = chain.existing_residues
-    sresnums = set(r.number for r in cres)
+    nmut = sum(len(mscores) for mscores in dms_data.scores.values())
     dresnums = set(dms_data.scores.keys())
     score_names = ', '.join(dms_data.score_column_names)
-    nmut = sum(len(mscores) for mscores in dms_data.scores.values())
-    mres = len(dresnums - sresnums)
-    missing_res = f'found data for {mres} residues not present in atomic model, ' if mres > 0 else ''
-    message = f'Opened deep mutational scan data for {nmut} mutations of {len(dresnums)} residues, assigned to {len(sresnums & dresnums)} of {len(cres)} residues of chain {chain}, {missing_res} score column names {score_names}.'
+    message = f'Opened deep mutational scan data for {nmut} mutations of {len(dresnums)} residues with score names {score_names}.'
+    
+    if chain:
+        cres = chain.existing_residues
+        sresnums = set(r.number for r in cres)
+        message += f' Assigned scores to {len(sresnums & dresnums)} of {len(cres)} residues of chain {chain}.'
+        mres = len(dresnums - sresnums)
+        if mres > 0:
+            message += f' Found scores for {mres} residues not present in atomic model.'
 
     return dms_data, message
 
-def _matching_chain(session, dms_data):
-    from chimerax.atomic import AtomicStructure
-    structs = session.models.list(type = AtomicStructure)
-    for s in structs:
-        for c in s.chains:
-            matches, mismatches = dms_data.residue_type_matches(c.existing_residues)
-            if mismatches == 0 and matches > 0:
-                return c
-    return None
-
 class DeepMutationScores:
-    def __init__(self, csv_path):
+    def __init__(self, session, csv_path):
+        self.session = session
         self.path = csv_path
         from os.path import basename
         self.name = basename(csv_path)
         self.headings, self.scores, self.res_types = self.read_deep_mutation_csv(csv_path)
+        self._chain = None	# Associated Chain instance
 
     def read_deep_mutation_csv(self, path):
         with open(path, 'r') as f:
@@ -68,8 +65,8 @@ class DeepMutationScores:
             res_types[res_num] = res_type
         return headings, scores, res_types
 
-    def column_values(self, column_name, subtract_fit = None):
-        cvalues = self._column_value_list(column_name)
+    def score_values(self, score_name, subtract_fit = None):
+        cvalues = self._column_value_list(score_name)
 
         if subtract_fit is not None:
             svalues = self._column_value_list(subtract_fit)
@@ -108,6 +105,26 @@ class DeepMutationScores:
     def score_column_names(self):
         return [h for h in self.headings if 'score' in h]
 
+    def _get_chain(self):
+        if self._chain is None or self._chain.structure is None:
+            self._chain = self._find_matching_chain()
+        return self._chain
+    def _set_chain(self, chain):
+        self._chain = chain
+    chain = property(_get_chain, _set_chain)
+
+    def _find_matching_chain(self):
+        from chimerax.atomic import AtomicStructure
+        structs = self.session.models.list(type = AtomicStructure)
+        for s in structs:
+            chains = list(s.chains)
+            chains.sort(key = lambda c: c.chain_id)
+            for c in chains:
+                matches, mismatches = self.residue_type_matches(c.existing_residues)
+                if mismatches == 0 and matches > 0:
+                    return c
+        return None
+    
 class ColumnValues:
     def __init__(self, mutation_values):
         self._mutation_values = mutation_values # List of (res_num, from_aa, to_aa, value)
@@ -198,5 +215,32 @@ def _subtract_fit_values(cvalues, svalues):
                 if (res_num,from_aa,to_aa) in smap]
     return sfvalues
 
-def dms_data(chain):
-    return getattr(chain, '_deep_mutation_data', None)
+class MutationScoresManager:
+    def __init__(self):
+        self._scores = {}
+    def scores(self, scores_name, allow_abbreviation = False):
+        if scores_name is None:
+            s = tuple(self._scores.values())[0] if len(self._scores) == 1 else None
+        else:
+            s = self._scores.get(scores_name)
+            if s is None and allow_abbreviation:
+                full_names = [name for name in self._scores.keys() if name.startswith(scores_name)]
+                if len(full_names) == 1:
+                    s = self._scores[full_names[0]]
+        return s
+    def add_scores(self, scores_name, scores):
+        self._scores[scores_name] = scores
+
+def _mutation_scores_manager(session, create = True):
+    msm = getattr(session, '_mutation_scores_manager', None)
+    if msm is None and create:
+        session._mutation_scores_manager = msm = MutationScoresManager()
+    return msm
+
+def mutation_scores(session, scores_name):
+    msm = _mutation_scores_manager(session)
+    scores = msm.scores(scores_name, allow_abbreviation = True)
+    if scores is None:
+        from chimerax.core.errors import UserError
+        raise UserError(f'No mutation scores named {scores_name}')
+    return scores

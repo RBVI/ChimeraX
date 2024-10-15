@@ -1,14 +1,11 @@
-# Make a scatter plot for residues using two phenotype scores from deep mutational scan data.
-def dms_scatter_plot(session, chain, x_column_name, y_column_name,
-                     correlation = False, subtract_x_fit = None, subtract_y_fit = None,
-                     type = 'all_mutations', above = None, below = None, replace = True):
-    from .dms_data import dms_data
-    data = dms_data(chain)
-    if data is None:
-        from chimerax.core.errors import UserError
-        raise UserError(f'No deep mutation scan data associated with chain {chain}')
-    x_scores = data.column_values(x_column_name, subtract_fit = subtract_x_fit)
-    y_scores = data.column_values(y_column_name, subtract_fit = subtract_y_fit)
+# Make a scatter plot for residues using two mutation scores.
+def mutation_scores_scatter_plot(session, x_score_name, y_score_name, scores_name = None,
+                                 correlation = False, subtract_x_fit = None, subtract_y_fit = None,
+                                 type = 'all_mutations', above = None, below = None, replace = True):
+    from .ms_data import mutation_scores
+    scores = mutation_scores(session, scores_name)
+    x_scores = scores.score_values(x_score_name, subtract_fit = subtract_x_fit)
+    y_scores = scores.score_values(y_score_name, subtract_fit = subtract_y_fit)
     
     res_nums = []
     points = []
@@ -32,23 +29,33 @@ def dms_scatter_plot(session, chain, x_column_name, y_column_name,
                 point_names.append(f'{res_num}')
         is_mutation_plot = False	# Residues plotted instead of mutations
 
-    resnum_to_res = {r.number:r for r in chain.existing_residues}
-    residues = [resnum_to_res.get(res_num) for res_num in res_nums]
+    chain = scores.chain
+    if chain:
+        resnum_to_res = {r.number:r for r in chain.existing_residues}
+        residues = [resnum_to_res.get(res_num) for res_num in res_nums]
+        in_struct = f' in chain {chain}'
+    else:
+        residues = [None] * len(res_nums)
+        in_struct = ''
     
     from numpy import array, float32
     xy = array(points, float32)
     
-    if replace and hasattr(chain, '_last_dms_plot') and chain._last_dms_plot.tool_window.ui_area is not None:
-        plot = chain._last_dms_plot
-    else:
-        chain._last_dms_plot = plot = ResidueScatterPlot(session)
-    title = f'File {data.name}'
+    if replace:
+        plot = getattr(scores, '_last_mutation_scores_plot', None)
+        if plot and plot.tool_window.ui_area is None:
+            plot = None
+    if plot is None:
+        plot = ResidueScatterPlot(session)
+    scores._last_mutation_scores_plot = plot
+
+    title = f'File {scores.name}'
     label_nodes, node_area = (False, 20) if type == 'all_mutations' else (True, 200)
     plot.set_nodes(xy, residues, point_names=point_names, correlation=correlation,
-                   title=title, x_label=x_column_name, y_label=y_column_name,
+                   title=title, x_label=x_score_name, y_label=y_score_name,
                    node_area = node_area, label_nodes = label_nodes, is_mutation_plot = is_mutation_plot)
     
-    message = f'Plotted {len(points)} mutations in chain {chain} with {x_column_name} on x-axis and {y_column_name} on y-axis'
+    message = f'Plotted {len(points)} mutations{in_struct} with {x_score_name} on x-axis and {y_score_name} on y-axis'
     if correlation:
         message += f', least squares fit slope {"%.3g" % plot.slope}, intercept {"%.3g" % plot.intercept}, R squared {"%.3g" % plot.r_squared}'
     session.logger.info(message)
@@ -270,12 +277,11 @@ def _find_close_residues(residue, residues, distance):
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, EnumOf, BoolArg, FloatArg
-    from chimerax.atomic import ChainArg
-    from .dms_data import ColumnValues
+    from .ms_data import ColumnValues
     desc = CmdDesc(
-        required = [('chain', ChainArg)],
-        keyword = [('x_column_name', StringArg),
-                   ('y_column_name', StringArg),
+        required = [('x_score_name', StringArg),
+                    ('y_score_name', StringArg)],
+        keyword = [('scores_name', StringArg),
                    ('correlation', BoolArg),
                    ('subtract_x_fit', StringArg),
                    ('subtract_y_fit', StringArg),
@@ -284,7 +290,6 @@ def register_command(logger):
                    ('below', FloatArg),
                    ('replace', BoolArg),
                    ],
-        required_arguments = ['x_column_name', 'y_column_name'],
-        synopsis = 'Show scatter plot of residues using two phenotype deep mutational scan scores'
+        synopsis = 'Show scatter plot of residues using two mutation scores'
     )
-    register('dms scatterplot', desc, dms_scatter_plot, logger=logger)
+    register('mutationscores scatterplot', desc, mutation_scores_scatter_plot, logger=logger)

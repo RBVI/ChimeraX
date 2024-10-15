@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-DeepMutationalScan" version="1.0"
-	    package="chimerax.deep_mutational_scan"
+<BundleInfo name="ChimeraX-MutationScores" version="1.0"
+	    package="chimerax.mutation_scores"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -30,12 +30,12 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Command :: dms label :: Molecular structure :: Label residues with deep mutational scan values</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: dms attribute :: Molecular structure :: Assign a residue attribute computed from deep mutational scan values</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: dms scatterplot :: Molecular structure :: Show a scatter plot for two phenotypes from deep mutational scan data</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: dms statistics :: Molecular structure :: Report mean and standard deviation of deep mutational scan scores</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: dms histogram :: Molecular structure :: Show histogram of deep mutational scan scores</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: dms umap :: Molecular structure :: Show umap plot of residue deep mutational scan scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores label :: Molecular structure :: Label residues with mutation scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores attribute :: Molecular structure :: Assign a residue attribute computed from mutation scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores scatterplot :: Molecular structure :: Show a scatter plot for two mutations scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores statistics :: Molecular structure :: Report mean and standard deviation of mutation scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores histogram :: Molecular structure :: Show histogram of mutation scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores umap :: Molecular structure :: Show umap plot of residue mutation scores</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
