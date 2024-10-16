@@ -144,6 +144,9 @@ class ScoreValues:
     def all_values(self):
         return self._mutation_values
 
+    def count(self):
+        return len(self._mutation_values)
+
     def residue_numbers(self):
         return tuple(self.values_by_residue_number.keys())
 
