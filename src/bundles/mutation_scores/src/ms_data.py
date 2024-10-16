@@ -12,7 +12,7 @@ def open_deep_mutational_scan_csv(session, path, chain = None, name = None):
 
     nmut = sum(len(mscores) for mscores in dms_data.scores.values())
     dresnums = set(dms_data.scores.keys())
-    score_names = ', '.join(dms_data.score_column_names)
+    score_names = ', '.join(dms_data.score_names())
     message = f'Opened deep mutational scan data for {nmut} mutations of {len(dresnums)} residues with score names {score_names}.'
     
     if chain:
@@ -77,6 +77,14 @@ class DeepMutationScores:
             raise UserError(f'No score named "{score_name}" in mutation scores {self.name}.')
         return values
 
+    def score_names(self):
+        return tuple(self.headings[i] for i in self._numeric_columns())
+
+    def _numeric_columns(self):
+        for res_num, rscores in self.scores.items():
+            for res_type, fields in rscores.items():
+                return tuple(i for i,f in enumerate(fields) if _is_string_float(f) or f == 'NA')
+    
     def computed_values(self, score_name):
         return self._computed_scores.get(score_name)
     def set_computed_values(self, score_name, score_values):
@@ -118,10 +126,6 @@ class DeepMutationScores:
                     mismatches += 1
         return matches, mismatches
 
-    @property
-    def score_column_names(self):
-        return [h for h in self.headings if 'score' in h]
-
     def _get_chain(self):
         if self._chain is None or self._chain.structure is None:
             self._chain = self._find_matching_chain()
@@ -141,7 +145,14 @@ class DeepMutationScores:
                 if mismatches == 0 and matches > 0:
                     return c
         return None
-    
+
+def _is_string_float(f):
+    try:
+        float(f)
+        return True
+    except:
+        return False
+
 class ScoreValues:
     def __init__(self, mutation_values, per_residue = False):
         self._mutation_values = mutation_values # List of (res_num, from_aa, to_aa, value)
@@ -199,13 +210,15 @@ class MutationScoresManager:
         return s
     def add_scores(self, scores_name, scores):
         self._scores[scores_name] = scores
-    def names(self):
-        return tuple(self._scores.keys())
     def remove_scores(self, scores_name):
         if scores_name in self._scores:
             del self._scores[scores_name]
             return True
         return False
+    def all_scores(self):
+        return tuple(self._scores.values())
+    def names(self):
+        return tuple(self._scores.keys())
 
 def _mutation_scores_manager(session, create = True):
     msm = getattr(session, '_mutation_scores_manager', None)
@@ -221,11 +234,16 @@ def mutation_scores(session, scores_name):
         raise UserError(f'No mutation scores named {scores_name}')
     return scores
 
+def mutation_all_scores(session):
+    msm = _mutation_scores_manager(session)
+    return msm.all_scores()
+    
 def mutation_scores_list(session):
     msm = _mutation_scores_manager(session)
-    names = msm.names()
-    session.logger.status(f'Mutation score sets: {", ".join(names)}', log = True)
-    return names
+    score_sets = msm.all_scores()
+    sets = '\n'.join(f'{scores.name} ({", ".join(scores.score_names())})' for scores in score_sets)
+    session.logger.info(f'{len(score_sets)} mutation score sets\n{sets}')
+    return msm.names()
 
 def mutation_scores_close(session, scores_name = None):
     msm = _mutation_scores_manager(session)
