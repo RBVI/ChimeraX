@@ -32,10 +32,13 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: mutationscores label :: Molecular structure :: Label residues with mutation scores</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mutationscores define :: Molecular structure :: Compute new scores from existing mutation scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores undefine :: Molecular structure :: Compute new scores from existing mutation scores</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mutationscores scatterplot :: Molecular structure :: Show a scatter plot for two mutations scores</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mutationscores statistics :: Molecular structure :: Report mean and standard deviation of mutation scores</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mutationscores histogram :: Molecular structure :: Show histogram of mutation scores</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mutationscores umap :: Molecular structure :: Show umap plot of residue mutation scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores list :: Molecular structure :: List names of sets of mutations scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores close :: Molecular structure :: Close a set of mutations scores</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

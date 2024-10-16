@@ -29,8 +29,8 @@ class DeepMutationScores:
     def __init__(self, session, csv_path):
         self.session = session
         self.path = csv_path
-        from os.path import basename
-        self.name = basename(csv_path)
+        from os.path import basename, splitext
+        self.name = splitext(basename(csv_path))[0]
         self.headings, self.scores, self.res_types = self.read_deep_mutation_csv(csv_path)
         self._chain = None	# Associated Chain instance
         self._computed_scores = {}	# Map computed score name to ScoreValues instance
@@ -81,7 +81,14 @@ class DeepMutationScores:
         return self._computed_scores.get(score_name)
     def set_computed_values(self, score_name, score_values):
         self._computed_scores[score_name] = score_values
-    
+    def remove_computed_values(self, score_name):
+        if score_name in self._computed_scores:
+            del self._computed_scores[score_name]
+            return True
+        return False
+    def computed_values_names(self):
+        return tuple(self._computed_scores.keys())
+
     def _column_value_list(self, column_name):
         c = self.column_index(column_name)
         if c is None:
@@ -192,6 +199,13 @@ class MutationScoresManager:
         return s
     def add_scores(self, scores_name, scores):
         self._scores[scores_name] = scores
+    def names(self):
+        return tuple(self._scores.keys())
+    def remove_scores(self, scores_name):
+        if scores_name in self._scores:
+            del self._scores[scores_name]
+            return True
+        return False
 
 def _mutation_scores_manager(session, create = True):
     msm = getattr(session, '_mutation_scores_manager', None)
@@ -206,3 +220,29 @@ def mutation_scores(session, scores_name):
         from chimerax.core.errors import UserError
         raise UserError(f'No mutation scores named {scores_name}')
     return scores
+
+def mutation_scores_list(session):
+    msm = _mutation_scores_manager(session)
+    names = msm.names()
+    session.logger.status(f'Mutation score sets: {", ".join(names)}', log = True)
+    return names
+
+def mutation_scores_close(session, scores_name = None):
+    msm = _mutation_scores_manager(session)
+    if scores_name is None:
+        for scores_name in msm.names():
+            msm.remove_scores(scores_name)
+    elif not msm.remove_scores(scores_name):
+        from chimerax.core.errors import UserError
+        raise UserError(f'No mutation scores named {scores_name}')
+    
+def register_commands(logger):
+    from chimerax.core.commands import CmdDesc, register, StringArg
+    desc = CmdDesc(synopsis = 'List names of sets of mutation scores')
+    register('mutationscores list', desc, mutation_scores_list, logger=logger)
+
+    desc = CmdDesc(
+        optional = [('scores_name', StringArg)],
+        synopsis = 'Close sets of mutation scores'
+    )
+    register('mutationscores close', desc, mutation_scores_close, logger=logger)

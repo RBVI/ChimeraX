@@ -1,10 +1,22 @@
 # Define a new mutation score or residue score computed from existing mutation scores.
-def mutation_scores_define(session, score_name, from_score_name, scores_name = None,
+def mutation_scores_define(session, score_name = None, from_score_name = None, scores_name = None,
                            subtract_fit = None, aa = None, to_aa = None, synonymous = False,
                            above = None, below = None, ranges = None, combine = None,
                            set_attribute = True):
+
     from .ms_data import mutation_scores, ScoreValues
     scores = mutation_scores(session, scores_name)
+
+    if score_name is None:
+        # List existing computed scores
+        names = scores.computed_values_names()
+        session.logger.info(f'Computed scores for {scores.name}: {", ".join(names)}')
+        return names
+
+    if from_score_name is None:
+        from chimerax.core.errors import UserError
+        raise UserError('Missing fromScoreName argument')
+
     from_score_values = scores.score_values(from_score_name)
 
     from_aa = aa
@@ -151,10 +163,17 @@ def _subtract_fit_values(cvalues, svalues):
                 if (res_num,from_aa,to_aa) in smap]
     return sfvalues
 
+def mutation_scores_undefine(session, score_name, scores_name = None):
+    from .ms_data import mutation_scores
+    scores = mutation_scores(session, scores_name)
+    if not scores.remove_computed_values(score_name):
+        from chimerax.core.errors import UserError
+        raise UserError(f'No computed score named {score_name}')
+
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, EnumOf, FloatArg, BoolArg
     desc = CmdDesc(
-        required = [('score_name', StringArg)],
+        optional = [('score_name', StringArg)],
         keyword = [('from_score_name', StringArg),
                    ('scores_name', StringArg),
                    ('subtract_fit', StringArg),
@@ -167,7 +186,13 @@ def register_command(logger):
                    ('combine', EnumOf(_combine_operations)),
                    ('set_attribute', BoolArg),
                    ],
-        required_arguments = ['from_score_name'],
         synopsis = 'Compute and name a new score from existing mutation scores'
     )
     register('mutationscores define', desc, mutation_scores_define, logger=logger)
+
+    desc = CmdDesc(
+        required = [('score_name', StringArg)],
+        keyword = [('scores_name', StringArg)],
+        synopsis = 'Remove a computed score'
+    )
+    register('mutationscores undefine', desc, mutation_scores_undefine, logger=logger)

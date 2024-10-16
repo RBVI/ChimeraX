@@ -29,6 +29,8 @@ class _DeepMutationalScanAPI(BundleAPI):
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is called by the toolshed on start up
+        from . import ms_data
+        ms_data.register_commands(logger)
         from . import ms_label
         ms_label.register_command(logger)
         from . import ms_define
