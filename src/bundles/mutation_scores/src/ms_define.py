@@ -1,14 +1,14 @@
 # Define a new mutation score or residue score computed from existing mutation scores.
 def mutation_scores_define(session, score_name, from_score_name, scores_name = None,
                            subtract_fit = None, aa = None, to_aa = None, synonymous = False,
-                           above = None, below = None, combine = None,
+                           above = None, below = None, ranges = None, combine = None,
                            set_attribute = True):
     from .ms_data import mutation_scores, ScoreValues
     scores = mutation_scores(session, scores_name)
     from_score_values = scores.score_values(from_score_name)
 
     from_aa = aa
-    if subtract_fit or from_aa or to_aa or synonymous or above is not None or below is not None:
+    if subtract_fit or from_aa or to_aa or synonymous or above is not None or below is not None or ranges:
         values = from_score_values.all_values()
         if subtract_fit:
             sub_score_values = scores.score_values(subtract_fit)
@@ -23,6 +23,8 @@ def mutation_scores_define(session, score_name, from_score_name, scores_name = N
             values = [(rnum, faa, taa, value) for rnum, faa, taa, value in values if value >= above]
         if below is not None:
             values = [(rnum, faa, taa, value) for rnum, faa, taa, value in values if value <= below]
+        if ranges is not None:
+            values = _range_filter(values, ranges, scores)
         if len(values) == 0:
             from chimerax.core.errors import UserError
             raise UserError(f'No residues have score {score_name}')
@@ -65,7 +67,49 @@ def mutation_scores_define(session, score_name, from_score_name, scores_name = N
             session.logger.info(message)
 
     return rvalues
-    
+
+def _range_filter(values, ranges, scores):
+    '''
+    Filter values list (rnum, from_aa, to_aa, value) based on a boolean expression involving score ranges
+    such as "(dox <= -1.5 or dox >= 1.5) and mtx <= 1.0 and mtx >= -1.2".  The expression is treated
+    as false for any mutation which is missing a score value for the scores named in the expression.
+    '''
+    try:
+        co = compile(ranges, filename='expression', mode='eval')
+    except SyntaxError as e:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Ranges has invalid syntax: "{ranges}" at character {e.offset}')
+
+    svalues = []
+    for score_name in co.co_names:
+        sv = scores.score_values(score_name, raise_error = False)
+        if sv is None:
+            from chimerax.core.errors import UserError
+            raise UserError(f'Ranges variable "{score_name}" is not a mutation score')
+        if sv.per_residue:
+            vtable = {(rnum, from_aa):value for rnum, from_aa, to_aa, value in sv.all_values()}
+        else:
+            vtable = {(rnum, from_aa, to_aa):value for rnum, from_aa, to_aa, value in sv.all_values()}
+        svalues.append((score_name, sv.per_residue, vtable))
+
+    rvalues = []
+    for rnum, from_aa, to_aa, value in values:
+        var_values = {}
+        missing = False
+        for score_name, per_residue, mvalues in svalues:
+            v = mvalues.get((rnum, from_aa)) if per_residue else mvalues.get((rnum, from_aa, to_aa))
+            if v is None:
+                missing = True
+                break
+            else:
+                var_values[score_name] = v
+        if not missing:
+            vars = var_values.copy()
+            if eval(co, {}, var_values):
+                rvalues.append((rnum, from_aa, to_aa, value))
+
+    return rvalues
+
 # Allowed value_type in _combine_scores() function.
 _combine_operations = ('sum', 'sum_absolute', 'mean', 'stddev', 'count')
     
@@ -119,6 +163,7 @@ def register_command(logger):
                    ('synonymous', BoolArg),
                    ('above', FloatArg),
                    ('below', FloatArg),
+                   ('ranges', StringArg),
                    ('combine', EnumOf(_combine_operations)),
                    ('set_attribute', BoolArg),
                    ],
