@@ -114,8 +114,9 @@ class DeepMutationScores:
                 return i
         return None
 
-    def residue_type_matches(self, residues):
-        matches = mismatches = 0
+    def _residue_type_matches(self, residues):
+        matches = 0
+        mismatches = []
         rtypes = self.res_types
         for r in residues:
             rtype = rtypes.get(r.number)
@@ -123,7 +124,7 @@ class DeepMutationScores:
                 if r.one_letter_code == rtype:
                     matches += 1
                 else:
-                    mismatches += 1
+                    mismatches.append(r)
         return matches, mismatches
 
     def _get_chain(self):
@@ -141,11 +142,12 @@ class DeepMutationScores:
             chains = list(s.chains)
             chains.sort(key = lambda c: c.chain_id)
             for c in chains:
-                matches, mismatches = self.residue_type_matches(c.existing_residues)
-                if mismatches == 0 and matches > 0:
+                matches, mismatches = self._residue_type_matches(c.existing_residues)
+                if len(mismatches) == 0 and matches > 0:
                     return c
         return None
 
+    
 def _is_string_float(f):
     try:
         float(f)
@@ -245,6 +247,14 @@ def mutation_scores_list(session):
     session.logger.info(f'{len(score_sets)} mutation score sets\n{sets}')
     return msm.names()
 
+def mutation_scores_structure(session, chain, scores_name = None):
+    scores = mutation_scores(session, scores_name)
+    scores.chain = chain
+    matches, mismatches = scores._residue_type_matches(chain.existing_residues)
+    if mismatches:
+        r = mismatches[0]
+        session.logger.warning(f'Sequence of chain {chain} does not match mutation scores {scores.name} at {len(mistmatches)} positions, first mistmatch is {r.name}{r.number}')
+
 def mutation_scores_close(session, scores_name = None):
     msm = _mutation_scores_manager(session)
     if scores_name is None:
@@ -256,8 +266,17 @@ def mutation_scores_close(session, scores_name = None):
     
 def register_commands(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg
+    from chimerax.atomic import ChainArg
+    
     desc = CmdDesc(synopsis = 'List names of sets of mutation scores')
     register('mutationscores list', desc, mutation_scores_list, logger=logger)
+
+    desc = CmdDesc(
+        required = [('chain', ChainArg)],
+        keyword = [('scores_name', StringArg)],
+        synopsis = 'Associate a structure with a set of mutation scores'
+    )
+    register('mutationscores structure', desc, mutation_scores_structure, logger=logger)
 
     desc = CmdDesc(
         optional = [('scores_name', StringArg)],

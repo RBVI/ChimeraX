@@ -38,6 +38,7 @@
     <ChimeraXClassifier>Command :: mutationscores histogram :: Molecular structure :: Show histogram of mutation scores</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mutationscores umap :: Molecular structure :: Show umap plot of residue mutation scores</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mutationscores list :: Molecular structure :: List names of sets of mutations scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores structure :: Molecular structure :: Associate a structure with a set of mutations scores</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mutationscores close :: Molecular structure :: Close a set of mutations scores</ChimeraXClassifier>
   </Classifiers>
 
