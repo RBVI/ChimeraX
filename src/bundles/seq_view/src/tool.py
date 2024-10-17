@@ -579,7 +579,7 @@ class SequenceViewer(ToolInstance):
             structure_menu.addAction(expand_action)
             cons_sel_menu = structure_menu.addMenu("Select By Conservation")
             cons_sel_menu.setEnabled(bool(self.alignment.associations))
-            for entry_text, value in [("100%", 100.0), ("<100%", -100.0)]:
+            for entry_text, value in [("100%", 100.0), ("<100%", -100.0), (">=50%", 50.0), ("<50%", -50.0)]:
                 action = QAction(entry_text, cons_sel_menu)
                 action.triggered.connect(lambda act, *args, aln=self.alignment, val=value:
                     aln.select_by_conservation(val))

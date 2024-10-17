@@ -785,26 +785,31 @@ class Alignment(State):
             counts = {}
             for seq in self._seqs:
                 c = seq[i]
+                if not c.isalnum():
+                    continue
                 counts[c] = counts.get(c, 0) + 1
+            if not counts:
+                continue
             max_count = None
             for c, count in counts.items():
                 if max_count is None or count > max_count:
                     max_count = count
-                    max_c = c
             percent = 100.0 * max_count / len(self._seqs)
             if conservation >= 0:
-                if percent < conservation or not max_c.isalnum():
+                if percent < conservation:
                     continue
             else:
-                if percent >= conservation:
+                if percent >= -conservation:
                     continue
             for sseq, aseq in self.associations.items():
-                ungapped = sseq.gapped_to_ungapped(i)
+                ungapped = aseq.gapped_to_ungapped(i)
                 if ungapped is None:
                     continue
-                r = aseq.match_maps[sseq][ungapped]
-                if r:
-                    sel_residues.append(r)
+                try:
+                    r = aseq.match_maps[sseq][ungapped]
+                except KeyError:
+                    continue
+                sel_residues.append(r)
         from chimerax.atomic import concise_residue_spec
         from chimerax.core.commands import run
         if sel_residues:
