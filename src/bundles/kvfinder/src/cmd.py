@@ -106,9 +106,12 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
                     z = origin[2] + zi * grid_spacing
                     cav_s, r, rgba = model_lookup[val]
                     a = add_atom("Z%d" % cav_s.num_atoms, "He", r, numpy.array((x,y,z)))
-                    a.radius = 0.1
         for cav_s, r, rgba in model_lookup.values():
             cav_s.overall_color = [255.0 * c for c in rgba]
+            cav_s.ball_scale = 0.35
+            atoms = cav_s.atoms
+            atoms.radii = grid_spacing / 2
+            atoms.draw_modes = atoms.BALL_STYLE
         from chimerax.core.logger import html_table_params
         table_lines = [
             '<table %s>' % html_table_params,
