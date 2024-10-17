@@ -1,26 +1,26 @@
 # Try to replace simple text label with a custom image.
-def dms_label(session, residues, column_name, subtract_fit = None,
-              range = None, palette = None, no_data_color = (180,180,180,255),
-              height = 1.5, offset = (0,0,3), on_top = False):
+def mutation_scores_label(session, residues, score_name = None, scores_name = None,
+                          range = None, palette = None, no_data_color = (180,180,180,255),
+                          height = 1.5, offset = (0,0,3), on_top = False):
 
     messages = []
     for chain, cresidues in _residues_by_chain(residues):
-        from .dms_data import dms_data
-        data = dms_data(chain)
-        scores = data.column_values(column_name, subtract_fit = subtract_fit)
+        from .ms_data import mutation_scores
+        scores = mutation_scores(session, scores_name)
+        score_values = scores.score_values(score_name)
         from chimerax.surface.colorvol import _use_full_range, _colormap_with_range
-        vrange = scores.value_range()
+        vrange = score_values.value_range()
         r = vrange if _use_full_range(range, palette) else range
         colormap = _colormap_with_range(palette, r)
         count = 0
         for res in cresidues:
             mut_colors = {to_aa:colormap.interpolated_rgba8([value])[0]
-                          for from_aa, to_aa, value in scores.mutation_values(res.number)}
+                          for from_aa, to_aa, value in score_values.mutation_values(res.number)}
             if mut_colors:
                 label_residue(res, mut_colors, no_data_color, height = height, offset = offset, on_top = on_top)
                 count += 1
 
-        message = f'Added {count} residue labels to chain {chain} for {column_name} ({"%.3g"%vrange[0]} - {"%.3g"%vrange[1]}), no DMS data for {len(residues) - count} residues'
+        message = f'Added {count} residue labels to chain {chain} for {score_name} ({"%.3g"%vrange[0]} - {"%.3g"%vrange[1]}), no mutation scores for {len(residues) - count} residues'
         session.logger.info(message)
 
 def _residues_by_chain(residues):
@@ -107,16 +107,15 @@ def register_command(logger):
     from chimerax.core.commands import ColormapArg, ColormapRangeArg, Color8Arg
     from chimerax.atomic import ResiduesArg
     desc = CmdDesc(
-        required = [('residues', ResiduesArg)],
-        keyword = [('column_name', StringArg),
-                   ('subtract_fit', StringArg),
+        required = [('residues', ResiduesArg),
+                    ('score_name', StringArg)],
+        keyword = [('scores_name', StringArg),
                    ('range', ColormapRangeArg),
                    ('palette', ColormapArg),
                    ('no_data_color', Color8Arg),
                    ('height', FloatArg),
                    ('offset', Float3Arg),
                    ('on_top', BoolArg)],
-        required_arguments = ['column_name'],
-        synopsis = 'Show color-coded labels for deep mutation scan scores'
+        synopsis = 'Show color-coded residue labels for mutation scores'
     )
-    register('dms label', desc, dms_label, logger=logger)
+    register('mutationscores label', desc, mutation_scores_label, logger=logger)

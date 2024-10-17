@@ -105,7 +105,7 @@ ifeq ($(OS),Windows)
 	# Antechamber complains bitterly about a missing tmp directory otherwise
 	-mkdir -p $(AMBERBIN_DST_HOME)/tmp
 endif
-	 tar xf $(AMBERTOOLS_PREBUILT) -C $(AMBERBIN_DST_HOME)
+	 tar xf $(AMBERTOOLS_PREBUILT) -C $(AMBERBIN_DST_HOME) --no-same-owner
 ifeq ($(OS),Darwin)
 	tar xf $(AMBERTOOLS_FLIBS_PREBUILT) -C $(app_libdir)
 endif
@@ -187,7 +187,7 @@ endif
 
 $(SOURCE): $(DISTRIBUTION)
 	-mkdir $(SOURCE)
-	tar xf $(DISTRIBUTION) -C $(SOURCE)
+	tar xf $(DISTRIBUTION) -C $(SOURCE) --no-same-owner
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(AMBERHOME) && patch -f -p0) < $$p ; \

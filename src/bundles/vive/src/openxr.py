@@ -440,7 +440,7 @@ class XR:
         layers = []
         import xr
         blend_mode = xr.EnvironmentBlendMode.OPAQUE
-        if self._frame_state.should_render:
+        if self._frame_state.should_render and hasattr(self, '_eye_view_states'):
             for eye_index in range(2):
                 layer_view = self._projection_layer_views[eye_index]
                 eye_view = self._eye_view_states[eye_index]

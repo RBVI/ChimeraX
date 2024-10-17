@@ -29,18 +29,20 @@ class _DeepMutationalScanAPI(BundleAPI):
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is called by the toolshed on start up
-        from . import dms_label
-        dms_label.register_command(logger)
-        from . import dms_attribute
-        dms_attribute.register_command(logger)
-        from . import dms_scatter_plot
-        dms_scatter_plot.register_command(logger)
-        from . import dms_stats
-        dms_stats.register_command(logger)
-        from . import dms_histogram
-        dms_histogram.register_command(logger)
-        from . import dms_umap
-        dms_umap.register_command(logger)
+        from . import ms_data
+        ms_data.register_commands(logger)
+        from . import ms_label
+        ms_label.register_command(logger)
+        from . import ms_define
+        ms_define.register_command(logger)
+        from . import ms_scatter_plot
+        ms_scatter_plot.register_command(logger)
+        from . import ms_stats
+        ms_stats.register_command(logger)
+        from . import ms_histogram
+        ms_histogram.register_command(logger)
+        from . import ms_umap
+        ms_umap.register_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr):
@@ -49,7 +51,7 @@ class _DeepMutationalScanAPI(BundleAPI):
                 from chimerax.open_command import OpenerInfo
                 class DeepMutationalScanInfo(OpenerInfo):
                     def open(self, session, path, file_name, **kw):
-                        from .dms_data import open_deep_mutational_scan_csv
+                        from .ms_data import open_deep_mutational_scan_csv
                         dms_data, message = open_deep_mutational_scan_csv(session, path, **kw)
                         return [], message
 
