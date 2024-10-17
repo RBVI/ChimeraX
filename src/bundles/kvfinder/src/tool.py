@@ -188,7 +188,8 @@ class KVFinderResultsDialog(ToolInstance):
         layout.addWidget(Citation(self.session,
             "<b>pyKVFinder: an efficient and integrable Python package for biomolecular<br>cavity detection"
             " and characterization in data science</b><br>"
-            "Guerra JVS, Ribeiro-Filho HV, Jara GE, Bortot LO, Pereira JGC, Lopes-de-Oliveira PS",
+            "Guerra JVS, Ribeiro-Filho HV, Jara GE, Bortot LO, Pereira JGC, Lopes-de-Oliveira PS<br>"
+            "BMC Bioinformatics (2021) 22:607",
             prefix="The Find Cavities tool uses the <i>pyKVFinder</i> package.  Please cite:",
             pubmed_id=34930115), alignment=Qt.AlignCenter)
 
