@@ -218,6 +218,14 @@ class ResidueScatterPlot(Graph):
                                     lambda self=self, r=r: self._show_atoms(r))
                 self.add_menu_entry(menu, f'Zoom to residue',
                                     lambda self=self, r=r: self._zoom_to_residue(r))
+                if self.is_mutation_plot:
+                    a = self.axes
+                    xlabel, ylabel = a.get_xlabel(), a.get_ylabel()
+                    self.add_menu_entry(menu, f'Label with {xlabel} scores',
+                                        lambda self=self, r=r, xlabel=xlabel: self._label(r, xlabel))
+                    self.add_menu_entry(menu, f'Label with {ylabel} scores',
+                                        lambda self=self, r=r, ylabel=ylabel: self._label(r, ylabel))
+                    
 
         self.add_menu_separator(menu)                
         self.add_menu_entry(menu, 'Save Plot As...', self.save_plot_as)
@@ -233,6 +241,8 @@ class ResidueScatterPlot(Graph):
         self._run_residue_command(r, 'show %s atoms')
     def _zoom_to_residue(self, r):
         self._run_residue_command(r, 'view %s')
+    def _label(self, r, score_name):
+        self._run_residue_command(r, f'mutationscores label %s {score_name}')
     def _color_residue_mutations(self, rname, color = (0,1,0,1)):
         rnodes = [node for node in self.nodes if node.description[:-1] == rname]
         self._color_and_raise_nodes(rnodes, color, tag = 'res')
