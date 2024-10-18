@@ -78,6 +78,17 @@ class ResidueScatterPlot(Graph):
                        title = 'Deep mutational scan scatter plot', hide_ticks = False,
                        drag_select_callback = self._rectangle_selected)
 
+        # Add status line
+        parent = self.tool_window.ui_area
+        from Qt.QtWidgets import QLabel, QSizePolicy
+        self._status_line = sl = QLabel(parent)
+        sl.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        from Qt.QtGui import QFontDatabase
+        font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+        font.setPointSize(14)
+        sl.setFont(font)	# Fixed space font so text maintains alignment
+        parent.layout().addWidget(sl)
+
     def set_nodes(self, xy, residues, point_names = None, colors = None, correlation = False,
                   title = '', x_label = '', y_label = '',
                   node_font_size = 5, node_area = 200, label_nodes = True, is_mutation_plot = True):
@@ -152,6 +163,21 @@ class ResidueScatterPlot(Graph):
         if r is not None and not r.deleted:
             self._select_residue(r)
             self._color_and_raise_nodes([node], color = (0,1,0,1), tag = 'sel')
+
+    def mouse_hover(self, event):
+        a = self.axes
+        xlabel, ylabel = a.get_xlabel(), a.get_ylabel()
+        item = self.clicked_item(event)
+        if item is not None and hasattr(item, 'description') and hasattr(item, 'position'):
+            x,y = item.position[:2]
+            descrip = item.description
+        else:
+            x,y = event.xdata, event.ydata	# Can be None
+            descrip = ''
+        xval = f'{xlabel} {"%6.2f" % x}' if x is not None else ''
+        yval = f'{ylabel} {"%6.2f" % y}' if y is not None else ''
+        msg =  f'   {xval}    {yval}    {descrip}'
+        self._status_line.setText(msg)
 
     def _rectangle_selected(self, event1, event2):
         x1, y1, x2, y2 = event1.xdata, event1.ydata, event2.xdata, event2.ydata
