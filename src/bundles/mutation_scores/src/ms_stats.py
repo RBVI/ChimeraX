@@ -1,7 +1,7 @@
 # Assign a residue attribute computed from mutation scores.
-def mutation_scores_statistics(session, score_name = None, scores_name = None, type = 'synonymous'):
+def mutation_scores_statistics(session, score_name = None, mutation_set = None, type = 'synonymous'):
     from .ms_data import mutation_scores
-    scores = mutation_scores(session, scores_name)
+    scores = mutation_scores(session, mutation_set)
     score_values = scores.score_values(score_name)
     if score_values.count() == 0:
         score_values = scores.computed_values(score_name)
@@ -34,7 +34,7 @@ def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, EnumOf
     desc = CmdDesc(
         required = [('score_name', StringArg)],
-        keyword = [('scores_name', StringArg),
+        keyword = [('mutation_set', StringArg),
                    ('type', EnumOf(['synonymous', 'all'])),
                    ],
         synopsis = 'Compute mean and standard deviation of mutation scores'

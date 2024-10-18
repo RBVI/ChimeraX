@@ -1,9 +1,9 @@
 # Plot a histogram of mutation scores.
-def mutation_scores_histogram(session, score_name, scores_name = None,
+def mutation_scores_histogram(session, score_name, mutation_set = None,
                               bins = 20, curve = True, smooth_width = None,
                               replace = True):
     from .ms_data import mutation_scores
-    scores = mutation_scores(session, scores_name)
+    scores = mutation_scores(session, mutation_set)
     score_values = scores.score_values(score_name)
 
     res_nums = []
@@ -124,7 +124,7 @@ def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, FloatArg, IntArg
     desc = CmdDesc(
         required = [('score_name', StringArg)],
-        keyword = [('scores_name', StringArg),
+        keyword = [('mutation_set', StringArg),
                    ('bins', IntArg),
                    ('curve', BoolArg),
                    ('smooth_width', FloatArg),

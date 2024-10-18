@@ -1,8 +1,8 @@
 # Make a scatter plot for residues using two mutation scores.
-def mutation_scores_scatter_plot(session, x_score_name, y_score_name, scores_name = None,
+def mutation_scores_scatter_plot(session, x_score_name, y_score_name, mutation_set = None,
                                  correlation = False, replace = True):
     from .ms_data import mutation_scores
-    scores = mutation_scores(session, scores_name)
+    scores = mutation_scores(session, mutation_set)
     x_scores = scores.score_values(x_score_name)
     y_scores = scores.score_values(y_score_name)
     
@@ -331,7 +331,7 @@ def register_command(logger):
     desc = CmdDesc(
         required = [('x_score_name', StringArg),
                     ('y_score_name', StringArg)],
-        keyword = [('scores_name', StringArg),
+        keyword = [('mutation_set', StringArg),
                    ('correlation', BoolArg),
                    ('replace', BoolArg),
                    ],

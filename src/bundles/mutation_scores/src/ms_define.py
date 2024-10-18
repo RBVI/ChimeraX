@@ -1,11 +1,11 @@
 # Define a new mutation score or residue score computed from existing mutation scores.
-def mutation_scores_define(session, score_name = None, from_score_name = None, scores_name = None,
+def mutation_scores_define(session, score_name = None, from_score_name = None, mutation_set = None,
                            subtract_fit = None, aa = None, to_aa = None, synonymous = False,
                            above = None, below = None, ranges = None, combine = None,
                            set_attribute = True):
 
     from .ms_data import mutation_scores, ScoreValues
-    scores = mutation_scores(session, scores_name)
+    scores = mutation_scores(session, mutation_set)
 
     if score_name is None:
         # List existing computed scores
@@ -165,9 +165,9 @@ def _subtract_fit_values(cvalues, svalues):
                 if (res_num,from_aa,to_aa) in smap]
     return sfvalues
 
-def mutation_scores_undefine(session, score_name, scores_name = None):
+def mutation_scores_undefine(session, score_name, mutation_set = None):
     from .ms_data import mutation_scores
-    scores = mutation_scores(session, scores_name)
+    scores = mutation_scores(session, mutation_set)
     if not scores.remove_computed_values(score_name):
         from chimerax.core.errors import UserError
         raise UserError(f'No computed score named {score_name}')
@@ -177,7 +177,7 @@ def register_command(logger):
     desc = CmdDesc(
         optional = [('score_name', StringArg)],
         keyword = [('from_score_name', StringArg),
-                   ('scores_name', StringArg),
+                   ('mutation_set', StringArg),
                    ('subtract_fit', StringArg),
                    ('aa', StringArg),
                    ('to_aa', StringArg),
@@ -194,7 +194,7 @@ def register_command(logger):
 
     desc = CmdDesc(
         required = [('score_name', StringArg)],
-        keyword = [('scores_name', StringArg)],
+        keyword = [('mutation_set', StringArg)],
         synopsis = 'Remove a computed score'
     )
     register('mutationscores undefine', desc, mutation_scores_undefine, logger=logger)

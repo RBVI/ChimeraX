@@ -207,21 +207,21 @@ class ScoreValues:
 class MutationScoresManager:
     def __init__(self):
         self._scores = {}
-    def scores(self, scores_name, allow_abbreviation = False):
-        if scores_name is None:
+    def scores(self, mutation_set, allow_abbreviation = False):
+        if mutation_set is None:
             s = tuple(self._scores.values())[0] if len(self._scores) == 1 else None
         else:
-            s = self._scores.get(scores_name)
+            s = self._scores.get(mutation_set)
             if s is None and allow_abbreviation:
-                full_names = [name for name in self._scores.keys() if name.startswith(scores_name)]
+                full_names = [name for name in self._scores.keys() if name.startswith(mutation_set)]
                 if len(full_names) == 1:
                     s = self._scores[full_names[0]]
         return s
-    def add_scores(self, scores_name, scores):
-        self._scores[scores_name] = scores
-    def remove_scores(self, scores_name):
-        if scores_name in self._scores:
-            del self._scores[scores_name]
+    def add_scores(self, mutation_set, scores):
+        self._scores[mutation_set] = scores
+    def remove_scores(self, mutation_set):
+        if mutation_set in self._scores:
+            del self._scores[mutation_set]
             return True
         return False
     def all_scores(self):
@@ -235,12 +235,12 @@ def _mutation_scores_manager(session, create = True):
         session._mutation_scores_manager = msm = MutationScoresManager()
     return msm
 
-def mutation_scores(session, scores_name):
+def mutation_scores(session, mutation_set):
     msm = _mutation_scores_manager(session)
-    scores = msm.scores(scores_name, allow_abbreviation = True)
+    scores = msm.scores(mutation_set, allow_abbreviation = True)
     if scores is None:
         from chimerax.core.errors import UserError
-        raise UserError(f'No mutation scores named {scores_name}')
+        raise UserError(f'No mutation scores named {mutation_set}')
     return scores
 
 def mutation_all_scores(session):
@@ -254,22 +254,22 @@ def mutation_scores_list(session):
     session.logger.info(f'{len(score_sets)} mutation score sets\n{sets}')
     return msm.names()
 
-def mutation_scores_structure(session, chain, scores_name = None):
-    scores = mutation_scores(session, scores_name)
+def mutation_scores_structure(session, chain, mutation_set = None):
+    scores = mutation_scores(session, mutation_set)
     scores.chain = chain
     matches, mismatches = _residue_type_matches(chain.existing_residues, scores.residue_number_to_amino_acid())
     if mismatches:
         r = mismatches[0]
         session.logger.warning(f'Sequence of chain {chain} does not match mutation scores {scores.name} at {len(mistmatches)} positions, first mistmatch is {r.name}{r.number}')
 
-def mutation_scores_close(session, scores_name = None):
+def mutation_scores_close(session, mutation_set = None):
     msm = _mutation_scores_manager(session)
-    if scores_name is None:
-        for scores_name in msm.names():
-            msm.remove_scores(scores_name)
-    elif not msm.remove_scores(scores_name):
+    if mutation_set is None:
+        for mutation_set in msm.names():
+            msm.remove_scores(mutation_set)
+    elif not msm.remove_scores(mutation_set):
         from chimerax.core.errors import UserError
-        raise UserError(f'No mutation scores named {scores_name}')
+        raise UserError(f'No mutation scores named {mutation_set}')
     
 def register_commands(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg
@@ -280,13 +280,13 @@ def register_commands(logger):
 
     desc = CmdDesc(
         required = [('chain', ChainArg)],
-        keyword = [('scores_name', StringArg)],
+        keyword = [('mutation_set', StringArg)],
         synopsis = 'Associate a structure with a set of mutation scores'
     )
     register('mutationscores structure', desc, mutation_scores_structure, logger=logger)
 
     desc = CmdDesc(
-        optional = [('scores_name', StringArg)],
+        optional = [('mutation_set', StringArg)],
         synopsis = 'Close sets of mutation scores'
     )
     register('mutationscores close', desc, mutation_scores_close, logger=logger)

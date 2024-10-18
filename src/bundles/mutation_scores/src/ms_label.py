@@ -1,12 +1,12 @@
 # Try to replace simple text label with a custom image.
-def mutation_scores_label(session, residues, score_name = None, scores_name = None,
+def mutation_scores_label(session, residues, score_name = None, mutation_set = None,
                           range = None, palette = None, no_data_color = (180,180,180,255),
                           height = 1.5, offset = (0,0,3), on_top = False):
 
     messages = []
     for chain, cresidues in _residues_by_chain(residues):
         from .ms_data import mutation_scores
-        scores = mutation_scores(session, scores_name)
+        scores = mutation_scores(session, mutation_set)
         score_values = scores.score_values(score_name)
         from chimerax.surface.colorvol import _use_full_range, _colormap_with_range
         vrange = score_values.value_range()
@@ -109,7 +109,7 @@ def register_command(logger):
     desc = CmdDesc(
         required = [('residues', ResiduesArg),
                     ('score_name', StringArg)],
-        keyword = [('scores_name', StringArg),
+        keyword = [('mutation_set', StringArg),
                    ('range', ColormapRangeArg),
                    ('palette', ColormapArg),
                    ('no_data_color', Color8Arg),

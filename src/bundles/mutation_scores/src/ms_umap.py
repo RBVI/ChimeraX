@@ -1,7 +1,7 @@
 # Project a vector of mutation scores for each residue to 2D using UMAP.
-def mutation_scores_umap(session, score_name = None, scores_name = None):
+def mutation_scores_umap(session, score_name = None, mutation_set = None):
     from .ms_data import mutation_scores
-    scores = mutation_scores(session, scores_name)
+    scores = mutation_scores(session, mutation_set)
     score_values = scores.score_values(score_name)
 
     amino_acids = 'PRKHDEFWYNQCSTILVMGA'
@@ -36,7 +36,7 @@ def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, EnumOf, FloatArg
     desc = CmdDesc(
         required = [('score_name', StringArg)],
-        keyword = [('scores_name', StringArg),
+        keyword = [('mutation_set', StringArg),
                    ],
         synopsis = 'Project residues in umap plot according to mutation scores'
     )
