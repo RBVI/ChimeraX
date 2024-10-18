@@ -51,7 +51,7 @@ class _MutationScoresAPI(BundleAPI):
                 from chimerax.open_command import OpenerInfo
                 class MutationScoresInfo(OpenerInfo):
                     def open(self, session, path, file_name, **kw):
-                        from .ms_data import open_mutation_scores_csv
+                        from .ms_csv_file import open_mutation_scores_csv
                         ms_data, message = open_mutation_scores_csv(session, path, **kw)
                         return [], message
 
