@@ -64,6 +64,8 @@ def mutation_scores_define(session, score_name = None, from_score_name = None, s
     # Set residue attribute
     if set_attribute:
         chain = scores.chain
+        if chain is None:
+            chain = scores.find_matching_chain(session)
         if chain:
             from chimerax.atomic import Residue
             Residue.register_attr(session, score_name, "Deep Mutational Scan", attr_type=float)

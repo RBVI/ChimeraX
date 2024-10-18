@@ -39,6 +39,8 @@ def mutation_scores_scatter_plot(session, x_score_name, y_score_name, scores_nam
         is_mutation_plot = True
 
     chain = scores.chain
+    if chain is None:
+        chain = scores.find_matching_chain(session)
     if chain:
         resnum_to_res = {r.number:r for r in chain.existing_residues}
         residues = [resnum_to_res.get(res_num) for res_num in res_nums]
