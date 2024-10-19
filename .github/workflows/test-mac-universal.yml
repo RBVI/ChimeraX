@@ -5,7 +5,7 @@ on:
 jobs:
   build-mac-universal:
     name: Build ChimeraX for all Macs
-    runs-on: macos-latest
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
       - uses: ./utils/ci/download_mac_chimerax
