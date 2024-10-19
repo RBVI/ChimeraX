@@ -17,11 +17,13 @@ jobs:
           hdiutil attach chimerax_intel.dmg
           cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_intel.app
           hdiutil detach /Volumes/ChimeraX\ Installer
-          hdiutil attach chimerax_arm64.dmg
+          hdiutil attach chimerax_arm.dmg
           cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_arm64.app
           hdiutil detach /Volumes/ChimeraX\ Installer
       - name: Make the universal build
-        run: ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app
+        run: |
+          pip install lief==0.12.1
+          python3 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app
       - name: Sign the macOS package
         uses: ./utils/ci/sign_macos/
         with:
@@ -33,11 +35,11 @@ jobs:
           app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
           provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
           email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
-#      - name: Upload ChimeraX
-#        uses: ./utils/ci/upload_artifact
-#        with:
-#          artifact_path: ChimeraX.dmg
-#          full_build: true
-#          release_type: github-techpreview
-#          platform: mac_arm64
-#          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Upload ChimeraX
+        uses: ./utils/ci/upload_artifact
+        with:
+          artifact_path: ChimeraX.dmg
+          full_build: true
+          release_type: github-techpreview
+          platform: mac_arm64
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
