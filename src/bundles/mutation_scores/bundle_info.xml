@@ -20,11 +20,11 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="Deep mutational scan" synopsis="Deep mutational scan csv file" nicknames="dms" category="Molecular structure" suffixes=".csv" />
+    <Provider name="Mutation scores" synopsis="Mutation scores csv file" nicknames="ms" category="Molecular structure" suffixes=".csv" />
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="Deep mutational scan" want_path="true" />
+    <Provider name="Mutation scores" want_path="true" />
   </Providers>
 
   <Classifiers>

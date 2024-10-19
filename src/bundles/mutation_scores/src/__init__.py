@@ -24,7 +24,7 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _DeepMutationalScanAPI(BundleAPI):
+class _MutationScoresAPI(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
@@ -47,12 +47,12 @@ class _DeepMutationalScanAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
-            if name == 'Deep mutational scan':
+            if name == 'Mutation scores':
                 from chimerax.open_command import OpenerInfo
-                class DeepMutationalScanInfo(OpenerInfo):
+                class MutationScoresInfo(OpenerInfo):
                     def open(self, session, path, file_name, **kw):
-                        from .ms_data import open_deep_mutational_scan_csv
-                        dms_data, message = open_deep_mutational_scan_csv(session, path, **kw)
+                        from .ms_csv_file import open_mutation_scores_csv
+                        ms_data, message = open_mutation_scores_csv(session, path, **kw)
                         return [], message
 
                     @property
@@ -60,6 +60,6 @@ class _DeepMutationalScanAPI(BundleAPI):
                         from chimerax.atomic import ChainArg
                         return {'chain': ChainArg}
 
-                return DeepMutationalScanInfo()
+                return MutationScoresInfo()
 
-bundle_api = _DeepMutationalScanAPI()
+bundle_api = _MutationScoresAPI()

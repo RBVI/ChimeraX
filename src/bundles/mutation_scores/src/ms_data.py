@@ -1,89 +1,58 @@
-def open_deep_mutational_scan_csv(session, path, chain = None, name = None):
-    dms_data = DeepMutationScores(session, path)
+# vim: set expandtab ts=4 sw=4:
 
-    msm = _mutation_scores_manager(session)
-    if name is None:
-        from os.path import basename, splitext
-        name = splitext(basename(path))[0]
-    msm.add_scores(name, dms_data)
+# === UCSF ChimeraX Copyright ===
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
+# === UCSF ChimeraX Copyright ===
 
-    if chain:
-        dms_data.chain = chain
-
-    nmut = sum(len(mscores) for mscores in dms_data.scores.values())
-    dresnums = set(dms_data.scores.keys())
-    score_names = ', '.join(dms_data.score_names())
-    message = f'Opened deep mutational scan data for {nmut} mutations of {len(dresnums)} residues with score names {score_names}.'
-    
-    if chain:
-        cres = chain.existing_residues
-        sresnums = set(r.number for r in cres)
-        message += f' Assigned scores to {len(sresnums & dresnums)} of {len(cres)} residues of chain {chain}.'
-        mres = len(dresnums - sresnums)
-        if mres > 0:
-            message += f' Found scores for {mres} residues not present in atomic model.'
-
-    return dms_data, message
-
-class DeepMutationScores:
-    def __init__(self, session, csv_path):
-        self.session = session
-        self.path = csv_path
-        from os.path import basename, splitext
-        self.name = splitext(basename(csv_path))[0]
-        self.headings, self.scores, self.res_types = self.read_deep_mutation_csv(csv_path)
-        self._chain = None	# Associated Chain instance
+class MutationSet:
+    def __init__(self, name, mutation_scores, chain = None, path = None):
+        self.name = name
+        self.path = path
+        self.mutation_scores = mutation_scores
+        self._chain = chain		# Associated Chain instance
         self._computed_scores = {}	# Map computed score name to ScoreValues instance
 
-    def read_deep_mutation_csv(self, path):
-        with open(path, 'r') as f:
-            lines = f.readlines()
-        headings = [h.strip() for h in lines[0].split(',')]
-        scores = {}
-        res_types = {}
-        for i, line in enumerate(lines[1:]):
-            if line.strip() == '':
-                continue	# Ignore blank lines
-            fields = line.split(',')
-            if len(fields) != len(headings):
-                from chimerax.core.errors import UserError
-                raise UserError(f'Line {i+2} has wrong number of comma-separated fields, got {len(fields)}, but there are {len(headings)} headings')
-            hgvs = fields[0]
-            if not hgvs.startswith('p.(') or not hgvs.endswith(')'):
-                from chimerax.core.errors import UserError
-                raise UserError(f'Line {i+2} has hgvs field "{hgvs}" not starting with "p.(" and ending with ")"')
-            if 'del' in hgvs or 'ins' in hgvs or '_' in hgvs:
-                continue
-            res_type = hgvs[3]
-            res_num = int(hgvs[4:-2])
-            res_type2 = hgvs[-2]
-            if res_num not in scores:
-                scores[res_num] = {}
-            if res_type2 in scores[res_num]:
-                from chimerax.core.errors import UserError
-                raise UserError(f'Duplicated hgvs "{hgvs}" at line {i+2}')
-            scores[res_num][res_type2] = fields
-            res_types[res_num] = res_type
-        return headings, scores, res_types
+        # Cached values
+        self._score_names = None
+        self._resnum_to_aa = None
 
     def score_values(self, score_name, raise_error = True):
-        cvalues = self._column_value_list(score_name)
-        if cvalues is None:
+        svalues = [(ms.residue_number, ms.from_aa, ms.to_aa, ms.scores[score_name])
+                   for ms in self.mutation_scores if score_name in ms.scores]
+        if len(svalues) == 0:
             values = self.computed_values(score_name)
         else:
-            values = ScoreValues(cvalues)
+            values = ScoreValues(svalues)
         if raise_error and values is None:
             from chimerax.core.errors import UserError
             raise UserError(f'No score named "{score_name}" in mutation scores {self.name}.')
         return values
 
     def score_names(self):
-        return tuple(self.headings[i] for i in self._numeric_columns())
-
-    def _numeric_columns(self):
-        for res_num, rscores in self.scores.items():
-            for res_type, fields in rscores.items():
-                return tuple(i for i,f in enumerate(fields) if _is_string_float(f) or f == 'NA')
+        if self._score_names is None:
+            names = set()
+            for ms in self.mutation_scores:
+                names.update(ms.scores.keys())
+            self._score_names = tuple(sorted(names))
+        return self._score_names
     
     def computed_values(self, score_name):
         return self._computed_scores.get(score_name)
@@ -97,63 +66,53 @@ class DeepMutationScores:
     def computed_values_names(self):
         return tuple(self._computed_scores.keys())
 
-    def _column_value_list(self, column_name):
-        c = self.column_index(column_name)
-        if c is None:
-            return None
-        cvalues = []
-        for res_num, rscores in self.scores.items():
-            for res_type, fields in rscores.items():
-                if fields[c] != 'NA':
-                    cvalues.append((res_num, self.res_types[res_num], res_type, float(fields[c])))
-        return cvalues
-    
-    def column_index(self, column_name):
-        for i,h in enumerate(self.headings):
-            if column_name == h:
-                return i
-        return None
-
-    def _residue_type_matches(self, residues):
-        matches = 0
-        mismatches = []
-        rtypes = self.res_types
-        for r in residues:
-            rtype = rtypes.get(r.number)
-            if rtype is not None:
-                if r.one_letter_code == rtype:
-                    matches += 1
-                else:
-                    mismatches.append(r)
-        return matches, mismatches
-
     def _get_chain(self):
-        if self._chain is None or self._chain.structure is None:
-            self._chain = self._find_matching_chain()
+        if self._chain is not None and self._chain.structure is None:
+            self._chain = None
         return self._chain
     def _set_chain(self, chain):
         self._chain = chain
     chain = property(_get_chain, _set_chain)
 
-    def _find_matching_chain(self):
-        from chimerax.atomic import AtomicStructure
-        structs = self.session.models.list(type = AtomicStructure)
-        for s in structs:
-            chains = list(s.chains)
-            chains.sort(key = lambda c: c.chain_id)
-            for c in chains:
-                matches, mismatches = self._residue_type_matches(c.existing_residues)
-                if len(mismatches) == 0 and matches > 0:
-                    return c
-        return None
+    def find_matching_chain(self, session):
+        self._chain = _find_matching_chain(session, self.residue_number_to_amino_acid())
+        return self._chain
 
-    
-def _is_string_float(f):
-    try:
-        float(f)
-        return True
-    except:
-        return False
+    def residue_number_to_amino_acid(self):
+        if self._resnum_to_aa is None:
+            self._resnum_to_aa = {ms.residue_number:ms.from_aa for ms in self.mutation_scores}
+        return self._resnum_to_aa
+
+def _find_matching_chain(session, resnum_to_aa):
+    from chimerax.atomic import AtomicStructure
+    structs = session.models.list(type = AtomicStructure)
+    for s in structs:
+        chains = list(s.chains)
+        chains.sort(key = lambda c: c.chain_id)
+        for c in chains:
+            matches, mismatches = _residue_type_matches(c.existing_residues, resnum_to_aa)
+            if len(mismatches) == 0 and matches > 0:
+                return c
+    return None
+        
+def _residue_type_matches(residues, resnum_to_aa):
+    matches = 0
+    mismatches = []
+    for r in residues:
+        rtype = resnum_to_aa.get(r.number)
+        if rtype is not None:
+            if r.one_letter_code == rtype:
+                matches += 1
+            else:
+                mismatches.append(r)
+    return matches, mismatches
+
+class MutationScores:
+    def __init__(self, residue_number, from_aa, to_aa, scores):
+        self.residue_number = residue_number
+        self.from_aa = from_aa
+        self.to_aa = to_aa
+        self.scores = scores
 
 class ScoreValues:
     def __init__(self, mutation_values, per_residue = False):
@@ -200,21 +159,21 @@ class ScoreValues:
 class MutationScoresManager:
     def __init__(self):
         self._scores = {}
-    def scores(self, scores_name, allow_abbreviation = False):
-        if scores_name is None:
+    def scores(self, mutation_set, allow_abbreviation = False):
+        if mutation_set is None:
             s = tuple(self._scores.values())[0] if len(self._scores) == 1 else None
         else:
-            s = self._scores.get(scores_name)
+            s = self._scores.get(mutation_set)
             if s is None and allow_abbreviation:
-                full_names = [name for name in self._scores.keys() if name.startswith(scores_name)]
+                full_names = [name for name in self._scores.keys() if name.startswith(mutation_set)]
                 if len(full_names) == 1:
                     s = self._scores[full_names[0]]
         return s
-    def add_scores(self, scores_name, scores):
-        self._scores[scores_name] = scores
-    def remove_scores(self, scores_name):
-        if scores_name in self._scores:
-            del self._scores[scores_name]
+    def add_scores(self, mutation_set, scores):
+        self._scores[mutation_set] = scores
+    def remove_scores(self, mutation_set):
+        if mutation_set in self._scores:
+            del self._scores[mutation_set]
             return True
         return False
     def all_scores(self):
@@ -222,47 +181,47 @@ class MutationScoresManager:
     def names(self):
         return tuple(self._scores.keys())
 
-def _mutation_scores_manager(session, create = True):
-    msm = getattr(session, '_mutation_scores_manager', None)
+def mutation_scores_manager(session, create = True):
+    msm = getattr(session, 'mutation_scores_manager', None)
     if msm is None and create:
-        session._mutation_scores_manager = msm = MutationScoresManager()
+        session.mutation_scores_manager = msm = MutationScoresManager()
     return msm
 
-def mutation_scores(session, scores_name):
-    msm = _mutation_scores_manager(session)
-    scores = msm.scores(scores_name, allow_abbreviation = True)
+def mutation_scores(session, mutation_set):
+    msm = mutation_scores_manager(session)
+    scores = msm.scores(mutation_set, allow_abbreviation = True)
     if scores is None:
         from chimerax.core.errors import UserError
-        raise UserError(f'No mutation scores named {scores_name}')
+        raise UserError(f'No mutation scores named {mutation_set}')
     return scores
 
 def mutation_all_scores(session):
-    msm = _mutation_scores_manager(session)
+    msm = mutation_scores_manager(session)
     return msm.all_scores()
     
 def mutation_scores_list(session):
-    msm = _mutation_scores_manager(session)
+    msm = mutation_scores_manager(session)
     score_sets = msm.all_scores()
     sets = '\n'.join(f'{scores.name} ({", ".join(scores.score_names())})' for scores in score_sets)
     session.logger.info(f'{len(score_sets)} mutation score sets\n{sets}')
     return msm.names()
 
-def mutation_scores_structure(session, chain, scores_name = None):
-    scores = mutation_scores(session, scores_name)
+def mutation_scores_structure(session, chain, mutation_set = None):
+    scores = mutation_scores(session, mutation_set)
     scores.chain = chain
-    matches, mismatches = scores._residue_type_matches(chain.existing_residues)
+    matches, mismatches = _residue_type_matches(chain.existing_residues, scores.residue_number_to_amino_acid())
     if mismatches:
         r = mismatches[0]
         session.logger.warning(f'Sequence of chain {chain} does not match mutation scores {scores.name} at {len(mistmatches)} positions, first mistmatch is {r.name}{r.number}')
 
-def mutation_scores_close(session, scores_name = None):
-    msm = _mutation_scores_manager(session)
-    if scores_name is None:
-        for scores_name in msm.names():
-            msm.remove_scores(scores_name)
-    elif not msm.remove_scores(scores_name):
+def mutation_scores_close(session, mutation_set = None):
+    msm = mutation_scores_manager(session)
+    if mutation_set is None:
+        for mutation_set in msm.names():
+            msm.remove_scores(mutation_set)
+    elif not msm.remove_scores(mutation_set):
         from chimerax.core.errors import UserError
-        raise UserError(f'No mutation scores named {scores_name}')
+        raise UserError(f'No mutation scores named {mutation_set}')
     
 def register_commands(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg
@@ -273,13 +232,13 @@ def register_commands(logger):
 
     desc = CmdDesc(
         required = [('chain', ChainArg)],
-        keyword = [('scores_name', StringArg)],
+        keyword = [('mutation_set', StringArg)],
         synopsis = 'Associate a structure with a set of mutation scores'
     )
     register('mutationscores structure', desc, mutation_scores_structure, logger=logger)
 
     desc = CmdDesc(
-        optional = [('scores_name', StringArg)],
+        optional = [('mutation_set', StringArg)],
         synopsis = 'Close sets of mutation scores'
     )
     register('mutationscores close', desc, mutation_scores_close, logger=logger)

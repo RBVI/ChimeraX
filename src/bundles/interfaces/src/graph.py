@@ -45,10 +45,12 @@ class Plot(ToolInstance):
         parent.setMinimumHeight(1)  # Matplotlib gives divide by zero error when plot resized to 0 height.
         c.setParent(parent)
 
-        from Qt.QtWidgets import QHBoxLayout
-        layout = QHBoxLayout()
+        from Qt.QtWidgets import QVBoxLayout
+        layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
-        layout.addWidget(c)
+        layout.setSpacing(0)
+
+        layout.addWidget(c, stretch = 1)
         parent.setLayout(layout)
         tw.manage(placement="side")
 
@@ -114,7 +116,7 @@ class Plot(ToolInstance):
 
     def matplotlib_mouse_event(self, x, y):
         '''Used for detecting clicked matplotlib canvas item using Artist.contains().'''
-        h = self.tool_window.ui_area.height()
+        h = self.canvas.height()
         # TODO: matplotlib 2.0.2 bug on mac retina displays, requires 2x scaling
         # for picking objects to work. ChimeraX ticket #762.
         pr = self.tool_window.ui_area.devicePixelRatio()
@@ -361,7 +363,7 @@ class Graph(Plot):
                 drag_mode = 'translate'
             else:
                 self.tool_window._show_context_menu(event)
-                drag_mode = 'menu'
+                drag_mode = None
         elif b == Qt.MiddleButton:
             drag_mode = 'translate'
         elif b == Qt.RightButton:
@@ -388,7 +390,7 @@ class Graph(Plot):
         x, y = pos.x(), pos.y()
         lx, ly = self._last_mouse_xy
         dx, dy = x-lx, y-ly
-        if abs(dx) < self._min_drag and abs(dy) < self._min_drag:
+        if not self._dragged and abs(dx) < self._min_drag and abs(dy) < self._min_drag:
             return
         self._last_mouse_xy = (x,y)
         self._dragged = True
@@ -406,7 +408,11 @@ class Graph(Plot):
         elif mode == 'select' and self._drag_selector is not None:
             e = self.matplotlib_mouse_event(x,y)
             self._drag_selector.onmove(e)
-    
+
+        if mode is None or mode == 'select':
+            e = self.matplotlib_mouse_event(x,y)
+            self.mouse_hover(e)
+
     def _mouse_release(self, event):
         if self._drag_mode == 'select':
             pos = event.pos()
@@ -434,6 +440,9 @@ class Graph(Plot):
     def mouse_click(self, node_or_edge, event):
         pass
 
+    def mouse_hover(self, matplotlib_event):
+        pass
+
     def is_alt_key_pressed(self, event):
         from Qt.QtCore import Qt
         return event.modifiers() & Qt.AltModifier
@@ -457,6 +466,11 @@ class Graph(Plot):
     def _clicked_item(self, x, y):
         # Check for node click
         e = self.matplotlib_mouse_event(x,y)
+        item = self.clicked_item(e)
+        return item
+    
+    def clicked_item(self, matplotlib_event):
+        e = matplotlib_event
         c,d = self._node_artist.contains(e)
         item = None
         if c:

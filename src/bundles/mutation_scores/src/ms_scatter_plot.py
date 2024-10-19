@@ -1,8 +1,32 @@
+# vim: set expandtab ts=4 sw=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # Make a scatter plot for residues using two mutation scores.
-def mutation_scores_scatter_plot(session, x_score_name, y_score_name, scores_name = None,
+def mutation_scores_scatter_plot(session, x_score_name, y_score_name, mutation_set = None,
                                  correlation = False, replace = True):
     from .ms_data import mutation_scores
-    scores = mutation_scores(session, scores_name)
+    scores = mutation_scores(session, mutation_set)
     x_scores = scores.score_values(x_score_name)
     y_scores = scores.score_values(y_score_name)
     
@@ -39,6 +63,8 @@ def mutation_scores_scatter_plot(session, x_score_name, y_score_name, scores_nam
         is_mutation_plot = True
 
     chain = scores.chain
+    if chain is None:
+        chain = scores.find_matching_chain(session)
     if chain:
         resnum_to_res = {r.number:r for r in chain.existing_residues}
         residues = [resnum_to_res.get(res_num) for res_num in res_nums]
@@ -77,6 +103,17 @@ class ResidueScatterPlot(Graph):
         Graph.__init__(self, session, nodes, edges, tool_name = 'DeepMutationalScan',
                        title = 'Deep mutational scan scatter plot', hide_ticks = False,
                        drag_select_callback = self._rectangle_selected)
+
+        # Add status line
+        parent = self.tool_window.ui_area
+        from Qt.QtWidgets import QLabel, QSizePolicy
+        self._status_line = sl = QLabel(parent)
+        sl.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        from Qt.QtGui import QFontDatabase
+        font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+        font.setPointSize(14)
+        sl.setFont(font)	# Fixed space font so text maintains alignment
+        parent.layout().addWidget(sl)
 
     def set_nodes(self, xy, residues, point_names = None, colors = None, correlation = False,
                   title = '', x_label = '', y_label = '',
@@ -153,6 +190,21 @@ class ResidueScatterPlot(Graph):
             self._select_residue(r)
             self._color_and_raise_nodes([node], color = (0,1,0,1), tag = 'sel')
 
+    def mouse_hover(self, event):
+        a = self.axes
+        xlabel, ylabel = a.get_xlabel(), a.get_ylabel()
+        item = self.clicked_item(event)
+        if item is not None and hasattr(item, 'description') and hasattr(item, 'position'):
+            x,y = item.position[:2]
+            descrip = item.description
+        else:
+            x,y = event.xdata, event.ydata	# Can be None
+            descrip = ''
+        xval = f'{xlabel} {"%6.2f" % x}' if x is not None else ''
+        yval = f'{ylabel} {"%6.2f" % y}' if y is not None else ''
+        msg =  f'   {xval}    {yval}    {descrip}'
+        self._status_line.setText(msg)
+
     def _rectangle_selected(self, event1, event2):
         x1, y1, x2, y2 = event1.xdata, event1.ydata, event2.xdata, event2.ydata
         xmin, xmax = min(x1,x2), max(x1,x2)
@@ -218,6 +270,14 @@ class ResidueScatterPlot(Graph):
                                     lambda self=self, r=r: self._show_atoms(r))
                 self.add_menu_entry(menu, f'Zoom to residue',
                                     lambda self=self, r=r: self._zoom_to_residue(r))
+                if self.is_mutation_plot:
+                    a = self.axes
+                    xlabel, ylabel = a.get_xlabel(), a.get_ylabel()
+                    self.add_menu_entry(menu, f'Label with {xlabel} scores',
+                                        lambda self=self, r=r, xlabel=xlabel: self._label(r, xlabel))
+                    self.add_menu_entry(menu, f'Label with {ylabel} scores',
+                                        lambda self=self, r=r, ylabel=ylabel: self._label(r, ylabel))
+                    
 
         self.add_menu_separator(menu)                
         self.add_menu_entry(menu, 'Save Plot As...', self.save_plot_as)
@@ -233,6 +293,8 @@ class ResidueScatterPlot(Graph):
         self._run_residue_command(r, 'show %s atoms')
     def _zoom_to_residue(self, r):
         self._run_residue_command(r, 'view %s')
+    def _label(self, r, score_name):
+        self._run_residue_command(r, f'mutationscores label %s {score_name}')
     def _color_residue_mutations(self, rname, color = (0,1,0,1)):
         rnodes = [node for node in self.nodes if node.description[:-1] == rname]
         self._color_and_raise_nodes(rnodes, color, tag = 'res')
@@ -293,7 +355,7 @@ def register_command(logger):
     desc = CmdDesc(
         required = [('x_score_name', StringArg),
                     ('y_score_name', StringArg)],
-        keyword = [('scores_name', StringArg),
+        keyword = [('mutation_set', StringArg),
                    ('correlation', BoolArg),
                    ('replace', BoolArg),
                    ],

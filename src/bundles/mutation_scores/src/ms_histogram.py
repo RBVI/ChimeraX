@@ -1,9 +1,33 @@
+# vim: set expandtab ts=4 sw=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # Plot a histogram of mutation scores.
-def mutation_scores_histogram(session, score_name, scores_name = None,
+def mutation_scores_histogram(session, score_name, mutation_set = None,
                               bins = 20, curve = True, smooth_width = None,
                               replace = True):
     from .ms_data import mutation_scores
-    scores = mutation_scores(session, scores_name)
+    scores = mutation_scores(session, mutation_set)
     score_values = scores.score_values(score_name)
 
     res_nums = []
@@ -26,6 +50,8 @@ def mutation_scores_histogram(session, score_name, scores_name = None,
     res_scores = array(res_scores, float32)
 
     chain = scores.chain
+    if chain is None:
+        chain = scores.find_matching_chain(session)
     if chain:
         resnum_to_res = {r.number:r for r in chain.existing_residues}
         residues = [resnum_to_res.get(res_num) for res_num in res_nums]
@@ -122,7 +148,7 @@ def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, FloatArg, IntArg
     desc = CmdDesc(
         required = [('score_name', StringArg)],
-        keyword = [('scores_name', StringArg),
+        keyword = [('mutation_set', StringArg),
                    ('bins', IntArg),
                    ('curve', BoolArg),
                    ('smooth_width', FloatArg),

@@ -1,11 +1,35 @@
+# vim: set expandtab ts=4 sw=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # Define a new mutation score or residue score computed from existing mutation scores.
-def mutation_scores_define(session, score_name = None, from_score_name = None, scores_name = None,
+def mutation_scores_define(session, score_name = None, from_score_name = None, mutation_set = None,
                            subtract_fit = None, aa = None, to_aa = None, synonymous = False,
                            above = None, below = None, ranges = None, combine = None,
                            set_attribute = True):
 
     from .ms_data import mutation_scores, ScoreValues
-    scores = mutation_scores(session, scores_name)
+    scores = mutation_scores(session, mutation_set)
 
     if score_name is None:
         # List existing computed scores
@@ -64,6 +88,8 @@ def mutation_scores_define(session, score_name = None, from_score_name = None, s
     # Set residue attribute
     if set_attribute:
         chain = scores.chain
+        if chain is None:
+            chain = scores.find_matching_chain(session)
         if chain:
             from chimerax.atomic import Residue
             Residue.register_attr(session, score_name, "Deep Mutational Scan", attr_type=float)
@@ -163,9 +189,9 @@ def _subtract_fit_values(cvalues, svalues):
                 if (res_num,from_aa,to_aa) in smap]
     return sfvalues
 
-def mutation_scores_undefine(session, score_name, scores_name = None):
+def mutation_scores_undefine(session, score_name, mutation_set = None):
     from .ms_data import mutation_scores
-    scores = mutation_scores(session, scores_name)
+    scores = mutation_scores(session, mutation_set)
     if not scores.remove_computed_values(score_name):
         from chimerax.core.errors import UserError
         raise UserError(f'No computed score named {score_name}')
@@ -175,7 +201,7 @@ def register_command(logger):
     desc = CmdDesc(
         optional = [('score_name', StringArg)],
         keyword = [('from_score_name', StringArg),
-                   ('scores_name', StringArg),
+                   ('mutation_set', StringArg),
                    ('subtract_fit', StringArg),
                    ('aa', StringArg),
                    ('to_aa', StringArg),
@@ -192,7 +218,7 @@ def register_command(logger):
 
     desc = CmdDesc(
         required = [('score_name', StringArg)],
-        keyword = [('scores_name', StringArg)],
+        keyword = [('mutation_set', StringArg)],
         synopsis = 'Remove a computed score'
     )
     register('mutationscores undefine', desc, mutation_scores_undefine, logger=logger)
