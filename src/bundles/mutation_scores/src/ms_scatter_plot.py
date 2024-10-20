@@ -1,19 +1,58 @@
-# Make a scatter plot for residues using two phenotype scores from deep mutational scan data.
-def dms_scatter_plot(session, chain, x_column_name, y_column_name,
-                     correlation = False, subtract_x_fit = None, subtract_y_fit = None,
-                     type = 'all_mutations', above = None, below = None, replace = True):
-    from .dms_data import dms_data
-    data = dms_data(chain)
-    if data is None:
-        from chimerax.core.errors import UserError
-        raise UserError(f'No deep mutation scan data associated with chain {chain}')
-    x_scores = data.column_values(x_column_name, subtract_fit = subtract_x_fit)
-    y_scores = data.column_values(y_column_name, subtract_fit = subtract_y_fit)
+# vim: set expandtab ts=4 sw=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
+# Make a scatter plot for residues using two mutation scores.
+def mutation_scores_scatter_plot(session, x_score_name, y_score_name, mutation_set = None,
+                                 correlation = False, replace = True):
+    from .ms_data import mutation_scores
+    scores = mutation_scores(session, mutation_set)
+    x_scores = scores.score_values(x_score_name)
+    y_scores = scores.score_values(y_score_name)
     
     res_nums = []
     points = []
     point_names = []
-    if type == 'all_mutations':
+    if x_scores.per_residue and y_scores.per_residue:
+        for res_num in x_scores.residue_numbers():
+            x_value = x_scores.residue_value(res_num)
+            y_value = y_scores.residue_value(res_num)
+            if x_value is not None and y_value is not None:
+                res_nums.append(res_num)
+                points.append((x_value, y_value))
+                point_names.append(f'{res_num}')
+        is_mutation_plot = False	# Residues plotted instead of mutations
+    elif x_scores.per_residue or y_scores.per_residue:
+        rscores, mscores = (x_scores,y_scores) if x_scores.per_residue else (y_scores,x_scores)
+        r_values = {(res_num,from_aa):r_value for res_num, from_aa, to_aa, r_value in rscores.all_values()}
+        for res_num, from_aa, to_aa, m_value in mscores.all_values():
+            r_value = r_values.get((res_num, from_aa))
+            if r_value is not None:
+                res_nums.append(res_num)
+                points.append((r_value, m_value) if x_scores.per_residue else (m_value, r_value))
+                point_names.append(f'{from_aa}{res_num}{to_aa}')
+        is_mutation_plot = True
+    else:
         y_values = {(res_num,from_aa,to_aa):y_value for res_num, from_aa, to_aa, y_value in y_scores.all_values()}
         for res_num, from_aa, to_aa, x_value in x_scores.all_values():
             y_value = y_values.get((res_num, from_aa, to_aa))
@@ -21,32 +60,37 @@ def dms_scatter_plot(session, chain, x_column_name, y_column_name,
                 res_nums.append(res_num)
                 points.append((x_value, y_value))
                 point_names.append(f'{from_aa}{res_num}{to_aa}')
-    else:
-        for res_num in x_scores.residue_numbers():
-            x_value = x_scores.residue_value(res_num, value_type = type, above = above, below = below)
-            y_value = y_scores.residue_value(res_num, value_type = type, above = above, below = below)
-            if x_value is not None and y_value is not None:
-                res_nums.append(res_num)
-                points.append((x_value, y_value))
-                point_names.append(f'{res_num}')
+        is_mutation_plot = True
 
-    resnum_to_res = {r.number:r for r in chain.existing_residues}
-    residues = [resnum_to_res.get(res_num) for res_num in res_nums]
+    chain = scores.chain
+    if chain is None:
+        chain = scores.find_matching_chain(session)
+    if chain:
+        resnum_to_res = {r.number:r for r in chain.existing_residues}
+        residues = [resnum_to_res.get(res_num) for res_num in res_nums]
+        in_struct = f' in chain {chain}'
+    else:
+        residues = [None] * len(res_nums)
+        in_struct = ''
     
     from numpy import array, float32
     xy = array(points, float32)
     
-    if replace and hasattr(chain, '_last_dms_plot') and chain._last_dms_plot.tool_window.ui_area is not None:
-        plot = chain._last_dms_plot
-    else:
-        chain._last_dms_plot = plot = ResidueScatterPlot(session)
-    title = f'File {data.name}'
-    label_nodes, node_area = (False, 20) if type == 'all_mutations' else (True, 200)
+    if replace:
+        plot = getattr(scores, '_last_mutation_scores_plot', None)
+        if plot and plot.tool_window.ui_area is None:
+            plot = None
+    if plot is None:
+        plot = ResidueScatterPlot(session)
+    scores._last_mutation_scores_plot = plot
+
+    title = f'File {scores.name}'
+    label_nodes, node_area = (False, 20) if is_mutation_plot else (True, 200)
     plot.set_nodes(xy, residues, point_names=point_names, correlation=correlation,
-                   title=title, x_label=x_column_name, y_label=y_column_name,
-                   node_area = node_area, label_nodes = label_nodes)
+                   title=title, x_label=x_score_name, y_label=y_score_name,
+                   node_area = node_area, label_nodes = label_nodes, is_mutation_plot = is_mutation_plot)
     
-    message = f'Plotted {len(points)} mutations in chain {chain} with {x_column_name} on x-axis and {y_column_name} on y-axis'
+    message = f'Plotted {len(points)} mutations{in_struct} with {x_score_name} on x-axis and {y_score_name} on y-axis'
     if correlation:
         message += f', least squares fit slope {"%.3g" % plot.slope}, intercept {"%.3g" % plot.intercept}, R squared {"%.3g" % plot.r_squared}'
     session.logger.info(message)
@@ -60,9 +104,21 @@ class ResidueScatterPlot(Graph):
                        title = 'Deep mutational scan scatter plot', hide_ticks = False,
                        drag_select_callback = self._rectangle_selected)
 
+        # Add status line
+        parent = self.tool_window.ui_area
+        from Qt.QtWidgets import QLabel, QSizePolicy
+        self._status_line = sl = QLabel(parent)
+        sl.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        from Qt.QtGui import QFontDatabase
+        font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+        font.setPointSize(14)
+        sl.setFont(font)	# Fixed space font so text maintains alignment
+        parent.layout().addWidget(sl)
+
     def set_nodes(self, xy, residues, point_names = None, colors = None, correlation = False,
                   title = '', x_label = '', y_label = '',
-                  node_font_size = 5, node_area = 200, label_nodes = True):
+                  node_font_size = 5, node_area = 200, label_nodes = True, is_mutation_plot = True):
+        self.is_mutation_plot = is_mutation_plot
         self.font_size = node_font_size	# Override graph default value of 12 points
         self.nodes = self._make_nodes(xy, residues, point_names=point_names, colors=colors,
                                       node_area=node_area, label_nodes=label_nodes)
@@ -98,6 +154,10 @@ class ResidueScatterPlot(Graph):
         # Don't hide axes and reduce padding
         pass
 
+    def equal_aspect(self):
+        # Don't require both plot axes to have the same scale
+        pass
+
     def _make_nodes(self, xy, residues, point_names = None, colors = None, node_area = 200, label_nodes = True):
         from chimerax.interfaces.graph import Node
         nodes = []
@@ -130,6 +190,21 @@ class ResidueScatterPlot(Graph):
             self._select_residue(r)
             self._color_and_raise_nodes([node], color = (0,1,0,1), tag = 'sel')
 
+    def mouse_hover(self, event):
+        a = self.axes
+        xlabel, ylabel = a.get_xlabel(), a.get_ylabel()
+        item = self.clicked_item(event)
+        if item is not None and hasattr(item, 'description') and hasattr(item, 'position'):
+            x,y = item.position[:2]
+            descrip = item.description
+        else:
+            x,y = event.xdata, event.ydata	# Can be None
+            descrip = ''
+        xval = f'{xlabel} {"%6.2f" % x}' if x is not None else ''
+        yval = f'{ylabel} {"%6.2f" % y}' if y is not None else ''
+        msg =  f'   {xval}    {yval}    {descrip}'
+        self._status_line.setText(msg)
+
     def _rectangle_selected(self, event1, event2):
         x1, y1, x2, y2 = event1.xdata, event1.ydata, event2.xdata, event2.ydata
         xmin, xmax = min(x1,x2), max(x1,x2)
@@ -161,20 +236,27 @@ class ResidueScatterPlot(Graph):
             r = item.residue
             name = item.description
             rname = name[:-1]
-            self.add_menu_entry(menu, f'Mutation {name}', lambda: None)
-            self.add_menu_entry(menu, f'Color mutations for {rname}',
-                                lambda self=self, r=r: self._color_residue_mutations(r))
-            self.add_menu_entry(menu, f'Color mutations near residue {rname}',
-                                lambda self=self, r=r: self._color_near(r))
-
-        self.add_menu_entry(menu, f'Color mutations for selected residues', self._color_selected)
-        self.add_menu_entry(menu, f'Color synonymous mutations blue', self._color_synonymous)
+            if self.is_mutation_plot:
+                self.add_menu_entry(menu, f'Mutation {name}', lambda: None)
+                self.add_menu_entry(menu, f'Color mutations for {rname}',
+                                    lambda self=self, rname=rname: self._color_residue_mutations(rname))
+                if r:
+                    self.add_menu_entry(menu, f'Color mutations near residue {rname}',
+                                        lambda self=self, r=r: self._color_near(r))
+            elif r:
+                self.add_menu_entry(menu, f'Color residues near {name}',
+                                    lambda self=self, r=r: self._color_near(r))
+        if self.is_mutation_plot:
+            self.add_menu_entry(menu, f'Color mutations for selected residues', self._color_selected)
+            self.add_menu_entry(menu, f'Color synonymous mutations blue', self._color_synonymous)
+        else:
+            self.add_menu_entry(menu, f'Color selected residues on plot', self._color_selected)
         self.add_menu_entry(menu, f'Clear plot colors', self._clear_colors)
 
         if item is not None:
             self.add_menu_separator(menu)
             if r is None or r.deleted:
-                self.add_menu_entry(menu, f'{name} residue not in structure', lambda: None)
+                self.add_menu_entry(menu, f'{rname} residue not in structure', lambda: None)
             else:
                 rname = f'{r.one_letter_code}{r.number}'
                 self.add_menu_entry(menu, f'Structure residue {rname}', lambda: None)
@@ -182,12 +264,20 @@ class ResidueScatterPlot(Graph):
                                     lambda self=self, r=r: self._select_residue(r))
                 self.add_menu_entry(menu, f'Color green',
                                     lambda self=self, r=r, c=(0,1,0,1): self._color_residue(r,c))
-                self.add_menu_entry(menu, f'Color to match mutation',
+                self.add_menu_entry(menu, f'Color to match plot',
                                     lambda self=self, r=r, c=item.color: self._color_residue(r,c))
                 self.add_menu_entry(menu, f'Show side chain',
                                     lambda self=self, r=r: self._show_atoms(r))
                 self.add_menu_entry(menu, f'Zoom to residue',
                                     lambda self=self, r=r: self._zoom_to_residue(r))
+                if self.is_mutation_plot:
+                    a = self.axes
+                    xlabel, ylabel = a.get_xlabel(), a.get_ylabel()
+                    self.add_menu_entry(menu, f'Label with {xlabel} scores',
+                                        lambda self=self, r=r, xlabel=xlabel: self._label(r, xlabel))
+                    self.add_menu_entry(menu, f'Label with {ylabel} scores',
+                                        lambda self=self, r=r, ylabel=ylabel: self._label(r, ylabel))
+                    
 
         self.add_menu_separator(menu)                
         self.add_menu_entry(menu, 'Save Plot As...', self.save_plot_as)
@@ -203,8 +293,10 @@ class ResidueScatterPlot(Graph):
         self._run_residue_command(r, 'show %s atoms')
     def _zoom_to_residue(self, r):
         self._run_residue_command(r, 'view %s')
-    def _color_residue_mutations(self, r, color = (0,1,0,1)):
-        rnodes = [node for node in self.nodes if node.residue is r]
+    def _label(self, r, score_name):
+        self._run_residue_command(r, f'mutationscores label %s {score_name}')
+    def _color_residue_mutations(self, rname, color = (0,1,0,1)):
+        rnodes = [node for node in self.nodes if node.description[:-1] == rname]
         self._color_and_raise_nodes(rnodes, color, tag = 'res')
     def _color_near(self, residue, distance = 3.5):
         cres = set(_find_close_residues(residue, residue.chain.existing_residues, distance))
@@ -259,22 +351,14 @@ def _find_close_residues(residue, residues, distance):
     return close_res
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, EnumOf, BoolArg, FloatArg
-    from chimerax.atomic import ChainArg
-    from .dms_data import ColumnValues
+    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg
     desc = CmdDesc(
-        required = [('chain', ChainArg)],
-        keyword = [('x_column_name', StringArg),
-                   ('y_column_name', StringArg),
+        required = [('x_score_name', StringArg),
+                    ('y_score_name', StringArg)],
+        keyword = [('mutation_set', StringArg),
                    ('correlation', BoolArg),
-                   ('subtract_x_fit', StringArg),
-                   ('subtract_y_fit', StringArg),
-                   ('type', EnumOf(('all_mutations',) + ColumnValues.residue_value_types)),
-                   ('above', FloatArg),
-                   ('below', FloatArg),
                    ('replace', BoolArg),
                    ],
-        required_arguments = ['x_column_name', 'y_column_name'],
-        synopsis = 'Show scatter plot of residues using two phenotype deep mutational scan scores'
+        synopsis = 'Show scatter plot of residues using two mutation scores'
     )
-    register('dms scatterplot', desc, dms_scatter_plot, logger=logger)
+    register('mutationscores scatterplot', desc, mutation_scores_scatter_plot, logger=logger)

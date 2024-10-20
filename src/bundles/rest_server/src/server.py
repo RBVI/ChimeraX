@@ -121,6 +121,9 @@ class RESTServer(Task):
     def terminate(self):
         self.run_decrement()
 
+    def __str__(self):
+        return "REST Server, ID %s" % self.id
+
 
 class RESTHandler(BaseHTTPRequestHandler):
     """Process one REST request."""

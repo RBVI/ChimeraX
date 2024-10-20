@@ -575,9 +575,15 @@ class SequenceViewer(ToolInstance):
         if len(self.alignment.seqs) > 1:
             expand_action = QAction("Expand Selection to Columns", structure_menu)
             expand_action.triggered.connect(self.expand_selection_to_columns)
-            from chimerax.atomic import AtomicStructure
             expand_action.setEnabled(bool(self.alignment.associations))
             structure_menu.addAction(expand_action)
+            cons_sel_menu = structure_menu.addMenu("Select By Conservation")
+            cons_sel_menu.setEnabled(bool(self.alignment.associations))
+            for entry_text, value in [("100%", 100.0), ("<100%", -100.0), (">=50%", 50.0), ("<50%", -50.0)]:
+                action = QAction(entry_text, cons_sel_menu)
+                action.triggered.connect(lambda act, *args, aln=self.alignment, val=value:
+                    aln.select_by_conservation(val))
+                cons_sel_menu.addAction(action)
         xfer_action = QAction("Update Chain Sequence...", structure_menu)
         xfer_action.triggered.connect(self.show_transfer_seq_dialog)
         xfer_action.setEnabled(bool(self.alignment.associations))

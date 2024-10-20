@@ -22,7 +22,8 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-class SimilarStructures:
+from chimerax.core.state import State  # For session saving
+class SimilarStructures(State):
     def __init__(self, hits, query_chain, program = '', database = '',
                  trim = True, alignment_cutoff_distance = 2.0):
         self.hits = hits

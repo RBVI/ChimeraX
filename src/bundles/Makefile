@@ -26,17 +26,17 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  clashes cmd_line color_actions \
 	  color_globe color_key connect_structure core_formats \
 	  coulombic crosslinks crystal crystal_contacts data_formats \
-	  deep_mutational_scan dicom diffplot dist_monitor dock_prep dssp \
+	  dicom diffplot dist_monitor dock_prep dssp \
 	  emdb_sff esmfold file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
 	  interfaces items_inspection io label iupac \
-	  list_info log looking_glass maestro \
+	  kvfinder list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker mcopy md_crds \
 	  medical_toolbar meeting mlp model_series \
 	  mmcif mmtf model_archive model_panel modeller \
-	  mol2 mole morph mouse_modes movie nmrstar \
+	  mol2 mole morph mouse_modes movie mutation_scores nmrstar \
 	  neuron nifti nrrd nucleotides open_command orthopick pdb pdb_bio pdb_lib pdb_matrices \
 	  pick_blobs positions preset_mgr pubchem read_pbonds registration \
 	  remote_control render_by_attr renumber_residues rest_server \

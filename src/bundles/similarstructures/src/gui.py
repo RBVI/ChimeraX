@@ -412,7 +412,7 @@ class SimilarStructuresPanel(ToolInstance):
     @classmethod
     def restore_snapshot(cls, session, data):
         fp = similar_structures_panel(session, create = True)
-        fp.show_results(data['hits'], data['query_chain'], data['database'])
+        fp.show_results(data['results'])
         fp.set_trim_options(data['trim'])
         fp.set_alignment_cutoff_option(data['alignment_cutoff_distance'])
         return fp
