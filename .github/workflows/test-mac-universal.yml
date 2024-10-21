@@ -8,6 +8,8 @@ jobs:
     runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - uses: ./utils/ci/download_mac_chimerax
         with:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
