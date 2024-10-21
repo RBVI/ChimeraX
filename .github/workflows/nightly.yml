@@ -263,7 +263,7 @@ jobs:
           release_type: github-techpreview
           platform: flatpak
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-  build-macos:
+  build-arm-macos:
     name: Build ChimeraX for Apple Silicon
     runs-on: macos-latest
     steps:
@@ -365,9 +365,50 @@ jobs:
           release_type: github-techpreview
           platform: macosx
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-  # TODO: Decide whether to dupe the arm64 build but make it universal
-  # or to upload an Intel and Apple Silicon ChimeraX, then download,
-  # combine, sign, and reupload them. The first seems simpler.
+  build-mac-universal:
+    name: Build ChimeraX for all Macs
+    runs-on: macos-13
+    needs: [build-intel-macos, build-arm-macos]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        run: |
+          brew install python@3.10
+          python3.10 -m pip install lief==0.12.1
+      - uses: ./utils/ci/download_mac_chimerax
+        with:
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          build_type: github-techpreview
+      - name: Extract the ChimeraXes
+        run: |
+          hdiutil attach chimerax_intel.dmg
+          cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_intel.app
+          hdiutil detach /Volumes/ChimeraX\ Installer
+          hdiutil attach chimerax_arm.dmg
+          cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_arm64.app
+          hdiutil detach /Volumes/ChimeraX\ Installer
+      - name: Make the universal build
+        run: |
+          python3.10 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app
+      - name: Sign the macOS package
+        uses: ./utils/ci/sign_macos/
+        with:
+          build_certificate: ${{ secrets.MAC_CERT_BASE64 }}
+          p12_pw: ${{ secrets.MAC_CERT_P12_PASSWD }}
+          build_profile: ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }}
+          kc_pw: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
+          team_id: ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
+          app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
+          provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
+          email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
+      - name: Upload ChimeraX
+        uses: ./utils/ci/upload_artifact
+        with:
+          artifact_path: ChimeraX.dmg
+          full_build: true
+          release_type: github-techpreview
+          platform: mac_universal
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
   build-windows:
     name: Build ChimeraX for Windows
     runs-on: windows-latest
