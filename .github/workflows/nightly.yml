@@ -58,7 +58,7 @@ jobs:
         run: |
           export BUNDLE_REPO_DIR=$(git rev-parse --show-toplevel)/build/sync
           tar -cvzf linux-bundles.tar.gz -C $BUNDLE_REPO_DIR .
-          tar -cvzf ${{ inputs.platform }}-include.tar.gz -C build include
+          tar -cvzf linux-include.tar.gz -C build include
       - name: Cache the bundles and includes
         uses: actions/cache/save@v4
         with:
