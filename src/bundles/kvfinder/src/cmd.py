@@ -108,7 +108,7 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
                     a = add_atom("Z%d" % cav_s.num_atoms, "He", r, numpy.array((x,y,z)))
         for cav_s, r, rgba in model_lookup.values():
             cav_s.overall_color = [255.0 * c for c in rgba]
-            cav_s.ball_scale = 0.35
+            cav_s.ball_scale = 0.25
             atoms = cav_s.atoms
             atoms.radii = grid_spacing / 2
             atoms.draw_modes = atoms.BALL_STYLE
