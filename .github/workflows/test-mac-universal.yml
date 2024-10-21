@@ -8,8 +8,10 @@ jobs:
     runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
+      - name: Set up Python
+        run: |
+          brew install python@3.10
+          python3.10 -m pip install lief==0.12.1
       - uses: ./utils/ci/download_mac_chimerax
         with:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
@@ -24,8 +26,7 @@ jobs:
           hdiutil detach /Volumes/ChimeraX\ Installer
       - name: Make the universal build
         run: |
-          pip install lief==0.12.1
-          python3 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app
+          python3.10 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app
       - name: Sign the macOS package
         uses: ./utils/ci/sign_macos/
         with:
