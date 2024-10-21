@@ -25,9 +25,8 @@ module_blacklist = set(
         "chimerax.dicom",  # tries to import its .ui submodule in __init__
         "chimerax.nifti",  # tries to import dicom
         "chimerax.nrrd",  # tries to import dicom
-        "chimerax.structcomp"  # ChimeraX command script
+        "chimerax.structcomp",  # ChimeraX command script
         # Not going in the library, but part of test suite for GUI ChimeraX
-        ,
         "chimerax.ui",  # tries to import Qt
         "chimerax.vive",  # GUI only bundle
         "chimerax.kvfinder",  # tries to import an optional dependency at the top level
@@ -49,6 +48,7 @@ fine_blacklist = set(
         "chimerax.esmfold.pae",  # imports chimerax.alphafold.pae, which imports chimerax.ui
         "chimerax.hbonds.gui",  # imports Qt
         "chimerax.image_formats.gui",  # imports Qt
+        "chimerax.kvfinder.cmd",  # top level import of optional dependency
         "chimerax.looking_glass.lookingglass",  # imports Qt
         "chimerax.map_filter.morph_gui",  # imports chimerax.ui
         "chimerax.map_series.slider",  # imports chimerax.ui
