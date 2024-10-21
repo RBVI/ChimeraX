@@ -389,7 +389,7 @@ jobs:
           hdiutil detach /Volumes/ChimeraX\ Installer
       - name: Make the universal build
         run: |
-          python3.10 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app
+          python3.10 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app 2>&1
       - name: Sign the macOS package
         uses: ./utils/ci/sign_macos/
         with:
