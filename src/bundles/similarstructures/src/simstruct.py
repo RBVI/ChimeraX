@@ -527,8 +527,8 @@ class SimilarStructures(State):
         hit['aligned_residue_offsets'] = hro
         hit['query_residue_offsets'] = qro
 
-from chimerax.core.state import State
-class SimilarStructuresManager(State):
+from chimerax.core.state import StateManager
+class SimilarStructuresManager(StateManager):
     def __init__(self):
         self._name_to_simstruct = {}
     def add_similar_structures(self, results, name = None):
@@ -574,6 +574,8 @@ class SimilarStructuresManager(State):
         ssm = cls()
         ssm._name_to_simstruct = data['name_to_simstruct']
         return ssm
+    def reset_state(self, session):
+        self._name_to_simstruct.clear()
 
 def similar_structures_manager(session, create = True):
     ssm = getattr(session, 'similar_structures', None)

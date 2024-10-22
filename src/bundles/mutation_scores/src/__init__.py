@@ -62,4 +62,20 @@ class _MutationScoresAPI(BundleAPI):
 
                 return MutationScoresInfo()
 
+    # Map class name to class for session restore
+    @staticmethod
+    def get_class(class_name):
+        if class_name == 'MutationSet':
+            from .ms_data import MutationSet
+            return MutationSet
+        elif class_name == 'MutationScores':
+            from .ms_data import MutationScores
+            return MutationScores
+        elif class_name == 'ScoreValues':
+            from .ms_data import ScoreValues
+            return ScoreValues
+        elif class_name == 'MutationScoresManager':
+            from .ms_data import MutationScoresManager
+            return MutationScoresManager
+
 bundle_api = _MutationScoresAPI()
