@@ -22,11 +22,12 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-class MutationSet:
+from chimerax.core.state import State  # For session saving
+class MutationSet(State):
     def __init__(self, name, mutation_scores, chain = None, path = None):
         self.name = name
         self.path = path
-        self.mutation_scores = mutation_scores
+        self.mutation_scores = mutation_scores	# List of MutationScores instances
         self._chain = chain		# Associated Chain instance
         self._computed_scores = {}	# Map computed score name to ScoreValues instance
 
@@ -83,6 +84,20 @@ class MutationSet:
             self._resnum_to_aa = {ms.residue_number:ms.from_aa for ms in self.mutation_scores}
         return self._resnum_to_aa
 
+    def take_snapshot(self, session, flags):
+        return {'name': self.name,
+                'path': self.path,
+                'mutation_scores': self.mutation_scores,
+                'chain': self.chain,
+                'computed_scores': self._computed_scores,
+                'version': 1}
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        ms = cls(data['name'], data['mutation_scores'], chain = data['chain'], path = data['path'])
+        ms._computed_scores = data['computed_scores']
+        return ms
+
 def _find_matching_chain(session, resnum_to_aa):
     from chimerax.atomic import AtomicStructure
     structs = session.models.list(type = AtomicStructure)
@@ -107,14 +122,26 @@ def _residue_type_matches(residues, resnum_to_aa):
                 mismatches.append(r)
     return matches, mismatches
 
-class MutationScores:
+class MutationScores(State):
     def __init__(self, residue_number, from_aa, to_aa, scores):
         self.residue_number = residue_number
         self.from_aa = from_aa
         self.to_aa = to_aa
         self.scores = scores
 
-class ScoreValues:
+    def take_snapshot(self, session, flags):
+        return {'residue_number': self.residue_number,
+                'from_aa': self.from_aa,
+                'to_aa': self.to_aa,
+                'scores': self.scores,
+                'version': 1}
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        ms = cls(data['residue_number'], data['from_aa'], data['to_aa'], data['scores'])
+        return ms
+
+class ScoreValues(State):
     def __init__(self, mutation_values, per_residue = False):
         self._mutation_values = mutation_values # List of (res_num, from_aa, to_aa, value)
         self._values_by_residue_number = None	# res_num -> (from_aa, to_aa, value)
@@ -156,9 +183,20 @@ class ScoreValues:
         values = [val[3] for val in self._mutation_values]
         return min(values), max(values)
 
-class MutationScoresManager:
+    def take_snapshot(self, session, flags):
+        return {'mutation_values': self._mutation_values,
+                'per_residue': self.per_residue,
+                'version': 1}
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        sv = cls(data['mutation_values'], per_residue = data['per_residue'])
+        return sv
+
+from chimerax.core.state import StateManager  # For session saving
+class MutationScoresManager(StateManager):
     def __init__(self):
-        self._scores = {}
+        self._scores = {}	# Maps name to MutationSet
     def scores(self, mutation_set, allow_abbreviation = False):
         if mutation_set is None:
             s = tuple(self._scores.values())[0] if len(self._scores) == 1 else None
@@ -180,6 +218,17 @@ class MutationScoresManager:
         return tuple(self._scores.values())
     def names(self):
         return tuple(self._scores.keys())
+    def take_snapshot(self, session, flags):
+        print ('took snapshot mut score man')
+        return {'scores': self._scores,
+                'version': 1}
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        msm = cls()
+        msm._scores = data['scores']
+        return msm
+    def reset_state(self, session):
+        self._scores.clear()
 
 def mutation_scores_manager(session, create = True):
     msm = getattr(session, 'mutation_scores_manager', None)
@@ -191,8 +240,9 @@ def mutation_scores(session, mutation_set):
     msm = mutation_scores_manager(session)
     scores = msm.scores(mutation_set, allow_abbreviation = True)
     if scores is None:
+        msg = 'No mutation scores found' if mutation_set is None else f'No mutation scores named {mutation_set}'
         from chimerax.core.errors import UserError
-        raise UserError(f'No mutation scores named {mutation_set}')
+        raise UserError(msg)
     return scores
 
 def mutation_all_scores(session):
