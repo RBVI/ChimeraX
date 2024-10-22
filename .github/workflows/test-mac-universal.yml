@@ -1,13 +1,18 @@
-name: Mac Universal Test Workflow
+name: Test Mac Universal Build
 on:
   workflow_dispatch:
 
 jobs:
   build-mac-universal:
     name: Build ChimeraX for all Macs
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        run: |
+          brew install python@3.10
+          python3.10 -m pip install setuptools==54.0
+          python3.10 -m pip install lief==0.12.1
       - uses: ./utils/ci/download_mac_chimerax
         with:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
@@ -17,13 +22,18 @@ jobs:
           hdiutil attach chimerax_intel.dmg
           cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_intel.app
           hdiutil detach /Volumes/ChimeraX\ Installer
+          rm chimerax_intel.dmg
           hdiutil attach chimerax_arm.dmg
           cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_arm64.app
           hdiutil detach /Volumes/ChimeraX\ Installer
+          rm chimerax_arm.dmg
       - name: Make the universal build
         run: |
-          pip install lief==0.12.1
-          python3 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app
+          python3.10 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app 2>&1
+      - name: Remove unneeded ChimeraXes
+        run: |
+          rm -r chimerax_arm64.app
+          rm -r chimerax_intel.app
       - name: Sign the macOS package
         uses: ./utils/ci/sign_macos/
         with:
@@ -41,5 +51,5 @@ jobs:
           artifact_path: ChimeraX.dmg
           full_build: true
           release_type: github-techpreview
-          platform: mac_arm64
+          platform: mac_universal
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}

@@ -54,19 +54,18 @@ jobs:
           release_type: github-techpreview
           platform: centos-8
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - name: Upload bundles for other builds
-        uses: ./utils/ci/upload_bundles
+      - name: Tar bundles and includes for other builds
+        run: |
+          export BUNDLE_REPO_DIR=$(git rev-parse --show-toplevel)/build/sync
+          tar -cvzf linux-bundles.tar.gz -C $BUNDLE_REPO_DIR .
+          tar -cvzf linux-include.tar.gz -C build include
+      - name: Cache the bundles and includes
+        uses: actions/cache/save@v4
         with:
-          platform: linux
-          build_type: daily
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - name: Upload the include directory for other builds
-        uses: ./utils/ci/upload_includes
-        with:
-          platform: linux
-          build_type: daily
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-
+          path: |
+            linux-bundles.tar.gz
+            linux-include.tar.gz
+          key: linux-bundles-github-techpreview-${{ github.sha }}
   build-rocky9-docker:
     name: Build ChimeraX for Rocky 9
     needs: [build-rocky8-docker]
@@ -91,16 +90,13 @@ jobs:
           platform: linux
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - uses: ./utils/ci/download_lcd_linux_bundles
+      - name: Restore bundles and includes from cache
+        uses: actions/cache/restore@v4
         with:
-          platform: linux
-          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-          build_type: daily
-      - uses: ./utils/ci/download_lcd_linux_include
-        with:
-          platform: linux
-          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-          build_type: daily
+          path: |
+            linux-bundles.tar.gz
+            linux-include.tar.gz
+          key: linux-bundles-github-techpreview-${{ github.sha }}
       - name: Unpack the bundles to build/sync
         run: |
           mkdir wheels
@@ -160,16 +156,13 @@ jobs:
           platform: linux
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - uses: ./utils/ci/download_lcd_linux_bundles
+      - name: Restore bundles and includes from cache
+        uses: actions/cache/restore@v4
         with:
-          platform: linux
-          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-          build_type: daily
-      - uses: ./utils/ci/download_lcd_linux_include
-        with:
-          platform: linux
-          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-          build_type: daily
+          path: |
+            linux-bundles.tar.gz
+            linux-include.tar.gz
+          key: linux-bundles-github-techpreview-${{ github.sha }}
       - name: Unpack the bundles tarball to wheels
         run: |
           mkdir wheels
@@ -230,16 +223,13 @@ jobs:
           platform: linux
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - uses: ./utils/ci/download_lcd_linux_bundles
+      - name: Restore bundles and includes from cache
+        uses: actions/cache/restore@v4
         with:
-          platform: linux
-          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-          build_type: daily
-      - uses: ./utils/ci/download_lcd_linux_include
-        with:
-          platform: linux
-          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-          build_type: daily
+          path: |
+            linux-bundles.tar.gz
+            linux-include.tar.gz
+          key: linux-bundles-github-techpreview-${{ github.sha }}
       - run: chown -R $(id -u):$(id -g) $PWD
       - name: Unpack the bundles to build/sync
         run: |
@@ -254,6 +244,7 @@ jobs:
           bundle: chimerax.flatpak
           manifest-path: github-flatpak.yaml
           cache-key: flatpak-builder-${{ github.sha }}
+          upload-artifact: false
       # For now, we're skipping tests for the Flatpak
       - name: Upload ChimeraX
         uses: ./utils/ci/upload_artifact
@@ -263,7 +254,7 @@ jobs:
           release_type: github-techpreview
           platform: flatpak
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-  build-macos:
+  build-arm-macos:
     name: Build ChimeraX for Apple Silicon
     runs-on: macos-latest
     steps:
@@ -365,9 +356,50 @@ jobs:
           release_type: github-techpreview
           platform: macosx
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-  # TODO: Decide whether to dupe the arm64 build but make it universal
-  # or to upload an Intel and Apple Silicon ChimeraX, then download,
-  # combine, sign, and reupload them. The first seems simpler.
+  build-mac-universal:
+    name: Build ChimeraX for all Macs
+    runs-on: macos-13
+    needs: [build-intel-macos, build-arm-macos]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        run: |
+          brew install python@3.10
+          python3.10 -m pip install lief==0.12.1
+      - uses: ./utils/ci/download_mac_chimerax
+        with:
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          build_type: github-techpreview
+      - name: Extract the ChimeraXes
+        run: |
+          hdiutil attach chimerax_intel.dmg
+          cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_intel.app
+          hdiutil detach /Volumes/ChimeraX\ Installer
+          hdiutil attach chimerax_arm.dmg
+          cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_arm64.app
+          hdiutil detach /Volumes/ChimeraX\ Installer
+      - name: Make the universal build
+        run: |
+          python3.10 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app 2>&1
+      - name: Sign the macOS package
+        uses: ./utils/ci/sign_macos/
+        with:
+          build_certificate: ${{ secrets.MAC_CERT_BASE64 }}
+          p12_pw: ${{ secrets.MAC_CERT_P12_PASSWD }}
+          build_profile: ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }}
+          kc_pw: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
+          team_id: ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
+          app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
+          provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
+          email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
+      - name: Upload ChimeraX
+        uses: ./utils/ci/upload_artifact
+        with:
+          artifact_path: ChimeraX.dmg
+          full_build: true
+          release_type: github-techpreview
+          platform: mac_universal
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
   build-windows:
     name: Build ChimeraX for Windows
     runs-on: windows-latest
