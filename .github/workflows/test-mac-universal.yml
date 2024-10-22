@@ -22,13 +22,18 @@ jobs:
           hdiutil attach chimerax_intel.dmg
           cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_intel.app
           hdiutil detach /Volumes/ChimeraX\ Installer
+          rm chimerax_intel.dmg
           hdiutil attach chimerax_arm.dmg
           cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_arm64.app
           hdiutil detach /Volumes/ChimeraX\ Installer
-      - uses: mxschmitt/action-tmate@v3
+          rm chimerax_arm.dmg
       - name: Make the universal build
         run: |
           python3.10 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app 2>&1
+      - name: Remove unneeded ChimeraXes
+        run: |
+          rm chimerax_arm64.app
+          rm chimerax_intel.app
       - name: Sign the macOS package
         uses: ./utils/ci/sign_macos/
         with:
