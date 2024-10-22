@@ -6,7 +6,6 @@ jobs:
   build-mac-universal:
     name: Build ChimeraX for all Macs
     runs-on: macos-13
-    needs: [build-intel-macos, build-arm-macos]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
