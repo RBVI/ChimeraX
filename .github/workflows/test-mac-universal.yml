@@ -34,22 +34,23 @@ jobs:
         run: |
           rm -r chimerax_arm64.app
           rm -r chimerax_intel.app
-      - name: Sign the macOS package
-        uses: ./utils/ci/sign_macos/
-        with:
-          build_certificate: ${{ secrets.MAC_CERT_BASE64 }}
-          p12_pw: ${{ secrets.MAC_CERT_P12_PASSWD }}
-          build_profile: ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }}
-          kc_pw: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
-          team_id: ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
-          app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
-          provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
-          email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
-      - name: Upload ChimeraX
-        uses: ./utils/ci/upload_artifact
-        with:
-          artifact_path: ChimeraX.dmg
-          full_build: true
-          release_type: github-techpreview
-          platform: mac_universal
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - uses: mxschmitt/action-tmate@v3
+      #- name: Sign the macOS package
+      #  uses: ./utils/ci/sign_macos/
+      #  with:
+      #    build_certificate: ${{ secrets.MAC_CERT_BASE64 }}
+      #    p12_pw: ${{ secrets.MAC_CERT_P12_PASSWD }}
+      #    build_profile: ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }}
+      #    kc_pw: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
+      #    team_id: ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
+      #    app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
+      #    provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
+      #    email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
+      #- name: Upload ChimeraX
+      #  uses: ./utils/ci/upload_artifact
+      #  with:
+      #    artifact_path: ChimeraX.dmg
+      #    full_build: true
+      #    release_type: github-techpreview
+      #    platform: mac_universal
+      #    deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
