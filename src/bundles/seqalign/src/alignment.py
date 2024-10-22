@@ -83,6 +83,8 @@ class Alignment(State):
     class NoSelectionError(NotABug): pass
     class NoSelectionExpansionError(NotABug): pass
 
+    COL_IDENTITY_ATTR = "seq_column_identity_percentage"
+
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
             description, intrinsic, *, create_headers=True, session_restore=False):
         if not seqs:
@@ -159,6 +161,10 @@ class Alignment(State):
             attr_headers = []
             for header in self._headers:
                 header.shown = header.settings.initially_shown and header.relevant
+            if len(seqs) > 1:
+                from chimerax.atomic import Residue
+                Residue.register_attr(self.session, self.COL_IDENTITY_ATTR, "sequence alignment",
+                    attr_type=float, can_return_none=False)
             self._set_residue_attributes()
 
     def add_fixed_header(self, name, contents, *, shown=True, identifier=None, base_class=None):
@@ -424,6 +430,15 @@ class Alignment(State):
                     break
             else:
                 self._notify_observers(note_name, note_data)
+
+    def associated_residues(self, aseqs=None):
+        if aseqs is None:
+            aseqs = self.seqs
+        residues = []
+        for aseq in aseqs:
+            for match_map in aseq.match_maps.values():
+                residues.extend(match_map.res_to_pos.keys())
+        return residues
 
     def attach_viewer(self, viewer, *, subcommand_name=None):
         """Called by the viewer (with the viewer instance as the arg) to receive notifications
@@ -773,50 +788,6 @@ class Alignment(State):
         with io.open_output(output, 'utf-8') as stream:
             mod.save(self.session, self, stream)
 
-    def select_by_conservation(self, conservation):
-        """Conservation is a percentage identity (i.e. 0-100).  Columns conserved >= that percentage
-           will have their associated residues selected.  The percentage can also be negative, in which
-           case columns conserved less than that percentage will be selected.
-        """
-        if not self.associations:
-            return
-        sel_residues = []
-        for i in range(len(self._seqs[0])):
-            counts = {}
-            for seq in self._seqs:
-                c = seq[i]
-                if not c.isalnum():
-                    continue
-                counts[c] = counts.get(c, 0) + 1
-            if not counts:
-                continue
-            max_count = None
-            for c, count in counts.items():
-                if max_count is None or count > max_count:
-                    max_count = count
-            percent = 100.0 * max_count / len(self._seqs)
-            if conservation >= 0:
-                if percent < conservation:
-                    continue
-            else:
-                if percent >= -conservation:
-                    continue
-            for sseq, aseq in self.associations.items():
-                ungapped = aseq.gapped_to_ungapped(i)
-                if ungapped is None:
-                    continue
-                try:
-                    r = aseq.match_maps[sseq][ungapped]
-                except KeyError:
-                    continue
-                sel_residues.append(r)
-        from chimerax.atomic import concise_residue_spec
-        from chimerax.core.commands import run
-        if sel_residues:
-            run(self.session, "select " + concise_residue_spec(self.session, sel_residues))
-        else:
-            run(self.session, "~select")
-
     @property
     def seqs(self):
         return self._seqs[:]
@@ -950,6 +921,13 @@ class Alignment(State):
         """For restoring scenes/sessions"""
         ident = data['ident'] if 'ident' in data else data['name']
         create_headers = data['version'] < 2
+        for seq in data['seqs']:
+            if seq.characters == "AYVINEACISCGACEPECPVNAISSGDDRYVIDADTCIDCGACAGVCPVDAPVQA" and len(seq) < len(data['seqs'][0]):
+                if hasattr(seq, 'residues'):
+                    import sys
+                    print("structure sequence", file=sys.__stderr__)
+                else:
+                    seq.characters = "AYVINEA--CISCGACEPECPVNAISSGDD---RYVIDADTCIDCGACAGVCPVDA-PVQA"
         aln = Alignment(session, data['seqs'], ident, data['file attrs'],
             data['file markups'], data['auto_destroy'],
             "session" if data['auto_associate'] else False,
@@ -1016,19 +994,13 @@ class Alignment(State):
         self._notify_observers(self.NOTE_REALIGNMENT, prev_seqs)
 
     def _set_residue_attributes(self, *, headers=None, match_maps=None):
-        if headers is None:
-            headers = [hdr for hdr in self._headers if hdr.shown or hdr.eval_while_hidden]
         if match_maps is None:
             match_maps = [mm for aseq in self.associations.values() for mm in aseq.match_maps.values()]
-        from chimerax.atomic import Residue
-        for header in headers:
-            attr_name = header.residue_attr_name
-            Residue.register_attr(self.session, attr_name, "sequence alignment",
-                attr_type=header.value_type, can_return_none=header.value_none_okay)
+        def process_attr(attr_name, col_vals):
             assigned = set()
             for match_map in match_maps:
                 aseq = match_map.align_seq
-                for i, val in enumerate(header):
+                for i, val in enumerate(col_vals):
                     ui = aseq.gapped_to_ungapped(i)
                     if ui is None:
                         continue
@@ -1036,10 +1008,37 @@ class Alignment(State):
                         r = match_map[ui]
                     except KeyError:
                         continue
-                    setattr(r, attr_name, val)
-                    assigned.add(r)
+                    if not hasattr(r, attr_name) or getattr(r, attr_name) != val:
+                        setattr(r, attr_name, val)
+                        assigned.add(r)
             if assigned:
                 self.session.change_tracker.add_modified(assigned, attr_name + " changed")
+        if headers is None:
+            headers = [hdr for hdr in self._headers if hdr.shown or hdr.eval_while_hidden]
+            if len(self.seqs) > 1:
+                values = []
+                for i in range(len(self._seqs[0])):
+                    counts = {}
+                    for seq in self._seqs:
+                        c = seq[i]
+                        if not c.isalnum():
+                            continue
+                        counts[c] = counts.get(c, 0) + 1
+                    if not counts:
+                        values.append(0.0)
+                        continue
+                    max_count = None
+                    for c, count in counts.items():
+                        if max_count is None or count > max_count:
+                            max_count = count
+                    values.append(100.0 * max_count / len(self._seqs))
+                process_attr(self.COL_IDENTITY_ATTR, values)
+        from chimerax.atomic import Residue
+        for header in headers:
+            attr_name = header.residue_attr_name
+            Residue.register_attr(self.session, attr_name, "sequence alignment",
+                attr_type=header.value_type, can_return_none=header.value_none_okay)
+            process_attr(attr_name, header)
 
     def __str__(self):
         return self.ident
