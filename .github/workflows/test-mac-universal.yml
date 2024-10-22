@@ -5,12 +5,13 @@ on:
 jobs:
   build-mac-universal:
     name: Build ChimeraX for all Macs
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
         run: |
           brew install python@3.10
+          python3.10 -m pip install setuptools==55.0
           python3.10 -m pip install lief==0.12.1
       - uses: ./utils/ci/download_mac_chimerax
         with:
