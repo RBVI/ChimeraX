@@ -373,6 +373,9 @@ def seqalign_identity(session, src1, src2=None, *, denominator=IdentityDenominat
         session.logger.info("%s vs. %s: %.2f%% identity" % (seq1.name, src2.name, identity))
     return identity
 
+def seqalign_refresh_attrs(session, alignment):
+    alignment._set_residue_attributes()
+
 def seqalign_refseq(session, ref_seq_info):
     if isinstance(ref_seq_info, tuple):
         aln, ref_seq = ref_seq_info
@@ -496,6 +499,12 @@ def register_seqalign_command(logger):
         synopsis = "set alignment reference sequence"
     )
     register('sequence refseq', desc, seqalign_refseq, logger=logger)
+
+    desc = CmdDesc(
+        required = [('alignment', AlignmentArg)],
+        synopsis = "refresh residue attributes using this alignment"
+    )
+    register('sequence refreshAttrs', desc, seqalign_refresh_attrs, logger=logger)
 
     desc = CmdDesc(
         required = [('alignments', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg))],

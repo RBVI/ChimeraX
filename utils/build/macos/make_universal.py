@@ -1,68 +1,86 @@
 # -------------------------------------------------------------------------------------
 # Make a Mac universal build by combining Arm and Intel builds using the lipo command.
 #
-def make_universal(arm_location, intel_location, universal_location, exclude, warn_on_mismatch):
+def make_universal(
+    arm_location, intel_location, universal_location, exclude, warn_on_mismatch
+):
     paths = tree_files(arm_location, intel_location, exclude=exclude)
     from os.path import join, exists
+
     if not exists(universal_location):
         from os import mkdir
+
         mkdir(universal_location)
     for path in paths:
-        apath, ipath, upath = join(arm_location, path), join(intel_location, path), join(universal_location, path)
+        apath, ipath, upath = (
+            join(arm_location, path),
+            join(intel_location, path),
+            join(universal_location, path),
+        )
         apath_exists, ipath_exists = exists(apath), exists(ipath)
         warn = warn_on_mismatch(path)
         if apath_exists and not ipath_exists:
             if warn:
-                log_mismatch(f'Missing Intel {path}')
-            copy(apath, upath, whole_tree = True)
+                log_mismatch(f"Missing Intel {path}")
+            copy(apath, upath, whole_tree=True)
         elif ipath_exists and not apath_exists:
             if warn:
-                log_mismatch(f'Missing ARM {path}')
-            copy(ipath, upath, whole_tree = True)
+                log_mismatch(f"Missing ARM {path}")
+            copy(ipath, upath, whole_tree=True)
         elif same_file(apath, ipath):
             copy(apath, upath)
         elif is_executable(apath):
             lipo_files(apath, ipath, upath, warn)
         else:
             if warn:
-                log_mismatch(f'Differ {path}')
+                log_mismatch(f"Differ {path}")
             # Use ARM if files differ.
             copy(apath, upath)
 
     use_intel_info_plist(intel_location, universal_location)
-    
-def tree_files(path1, path2, exclude, prefix = '', paths = None):
+
+
+def tree_files(path1, path2, exclude, prefix="", paths=None):
     from os import listdir
+
     files1, files2 = listdir(path1), listdir(path2)
     if paths is None:
         paths = []
     from os.path import join, isdir, islink
+
     for file in set(files1 + files2):
         path = join(prefix, file)
         if exclude(path):
             continue
         paths.append(path)
-        dir1, dir2 = join(path1,file), join(path2,file)
+        dir1, dir2 = join(path1, file), join(path2, file)
         if isdir(dir1) and not islink(dir1) and isdir(dir2) and not islink(dir2):
-            tree_files(dir1, dir2, exclude, prefix = path, paths = paths)
+            tree_files(dir1, dir2, exclude, prefix=path, paths=paths)
     return paths
-    
-def copy(file1, file2, whole_tree = False):
+
+
+def copy(file1, file2, whole_tree=False):
     from os.path import islink, isfile, isdir, exists
+
     if islink(file1) or isfile(file1):
         if not islink(file2) and not exists(file2):
             from shutil import copy
-            copy(file1, file2, follow_symlinks = False)
+
+            copy(file1, file2, follow_symlinks=False)
     elif isdir(file1) and not exists(file2):
         if whole_tree:
             from shutil import copytree
+
             copytree(file1, file2, symlinks=True)
         else:
             from os import mkdir
+
             mkdir(file2)
+
 
 def same_file(file1, file2):
     from os.path import islink, isdir, isfile
+
     if islink(file1) and islink(file2):
         return True
     if isdir(file1) and isdir(file2):
@@ -74,19 +92,22 @@ def same_file(file1, file2):
             return True
     return False
 
+
 def files_differ(arm_path, intel_path):
     from os.path import getsize
+
     if getsize(arm_path) != getsize(intel_path):
         return True
-    with open(arm_path, 'rb') as afile:
-        with open(intel_path, 'rb') as ifile:
-            if afile.read() != ifile.read(): 
+    with open(arm_path, "rb") as afile:
+        with open(intel_path, "rb") as ifile:
+            if afile.read() != ifile.read():
                 return True
     return False
 
+
 def only_line_endings_differ(arm_path, intel_path):
-    with open(arm_path, 'rb') as afile:
-        with open(intel_path, 'rb') as ifile:
+    with open(arm_path, "rb") as afile:
+        with open(intel_path, "rb") as ifile:
             while True:
                 aline, iline = afile.readline(), ifile.readline()
                 if aline.rstrip() != iline.rstrip():
@@ -95,15 +116,23 @@ def only_line_endings_differ(arm_path, intel_path):
                     break
     return True
 
+
 import lief
-need_lipo = set([lief.MachO.FILE_TYPES.BUNDLE,
-                 lief.MachO.FILE_TYPES.DYLIB,
-                 lief.MachO.FILE_TYPES.EXECUTE,
-                 lief.MachO.FILE_TYPES.OBJECT])
+
+need_lipo = set(
+    [
+        lief.MachO.FILE_TYPES.BUNDLE,
+        lief.MachO.FILE_TYPES.DYLIB,
+        lief.MachO.FILE_TYPES.EXECUTE,
+        lief.MachO.FILE_TYPES.OBJECT,
+    ]
+)
 lief.logging.disable()
-    
+
+
 def is_executable(path):
     import lief
+
     if not lief.is_macho(path):
         return False
     try:
@@ -112,84 +141,114 @@ def is_executable(path):
         return False
     if m is None or m.at(0) is None:
         return False
-    file_type =  m.at(0).header.file_type
+    file_type = m.at(0).header.file_type
     return file_type in need_lipo
+
 
 def lipo_files(arm_path, intel_path, universal_path, warn):
     if not is_executable(intel_path) and warn:
-        log_mismatch(f'Not executable {intel_path}')
+        log_mismatch(f"Not executable {intel_path}")
         copy(arm_path, universal_path)
         return
 
     # Use lipo command to merge ARM and Intel binaries.
     # The lipo command uses different options for handling thin versus fat files
     # so first we extract thin versions.
-    arm_path_thin = universal_path + '.arm64_thin'
-    if not make_thin(arm_path, arm_path_thin, 'arm64'):
-        log_mismatch(f'ARM ChimeraX has only Intel binary: {arm_path}')
+    arm_path_thin = universal_path + ".arm64_thin"
+    if not make_thin(arm_path, arm_path_thin, "arm64"):
+        log_mismatch(f"ARM ChimeraX has only Intel binary: {arm_path}")
         copy(arm_path, universal_path)
         return
-    
-    intel_path_thin = universal_path + '.x86_64_thin'
-    if not make_thin(intel_path, intel_path_thin, 'x86_64'):
-        log_mismatch(f'Intel ChimeraX has non-Intel binary: {intel_path}')
+
+    intel_path_thin = universal_path + ".x86_64_thin"
+    if not make_thin(intel_path, intel_path_thin, "x86_64"):
+        log_mismatch(f"Intel ChimeraX has non-Intel binary: {intel_path}")
         copy(arm_path, universal_path)
         return
 
     import subprocess
-    args = ['lipo', arm_path_thin, intel_path_thin, '-create', '-output', universal_path]
-    p = subprocess.run(args, capture_output = True)
-    if p.returncode != 0:
-        cmd = ' '.join(args)
-        raise RuntimeError('Error in lipo command: %s\nstdout:\n%s\nstderr:\n%s' % (cmd, p.stdout, p.stderr))
 
-    '''
+    args = [
+        "lipo",
+        arm_path_thin,
+        intel_path_thin,
+        "-create",
+        "-output",
+        universal_path,
+    ]
+    p = subprocess.run(args, capture_output=True)
+    if p.returncode != 0:
+        cmd = " ".join(args)
+        raise RuntimeError(
+            "Error in lipo command: %s\nstdout:\n%s\nstderr:\n%s"
+            % (cmd, p.stdout, p.stderr)
+        )
+
+    """
     from os.path import getsize, basename, dirname
     log_mismatch('lipo %d %d %d %s %s' %
                  (getsize(universal_path), getsize(arm_path_thin), getsize(intel_path_thin),
                   basename(universal_path), dirname(universal_path)))
-    '''
-    
+    """
+
     from os import remove, chmod
+
     remove(arm_path_thin)
     remove(intel_path_thin)
-    chmod(universal_path, 0o755)	# Add execute permission.
+    chmod(universal_path, 0o755)  # Add execute permission.
+
 
 def make_thin(path, thin_path, arch):
-    args = ['lipo', path, '-info']
+    args = ["lipo", path, "-info"]
     import subprocess
-    p = subprocess.run(args, capture_output = True)
+
+    p = subprocess.run(args, capture_output=True)
     if p.returncode != 0:
-        cmd = ' '.join(args)
-        raise RuntimeError('Error in lipo command: %s\nstdout:\n%s\nstderr:\n%s' % (cmd, p.stdout, p.stderr))
-    if arch.encode('utf-8') not in p.stdout:
-        return False	# binary does not contain desired architecture
-    elif p.stdout.startswith(b'Non-fat'):
+        cmd = " ".join(args)
+        raise RuntimeError(
+            "Error in lipo command: %s\nstdout:\n%s\nstderr:\n%s"
+            % (cmd, p.stdout, p.stderr)
+        )
+    if arch.encode("utf-8") not in p.stdout:
+        return False  # binary does not contain desired architecture
+    elif p.stdout.startswith(b"Non-fat"):
         from shutil import copyfile
+
         copyfile(path, thin_path)
     else:
-        args = ['lipo', path, '-thin', arch, '-output', thin_path]
+        args = ["lipo", path, "-thin", arch, "-output", thin_path]
     import subprocess
-    p = subprocess.run(args, capture_output = True)
+
+    p = subprocess.run(args, capture_output=True)
     if p.returncode != 0:
-        cmd = ' '.join(args)
-        raise RuntimeError('Error in lipo command: %s\nstdout:\n%s\nstderr:\n%s' % (cmd, p.stdout, p.stderr))
+        cmd = " ".join(args)
+        raise RuntimeError(
+            "Error in lipo command: %s\nstdout:\n%s\nstderr:\n%s"
+            % (cmd, p.stdout, p.stderr)
+        )
     return True
 
+
 def use_intel_info_plist(intel_location, universal_location):
-    '''
+    """
     The ARM Info.plist specifies the minimum os version as 11.0 while
     the Intel specifies it as 10.13.  Use the older Intel version otherwise
     the app icon appears crossed-out and unrunnable on macOS 10.15 and older.
-    '''
+    """
     from shutil import copyfile
     from os.path import join
-    copyfile(join(intel_location, 'Contents', 'Info.plist'),
-             join(universal_location, 'Contents', 'Info.plist'))
+
+    copyfile(
+        join(intel_location, "Contents", "Info.plist"),
+        join(universal_location, "Contents", "Info.plist"),
+    )
+
 
 def log_mismatch(message):
     from sys import stderr
-    stderr.write(message + '\n')
+
+    stderr.write(message + "\n")
+
 
 def has_suffix(path, suffixes):
     for suffix in suffixes:
@@ -197,31 +256,60 @@ def has_suffix(path, suffixes):
             return True
     return False
 
+
 omit = [
-    '_CodeSignature',
-    'debugpy',
-    '.a',
-    'libtcl8.6.dylib',	# Causes notarization failure. Not used.
-    'libtk8.6.dylib',	# Causes notarization failure. Not used.
+    "_CodeSignature",
+    "debugpy",
+    ".a",
+    "libtcl8.6.dylib",  # Causes notarization failure. Not used.
+    "libtk8.6.dylib",  # Causes notarization failure. Not used.
+    "libHoloPlayCore.dylib",  # 0.1.0 has no ARM symbols (looking_glass)
+    "libopenvr_api_32.dylib",  # VR is not even supported on macOS
+    # These amber libs are always amd64 even on arm64 macos
+    "libgfortran.3.dylib",
+    "libgcc_s.1.dylib",
+    "libquadmath.0.dylib",
+    # These amber binaries are always amd64 even on arm64 macos
+    "sqm",
+    "espgen",
+    "am1bcc",
+    "antechamber",
+    "atomtype",
+    "bondtype",
+    "nc-config",
+    "nf-config",
+    "parmchk2",
+    "prepgen",
+    "residuegen",
+    "respgen",
+    ##### end of amber libs and binaries
+    "python3-intel64",  # Comes with ARM Python but is not universal
+    "python3.11-intel64",  # Comes with ARM Python but is not universal
 ]
 
 no_warn = [
-    '__pycache__',
-    '.pyc',
-    '.dist-info/RECORD',
-    '.dist-info/WHEEL',
-    '.dist-info/METADATA',
-    '.dist-info/direct_url.json',
-    'Contents/share/install-timestamp',
-    'LICENSE.txt',
+    "__pycache__",
+    ".pyc",
+    ".dist-info/RECORD",
+    ".dist-info/WHEEL",
+    ".dist-info/METADATA",
+    ".dist-info/direct_url.json",
+    "Contents/share/install-timestamp",
+    "LICENSE.txt",
 ]
+
 
 def exclude(path, omit=omit):
     return has_suffix(path, omit)
 
+
 def warn_on_mismatch(path, no_warn=no_warn):
     return not has_suffix(path, no_warn)
 
+
 import sys
+
 arm_location, intel_location, universal_location = sys.argv[1:4]
-make_universal(arm_location, intel_location, universal_location, exclude, warn_on_mismatch)
+make_universal(
+    arm_location, intel_location, universal_location, exclude, warn_on_mismatch
+)

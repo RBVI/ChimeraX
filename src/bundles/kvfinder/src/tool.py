@@ -245,11 +245,12 @@ class KVFinderResultsDialog(ToolInstance):
             elif setting_name is not None:
                 run(self.session, f"view {self.structure.atomspec}")
         if setting_name is None or setting_name == "surface":
+            run(self.session, f"~surface {self.cavity_group.atomspec}")
             if _settings.surface:
                 probe_arg = "" if self.probe_radius == 1.4 else f" probeRadius {self.probe_radius}"
-                surfs = run(self.session, f"surface {model_spec}{probe_arg}; trans {model_spec} 50")
-            elif setting_name is not None:
-                run(self.session, f"~surface {model_spec}")
+                surfs = run(self.session, f"surface {model_spec}{probe_arg} enclose {self.cavity_group.atomspec}; trans {model_spec} 50")
+            #elif setting_name is not None:
+            #    run(self.session, f"~surface {model_spec}")
         if setting_name in ["select_atoms", "show"] or setting_name is None \
         and (_settings.select_atoms or _settings.show):
             if self.nearby_entry.hasAcceptableInput():

@@ -471,7 +471,10 @@ class XR:
         if (vsf & xr.VIEW_STATE_POSITION_VALID_BIT == 0 or
             vsf & xr.VIEW_STATE_ORIENTATION_VALID_BIT == 0):
             return False  # There are no valid tracking poses for the views.
-    
+
+        if len(evs) != 2:
+            return False	# Acer stereo display can return fewer than 2 views.  Bug #16151
+
         self._eye_view_states = evs
         for eye_index, view_state in enumerate(evs):
             self.field_of_view[eye_index] = view_state.fov
@@ -727,6 +730,8 @@ class XR:
     def headset_pose(self):
         # head to room coordinates.  None if not available
         e0, e1 = self.eye_pose
+        if e0 is None or e1 is None:
+            return None
         shift = 0.5 * (e1.origin() - e0.origin())
         from chimerax.geometry import translation
         return translation(shift) * e0

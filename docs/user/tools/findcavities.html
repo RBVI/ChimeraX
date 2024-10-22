@@ -154,32 +154,37 @@ of cavity points</b>
 The <b>Find Cavities</b> tool includes the option to show surfaces around
 the clouds of grid points.
 It might be interesting to color these surfaces by properties 
-from the surrounding protein. Since the tool uses only the cavity
-grid points to calculate the surfaces, however,
-the coloring commands need to specify using the protein atoms 
-to calculate the properties even though they were not used to make
-the surfaces.
+from the surrounding protein. However, since only the cavity points 
+(and not the protein atoms) were used to calculate the surfaces,
+the coloring command must specify using the protein atoms to calculate 
+the properties for coloring these surfaces.
 </p><p>
-For example, if the protein structure is model #1 and the 
-computed cavity models are #1.2.1, #1.2.2, ... #1.2.12, then the following
-commands could be used to color the cavity surfaces by 
-molecular lipophilic potential (MLP) and 
-Coulombic electrostatic potential (ESP), respectively:
+For example, if the option to show cavity surfaces is turned on, and
+the protein structure is model #1 and the computed cavity models are 
+#1.2.1, #1.2.2, (<i>etc.</i>), the following commands could be 
+used to color the surfaces by 
+Coulombic electrostatic potential (ESP) and
+and molecular lipophilic potential (MLP), respectively:
 </p>
 <blockquote>
-<b><a href="../commands/mlp.html">mlp</a> (#1 & protein) surfaces #1.2</b>
-<br><br>
 <b><a href="../commands/coulombic.html">coulombic</a>
 (#1 & protein) surfaces #1.2 offset -1</b>
+<br><br>
+<b><a href="../commands/mlp.html">mlp</a> (#1 & protein) surfaces #1.2</b>
 </blockquote>
 <p>
-A negative offset was used to show the electrostatic
-potential <b><i>inside</i></b> the cavity surfaces, where binding might occur.
+A negative offset is used to show the ESP
+<b><i>inside</i></b> the cavity surfaces, where binding might occur.
 For the usual case of coloring a protein surface by its own potential,
 a positive offset (default <b>1.4</b> &Aring;) is used to show the potential
 <b><i>outside</i></b> the surface, where interactions with other molecules 
 would occur.
+</p><p>
+These types of coloring can be combined with surface transparency, for example:
 </p>
+<blockquote>
+<b><a href="../commands/transparency.html">transparency</a> #1.2 50
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 

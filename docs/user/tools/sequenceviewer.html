@@ -91,7 +91,7 @@ and they can be manipulated like other panels in ChimeraX
 
 <blockquote><b>
 <a href="#context">Context Menu</a>
-<br><a href="#headers">Headers</a>
+<br><a href="#headers">Headers and Residue Attributes</a>
 <br><a href="#regions">Regions</a>
 <br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#regionbrowser">Region Browser</a>
 <br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#uniprot">UniProt Sequence Features</a>
@@ -159,6 +159,12 @@ even if they form disjoint segments
 to all residues <a href="#association">associated</a> 
 with the same column(s) of the sequence alignment. See also:
 <a href="../commands/sequence.html#expandsel"><b>sequence expandsel</b></a>
+  <li><b>Select by Column Identity</b> 
+&ndash; <a href="../selection.html">select</a> residues associated
+with alignment columns that have the specified percentage 
+(100%, <100%, &ge;50%, or <50%)
+of the most prevalent nongap character in that column;
+see also <a href="#headers">residue attributes</a>
   <li><b>Update Chain Sequence...</b> show dialog for updating structure
 metadata with the <a href="#association">associated</a> sequence(s);
 this is useful for adding full sequence information to structures
@@ -246,7 +252,7 @@ preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
 <p class="nav">
 [<a href="#top">back to top: Sequence Viewer</a>]
 </p>
-<h3>Headers</h3>
+<h3>Headers and Residue Attributes</h3>
 <p>
 Sequence <b><i>headers</i></b> are rows of information above the sequences,
 such as a <b>Consensus</b> sequence, <b>Conservation</b> histogram, 
@@ -277,6 +283,15 @@ target="_blank">Coloring by Sequence Conservation</a>.
 See also the video
 <a href="https://youtu.be/XaTpB-UIxnU" target="_blank">Coloring Aligned
 Proteins by C&alpha; RMSD</a>.
+</p><p>
+A <a href="../attributes.html#residue">seq_identity</a> residue attribute is
+also created automatically (regardless of headers) when a structure is 
+<a href="#association">associated</a> with an alignment of at least two
+sequences. It is the percentage of a column that contains the most common
+nongap character in that column, and it does not depend on the type
+of the <a href="#association">associated</a> residue(s).
+See also: <a href="../commands/sequence.html#refreshAttrs"><b>sequence 
+refreshAttrs</b></a>
 </p>
 
 <a name="regions"></a>
@@ -550,6 +565,9 @@ are shown as the <a href="#regions">region</a> named
 <font style="color:black; background:lightgreen;padding:1px 3px">
 <b>ChimeraX&nbsp;selection</b></font>
 (default, see <a href="#settings-regions"><b>Regions</b> settings</a>)
+<li>various <a href="../attributes.html">attributes</a> may be assigned
+to the structure residues as described under
+<a href="#headers"><b>Headers and Residue Attributes</b></a>
 </ul>
 
 <a name="settings"></a>
@@ -852,5 +870,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2024</address>
+October 2024</address>
 </body></html>
