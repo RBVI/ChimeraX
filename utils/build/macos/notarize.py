@@ -380,6 +380,7 @@ def create_dmg(defaults):
   "title": "ChimeraX Installer",
   "background": "%s",
   "format": "%s",
+  "size": "5G",
   "compression-level": 9,
   "hide-extensions": ["%s"],
   "contents": [
