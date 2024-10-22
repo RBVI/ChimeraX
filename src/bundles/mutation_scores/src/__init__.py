@@ -24,40 +24,58 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _DeepMutationalScanAPI(BundleAPI):
+class _MutationScoresAPI(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is called by the toolshed on start up
-        from . import dms_label
-        dms_label.register_command(logger)
-        from . import dms_attribute
-        dms_attribute.register_command(logger)
-        from . import dms_scatter_plot
-        dms_scatter_plot.register_command(logger)
-        from . import dms_stats
-        dms_stats.register_command(logger)
-        from . import dms_histogram
-        dms_histogram.register_command(logger)
-        from . import dms_umap
-        dms_umap.register_command(logger)
+        from . import ms_data
+        ms_data.register_commands(logger)
+        from . import ms_label
+        ms_label.register_command(logger)
+        from . import ms_define
+        ms_define.register_command(logger)
+        from . import ms_scatter_plot
+        ms_scatter_plot.register_command(logger)
+        from . import ms_stats
+        ms_stats.register_command(logger)
+        from . import ms_histogram
+        ms_histogram.register_command(logger)
+        from . import ms_umap
+        ms_umap.register_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
-            if name == 'Deep mutational scan':
+            if name == 'Mutation scores':
                 from chimerax.open_command import OpenerInfo
-                class DeepMutationalScanInfo(OpenerInfo):
+                class MutationScoresInfo(OpenerInfo):
                     def open(self, session, path, file_name, **kw):
-                        from .dms_data import open_deep_mutational_scan_csv
-                        dms_data, message = open_deep_mutational_scan_csv(session, path, **kw)
+                        from .ms_csv_file import open_mutation_scores_csv
+                        ms_data, message = open_mutation_scores_csv(session, path, **kw)
                         return [], message
 
                     @property
                     def open_args(self):
                         from chimerax.atomic import ChainArg
-                        return {'Chain': ChainArg}
+                        return {'chain': ChainArg}
 
-                return DeepMutationalScanInfo()
+                return MutationScoresInfo()
 
-bundle_api = _DeepMutationalScanAPI()
+    # Map class name to class for session restore
+    @staticmethod
+    def get_class(class_name):
+        if class_name == 'MutationSet':
+            from .ms_data import MutationSet
+            return MutationSet
+        elif class_name == 'MutationScores':
+            from .ms_data import MutationScores
+            return MutationScores
+        elif class_name == 'ScoreValues':
+            from .ms_data import ScoreValues
+            return ScoreValues
+        elif class_name == 'MutationScoresManager':
+            from .ms_data import MutationScoresManager
+            return MutationScoresManager
+
+bundle_api = _MutationScoresAPI()

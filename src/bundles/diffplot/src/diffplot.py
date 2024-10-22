@@ -308,9 +308,15 @@ def _flatten_xyz_lists(xyz_lists):
     return coords
 
 def _umap_embed(data, random_seed = 0):
+    if data.shape[0] <= 2:
+        from chimerax.core.errors import UserError
+        raise UserError(f'UMAP requires at least 3 data points, got {data.shape[0]}')
     n_neighbors = min(15, data.shape[0]-1) # Avoid warning when fewer data points then default n_neighbors value
+    init = 'spectral'
+    if data.shape[0] <= data.shape[1] + 1:
+        init = 'random'  # Default spectral initialization fails if number of components > number of samples.
     import umap
-    reducer = umap.UMAP(n_neighbors = n_neighbors, random_state = random_seed, n_jobs = 1)
+    reducer = umap.UMAP(n_neighbors = n_neighbors, init = init, random_state = random_seed, n_jobs = 1)
     mapper = reducer.fit(data)
     return reducer.embedding_
 

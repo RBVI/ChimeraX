@@ -45,10 +45,12 @@ class Plot(ToolInstance):
         parent.setMinimumHeight(1)  # Matplotlib gives divide by zero error when plot resized to 0 height.
         c.setParent(parent)
 
-        from Qt.QtWidgets import QHBoxLayout
-        layout = QHBoxLayout()
+        from Qt.QtWidgets import QVBoxLayout
+        layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
-        layout.addWidget(c)
+        layout.setSpacing(0)
+
+        layout.addWidget(c, stretch = 1)
         parent.setLayout(layout)
         tw.manage(placement="side")
 
@@ -114,7 +116,7 @@ class Plot(ToolInstance):
 
     def matplotlib_mouse_event(self, x, y):
         '''Used for detecting clicked matplotlib canvas item using Artist.contains().'''
-        h = self.tool_window.ui_area.height()
+        h = self.canvas.height()
         # TODO: matplotlib 2.0.2 bug on mac retina displays, requires 2x scaling
         # for picking objects to work. ChimeraX ticket #762.
         pr = self.tool_window.ui_area.devicePixelRatio()
@@ -155,6 +157,10 @@ class Plot(ToolInstance):
         a.triggered.connect(lambda *, cb=callback, args=args: cb(*args))
         menu.addAction(a)
 
+    def add_menu_separator(self, menu):
+        '''Add menu separator to context menu'''
+        menu.addSeparator()
+
 # ------------------------------------------------------------------------------
 #
 class Graph(Plot):
@@ -166,7 +172,8 @@ class Graph(Plot):
     Middle and right mouse drags move the plotted objects.
     '''
     
-    def __init__(self, session, nodes, edges, tool_name, title, hide_ticks = True):
+    def __init__(self, session, nodes, edges, tool_name, title, hide_ticks = True,
+                 drag_select_callback = None):
 
         # Create matplotlib panel
         Plot.__init__(self, session, tool_name, title = title)
@@ -201,6 +208,16 @@ class Graph(Plot):
         self._dragged = False
         self._min_drag = 10	# pixels
         self._drag_mode = None
+
+        self._drag_select_callback = drag_select_callback
+        if drag_select_callback is not None:
+            from matplotlib.widgets import RectangleSelector
+            class DragSelect(RectangleSelector):
+                def connect_default_events(self):
+                    pass  # Use our own mouse event handler
+            self._drag_selector = DragSelect(self.axes, self._drag_select_callback, useblit = True)
+        else:
+            self._drag_selector = None
 
     def _make_graph(self):
         import networkx as nx
@@ -346,7 +363,7 @@ class Graph(Plot):
                 drag_mode = 'translate'
             else:
                 self.tool_window._show_context_menu(event)
-                drag_mode = 'menu'
+                drag_mode = None
         elif b == Qt.MiddleButton:
             drag_mode = 'translate'
         elif b == Qt.RightButton:
@@ -358,7 +375,12 @@ class Graph(Plot):
             drag_mode = None
 
         self._drag_mode = drag_mode
-        
+
+        if drag_mode == 'select' and self._drag_selector is not None:
+            e = self.matplotlib_mouse_event(pos.x(),pos.y())
+            self._drag_selector.background = None  # Needed so useblit does not draw stale plot image
+            self._drag_selector.press(e)
+            
     def _mouse_move(self, event):
         if self._last_mouse_xy is None:
             self._mouse_press(event)
@@ -368,7 +390,7 @@ class Graph(Plot):
         x, y = pos.x(), pos.y()
         lx, ly = self._last_mouse_xy
         dx, dy = x-lx, y-ly
-        if abs(dx) < self._min_drag and abs(dy) < self._min_drag:
+        if not self._dragged and abs(dx) < self._min_drag and abs(dy) < self._min_drag:
             return
         self._last_mouse_xy = (x,y)
         self._dragged = True
@@ -383,12 +405,27 @@ class Graph(Plot):
         elif mode == 'translate':
             # Translate plot
             self.move(dx, -dy)
-    
+        elif mode == 'select' and self._drag_selector is not None:
+            e = self.matplotlib_mouse_event(x,y)
+            self._drag_selector.onmove(e)
+
+        if mode is None or mode == 'select':
+            e = self.matplotlib_mouse_event(x,y)
+            self.mouse_hover(e)
+
     def _mouse_release(self, event):
-        if not self._dragged and self._drag_mode == 'select':
+        if self._drag_mode == 'select':
             pos = event.pos()
-            item = self._clicked_item(pos.x(), pos.y())
-            self.mouse_click(item, event)
+            x, y = pos.x(), pos.y()
+            if self._drag_selector is not None:
+                if self._dragged:
+                    e = self.matplotlib_mouse_event(x,y)
+                    self._drag_selector.release(e)
+                else:
+                    self._drag_selector.clear()
+            if not self._dragged:
+                item = self._clicked_item(x,y)
+                self.mouse_click(item, event)
 
         self._last_mouse_xy = None
         self._dragged = False
@@ -401,6 +438,9 @@ class Graph(Plot):
         self.zoom(factor)
 
     def mouse_click(self, node_or_edge, event):
+        pass
+
+    def mouse_hover(self, matplotlib_event):
         pass
 
     def is_alt_key_pressed(self, event):
@@ -426,10 +466,15 @@ class Graph(Plot):
     def _clicked_item(self, x, y):
         # Check for node click
         e = self.matplotlib_mouse_event(x,y)
+        item = self.clicked_item(e)
+        return item
+    
+    def clicked_item(self, matplotlib_event):
+        e = matplotlib_event
         c,d = self._node_artist.contains(e)
         item = None
         if c:
-            i = d['ind'][0]
+            i = d['ind'][-1]   # Top most node is last in list.
             item = self._node_objects[i]
         elif self._edge_artist:
             # Check for edge click

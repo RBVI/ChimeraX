@@ -25,11 +25,12 @@
 def sequence_blast(session, chain, database = 'pdb',
                    evalue_cutoff = 1e-3, max_hits = 1000,
                    trim = None, alignment_cutoff_distance = None,
-                   save_directory = None, wait = False):
+                   save_directory = None):
     '''Search PDB for similar sequences and display results in a table.'''
 
+    blast_db = {'pdb':'pdb', 'afdb':'alphafold'}[database]
     from chimerax.blastprotein import blastprotein
-    job = blastprotein(session, chain, database = database, cutoff = evalue_cutoff,
+    job = blastprotein(session, chain, database = blast_db, cutoff = evalue_cutoff,
                        maxSeqs = max_hits, showResultsTable = False)
 
     def show_results(job, session=session, chain=chain, database=database, save_directory=save_directory):
@@ -42,7 +43,7 @@ def sequence_blast(session, chain, database = 'pdb',
         if save_directory is None:
             from os.path import expanduser
             save_directory = expanduser('~/Downloads/ChimeraX/BLAST')
-        results.save_to_directory(save_directory)
+        results.sms_path = results.save_to_directory(save_directory)
 
         from .gui import show_similar_structures_table
         show_similar_structures_table(session, results)

@@ -1,6 +1,7 @@
 alsa-lib
 atk
 bzip2
+bzip2-devel
 cairo
 cairo-gobject
 cups-libs
@@ -70,6 +71,7 @@ patchelf
 pulseaudio-libs
 pulseaudio-libs-glib2
 rsync
+rpmdevtools
 sqlite
 sqlite-devel
 unzip
@@ -81,3 +83,4 @@ xdg-utils
 xz
 xz-libs
 zlib
+zlib-devel

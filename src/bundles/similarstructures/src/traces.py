@@ -22,8 +22,9 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def similar_structures_traces(session, align_with = None, cutoff_distance = None,
-                              close_only = 4.0, gap_distance_limit = 10.0, min_residues = 5,
+def similar_structures_traces(session, align_with = None, alignment_cutoff_distance = None,
+                              keep_close = 4.0, keep_segment = 10.0,
+                              min_residues = 5, break_distance = 5.0,
                               tube = True, radius = 0.1, segment_subdivisions = 3, circle_subdivisions = 6,
                               from_set = None, of_structures = None, replace = True):
     from .simstruct import similar_structure_results
@@ -36,8 +37,8 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
                                                            of_structures = of_structures):
             return
 
-    if cutoff_distance is None:
-        cutoff_distance = results.alignment_cutoff_distance
+    if alignment_cutoff_distance is None:
+        alignment_cutoff_distance = results.alignment_cutoff_distance
 
     from .simstruct import hit_coords, align_xyz_transform
     qchain = results.query_chain
@@ -71,14 +72,14 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
             aqxyz = qxyz[mask,:]
         if len(ahxyz) < 3:
                 continue	# Not enough atoms to align.
-        p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=cutoff_distance)
+        p, rms, npairs = align_xyz_transform(ahxyz, aqxyz, cutoff_distance=alignment_cutoff_distance)
         hxyz_aligned = p.transform_points(hxyz)
-        fragments = _distant_c_alpha_fragments(hxyz_aligned)
-        if close_only is not None and close_only > 0:
+        fragments = _distant_c_alpha_fragments(hxyz_aligned, break_distance)
+        if keep_close is not None and keep_close > 0:
             cfrags = []
             for start,end in fragments:
                 cfrags.extend(_close_fragments(hxyz_aligned[start:end], qxyz[start:end],
-                                               close_only, keep_gap_distance=gap_distance_limit, offset=start))
+                                               keep_close, keep_segment_distance=keep_segment, offset=start))
             fragments = cfrags
         min_res = max(2, min_residues)
         fragments = [(s,e) for s,e in fragments if e-s >= min_res]
@@ -115,10 +116,10 @@ def similar_structures_traces(session, align_with = None, cutoff_distance = None
     session.logger.info(msg)
     return surf
 
-def _distant_c_alpha_fragments(hxyz, max_distance = 5):
+def _distant_c_alpha_fragments(hxyz, break_distance = 5):
     d = hxyz[1:,:] - hxyz[:-1,:]
     d2 = (d*d).sum(axis = 1)
-    breaks = (d2 > max_distance*max_distance).nonzero()[0]
+    breaks = (d2 > break_distance*break_distance).nonzero()[0]
     fragments = []
     start = 0
     for b in breaks:
@@ -127,13 +128,13 @@ def _distant_c_alpha_fragments(hxyz, max_distance = 5):
     fragments.append((start, len(hxyz)))
     return fragments
 
-def _close_fragments(xyz, ref_xyz, distance, offset = 0, keep_gap_distance = None):
+def _close_fragments(xyz, ref_xyz, distance, offset = 0, keep_segment_distance = None):
     d = xyz - ref_xyz
     d2 = (d*d).sum(axis = 1)
     mask = (d2 <= distance*distance)
-    if keep_gap_distance is not None:
+    if keep_segment_distance is not None:
         n = len(xyz)
-        keep_dist2 = keep_gap_distance * keep_gap_distance
+        keep_dist2 = keep_segment_distance * keep_segment_distance
         for start, end in _mask_intervals(~mask):
             if start > 0 and end < n and d2[start:end].max() <= keep_dist2:
                 mask[start:end] = True  # Keep interior interval if largest distance is not too large.
@@ -357,10 +358,11 @@ def register_similar_structures_traces_command(logger):
     desc = CmdDesc(
         required = [],
         keyword = [('align_with', ResiduesArg),
-                   ('cutoff_distance', FloatArg),
-                   ('close_only', FloatArg),
-                   ('gap_distance_limit', FloatArg),
+                   ('alignment_cutoff_distance', FloatArg),
+                   ('keep_close', FloatArg),
+                   ('keep_segment', FloatArg),
                    ('min_residues', IntArg),
+                   ('break_distance', FloatArg),
                    ('tube', BoolArg),
                    ('radius', FloatArg),
                    ('segment_subdivisions', IntArg),
