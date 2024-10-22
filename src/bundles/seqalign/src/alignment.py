@@ -83,7 +83,7 @@ class Alignment(State):
     class NoSelectionError(NotABug): pass
     class NoSelectionExpansionError(NotABug): pass
 
-    COL_IDENTITY_ATTR = "seq_column_identity_percentage"
+    COL_IDENTITY_ATTR = "seq_identity"
 
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
             description, intrinsic, *, create_headers=True, session_restore=False):
