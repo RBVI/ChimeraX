@@ -79,12 +79,14 @@ class KVFinderResultsDialog(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
         if args:
             # being called directly rather than during session restore
-            self.finalize_init(*args)
+            self.finalize_init(*args, False)
 
-    def finalize_init(self, structure, cavity_group, cavity_models, probe_radius, *, table_state=None):
+    def finalize_init(self, structure, cavity_group, cavity_models, probe_radius, surface_made,
+            *, table_state=None):
         self.structure = structure
         self.cavity_group = cavity_group
         self.probe_radius = probe_radius
+        self._surface_made = surface_made
 
         from chimerax.ui.widgets import ItemTable
         global _settings
@@ -204,7 +206,7 @@ class KVFinderResultsDialog(ToolInstance):
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
         inst.finalize_init(data['structure'], data['cavity_group'], data['cavity_models'],
-            data['probe_radius'], table_state=data['table state'])
+            data['probe_radius'], data.get('surface_made', False), table_state=data['table state'])
         return inst
 
     def take_snapshot(self, session, flags):
@@ -214,6 +216,7 @@ class KVFinderResultsDialog(ToolInstance):
             'cavity_group': self.cavity_group,
             'cavity_models': self.table.data,
             'probe_radius': self.probe_radius,
+            'surface_made': self._surface_made,
             'table state': self.table.session_info()
         }
         return data
@@ -245,12 +248,16 @@ class KVFinderResultsDialog(ToolInstance):
             elif setting_name is not None:
                 run(self.session, f"view {self.structure.atomspec}")
         if setting_name is None or setting_name == "surface":
-            run(self.session, f"~surface {self.cavity_group.atomspec}")
+            if self._surface_made:
+                run(self.session, f"~surface {self.cavity_group.atomspec}")
             if _settings.surface:
                 probe_arg = "" if self.probe_radius == 1.4 else f" probeRadius {self.probe_radius}"
-                surfs = run(self.session, f"surface {model_spec}{probe_arg} enclose {self.cavity_group.atomspec}; trans {model_spec} 50")
-            #elif setting_name is not None:
-            #    run(self.session, f"~surface {model_spec}")
+                if not self._surface_made:
+                    run(self.session, f"surface {self.cavity_group.atomspec}{probe_arg} ;"
+                        f" trans {self.cavity_group.atomspec} 50")
+                    run(self.session, f"~surface {self.cavity_group.atomspec}")
+                    self._surface_made = True
+                run(self.session, f"surface {model_spec}{probe_arg}")
         if setting_name in ["select_atoms", "show"] or setting_name is None \
         and (_settings.select_atoms or _settings.show):
             if self.nearby_entry.hasAcceptableInput():
