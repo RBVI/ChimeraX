@@ -68,7 +68,7 @@ jobs:
           -p ${{ secrets.MAC_NOTARIZATION_APP_PW }} \
           -P ${{ secrets.MAC_NOTARIZATION_PROVIDER }} \
           -i ${{ secrets.MAC_NOTARIZATION_EMAIL }} \
-          -k ${{ secrets.RUNNER_TEMP/app-signing.keychain-db \
+          -k $RUNNER_TEMP/app-signing.keychain-db \
           -K ${{ secrets.MAC_NOTARIZATION_KEYCHAIN_PW }} \
           -v -v -v
       - name: Make the DMG
@@ -84,7 +84,7 @@ jobs:
           -p ${{ secrets.MAC_NOTARIZATION_APP_PW }} \
           -P ${{ secrets.MAC_NOTARIZATION_PROVIDER }} \
           -i ${{ secrets.MAC_NOTARIZATION_EMAIL }} \
-          -k ${{ secrets.RUNNER_TEMP/app-signing.keychain-db \
+          -k $RUNNER_TEMP/app-signing.keychain-db \
           -K ${{ secrets.MAC_NOTARIZATION_KEYCHAIN_PW }} \
           -v -v -v
       - name: Upload ChimeraX
