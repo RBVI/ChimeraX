@@ -261,6 +261,7 @@ jobs:
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
+      - run: brew install python@3.10
       - uses: actions/checkout@v4
       - run: ${PWD}/utils/set_up_macos.sh
       - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
@@ -311,6 +312,7 @@ jobs:
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
+      - run: brew install python@3.10
       - uses: actions/checkout@v4
       # Temporarily force this to succeed. The container's Python conflicts with homebrew's,
       # but we don't really use it anyway.
