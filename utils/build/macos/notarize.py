@@ -58,12 +58,16 @@ def main():
         action = sign_and_notarize
     elif what == "make":
         action = sign_binaries_and_make_dmg
+    elif what == "sign":
+        action = sign_binaries
     elif what == "submit":
         action = request_notarization
     elif what == "info":
         action = report_notarization_result
     elif what == "finish":
         action = staple_notarization_to_dmg
+    elif what == "notarize":
+        action = notarize_dmg
     elif what == "validate":
         action = validate_notarization
     else:
