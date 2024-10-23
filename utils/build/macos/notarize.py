@@ -58,12 +58,16 @@ def main():
         action = sign_and_notarize
     elif what == "make":
         action = sign_binaries_and_make_dmg
+    elif what == "sign":
+        action = sign_binaries
     elif what == "submit":
         action = request_notarization
     elif what == "info":
         action = report_notarization_result
     elif what == "finish":
         action = staple_notarization_to_dmg
+    elif what == "notarize":
+        action = notarize_dmg
     elif what == "validate":
         action = validate_notarization
     else:
@@ -111,7 +115,7 @@ class Defaults:
             os.path.dirname(os.path.abspath(__file__)),
             "entitlements.plist",
         )
-        self.verbose = 0
+        self.verbose = 3
 
     def set_options(self, opts):
         for opt, val in opts:
@@ -380,7 +384,6 @@ def create_dmg(defaults):
   "title": "ChimeraX Installer",
   "background": "%s",
   "format": "%s",
-  "size": "5G",
   "compression-level": 9,
   "hide-extensions": ["%s"],
   "contents": [

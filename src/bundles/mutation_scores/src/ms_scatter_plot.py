@@ -131,6 +131,7 @@ class ResidueScatterPlot(Graph):
         a.set_ylabel(y_label)
         if correlation:
             self.show_least_squares_fit(xy)
+        self._correlation_shown = correlation
         self.canvas.draw()
 
     def show_least_squares_fit(self, xy):
@@ -340,6 +341,52 @@ class ResidueScatterPlot(Graph):
     def _run_command(self, command):
         from chimerax.core.commands import run
         run(self.session, command)
+    
+    # ---------------------------------------------------------------------------
+    # Session save and restore.
+    #
+    SESSION_SAVE = True
+    def take_snapshot(self, session, flags):
+        xy, res, point_names, colors, node_area, label_nodes = [], [], [], [], 200, False
+        from chimerax.core.colors import rgba_to_rgba8
+        for node in self.nodes:
+            xy.append(node.position[:2])
+            r = node.residue
+            if r and r.deleted:
+                r = None
+            res.append(r)
+            node_area = node.size
+            if hasattr(node, 'description'):
+                point_names.append(node.description)
+            if node.name:
+                label_nodes = True
+            if hasattr(node, 'color'):
+                colors.append(rgba_to_rgba8(node.color))
+        axes = self.axes
+        data = {'xy': xy,
+                'residues': res,
+                'point_names': (None if len(point_names) == 0 else point_names),
+                'colors': (None if len(colors) == 0 else colors),
+                'correlation': self._correlation_shown,
+                'title': axes.get_title(),
+                'x_label': axes.get_xlabel(),
+                'y_label': axes.get_xlabel(),
+                'font_size': self.font_size,
+                'node_area': node_area,
+                'label_nodes': label_nodes,
+                'is_mutation_plot': self.is_mutation_plot,
+                'version': '1'}
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        sp = cls(session)
+        sp.set_nodes(data['xy'], data['residues'], point_names = data['point_names'], colors = data['colors'],
+                     correlation = data['correlation'],
+                     title = data['title'], x_label = data['x_label'], y_label = data['y_label'],
+                     node_font_size = data['font_size'], node_area = data['node_area'], label_nodes = data['label_nodes'],
+                     is_mutation_plot = data['is_mutation_plot'])
+        return sp
 
 def _find_close_residues(residue, residues, distance):
     rxyz = residue.atoms.coords

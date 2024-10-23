@@ -68,10 +68,12 @@ def mutation_scores_define(session, score_name = None, from_score_name = None, m
         svalues = ScoreValues(values, per_residue = per_residue)
     else:
         svalues = from_score_values
-        
+
     if combine is None:
         scores.set_computed_values(score_name, svalues)
-        session.logger.info(f'Defined score {score_name} for {svalues.count()} mutations')
+        values = [value for res_num, from_aa, to_aa, value in svalues.all_values()]
+        range = f'having range {"%.3g"%min(values)} to {"%.3g"%max(values)}' if len(values) > 0 else ''
+        session.logger.info(f'Defined score {score_name} {range} for {svalues.count()} mutations')
         return svalues
 
     # Compute per-residue values from per-mutation values.
@@ -83,7 +85,9 @@ def mutation_scores_define(session, score_name = None, from_score_name = None, m
             res_values.append((res_num, aa_type, taa, value))
     rvalues = ScoreValues(res_values, per_residue = True)
     scores.set_computed_values(score_name, rvalues)
-    session.logger.info(f'Defined score {score_name} for {rvalues.count()} residues using {svalues.count()} mutations')
+    values = [value for res_num, from_aa, to_aa, value in rvalues.all_values()]
+    range = f'having range {"%.3g"%min(values)} to {"%.3g"%max(values)}' if len(values) > 0 else ''
+    session.logger.info(f'Defined score {score_name} {range} for {rvalues.count()} residues using {svalues.count()} mutations')
 
     # Set residue attribute
     if set_attribute:

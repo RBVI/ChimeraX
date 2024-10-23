@@ -29,7 +29,7 @@ jobs:
           rm chimerax_arm.dmg
       - name: Make the universal build
         run: |
-          python3.10 -m pip install dmgbuild
+          python3.10 -m pip install dmgbuild lief==0.12.1
           # Make dmgbuild allocate an adult sized DMG
           patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
           python3.10 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app 2>&1
@@ -37,23 +37,61 @@ jobs:
         run: |
           rm -r chimerax_arm64.app
           rm -r chimerax_intel.app
-      - uses: mxschmitt/action-tmate@v3
-      #- name: Sign the macOS package
-      #  uses: ./utils/ci/sign_macos/
-      #  with:
-      #    build_certificate: ${{ secrets.MAC_CERT_BASE64 }}
-      #    p12_pw: ${{ secrets.MAC_CERT_P12_PASSWD }}
-      #    build_profile: ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }}
-      #    kc_pw: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
-      #    team_id: ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
-      #    app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
-      #    provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
-      #    email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
-      #- name: Upload ChimeraX
-      #  uses: ./utils/ci/upload_artifact
-      #  with:
-      #    artifact_path: ChimeraX.dmg
-      #    full_build: true
-      #    release_type: github-techpreview
-      #    platform: mac_universal
-      #    deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Install the Apple certificate and provisioning profile
+        shell: bash
+        run: |
+          # create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          # import certificate and provisioning profile from secrets
+          echo -n ${{ secrets.MAC_CERT_BASE64 }} | base64 --decode -o $CERTIFICATE_PATH
+          echo -n ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }} | base64 --decode -o $PP_PATH
+          # create temporary keychain
+          security create-keychain -p "${{secrets.MAC_KEYCHAIN_PASSWORD}}" $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          security unlock-keychain -p  $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          # import certificate to keychain
+          security import $CERTIFICATE_PATH -P "${{ secrets.MAC_CERT_P12_PASSWD }}" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          security set-key-partition-list -S apple-tool:,apple: -k "${{ secrets.MAC_KEYCHAIN_PASSWORD }}" $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          security list-keychain -d user -s $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          # apply provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+      - name: Sign the macOS Package
+        run: |
+          python3.10 utils/build/macos/notarize.py sign \
+          -a ChimeraX.app \
+          -d ChimeraX.dmg \
+          -T ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
+          -s ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}\
+          -p ${{ secrets.MAC_NOTARIZATION_APP_PW }} \
+          -P ${{ secrets.MAC_NOTARIZATION_PROVIDER }} \
+          -i ${{ secrets.MAC_NOTARIZATION_EMAIL }} \
+          -k $RUNNER_TEMP/app-signing.keychain-db \
+          -K ${{ secrets.MAC_NOTARIZATION_KEYCHAIN_PW }} \
+          -v -v -v
+      - name: Make the DMG
+        run: |
+          python3.10 -m dmgbuild -s ./utils/build/macos/dmgbuildsettings.json "ChimeraX Installer" ChimeraX.app
+      - name: Notarize the DMG
+        run: |
+          python3.10 utils/build/macos/notarize.py notarize \
+          -a ChimeraX.app \
+          -d ChimeraX.dmg \
+          -T ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
+          -s ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}\
+          -p ${{ secrets.MAC_NOTARIZATION_APP_PW }} \
+          -P ${{ secrets.MAC_NOTARIZATION_PROVIDER }} \
+          -i ${{ secrets.MAC_NOTARIZATION_EMAIL }} \
+          -k $RUNNER_TEMP/app-signing.keychain-db \
+          -K ${{ secrets.MAC_NOTARIZATION_KEYCHAIN_PW }} \
+          -v -v -v
+      - name: Upload ChimeraX
+        uses: ./utils/ci/upload_artifact
+        with:
+          artifact_path: ChimeraX.dmg
+          full_build: true
+          release_type: github-techpreview
+          platform: mac_universal
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
