@@ -58,6 +58,7 @@ jobs:
           # apply provisioning profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+      - uses: mxschmitt/action-tmate@v3
       - name: Sign the macOS Package
         run: |
           python3.10 utils/build/macos/notarize.py sign \
