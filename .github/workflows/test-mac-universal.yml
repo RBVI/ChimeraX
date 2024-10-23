@@ -61,15 +61,16 @@ jobs:
       - uses: mxschmitt/action-tmate@v3
       - name: Sign the macOS Package
         run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           python3.10 utils/build/macos/notarize.py sign \
           -a ChimeraX.app \
           -d ChimeraX.dmg \
           -T ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
           -s ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
-          -p ${{ secrets.MAC_NOTARIZATION_APP_PW }} \
+          -p ${{ secrets.MAC_NOTARIZATION_APP_PSWD }} \
           -P ${{ secrets.MAC_NOTARIZATION_PROVIDER }} \
           -i ${{ secrets.MAC_NOTARIZATION_EMAIL }} \
-          -k $RUNNER_TEMP/app-signing.keychain-db \
+          -k "$KEYCHAIN_PATH" \
           -K ${{ secrets.MAC_NOTARIZATION_KEYCHAIN_PW }} \
           -v -v -v
       - name: Make the DMG
@@ -82,10 +83,10 @@ jobs:
           -d ChimeraX.dmg \
           -T ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
           -s ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
-          -p ${{ secrets.MAC_NOTARIZATION_APP_PW }} \
+          -p ${{ secrets.MAC_NOTARIZATION_APP_PSWD }} \
           -P ${{ secrets.MAC_NOTARIZATION_PROVIDER }} \
           -i ${{ secrets.MAC_NOTARIZATION_EMAIL }} \
-          -k $RUNNER_TEMP/app-signing.keychain-db \
+          -k "$KEYCHAIN_PATH" \
           -K ${{ secrets.MAC_NOTARIZATION_KEYCHAIN_PW }} \
           -v -v -v
       - name: Upload ChimeraX
