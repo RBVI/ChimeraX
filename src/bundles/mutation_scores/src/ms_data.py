@@ -219,7 +219,6 @@ class MutationScoresManager(StateManager):
     def names(self):
         return tuple(self._scores.keys())
     def take_snapshot(self, session, flags):
-        print ('took snapshot mut score man')
         return {'scores': self._scores,
                 'version': 1}
     @classmethod
