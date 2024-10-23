@@ -72,6 +72,7 @@ jobs:
           -K ${{ secrets.MAC_NOTARIZATION_KEYCHAIN_PW }} \
           -v -v -v
       - name: Make the DMG
+        run: |
           python3.10 -m dmgbuild -s ./utils/build/macos/dmgbuildsettings.json "ChimeraX Installer" ChimeraX.app
       - name: Notarize the DMG
         run: |
