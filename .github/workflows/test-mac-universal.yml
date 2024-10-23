@@ -60,7 +60,7 @@ jobs:
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
       - name: Sign the macOS Package
         run: |
-          /usr/local/bin/python3.10 utils/build/macos/notarize.py sign \
+          python3.10 utils/build/macos/notarize.py sign \
           -a ChimeraX.app \
           -d ChimeraX.dmg \
           -T ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
