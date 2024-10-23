@@ -1005,7 +1005,7 @@ class BackingDrawing(Drawing):
                     "tilted spacing": ro.tilted_slab_spacing,
                     "tilted offset": ro.tilted_slab_offset,
                     "tilted plane count": ro.tilted_slab_plane_count,
-                    "tilted axis": ro.tilted_slab_axis,
+                    "tilted axis": tuple(ro.tilted_slab_axis),
                 }
             )
         if settings != self._settings:
