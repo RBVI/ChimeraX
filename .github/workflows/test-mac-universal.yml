@@ -37,6 +37,7 @@ jobs:
         run: |
           rm -r chimerax_arm64.app
           rm -r chimerax_intel.app
+      - uses: mxschmitt/action-tmate@v3
       - name: Sign the macOS package
         uses: ./utils/ci/sign_macos/
         with:
