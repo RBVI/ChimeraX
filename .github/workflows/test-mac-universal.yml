@@ -65,7 +65,7 @@ jobs:
           -a ChimeraX.app \
           -d ChimeraX.dmg \
           -T ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
-          -s ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}\
+          -s ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
           -p ${{ secrets.MAC_NOTARIZATION_APP_PW }} \
           -P ${{ secrets.MAC_NOTARIZATION_PROVIDER }} \
           -i ${{ secrets.MAC_NOTARIZATION_EMAIL }} \
@@ -81,7 +81,7 @@ jobs:
           -a ChimeraX.app \
           -d ChimeraX.dmg \
           -T ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
-          -s ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}\
+          -s ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
           -p ${{ secrets.MAC_NOTARIZATION_APP_PW }} \
           -P ${{ secrets.MAC_NOTARIZATION_PROVIDER }} \
           -i ${{ secrets.MAC_NOTARIZATION_EMAIL }} \

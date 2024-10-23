@@ -303,10 +303,22 @@ def executable_paths(app_path):
 
     need_signature = set(
         [
+<<<<<<< Updated upstream
             lief.MachO.Header.FILE_TYPES.BUNDLE,
             lief.MachO.Header.FILE_TYPES.DYLIB,
             lief.MachO.Header.FILE_TYPES.EXECUTE,
             lief.MachO.Header.FILE_TYPES.OBJECT,
+||||||| Stash base
+            lief.MachO.Header.FILE_TYPE.BUNDLE,
+            lief.MachO.Header.FILE_TYPE.DYLIB,
+            lief.MachO.Header.FILE_TYPE.EXECUTE,
+            lief.MachO.Header.FILE_TYPE.OBJECT,
+=======
+            lief.MachO.FILE_TYPE.BUNDLE,
+            lief.MachO.FILE_TYPE.DYLIB,
+            lief.MachO.FILE_TYPE.EXECUTE,
+            lief.MachO.FILE_TYPE.OBJECT,
+>>>>>>> Stashed changes
         ]
     )
     contents_dir = os.path.join(app_path, "Contents")
@@ -335,7 +347,13 @@ def executable_paths(app_path):
                     # On Mac ARM64 lief fails to parse several .a archives.
                     # With python 3.11 ChimeraX a file config-3.11-darwin/python.o
                     # also is not recognized by lief.  ChimeraX ticket 9148
+<<<<<<< Updated upstream
                     file_type = lief.MachO.Header.FILE_TYPES.OBJECT
+||||||| Stash base
+                    file_type = lief.MachO.Header.FILE_TYPE.OBJECT
+=======
+                    file_type = lief.MachO.FILE_TYPE.OBJECT
+>>>>>>> Stashed changes
                 else:
                     continue
             else:
