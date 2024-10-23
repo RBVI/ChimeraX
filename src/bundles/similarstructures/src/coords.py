@@ -22,7 +22,8 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def similar_structures_fetch_coordinates(session, min_aligned_coords = 10, ask = False, rewrite_sms_file = True,
+def similar_structures_fetch_coordinates(session, min_aligned_coords = 10, ask = False,
+                                         rewrite_sms_file = True, update_table = True,
                                          from_set = None, of_structures = None):
 
     from .simstruct import similar_structure_results
@@ -76,6 +77,11 @@ def similar_structures_fetch_coordinates(session, min_aligned_coords = 10, ask =
 
     if rewrite_sms_file and hasattr(results, 'sms_path'):
         results.save_sms_file(results.sms_path)
+
+    if update_table:
+        # Adding coordinates allows % close and % cover columns to be computed.
+        from . import gui
+        gui.show_similar_structures_table(session, results)
         
     return True
 
@@ -88,12 +94,16 @@ def _minutes_and_seconds_string(tsec):
     return '%d:%02d' % (tmin, ts)
 
 def register_fetchcoords_command(logger):
-    from chimerax.core.commands import CmdDesc, register, IntArg, StringArg
+    from chimerax.core.commands import CmdDesc, register, IntArg, StringArg, BoolArg
     desc = CmdDesc(
         keyword = [('min_aligned_coords', IntArg),
+                   ('ask', BoolArg),
+                   ('rewrite_sms_file', BoolArg),
+                   ('update_table', BoolArg),
                    ('from_set', StringArg),
+                   ('rewrite_sms_file', BoolArg),
                    ('of_structures', StringArg),
-                   ],
+        ],
         synopsis = 'Fetch structures and get C-alpha coordinates for clustering and backbone trace display.'
     )
     register('similarstructures fetchcoords', desc, similar_structures_fetch_coordinates, logger=logger)

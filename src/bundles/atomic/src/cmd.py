@@ -31,7 +31,8 @@ def log_chains(session, structures=None):
     for s in structures:
         s._report_chain_descriptions(session)
 
-def combine_cmd(session, structures, *, close=False, model_id=None, name=None, retain_ids=False):
+def combine_cmd(session, structures, *, close=False, model_id=None, name=None, retain_ids=False,
+        add_to_session=True):
 
     if structures is None:
         from chimerax.atomic import AtomicStructure
@@ -166,7 +167,8 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None, r
         session.models.close(list(closures))
     if model_id is not None:
         combination.id = model_id
-    session.models.add([combination])
+    if add_to_session:
+        session.models.add([combination])
     return combination
 
 def label_missing_cmd(session, structures, max_chains):

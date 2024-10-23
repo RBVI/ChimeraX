@@ -172,7 +172,7 @@ def save_hand_bindings(session, handedness):
             a: "a",
         }
         c = vr_camera(session)
-        hclist = [hc for hc in c.hand_controllers() if hc._side == handedness]
+        hclist = [hc for hc in c.hand_controllers() if hc._side == str(handedness)]
         if not hclist:
             ...  # error
         hc = hclist[0]

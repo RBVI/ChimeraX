@@ -1,45 +1,77 @@
-# Plot a histogram of deep mutational scan scores.
-def dms_histogram(session, chain, column_name, subtract_fit = None,
-                  bins = 20, curve = True, smooth_width = None,
-                  type = 'all_mutations', above = None, below = None, replace = True):
-    from .dms_data import dms_data
-    data = dms_data(chain)
-    if data is None:
-        from chimerax.core.errors import UserError
-        raise UserError(f'No deep mutation scan data associated with chain {chain}')
-    scores = data.column_values(column_name, subtract_fit = subtract_fit)
-    
+# vim: set expandtab ts=4 sw=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
+# Plot a histogram of mutation scores.
+def mutation_scores_histogram(session, score_name, mutation_set = None,
+                              bins = 20, curve = True, smooth_width = None,
+                              replace = True):
+    from .ms_data import mutation_scores
+    scores = mutation_scores(session, mutation_set)
+    score_values = scores.score_values(score_name)
+
     res_nums = []
     res_scores = []
     score_names = []
-    if type == 'all_mutations':
-        for res_num, from_aa, to_aa, value in scores.all_values():
-            res_nums.append(res_num)
-            res_scores.append(value)
-            score_names.append(f'{from_aa}{res_num}{to_aa}')
-    else:
-        for res_num in scores.residue_numbers():
-            value = scores.residue_value(res_num, value_type = type, above = above, below = below)
+    if score_values.per_residue:
+        for res_num in score_values.residue_numbers():
+            value = score_values.residue_value(res_num)
             if value is not None:
                 res_nums.append(res_num)
                 res_scores.append(value)
                 score_names.append(f'{res_num}')
-
-    resnum_to_res = {r.number:r for r in chain.existing_residues}
-    residues = [resnum_to_res.get(res_num) for res_num in res_nums]
+    else:
+        for res_num, from_aa, to_aa, value in score_values.all_values():
+            res_nums.append(res_num)
+            res_scores.append(value)
+            score_names.append(f'{from_aa}{res_num}{to_aa}')
     
     from numpy import array, float32
-    scores = array(res_scores, float32)
+    res_scores = array(res_scores, float32)
 
-    if replace and hasattr(chain, '_last_dms_histogram') and chain._last_dms_histogram.tool_window.ui_area is not None:
-        plot = chain._last_dms_histogram
+    chain = scores.chain
+    if chain is None:
+        chain = scores.find_matching_chain(session)
+    if chain:
+        resnum_to_res = {r.number:r for r in chain.existing_residues}
+        residues = [resnum_to_res.get(res_num) for res_num in res_nums]
     else:
-        chain._last_dms_histogram = plot = Histogram(session, title = 'Deep mutational scan histogram')
+        residues = [None] * len(res_nums)
+
+    if replace:
+        plot = getattr(scores, '_last_mutation_scores_histogram', None)
+        if plot and plot.tool_window.ui_area is None:
+            plot is None
+    if plot is None:
+        plot = Histogram(session, title = 'Deep mutational scan histogram')
+    scores._last_mutation_scores_histogram = plot
+
     plot.set_values(res_scores, residues, score_names=score_names,
-                    title=data.name, x_label=column_name, bins=bins,
+                    title=scores.name, x_label=score_name, bins=bins,
                     smooth_curve=curve, smooth_width=smooth_width)
-    
-    message = f'Plotted {len(res_scores)} scores of chain {chain} for {column_name}'
+
+    in_chain = f' of chain {chain}' if chain else ''
+    message = f'Plotted {len(res_scores)} scores{in_chain} for {score_name}'
     session.logger.info(message)
 
 # TODO: Draw smooth curve by gaussian smoothing 1d bin array with map_filter code.
@@ -113,22 +145,15 @@ def gaussian_histogram(values, sdev = None, pad = 5, bins = 256):
     return x, y
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, EnumOf, BoolArg, FloatArg, IntArg
-    from chimerax.atomic import ChainArg
-    from .dms_data import ColumnValues
+    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, FloatArg, IntArg
     desc = CmdDesc(
-        required = [('chain', ChainArg)],
-        keyword = [('column_name', StringArg),
-                   ('subtract_fit', StringArg),
+        required = [('score_name', StringArg)],
+        keyword = [('mutation_set', StringArg),
                    ('bins', IntArg),
                    ('curve', BoolArg),
                    ('smooth_width', FloatArg),
-                   ('type', EnumOf(('all_mutations',) + ColumnValues.residue_value_types)),
-                   ('above', FloatArg),
-                   ('below', FloatArg),
                    ('replace', BoolArg),
                    ],
-        required_arguments = ['column_name'],
-        synopsis = 'Show histogram of deep mutational scan scores'
+        synopsis = 'Show histogram of mutation scores'
     )
-    register('dms histogram', desc, dms_histogram, logger=logger)
+    register('mutationscores histogram', desc, mutation_scores_histogram, logger=logger)

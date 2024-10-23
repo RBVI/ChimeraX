@@ -84,6 +84,7 @@ class SequencePlotPanel(ToolInstance):
         tw.fill_context_menu = self._fill_context_menu
         self.tool_window = tw
         parent = tw.ui_area
+        parent.mousePressEvent = parent.contextMenuEvent		# Show context menu on left click also.
 
         from chimerax.ui.widgets import vertical_layout
         layout = vertical_layout(parent, margins = (5,0,0,0))

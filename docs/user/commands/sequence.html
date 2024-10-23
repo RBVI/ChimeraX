@@ -48,6 +48,12 @@ with the same column(s) of the sequence alignment
 &ndash; show, hide, save alignment headers
 <li><a href="#identity"><b>sequence identity</b></a>
 &ndash; calculate pairwise percent identities
+<li><a href="#refreshAttrs"><b>sequence refreshAttrs</b></a>
+&ndash; for structure chains 
+<a href="../tools/sequenceviewer.html#association">associated</a>
+with more than one sequence alignment,
+assign <a href="../attributes.html">attributes</a> 
+consistent with a specific alignment
 <li><a href="#refseq"><b>sequence refseq</b></a>
 &ndash; set which sequence to use as the reference for numbering
 <li><a href="#update"><b>sequence update</b></a>
@@ -299,6 +305,25 @@ as a percentage of the specified <b>denominator</b>:
 &ndash; the number of columns where neither sequence has a gap
 </ul> 
 
+<a name="refreshAttrs"></a>
+<p class="nav">
+[<a href="#top">back to top: sequence</a>]
+</p>
+<h3>Refresh Attributes</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sequence &nbsp;refreshAttrs</b> &nbsp;<i>alignment-ID</i>&nbsp;
+</blockquote>
+<p>
+For structure chains
+<a href="../tools/sequenceviewer.html#association">associated</a>
+with more than one sequence alignment, make sure that the
+current <a href="../tools/sequenceviewer.html#headers">attribute values</a>
+are consistent with a specific alignment.
+The <i>alignment-ID</i> is shown in the title bar of the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window.
+</p>
+
 <a name="update"></a>
 <p class="nav">
 [<a href="#top">back to top: sequence</a>]
@@ -448,5 +473,5 @@ Edgar RC.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2024</address>
+October 2024</address>
 </body></html>

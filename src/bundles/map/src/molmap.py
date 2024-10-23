@@ -187,7 +187,7 @@ def molecule_grid_data(atoms, resolution, step, cube, pad, on_grid,
         from numpy import float32
         grid = on_grid.region_grid(on_grid.region, float32)
     else:
-        grid = bounding_grid(xyz, step, pad, cube, transforms)
+        grid = bounding_grid(xyz, step, pad, transforms = transforms, cube = cube)
     grid.name = name
 
     sdev = resolution * sigma_factor
@@ -202,7 +202,7 @@ def molecule_grid_data(atoms, resolution, step, cube, pad, on_grid,
 
 # -----------------------------------------------------------------------------
 #
-def bounding_grid(xyz, step, pad, cube, transforms = None):
+def bounding_grid(xyz, step, pad, transforms = None, cube = False):
     from chimerax.geometry import bounds
     b = bounds.point_bounds(xyz, transforms)
 

@@ -211,7 +211,6 @@ class _StructureAltlocManager(StateManager):
             f(change_info, res, al))
 
     def _add_handlers(self):
-        print("Adding altloc handlers")
         from chimerax.core.models import REMOVE_MODELS
         self.handlers = [
             self.structure.triggers.add_handler('changes', self._changes_cb),

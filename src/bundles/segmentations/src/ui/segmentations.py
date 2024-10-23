@@ -625,12 +625,8 @@ class SegmentationTool(ToolInstance):
                 run(self.session, "ui view sidebyside")
             elif self.settings.default_view == ViewMode.DEFAULT_DESKTOP:
                 self._create_3d_segmentation_sphere()
-                if self.settings.set_mouse_modes_automatically:
-                    self._set_3d_mouse_modes()
             else:
                 self._create_3d_segmentation_sphere()
-                if self.settings.start_vr_automatically:
-                    self._start_vr()
 
         self._on_view_changed()
         self._populate_segmentation_list()
@@ -960,10 +956,12 @@ class SegmentationTool(ToolInstance):
             self.session.ui.main_window.main_view.redraw_all()
 
     def hide_active_segmentation(self):
-        self.segmentation_tracker.active_segmentation.display = False
+        if self.segmentation_tracker.active_segmentation is not None:
+            self.segmentation_tracker.active_segmentation.display = False
 
     def show_active_segmentation(self):
-        self.segmentation_tracker.active_segmentation.display = True
+        if self.segmentation_tracker.active_segmentation is not None:
+            self.segmentation_tracker.active_segmentation.display = True
 
     def _on_current_menu_item_changed(self, new, prev):
         if new:
@@ -1026,12 +1024,11 @@ class SegmentationTool(ToolInstance):
                 self._destroy_2d_segmentation_pucks()
             if not self.segmentation_sphere:
                 self._create_3d_segmentation_sphere()
-            # if self.autostart_vr_checkbox.isChecked():
-            #    run(self.session, "vr on")
             if self.view_dropdown.currentIndex() == ViewMode.DEFAULT_DESKTOP:
                 if self.settings.set_mouse_modes_automatically:
                     self._set_3d_mouse_modes()
             if self.view_dropdown.currentIndex() == ViewMode.DEFAULT_VR:
+                self._reset_3d_mouse_modes()
                 if self.settings.start_vr_automatically:
                     self._start_vr()
         if need_to_register:

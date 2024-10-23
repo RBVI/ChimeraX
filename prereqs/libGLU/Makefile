@@ -21,7 +21,7 @@ app-install:
 	cp -av $(libdir)/libGLU* $(app_libdir)
 
 $(SOURCE): $(DISTRIBUTION)
-	tar jxf $(DISTRIBUTION) -C $(tmpdir)
+	tar jxf $(DISTRIBUTION) -C $(tmpdir) --no-same-owner
 	# remove uses of libGL
 	cd $(SOURCE) && sed -i -e '/mipmap/d' -e '/project/d' -e '/quad/d' -e '/LIBADD/d' Makefile.am
 	cd $(SOURCE) && ./autogen.sh $(CONFIG_OPTS)

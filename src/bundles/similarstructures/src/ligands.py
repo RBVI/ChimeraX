@@ -50,15 +50,16 @@ def similar_structures_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0
             res = structure.residues
             from chimerax.atomic import Residue
             ligres = res[res.polymer_types == Residue.PT_NONE]
+            aares = res[res.polymer_types == Residue.PT_AMINO]
             keeplig = []
             if ligres:
                 from .simstruct import hit_and_query_residue_pairs
                 rmap = {hr:qr for hr,qr in hit_and_query_residue_pairs(structure, query_chain, hit)}
                 for lr in ligres:
-                    cres = _find_close_residues(lr, res, alignment_range)
+                    cres = _find_close_residues(lr, aares, alignment_range)
                     if len(cres) >= 3:
                         pcres, qres = _paired_residues(rmap, cres)
-                        if len(qres) >= 3:
+                        if len(qres) >= 3 and len(qres) >= minimum_paired * len(cres):
                             from .simstruct import alignment_transform
                             p, rms, npairs = alignment_transform(pcres, qres)
                             if rms <= rmsd_cutoff:
