@@ -261,7 +261,10 @@ jobs:
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
-      - run: brew install python@3.10
+      - run: |
+          brew install python@3.10
+          python3.10 -m pip install lief dmgbuild
+          patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
       - uses: actions/checkout@v4
       - run: ${PWD}/utils/set_up_macos.sh
       - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
@@ -312,7 +315,10 @@ jobs:
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
-      - run: brew install python@3.10
+      - run: |
+          brew install python@3.10
+          python3.10 -m pip install lief dmgbuild
+          patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
       - uses: actions/checkout@v4
       # Temporarily force this to succeed. The container's Python conflicts with homebrew's,
       # but we don't really use it anyway.
@@ -367,7 +373,8 @@ jobs:
       - name: Set up Python
         run: |
           brew install python@3.10
-          python3.10 -m pip install lief==0.12.1
+          python3.10 -m pip install lief==0.12.1 dmgbuild
+          patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
       - uses: ./utils/ci/download_mac_chimerax
         with:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
@@ -383,6 +390,10 @@ jobs:
       - name: Make the universal build
         run: |
           python3.10 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app 2>&1
+      - name: Remove unneeded ChimeraXes
+        run: |
+          rm -r chimerax_arm64.app
+          rm -r chimerax_intel.app
       - name: Sign the macOS package
         uses: ./utils/ci/sign_macos/
         with:

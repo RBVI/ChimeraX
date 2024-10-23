@@ -87,7 +87,6 @@ runs:
     - name: Sign the application
       shell: bash
       run: |
-        /usr/local/bin/python3.10 -m pip install lief dmgbuild
         /usr/local/bin/python3.10 utils/build/macos/notarize.py everything \
         -a ChimeraX.app \
         -d ChimeraX.dmg \
