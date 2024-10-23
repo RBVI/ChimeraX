@@ -76,7 +76,7 @@ jobs:
           python3.10 -m dmgbuild -s ./utils/build/macos/dmgbuildsettings.json "ChimeraX Installer" ChimeraX.app
       - name: Notarize the DMG
         run: |
-          /usr/local/bin/python3.10 utils/build/macos/notarize.py notarize \
+          python3.10 utils/build/macos/notarize.py notarize \
           -a ChimeraX.app \
           -d ChimeraX.dmg \
           -T ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
