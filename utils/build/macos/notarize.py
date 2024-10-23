@@ -111,7 +111,7 @@ class Defaults:
             os.path.dirname(os.path.abspath(__file__)),
             "entitlements.plist",
         )
-        self.verbose = 0
+        self.verbose = 3
 
     def set_options(self, opts):
         for opt, val in opts:
