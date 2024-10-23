@@ -12,7 +12,10 @@ jobs:
         run: |
           brew install python@3.10
           python3.10 -m pip install setuptools==54.0
-          python3.10 -m pip install lief==0.12.1
+          python3.10 -m pip install lief==0.12.2
+          python3.10 -m pip install dmgbuild 
+          # Make dmgbuild allocate an adult sized DMG
+          patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
       - uses: ./utils/ci/download_mac_chimerax
         with:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
@@ -29,9 +32,6 @@ jobs:
           rm chimerax_arm.dmg
       - name: Make the universal build
         run: |
-          python3.10 -m pip install dmgbuild lief==0.12.1
-          # Make dmgbuild allocate an adult sized DMG
-          patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
           python3.10 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app 2>&1
       - name: Remove unneeded ChimeraXes
         run: |
