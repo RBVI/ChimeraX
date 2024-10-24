@@ -154,57 +154,64 @@ def lipo_files(arm_path, intel_path, universal_path, warn):
     # Use lipo command to merge ARM and Intel binaries.
     # The lipo command uses different options for handling thin versus fat files
     # so first we extract thin versions.
-    arm_path_thin = universal_path + ".arm64_thin"
-    if not make_thin(arm_path, arm_path_thin, "arm64"):
-        log_mismatch(f"ARM ChimeraX has only Intel binary: {arm_path}")
-        copy(arm_path, universal_path)
-        return
-
-    intel_path_thin = universal_path + ".x86_64_thin"
-    if not make_thin(intel_path, intel_path_thin, "x86_64"):
-        log_mismatch(f"Intel ChimeraX has non-Intel binary: {intel_path}")
-        copy(arm_path, universal_path)
-        return
-
-    import subprocess
-    from os import remove, chmod, rename
-
     try:
-        args = [
-            "lipo",
-            arm_path_thin,
-            intel_path_thin,
-            "-create",
-            "-output",
-            universal_path,
-        ]
-        p = subprocess.run(args, capture_output=True)
-        if p.returncode != 0:
-            cmd = " ".join(args)
-            raise RuntimeError(
-                "Error in lipo command: %s\nstdout:\n%s\nstderr:\n%s"
-                % (cmd, p.stdout, p.stderr)
-            )
+        arm_path_thin = universal_path + ".arm64_thin"
+        if not make_thin(arm_path, arm_path_thin, "arm64"):
+            log_mismatch(f"ARM ChimeraX has only Intel binary: {arm_path}")
+            copy(arm_path, universal_path)
+            return
 
-        """
-        from os.path import getsize, basename, dirname
-        log_mismatch('lipo %d %d %d %s %s' %
-                     (getsize(universal_path), getsize(arm_path_thin), getsize(intel_path_thin),
-                      basename(universal_path), dirname(universal_path)))
-        """
+        intel_path_thin = universal_path + ".x86_64_thin"
+        if not make_thin(intel_path, intel_path_thin, "x86_64"):
+            log_mismatch(f"Intel ChimeraX has non-Intel binary: {intel_path}")
+            copy(arm_path, universal_path)
+            return
+
+        import subprocess
+        from os import remove, chmod, rename
+
+        try:
+            args = [
+                "lipo",
+                arm_path_thin,
+                intel_path_thin,
+                "-create",
+                "-output",
+                universal_path,
+            ]
+            p = subprocess.run(args, capture_output=True)
+            if p.returncode != 0:
+                cmd = " ".join(args)
+                raise RuntimeError(
+                    "Error in lipo command: %s\nstdout:\n%s\nstderr:\n%s"
+                    % (cmd, p.stdout, p.stderr)
+                )
+
+            """
+            from os.path import getsize, basename, dirname
+            log_mismatch('lipo %d %d %d %s %s' %
+                         (getsize(universal_path), getsize(arm_path_thin), getsize(intel_path_thin),
+                          basename(universal_path), dirname(universal_path)))
+            """
 
 
-        remove(arm_path_thin)
-        remove(intel_path_thin)
-        chmod(universal_path, 0o755)  # Add execute permission.
+            remove(arm_path_thin)
+            remove(intel_path_thin)
+            chmod(universal_path, 0o755)  # Add execute permission.
+        except RuntimeError as e:
+            error = str(e)
+            if 'have the same architecture' in error:
+                remove(arm_path_thin)
+                rename(intel_path_thin, universal_path)
+                stderr.write("both builds had same arch for %s; renaming instead of lipoing" % universal_path)
+            else:
+                raise e
     except RuntimeError as e:
         error = str(e)
-        if 'have the same architecture' in error:
-            remove(arm_path_thin)
-            rename(intel_path_thin, universal_path)
-            stderr.write("both builds had same arch for %s; renaming instead of lipoing" % universal_path)
-        else:
-            raise e
+        if "does not contain the specified architecture (arm64)" in error:
+            # if it's x86 then use it I guess
+            if os.path.exists()
+            rename(intel_path, universal_path)
 
 
 def make_thin(path, thin_path, arch):
