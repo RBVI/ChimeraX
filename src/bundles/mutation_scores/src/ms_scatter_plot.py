@@ -77,12 +77,9 @@ def mutation_scores_scatter_plot(session, x_score_name, y_score_name, mutation_s
     xy = array(points, float32)
     
     if replace:
-        plot = getattr(scores, '_last_mutation_scores_plot', None)
-        if plot and plot.tool_window.ui_area is None:
-            plot = None
+        plot = _find_mutation_scatter_plot(session, scores.name)
     if plot is None:
-        plot = ResidueScatterPlot(session)
-    scores._last_mutation_scores_plot = plot
+        plot = ResidueScatterPlot(session, scores.name)
 
     title = f'File {scores.name}'
     label_nodes, node_area = (False, 20) if is_mutation_plot else (True, 200)
@@ -98,7 +95,8 @@ def mutation_scores_scatter_plot(session, x_score_name, y_score_name, mutation_s
 from chimerax.interfaces.graph import Graph
 class ResidueScatterPlot(Graph):
 
-    def __init__(self, session):
+    def __init__(self, session, mutation_set_name):
+        self.mutation_set_name = mutation_set_name
         nodes = edges = []
         Graph.__init__(self, session, nodes, edges, tool_name = 'DeepMutationalScan',
                        title = 'Deep mutational scan scatter plot', hide_ticks = False,
@@ -363,7 +361,8 @@ class ResidueScatterPlot(Graph):
             if hasattr(node, 'color'):
                 colors.append(rgba_to_rgba8(node.color))
         axes = self.axes
-        data = {'xy': xy,
+        data = {'mutation_set_name': self.mutation_set_name,
+                'xy': xy,
                 'residues': res,
                 'point_names': (None if len(point_names) == 0 else point_names),
                 'colors': (None if len(colors) == 0 else colors),
@@ -380,7 +379,7 @@ class ResidueScatterPlot(Graph):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        sp = cls(session)
+        sp = cls(session, data['mutation_set_name'])
         sp.set_nodes(data['xy'], data['residues'], point_names = data['point_names'], colors = data['colors'],
                      correlation = data['correlation'],
                      title = data['title'], x_label = data['x_label'], y_label = data['y_label'],
@@ -396,6 +395,11 @@ def _find_close_residues(residue, residues, distance):
     ri, ai = find_close_points(rxyz, axyz, distance)
     close_res = aatoms[ai].residues.unique()
     return close_res
+
+def _find_mutation_scatter_plot(session, mutation_set_name):
+    plots = [tool for tool in session.tools.list()
+             if isinstance(tool, ResidueScatterPlot) and tool.mutation_set_name == mutation_set_name]
+    return plots[-1] if plots else None
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg
