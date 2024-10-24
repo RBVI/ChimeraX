@@ -1,4 +1,5 @@
 from sys import stderr
+import os
 from os import remove, chmod, rename
 from os.path import join, exists, isdir, islink, isfile, getsize
 from os import mkdir, listdir
