@@ -263,28 +263,28 @@ omit = [
     ".a",
     "libtcl8.6.dylib",  # Causes notarization failure. Not used.
     "libtk8.6.dylib",  # Causes notarization failure. Not used.
-    "libHoloPlayCore.dylib",  # 0.1.0 has no ARM symbols (looking_glass)
-    "libopenvr_api_32.dylib",  # VR is not even supported on macOS
-    # These amber libs are always amd64 even on arm64 macos
-    "libgfortran.3.dylib",
-    "libgcc_s.1.dylib",
-    "libquadmath.0.dylib",
-    # These amber binaries are always amd64 even on arm64 macos
-    "sqm",
-    "espgen",
-    "am1bcc",
-    "antechamber",
-    "atomtype",
-    "bondtype",
-    "nc-config",
-    "nf-config",
-    "parmchk2",
-    "prepgen",
-    "residuegen",
-    "respgen",
-    ##### end of amber libs and binaries
-    "python3-intel64",  # Comes with ARM Python but is not universal
-    "python3.11-intel64",  # Comes with ARM Python but is not universal
+    #    "libHoloPlayCore.dylib",  # 0.1.0 has no ARM symbols (looking_glass)
+    #    "libopenvr_api_32.dylib",  # VR is not even supported on macOS
+    #    # These amber libs are always amd64 even on arm64 macos
+    #    "libgfortran.3.dylib",
+    #    "libgcc_s.1.dylib",
+    #    "libquadmath.0.dylib",
+    #    # These amber binaries are always amd64 even on arm64 macos
+    #    "sqm",
+    #    "espgen",
+    #    "am1bcc",
+    #    "antechamber",
+    #    "atomtype",
+    #    "bondtype",
+    #    "nc-config",
+    #    "nf-config",
+    #    "parmchk2",
+    #    "prepgen",
+    #    "residuegen",
+    #    "respgen",
+    #    ##### end of amber libs and binaries
+    #    "python3-intel64",  # Comes with ARM Python but is not universal
+    #    "python3.11-intel64",  # Comes with ARM Python but is not universal
 ]
 
 no_warn = [
