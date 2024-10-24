@@ -9,42 +9,42 @@ jobs:
     uses: ./.github/workflows/rocky8_build.yml
     with:
       release_type: daily
-      secrets: inherit
+    secrets: inherit
   build-rocky9-docker:
     needs: [build-rocky8-docker]
     uses: ./.github/workflows/rocky9_build.yml
     with:
       release_type: daily
-      secrets: inherit
+    secrets: inherit
   build-ubuntu:
     needs: [build-rocky8-docker]
     uses: ./.github/workflows/ubuntu_build.yml
     with:
       release_type: daily
-      secrets: inherit
+    secrets: inherit
   build-flatpak:
     needs: [build-rocky8-docker]
     uses: ./.github/workflows/flatpak_build.yml
     with:
       release_type: daily
-      secrets: inherit
+    secrets: inherit
   build-arm-macos:
     uses: ./.github/workflows/mac_arm_build.yml
     with:
       release_type: daily
-      secrets: inherit
+    secrets: inherit
   build-intel-macos:
     uses: ./.github/workflows/mac_intel_build.yml
     with:
       release_type: daily
-      secrets: inherit
+    secrets: inherit
   build-mac-universal:
     uses: ./.github/workflows/mac_universal_build.yml
     with:
       release_type: daily
-      secrets: inherit
+    secrets: inherit
   build-windows:
     uses: ./.github/workflows/windows_build.yml
     with:
       release_type: daily
-      secrets: inherit
+    secrets: inherit
