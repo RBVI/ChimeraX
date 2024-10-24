@@ -264,7 +264,7 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@master
       - run: |
           brew install python@3.10
-          python3.10 -m pip install lief dmgbuild
+          python3.10 -m pip install lief==0.12.2 dmgbuild
           patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
       - uses: actions/checkout@v4
       - run: ${PWD}/utils/set_up_macos.sh
@@ -319,7 +319,7 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@master
       - run: |
           brew install python@3.10
-          python3.10 -m pip install lief dmgbuild
+          python3.10 -m pip install lief==0.12.2 dmgbuild
           patch --ignore-whitespace -d /usr/local/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
       # Temporarily force this to succeed. The container's Python conflicts with homebrew's,
       # but we don't really use it anyway.
