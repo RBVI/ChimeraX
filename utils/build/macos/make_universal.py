@@ -28,20 +28,20 @@ def make_universal(
         if apath_exists and not ipath_exists:
             if warn:
                 log_mismatch(f"Missing Intel {path}")
-            copy(apath, upath, whole_tree=True)
+            _copy(apath, upath, whole_tree=True)
         elif ipath_exists and not apath_exists:
             if warn:
                 log_mismatch(f"Missing ARM {path}")
-            copy(ipath, upath, whole_tree=True)
+            _copy(ipath, upath, whole_tree=True)
         elif same_file(apath, ipath):
-            copy(apath, upath)
+            _copy(apath, upath)
         elif is_executable(apath):
             lipo_files(apath, ipath, upath, warn)
         else:
             if warn:
                 log_mismatch(f"Differ {path}")
             # Use ARM if files differ.
-            copy(apath, upath)
+            _copy(apath, upath)
 
     use_intel_info_plist(intel_location, universal_location)
 
@@ -63,7 +63,7 @@ def tree_files(path1, path2, exclude, prefix="", paths=None):
     return paths
 
 
-def copy(file1, file2, whole_tree=False):
+def _copy(file1, file2, whole_tree=False):
 
     if islink(file1) or isfile(file1):
         if not islink(file2) and not exists(file2):
@@ -144,7 +144,7 @@ def is_executable(path):
 def lipo_files(arm_path, intel_path, universal_path, warn):
     if not is_executable(intel_path) and warn:
         log_mismatch(f"Not executable {intel_path}")
-        copy(arm_path, universal_path)
+        _copy(arm_path, universal_path)
         return
 
     # Use lipo command to merge ARM and Intel binaries.
@@ -154,13 +154,13 @@ def lipo_files(arm_path, intel_path, universal_path, warn):
         arm_path_thin = universal_path + ".arm64_thin"
         if not make_thin(arm_path, arm_path_thin, "arm64"):
             log_mismatch(f"ARM ChimeraX has only Intel binary: {arm_path}")
-            copy(arm_path, universal_path)
+            _copy(arm_path, universal_path)
             return
 
         intel_path_thin = universal_path + ".x86_64_thin"
         if not make_thin(intel_path, intel_path_thin, "x86_64"):
             log_mismatch(f"Intel ChimeraX has non-Intel binary: {intel_path}")
-            copy(arm_path, universal_path)
+            _copy(arm_path, universal_path)
             return
 
 
