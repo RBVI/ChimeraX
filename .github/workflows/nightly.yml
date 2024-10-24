@@ -239,7 +239,7 @@ jobs:
         run: |
           tar -xvf linux-include.tar.gz
       - name: Build the rest of ChimeraX
-        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        uses: flatpak/flatpak-github-actions/flatpak-builder@master
         with:
           bundle: chimerax.flatpak
           manifest-path: github-flatpak.yaml
