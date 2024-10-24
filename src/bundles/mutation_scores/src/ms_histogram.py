@@ -30,63 +30,29 @@ def mutation_scores_histogram(session, score_name, mutation_set = None,
     scores = mutation_scores(session, mutation_set)
     score_values = scores.score_values(score_name)
 
-    res_nums = []
-    res_scores = []
-    score_names = []
-    if score_values.per_residue:
-        for res_num in score_values.residue_numbers():
-            value = score_values.residue_value(res_num)
-            if value is not None:
-                res_nums.append(res_num)
-                res_scores.append(value)
-                score_names.append(f'{res_num}')
-    else:
-        for res_num, from_aa, to_aa, value in score_values.all_values():
-            res_nums.append(res_num)
-            res_scores.append(value)
-            score_names.append(f'{from_aa}{res_num}{to_aa}')
-    
-    from numpy import array, float32
-    res_scores = array(res_scores, float32)
+    values = [value for res_num, from_aa, to_aa, value in score_values.all_values()]
 
-    chain = scores.chain
-    if chain is None:
-        chain = scores.find_matching_chain(session)
-    if chain:
-        resnum_to_res = {r.number:r for r in chain.existing_residues}
-        residues = [resnum_to_res.get(res_num) for res_num in res_nums]
-    else:
-        residues = [None] * len(res_nums)
-
-    if replace:
-        plot = getattr(scores, '_last_mutation_scores_histogram', None)
-        if plot and plot.tool_window.ui_area is None:
-            plot is None
+    plot = _find_mutation_histogram(session, scores.name) if replace else None
     if plot is None:
-        plot = Histogram(session, title = 'Deep mutational scan histogram')
-    scores._last_mutation_scores_histogram = plot
+        plot = MutationHistogram(session, scores.name)
 
-    plot.set_values(res_scores, residues, score_names=score_names,
-                    title=scores.name, x_label=score_name, bins=bins,
+    plot.set_values(values, title=scores.name, x_label=score_name, bins=bins,
                     smooth_curve=curve, smooth_width=smooth_width)
 
-    in_chain = f' of chain {chain}' if chain else ''
-    message = f'Plotted {len(res_scores)} scores{in_chain} for {score_name}'
+    range = f'having range {"%.3g"%min(values)} to {"%.3g"%max(values)}' if len(values) > 0 else ''
+    message = f'Plotted {len(values)} scores {range} for {score_name}'
     session.logger.info(message)
 
-# TODO: Draw smooth curve by gaussian smoothing 1d bin array with map_filter code.
-# TODO: Make mouse click select residues for histogram bar.
-# TODO: Make mouse hover show mutation names for histogram bar in popup.
 from chimerax.interfaces.graph import Plot
-class Histogram(Plot):
+class MutationHistogram(Plot):
 
-    def __init__(self, session, title = 'Histogram'):
-        Plot.__init__(self, session, tool_name = 'Deep Mutational Scan')
-        self.tool_window.title = title
+    def __init__(self, session, mutation_set_name):
+        self.mutation_set_name = mutation_set_name
+        Plot.__init__(self, session, tool_name = 'Deep mutational scan histogram')
         self._highlight_color = (0,255,0,255)
         self._unhighlight_color = (150,150,150,255)
 
-    def set_values(self, scores, residues, score_names = None, title = '', x_label = '', bins = 20,
+    def set_values(self, scores, title = '', x_label = '', bins = 20,
                    smooth_curve = False, smooth_width = None, smooth_bins = 200):
         a = self.axes
         a.clear()
@@ -98,22 +64,14 @@ class Histogram(Plot):
             x, y = gaussian_histogram(scores, sdev = smooth_width, bins = smooth_bins)
             y *= (smooth_bins / bins)	# Scale to match histogram bar height
             a.plot(x, y)
+        # Remember state for session saving
+        self._scores, self._bins, self._smooth_curve, self._smooth_width, self._smooth_bins = \
+            scores, bins, smooth_curve, smooth_width, smooth_bins
         self.canvas.draw()
 
     def tight_layout(self):
         # Don't hide axes and reduce padding
         pass
-
-    # TODO: Hook up context menu
-    def fill_context_menu(self, menu, item):
-        if item is not None:
-            r = item.residue
-            name = item.description
-            self.add_menu_entry(menu, f'Select {name}', lambda self=self, r=r: self._select_residue(r))
-            self.add_menu_entry(menu, f'Color {name}', lambda self=self, r=r: self._highlight_residue(r))
-            self.add_menu_entry(menu, f'Zoom to {name}', lambda self=self, r=r: self._zoom_to_residue(r))
-        else:
-            self.add_menu_entry(menu, 'Save Plot As...', self.save_plot_as)
 
     def _select_residue(self, r):
         self._run_residue_command(r, 'select %s')
@@ -126,6 +84,31 @@ class Histogram(Plot):
     def _run_command(self, command):
         from chimerax.core.commands import run
         run(self.session, command)
+    
+    # ---------------------------------------------------------------------------
+    # Session save and restore.
+    #
+    SESSION_SAVE = True
+    def take_snapshot(self, session, flags):
+        axes = self.axes
+        data = {'mutation_set_name': self.mutation_set_name,
+                'scores': self._scores,
+                'title': axes.get_title(),
+                'x_label': axes.get_xlabel(),
+                'bins': self._bins,
+                'smooth_curve': self._smooth_curve,
+                'smooth_width': self._smooth_width,
+                'smooth_bins': self._smooth_bins,
+                'version': '1'}
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        hp = cls(session, data['mutation_set_name'])
+        hp.set_values(data['scores'], title = data['title'], x_label = data['x_label'], bins = data['bins'],
+                      smooth_curve = data['smooth_curve'], smooth_width = data['smooth_width'],
+                      smooth_bins = data['smooth_bins'])
+        return hp
 
 def gaussian_histogram(values, sdev = None, pad = 5, bins = 256):
     '''Make a smooth curve approximating a histogram by convolution with a Gaussian.'''
@@ -143,6 +126,11 @@ def gaussian_histogram(values, sdev = None, pad = 5, bins = 256):
     y = gaussian_convolution(hist.reshape((bins,1,1)).astype(float32), ijk_sdev).reshape((bins,))
     x = 0.5 * (bin_edges[1:] + bin_edges[:-1])
     return x, y
+
+def _find_mutation_histogram(session, mutation_set_name):
+    hists = [tool for tool in session.tools.list()
+             if isinstance(tool, MutationHistogram) and tool.mutation_set_name == mutation_set_name]
+    return hists[-1] if hists else None
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, FloatArg, IntArg

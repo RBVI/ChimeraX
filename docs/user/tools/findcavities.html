@@ -60,12 +60,14 @@ target="_blank">recipe for reading CASTp pockets</a>
 <b>Find Cavities</b> can be started from the 
 <b>Binding Analysis</b> or <b>Structure Analysis</b>
 section of the <b>Tools</b> menu.
+</p><p>
 One or more atomic models should be chosen from the list that appears.
 Clicking <b>OK</b> runs the calculation, and tabulates the results for 
 each atomic model in a separate <a href="#cavitylist">cavity list</a> window.
 These results are also reported in the <a href="log.html"><b>Log</b></a>.
-Default parameters are used;
-for details on the method and/or to use nondefault values, see the
+PDB HET residues (solvent, ligands, and ions) are ignored, and
+default parameters are used.
+For details on the method and/or to use nondefault values, see the
 <a href="../commands/kvfinder.html"><b>kvfinder</b></a> command.
 </p><p>
 In the graphics window, the cavities are shown as clouds of points 
@@ -183,7 +185,7 @@ would occur.
 These types of coloring can be combined with surface transparency, for example:
 </p>
 <blockquote>
-<b><a href="../commands/transparency.html">transparency</a> #1.2 50
+<b><a href="../commands/transparency.html">transparency</a> #1.2 30</b>
 </blockquote>
 
 <hr>

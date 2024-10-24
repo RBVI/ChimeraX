@@ -239,7 +239,7 @@ jobs:
         run: |
           tar -xvf linux-include.tar.gz
       - name: Build the rest of ChimeraX
-        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        uses: flatpak/flatpak-github-actions/flatpak-builder@master
         with:
           bundle: chimerax.flatpak
           manifest-path: github-flatpak.yaml
@@ -258,9 +258,14 @@ jobs:
     name: Build ChimeraX for Apple Silicon
     runs-on: macos-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
+      - run: |
+          brew install python@3.10
+          python3.10 -m pip install lief==0.12.2 dmgbuild
+          patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
       - uses: actions/checkout@v4
       - run: ${PWD}/utils/set_up_macos.sh
       - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
@@ -308,10 +313,14 @@ jobs:
     name: Build ChimeraX for Intel Macs
     runs-on: macos-13
     steps:
+      - uses: actions/checkout@v4
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
-      - uses: actions/checkout@v4
+      - run: |
+          brew install python@3.10
+          python3.10 -m pip install lief==0.12.2 dmgbuild
+          patch --ignore-whitespace -d /usr/local/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
       # Temporarily force this to succeed. The container's Python conflicts with homebrew's,
       # but we don't really use it anyway.
       - run: ${PWD}/utils/set_up_macos.sh || true
@@ -358,14 +367,18 @@ jobs:
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
   build-mac-universal:
     name: Build ChimeraX for all Macs
-    runs-on: macos-13
     needs: [build-intel-macos, build-arm-macos]
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
         run: |
           brew install python@3.10
-          python3.10 -m pip install lief==0.12.1
+          python3.10 -m pip install setuptools==54.0
+          python3.10 -m pip install lief==0.12.2
+          python3.10 -m pip install dmgbuild 
+          # Make dmgbuild allocate an adult sized DMG
+          patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
       - uses: ./utils/ci/download_mac_chimerax
         with:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
@@ -375,23 +388,72 @@ jobs:
           hdiutil attach chimerax_intel.dmg
           cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_intel.app
           hdiutil detach /Volumes/ChimeraX\ Installer
+          rm chimerax_intel.dmg
           hdiutil attach chimerax_arm.dmg
           cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_arm64.app
           hdiutil detach /Volumes/ChimeraX\ Installer
+          rm chimerax_arm.dmg
       - name: Make the universal build
         run: |
           python3.10 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app 2>&1
-      - name: Sign the macOS package
-        uses: ./utils/ci/sign_macos/
-        with:
-          build_certificate: ${{ secrets.MAC_CERT_BASE64 }}
-          p12_pw: ${{ secrets.MAC_CERT_P12_PASSWD }}
-          build_profile: ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }}
-          kc_pw: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
-          team_id: ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
-          app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
-          provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
-          email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
+      - name: Remove unneeded ChimeraXes
+        run: |
+          rm -r chimerax_arm64.app
+          rm -r chimerax_intel.app
+        # I have no idea why dmgbuild keeps complaining that it runs out of space if these
+        # steps are not separated instead of using the action and at this point I don't
+        # care to keep looking.
+      - name: Install the Apple certificate and provisioning profile
+        shell: bash
+        run: |
+          # create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          # import certificate and provisioning profile from secrets
+          echo -n ${{ secrets.MAC_CERT_BASE64 }} | base64 --decode -o $CERTIFICATE_PATH
+          echo -n ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }} | base64 --decode -o $PP_PATH
+          # create temporary keychain
+          security create-keychain -p "${{secrets.MAC_KEYCHAIN_PASSWORD}}" $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          security unlock-keychain -p  $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          # import certificate to keychain
+          security import $CERTIFICATE_PATH -P "${{ secrets.MAC_CERT_P12_PASSWD }}" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          security set-key-partition-list -S apple-tool:,apple: -k "${{ secrets.MAC_KEYCHAIN_PASSWORD }}" $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          security list-keychain -d user -s $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          # apply provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+      - name: Sign the macOS Package
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          python3.10 utils/build/macos/notarize.py sign \
+          -a ChimeraX.app \
+          -d ChimeraX.dmg \
+          -T ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
+          -s ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
+          -p ${{ secrets.MAC_NOTARIZATION_APP_PSWD }} \
+          -P ${{ secrets.MAC_NOTARIZATION_PROVIDER }} \
+          -i ${{ secrets.MAC_NOTARIZATION_EMAIL }} \
+          -k "$KEYCHAIN_PATH" \
+          -K ${{ secrets.MAC_NOTARIZATION_KEYCHAIN_PW }} \
+          -v -v -v
+      - name: Make the DMG
+        run: |
+          python3.10 -m dmgbuild -s ./utils/build/macos/dmgbuildsettings.json "ChimeraX Installer" ChimeraX.dmg
+      - name: Notarize the DMG
+        run: |
+          python3.10 utils/build/macos/notarize.py notarize \
+          -a ChimeraX.app \
+          -d ChimeraX.dmg \
+          -T ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
+          -s ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
+          -p ${{ secrets.MAC_NOTARIZATION_APP_PSWD }} \
+          -P ${{ secrets.MAC_NOTARIZATION_PROVIDER }} \
+          -i ${{ secrets.MAC_NOTARIZATION_EMAIL }} \
+          -k "$KEYCHAIN_PATH" \
+          -K ${{ secrets.MAC_NOTARIZATION_KEYCHAIN_PW }} \
+          -v -v -v
       - name: Upload ChimeraX
         uses: ./utils/ci/upload_artifact
         with:

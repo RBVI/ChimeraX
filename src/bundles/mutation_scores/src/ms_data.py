@@ -219,7 +219,6 @@ class MutationScoresManager(StateManager):
     def names(self):
         return tuple(self._scores.keys())
     def take_snapshot(self, session, flags):
-        print ('took snapshot mut score man')
         return {'scores': self._scores,
                 'version': 1}
     @classmethod
@@ -236,10 +235,10 @@ def mutation_scores_manager(session, create = True):
         session.mutation_scores_manager = msm = MutationScoresManager()
     return msm
 
-def mutation_scores(session, mutation_set):
+def mutation_scores(session, mutation_set, raise_error = True):
     msm = mutation_scores_manager(session)
     scores = msm.scores(mutation_set, allow_abbreviation = True)
-    if scores is None:
+    if raise_error and scores is None:
         msg = 'No mutation scores found' if mutation_set is None else f'No mutation scores named {mutation_set}'
         from chimerax.core.errors import UserError
         raise UserError(msg)
