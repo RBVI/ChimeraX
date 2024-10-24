@@ -76,10 +76,9 @@ def mutation_scores_scatter_plot(session, x_score_name, y_score_name, mutation_s
     from numpy import array, float32
     xy = array(points, float32)
     
-    if replace:
-        plot = _find_mutation_scatter_plot(session, scores.name)
+    plot = _find_mutation_scatter_plot(session, scores.name) if replace else None
     if plot is None:
-        plot = ResidueScatterPlot(session, scores.name)
+        plot = MutationScatterPlot(session, scores.name)
 
     title = f'File {scores.name}'
     label_nodes, node_area = (False, 20) if is_mutation_plot else (True, 200)
@@ -93,7 +92,7 @@ def mutation_scores_scatter_plot(session, x_score_name, y_score_name, mutation_s
     session.logger.info(message)
 
 from chimerax.interfaces.graph import Graph
-class ResidueScatterPlot(Graph):
+class MutationScatterPlot(Graph):
 
     def __init__(self, session, mutation_set_name):
         self.mutation_set_name = mutation_set_name
@@ -398,7 +397,7 @@ def _find_close_residues(residue, residues, distance):
 
 def _find_mutation_scatter_plot(session, mutation_set_name):
     plots = [tool for tool in session.tools.list()
-             if isinstance(tool, ResidueScatterPlot) and tool.mutation_set_name == mutation_set_name]
+             if isinstance(tool, MutationScatterPlot) and tool.mutation_set_name == mutation_set_name]
     return plots[-1] if plots else None
 
 def register_command(logger):
