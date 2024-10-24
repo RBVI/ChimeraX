@@ -167,35 +167,44 @@ def lipo_files(arm_path, intel_path, universal_path, warn):
         return
 
     import subprocess
+    from os import remove, chmod, rename
 
-    args = [
-        "lipo",
-        arm_path_thin,
-        intel_path_thin,
-        "-create",
-        "-output",
-        universal_path,
-    ]
-    p = subprocess.run(args, capture_output=True)
-    if p.returncode != 0:
-        cmd = " ".join(args)
-        raise RuntimeError(
-            "Error in lipo command: %s\nstdout:\n%s\nstderr:\n%s"
-            % (cmd, p.stdout, p.stderr)
-        )
+    try:
+        args = [
+            "lipo",
+            arm_path_thin,
+            intel_path_thin,
+            "-create",
+            "-output",
+            universal_path,
+        ]
+        p = subprocess.run(args, capture_output=True)
+        if p.returncode != 0:
+            cmd = " ".join(args)
+            raise RuntimeError(
+                "Error in lipo command: %s\nstdout:\n%s\nstderr:\n%s"
+                % (cmd, p.stdout, p.stderr)
+            )
 
-    """
-    from os.path import getsize, basename, dirname
-    log_mismatch('lipo %d %d %d %s %s' %
-                 (getsize(universal_path), getsize(arm_path_thin), getsize(intel_path_thin),
-                  basename(universal_path), dirname(universal_path)))
-    """
+        """
+        from os.path import getsize, basename, dirname
+        log_mismatch('lipo %d %d %d %s %s' %
+                     (getsize(universal_path), getsize(arm_path_thin), getsize(intel_path_thin),
+                      basename(universal_path), dirname(universal_path)))
+        """
 
-    from os import remove, chmod
 
-    remove(arm_path_thin)
-    remove(intel_path_thin)
-    chmod(universal_path, 0o755)  # Add execute permission.
+        remove(arm_path_thin)
+        remove(intel_path_thin)
+        chmod(universal_path, 0o755)  # Add execute permission.
+    except RuntimeError as e:
+        error = str(e)
+        if 'have the same architecture' in error:
+            remove(arm_path_thin)
+            rename(intel_path_thin, universal_path)
+            stderr.write("both builds had same arch for %s; renaming instead of lipoing" % universal_path)
+        else:
+            raise e
 
 
 def make_thin(path, thin_path, arch):
