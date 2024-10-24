@@ -320,7 +320,7 @@ jobs:
       - run: |
           brew install python@3.10
           python3.10 -m pip install lief dmgbuild
-          patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
+          patch --ignore-whitespace -d /usr/local/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
       # Temporarily force this to succeed. The container's Python conflicts with homebrew's,
       # but we don't really use it anyway.
       - run: ${PWD}/utils/set_up_macos.sh || true
