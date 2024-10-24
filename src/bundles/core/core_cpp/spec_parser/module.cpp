@@ -411,6 +411,13 @@ static RGBA make_color_val(std::string& val_str)
     return rgba;
 }
 
+static void
+debug_semantic_values(const SemanticValues& vs)
+{
+    for (std::vector<std::any>::size_type item = 0; item < vs.size(); ++item)
+        std::cerr << "semantic value " << item << (vs[item].has_value() ? " contains" : " does not contain") << " a value of type " << vs[item].type().name() << "\n";
+}
+
 PyMODINIT_FUNC PyInit__spec_parser()
 {
     auto mod = PyModule_Create(&spec_parser_def);
@@ -579,6 +586,8 @@ PyMODINIT_FUNC PyInit__spec_parser()
     // model
     spec_parser["model"] = [](const SemanticValues &vs) {
         std::cerr << vs.size() << " model semantic values\n";
+        debug_semantic_values(vs);
+        std::cerr << "model choice: " << vs.choice() << "\n";
         std::cerr << "tokens:";
         for (auto tk: vs.tokens)
             std::cerr << " " << tk;
@@ -737,10 +746,10 @@ PyMODINIT_FUNC PyInit__spec_parser()
         std::cerr << "\n";
         // emulates the code in commands.atomspec._AtomSpecSemantics.attr_test
         if (vs.choice() == 0) {
-            auto name = std::any_cast<std::string>(vs[0]);
-            auto op = std::any_cast<std::string>(vs[1]);
-            auto vstr_isquoted = std::any_cast<std::pair<std::string, bool>>(vs[2]);
-            auto val_str = vstr_isquoted.first;
+            auto name = std::string(std::any_cast<std::string_view>(vs[0]));
+            auto op = std::string(std::any_cast<std::string_view>(vs[1]));
+            auto vstr_isquoted = std::any_cast<std::pair<std::string_view, bool>>(vs[2]);
+            auto val_str = std::string(vstr_isquoted.first);
             auto quoted = vstr_isquoted.second;
             auto name_len = name.size();
             if (name_len >= 5 && name.substr(name_len-4) == "olor"
@@ -799,7 +808,12 @@ PyMODINIT_FUNC PyInit__spec_parser()
         for (auto tk: vs.tokens)
             std::cerr << " " << tk;
         std::cerr << "\n";
-        return std::make_pair(std::any_cast<std::string_view>(vs[0]), std::any_cast<float>(vs[1]));
+        float dist;
+        if (vs.choice() == 0)
+            dist = std::any_cast<float>(vs[1]);
+        else
+            dist = std::any_cast<int>(vs[1]);
+        return std::make_pair(std::any_cast<std::string_view>(vs[0]), dist);
     };
 
     // ATTR_NAME
