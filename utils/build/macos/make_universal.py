@@ -210,8 +210,14 @@ def lipo_files(arm_path, intel_path, universal_path, warn):
         error = str(e)
         if "does not contain the specified architecture (arm64)" in error:
             # if it's x86 then use it I guess
-            if os.path.exists()
-            rename(intel_path, universal_path)
+            if os.path.exists(intel_path):
+                rename(intel_path, universal_path)
+            elif os.path.exists(arm_path):
+                rename(arm_path, universal_path)
+            else:
+                raise RuntimeError("No binary file %s" % universal_path)
+
+
 
 
 def make_thin(path, thin_path, arch):
