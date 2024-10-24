@@ -2,7 +2,7 @@ from sys import stderr
 from os import remove, chmod, rename
 from os.path import join, exists, isdir, islink, isfile, getsize
 from os import mkdir, listdir
-from shutil import copy, copytree
+from shutil import copy, copytree, copyfile
 import subprocess
 import lief
 import sys
