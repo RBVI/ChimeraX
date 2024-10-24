@@ -37,13 +37,14 @@ class _KVFinderBundle(BundleAPI):
             import pyKVFinder
         except ImportError:
             from chimerax.core.commands import run
-            logger.info("pyKVFinder module not installed; fetching from PyPi repository...")
+            logger.status("pyKVFinder module not installed; fetching from PyPi repository...", log=True)
             try:
                 run(logger.session, "pip install pyKVFinder", log=False)
             except Exception:
                 from chimerax.core.logger import report_exception
                 report_exception(preface="Could not install pyKVFinder module from PyPi repository")
                 return
+            logger.status("pyKVFinder module installed from PyPi repository.", log=True)
         from . import cmd
         cmd.register_command(command_name, logger)
 
