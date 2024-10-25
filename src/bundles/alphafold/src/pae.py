@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -522,6 +522,12 @@ class AlphaFoldPAEPlot(ToolInstance):
         
     # ---------------------------------------------------------------------------
     #
+    def set_pae(self, pae, colormap = None):
+        self._pae = pae
+        self.set_colormap(colormap)
+
+    # ---------------------------------------------------------------------------
+    #
     def set_colormap(self, colormap = None):
         if colormap is None:
             from chimerax.core.colors import BuiltinColormaps
@@ -641,17 +647,17 @@ class AlphaFoldPAEPlot(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _report_residues_or_atoms(self, index1, index2):
+    def _report_residues_or_atoms(self, column_index, row_index):
         pae = self._pae
         m = pae.pae_matrix
         msize = m.shape[0]
-        if index1 < 0 or index2 < 0 or index1 >= msize or index2 >= msize:
+        if column_index < 0 or row_index < 0 or column_index >= msize or row_index >= msize:
             msg = ''
         else:
-            name1, name2 = [pae.row_residue_or_atom_name(i) for i in (index1, index2)]
-            d = m[index1,index2]
+            column_name, row_name = [pae.row_residue_or_atom_name(i) for i in (column_index, row_index)]
+            d = m[row_index,column_index]
             dstr = '%.1f' % d
-            msg = f'{name1} {name2} = {dstr}'
+            msg = f'{column_name} {row_name} = {dstr}'
         self._info_label.setText(msg)
         
     # ---------------------------------------------------------------------------
@@ -1198,10 +1204,11 @@ def read_json_pae_matrix(path):
     j = json.load(f)
     f.close()
 
-    if isinstance(j, dict) and 'pae' in j:
+    if isinstance(j, dict) and ('pae' in j or 'predicted_aligned_error' in j):
         # ColabFold 1.3 produces a JSON file different from AlphaFold database.
+        key = 'pae' if 'pae' in j else 'predicted_aligned_error'
         from numpy import array, float32
-        pae = array(j['pae'], float32)
+        pae = array(j[key], float32)
         return pae
     
     if not isinstance(j, list):
@@ -1414,7 +1421,7 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
             raise UserError(f'Structure {structure} does not match PAE matrix size {pae.matrix_size}.'
                             f'The structure has {pae.num_residue_rows} polymer residues and {pae.num_atom_rows} non-polymer atoms'
                             '\n\nThis can happen if chains or atoms were deleted from the AlphaFold model or if the PAE data was applied to a structure that was not the one predicted by AlphaFold.  Use the full-length AlphaFold model to show predicted aligned error.')
-            structure.alphafold_pae = pae
+        structure.alphafold_pae = pae
     elif structure is None:
         from chimerax.core.errors import UserError
         raise UserError('No structure or PAE file specified.')
@@ -1441,7 +1448,9 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
                 structure._alphafold_pae_plot = p
         else:
             p.display(True)
-            if palette is not None or range is not None:
+            if file is not None:
+                p.set_pae(pae, colormap)
+            elif palette is not None or range is not None:
                 p.set_colormap(colormap)
             if divider_lines is not None:
                 p.show_chain_dividers(divider_lines)

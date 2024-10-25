@@ -22,6 +22,7 @@ blacklist = set([
     "chimerax.build_structure.process",  # processes Chimera fragment files
     "chimerax.coulombic.create_data",  # creates data.py
     "chimerax.dicom.scan_dicoms",  # development script
+    "chimerax.kvfinder.cmd",       # pyKVFinder installed from PyPi on demand
     "chimerax.map.data.memoryuse", # unported code
     "chimerax.map.filter.square",  # unported code
     "chimerax.map.series.align",   # unported code

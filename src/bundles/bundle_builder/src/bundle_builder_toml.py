@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -54,6 +54,7 @@ import re
 import shutil
 import sys
 import sysconfig
+from typing import Optional
 
 if sys.version_info < (3, 11, 0):
     import tomli as tomllib
@@ -223,13 +224,13 @@ class Bundle:
                 "Bundle renamed to %r after replacing "
                 "underscores with hyphens." % self.name
             )
-
-        self.bundle_base_name = self.name.replace("ChimeraX-", "")
         if "module-name-override" in chimerax_data:
-            self.module_name = f'chimerax.{chimerax_data.get("module-name-override")}'
+            override = chimerax_data.get("module-name-override")
         else:
-            self.module_name = self.name.replace("-", ".").lower()
-        self.dist_info_name = self.name.replace("-", "_")
+            override = None
+        self.bundle_base_name, self.module_name, self.dist_info_name = (
+            self.format_module_name(self.name, override)
+        )
 
         # If version is dynamic then we'll attempt to build the wheel and use the version number
         # that setuptools found to check the built wheel
@@ -498,6 +499,16 @@ class Bundle:
         tag = "-".join(bdist_wheel_cmd.get_tag())
         self._expected_wheel_name = f"{distname}-{tag}.whl"
 
+    @staticmethod
+    def format_module_name(name: str, override: Optional[str] = None):
+        bundle_base_name = name.replace("ChimeraX-", "")
+        if override:
+            module_name = f"chimerax.{override}"
+        else:
+            module_name = name.replace("-", ".").lower()
+        dist_info_name = name.replace("-", "_")
+        return bundle_base_name, module_name, dist_info_name
+
     @classmethod
     def from_toml_file(cls, logger, toml_file):
         return cls(logger, read_toml(toml_file))
@@ -660,16 +671,30 @@ class Bundle:
         for lib in self.c_libraries:
             if lib.static:
                 if sys.platform == "win32":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".lib"])))
+                    try:
+                        os.remove(os.path.join("src/lib/", "".join([lib.name, ".lib"])))
+                    except FileNotFoundError:
+                        pass
                 else:
-                    os.remove(
-                        os.path.join("src/lib/", "".join(["lib", lib.name, ".a"]))
-                    )
+                    try:
+                        os.remove(
+                            os.path.join("src/lib/", "".join(["lib", lib.name, ".a"]))
+                        )
+                    except FileNotFoundError:
+                        pass
             else:
                 if sys.platform == "darwin":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".dylib"])))
+                    try:
+                        os.remove(
+                            os.path.join("src/lib/", "".join([lib.name, ".dylib"]))
+                        )
+                    except FileNotFoundError:
+                        pass
                 elif sys.platform == "linux":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".so"])))
+                    try:
+                        os.remove(os.path.join("src/lib/", "".join([lib.name, ".so"])))
+                    except FileNotFoundError:
+                        pass
 
     def _clean_extrafiles(self):
         for pkg_name, items in self.extra_files.items():
@@ -711,6 +736,10 @@ class Bundle:
             os.chdir(self.path)
             kw = self.setup_arguments.copy()
             kw["package_dir"], kw["packages"] = self._make_package_arguments()
+            # So far as I can tell this instructs setuptools to stop sticking its
+            # nose where it doesn't belong and trust that we've set up our packages
+            # and package data correctly.
+            kw["include_package_data"] = False
             sys.argv = ["setup.py"] + cmd
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)

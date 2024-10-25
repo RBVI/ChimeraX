@@ -1,0 +1,72 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Core ~=1.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-MLP"
+version = "1.1.1"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Molecular lipophilicity calculation"
+dependencies = [
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-MapData ~=2.0",
+  "ChimeraX-ColorKey ~=1.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """Molecular lipophilicity calculation
+
+Based on:
+
+    pyMLP Molecular Lipophilic Potential evaluator
+    Copyright (c) 2006-2007 Julien Lefeuvre <lefeuvrejulien@yahoo.fr>
+
+    Software License Agreement (BSD-new License)
+ 
+    Copyright (c) 2006-2015, Julien Lefeuvre <julien@lefeuv.re>
+    Contributors: - Julien Lefeuvre <julien@lefeuv.re>
+
+    All rights reserved."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Molecular structure"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.command.mlp]
+category = "Molecular structure"
+description = "Molecular lipophilicity calculation"
+
+[tool.chimerax.extension._mlp]
+sources = [
+  "_mlp/mlp.cpp",
+]
+libraries = [
+  "arrays",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]

@@ -1,8 +1,8 @@
 .. _C and C++ Extensions: https://docs.python.org/3/extending/building.html
 .. _CPython: https://en.wikipedia.org/wiki/CPython
 .. _ChimeraX Toolshed: https://cxtoolshed.rbvi.ucsf.edu/
-.. _Cytoscape: http://www.cytoscape.org/
-.. _Cytoscape App Store: http://apps.cytoscape.org/
+.. _Cytoscape: https://www.cytoscape.org/
+.. _Cytoscape App Store: https://apps.cytoscape.org/
 .. _eXtensible Markup Language: https://en.wikipedia.org/wiki/XML
 .. _HomoloGene: https://www.ncbi.nlm.nih.gov/homologene
 .. _HTML 5: https://www.w3schools.com/html/

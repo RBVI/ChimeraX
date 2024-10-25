@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -31,7 +31,8 @@ def log_chains(session, structures=None):
     for s in structures:
         s._report_chain_descriptions(session)
 
-def combine_cmd(session, structures, *, close=False, model_id=None, name=None, retain_ids=False):
+def combine_cmd(session, structures, *, close=False, model_id=None, name=None, retain_ids=False,
+        add_to_session=True):
 
     if structures is None:
         from chimerax.atomic import AtomicStructure
@@ -166,7 +167,8 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None, r
         session.models.close(list(closures))
     if model_id is not None:
         combination.id = model_id
-    session.models.add([combination])
+    if add_to_session:
+        session.models.add([combination])
     return combination
 
 def label_missing_cmd(session, structures, max_chains):

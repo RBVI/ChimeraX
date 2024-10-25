@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -83,7 +83,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
             gap_open_strand=-gap_open_strand,
             gap_open_other=-gap_open_other)
         gapped_ref, gapped_match = seqs
-    elif algorithm =="sw":
+    elif algorithm == "sw":
         def ss_let(r):
             if not r:
                 return ' '

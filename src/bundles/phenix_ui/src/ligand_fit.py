@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -236,13 +236,17 @@ def _process_results(session, placed_ligand, model, chain_id, residue_number):
     if model.deleted:
         placed_ligand.delete()
         raise UserError("Receptor structure was deleted during ligand fitting")
-    from chimerax.atomic import Atom, colors
+    from chimerax.atomic import Atom, colors, Residue
     res = placed_ligand.residues[0]
     res.chain_id = chain_id
     res.number = residue_number
     ligand_atoms = placed_ligand.atoms
     ligand_atoms.draw_modes = Atom.STICK_STYLE
     ligand_atoms.colors = colors.element_colors(ligand_atoms.element_numbers)
+    # Assign ligand's secondary structure info, so that when combined
+    # it doesn't invalidate the receptor's info
+    placed_ligand.residues.ss_types = Residue.SS_COIL
+    placed_ligand.ss_assigned = True
     model.combine(placed_ligand, {}, model.scene_position)
     session.logger.info("Ligand added to %s as residue %d in chain %s" % (model,  residue_number, chain_id))
 

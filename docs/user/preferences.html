@@ -61,17 +61,26 @@ Several <a href="#other">other preferences</a> do not appear in this
 dialog, but in separate interfaces. 
 </p><p>
 ChimeraX preferences are stored as multiple files
-in a standard platform-dependent location (for example, under
-<span class="nowrap"><b>~/Library/Application Support/ChimeraX/</b></span>
-on a Mac).
+in a standard platform-dependent location:
 <!--
 see <a href="https://pypi.python.org/pypi/appdirs/1.4.3"
 target="_blank">python appdirs</a>
 -->
+<ul class="none">
+<li><span class="nowrap"><b>~/Library/Application Support/ChimeraX/</b></span>
+&nbsp;on Mac
+<li><span class="nowrap"><b>~/.local/share/ChimeraX/</b></span>
+&nbsp;on Linux
+<li><span class="nowrap"><b>C:\Users\</b>&lt;<i>user-name</i>&gt;<b>\AppData\Local\UCSF\ChimeraX\</b></span>
+&nbsp;on Windows
+</ul>
+<p>
 The location can be reported with command: 
+</p>
 <blockquote>
 <b><a href="commands/info.html#path">info path</a> user unversioned config</b>
 </blockquote>
+<p>
 Preferences files are named according to the modules to which they apply,
 and are not created until nondefault settings are saved.
 </p>
@@ -462,5 +471,5 @@ Examples:
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2024</address>
+September 2024</address>
 </body></html> 

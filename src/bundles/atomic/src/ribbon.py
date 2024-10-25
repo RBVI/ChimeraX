@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -1450,7 +1450,7 @@ def _natural_cubic_spline_coefficients_unused(coords):
     coef = empty((len(coords)-1,3,4), float64)
     for axis in range(3):
         values = ce[:,axis]
-        # Cubic spline from http://mathworld.wolfram.com/CubicSpline.html
+        # Cubic spline from https://mathworld.wolfram.com/CubicSpline.html
         # Set b[0] and b[-1] to 1 to match TomG code in VolumePath
         a[:] = 1
         b[:] = 4
@@ -1474,9 +1474,9 @@ def _natural_cubic_spline_coefficients_unused(coords):
 def tridiagonal(a, b, c, d):
     '''
     TDMA solver, a b c d can be NumPy array type or Python list type.
-    refer to http://en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm
+    refer to https://en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm
     Hacked source from
-    http://ofan666.blogspot.com/2012/02/tridiagonal-matrix-algorithm-solver-in.html
+    https://ofan666.blogspot.com/2012/02/tridiagonal-matrix-algorithm-solver-in.html
     '''
     nf = len(a)     # number of equations
     for i in range(1, nf):

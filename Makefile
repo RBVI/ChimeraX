@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -75,9 +75,7 @@ endif
 	$(MAKE) -C prereqs/Python app-install
 	$(MAKE) -C prereqs/pips app-install
 	$(MAKE) -C prereqs/PyQt app-install
-	$(MAKE) -C prereqs/qtshim app-install
 	$(MAKE) -C prereqs/ambertools app-install
-	$(MAKE) -C prereqs/cxservices app-install
 	$(MAKE) -C src/bundles install
 	$(MAKE) -C src/apps/ChimeraX install
 
@@ -87,22 +85,36 @@ test src.test: testimports
 testimports:
 	$(APP_EXE) --exit --nogui --silent cxtestimports.py
 
-pytest:
-	./tests/env.sh
-	$(APP_PYTHON_EXE) -m pytest tests/test_imports.py
-	$(APP_PYTHON_EXE) -m pytest
+SCRIPT_COVERAGE_ARGS := $(if $(USE_COVERAGE),-c -s,)
+COVERAGE_ARGS := $(if $(USE_COVERAGE),--cov=chimerax --cov-append,)
+SILENT_COVERAGE_ARGS := $(if $(USE_COVERAGE),$(COVERAGE_ARGS) --cov-report=,)
 
-pytest-with-coverage:
-	# Copy the chimerax package to the repo root so that it comes first in 
-	# python's path. This will cause the coverage report to be generated 
-	# with paths like 'chimerax/addh/foo.py' instead of with paths deep in
-	# the ChimeraX.app folder
+clean-coverage:
 	-rm .coverage
 	-rm -rf chimerax
+
+prepare-coverage:
 	cp -r $(APP_PYSITEDIR)/chimerax .
-	./tests/env.sh
-	$(APP_PYTHON_EXE) -m pytest tests/test_imports.py
-	$(APP_PYTHON_EXE) -m pytest --cov=chimerax
+
+report-coverage:
+	$(APP_PYTHON_EXE) -m coverage report -i
+
+pytest-both-exes:
+	./tests/env.sh $(SCRIPT_COVERAGE_ARGS)
+
+pytest-wheel:
+	$(APP_PYTHON_EXE) -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS) tests/test_imports_wheel.py
+	$(APP_PYTHON_EXE) -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS)
+
+pytest-app:
+	$(APP_PYTHON_EXE) -m pytest -m "not wheel" $(SILENT_COVERAGE_ARGS) tests/test_imports_app.py
+	$(APP_PYTHON_EXE) -m pytest -m "not wheel" $(SILENT_COVERAGE_ARGS)
+
+ifdef USE_COVERAGE
+pytest: clean-coverage prepare-coverage pytest-both-exes pytest-wheel pytest-app report-coverage
+else
+pytest: pytest-both-exes pytest-wheel pytest-app
+endif
 
 sync:
 	mkdir -p $(build_prefix)/sync/
@@ -171,7 +183,6 @@ distclean: clean
 	-$(MAKE) -C docs clean
 	-$(MAKE) -C vdocs clean
 	-rm -rf prereqs/prebuilt-*.tar.bz2
-	-$(MAKE) -C prereqs/cxservices clean
 
 reallyclean:
 	rm -rf $$(git status --short --ignored --porcelain=v1 | sed -e '/^!!/!d' -e 's/^!! //')

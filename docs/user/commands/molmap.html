@@ -71,7 +71,8 @@ Examples:
   sets map dimensions relative to the bounding box of the atom centers.
   Each face of the volume data box is offset outward by <i>p</i> from the
   corresponding bounding box face.
-  This option is ignored if <a href="#onGrid"><b>onGrid</b></a> is used.
+  This option is ignored if <a href="#onGrid"><b>onGrid</b></a> is used,
+  or <a href="#cube"><b>cube</b></a> with <i>N</i> specified.
 </blockquote>
 <blockquote>
   <a name="onGrid"></a>
@@ -80,6 +81,27 @@ Examples:
   step size.
   This option overrides any <a href="#gridSpacing"><b>gridSpacing</b></a>
   and <a href="#edgePadding"><b>edgePadding</b></a> values.
+</blockquote>
+<blockquote>
+<a name="cube"></a>
+<b>cube</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to enforce making the grid cubic, with the same number of points
+in X, Y, and Z (default <b>false</b>). If <b>true</b>, an even number of 
+points will always be used. If an integer <i>N</i> is given:
+<ul>
+<li><i>N</i> points will be used in each dimension
+<li>if <a href="#edgePadding"><b>edgePadding</b></a>
+but not <a href="#gridSpacing"><b>gridSpacing</b></a> is specified,
+the spacing will be adjusted to include the requested padding
+<li>if <a href="#edgePadding"><b>edgePadding</b></a>
+and <a href="#gridSpacing"><b>gridSpacing</b></a> are both specified,
+the <a href="#edgePadding"><b>edgePadding</b></a> will be ignored
+and the grid box may not cover the molecule if the spacing
+is too small given the number of points <i>N</i>
+</ul>
+The <b>cube</b> option is ignored if 
+<a href="#onGrid"><b>onGrid</b></a> is used.
 </blockquote>
 <blockquote>
   <b>cutoffRange</b> &nbsp;<i>r</i> 
@@ -286,5 +308,5 @@ or <a href="measure.html#symmetry"><b>measure symmetry</b></a>)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2021</address>
+September 2024</address>
 </body></html>

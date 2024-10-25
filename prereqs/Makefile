@@ -56,7 +56,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= ambertools cxservices openmm pips PyQt Python qtshim
+SUBDIRS	+= ambertools openmm pips PyQt Python
 
 
 # All needed subdirectories must be set by now.
@@ -124,8 +124,6 @@ endif
 # All packages that have dependencies should depend on the .install
 # target of the other packages.
 
-cxservices.install: pips.install
-cxservices.app-install: pips.app-install
 openmm.app-install: Python.app-install pips.app-install
 openmm.install: Python.install pips.install
 pips.app-install: Python.app-install
