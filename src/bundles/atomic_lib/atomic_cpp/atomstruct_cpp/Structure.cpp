@@ -390,8 +390,8 @@ Structure::_combine_chains(Residue* left, Residue* right)
                 }
                 auto complete_chain = complete_r->chain();
                 auto incomplete_chain = incomplete_r->chain();
-                int i2c_offset = incomplete_chain->res_map().at(incomplete_r)
-                    - complete_chain->res_map().at(complete_r) - seq_offset; 
+                int i2c_offset = complete_chain->res_map().at(complete_r)
+                    - incomplete_chain->res_map().at(incomplete_r) + seq_offset + 1;
                 auto incomplete_size = incomplete_chain->size();
                 auto& incomplete_residues = incomplete_chain->residues();
                 auto& incomplete_chars = incomplete_chain->characters();
@@ -402,14 +402,14 @@ Structure::_combine_chains(Residue* left, Residue* right)
                     auto ir = incomplete_residues[ii];
                     if (ir == nullptr)
                         continue;
-                    auto ci = ii + i2c_offset;
+                    long ci = ii + i2c_offset;
                     // off left edge of complete sequence?
                     if (ci < 0) {
                         combinable = false;
                         break;
                     }
                     // off right edge of complete sequence?
-                    if (ci >= complete_size) {
+                    if (ci >= (long)complete_size) {
                         combinable = false;
                         break;
                     }
