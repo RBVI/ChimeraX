@@ -47,7 +47,7 @@
 #include <atomstruct/tmpl/residues.h>
 #include <logger/logger.h>
 #include "pdb/connect.h"
-#include <pdb/PDB.h>
+#include <PDB.h>
 
 using atomstruct::Atom;
 using atomstruct::AtomicStructure;
@@ -1743,17 +1743,6 @@ std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER
     return s_array;
 }
 
-// for sorting atoms by coord index (input order)...
-namespace {
-
-struct less_Atom: public std::binary_function<Atom*, Atom*, bool> {
-    bool operator()(const Atom* a1, const Atom* a2) {
-        return a1->coord_index() < a2->coord_index();
-    }
-};
-
-}
-
 static std::string
 primes_to_asterisks(const char* orig_name)
 {
@@ -1838,7 +1827,8 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
         // PDB spec no longer specifies atom ordering;
         // sort by coord_index to try to preserve input ordering...
         auto ordering = r->atoms();
-        std::sort(ordering.begin(), ordering.end(), less_Atom());
+        std::sort(ordering.begin(), ordering.end(),
+            [](Atom* a1, Atom* a2) { return a1->coord_index() < a2->coord_index(); });
 
         for (auto a: ordering) {
             if (selected_only && !a->selected())

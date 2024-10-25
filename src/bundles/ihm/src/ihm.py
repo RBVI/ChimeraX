@@ -288,7 +288,7 @@ class IHMModel(Model):
                 a_group = Model(name, self.session)
                 a_group.add(am)
                 smg.append(a_group)
-                a_group.color = am[0].model_color	# Group color is first model color
+                a_group.color = am[0].overall_color	# Group color is first model color
             sm_group.add(smg)
             self.add([sm_group])
 
@@ -1302,14 +1302,14 @@ class CrossLinkModel(Model):
                 pbg.display = display
     display = property(_get_display, _set_display)
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         return self.color
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         self.color = color
         for pbg in self._pseudobond_groups:
             if not pbg.deleted:
-                pbg.model_color = color
-    model_color = property(_get_model_color, _set_model_color)
+                pbg.overall_color = color
+    overall_color = property(_get_overall_color, _set_overall_color)
 
 # -----------------------------------------------------------------------------
 #

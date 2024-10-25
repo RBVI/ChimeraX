@@ -7,9 +7,19 @@ include Makefile.pip
 # Force LANG to UTF-8 so that grako will install successfully
 LANG	= en_US.UTF-8
 
+COMMA = ,
+EMPTY =
+SPACE = $(EMPTY) $(EMPTY)
+SOURCE_WHEELS =
+SOURCE_VERSIONS =
+
+# On macOS, only the x86_64 version of Cython is available from pypi.
+# So we install the same version on arm64, but from source.
+CYTHON_VERSION = $(shell grep Cython= app_requirements.txt  | sed -e 's/ ;.*//' -e 's/.*=//')
+
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
-PATCHES = tcia_utils.patch tcia_utils_metadata.patch pyopengl.patch pyopenxr.patch
+PATCHES = tcia_utils.patch tcia_utils_metadata.patch
 PYTABLES_DYLIBS = libblosc.1.dylib libhdf5.200.dylib libsnappy.1.dylib \
 				  libc++.1.dylib libcrypto.3.dylib libssl.3.dylib
 
@@ -55,6 +65,8 @@ ifeq ($(OS),Darwin)
 ifeq ($(OSARCH),DarwinArm64)
 PLATO_PREREQS += $(PYTABLES_PREREQ)
 PLATO_WHEELS += $(PYTABLES_WHEEL)
+SOURCE_WHEELS += Cython
+SOURCE_VERSIONS += Cython==$(CYTHON_VERSION)
 else
 ifeq ($(OSARCH),DarwinIntel64)
 endif
@@ -67,6 +79,9 @@ all:
 
 install:
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation -r build_requirements.txt
+ifneq (,$(SOURCE_WHEELS))
+	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
+endif
 	$(FETCH_PREREQ) $(GRAKO_PREREQ)
 	$(PIP_INSTALL) $(GRAKO_WHEEL)
 ifeq ($(OS),Darwin)
@@ -85,6 +100,9 @@ upgrade:
 
 app-install:
 	$(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
+ifneq (,$(SOURCE_WHEELS))
+	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
+endif
 	# Will be downloaded from install step
 	$(APP_PIP_INSTALL) $(GRAKO_WHEEL)
 ifdef DEV_DEPENDENCIES
@@ -93,8 +111,6 @@ endif
 	for prereq in $(PLATO_PREREQS); do \
 		$(FETCH_PREREQ) $$prereq; \
 	done
-	$(APP_PIP_INSTALL) -r app_pyopengl_requirements.txt
-	$(APP_PIP_INSTALL) --no-dependencies -r app_pyopenxr_requirements.txt
 	$(APP_PIP_INSTALL) $(PLATO_WHEELS)
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
@@ -107,7 +123,6 @@ endif
 
 app-upgrade:
 	$(APP_PIP_INSTALL) -U -r app_requirements.txt
-	$(APP_PIP_INSTALL) -U -r app_pyopengl_requirements.txt
 
 # Example targets for patching a pip package. These targets would
 # be dependencies of the install and app-install targets.
@@ -144,6 +159,7 @@ outdated:
 	@echo "  pip, wheel, setuptools versions are set in ../python/Makefile"
 	@echo "  pyzmq (pulled in by ipykernel via jupyter-client)"
 	@echo "  snowballstemmer (pulled in by Sphinx)"
+	@echo "  tables hdf5 package, 3.8.0 because 3.9.x exhibits bug #14935"
 	@echo "  tornado (pulled in by ipykernel)"
 
 app-outdated:

@@ -37,7 +37,8 @@ def fit_search(models, points, point_weights, volume, n,
                optimize_translation = True, optimize_rotation = True,
                max_steps = 2000,
                ijk_step_size_min = 0.01, ijk_step_size_max = 0.5,
-               request_stop_cb = None):
+               request_stop_cb = None,
+               random_seed = 0):
 
     bounds = volume.surface_bounds()
     if bounds is None:
@@ -58,6 +59,8 @@ def fit_search(models, points, point_weights, volume, n,
     vtfinv = volume.position.inverse()
     mtv_list = [vtfinv * m.position for m in models]
 
+    set_random_seed(random_seed)
+    
     flist = []
     outside = 0
     from math import pi
@@ -437,6 +440,14 @@ def move_step(move_table, session):
     if len(mt) == 0:
         from chimerax.core.triggerset import DEREGISTER
         return DEREGISTER
+
+# -----------------------------------------------------------------------------
+#
+def set_random_seed(random_seed):
+    if random_seed == 'random':
+        random_seed = None
+    from random import seed
+    seed(random_seed)
 
 # -----------------------------------------------------------------------------
 #

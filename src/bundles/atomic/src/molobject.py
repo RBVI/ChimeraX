@@ -46,7 +46,7 @@ def python_instances_of_class(inst_class, *, open_only=True):
         return instances
     def open_structure(s):
         return s.session is not None and s.session.models.have_model(s)
-    if issubclass(inst_class, PseudobondGroupData):
+    if issubclass(inst_class, (PseudobondGroupData, StructureSeq)):
         filt = lambda x: (not x.structure) or open_structure(x.structure)
     elif hasattr(inst_class, 'structure'):
         filt = lambda x: open_structure(x.structure)
@@ -625,6 +625,7 @@ class Residue(CyResidue, State):
         ('chi1', (float, None)), ('chi2', (float, None)), ('chi3', (float, None)), ('chi4', (float, None)),
         ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('num_atoms', (int,)),
         ('number', (int,)), ('omega', (float, None)), ('phi', (float, None)), ('psi', (float, None)),
+        ('worm_radius', (float,)),
     ]
 
     # possibly long-term hack for interoperation with ctypes;
@@ -1058,7 +1059,7 @@ class StructureSeq(Sequence):
                 args = (ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int), ret = ctypes.c_void_p)(
                     chain_id.encode('utf-8'), structure._c_pointer, polymer_type)
         super().__init__(sseq_pointer)
-        self.triggers.add_trigger('delete')
+        self.triggers.add_trigger('downgrade')
         self.triggers.add_trigger('characters changed')
         self.triggers.add_trigger('residues changed')
         from weakref import ref
@@ -1072,6 +1073,9 @@ class StructureSeq(Sequence):
     def __del__(self):
         if not self.chimerax_exiting:
             self.changes_handler.remove()
+            # Now that "demoted" chains don't change their class to Sequence, have to call
+            # Sequence's __del__ to get the entry removed from the Python object lookup map
+            super().__del__()
 
     def __lt__(self, other):
         # for sorting (objects of the same type)
@@ -1099,6 +1103,9 @@ class StructureSeq(Sequence):
     '''Supported API. :class:`.Residues` collection containing the residues of this sequence with existing structure, in order. Read only.'''
     from_seqres = c_property('sseq_from_seqres', npy_bool, doc = "Was the full sequence "
         " determined from SEQRES (or equivalent) records in the input file")
+    '''"from_seqres" deprecated; use "full_sequence_known" instead.'''
+    full_sequence_known = c_property('sseq_from_seqres', npy_bool, doc = "Is the full polymer sequence "
+        " known (even if the structure is incomplete).")
     num_existing_residues = c_property('sseq_num_existing_residues', size_t, read_only = True)
     '''Supported API. Number of residues in this sequence with existing structure. Read only.'''
     num_residues = c_property('sseq_num_residues', size_t, read_only = True)
@@ -1205,11 +1212,12 @@ class StructureSeq(Sequence):
 
     @staticmethod
     def restore_snapshot(session, data):
+        if data['structure'] is None:
+            return Sequence.restore_snapshot(session, data['Sequence'])
         sseq = StructureSeq(chain_id=data['chain_id'], structure=data['structure'])
         Sequence.set_state_from_snapshot(sseq, session, data['Sequence'])
         sseq.description = data['description']
         sseq.bulk_set(data['residues'], sseq.characters, fire_triggers=False)
-        sseq.description = data.get('description', None)
         sseq.set_custom_attrs(data)
         return sseq
 
@@ -1244,6 +1252,15 @@ class StructureSeq(Sequence):
         return data
 
     def _changes_cb(self, trig_name, changes):
+        if self.structure == None:
+            # doing this directly from C++ layer causes crashes in garbage collection [#14506]
+            # so do it in 'changes' callback instead
+            numbering_start = self.numbering_start
+            self._fire_trigger('downgrade', Sequence)
+            self.changes_handler.remove()
+            self.numbering_start = numbering_start
+            return
+
         if "name changed" in changes.residue_reasons():
             updated_chars = []
             some_changed = False
@@ -1257,20 +1274,11 @@ class StructureSeq(Sequence):
                     updated_chars.append(cur_char)
             if some_changed:
                 self.bulk_set(self.residues, ''.join(updated_chars), fire_triggers=False)
-                self.from_seqres = False
                 self._fire_trigger('characters changed', self)
-
-    def _cpp_seq_demotion(self):
-        # called from C++ layer when this should be demoted to Sequence
-        numbering_start = self.numbering_start
-        self._fire_trigger('delete', self)
-        self.changes_handler.remove()
-        self.__class__ = Sequence
-        self.numbering_start = numbering_start
 
     def _cpp_structure_seq_demotion(self):
         # called from C++ layer when a Chain should be demoted to a StructureSeq
-        self.__class__ = StructureSeq
+        self._fire_trigger('downgrade', StructureSeq)
 
     def _cpp_modified(self):
         # called from C++ layer when the residue list changes
@@ -1332,6 +1340,12 @@ class Chain(StructureSeq):
 
     '''
 
+    # For attribute registration...
+    _attr_reg_info = [
+        ('chain_id', (str,)), ('circular', (bool,)), ('description', (bool,)),
+        ('num_existing_residues', (int,)), ('num_residues', (int,)), ('polymer_type', int),
+    ]
+
     def __str__(self):
         return self.string()
 
@@ -1341,7 +1355,7 @@ class Chain(StructureSeq):
 
     # also used by Residue
     @staticmethod
-    def chain_id_to_atom_spec(chain_id): 
+    def chain_id_to_atom_spec(chain_id):
         if chain_id:
             if chain_id.isspace():
                 id_text = "?"
@@ -1453,6 +1467,12 @@ class StructureData:
     PBG_HYDROGEN_BONDS = c_function('structure_PBG_HYDROGEN_BONDS', args = (),
         ret = ctypes.c_char_p)().decode('utf-8')
     _ss_suppress_count = 0
+
+    # For attribute registration...
+    _attr_reg_info = [
+        ('display', (bool,)), ('name', (str,)), ('num_atoms', (int,)), ('num_bonds', (int,)),
+        ('num_chains', (int,)), ('num_residues', (int,)),
+    ]
 
     def __init__(self, mol_pointer=None, *, logger=None):
         if mol_pointer is None:
@@ -1604,10 +1624,11 @@ class StructureData:
     '''Ribbon mode showing helix as ribbon wrapped around tube.'''
     ring_display_count = c_property('structure_ring_display_count', int32, read_only = True,
         doc = "Return number of residues with ring display set. Integer.")
-
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
         "Has secondary structure been assigned, either by data in original structure file "
         "or by some algorithm (e.g. dssp command)")
+    worm_ribbon = c_property('structure_worm_ribbon', npy_bool,
+        doc = "Show ribbon as a 'worm'. Boolean.")
 
     from contextlib import contextmanager
     @contextmanager

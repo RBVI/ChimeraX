@@ -123,7 +123,7 @@ other options of the <b>volume</b> command.
 </p><p>
 <a name="settings"></a>
 The command <b>volume settings</b> (optionally followed by a <i>model-spec</i>) 
-reports the current volume display settings in the 
+reports volume model properties and display settings in the 
 <a href="../tools/log.html"><b>Log</b></a>.
 See also: <a href="info.html"><b>info</b></a>
 </p>
@@ -406,9 +406,12 @@ the setting applies to whichever style is currently shown.
   If the resulting enclosed volume is larger (smaller) than the target, 
   that midpoint value becomes the new lower (upper) bound.
   In the first iteration, the upper and lower bounds are the maximum
-  and minimum values in the map.  Iteration stops when the
+  and minimum values in the map. Iteration stops when the
   actual enclosed volume differs from the target by less than 
   0.001 of the target or 30 iterations have been performed.
+  The enclosed volume is computed only within the rectangular box of the
+  current <a href="../tools/volumeviewer.html#region">display region</a>,
+  but this may include parts hidden due to <a href="#zone">zoning</a>.
   The <a href="#fastEncloseVolume"><b>fastEncloseVolume</b></a> option
   is similar but uses a noniterative approximation.
   See also: 
@@ -429,6 +432,9 @@ the setting applies to whichever style is currently shown.
   to that number of points is estimated by sorting the data values into
   10,000 bins of equal width and identifying the value bin that attains
   (cumulatively) that number of points.
+  The enclosed volume is computed only within the rectangular box of the
+  current <a href="../tools/volumeviewer.html#region">display region</a>,
+  but this may include parts hidden due to <a href="#zone">zoning</a>.
   The <a href="#encloseVolume"><b>encloseVolume</b></a> option
   is similar but uses an iterative procedure with increased accuracy
   at the cost of increased computation time.
@@ -470,7 +476,7 @@ surface geometry (for example, setting the <a href="#level">level</a>)
 is needed when another command that would use the surface geometry 
 is appended to it with a semicolon separator, 
 which indicates no graphics frame update between the commands.
-See: <a href="usageconventions#cxc-files">ChimeraX command files</a>
+See: <a href="usageconventions.html#cxc-files">ChimeraX command files</a>
 </blockquote>
 
 <a name="sampling"></a>
@@ -775,6 +781,7 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
 </p>
 <h3 class="usage"><b>Planes Options</b> &nbsp;&nbsp;&nbsp;
 (Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
+See also: <a href="ui.html#view"><b>ui view</b></a>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <b>planes</b> &nbsp;<i>axis</i>[,<i>start</i>[,<i>end</i>[,<i>increment</i>[,<i>depth</i>]]]]
@@ -2139,6 +2146,9 @@ The interface also includes a play/pause button, a
 src="../tools/ui-icons/snail.png">&nbsp; value to increase for slower playback,
 and a button for recording a movie
 (<img class="iconbar" src="../tools/ui-icons/record.png">).
+Sequential integers are added to the movie filename (movie1.mp4, movie2.mp4, ...)
+so that repeated recordings will not overwrite the previous ones, and the save
+location can be set with the <a href="snapshot.html"><b>snapshot</b></a> command.
 The movie will start at the current slider position, so
 to include the whole morph, place the slider at the far left
 before clicking the record button.
@@ -2636,10 +2646,11 @@ Show the full extent of a map that was previously limited to a zone using
 If <b>newMap</b> is <b>false</b> (default),
 limit the surface display to a zone within <b>range</b> <i>r</i> 
 (default <b>3.0</b> &Aring;) of any atom in 
-<a href="atomspec.html"><i>atom-spec</i></a> and restrict the
+<a href="atomspec.html"><i>atom-spec</i></a>,
+and if <b>minimalBounds</b> is <b>true</b>, restrict the
 current <a href="../tools/volumeviewer.html#region">display region</a>
-of the map to the box containing the zoned surface. The corresponding
-<a href="../tools/densitymaps.html"><b>Map</b></a> icon
+of the map to the smallest rectangular box containing the zoned surface.
+The corresponding <a href="../tools/densitymaps.html"><b>Map</b></a> icon
 <img class="icon" border=1 src="../tools/shortcut-icons/volzone.png">
 uses a <b>range</b> value six times the grid spacing of the map.
 The full extent of the map can be restored with
@@ -2648,10 +2659,10 @@ The <b>invert</b> option is not available with <b>newMap false</b>.
 <p>
 If <b>newMap</b> is <b>true</b>, create a new map in which the
 values of grid points beyond the zone are set to zero, 
-or if <b>invert</b> is true, with values within the zone set to zero.
-If <b>minimalBounds</b> is true, make the resulting map
-as small as possible while enclosing the zone; otherwise, the
-dimensions will be the same as for the input map.
+or if <b>invert</b> is <b>true</b>, with values within the zone set to zero.
+If <b>minimalBounds</b> is also true, make the resulting map
+as small as possible while enclosing the zone; 
+otherwise, the dimensions will be the same as for the input map.
 If <b>bondPointSpacing</b> is specified, use points
 spaced <i>s</i> &Aring; apart along bonds
 in addition to the atoms to define the zone.
@@ -2826,5 +2837,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2023</address>
+March 2024</address>
 </body></html>

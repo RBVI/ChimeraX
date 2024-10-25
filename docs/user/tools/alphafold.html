@@ -87,7 +87,8 @@ Mirdita M, Sch&uuml;tze K, Moriwaki Y, Heo L, Ovchinnikov S, Steinegger M.
 AlphaFold-predicted structures vary in confidence levels 
 (see <a href="#coloring">coloring</a>) and should be interpreted with caution. 
 The related tool <a href="#pae"><b>AlphaFold Error Plot</b></a>
-plots residue-residue alignment errors for AlphaFold structures.
+plots the predicted errors in interactions between different parts
+of an AlphaFold structure.
 </p><p>
 The <b>AlphaFold</b> tool is also implemented as the
 <a href="../commands/alphafold.html"><b>alphafold</b></a> command.
@@ -310,6 +311,13 @@ for further analysis
 Please note the following caveats of running a prediction:
 </p>
 <ul>
+<li><b>Results may be lost if the local computer goes to sleep</b>.
+Google intends Colab to be for interactive use. Even if the Colab job completes,
+the results may fail to download to the local computer if it has gone to
+sleep. It is recommended to turn off the option to enter sleep mode
+(meant to conserve power after some amount of idle time)
+before running a prediction.
+<br><br>
 <li>The process includes
 installing various software packages on a virtual machine,
 searching sequence databases, generating a multiple sequence alignment,
@@ -354,6 +362,8 @@ as well as hiding, showing, and
 in which color gradations show (for each pairwise combination of residues)
 the expected error in position of one residue when the
 true and predicted structures are aligned based on the other residue.
+</p><p>
+See also: <a href="../commands/alphafold.html#batch">batch predictions</a>
 </p>
 
 <a name="coloring"></a>
@@ -371,8 +381,15 @@ to the predicted structures, as well as hiding, showing, and
 </p><p>
 <a name="confidence"></a>
 When first opened, AlphaFold-predicted structures are automatically colored by 
-the <a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
+the <a href="https://alphafold.ebi.ac.uk/faq#faq-12" target="_blank">pLDDT
 confidence measure</a> in the B-factor field:
+<!-- 
+predicted score on the lDDT-C&alpha; metric described in
+<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3799472/" target="_blank">
+lDDT: a local superposition-free score for comparing protein structures and models using distance difference tests.</a>
+Mariani V, Biasini M, Barbato A, Schwede T.
+Bioinformatics. 2013 Nov 1;29(21):2722-8.
+-->
 </p>
   <ul>
      <li>100
@@ -537,11 +554,16 @@ B-factor field of the PDB file) and
 <h3>AlphaFold Error Plot</h3>
 <p>
 Besides the per-residue
-<a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
+<a href="https://alphafold.ebi.ac.uk/faq#faq-12" target="_blank">pLDDT
 confidence measure</a>, AlphaFold gives
-for each pair of residues (X,Y) the expected position error
-at residue X if the predicted and true structures were aligned on residue Y.
-These residue-residue &ldquo;predicted aligned error&rdquo; or PAE values
+for each pair of <i>structural entities</i> (X,Y) the expected position error
+at entity X if the predicted and true structures were aligned on Y.
+Structural entities include standard biopolymer residues as well as the 
+individual atoms of other types of residues: ligands, ions, glycans,
+and post-translationally modified residues.
+Only AlphaFold 3 (not earlier versions) generates
+predictions that include these other types of residues.
+The &ldquo;predicted aligned error&rdquo; or PAE values
 can be shown with <b>AlphaFold Error Plot</b>, which can be
 opened from the <b>Structure Prediction</b>
 section of the <b>Tools</b> menu and manipulated like other panels
@@ -570,16 +592,17 @@ by giving the UniProt name or accession number of an entry in that database
 The PAE plot can also be shown by clicking the <b>Error plot</b> button
 on the <a href="#dialog"><b>AlphaFold</b> dialog</a> or by using 
 the command <a href="../commands/alphafold.html#pae"><b>alphafold pae</b></a>, 
-or the command 
+the command
 <a href="../commands/alphafold.html#fetch"><b>alphafold fetch</b></a>
 or <a href="../commands/alphafold.html#fetch"><b>alphafold match</b></a> 
-with the option <b>pae true</b>.
+with the option <b>pae true</b>, or the
+<a href="../commands/open.html#pae"><b>open</b></a> command.
 </p><p>
 When the mouse cursor is over the plot, the residue pair and PAE value at 
 its current position are reported in the bottom right corner of the window.
 </p><p>
-Clicking <b>Color PAE Domains</b> clusters the residues into
-coherent domains (sets of residues with relatively low PAE values)
+Clicking <b>Color PAE Domains</b> clusters the entities into
+coherent domains (sets with relatively low PAE values)
 and uses randomly chosen colors to distinguish these domains in the structure 
 (<a href="../commands/alphafold.html#colorDomains">details...</a>).
 Clicking <b>Color pLDDT</b> returns the structure to
@@ -595,7 +618,7 @@ of the 3D structure with bright colors and makes everything else gray;
 if this option is unchecked, highlighting will be done with
 <a href="../selection.html">selection</a> instead of coloring
 <li><b>Color plot from structure</b>
-&ndash; color the plot to match the 3D structure where the pair of residues
+&ndash; color the plot to match the 3D structure where the pair of entities
 represented by an X,Y point have the same ribbon color; show the rest of the
 plot in shades of gray
 <li><b>Color plot rainbow</b>
@@ -642,7 +665,10 @@ align="center"><font size="-1">30</font></td>
 <li><b>Show chain divider lines</b> (initial default checked <b>on</b>)
 &ndash; for multimer predictions, draw lines on the plot demarcating the
 end of one chain and the start of another; the lines may obscure a few 
-chain-terminal residues in the plot, and can be hidden if this is problematic
+chain-terminal residues in the plot, and can be hidden if this is problematic.
+For predictions that include nonstandard residues and/or covalent
+modifications, divider lines also segregate the entire set of such
+entities from the biopolymer chain(s).
 <li><b>Save image</b> &ndash; save the plot as a PNG file 
 </ul>
 <p>
@@ -666,5 +692,5 @@ Error (&Aring;)</b>&rdquo;) would need to be created separately with
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2023</address>
+May 2024</address>
 </body></html>

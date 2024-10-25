@@ -95,9 +95,9 @@ def determine_termini(session, structs):
     for s in structs:
         sr_res = set()
         for chain in s.chains:
-            if chain.from_seqres:
+            if chain.full_sequence_known:
                 sr_res.update(chain.residues)
-                rn, rc, fn, fc, f5p, f3p = termini_from_seqres(chain)
+                rn, rc, fn, fc, f5p, f3p = termini_from_full_sequence(chain)
                 logger.info("Termini for %s determined from SEQRES records" % chain.full_name)
             else:
                 rn, rc, fn, fc, f5p, f3p = guess_termini(chain)
@@ -132,7 +132,7 @@ def determine_termini(session, structs):
 
     return real_N, real_C, fake_N, fake_C, fake_5p, fake_3p
 
-def termini_from_seqres(chain):
+def termini_from_full_sequence(chain):
     real_N = []
     real_C = []
     fake_N = []

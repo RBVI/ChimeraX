@@ -71,6 +71,7 @@ read_traj_file(PyObject *args, bool is_xtc)
 		rvec *crds = (rvec *)malloc(num_atoms * sizeof(rvec));
 		if (crds == NULL) {
 			FREE_CRDS;
+			xdrfile_close(xd);
 			ERROR_RETURN("Couldn't allocate enough memory for coords");
 		}
 		if (is_xtc)
@@ -82,6 +83,7 @@ read_traj_file(PyObject *args, bool is_xtc)
 				if (status != exdrENDOFFILE) {
 					FREE_CRDS;
 					free(crds);
+					xdrfile_close(xd);
 					ERROR_RETURN3("read_%s failure; return code %d", format, status);
 				}
 			} else {
@@ -93,6 +95,7 @@ read_traj_file(PyObject *args, bool is_xtc)
 			coords_by_frame.push_back(crds);
 		}
 	} while (status == exdrOK);
+	xdrfile_close(xd);
 
 	// convert vector of float arrays into Python list of numpy objects
 	// allocated memory use is transferred, not duplicated

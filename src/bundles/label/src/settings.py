@@ -27,6 +27,7 @@ from chimerax.core.settings import Settings
 class _LabelSettings(Settings):
     EXPLICIT_SAVE = {
         'label_height': 0.7,
+        'model_label_height': 10.0,
     }
 
 # 'settings' module attribute will be set by the initialization of the bundle API
@@ -39,6 +40,11 @@ def register_settings_options(session):
             FloatOption,
             'label defaultHeight %s',
             'Set default 3d label height'),
+        'model_label_height': (
+            '3D model label height (\u212B)',
+            FloatOption,
+            'label defaultModelHeight %s',
+            'Set default 3d model label height'),
     }
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, updater, balloon = setting_info

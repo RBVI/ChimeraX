@@ -33,18 +33,23 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 <b>Fly</b> uses cubic interpolation to smoothly traverse a series of views
 previously named and saved with <a href="view.html#name"><b>view name</b></a>.
-<!-- does not interpolate clipping plane positions, 
-field of view, camera stereo parameters -->
 The <a href="view.html#name"><b>view</b></a></b> command can also interpolate
 between views, but it only considers a pair of views
 (start and end) at a time, whereas
 <b>fly</b> can consider multiple views and generate a path that
 visits and leaves intermediate views without discontinuities in motion.
+<!-- does not interpolate clipping plane positions, 
+field of view, camera stereo parameters -->
 However, <b>fly</b> does not interpolate
 <a href="clip.html">clipping plane</a> positions, whereas
 <a href="view.html#name"><b>view</b></a> does.
 See also:
 <a href="../movies.html">making movies</a>
+</p><p>
+The information saved with a view does not include the
+<a href="camera.html">camera mode</a>.
+It is recommended to save/restore views only when using the perspective
+(<b>mono</b>) <a href="camera.html">camera mode</a>.
 </p><p>
 <b>Fly</b> starts abruptly at the first view, <i>pos1</i>,
 then proceeds through the list of subsequent views.
@@ -83,5 +88,5 @@ fly 40 p1 100 p2 p3
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2023</address>
+December 2023</address>
 </body></html>

@@ -49,7 +49,8 @@ See also:
 <a href="shape.html"><b>shape</b></a>,
 <a href="cartoon.html#style"><b>cartoon style</b></a>,
 <a href="open.html#object">3D object formats</a>,
-<a href="../measurements.html">measurements</a>
+<a href="../measurements.html">measurements</a>,
+<a href="../formats/defattr.html">defattr (attribute assignment) files</a>
 </p>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -181,6 +182,19 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor="#909090" width="10px" title="#909090"></td></tr></table>).
 </blockquote>
 <blockquote>
+<b>id</b> &nbsp;<i>model-id</i>
+<br>
+Model identifier (model number, as shown in the
+<a href="../tools/modelpanel.html"><b>Model Panel</b></a>)
+to use for the object, if possible.
+If the same command generates multiple models or the <i>model-id</i>
+is already &ldquo;taken,&rdquo; submodel numbers will be used.
+If <i>model-id</i> is not specified, the object will be made a submodel
+of the atomic model used to define it, or if defined from atoms 
+in multiple models, assigned the lowest available top-level number.
+See also: <a href="rename.html"><b>rename</b></a>
+</blockquote>
+<blockquote>
 <b>radius</b> &nbsp;<i>r</i>
 <br>
 Object radius in &Aring;. Defaults:
@@ -221,6 +235,7 @@ with submodels <b>helix N</b> (or <b>chain ID helix N</b>),
 in turn containing submodels
 <b>primary</b>, <b>secondary</b>, <b>tertiary</b> as appropriate
 </ul>
+See also: <a href="rename.html"><b>rename</b></a>
 </blockquote>
 <blockquote>
 <a name="showTool"></a>
@@ -234,5 +249,5 @@ deleting, or using them for measurements.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2023</address>
+April 2024</address>
 </body></html>

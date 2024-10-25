@@ -711,13 +711,13 @@ class LabelModel(Model):
             rgba8 = tuple(l.color)
         return rgba8
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         return self.label_color
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         l = self.label
         l.color = color
         l.update_drawing()
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = property(_get_overall_color, _set_overall_color)
 
     def x3d_needs(self, x3d_scene):
         from .. import x3d

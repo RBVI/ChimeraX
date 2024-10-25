@@ -131,63 +131,42 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
                 template_line = [None] * len(mm_targets)
                 template_line[i] = chain
                 single_template_lines.append(template_line)
-        # AFAIK, the multimer template chain sequences need to have complete PDB sequence, so may need
-        # to prefix and suffix he corresponding alignment sequence with characters for residues
-        # outside of the alignment sequence.  For other templates/targets, affix a corresponding number
-        # of '-' characters
-        prefixes, suffixes = find_affixes(mm_chains, chain_info)
-        target_strings = []
-        for prefix, suffix, mm_target, mm_chain in zip(prefixes, suffixes, mm_targets, mm_chains):
-            if mm_target is None:
-                target_strings.append('-' * len(mm_chain))
-                continue
-            target_strings.append('-' * len(prefix) + mm_target.characters + '-' * len(suffix))
-        templates_strings = []
-        templates_info = []
-        mm_template_strings = []
-        for prefix, suffix, chain in zip(prefixes, suffixes, mm_chains):
-            try:
-                aseq, target = chain_info[chain]
-            except KeyError:
-                tmp_str = "".join([c if r else '-' for c, r in zip(chain.characters, chain.residues)])
-                mm_template_strings.append(tmp_str)
-                continue
-            mm_template_strings.append(prefix + regularized_seq(aseq, chain).characters + suffix)
-        templates_strings.append(mm_template_strings)
-        templates_info.append(None)
-        for template_line in single_template_lines:
-            template_strings = []
-            for prefix, suffix, chain, target in zip(prefixes, suffixes, template_line, mm_targets):
-                if target is None:
-                    template_strings.append('-')
-                elif chain is None:
-                    template_strings.append('-' * (len(prefix) + len(target) + len(suffix)))
-                else:
-                    aseq, target = chain_info[chain]
-                    tmp_str = ('-' * len(prefix) + regularized_seq(aseq, chain).characters + '-' * len(suffix))
-                    template_strings.append(tmp_str)
-                    templates_info.append((chain, aseq.match_maps[chain]))
-            templates_strings.append(template_strings)
+        # The multimer template chain sequences need to have the complete PDB sequence (of existing
+        # residues) even for parts of the structure not associated with the target, so may need to
+        # add gaps to the target sequence to allow for that
         target_name = "target" if len(targets) > 1 else targets[0][1].name
+        target_strings, templates_strings = find_target_template_strings(mm_chains, single_template_lines,
+            mm_targets, chain_info)
+        templates_info = [None]
+        for template_line in single_template_lines:
+            for chain, target in zip(template_line, mm_targets):
+                if target is not None and chain is not None:
+                    aseq = chain_info[chain][0]
+                    templates_info.append((chain, aseq.match_maps[chain]))
     else:
         if len(targets) > 1:
             raise LimitationError("Cannot have multiple targets(/alignments) unless creating multimeric model")
         alignment, orig_target = targets[0]
         # Copy the target sequence, changing name to conform to Modeller limitations
         target = modeller_copy(orig_target)
-        target_strings = [target.characters]
-
-        templates_strings = []
+        target_name = target.name
+        chain_info = {}
+        templates = []
         templates_info = []
         match_chains = []
         for chain, aseq in alignment.associations.items():
             if len(chain.chain_id) > 1:
                 raise LimitationError("Modeller cannot handle templates with multi-character chain IDs")
-            templates_strings.append([regularized_seq(aseq, chain).characters])
+            chain_info[chain] = (aseq, target)
+            templates.append(chain)
             templates_info.append((chain, aseq.match_maps[chain]))
             if not match_chains:
                 match_chains.append(chain)
-        target_name = target.name
+        target_string, template_info = form_strings(target, templates, chain_info)
+        target_strings = [target_string]
+        templates_strings = []
+        for template in templates:
+            templates_strings.append([''.join(template_info[template][0])])
 
     if het_preserve or water_preserve:
         for template_strings in templates_strings:
@@ -330,47 +309,6 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
 
     return job_runner.run(block=block)
 
-def find_affixes(chains, chain_info):
-    from chimerax.pdb import standard_polymeric_res_names as std_res_names
-    in_seq_hets = []
-    prefixes = []
-    suffixes = []
-    from chimerax.atomic import Sequence
-    for chain in chains:
-        try:
-            aseq, target = chain_info[chain]
-        except KeyError:
-            prefixes.append('')
-            suffixes.append('')
-            continue
-        match_map = aseq.match_maps[chain]
-        prefix = ''
-        for r in chain.existing_residues:
-            if r in match_map:
-                break
-            if r.name not in std_res_names:
-                in_seq_hets.append(r.name)
-                prefix += '.'
-            else:
-                prefix += Sequence.rname3to1(r.name)
-        prefixes.append(prefix)
-
-        suffix = ''
-        for r in reversed(chain.existing_residues):
-            if r in match_map:
-                break
-            if r.name not in std_res_names:
-                in_seq_hets.append(r.name)
-                suffix = '.' + suffix
-            else:
-                suffix = Sequence.rname3to1(r.name) + suffix
-        suffixes.append(suffix)
-    s = chain.structure
-    het_set = getattr(s, 'in_seq_hets', set())
-    het_set.update(in_seq_hets)
-    s.in_seq_hets = het_set
-    return prefixes, suffixes
-
 def count_hets(chain):
     last_chain_res = chain.existing_residues[-1]
     end_located = False
@@ -408,3 +346,125 @@ def count_water(chain):
             if r == last_chain_res:
                 end_located = True
     return water_count
+
+def find_target_template_strings(mm_chains, single_template_lines, mm_targets, chain_info):
+    mm_template_strings = []
+    single_strings = [[] for i in range(len(single_template_lines))]
+    target_strings = []
+    for i, target in enumerate(mm_targets):
+        mm_chain = mm_chains[i]
+        if target is None:
+            target_strings.append('-' * len(mm_chain))
+            tmp_str = "".join([c if r else '-' for c, r in zip(mm_chain.characters, mm_chain.residues)])
+            mm_template_strings.append(tmp_str)
+            for single_string in single_strings:
+                single_string.append('-')
+            continue
+        templates = [mm_chain]
+        for stl in single_template_lines:
+            stl_template = stl[i]
+            if stl_template:
+                templates.append(stl_template)
+        target_string, template_info = form_strings(target, templates, chain_info)
+        target_strings.append(target_string)
+        mm_template_strings.append(''.join(template_info[mm_chain][0]))
+        for stl, strings in zip(single_template_lines, single_strings):
+            stl_template = stl[i]
+            if stl_template:
+                strings.append(''.join(template_info[stl_template][0]))
+            else:
+                strings.append('-' * len(mm_template_strings[-1]))
+    return target_strings, [mm_template_strings] + single_strings
+
+
+class TemplatesFinished(ValueError):
+    pass
+
+def form_strings(target, templates, chain_info):
+    target_index = -1
+    template_state = {}
+    target_chars = []
+    for template in templates:
+        aseq, target = chain_info[template]
+        template_state[template] = ([], 0, aseq.match_maps[template])
+        update_in_seq_hets(template)
+    while True:
+        try:
+            next_index = find_next_target_index(template_state)
+        except TemplatesFinished:
+            while target_index < len(target)-1:
+                target_index += 1
+                target_chars.append(target[target_index])
+                for chars, *vals in template_state.values():
+                    chars.append('-')
+            break
+
+        # adjust target string
+        if next_index is None:
+            target_chars.append('-')
+        else:
+            while target_index < next_index-1:
+                target_index += 1
+                target_chars.append(target[target_index])
+                for chars, *vals in template_state.values():
+                    chars.append('-')
+            target_index += 1
+            target_chars.append(target[target_index])
+
+        # adjust template strings
+        for template, template_info in template_state.copy().items():
+            chars, template_index, mmap = template_info
+            if template_index >= len(template):
+                chars.append('-')
+                continue
+            r = template.residues[template_index]
+            if r:
+                check_index = mmap[r] if r in mmap else None
+                if check_index is None:
+                    assert(next_index is None)
+                    chars.append(template.characters[template_index])
+                    template_state[template] = (chars, template_index+1, mmap)
+                else:
+                    if next_index is None or check_index > next_index:
+                        chars.append('-')
+                    else:
+                        char = template.characters[template_index]
+                        chars.append(char if char != 'X' else '.')
+                        template_state[template] = (chars, template_index+1, mmap)
+            else:
+                assert(next_index is None)
+                # Modeller only wants characters of existing template residues...
+                chars.append('-')
+                template_state[template] = (chars, template_index+1, mmap)
+
+    return ''.join(target_chars), template_state
+
+def find_next_target_index(template_state):
+    next_index = False
+    for template, template_info in template_state.items():
+        chars, template_index, mmap = template_info
+        if template_index >= len(template):
+            continue
+        r = template.residues[template_index]
+        if r:
+            check_index = mmap[r] if r in mmap else None
+            if check_index is None:
+                return None
+            if next_index is False or check_index < next_index:
+                next_index = check_index
+        else:
+            return None
+    if next_index is False:
+        raise TemplatesFinished("done!")
+    return next_index
+
+def update_in_seq_hets(chain):
+    from chimerax.pdb import standard_polymeric_res_names as std_res_names
+    in_seq_hets = []
+    for r in chain.existing_residues:
+        if r.name not in std_res_names:
+            in_seq_hets.append(r.name)
+    s = chain.structure
+    het_set = getattr(s, 'in_seq_hets', set())
+    het_set.update(in_seq_hets)
+    s.in_seq_hets = het_set

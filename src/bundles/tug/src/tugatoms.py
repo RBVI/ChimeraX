@@ -210,7 +210,7 @@ class StructureTugger:
     '''
     def __init__(self, structure, force_constant = 10000.0,
                  cutoff = 10.0, temperature = 100.0,
-                 steps = 50, tolerance = 0.001):
+                 steps = 50, tolerance = 0.001, platform = None):
         self._log = Logger('structuretugger.log' if write_logs else None)
         self.structure = structure
         self._minimized = False
@@ -244,8 +244,8 @@ class StructureTugger:
         self._integrator_tolerance = tolerance
         self._constraint_tolerance = tolerance
         self._friction = 1.0/unit.picoseconds	# Coupling to heat bath
-        self._platform_name = 'CPU'
-        #self._platform_name = 'OpenCL' # Works on Mac
+        import sys
+        self._platform_name = ('OpenCL' if sys.platform == 'darwin' else 'CPU') if platform is None else platform
         #self._platform_name = 'CUDA'	# This is 3x faster but requires env DYLD_LIBRARY_PATH=/usr/local/cuda/lib Chimera.app/Contents/MacOS/ChimeraX so paths to cuda libraries are found.
         self._max_allowable_force = 50000.0 # kJ/mol/nm
         

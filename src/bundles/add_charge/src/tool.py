@@ -132,12 +132,16 @@ class AddChargeTool(ToolInstance):
         params = {
             'standardize_residues': standardizable_residues if standardize else [],
         }
-        sel_restrict = self.sel_restrict.isChecked()
+        sel_restrict = self.sel_restrict.isChecked() and not self.session.selection.empty()
         from chimerax.core.commands import concise_model_spec
-        self.session.logger.info("Closest equivalent command: <b>addcharge %s%s standardizeResidues %s</b>"
-            % (concise_model_spec(self.session, self.structures,
-            relevant_types=self.structures[0].__class__), " & sel" if sel_restrict else "",
-            ",".join(standardizable_residues) if standardize else "none"), is_html=True)
+        concise_spec = concise_model_spec(self.session, self.structures,
+            relevant_types=self.structures[0].__class__)
+        if concise_spec:
+            spec = concise_spec + (" % sel" if sel_restrict else "")
+        else:
+            spec = "sel" if sel_restrict else ""
+        self.session.logger.info("Closest equivalent command: <b>addcharge %s standardizeResidues %s</b>"
+            % (spec, ",".join(standardizable_residues) if standardize else "none"), is_html=True)
         from .charge import add_standard_charges
         non_std = add_standard_charges(self.session, residues=residues, **params)
         if non_std:
@@ -252,7 +256,7 @@ class AddNonstandardChargesTool(ToolInstance):
         self.tool_window.manage(None)
 
     def add_charges(self):
-        from .charge import add_nonstandard_res_charges
+        from .charge import add_nonstandard_res_charges, ChargeError
         self.tool_window.shown = False
         self.session.ui.processEvents()
         method = self.method_option.value
@@ -260,7 +264,11 @@ class AddNonstandardChargesTool(ToolInstance):
             residues = [r for r in residues if not r.deleted]
             if residues:
                 charge = int(self.charge_widgets[text].text())
-                add_nonstandard_res_charges(self.session, residues, charge, method=method)
+                try:
+                    add_nonstandard_res_charges(self.session, residues, charge, method=method)
+                except ChargeError as e:
+                    from chimerax.core.errors import NonChimeraXError
+                    raise NonChimeraXError(e)
         self.delete()
         if self.dock_prep_info is not None:
             self.main_params['method'] = method

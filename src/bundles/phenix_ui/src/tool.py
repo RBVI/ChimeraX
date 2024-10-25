@@ -176,7 +176,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
             self.__class__.settings = LaunchEmplaceLocalSettings(session, "launch emplace local")
 
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
-        from Qt.QtWidgets import QCheckBox, QGridLayout
+        from Qt.QtWidgets import QCheckBox, QGridLayout, QGroupBox
         from Qt.QtGui import QDoubleValidator
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
@@ -210,7 +210,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
         from chimerax.ui.widgets import ModelListWidget, ModelMenuButton
         ex_lab = self.mt_explanation_label = QLabel(self.mt_explanations[self.HALF_MAPS])
         ex_lab.setWordWrap(True)
-        ex_lab.setAlignment(Qt.AlignCenter)
+        ex_lab.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         from chimerax.ui import shrink_font
         shrink_font(ex_lab, fraction=0.85)
         structure_layout.addWidget(ex_lab, 1, 0, 1, 4)
@@ -284,9 +284,14 @@ class LaunchEmplaceLocalTool(ToolInstance):
         centering_layout.addWidget(self.xyz_area)
         self._set_centering_method()
 
+        checkbox_area = QWidget()
+        layout.addWidget(checkbox_area, alignment=Qt.AlignCenter)
+        checkbox_layout = QVBoxLayout()
+        checkbox_layout.setContentsMargins(0,0,0,0)
+        checkbox_area.setLayout(checkbox_layout)
         self.verify_center_checkbox = QCheckBox("Interactively verify/adjust center before searching")
         self.verify_center_checkbox.setChecked(True)
-        layout.addWidget(self.verify_center_checkbox, alignment=Qt.AlignCenter)
+        checkbox_layout.addWidget(self.verify_center_checkbox, alignment=Qt.AlignLeft)
         self.opaque_maps_checkbox = QCheckBox("Make maps opaque while verifying center")
         self.opaque_maps_checkbox.setToolTip(
             "ChimeraX cannot show multiple transparent objects correctly, so make maps opaque\n"
@@ -295,7 +300,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
         self.opaque_maps_checkbox.setChecked(self.settings.opaque_maps)
         self.verify_center_checkbox.clicked.connect(lambda checked, b=self.opaque_maps_checkbox:
             b.setHidden(not checked))
-        layout.addWidget(self.opaque_maps_checkbox, alignment=Qt.AlignCenter)
+        checkbox_layout.addWidget(self.opaque_maps_checkbox, alignment=Qt.AlignLeft)
         self.show_sharpened_map_checkbox = QCheckBox("Show locally sharpened map computed by Phenix")
         self.show_sharpened_map_checkbox.setChecked(self.settings.show_sharpened_map)
         self.show_sharpened_map_checkbox.setToolTip(
@@ -304,8 +309,11 @@ class LaunchEmplaceLocalTool(ToolInstance):
             "controls whether the sharpened map is initially shown in ChimeraX once the\n"
             "calculation completes.  Even if not checked, the map will be opened (but hidden)."
         )
-        layout.addWidget(self.show_sharpened_map_checkbox, alignment=Qt.AlignCenter)
-        layout.addStretch(1)
+        checkbox_layout.addWidget(self.show_sharpened_map_checkbox, alignment=Qt.AlignLeft)
+        self.symmetry_checkbox = QCheckBox("After fitting, add symmetry copies"
+            " automatically if map symmetry is detected")
+        checkbox_layout.addWidget(self.symmetry_checkbox, alignment=Qt.AlignLeft)
+        layout.addSpacing(10)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -389,11 +397,13 @@ class LaunchEmplaceLocalTool(ToolInstance):
             raise AssertionError("Unknown centering method")
         self.settings.search_center = method
         self.settings.show_sharpened_map = ssm = self.show_sharpened_map_checkbox.isChecked()
+        apply_symmetry = self.symmetry_checkbox.isChecked()
         if self.verify_center_checkbox.isChecked():
             self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
-            VerifyCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps, ssm)
+            VerifyCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps, ssm,
+                apply_symmetry)
         else:
-            _run_emplace_local_command(self.session, structure, maps, res, center, ssm)
+            _run_emplace_local_command(self.session, structure, maps, res, center, ssm, apply_symmetry)
         if not apply:
             self.display(False)
 
@@ -420,6 +430,9 @@ class LaunchFitLoopsTool(ToolInstance):
 
     GAPS_TAB, REMODEL_TAB = TAB_NAMES = ("Fill Gaps", "Remodel")
 
+    ADVISORY_RES_LIMIT = 10
+    HARD_RES_LIMIT = 20
+
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
         from chimerax.ui import MainToolWindow
@@ -429,38 +442,96 @@ class LaunchFitLoopsTool(ToolInstance):
         #if not hasattr(self.__class__, 'settings'):
         #    self.__class__.settings = LaunchEmplaceLocalSettings(session, "launch emplace local")
 
-        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QTabWidget
-        from Qt.QtCore import Qt
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QSpinBox
+        from Qt.QtWidgets import QGridLayout, QAbstractItemView
+        from Qt.QtCore import Qt, QSize
         layout = QVBoxLayout()
         parent.setLayout(layout)
+        parent.setMinimumSize(0, 400)
         #layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(1)
 
         centering_widget = QWidget()
-        layout.addWidget(centering_widget, alignment=Qt.AlignCenter, stretch=1)
+        layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
         data_layout = QHBoxLayout()
         data_layout.setSpacing(1)
+        data_layout.setContentsMargins(0,0,0,0)
         centering_widget.setLayout(data_layout)
         data_layout.addWidget(QLabel("Structure: "), alignment=Qt.AlignRight)
         from chimerax.atomic.widgets import AtomicStructureMenuButton
         self.structure_menu = AtomicStructureMenuButton(session)
-        self.structure_menu.value_changed.connect(self._structure_changed)
+        self.structure_menu.value_changed.connect(self._input_changed)
         data_layout.addWidget(self.structure_menu, alignment=Qt.AlignLeft)
         data_layout.setStretch(data_layout.count(), 1)
         data_layout.addWidget(QLabel("  Map: "), alignment=Qt.AlignRight)
         from chimerax.ui.widgets import ModelMenuButton
         from chimerax.map import Volume
         self.map_menu = ModelMenuButton(session, class_filter=Volume)
-        data_layout.addWidget(self.map_menu, alignment=Qt.AlignLeft)
-        data_layout.setStretch(data_layout.count(), 1)
-        layout.setStretch(layout.count(), 1)
+        self.map_menu.value_changed.connect(self._input_changed)
+        data_layout.addWidget(self.map_menu, alignment=Qt.AlignLeft, stretch=1)
 
-        self.tabs = QTabWidget()
-        for tab_name in self.TAB_NAMES:
-            tab_widget = getattr(self, '_' + tab_name.lower().replace(' ', '_') + '_widget')()
-            self.tabs.addTab(tab_widget, tab_name)
-        layout.addWidget(self.tabs, alignment=Qt.AlignCenter)
-        self.tabs.setCurrentIndex(self.TAB_NAMES.index(self.GAPS_TAB))
+        targeting_layout = QVBoxLayout()
+        targeting_layout.setSpacing(1)
+        targeting_layout.setContentsMargins(0,0,0,0)
+        layout.addLayout(targeting_layout, stretch=1)
+        self.no_structure_message = "Select a structure and map from the menus above"
+        self.target_label = QLabel(self.no_structure_message)
+        self.target_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        from chimerax.core.commands import run
+        self.target_label.linkActivated.connect(lambda *args, ses=session, run=run:
+            run(ses, "help help:user/selection.html"))
+        self.model_structure_message = '<ul><li>Specify the parts of %%s to model into %%s' \
+            ' by <a href="help:select">selection</a> using' \
+            ' <a href="help:select">any method</a>,' \
+            ' including the table below.</li>' \
+            '<li>Modeling >= %d consecutive residues is <span style="color:rgb(219, 118, 0)">not recommended</span>, and' \
+            ' modeling >= %d consecutive residues is <span style="color:red">disallowed</span>.' \
+            '</ul>' % (
+            self.ADVISORY_RES_LIMIT, self.HARD_RES_LIMIT)
+        self.many_residues_message = "Current selection of %%d consecutive residues in chain %%s is >= %d" \
+            " (fit_loops modeling not recommended)." % self.ADVISORY_RES_LIMIT
+        self.too_many_residues_message = "Current selection of %%d consecutive residues in chain %%s" \
+            " is >= %d (fit_loops modeling disallowed)" % self.HARD_RES_LIMIT
+        self.target_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.target_label.setWordWrap(True)
+        from chimerax.ui import shrink_font
+        shrink_font(self.target_label, 0.9)
+        targeting_layout.addWidget(self.target_label)
+        self.target_area = QWidget()
+        target_layout = QVBoxLayout()
+        target_layout.setSpacing(2)
+        self.target_area.setLayout(target_layout)
+        target_layout.addWidget(QLabel("Gaps"), alignment=Qt.AlignHCenter|Qt.AlignBottom)
+        targeting_layout.addWidget(self.target_area, stretch=1)
+        from chimerax.ui.widgets import ItemTable
+        self.target_table = targets = ItemTable(session=session)
+        chain_col = targets.add_column("Chain", "chain_id")
+        targets.add_column("Adjacent Residues", "between")
+        self.gap_column = targets.add_column("Gap Length", "length", data_color=self._gap_color)
+        targets.selection_changed.connect(self._new_target)
+        targets.launch(select_mode=QAbstractItemView.SelectionMode.SingleSelection)
+        targets.sort_by(chain_col, targets.SORT_ASCENDING)
+        target_layout.addWidget(targets, alignment=Qt.AlignCenter)
+        padding_area = QWidget()
+        padding_layout = QHBoxLayout()
+        padding_layout.setSpacing(1)
+        padding_area.setLayout(padding_layout)
+        target_layout.addWidget(padding_area, alignment=Qt.AlignHCenter|Qt.AlignTop)
+        padding_layout.addWidget(QLabel("Also select "), alignment=Qt.AlignRight)
+        self.padding_widget = QSpinBox()
+        self.padding_widget.setValue(1)
+        self.padding_widget.setRange(0, 99)
+        self.padding_widget.valueChanged.connect(self._padding_changed)
+        padding_layout.addWidget(self.padding_widget)
+        self.residue_label = QLabel(" residue on each side of gap")
+        padding_layout.addWidget(self.residue_label)
+        self.warning_label = QLabel("")
+        self.warning_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.warning_label.setWordWrap(True)
+        from chimerax.ui import shrink_font
+        shrink_font(self.warning_label, 0.9)
+        target_layout.addWidget(self.warning_label)
+        self.target_area.setHidden(True)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -474,158 +545,234 @@ class LaunchFitLoopsTool(ToolInstance):
             bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
 
+        from chimerax.core.selection import SELECTION_CHANGED
+        self.handler = session.triggers.add_handler(SELECTION_CHANGED, self._sel_changed)
+
         tw.manage(placement=None)
+
+    def delete(self):
+        self.handler.remove()
+        super().delete()
 
     def launch_fit_loops(self, apply=False):
         structure = self.structure_menu.value
-        gap_filling = self.tabs.currentIndex() == self.TAB_NAMES.index(self.GAPS_TAB)
         if not structure:
-            raise UserError("Must specify a structure to %s"
-                % ("fill gaps in" if gap_filling else "remodel"))
+            raise UserError("Must specify a structure to model/remodel")
         map = self.map_menu.value
         if not map:
-            raise UserError("Must specify a volume/map to guide %s"
-                % ("gap filling" if gap_filling else "remodeling"))
-        from chimerax.atomic import concise_residue_spec
+            raise UserError("Must specify a volume/map to guide remodeling")
+        from chimerax.atomic import concise_residue_spec, Residue
         from chimerax.core.commands import run
-        if gap_filling:
-            gap_residues = []
-            all_checked = True
-            for r1, r2, cb in self.fg_gap_widget_info:
-                if cb.isChecked() and not r1.deleted and not r2.deleted:
-                    gap_residues.extend([r1, r2])
-                else:
-                    all_checked = False
-            if gap_residues:
-                if all_checked:
-                    spec = structure.atomspec
-                else:
-                    spec = concise_residue_spec(self.session, gap_residues)
-                run(self.session, "phenix fitLoops %s in %s" % (spec, map.atomspec))
-        else:
-            from chimerax.atomic import selected_residues
-            residues = selected_residues(self.session)
-            if not residues:
-                run(self.session, "help help:user/selection.html")
-                raise UserError("No residues selected.  Showing help page for selecting residues.")
-            from chimerax.atomic import Residue
-            chain_residues = residues.filter(residues.polymer_types == Residue.PT_AMINO)
-            if not chain_residues:
-                raise UserError("No amino-acid residues selected")
-            chains = chain_residues.unique_chains
-            if len(chains) > 1:
-                raise UserError("Selected residues must be in the same chain")
-            chain = chains[0]
-            res_mapping = {}
-            for i, r in enumerate(chain.residues):
-                res_mapping[r] = i
-            indices = set([res_mapping[r] for r in chain_residues])
-            if max(indices) - min(indices) != len(chain_residues) - 1:
-                raise UserError("Selected residues must be consecutive")
-            run(self.session, "phenix fitLoops %s in %s"
-                % (concise_residue_spec(self.session, chain_residues), map.atomspec))
+        # generate commands for selected pseudobonds (without both endpoint atoms selected)
+        # and then command for selected residues.  Execute them all simultaneously.
+        commands = []
+        try:
+            pbs = structure.pbg_map[structure.PBG_MISSING_STRUCTURE].pseudobonds
+        except KeyError:
+            pbs = []
+        for pb in pbs:
+            if not pb.selected:
+                continue
+            a1, a2 = pb.atoms
+            if a1.selected and a2.selected:
+                continue
+            r1, r2 = a1.residue, a2.residue
+            if r1 == r2:
+                continue
+            commands.append("phenix fitLoops %s%s in %s gapOnly true"
+                % (r1.atomspec, r2.atomspec, map.atomspec))
+
+        sel_residues = structure.atoms[structure.atoms.selecteds == True].unique_residues
+        sel_residues = sel_residues.filter(sel_residues.polymer_types == Residue.PT_AMINO)
+        if sel_residues:
+            commands.append("phenix fitLoops %s in %s"
+                % (concise_residue_spec(self.session, sel_residues), map.atomspec))
+
+        if not commands:
+            raise UserError("No selected amino-acid residues or missing-structure pseudobonds in %s"
+                % structure)
+
+        run(self.session, " ; ".join(commands))
         if not apply:
             self.display(False)
-
-    def _fill_gaps_widget(self):
-        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QScrollArea
-        from Qt.QtCore import Qt
-        fg_area = QWidget()
-        fg_layout = QVBoxLayout()
-        fg_layout.setSpacing(1)
-        fg_layout.setContentsMargins(0,0,0,0)
-        fg_area.setLayout(fg_layout)
-        self.fg_message = QLabel("No structure chosen")
-        fg_layout.addWidget(self.fg_message, alignment=Qt.AlignCenter)
-        self.fg_gap_widget_info = []
-        self.fg_gap_area = QScrollArea()
-        scrolled = QWidget()
-        self.fg_gap_area.setWidget(scrolled)
-        self.fg_gap_area.setWidgetResizable(True)
-        self.fg_gap_area.setAlignment(Qt.AlignCenter)
-        self.fg_gap_layout = QVBoxLayout()
-        scrolled.setLayout(self.fg_gap_layout)
-        fg_layout.addWidget(self.fg_gap_area, alignment=Qt.AlignCenter)
-        self.fg_gap_area.setHidden(True)
-        self.fg_select_area = QWidget()
-        select_layout = QHBoxLayout()
-        select_layout.setContentsMargins(0,0,0,0)
-        select_layout.setSpacing(1)
-        self.fg_select_area.setLayout(select_layout)
-        fg_layout.addWidget(self.fg_select_area, alignment=Qt.AlignCenter)
-        sel_but = QPushButton("Select")
-        sel_but.clicked.connect(lambda *args, f=self._sel_cb: f(True))
-        select_layout.addWidget(sel_but)
-        select_layout.addWidget(QLabel("/"))
-        desel_but = QPushButton("Deselect")
-        desel_but.clicked.connect(lambda *args, f=self._sel_cb: f(False))
-        select_layout.addWidget(desel_but)
-        select_layout.addWidget(QLabel(" all above"))
-        self.fg_select_area.setHidden(True)
-
-        return fg_area
 
     def _find_gaps(self, structure):
         try:
             pbs = structure.pbg_map[structure.PBG_MISSING_STRUCTURE].pseudobonds
         except KeyError:
-            return []
+            return [], []
         gaps = []
+        unk_gaps = []
         for pb in pbs:
             a1, a2 = pb.atoms
             r1, r2 = (a1.residue, a2.residue) if a1 < a2 else (a2.residue, a1.residue)
             if r1 == r2:
                 continue
             if r1.polymer_type == r1.PT_AMINO:
-                gaps.append((r1, r2))
+                if r1.name == "UNK" or r2.name == "UNK":
+                    unk_gaps.append((r1, r2, pb))
+                else:
+                    gaps.append((r1, r2, pb))
         gaps.sort()
-        return gaps
+        unk_gaps.sort()
+        return gaps, unk_gaps
 
-    def _remodel_widget(self):
-        from Qt.QtWidgets import QLabel
-        from Qt.QtCore import Qt
-        label = QLabel("Select residues in main graphics window that you wish to remodel")
-        label.setWordWrap(True)
-        label.setAlignment(Qt.AlignCenter)
-        return label
+    def _gap_color(self, datum):
+        full_length = datum.length + 2 * self.padding_widget.value()
+        if full_length < self.ADVISORY_RES_LIMIT:
+            return 'black'
+        if full_length < self.HARD_RES_LIMIT:
+            return [x/255 for x in (219, 118, 0)]
+        return 'red'
 
-    def _sel_cb(self, sel):
-        for r1, r2, cb in self.fg_gap_widget_info:
-            cb.setChecked(sel)
-
-    def _structure_changed(self):
-        structure = self.structure_menu.value
-        for r1, r2, widget in self.fg_gap_widget_info:
-            self.fg_gap_layout.removeWidget(widget)
-        self.fg_gap_widget_info.clear()
-        show_sel_widgets = False
-        if structure:
-            gap_info = self._find_gaps(structure)
-            if gap_info:
-                from Qt.QtWidgets import QCheckBox
-                from Qt.QtCore import Qt
-                for r1, r2 in gap_info:
-                    cb = QCheckBox(f"Chain {r1.chain_id}, {r1.number+1}-{r2.number-1}")
-                    cb.setChecked(True)
-                    self.fg_gap_layout.addWidget(cb, alignment=Qt.AlignLeft)
-                    self.fg_gap_widget_info.append((r1, r2, cb))
-                #self.fg_gap_area.widget().resize()
-                self.fg_message.setHidden(True)
-                self.fg_gap_area.setHidden(False)
-                show_sel_widgets = len(gap_info) > 1
-            else:
-                self.fg_message.setText(f"{structure} has no missing-structure gaps in amino-acid chains")
-                self.fg_gap_area.setHidden(True)
-                self.fg_message.setHidden(False)
+    def _new_target(self, *args):
+        table_data = self.target_table.selected
+        if not table_data:
+            return
+        r1, r2, pb = table_data[0].gap_info
+        pad = self.padding_widget.value()
+        from chimerax.core.commands import run
+        if pad > 0:
+            index1 = r1.chain.residues.index(r1)
+            index2 = r2.chain.residues.index(r2)
+            bound1 = 0
+            bound2 = len(r2.chain) - 1
+            target_residues = []
+            for offset in range(pad):
+                for base_index, res_list, dir, bound in [(index1, r1.chain.residues, -1, bound1),
+                        (index2, r2.chain.residues, 1, bound2)]:
+                    index = base_index + dir * offset
+                    if dir < 0:
+                        if index < bound:
+                            continue
+                    elif index > bound:
+                        continue
+                    r = res_list[index]
+                    if r:
+                        target_residues.append(r)
+            from chimerax.atomic import concise_residue_spec
+            run(self.session, "select " + concise_residue_spec(self.session, target_residues))
+            run(self.session, "view sel")
         else:
-            self.fg_message.setText("No structure chosen")
-            self.fg_gap_area.setHidden(True)
-            self.fg_message.setHidden(False)
-        self.fg_select_area.setHidden(not show_sel_widgets)
+            # There is no command to select _just_ a pseudobond, so if the padding is zero...
+            self.session.selection.clear()
+            pb.selected = True
+            a1, a2 = pb.atoms
+            run(self.session, "view " + a1.atomspec + a2.atomspec)
+
+    def _padding_changed(self, padding):
+        prefix = " residue" if padding == 1 else " residues"
+        cur_text = self.residue_label.text()
+        self.residue_label.setText(prefix + cur_text[cur_text[1:].index(' ')+1:])
+        self._new_target(self.target_table.selected)
+        self.target_table.update_column(self.gap_column, data_color=True)
+
+    def _sel_changed(self, trig_name, data):
+        structure = self.structure_menu.value
+        for but in self.bbox.buttons():
+            if but.text() in ["OK", "Apply"]:
+                but.setEnabled(True)
+        structure = self.structure_menu.value
+        map = self.map_menu.value
+        if structure and map:
+            # check if selection >= ADVISORY_RES_LIMIT consecutive chain residues
+            from chimerax.atomic import Structure, selected_residues, selected_pseudobonds
+            sel_res = set(selected_residues(self.session))
+            for chain in structure.chains:
+                num_sel = 0
+                prev_existing_res = None
+                gap_len = 0
+                for r in chain.residues:
+                    if r:
+                        if gap_len > 0:
+                            # Is there a selected missing-structure pseudobond between the existing residues?
+                            end_points = set([r, prev_existing_res])
+                            for pb in selected_pseudobonds(self.session):
+                                if pb.group.name != Structure.PBG_MISSING_STRUCTURE:
+                                    continue
+                                if pb.atoms[0].residue in end_points and pb.atoms[1].residue in end_points:
+                                    num_sel += gap_len
+                                    break
+                            else:
+                                if num_sel >= self.ADVISORY_RES_LIMIT:
+                                    break
+                                num_sel = 0
+                            gap_len = 0
+                        if r in sel_res:
+                            num_sel += 1
+                        else:
+                            if num_sel >= self.ADVISORY_RES_LIMIT:
+                                break
+                            num_sel = 0
+                        prev_existing_res = r
+                    else:
+                        if prev_existing_res:
+                            gap_len += 1
+                if num_sel >= self.HARD_RES_LIMIT:
+                    self.warning_label.setText(self.too_many_residues_message % (num_sel, chain.chain_id))
+                    self.warning_label.setStyleSheet("QLabel { color : red }")
+                    for but in self.bbox.buttons():
+                        if but.text() in ["OK", "Apply"]:
+                            but.setEnabled(False)
+                    break
+                if num_sel >= self.ADVISORY_RES_LIMIT:
+                    self.warning_label.setText(self.many_residues_message % (num_sel, chain.chain_id))
+                    self.warning_label.setStyleSheet("QLabel { color : rgb(219, 118, 0) }")
+                    break
+            else:
+                self.warning_label.setText("")
+            self.target_label.setText(self.model_structure_message % (structure, self.map_menu.value))
+        else:
+            self.target_label.setText(self.no_structure_message)
+
+    def _input_changed(self):
+        structure = self.structure_menu.value
+        map = self.map_menu.value
+        if structure and map:
+            gap_info, unk_gaps = self._find_gaps(structure)
+            if unk_gaps:
+                self.session.logger.info("Phenix loop fitting cannot handle gaps involving UNK residues and"
+                    " therefore the following gaps have not been included in the dialog's list of gaps:")
+                self.session.logger.info('<ul>%s</ul>\n' % ('\n'.join(
+                    ['<li><a href="cxcmd:view %s%s">%s&rarr;%s</a></li>' % (r1.atomspec, r2.atomspec, r1, r2)
+                    for r1, r2, pb in unk_gaps])), is_html=True)
+            if gap_info:
+                msg = self.model_structure_message % (structure, self.map_menu.value)
+                self.target_table.data = []
+                class TableDatum:
+                    def __init__(self, gap_info):
+                        self.gap_info = gap_info
+                        r1, r2, pb = gap_info
+                        self.chain_id = r1.chain_id
+                        self.between = "%s \N{LEFT RIGHT ARROW} %s" % (
+                            r1.string(residue_only=True), r2.string(residue_only=True))
+                        i1 = r1.chain.residues.index(r1)
+                        i2 = r1.chain.residues.index(r2)
+                        self.length = i2-i1-1
+                data = [TableDatum(gi) for gi in gap_info]
+                self.target_table.data = data
+                self.target_table.resizeColumnsToContents()
+                self.target_table.resizeRowsToContents()
+                if unk_gaps:
+                    msg += f"  {structure} also has missing-structure gaps involving UNK residues, which" \
+                        " Phenix loop fitting cannot handle (see Log for more info)."
+                self.target_area.setHidden(False)
+            else:
+                if unk_gaps:
+                    msg = f"{structure} only has missing-structure gaps involving UNK residues, which" \
+                        " Phenix loop fitting cannot handle (see Log for more info).  You could remodel" \
+                        " other residues by selecting them."
+                else:
+                    msg = f"Select residues you wish to remodel."
+                self.target_area.setHidden(True)
+            self.target_label.setText(msg)
+        else:
+            self.target_label.setText(self.no_structure_message)
+            self.target_area.setHidden(True)
 
 class VerifyCenterDialog(QDialog):
     def __init__(self, session, structure, maps, resolution, initial_center, opaque_maps,
-            show_sharpened_map):
+            show_sharpened_map, apply_symmetry):
         super().__init__()
         self.session = session
         self.structure = structure
@@ -633,6 +780,7 @@ class VerifyCenterDialog(QDialog):
         self.resolution = resolution
         self.opaque_maps = opaque_maps
         self.show_sharpened_map = show_sharpened_map
+        self.apply_symmetry = apply_symmetry
 
         # adjusted_center used to compensate for map origin, but improvements to emplace_local
         # have made that adjustment unnecessary
@@ -705,7 +853,7 @@ class VerifyCenterDialog(QDialog):
                     m.rgba = tuple(rgba)
         center = self.marker.scene_coord
         _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution, center,
-            self.show_sharpened_map)
+            self.show_sharpened_map, self.apply_symmetry)
 
     def _check_still_valid(self, trig_name, removed_models):
         for rm in removed_models:
@@ -720,13 +868,20 @@ class LaunchEmplaceLocalSettings(Settings):
         'show_sharpened_map': False
     }
 
-def _run_emplace_local_command(session, structure, maps, resolution, center, show_sharpened_map):
-    from chimerax.core.commands import run, concise_model_spec, BoolArg
+def _run_emplace_local_command(session, structure, maps, resolution, center, show_sharpened_map,
+        apply_symmetry):
+    from chimerax.core.commands import run, concise_model_spec, BoolArg, StringArg
     from chimerax.map import Volume
-    cmd = "phenix emplaceLocal %s mapData %s resolution %g center %g,%g,%g showSharpenedMap %s" % (
+    cmd = "phenix emplaceLocal %s mapData %s resolution %g center %g,%g,%g showSharpenedMap %s" \
+        " applySymmetry %s" % (
         structure.atomspec, concise_model_spec(session, maps, relevant_types=Volume, allow_empty_spec=False),
-        resolution, *center, BoolArg.unparse(show_sharpened_map))
+        resolution, *center, BoolArg.unparse(show_sharpened_map), BoolArg.unparse(apply_symmetry))
     run(session, cmd)
+
+class FitLoopsResultsSettings(Settings):
+    AUTO_SAVE = {
+        'last_advised': None
+    }
 
 class FitLoopsResultsViewer(ToolInstance):
 
@@ -806,7 +961,7 @@ class FitLoopsResultsViewer(ToolInstance):
         table.add_column("End", "end_residue")
         table.add_column("Success", "successful")
         table.add_column("CC", "cc", format="%.3f", balloon="Correlation coefficient with map")
-        table.add_column("Gap Sequence", "gap_sequence")
+        table.add_column("Sequence", "gap_sequence")
         table.data = [FLInfo(info, self.model)
             for info in self.fit_info if info['segment_number'] is not None]
         table.launch(select_mode=table.SelectionMode.SingleSelection)
@@ -814,6 +969,18 @@ class FitLoopsResultsViewer(ToolInstance):
         table.selection_changed.connect(self._new_selection)
         if len(table.data) == 1:
             table.selected = table.data
+        else:
+            if not hasattr(self.__class__, 'settings'):
+                self.__class__.settings = FitLoopsResultsSettings(self.session, "fit loops results")
+            last = self.settings.last_advised
+            from time import time
+            now = self.settings.last_advised = time()
+            if last is None or now - last >= 777700: # about 3 months
+                from Qt.QtWidgets import QMessageBox
+                msg = QMessageBox()
+                msg.setWindowTitle("Table Selection")
+                msg.setText("Select a row in the results table to focus in on that part of the structure")
+                msg.exec()
         return table
 
     def _models_removed_cb(self, trig_name, trig_data):

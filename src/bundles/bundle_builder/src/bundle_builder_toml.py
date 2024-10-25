@@ -37,7 +37,7 @@ instead of [project].
 # Force import in a particular order since both Cython and
 # setuptools patch distutils, and we want Cython to win
 import setuptools
-import setuptools._distutils as distutils # noqa we know distutils is protected
+import setuptools._distutils as distutils  # noqa we know distutils is protected
 
 import collections
 import fnmatch
@@ -54,7 +54,12 @@ import re
 import shutil
 import sys
 import sysconfig
-import tomli
+from typing import Optional
+
+if sys.version_info < (3, 11, 0):
+    import tomli as tomllib
+else:
+    import tomllib
 import traceback
 import unicodedata
 import warnings
@@ -66,12 +71,15 @@ from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
 from setuptools import Extension, find_packages
+
 # From https://stackoverflow.com/questions/35112511/pip-setup-py-bdist-wheel-no-longer-builds-forced-non-pure-wheels
 from setuptools.dist import Distribution
-from setuptools.extension import Library # noqa
+from setuptools.extension import Library  # noqa
 
 # Even setuptools.build_meta runs setup() behind the scenes...
-from setuptools.build_meta import suppress_known_deprecation # noqa import not in __all__
+from setuptools.build_meta import (
+    suppress_known_deprecation,
+)  # noqa import not in __all__
 
 from pkg_resources import get_distribution, DistributionNotFound
 
@@ -108,21 +116,33 @@ else:
             super().__init__(*args, **kw)
             self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
 
-from .metadata_templates import (
-    metadata_preamble, pure_wheel_platforms
+
+from .metadata_templates import metadata_preamble, pure_wheel_platforms
+from .classifiers import (
+    Tool,
+    Command,
+    Selector,
+    Manager,
+    Provider,
+    DataFormat,
+    FormatFetcher,
+    FormatReader,
+    FormatSaver,
+    ToolbarTab,
+    ToolbarSection,
+    ToolbarButton,
+    Preset,
+    Initialization,
 )
 
 # Python version was 3.7 in ChimeraX 1.0
 CHIMERAX1_0_PYTHON_VERSION = "3.7"
 
 _platforms = {
-    "linux": ["linux"]
-    , "darwin": ["mac", "macos", "darwin"]
-    , "win32": ["win", "windows", "win32"]
+    "linux": ["linux"],
+    "darwin": ["mac", "macos", "darwin"],
+    "win32": ["win", "windows", "win32"],
 }
-
-class MissingInfoError(Exception):
-    pass
 
 
 class _SpecifierWarning(UserWarning):
@@ -130,8 +150,8 @@ class _SpecifierWarning(UserWarning):
 
 
 def read_toml(file):
-    with open(file, 'r') as f:
-        return tomli.loads(f.read())
+    with open(file, "r") as f:
+        return tomllib.loads(f.read())
 
 
 class Bundle:
@@ -139,41 +159,51 @@ class Bundle:
     def __init__(self, logger, bundle_info):
         self.logger = logger
         self.bundle_info = bundle_info
-        project_data = bundle_info['project']
-        chimerax_data = bundle_info['chimerax']
-
+        project_data = bundle_info["project"]
+        # If you use something with an automated TOML linter it's never going to shut up
+        # about how additional properties are illegal, so accept 'tool.chimerax' as well
+        # as 'chimerax'
+        if "chimerax" in bundle_info:
+            chimerax_data = bundle_info["chimerax"]
+        elif "chimerax" in bundle_info["tool"]:
+            chimerax_data = bundle_info["tool"]["chimerax"]
+        else:
+            raise ValueError("No [chimerax] or [tool.chimerax] table in pyproject.toml")
         self.pure_python = not (
-            bool(chimerax_data.get('extension', {}))
-            or bool(chimerax_data.get('library', {}))
-            or bool(chimerax_data.get('executable', {}))
+            bool(chimerax_data.get("extension", {}))
+            or bool(chimerax_data.get("library", {}))
+            or bool(chimerax_data.get("executable", {}))
         )
 
         if self.pure_python:
-            if not chimerax_data.get('pure', True):
+            if not chimerax_data.get("pure", True):
                 # The user has no specified extensions, libraries, or executables
                 # but they have still specified that their bundle is impure
                 self.pure_python = False
 
-        self.limited_api = chimerax_data.get('limited-api', False)
+        self.limited_api = chimerax_data.get("limited-api", False)
 
-        if 'requires-python' in project_data['dynamic']:
+        if "requires-python" in project_data["dynamic"]:
             if self.pure_python:
                 # Python-only bundles default to the ChimeraX 1.0
                 # version of Python.
-                self.python_requirement = SpecifierSet(f'>={CHIMERAX1_0_PYTHON_VERSION}')
+                self.python_requirement = SpecifierSet(
+                    f">={CHIMERAX1_0_PYTHON_VERSION}"
+                )
             else:
                 # Binary files are tied to the current version of Python
                 self.python_requirement = SpecifierSet(
                     f'=={".".join(str(num) for num in sys.version_info[:2])}.*'
                 )
         else:
-            self.python_requirement = project_data.get('requires-python', None)
+            self.python_requirement = project_data.get("requires-python", None)
             if self.python_requirement:
                 try:
                     self.python_requirement = SpecifierSet(self.python_requirement)
                     warnings.warn(
                         "If user-set requires-python does not include at least 3.7, "
-                        "there may be issues with this bundle in ChimeraX", _SpecifierWarning
+                        "there may be issues with this bundle in ChimeraX",
+                        _SpecifierWarning,
                     )
                 except InvalidSpecifier as err:
                     raise ValueError("Invalid requires-python specifier: %s" % err)
@@ -182,41 +212,44 @@ class Bundle:
                 # metadata, set it to the minimum version ourselves and warn them.
                 warnings.warn(
                     "Unset requires-python set to ChimeraX minimum version ('>=3.7'); "
-                    "this may become an error in later versions of setuptools", _SpecifierWarning
+                    "this may become an error in later versions of setuptools",
+                    _SpecifierWarning,
                 )
-                self.python_requirement = SpecifierSet(f'>={CHIMERAX1_0_PYTHON_VERSION}')
+                self.python_requirement = SpecifierSet(
+                    f">={CHIMERAX1_0_PYTHON_VERSION}"
+                )
 
-        self.name = project_data['name']
-        if '_' in self.name:
-            self.name = self.name.replace('_', '-')
+        self.name = project_data["name"]
+        if "_" in self.name:
+            self.name = self.name.replace("_", "-")
             self.logger.warning(
                 "Bundle renamed to %r after replacing "
                 "underscores with hyphens." % self.name
             )
-
-        self.bundle_base_name = self.name.replace("ChimeraX-", "")
-        if 'module-name-override' in chimerax_data:
-            self.module_name = f'chimerax.{chimerax_data.get("module-name-override")}'
+        if "module-name-override" in chimerax_data:
+            override = chimerax_data.get("module-name-override")
         else:
-            self.module_name = self.name.replace('-', '.').lower()
-        self.dist_info_name = self.name.replace('-', '_')
+            override = None
+        self.bundle_base_name, self.module_name, self.dist_info_name = (
+            self.format_module_name(self.name, override)
+        )
 
         # If version is dynamic then we'll attempt to build the wheel and use the version number
         # that setuptools found to check the built wheel
         self.version = None
-        if 'version' not in project_data['dynamic']:
-            self.version = project_data['version']
+        if "version" not in project_data["dynamic"]:
+            self.version = project_data["version"]
             # Check that the version is valid and let the error propagate up if one is thrown
-            self.version = str(Version(project_data['version']))
+            self.version = str(Version(project_data["version"]))
 
         self.path = os.getcwd()
-        build_dir = os.path.join(self.path, 'build')
+        build_dir = os.path.join(self.path, "build")
         # Ensure a clean environment between builds, even when not using build isolation
-        shutil.rmtree(build_dir, ignore_errors = True)
+        shutil.rmtree(build_dir, ignore_errors=True)
 
         self.egg_info = os.path.join(self.path, self.dist_info_name + ".egg-info")
 
-        dependencies = project_data.get('dependencies', [])
+        dependencies = project_data.get("dependencies", [])
 
         self.dependencies = []
         for req in dependencies:
@@ -225,19 +258,27 @@ class Bundle:
             except ValueError:
                 raise ValueError("Bad version specifier (see PEP 440): %r" % req)
 
-        self.requires_python = project_data.get('requires-python', ">=3.7")
+        self.requires_python = project_data.get("requires-python", ">=3.7")
 
-        self.min_sess_ver = chimerax_data['min-session-version']
-        self.max_sess_ver = chimerax_data['max-session-version']
+        self.min_sess_ver = chimerax_data["min-session-version"]
+        self.max_sess_ver = chimerax_data["max-session-version"]
         # "supercedes" is deprecated in ChimeraX 1.2
-        if 'supersedes' in chimerax_data:
+        if "supersedes" in chimerax_data:
             self.supersedes = chimerax_data.get("supersedes")
-        elif 'supercedes' in chimerax_data:
+        elif "supercedes" in chimerax_data:
             self.supersedes = chimerax_data.get("supercedes")
         else:
             self.supersedes = []
         self.custom_init = str(chimerax_data.get("custom-init", ""))
-        self.categories = chimerax_data.get("categories", "")
+        self.categories = chimerax_data.get("categories", [])
+        if len(self.categories) == 0:
+            category = chimerax_data.get("category", "")
+            if not category:
+                raise ValueError(
+                    "At least one category is required under the [chimerax] table."
+                )
+            self.categories = [category]
+
         self.classifiers = chimerax_data.get("classifiers", [])
 
         self.tools = []
@@ -247,6 +288,7 @@ class Bundle:
         self.data_formats = []
         self.format_readers = []
         self.format_savers = []
+        self.toolbars = []
         self.file_fetchers = []
         self.presets = []
         self.managers = []
@@ -255,44 +297,59 @@ class Bundle:
         self.c_libraries = []
         self.c_executables = []
 
-        if 'tool' in chimerax_data:
-            for tool_name, attrs in chimerax_data['tool'].items():
+        if "tool" in chimerax_data:
+            for tool_name, attrs in chimerax_data["tool"].items():
                 self.tools.append(Tool(tool_name, attrs))
-        if 'command' in chimerax_data:
-            for command_name, attrs in chimerax_data['command'].items():
+        if "command" in chimerax_data:
+            for command_name, attrs in chimerax_data["command"].items():
                 self.commands.append(Command(command_name, attrs))
-        if 'selector' in chimerax_data:
-            for selector_name, attrs in chimerax_data['selector'].items():
+        if "selector" in chimerax_data:
+            for selector_name, attrs in chimerax_data["selector"].items():
                 self.selectors.append(Selector(selector_name, attrs))
-        if 'manager' in chimerax_data:
-            for manager_name, attrs in chimerax_data['manager'].items():
+        if "manager" in chimerax_data:
+            for manager_name, attrs in chimerax_data["manager"].items():
                 self.managers.append(Manager(manager_name, attrs))
-        if 'provider' in chimerax_data:
-            for provider_name, attrs in chimerax_data['provider'].items():
-                try:
-                    manager = attrs.pop('manager')
-                except KeyError:
-                    raise ValueError("No manager specified for provider %s" % provider_name)
-                self.providers.append(Provider(manager, provider_name, attrs))
-        if 'data-format' in chimerax_data:
-            for format_name, attrs in chimerax_data['data-format'].items():
-                if 'open' in attrs:
-                    opener = attrs.pop('open')
+        if "provider" in chimerax_data:
+            for name, attrs in chimerax_data["provider"].items():
+                if type(attrs) is list:
+                    # This is a list of providers for which the name of the table is the name of the manager
+                    for provider in attrs:
+                        provider_name = provider.pop("name")
+                        self.providers.append(Provider(name, provider_name, provider))
+                else:
+                    # This is a single provider for which the name is the name of the provider
+                    try:
+                        manager_name = attrs.pop("manager")
+                    except KeyError:
+                        raise ValueError("No manager specified for provider %s" % name)
+                    self.providers.append(Provider(manager_name, name, attrs))
+        if "data-format" in chimerax_data:
+            for format_name, attrs in chimerax_data["data-format"].items():
+                if "open" in attrs:
+                    opener = attrs.pop("open")
                     if type(opener) is list:
                         for item in opener:
-                            if 'type' in item and item['type'] == 'fetch':
-                                self.format_readers.append(FormatFetcher(format_name, item))
+                            if "type" in item and item["type"] == "fetch":
+                                self.format_readers.append(
+                                    FormatFetcher(format_name, item)
+                                )
                             else:
-                                self.format_readers.append(FormatReader(format_name, item))
+                                self.format_readers.append(
+                                    FormatReader(format_name, item)
+                                )
                     elif type(opener) is bool and opener:
                         self.format_readers.append(FormatReader(format_name, None))
                     else:
-                        if 'type' in attrs and attrs['type'] == 'fetch':
-                            self.format_readers.append(FormatFetcher(format_name, opener))
+                        if "type" in attrs and attrs["type"] == "fetch":
+                            self.format_readers.append(
+                                FormatFetcher(format_name, opener)
+                            )
                         else:
-                            self.format_readers.append(FormatReader(format_name, opener))
-                if 'save' in attrs:
-                    saver = attrs.pop('save')
+                            self.format_readers.append(
+                                FormatReader(format_name, opener)
+                            )
+                if "save" in attrs:
+                    saver = attrs.pop("save")
                     if type(saver) is list:
                         for item in saver:
                             self.format_savers.append(FormatSaver(format_name, item))
@@ -301,24 +358,42 @@ class Bundle:
                     else:
                         self.format_savers.append(FormatSaver(format_name, saver))
                 self.data_formats.append(DataFormat(format_name, attrs))
-        if 'preset' in chimerax_data:
-            for preset_name, attrs in chimerax_data['preset'].items():
+        if "toolbar" in chimerax_data:
+            for tab, attrs in chimerax_data["toolbar"].items():
+                tab_name = tab
+                sections = attrs.pop("sections", [])
+                self.toolbars.append(ToolbarTab(tab_name, attrs))
+                for section_name, attrs in sections.items():
+                    if not section_name:
+                        raise ValueError("A toolbar button must have a name")
+                    buttons = attrs.pop("button", [])
+                    self.toolbars.append(ToolbarSection(tab_name, section_name, attrs))
+                    for button in buttons:
+                        button_name = button.pop("name", None)
+                        button_attrs = button
+                        if not button_name:
+                            raise ValueError("A toolbar button must have a name")
+                        self.toolbars.append(
+                            ToolbarButton(
+                                tab_name, section_name, button_name, button_attrs
+                            )
+                        )
+        if "preset" in chimerax_data:
+            for preset_name, attrs in chimerax_data["preset"].items():
                 self.presets.append(Preset(preset_name, attrs))
-        if 'initialization' in chimerax_data:
-            init = chimerax_data['initialization']
-            if type(init) is list:
-                for entry in chimerax_data['initialization']:
-                    self.initializations.append(Initialization(entry['type'], entry['bundles']))
-            else:
-                self.initializations.append(Initialization(init['type'], init['bundles']))
-        if 'extension' in chimerax_data:
-            for name, attrs in chimerax_data['extension'].items():
+        if "initializations" in chimerax_data:
+            init = chimerax_data["initializations"]
+            for entry_type, bundles in init.items():
+                _bundles = bundles.get("bundles", bundles.get("bundle", None))
+                self.initializations.append(Initialization(entry_type, _bundles))
+        if "extension" in chimerax_data:
+            for name, attrs in chimerax_data["extension"].items():
                 self.c_modules.append(_CModule(name, attrs))
-        if 'library' in chimerax_data:
-            for name, attrs in chimerax_data['library'].items():
+        if "library" in chimerax_data:
+            for name, attrs in chimerax_data["library"].items():
                 self.c_libraries.append(_CLibrary(name, attrs))
-        if 'executable' in chimerax_data:
-            for name, attrs in chimerax_data['executable'].items():
+        if "executable" in chimerax_data:
+            for name, attrs in chimerax_data["executable"].items():
                 self.c_executables.append(_CExecutable(name, attrs))
 
         # TODO: Finalize
@@ -334,16 +409,16 @@ class Bundle:
         self.extra_files = collections.defaultdict(set)
         self.packages = {(self.module_name, "src")}
 
-        raw_package_data = chimerax_data.get('package-data', {})
+        raw_package_data = chimerax_data.get("package-data", {})
         platform_package_data = {}
-        if 'platform' in raw_package_data:
+        if "platform" in raw_package_data:
             for platform in _platforms[sys.platform]:
                 try:
                     platform_package_data = raw_package_data["platform"].pop(platform)
                 except KeyError:
                     pass
 
-        raw_package_data.pop('platform', None)
+        raw_package_data.pop("platform", None)
         filtered_package_data = raw_package_data
         for key in platform_package_data:
             if key in filtered_package_data:
@@ -352,9 +427,11 @@ class Bundle:
                 filtered_package_data[key] = platform_package_data[key]
 
         for folder, files in filtered_package_data.items():
-            pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')]).rstrip('.')
+            pkg_name = ".".join(
+                [self.module_name, folder.replace("src/", "").replace("/", ".")]
+            ).rstrip(".")
             if sys.platform == "win32":
-                folder = folder.rstrip('/')
+                folder = folder.rstrip("/")
             self.packages.add((pkg_name, folder))
             if pkg_name not in self.datafiles:
                 self.datafiles[pkg_name] = set(files)
@@ -362,16 +439,16 @@ class Bundle:
                 curr_files = self.datafiles[pkg_name]
                 self.datafiles[pkg_name] = curr_files | set(files)
 
-        raw_extra_files = chimerax_data.get('extra-files', {})
+        raw_extra_files = chimerax_data.get("extra-files", {})
         platform_extra_files = {}
-        if 'platform' in raw_extra_files:
+        if "platform" in raw_extra_files:
             for platform in _platforms[sys.platform]:
                 try:
                     platform_extra_files = raw_extra_files["platform"].pop(platform)
                 except KeyError:
                     pass
 
-        raw_extra_files.pop('platform', None)
+        raw_extra_files.pop("platform", None)
         filtered_extra_files = raw_extra_files
         for key in platform_extra_files:
             if key in filtered_extra_files:
@@ -380,9 +457,11 @@ class Bundle:
                 filtered_extra_files[key] = platform_extra_files[key]
 
         for folder, files in filtered_extra_files.items():
-            pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')]).rstrip('.')
+            pkg_name = ".".join(
+                [self.module_name, folder.replace("src/", "").replace("/", ".")]
+            ).rstrip(".")
             if sys.platform == "win32":
-                folder = folder.rstrip('/')
+                folder = folder.rstrip("/")
             self.packages.add((pkg_name, folder))
             for file in files:
                 # Unlike data files, which takes filenames and wildcards with extensions,
@@ -415,12 +494,22 @@ class Bundle:
 
         self._make_setup_arguments()
         dist = Distribution(attrs=self.setup_arguments)
-        bdist_wheel_cmd = dist.get_command_obj('bdist_wheel')
+        bdist_wheel_cmd = dist.get_command_obj("bdist_wheel")
         bdist_wheel_cmd.ensure_finalized()
 
         distname = bdist_wheel_cmd.wheel_dist_name
-        tag = '-'.join(bdist_wheel_cmd.get_tag())
-        self._expected_wheel_name = f'{distname}-{tag}.whl'
+        tag = "-".join(bdist_wheel_cmd.get_tag())
+        self._expected_wheel_name = f"{distname}-{tag}.whl"
+
+    @staticmethod
+    def format_module_name(name: str, override: Optional[str] = None):
+        bundle_base_name = name.replace("ChimeraX-", "")
+        if override:
+            module_name = f"chimerax.{override}"
+        else:
+            module_name = name.replace("-", ".").lower()
+        dist_info_name = name.replace("-", "_")
+        return bundle_base_name, module_name, dist_info_name
 
     @classmethod
     def from_toml_file(cls, logger, toml_file):
@@ -434,13 +523,18 @@ class Bundle:
     def make_wheel(self, debug=False):
         self.build_wheel()
 
-    def make_install(self, session, debug=False, user=None, no_deps=None, editable=False):
+    def make_install(
+        self, session, debug=False, user=None, no_deps=None, editable=False
+    ):
         if editable:
             wheel = self.build_editable()
         else:
             wheel = self.build_wheel()
         from chimerax.core.commands import run, FileNameArg
-        cmd = "toolshed install %s" % FileNameArg.unparse(os.path.join(self.path, 'dist', wheel))
+
+        cmd = "toolshed install %s" % FileNameArg.unparse(
+            os.path.join(self.path, "dist", wheel)
+        )
         if user is not None:
             if user:
                 cmd += " user true"
@@ -452,6 +546,7 @@ class Bundle:
             else:
                 cmd += " noDeps false"
         from chimerax.core import toolshed
+
         ts = toolshed.get_toolshed()
         bundle = ts.find_bundle(self.name, session.logger)
         # version is set in make_wheel()
@@ -488,7 +583,7 @@ class Bundle:
             self.datafiles[self.module_name + ".bin"].add(executable.path())
         self.setup_arguments = {
             "name": self.name,
-            "python_requires": str(self.python_requirement)
+            "python_requires": str(self.python_requirement),
         }
         if self.version:
             add_argument("version", self.version)
@@ -502,9 +597,12 @@ class Bundle:
         # in the right directory, and that will not happen
         # until run_setup.  So we do the package stuff there.
         ext_mods = [
-            em for em in [
-                cm.ext_mod(self.logger, self.module_name, self.dependencies) for cm in self.c_modules
-            ] if em is not None
+            em
+            for em in [
+                cm.ext_mod(self.logger, self.module_name, self.dependencies)
+                for cm in self.c_modules
+            ]
+            if em is not None
         ]
         if not self.pure_python:
             if sys.platform == "darwin":
@@ -520,38 +618,43 @@ class Bundle:
             if not ext_mods:
 
                 class BinaryDistribution(Distribution):
-                    def has_ext_modules(foo): # noqa we don't care that this is static
+                    def has_ext_modules(foo):  # noqa we don't care that this is static
                         return True
 
                 self.setup_arguments["distclass"] = BinaryDistribution
         else:
             # pure Python
-            platform_classifiers = pure_wheel_platforms.split('\n')
+            platform_classifiers = pure_wheel_platforms.split("\n")
         self.setup_arguments["ext_modules"] = cythonize(ext_mods)
-        self.classifiers.extend(metadata_preamble.split('\n'))
+        self.classifiers.extend(metadata_preamble.split("\n"))
         self.classifiers.extend(platform_classifiers)
-        all_metadata = itertools.chain.from_iterable([
-            [self]
-            , self.tools
-            , self.commands
-            , self.selectors
-            , self.providers
-            , self.data_formats
-            , self.format_readers
-            , self.format_savers
-            , self.file_fetchers
-            , self.managers
-            , self.presets
-            , self.initializations
-        ])
+        all_metadata = itertools.chain.from_iterable(
+            [
+                [self],
+                self.tools,
+                self.commands,
+                self.selectors,
+                self.providers,
+                self.data_formats,
+                self.format_readers,
+                self.format_savers,
+                self.file_fetchers,
+                self.managers,
+                self.toolbars,
+                self.presets,
+                self.initializations,
+            ]
+        )
         for entry in all_metadata:
             self.classifiers.extend([str(entry)])
         self.setup_arguments["classifiers"] = self.classifiers
-        self.setup_arguments["package_dir"], self.setup_arguments["packages"] = self._make_package_arguments()
+        self.setup_arguments["package_dir"], self.setup_arguments["packages"] = (
+            self._make_package_arguments()
+        )
 
     def _copy_extrafiles(self):
         for pkg_name, items in self.extra_files.items():
-            path = pkg_name.replace(self.module_name, "src").replace('.', '/')
+            path = pkg_name.replace(self.module_name, "src").replace(".", "/")
             if not os.path.exists(path):
                 os.makedirs(path, exist_ok=True)
             for item in items:
@@ -570,18 +673,34 @@ class Bundle:
         for lib in self.c_libraries:
             if lib.static:
                 if sys.platform == "win32":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".lib"])))
+                    try:
+                        os.remove(os.path.join("src/lib/", "".join([lib.name, ".lib"])))
+                    except FileNotFoundError:
+                        pass
                 else:
-                    os.remove(os.path.join("src/lib/", "".join(["lib", lib.name, ".a"])))
+                    try:
+                        os.remove(
+                            os.path.join("src/lib/", "".join(["lib", lib.name, ".a"]))
+                        )
+                    except FileNotFoundError:
+                        pass
             else:
-                if sys.platform == 'darwin':
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".dylib"])))
+                if sys.platform == "darwin":
+                    try:
+                        os.remove(
+                            os.path.join("src/lib/", "".join([lib.name, ".dylib"]))
+                        )
+                    except FileNotFoundError:
+                        pass
                 elif sys.platform == "linux":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".so"])))
+                    try:
+                        os.remove(os.path.join("src/lib/", "".join([lib.name, ".so"])))
+                    except FileNotFoundError:
+                        pass
 
     def _clean_extrafiles(self):
         for pkg_name, items in self.extra_files.items():
-            path = pkg_name.replace(self.module_name, "src").replace('.', '/')
+            path = pkg_name.replace(self.module_name, "src").replace(".", "/")
             if not os.path.exists(path):
                 os.makedirs(path, exist_ok=True)
             for item in items:
@@ -596,13 +715,13 @@ class Bundle:
     def _make_package_arguments(self):
         def add_package(base_package, folder):
             if sys.platform == "win32":
-                folder.rstrip('/')
+                folder.rstrip("/")
             package_dir[base_package] = folder
             packages.append(base_package)
             # I have no idea why find_packages complains about trailing
             # slashes on Win32 and not Unix
             for sub_pkg in find_packages(folder):
-                packages.append(base_package + '.' + sub_pkg)
+                packages.append(base_package + "." + sub_pkg)
 
         package_dir = {}
         packages = []
@@ -619,6 +738,10 @@ class Bundle:
             os.chdir(self.path)
             kw = self.setup_arguments.copy()
             kw["package_dir"], kw["packages"] = self._make_package_arguments()
+            # So far as I can tell this instructs setuptools to stop sticking its
+            # nose where it doesn't belong and trust that we've set up our packages
+            # and package data correctly.
+            kw["include_package_data"] = False
             sys.argv = ["setup.py"] + cmd
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)
@@ -630,9 +753,11 @@ class Bundle:
             sys.argv = save
             os.chdir(cwd)
             if MySTARTUPINFO:
-                subprocess.STARTUPINFO = MySTARTUPINFO._original # noqa we don't care this is protected
+                subprocess.STARTUPINFO = (
+                    MySTARTUPINFO._original
+                )  # noqa we don't care this is protected
 
-    def _clear_distutils_dir_and_prep_srcdir(self, build_exts = False):
+    def _clear_distutils_dir_and_prep_srcdir(self, build_exts=False):
         # HACK: distutils uses a cache to track created directories
         # for a single setup() run.  We want to run setup() multiple
         # times which can remove/create the same directories.
@@ -652,12 +777,12 @@ class Bundle:
 
     def _check_output(self, type_="wheel"):
         if type_ == "wheel":
-            output = glob.glob(os.path.join(self.path, 'dist', '*.whl'))
+            output = glob.glob(os.path.join(self.path, "dist", "*.whl"))
         elif type == "sdist":
             if sys.platform == "win32":
-                output = glob.glob(os.path.join(self.path, 'dist', '*.zip'))
+                output = glob.glob(os.path.join(self.path, "dist", "*.zip"))
             else:
-                output = glob.glob(os.path.join(self.path, 'dist', '*.tar.gz'))
+                output = glob.glob(os.path.join(self.path, "dist", "*.tar.gz"))
         else:
             raise ValueError("Unknown output type requested: %s" % type)
         if not output:
@@ -666,7 +791,7 @@ class Bundle:
         else:
             name = output[0]
             if type_ == "wheel":
-                print("Distribution is in %s" % os.path.join('./dist', name))
+                print("Distribution is in %s" % os.path.join("./dist", name))
         return name
 
     def build_wheel(self):
@@ -676,7 +801,7 @@ class Bundle:
         dist, built = self._run_setup(setup_args)
         if not self.version:
             self.version = dist.get_version()
-        wheel = self._check_output(type_ = "wheel")
+        wheel = self._check_output(type_="wheel")
         return wheel
 
     def build_sdist(self):
@@ -685,32 +810,28 @@ class Bundle:
         dist, built = self._run_setup(setup_args)
         if not self.version:
             self.version = dist.get_version()
-        sdist = self._check_output(type_ = "sdist")
+        sdist = self._check_output(type_="sdist")
         return sdist
 
     # TODO: Remove when pip can glean metadata from build_editable alone
     def build_wheel_for_build_editable(self):
         wheel_name = self.build_wheel()
-        wheel_location = os.path.join(self.path, 'dist', wheel_name)
+        wheel_location = os.path.join(self.path, "dist", wheel_name)
         # Clean everything that was placed in the source directory as a side effect
         self._clean_extrafiles()
         return wheel_location
 
-    def build_editable(self, config_settings = None):
+    def build_editable(self, config_settings=None):
         self._remove_libraries()
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
-        setup_args = [
-            "build_ext"
-            , "--inplace"
-            , "editable_wheel"
-        ]
+        setup_args = ["build_ext", "--inplace", "editable_wheel"]
         if config_settings:
-            if 'editable_mode' in config_settings:
+            if "editable_mode" in config_settings:
                 setup_args.extend(["--mode", config_settings["editable_mode"]])
         dist, built = self._run_setup(setup_args)
         if not self.version:
             self.version = dist.get_version()
-        wheel = self._check_output(type_ = "wheel")
+        wheel = self._check_output(type_="wheel")
         return wheel
 
     def __str__(self):
@@ -719,219 +840,17 @@ class Bundle:
         categories = ", ".join(self.categories)
         supersedes = ", ".join(self.supersedes)
         custom_init = "true" if self.custom_init else ""
-        return " :: ".join(["ChimeraX", "Bundle", categories, sess_tuple, name, supersedes, custom_init])
-
-
-class ChimeraXClassifier:
-    classifier_separator = " :: "
-
-    def __init__(self, name, attrs):
-        self.name = name
-        self.attrs = attrs
-
-    @property
-    def categories(self):
-        if 'category' in self.attrs:
-            return self.attrs['category']
-        if 'categories' in self.attrs:
-            return self.attrs['categories']
-        raise MissingInfoError(f"No synopsis found for {self.name}")
-
-    @property
-    def description(self):
-        if 'synopsis' in self.attrs:
-            return self.attrs['synopsis']
-        if 'description' in self.attrs:
-            return self.attrs['description']
-        raise MissingInfoError(f"No synopsis found for {self.name}")
-
-    def misc_attrs_to_list(self):
-        attrs = []
-        for k, v in self.attrs.items():
-            formatted_field = k.replace('-', '_')
-            if type(v) is list:
-                if not v:
-                    continue
-                formatted_val = ','.join([quote_if_necessary(str(val)) for val in v])
-            elif type(v) is bool:
-                formatted_val = quote_if_necessary(str(v).lower())
-            else:
-                formatted_val = quote_if_necessary(str(v))
-            attrs.append("%s:%s" % (formatted_field, formatted_val))
-        return attrs
-
-
-class Tool(ChimeraXClassifier):
-    def __init__(self, tool_name: str, attrs: dict[str:str]):
-        super().__init__(tool_name, attrs)
-
-    def __str__(self):
-        if type(self.categories) == str:
-            return f'ChimeraX :: Tool :: {self.name} :: {self.categories} :: {self.description}'
-        else:
-            return f'ChimeraX :: Tool :: {self.name} :: {", ".join(self.categories)} :: {self.description}'
-
-
-class Command(ChimeraXClassifier):
-    def __init__(self, command_name: str, attrs: dict[str:str]):
-        super().__init__(command_name, attrs)
-
-    def __str__(self):
-        if type(self.categories) == str:
-            return f'ChimeraX :: Command :: {self.name} :: {self.categories} :: {self.description}'
-        else:
-            return f'ChimeraX :: Command :: {self.name} :: {", ".join(self.categories)} :: {self.description}'
-
-
-class Selector(ChimeraXClassifier):
-    def __init__(self, selector_name: str, attrs: dict[str:str]):
-        super().__init__(selector_name, attrs)
-
-    def __str__(self):
-        return f'ChimeraX :: Selector :: {self.name} :: {self.description}'
-
-
-class Manager(ChimeraXClassifier):
-    default_attrs = {
-        "gui-only": False
-        , "autostart": False
-    }
-
-    def __init__(self, name, attrs):
-        if not attrs:
-            attrs = self.default_attrs
-        else:
-            for key, val in self.default_attrs.items():
-                if key not in attrs:
-                    attrs[key] = val
-        super().__init__(name, attrs)
-
-    def __str__(self):
-        attrs = self.misc_attrs_to_list()
-        return f'ChimeraX :: Manager :: {self.name} :: {self.classifier_separator.join(attrs)}'
-
-
-class Provider(ChimeraXClassifier):
-    def __init__(self, manager, name, attrs: dict[str:str]):
-        self.manager = manager
-        super().__init__(name, attrs)
-
-    def __str__(self):
-        attrs = self.misc_attrs_to_list()
-        return f'ChimeraX :: Provider :: {self.name} :: {self.manager} :: {self.classifier_separator.join(attrs)}'
-
-
-class DataFormat(Provider):
-    default_attrs = {
-        "category": "General"
-        , "encoding": "utf-8"
-        , "nicknames": None
-        , "reference-url": None
-        , "suffixes": None
-        , "synopsis": None
-        , "allow-directory": False
-        , "insecure": False
-        , "mime-types": []
-    }
-
-    def __init__(self, name, attrs):
-        if not attrs:
-            attrs = self.default_attrs
-        else:
-            for key, val in self.default_attrs.items():
-                if key not in attrs:
-                    attrs[key] = val
-        super().__init__("data formats", name, attrs)
-
-
-class FormatReader(Provider):
-    default_attrs = {
-        "batch": False
-        , "check-path": True
-        , "is-default": True
-        , "pregrouped-structures": False
-        , "type": "open"
-        , "want-path": False
-    }
-
-    def __init__(self, reader_name, attrs):
-        if not attrs:
-            attrs = self.default_attrs
-        else:
-            for key, val in self.default_attrs.items():
-                if key not in attrs:
-                    attrs[key] = val
-        super().__init__("open command", reader_name, attrs)
-
-
-class FormatSaver(Provider):
-    default_attrs = {
-        "compression-okay": True
-        , "is-default": True
-    }
-
-    def __init__(self, saver_name, attrs):
-        if not attrs:
-            attrs = self.default_attrs
-        else:
-            for key, val in self.default_attrs.items():
-                if key not in attrs:
-                    attrs[key] = val
-        super().__init__("save command", saver_name, attrs)
-
-
-class FormatFetcher(Provider):
-    default_attrs = {
-        "batch": False
-        , "check-path": False
-        , "is-default": True
-        , "pregrouped-structures": False
-        , "type": "fetch"
-        , "want-path": False
-    }
-
-    def __init__(self, name, attrs):
-        if not attrs:
-            attrs = self.default_attrs
-        else:
-            name, attrs["format_name"] = attrs.pop("name"), name
-            for key, val in self.default_attrs.items():
-                if key not in attrs:
-                    attrs[key] = val
-        super().__init__("open command", name, attrs)
-
-
-class Preset(Provider):
-    default_attrs = {
-        "category": "General"
-    }
-
-    def __init__(self, name, attrs):
-        if not attrs:
-            attrs = self.default_attrs
-        else:
-            for key, val in self.default_attrs.items():
-                if key not in attrs:
-                    attrs[key] = val
-        super().__init__("presets", name, attrs)
-
-
-class Initialization:
-    def __init__(self, type_, bundles):
-        self.type_ = type_
-        self.bundles = bundles
-
-    def __str__(self):
-        separator = " :: "
-        return f'ChimeraX :: InitAfter :: {self.type_} :: {separator.join(self.bundles)}'
-
-# TODO: Standardize
-# class DocDir:
-#    def __init__(self, path):
-#        self.path = path
-#
-#    def __str__(self):
-#        return f'ChimeraX :: DocDir :: {self.path}'
+        return " :: ".join(
+            [
+                "ChimeraX",
+                "Bundle",
+                categories,
+                sess_tuple,
+                name,
+                supersedes,
+                custom_init,
+            ]
+        )
 
 
 class _CompiledCode:
@@ -970,12 +889,9 @@ class _CompiledCode:
         for entry in source_files:
             self.source_files.extend(glob.glob(entry))
         for def_ in defines:
-            edef = def_.split('=')
+            edef = def_.split("=")
             if len(edef) > 2:
-                raise TypeError(
-                    "Too many arguments for macro "
-                    "definition: %s" % edef
-                )
+                raise TypeError("Too many arguments for macro " "definition: %s" % edef)
             elif len(edef) == 1:
                 edef.append(None)
             self.add_macro_define(*edef)
@@ -1058,14 +974,14 @@ class _CompiledCode:
         inc_dirs.extend(self.include_dirs)
         lib_dirs.extend(self.library_dirs)
         extra_link_args.extend(self.link_arguments)
-        return (inc_dirs, lib_dirs, self.macros,
-                extra_link_args, libraries, cpp_flags)
+        return (inc_dirs, lib_dirs, self.macros, extra_link_args, libraries, cpp_flags)
 
     def compile_objects(self, logger, dependencies, static, debug=False):
         distutils.log.set_verbosity(1)
         try:
-            (inc_dirs, lib_dirs, macros, extra_link_args,
-             libraries, cpp_flags) = self._compile_options(logger, dependencies)
+            (inc_dirs, lib_dirs, macros, extra_link_args, libraries, cpp_flags) = (
+                self._compile_options(logger, dependencies)
+            )
         except ValueError:
             print("Error when compiling %s" % self.name)
             return None
@@ -1080,7 +996,7 @@ class _CompiledCode:
         compiler.add_include_dir(distutils.sysconfig.get_python_inc())
         if sys.platform == "win32":
             # Link library directory for Python on Windows
-            compiler.add_library_dir(os.path.join(sys.exec_prefix, 'libs'))
+            compiler.add_library_dir(os.path.join(sys.exec_prefix, "libs"))
         if not static:
             macros.append(("DYNAMIC_LIBRARY", 1))
         # We need to manually separate out C from C++ code here, since clang
@@ -1089,9 +1005,9 @@ class _CompiledCode:
         cpp_files = []
         for f in self.source_files:
             lang = compiler.detect_language(f)
-            if lang == 'c':
+            if lang == "c":
                 c_files.append(f)
-            elif lang == 'c++':
+            elif lang == "c++":
                 cpp_files.append(f)
             else:
                 raise RuntimeError("Unsupported language for %s" % f)
@@ -1099,13 +1015,16 @@ class _CompiledCode:
             compiler.compile(
                 cpp_files,
                 extra_preargs=cpp_flags + self.compile_arguments,
-                macros=macros, debug=debug
+                macros=macros,
+                debug=debug,
             )
             self.target_lang = "c++"
         if c_files:
             compiler.compile(
-                c_files, extra_preargs=self.compile_arguments,
-                macros=macros, debug=debug
+                c_files,
+                extra_preargs=self.compile_arguments,
+                macros=macros,
+                debug=debug,
             )
         objs = compiler.object_filenames(self.source_files)
         return compiler, objs, extra_link_args
@@ -1116,18 +1035,18 @@ class _CModule(_CompiledCode):
     def __init__(self, name, attrs):
         self.name = name
         super().__init__(name, attrs)
-        self.major = attrs.get('major-ver', 1)
-        self.minor = attrs.get('minor-ver', 0)
+        self.major = attrs.get("major-ver", 1)
+        self.minor = attrs.get("minor-ver", 0)
         # TODO: Better interface for shared object versioning
         # TODO: self.patch = attrs.get('patch-ver', 0)
 
     def ext_mod(self, logger, package, dependencies):
         try:
-            (inc_dirs, lib_dirs, macros, extra_link_args,
-             libraries, cpp_flags) = self._compile_options(logger, dependencies)
+            (inc_dirs, lib_dirs, macros, extra_link_args, libraries, cpp_flags) = (
+                self._compile_options(logger, dependencies)
+            )
             macros.extend(
-                [("MAJOR_VERSION", self.major),
-                 ("MINOR_VERSION", self.minor)]
+                [("MAJOR_VERSION", self.major), ("MINOR_VERSION", self.minor)]
             )
         except ValueError:
             return None
@@ -1137,7 +1056,7 @@ class _CModule(_CompiledCode):
             extra_link_args.append("-Wl,-rpath,@loader_path/lib")
         if self.source_files:
             return Extension(
-                package + '.' + self.name,
+                package + "." + self.name,
                 define_macros=macros,
                 extra_compile_args=cpp_flags + self.compile_arguments,
                 include_dirs=inc_dirs,
@@ -1145,7 +1064,7 @@ class _CModule(_CompiledCode):
                 libraries=libraries,
                 extra_link_args=extra_link_args,
                 sources=self.source_files,
-                py_limited_api=self.limited_api
+                py_limited_api=self.limited_api,
             )
         else:
             return None
@@ -1157,7 +1076,7 @@ class _CLibrary(_CompiledCode):
 
     def __init__(self, name, attrs):
         if sys.platform == "win32":
-            name = 'lib' + name
+            name = "lib" + name
         else:
             name = name
         super().__init__(name, attrs)
@@ -1165,22 +1084,23 @@ class _CLibrary(_CompiledCode):
 
     def compile(self, logger, dependencies, debug=False):
         compiler, objs, extra_link_args = self.compile_objects(
-            logger,
-            dependencies,
-            self.static,
-            debug
+            logger, dependencies, self.static, debug
         )
         compiler.mkpath(self.output_dir)
         if self.static:
-            if sys.platform == 'darwin':
-                output_file = os.path.join("src/lib/", "".join(["lib", self.name, ".a"]))
+            if sys.platform == "darwin":
+                output_file = os.path.join(
+                    "src/lib/", "".join(["lib", self.name, ".a"])
+                )
                 if os.path.exists(output_file):
                     os.remove(output_file)
             lib = compiler.library_filename(self.name, lib_type="static")
             compiler.create_static_lib(
-                objs, self.name, output_dir=self.output_dir,
+                objs,
+                self.name,
+                output_dir=self.output_dir,
                 target_lang=self.target_lang,
-                debug=debug
+                debug=debug,
             )
         else:
             if sys.platform == "darwin":
@@ -1194,14 +1114,15 @@ class _CLibrary(_CompiledCode):
                     compiler.linker_so[n] = "-dynamiclib"
                 lib = compiler.library_filename(self.name, lib_type="dylib")
                 extra_link_args.extend(
-                    ["-Wl,-rpath,@loader_path",
-                     "-Wl,-install_name,@rpath/%s" % lib]
+                    ["-Wl,-rpath,@loader_path", "-Wl,-install_name,@rpath/%s" % lib]
                 )
                 compiler.link_shared_object(
-                    objs, lib, output_dir=self.output_dir,
+                    objs,
+                    lib,
+                    output_dir=self.output_dir,
                     extra_preargs=extra_link_args,
                     target_lang=self.target_lang,
-                    debug=debug
+                    debug=debug,
                 )
             elif sys.platform == "win32":
                 # On Windows, we need both .dll and .lib
@@ -1209,20 +1130,24 @@ class _CLibrary(_CompiledCode):
                 extra_link_args.append("/LIBPATH:%s" % link_lib)
                 lib = compiler.shared_object_filename(self.name)
                 compiler.link_shared_object(
-                    objs, lib, output_dir=self.output_dir,
+                    objs,
+                    lib,
+                    output_dir=self.output_dir,
                     extra_preargs=extra_link_args,
                     target_lang=self.target_lang,
-                    debug=debug
+                    debug=debug,
                 )
             else:
                 # On Linux, we only need the .so
                 lib = compiler.library_filename(self.name, lib_type="shared")
                 extra_link_args.append("-Wl,-rpath,$ORIGIN")
                 compiler.link_shared_object(
-                    objs, lib, output_dir=self.output_dir,
+                    objs,
+                    lib,
+                    output_dir=self.output_dir,
                     extra_preargs=extra_link_args,
                     target_lang=self.target_lang,
-                    debug=debug
+                    debug=debug,
                 )
         return lib
 
@@ -1241,28 +1166,13 @@ class _CLibrary(_CompiledCode):
             paths.append(compiler.library_filename(lib_name, lib_type="static"))
         else:
             if sys.platform == "darwin":
-                paths.append(
-                    compiler.library_filename(
-                        lib_name,
-                        lib_type="dylib"
-                    )
-                )
+                paths.append(compiler.library_filename(lib_name, lib_type="dylib"))
             elif sys.platform == "win32":
                 # On Windows we want both .lib and .dll
                 paths.append(compiler.shared_object_filename(lib_name))
-                paths.append(
-                    compiler.library_filename(
-                        lib_name,
-                        lib_type="static"
-                    )
-                )
+                paths.append(compiler.library_filename(lib_name, lib_type="static"))
             else:
-                paths.append(
-                    compiler.library_filename(
-                        lib_name,
-                        lib_type="shared"
-                    )
-                )
+                paths.append(compiler.library_filename(lib_name, lib_type="shared"))
         return paths
 
 
@@ -1280,20 +1190,17 @@ class _CExecutable(_CompiledCode):
 
     def compile(self, logger, dependencies, debug=False):
         compiler, objs, extra_link_args = self.compile_objects(
-            logger,
-            dependencies,
-            False,
-            debug
+            logger, dependencies, False, debug
         )
         compiler.mkpath(self.output_dir)
         if sys.platform == "darwin":
             extra_link_args.extend(["-Wl,-rpath,@loader_path"])
-            if 'universal2' in sysconfig.get_platform():
+            if "universal2" in sysconfig.get_platform():
                 # Don't try to compile ARM binaries on versions of macOS that aren't
                 # compatible with Xcode >= 12, the first version that had universal2
                 # support, even though universal2 Python can run on macOS as old as
                 # 10.9
-                mac_ver = platform.mac_ver()[0].split('.')
+                mac_ver = platform.mac_ver()[0].split(".")
                 mac_ver_major = int(mac_ver[0])
                 mac_ver_minor = int(mac_ver[1])
                 if (mac_ver_major == 10 and mac_ver_minor > 14) or mac_ver_major > 10:
@@ -1305,10 +1212,12 @@ class _CExecutable(_CompiledCode):
         else:
             extra_link_args.append("-Wl,-rpath,$ORIGIN")
         compiler.link_executable(
-            objs, self.name, output_dir=self.output_dir,
+            objs,
+            self.name,
+            output_dir=self.output_dir,
             extra_preargs=extra_link_args,
             target_lang=self.target_lang,
-            debug=debug
+            debug=debug,
         )
         return compiler.executable_filename(self.name)
 
@@ -1334,16 +1243,16 @@ def quote_if_necessary(s, additional_special_map={}):
     has_special = False
     use_single_quote = not has_single_quote and has_double_quote
     special_map = {
-        '\a': '\\a',
-        '\b': '\\b',
-        '\f': '\\f',
-        '\n': '\\n',
-        '\r': '\\r',
-        '\t': '\\t',
-        '\v': '\\v',
-        '\\': '\\\\',
-        ';': ';',
-        ' ': ' ',
+        "\a": "\\a",
+        "\b": "\\b",
+        "\f": "\\f",
+        "\n": "\\n",
+        "\r": "\\r",
+        "\t": "\\t",
+        "\v": "\\v",
+        "\\": "\\\\",
+        ";": ";",
+        " ": " ",
     }
     special_map.update(additional_special_map)
 
@@ -1364,16 +1273,16 @@ def quote_if_necessary(s, additional_special_map={}):
             result.append(special_map[ch])
         elif i < 32:
             has_special = True
-            result.append('\\x%02x' % i)
-        elif ch.strip() == '':
+            result.append("\\x%02x" % i)
+        elif ch.strip() == "":
             # non-space and non-newline spaces
             has_special = True
-            result.append('\\N{%s}' % unicodedata.name(ch))
+            result.append("\\N{%s}" % unicodedata.name(ch))
         else:
             result.append(ch)
     if has_single_quote or has_double_quote or has_special:
         if use_single_quote:
-            return "'%s'" % ''.join(result)
+            return "'%s'" % "".join(result)
         else:
-            return '"%s"' % ''.join(result)
-    return ''.join(result)
+            return '"%s"' % "".join(result)
+    return "".join(result)

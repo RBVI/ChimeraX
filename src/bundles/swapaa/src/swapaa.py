@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -10,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 
-def swapaa(session, residues, restype):
+def swapaa(session, residues, restypes):
 
     ures = residues.unique()
     if len(ures) == 0:
@@ -23,9 +25,13 @@ def swapaa(session, residues, restype):
         raise UserError('swapaa: Cannot swap non-protein residues "%s"'
                         % ', '.join(r.string() for r in notaa))
 
+    # for backwards compatibility
+    if type(restypes) == str:
+        restypes = [restypes]
+
     tres = template_residues(session)
-    new_r = tres.residue(restype)
-    for r in ures:
+    for r, restype in zip(ures, restypes):
+        new_r = tres.residue(restype)
         swap_residue(r, new_r)
     
 def template_residues(session):
@@ -154,14 +160,14 @@ def _carbon_color(r):
     return element_color(6)
          
 def register_swapaa_command(logger):
-    from chimerax.core.commands import CmdDesc, register, EnumOf
+    from chimerax.core.commands import CmdDesc, register, EnumOf, ListOf
     from chimerax.atomic import ResiduesArg
     aa = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 'ILE',
           'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL']
     AminoAcidArg = EnumOf(aa)
     desc = CmdDesc(
         required = [('residues', ResiduesArg),
-                    ('restype', AminoAcidArg),],
+                    ('restypes', ListOf(AminoAcidArg)),],
         synopsis = 'Replace residue with specified amino acid'
     )
     register('swapaa mousemode', desc, swapaa, logger=logger)

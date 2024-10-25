@@ -143,19 +143,25 @@ class DistancesMonitor(StateManager):
 
         from chimerax.label.label3d import labels_model, PseudobondLabel
         for grp, pbs in by_group.items():
+            sizes = {}
             if coordset_changed:
                 lm = labels_model(grp, create=False)
                 if lm:
+                    for lab in lm.labels():
+                        sizes[lab.pseudobond] = (lab.size, lab.height)
                     lm.delete()
             lm = labels_model(grp, create=True)
-            label_settings = { 'color': grp.color } if set_color else {}
             if self.distances_shown:
                 fmt = self.distance_format
                 for pb in pbs:
+                    label_settings = { 'color': pb.color } if set_color else {}
                     label_settings['text'] = fmt % pb.length
+                    if pb in sizes:
+                        label_settings['size'], label_settings['height'] = sizes[pb]
                     lm.add_labels([pb], PseudobondLabel, self.session.main_view,
                         settings=label_settings)
             else:
+                label_settings = { 'color': grp.color } if set_color else {}
                 label_settings['text'] = ""
                 lm.add_labels(pbs, PseudobondLabel, self.session.main_view,
                     settings=label_settings)

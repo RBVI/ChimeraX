@@ -127,6 +127,8 @@ public:
     static const std::string  REASON_STRUCTURE_CATEGORY;
     static const std::string  REASON_SS_ID;
     static const std::string  REASON_SS_TYPE;
+    static const std::string  REASON_WORM_RADIUS;
+    static const std::string  REASON_WORM_RIBBON;
     
     template<class C>
     void  add_created(Structure* s, C* ptr) {

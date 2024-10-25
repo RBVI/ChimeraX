@@ -299,7 +299,7 @@ class Mol2Parser:
                     # Assume value is last field
                     parts = self._line[non_hash:].rsplit(None, 1)
                 try:
-                    self._data[parts[0].strip()] = parts[1].strip()
+                    self._data[parts[0].strip()] = _value(parts[1].strip())
                 except IndexError:
                     # Must be a single word on the line, just ignore
                     pass
@@ -422,6 +422,19 @@ class Mol2Parser:
             self._comments.append(self._line)
             self._get_line()
 
+    def _section_property_data(self):
+        if self._molecule is None:
+            self._eat_section()
+            return
+        while self._line is not None:
+            if self._is_section_tag():
+                break
+            fields = self._line.split("\t|\t")
+            if len(fields) == 2:
+                tag, value = fields
+                self._data[tag] = _value(value)
+            self._get_line()
+
     def _check_gold(self):
         import re
         re_gold = re.compile(r"> <Gold\.(?P<param>[^>]+)>\s*")
@@ -446,9 +459,11 @@ class Mol2Parser:
 def _value(s):
     try:
         return int(s)
-        return float(s)
     except ValueError:
-        return s
+        try:
+            return float(s)
+        except ValueError:
+            return s
 
 def open_swissdock(session, stream, file_name, auto_style, atomic):
     from chimerax.atomic import next_chain_id
@@ -505,7 +520,7 @@ def open_swissdock(session, stream, file_name, auto_style, atomic):
                 is_ligands = False
             else:
                 k,v = line[7:].strip().split(': ')
-                viewdockx_data[_wordize(k)] = v
+                viewdockx_data[_wordize(k)] = _value(v)
             # these "REMARK"s are all badly formatted, prevent ChimeraX from complaining
             line = None
         if line is not None:

@@ -30,7 +30,7 @@ class Selection:
         self._all_models = sess.models	# Models object
         self._promotion = SelectionPromoter(self._all_models.scene_root_model)
         sess.triggers.add_trigger(SELECTION_CHANGED)
-        # XXX: SELECTION_CHANGED trigger is currently fired in by
+        # XXX: SELECTION_CHANGED trigger is currently fired by
         # atomic.structure.StructureGraphicsChangeManager
         # Maybe it should be moved up to Model level somehow?
         self._trigger_fire_needed = False

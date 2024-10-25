@@ -97,7 +97,7 @@ command_defaults = {
     'replace': True,
     'verbose': False
 }
-def phenix_fit_loops(session, residues, in_map, *, block=None, phenix_location=None,
+def phenix_fit_loops(session, residues, in_map, *, block=None, gap_only=False, phenix_location=None,
         processors=command_defaults['processors'], replace=command_defaults['replace'],
         sequence_file=None, verbose=command_defaults['verbose'], option_arg=[], position_arg=[]):
 
@@ -133,53 +133,24 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, phenix_location=N
                 " (i.e. %s)" % r)
         return r.number
     # process the residues into phenix-fit-friendly units
+    job_info = []
     for structure, s_residues in residues.by_structure:
-        # look for embedded missing structure
-        atoms = set(s_residues.atoms)
-        requested_gaps = []
-        other_gaps = []
-        try:
-            pbs = structure.pbg_map[structure.PBG_MISSING_STRUCTURE].pseudobonds
-        except KeyError:
-            pbs = []
-        for pb in pbs:
-            a1, a2 = pb.atoms
-            r1, r2 = (a1.residue, a2.residue) if a1 < a2 else (a2.residue, a1.residue)
-            if r1 == r2:
+        if gap_only:
+            try:
+                pbs = structure.pbg_map[structure.PBG_MISSING_STRUCTURE].pseudobonds
+            except KeyError:
+                session.logger.warning("Structure %s has no missing residues!" % structure)
                 continue
-            if a1 in atoms and a2 in atoms:
-                requested_gaps.append((r1, r2))
-            else:
-                other_gaps.append((r1, r2))
-        job_info = []
-        if requested_gaps:
-            if len(requested_gaps) == 1:
-                r1, r2 = requested_gaps[0]
-                job_info.append((seq_num(r1), seq_num(r2), r1.chain_id, False))
-            elif not other_gaps:
-                job_info.append((None, None, None, False))
-            else:
-                # multiple requested gaps, but not all gaps requested
-                requested_chains = set([r1.chain_id for r1, r2 in requested_gaps])
-                other_chains = set([r1.chain_id for r1, r2 in other_gaps])
-                for chain in requested_chains:
-                    if chain not in other_chains:
-                        job_info.append((None, None, chain, False))
-                    else:
-                        requested_residues = set([r for r1, r2 in requested_gaps for r in (r1, r2)
-                            if r.chain_id == chain])
-                        other_residues = set([r for r1, r2 in other_gaps for r in (r1, r2)
-                            if r.chain_id == chain])
-                        if max(requested_residues) < min(other_residues) \
-                        or min(requested_residues) > max(other_residues):
-                            job_info.append((seq_num(min(requested_residues)),
-                                seq_num(max(requested_residues)), chain, False))
-                        else:
-                            for r1, r2 in requested_gaps:
-                                if r1.chain_id == chain:
-                                    job_info.append((seq_num(r1), seq_num(r2), chain, False))
+            res_set = set(s_residues)
+            for pb in pbs:
+                a1, a2 = pb.atoms
+                r1, r2 = (a1.residue, a2.residue) if a1 < a2 else (a2.residue, a1.residue)
+                if r1 == r2:
+                    continue
+                if r1 in res_set and r2 in res_set:
+                    job_info.append((seq_num(r1)+1, seq_num(r2)-1, r1.chain_id, False))
         else:
-            # remodelling; figure out runs of residues in the same chain
+            # remodelling at least some existing residues; figure out runs of residues in the same chain
             for chain_id in residues.unique_chain_ids:
                 res_list = residues.filter(residues.chain_ids == chain_id)
                 req_chain_residues = set(res_list)
@@ -234,10 +205,11 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, phenix_location=N
             if sequence_file is None:
                 with open(seqf_path, "w") as f:
                     for chain in structure.chains:
-                        if not chain.from_seqres:
+                        if not chain.full_sequence_known:
                             raise NoSeqInfoError("Structure file does not contain complete sequence"
                                 f" information.  Please provide that information via the '{seq_keyword}'"
                                 " keyword argument.")
+                        print("> Chain %s" % chain.chain_id, file=f)
                         print(chain.characters, file=f)
             else:
                 import shutil
@@ -265,6 +237,8 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
         orig_atom_map = dict([(a.string(style="simple", omit_structure=True), a) for a in structure.atoms])
         orig_res_map = dict([(r.string(style="simple", omit_structure=True), r) for r in structure.residues])
         fit_res_indices = dict([(r, i) for i, r in enumerate(fit_loops_model.residues)])
+        chain_sequence = dict([(c.chain_id, c.characters) for c in structure.chains])
+        new_residues = []
         new_atoms = []
         from chimerax.atomic.struct_edit import add_atom, add_bond
         for fit_atom in fit_loops_model.atoms:
@@ -287,6 +261,7 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
                         precedes = None
                     orig_res = orig_res_map[r_key] = structure.new_residue(fit_res.name, fit_res.chain_id,
                         fit_res.number, insert=fit_res.insertion_code, precedes=precedes)
+                    new_residues.append(orig_res)
                 orig_atom_map[key] = add_atom(fit_atom.name, fit_atom.element, orig_res, fit_atom.coord,
                     bfactor=fit_atom.bfactor)
                 new_atoms.append((fit_atom, orig_atom_map[key]))
@@ -302,6 +277,34 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
                 bonded_residues.add(onb.residue)
                 if onb not in orig_atom.neighbors:
                     add_bond(orig_atom, onb)
+        # check that sequences did not change
+        for chain in structure.chains:
+            cur_seq = chain.characters
+            prev_seq = chain_sequence[chain.chain_id]
+            if cur_seq != prev_seq:
+                for i1 in range(len(cur_seq)):
+                    if cur_seq[i1] != prev_seq[i1]:
+                        break
+                for i2 in range(len(cur_seq)):
+                    if cur_seq[-(i2+1)] != prev_seq[-(i2+1)]:
+                        break
+                session.logger.info("Sequence of chain %s before fit_loops (differences capitalized):"
+                    % chain.chain_id)
+                session.logger.info("%s%s%s"
+                    % (prev_seq[:i1].lower(), prev_seq[i1:-i2], prev_seq[-i2:].lower()))
+                session.logger.info("Sequence of chain %s after fit_loops (differences capitalized):"
+                    % chain.chain_id)
+                session.logger.info("%s%s%s"
+                    % (cur_seq[:i1].lower(), cur_seq[i1:-i2], cur_seq[-i2:].lower()))
+                for fl_chain in fit_loops_model.chains:
+                    if fl_chain.chain_id == chain.chain_id:
+                        session.logger.info("Raw fit_loops chain %s sequence:" % chain.chain_id)
+                        session.logger.info(fl_chain.characters.lower())
+                        break
+                for r in new_residues:
+                    structure.delete_residue(r)
+                raise AssertionError("Chain sequence for chain %s changed after fit_loops; undoing changes"
+                    % chain.chain_id)
         # show residues adjacent to the gap as stick
         for nbr in bonded_residues - gap_residues:
             nbr.ribbon_display = False
@@ -436,6 +439,7 @@ def register_command(logger):
                    ('phenix_location', OpenFolderNameArg),
                    ('option_arg', RepeatOf(StringArg)),
                    ('position_arg', RepeatOf(StringArg)),
+                   ('gap_only', BoolArg),
         ],
         required_arguments = ['in_map'],
         synopsis = 'Fit loop(s) into density'

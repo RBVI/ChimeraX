@@ -1,0 +1,36 @@
+<BundleInfo name="ChimeraX-WebCam" version="1.0.2"
+	    package="chimerax.webcam"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Combine camera video with graphics</Synopsis>
+  <Description>Produce augmented reality videos combining web cam
+  video with rendered graphics.</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <CModule name="_webcam">
+    <SourceFile>_webcam/pixelformats.cpp</SourceFile>
+    <Library>arrays</Library>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: webcam :: General :: Show webcam video</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: device webcam :: General :: Show webcam video</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

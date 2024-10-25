@@ -424,7 +424,7 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def _get_model_color(self):
+  def _get_overall_color(self):
     from chimerax.core.colors import rgba_to_rgba8
     if self.surface_shown:
       surfs = self.surfaces
@@ -440,10 +440,10 @@ class Volume(Model):
     if drgba:
       return rgba_to_rgba8(drgba)
     return None
-  def _set_model_color(self, color):
+  def _set_overall_color(self, color):
     from chimerax.core.colors import rgba8_to_rgba
     self.set_color(rgba8_to_rgba(color))
-  model_color = property(_get_model_color, _set_model_color)
+  overall_color = property(_get_overall_color, _set_overall_color)
 
   # ---------------------------------------------------------------------------
   #
@@ -848,17 +848,19 @@ class Volume(Model):
                                         max_bisections = 30, rank_method = False):
 
     cell_volume = self.data.voxel_volume()
+    ijk_min, ijk_max, ijk_step = self.region
 
     if rank_method:
       ms = self.matrix_value_statistics()
-      nx, ny, nz = self.data.size
+      nx, ny, nz = [imax-imin+1 for imin,imax in zip(ijk_min, ijk_max)]
       box_volume = cell_volume * nx * ny * nz
       r = 1.0 - (volume / box_volume)
       level = ms.rank_data_value(r)
       return level
 
-    gvolume = volume / cell_volume
-    matrix = self.full_matrix()
+    from math import prod
+    gvolume = volume / (cell_volume * prod(ijk_step))
+    matrix = self.matrix()
     from chimerax.map_data import surface_level_enclosing_volume
     try:
       level = surface_level_enclosing_volume(matrix, gvolume, tolerance, max_bisections)
@@ -1930,7 +1932,7 @@ class VolumeImage(Image3d):
 
   # ---------------------------------------------------------------------------
   #
-  def _get_model_color(self):
+  def _get_overall_color(self):
     '''Return average color.'''
     v = self._volume
     colors = v.image_colors
@@ -1940,14 +1942,14 @@ class VolumeImage(Image3d):
     else:
       c = array([int(r*255) for r in mean(colors, axis=0)], uint8)
     return c
-  def _set_model_color(self, color):
+  def _set_overall_color(self, color):
     v = self._volume
     rgba = [[r/255 for r in color]] * len(v.image_levels)
     if rgba != v.image_colors:
       v.image_colors = rgba
       self._update_colormap()
       v.call_change_callbacks('colors changed')
-  model_color = property(_get_model_color, _set_model_color)
+  overall_color = property(_get_overall_color, _set_overall_color)
 
   # ---------------------------------------------------------------------------
   #
@@ -4011,7 +4013,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
         grids = []
         for v in vlist:
           g = v.grid_data(region, step, mask_zone)
-          color = v.model_color
+          color = v.overall_color
           if color is not None:
             g.rgba = tuple(r/255 for r in color)	# Set default map color to current color
           grids.append(g)
@@ -4026,6 +4028,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
 #
 class VolumeUpdateManager:
   def __init__(self, session):
+    self._session = session
     self._volumes_to_update = set()
     # Only update displayed volumes.  Keep list or efficiency with time series.
     self._displayed_volumes_to_update = set()
@@ -4033,6 +4036,8 @@ class VolumeUpdateManager:
     if t.has_trigger('graphics update'):
       t.add_handler('graphics update', self._update_drawings)
     t.add_handler('model display changed', self._display_change)
+    if t.has_trigger('command finished'):
+      t.add_handler('command finished', self._update_drawings_if_in_script)
 
   def add(self, v):
     self._volumes_to_update.add(v)
@@ -4059,6 +4064,13 @@ class VolumeUpdateManager:
           vset.remove(v)
           vdisp.remove(v)
           v.update_drawings()
+
+  def _update_drawings_if_in_script(self, *_):
+    # Make sure volume surfaces are created after a volume is created
+    # when running a script so that subsequent commands can act on those surfaces
+    # (for instance mask or hide dust).  Ticket #14971
+    if self._session.in_script:
+      self._update_drawings()
 
 # -----------------------------------------------------------------------------
 # Check if file name contains %d type format specification.

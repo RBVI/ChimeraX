@@ -2,11 +2,14 @@
 
 # Force import in a particular order since both Cython and
 # setuptools patch distutils, and we want Cython to win
+import sys
 import setuptools
 import setuptools._distutils as distutils
 from Cython.Build import cythonize
 from packaging.version import Version
-from setuptools.build_meta import suppress_known_deprecation # noqa import not in __all__
+from setuptools.build_meta import (
+    suppress_known_deprecation,
+)  # noqa import not in __all__
 
 # Always import this because it changes the behavior of setuptools
 from numpy import get_include as get_numpy_include_dirs
@@ -24,6 +27,7 @@ from numpy import get_include as get_numpy_include_dirs
 # setuptools.setup() and reset after it returns.
 #
 import subprocess
+
 try:
     from subprocess import STARTUPINFO
 except ImportError:
@@ -45,13 +49,17 @@ CHIMERAX1_0_PYTHON_VERSION = Version("3.7")
 
 class BundleBuilder:
 
-    def __init__(self, logger, bundle_path=None):
+    def __init__(self, logger, bundle_path=None, bundle_xml=None):
         import os
+
         self.logger = logger
         if bundle_path is None:
             bundle_path = os.getcwd()
         self.path = bundle_path
-        info_file = os.path.join(bundle_path, "bundle_info.xml")
+        if not bundle_xml:
+            info_file = os.path.join(bundle_path, "bundle_info.xml")
+        else:
+            info_file = bundle_xml
         if not os.path.exists(info_file):
             raise IOError("Bundle info file %s is missing" % repr(info_file))
         try:
@@ -71,6 +79,7 @@ class BundleBuilder:
         # So we need to flush the cache before each run.
         self._make_setup_arguments()
         import distutils.dir_util
+
         try:
             distutils.dir_util._path_created.clear()
         except AttributeError:
@@ -79,6 +88,7 @@ class BundleBuilder:
         self._copy_extrafiles(self.extrafiles)
         # Build C libraries and executables
         import os
+
         for lib in self.c_libraries:
             lib.compile(self.logger, self.dependencies, debug=debug)
         for executable in self.c_executables:
@@ -108,6 +118,7 @@ class BundleBuilder:
         # So we need to flush the cache before each run.
         self._make_setup_arguments()
         import distutils.dir_util
+
         try:
             distutils.dir_util._path_created.clear()
         except AttributeError:
@@ -116,6 +127,7 @@ class BundleBuilder:
         self._copy_extrafiles(self.extrafiles)
         # Build C libraries and executables
         import os
+
         for lib in self.c_libraries:
             lib.compile(self.logger, self.dependencies, debug=debug)
         for executable in self.c_executables:
@@ -123,18 +135,22 @@ class BundleBuilder:
         setup_args = ["build_ext", "--inplace", "editable_wheel"]
         dist, built = self._run_setup(setup_args)
         import glob
-        whl_path = glob.glob(os.path.join(self.path, 'dist', '*editable*.whl'))
+
+        whl_path = glob.glob(os.path.join(self.path, "dist", "*editable*.whl"))
         if not built or not whl_path:
             raise RuntimeError(f"Building editable wheel failed")
         return whl_path[0]
 
-    def make_install(self, session, debug=False, user=None, no_deps=None, editable=False):
+    def make_install(
+        self, session, debug=False, user=None, no_deps=None, editable=False
+    ):
         if editable:
             whl_path = self.make_editable_wheel(debug=debug)
         else:
             _ = self.make_wheel(debug=debug)
             whl_path = self.wheel_path
         from chimerax.core.commands import run, FileNameArg
+
         cmd = "toolshed install %s" % FileNameArg.unparse(whl_path)
         if user is not None:
             if user:
@@ -147,6 +163,7 @@ class BundleBuilder:
             else:
                 cmd += " noDeps false"
         from chimerax.core import toolshed
+
         ts = toolshed.get_toolshed()
         bundle = ts.find_bundle(self.name, session.logger)
         if bundle is not None and bundle.version == self.version:
@@ -156,6 +173,7 @@ class BundleBuilder:
     def make_clean(self):
         import os
         import fnmatch
+
         self._rmtree(os.path.join(self.path, "build"))
         self._rmtree(os.path.join(self.path, "dist"))
         self._rmtree(os.path.join(self.path, "src", "__pycache__"))
@@ -173,7 +191,7 @@ class BundleBuilder:
 
     def dump(self):
         for a in dir(self):
-            if a.startswith('_'):
+            if a.startswith("_"):
                 continue
             v = getattr(self, a)
             if not callable(v):
@@ -181,6 +199,7 @@ class BundleBuilder:
 
     def _rmtree(self, path):
         import shutil
+
         shutil.rmtree(path, ignore_errors=True)
 
     _mac_platforms = ["mac", "macos", "darwin"]
@@ -190,6 +209,7 @@ class BundleBuilder:
     def _read_bundle_info(self, bundle_info):
         # Setup platform variable so we can skip non-matching elements
         import sys
+
         if sys.platform == "darwin":
             # Tested with macOS 10.12
             self._platform_names = self._mac_platforms
@@ -204,6 +224,7 @@ class BundleBuilder:
         # Read data from XML file
         self._used_elements = set()
         from lxml.etree import parse
+
         doc = parse(bundle_info)
         bi = doc.getroot()
         self._get_identifiers(bi)
@@ -225,35 +246,40 @@ class BundleBuilder:
     def _get_identifiers(self, bi):
         # TODO: more syntax checking
         from packaging.version import InvalidVersion
-        self.name = bi.get("name", '')
-        if '_' in self.name:
-            self.name = self.name.replace('_', '-')
-            self.logger.warning("Bundle renamed to %r after replacing "
-                                "underscores with hyphens." % self.name)
-        version = bi.get("version", '')
+
+        self.name = bi.get("name", "")
+        if "_" in self.name:
+            self.name = self.name.replace("_", "-")
+            self.logger.warning(
+                "Bundle renamed to %r after replacing "
+                "underscores with hyphens." % self.name
+            )
+        version = bi.get("version", "")
         try:
             # canoncialize version
             version = str(Version(version))
         except InvalidVersion as err:
             raise ValueError("%s line %d" % (err, bi.sourceline))
         self.version = version
-        self.package = bi.get("package", '')
-        self.min_session = bi.get("minSessionVersion", '')
-        self.max_session = bi.get("maxSessionVersion", '')
+        self.package = bi.get("package", "")
+        self.min_session = bi.get("minSessionVersion", "")
+        self.max_session = bi.get("maxSessionVersion", "")
         # "supercedes" is deprecated in ChimeraX 1.2
-        self.supersedes = bi.get("supersedes", '') or bi.get("supercedes", '')
-        self.custom_init = bi.get("customInit", '')
-        self.pure_python = bi.get("purePython", '')
-        self.limited_api = bi.get("limitedAPI", '')
+        self.supersedes = bi.get("supersedes", "") or bi.get("supercedes", "")
+        self.custom_init = bi.get("customInit", "")
+        self.pure_python = bi.get("purePython", "")
+        self.limited_api = bi.get("limitedAPI", "")
         if self.limited_api:
             try:
                 self.limited_api = Version(self.limited_api)
             except InvalidVersion as err:
-                raise ValueError("Invalid limitedAPI: %s line %d" % (err, bi.sourceline))
-        self.installed_data_dir = bi.get("installedDataDir", '')
-        self.installed_include_dir = bi.get("installedIncludeDir", '')
-        self.installed_library_dir = bi.get("installedLibraryDir", '')
-        self.installed_executable_dir = bi.get("installedExecutableDir", '')
+                raise ValueError(
+                    "Invalid limitedAPI: %s line %d" % (err, bi.sourceline)
+                )
+        self.installed_data_dir = bi.get("installedDataDir", "")
+        self.installed_include_dir = bi.get("installedIncludeDir", "")
+        self.installed_library_dir = bi.get("installedLibraryDir", "")
+        self.installed_executable_dir = bi.get("installedExecutableDir", "")
 
     def _get_categories(self, bi):
         self.categories = []
@@ -281,10 +307,10 @@ class BundleBuilder:
             pkg_name = dfs.get("package")
             files = []
             for e in self._get_elements(dfs, "DataFile"):
-                filename = self._get_element_text(e)
+                filename = BundleBuilder._get_element_text(e)
                 files.append(("file", filename))
             for e in self._get_elements(dfs, "DataDir"):
-                dirname = self._get_element_text(e)
+                dirname = BundleBuilder._get_element_text(e)
                 files.append(("dir", dirname))
             if files:
                 if not pkg_name:
@@ -299,29 +325,46 @@ class BundleBuilder:
             for e in self._get_elements(dfs, "ExtraFile"):
                 source = e.get("source")
                 if source is None:
-                    raise ValueError("Missing ExtraFiles's source at line %d" % e.sourceline)
-                filename = self._get_element_text(e)
+                    raise ValueError(
+                        "Missing ExtraFiles's source at line %d" % e.sourceline
+                    )
+                filename = BundleBuilder._get_element_text(e)
                 files.append(("file", source, filename))
             for e in self._get_elements(dfs, "ExtraFileGroup"):
                 import os
                 import glob
+
                 source = e.get("source")
                 if source is None:
-                    raise ValueError("Missing ExtraFileGroup's source at line %d" % e.sourceline)
+                    raise ValueError(
+                        "Missing ExtraFileGroup's source at line %d" % e.sourceline
+                    )
                 source_base_dir = os.path.dirname(source)
-                while '*' in source_base_dir or '?' in source_base_dir:
+                while "*" in source_base_dir or "?" in source_base_dir:
                     source_base_dir = os.path.split(source_base_dir)[0]
-                dirname = self._get_element_text(e)
+                dirname = BundleBuilder._get_element_text(e)
                 sourcefiles = glob.glob(source, recursive=True)
                 if not len(sourcefiles):
-                    raise RuntimeError('ExtraFileGroup pattern {} does not match any files!'.format(source))
+                    raise RuntimeError(
+                        "ExtraFileGroup pattern {} does not match any files!".format(
+                            source
+                        )
+                    )
                 for sf in sourcefiles:
-                    files.append(("file", sf, os.path.join(dirname, os.path.relpath(sf, source_base_dir))))
+                    files.append(
+                        (
+                            "file",
+                            sf,
+                            os.path.join(dirname, os.path.relpath(sf, source_base_dir)),
+                        )
+                    )
             for e in self._get_elements(dfs, "ExtraDir"):
                 source = e.get("source")
                 if source is None:
-                    raise ValueError("Missing ExtraDir's source at line %d" % e.sourceline)
-                dirname = self._get_element_text(e)
+                    raise ValueError(
+                        "Missing ExtraDir's source at line %d" % e.sourceline
+                    )
+                dirname = BundleBuilder._get_element_text(e)
                 files.append(("dir", source, dirname))
             if files:
                 if not pkg_name:
@@ -348,19 +391,23 @@ class BundleBuilder:
     def _get_providers(self, bi):
         self.providers = {}
         for prvs in self._get_elements(bi, "Providers"):
-            default_manager = prvs.get('manager', '')
+            default_manager = prvs.get("manager", "")
             for e in self._get_elements(prvs, "Provider"):
                 keywords = {}
                 if e.attrib:
                     keywords.update(e.attrib.items())
-                manager = keywords.pop("manager", '')
+                manager = keywords.pop("manager", "")
                 if len(manager) == 0:
                     manager = default_manager
                 if len(manager) == 0:
-                    raise ValueError("Missing manager from Provider at line %d" % e.sourceline)
+                    raise ValueError(
+                        "Missing manager from Provider at line %d" % e.sourceline
+                    )
                 name = keywords.pop("name", None)
                 if name is None:
-                    raise ValueError("Missing Provider's name at line %d" % e.sourceline)
+                    raise ValueError(
+                        "Missing Provider's name at line %d" % e.sourceline
+                    )
                 self.providers[(manager, name)] = keywords
 
     def _get_dependencies(self, bi):
@@ -372,9 +419,10 @@ class BundleBuilder:
             # ChimeraXCore *should* always be present
             return
         from packaging.requirements import Requirement
+
         for e in self._get_elements(deps, "Dependency"):
-            pkg = e.get("name", '')
-            ver = e.get("version", '')
+            pkg = e.get("name", "")
+            ver = e.get("version", "")
             req = "%s %s" % (pkg, ver)
             try:
                 Requirement(req)
@@ -388,10 +436,14 @@ class BundleBuilder:
             for e in self._get_elements(inits, "InitAfter"):
                 i_type = e.get("type")
                 if i_type is None:
-                    raise ValueError("Missing InitAfter's type at line %d" % e.sourceline)
+                    raise ValueError(
+                        "Missing InitAfter's type at line %d" % e.sourceline
+                    )
                 bundle = e.get("bundle")
                 if bundle is None:
-                    raise ValueError("Missing InitAfter's bundle at line %d" % e.sourceline)
+                    raise ValueError(
+                        "Missing InitAfter's bundle at line %d" % e.sourceline
+                    )
                 try:
                     self.initializations[i_type].append(bundle)
                 except KeyError:
@@ -404,69 +456,77 @@ class BundleBuilder:
             if mod_name is None:
                 raise ValueError("Missing CModule's name at line %d" % cm.sourceline)
             try:
-                major = int(cm.get("major_version", ''))
+                major = int(cm.get("major_version", ""))
             except ValueError:
                 major = 0
             try:
-                minor = int(cm.get("minor_version", ''))
+                minor = int(cm.get("minor_version", ""))
             except ValueError:
                 minor = 1
             uses_numpy = cm.get("usesNumpy") == "true"
-            c = _CModule(mod_name, uses_numpy, major, minor,
-                         self.installed_library_dir,
-                         self.limited_api)
+            c = _CModule(
+                mod_name,
+                uses_numpy,
+                major,
+                minor,
+                self.installed_library_dir,
+                self.limited_api,
+            )
             self._add_c_options(c, cm)
             self.c_modules.append(c)
 
     def _get_c_libraries(self, bi):
         self.c_libraries = []
         for lib in self._get_elements(bi, "CLibrary"):
-            c = _CLibrary(lib.get("name", ''),
-                          lib.get("usesNumpy") == "true",
-                          lib.get("static") == "true",
-                          self.installed_library_dir,
-                          self.limited_api)
+            c = _CLibrary(
+                lib.get("name", ""),
+                lib.get("usesNumpy") == "true",
+                lib.get("static") == "true",
+                self.installed_library_dir,
+                self.limited_api,
+            )
             self._add_c_options(c, lib)
             self.c_libraries.append(c)
 
     def _get_c_executables(self, bi):
         self.c_executables = []
         for lib in self._get_elements(bi, "CExecutable"):
-            c = _CExecutable(lib.get("name", ''),
-                             self.installed_executable_dir,
-                             self.limited_api)
+            c = _CExecutable(
+                lib.get("name", ""), self.installed_executable_dir, self.limited_api
+            )
             self._add_c_options(c, lib)
             self.c_executables.append(c)
 
     def _add_c_options(self, c, ce):
         for e in self._get_elements(ce, "Requires"):
-            c.add_require(self._get_element_text(e))
+            c.add_require(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "SourceFile"):
-            c.add_source_file(self._get_element_text(e))
+            c.add_source_file(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "IncludeDir"):
-            c.add_include_dir(self._get_element_text(e))
+            c.add_include_dir(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "Library"):
-            c.add_library(self._get_element_text(e))
+            c.add_library(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "LibraryDir"):
-            c.add_library_dir(self._get_element_text(e))
+            c.add_library_dir(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "CompileArgument"):
-            c.add_compile_argument(self._get_element_text(e))
+            c.add_compile_argument(BundleBuilder._get_element_text(e))
+        if sys.platform == "darwin":
+            c.add_compile_argument("-mmacos-version-min=11")
         for e in self._get_elements(ce, "LinkArgument"):
-            c.add_link_argument(self._get_element_text(e))
+            c.add_link_argument(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "Framework"):
-            c.add_framework(self._get_element_text(e))
+            c.add_framework(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "FrameworkDir"):
-            c.add_framework_dir(self._get_element_text(e))
+            c.add_framework_dir(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "Define"):
-            edef = self._get_element_text(e).split('=')
+            edef = BundleBuilder._get_element_text(e).split("=")
             if len(edef) > 2:
-                raise TypeError("Too many arguments for macro "
-                                "definition: %s" % edef)
+                raise TypeError("Too many arguments for macro " "definition: %s" % edef)
             elif len(edef) == 1:
                 edef.append(None)
             c.add_macro_define(*edef)
         for e in self._get_elements(ce, "Undefine"):
-            c.add_macro_undef(self._get_element_text(e))
+            c.add_macro_undef(BundleBuilder._get_element_text(e))
         if self.limited_api:
             v = self.limited_api
             if v < CHIMERAX1_0_PYTHON_VERSION:
@@ -493,6 +553,7 @@ class BundleBuilder:
 
     def _get_classifiers(self, bi):
         from chimerax.core.commands import quote_if_necessary
+
         self.python_classifiers = [
             "Framework :: ChimeraX",
             "Intended Audience :: Science/Research",
@@ -503,52 +564,74 @@ class BundleBuilder:
         ]
         cls = self._get_singleton(bi, "Classifiers")
         for e in self._get_elements(cls, "PythonClassifier"):
-            self.python_classifiers.append(self._get_element_text(e))
+            self.python_classifiers.append(BundleBuilder._get_element_text(e))
         self.chimerax_classifiers = [
-            ("ChimeraX :: Bundle :: " + ','.join(self.categories) +
-             " :: " + self.min_session + "," + self.max_session +
-             " :: " + self.package + " :: " + self.supersedes +
-             " :: " + self.custom_init)
+            (
+                "ChimeraX :: Bundle :: "
+                + ",".join(self.categories)
+                + " :: "
+                + self.min_session
+                + ","
+                + self.max_session
+                + " :: "
+                + self.package
+                + " :: "
+                + self.supersedes
+                + " :: "
+                + self.custom_init
+            )
         ]
         if self.installed_data_dir:
             self.chimerax_classifiers.append(
-                "ChimeraX :: DataDir :: " + self.installed_data_dir)
+                "ChimeraX :: DataDir :: " + self.installed_data_dir
+            )
         if self.installed_include_dir:
             self.chimerax_classifiers.append(
-                "ChimeraX :: IncludeDir :: " + self.installed_include_dir)
+                "ChimeraX :: IncludeDir :: " + self.installed_include_dir
+            )
         if self.installed_library_dir:
             self.chimerax_classifiers.append(
-                "ChimeraX :: LibraryDir :: " + self.installed_library_dir)
+                "ChimeraX :: LibraryDir :: " + self.installed_library_dir
+            )
         if self.installed_executable_dir:
             self.chimerax_classifiers.append(
-                "ChimeraX :: ExecutableDir :: " + self.installed_executable_dir)
+                "ChimeraX :: ExecutableDir :: " + self.installed_executable_dir
+            )
         for m, kw in self.managers.items():
             args = [m] + ["%s:%s" % (k, quote_if_necessary(v)) for k, v in kw.items()]
             self.chimerax_classifiers.append(
-                "ChimeraX :: Manager :: " + " :: ".join(args))
+                "ChimeraX :: Manager :: " + " :: ".join(args)
+            )
         for (mgr, p), kw in self.providers.items():
-            args = [p, mgr] + ["%s:%s" % (k, quote_if_necessary(v)) for k, v in kw.items()]
+            args = [p, mgr] + [
+                "%s:%s" % (k, quote_if_necessary(v)) for k, v in kw.items()
+            ]
             self.chimerax_classifiers.append(
-                "ChimeraX :: Provider :: " + " :: ".join(args))
+                "ChimeraX :: Provider :: " + " :: ".join(args)
+            )
         for t, bundles in self.initializations.items():
             args = [t] + bundles
             self.chimerax_classifiers.append(
-                "ChimeraX :: InitAfter :: " + " :: ".join(args))
+                "ChimeraX :: InitAfter :: " + " :: ".join(args)
+            )
         for e in self._get_elements(cls, "ChimeraXClassifier"):
-            classifier = self._get_element_text(e)
+            classifier = BundleBuilder._get_element_text(e)
             if not classifier.startswith("ChimeraX"):
                 classifier = "ChimeraX :: " + classifier
             self.chimerax_classifiers.append(classifier)
 
     def _is_pure_python(self):
-        return (not self.c_modules
-                and not self.c_libraries
-                and not self.c_executables
-                and self.pure_python != "false")
+        return (
+            not self.c_modules
+            and not self.c_libraries
+            and not self.c_executables
+            and self.pure_python != "false"
+        )
 
     def _copy_extrafiles(self, files):
         import shutil
         import os
+
         for pkg_name, entries in files.items():
             for kind, src, dst in entries:
                 if kind == "file":
@@ -558,13 +641,14 @@ class BundleBuilder:
                         os.makedirs(dirpath, exist_ok=True)
                     shutil.copyfile(src, filepath)
                 elif kind == "dir":
-                    dstdir = os.path.join("src", dst.replace('/', os.sep))
+                    dstdir = os.path.join("src", dst.replace("/", os.sep))
                     if os.path.exists(dstdir):
                         shutil.rmtree(dstdir)
                     shutil.copytree(src, dstdir)
 
     def _expand_datafiles(self, files):
         import os
+
         datafiles = {}
         for pkg_name, entries in files.items():
             pkg_files = []
@@ -591,6 +675,7 @@ class BundleBuilder:
         def add_argument(name, value):
             if value:
                 self.setup_arguments[name] = value
+
         # Make sure C/C++ libraries (DLLs, shared objects or dynamic
         # libraries) and executables are on the install list
         binary_files = []
@@ -614,13 +699,16 @@ class BundleBuilder:
         elif binary_files:
             # Binary files are tied to the current version of Python
             import sys
+
             rel = sys.version_info[:2]
         else:
             # Python-only bundles default to the ChimeraX 1.0
             # version of Python.
             rel = CHIMERAX1_0_PYTHON_VERSION.release
-        self.setup_arguments = {"name": self.name,
-                                "python_requires": f">={rel[0]}.{rel[1]}"}
+        self.setup_arguments = {
+            "name": self.name,
+            "python_requires": f">={rel[0]}.{rel[1]}",
+        }
         add_argument("version", self.version)
         add_argument("description", self.synopsis)
         add_argument("long_description", self.description)
@@ -633,14 +721,19 @@ class BundleBuilder:
         # We cannot call find_packages unless we are already
         # in the right directory, and that will not happen
         # until run_setup.  So we do the package stuff there.
-        ext_mods = [em for em in [cm.ext_mod(self.logger, self.package,
-                                             self.dependencies)
-                                  for cm in self.c_modules]
-                    if em is not None]
+        ext_mods = [
+            em
+            for em in [
+                cm.ext_mod(self.logger, self.package, self.dependencies)
+                for cm in self.c_modules
+            ]
+            if em is not None
+        ]
         if not self._is_pure_python():
             import sys
+
             if sys.platform == "darwin":
-                env = "Environment :: MacOS X :: Aqua",
+                env = ("Environment :: MacOS X :: Aqua",)
                 op_sys = "Operating System :: MacOS :: MacOS X"
             elif sys.platform == "win32":
                 env = "Environment :: Win32 (MS Windows)"
@@ -656,6 +749,7 @@ class BundleBuilder:
                 class BinaryDistribution(Distribution):
                     def has_ext_modules(foo):
                         return True
+
                 self.setup_arguments["distclass"] = BinaryDistribution
         else:
             # pure Python
@@ -669,8 +763,9 @@ class BundleBuilder:
             ]
         self.python_classifiers.extend(platform_classifiers)
         self.setup_arguments["ext_modules"] = cythonize(ext_mods)
-        self.setup_arguments["classifiers"] = (self.python_classifiers +
-                                               self.chimerax_classifiers)
+        self.setup_arguments["classifiers"] = (
+            self.python_classifiers + self.chimerax_classifiers
+        )
 
     def _make_package_arguments(self):
         from setuptools import find_packages
@@ -678,8 +773,10 @@ class BundleBuilder:
         def add_package(base_package, folder):
             package_dir[base_package] = folder
             packages.append(base_package)
-            packages.extend([base_package + "." + sub_pkg
-                             for sub_pkg in find_packages(folder)])
+            packages.extend(
+                [base_package + "." + sub_pkg for sub_pkg in find_packages(folder)]
+            )
+
         package_dir = {}
         packages = []
         add_package(self.package, "src")
@@ -690,9 +787,10 @@ class BundleBuilder:
     def _make_paths(self):
         import os
         from .wheel_tag import tag
+
         self.tag = tag(self._is_pure_python(), limited=self.limited_api)
         self.bundle_base_name = self.name.replace("ChimeraX-", "")
-        bundle_wheel_name = self.name.replace('-', '_')
+        bundle_wheel_name = self.name.replace("-", "_")
         wheel = f"{bundle_wheel_name}-{self.version}-{self.tag}.whl"
         self.wheel_path = os.path.join(self.path, "dist", wheel)
         self.egg_info = os.path.join(self.path, bundle_wheel_name + ".egg-info")
@@ -700,6 +798,7 @@ class BundleBuilder:
     def _run_setup(self, cmd):
         import os
         import sys
+
         cwd = os.getcwd()
         save = sys.argv
         try:
@@ -714,6 +813,7 @@ class BundleBuilder:
             return dist, True
         except Exception:
             import traceback
+
             traceback.print_exc()
             return None, False
         finally:
@@ -735,14 +835,15 @@ class BundleBuilder:
             if not platforms:
                 elements.append(se)
             else:
-                for platform in platforms.split(','):
+                for platform in platforms.split(","):
                     if platform in self._platform_names:
                         elements.append(se)
                         break
         return elements
 
-    def _get_element_text(self, e):
-        return ''.join(e.itertext()).strip()
+    @staticmethod
+    def _get_element_text(e):
+        return "".join(e.itertext()).strip()
 
     def _get_singleton(self, bi, tag):
         elements = list(bi.iter(tag))
@@ -754,7 +855,7 @@ class BundleBuilder:
         return elements[0]
 
     def _get_singleton_text(self, bi, tag):
-        return self._get_element_text(self._get_singleton(bi, tag))
+        return BundleBuilder._get_element_text(self._get_singleton(bi, tag))
 
     def _check_unused_elements(self, bi):
         for node in bi:
@@ -822,6 +923,7 @@ class _CompiledCode:
     def _compile_options(self, logger, dependencies):
         import sys
         import os
+
         for req in self.requires:
             if not os.path.exists(req):
                 raise ValueError("unused on this platform")
@@ -863,6 +965,7 @@ class _CompiledCode:
         inc_dirs.extend(self.include_dirs)
         lib_dirs.extend(self.library_dirs)
         from pkg_resources import DistributionNotFound
+
         for dep in dependencies:
             try:
                 d_inc, d_lib = self._get_bundle_dirs(logger, dep)
@@ -874,12 +977,12 @@ class _CompiledCode:
                 if d_lib:
                     lib_dirs.append(d_lib)
         extra_link_args.extend(self.link_arguments)
-        return (inc_dirs, lib_dirs, self.macros,
-                extra_link_args, libraries, cpp_flags)
+        return (inc_dirs, lib_dirs, self.macros, extra_link_args, libraries, cpp_flags)
 
     def _get_bundle_dirs(self, logger, dep):
         from chimerax.core import toolshed
         from pkg_resources import Requirement, get_distribution
+
         req = Requirement.parse(dep)
         if not get_distribution(req):
             raise RuntimeError("unsatisfied dependency: %s" % dep)
@@ -894,6 +997,7 @@ class _CompiledCode:
         if not inc and not lib:
             try:
                 import importlib
+
                 mod = importlib.import_module(bundle.package_name)
                 inc = mod.get_include()
                 lib = mod.get_lib()
@@ -909,10 +1013,12 @@ class _CompiledCode:
         import distutils.ccompiler
         import distutils.sysconfig
         import distutils.log
+
         distutils.log.set_verbosity(1)
         try:
-            (inc_dirs, lib_dirs, macros, extra_link_args,
-             libraries, cpp_flags) = self._compile_options(logger, dependencies)
+            (inc_dirs, lib_dirs, macros, extra_link_args, libraries, cpp_flags) = (
+                self._compile_options(logger, dependencies)
+            )
         except ValueError:
             print("Error when compiling %s" % self.name)
             return None
@@ -927,7 +1033,7 @@ class _CompiledCode:
         compiler.add_include_dir(distutils.sysconfig.get_python_inc())
         if sys.platform == "win32":
             # Link library directory for Python on Windows
-            compiler.add_library_dir(os.path.join(sys.exec_prefix, 'libs'))
+            compiler.add_library_dir(os.path.join(sys.exec_prefix, "libs"))
         if not static:
             macros.append(("DYNAMIC_LIBRARY", 1))
         # We need to manually separate out C from C++ code here, since clang
@@ -936,31 +1042,39 @@ class _CompiledCode:
         cpp_files = []
         for f in self.source_files:
             lang = compiler.detect_language(f)
-            if lang == 'c':
+            if lang == "c":
                 c_files.append(f)
-            elif lang == 'c++':
+            elif lang == "c++":
                 cpp_files.append(f)
             else:
                 raise RuntimeError("Unsupported language for %s" % f)
         if cpp_files:
-            compiler.compile(cpp_files,
-                             extra_preargs=cpp_flags + self.compile_arguments,
-                             macros=macros, debug=debug)
+            compiler.compile(
+                cpp_files,
+                extra_preargs=cpp_flags + self.compile_arguments,
+                macros=macros,
+                debug=debug,
+            )
             self.target_lang = "c++"
         if c_files:
-            compiler.compile(c_files, extra_preargs=self.compile_arguments,
-                             macros=macros, debug=debug)
+            compiler.compile(
+                c_files,
+                extra_preargs=self.compile_arguments,
+                macros=macros,
+                debug=debug,
+            )
         objs = compiler.object_filenames(self.source_files)
         return compiler, objs, extra_link_args
 
     def install_locations(self):
         if self.install_dir:
             import os
+
             output_dir = os.path.join("src", self.install_dir)
-            install_dir = '/' + self.install_dir
+            install_dir = "/" + self.install_dir
         else:
             output_dir = "src"
-            install_dir = ''
+            install_dir = ""
         return output_dir, install_dir
 
 
@@ -973,31 +1087,37 @@ class _CModule(_CompiledCode):
 
     def ext_mod(self, logger, package, dependencies):
         from setuptools import Extension
+
         try:
-            (inc_dirs, lib_dirs, macros, extra_link_args,
-             libraries, cpp_flags) = self._compile_options(logger, dependencies)
-            macros.extend([("MAJOR_VERSION", self.major),
-                           ("MINOR_VERSION", self.minor)])
+            (inc_dirs, lib_dirs, macros, extra_link_args, libraries, cpp_flags) = (
+                self._compile_options(logger, dependencies)
+            )
+            macros.extend(
+                [("MAJOR_VERSION", self.major), ("MINOR_VERSION", self.minor)]
+            )
         except ValueError:
             return None
         import sys
+
         if self.install_dir:
-            install_dir = '/' + self.install_dir
+            install_dir = "/" + self.install_dir
         else:
-            install_dir = ''
+            install_dir = ""
         if sys.platform == "linux":
             extra_link_args.append("-Wl,-rpath,$ORIGIN%s" % install_dir)
         elif sys.platform == "darwin":
             extra_link_args.append("-Wl,-rpath,@loader_path%s" % install_dir)
-        return Extension(package + '.' + self.name,
-                         define_macros=macros,
-                         extra_compile_args=cpp_flags + self.compile_arguments,
-                         include_dirs=inc_dirs,
-                         library_dirs=lib_dirs,
-                         libraries=libraries,
-                         extra_link_args=extra_link_args,
-                         sources=self.source_files,
-                         py_limited_api=not not self.limited_api)
+        return Extension(
+            package + "." + self.name,
+            define_macros=macros,
+            extra_compile_args=cpp_flags + self.compile_arguments,
+            include_dirs=inc_dirs,
+            library_dirs=lib_dirs,
+            libraries=libraries,
+            extra_link_args=extra_link_args,
+            sources=self.source_files,
+            py_limited_api=not not self.limited_api,
+        )
 
 
 class _CLibrary(_CompiledCode):
@@ -1008,10 +1128,10 @@ class _CLibrary(_CompiledCode):
 
     def compile(self, logger, dependencies, debug=False):
         import sys
-        compiler, objs, extra_link_args = self.compile_objects(logger,
-                                                               dependencies,
-                                                               self.static,
-                                                               debug)
+
+        compiler, objs, extra_link_args = self.compile_objects(
+            logger, dependencies, self.static, debug
+        )
         output_dir, install_dir = self.install_locations()
         compiler.mkpath(output_dir)
         if sys.platform == "win32":
@@ -1022,9 +1142,13 @@ class _CLibrary(_CompiledCode):
             lib_name = self.name
         if self.static:
             lib = compiler.library_filename(lib_name, lib_type="static")
-            compiler.create_static_lib(objs, lib_name, output_dir=output_dir,
-                                       target_lang=self.target_lang,
-                                       debug=debug)
+            compiler.create_static_lib(
+                objs,
+                lib_name,
+                output_dir=output_dir,
+                target_lang=self.target_lang,
+                debug=debug,
+            )
         else:
             if sys.platform == "darwin":
                 # On Mac, we only need the .dylib and it MUST be compiled
@@ -1036,29 +1160,42 @@ class _CLibrary(_CompiledCode):
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
                 lib = compiler.library_filename(lib_name, lib_type="dylib")
-                extra_link_args.extend(["-Wl,-rpath,@loader_path",
-                                        "-Wl,-install_name,@rpath/%s" % lib])
-                compiler.link_shared_object(objs, lib, output_dir=output_dir,
-                                            extra_preargs=extra_link_args,
-                                            target_lang=self.target_lang,
-                                            debug=debug)
+                extra_link_args.extend(
+                    ["-Wl,-rpath,@loader_path", "-Wl,-install_name,@rpath/%s" % lib]
+                )
+                compiler.link_shared_object(
+                    objs,
+                    lib,
+                    output_dir=output_dir,
+                    extra_preargs=extra_link_args,
+                    target_lang=self.target_lang,
+                    debug=debug,
+                )
             elif sys.platform == "win32":
                 # On Windows, we need both .dll and .lib
                 link_lib = compiler.library_filename(lib_name, lib_type="static")
                 extra_link_args.append("/LIBPATH:%s" % link_lib)
                 lib = compiler.shared_object_filename(lib_name)
-                compiler.link_shared_object(objs, lib, output_dir=output_dir,
-                                            extra_preargs=extra_link_args,
-                                            target_lang=self.target_lang,
-                                            debug=debug)
+                compiler.link_shared_object(
+                    objs,
+                    lib,
+                    output_dir=output_dir,
+                    extra_preargs=extra_link_args,
+                    target_lang=self.target_lang,
+                    debug=debug,
+                )
             else:
                 # On Linux, we only need the .so
                 lib = compiler.library_filename(lib_name, lib_type="shared")
                 extra_link_args.append("-Wl,-rpath,$ORIGIN%s" % install_dir)
-                compiler.link_shared_object(objs, lib, output_dir=output_dir,
-                                            extra_preargs=extra_link_args,
-                                            target_lang=self.target_lang,
-                                            debug=debug)
+                compiler.link_shared_object(
+                    objs,
+                    lib,
+                    output_dir=output_dir,
+                    extra_preargs=extra_link_args,
+                    target_lang=self.target_lang,
+                    debug=debug,
+                )
         return lib
 
     def paths(self):
@@ -1066,6 +1203,7 @@ class _CLibrary(_CompiledCode):
         import os
         import distutils.ccompiler
         import distutils.sysconfig
+
         compiler = distutils.ccompiler.new_compiler()
         distutils.sysconfig.customize_compiler(compiler)
         if sys.platform == "win32":
@@ -1079,16 +1217,13 @@ class _CLibrary(_CompiledCode):
             paths.append(compiler.library_filename(lib_name, lib_type="static"))
         else:
             if sys.platform == "darwin":
-                paths.append(compiler.library_filename(lib_name,
-                                                       lib_type="dylib"))
+                paths.append(compiler.library_filename(lib_name, lib_type="dylib"))
             elif sys.platform == "win32":
                 # On Windows we want both .lib and .dll
                 paths.append(compiler.shared_object_filename(lib_name))
-                paths.append(compiler.library_filename(lib_name,
-                                                       lib_type="static"))
+                paths.append(compiler.library_filename(lib_name, lib_type="static"))
             else:
-                paths.append(compiler.library_filename(lib_name,
-                                                       lib_type="shared"))
+                paths.append(compiler.library_filename(lib_name, lib_type="shared"))
         return paths
 
 
@@ -1096,6 +1231,7 @@ class _CExecutable(_CompiledCode):
 
     def __init__(self, name, execdir, limited_api):
         import sys
+
         if sys.platform == "win32":
             # Remove .exe suffix because it will be added
             if name.endswith(".exe"):
@@ -1104,10 +1240,10 @@ class _CExecutable(_CompiledCode):
 
     def compile(self, logger, dependencies, debug=False):
         import sys
-        compiler, objs, extra_link_args = self.compile_objects(logger,
-                                                               dependencies,
-                                                               False,
-                                                               debug)
+
+        compiler, objs, extra_link_args = self.compile_objects(
+            logger, dependencies, False, debug
+        )
         output_dir, install_dir = self.install_locations()
         compiler.mkpath(output_dir)
         if sys.platform == "darwin":
@@ -1118,16 +1254,21 @@ class _CExecutable(_CompiledCode):
                 self.name = self.name[:-4]
         else:
             extra_link_args.append("-Wl,-rpath,$ORIGIN%s" % install_dir)
-        compiler.link_executable(objs, self.name, output_dir=output_dir,
-                                 extra_preargs=extra_link_args,
-                                 target_lang=self.target_lang,
-                                 debug=debug)
+        compiler.link_executable(
+            objs,
+            self.name,
+            output_dir=output_dir,
+            extra_preargs=extra_link_args,
+            target_lang=self.target_lang,
+            debug=debug,
+        )
         return compiler.executable_filename(self.name)
 
     def path(self):
         import os
         import distutils.ccompiler
         import distutils.sysconfig
+
         compiler = distutils.ccompiler.new_compiler()
         distutils.sysconfig.customize_compiler(compiler)
         exec_name = self.name
@@ -1138,6 +1279,7 @@ class _CExecutable(_CompiledCode):
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
     import sys
+
     bb = BundleBuilder()
     for cmd in sys.argv[1:]:
         if cmd == "wheel":

@@ -95,6 +95,14 @@ def _same_chains(chain0, chain1):
     return c0 == c1
 
 
+def _rdisplayed(r):
+    if r.ribbon_display:
+        return True
+    # any(r.atoms.displays) is faster than r.atoms.displays.any()
+    # for short arrays (len < 32), and much faster for even shorter arrays (len < 8)
+    return any(r.atoms.displays)
+
+
 def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False, fixed_width=True, best_guess=False, all_coordsets=False, computed_sheets=False):
     from chimerax.atomic import Structure
     if models is None:
@@ -372,7 +380,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         chars = c.characters
         if chars in seq_entities:
             eid, _1to3, chains = seq_entities[chars]
-            if _1to3 is not None or not c.from_seqres:
+            if _1to3 is not None or not c.full_sequence_known:
                 chains.append(c)
                 continue
             # fallthrough when sequence wasn't authoratative, but is now
@@ -385,7 +393,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         names = set(c.existing_residues.names)
         nstd = 'yes' if names.difference(_standard_residues) else 'no'
         # _1to3 is reverse map to handle missing residues
-        if not best_guess and not c.from_seqres:
+        if not best_guess and not c.full_sequence_known:
             skipped_sequence_info = True
             _1to3 = None
         else:
@@ -896,7 +904,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
                 # TODO: shorten range to what is selected/displayed
                 if selected_only and (not beg_res.selected or not end_res.selected):
                     skip = True
-                if displayed_only and (not beg_res.display or not end_res.display):
+                if displayed_only and (not _rdisplayed(beg_res) or not _rdisplayed(end_res)):
                     skip = True
             if skip:
                 pass
@@ -914,7 +922,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             # TODO: shorten range to what is selected/displayed
             if selected_only and (not beg_res.selected or not end_res.selected):
                 skip = True
-            if displayed_only and (not beg_res.display or not end_res.display):
+            if displayed_only and (not _rdisplayed(beg_res) or not _rdisplayed(end_res)):
                 skip = True
         if skip:
             pass

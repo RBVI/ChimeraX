@@ -245,16 +245,15 @@ def standard_shortcuts(session):
         ('sn', toggle_space_navigator, 'Toggle use of space navigator', gcat, sesarg, dmenu),
         ('nf', toggle_space_navigator_fly_mode, 'Toggle space navigator fly mode', gcat, sesarg, dmenu, sep),
 #        ('nc', space_navigator_collisions, 'Toggle space navigator collision avoidance', gcat, sesarg),
-
         ('oc', start_oculus, 'Start Oculus Rift stereo', gcat, sesarg, dmenu),
 #        ('om', oculus_move, 'Move Oculus window to primary display', gcat, sesarg, dmenu),
-
 #        ('lp', toggle_leap, 'Toggle leap motion input device', gcat, sesarg, dmenu),
 #        ('lP', leap_position_mode, 'Enable leap motion position mode', gcat, sesarg),
 #        ('lx', leap_chopsticks_mode, 'Enable leap motion chopstick mode', gcat, sesarg),
 #        ('lv', leap_velocity_mode, 'Enable leap motion velocity mode', gcat, sesarg),
 #        ('lf', leap_focus, 'Check if app has leap focus', gcat, sesarg),
 #        ('lq', leap_quit, 'Quit using leap motion input device', gcat, sesarg),
+        ('vr', 'xr on passthrough toggle', 'Enable virtual reality', gcat, noarg, dmenu),
 
         # Help
 #        ('mn', show_manual, 'Show manual', gcat, sesarg, hmenu),
@@ -424,6 +423,7 @@ def register_selectors(logger):
     register_selector("selAtoms", _sel_atoms_selector, logger)
     register_selector("selMaps", _sel_maps_selector, logger, atomic=False)
     register_selector("selModels", _sel_models_selector, logger, atomic=False)
+    register_selector("last-opened", _sel_last_opened_selector, logger)
 
 # Selected atoms, or if none selected then all atoms.
 def _sel_atoms_selector(session, models, results):
@@ -442,6 +442,16 @@ def _sel_maps_selector(session, models, results):
 def _sel_models_selector(session, models, results):
     for m in shortcut_models(session):
         results.add_model(m)
+
+# Last opened top level model and its atoms if atomic.
+def _sel_last_opened_selector(session, models, results):
+    top_models = session.models.scene_root_model.child_models()
+    if top_models:
+        last = top_models[-1]
+        results.add_model(last)
+        from chimerax.atomic import Structure
+        if isinstance(last, Structure):
+            results.add_atoms(last.atoms)
 
 def shortcut_models(session, mclass = None, undisplayed = True, at_least = None):
     sel = session.selection.models()

@@ -79,13 +79,19 @@ def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
         if ident is None:
             ident = fname
         alignments = []
-        for i, seq in enumerate(seqs):
-            final_ident = ident if len(seqs) == 1 else "%s-%d" % (ident, i+1)
-            alignments.append(session.alignments.new_alignment([seq], final_ident,
-                auto_associate=auto_associate, **kw))
+        if session.ui.is_gui and len(seqs) > 5:
+            context = session.ui.force_float_tools
+        else:
+            from contextlib import nullcontext as context
+        with context():
+            for i, seq in enumerate(seqs):
+                final_ident = ident if len(seqs) == 1 else "%s-%d" % (ident, i+1)
+                alignments.append(session.alignments.new_alignment([seq], final_ident,
+                    auto_associate=auto_associate, **kw))
     if return_vals == "alignments":
         return alignments
-    return [], "Opened %d sequences from %s" % (len(seqs), fname)
+    from chimerax.core.commands import plural_form
+    return [], "Opened %d %s from %s" % (len(seqs), plural_form(seqs, "sequence"), fname)
 
 def make_readable(seq_name):
     """Make sequence name more human-readable"""

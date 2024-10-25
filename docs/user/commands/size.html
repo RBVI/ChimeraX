@@ -105,7 +105,70 @@ See also:
 <a href="../tools/inspector.html"><b>Selection Inspector</b></a>
 </p>
 
+<a name="byattribute"></a>
+<p class="nav">
+[<a href="#top">back to top: size</a>]
+</p>
+<h3>Atomic Radius by Attribute</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>size byattribute</b>
+&nbsp;<a href="../attributes.html#attrnames"><i>attribute-name</i></a>&nbsp;
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<i>values-and-radii</i>&nbsp;]
+[&nbsp;<b>noValueRadius</b>&nbsp;&nbsp;<i>radius</i></a>&nbsp;]
+[&nbsp;<b>style</b>&nbsp;&nbsp;<b>sphere</b>&nbsp;|&nbsp;ball&nbsp;|&nbsp;unchanged&nbsp;]
+[&nbsp;<b>average</b>&nbsp;&nbsp;<b>residues</b>&nbsp;]
+</blockquote>
+<p>
+Atomic <a href="../radii.html">VDW radii</a> can be adjusted to show 
+the values of a numerical <a href="../attributes.html">attribute</a>.
+Several attributes are present automatically, but others can be
+defined by the user arbitrarily or created by various ChimeraX tools and
+commands (<a href="../attributes.html">details...</a>).
+The graphical interface to <b>size byattribute</b> is
+<a href="../tools/render.html"><b>Render by Attribute</b></a>.
+See also: <a href="color.html#byattribute"><b>color byattribute</b></a>,
+<a href="cartoon.html#byattribute"><b>cartoon byattribute</b></a>
+(<a href="cartoon.html#worm"><b>worm</b></a>)
+</p><p>
+The <i>values and radii</i> specification can be given as two or more
+space-separated pairs of the form:
+</p>
+<blockquote>
+<i>value</i></a>:<i>radius</i>
+</blockquote>
+<p>
+...where <i>value</i> can be <b>min</b> or <b>max</b> as well as
+a numerical value of the attribute. The default mapping is:
+</p>
+<blockquote>
+<b>min:1 max:4</b>
+</blockquote>
+<p>
+Atoms without an assignment (or within residues or atomic structures 
+without an assignment) for the specified attribute
+will be left unchanged unless a radius is specified
+with the <b>noValueRadius</b> option.
+</p><p>
+The <b>style</b> option indicates what style the atoms should be assigned:
+</p>
+<li><b>sphere</b> (default)
+  &ndash; display radius same as <a href="../radii.html">VDW radius</a>,
+  directly reflecting the user-specified sizes
+  <li><b>ball</b>
+  &ndash; <a href="../radii.html">VDW radius</a> multiplied by the
+  <a href="#top">ball scale factor</a> (usually 0.3)
+  <li><b>unchanged</b>
+  &ndash; retain the pre-existing style of each atom
+  (stick, ball, or sphere); note stick size is unaffected by VDW radii
+  </ul>
+<p>
+Using <b>average residues</b> means to use the average attribute value
+over a whole residue for each atom within that residue.
+</p> 
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2021</address>
+March 2024</address>
 </body></html>

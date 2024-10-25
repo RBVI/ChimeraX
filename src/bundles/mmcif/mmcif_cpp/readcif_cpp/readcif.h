@@ -1,6 +1,6 @@
 // vi: set expandtab ts=4 sw=4:
 /*
- * Copyright (c) 2014 The Regents of the University of California.
+ * Copyright (c) 2014-2024 The Regents of the University of California.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -86,37 +86,37 @@ inline double str_to_float(const char* s)
     long long iv = 0;
     double fv;
     for (; *s; ++s) {
-    char c = *s;
-    switch (c) {
-        default:
-            break;
-        case '0': case '1': case '2': case '3': case '4':
-        case '5': case '6': case '7': case '8': case '9':
-            if (saw_exp) {
-                exp = exp * 10 + (c - '0');
+        char c = *s;
+        switch (c) {
+            default:
+                break;
+            case '0': case '1': case '2': case '3': case '4':
+            case '5': case '6': case '7': case '8': case '9':
+                if (saw_exp) {
+                    exp = exp * 10 + (c - '0');
+                    continue;
+                }
+                saw_digit = true;
+                if (saw_decimal)
+                    decimals -= 1;
+                iv = iv * 10 + (c - '0');
                 continue;
-            }
-            saw_digit = true;
-            if (saw_decimal)
-                decimals -= 1;
-            iv = iv * 10 + (c - '0');
-            continue;
-        case '.':
-            saw_decimal = true;
-            continue;
-        case '-':
-            if (saw_exp)
-                exp_neg = true;
-            else
-                neg = true;
-            continue;
-        case '+':
-            if (saw_exp)
+            case '.':
+                saw_decimal = true;
                 continue;
-            break;
-        case 'E': case 'e':
-            saw_exp = true;
-            continue;
+            case '-':
+                if (saw_exp)
+                    exp_neg = true;
+                else
+                    neg = true;
+                continue;
+            case '+':
+                if (saw_exp)
+                    continue;
+                break;
+            case 'E': case 'e':
+                saw_exp = true;
+                continue;
         }
         break;
     }
@@ -199,6 +199,10 @@ public:
     // Set callback function for unregistered categories
     void set_unregistered_callback(ParseCategory callback);
 
+    // Register heuristic (audit_conform) and explicit (audit_syntax)
+    // detection of PDBx/mmCIF sytlized content
+    void register_heuristic_stylized_detection();
+
     // The parsing functions
     void parse_file(const char* filename);  // open file and parse it
     void parse(const char* buffer); // null-terminated whole file
@@ -269,6 +273,14 @@ public:
 
     // return text + " on line #"
     std::runtime_error error(const std::string& text, size_t lineno=0);
+
+    // Heuristic to tell if the CIF file was written in the
+    // PDBx/mmCIF stylized format.
+    void parse_audit_conform();
+
+    // Explicit wasy to tell if the CIF file was written in the
+    // PDBx/mmCIF stylized format.
+    void parse_audit_syntax();
 protected:
     // data_block is called whenever a new data block is found.
     // Defaults to being ignored.
@@ -354,6 +366,7 @@ private:
     size_t      lineno;     // current line number
     const char* pos;        // current position in line/file (index)
     bool        save_values;    // true if T_VALUE values are needed
+    bool        has_audit_syntax;
 };
 
 inline const std::string&

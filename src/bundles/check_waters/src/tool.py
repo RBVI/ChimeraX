@@ -247,6 +247,7 @@ class CheckWaterViewer(ToolInstance):
             if self.settings.show_hbonds:
                 self._show_hbonds_cb(True)
             self._selected_treatment(table_waters)
+        tw.fill_context_menu = self.fill_context_menu
 
         self.tool_window.manage('side')
 
@@ -255,6 +256,12 @@ class CheckWaterViewer(ToolInstance):
             handler.remove()
         self.compare_model = self.check_model = None
         super().delete()
+
+    def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        act = QAction("Save CSV or TSV File...", parent=menu)
+        act.triggered.connect(lambda *args, tab=self.res_table: tab.write_values())
+        menu.addAction(act)
 
     @classmethod
     def restore_snapshot(cls, session, data):

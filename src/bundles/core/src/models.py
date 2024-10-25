@@ -262,18 +262,22 @@ class Model(State, Drawing):
 
     # Drawing._set_scene_position calls _set_positions, so don't need to override
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         return self.color if self.vertex_colors is None else None
 
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         self.color = color
         self.vertex_colors = None
         self.session.triggers.activate_trigger(MODEL_COLOR_CHANGED, self)
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = model_color = property(_get_overall_color, _set_overall_color)
     '''
-    Getting the model color may give the dominant color.
-    Setting the model color will set the model to that color.
+    Getting the overall color may give the dominant color.
+    It also might return None (many colors but no dominant color)\
+        or False (model does not support [external] coloring, e.g. color key).
+    Setting the overall color will set the model to that color.
     Color values are rgba uint8 arrays.
+    The supported attribute name is 'overall_color'.
+    The 'model_color' attribute is deprecated and only retained for backwards compatibility.
     '''
 
     # Handle undo of color changes
@@ -415,6 +419,25 @@ class Model(State, Drawing):
 
         if 'opened_data_format' in data:
             self.opened_data_format = data['opened_data_format']
+
+    def restore_scene(self, scene_data):
+        '''
+        Restore model to state from scene_data
+        (obtained from take_snapshot() with State.SCENE flag)
+        '''
+        #TODO: restore base Model state here
+        raise NotImplementedError("restore_scene not implemented")
+
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        '''
+        Restore model to state interpolated as a fraction between the two scene datas.
+        For parts of the model that aren't interpolable, chenge to the second state
+        when 'switchover' is True.  If no parts of the model are interpolable then
+        you needn't implement this method (restore_scene() is sufficient.
+
+        '''
+        #TODO: interepolate base Model state here
+        raise NotImplementedError("interpolate_scene not implemented")
 
     def save_geometry(self, session, flags):
         '''

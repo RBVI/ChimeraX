@@ -204,6 +204,7 @@ def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0, bond_sides
                     "rename ##name=%s '%s'" % (os.path.basename(pb_file.name), p3ms_pbg_name)
                 ]
             cmds.append("hide %s models" % ms_pbg.atomspec)
+            print("; halfbond = true", file=pb_file)
             for pb in ms_pbg.pseudobonds:
                 a1, a2 = pb.atoms
                 ca1 = a1.residue.find_atom("CA") or a1
@@ -221,7 +222,7 @@ def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0, bond_sides
 
 def rainbow_cmd(structure, target_atoms=False):
     color_arg = " chains palette " + palette(structure.num_chains)
-    return "rainbow %s@ca,c4'%s target rs%s" % (structure.atomspec, color_arg, ("a" if target_atoms else ""))
+    return "rainbow %s@ca,c4'%s target rfs%s" % (structure.atomspec, color_arg, ("a" if target_atoms else ""))
 
 def run_preset(session, name, mgr):
     if name == "ribbon by secondary structure":
@@ -238,10 +239,10 @@ def run_preset(session, name, mgr):
             rainbow_cmd(s) for s in all_atomic_structures(session)
         ] + print_ribbon + print_prep(session, pb_radius=None)
     elif name == "ribbon rainbow":
-        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [ "rainbow @CA target r" ]
+        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [ "rainbow @ca,c4' target rf" ]
     elif name == "ribbon rainbow (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + [
-            "rainbow @CA"
+            "rainbow @ca,c4'"
         ] + print_ribbon + print_prep(session, pb_radius=None)
     elif name == "ribbon by polymer (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
@@ -400,7 +401,8 @@ def volume_cleanup_cmds(session, contour_cmds=None):
             session.logger.info("Contour level does not connect pieces; trying other levels")
             volume = surface.volume
             mtx = volume.matrix()
-            vmin, vmax = mtx.min(), mtx.max()
+            # mtx.min/max() return 16-bit signed integers, so min-max could be negative, so...
+            vmin, vmax = int(mtx.min()), int(mtx.max())
             contour_step = (vmax - vmin) * 0.05
             contour = orig_contour = surface.level
             connecting_contour = None

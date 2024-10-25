@@ -41,6 +41,9 @@ class StdCommandsAPI(BundleAPI):
         if class_name in ['CoordinateSetSlider']:
             from . import coordset_gui
             return getattr(coordset_gui, class_name)
+        if class_name in ['_StructureAltlocManager']:
+            from . import altlocs
+            return getattr(altlocs, class_name)
 
     @staticmethod
     def register_command(command_name, logger):
@@ -58,7 +61,8 @@ class StdCommandsAPI(BundleAPI):
             'lighting model': 'lighting',
             'quit': 'exit',
             'redo': 'undo',
-            'select zone': 'zonesel'
+            'select zone': 'zonesel',
+            'worm': 'cartoon'
         }
         if tilde:
             name_remapping['show'] = name_remapping['display'] = 'hide'
@@ -68,6 +72,8 @@ class StdCommandsAPI(BundleAPI):
             mod_name = name_remapping[check_name]
         elif check_name.startswith('measure '):
             mod_name = check_name.replace(' ', '_')
+        elif check_name == 'move cofr':
+            mod_name = 'move_cofr'
         else:
             if ' ' in check_name:
                 mod_name, remainder = check_name.split(None, 1)
@@ -139,7 +145,7 @@ class StdCommandsAPI(BundleAPI):
 bundle_api = StdCommandsAPI()
 
 def register_commands(session):
-    mod_names = ['alias', 'align', 'angle', 'camera', 'cartoon', 'cd', 'clip', 'close', 'cofr', 'colorname', 'color', 'coordset_gui', 'coordset', 'crossfade', 'defattr_gui', 'defattr', 'delete', 'dssp', 'exit', 'fly', 'getcrd', 'graphics', 'hide', 'lighting', 'material', 'measure_buriedarea', 'measure_center', 'measure_convexity', 'measure_correlation', 'measure_inertia', 'measure_length', 'measure_rotation', 'measure_symmetry', 'move', 'palette', 'perframe', 'pwd', 'rainbow', 'rename', 'ribbon','rmsd', 'rock', 'roll', 'runscript', 'select', 'setattr', 'set', 'show', 'size', 'split', 'stop', 'style', 'sym', 'tile', 'time', 'transparency', 'turn', 'undo', 'usage', 'version', 'view', 'wait', 'windowsize', 'wobble', 'zonesel', 'zoom']
+    mod_names = ['alias', 'align', 'angle', 'camera', 'cartoon', 'cd', 'clip', 'close', 'cofr', 'colorname', 'color', 'coordset_gui', 'coordset', 'crossfade', 'defattr_gui', 'defattr', 'delete', 'dssp', 'exit', 'fly', 'getcrd', 'graphics', 'hide', 'lighting', 'material', 'measure_buriedarea', 'measure_center', 'measure_convexity', 'measure_correlation', 'measure_inertia', 'measure_length', 'measure_rotation', 'measure_symmetry', 'move', 'move_cofr', 'palette', 'perframe', 'pwd', 'rainbow', 'rename', 'ribbon','rmsd', 'rock', 'roll', 'runscript', 'select', 'setattr', 'set', 'show', 'size', 'split', 'stop', 'style', 'sym', 'tile', 'time', 'transparency', 'turn', 'undo', 'usage', 'version', 'view', 'wait', 'windowsize', 'wobble', 'zonesel', 'zoom']
 
     if not session.ui.is_gui:
         # Remove commands that require Qt to import

@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-AtomicLibrary" version="12.1.5"
+<BundleInfo name="ChimeraX-AtomicLibrary" version="14.0.6"
             package="chimerax.atomic_lib"
             purePython="false"
             installedDataDir="data"
@@ -14,12 +14,12 @@
   <Description>C++ support for handling atomic structures</Description>
 
   <DataFiles>
-    <DataFile>data/*/*/*</DataFile>
-    <DataFile>include/*/*</DataFile>
-    <DataFile>include/*/*/*</DataFile>
-    <DataFile>lib/*</DataFile>
-    <DataFile>*.so</DataFile>
-    <DataFile>*.pyd</DataFile>
+    <DataFile>data/idatm/templates/*</DataFile>
+    <DataDir>include/atomstruct</DataDir>
+    <DataDir>include/atomstruct/tmpl</DataDir>
+    <DataDir>include/element</DataDir>
+    <DataDir>include/pyinstance</DataDir>
+    <DataDir>lib</DataDir>
   </DataFiles>
 
   <CLibrary name="pyinstance">
@@ -79,6 +79,7 @@
     <SourceFile>atomic_cpp/atomstruct_cpp/seq_assoc.cpp</SourceFile>
     <IncludeDir>src/include</IncludeDir>
     <LibraryDir>src/lib</LibraryDir>
+	<CompileArgument platform="mac">-Wno-unreachable-code-loop-increment</CompileArgument>
     <LinkArgument platform="linux">-Wl,-rpath,$ORIGIN</LinkArgument>
     <LinkArgument platform="linux">-Wl,-rpath,$ORIGIN/../../../../..</LinkArgument>
     <Library>pyinstance</Library>

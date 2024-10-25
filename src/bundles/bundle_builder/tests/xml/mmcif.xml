@@ -1,0 +1,108 @@
+<BundleInfo name="ChimeraX-mmCIF" version="2.14.2"
+	    package="chimerax.mmcif" purePython="false"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>mmCIF format read/write</Synopsis>
+  <Description>This bundle provides the abiility to fetch and read Macromolecular CIF files.</Description>
+
+  <DataFiles>
+    <DataFile>stdresidues.cif</DataFile>
+  </DataFiles>
+
+
+  <Categories>
+    <Category name="Molecular structure"/>
+  </Categories>
+
+  <CModule name="_mmcif" usesNumpy="true">
+    <SourceFile>mmcif_cpp/_mmcif.cpp</SourceFile>
+    <SourceFile>mmcif_cpp/mmcif.cpp</SourceFile>
+    <SourceFile>mmcif_cpp/template.cpp</SourceFile>
+    <SourceFile>mmcif_cpp/corecif.cpp</SourceFile>
+    <IncludeDir>mmcif_cpp/include</IncludeDir>
+    <LibraryDir>mmcif_cpp/lib</LibraryDir>
+    <Library>atomstruct</Library>
+    <Library>element</Library>
+    <Library>pyinstance</Library>
+    <Library>pdbconnect</Library>
+    <Library>readcif</Library>
+    <Library>logger</Library>
+    <Library>arrays</Library>
+  </CModule>
+
+  <CModule name="mmcif">
+    <SourceFile>src/mmcif.pyx</SourceFile>
+  </CModule>
+
+  <CModule name="mmcif_write">
+    <SourceFile>src/mmcif_write.pyx</SourceFile>
+  </CModule>
+
+  <!--
+  <ExtraFiles>
+    <ExtraFile source="src/mmcif.pyx">mmcif.pyx</ExtraFile>
+    <ExtraFile source="src/mmcif_write.pyx">mmcif_write.pyx</ExtraFile>
+  </ExtraFiles>
+  -->
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.34"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=14.0"/>
+    <Dependency name="ChimeraX-PDB" version="~=2.0"/>
+    <Dependency name="ChimeraX-PDBLibrary" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+    <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+	<!-- CIF/mmCIF reader the same for both suffixes/formats, and tries mmCIF, then small-molecule CIF -->
+    <Provider name="mmCIF" category="Molecular structure" suffixes=".cif,.mmcif" default_for=".mmcif,.cif"
+	    encoding="utf-8" mime_types="chemical/x-mmcif" reference_url="http://mmcif.wwpdb.org/" />
+    <Provider name="Chemical Component Dictionary" category="Molecular structure"
+	    nicknames="ccd" suffixes=".cif"
+	    encoding="utf-8" reference_url="http://www.wwpdb.org/data/ccd" />
+    <Provider name="Small Molecule CIF" category="Molecular structure"
+	    nicknames="corecif,smallcif" suffixes=".cif"
+	    encoding="utf-8" reference_url="https://www.iucr.org/resources/cif" />
+    <Provider name="Crystallography Open Database" category="Molecular structure"
+	    nicknames="cod" suffixes=".cif"
+	    encoding="utf-8" reference_url="https://www.crystallography.net/" />
+    <Provider name="Predicted Crystallography Open Database" category="Molecular structure"
+	    nicknames="pcod" suffixes=".cif"
+	    encoding="utf-8" reference_url="https://www.crystallography.net/pcod/" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="mmCIF" want_path="true" />
+    <Provider name="pdb" type="fetch" format_name="mmcif" synopsis="PDB" example_ids="2gbp" />
+    <Provider name="pdbe" type="fetch" format_name="mmcif" />
+    <Provider name="pdbj" type="fetch" format_name="mmcif" />
+    <Provider name="ccd" type="fetch" format_name="Chemical Component Dictionary"
+		synopsis="PDB chemical component" example_ids="FMN" />
+    <Provider name="Small Molecule CIF" want_path="true" />
+    <Provider name="cod" type="fetch" format_name="Crystallography Open Database" />
+    <Provider name="pcod" type="fetch" format_name="Predicted Crystallography Open Database" />
+    <Provider name="redo" type="fetch" format_name="mmcif" synopsis="PDB-REDO (structure)" example_ids="1cbs" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="mmCIF" compression_okay="false" />
+  </Providers>
+
+  <Providers manager="start structure">
+    <Provider name="ccd" ui_name="CCD ID" new_model_only="true"/>
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

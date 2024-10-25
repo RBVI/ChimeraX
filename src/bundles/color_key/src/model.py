@@ -320,11 +320,11 @@ class ColorKeyModel(Model):
         self.triggers.activate_trigger("key changed", "rgbas_and_labels")
 
     @property
-    def model_color(self):
+    def overall_color(self):
         return False
 
-    @model_color.setter
-    def model_color(self, val):
+    @overall_color.setter
+    def overall_color(self, val):
         pass
 
     @property
@@ -536,12 +536,11 @@ class ColorKeyModel(Model):
         # so just use the font size instead
         if labels[first_index]:
             # may need extra room to left or bottom for first label
-            bounds = fm.boundingRect(labels[first_index])
-            xywh = bounds.getRect()
+            xywh = _font_rect(fm, labels[first_index])
             # Qt seemingly will not return the actual height of a text string; estimate all lower case
             # to be LC_FRACT height
             label_height = (font_height * self.LC_FRACT) if labels[first_index].islower() else font_height
-            label_size = label_height if layout == "vertical" else xywh[long_index+2]
+            label_size = label_height if layout == "vertical" else xywh[2]
             extra = max(label_size / 2 - label_positions[first_index] - border, 0)
             (end_offset if layout == "vertical" else start_offset)[long_index] += extra
             pixels[long_index] += extra
@@ -555,9 +554,9 @@ class ColorKeyModel(Model):
             for label in labels:
                 if label is None:
                     label = ""
-                overall = fm.boundingRect(label).getRect()[2]
+                overall = _font_rect(fm, label)[2]
                 if '.' in label:
-                    right = fm.boundingRect(label[label.index('.'):]).getRect()[2]
+                    right = _font_rect(fm, label[label.index('.'):])[2]
                     left = overall - right
                 else:
                     left = overall
@@ -568,7 +567,7 @@ class ColorKeyModel(Model):
             extra = left_widest + right_widest + label_offset
         else:
             if layout == "vertical":
-                extra = max([fm.boundingRect(lab).getRect()[3-long_index] for lab in labels]) + label_offset
+                extra = max([_font_rect(fm, lab)[3-long_index] for lab in labels]) + label_offset
             else:
                 # Qt seemingly will not return the actual height of a text string; estimate all lower case
                 # to be LC_FRACT height
@@ -591,14 +590,20 @@ class ColorKeyModel(Model):
 
         if labels[last_index]:
             # may need extra room to right or top for last label
-            bounds = fm.boundingRect(labels[last_index])
-            xywh = bounds.getRect()
+            xywh = _font_rect(fm, labels[last_index])
             # Qt seemingly will not return the actual height of a text string; estimate all lower case
             # to be LC_FRACT height
             label_height = (font_height * self.LC_FRACT) if labels[last_index].islower() else font_height
-            label_size = label_height if layout == "vertical" else xywh[long_index+2]
-            extra = max(label_size / 2 - (rect_pixels[long_index] - label_positions[last_index]) - border, 0)
-            (start_offset if layout == "vertical" else end_offset)[long_index] += extra
+            label_size = label_height if layout == "vertical" else xywh[2]
+            if layout == "vertical":
+                measure_offset = end_offset
+                adjust_offset = start_offset
+            else:
+                measure_offset = start_offset
+                adjust_offset = end_offset
+            extra = max(label_size / 2 + label_positions[last_index] + measure_offset[long_index]
+                - pixels[long_index], 0)
+            adjust_offset[long_index] += extra
             pixels[long_index] += extra
 
         image = QImage(max(int(pixels[0]), 1), max(int(pixels[1]), 1), QImage.Format_ARGB32)
@@ -690,7 +695,7 @@ class ColorKeyModel(Model):
                 if not label:
                     continue
                 p.setPen(QColor(*[int(255.0*c + 0.5) for c in label_rgba]))
-                rect = fm.boundingRect(label)
+                rect = _font_qrect(fm, label)
                 if layout == "vertical":
                     if self._justification == self.JUST_DECIMAL:
                         pre_decimal_width, decimal_width = decimal_info
@@ -707,7 +712,7 @@ class ColorKeyModel(Model):
                         if self._label_side == self.LS_LEFT_TOP:
                             x = start_offset[0] - (rect.width() - rect.x()) - label_offset
                         else:
-                            x = pixels[0] - (rect.width() - rect.x())
+                            x = pixels[0] - rect.width()
                     # Qt seemingly will not return the actual height of a text string; estimate all
                     # lower case to be LC_FRACT height
                     label_height = (font_height * self.LC_FRACT) if label.islower() else font_height
@@ -813,3 +818,12 @@ class ColorKeyModel(Model):
         uw, uh = 2*tw/w, 2*th/h
         from chimerax.graphics.drawing import rgba_drawing
         rgba_drawing(self, rgba, (x, y), (uw, uh), opaque=False)
+
+def _font_qrect(fm, label):
+    qrect = fm.boundingRect(label)
+    qrect.adjust(-3, 0, 3, 0)
+    return qrect
+
+def _font_rect(fm, label):
+    xywh = _font_qrect(fm, label).getRect()
+    return (xywh[0], xywh[1], xywh[2], xywh[3])

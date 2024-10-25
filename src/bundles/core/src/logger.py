@@ -172,7 +172,7 @@ class StringPlainTextLog(PlainTextLog):
         return True
 
     def getvalue(self):
-        return ''.join(self._msgs)
+        return "".join(self._msgs)
 
 
 class StatusLogger:
@@ -197,8 +197,18 @@ class StatusLogger:
             self._follow_timer2.cancel()
             self._follow_timer2 = None
 
-    def status(self, msg, color="black", log=False, secondary=False,
-               blank_after=None, follow_with="", follow_time=20, follow_log=None, is_html=False):
+    def status(
+        self,
+        msg,
+        color="black",
+        log=False,
+        secondary=False,
+        blank_after=None,
+        follow_with="",
+        follow_time=20,
+        follow_log=None,
+        is_html=False,
+    ):
         """Supported API. Show status."""
         if log:
             self.session.logger.info(msg, is_html=is_html)
@@ -207,7 +217,9 @@ class StatusLogger:
             msg = html_to_plain(msg)
 
         for l in self._prioritized_logs():
-            if l.status(msg, color, secondary) and getattr(l, "excludes_other_logs", True):
+            if l.status(msg, color, secondary) and getattr(
+                l, "excludes_other_logs", True
+            ):
                 break
         if secondary:
             status_timer = self._status_timer2
@@ -226,10 +238,14 @@ class StatusLogger:
             follow_timer = None
 
         from threading import Timer
+
         if follow_with:
-            follow_timer = Timer(follow_time,
-                lambda fw=follow_with, clr=color, log=log, sec=secondary,
-                fl=follow_log: self._follow_timeout(fw, clr, log, sec, fl))
+            follow_timer = Timer(
+                follow_time,
+                lambda fw=follow_with, clr=color, log=log, sec=secondary, fl=follow_log: self._follow_timeout(
+                    fw, clr, log, sec, fl
+                ),
+            )
             follow_timer.daemon = True
             follow_timer.start()
         elif msg:
@@ -237,8 +253,10 @@ class StatusLogger:
                 blank_after = blank_default
             if blank_after:
                 from threading import Timer
-                status_timer = Timer(blank_after, lambda sec=secondary:
-                                     self._status_timeout(sec))
+
+                status_timer = Timer(
+                    blank_after, lambda sec=secondary: self._status_timeout(sec)
+                )
                 status_timer.daemon = True
                 status_timer.start()
 
@@ -256,8 +274,9 @@ class StatusLogger:
             self._follow_timer1 = None
         if follow_log is None:
             follow_log = log
-        self.session.ui.thread_safe(self.status, follow_with, color=color,
-                                    log=follow_log, secondary=secondary)
+        self.session.ui.thread_safe(
+            self.status, follow_with, color=color, log=follow_log, secondary=secondary
+        )
 
     def _status_timeout(self, secondary):
         if secondary:
@@ -292,23 +311,30 @@ class Logger(StatusLogger):
     def __init__(self, session):
         StatusLogger.__init__(self, session)
         from .orderedset import OrderedSet
+
         self._prev_newline = True
         self.logs = OrderedSet()
         self.method_map = {
             Log.LEVEL_BUG: self.bug,
             Log.LEVEL_ERROR: self.error,
             Log.LEVEL_WARNING: self.warning,
-            Log.LEVEL_INFO: self.info
+            Log.LEVEL_INFO: self.info,
         }
         # only put in an excepthook if we're the first session:
         import sys
+
         if sys.excepthook == sys.__excepthook__:
+
             def ehook(*exc_info):
                 if self.session.debug or not hasattr(self.session, "ui"):
                     from traceback import print_exception
+
                     print_exception(*exc_info, file=sys.__stderr__)
                 else:
-                    self.session.ui.thread_safe(self.report_exception, exc_info=exc_info)
+                    self.session.ui.thread_safe(
+                        self.report_exception, exc_info=exc_info
+                    )
+
             sys.excepthook = ehook
 
         # non-exclusively collate any early log messages, so that they
@@ -318,16 +344,18 @@ class Logger(StatusLogger):
     def add_log(self, log):
         """Supported API. Add a logger"""
         if not isinstance(log, (HtmlLog, PlainTextLog)):
-            raise ValueError("Cannot add log that is not instance of"
-                             " HtmlLog or PlainTextLog")
+            raise ValueError(
+                "Cannot add log that is not instance of" " HtmlLog or PlainTextLog"
+            )
         if isinstance(log, _EarlyCollator):
             self._early_collation = True
         elif self._early_collation:
             # main window only handles status messages, so in that case keep collating...
-            if not hasattr(self.session, 'ui') or not self.session.ui.is_gui:
+            if not hasattr(self.session, "ui") or not self.session.ui.is_gui:
                 log_is_main_window = False
             else:
                 from chimerax.ui.gui import MainWindow
+
                 log_is_main_window = isinstance(log, MainWindow)
             if not log_is_main_window:
                 self._early_collation = None
@@ -362,8 +390,10 @@ class Logger(StatusLogger):
             Is the :param:msg text HTML or plain text
         """
         import sys
-        self._log(Log.LEVEL_BUG, msg, add_newline, image, is_html, 
-                  last_resort=sys.__stderr__)
+
+        self._log(
+            Log.LEVEL_BUG, msg, add_newline, image, is_html, last_resort=sys.__stderr__
+        )
 
     def clear(self):
         """Supported API. Clear all loggers"""
@@ -388,8 +418,15 @@ class Logger(StatusLogger):
             Is the :param:msg text HTML or plain text
         """
         import sys
-        self._log(Log.LEVEL_ERROR, msg, add_newline, image, is_html, 
-                  last_resort=sys.__stderr__)
+
+        self._log(
+            Log.LEVEL_ERROR,
+            msg,
+            add_newline,
+            image,
+            is_html,
+            last_resort=sys.__stderr__,
+        )
 
     def info(self, msg, add_newline=True, image=None, is_html=False):
         """Supported API. Log an info message
@@ -399,15 +436,16 @@ class Logger(StatusLogger):
         if self.session.silent:
             return
         import sys
-        self._log(Log.LEVEL_INFO, msg, add_newline, image, is_html,
-                  last_resort=sys.__stdout__)
+
+        self._log(
+            Log.LEVEL_INFO, msg, add_newline, image, is_html, last_resort=sys.__stdout__
+        )
 
     def remove_log(self, log):
         """Supported API. Remove a logger"""
         self.logs.discard(log)
 
-    def report_exception(self, preface=None, error_description=None,
-                         exc_info=None):
+    def report_exception(self, preface=None, error_description=None, exc_info=None):
         """Supported API. Report the current exception (without changing execution context)
 
         Parameters
@@ -419,10 +457,12 @@ class Logger(StatusLogger):
         """
         from .errors import NotABug, CancelOperation
         from traceback import format_exception_only, format_exception, format_tb
+
         if exc_info is not None:
             ei = exc_info
         else:
             import sys
+
             ei = sys.exc_info()
         if preface:
             preface = "%s:\n" % preface
@@ -431,15 +471,9 @@ class Logger(StatusLogger):
 
         exception_value = ei[1]
 
-        if isinstance(exception_value, KeyboardInterrupt):
-            self.session.ui.quit()
-
-        if isinstance(exception_value, NotABug):
-            self.error("%s%s" % (preface, exception_value))
-        elif isinstance(exception_value, CancelOperation):
-            pass  # Cancelled operations are not reported
-        else:
+        def fmt_tb(ei=ei, error_description=error_description):
             from html import escape
+
             if error_description:
                 tb_msg = escape(error_description)
             else:
@@ -447,11 +481,27 @@ class Logger(StatusLogger):
                 tb_msg = "".join(tb)
                 # preserve exception traceback's indentation
                 tmp = []
-                for line in tb_msg.split('\n'):
+                for line in tb_msg.split("\n"):
                     text = line.lstrip()
                     num_spaces = len(line) - len(text)
-                    tmp.append('&nbsp;' * num_spaces + escape(text))
+                    tmp.append("&nbsp;" * num_spaces + escape(text))
                 tb_msg = "<br>\n".join(tmp)
+            return tb_msg
+
+        if isinstance(exception_value, KeyboardInterrupt):
+            self.session.ui.quit()
+
+        if isinstance(exception_value, NotABug):
+            self.error("%s%s" % (preface, exception_value))
+        elif isinstance(exception_value, CancelOperation):
+            pass  # Cancelled operations are not reported
+        elif isinstance(exception_value, OSError) and exception_value.errno == 28:
+            # out of disk space
+            tb_msg = fmt_tb()
+            self.info(tb_msg, is_html=True)
+            self.error("Out of disk space")
+        else:
+            tb_msg = fmt_tb()
             if self.session.silent:
                 self.error(tb_msg, is_html=True)
                 return
@@ -459,8 +509,10 @@ class Logger(StatusLogger):
 
             err = "".join(format_exception_only(ei[0], ei[1]))
             loc = "".join(format_tb(ei[2])[-1:])
-            err_msg = "%s%s\n%s\n" % (preface, err, loc) + \
-                "<i>See log for complete Python traceback.</i>\n"
+            err_msg = (
+                "%s%s\n%s\n" % (preface, err, loc)
+                + "<i>See log for complete Python traceback.</i>\n"
+            )
             self.bug(err_msg.replace("\n", "<br>"), is_html=True)
 
     def status(self, msg, **kw):
@@ -477,8 +529,15 @@ class Logger(StatusLogger):
         if self.session.silent:
             return
         import sys
-        self._log(Log.LEVEL_WARNING, msg, add_newline, image, is_html,
-                  last_resort=sys.__stderr__)
+
+        self._log(
+            Log.LEVEL_WARNING,
+            msg,
+            add_newline,
+            image,
+            is_html,
+            last_resort=sys.__stderr__,
+        )
 
     def _html_to_plain(self, msg, image, is_html):
         if image:
@@ -530,7 +589,8 @@ class Logger(StatusLogger):
         return reversed(list(self.logs))
 
 
-html_table_params = 'border=1 cellpadding=4 cellspacing=0'
+html_table_params = "border=1 cellpadding=4 cellspacing=0"
+
 
 class CollatingLog(HtmlLog):
     """Collates log messages
@@ -548,7 +608,7 @@ class CollatingLog(HtmlLog):
 
     def __init__(self):
         self.msgs = []
-        for _ in range(self.MAX_COLLATION_LEVEL+1):
+        for _ in range(self.MAX_COLLATION_LEVEL + 1):
             self.msgs.append([])
 
     def log(self, level, msg, image_info, is_html):
@@ -561,36 +621,46 @@ class CollatingLog(HtmlLog):
         # note that this handling of the summary (only calling logger,info
         # at the end and not calling the individual log-level functions)
         # will not raise an error dialog except for 'bug'-level log entries
-        summary = '\n<table %s>\n' % html_table_params
-        summary += '  <thead>\n'
-        summary += '    <tr>\n'
+        summary = "\n<table %s>\n" % html_table_params
+        summary += "  <thead>\n"
+        summary += "    <tr>\n"
         summary += '      <th colspan="2">%s</th>\n' % summary_title
-        summary += '    </tr>\n'
-        summary += '  </thead>\n'
-        summary += '  <tbody>\n'
+        summary += "    </tr>\n"
+        summary += "  </thead>\n"
+        summary += "  <tbody>\n"
         some_msgs = False
         colors = ["#ffffff", "#ffb961", "#ff7882", "#dc1436"]
         for level, msgs in reversed(list(enumerate(self.msgs))):
             if not msgs:
                 continue
             some_msgs = True
-            summary += '    <tr>\n'
-            summary += '      <td><i>%s%s</i></td>' % (
-                self.LEVEL_DESCRIPTS[level], 's' if len(msgs) > 1 else '')
-            summary += '      <td style="background-color:%s">%s</td>' % (colors[level], self.summarize_msgs(msgs, collapse_similar))
-            summary += '    </tr>\n'
+            summary += "    <tr>\n"
+            summary += "      <td><i>%s%s</i></td>" % (
+                self.LEVEL_DESCRIPTS[level],
+                "s" if len(msgs) > 1 else "",
+            )
+            summary += '      <td style="background-color:%s">%s</td>' % (
+                colors[level],
+                self.summarize_msgs(msgs, collapse_similar),
+            )
+            summary += "    </tr>\n"
         if some_msgs:
-            summary += '  </tbody>\n'
-            summary += '</table>'
+            summary += "  </tbody>\n"
+            summary += "</table>"
             logger.info(summary, is_html=True)
 
     def summarize_msgs(self, msgs, collapse_similar):
         # For plain text messages, escape < and > otherwise <stuff between angle brackets>
         # disappears in html output.
         import html
-        msgs = [(m if is_html else html.escape(m), image_info) for m, image_info, is_html in msgs]
+
+        msgs = [
+            (m if is_html else html.escape(m), image_info)
+            for m, image_info, is_html in msgs
+        ]
 
         import sys
+
         if collapse_similar:
             summarized = []
             prev_msg = sim_info = None
@@ -601,42 +671,46 @@ class CollatingLog(HtmlLog):
                     if sim_info:
                         sim_reps = sim_info[0]
                         if sim_reps > self.sim_collapse_after:
-                            summarized.append("{} messages similar to the above omitted\n".format(
-                                sim_reps - self.sim_collapse_after))
+                            summarized.append(
+                                "{} messages similar to the above omitted\n".format(
+                                    sim_reps - self.sim_collapse_after
+                                )
+                            )
                     prev_msg = sim_info = None
                     summarized.append(image_info_to_html(msg, image_info))
                 elif sim_info:
                     sim_reps, sim_type, sim_data = sim_info
                     st = self.sim_test_size
                     if sim_type == "front":
-                        similar = msg[:2*st] == sim_data
+                        similar = msg[: 2 * st] == sim_data
                     elif sim_type == "back":
-                        similar = msg[-2*st:] == sim_data
+                        similar = msg[-2 * st :] == sim_data
                     else:
-                        similar = msg[st:] == sim_data[0] \
-                            and msg[-st:] == sim_data[1]
+                        similar = msg[st:] == sim_data[0] and msg[-st:] == sim_data[1]
                     if similar:
                         sim_reps += 1
                         sim_info = (sim_reps, sim_type, sim_data)
-                        if sim_reps >= self.sim_collapse_after+1:
+                        if sim_reps >= self.sim_collapse_after + 1:
                             continue
                         # let first few reps get logged individually...
                     else:
                         if sim_reps > self.sim_collapse_after:
-                            summarized.append("{} messages similar to the above omitted\n".format(
-                                sim_reps - self.sim_collapse_after))
+                            summarized.append(
+                                "{} messages similar to the above omitted\n".format(
+                                    sim_reps - self.sim_collapse_after
+                                )
+                            )
                         sim_info = None
                 elif prev_msg is not None:
                     st = self.sim_test_size
                     similar = True
-                    if msg[:2*st] == prev_msg[:2*st]:
+                    if msg[: 2 * st] == prev_msg[: 2 * st]:
                         sim_type = "front"
-                        sim_data = msg[:2*st]
-                    elif msg[-2*st:] == prev_msg[-2*st:]:
+                        sim_data = msg[: 2 * st]
+                    elif msg[-2 * st :] == prev_msg[-2 * st :]:
                         sim_type = "back"
-                        sim_data = msg[-2*st:]
-                    elif msg[:st] == prev_msg[:st] \
-                    and msg[-st:] == prev_msg[-st:]:
+                        sim_data = msg[-2 * st :]
+                    elif msg[:st] == prev_msg[:st] and msg[-st:] == prev_msg[-st:]:
                         sim_type = "ends"
                         sim_data = (msg[:st], msg[-st:])
                     else:
@@ -648,11 +722,15 @@ class CollatingLog(HtmlLog):
             if sim_info:
                 sim_reps = sim_info[0]
                 if sim_reps > self.sim_collapse_after:
-                    summarized.append("{} messages similar to the above omitted\n".format(
-                        sim_reps - self.sim_collapse_after))
+                    summarized.append(
+                        "{} messages similar to the above omitted\n".format(
+                            sim_reps - self.sim_collapse_after
+                        )
+                    )
         else:
             summarized = msgs
-        return "".join(summarized).strip().replace('\n', '<br>')
+        return "".join(summarized).strip().replace("\n", "<br>")
+
 
 class Collator:
     """Context manager for a CollatingLog
@@ -692,8 +770,10 @@ class Collator:
         if self.log_messages:
             self.collater.log_summary(self.logger, self.summary_title)
 
+
 class _EarlyCollator(CollatingLog):
     """Collate any errors that occur before any "real" log hits the log stack."""
+
     excludes_other_logs = False
 
     MAX_COLLATION_LEVEL = CollatingLog.LEVEL_BUG
@@ -705,9 +785,11 @@ class _EarlyCollator(CollatingLog):
             title = "Startup Messages"
         CollatingLog.log_summary(self, logger, title)
 
-#error_text_format = '<p style="color:crimson;font-weight:bold">%s</p>'
+
+# error_text_format = '<p style="color:crimson;font-weight:bold">%s</p>'
 # although the below isn't HTML5, it avoids the line break in the above
 error_text_format = '<font color="crimson"><b>%s</b></font>'
+
 
 def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""
@@ -721,31 +803,41 @@ def html_to_plain(html):
     # h.body_width = ?  # TODO: track terminal size changes
     return h.handle(html)
 
+
 def image_info_to_html(msg, image_info):
     image, image_break = image_info
     import io
+
     img_io = io.BytesIO()
-    image.save(img_io, format='PNG')
+    image.save(img_io, format="PNG")
     png_data = img_io.getvalue()
     import codecs
-    bitmap = codecs.encode(png_data, 'base64')
+
+    bitmap = codecs.encode(png_data, "base64")
     width, height = image.size
-    img_src = '<img src="data:image/png;base64,%s" width=%d height=%d style="vertical-align:middle">'  % (
-        bitmap.decode('utf-8'), width, height)
+    img_src = (
+        '<img src="data:image/png;base64,%s" width=%d height=%d style="vertical-align:middle">'
+        % (bitmap.decode("utf-8"), width, height)
+    )
     if image_break:
         img_src += "<br>\n"
     return img_src
 
+
 def log_version(logger):
-    '''Show version information.'''
+    """Show version information."""
     from chimerax.core import buildinfo
     from chimerax import app_dirs as ad
     from . import toolshed
+
     t = toolshed.get_toolshed()
     if t:
-        b = t.find_bundle('ChimeraX-Core', logger, True)
+        b = t.find_bundle("ChimeraX-Core", logger, True)
         version = b.version
     else:
         version = ad.version
-    logger.info("%s %s version: %s (%s)" % (ad.appauthor, ad.appname, version, buildinfo.date.split()[0]))
+    logger.info(
+        "%s %s version: %s (%s)"
+        % (ad.appauthor, ad.appname, version, buildinfo.date.split()[0])
+    )
     logger.info(buildinfo.copyright)

@@ -386,7 +386,7 @@ def quadrant_angle(angle):
     return angle
 
 def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], padding=0.0, color=None,
-        radius=None, name="plane", show_tool=True):
+        radius=None, name="plane", id=None, show_tool=True):
     """Wrapper to be called by command line.
 
        Use chimerax.geometry.Plane for other programming applications.
@@ -437,6 +437,9 @@ def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], p
         session.models.add([plane_model])
     else:
         adding_model.add([plane_model])
+    if id is not None:
+        from chimerax.std_commands.rename import rename
+        rename(session, [plane_model], id=id)
     session.logger.info("Plane '%s' placed at %s with normal %s and radius %.1f"
         % (name, plane.origin, plane.normal, radius))
     if show_tool and session.ui.is_gui and not session.in_script:
@@ -446,7 +449,7 @@ def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], p
 
 def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=None, name=None, padding=0.0,
         primary=True, secondary=False, tertiary=False, mass_weighting=False, from_point=None, to_point=None,
-        per_helix=False, show_tool=True):
+        per_helix=False, id=None, show_tool=True):
     """Wrapper to be called by command line.
 
        Use chimerax.geometry.vector for other programming applications.
@@ -549,6 +552,8 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
         axis_info[None] = [(None, [(name, center, to_point - from_point, extent,
             1.0 if radius is None else radius, color)])]
 
+    if id is not None and len(axis_info) > 1:
+        raise UserError("Cannot us 'id' keyword when multiple groups of axes are being created")
     from chimerax.core.models import Model
     axes = []
     for structure, s_axes_groups in axis_info.items():
@@ -597,6 +602,9 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
                     needs_normalization=False)
                 axes.append(axis)
                 add_model.add([axis])
+        if id is not None:
+            from chimerax.std_commands.rename import rename
+            rename(session, [overall_grouping_model] if main_group else axes, id=id)
     if show_tool and session.ui.is_gui:
         from chimerax.core.commands import run
         run(session, "ui tool show Axes/Planes/Centroids", log=False)
@@ -686,12 +694,12 @@ def determine_axes(atoms, name, length, padding, radius, mass_weighting, primary
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg, ColorArg, PositiveFloatArg
-    from chimerax.core.commands import StringArg, Or, Float3Arg
+    from chimerax.core.commands import StringArg, Or, Float3Arg, ModelIdArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         required=[('atoms', AtomsArg)],
         keyword = [('thickness', PositiveFloatArg), ('padding', FloatArg), ('color', ColorArg),
-            ('radius', PositiveFloatArg), ('name', StringArg), ('show_tool', BoolArg)],
+            ('radius', PositiveFloatArg), ('name', StringArg), ('id', ModelIdArg), ('show_tool', BoolArg)],
         synopsis = 'Create plane'
     )
     register('define plane', desc, cmd_define_plane, logger=logger)
@@ -710,7 +718,7 @@ def register_command(command_name, logger):
         keyword = [('color', ColorArg), ('radius', PositiveFloatArg), ('length', PositiveFloatArg),
             ('name', StringArg), ('primary', BoolArg), ('secondary', BoolArg), ('tertiary', BoolArg),
             ('mass_weighting', BoolArg), ('from_point', Float3Arg), ('to_point', Float3Arg),
-            ('per_helix', BoolArg), ('padding', FloatArg), ('show_tool', BoolArg)],
+            ('per_helix', BoolArg), ('padding', FloatArg), ('id', ModelIdArg), ('show_tool', BoolArg)],
         synopsis = 'Create axis'
     )
     register('define axis', desc, cmd_define_axis, logger=logger)

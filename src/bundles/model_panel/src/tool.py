@@ -36,6 +36,7 @@ class ModelPanel(ToolInstance):
 
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        tw.fill_context_menu = self.fill_context_menu
         parent = tw.ui_area
         from Qt.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
             QFrame, QPushButton, QSizePolicy, QScrollArea, QWidget
@@ -60,7 +61,7 @@ class ModelPanel(ToolInstance):
         parent.setLayout(layout)
         shown_title = "" if short_titles else "Shown"
         sel_title = "" if short_titles else "Select"
-        self.tree.setHeaderLabels(["Name", "ID", " ", shown_title, sel_title])
+        self.tree.setHeaderLabels(["Name", "ID", " ", shown_title, sel_title, "Skip"])
         from chimerax.ui.icons import get_qt_icon
         self.tree.headerItem().setIcon(3, get_qt_icon("shown"))
         self.tree.headerItem().setToolTip(3, "Shown")
@@ -74,10 +75,12 @@ class ModelPanel(ToolInstance):
         self.tree.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.tree.itemChanged.connect(self._tree_change_cb)
         self.tree.itemDoubleClicked.connect(self._item_double_clicked)
+        if not self.showing_sequence_controls:
+            self.tree.hideColumn(self.SKIP_COLUMN)
         scrolled_button_area = QScrollArea()
         layout.addWidget(scrolled_button_area)
         button_area = QWidget()
-        buttons_layout = QVBoxLayout()
+        self.buttons_layout = buttons_layout = QVBoxLayout()
         buttons_layout.setContentsMargins(0,0,0,0)
         buttons_layout.setSpacing(0)
         button_area.setLayout(buttons_layout)
@@ -88,11 +91,21 @@ class ModelPanel(ToolInstance):
             button.clicked.connect(lambda *, self=self, mf=model_func, ses=session:
                 mf([self.models[row] for row in [self._items.index(i)
                     for i in self.tree.selectedItems()]] or self.models, ses))
+        self._seq_buttons = []
+        for model_func in [self._next_model, self._previous_model]:
+            button = QPushButton(model_func.__name__[1:-6].capitalize())
+            self._seq_buttons.append(button)
+            buttons_layout.addWidget(button)
+            if not self.showing_sequence_controls:
+                button.setHidden(True)
+            button.clicked.connect(model_func)
         scrolled_button_area.setWidget(button_area)
         self.simply_changed_models = set()
         self.check_model_list = True
         self.countdown = 1
         self.self_initiated = False
+        import weakref
+        self.skip_models = weakref.WeakKeyDictionary()
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS, \
             MODEL_COLOR_CHANGED, MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
         from chimerax.core.selection import SELECTION_CHANGED
@@ -121,17 +134,40 @@ class ModelPanel(ToolInstance):
     COLOR_COLUMN = 2
     SHOWN_COLUMN = 3
     SELECT_COLUMN = 4
-    
-    def _shown_changed(self, shown):
-        if shown:
-            # Update panel when it is shown.
-            self.check_model_list = True
-            self._initiate_fill_tree()
+    SKIP_COLUMN = 5
+
+    def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        action = QAction("Show Sequential Display Controls", menu)
+        action.setCheckable(True)
+        action.setChecked(self.showing_sequence_controls)
+        action.triggered.connect(lambda *args, s=self:
+            setattr(s, 'showing_sequence_controls', not s.showing_sequence_controls))
+        menu.addAction(action)
 
     @classmethod
     def get_singleton(self, session):
         from chimerax.core import tools
         return tools.get_singleton(session, ModelPanel, 'Model Panel', create=False)
+
+    @property
+    def showing_sequence_controls(self):
+        return self.settings.show_sequential_controls
+
+    @showing_sequence_controls.setter
+    def showing_sequence_controls(self, show):
+        if show == self.settings.show_sequential_controls:
+            return
+        self.settings.show_sequential_controls = show
+        from Qt.QtCore import Qt
+        if show:
+            self.tree.showColumn(self.SKIP_COLUMN)
+            self.tree.keyPressEvent = self._seq_key_press
+        else:
+            self.tree.hideColumn(self.SKIP_COLUMN)
+            self.tree.keyPressEvent = self.session.ui.forward_keystroke
+        for button in self._seq_buttons:
+            button.setHidden(not show)
 
     def _changes_cb(self, trigger_name, changes):
         reasons = changes.atom_reasons()
@@ -146,7 +182,7 @@ class ModelPanel(ToolInstance):
             simple_change=False, countdown=1):
         # in order to allow models to be drawn as quickly as possible,
         # delay the update of the tree until the 'new frame' trigger fires
-        # a time of times ('countdown' -- if a tuple then it varies based on
+        # a number of times ('countdown' -- if a tuple then it varies based on
         # the number of models, from (lowest, highest)).  However, if no models
         # are open, we update immediately because Rapid Access will come up and
         # 'new frame' may not fire for awhile.
@@ -194,7 +230,8 @@ class ModelPanel(ToolInstance):
 
         # cell editing could have disabled key forwarding
         # (to block the Return key getting to the command line)
-        self.tree.keyPressEvent = self.session.ui.forward_keystroke
+        self.tree.keyPressEvent = self._seq_key_press \
+            if self.showing_sequence_controls else self.session.ui.forward_keystroke
         self.tree.blockSignals(True) # particularly itemChanged
         if self.check_model_list or always_rebuild:
             update = self._process_models() and not always_rebuild
@@ -214,7 +251,7 @@ class ModelPanel(ToolInstance):
         from Qt.QtGui import QColor
         item_stack = [self.tree.invisibleRootItem()]
         for model in self.models:
-            model_id, model_id_string, bg_color, display, name, selected, part_selected = \
+            model_id, model_id_string, bg_color, display, name, selected, part_selected, skip = \
                 self._get_info(model, all_selected_models, part_selected_models)
             if model_id is None:
                 continue
@@ -276,13 +313,18 @@ class ModelPanel(ToolInstance):
                     but.set_color(bg_color)
             item.setBackground(self.COLOR_COLUMN, bg)
             if display is not None:
-                item.setCheckState(self.SHOWN_COLUMN, Qt.CheckState.Checked if display else Qt.CheckState.Unchecked)
+                item.setCheckState(self.SHOWN_COLUMN,
+                    Qt.CheckState.Checked if display else Qt.CheckState.Unchecked)
             if selected:
                 item.setCheckState(self.SELECT_COLUMN, Qt.CheckState.Checked)
             elif part_selected:
                 item.setCheckState(self.SELECT_COLUMN, Qt.CheckState.PartiallyChecked)
             else:
                 item.setCheckState(self.SELECT_COLUMN, Qt.CheckState.Unchecked)
+
+            if skip is not None:
+                item.setCheckState(self.SKIP_COLUMN,
+                    Qt.CheckState.Checked if skip else Qt.CheckState.Unchecked)
             item.setText(self.NAME_COLUMN, name)
             if not update:
                 # Expand new top-level displayed models, or if previously expanded
@@ -316,7 +358,18 @@ class ModelPanel(ToolInstance):
         name = getattr(obj, "name", "(unnamed)")
         selected = obj in all_selected_models
         part_selected = selected or obj in part_selected_models
-        return model_id, model_id_string, bg_color, display, name, selected, part_selected
+        # skip is only True/False for top-level models that aren't overlays
+        # or grouped models whose group is top level, None otherwise.
+        # Unfortunately obj.empty_drawing() is True for AtomicStructures, so can't use that test
+        from chimerax.core.models import Model
+        if obj in obj.session.main_view.overlays() or obj.__class__ == Model:
+            skip = None
+        elif obj.parent == obj.session.models.scene_root_model \
+        or obj.parent.__class__ == Model and obj.parent.parent == obj.session.models.scene_root_model:
+            skip = self.skip_models.setdefault(obj, False)
+        else:
+            skip = None
+        return model_id, model_id_string, bg_color, display, name, selected, part_selected, skip
 
     def _header_click_cb(self, index):
         if index == 0:
@@ -341,8 +394,14 @@ class ModelPanel(ToolInstance):
             self._fill_tree()
         event.Skip()
 
+    def _next_model(self):
+        self._show_next_model(1)
+
     def _model_color(self, model):
-        return model.model_color
+        return model.overall_color
+
+    def _previous_model(self):
+        self._show_next_model(-1)
 
     def _process_models(self):
         models = self.session.models.list()
@@ -351,6 +410,56 @@ class ModelPanel(ToolInstance):
         update = True if hasattr(self, 'models') and final_models == self.models else False
         self.models = final_models
         return update
+
+    def _seq_key_press(self, event):
+        from Qt.QtCore import Qt
+        if event.key() == Qt.Key_Up:
+            self._previous_model()
+        elif event.key() == Qt.Key_Down:
+            self._next_model()
+        else:
+            self.session.ui.forward_keystroke(event)
+
+    def _show_next_model(self, direction):
+        if self._frame_drawn_handler is not None:
+            # self.models is not up to date, typically happens when arrow key held down
+            return
+        cur_shown = [m for m in self.models
+            if m in self.skip_models and not self.skip_models[m] and m.display]
+        if len(cur_shown) > 1:
+            hide(cur_shown[1:], self.session)
+            self.session.logger.status("Showing %s" % cur_shown[0])
+            return
+        if not cur_shown:
+            for m in self.models:
+                if m in self.skip_models and not self.skip_models[m]:
+                    show([m], self.session)
+                    self.session.logger.status("Showing %s" % m)
+                    break
+            else:
+                self.session.logger.warn("No models in display sequence")
+            return
+        m = cur_shown[0]
+        index = self.models.index(m)
+        while True:
+            index = (index + direction) % len(self.models)
+            next_m = self.models[index]
+            if next_m == m:
+                break
+            if next_m not in self.skip_models:
+                continue
+            if self.skip_models[next_m]:
+                continue
+            show([next_m], self.session)
+            hide([m], self.session)
+            self.session.logger.status("Showing %s" % next_m)
+            break
+
+    def _shown_changed(self, shown):
+        if shown:
+            # Update panel when it is shown.
+            self.check_model_list = True
+            self._initiate_fill_tree()
 
     def _tree_change_cb(self, item, column):
         from Qt.QtCore import Qt
@@ -383,11 +492,14 @@ class ModelPanel(ToolInstance):
             self.self_initiated = True
             from chimerax.core.commands import StringArg
             run(self.session, "rename %s %s" % (item._model.atomspec, StringArg.unparse(new_name)))
+        elif column == self.SKIP_COLUMN:
+            self.skip_models[model] = item.checkState(self.SKIP_COLUMN) == Qt.CheckState.Checked
 
 
 class ModelPanelSettings(Settings):
     AUTO_SAVE = {
-        'last_use': None
+        'last_use': None,
+        'show_sequential_controls': False
     }
 
 def close(models, session):

@@ -540,16 +540,20 @@ class MouseModes:
             lm = self._last_mode
             if lm is not None and hasattr(lm, 'mouse_up'):
                 # Another button was pressed so release current mouse mode.
-                lm.mouse_up(MouseEvent(event, modifiers=modifiers))
+                try:
+                    lm.mouse_up(MouseEvent(event, modifiers=modifiers))
+                except Exception as e:
+                    self.session.logger.warning(f'Mouse release error: {str(e)}')
             self._last_mode = m
             self.session.ui.dismiss_context_menu()	# Work around Qt 6.4 bug.
         else:
             m = self._last_mode	     # Stay with same mode until button up even if modifier keys change.
+            if action == 'mouse_up':
+                self._last_mode = None
+
         if m and hasattr(m, action):
             f = getattr(m, action)
             f(MouseEvent(event, modifiers=modifiers))
-        if action == 'mouse_up':
-            self._last_mode = None
 
     def _event_type(self, event):
         modifiers = key_modifiers(event)

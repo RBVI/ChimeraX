@@ -67,11 +67,11 @@ def cmd_addcharge(session, residues, *, method=ChargeMethodArg.default_value,
         session.logger.info("Here are the structures will non-integral total charge along with the"
             " particular residues from those structures with non-integral total charge:")
         for s, res_info in non_integral_info.items():
-            if len(res_info) == len([r for r in s.residues if r.num_atoms > 1]):
+            if s.num_residues > 1 and len(res_info) == len([r for r in s.residues if r.num_atoms > 1]):
                 res_info_text = "all residues"
             else:
-                res_info = commas(["%s: %g" % (r,c) for r, c in res_info], conjunction="and")
-            session.logger.info(f"{s}: {res_info}")
+                res_info_text = commas(["%s: %g" % (r,c) for r, c in res_info], conjunction="and")
+            session.logger.info(f"{s}: {res_info_text}")
 
 def cmd_addcharge_nonstd(session, residues, res_name, net_charge, *,
         method=ChargeMethodArg.default_value):
@@ -83,7 +83,11 @@ def cmd_addcharge_nonstd(session, residues, res_name, net_charge, *,
         raise UserError(f"No specified residues are named '{res_name}'")
 
     check_hydrogens(session, residues)
-    add_nonstandard_res_charges(session, residues, net_charge, method=method, status=session.logger.status)
+    try:
+        add_nonstandard_res_charges(session, residues, net_charge, method=method,
+            status=session.logger.status)
+    except ChargeError as e:
+        raise UserError(str(e))
 
 def check_hydrogens(session, residues):
     atoms = residues.atoms

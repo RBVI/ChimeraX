@@ -32,6 +32,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>surfaces</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;]
 [&nbsp;<b>hisScheme</b>&nbsp;&nbsp;HID&nbsp;|&nbsp;HIE&nbsp;|&nbsp;HIP&nbsp;]
 [&nbsp;<b>chargeMethod</b>&nbsp;<b>am1-bcc</b>&nbsp;|&nbsp;gasteiger&nbsp;]
+[&nbsp;<b>reassignCharges</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
 &nbsp;<i><a href="#map-options">map-options</a></i>&nbsp;
@@ -55,9 +56,19 @@ by <a href="https://ambermd.org/antechamber/antechamber.html"
 target="_blank"><b>Antechamber</b></a>
 according to the <b>chargeMethod</b> option (default <b>am1-bcc</b>)
 (<a href="#charges">details...</a>).
+</p><p>
+Giving <b>reassignCharges true</b> is needed only when atomic charges
+were already present (such as from prior use
+of <b>coulombic</b> or <a href="addcharge.html"><b>addcharge</b></a>),
+but either of the following occurred after those charges were assigned:
 </p>
-</blockquote>
-<!-- and a <a href="#volume">grid</a> of the values can be generated -->
+</ul>
+<li>the <a href="../atomtypes.html">atom type</a> of one or more atoms was 
+changed and the user wishes the Coulombic calculation to reflect that change
+<li>explicit hydrogen atoms were deleted
+(<i>e.g.</i>, to make the molecular surface of a protein less rugged)
+</ul>
+<p>
 See also: 
 <a href="key.html"><b>key</b></a>,
 <a href="color.html#map"><b>color electrostatic</b></a>,
@@ -273,5 +284,5 @@ used to compute the ESP (default <b>5.0</b> &Aring;).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2023</address>
+December 2023</address>
 </body></html>

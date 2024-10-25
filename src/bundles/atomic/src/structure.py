@@ -30,7 +30,7 @@ from chimerax.graphics import Drawing, Pick
 
 # If STRUCTURE_STATE_VERSION changes, then bump the bundle's
 # (maximum) session version number.
-STRUCTURE_STATE_VERSION = 3
+STRUCTURE_STATE_VERSION = 5
 
 # Auto-styling tunables
 MULTI_SHADOW_THRESHOLD = 300_000  # reduce amount of shadow rays if more than threshold atoms
@@ -297,7 +297,7 @@ class Structure(Model, StructureData):
         StructureData.set_color(self, rgba)
         Model.set_color(self, rgba)
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         residues = self.residues
         ribbon_displays = residues.ribbon_displays
         from chimerax.core.colors import most_common_color
@@ -311,14 +311,14 @@ class Structure(Model, StructureData):
             most_common_color(atoms.colors)
         return self.color
 
-    def _set_model_color(self, color):
-        Model.model_color.fset(self, color)
+    def _set_overall_color(self, color):
+        Model.overall_color.fset(self, color)
         self.atoms.colors = color
         residues = self.residues
         residues.ribbon_colors = color
         residues.ring_colors = color
 
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = property(_get_overall_color, _set_overall_color)
 
     def _get_spline_normals(self):
         return self._use_spline_normals
@@ -1281,6 +1281,7 @@ class AtomicStructure(Structure):
                 self._report_res_info(session)
             self._report_assemblies(session)
             self._report_model_info(session)
+            self._report_altloc_info(session)
 
     def apply_auto_styling(self, set_lighting = False, style=None):
         explicit_style = style is not None
@@ -1738,6 +1739,13 @@ class AtomicStructure(Structure):
         html = assembly_html_table(self)
         if html:
             session.logger.info(html, is_html=True)
+
+    def _report_altloc_info(self, session):
+        atoms = self.atoms
+        num_al_atoms = len(atoms.filter(atoms.num_alt_locs > 0))
+        if num_al_atoms == 0:
+            return
+        session.logger.info('%d atoms have alternate locations.  Control/examine alternate locations with <b><a href="cxcmd:help help:user/tools/altlocexplorer.html">Altloc Explorer</a></b> [<a href="cxcmd:ui tool show \'Altloc Explorer\'">start&nbsp;tool...</a>] or the <b><a href="cxcmd:help altlocs">altlocs</a></b> command.' % num_al_atoms, is_html=True)
 
     def show_info(self):
         from chimerax.core.commands import run, concise_model_spec
@@ -2573,6 +2581,12 @@ def selected_residues(session):
     sel_atoms = concatenate((selected_atoms(session),)
         + selected_bonds(session, inter_residue=False).atoms, Atoms)
     return sel_atoms.residues.unique()
+
+# -----------------------------------------------------------------------------
+#
+def selected_chains(session):
+    '''All selected chains in all structures as an :class:`.Chains` collection.'''
+    return selected_residues(session).chains.unique()
 
 # -----------------------------------------------------------------------------
 #

@@ -14,7 +14,7 @@ Basic Usage
 """
 
 
-def tag(pure, limited=None):
+def tag(pure, limited=None, universal=False):
     """Return the tag part of a wheel filename for this version of Python.
 
     https://www.python.org/dev/peps/pep-0491/#file-name-convention
@@ -26,9 +26,11 @@ def tag(pure, limited=None):
     Parameters:
     -----------
     pure : boolean
-        Whether the bundle only contains Python code (no C/C++)
-    limited : string
-        Python version major[.minor[.micro]]
+        Whether the bundle only contains Python code or is a binary bundle
+    limited : instance of package.version.Version
+        Minimum Python version major[.minor[.micro]] for limited binary API
+    universal : boolean
+        Whether universal binary builds are wanted (macOS only)
 
     Returns:
     --------
@@ -37,10 +39,11 @@ def tag(pure, limited=None):
     """
     import sys
     from packaging import tags
+
     vi = sys.version_info
     if pure:
         if limited:
-            version = ''.join(str(v) for v in limited.release[:2])
+            version = "".join(str(v) for v in limited.release[:2])
             tag = tags.Tag(f"py{version}", "none", "any")
         else:
             # savvy developers can handle default of all versions of Python 3
@@ -49,19 +52,24 @@ def tag(pure, limited=None):
         target = None
         if sys.platform == "darwin":
             import os
+
             target = os.environ.get("MACOSX_DEPLOYMENT_TARGET", None)
             if target:
                 target = f"_{target.replace('.', '_')}_"
+        else:
+            universal = False
         # use most specific tag, e.g., manylinux2014_x86_64 instead of linux_x86_64
         if limited:
             abi = f"abi{limited.major}"
             if limited.release < (3, 2):
                 version = "32"
             else:
-                version = ''.join(str(v) for v in limited.release[:2])
+                version = "".join(str(v) for v in limited.release[:2])
             interpreter = f"{tags.interpreter_name()}{version}"
         for tag in tags.sys_tags():
             if target and target not in tag.platform:
+                continue
+            if universal and 'universal' not in tag.platform:
                 continue
             if not limited:
                 break
@@ -75,6 +83,7 @@ def tag(pure, limited=None):
 if "__main__" in __name__:
     import sys
     import getopt
+
     pure = False
     limited = False
     opts, args = getopt.getopt(sys.argv[1:], "pl:")
@@ -83,5 +92,6 @@ if "__main__" in __name__:
             pure = True
         elif opt == "-l":
             from packaging.version import Version
+
             limited = Version(val)
     print(tag(pure, limited))

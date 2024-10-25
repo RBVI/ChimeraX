@@ -27,11 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>label</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;atoms&nbsp;|&nbsp;<b>residues</b>&nbsp;|&nbsp;bonds&nbsp;|&nbsp;pseudobonds&nbsp;]
-<!--
-[&nbsp;<b>atoms</b>&nbsp;|&nbsp;<b>residues</b>&nbsp;|&nbsp;<b>bonds</b>&nbsp;|&nbsp;<b>pseudobonds</b>&nbsp;]
-[&nbsp;<a href="#text"><b>text</b></a>&nbsp;&nbsp;<i>label-contents</i>&nbsp;|&nbsp;<b>default</b>&nbsp;]
--->
+[&nbsp;<i>level</i>&nbsp;]
 [&nbsp;<a href="#color"><b>color</b></a>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>default</b>&nbsp;]
 [&nbsp;<a href="#height"><b>height</b></a>&nbsp;&nbsp;<i>h</i>&nbsp;|&nbsp;fixed&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a>
@@ -39,10 +35,10 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>label
 delete</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;atoms&nbsp;|&nbsp;residues&nbsp;|&nbsp;bonds&nbsp;|&nbsp;pseudobonds&nbsp;]
+[&nbsp;<i>level</i>&nbsp;]
 <br>&ndash; or &ndash;<br>
 <b>~label</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;atoms&nbsp;|&nbsp;residues&nbsp;|&nbsp;bonds&nbsp;|&nbsp;pseudobonds&nbsp;]
+[&nbsp;<i>level</i>&nbsp;]
 </h3>
 <a name="listfonts"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -50,9 +46,9 @@ delete</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 </h3>
 <p>
 The <b>label</b> command shows labels that move along with the associated
-<b>atoms</b>, <b>residues</b>, <b>bonds</b>, or <b>pseudobonds</b> in 3D,
-with <a href="#text">default contents</a>: atom name, residue name and number,
-and bond or <a href="../pseudobonds.html">pseudobond</a> length.
+items in 3D. These &ldquo;3D&rdquo; (although flat in appearance)
+labels can be of multiple colors and sizes. 
+A label is automatically hidden, however, when the corresponding item is hidden.
 See also: 
 <a href="#settings">label settings</a>,
 <a href="distance.html"><b>distance</b></a>,
@@ -60,23 +56,43 @@ See also:
 <a href="../menu.html#actions"><b>Actions</b> menu</a>,
 <a href="../measurements.html">measurements</a>
 </p><p>
-These &ldquo;3D&rdquo; (although flat in appearance)
-labels can be of multiple colors and sizes, and both atom and residue 
-labels can be shown for the same atom at the same time.
-A label is automatically hidden, however, when the corresponding item (atom,
-residue, bond, or <a href="../pseudobonds.html">pseudobond</a>) is hidden.
-</p><p>
+The type of items to label can be indicated with one of the following 
+<i>level</i> keywords, with <a href="#text">default</a> label contents:
+</p>
+<ul>
+<li><b>atoms</b> &ndash; atom name
+<li><b>residues</b> &ndash; residue name and number
+<li><b>models</b> &ndash; model name
+<li><b>bonds</b> &ndash; bond length
+<li><b>pseudobonds</b>
+&ndash; <a href="../pseudobonds.html">pseudobond</a> length
+</ul>
+<p>
 Adding new labels with the <b>label</b> command requires a
-non-blank <a href="atomspec.html"><i>atom-spec</i></a>. 
+non-blank <a href="atomspec.html"><i>atom-spec</i></a>, although the
+word <b>all</b> can be used to indicate all applicable 3D data.
 For <b>label</b> with a non-blank <a href="atomspec.html"><i>atom-spec</i></a>,
-the default is to add (or change, if pre-existing) labels of <b>residues</b>,
-although labels of <b>atoms</b>, <b>bonds</b>, or <b>pseudobonds</b> can be
-specified instead.
+the default <i>level</i> of labels to add (or change) is:
+<ul>
+<li><b>residues</b> if atoms are specified
+<li><b>pseudobonds</b> if <a href="../pseudobonds.html">pseudobonds</a>
+are specified
+<li>otherwise <b>models</b>
+</ul>
+<p>
+Model-label examples:
+</p>
+<blockquote>
+<b>label #3-8 models</b>
+<br>
+<b>label all models</b>
+</blockquote>
+<p>
 For <b>label</b> with a blank <a href="atomspec.html"><i>atom-spec</i></a>,
-or <b>label delete</b> regardless of whether the 
+or <b>label delete</b> regardless of whether the
 <a href="atomspec.html"><i>atom-spec</i></a> is blank, the default is 
-all types of 3D labels unless explicitly limited to one of
-<b>atoms</b>, <b>residues</b>, <b>bonds</b>, or <b>pseudobonds</b>.
+all types of 3D labels unless explicitly limited to one of the types
+with the corresonding keyword (<b>atoms</b>, <b>residues</b>, <i>etc.</i>).
 The command <b>~label</b> is the same as <b>label delete</b>.
 </p><p>
 The command <b>label listfonts</b> lists the possible <a href="#font">fonts</a>
@@ -112,7 +128,9 @@ Specify label contents, which can be an arbitrary string or information
 on the labeled items. The <b>default</b> information is:
 <ul>
 <li>for <b>atoms</b>, atom name
-<li>for <b>residues</b> (default), residue name and number
+<li>for <b>residues</b> (default), residue name, number,
+and insertion code (if any)
+<li>for <b>models</b>, model name
 <li>for <b>bonds</b> or <b>pseudobonds</b>, length 
 </ul>
 For other <a href="../attributes.html">attributes</a> of the items,
@@ -199,7 +217,8 @@ behind the label text (default <b>none</b>, no background).
 <br>
 Set label height in &Aring; (default <i>h</i> specified in the
 <a href="../preferences.html#labels"><b>Labels</b> preferences</a>
-or with <a href="#defaultHeight"><b>label defaultHeight</b></a>)
+or with <a href="#defaultHeight"><b>label defaultHeight</b></a>
+or <a href="#defaultModelHeight"><b>label defaultModelHeight</b></a>)
 or keep label size <b>fixed</b> relative to the screen.
 The related <a href="#size"><b>size</b></a> option sets label quality,
 or if <b>height</b> is <b>fixed</b>, the label pixel size.
@@ -228,13 +247,21 @@ Those containing spaces must be enclosed in quotation marks.
 <blockquote>
 <b>offset</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>default</b>
 <br>
-Specify an absolute offset for a label as
-three comma-separated values <i>x,y,z</i> representing distances along the
-X-, Y-, and Z-axes in the 
-<a href="view.html#screencoords">screen coordinate system</a>.
-Negative values can be given.
-<!-- Label offsets can also be adjusted with the mouse. -->
-The default offset is <b>(<i>display_radius</i> + 0.2),0,0.5</b>.
+Specify an absolute offset for a label as three comma-separated values
+<i>x,y,z</i> along the X-, Y-, and Z-axes in the 
+<a href="view.html#screencoords">screen coordinate system</a>
+in the distance units of the data (usually &Aring;).
+The offset is the position of the lower left corner of the label rectangle
+relative to the center of the labeled item. Negative values can be given.
+The default offset is:
+<ul>
+<li><b>(<i>radius</i> + 0.2),0,0.5</b>
+for atoms, bonds, and <a href="../pseudobonds.html">pseudobonds</a>
+<li><b>0,0,0</b> for residues
+<li><b>&ndash;0.25(<i>radius</i>),&ndash;<i>radius</i>,0</b> for models,
+where the radius of a model is half the length of its bounding box 
+(largest of X, Y, Z dimensions)
+</ul>
 </blockquote>
 
 <blockquote>
@@ -266,6 +293,17 @@ for 3D label <a href="#height">height</a> in distance units.
 </p>
 
 <blockquote>
+<a name="defaultModelHeight"></a>
+<a href="usageconventions.html">Usage</a>:
+<b>label defaultModelHeight</b> &nbsp;<i>h</i>
+</blockquote>
+<p>
+The command <b>label defaultModelHeight</b>
+sets the <a href="../preferences.html#labels"><b>Labels</b> preference</a>
+for model 3D label <a href="#height">height</a> in distance units.
+</p>
+
+<blockquote>
 <a name="orient"></a>
 <a href="usageconventions.html">Usage</a>:
 <b>label orient</b> [&nbsp;<i>update-angle</i>&nbsp;]
@@ -286,5 +324,5 @@ those with <a href="#height">fixed heights</a> always face the viewer.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2023</address>
+February 2024</address>
 </body></html> 

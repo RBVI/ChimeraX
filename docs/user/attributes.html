@@ -36,7 +36,7 @@ as a floating-point atom attribute named <b>bfactor</b>.
 Attributes can be:
 </p>
 <ul>
-<li>used in
+<li>used in <a href="tools/render.html#select">selection</a> and 
 <a href="commands/atomspec.html#attributes">command-line specification</a>
 <li>shown with coloring (<a href="commands/color.html#byattribute"><b>color
 byattribute</b></a>, <a href="tools/render.html"><b>Render by Attribute</b></a>)
@@ -261,8 +261,9 @@ that does not have any ribbon, such as water)</td>
 (however, this can be true even when the residue is a type
 that does not have any ribbon, such as water)</td>
 </tr><tr>
-<td align=center><b>seq_conservation</b></td>
+<td align=center><b>seq_conservation=</b><i>cons</i></td>
 <td class="text">
+<i>cons</i> is the
 <a href="tools/sequenceviewer.html#settings-headers">Conservation header</a>
 value in the 
 <a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a> for the column 
@@ -270,8 +271,9 @@ value in the
 the alignment must contain at least two sequences
 </td>
 </tr><tr>
-<td align=center><b>seq_rmsd</b></td>
+<td align=center><b>seq_rmsd=</b><i>rmsd</i></td>
 <td class="text">
+<i>rmsd</i> is the
 <a href="tools/sequenceviewer.html#settings-headers">RMSD header</a>
 value in the 
 <a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a> for the column 
@@ -279,6 +281,13 @@ value in the
 the attribute exists only when at least two structure chains from 
 different models are associated with the alignment and the RMSD header is shown
 </td>
+</tr><tr>
+<td align=center><b>worm_radius=</b><i>wrad</i></td>
+<td class="text"><i>wrad</i> is the radius of a biopolymer residue in a 
+worm representation previously generated with 
+<a href="tools/render.html"><b>Render by Attribute</b></a> or the 
+<a href="commands/cartoon.html#byattribute"><b>cartoon byattribute</b></a>
+(<a href="commands/cartoon.html#worm"><b>worm</b></a>) command</td>
 </tr><tr>
 <td align=center><b>asym_detail=</b><i>value</i></td>
 <td class="text">the <i>value</i> for a chain in
@@ -379,5 +388,5 @@ from the <a href="https://www.wwpdb.org" target="_blank">wwPDB</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2023</address>
+April 2024</address>
 </body></html>

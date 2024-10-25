@@ -1472,16 +1472,24 @@ class SeqCanvas:
         """
 
     def _label_scene(self, grid=True):
+        from Qt.QtCore import Qt
         if self.wrap_okay():
             label_scene = self.main_scene
             if grid:
                 self.label_view.hide()
                 #self._vdivider.hide()
+
+                self.label_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+                self.main_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         else:
             label_scene = self.label_scene
             if grid:
                 self.label_view.show()
                 #self._vdivider.show()
+
+                # Having only one scroll bar showing causes labels not to align with sequences on Mac
+                self.label_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+                self.main_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         return label_scene
 
     """
@@ -1936,8 +1944,8 @@ class SeqBlock:
                 color = numpy.sum(colors, axis=0) / len(colors)
             else:
                 struct = structures.pop()
-                if struct.model_color is not None:
-                    color = struct.model_color
+                if struct.overall_color is not None:
+                    color = struct.overall_color
                 else:
                     colors = struct.atoms.colors
                     color = numpy.sum(colors, axis=0) / len(colors)

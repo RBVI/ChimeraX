@@ -53,6 +53,7 @@ class AlphaFoldRun(ToolInstance):
     # it has been updated to AlphaFold 2.2.0.  I am using the same file for the update so older
     # ChimeraX versions make use of the latest AlphaFold version.
     _ipython_notebook_url = 'https://colab.research.google.com/github/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/alphafold21_predict_colab.ipynb'
+#    _ipython_notebook_url = 'https://colab.research.google.com/github/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/colabfold_predict_test.ipynb'
     # Do not use alphafold_test_colab.ipynb since that was accidentally used by ChimeraX distributions
     # from April 4, 2022 to May 25, 2022.  Bug #6958.  So use a new alphafold_test2_colab.ipynb instead.
     # _ipython_notebook_url = 'https://colab.research.google.com/github/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/alphafold_test2_colab.ipynb'
@@ -106,12 +107,18 @@ class AlphaFoldRun(ToolInstance):
             self._run()
 
     def _page_loaded(self, okay):
-        if okay:
-            # Need to delay setting sequence and running or those do nothing
-            # probably because it is still waiting for some asynchronous setup.
-            delay_millisec = 1000
-            self._keep_timer_alive = self.session.ui.timer(delay_millisec, self._run)
-            # If we don't save the timer in a variable it is deleted and never fires.
+        if not okay:
+            return
+
+        from Qt.QtCore import QUrl
+        if self._browser.page().url() != QUrl(self._ipython_notebook_url):
+            return  # Google sign-in page
+        
+        # Need to delay setting sequence and running or those do nothing
+        # probably because it is still waiting for some asynchronous setup.
+        delay_millisec = 1000
+        # If we don't save the timer in a variable it is deleted and never fires.
+        self._keep_timer_alive = self.session.ui.timer(delay_millisec, self._run)
 
     def _run(self):
         from Qt import qt_object_is_deleted
@@ -128,10 +135,14 @@ class AlphaFoldRun(ToolInstance):
             seqs = 'dont_minimize,' + seqs
         if self._use_pdb_templates:
             seqs = 'use_pdb_templates,' + seqs
-        set_seqs_javascript = ('document.querySelector("paper-input").setAttribute("value", "%s")'
-                               % seqs + '; ' +
-                              'document.querySelector("paper-input").dispatchEvent(new Event("change"))')
-        p.runJavaScript(set_seqs_javascript)
+#        entry = 'document.querySelector("paper-input")'
+        entry = 'document.querySelector("md-outlined-text-field")'
+        set_seqs_javascript = f'{entry}.setAttribute("value", "{seqs}"); {entry}.dispatchEvent(new Event("change"))'
+        p.runJavaScript(set_seqs_javascript, self._send_sequences_status)
+
+    def _send_sequences_status(self, status):
+        if status is not True:
+            self.session.logger.error(f'Alphafold prediction send sequence to Google Colab returned: {status}')
 
     def _run_colab(self):
         p = self._browser.page()
@@ -262,7 +273,7 @@ def _chain_names(chains):
 #
 def _is_alphafold_available(session):
     '''Check if the AlphaFold web service has been discontinued or is down.'''
-    url = 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold21.html'
+    url = 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold23.html'
     import requests
     try:
         r = requests.get(url)
