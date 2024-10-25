@@ -1,6 +1,8 @@
 name: Rebuild on change
 
-on: push
+on:
+  push:
+    branches: [develop, release/*]
 
 jobs:
   rebuild-changed-prereqs:

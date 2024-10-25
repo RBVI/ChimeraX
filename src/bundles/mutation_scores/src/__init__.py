@@ -77,8 +77,11 @@ class _MutationScoresAPI(BundleAPI):
         elif class_name == 'MutationScoresManager':
             from .ms_data import MutationScoresManager
             return MutationScoresManager
-        elif class_name == 'ResidueScatterPlot':
-            from .ms_scatter_plot import ResidueScatterPlot
-            return ResidueScatterPlot
+        elif class_name == 'MutationScatterPlot':
+            from .ms_scatter_plot import MutationScatterPlot
+            return MutationScatterPlot
+        elif class_name == 'MutationHistogram':
+            from .ms_histogram import MutationHistogram
+            return MutationHistogram
 
 bundle_api = _MutationScoresAPI()
