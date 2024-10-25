@@ -87,7 +87,7 @@ runs:
     - name: Sign the application
       shell: bash
       run: |
-        /usr/local/bin/python3.10 utils/build/macos/notarize.py everything \
+        python3.10 utils/build/macos/notarize.py everything \
         -a ChimeraX.app \
         -d ChimeraX.dmg \
         -T $MAC_SIGNING_TEAM_ID \
