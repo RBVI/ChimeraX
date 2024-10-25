@@ -135,6 +135,7 @@ from .classifiers import (
 
 # Python version was 3.7 in ChimeraX 1.0
 CHIMERAX1_0_PYTHON_VERSION = "3.7"
+CHIMERAX_LCD_LINUX_TAG = "manylinux_2_28"
 
 _platforms = {
     "linux": ["linux"],
@@ -518,8 +519,8 @@ class Bundle:
         toml_file = os.path.join(os.path.abspath(bundle_path), "pyproject.toml")
         return cls(logger, read_toml(toml_file))
 
-    def make_wheel(self, debug=False):
-        self.build_wheel()
+    def make_wheel(self, debug=False, release=False):
+        self.build_wheel(debug=debug, release=release)
 
     def make_install(
         self, session, debug=False, user=None, no_deps=None, editable=False
@@ -773,7 +774,7 @@ class Bundle:
             for executable in self.c_executables:
                 executable.compile(self.logger, self.dependencies)
 
-    def _check_output(self, type_="wheel"):
+    def _check_output(self, type_="wheel", report_name=True):
         if type_ == "wheel":
             output = glob.glob(os.path.join(self.path, "dist", "*.whl"))
         elif type == "sdist":
@@ -788,18 +789,55 @@ class Bundle:
             raise RuntimeError(f"Building wheel failed: {self._expected_wheel_name}")
         else:
             name = output[0]
-            if type_ == "wheel":
+            if type_ == "wheel" and report_name:
                 print("Distribution is in %s" % os.path.join("./dist", name))
         return name
 
-    def build_wheel(self):
+    def _repair_wheel(self, wheel):
+        if platform.machine() == "x86_64":
+            tag = "_".join([CHIMERAX_LCD_LINUX_TAG, "x86_64"])
+        else:
+            tag = "_".join([CHIMERAX_LCD_LINUX_TAG, "aarch64"])
+        library_dirs = []
+        for extension in self.c_modules:
+            library_dirs.extend(set(extension.library_dirs))
+        for library in self.c_libraries:
+            library_dirs.extend(set(library.library_dirs))
+        ld_path = ":".join(library_dirs)
+        old_ldpath = os.environ.get("LD_LIBRARY_PATH", "")
+        os.environ["LD_LIBRARY_PATH"] = f"{ld_path}:$LD_LIBRARY_PATH"
+        output = subprocess.check_output([sys.executable, "-m", "auditwheel", "repair", "--plat", tag, "--only-plat", wheel], stderr=subprocess.STDOUT)
+        wheel_name = output.decode().split('\n')[-2].replace("Fixed up wheel written to ", "")
+        if not os.path.exists(wheel_name):
+            pass
+        os.environ["LD_LIBRARY_PATH"] = old_ldpath
+        return wheel_name.split("/")[-1]
+
+    def build_wheel(self, debug=False, release=False):
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         setup_args = ["--no-user-cfg", "build"]
         setup_args.extend(["bdist_wheel"])
         dist, built = self._run_setup(setup_args)
         if not self.version:
             self.version = dist.get_version()
-        wheel = self._check_output(type_="wheel")
+
+        print_wheel_name = True
+        if sys.platform == "linux" and release:
+            print_wheel_name = False
+        wheel = self._check_output(type_="wheel", report_name=print_wheel_name)
+        if sys.platform == "linux" and release:
+            try:
+                old_wheel = wheel
+                wheel = self._repair_wheel(wheel)
+                os.remove(old_wheel)
+                shutil.copy("./wheelhouse/" + wheel, "./dist")
+                print("Distribution is in %s" % os.path.join("./dist", wheel))
+            except subprocess.CalledProcessError:
+                warnings.warn(
+                    "Could not repair wheel to ChimeraX common glibc tag (manylinux_2_28); this wheel is ineligible for release on the toolshed. Use a CentOS 8 container to build the wheel."
+                )
+            finally:
+                shutil.rmtree("./wheelhouse")
         return wheel
 
     def build_sdist(self):
@@ -989,8 +1027,10 @@ class _CompiledCode:
         distutils.sysconfig.customize_compiler(compiler)
         if inc_dirs:
             compiler.set_include_dirs(inc_dirs)
+            self.include_dirs = lib_dirs
         if lib_dirs:
             compiler.set_library_dirs(lib_dirs)
+            self.library_dirs = lib_dirs
         if libraries:
             compiler.set_libraries(libraries)
         compiler.add_include_dir(distutils.sysconfig.get_python_inc())
