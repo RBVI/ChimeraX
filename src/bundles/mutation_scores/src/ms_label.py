@@ -63,14 +63,27 @@ def _residues_by_chain(residues):
 def label_residue(residue, mutation_colors, no_data_color, height = 1.5, offset = (0,0,3), on_top = False):
     # Replace _label_image method of ObjectLabel to supply my own RGBA array
     from chimerax.label.label3d import labels_model, ResidueLabel
-    view = residue.structure.session.main_view
     lm = labels_model(residue.structure, create = True)
+    view = residue.structure.session.main_view
     settings = {'height':height, 'offset':offset}
     lm.add_labels([residue], ResidueLabel, view, settings, on_top)
-    ol = lm.labels([residue])[0]
     title = f'{residue.one_letter_code}{residue.number}'
-    def label_image(self, title = title, mutation_colors = mutation_colors, no_data_color = no_data_color):
-        rgba = label_rgba(title, mutation_colors, no_data_color)
+    rgba = label_rgba(title, mutation_colors, no_data_color)
+    _set_residue_label_image(residue, rgba)
+    _session_save_mutation_label(residue, rgba)
+
+def _set_residue_label_image(residue, rgba):
+    from chimerax.label.label3d import labels_model
+    lm = labels_model(residue.structure)
+    if lm is None:
+        return
+    rlabels = lm.labels([residue])
+    if len(rlabels) == 0:
+        return
+    ol = rlabels[0]
+    ol._mutation_label_rgba = rgba
+    def label_image(self):
+        rgba = self._mutation_label_rgba
         h,w = rgba.shape[:2]
         self._label_size = w,h
         return rgba
@@ -125,6 +138,42 @@ def label_rgba(title, mutation_colors, no_data_color):
     rgba = qimage_to_numpy(ti)
     p.end()
     return rgba
+
+def _session_save_mutation_label(residue, rgba):
+    session = residue.structure.session
+    if not hasattr(session, 'mutation_labels'):
+        session.mutation_labels = MutationLabelSessionSave()
+
+from chimerax.core.state import StateManager
+class MutationLabelSessionSave(StateManager):
+    def take_snapshot(self, session, flags):
+        residues = []
+        images = []
+        from chimerax.atomic import all_atomic_structures
+        from chimerax.label.label3d import labels_model
+        for s in all_atomic_structures(session):
+            lm = labels_model(s)
+            if lm is not None:
+                for label in lm.labels():
+                    if hasattr(label, '_mutation_label_rgba'):
+                        residues.append(label.residue)
+                        images.append(label._mutation_label_rgba)
+        data = {
+            'residues': residues,
+            'images': images,
+            'version': '1'}
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        mlss = cls()
+        for r,rgba in zip(data['residues'], data['images']):
+            _set_residue_label_image(r, rgba)
+        return mlss
+
+    def reset_state(self, session):
+        pass
+
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, FloatArg, Float3Arg, BoolArg
