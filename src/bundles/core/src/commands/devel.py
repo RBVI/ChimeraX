@@ -91,7 +91,7 @@ devel_unalias_desc = CmdDesc(required=[("name", StringArg)],
                              synopsis='Remove alias for bundle path')
 
 
-def devel_build(session, path, test=None, debug=False, exit=False):
+def devel_build(session, path, test=None, debug=False, exit=False, release=False):
     '''Build a wheel in for the source code in bundle path.
 
     Parameters
@@ -109,13 +109,14 @@ def devel_build(session, path, test=None, debug=False, exit=False):
         from chimerax.bundle_builder import BundleBuilder
     else:
         from chimerax.bundle_builder import BundleBuilderTOML as BundleBuilder
-    _run(path, session.logger, exit, BundleBuilder.make_wheel, debug=debug)
+    _run(path, session.logger, exit, BundleBuilder.make_wheel, debug=debug, release=release)
 
 
 devel_build_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
                            keyword=[("test", BoolArg),
                                     ("debug", BoolArg),
-                                    ("exit", BoolArg)],
+                                    ("exit", BoolArg),
+                                    ("release", BoolArg)],
                            synopsis='Build a wheel for bundle')
 
 
