@@ -112,6 +112,7 @@ class SimilarStructurePlot(UmapPlot):
         self._similar_structures_id = similar_structures_id
         self._query_residues = query_residues
         self._cluster_colors = dict(zip(structure_names, colors)) if colors is not None else None
+        self._species_to_color = None
         UmapPlot.set_nodes(self, structure_names, umap_xy, colors)
 
     @property
