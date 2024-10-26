@@ -342,11 +342,13 @@ def parse_search_result(line, database):
     xyz = array([float(x) for x in values['tca'].split(',')], float32)
     n = len(xyz)//3
     values['tca'] = xyz.reshape((n,3))
-    values['database'] = database
     if database == 'pdb100':
         values.update(parse_pdb100_theader(values['theader']))
+        db = 'pdb'
     if database.startswith('afdb'):
         values.update(parse_alphafold_theader(values['theader']))
+        db = 'afdb'
+    values['database'] = db
     values['coordinate_indexing'] = True	# Alignment indexing includes only residues with coordinates
     return values
 
