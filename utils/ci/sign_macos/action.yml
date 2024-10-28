@@ -66,13 +66,13 @@ runs:
       shell: bash
       run: |
         export CHIMERAX_VERSION="${$(echo ${{ github.ref }} | cut -d'/' -f 4):1}"
-        export CHIMERAX_APP_NAME=ChimeraX-$CHIMERAX_VERSION.app >> $GITHUB_ENV
+        echo CHIMERAX_APP_NAME=ChimeraX-$CHIMERAX_VERSION.app >> $GITHUB_ENV
 
     - name: Put the app name in GITHUB_ENV (daily)
       if: ${{ inputs.release_type == 'daily' }}
       shell: bash
       run: |
-        export CHIMERAX_APP_NAME=ChimeraX_Daily.app >> $GITHUB_ENV
+        echo CHIMERAX_APP_NAME=ChimeraX_Daily.app >> $GITHUB_ENV
 
     - name: Put the app name in GITHUB_ENV (candidate)
       if: ${{ inputs.release_type == 'candidate' }}
@@ -80,13 +80,19 @@ runs:
       run: |
         export CHIMERAX_VERSION="${$(echo ${{ github.ref }} | cut -d'/' -f 4):1}"
         export CHIMERAX_DATE=$(date +'%Y.%m.%d')
-        export CHIMERAX_APP_NAME=ChimeraX-$CHIMERAX_VERSION-rc$CHIMERAX_DATE.app >> $GITHUB_ENV
+        echo CHIMERAX_APP_NAME=ChimeraX-$CHIMERAX_VERSION-rc$CHIMERAX_DATE.app >> $GITHUB_ENV
 
     - name: Put the app name in GITHUB_ENV (techpreview)
       if: ${{ inputs.release_type == 'techpreview' }}
       shell: bash
       run: |
-        export CHIMERAX_APP_NAME=ChimeraX_Techpreview.app >> $GITHUB_ENV
+        echo CHIMERAX_APP_NAME=ChimeraX_Techpreview.app >> $GITHUB_ENV
+
+    - name: Put the app name in GITHUB_ENV (techpreview)
+      if: ${{ inputs.release_type == 'canary' }}
+      shell: bash
+      run: |
+        echo CHIMERAX_APP_NAME=ChimeraX_Canary.app >> $GITHUB_ENV
 
     - name: Rename the generic ChimeraX.app to the build name and patch dmgbuildsettings
       shell: bash
