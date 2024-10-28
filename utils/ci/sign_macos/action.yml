@@ -98,7 +98,8 @@ runs:
       shell: bash
       run: |
         mv ChimeraX.app $CHIMERAX_APP_NAME
-        sed "s/ChimeraX.app/$CHIMERAX_APP_NAME/" utils/build/macos/dmgbuildsettings.json > utils/build/macos/dmgbuildsettings.json
+        sed "s/ChimeraX.app/$CHIMERAX_APP_NAME/" utils/build/macos/dmgbuildsettings.json > dmgbuildsettings.json
+        mv dmgbuildsettings.json utils/build/macos/dmgbuildsettings.json
 
     - name: Install the Apple certificate and provisioning profile
       shell: bash
