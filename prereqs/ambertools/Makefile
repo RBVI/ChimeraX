@@ -130,10 +130,12 @@ install: $(SOURCE)
 
 app-install: install
 	-mkdir -p $(AMBERBIN_DST) $(AMBERDAT_ANTECHAMBER_DST) $(AMBERDAT_PARM_DST)
-	$(RSYNC) $(AMBERBIN_SRC)/* --exclude wrapped_progs $(AMBERBIN_DST)
+	# nccopy has an out-of-app rpath, so instead of doing a bunch of fancy massaging, just
+	# exclude it since we don't need it
+	$(RSYNC) $(AMBERBIN_SRC)/* --exclude wrapped_progs --exclude nccopy $(AMBERBIN_DST)
 	# Some executables live directly in bin, but many are shell scripts whose
 	# executables are in the "wrapped_progs" subdir; overwrite those...
-	$(RSYNC) $(AMBERBIN_SRC)/wrapped_progs/* $(AMBERBIN_DST)
+	$(RSYNC) $(AMBERBIN_SRC)/wrapped_progs/* --exclude nccopy $(AMBERBIN_DST)
 	$(RSYNC) $(AMBERDAT_ANTECHAMBER_SRC)/* $(AMBERDAT_ANTECHAMBER_DST)
 	$(RSYNC) $(AMBERDAT_PARM_SRC)/gaff2.dat $(AMBERDAT_PARM_DST)
 	$(RSYNC) $(AMBERLIB_SRC)/*.$(SHLIB_EXT) $(app_libdir)
