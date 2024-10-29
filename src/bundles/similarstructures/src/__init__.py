@@ -62,9 +62,9 @@ class _SimilarStructuresBundle(BundleAPI):
         elif command_name == 'sequence search':
             from . import mmseqs2_search
             mmseqs2_search.register_mmseqs2_search_command(logger)
-        elif command_name == 'sequence blast':
+        elif command_name == 'similarstructures blast':
             from . import blast_search
-            blast_search.register_sequence_blast_command(logger)
+            blast_search.register_similar_structures_blast_command(logger)
         elif command_name == 'similarstructures fromblast':
             from . import blast_search
             blast_search.register_similar_structures_from_blast_command(logger)
