@@ -454,14 +454,14 @@ class SimilarStructures(State):
 
         db_id = hit.get('database_id')
         if in_file_history:
-            from_db = 'from alphafold' if hit['database'] == 'afdb' else ''
+            from_db = 'from alphafold' if hit['database'].startswith('afdb') else ''
             open_cmd = f'open {db_id} {from_db}'
             if not log:
                 open_cmd += ' logInfo false'
             from chimerax.core.commands import run
             structures = run(session, open_cmd, log = log)
         else:
-            kw = {'from_database': 'alphafold'} if hit['database'] == 'afdb' else {}
+            kw = {'from_database': 'alphafold'} if hit['database'].startswith('afdb') else {}
             structures, status = session.open_command.open_data(db_id, log_info = log, **kw)
             session.models.add(structures)
 
