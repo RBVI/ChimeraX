@@ -73,20 +73,7 @@ class _SimilarStructuresBundle(BundleAPI):
     def run_provider(session, name, mgr, **kw):
         if mgr == session.open_command:
             from chimerax.open_command import OpenerInfo
-            if name == 'Foldseek':
-                class FoldseekInfo(OpenerInfo):
-                    def open(self, session, path, file_name, **kw):
-                        from . import foldseek_search
-                        return foldseek_search.open_foldseek_m8(session, path, query_chain = kw.get('chain'))
-                    @property
-                    def open_args(self):
-                        from chimerax.core.commands import EnumOf
-                        from chimerax.atomic import ChainArg
-                        from .foldseek_search import foldseek_databases
-                        return { 'chain': ChainArg,
-                                 'database': EnumOf(foldseek_databases)}
-                return FoldseekInfo()
-            elif name == 'Similar Structures':
+            if name == 'Similar Structures':
                 class SimilarStructuresInfo(OpenerInfo):
                     def open(self, session, path, file_name, **kw):
                         from .simstruct import SimilarStructures
@@ -100,6 +87,19 @@ class _SimilarStructuresBundle(BundleAPI):
                         from chimerax.core.commands import EnumOf, BoolArg
                         return { 'show_table': BoolArg, }
                 return SimilarStructuresInfo()
+            elif name == 'Foldseek':
+                class FoldseekInfo(OpenerInfo):
+                    def open(self, session, path, file_name, **kw):
+                        from . import foldseek_search
+                        return foldseek_search.open_foldseek_m8(session, path, query_chain = kw.get('chain'))
+                    @property
+                    def open_args(self):
+                        from chimerax.core.commands import EnumOf
+                        from chimerax.atomic import ChainArg
+                        from .foldseek_search import foldseek_databases
+                        return { 'chain': ChainArg,
+                                 'database': EnumOf(foldseek_databases)}
+                return FoldseekInfo()
 
     # Make class name to class for session restore
     @staticmethod

@@ -18,16 +18,17 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="Foldseek" synopsis="Foldseek structure similarity hits" category="Structure Analysis"
+    <Provider name="Similar Structures" synopsis="Similar structures from database searches"
+	      category="Structure Analysis" suffixes=".sms" nicknames="sms"
+	      reference_url="https://www.rbvi.ucsf.edu/chimerax/data/simstruct-doc-oct2024/simstruct.html#smsfile" />
+    <!-- Provider name="Foldseek" synopsis="Foldseek structure similarity hits" category="Structure Analysis"
 		suffixes=".m8" nicknames="foldseek"
-		reference_url="https://github.com/steineggerlab/foldseek?tab=readme-ov-file#output-search" />
-    <Provider name="Similar Structures" synopsis="List of similar structures found from database searches"
-	      category="Structure Analysis" suffixes=".sms" nicknames="sms" />
+		reference_url="https://github.com/steineggerlab/foldseek?tab=readme-ov-file#output-search" -->
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="Foldseek" want_path="true" />
     <Provider name="Similar Structures" want_path="true" />
+    <!-- Provider name="Foldseek" want_path="true" -->
   </Providers>
 
   <Classifiers>
