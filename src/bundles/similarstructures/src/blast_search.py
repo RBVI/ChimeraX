@@ -22,10 +22,10 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def sequence_blast(session, chain, database = 'pdb',
-                   evalue_cutoff = 1e-3, max_hits = 1000,
-                   trim = None, alignment_cutoff_distance = None,
-                   save_directory = None):
+def similar_structures_blast(session, chain, database = 'pdb',
+                             evalue_cutoff = 1e-3, max_hits = 1000,
+                             trim = None, alignment_cutoff_distance = None,
+                             save_directory = None):
     '''Search PDB for similar sequences and display results in a table.'''
 
     blast_db = {'pdb':'pdb', 'afdb':'alphafold'}[database]
@@ -217,7 +217,7 @@ def register_similar_structures_from_blast_command(logger):
     )
     register('similarstructures fromblast', desc, similar_structures_from_blast, logger=logger)
         
-def register_sequence_blast_command(logger):
+def register_similar_structures_blast_command(logger):
     from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg, IntArg
     from chimerax.atomic import ChainArg
     TrimArg = Or(ListOf(EnumOf(['chains', 'sequence', 'ligands'])), BoolArg)
@@ -232,4 +232,4 @@ def register_sequence_blast_command(logger):
                    ],
         synopsis = 'Search for proteins with similar sequences using RBVI BLAST web service'
     )
-    register('sequence blast', desc, sequence_blast, logger=logger)
+    register('similarstructures blast', desc, similar_structures_blast, logger=logger)
