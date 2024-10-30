@@ -936,6 +936,12 @@ def hit_coords(hit):
     hxyz = hit.get('tca')
     return hxyz
 
+def hit_sequence(hit):
+    '''
+    Return a map from hit coordinate index to sequence 1 letter code.
+    '''
+    return {ci:aa for aa, ci in zip(hit['taln'], range(hit['tstart']-1, hit['tend'])) if ci != '-'}
+
 def _hit_sequence_to_coordinate_index(hit):
     '''Return dictionary mapping hit sequence indices (0-based) to coordinate indices (0-based).'''
     hit_coord_to_seq_index = hit.get('tca_index')  # Array mapping coordinate index to full sequence index

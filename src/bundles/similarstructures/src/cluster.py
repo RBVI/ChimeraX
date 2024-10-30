@@ -200,11 +200,12 @@ class SimilarStructurePlot(UmapPlot):
             from chimerax.core.colors import rgba_to_rgba8
             n2c = {node.name:rgba_to_rgba8(node.color) for node in self.nodes}
             for tmodel in tmodels:
-                vc = tmodel.get_vertex_colors(create = True)
-                for tname, vstart, vend in tmodel.trace_vertex_ranges():
-                    if tname in n2c:
-                        vc[vstart:vend] = n2c[tname]
-                tmodel.vertex_colors = vc
+                for c in tmodel.chains:
+                    color = n2c.get(c.chain_id)
+                    if color is not None:
+                        r = c.existing_residues
+                        r.ribbon_colors = color
+                        r.atoms.colors = color
 
     def _cluster_names(self, node):
         return [n.name for n in self.nodes if n.color == node.color]
