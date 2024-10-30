@@ -368,10 +368,11 @@ class SimilarStructures(State):
             filename += f'_{self.program}'
         if self.program_database:
             filename += f'_{self.program_database}'
+        prefix = filename
         filename += '.sms'
         count = 1
         while exists(join(directory, filename)):
-            filename = filename[:-4] + f'_{count}.sms'
+            filename = prefix + f'_{count}.sms'
             count += 1
         return filename
 
