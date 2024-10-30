@@ -56,7 +56,7 @@ def similar_structures_traces(session, align_with = None, alignment_cutoff_dista
             raise UserError('Similar structure traces align_with option specifies fewer than 3 aligned query atoms')
 
     chain_info = []
-    from .simstruct import hit_coords, align_xyz_transform, hit_sequence
+    from .simstruct import hit_coords, align_xyz_transform, hit_coordinates_sequence
     for hit in hits:
         hit_xyz = hit_coords(hit)
         hi, qi = results.hit_residue_pairing(hit)  # Coordinate array indices
@@ -76,7 +76,7 @@ def similar_structures_traces(session, align_with = None, alignment_cutoff_dista
 
         hit_name = hit['database_full_id']
         qresnums = [qatoms[i].residue.number for i in qi]
-        hitseq = hit_sequence(hit)
+        hitseq = hit_coordinates_sequence(hit)
         hresname = [hitseq[i] for i in hi]
         rshow = _close_residues(hxyz_aligned, break_distance, qxyz, keep_close, keep_segment, min_residues)
         chain_info.append((hit_name, tuple(zip(hresname, qresnums, hxyz_aligned, rshow))))
