@@ -1515,7 +1515,6 @@ class SegmentationVolumePanel(Histogram_Pane):
         cl = ColorButton(df, max_size=(16, 16), has_alpha_channel=True, pause_delay=1.0)
         self._color_button = cl
         cl.color_changed.connect(self._color_chosen)
-        cl.color_pause.connect(self._log_color_command)
         layout.addWidget(cl)
 
         self.data_id = did = QLabel(df)
