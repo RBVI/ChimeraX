@@ -62,9 +62,9 @@ class _SimilarStructuresBundle(BundleAPI):
         elif command_name == 'sequence search':
             from . import mmseqs2_search
             mmseqs2_search.register_mmseqs2_search_command(logger)
-        elif command_name == 'sequence blast':
+        elif command_name == 'similarstructures blast':
             from . import blast_search
-            blast_search.register_sequence_blast_command(logger)
+            blast_search.register_similar_structures_blast_command(logger)
         elif command_name == 'similarstructures fromblast':
             from . import blast_search
             blast_search.register_similar_structures_from_blast_command(logger)
@@ -73,20 +73,7 @@ class _SimilarStructuresBundle(BundleAPI):
     def run_provider(session, name, mgr, **kw):
         if mgr == session.open_command:
             from chimerax.open_command import OpenerInfo
-            if name == 'Foldseek':
-                class FoldseekInfo(OpenerInfo):
-                    def open(self, session, path, file_name, **kw):
-                        from . import foldseek_search
-                        return foldseek_search.open_foldseek_m8(session, path, query_chain = kw.get('chain'))
-                    @property
-                    def open_args(self):
-                        from chimerax.core.commands import EnumOf
-                        from chimerax.atomic import ChainArg
-                        from .foldseek_search import foldseek_databases
-                        return { 'chain': ChainArg,
-                                 'database': EnumOf(foldseek_databases)}
-                return FoldseekInfo()
-            elif name == 'Similar Structures':
+            if name == 'Similar Structures':
                 class SimilarStructuresInfo(OpenerInfo):
                     def open(self, session, path, file_name, **kw):
                         from .simstruct import SimilarStructures
@@ -100,6 +87,19 @@ class _SimilarStructuresBundle(BundleAPI):
                         from chimerax.core.commands import EnumOf, BoolArg
                         return { 'show_table': BoolArg, }
                 return SimilarStructuresInfo()
+            elif name == 'Foldseek':
+                class FoldseekInfo(OpenerInfo):
+                    def open(self, session, path, file_name, **kw):
+                        from . import foldseek_search
+                        return foldseek_search.open_foldseek_m8(session, path, query_chain = kw.get('chain'))
+                    @property
+                    def open_args(self):
+                        from chimerax.core.commands import EnumOf
+                        from chimerax.atomic import ChainArg
+                        from .foldseek_search import foldseek_databases
+                        return { 'chain': ChainArg,
+                                 'database': EnumOf(foldseek_databases)}
+                return FoldseekInfo()
 
     # Make class name to class for session restore
     @staticmethod

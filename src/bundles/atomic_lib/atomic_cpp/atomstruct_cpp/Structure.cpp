@@ -474,11 +474,11 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
     // if chain_id_map is not nullptr, then we are combining this structure into existing
     // structure s
     s->_copying_or_restoring = true;
-    for (auto h = metadata.begin() ; h != metadata.end() ; ++h)
-        s->metadata[h->first] = h->second;
     s->pdb_version = pdb_version;
     s->_polymers_computed = true;
     if (chain_id_map == nullptr) {
+        for (auto h = metadata.begin() ; h != metadata.end() ; ++h)
+            s->metadata[h->first] = h->second;
         s->lower_case_chains = lower_case_chains;
         s->set_ss_assigned(ss_assigned());
         s->set_ribbon_tether_scale(ribbon_tether_scale());
@@ -496,6 +496,8 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
         s->_chains_made = _chains_made;
         s->_idatm_failed = _idatm_failed;
     } else {
+        // no sensible way to combine metadata
+        s->metadata.clear();
         if (s->ss_assigned())
             s->set_ss_assigned(ss_assigned());
         s->_idatm_failed |= _idatm_failed;
@@ -512,14 +514,15 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
     std::map<Residue*, Residue*> rmap;
     for (auto r: residues()) {
         ChainID cid;
+        ChainID mmcif_cid = r->mmcif_chain_id();
         if (chain_id_map == nullptr)
             cid = r->chain_id();
         else {
             auto cid_i = chain_id_map->find(r->chain_id());
             if (cid_i == chain_id_map->end())
-                cid = r->chain_id();
+                mmcif_cid = cid = r->chain_id();
             else
-                cid = cid_i->second;
+                mmcif_cid = cid = cid_i->second;
             if (!s->lower_case_chains) {
                 for (auto c: cid) {
                     if (islower(c)) {
@@ -530,7 +533,7 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
             }
         }
         Residue* cr = s->new_residue(r->name(), cid, r->number(), r->insertion_code());
-        cr->set_mmcif_chain_id(r->mmcif_chain_id());
+        cr->set_mmcif_chain_id(mmcif_cid);
         cr->set_ribbon_display(r->ribbon_display());
         cr->set_ribbon_color(r->ribbon_color());
         cr->set_ring_display(r->ring_display());

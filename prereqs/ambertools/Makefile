@@ -16,7 +16,7 @@ endif
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
 ifeq ($(OS),Darwin)
 USE_PREBUILT=false
-UPLOAD_PREBUILT=true
+UPLOAD_PREBUILT=false
 else
 USE_PREBUILT=true
 UPLOAD_PREBUILT=false
