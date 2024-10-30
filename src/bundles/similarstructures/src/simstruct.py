@@ -361,16 +361,22 @@ class SimilarStructures(State):
 
     def _sms_filename(self, directory):
         qc = self.query_chain
-        from os.path import splitext, exists, join
-        sname = splitext(qc.structure.name)[0]
-        filename = sname.replace(' ', '_') if qc else 'results'
+        if qc is None:
+            filename = 'results'
+        else:
+            from os.path import splitext
+            filename = splitext(qc.structure.name)[0]
+            if qc.structure.num_chains > 1:
+                filename += f'_{qc.chain_id}'
         if self.program:
             filename += f'_{self.program}'
         if self.program_database:
             filename += f'_{self.program_database}'
+        filename = filename.replace(' ', '_')
         prefix = filename
         filename += '.sms'
         count = 1
+        from os.path import exists, join
         while exists(join(directory, filename)):
             filename = prefix + f'_{count}.sms'
             count += 1
