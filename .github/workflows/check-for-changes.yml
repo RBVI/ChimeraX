@@ -18,6 +18,11 @@ jobs:
       # buildinfo.py breaks without this
       - run: chown -R $(id -u):$(id -g) $PWD
       - run: ${PWD}/utils/set_up_centos.sh
+      - name: Fetch Python
+        uses: ./utils/ci/cache_python
+        with:
+          platform: linux
+          architecture: x86_64
       - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
         uses: ./utils/ci/cache_pyqt
         with:
@@ -54,6 +59,11 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@master
       - uses: actions/checkout@v4
       - run: ${PWD}/utils/set_up_macos.sh
+      - name: Fetch Python
+        uses: ./utils/ci/cache_python
+        with:
+          platform: macos
+          architecture: x86_64
       - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
         uses: ./utils/ci/cache_pyqt
         with:
@@ -94,6 +104,11 @@ jobs:
           msystem: MINGW64
           update: true
           install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
+      - name: Fetch Python
+        uses: ./utils/ci/cache_python
+        with:
+          platform: windows
+          architecture: x86_64
       - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
         uses: ./utils/ci/cache_pyqt
         with:
