@@ -361,17 +361,24 @@ class SimilarStructures(State):
 
     def _sms_filename(self, directory):
         qc = self.query_chain
-        from os.path import splitext, exists, join
-        sname = splitext(qc.structure.name)[0]
-        filename = sname.replace(' ', '_') if qc else 'results'
+        if qc is None:
+            filename = 'results'
+        else:
+            from os.path import splitext
+            filename = splitext(qc.structure.name)[0]
+            if qc.structure.num_chains > 1:
+                filename += f'_{qc.chain_id}'
         if self.program:
             filename += f'_{self.program}'
         if self.program_database:
             filename += f'_{self.program_database}'
+        filename = filename.replace(' ', '_')
+        prefix = filename
         filename += '.sms'
         count = 1
+        from os.path import exists, join
         while exists(join(directory, filename)):
-            filename = filename[:-4] + f'_{count}.sms'
+            filename = prefix + f'_{count}.sms'
             count += 1
         return filename
 
@@ -935,6 +942,19 @@ def hit_coords(hit):
     '''
     hxyz = hit.get('tca')
     return hxyz
+
+def hit_coordinates_sequence(hit):
+    '''
+    Return a map from hit coordinate index to sequence 1 letter code.
+    '''
+    hsi = range(hit['tstart']-1, hit['tend'])  # 0-based sequence indexing
+    hseq = hit['taln'].replace('-','')
+    hi2ci = _hit_sequence_to_coordinate_index(hit)
+    if hi2ci is None:
+        ci2aa = {hi:aa for hi,aa in zip(hsi, hseq)}
+    else:
+        ci2aa = {hi2ci[hi]:aa for hi,aa in zip(hsi, hseq) if hi in hi2ci}
+    return ci2aa
 
 def _hit_sequence_to_coordinate_index(hit):
     '''Return dictionary mapping hit sequence indices (0-based) to coordinate indices (0-based).'''
