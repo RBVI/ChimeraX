@@ -21,39 +21,21 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-import glob
-import logging
-import os
-import shutil
-import zipfile
 
-log = logging.getLogger()
-
-from .bundle_builder_toml import Bundle, read_toml
+from .umap import install_umap, umap_embed
+from .umap import k_means_clusters, cluster_by_distance, color_by_cluster
+from .umap import UmapPlot
 
 
-def build_wheel(wheel_directory, config_settings=None, metadata_directory=None) -> None:
-    bundle = Bundle(log, read_toml("pyproject.toml"))
-    return bundle.build_wheel()
+from chimerax.core.toolshed import BundleAPI
 
+class _UmapAPI(BundleAPI):
 
-def build_sdist(sdist_directory, config_settings=None) -> None:
-    bundle = Bundle(log, read_toml("pyproject.toml"))
-    return bundle.build_sdist()
+    # Map class name to class for session restore
+    @staticmethod
+    def get_class(class_name):
+        if class_name == 'UmapPlot':
+            from .umap import UmapPlot
+            return UmapPlot
 
-
-def build_editable(
-    wheel_directory, config_settings=None, metadata_directory=None
-) -> None:
-    bundle = Bundle(log, read_toml("pyproject.toml"))
-    return bundle.build_editable(config_settings)
-
-
-def get_requires_for_build_wheel(config_settings=None) -> None:
-    toml_file = read_toml("pyproject.toml")
-    return toml_file["build-system"]["requires"]
-
-
-get_requires_for_build_sdist = get_requires_for_build_wheel
-get_requires_for_build_editable = get_requires_for_build_wheel
-
+bundle_api = _UmapAPI()

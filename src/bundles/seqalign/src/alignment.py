@@ -971,7 +971,7 @@ class Alignment(State):
             return
         from chimerax.atomic import StructureSeq
         for chain in self.associations:
-            if chain.deleted or getattr(chain, 'stucture', None) is None:
+            if chain.deleted or getattr(chain, 'structure', None) is None:
                 # the ensuing disassociation/demotion will update the RMSD
                 return
         for chain in self.associations:

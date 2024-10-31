@@ -57,6 +57,10 @@ for info in pkgutil.walk_packages(
     if name not in blacklist:
         modules.append(name)
 
+# Other modules that need to be tested since they're e.g. optional
+# modules of dependencies, like numpy_formathandler
+modules.extend(["OpenGL_accelerate.numpy_formathandler"])
+
 
 @pytest.mark.parametrize("module", modules)
 def test_imports(module):

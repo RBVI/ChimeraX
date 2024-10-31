@@ -752,8 +752,10 @@ class SegmentationTool(ToolInstance):
             self._destroy_3d_segmentation_sphere()
         except TypeError:
             pass
-        self._reset_3d_mouse_modes()
-        self._reset_vr_hand_modes()
+        if self.mouse_modes_changed:
+            self._reset_3d_mouse_modes()
+        if self.hand_modes_changed:
+            self._reset_vr_hand_modes()
         super().delete()
 
     def _set_3d_mouse_modes(self):

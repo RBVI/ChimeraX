@@ -72,7 +72,8 @@ class BundleBuilder:
     def from_path(cls, logger, bundle_path):
         return cls(logger, bundle_path)
 
-    def make_wheel(self, debug=False):
+    def make_wheel(self, debug=False, release=False):
+        # The release keyword does nothing and is only here to conform to the API
         # HACK: distutils uses a cache to track created directories
         # for a single setup() run.  We want to run setup() multiple
         # times which can remove/create the same directories.
