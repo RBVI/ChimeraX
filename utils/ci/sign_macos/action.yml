@@ -142,10 +142,17 @@ runs:
         -k $RUNNER_TEMP/app-signing.keychain-db \
         -K $MAC_SIGNING_KEYCHAIN_PW \
         -v -v -v
+
+    - name: Verify that ChimeraX will pass macOS Gatekeeper
+      shell: bash
+      run: |
+        spctl --assess --type execute $CHIMERAX_APP_NAME
+
     - name: Make the DMG
       shell: bash
       run: |
         python3.10 -m dmgbuild -s ./utils/build/macos/dmgbuildsettings.json "ChimeraX Installer" ChimeraX.dmg
+
     - name: Notarize the DMG
       shell: bash
       run: |
