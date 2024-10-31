@@ -53,7 +53,7 @@ jobs:
         uses: ./utils/ci/consolidated_cache
         with:
           platform: macos
-          architecture: universal2
+          architecture: arm64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) build-minimal
       - name: Run the legacy test suite
