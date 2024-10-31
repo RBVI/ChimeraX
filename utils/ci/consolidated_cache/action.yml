@@ -21,7 +21,7 @@ runs:
         export PREBUILT_CACHE_KEY=${{ inputs.cache_key }}
         echo "::add-mask::$PREBUILT_CACHE_KEY"
 
-    - name: Restore cached plato pips
+    - name: Restore cached plato pips (Linux)
       id: cache-plato-pips-linux
       if: ${{ inputs.platform }} == 'linux'
       uses: actions/cache@v4
@@ -30,7 +30,7 @@ runs:
           prereqs/pips/tinyarray-1.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
         key: ${{ runner.os }}-${{ inputs.architecture}}-pips
 
-    - name: Restore cached plato pips
+    - name: Restore cached plato pips (Windows)
       id: cache-plato-pips-windows
       if: ${{ inputs.platform }} == 'windows'
       uses: actions/cache@v4
@@ -39,7 +39,7 @@ runs:
           prereqs/pips/tinyarray-1.2.4-cp311-cp311-win_amd64.whl
         key: ${{ runner.os }}-${{ inputs.architecture}}-pips
 
-    - name: Restore cached plato pips
+    - name: Restore cached plato pips (macOS)
       id: cache-plato-pips-macos
       if: ${{ inputs.platform }} == 'macos'
       uses: actions/cache@v4
@@ -59,23 +59,7 @@ runs:
           prereqs/pips/qtshim-1.0-py3-none-any.whl
         key: generic-plato-pips
 
-    - name: Fetch platform specific pips
-      shell: bash
-      if: ${{ steps[format('cache-plato-pips-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
-      run: |
-        if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/tinyarray/tinyarray-1.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-        fi
-        if [ "${{ inputs.platform }}" = "macos" ] ; then
-          curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/tinyarray/tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
-          curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/cython/Cython-3.0.10-cp311-cp311-macosx_10_9_universal2.whl
-        fi
-        if [ "${{ inputs.platform }}" = "windows" ] ; then
-          curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/tinyarray/tinyarray-1.2.4-cp311-cp311-win_amd64.whl
-        fi
-        mv tinyarray* prereqs/pips/
-
-    - name: Restore cached PyQt6 and PyQt6-WebEngine (Linux)
+    - name: Restore cached Python
       id: cache-python-linux
       if: ${{ inputs.platform == 'linux' }}
       uses: actions/cache@v4
@@ -84,7 +68,7 @@ runs:
           prereqs/Python/python-3.11.4.tar.xz
         key: ${{ runner.os }}-${{ inputs.architecture }}-python
 
-    - name: Restore cached PyQt6 and PyQt6-WebEngine (Windows)
+    - name: Restore cached Python
       id: cache-python-windows
       if: ${{ inputs.platform == 'windows' }}
       uses: actions/cache@v4
@@ -93,7 +77,7 @@ runs:
           prereqs/Python/python-3.11.4-win-amd64.tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-python
 
-    - name: Restore cached PyQt6 and PyQt6-WebEngine (macOS)
+    - name: Restore cached Python
       id: cache-python-macos
       if: ${{ inputs.platform == 'macos' }}
       uses: actions/cache@v4
@@ -154,17 +138,25 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/PyQt6_commercial-6.7.1-cp38-abi3-win_amd64.whl
-          prereqs/PyQt/openmm_WebEngine_commercial-6.7.0-cp38-abi3-win_amd64.whl
+          prereqs/openmm/openmm-8.0.0-win-py311h9957787_1_tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-openmm
 
-    - name: Restore cached openmm (macOS)
+    - name: Restore cached openmm (macOS arm64)
       id: cache-openmm-macos
-      if: ${{ inputs.platform == 'macos' }}
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'arm64' }}
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/Python/python-3.11.4-mac.tar.bz2
+          prereqs/openmm/openmm-8.0.0-mac-py311h68ae2cc_1_apple.tar.bz2
+        key: ${{ runner.os }}-${{ inputs.architecture }}-openmm
+
+    - name: Restore cached openmm (macOS Intel)
+      id: cache-openmm-macos
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'x86_64' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/openmm/openmm-8.0.0-mac-py311hf4819f2_1_apple.tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-openmm
 
     - name: Restore cached ffmpeg (Linux)
@@ -187,17 +179,25 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/PyQt6_commercial-6.7.1-cp38-abi3-win_amd64.whl
-          prereqs/PyQt/PyQt6_WebEngine_commercial-6.7.0-cp38-abi3-win_amd64.whl
+          prereqs/ffmpeg/ffmpeg-3.2.4-Windows.exe
         key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
 
-    - name: Restore cached ffmpeg (macOS)
+    - name: Restore cached ffmpeg (macOS arm64)
       id: cache-ffmpeg-macos
       if: ${{ inputs.platform == 'macos' }}
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/Python/python-3.11.4-mac.tar.bz2
+          prereqs/ffmpeg/ffmpeg-6.0-Darwin-arm64.exe
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python
+
+    - name: Restore cached ffmpeg (macOS Intel)
+      id: cache-ffmpeg-macos
+      if: ${{ inputs.platform == 'macos' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/ffmpeg/ffmpeg-3.2.4-Darwin.exe
         key: ${{ runner.os }}-${{ inputs.architecture }}-python
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (Linux)
@@ -276,35 +276,64 @@ runs:
         curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${PYQTWE_URL} -O -J
         mv PyQt6*.whl prereqs/PyQt/
 
+    - name: Fetch platform specific pips
+      shell: bash
+      if: ${{ steps[format('cache-plato-pips-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
+      run: |
+        if [ "${{ inputs.platform }}" = "linux" ] ; then
+          curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/tinyarray/tinyarray-1.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+        fi
+        if [ "${{ inputs.platform }}" = "macos" ] ; then
+          curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/tinyarray/tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
+          curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/cython/Cython-3.0.10-cp311-cp311-macosx_10_9_universal2.whl
+        fi
+        if [ "${{ inputs.platform }}" = "windows" ] ; then
+          curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/tinyarray/tinyarray-1.2.4-cp311-cp311-win_amd64.whl
+        fi
+        mv tinyarray* prereqs/pips/
+
     - name: Fetch ffmpeg
       shell: bash
       if: ${{ steps[format('cache-ffmpeg-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/python/python-3.11.4-mac.tar.bz2 -O -J
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/
+          mv libtheora* prereqs/ffmpeg/
+          mv libogg* prereqs/ffmpeg/
+          mv libvpx* prereqs/ffmpeg/
+          mv yasm* prereqs/ffmpeg/
+          mv x264* prereqs/ffmpeg/
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
-          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/python/python-3.11.4-mac.tar.bz2 -O -J
+          if [ "${{ inputs.architecture }}" = "arm64" ] ; then
+            curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/ffmpeg-6.0-Darwin-arm64.exe -O -J
+          else
+            curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/ffmpeg-3.2.4-Darwin.exe -O -J
+          fi
         fi
         if [ "${{ inputs.platform }}" = "windows" ] ; then
-          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/python/python-3.11.4-mac.tar.bz2 -O -J
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/ffmpeg-3.2.4-Windows.exe -O -J
         fi
-        mv python* prereqs/Python
+        mv ffmpeg* prereqs/ffmpeg/
 
     - name: Fetch openmm
       shell: bash
       if: ${{ steps[format('cache-openmm-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/python/python-3.11.4-mac.tar.bz2 -O -J
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/openmm/openmm-8.0.0-linux-py311_cuda112.tar.bz2
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
-          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/python/python-3.11.4-mac.tar.bz2 -O -J
+          if [ "${{ inputs.architecture }}" = "arm64" ] ; then
+            curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/openmm/openmm-8.0.0-mac-py311h68ae2cc_1_apple.tar.bz2
+          else
+            curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/openmm/openmm-8.0.0-mac-py311hf4819f2_1_apple.tar.bz2
+          fi
         fi
         if [ "${{ inputs.platform }}" = "windows" ] ; then
-          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/python/python-3.11.4-mac.tar.bz2 -O -J
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/openmm/openmm-8.0.0-win-py311h9957787_1_tar.bz2
         fi
-        mv python* prereqs/Python
+        mv openmm* prereqs/openmm/
 
     - name: Fetch ambertools
       shell: bash
