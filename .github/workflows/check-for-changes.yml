@@ -31,6 +31,8 @@ jobs:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Fetch mmtf sources from Plato
         uses: ./utils/ci/cache_mmtf
+      - name: Fetch holoplaycore sources from Plato
+        uses: ./utils/ci/cache_lookingglass
       - name: Fetch Ambertools
         uses: ./utils/ci/cache_ambertools
         with:
@@ -77,6 +79,8 @@ jobs:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Fetch mmtf sources from Plato
         uses: ./utils/ci/cache_mmtf
+      - name: Fetch holoplaycore sources from Plato
+        uses: ./utils/ci/cache_lookingglass
       - name: Fetch Ambertools
         uses: ./utils/ci/cache_ambertools
         with:
@@ -127,6 +131,8 @@ jobs:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Fetch mmtf sources from Plato
         uses: ./utils/ci/cache_mmtf
+      - name: Fetch holoplaycore sources from Plato
+        uses: ./utils/ci/cache_lookingglass
       - name: Fetch Ambertools
         uses: ./utils/ci/cache_ambertools
         with:
