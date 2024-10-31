@@ -33,6 +33,11 @@ jobs:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Fetch mmtf sources from Plato
         uses: ./utils/ci/cache_mmtf
+      - name: Fetch Ambertools
+        uses: ./utils/ci/cache_ambertools
+        with:
+          platform: linux
+          architecture: x86_64
       - name: Fetch Plato pips
         uses: ./utils/ci/cache_pips
         with:
@@ -74,6 +79,11 @@ jobs:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Fetch mmtf sources from Plato
         uses: ./utils/ci/cache_mmtf
+      - name: Fetch Ambertools
+        uses: ./utils/ci/cache_ambertools
+        with:
+          platform: macos
+          architecture: x86_64
       - name: Fetch Plato pips
         uses: ./utils/ci/cache_pips
         with:
@@ -119,6 +129,11 @@ jobs:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Fetch mmtf sources from Plato
         uses: ./utils/ci/cache_mmtf
+      - name: Fetch Ambertools
+        uses: ./utils/ci/cache_ambertools
+        with:
+          platform: windows
+          architecture: x86_64
       - name: Fetch Plato pips
         uses: ./utils/ci/cache_pips
         with:
