@@ -44,13 +44,12 @@ jobs:
           patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
       - uses: actions/checkout@v4
       - run: ${PWD}/utils/set_up_macos.sh
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
         with:
           platform: macos
-          architecture: universal2
+          architecture: arm64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - uses: ./utils/ci/cache_mmtf/
       - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) install-rbvi
       - name: Run the legacy test suite
         run: make test
