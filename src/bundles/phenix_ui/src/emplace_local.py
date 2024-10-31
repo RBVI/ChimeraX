@@ -94,7 +94,7 @@ command_defaults = {
     'verbose': False
 }
 def phenix_local_fit(session, model, center=None, map_data=None, *, resolution=0.0, show_sharpened_map=False,
-        apply_symmetry=False, prefitted=None, block=None, phenix_location=None,
+        apply_symmetry=False, prefitted=None, show_tool=True, block=None, phenix_location=None,
         verbose=command_defaults['verbose'], option_arg=[], position_arg=[]):
 
     # Find the phenix.voyager.emplace_local executable
@@ -148,8 +148,8 @@ def phenix_local_fit(session, model, center=None, map_data=None, *, resolution=0
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # the program runs
     callback = lambda transforms, sharpened_map, llgs, ccs, *args, session=session, maps=map_data, \
-        ssm=show_sharpened_map, app_sym=apply_symmetry, d_ref=d: _process_results(session,
-        transforms, sharpened_map, llgs, ccs, model, maps, ssm, app_sym)
+        ssm=show_sharpened_map, app_sym=apply_symmetry, show_tool=show_tool, d_ref=d: \
+        _process_results(session, transforms, sharpened_map, llgs, ccs, model, maps, ssm, app_sym, show_tool)
     FitJob(session, exe_path, option_arg, map_arg1, map_arg2, search_center,
         "model.pdb", prefitted_arg, position_arg, temp_dir, resolution, verbose, callback, block)
 
@@ -216,15 +216,16 @@ def view_box(session, model):
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
 def _process_results(session, transforms, llgs, ccs, sharpened_map, orig_model, maps, show_sharpened_map,
-        apply_symmetry):
+        apply_symmetry, show_tool):
     if orig_model.deleted:
         raise UserError("Structure being fitting was deleted during fitting")
     sharpened_map.name = "sharpened local map"
     sharpened_map.display = show_sharpened_map
     session.models.add([sharpened_map])
-    #if len(transforms) > 1 and session.ui.is_gui:
+    #if show_tool and len(transforms) > 1 and session.ui.is_gui:
     if False:
-        raise NotImplementedError("Multiple-fit dialog not yet implemented")
+        from .tool import EmplaceLocalResultsViewer
+        EmplaceLocalResultsViewer(session, orig_model, dont_have_original_map)
     else:
         from chimerax.geometry import Place
         orig_model.scene_position = Place(transforms[0]) * orig_model.scene_position
@@ -340,6 +341,7 @@ def register_command(logger):
                    ('resolution', NonNegativeFloatArg),
                    ('show_sharpened_map', BoolArg),
                    ('apply_symmetry', BoolArg),
+                   ('show_tool', BoolArg),
         ],
         synopsis = 'Place structure in map'
     )
