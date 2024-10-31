@@ -297,12 +297,12 @@ runs:
       if: ${{ steps[format('cache-ffmpeg-{0}-{1}', inputs.platform, inputs.architecture)].outputs.cache-hit != 'true' }}
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/ffmpeg-3.2.4.tar.bz2
-          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/libtheora-1.1.1.tar.xz
-          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/libogg-1.3.2.tar.xz
-          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/libvpx-1.6.1.tar.xz
-          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/yasm-1.3.0.tar.bz2
-          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/ffmpeg-3.2.4.tar.bz2 -O -J
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/libtheora-1.1.1.tar.xz -O -J
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/libogg-1.3.2.tar.xz -O -J
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/libvpx-1.6.1.tar.xz -O -J
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/yasm-1.3.0.tar.bz2 -O -J
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz -O -J
           mv libtheora* prereqs/ffmpeg/
           mv libogg* prereqs/ffmpeg/
           mv libvpx* prereqs/ffmpeg/
