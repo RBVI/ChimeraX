@@ -20,33 +20,12 @@ jobs:
       # buildinfo.py breaks without this
       - run: chown -R $(id -u):$(id -g) $PWD
       - run: ${PWD}/utils/set_up_centos.sh
-      - name: Fetch Python
-        uses: ./utils/ci/cache_python
-        with:
-          platform: linux
-          architecture: x86_64
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
         with:
           platform: linux
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - name: Fetch mmtf sources from Plato
-        uses: ./utils/ci/cache_mmtf
-      - name: Fetch holoplaycore sources from Plato
-        uses: ./utils/ci/cache_lookingglass
-      - name: Fetch seggerx sources from Plato
-        uses: ./utils/ci/cache_seggerx
-      - name: Fetch Ambertools
-        uses: ./utils/ci/cache_ambertools
-        with:
-          platform: linux
-          architecture: x86_64
-      - name: Fetch Plato pips
-        uses: ./utils/ci/cache_pips
-        with:
-          platform: linux
-          architecture: x86_64
       - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos build-minimal
       - name: Run the legacy test suite
         run: make test
@@ -70,33 +49,12 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@master
       - uses: actions/checkout@v4
       - run: ${PWD}/utils/set_up_macos.sh
-      - name: Fetch Python
-        uses: ./utils/ci/cache_python
-        with:
-          platform: macos
-          architecture: x86_64
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
         with:
           platform: macos
           architecture: universal2
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - name: Fetch mmtf sources from Plato
-        uses: ./utils/ci/cache_mmtf
-      - name: Fetch holoplaycore sources from Plato
-        uses: ./utils/ci/cache_lookingglass
-      - name: Fetch seggerx sources from Plato
-        uses: ./utils/ci/cache_seggerx
-      - name: Fetch Ambertools
-        uses: ./utils/ci/cache_ambertools
-        with:
-          platform: macos
-          architecture: x86_64
-      - name: Fetch Plato pips
-        uses: ./utils/ci/cache_pips
-        with:
-          platform: macos
-          architecture: universal2
       - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) build-minimal
       - name: Run the legacy test suite
         run: make test
@@ -124,33 +82,12 @@ jobs:
           msystem: MINGW64
           update: true
           install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
-      - name: Fetch Python
-        uses: ./utils/ci/cache_python
-        with:
-          platform: windows
-          architecture: x86_64
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
         with:
           platform: windows
           architecture: x86
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - name: Fetch mmtf sources from Plato
-        uses: ./utils/ci/cache_mmtf
-      - name: Fetch holoplaycore sources from Plato
-        uses: ./utils/ci/cache_lookingglass
-      - name: Fetch seggerx sources from Plato
-        uses: ./utils/ci/cache_seggerx
-      - name: Fetch Ambertools
-        uses: ./utils/ci/cache_ambertools
-        with:
-          platform: windows
-          architecture: x86_64
-      - name: Fetch Plato pips
-        uses: ./utils/ci/cache_pips
-        with:
-          platform: windows
-          architecture: x86
       - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) build-minimal
       - name: Run the legacy test suite
         run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test
