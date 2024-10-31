@@ -250,14 +250,14 @@ runs:
       shell: bash
       if: ${{ steps.cache-holoplaycore.outputs.cache-hit != 'true' }}
       run: |
-        curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/lookingglass/holoplaycore-0.1.0.tar.gz
+        curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/lookingglass/holoplaycore-0.1.0.tar.gz -O -J
         mv holoplaycore* src/bundles/looking_glass/
 
     - name: Fetch seggerx
       shell: bash
       if: ${{ steps.cache-seggerx.outputs.cache-hit != 'true' }}
       run: |
-        curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/segger/seggerx_2024_08_12.tar.gz
+        curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/segger/seggerx_2024_08_12.tar.gz -O -J
         mv seggerx* src/bundles/segger/
 
     - name: Fetch PyQt
@@ -321,17 +321,17 @@ runs:
       if: ${{ steps[format('cache-openmm-{0}-{1}', inputs.platform, inputs.architecture)].outputs.cache-hit != 'true' }}
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/openmm/openmm-8.0.0-linux-py311_cuda112.tar.bz2
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/openmm/openmm-8.0.0-linux-py311_cuda112.tar.bz2 -O -J
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
           if [ "${{ inputs.architecture }}" = "arm64" ] ; then
-            curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/openmm/openmm-8.0.0-mac-py311h68ae2cc_1_apple.tar.bz2
+            curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/openmm/openmm-8.0.0-mac-py311h68ae2cc_1_apple.tar.bz2 -O -J
           else
-            curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/openmm/openmm-8.0.0-mac-py311hf4819f2_1_apple.tar.bz2
+            curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/openmm/openmm-8.0.0-mac-py311hf4819f2_1_apple.tar.bz2 -O -J
           fi
         fi
         if [ "${{ inputs.platform }}" = "windows" ] ; then
-          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/openmm/openmm-8.0.0-win-py311h9957787_1_tar.bz2
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/openmm/openmm-8.0.0-win-py311h9957787_1_tar.bz2 -O -J
         fi
         mv openmm* prereqs/openmm/
 
