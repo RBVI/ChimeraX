@@ -24,6 +24,7 @@
 
 from chimerax.core.toolshed import BundleAPI
 
+
 class _ScenesBundleAPI(BundleAPI):
 
     @staticmethod
@@ -36,7 +37,8 @@ class _ScenesBundleAPI(BundleAPI):
     def initialize(session, bundle_info):
         """Install scene manager into existing session"""
         from .manager import SceneManager
-        session.scenes = SceneManager(session, bundle_info)
+        session.scenes = SceneManager(session)
+        return
 
     @staticmethod
     def finish(session, bundle_info):
@@ -48,5 +50,6 @@ class _ScenesBundleAPI(BundleAPI):
         # 'register_command' is lazily called when the command is referenced
         from . import cmd
         cmd.register_command(command_name, logger)
+
 
 bundle_api = _ScenesBundleAPI()
