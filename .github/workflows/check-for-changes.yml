@@ -2,7 +2,6 @@ name: Rebuild on change
 
 on:
   push:
-    branches: [develop, release/*]
 
 jobs:
   build-and-test-rocky8-docker:
