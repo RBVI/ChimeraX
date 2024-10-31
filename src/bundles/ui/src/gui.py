@@ -2218,7 +2218,8 @@ class ToolWindow(StatusLogger):
         dock_area_value(Qt.DockWidgetArea.TopDockWidgetArea): "top",
         dock_area_value(Qt.DockWidgetArea.BottomDockWidgetArea): "bottom"
     }
-    def manage(self, placement = None, fixed_size=False, allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas,
+    def manage(self, placement = None, fixed_size=False,
+            allowed_areas=Qt.DockWidgetArea.RightDockWidgetArea|Qt.DockWidgetArea.LeftDockWidgetArea,
             initially_hidden=False):
         """Supported API. Show this tool window in the interface
 
@@ -2246,6 +2247,7 @@ class ToolWindow(StatusLogger):
             if tool_name not in settings.undockable:
                 settings.undockable = settings.undockable + [tool_name]
         from Qt.QtCore import Qt
+        self.default_allowed_areas = allowed_areas
         if tool_name in settings.undockable:
             allowed_areas = Qt.DockWidgetArea.NoDockWidgetArea
         geometry = None
@@ -2562,7 +2564,7 @@ class _Qt:
     @dockable.setter
     def dockable(self, dockable):
         from Qt.QtCore import Qt
-        areas = Qt.DockWidgetArea.AllDockWidgetAreas if dockable else Qt.DockWidgetArea.NoDockWidgetArea
+        areas = self.tool_window.default_allowed_areas if dockable else Qt.DockWidgetArea.NoDockWidgetArea
         self.dock_widget.setAllowedAreas(areas)
         if not dockable and not self.dock_widget.isFloating():
             self.dock_widget.setFloating(True)

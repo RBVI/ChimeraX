@@ -22,10 +22,10 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def sequence_blast(session, chain, database = 'pdb',
-                   evalue_cutoff = 1e-3, max_hits = 1000,
-                   trim = None, alignment_cutoff_distance = None,
-                   save_directory = None):
+def similar_structures_blast(session, chain, database = 'pdb',
+                             evalue_cutoff = 1e-3, max_hits = 1000,
+                             trim = None, alignment_cutoff_distance = None,
+                             save_directory = None):
     '''Search PDB for similar sequences and display results in a table.'''
 
     blast_db = {'pdb':'pdb', 'afdb':'alphafold'}[database]
@@ -52,11 +52,8 @@ def sequence_blast(session, chain, database = 'pdb',
     job.on_finish = MethodType(show_results, job)
 
 
-def similar_structures_from_blast(session, save = True, save_directory = None):
-    br = blast_results(session)
-    if br is None:
-        from chimerax.core.errors import UserError
-        raise UserError('No BLAST search has been done')
+def similar_structures_from_blast(session, instance_name = None, save = True, save_directory = None):
+    br = blast_results(session, instance_name)
     
     from .gui import show_similar_structures_table
     show_similar_structures_table(session, br)
@@ -69,16 +66,14 @@ def similar_structures_from_blast(session, save = True, save_directory = None):
 
     return br
 
-def blast_results(session):
-    bpr = _blast_results(session)
-    if bpr is None:
-        return None
-
+def blast_results(session, instance_name):
+    bpr = _blast_results(session, instance_name)
     database = bpr.params.database
     if database == 'alphafold':
         database = 'afdb'	# Name used by SimilarStructures class
     elif database != 'pdb':
-        return None
+        from chimerax.core.errors import UserError
+        raise UserError('Only BLAST searches of PDB or Alphafold databases supported')
 
     chain = _blast_query_chain(bpr)
     hits = _blast_job_hits(bpr.job, database)
@@ -97,10 +92,18 @@ def _blast_job_hits(job, database):
         hits.extend(_blast_hit_to_simstruct(hit, database))
     return hits
 
-def _blast_results(session):
+def _blast_results(session, instance_name = None):
     from chimerax.blastprotein.ui.results import BlastProteinResults
-    bpr = [tool for tool in session.tools.list() if isinstance(tool, BlastProteinResults)]
-    return bpr[0] if len(bpr) == 1 else None
+    bpr = [tool for tool in session.tools.list() if isinstance(tool, BlastProteinResults)
+           if instance_name is None or tool._instance_name == instance_name]
+    if len(bpr) == 0:
+        msg = 'No BLAST search has been done' if instance_name is None else f'No BLAST search named {instance_name} found'
+        from chimerax.core.errors import UserError
+        raise UserError(msg)
+    if len(bpr) > 1:
+        from chimerax.core.errors import UserError
+        raise UserError(f'{len(bpr)} sets of BLAST results found.  Must specify a results name.')
+    return bpr[0]
 
 def _blast_query_chain(blast_results):
     cspec = blast_results.params.chain	# '#1/B'
@@ -205,15 +208,16 @@ Alphafold blast hit
 '''
         
 def register_similar_structures_from_blast_command(logger):
-    from chimerax.core.commands import CmdDesc, register, BoolArg, SaveFolderNameArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, SaveFolderNameArg, StringArg
     desc = CmdDesc(
+        optional = [('instance_name', StringArg)],
         keyword = [('save', BoolArg),
                    ('save_directory', SaveFolderNameArg)],
         synopsis = 'Make a similar structures table from currently shown blast results'
     )
     register('similarstructures fromblast', desc, similar_structures_from_blast, logger=logger)
         
-def register_sequence_blast_command(logger):
+def register_similar_structures_blast_command(logger):
     from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, Or, ListOf, FloatArg, SaveFolderNameArg, IntArg
     from chimerax.atomic import ChainArg
     TrimArg = Or(ListOf(EnumOf(['chains', 'sequence', 'ligands'])), BoolArg)
@@ -228,4 +232,4 @@ def register_sequence_blast_command(logger):
                    ],
         synopsis = 'Search for proteins with similar sequences using RBVI BLAST web service'
     )
-    register('sequence blast', desc, sequence_blast, logger=logger)
+    register('similarstructures blast', desc, similar_structures_blast, logger=logger)

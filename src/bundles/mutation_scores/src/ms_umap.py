@@ -48,10 +48,11 @@ def mutation_scores_umap(session, score_name = None, mutation_set = None):
             res_names.append(f'{from_aa}{res_num}')
             colors.append(aa_colors[aa_index[from_aa]])
 
-    from chimerax.diffplot.diffplot import _install_umap, _umap_embed, StructurePlot
-    _install_umap(session)
-    umap_xy = _umap_embed(array(rscores, float32))
-    StructurePlot(session, res_names, umap_xy, colors)
+    from chimerax.umap import install_umap, umap_embed, UmapPlot
+    install_umap(session)
+    umap_xy = umap_embed(array(rscores, float32))
+    plot = UmapPlot(session, title = 'Mutation Residue Plot', tool_name = 'MutationScores')
+    plot.set_nodes(res_names, umap_xy, colors)
     
     message = f'{count} of {len(score_values.residue_numbers())} have 20 mutations'
     session.logger.info(message)

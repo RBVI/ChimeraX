@@ -231,7 +231,7 @@ class SimilarStructuresPanel(ToolInstance):
             if db == 'Alphafold DB':
                 cmd += f' database afdb'
         elif program == 'BLAST':
-            cmd = f'sequence blast {chain_spec}'
+            cmd = f'similarstructures blast {chain_spec}'
             if db == 'Alphafold DB':
                 cmd += f' database afdb'
         from chimerax.core.commands import run
