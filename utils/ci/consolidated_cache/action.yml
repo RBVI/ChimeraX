@@ -76,7 +76,7 @@ runs:
         mv tinyarray* prereqs/pips/
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (Linux)
-      id: cache-pyqt6-linux
+      id: cache-python-linux
       if: ${{ inputs.platform == 'linux' }}
       uses: actions/cache@v4
       with:
@@ -85,7 +85,7 @@ runs:
         key: ${{ runner.os }}-${{ inputs.architecture }}-python
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (Windows)
-      id: cache-pyqt6-windows
+      id: cache-python-windows
       if: ${{ inputs.platform == 'windows' }}
       uses: actions/cache@v4
       with:
@@ -94,7 +94,7 @@ runs:
         key: ${{ runner.os }}-${{ inputs.architecture }}-python
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (macOS)
-      id: cache-pyqt6-macos
+      id: cache-python-macos
       if: ${{ inputs.platform == 'macos' }}
       uses: actions/cache@v4
       with:
