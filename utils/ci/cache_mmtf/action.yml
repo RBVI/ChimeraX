@@ -13,7 +13,7 @@ runs:
           src/bundles/mmtf/msgpack-c-cpp-4.1.2.zip
         key: mmtf-source-zip-file
 
-    - name: Fetch PyQt
+    - name: Fetch mmtf
       shell: bash
       if: ${{ steps.cache-mmtf.outputs.cache-hit != 'true' }}
       run: |
