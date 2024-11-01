@@ -218,6 +218,18 @@ class BackboneTraces(AtomicStructure):
         for r in self.residues:
             r._show_in_trace = r.ribbon_display
 
+    def show_full_traces(self):
+        for c in self.chains:
+            res = c.existing_residues
+            if res.ribbon_displays.any():
+                res.ribbon_displays = True
+
+    def show_only_close_traces(self):
+        for c in self.chains:
+            res = c.existing_residues
+            if res.ribbon_displays.any():
+                self._show_visible_residues(res)
+
     def take_snapshot(self, session, flags):
         as_data = AtomicStructure.take_snapshot(self, session, flags)
         data = {
@@ -263,6 +275,10 @@ class BackboneTraceMenuEntry(SelectContextMenuAction):
             bt_model.show_traces([hit_name], show=False, other=True)
         elif a == 'show all':
             bt_model.show_all_traces()
+        elif a == 'show full':
+            bt_model.show_full_traces()
+        elif a == 'show close':
+            bt_model.show_only_close_traces()
     def _hit_name(self, session):
         from chimerax.atomic import selected_atoms
         atoms = selected_atoms(session)
@@ -283,6 +299,8 @@ def register_context_menu():
         SelectMouseMode.register_menu_entry(BackboneTraceMenuEntry('scroll to', 'Show %s in similar structures table'))
         SelectMouseMode.register_menu_entry(BackboneTraceMenuEntry('show only', 'Show only trace %s'))
         SelectMouseMode.register_menu_entry(BackboneTraceMenuEntry('show all', 'Show all traces'))
+        SelectMouseMode.register_menu_entry(BackboneTraceMenuEntry('show full', 'Show full traces'))
+        SelectMouseMode.register_menu_entry(BackboneTraceMenuEntry('show close', 'Show only close traces'))
         _registered_context_menu = True
     
 def register_similar_structures_traces_command(logger):
