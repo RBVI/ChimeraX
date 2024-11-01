@@ -67,8 +67,11 @@ class SceneManager(StateManager):
         """
         Delete scene by name.
         """
-        del self.scenes[scene_name]
-        self.triggers.activate_trigger(self.DELETED, scene_name)
+        if scene_name in self.scenes:
+            del self.scenes[scene_name]
+            self.triggers.activate_trigger(self.DELETED, scene_name)
+        else:
+            self.session.logger.warning(f"Scene {scene_name} does not exist.")
 
     def clear(self):
         """
