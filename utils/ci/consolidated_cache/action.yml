@@ -65,7 +65,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/Python/python-3.11.4.tar.xz
+          prereqs/Python/Python-3.11.4.tar.xz
         key: ${{ runner.os }}-${{ inputs.architecture }}-python
 
     - name: Restore cached Python (Windows)
@@ -180,7 +180,7 @@ runs:
       with:
         path: |
           prereqs/ffmpeg/ffmpeg-3.2.4-Windows.exe
-        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+        key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
 
     - name: Restore cached ffmpeg (macOS arm64)
       id: cache-ffmpeg-macos-arm64
@@ -189,7 +189,7 @@ runs:
       with:
         path: |
           prereqs/ffmpeg/ffmpeg-6.0-Darwin-arm64.exe
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python
+        key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
 
     - name: Restore cached ffmpeg (macOS Intel)
       id: cache-ffmpeg-macos-x86_64
@@ -198,7 +198,7 @@ runs:
       with:
         path: |
           prereqs/ffmpeg/ffmpeg-3.2.4-Darwin.exe
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python
+        key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (Linux)
       id: cache-pyqt6-linux
