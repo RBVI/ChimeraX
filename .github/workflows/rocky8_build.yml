@@ -31,13 +31,12 @@ jobs:
       # buildinfo.py breaks without this
       - run: chown -R $(id -u):$(id -g) $PWD
       - run: ${PWD}/utils/set_up_centos.sh
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
         with:
           platform: linux
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - uses: ./utils/ci/cache_mmtf/
       - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos install-rbvi
       - name: Run the legacy test suite
         run: make test

@@ -25,8 +25,8 @@ jobs:
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
         with:
           platform: linux
           architecture: x86_64

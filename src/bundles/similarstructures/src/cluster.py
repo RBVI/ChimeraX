@@ -78,8 +78,12 @@ def _show_umap(session, results, hits, query_residues, align_with = None, alignm
         cluster_numbers = None
         colors = None
 
-    plot = _last_plot(session, replace)
+    plot = _find_similar_structure_plot(session, results.name) if replace else None
+    if plot is None:
+        plot = SimilarStructurePlot(session)
+
     plot.set_nodes(results.name, hit_names, umap_xy, colors, query_residues)
+
     if color_by_species:
         plot._color_by_species()
 
@@ -87,17 +91,6 @@ def _show_umap(session, results, hits, query_residues, align_with = None, alignm
     if cluster_numbers is not None:
         msg += f' into {max(cluster_numbers)} groups'
     session.logger.info(msg)
-
-def _last_plot(session, replace):
-    plot = None
-    if replace:
-        plot = getattr(session, '_last_similar_structures_cluster_plot', None)
-        if plot and plot.tool_window.ui_area is None:
-            plot = None
-    if plot is None:
-        plot = SimilarStructurePlot(session)
-        session._last_similar_structures_cluster_plot = plot
-    return plot
 
 from chimerax.umap import UmapPlot
 class SimilarStructurePlot(UmapPlot):
@@ -312,6 +305,36 @@ class SimilarStructurePlot(UmapPlot):
         struct = qres[0].structure
         struct.session.selection.clear()
         qatoms.selected = True
+    
+    # ---------------------------------------------------------------------------
+    # Session save and restore.
+    #
+    SESSION_SAVE = True
+
+    def take_snapshot(self, session, flags):
+        umap_data = UmapPlot.take_snapshot(self, session, flags)
+        data = {'umap state': umap_data,
+                'similar_structures_id': self._similar_structures_id,
+                'query_residues': self._query_residues,
+                'cluster_colors': self._cluster_colors,
+                'species_to_color': self._species_to_color,
+                'version': '1'}
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        ssp = cls(session)
+        UmapPlot.set_state_from_snapshot(ssp, session, data['umap state'])
+        ssp._similar_structures_id = data['similar_structures_id']
+        ssp._query_residues = data['query_residues']
+        ssp._cluster_colors = data['cluster_colors']
+        ssp._species_to_color = data['species_to_color']
+        return ssp
+
+def _find_similar_structure_plot(session, similar_structures_id):
+    plots = [tool for tool in session.tools.list()
+             if isinstance(tool, SimilarStructurePlot) and tool._similar_structures_id == similar_structures_id]
+    return plots[-1] if plots else None
 
 def _nodes_by_color(nodes):
     c2n = {}

@@ -95,3 +95,48 @@ class UmapPlot(Graph):
     def layout_projection(self):
         from chimerax.geometry import identity
         return identity()
+    
+    # ---------------------------------------------------------------------------
+    # Session save and restore.
+    #
+    @property
+    def SESSION_SAVE(self):
+        return type(self) is UmapPlot  # Don't enable session save for derived classes.
+
+    def take_snapshot(self, session, flags):
+        xy, names, colors = [], [], []
+        from chimerax.core.colors import rgba_to_rgba8
+        for node in self.nodes:
+            xy.append(node.position[:2])
+            names.append(node.name)
+            if hasattr(node, 'color'):
+                colors.append(rgba_to_rgba8(node.color))
+        axes = self.axes
+        xlimits, ylimits = axes.get_xlim(), axes.get_ylim()
+        data = {'xy': xy,
+                'names': names,
+                'colors': (None if len(colors) == 0 else colors),
+                'title': self.tool_window.title,
+                'tool_name': self.tool_name,
+                'font_size': self.font_size,
+                'node_area': self._node_area,
+                'xlimits': xlimits,
+                'ylimits': ylimits,
+                'version': '1'}
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        up = cls(session, title = data['title'], tool_name = data['tool_name'])
+        up.set_state_from_snapshot(session, data)
+        return up
+
+    def set_state_from_snapshot(self, session, data):
+        self.font_size = data['font_size']
+        self._node_area = data['node_area']
+        UmapPlot.set_nodes(self, data['names'], data['xy'], colors = data['colors'])
+        axes = self.axes
+        xmin,xmax = data['xlimits']
+        axes.set_xlim(xmin,xmax)
+        ymin,ymax = data['ylimits']
+        axes.set_ylim(ymin,ymax)
