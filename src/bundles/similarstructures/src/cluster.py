@@ -145,7 +145,10 @@ class SimilarStructurePlot(UmapPlot):
         self.add_menu_entry(menu, 'Select reference atoms', self._select_reference_atoms)
 
     def _show_cluster_traces(self, node):
-        self._show_traces(self._cluster_names(node))
+        if self._create_traces():
+            self._show_only_cluster_traces(node)
+        else:
+            self._show_traces(self._cluster_names(node))
 
     def _show_only_cluster_traces(self, node):
         cnames = self._cluster_names(node)
@@ -156,8 +159,17 @@ class SimilarStructurePlot(UmapPlot):
         self._show_traces(self._cluster_names(node), show = False)
 
     def _show_traces(self, names, show = True, other = False):
+        self._create_traces()
         for tmodel in _backbone_trace_models(self.session, self._similar_structures_id):
             tmodel.show_traces(names, show=show, other=other)
+
+    def _create_traces(self):
+        if len(_backbone_trace_models(self.session, self._similar_structures_id)) == 0:
+            from . import traces
+            traces.similar_structures_traces(self.session, from_set = self._similar_structures_id)
+            self._color_traces()
+            return True
+        return False
 
     def _show_all_traces(self):
         cnames = []
@@ -188,6 +200,7 @@ class SimilarStructurePlot(UmapPlot):
         self._show_traces([n.name for n in self.nodes], show = False, other = True)
 
     def _color_traces(self):
+        self._create_traces()
         tmodels = _backbone_trace_models(self.session, self._similar_structures_id)
         if tmodels:
             from chimerax.core.colors import rgba_to_rgba8
