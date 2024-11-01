@@ -30,7 +30,14 @@ class MutateMenuEntry(SelectContextMenuAction):
 
     def criteria(self, session):
         from chimerax.atomic import selected_residues
-        return len([r for r in selected_residues(session) if r.polymer_type == r.PT_AMINO]) == 1
+        num_mutatable = 0
+        for r in selected_residues(session):
+            if r.polymer_type == r.PT_AMINO:
+                if r.find_atom('CA') and r.find_atom('N') and r.find_atom('C'):
+                    num_mutatable += 1
+                    if num_mutatable > 1:
+                        return False
+        return num_mutatable == 1
 
     def callback(self, session):
         from chimerax.core.commands import run
