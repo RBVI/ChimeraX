@@ -122,7 +122,8 @@ class GlobalModelMatcher {
 public:
     bool  exact_match;
     std::vector<std::vector<ModelMatcher>> levels;
-    GlobalModelMatcher(bool em, std::vector<std::vector<ModelMatcher>> ls) { exact_match = em; levels = ls; }
+    GlobalModelMatcher(bool em = false, std::vector<std::vector<ModelMatcher>> ls = {})
+        { exact_match = em; levels = ls; }
     std::vector<PyObject*>  matches();
 };
 
@@ -133,6 +134,11 @@ GlobalModelMatcher::matches()
     auto list_size = PySequence_Fast_GET_SIZE(models);
     for (decltype(list_size) i = 0; i < list_size; ++i) {
         auto m = PySequence_Fast_GET_ITEM(models, i);
+        if (levels.empty()) {
+            // matches all
+            matched_models.push_back(m);
+            continue;
+        }
         auto id_tuple = PyObject_GetAttrString(m, "id");
         if (id_tuple == nullptr)
             throw std::logic_error(use_python_error);
@@ -594,8 +600,10 @@ PyMODINIT_FUNC PyInit__spec_parser()
         std::cerr << "\n";
         auto objects_inst = new_objects_instance();
         //TODO: attrs, parts, zone
+        int attr_index = -1, parts_index = -1, zone_index = -1;
+        GlobalModelMatcher gmatcher;
         if (vs.choice() == 0) {
-            auto gmatcher = GlobalModelMatcher(std::any_cast<bool>(vs[0]), 
+            gmatcher = GlobalModelMatcher(std::any_cast<bool>(vs[0]), 
                 std::any_cast<std::vector<std::vector<ModelMatcher>>>(vs[1]));
             for (auto py_model: gmatcher.matches()) {
                 bool add_model = true, has_atoms;
@@ -684,9 +692,28 @@ PyMODINIT_FUNC PyInit__spec_parser()
                     }
                     Py_DECREF(ret_val);
                 }
+                if (vs.size() == 4) {
+                    attr_index = 2;
+                    zone_index = 3;
+                } else if (vs.size() == 3) {
+                    attr_index = 2;
+                    try {
+                        auto test = std::any_cast<std::vector<AttrTester>>(vs[2]);
+                    } catch (std::bad_any_cast& e) {
+                        attr_index = -1;
+                        zone_index = 2;
+                    }
+                }
             }
+        } else if (vs.choice() == 1) {
+            attr_index = 0;
+            if (vs.size() > 1)
+                zone_index = 1;
+        } else {
+            // not implemented yet
         }
-        //TODO else attribute test...
+std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index << "; zone_index: " << zone_index << "\n";
+        //TODO attribute, parts, zone tests...
         return objects_inst;
     };
             
@@ -737,6 +764,20 @@ PyMODINIT_FUNC PyInit__spec_parser()
         return ModelMatcher(std::any_cast<ModelPart>(vs[0]));
     };
             
+    // attribute_list
+    spec_parser["attribute_list"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " attribute_list semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        std::vector<AttrTester> attr_tests;
+        for (auto val: vs) {
+            attr_tests.push_back(std::any_cast<AttrTester>(val));
+        }
+        return attr_tests;
+    };
+
     // attr_test
     spec_parser["attr_test"] = [](const SemanticValues &vs) {
         std::cerr << vs.size() << " attr_test semantic values\n";
