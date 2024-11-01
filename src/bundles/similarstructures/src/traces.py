@@ -23,8 +23,8 @@
 # === UCSF ChimeraX Copyright ===
 
 def similar_structures_traces(session, align_with = None, alignment_cutoff_distance = None,
-                              keep_close = 4.0, keep_segment = 10.0,
-                              min_residues = 5, break_distance = 5.0,
+                              show = 'close', distance = 4.0, max_segment_distance = 10.0,
+                              min_segment_residues = 5, break_segment_distance = 5.0,
                               from_set = None, of_structures = None, replace = True):
     from .simstruct import similar_structure_results
     results = similar_structure_results(session, from_set)
@@ -78,7 +78,11 @@ def similar_structures_traces(session, align_with = None, alignment_cutoff_dista
         qresnums = [qatoms[i].residue.number for i in qi]
         hitseq = hit_coordinates_sequence(hit)
         hresname = [hitseq[i] for i in hi]
-        rshow = _close_residues(hxyz_aligned, break_distance, qxyz, keep_close, keep_segment, min_residues)
+        if show == 'close':
+            rshow = _close_residues(hxyz_aligned, qxyz, distance, max_segment_distance,
+                                    min_segment_residues, break_segment_distance)
+        else:
+            rshow = [True] * len(hresname)
         chain_info.append((hit_name, tuple(zip(hresname, qresnums, hxyz_aligned, rshow))))
 
     if len(chain_info) == 0:
@@ -101,16 +105,17 @@ def similar_structures_traces(session, align_with = None, alignment_cutoff_dista
     session.logger.info(msg)
     return model
 
-def _close_residues(hxyz_aligned, break_distance, qxyz, keep_close, keep_segment, min_residues):
+def _close_residues(hxyz_aligned, qxyz, distance, max_segment_distance, min_segment_residues,
+                    break_segment_distance):
     # Figure which distant residues to hide initially 
-    fragments = _distant_c_alpha_fragments(hxyz_aligned, break_distance)
-    if keep_close is not None and keep_close > 0:
+    fragments = _distant_c_alpha_fragments(hxyz_aligned, break_segment_distance)
+    if distance is not None and distance > 0:
         cfrags = []
         for start,end in fragments:
             cfrags.extend(_close_fragments(hxyz_aligned[start:end], qxyz[start:end],
-                                           keep_close, keep_segment_distance=keep_segment, offset=start))
+                                           distance, max_segment_distance, start))
         fragments = cfrags
-    min_res = max(2, min_residues)
+    min_res = max(2, min_segment_residues)
     fragments = [(s,e) for s,e in fragments if e-s >= min_res]
     from numpy import zeros
     rshow = zeros((len(hxyz_aligned),), bool)
@@ -130,15 +135,15 @@ def _distant_c_alpha_fragments(hxyz, break_distance = 5):
     fragments.append((start, len(hxyz)))
     return fragments
 
-def _close_fragments(xyz, ref_xyz, distance, offset = 0, keep_segment_distance = None):
+def _close_fragments(xyz, ref_xyz, distance, max_segment_distance = None, offset = 0):
     d = xyz - ref_xyz
     d2 = (d*d).sum(axis = 1)
     mask = (d2 <= distance*distance)
-    if keep_segment_distance is not None:
+    if max_segment_distance is not None:
         n = len(xyz)
-        keep_dist2 = keep_segment_distance * keep_segment_distance
+        max_dist2 = max_segment_distance * max_segment_distance
         for start, end in _mask_intervals(~mask):
-            if start > 0 and end < n and d2[start:end].max() <= keep_dist2:
+            if start > 0 and end < n and d2[start:end].max() <= max_dist2:
                 mask[start:end] = True  # Keep interior interval if largest distance is not too large.
     fragments = _mask_intervals(mask)
     if offset != 0:
@@ -281,16 +286,17 @@ def register_context_menu():
         _registered_context_menu = True
     
 def register_similar_structures_traces_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, IntArg, BoolArg, StringArg
+    from chimerax.core.commands import CmdDesc, register, FloatArg, IntArg, BoolArg, StringArg, EnumOf
     from chimerax.atomic import ResiduesArg
     desc = CmdDesc(
         required = [],
         keyword = [('align_with', ResiduesArg),
                    ('alignment_cutoff_distance', FloatArg),
-                   ('keep_close', FloatArg),
-                   ('keep_segment', FloatArg),
-                   ('min_residues', IntArg),
-                   ('break_distance', FloatArg),
+                   ('show', EnumOf(['all','close'])),
+                   ('distance', FloatArg),
+                   ('max_segment_distance', FloatArg),
+                   ('min_segment_residues', IntArg),
+                   ('break_segment_distance', FloatArg),
                    ('from_set', StringArg),
                    ('of_structures', StringArg),
                    ('replace', BoolArg),
