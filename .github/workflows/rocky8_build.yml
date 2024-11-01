@@ -63,6 +63,10 @@ jobs:
           release_type: ${{ inputs.release_type }}
           platform: centos-8
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Upload documentation
+        uses: ./utils/ci/upload_docs
+        with:
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Tar bundles and includes for other builds
         run: |
           export BUNDLE_REPO_DIR=$(git rev-parse --show-toplevel)/build/sync
