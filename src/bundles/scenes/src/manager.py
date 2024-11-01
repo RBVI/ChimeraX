@@ -67,7 +67,7 @@ class SceneManager(StateManager):
         """
         if scene_name in self.scenes:
             del self.scenes[scene_name]
-            self.triggers.activate_trigger(DELETED, scene_name)
+            activate_trigger(DELETED, scene_name)
         else:
             self.session.logger.warning(f"Scene {scene_name} does not exist.")
 
