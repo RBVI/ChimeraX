@@ -28,6 +28,7 @@ from .scene import Scene, SceneColors, SceneVisibility
 from chimerax.core.triggerset import TriggerSet
 from chimerax.core.models import REMOVE_MODELS
 from chimerax.std_commands.view import _interpolate_views, _model_motion_centers
+from .triggers import activate_trigger, ADDED, DELETED
 
 
 class SceneManager(StateManager):
@@ -47,7 +48,6 @@ class SceneManager(StateManager):
     """
 
     version = 0
-    ADDED, DELETED = trigger_names = ("added", "deleted")
 
     def __init__(self, session):
         """
@@ -59,8 +59,6 @@ class SceneManager(StateManager):
         self.scenes: {str, Scene} = {}  # name -> Scene
         self.session = session
         self.triggers = TriggerSet()
-        for trig_name in self.trigger_names:
-            self.triggers.add_trigger(trig_name)
         session.triggers.add_handler(REMOVE_MODELS, self._remove_models_cb)
 
     def delete_scene(self, scene_name):
@@ -69,7 +67,7 @@ class SceneManager(StateManager):
         """
         if scene_name in self.scenes:
             del self.scenes[scene_name]
-            self.triggers.activate_trigger(self.DELETED, scene_name)
+            self.triggers.activate_trigger(DELETED, scene_name)
         else:
             self.session.logger.warning(f"Scene {scene_name} does not exist.")
 
@@ -88,7 +86,7 @@ class SceneManager(StateManager):
             self.session.logger.warning(f"Scene {scene_name} already exists.")
             return
         self.scenes[scene_name] = Scene(self.session)
-        self.triggers.activate_trigger(self.ADDED, scene_name)
+        activate_trigger(ADDED, scene_name)
         return
 
     def restore_scene(self, scene_name):
