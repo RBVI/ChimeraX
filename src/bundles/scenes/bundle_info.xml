@@ -34,7 +34,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <!-- <ChimeraXClassifier>Command :: sequence :: Sequence alignment :: control/open sequence alignments</ChimeraXClassifier> -->
 
-  <ChimeraXClassifier>ChimeraX :: Command :: scenes scene :: General ::
+  <ChimeraXClassifier>ChimeraX :: Command :: scenes save :: General ::
       Save a scene to the sessions scene manager. </ChimeraXClassifier>
   <ChimeraXClassifier>ChimeraX :: Command :: scenes restore :: General ::
     Save a scene to the sessions scene manager. </ChimeraXClassifier>

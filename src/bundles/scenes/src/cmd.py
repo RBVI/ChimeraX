@@ -2,9 +2,9 @@ from chimerax.core.commands import register, CmdDesc, StringArg, FloatArg
 
 
 def register_command(command_name, logger):
-    if command_name == "scenes scene":
-        func = scene
-        desc = scene_desc
+    if command_name == "scenes save":
+        func = save_scene
+        desc = save_scene_desc
     elif command_name == "scenes restore":
         func = restore_scene
         desc = restore_scene_desc
@@ -22,12 +22,12 @@ def register_command(command_name, logger):
     register(command_name, desc, func)
 
 
-def scene(session, scene_name):
+def save_scene(session, scene_name):
     """Save the current scene as 'scene_name'."""
     session.scenes.save_scene(scene_name)
 
 
-scene_desc = CmdDesc(
+save_scene_desc = CmdDesc(
     required=[("scene_name", StringArg)],
     synopsis="Save the current scene as 'scene_name'."
 )
