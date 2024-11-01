@@ -102,6 +102,11 @@ runs:
       with:
         path: |
           prereqs/ambertools/ambertools-20-Linux-Rocky-8.10.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Rocky-9.4.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2
+
         key: ${{ runner.os }}-${{ inputs.architecture }}-ambertools
 
     - name: Restore cached ambertools (Windows)
@@ -286,6 +291,7 @@ runs:
         if [ "${{ inputs.platform }}" = "macos" ] ; then
           curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/tinyarray/tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
           curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/cython/Cython-3.0.10-cp311-cp311-macosx_10_9_universal2.whl
+          mv Cython* prereqs/pips/
         fi
         if [ "${{ inputs.platform }}" = "windows" ] ; then
           curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/tinyarray/tinyarray-1.2.4-cp311-cp311-win_amd64.whl
@@ -346,6 +352,10 @@ runs:
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
           curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ambertools/ambertools-20-Linux-Rocky-8.10.tar.bz2 -O -J
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ambertools/ambertools-20-Linux-Rocky-9.4.tar.bz2 -O -J
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2 -O -J
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2 -O -J
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2 -O -J
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
           curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ambertools/ambertools-flibs-20-Darwin.tar.bz2 -O -J
@@ -365,9 +375,9 @@ runs:
         mv mmtf*.zip src/bundles/mmtf/
         mv msgpack*.zip src/bundles/mmtf/
 
-    - name: Fetch PyQt
+    - name: Fetch Python
       shell: bash
-      if: ${{ steps[format('cache-pyqt6-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
+      if: ${{ steps[format('cache-python-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
           curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/python/Python-3.11.4.tar.xz -O -J
