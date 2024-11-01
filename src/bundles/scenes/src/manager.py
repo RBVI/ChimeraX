@@ -85,7 +85,7 @@ class SceneManager(StateManager):
         if scene_name in self.scenes:
             self.session.logger.warning(f"Scene {scene_name} already exists.")
             return
-        self.scenes[scene_name] = Scene(self.session)
+        self.scenes[scene_name] = Scene(self.session, scene_name)
         activate_trigger(ADDED, scene_name)
         return
 

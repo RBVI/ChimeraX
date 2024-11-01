@@ -50,7 +50,7 @@ class Scene(State):
 
     version = 0
 
-    def __init__(self, session, *, scene_data=None):
+    def __init__(self, session, name, *, scene_data=None):
         """
         Initialize a Scene object. If there is no snapshot scene data passed in then create a new scene from the session
         state. Otherwise, load the scene from the snapshot data.
@@ -60,6 +60,7 @@ class Scene(State):
             scene_data (dict, optional): A dictionary of scene data to restore from snapshot method.
         """
         self.session = session
+        self.name = name
         if scene_data is None:
             # Want a new scene
             self.main_view_data = self.create_main_view_data()
@@ -207,6 +208,9 @@ class Scene(State):
     def get_visibility(self):
         return self.scene_visibility
 
+    def get_name(self):
+        return self.name
+
     @staticmethod
     def interpolatable(scene1, scene2):
         """
@@ -235,11 +239,14 @@ class Scene(State):
 
     @staticmethod
     def restore_snapshot(session, data):
-        return Scene(session, scene_data=data)
+        if data['version'] != Scene.version:
+            raise ValueError("Cannot restore Scene data with version %d" % data['version'])
+        return Scene(session, data['name'], scene_data=data)
 
     def take_snapshot(self, session, flags):
         return {
             'version': self.version,
+            'name': self.name,
             'main_view_data': self.main_view_data,
             'named_view': self.named_view.take_snapshot(session, flags),
             'scene_colors': self.scene_colors.take_snapshot(session, flags),
