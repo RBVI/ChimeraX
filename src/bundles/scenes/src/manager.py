@@ -85,7 +85,8 @@ class SceneManager(StateManager):
         Save the current state as a scene.
         """
         if scene_name in self.scenes:
-            self.delete_scene(scene_name)
+            self.session.logger.warning(f"Scene {scene_name} already exists.")
+            return
         self.scenes[scene_name] = Scene(self.session)
         self.triggers.activate_trigger(self.ADDED, scene_name)
         return
