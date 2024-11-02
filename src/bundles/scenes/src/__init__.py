@@ -34,6 +34,9 @@ class _ScenesBundleAPI(BundleAPI):
         if class_name == "SceneManager":
             from . import manager
             return manager.SceneManager
+        elif class_name == "ScenesTool":
+            from . import tool
+            return tool.ScenesTool
 
     @staticmethod
     def initialize(session, bundle_info):
@@ -53,5 +56,11 @@ class _ScenesBundleAPI(BundleAPI):
         from . import cmd
         cmd.register_command(command_name, logger)
 
+    @staticmethod
+    def start_tool(session, bi, ti):
+        if ti.name == "Scenes":
+            from .tool import ScenesTool
+            return ScenesTool(session, ti)
+        raise ValueError("unknown tool %s" % ti.name)
 
 bundle_api = _ScenesBundleAPI()
