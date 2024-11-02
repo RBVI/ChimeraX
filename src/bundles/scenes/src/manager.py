@@ -191,6 +191,9 @@ class SceneManager(StateManager):
             scene = Scene.restore_snapshot(self.session, scene_snapshot)
             self.scenes.append(scene)
 
+    def get_scenes(self):
+        return self.scenes
+
     def get_scene(self, scene_name: str) -> Scene | None:
         """
         Get a scene by name. If the scene does not exist, return None.

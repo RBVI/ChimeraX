@@ -233,6 +233,9 @@ class Scene(State):
     def get_name(self):
         return self.name
 
+    def get_thumbnail(self):
+        return self.thumbnail
+
     @staticmethod
     def interpolatable(scene1, scene2):
         """
