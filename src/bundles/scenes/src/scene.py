@@ -49,6 +49,7 @@ class Scene(State):
     """
 
     version = 0
+    THUMBNAIL_SIZE = (128, 128)
 
     def __init__(self, session, name, *, scene_data=None):
         """
@@ -63,6 +64,7 @@ class Scene(State):
         self.name = name
         if scene_data is None:
             # Want a new scene
+            self.thumbnail = self.take_thumbnail()
             self.main_view_data = self.create_main_view_data()
             models = session.models.list()
             self.named_view = NamedView(self.session.view, self.session.view.center_of_rotation, models)
@@ -70,11 +72,28 @@ class Scene(State):
             self.scene_visibility = SceneVisibility(session)
         else:
             # load a scene from snapshot
+            self.thumbnail = scene_data['thumbnail']
             self.main_view_data = scene_data['main_view_data']
             self.named_view = NamedView.restore_snapshot(session, scene_data['named_view'])
             self.scene_colors = SceneColors(session, color_data=scene_data['scene_colors'])
             self.scene_visibility = SceneVisibility(session, visibility_data=scene_data['scene_visibility'])
         return
+
+    def take_thumbnail(self):
+        """
+        Take a thumbnail of the current session.
+
+        Returns:
+            str: The thumbnail image as a base64 encoded string.
+        """
+        image = self.session.main_view.image(*self.THUMBNAIL_SIZE)
+        import io
+        img_io = io.BytesIO()
+        image.save(img_io, format='JPEG')
+        image_bytes = img_io.getvalue()
+        import codecs
+        image_base64 = codecs.encode(image_bytes, 'base64').decode('utf-8')
+        return image_base64
 
     def restore_scene(self):
         """
@@ -247,6 +266,7 @@ class Scene(State):
         return {
             'version': self.version,
             'name': self.name,
+            'thumbnail': self.thumbnail,
             'main_view_data': self.main_view_data,
             'named_view': self.named_view.take_snapshot(session, flags),
             'scene_colors': self.scene_colors.take_snapshot(session, flags),
