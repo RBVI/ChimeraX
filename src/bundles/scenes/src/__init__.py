@@ -27,6 +27,8 @@ from chimerax.core.toolshed import BundleAPI
 
 class _ScenesBundleAPI(BundleAPI):
 
+    api_version = 1
+
     @staticmethod
     def get_class(class_name):
         if class_name == "SceneManager":
