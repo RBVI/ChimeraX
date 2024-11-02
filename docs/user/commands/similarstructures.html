@@ -1,0 +1,172 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: similarstructures</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: similarstructures</h3>
+<h3 align="center">
+&ndash; under construction &ndash;
+</h3>
+<p>
+BLAST search:
+</p>
+<ul>
+<li><a href="#blast"><b>similarstructures blast</b></a>
+&ndash; run BLAST search, show results in
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>
+<li><a href="#fromblast"><b>similarstructures fromblast</b></a>
+&ndash; convert 
+<a href="../tools/blastprotein.html#results"><b>Blast Protein</b> results</a>
+to a
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>
+and <a href="../formats/sms.html">similar structures file</a>
+</ul>
+<p>
+Similar structures analyses:
+</p>
+<ul>
+<li>
+</ul>
+<p>
+Similar structures utilities:
+</p>
+<ul>
+<li>
+</ul>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="blast"></a>
+<b>similarstructures blast</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+[&nbsp;<b>database</b>&nbsp;&nbsp;<b>pdb</b>&nbsp;|&nbsp;afdb&nbsp;]
+[&nbsp;<b>evalueCutoff</b>&nbsp;&nbsp;<i>max-evalue</i>&nbsp;]
+[&nbsp;<b>maxHits</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+<span class="nowrap">[&nbsp;<b>trim</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;|&nbsp;chains,sequence,ligands&nbsp;]</span>
+[&nbsp;<b>alignmentCutoffDistance</b>&nbsp;&nbsp;<i>dist</i>&nbsp;]
+[&nbsp;<b>saveDirectory</b></a>&nbsp;&nbsp;<i>results-folder</i>&nbsp;]
+<blockquote>
+<p>
+Run a <a href="../tools/blastprotein.html#notes">BLAST</a> search of the
+<a href="https://www.rcsb.org" target="_blank">PDB</a> or
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
+with a protein structure chain as the query, using the web service hosted by the
+<a href="https://www.cgl.ucsf.edu/Overview/index.html"
+target="_blank">UCSF RBVI</a>.
+The <a href="../tools/foldseek.html"><b>Foldseek</b>
+(<b>Similar Structures</b>)</a> tool provides a graphical interface
+to running this command. 
+</p><p>
+A BLAST search may take several minutes, during which ChimeraX cannot be used
+for other tasks. A much faster (~100X) MMseqs2 search can be performed instead
+with the <a href="sequence.html#search"><b>sequence search</b></a> command.
+See also:
+<a href="foldseek.html"><b>foldseek</b></a>,
+<a href="blastprotein.html"><b>blastprotein</b></a>
+</p><p>
+Results are tabulated in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a> tool,
+which facilitates exploring large sets of protein structures
+by efficiently showing them in 3D as backbone traces and in
+2D as sequence alignment schematics or scatter plots based on conformation.
+These analyses can also be performed with the
+<a href="#top"><b>similarstructures</b></a> command
+by referring to a set of results by name.
+The name assigned to the results (<b>bl1</b> or <b>bl2</b>)
+is reported in the <a href="../tools/log.html"><b>Log</b></a>
+when the search is run.
+</p><p>
+Choices of <b>database</b> to search:
+<ul>
+<li><b>pdb</b> (default)
+&ndash; <a href="https://www.rcsb.org" target="_blank">PDB</a>
+<li><b>afdb</b>
+&ndash; <a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold Database</a>
+</ul>
+<p>
+The hits can be limited with the following options:
+</p>
+<ul>
+<li><b>evalueCutoff</b>&nbsp;&nbsp;<i>max-evalue</i>
+&ndash; maximum E-value of a hit to be retained (default <b>1e-3</b>)
+<li><b>maxHits</b>&nbsp;&nbsp;<i>N</i>
+&ndash; maximum number of hits retained (default <b>1000</b>)
+</ul>
+<p>
+The <b>trim</b> and <b>alignmentCutoffDistance</b> options do not act
+immediately. Instead, they specify how to process the hit structures
+if later opened from the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a>
+tool or with the command
+<a href="../commands/similarstructures.html#open"><b>similarstructures
+open</b></a>. The structures are fetched from the respective database
+(<a href="https://www.rcsb.org/" target="_blank">Protein Data Bank</a>
+or <a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold Database</a>) and processed as follows:
+<ul>
+<li>The <b>trim</b> option indicates deleting all of the following
+(if true), or none of them (if false), or a comma-separated list of:
+  <ul>
+  <li><b>chains</b> &ndash; for PDB entries, chains other than the hit chain
+  <li><b>sequence</b> &ndash; N- and C-terminal segments of the hit chain
+that were not included in the sequence alignment returned by the search method
+  <li><b>ligands</b> &ndash; ligands, solvent, and ions &gt; 3 &Aring;
+from the hit chain
+  </ul>
+The <b>trim</b> default is the current setting in the
+<a href="../tools/foldseek.html#options"><b>Similar Structures</b> options</a>,
+otherwise (if the tool is not open) <b>true</b>.
+<br><br>
+<li>The hit chain is superimposed onto the query chain by
+least-squares fitting the &alpha;-carbons of the paired residues
+and iteratively pruning far-apart pairs as described for the
+<a href="align.html"><b>align</b></a> command.
+The <b>alignmentCutoffDistance</b> <i>d</i> is the alignment pruning distance 
+so that only &alpha;-carbon pairs within the specified distance
+are used in the final fit (default as per the
+<a href="../tools/foldseek.html#options"><b>Similar Structures</b> options</a>,
+otherwise <b>2.0</b> &Aring;)
+</ul>
+<p>
+Search results are saved in a
+<a href="../formats/sms.html">similar structures file</a>
+(suffix .sms, a JSON file format specific to ChimeraX)
+with filename based on the query name and the database searched.
+The file will be listed in the
+<a href="../tools/filehistory.html"><b>File History</b></a> for easy access,
+and simply opening it loads the set of results into the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a>
+interface.
+The <b>saveDirectory</b> option allows specifying the save location,
+either directly or as the word
+<a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window
+(default location <b>~/Downloads/ChimeraX/BLAST/</b>).
+</p>
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2024</address>
+</body></html>
