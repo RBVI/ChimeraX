@@ -51,10 +51,10 @@ class _ScenesBundleAPI(BundleAPI):
         del session.scenes
 
     @staticmethod
-    def register_command(command_name, logger):
+    def register_command(bi, ci, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import cmd
-        cmd.register_command(command_name, logger)
+        cmd.register_command(ci.name, logger)
 
     @staticmethod
     def start_tool(session, bi, ti):
