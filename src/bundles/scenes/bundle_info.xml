@@ -38,6 +38,8 @@
       Save a scene to the sessions scene manager. </ChimeraXClassifier>
   <ChimeraXClassifier>ChimeraX :: Command :: scenes delete :: General ::
     Delete a scene from the sessions scene manager. </ChimeraXClassifier>
+  <ChimeraXClassifier>ChimeraX :: Command :: scenes edit :: General ::
+    Edit a scene from the sessions scene manager. </ChimeraXClassifier>
   <ChimeraXClassifier>ChimeraX :: Command :: scenes restore :: General ::
     Save a scene to the sessions scene manager. </ChimeraXClassifier>
   <ChimeraXClassifier>ChimeraX :: Command :: scenes interpolate :: General ::

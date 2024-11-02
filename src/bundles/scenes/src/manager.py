@@ -28,7 +28,7 @@ from .scene import Scene, SceneColors, SceneVisibility
 from chimerax.core.triggerset import TriggerSet
 from chimerax.core.models import REMOVE_MODELS
 from chimerax.std_commands.view import _interpolate_views, _model_motion_centers
-from .triggers import activate_trigger, ADDED, DELETED
+from .triggers import activate_trigger, ADDED, DELETED, EDITED
 
 
 class SceneManager(StateManager):
@@ -72,6 +72,13 @@ class SceneManager(StateManager):
         if self.scene_exists(scene_name):
             self.scenes = [scene for scene in self.scenes if scene.get_name() != scene_name]
             activate_trigger(DELETED, scene_name)
+        else:
+            self.session.logger.warning(f"Scene {scene_name} does not exist.")
+
+    def edit_scene(self, scene_name):
+        if self.scene_exists(scene_name):
+            self.get_scene(scene_name).init_form_session()
+            activate_trigger(EDITED, scene_name)
         else:
             self.session.logger.warning(f"Scene {scene_name} does not exist.")
 

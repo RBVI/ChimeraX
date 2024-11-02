@@ -64,12 +64,7 @@ class Scene(State):
         self.name = name
         if scene_data is None:
             # Want a new scene
-            self.thumbnail = self.take_thumbnail()
-            self.main_view_data = self.create_main_view_data()
-            models = session.models.list()
-            self.named_view = NamedView(self.session.view, self.session.view.center_of_rotation, models)
-            self.scene_colors = SceneColors(session)
-            self.scene_visibility = SceneVisibility(session)
+            self.init_form_session()
         else:
             # load a scene from snapshot
             self.thumbnail = scene_data['thumbnail']
@@ -78,6 +73,14 @@ class Scene(State):
             self.scene_colors = SceneColors(session, color_data=scene_data['scene_colors'])
             self.scene_visibility = SceneVisibility(session, visibility_data=scene_data['scene_visibility'])
         return
+
+    def init_form_session(self):
+        self.thumbnail = self.take_thumbnail()
+        self.main_view_data = self.create_main_view_data()
+        models = self.session.models.list()
+        self.named_view = NamedView(self.session.view, self.session.view.center_of_rotation, models)
+        self.scene_colors = SceneColors(self.session)
+        self.scene_visibility = SceneVisibility(self.session)
 
     def take_thumbnail(self):
         """
