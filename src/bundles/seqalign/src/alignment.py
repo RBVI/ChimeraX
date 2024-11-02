@@ -419,7 +419,7 @@ class Alignment(State):
             # since StructureSeq demotion notifications may be delayed until the 'changes done'
             # trigger, we need to do a hacky check here and possibly also delay this notification
             for seq in self.associations:
-                if not hasattr(seq, 'structure'):
+                if getattr(seq, 'structure', None) is None:
                     # it's been demoted
                     def _delay_assoc(_, __, *, name=note_name, data=note_data):
                         self._notify_observers(name, data)
@@ -518,11 +518,12 @@ class Alignment(State):
         num_unknown = 0
         structures = set()
         for sseq in self.associations:
-            try:
-                structures.add(sseq.structure)
-            except AttributeError:
+            structure = getattr(sseq, 'structure', None)
+            if structure is None:
                 # demoted
                 num_unknown += 1
+            else:
+                structures.add(structure)
         data = {
             'match map': match_map,
             'num remaining associations': len(self.associations),
@@ -970,7 +971,7 @@ class Alignment(State):
             return
         from chimerax.atomic import StructureSeq
         for chain in self.associations:
-            if chain.deleted or not isinstance(chain, StructureSeq):
+            if chain.deleted or getattr(chain, 'structure', None) is None:
                 # the ensuing disassociation/demotion will update the RMSD
                 return
         for chain in self.associations:

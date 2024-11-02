@@ -1,0 +1,89 @@
+name: Build a Universal Mac ChimeraX
+on:
+  workflow_call:
+    inputs:
+      release_type:
+        type: string
+        required: true
+      branch:
+        type: string
+        required: false
+    secrets:
+      PREBUILT_CACHE_SECRET:
+        required: true
+      MAC_CERT_BASE64:
+        required: true
+      MAC_CERT_P12_PASSWD:
+        required: true
+      MAC_PROVISION_PROFILE_BASE64:
+        required: true
+      MAC_KEYCHAIN_PASSWORD:
+        required: true
+      MAC_NOTARIZATION_TEAM_ID:
+        required: true
+      MAC_NOTARIZATION_APP_PSWD:
+        required: true
+      MAC_NOTARIZATION_PROVIDER:
+        required: true
+      MAC_NOTARIZATION_EMAIL:
+        required: true
+
+jobs:
+  build-mac-universal:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || 'develop' }}
+      - name: Set up Python
+        run: |
+          brew install python@3.10
+          python3.10 -m pip install setuptools==54.0
+          python3.10 -m pip install lief==0.12.2
+          python3.10 -m pip install dmgbuild
+          # Make dmgbuild allocate an adult sized DMG
+          patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
+      - uses: ./utils/ci/download_mac_chimerax
+        with:
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          build_type: ${{ inputs.release_type }}
+      - name: Extract the ChimeraXes
+        run: |
+          hdiutil attach chimerax_intel.dmg
+          cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_intel.app
+          hdiutil detach /Volumes/ChimeraX\ Installer
+          rm chimerax_intel.dmg
+          hdiutil attach chimerax_arm.dmg
+          cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_arm64.app
+          hdiutil detach /Volumes/ChimeraX\ Installer
+          rm chimerax_arm.dmg
+      - name: Make the universal build
+        run: |
+          python3.10 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app 2>&1
+      - name: Remove unneeded ChimeraXes
+        run: |
+          rm -r chimerax_arm64.app
+          rm -r chimerax_intel.app
+        # I have no idea why dmgbuild keeps complaining that it runs out of space if these
+        # steps are not separated instead of using the action and at this point I don't
+        # care to keep looking.
+      - name: Sign the macOS package
+        uses: ./utils/ci/sign_macos/
+        with:
+          build_certificate: ${{ secrets.MAC_CERT_BASE64 }}
+          p12_pw: ${{ secrets.MAC_CERT_P12_PASSWD }}
+          build_profile: ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }}
+          kc_pw: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
+          team_id: ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
+          app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
+          provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
+          email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
+          release_type: ${{ inputs.release_type }}
+      - name: Upload ChimeraX
+        uses: ./utils/ci/upload_artifact
+        with:
+          artifact_path: ChimeraX.dmg
+          full_build: true
+          release_type: ${{ inputs.release_type }}
+          platform: mac_universal
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}

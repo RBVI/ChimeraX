@@ -437,7 +437,8 @@ class SequenceViewer(ToolInstance):
             # opened along with MAV a chance to load
             parent.after_idle(lambda: self._loadStructures(auto=1))
         """
-        self.tool_window.manage('side')
+        from Qt.QtCore import Qt
+        self.tool_window.manage('side', allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas)
 
     @property
     def active_region(self):

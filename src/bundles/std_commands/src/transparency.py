@@ -33,7 +33,8 @@ def transparency(session, objects, percent, what=None, target=None):
       Percent transparent from 0 completely opaque, to 100 completely transparent.
     target : string
       Characters indicating what to make transparent:
-      a = atoms, b = bonds, p = pseudobonds, c = cartoon, r = cartoon, s = surfaces, A = all
+      a = atoms, c = cartoon, r = cartoon, s = surfaces, b = bonds, p = pseudobonds,
+      f = (filled) rings, s = surfaces, m = models, A = all
     """
     if objects is None:
         from chimerax.core.objects import all_objects
@@ -85,6 +86,13 @@ def transparency(session, objects, percent, what=None, target=None):
         c[:, 3] = alpha
         residues.ribbon_colors = c
         what.append('%d residues' % len(residues))
+
+    if 'f' in target:
+        residues = objects.residues
+        c = residues.ring_colors
+        c[:, 3] = alpha
+        residues.ring_colors = c
+        what.append('rings')  # not sure how many
 
     if 'm' in target:
         models = _set_model_transparency(objects.models, session, alpha)
