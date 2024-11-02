@@ -44,7 +44,6 @@ class SceneManager(StateManager):
         DELETED (str): Trigger name for deleted scenes.
         scenes (dict): A dictionary mapping scene names to Scene objects.
         session: The current session.
-        triggers: A TriggerSet object for managing triggers.
     """
 
     version = 0
@@ -56,17 +55,22 @@ class SceneManager(StateManager):
         Args:
             session: The current session.
         """
-        self.scenes: {str, Scene} = {}  # name -> Scene
+        self.scenes: [Scene] = []
         self.session = session
-        self.triggers = TriggerSet()
         session.triggers.add_handler(REMOVE_MODELS, self._remove_models_cb)
+
+    def scene_exists(self, scene_name: str) -> bool:
+        """
+        Check if a scene exists by name and return True if it does, False otherwise.
+        """
+        return scene_name in [scene.get_name() for scene in self.scenes]
 
     def delete_scene(self, scene_name):
         """
         Delete scene by name.
         """
-        if scene_name in self.scenes:
-            del self.scenes[scene_name]
+        if self.scene_exists(scene_name):
+            self.scenes = [scene for scene in self.scenes if scene.get_name() != scene_name]
             activate_trigger(DELETED, scene_name)
         else:
             self.session.logger.warning(f"Scene {scene_name} does not exist.")
@@ -75,17 +79,17 @@ class SceneManager(StateManager):
         """
         Delete all scenes.
         """
-        for scene_name in list(self.scenes.keys()):
-            self.delete_scene(scene_name)
+        for scene in self.scenes:
+            self.delete_scene(scene.get_name())
 
     def save_scene(self, scene_name):
         """
         Save the current state as a scene.
         """
-        if scene_name in self.scenes:
+        if self.scene_exists(scene_name):
             self.session.logger.warning(f"Scene {scene_name} already exists.")
             return
-        self.scenes[scene_name] = Scene(self.session, scene_name)
+        self.scenes.append(Scene(self.session, scene_name))
         activate_trigger(ADDED, scene_name)
         return
 
@@ -93,8 +97,8 @@ class SceneManager(StateManager):
         """
         Restore a scene by name.
         """
-        if scene_name in self.scenes:
-            self.scenes[scene_name].restore_scene()
+        if self.scene_exists(scene_name):
+            self.get_scene(scene_name).restore_scene()
         return
 
     def interpolate_scenes(self, scene_name1, scene_name2, fraction):
@@ -106,9 +110,9 @@ class SceneManager(StateManager):
             scene_name2 (str): The name of the second scene.
             fraction (float): The interpolation fraction (0.0 to 1.0).
         """
-        if scene_name1 in self.scenes and scene_name2 in self.scenes:
-            scene1 = self.scenes[scene_name1]
-            scene2 = self.scenes[scene_name2]
+        if self.scene_exists(scene_name1) and self.scene_exists(scene_name2):
+            scene1 = self.get_scene(scene_name1)
+            scene2 = self.get_scene(scene_name2)
 
             # Check if scenes are compatible
             if not Scene.interpolatable(scene1, scene2):
@@ -143,7 +147,7 @@ class SceneManager(StateManager):
             trig_name (str): The name of the trigger.
             models: The models to remove.
         """
-        for scene in self.scenes.values():
+        for scene in self.scenes:
             scene.models_removed(models)
 
     # session methods
@@ -165,7 +169,7 @@ class SceneManager(StateManager):
         # viewer_info is "session independent"
         return {
             'version': self.version,
-            'scenes': {scene_name: scene.take_snapshot(session, flags) for scene_name, scene in self.scenes.items()}
+            'scenes': [scene.take_snapshot(session, flags) for scene in self.scenes]
         }
 
     def _ses_restore(self, data):
@@ -176,12 +180,18 @@ class SceneManager(StateManager):
             data (dict): The session data.
         """
         self.clear()
-        for scene_name, scene_snapshot in data['scenes'].items():
+        for scene_snapshot in data['scenes']:
             scene = Scene.restore_snapshot(self.session, scene_snapshot)
-            self.scenes[scene_name] = scene
+            self.scenes.append(scene)
 
-    def get_scene(self, scene_name):
-        return self.scenes.get(scene_name)
+    def get_scene(self, scene_name: str) -> Scene | None:
+        """
+        Get a scene by name. If the scene does not exist, return None.
+        """
+        for scene in self.scenes:
+            if scene.get_name() == scene_name:
+                return scene
+        return None
 
-    def get_scenes(self) -> {str, Scene}:
-        return self.scenes
+    def get_scene_names(self) -> {str, Scene}:
+        return [scene.get_name() for scene in self.scenes]

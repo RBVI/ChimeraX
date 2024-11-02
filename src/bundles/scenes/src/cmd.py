@@ -101,7 +101,7 @@ dynamic_interpolate_scenes_desc = CmdDesc(
 
 def list_scenes(session):
     """List all saved scenes."""
-    for scene_name in session.scenes.scenes.keys():
+    for scene_name in session.scenes.get_scene_names():
         print(scene_name)
 
 
