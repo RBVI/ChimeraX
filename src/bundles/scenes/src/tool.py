@@ -103,3 +103,8 @@ class SceneItem(QWidget):
 
         # Set fixed size for the SceneItem
         self.setFixedSize(pixmap.width(), pixmap.height() + self.label.sizeHint().height())
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            print(f"SceneItem '{self.name}' clicked")
+        super().mousePressEvent(event)
