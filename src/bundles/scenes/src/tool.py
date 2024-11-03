@@ -1,7 +1,7 @@
 import base64
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
-from Qt.QtWidgets import QHBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout
+from Qt.QtWidgets import QHBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QSizePolicy
 from Qt.QtGui import QPixmap
 from Qt.QtCore import Qt
 
@@ -33,6 +33,8 @@ class ScenesTool(ToolInstance):
 
 class ScenesWidget(QWidget):
 
+    ITEM_WIDTH = 110
+
     def __init__(self, session):
         super().__init__()
         self.main_layout = QGridLayout()
@@ -40,16 +42,35 @@ class ScenesWidget(QWidget):
         self.add_scenes(session)
 
     def add_scenes(self, session):
+        self.main_layout.setRowStretch(0, 0)
+        self.main_layout.setColumnStretch(0, 0)
         scenes = session.scenes.get_scenes()
+        self.scene_items = [SceneItem(scene.get_name(), scene.get_thumbnail()) for scene in scenes]
+        self.update_layout()
+
+    def resizeEvent(self, event):
+        self.update_layout()
+        super().resizeEvent(event)
+
+    def update_layout(self):
+        # Clear the layout. Before repopulating it in the correct orientation
+        for i in reversed(range(self.main_layout.count())):
+            self.main_layout.itemAt(i).widget().setParent(None)
+
+        width = self.width()
+        columns = max(1, width // self.ITEM_WIDTH)  # Adjust to the desired width of each SceneItem
         row, col = 0, 0
-        for scene in scenes:
-            scene_item = SceneItem(scene.get_name(), scene.get_thumbnail())
-            scene_item.init_ui()
+        for scene_item in self.scene_items:
             self.main_layout.addWidget(scene_item, row, col)
             col += 1
-            if col >= 4:  # Adjust the number of columns as needed
+            if col >= columns:
                 col = 0
                 row += 1
+
+        # Calculate the required height based on the number of rows
+        item_height = self.scene_items[0].height() if self.scene_items else 0
+        required_height = (row + 1) * item_height
+        self.setMinimumHeight(required_height)
 
 
 class SceneItem(QWidget):
@@ -57,6 +78,7 @@ class SceneItem(QWidget):
         super().__init__(parent)
         self.name = scene_name
         self.thumbnail_data = thumbnail_data
+        self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
