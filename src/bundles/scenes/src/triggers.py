@@ -2,16 +2,28 @@ from chimerax.core.triggerset import TriggerSet
 from typing import Any, Callable, Optional
 
 (ADDED, DELETED, EDITED) = manager_triggers = ("scenes added", "scenes deleted", "scenes edited")
+(SCENE_SELECTED,) = tool_triggers = ("scene selected",)
 
 """
+These triggers are all desiged to be triggered from the scene manager
+
 ADDED: Trigger name for added scenes.
 DELETED: Trigger name for deleted scenes.
 EDITED: Trigger name for edited scenes.
 """
 
+"""
+These triggers are designed to be used in the bundle's tool
+
+SCENE_SELECTED: Trigger name for the scene.
+"""
+
 _triggers = TriggerSet()
 
 for trigger in manager_triggers:
+    _triggers.add_trigger(trigger)
+
+for trigger in tool_triggers:
     _triggers.add_trigger(trigger)
 
 
