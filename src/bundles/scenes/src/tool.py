@@ -4,10 +4,11 @@ from chimerax.ui import MainToolWindow
 from Qt.QtWidgets import QHBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QSizePolicy
 from Qt.QtGui import QPixmap
 from Qt.QtCore import Qt
+from .triggers import activate_trigger, add_handler, SCENE_SELECTED
+from chimerax.core.commands import run
 
 
 class ScenesTool(ToolInstance):
-
     SESSION_ENDURING = False
     SESSION_SAVE = True
 
@@ -17,6 +18,9 @@ class ScenesTool(ToolInstance):
         self.tool_window = MainToolWindow(self)
         self.build_ui()
         self.tool_window.manage('side')
+
+        self.handlers = []
+        self.handlers.append(add_handler(SCENE_SELECTED, self.scene_selected_cb))
 
     def build_ui(self):
         self.main_layout = QHBoxLayout()
@@ -30,9 +34,16 @@ class ScenesTool(ToolInstance):
 
         self.main_layout.addWidget(self.scroll_area)
 
+    def scene_selected_cb(self, trigger_name, scene_name):
+        run(self.session, f"scene restore {scene_name}")
+
+    def delete(self):
+        for handler in self.handlers:
+            handler.remove()
+        super().delete()
+
 
 class ScenesWidget(QWidget):
-
     ITEM_WIDTH = 110
 
     def __init__(self, session):
@@ -106,5 +117,5 @@ class SceneItem(QWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            print(f"SceneItem '{self.name}' clicked")
+            activate_trigger(SCENE_SELECTED, self.name)
         super().mousePressEvent(event)
