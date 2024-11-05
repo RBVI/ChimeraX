@@ -56,6 +56,9 @@ assign <a href="../attributes.html">attributes</a>
 consistent with a specific alignment
 <li><a href="#refseq"><b>sequence refseq</b></a>
 &ndash; set which sequence to use as the reference for numbering
+<li><a href="#search"><b>sequence search</b></a>
+&ndash; fast MMSeqs2 search for structures similar in sequence 
+to a structure chain
 <li><a href="#update"><b>sequence update</b></a>
 &ndash; replace the sequence data of a structure chain with its
 associated sequence in the 
@@ -322,6 +325,136 @@ current <a href="../tools/sequenceviewer.html#headers">attribute values</a>
 are consistent with a specific alignment.
 The <i>alignment-ID</i> is shown in the title bar of the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window.
+</p>
+
+<a name="search"></a>
+<p class="nav">
+[<a href="#top">back to top: sequence</a>]
+</p>
+<h3>Fast MMSeqs2 Search for Similar Structures </h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sequence &nbsp;search</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+[&nbsp;<b>database</b>&nbsp;&nbsp;<b>pdb</b>&nbsp;|&nbsp;afdb&nbsp;]
+[&nbsp;<b>evalueCutoff</b>&nbsp;&nbsp;<i>max-evalue</i>&nbsp;]
+[&nbsp;<b>identityCutoff</b>&nbsp;&nbsp;<i>min-pid</i>&nbsp;]
+[&nbsp;<b>maxHits</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+<span class="nowrap">[&nbsp;<b>trim</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;|&nbsp;chains,sequence,ligands&nbsp;]</span>
+[&nbsp;<b>alignmentCutoffDistance</b>&nbsp;&nbsp;<i>dist</i>&nbsp;]
+[&nbsp;<b>saveDirectory</b></a>&nbsp;&nbsp;<i>results-folder</i>&nbsp;]
+</blockquote>
+<p>
+The <b>sequence search</b> command performs a fast MMseqs2 search of the
+<a href="https://www.rcsb.org" target="_blank">PDB</a> or
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
+with a protein structure chain as the query, using the
+<a href="https://search.rcsb.org" target="_blank">RCSB web service</a>.
+The <a href="../tools/foldseek.html"><b>Foldseek</b>
+(<b>Similar Structures</b>)</a> tool provides a graphical interface
+to running this command. See also:
+<a href="similarstructures.html"><b>similarstructures</b></a>,
+<a href="foldseek.html"><b>foldseek</b></a>,
+<a href="blastprotein.html"><b>blastprotein</b></a>
+</p>
+MMseqs2 (<a href="https://github.com/soedinglab/MMseqs2"
+target="_blank">Many-against-Many sequence searching</a>) is described in:
+<blockquote>
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/29035372" target="_blank">
+MMseqs2 enables sensitive protein sequence searching for the analysis
+of massive data sets.</a>
+Steinegger M, S&ouml;ding J.
+<i>Nat Biotechnol.</i> 2017 Nov;35(11):1026-1028.
+<br><br>
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/30615063" target="_blank">
+MMseqs2 desktop and local web server app for fast, interactive sequence
+searches.</a>
+Mirdita M, Steinegger M, S&ouml;ding J.
+<i>Bioinformatics.</i> 2019 Aug 15;35(16):2856-2858.
+</blockquote>
+<p>
+Results are tabulated in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a> tool,
+which facilitates exploring large sets of protein structures
+by efficiently showing them in 3D as backbone traces and in
+2D as sequence alignment schematics or scatter plots based on conformation.
+These analyses can also be performed with the
+<a href="similarstructures.html"><b>similarstructures</b></a> command
+by referring to a set of results by name.
+The name assigned to the results (<b>mm1</b> or <b>mm2</b>)
+is reported in the <a href="../tools/log.html"><b>Log</b></a>
+when the search is run.
+</p><p>
+Choices of <b>database</b> to search:
+<ul>
+<li><b>pdb</b> (default)
+&ndash; <a href="https://www.rcsb.org" target="_blank">PDB</a>
+<li><b>afdb</b>
+&ndash; <a href="https://alphafold.ebi.ac.uk/" 
+target="_blank">AlphaFold Database</a>
+</ul>
+<p>
+The hits can be limited with the following options:
+</p>
+<ul>
+<li><b>evalueCutoff</b>&nbsp;&nbsp;<i>max-evalue</i>
+&ndash; maximum E-value of a hit to be retained (default <b>1e-3</b>)
+<li><b>identityCutoff</b>&nbsp;&nbsp;<i>min-pid</i>
+&ndash; minimum percent sequence identity with the query
+for a hit to be retained (default <b>0</b>)
+<li><b>maxHits</b>&nbsp;&nbsp;<i>N</i>
+&ndash; maximum number of hits retained (default <b>1000</b>)
+</ul>
+<p>
+The <b>trim</b> and <b>alignmentCutoffDistance</b> options do not act
+immediately. Instead, they specify how to process the hit structures
+if later opened from the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a>
+tool or with the command
+<a href="../commands/similarstructures.html#open"><b>similarstructures
+open</b></a>. The structures are fetched from the respective database
+(<a href="https://www.rcsb.org/" target="_blank">Protein Data Bank</a>
+or <a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold Database</a>) and processed as follows:
+<ul>
+<li>The <b>trim</b> option indicates deleting all of the following
+(if true), or none of them (if false), or a comma-separated list of:
+  <ul>
+  <li><b>chains</b> &ndash; for PDB entries, chains other than the hit chain
+  <li><b>sequence</b> &ndash; N- and C-terminal segments of the hit chain
+that were not included in the sequence alignment returned by the search method
+  <li><b>ligands</b> &ndash; ligands, solvent, and ions &gt; 3 &Aring;
+from the hit chain
+  </ul>
+The <b>trim</b> default is the current setting in the
+<a href="../tools/foldseek.html#options"><b>Similar Structures</b> options</a>,
+otherwise (if the tool is not open) <b>true</b>.
+<br><br>
+<li>The hit chain is superimposed onto the query chain by
+least-squares fitting the &alpha;-carbons of the paired residues
+and iteratively pruning far-apart pairs as described for the
+<a href="align.html"><b>align</b></a> command.
+The <b>alignmentCutoffDistance</b> <i>d</i> is the alignment pruning distance 
+so that only &alpha;-carbon pairs within the specified distance
+are used in the final fit (default as per the
+<a href="../tools/foldseek.html#options"><b>Similar Structures</b> options</a>,
+otherwise <b>2.0</b> &Aring;)
+</ul>
+<p>
+Search results are saved in a
+<a href="../formats/sms.html">similar structures file</a>
+(suffix .sms, a JSON file format specific to ChimeraX)
+with filename based on the query name and the database searched.
+The file will be listed in the
+<a href="../tools/filehistory.html"><b>File History</b></a> for easy access,
+and simply opening it loads the set of results into the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a>
+interface.
+The <b>saveDirectory</b> option allows specifying the save location,
+either directly or as the word
+<a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window
+(default location <b>~/Downloads/ChimeraX/MMseqs2/</b>).
 </p>
 
 <a name="update"></a>

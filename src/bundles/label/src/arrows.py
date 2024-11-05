@@ -286,6 +286,7 @@ def register_arrow_command(logger):
 
 from chimerax.core.models import Model
 class Arrows(Model):
+    has_scene_bounds = False
     def __init__(self, session):
         Model.__init__(self, '2D arrows', session)
         self._arrows = []

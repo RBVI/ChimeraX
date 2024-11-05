@@ -346,6 +346,7 @@ class PlaneViewer(QWindow):
 
         self.slider.sliderMoved.connect(self._onSliderMoved)
         self.slider_moved = False
+        self.color_changed = False
         self.scale = 1  # set this to a temporary valid value before the draw
         # loop otherwise we get a traceback
 
@@ -711,7 +712,7 @@ class PlaneViewer(QWindow):
                     )  # self.pos * self.view.drawing.parent.data.step[self.axis]
                 # TODO: If the user selects 'surface' then 'orthoplanes' in the volume viewer we should
                 # override the default plane locations somehow
-                if self.slider_moved:
+                if self.slider_moved or self.color_changed:
                     for d in self.drawings:
                         show_planes(
                             self.drawingParentVolume(d),
@@ -720,6 +721,7 @@ class PlaneViewer(QWindow):
                         )
                         self.drawingParentVolume(d).update_drawings()
                     self.slider_moved = False
+                    self.color_changed = False
                 model_center_offsets = self.drawingBounds().center()
                 model_sizes = self.drawingBounds().size()
                 initial_needed_fov = model_sizes[self.axis.vertical] / height * width
@@ -1687,3 +1689,8 @@ class SegmentationVolumePanel(Histogram_Pane):
 
         if show and v.shown():
             v.show()
+
+    def _color_chosen(self, color):
+        super()._color_chosen(color)
+        self.plane_viewer.color_changed = True
+        self.plane_viewer._redraw()
