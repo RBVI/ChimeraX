@@ -241,11 +241,14 @@ Simply opening an .sms file loads the set of results into the
 Doing another search or opening a file of previously saved results replaces the
 contents of the <b>Similar Structures</b> table, since (currently) the tool 
 only allows showing one set of results at a time.
-However, the sets of results are assigned names such as 
-fs1, fs2, mm1, mm2, bl1, and bl2 that can be used in analysis commands 
-<!-- is this only true when you used showTable false?? -->
-even if the corresponding results are not shown.
-These names are reported in the <a href="log.html"><b>Log</b></a>.
+Sets of results are assigned names such as fs1, fs2, mm1, mm2, bl1, and bl2 
+that can be used in analysis commands even if the corresponding results 
+are not shown. However, the only way to get a set of results that is open
+but not shown in the table is to use the <b>showTable false</b> option of 
+the search command <a href="../commands/foldseek.html"><b>foldseek</b></a>.
+The names of currently open sets can be listed with the command 
+<a href="../commands/similarstructures.html#list"><b>similarstructures 
+list</b></a>.
 </p>
 
 <a name="options"></a>
@@ -351,7 +354,6 @@ as described <a href="#sequences">above</a>
 <li><b>Color by LDDT</b> 
 &ndash; by <a href="#lddt">LDDT</a> of each aligned residue in each structure:
 <!-- check with TG: is palette the same as for "local alignment" below?  -->
-<!-- is this normalized somehow? (I thought LDDT was a much larger value) -->
 <table border cellpadding="0" cellspacing="0"
 style="display:inline-block; vertical-align:top"><tr>
 <td bgcolor=red width="30px" title="red"
@@ -458,7 +460,6 @@ one chain per structure, with chain ID set to the database ID of the structure.
 The residue types of the hit are retained, but the residues are renumbered
 according to the paired residues of the query structure.
 </p><p>
-<a name="tracerules"></a>
 The traces are initially displayed as follows:
 </p>
 <ol>
@@ -569,6 +570,7 @@ the same species) as the clicked one
 &ndash; scroll the table of results to the corresponding row 
 <li><b>Show reference atoms</b>
 &ndash; display the reference &alpha;-carbons as spheres
+and <a href="../selection.html">select</a> them
 <li><b>Select reference atoms</b>
 &ndash; <a href="../selection.html">select</a> the reference &alpha;-carbons
 </ul>
@@ -621,6 +623,8 @@ single atomic model, in which the chain ID of a residue is generated from the
 PDB ID and chain ID of its source structure (<i>e.g.</i>, <b>2cml_B</b>).
 Pausing the cursor over a residue in the graphics window shows
 its name and chain ID in a pop-up balloon.
+</p><p>
+See also: <a href="https://alphafill.eu/" target="_blank">AlphaFill</a>
 </p>
 
 <a name="notes"></a>
@@ -659,5 +663,5 @@ Mirdita M, Steinegger M, S&ouml;ding J.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2024</address>
+November 2024</address>
 </body></html>
