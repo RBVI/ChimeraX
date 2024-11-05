@@ -124,6 +124,14 @@ class SegmentationToolControlsDialog(QDialog):
         self.settings_container = QWidget(self)
         self.settings_container.setLayout(QVBoxLayout())
         self.panel = SettingsPanel()
+        if sys.platform == "win32":
+            layout_labels=[str(mode) for mode in ViewMode]
+            layout_values=[mode.value for mode in ViewMode]
+        else:
+            layout_labels=[str(mode) for mode in ViewMode if mode != ViewMode.DEFAULT_VR]
+            layout_values=[mode.value for mode in ViewMode if mode != ViewMode.DEFAULT_VR]
+        # TODO: If the person's configuration actually is default_vr, and they try to
+        # port their settings to another platform, this will break!
         self.panel.add_option(
             SymbolicEnumOption(
                 name="Default layout",
@@ -131,8 +139,8 @@ class SegmentationToolControlsDialog(QDialog):
                 attr_name="default_view",
                 settings=settings,
                 callback=None,
-                labels=[str(mode) for mode in ViewMode],
-                values=[mode.value for mode in ViewMode],
+                labels=layout_labels,
+                values=layout_values
             )
         )
         self.panel.add_option(
@@ -144,24 +152,25 @@ class SegmentationToolControlsDialog(QDialog):
                 callback=None,
             )
         )
-        self.panel.add_option(
-            BooleanOption(
-                name="Start VR when the VR layout is chosen",
-                default=None,
-                attr_name="start_vr_automatically",
-                settings=settings,
-                callback=None,
+        if sys.platform == "win32":
+            self.panel.add_option(
+                BooleanOption(
+                    name="Start VR when the VR layout is chosen",
+                    default=None,
+                    attr_name="start_vr_automatically",
+                    settings=settings,
+                    callback=None,
+                )
             )
-        )
-        self.panel.add_option(
-            BooleanOption(
-                name="Set VR controller modes when the VR layout is chosen",
-                attr_name="set_hand_modes_automatically",
-                settings=settings,
-                callback=None,
-                default=None,
+            self.panel.add_option(
+                BooleanOption(
+                    name="Set VR controller modes when the VR layout is chosen",
+                    attr_name="set_hand_modes_automatically",
+                    settings=settings,
+                    callback=None,
+                    default=None,
+                )
             )
-        )
         self.panel.add_option(
             IntOption(
                 "Segmentation opacity",
@@ -394,8 +403,14 @@ class SegmentationTool(ToolInstance):
         self.view_dropdown_label = QLabel("View layout")
         self.view_dropdown = QComboBox(self.parent)
         for view in ViewMode:
+            if sys.platform != "win32" and view == ViewMode.DEFAULT_VR:
+                continue
             self.view_dropdown.addItem(str(view))
-        self.view_dropdown.setCurrentIndex(self.settings.default_view)
+        if sys.platform != "win32" and self.settings.default_view == ViewMode.DEFAULT_VR:
+            self.view_dropdown.setCurrentIndex(ViewMode.DEFAULT_DESKTOP)
+            self.session.logger.info(f"Using {str(ViewMode.DEFAULT_DESKTOP)} as the default view mode because VR is not available on this platform.")
+        else:
+            self.view_dropdown.setCurrentIndex(self.settings.default_view)
         self.view_dropdown.currentIndexChanged.connect(self._on_view_changed)
         self.control_information_button = QToolButton()
         self.control_information_button.setMinimumWidth(1)
