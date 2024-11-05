@@ -158,10 +158,11 @@ class MimeInfo:
         self.output = output
 
     def __enter__(self):
-        self.output.write(
-            """<?xml version="1.0" encoding="UTF-8"?>
-            <mime-info xmlns="https://www.freedesktop.org/standards/shared-mime-info">
-            """)
+        from textwrap import dedent
+        self.output.write(dedent("""\
+            <?xml version="1.0" encoding="UTF-8"?>
+                <mime-info xmlns="https://www.freedesktop.org/standards/shared-mime-info">
+            """))
         self.level = 1
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -175,9 +176,13 @@ class MimeInfo:
         self.output.write("%s<comment>%s</comment>\n"
                           % (self.IDENT * self.level, text))
 
-    def glob(self, pattern):
-        self.output.write('%s<glob pattern="*%s"/>\n'
-                          % (self.IDENT * self.level, pattern))
+    def glob(self, pattern, weight=50):
+        if weight == 50:
+            self.output.write('%s<glob pattern="*%s"/>\n'
+                              % (self.IDENT * self.level, pattern))
+        else:
+            self.output.write('%s<glob pattern="*%s" weight="%s"/>\n'
+                              % (self.IDENT * self.level, pattern, weight))
 
     def type(self, mimetype):
         # <mime-type type="text/x-shiny">
@@ -258,10 +263,17 @@ def make_mime_file(session, name, verbose=False):
             if not extensions or not mime_types:
                 continue
             for m in mime_types:
+                # TODO: add weigh to data formats metadata
+                if 'chimerax' in m:
+                    weight = 90
+                elif m.startswith('chemical/'):
+                    weight = 50
+                else:
+                    weight = 10
                 with mi.type(m):
                     mi.comment(f.category)
                     for e in extensions:
-                        mi.glob(e)
+                        mi.glob(e, weight)
 
 
 def install_icons(session, info, verbose=False):

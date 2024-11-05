@@ -370,7 +370,7 @@ class MutationScatterPlot(Graph):
                 'correlation': self._correlation_shown,
                 'title': axes.get_title(),
                 'x_label': axes.get_xlabel(),
-                'y_label': axes.get_xlabel(),
+                'y_label': axes.get_ylabel(),
                 'font_size': self.font_size,
                 'node_area': node_area,
                 'label_nodes': label_nodes,

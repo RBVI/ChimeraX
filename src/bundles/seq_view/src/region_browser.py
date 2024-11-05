@@ -44,7 +44,7 @@ from prefs import RB_LAST_USE
 class Region:
     def __init__(self, region_manager, name=None, init_blocks=[], shown=True,
             border_rgba=None, interior_rgba=None, name_prefix="",
-            cover_gaps=False, source=None, read_only=False):
+            cover_gaps=False, source=None, read_only=False, details=None):
         self._name = name
         self.name_prefix = name_prefix
         self.region_manager = region_manager
@@ -55,6 +55,7 @@ class Region:
         self.cover_gaps = cover_gaps
         self.source = source
         self.read_only = read_only
+        self.details = details
         self.highlighted = False
 
         self._items = []
@@ -1868,6 +1869,7 @@ class RegionsTool:
             "rmsd": table.add_column("RMSD", "rmsd", format="%.3f"),
             "start": table.add_column("Start", lambda r: blocks_to_val(r, 2, min), format="%d"),
             "end": table.add_column("End", lambda r: blocks_to_val(r, 3, max), format="%d"),
+            "details": table.add_column("Details", "details", justification="left"),
         }
 
         self.source_info = {}
@@ -2111,6 +2113,7 @@ class RegionsTool:
         self.region_table.update_column(self.columns["rmsd"], display=(self.seq is None))
         self.region_table.update_column(self.columns["start"], display=(self.seq is not None))
         self.region_table.update_column(self.columns["end"], display=(self.seq is not None))
+        self.region_table.update_column(self.columns["details"], display=(self.seq is not None))
         self.region_table.data = regions
         if resize_columns:
             self.region_table.resizeColumnsToContents()
