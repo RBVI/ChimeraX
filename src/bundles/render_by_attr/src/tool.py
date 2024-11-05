@@ -380,6 +380,15 @@ class RenderByAttrTool(ToolInstance):
     def default_render_worm_markers(self, markers):
         self._default_render_worm_markers = self._clone_markers(markers)
 
+    def delete(self):
+        for index in [0,1]:
+            for attr_info, attr_monitorings in list(self._attr_monitorings.items()):
+                for attr_name, mode_monitoring in list(attr_monitorings.items()):
+                    if mode_monitoring[index]:
+                        attr_info.attr_change_notify(attr_name, None)
+        self._attr_monitorings.clear()
+        super().delete()
+
     def fill_context_menu(self, menu, x, y):
         from Qt.QtGui import QAction
         scaling_menu = menu.addMenu("Histogram Scaling")

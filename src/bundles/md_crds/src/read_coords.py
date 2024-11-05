@@ -22,21 +22,28 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.errors import UserError
+from chimerax.core.errors import UserError, LimitationError
 
 def read_coords(session, file_name, model, format_name, *, replace=True, start=1, step=1, end=None):
     from numpy import array, float64
+    def read_gromacs_file(read_func, file_name):
+        try:
+            return read_func(file_name)
+        except ValueError as e:
+            if "allocate enough memory" in str(e):
+                raise LimitationError(e)
+            raise
     if format_name == "xtc":
         from ._gromacs import read_xtc_file
         session.logger.status("Reading Gromacs xtc coordinates", blank_after=0)
-        num_atoms, coords_list = read_xtc_file(file_name)
+        num_atoms, coords_list = read_gromacs_file(read_xtc_file, file_name)
         coords = array(coords_list, dtype=float64)
         coords *= 10.0
         session.logger.status("Finished reading Gromacs xtc coordinates")
     elif format_name == "trr":
         from ._gromacs import read_trr_file
         session.logger.status("Reading Gromacs trr coordinates", blank_after=0)
-        num_atoms, coords_list = read_trr_file(file_name)
+        num_atoms, coords_list = read_gromacs_file(read_trr_file, file_name)
         coords = array(coords_list, dtype=float64)
         coords *= 10.0
         session.logger.status("Finished reading Gromacs trr coordinates")
