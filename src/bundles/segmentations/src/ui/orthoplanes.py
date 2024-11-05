@@ -614,6 +614,8 @@ class PlaneViewer(QWindow):
     def close(self):
         # TODO: why does this call make it crash?
         # self.setParent(None)
+        # TODO: Clean up the Label(s) interface
+        self.label.labels.delete()
         self.label.delete()
         chimerax.segmentations.triggers.remove_handler(
             self.guideline_visibility_handler
