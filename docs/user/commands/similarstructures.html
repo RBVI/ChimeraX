@@ -360,7 +360,7 @@ then reissue the command with the desired options.
 <b>similarstructures traces</b>
 [&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 [&nbsp;<b>ofStructures</b></a>&nbsp;&nbsp;<i>hit-ID(s)</i>&nbsp;]
-[&nbsp;<b>alignWith</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>residue-spec</i></a>&nbsp;]
+[&nbsp;<b>alignWith</b></a>&nbsp;&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;]
 [&nbsp;<b>alignmentCutoffDistance</b></a>&nbsp;&nbsp;<i>adist</i>&nbsp;]
 [&nbsp;<b>show</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<b>close</b>&nbsp;]
 [&nbsp;<b>breakSegmentDistance</b></a>&nbsp;&nbsp;<i>bdist</i>&nbsp;]
@@ -433,10 +433,10 @@ model will be generated.
 <a href="#top" class="nounder">&bull;</a>
 <a name="cluster"></a>
 <b>similarstructures cluster</b>
-&nbsp;<a href="atomspec.html#hierarchy"><i>reference-residues</i></a>&nbsp;
+&nbsp;<a href="atomspec.html"><i>reference-residues</i></a>&nbsp;
 [&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 [&nbsp;<b>ofStructures</b></a>&nbsp;&nbsp;<i>hit-ID(s)</i>&nbsp;]
-[&nbsp;<b>alignWith</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>residue-spec</i></a>&nbsp;]
+[&nbsp;<b>alignWith</b></a>&nbsp;&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;]
 [&nbsp;<b>alignmentCutoffDistance</b></a>&nbsp;&nbsp;<i>adist</i>&nbsp;]
 [&nbsp;<b>clusterCount</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<b>clusterDistance</b>&nbsp;&nbsp;<i>cdist</i>&nbsp;]
 [&nbsp;<b>colorBySpecies</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -461,14 +461,17 @@ otherwise <b>2.0</b> &Aring;).
 The <b>alignWith</b> option can be used to specify a subset of
 the query residues to use for superposition, instead of all paired positions.
 <li>After fitting, the x,y,z coordinates of the hit &alpha;-carbons paired with
-the query <a href="atomspec.html#hierarchy"><i>reference-residues</i></a>
+the query <a href="atomspec.html"><i>reference-residues</i></a>
 are concatenated into a vector. Any hits without a residue aligned to one
 or more of the reference residues will be omitted from the plot, so it is
 best to choose a small set (&lt;30) of query residues with highly populated 
 columns in the sequence alignment of hits to the query.
 <li>The vector is projected to a point in two dimensions with UMAP
 (<a href="https://umap-learn.readthedocs.io/en/latest/"
-target="_blank">Uniform Manifold Approximation and Projection</a>)
+target="_blank">Uniform Manifold Approximation and Projection</a>).
+When <b>similarstructures cluster</b> is first run, it may take a minute
+to install the large UMAP Python package 
+<a href="https://pypi.org/project/umap-learn/" target="_blank">umap-learn</a>.
 <li>The points (circles) in the plot may be clustered and colored
 according to the additional parameters described below.
 </ol>
