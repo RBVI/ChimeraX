@@ -309,13 +309,17 @@ padding:0px 1px">&nbsp;&nbsp;&nbsp;</font>
 <li><font style="background:black;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>
 &ndash; aligned residue of a different amino acid type than the query
 <li><font style="background:#40B0A6;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>
-&ndash; aligned residue of the same amino acid type as the query,
-in column where &lt;0.5 of the residues are the same type
+&ndash; aligned residue of the same amino acid type as the query
+<! -- in column where &lt;0.5 of the residues are the same type -->
 <li><font style="background:#E1BE6A;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>
-&ndash; aligned residue of the same amino acid type as the query,
-in column where &ge;0.5 of the residues are the same type
+&ndash; aligned residue in column where &ge;0.5 of the residues are the 
+same type as each other (not necessarily the same as in the query)
 </ul>
 <p>
+Different coloring can be applied with the
+<a href="../commands/similarstructures.html#sequences"><b>similarstructures
+sequences</b></a> command.
+</p><p>
 <a name="context"></a>
 Hovering the mouse over the sequence plot shows pop-up labels to indicate
 the underlying row (hit structure) and column (query residue number).
@@ -367,6 +371,10 @@ align="center"><font size="-1" color="white">0.6</font></td>
 <td bgcolor=blue width="30px" title="blue"
 align="center"><font size="-1" color="white">0.8</font></td>
 </tr></table>
+<br>
+(if both of the above <b>Color...</b> options are turned on, only the
+positions that would otherwise be shown in black are colored by
+<a href="#lddt">LDDT</a> instead)
 <li><b>Color query structure by:</b>
   <ul>
   <li><b>coverage</b>
