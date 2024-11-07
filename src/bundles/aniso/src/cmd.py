@@ -41,16 +41,13 @@ class _StructureAnisoManager(StateManager):
 
     def hide(self, atoms):
         """Hide thermal ellipsoids for these atoms"""
-        atoms.clear_hide_bits(atoms.HIDE_ANISO)
+        #TODO
+        pass
 
     def show(self, atoms):
         """Show thermal ellipsoids for these atoms"""
-        atoms.set_hide_bits(atoms.HIDE_ANISO)
-
-    def _add_alt_loc_changes_handler(self, s, res, alt_loc):
-        s._alt_loc_changes_handler = s.triggers.add_handler('changes',
-            lambda trig_name, change_info, f=self._alt_loc_changes_cb, res=res, al=alt_loc:
-            f(change_info, res, al))
+        #TODO
+        pass
 
     def _add_handlers(self):
         from chimerax.core.models import REMOVE_MODELS
@@ -60,6 +57,7 @@ class _StructureAnisoManager(StateManager):
             #self.session.triggers.add_handler(REMOVE_MODELS, self._models_closed_cb)
         ]
 
+    #TODO
     def _alt_loc_changes_cb(self, change_info, res, alt_loc):
         alt_loc_s, changes = change_info
         if alt_loc_s in self.expected_changes:

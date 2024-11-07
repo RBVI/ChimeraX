@@ -77,7 +77,6 @@ public:
     static const unsigned int  HIDE_RIBBON = 0x1;
     static const unsigned int  HIDE_ISOLDE = 0x2;
     static const unsigned int  HIDE_NUCLEOTIDE = 0x4;
-    static const unsigned int  HIDE_ANISO = 0x8;
 
     typedef std::vector<Bond*> Bonds;
     enum DrawMode: unsigned char { Sphere, Ball, EndCap };
