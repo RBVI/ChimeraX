@@ -760,7 +760,8 @@ class _PartList(list):
         return self
 
 
-def _has_wildcard(s):
+# also used by chimerax.core.models.Model.atomspec_model_attr
+def has_wildcard(s):
     try:
         return any((c in s) for c in "*?[")
     except TypeError:
@@ -784,7 +785,7 @@ class _Part:
         start_test = self.start if case_sensitive else self.start.lower()
         if self.end is None:
             from fnmatch import fnmatch
-            if _has_wildcard(start_test):
+            if has_wildcard(start_test):
                 if case_sensitive:
                     def matcher(name):
                         return fnmatch(name, start_test)
@@ -964,10 +965,11 @@ class _AttrTest:
         elif (self.op in (operator.eq, operator.ne, "==", "!==") and
                 isinstance(self.value, str)):
             # Equality-comparison operators for strings handle wildcards
+            # Similar code in chimerax.core.models.Model.atomspec_model_attr
             case_sensitive = self.op in ["==", "!=="]
             attr_value = self.value if case_sensitive else self.value.lower()
             invert = self.op in (operator.ne, "!==")
-            if _has_wildcard(self.value):
+            if has_wildcard(self.value):
                 from fnmatch import fnmatchcase
 
                 def matcher(obj):
