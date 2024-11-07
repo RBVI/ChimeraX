@@ -361,14 +361,9 @@ class SimilarStructuresPanel(ToolInstance):
             return
 
         nhits = len(self._selected_rows) if self._selected_rows_only.enabled else len(pdb_hits)
-        if nhits > 10:
-            message = f'This will fetch {nhits} PDB structures and align their ligands to the query structure.  It may take several minutes to fetch those structures during which ChimeraX will be frozen.  Do you want to proceed?'
-            from chimerax.ui.ask import ask
-            answer = ask(self.session, message, title='Fetch similar structure ligands')
-            if answer == 'no':
-                return
+        warn_option = ' warn False' if nhits <= 10 else ''
 
-        cmd = 'similarstructures ligands' + self._from_set_option() + self._hit_names_option()
+        cmd = 'similarstructures ligands' + self._from_set_option() + self._hit_names_option() + warn_option
         from chimerax.core.commands import run
         run(self.session, cmd)
 
