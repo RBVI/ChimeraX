@@ -256,6 +256,10 @@ and the names of open sets can be listed in the
 the only way to get a set of results that is open but not shown in the table
 is to use the <b>showTable false</b> option of the search command
 <a href="foldseek.html"><b>foldseek</b></a>.
+Results are closed when a new set of results replaces them in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>,
+when the tool is closed, and when the command
+<a href="#close"><b>similarstructures close</b></a> is used to close them.
 </p><p>
 <a name="hit-ID"></a>
 The <i>hit-ID</i> for a structure from the 
@@ -345,6 +349,10 @@ query they cover (default, if clustering by coverage gives &gt;1 cluster)
 <li><b>lddt</b>
 &ndash; average <a href="#lddt">LDDT</a> over all residues in a hit structure
 </ul>
+<!-- is the following a bug? -->
+Reissuing the command with different coloring options does not recolor the
+already open plot. To change the coloring, first close the plot and
+then reissue the command with the desired options.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -352,7 +360,7 @@ query they cover (default, if clustering by coverage gives &gt;1 cluster)
 <b>similarstructures traces</b>
 [&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 [&nbsp;<b>ofStructures</b></a>&nbsp;&nbsp;<i>hit-ID(s)</i>&nbsp;]
-[&nbsp;<b>alignWith</b></a>&nbsp;&nbsp;<i>align-residues</i>&nbsp;]
+[&nbsp;<b>alignWith</b></a>&nbsp;&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;]
 [&nbsp;<b>alignmentCutoffDistance</b></a>&nbsp;&nbsp;<i>adist</i>&nbsp;]
 [&nbsp;<b>show</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<b>close</b>&nbsp;]
 [&nbsp;<b>breakSegmentDistance</b></a>&nbsp;&nbsp;<i>bdist</i>&nbsp;]
@@ -370,9 +378,15 @@ of a large number of stuctures and their coverage of the query.
 They are calculated from &alpha;-carbons only and do not show
 helix and strand assignments. 
 <p>
-Sequence search results do not automatically include &alpha;-carbon 
-coordinates, but trying to show traces will raise a dialog asking the user 
-whether to fetch them, since it may take several minutes to do so.
+Search results from the structure-based 
+<a href="../tools/foldseek.html#notes">Foldseek</a> method automatically
+include the &alpha;-carbon coordinates of the hits.
+Search results from sequence methods 
+(<a href="../tools/foldseek.html#notes">MMSeqs2</a> and 
+<a href="../tools/blastprotein.html#notes">BLAST</a>)
+do not automatically include &alpha;-carbon coordinates, 
+but trying to show traces will raise a dialog asking the user 
+whether to fetch them, which could take several minutes.
 (Alternatively, <a href="#fetchcoords"><b>similarstructures fetchcoords</b></a>
 can be used beforehand to fetch the &alpha;-carbon coordinates for the
 structures of interest.)
@@ -382,17 +396,19 @@ The residue types of the hit are retained, but the residues are renumbered
 according to the paired residues of the query structure.
 </p><p>
 Each trace is superimposed on the query structure by fitting the 
-&alpha;-carbons of the residues paired by the search method
-as described for the <a href="align.html"><b>align</b></a> command,
+&alpha;-carbons of the residues paired by the search method.
+The fitting is as described for the 
+<a href="align.html"><b>align</b></a> command,
 with iteration so that only &alpha;-carbon pairs within the specified 
 <b>alignmentCutoffDistance</b> <i>adist</i>
 are used in the final fit (default as per the
 <a href="../tools/foldseek.html#options"><b>Similar Structures</b> options</a>,
 otherwise <b>2.0</b> &Aring;).
-The <b>alignWith</b> option can be used to specify a subset of these
-paired residues.
+The <b>alignWith</b> option can be used to specify a subset of 
+the query residues to use for superposition, instead of all paired positions.
 </p><p>
-With <b>show close</b> (default), the traces are displayed as follows:
+With <b>show close</b> (default, where &ldquo;close&rdquo; means 
+&ldquo;nearby&rdquo;), the traces are displayed as follows:
 </p>
 <ol>
 <li>the ribbon is broken into segments where
@@ -406,21 +422,96 @@ and within <i>dist</i> &Aring; of the corresponding query &alpha;-carbons
 is within <i>mdist</i> &Aring; of its counterpart 
 (default <b>maxSegmentDistance 10.0</b>)
 </ol>
-With <b>show all</b>, the entire traces are shown and the rules above
-are not used.
+With <b>show all</b>, the traces are shown for all residues, even those
+far from the query structure.
+<p>
+The <b>replace</b> option indicates whether to overwrite a pre-existing
+trace model (<b>true</b>, default). If <b>false</b>, an additional
+model will be generated.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="cluster"></a>
 <b>similarstructures cluster</b>
+&nbsp;<a href="atomspec.html"><i>reference-residues</i></a>&nbsp;
 [&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
+[&nbsp;<b>ofStructures</b></a>&nbsp;&nbsp;<i>hit-ID(s)</i>&nbsp;]
+[&nbsp;<b>alignWith</b></a>&nbsp;&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;]
+[&nbsp;<b>alignmentCutoffDistance</b></a>&nbsp;&nbsp;<i>adist</i>&nbsp;]
+[&nbsp;<b>clusterCount</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<b>clusterDistance</b>&nbsp;&nbsp;<i>cdist</i>&nbsp;]
+[&nbsp;<b>colorBySpecies</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
-Sequence search results do not automatically include &alpha;-carbon 
-coordinates, but trying to show traces will raise a dialog asking the user 
-whether to fetch them, since it may take several minutes to do so.
+Create a <a href="../tools/foldseek.html#clusters">scatter plot</a>
+based on backbone conformations of hits from the 
+<a href="#fromSet">specified set</a> of results, 
+either all hits or a subset specified as a comma-separated list
+of <a href="#hit-ID">hit identifiers</a> with the <b>ofStructures</b> option.
+The plot is generated as follows:
+<ol>
+<li>Each hit is superimposed on the query structure by fitting the
+&alpha;-carbons of the residues paired by the search method.
+The fitting is as described for the
+<a href="align.html"><b>align</b></a> command,
+with iteration so that only &alpha;-carbon pairs within the specified
+<b>alignmentCutoffDistance</b> <i>adist</i>
+are used in the final fit (default as per the
+<a href="../tools/foldseek.html#options"><b>Similar Structures</b> options</a>,
+otherwise <b>2.0</b> &Aring;).
+The <b>alignWith</b> option can be used to specify a subset of
+the query residues to use for superposition, instead of all paired positions.
+<li>After fitting, the x,y,z coordinates of the hit &alpha;-carbons paired with
+the query <a href="atomspec.html"><i>reference-residues</i></a>
+are concatenated into a vector. Any hits without a residue aligned to one
+or more of the reference residues will be omitted from the plot, so it is
+best to choose a small set (&lt;30) of query residues with highly populated 
+columns in the sequence alignment of hits to the query.
+<li>The vector is projected to a point in two dimensions with UMAP
+(<a href="https://umap-learn.readthedocs.io/en/latest/"
+target="_blank">Uniform Manifold Approximation and Projection</a>).
+When <b>similarstructures cluster</b> is first run, it may take a minute
+to install the large UMAP Python package 
+<a href="https://pypi.org/project/umap-learn/" target="_blank">umap-learn</a>.
+<li>The points (circles) in the plot may be clustered and colored
+according to the additional parameters described below.
+</ol>
+Search results from the structure-based 
+<a href="../tools/foldseek.html#notes">Foldseek</a> method automatically
+include the &alpha;-carbon coordinates of the hits.
+Search results from sequence methods 
+(<a href="../tools/foldseek.html#notes">MMSeqs2</a> and 
+<a href="../tools/blastprotein.html#notes">BLAST</a>)
+do not automatically include &alpha;-carbon coordinates, 
+but trying to show clusters will raise a dialog asking the user 
+whether to fetch them, which could take several minutes.
 (Alternatively, <a href="#fetchcoords"><b>similarstructures fetchcoords</b></a>
 can be used beforehand to fetch the &alpha;-carbon coordinates for the
 structures of interest.)
+<p>
+Two methods of clustering the points are available. 
+Either one (but not both) can be specified: 
+<ul>
+<li>If <b>clusterCount</b> <i>N</i> is given (say 5 clusters),
+the k-means algorithm will be used to produce that number of clusters.
+<li>If <b>clusterDistance</b> <i>cdist</i> is given (say 1.5 &Aring;), 
+points within that distance of each other in the 2D projection
+will be clustered together.
+</ul>
+If neither parameter is specified, clustering will not be not done 
+(they do not have default values).
+<p>
+Colors are chosen randomly. If the coloring is unpleasant, simply
+reissuing the command may give a better set of colors.
+By default (<b>colorBySpecies false</b>), the circles in the plot are 
+colored by cluster, if clustering was done.
+With <b>colorBySpecies true</b>, they are colored by source species
+and the color corresponding to each species is reported in the 
+<a href="../tools/log.html"><b>Log</b></a>.
+<p>
+The <b>replace</b> option indicates whether to overwrite a pre-existing
+cluster plot (<b>true</b>, default). If <b>false</b>, an additional
+plot will be generated.
+</p>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -477,25 +568,28 @@ of the hit and the query structure in the
 <blockquote>
 List the names of currently available sets of search results in the 
 <a href="../tools/log.html"><b>Log</b></a>. 
+The name is reported in the <a href="../tools/log.html"><b>Log</b></a>
+when the results are generated.
 Although only one set of results can be shown in the
 <a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>
 at a time, additional sets may be open and available for analysis with
-<a href="#top"><b>similarstructures</b></a> commands.
-The name is reported in the <a href="../tools/log.html"><b>Log</b></a>
-when the results are first generated.
+<a href="#top"><b>similarstructures</b></a> commands. However,
+the only way to get a set of results that is open but not shown in the table
+is to use the <b>showTable false</b> option of the search command
+<a href="foldseek.html"><b>foldseek</b></a>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="close"></a>
 <b>similarstructures close</b> &nbsp;<i>set-name</i>
 <blockquote>
-Close a specified set of results. The name of a set of results is reported
-in the <a href="../tools/log.html"><b>Log</b></a> when a search is run,
-and the names of open sets can be listed in the
+Close a specified set of results.
+The names of currently open sets of results can be listed in the
 <a href="../tools/log.html"><b>Log</b></a> with
-<a href="#list"><b>similarstructures list</b></a>. Closing the
+<a href="#list"><b>similarstructures list</b></a>. 
+Results are also closed when a new set of results replaces them in the
 <a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>
-closes the set of results currently being shown in that table.
+and when the tool is closed.
 </blockquote>
 
 <hr>

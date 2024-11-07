@@ -598,10 +598,10 @@ class Label:
         self.outline_width = outline_width
         self.scalebar_width = scalebar_width  # Angstroms
         self.scalebar_height = scalebar_height  # Pixels
-        self.drawing = d = LabelModel(session, self)
-        d.display = visibility
-        self.lb = Labels(session, view)
-        self.lb.add_label(self)
+        self.drawing = LabelModel(session, self)
+        self.drawing.display = visibility
+        self.labels = Labels(session, view)
+        self.labels.add_label(self)
 
     def update_drawing(self):
         d = self.drawing
