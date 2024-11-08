@@ -25,8 +25,6 @@ or derivations thereof.
 class="clRighticon" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: similarstructures</h3>
-<h3 align="center"><font color="red">
-&ndash; under construction &ndash;</font></h3>
 <p>
 The <b>similarstructures</b> command performs several functions related to the 
 <a href="../tools/foldseek.html#results"><b>Similar Structures</b></a> tool.
@@ -239,7 +237,8 @@ to specify it interactively in a file browser window
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="open"></a>
-<b>similarstructures open</b> &nbsp;<i>hit-ID</i>&nbsp;
+<b>similarstructures open</b>
+&nbsp;<a href="#hit-ID"><i>hit-ID</i></a>&nbsp;
 [&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 [&nbsp;<b>align</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <span class="nowrap">[&nbsp;<b>trim</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;|&nbsp;chains,sequence,ligands&nbsp;]</span>
@@ -581,12 +580,53 @@ chain IDs.
 <a name="fetchcoords"></a>
 <b>similarstructures fetchcoords</b>
 [&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
+[&nbsp;<b>ofStructures</b></a>&nbsp;&nbsp;<i>hit-ID(s)</i>&nbsp;]
+[&nbsp;<b>minAlignedCoords</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>updateTable</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>rewriteSmsFile</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>ask</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
+<p>
+Search results from the structure-based 
+<a href="../tools/foldseek.html#notes">Foldseek</a> method automatically
+include the &alpha;-carbon coordinates of the hits.
+Search results from sequence methods 
+(<a href="../tools/foldseek.html#notes">MMSeqs2</a> and 
+<a href="../tools/blastprotein.html#notes">BLAST</a>)
+do not automatically include &alpha;-carbon coordinates, 
+but <b>similarstructures fetchcoords</b> can be used to fetch them
+for hits from the <a href="#fromSet">specified set</a>
+of results, either all hits or a subset specified as a comma-separated list
+of <a href="#hit-ID">hit identifiers</a> with the <b>ofStructures</b> option.
+The <b>minAlignedCoords</b> option allows further excluding hits with 
+fewer than <i>N</i> residues aligned to the query by the search method 
+(default <b>10</b>). 
+</p><p>
+Fetching the &alpha;-carbon coordinates enables:
+<ul>
+<li><a href="#traces">trace</a> display and 
+<a href="#cluster">cluster</a> plotting
+<li>with <b>updateTable true</b> (default),
+filling in the <b>% Close</b> and <b>% Cover</b> columns in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>
+of results
+<li>with <b>rewriteSmsFile true</b> (default),
+adding the &alpha;-carbon coordinates into the corresponding
+<a href="../formats/sms.html">similar structures file</a> (.sms);
+when a similar structures search is performed, the resulting .sms 
+file is cached under ~/Downloads/ChimeraX/
+(<a href="../tools/foldseek.html#sms">details...</a>), and it is
+the file in this default location that is rewritten
+</ul>
+The <b>ask</b> option (default <b>false</b>) is whether to prompt the user
+to confirm the fetch, since it may take some time. Typically this is set to
+true when the command is called by other functions, such as plotting clusters.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="scrollto"></a>
-<b>similarstructures scrollto</b> &nbsp;<i>hit-ID</i>&nbsp;
+<b>similarstructures scrollto</b>
+&nbsp;<a href="#hit-ID"><i>hit-ID</i></a>&nbsp;
 [&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 <blockquote>
 Scroll to the row for a <a href="#hit-ID">specified hit</a> in the
@@ -599,10 +639,20 @@ and highlight that row.
 <b>similarstructures pairing</b> 
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
 [&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>halfbondColoring</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
-Draw <a href="../pseudobonds.html">pseudobonds</a> between the paired
-&alpha;-carbons of the (previously opened) atomic model of the hit
-and the query structure.
+Draw dashed <a href="../pseudobonds.html">pseudobonds</a> between the paired
+&alpha;-carbons of the (previously opened) atomic model of a hit 
+from the <a href="#fromSet">specified</a> set and the query structure. 
+The <a href="../pseudobonds.html">pseudobonds</a> are assigned
+the specified <b>color</b> (default
+<font style="background:gold;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>)
+and <b>radius</b>&nbsp;&nbsp;<i>r</i> (default <b>0.1</b> &Aring;),
+except that giving <b>halfbondColoring true</b> will instead color the 
+pseudobond halves to match the endpoint atoms (default is
+<b>halfbondColoring false</b>).
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -611,9 +661,10 @@ and the query structure.
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
 [&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 <blockquote>
-Show the sequence alignment between the (previously opened) atomic model
-of the hit and the query structure in the 
-<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
+Show the pairwise sequence alignment between the (previously opened)
+atomic model of a hit from the <a href="#fromSet">specified</a> set
+and the query 
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
