@@ -228,6 +228,7 @@ for setting whether buttons should apply to all hits or only the
 <p>
 The current contents of the tool are saved in
 <a href="../commands/save.html#session">ChimeraX sessions</a>.
+<a name="sms"></a>
 In addition, search results are saved in ~/Downloads/ChimeraX 
 under subdirectories Foldseek, MMseqs2, or BLAST, with filenames 
 based on the query name, the database searched, and the search method,
@@ -245,7 +246,7 @@ Sets of results are assigned names such as fs1, fs2, mm1, mm2, bl1, and bl2
 that can be used in analysis commands even if the corresponding results 
 are not shown. However, the only way to get a set of results that is open
 but not shown in the table is to use the <b>showTable false</b> option of 
-the search command <a href="../commands/foldseek.html"><b>foldseek</b></a>.
+the search command.
 The names of currently open sets can be listed with the command 
 <a href="../commands/similarstructures.html#list"><b>similarstructures 
 list</b></a>.
@@ -306,16 +307,21 @@ colored as follows:
 <li><font style="background:white;border:solid black 1px; 
 padding:0px 1px">&nbsp;&nbsp;&nbsp;</font>
 &ndash; no aligned residue
-<li><font style="background:black;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>
-&ndash; aligned residue of a different amino acid type than the query
-<li><font style="background:#40B0A6;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>
-&ndash; aligned residue of the same amino acid type as the query,
-in column where &lt;0.5 of the residues are the same type
 <li><font style="background:#E1BE6A;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>
-&ndash; aligned residue of the same amino acid type as the query,
-in column where &ge;0.5 of the residues are the same type
+&ndash; residue of the same amino acid type as the query
+in a column where &ge;0.5 of the residues have that same type
+(and the column contains at least 10 residues)
+<li><font style="background:#40B0A6;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>
+&ndash; residue of the same amino acid type as the query
+but not meeting the column criteria above
+<li><font style="background:black;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>
+&ndash; residue of a different amino acid type than the query
 </ul>
 <p>
+Different coloring can be applied with the
+<a href="../commands/similarstructures.html#sequences"><b>similarstructures
+sequences</b></a> command.
+</p><p>
 <a name="context"></a>
 Hovering the mouse over the sequence plot shows pop-up labels to indicate
 the underlying row (hit structure) and column (query residue number).
@@ -367,6 +373,10 @@ align="center"><font size="-1" color="white">0.6</font></td>
 <td bgcolor=blue width="30px" title="blue"
 align="center"><font size="-1" color="white">0.8</font></td>
 </tr></table>
+<br>
+(if both of the above <b>Color...</b> options are turned on, only the
+positions that would otherwise be shown in black are colored by
+<a href="#lddt">LDDT</a> instead)
 <li><b>Color query structure by:</b>
   <ul>
   <li><b>coverage</b>
