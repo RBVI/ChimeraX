@@ -60,13 +60,9 @@ class LaunchKVFinderTool(ToolInstance):
         self.structures_list = ShortASLWidget(session, autoselect=ShortASLWidget.AUTOSELECT_SINGLE)
         structures_layout.addWidget(self.structures_list, alignment=Qt.AlignRight)
 
-        from chimerax.ui.widgets import DisclosureArea
-        disclosure_area = DisclosureArea(title="Advanced Options")
-        da_layout = QVBoxLayout()
-        layout.addWidget(disclosure_area, alignment=Qt.AlignTop)
         from chimerax.ui.options import SettingsPanel, FloatOption
-        panel = SettingsPanel(sorting=False, scrolled=False)
-        da_layout.addWidget(panel)
+        self.options_panel = panel = SettingsPanel(sorting=False, scrolled=False)
+        layout.addWidget(panel, alignment=Qt.AlignTop|Qt.AlignHCenter)
         tool_tips = {
             'probe_in':
                 "A smaller probe that defines the biomolecular surface by rolling around\n"
@@ -83,20 +79,24 @@ class LaunchKVFinderTool(ToolInstance):
                 "A cavity volume filter to exclude cavities with smaller volumes than this\n"
                 " limit. These smaller cavities are typically not relevant for function."
         }
+        # some of the min/max values are there to make the entry areas less wide
         for label, attr_name, kw in [
                 ("Grid spacing", 'grid_spacing', {'min': 'positive'}),
-                ("Inclusion probe radius", 'probe_in', {'min': 'positive'}),
-                ("Exclusion probe radius", 'probe_out', {'min': 'positive'}),
-                ("Exterior trim amount", 'removal_distance', {}),
+                ("Inner probe radius", 'probe_in', {'min': 'positive'}),
+                ("Outer probe radius", 'probe_out', {'min': 'positive'}),
+                ("Exterior trim distance", 'removal_distance', { 'min': -999.9}),
                 ("Minimum cavity volume", 'volume_cutoff', {'min': 0.0})]:
             opt = FloatOption(label, getattr(_launch_settings, attr_name), None, decimal_places=2,
-                balloon=tool_tips.get(attr_name, None), attr_name=attr_name, settings=_launch_settings, **kw)
+                balloon=tool_tips.get(attr_name, None), attr_name=attr_name, settings=_launch_settings,
+                    max=1000.0, **kw)
             setattr(self, attr_name + '_option', opt)
             panel.add_option(opt)
-        disclosure_area.setContentLayout(da_layout)
+        panel.hide()
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        options_button = bbox.addButton("Options", qbbox.ActionRole)
+        options_button.released.connect(self._options_cb)
         bbox.accepted.connect(self.find_cavities)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
@@ -123,6 +123,11 @@ class LaunchKVFinderTool(ToolInstance):
             if cur_val != default_value:
                 cmd += " " + camel_case(attr_name) + " %g" % cur_val
         run(self.session, cmd)
+
+    def _options_cb(self):
+        self.options_panel.setHidden(not self.options_panel.isHidden())
+        if self.options_panel.isHidden():
+            self.tool_window.shrink_to_fit()
 
 
 _results_settings = None
