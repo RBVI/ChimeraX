@@ -16,22 +16,22 @@ from chimerax.core.errors import UserError
 
 _launch_settings = None
 
-import inspect
-from .cmd import cmd_kvfinder
-cmd_params = inspect.signature(cmd_kvfinder).parameters
-
 class LaunchKVFinderTool(ToolInstance):
 
     help = "help:user/tools/findcavities.html"
     SESSION_SAVE = False
 
-    cmd_defaults = {
-        kw_name: cmd_params[kw_name].default
-            for kw_name in ['grid_spacing', 'probe_in', 'probe_out', 'removal_distance', 'volume_cutoff']
-    }
-
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
+        # do the below here instead of at class or global scope so that importing pyKVFinder doesn't
+        # happen during the import tests
+        import inspect
+        from .cmd import cmd_kvfinder
+        cmd_params = inspect.signature(cmd_kvfinder).parameters
+        self.cmd_defaults = {
+            kw_name: cmd_params[kw_name].default
+                for kw_name in ['grid_spacing', 'probe_in', 'probe_out', 'removal_distance', 'volume_cutoff']
+        }
         global _launch_settings
         if _launch_settings is None:
             from chimerax.core.settings import Settings
