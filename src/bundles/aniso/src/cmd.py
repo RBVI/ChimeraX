@@ -30,6 +30,11 @@ class _StructureAnisoManager(StateManager):
         self.init_state_manager(session, "structure thermal ellipsoids")
         self.session = session
         self.structure = structure
+        from chimerax.atomic import Atoms
+        self.shown_atoms = Atoms()
+        self.atom_depictions = {}
+        atoms = structure.atoms
+        self._create_depictions(atoms[atoms.has_aniso_u])
         if not from_session:
             self._add_handlers()
 
@@ -46,8 +51,11 @@ class _StructureAnisoManager(StateManager):
 
     def show(self, atoms):
         """Show thermal ellipsoids for these atoms"""
-        #TODO
-        pass
+        cur_shown = len(self.shown_atoms)
+        self.shown_atoms = self.shown_atoms.merge(atoms)
+        if len(self.shown_atoms) == cur_shown:
+            return
+        #TODO: show (unhide) the depictions for atoms
 
     def _add_handlers(self):
         from chimerax.core.models import REMOVE_MODELS
