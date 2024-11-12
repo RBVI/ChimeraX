@@ -153,7 +153,7 @@ def _range_filter(values, ranges, scores):
     return rvalues
 
 # Allowed value_type in _combine_scores() function.
-_combine_operations = ('sum', 'sum_absolute', 'mean', 'stddev', 'count')
+_combine_operations = ('sum', 'sum_absolute', 'mean', 'stddev', 'count', 'max', 'min')
     
 def _combine_scores(score_values, residue_number, operation):
     values = [value for from_aa, to_aa, value in score_values.mutation_values(residue_number)]
@@ -171,6 +171,10 @@ def _combine_scores(score_values, residue_number, operation):
         value = std(values)
     elif operation == 'count':
         value = len(values)
+    elif operation == 'max':
+        value = max(values)
+    elif operation == 'min':
+        value = min(values)
     else:
         value = None
 

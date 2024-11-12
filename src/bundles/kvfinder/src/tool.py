@@ -14,6 +14,8 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
 
+_launch_settings = None
+
 class LaunchKVFinderTool(ToolInstance):
 
     help = "help:user/tools/findcavities.html"
@@ -21,6 +23,21 @@ class LaunchKVFinderTool(ToolInstance):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
+        # do the below here instead of at class or global scope so that importing pyKVFinder doesn't
+        # happen during the import tests
+        import inspect
+        from .cmd import cmd_kvfinder
+        cmd_params = inspect.signature(cmd_kvfinder).parameters
+        self.cmd_defaults = {
+            kw_name: cmd_params[kw_name].default
+                for kw_name in ['grid_spacing', 'probe_in', 'probe_out', 'removal_distance', 'volume_cutoff']
+        }
+        global _launch_settings
+        if _launch_settings is None:
+            from chimerax.core.settings import Settings
+            class _KVFinderLaunchSettings(Settings):
+                EXPLICIT_SAVE = self.cmd_defaults
+            _launch_settings = _KVFinderLaunchSettings(self.session, "KVFinder launch")
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
@@ -43,9 +60,43 @@ class LaunchKVFinderTool(ToolInstance):
         self.structures_list = ShortASLWidget(session, autoselect=ShortASLWidget.AUTOSELECT_SINGLE)
         structures_layout.addWidget(self.structures_list, alignment=Qt.AlignRight)
 
+        from chimerax.ui.options import SettingsPanel, FloatOption
+        self.options_panel = panel = SettingsPanel(sorting=False, scrolled=False)
+        layout.addWidget(panel, alignment=Qt.AlignTop|Qt.AlignHCenter)
+        tool_tips = {
+            'probe_in':
+                "A smaller probe that defines the biomolecular surface by rolling around\n"
+                " the target biomolecule. Typically, this is set to the size of a water\n"
+                " molecule (1.4 Å).",
+            'probe_out':
+                "A larger probe that defines inacessibility region, i.e., the cavities,\n"
+                " and by rolling around the target biomolecule. Users can adjust the size\n"
+                " of the probe based on the characteristics of the target structure.",
+            'removal_distance':
+                "A length that is removed from the boundary between the cavity and bulk\n"
+                " (solvent) region.",
+            'volume_cutoff':
+                "A cavity volume filter to exclude cavities with smaller volumes than this\n"
+                " limit. These smaller cavities are typically not relevant for function."
+        }
+        # some of the min/max values are there to make the entry areas less wide
+        for label, attr_name, kw in [
+                ("Grid spacing", 'grid_spacing', {'min': 'positive'}),
+                ("Inner probe radius", 'probe_in', {'min': 'positive'}),
+                ("Outer probe radius", 'probe_out', {'min': 'positive'}),
+                ("Exterior trim distance", 'removal_distance', { 'min': -999.9}),
+                ("Minimum cavity volume", 'volume_cutoff', {'min': 0.0})]:
+            opt = FloatOption(label, getattr(_launch_settings, attr_name), None, decimal_places=2,
+                balloon=tool_tips.get(attr_name, None), attr_name=attr_name, settings=_launch_settings,
+                    max=1000.0, **kw)
+            setattr(self, attr_name + '_option', opt)
+            panel.add_option(opt)
+        panel.hide()
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        options_button = bbox.addButton("Options", qbbox.ActionRole)
+        options_button.released.connect(self._options_cb)
         bbox.accepted.connect(self.find_cavities)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
@@ -64,11 +115,22 @@ class LaunchKVFinderTool(ToolInstance):
             raise UserError("No structures chosen")
         from chimerax.atomic import AtomicStructure
         from chimerax.core.commands import run, concise_model_spec
-        run(self.session, "kvfinder %s" % concise_model_spec(self.session, structures,
-            relevant_types=AtomicStructure))
+        cmd = "kvfinder %s" % concise_model_spec(self.session, structures, relevant_types=AtomicStructure)
+        from chimerax.core.commands import camel_case
+        global _launch_settings
+        for attr_name, default_value in self.cmd_defaults.items():
+            cur_val = getattr(_launch_settings, attr_name)
+            if cur_val != default_value:
+                cmd += " " + camel_case(attr_name) + " %g" % cur_val
+        run(self.session, cmd)
+
+    def _options_cb(self):
+        self.options_panel.setHidden(not self.options_panel.isHidden())
+        if self.options_panel.isHidden():
+            self.tool_window.shrink_to_fit()
 
 
-_settings = None
+_results_settings = None
 
 class KVFinderResultsDialog(ToolInstance):
 
@@ -89,10 +151,10 @@ class KVFinderResultsDialog(ToolInstance):
         self._surface_made = surface_made
 
         from chimerax.ui.widgets import ItemTable
-        global _settings
-        if _settings is None:
+        global _results_settings
+        if _results_settings is None:
             from chimerax.core.settings import Settings
-            class _KVFinderSettings(Settings):
+            class _KVFinderResultsSettings(Settings):
                 AUTO_SAVE = {
                     'focus': True,
                     'nearby': 3.5,
@@ -101,12 +163,12 @@ class KVFinderResultsDialog(ToolInstance):
                     'show': True,
                     'surface': True,
                 }
-            _settings = _KVFinderSettings(self.session, "KVFinder")
+            _results_settings = _KVFinderResultsSettings(self.session, "KVFinder results")
 
         from chimerax.core.models import REMOVE_MODELS
         self.handlers = [
             self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
-            _settings.triggers.add_handler('setting changed', self._setting_changed_cb)
+            _results_settings.triggers.add_handler('setting changed', self._setting_changed_cb)
         ]
 
         from chimerax.ui import MainToolWindow
@@ -156,9 +218,9 @@ class KVFinderResultsDialog(ToolInstance):
                 ("show", "Show nearby residues", False),
                 ]:
             ckbox = QCheckBox(text)
-            checked = getattr(_settings, attr_name)
-            ckbox.setChecked(getattr(_settings, attr_name))
-            ckbox.toggled.connect(lambda checked, *args, settings=_settings, attr_name=attr_name:
+            checked = getattr(_results_settings, attr_name)
+            ckbox.setChecked(getattr(_results_settings, attr_name))
+            ckbox.toggled.connect(lambda checked, *args, settings=_results_settings, attr_name=attr_name:
                 setattr(settings, attr_name, checked))
             gbox_layout.addWidget(ckbox, alignment=(Qt.AlignCenter if is_sub_option else Qt.AlignLeft))
             if is_sub_option:
@@ -177,7 +239,7 @@ class KVFinderResultsDialog(ToolInstance):
         self.nearby_entry = QLineEdit()
         self.nearby_entry.setMaximumWidth(5 * self.nearby_entry.fontMetrics().averageCharWidth())
         self.nearby_entry.setAlignment(Qt.AlignCenter)
-        self.nearby_entry.setText(str(_settings.nearby))
+        self.nearby_entry.setText(str(_results_settings.nearby))
         validator = QDoubleValidator()
         validator.setBottom(0.0)
         self.nearby_entry.setValidator(validator)
@@ -240,17 +302,17 @@ class KVFinderResultsDialog(ToolInstance):
 
         from chimerax.core.commands import concise_model_spec, run
         model_spec = concise_model_spec(self.session, selected)
-        global _settings
+        global _results_settings
         # setting_name is none when the selection changes, so only process the "on" settings in that case...
         if setting_name is None or setting_name == "focus":
-            if _settings.focus:
-                run(self.session, f"view {model_spec} @< {_settings.nearby} ; zoom 0.75")
+            if _results_settings.focus:
+                run(self.session, f"view {model_spec} @< {_results_settings.nearby} ; zoom 0.75")
             elif setting_name is not None:
                 run(self.session, f"view {self.structure.atomspec}")
         if setting_name is None or setting_name == "surface":
             if self._surface_made:
                 run(self.session, f"~surface {self.cavity_group.atomspec}")
-            if _settings.surface:
+            if _results_settings.surface:
                 probe_arg = "" if self.probe_radius == 1.4 else f" probeRadius {self.probe_radius}"
                 if not self._surface_made:
                     run(self.session, f"surface {self.cavity_group.atomspec}{probe_arg} ;"
@@ -259,25 +321,25 @@ class KVFinderResultsDialog(ToolInstance):
                     self._surface_made = True
                 run(self.session, f"surface {model_spec}{probe_arg}")
         if setting_name in ["select_atoms", "show"] or setting_name is None \
-        and (_settings.select_atoms or _settings.show):
+        and (_results_settings.select_atoms or _results_settings.show):
             if self.nearby_entry.hasAcceptableInput():
-                _settings.nearby = float(self.nearby_entry.text())
+                _results_settings.nearby = float(self.nearby_entry.text())
             else:
                 raise UserError('"Nearby" atom/residue distance not valid')
         if setting_name is None or setting_name == "select_atoms":
-            spec = f"#!{self.structure.id_string} & ({model_spec} @< {_settings.nearby})"
-            if _settings.select_atoms:
+            spec = f"#!{self.structure.id_string} & ({model_spec} @< {_results_settings.nearby})"
+            if _results_settings.select_atoms:
                 run(self.session, "select " + spec)
             elif setting_name is not None:
                 run(self.session, "~select " + spec)
         if setting_name is None or setting_name == "select_cavity":
-            if _settings.select_cavity:
+            if _results_settings.select_cavity:
                 run(self.session, "select " + model_spec)
             elif setting_name is not None:
                 run(self.session, "~select " + model_spec)
         if setting_name is None or setting_name == "show":
-            spec = f"#!{self.structure.id_string} & ({model_spec} :< {_settings.nearby})"
-            if _settings.show:
+            spec = f"#!{self.structure.id_string} & ({model_spec} :< {_results_settings.nearby})"
+            if _results_settings.show:
                 run(self.session, "show " + spec)
             elif setting_name is not None:
                 run(self.session, "hide " + spec)

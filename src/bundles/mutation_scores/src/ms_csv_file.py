@@ -23,15 +23,11 @@
 # === UCSF ChimeraX Copyright ===
 
 def open_mutation_scores_csv(session, path, chain = None, name = None):
-    mset = _read_mutation_scores_csv(path)
+    mset = _read_mutation_scores_csv(path, name = name)
 
     from .ms_data import mutation_scores_manager
     msm = mutation_scores_manager(session)
-    if name is None:
-        from os.path import basename, splitext
-        name = splitext(basename(path))[0]
-    mset.name = name
-    msm.add_scores(name, mset)
+    msm.add_scores(mset)
 
     if chain:
         mset.chain = chain
@@ -51,7 +47,7 @@ def open_mutation_scores_csv(session, path, chain = None, name = None):
 
     return mset, message
 
-def _read_mutation_scores_csv(path):
+def _read_mutation_scores_csv(path, name = None):
     with open(path, 'r') as f:
         lines = f.readlines()
     headings = [h.strip() for h in lines[0].split(',')]
@@ -82,7 +78,7 @@ def _read_mutation_scores_csv(path):
         mscores.append(MutationScores(res_num, res_type, res_type2, scores))
 
     from os.path import basename, splitext
-    name = splitext(basename(path))[0]
+    name = splitext(basename(path))[0] if name is None else name
     from .ms_data import MutationSet
     mset = MutationSet(name, mscores, path = path)
 

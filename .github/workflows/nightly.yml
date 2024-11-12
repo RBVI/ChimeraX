@@ -2,7 +2,7 @@ name: Nightly Build
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 10 * * *" # 10:30AM UTC / 2:30AM PST / 3:30AM PDT
+    - cron: "0 8 * * *" # 8AM UTC / 12AM PST / 1AM PDT
 
 jobs:
   build-rocky8-docker:
