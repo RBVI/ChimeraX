@@ -44,6 +44,10 @@ bundles = ["ChimeraX-MouseModes", "ChimeraX-UI"]
 category = "Volume Data"
 description = "Interactively segment volumes"
 
+[chimerax.tool."Orthoplanes"]
+category = "Volume Data"
+description = "View planes of volumes in a dedicated tool"
+
 [chimerax.command."ui view"]
 category = "General"
 description = "See medical images in a 4-panel viewer"

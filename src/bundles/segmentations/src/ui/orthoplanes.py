@@ -17,7 +17,7 @@ import numpy as np
 from Qt import qt_object_is_deleted
 from Qt.QtCore import Qt, QEvent, QSize
 from Qt.QtGui import QContextMenuEvent, QWindow, QSurface, QInputDevice
-from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QSlider, QLabel
+from Qt.QtWidgets import QComboBox, QVBoxLayout, QHBoxLayout, QWidget, QSlider, QLabel
 from Qt.QtCore import QTimer, QPoint
 
 from chimerax.core.commands import log_equivalent_command
@@ -252,6 +252,16 @@ class PlaneViewer(QWindow):
         self.drawings = []
         self.current_segmentation_cursor_overlays = []
 
+        self.axis_dropdown = QComboBox(self.parent)
+        self.axis_dropdown.addItems(str(axis).capitalize() for axis in Axis)
+        if axis == Axis.AXIAL:
+            self.axis_dropdown.setCurrentIndex(0)
+        elif axis == Axis.CORONAL:
+            self.axis_dropdown.setCurrentIndex(1)
+        elif axis == Axis.SAGITTAL:
+            self.axis_dropdown.setCurrentIndex(2)
+        self.axis_dropdown.currentTextChanged.connect(self._on_axis_changed)
+
         self.label = Label(
             self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0
         )
@@ -356,6 +366,7 @@ class PlaneViewer(QWindow):
         button_layout = QHBoxLayout()
         button_layout.setContentsMargins(0, 0, 0, 0)
         button_layout.setSpacing(0)
+        button_layout.addWidget(self.axis_dropdown)
         button_layout.addStretch(1)
         button_layout.addWidget(self.model_menu.frame)
         self.button_container.setLayout(button_layout)
@@ -385,6 +396,84 @@ class PlaneViewer(QWindow):
             )
         )
 
+    def _on_axis_changed(self, axis):
+        self.axis = Axis.from_string(axis.lower())
+        self.axes = self.axis.transform
+        self.view.camera.position = Place(origin=(0, 0, 0), axes=self.axes)
+        volume_viewer = self.session.tools.find_by_class(VolumeViewer)
+        v = self.view.drawing
+        if self.view.drawing is not self.placeholder_drawing:
+            if volume_viewer:
+                self._remove_axis_from_volume_viewer(volume_viewer[0], v.parent)
+            v.delete()
+            del v
+        if self.model_menu.value is None:
+            self.view.drawing = self.placeholder_drawing
+            self.slider.setMinimum(0)
+            self.slider.setMaximum(2)
+            self.slider.setValue(1)
+            self.pos = 1
+        v = copy_volume_for_auxiliary_display(self.model_menu.value)
+        self.model_menu.value.expand_single_plane()
+        self.model_menu.value.set_display_style("surface")
+        self.model_menu.value._drawings_need_update()
+        max_x, max_y, max_z = self.model_menu.value.region[1]
+        middle = tuple(
+            (imin + imax) // 2
+            for imin, imax in zip(
+                self.model_menu.value.region[0], self.model_menu.value.region[1]
+            )
+        )
+        new_drawing = None
+        apply_volume_options(
+            v,
+            doptions={
+                "region": (v.region[0], v.region[1]),
+                "planes": self.axis.cartesian,
+            },
+            roptions={},
+            image_mode_off=False,
+            session=self.session,
+        )
+        v.set_display_style("image")
+        v.name = str(self.axis) + " orthoplane " + str(self.model_menu.value.name)
+        v.update_drawings()
+        v.allow_style_changes = False
+        # Add our new volume to the volume menu with our custom widget
+        self._add_axis_to_volume_viewer(volume_viewer[0], v)
+
+        self.main_view.camera.redraw_needed = True
+        for d in v._child_drawings:
+            if type(d) == VolumeImage:
+                new_drawing = d
+        # self.manager.update_drawing(self.model_menu.value)
+        if new_drawing is not None:
+            # Set the view's root drawing, and our ground truth drawing, to the new one
+            self.view.drawing = new_drawing
+            for drawing in self.drawings:
+                self.removeDrawing(drawing)
+            if new_drawing not in self.drawings:
+                self.addDrawing(new_drawing)
+                new_drawing.display = True
+            self.set_label_text(new_drawing.parent.name)
+            self.manager.update_dimensions([max_x, max_y, max_z])
+            orthoplane_positions = max_x // 2, max_y // 2, max_z // 2
+            self._plane_indices = list(orthoplane_positions)
+            if self.axis == Axis.AXIAL:
+                self.slider.setRange(0, max_z)
+            if self.axis == Axis.CORONAL:
+                self.slider.setRange(-max_y, 0)
+            if self.axis == Axis.SAGITTAL:
+                self.slider.setRange(0, max_x)
+            self.slider.setValue(
+                orthoplane_positions[self.axis] * self.axis.positive_direction
+            )
+            self.slider_moved = True
+            self.pos = orthoplane_positions[self.axis]
+            self._plane_indices[self.axis] = self.pos
+            self.manager.update_location(self)
+        self.render()
+
     def _on_segmentation_modified(self, _, segmentation):
         active_seg = self.segmentation_tracker.active_segmentation
         self.segmentation_overlays[segmentation].needs_update = True
@@ -392,18 +481,16 @@ class PlaneViewer(QWindow):
             self._redraw()
 
     def _tool_instance_added_cb(self, _, tools):
-        for tool in tools:
-            if type(tool) is VolumeViewer:
-                self.volume_viewer_opened_timer.start()
+        volume_viewer = self.session.tools.find_by_class(VolumeViewer)
+        if not volume_viewer:
+            return
+        self.volume_viewer_opened_timer.start()
 
     def _on_volume_viewer_opened(self):
-        volume_viewer = None
-        for tool in self.session.tools:
-            if type(tool) == VolumeViewer:
-                volume_viewer = tool
-                break
-        if volume_viewer:
-            self._add_axis_to_volume_viewer(volume_viewer, self.view.drawing.parent)
+        volume_viewer = self.session.tools.find_by_class(VolumeViewer)
+        if not volume_viewer:
+            return
+        self._add_axis_to_volume_viewer(volume_viewer[0], self.view.drawing.parent)
 
     def _collapse_touch_events(self):
         # Taken from the Mouse Modes code. It's unknown at this point whether there is a
@@ -625,14 +712,11 @@ class PlaneViewer(QWindow):
         )
 
         del self.label
-        volume_viewer = None
-        for tool in self.session.tools:
-            if type(tool) == VolumeViewer:
-                volume_viewer = tool
-                break
+
+        volume_viewer = self.session.tools.find_by_class(VolumeViewer)
         v = self.view.drawing.parent
-        if self.view.drawing is not self.placeholder_drawing:
-            self._remove_axis_from_volume_viewer(volume_viewer, v)
+        if volume_viewer:
+            self._remove_axis_from_volume_viewer(volume_viewer[0], v)
         self.view.drawing.delete()
         self.view.delete()
         self.mouse_move_timer.stop()
@@ -1318,13 +1402,11 @@ class PlaneViewer(QWindow):
         # Would need to create a copy of each segmentation created, too, one for the orthoplane
         # windows and one for the
         # then modify the segmentation tool to
-        volume_viewer = None
-        for tool in self.session.tools:
-            if type(tool) == VolumeViewer:
-                volume_viewer = tool
+        volume_viewer = self.session.tools.find_by_class(VolumeViewer)
         v = self.view.drawing
         if self.view.drawing is not self.placeholder_drawing:
-            self._remove_axis_from_volume_viewer(volume_viewer, v.parent)
+            if volume_viewer:
+                self._remove_axis_from_volume_viewer(volume_viewer[0], v.parent)
             v.delete()
             del v
         if self.model_menu.value is None:
@@ -1361,7 +1443,8 @@ class PlaneViewer(QWindow):
             v.update_drawings()
             v.allow_style_changes = False
             # Add our new volume to the volume menu with our custom widget
-            self._add_axis_to_volume_viewer(volume_viewer, v)
+            if volume_viewer:
+                self._add_axis_to_volume_viewer(volume_viewer[0], v)
 
             self.main_view.camera.redraw_needed = True
             for d in v._child_drawings:
@@ -1381,11 +1464,11 @@ class PlaneViewer(QWindow):
                 orthoplane_positions = max_x // 2, max_y // 2, max_z // 2
                 self._plane_indices = list(orthoplane_positions)
                 if self.axis == Axis.AXIAL:
-                    self.slider.setMaximum(max_z)
+                    self.slider.setRange(0, max_z)
                 if self.axis == Axis.CORONAL:
                     self.slider.setRange(-max_y, 0)
                 if self.axis == Axis.SAGITTAL:
-                    self.slider.setMaximum(max_x)
+                    self.slider.setRange(0, max_x)
                 self.slider.setValue(
                     orthoplane_positions[self.axis] * self.axis.positive_direction
                 )
