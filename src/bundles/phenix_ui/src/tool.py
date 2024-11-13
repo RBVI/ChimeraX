@@ -182,6 +182,113 @@ class LaunchDouseTool(ToolInstance):
         run(self.session, cmd)
         self.delete()
 
+class EmplaceLocalResultsViewer(ToolInstance):
+    def __init__(self, session, *args):
+        # if 'args' is empty, we are being restored from a session and _finalize_init() will be called later
+        super().__init__(session, "Local EM Fitting Results")
+        if not args:
+            return
+        self._finalize_init(*args)
+
+    def _finalize_init(self, orig_model, transforms, llgs, ccs, sym_map, *, table_state=None):
+        self.orig_model = orig_model
+        self.orig_position = orig_model.position
+        self.transforms = transforms
+        self.llgs = llgs
+        self.ccs = ccs
+        self.sym_map = sym_map
+
+        from chimerax.core.models import REMOVE_MODELS
+        from chimerax.atomic import get_triggers
+        self.handlers = [
+            self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
+        ]
+        self._interpolate_handler = None
+
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
+
+        from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
+        from Qt.QtWidgets import QPushButton, QLabel, QToolButton, QGridLayout
+        layout = QVBoxLayout()
+        layout.setContentsMargins(2,2,2,2)
+        layout.setSpacing(0)
+        parent.setLayout(layout)
+
+        #TODO
+        self.table = self._build_table(table_state)
+        layout.addWidget(self.table, stretch=1)
+
+        self.tool_window.manage('side')
+
+    def delete(self):
+        for handler in self.handlers:
+            handler.remove()
+        if self._interpolate_handler:
+            self._interpolate_handler.remove()
+        self.orig_model = self.sym_map = None
+        super().delete()
+
+    def _build_table(self, table_state):
+        class TableDatum:
+            def __init__(self, num, transform, llg, cc):
+                self.num = num
+                self.transform = transform
+                self.llg = llg
+                self.cc = cc
+        from chimerax.ui.widgets import ItemTable
+        table = ItemTable()
+        result_col = table.add_column("Result", "num")
+        table.add_column("Correlation Coefficient", "cc", format="%g")
+        table.add_column("Log-Likelihood Gain", "llg", format="%g")
+        table.data = [TableDatum(*args)
+            for args in zip(range(1, len(self.transforms)+1), self.transforms, self.llgs, self.ccs)]
+        table.launch(select_mode=table.SelectionMode.SingleSelection, session_info=table_state)
+        table.sort_by(result_col, table.SORT_ASCENDING)
+        table.selection_changed.connect(self._new_selection)
+        table.selected = table.data[0:1]
+        return table
+
+    def _interpolate(self, destination):
+        if self._interpolate_handler:
+            self._interpolate_handler.remove()
+        # interpolation code largely cribbed from map_fit.search.move_models/move_step
+        def make_step(trig_name, trig_data, *, tool=self, destination=destination, frame_info=[10]):
+            m = tool.orig_model
+            b = m.bounds()
+            finish = False
+            if b:
+                num_frames = frame_info[0]
+                cscene = .5 * (b.xyz_min + b.xyz_max)
+                c = m.scene_position.inverse() * cscene # Center in model coordinates
+                m.position = m.position.interpolate(destination, c, 1.0/num_frames)
+                if num_frames > 1:
+                    frame_info[0] = num_frames - 1
+                else:
+                    finish = True
+            else:
+                m.position = destination
+                finish = True
+            if finish:
+                tool._interpolate_handler.remove()
+                tool._interpolate_handler = None
+        self._interpolate_handler = self.session.triggers.add_handler("new frame", make_step)
+
+    def _models_removed_cb(self, trig_name, trig_data):
+        if self.orig_model in trig_data:
+            self.delete()
+
+    def _new_selection(self, selected, unselected):
+        if not selected:
+            return
+        from chimerax.geometry import Place
+        destination = Place(selected[0].transform) * self.orig_position
+        if unselected:
+            self._interpolate(destination)
+        else:
+            self.orig_model.position = destination
+
 class LaunchEmplaceLocalTool(ToolInstance):
     help = "help:user/tools/localemfitting.html"
 
