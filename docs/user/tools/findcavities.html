@@ -70,29 +70,32 @@ Finally, cavities smaller than a specified volume are omitted.
 <b>Find Cavities</b> can be started from the 
 <b>Binding Analysis</b> or <b>Structure Analysis</b>
 section of the <b>Tools</b> menu.
-One or more atomic models should be chosen from the resulting list,
-and parameters set to the desired values:
+One or more atomic models should be chosen from the resulting list.
+<b>Cavity detection settings</b> and associated buttons:
 </p>
 <ul>
 <li><b>Grid spacing</b>
-(initial default 0.60 &Aring;)
+(initial default <b>0.60</b> &Aring;)
 &ndash; a smaller spacing gives a higher-resolution result, 
 but can significantly increase the calculation time
 <li><b>Inner probe radius</b>
-(initial default 1.4 &Aring;)
+(initial default <b>1.4</b> &Aring;)
 <li><b>Outer probe radius</b>
-(initial default 4.0 &Aring;)
+(initial default <b>4.0</b> &Aring;)
 &ndash; a larger outer probe increases calculation time
 <li><b>Exterior trim distance</b>
-(initial default 2.4 &Aring;)
+(initial default <b>2.4</b> &Aring;)
 <li><b>Minimum cavity volume</b>
-(initial default 5.0 &Aring;<sup>3</sup>)
+(initial default <b>5.0</b> &Aring;<sup>3</sup>)
+</ul>
+<ul>
+<li><b>Save</b> saves the current parameter values as user 
+<a href="../preferences.html#other">preferences</a>
+<li><b>Reset</b> resets the dialog to the initial defaults
+without changing any preferences
+<li><b>Restore</b> populates the dialog with the last saved preferences
 </ul>
 <p>
-Although there are initial or &ldquo;factory&rdquo; defaults,
-the values used to run the calculation
-will be remembered as <a href="../preferences.html#other">preferences</a>
-and presented the next time the tool is used.
 Clicking <b>OK</b> runs the calculation, and tabulates the results for 
 each atomic model in a separate <a href="#cavitylist">cavity list</a> window.
 These results are also reported in the <a href="log.html"><b>Log</b></a>.
