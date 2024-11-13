@@ -41,7 +41,7 @@ class LaunchKVFinderTool(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget
+        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget, QGroupBox
         from Qt.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
@@ -60,9 +60,15 @@ class LaunchKVFinderTool(ToolInstance):
         self.structures_list = ShortASLWidget(session, autoselect=ShortASLWidget.AUTOSELECT_SINGLE)
         structures_layout.addWidget(self.structures_list, alignment=Qt.AlignRight)
 
+
+        group = QGroupBox("Cavity detection settings")
+        layout.addWidget(group, alignment=Qt.AlignTop|Qt.AlignHCenter)
+        group_layout = QHBoxLayout()
+        group_layout.setContentsMargins(0,0,0,0)
+        group.setLayout(group_layout)
         from chimerax.ui.options import SettingsPanel, FloatOption
         self.options_panel = panel = SettingsPanel(sorting=False, scrolled=False)
-        layout.addWidget(panel, alignment=Qt.AlignTop|Qt.AlignHCenter)
+        group_layout.addWidget(panel)
         tool_tips = {
             'probe_in':
                 "A smaller probe that defines the biomolecular surface by rolling around\n"
@@ -91,12 +97,9 @@ class LaunchKVFinderTool(ToolInstance):
                     max=1000.0, **kw)
             setattr(self, attr_name + '_option', opt)
             panel.add_option(opt)
-        panel.hide()
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
-        options_button = bbox.addButton("Options", qbbox.ActionRole)
-        options_button.released.connect(self._options_cb)
         bbox.accepted.connect(self.find_cavities)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
@@ -123,11 +126,6 @@ class LaunchKVFinderTool(ToolInstance):
             if cur_val != default_value:
                 cmd += " " + camel_case(attr_name) + " %g" % cur_val
         run(self.session, cmd)
-
-    def _options_cb(self):
-        self.options_panel.setHidden(not self.options_panel.isHidden())
-        if self.options_panel.isHidden():
-            self.tool_window.shrink_to_fit()
 
 
 _results_settings = None
