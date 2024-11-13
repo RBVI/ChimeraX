@@ -54,7 +54,11 @@ class MutationSet(State):
                 names.update(ms.scores.keys())
             self._score_names = tuple(sorted(names))
         return self._score_names
-    
+
+    def add_scores(self, mutation_scores):
+        self.mutation_scores.extend(mutation_scores)
+        self._score_names = None
+        
     def computed_values(self, score_name):
         return self._computed_scores.get(score_name)
     def set_computed_values(self, score_name, score_values):
@@ -197,21 +201,24 @@ from chimerax.core.state import StateManager  # For session saving
 class MutationScoresManager(StateManager):
     def __init__(self):
         self._scores = {}	# Maps name to MutationSet
-    def scores(self, mutation_set, allow_abbreviation = False):
-        if mutation_set is None:
+
+    def mutation_set(self, mutation_set_name):
+        return self._scores.get(mutation_set_name)
+    def scores(self, mutation_set_name, allow_abbreviation = False):
+        if mutation_set_name is None:
             s = tuple(self._scores.values())[0] if len(self._scores) == 1 else None
         else:
-            s = self._scores.get(mutation_set)
+            s = self._scores.get(mutation_set_name)
             if s is None and allow_abbreviation:
-                full_names = [name for name in self._scores.keys() if name.startswith(mutation_set)]
+                full_names = [name for name in self._scores.keys() if name.startswith(mutation_set_name)]
                 if len(full_names) == 1:
                     s = self._scores[full_names[0]]
         return s
-    def add_scores(self, mutation_set, scores):
-        self._scores[mutation_set] = scores
-    def remove_scores(self, mutation_set):
-        if mutation_set in self._scores:
-            del self._scores[mutation_set]
+    def add_scores(self, mutation_set):
+        self._scores[mutation_set.name] = mutation_set
+    def remove_scores(self, mutation_set_name):
+        if mutation_set_name in self._scores:
+            del self._scores[mutation_set_name]
             return True
         return False
     def all_scores(self):

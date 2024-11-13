@@ -239,33 +239,15 @@ to specify it interactively in a file browser window
 <a name="open"></a>
 <b>similarstructures open</b>
 &nbsp;<a href="#hit-ID"><i>hit-ID</i></a>&nbsp;
-[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 [&nbsp;<b>align</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <span class="nowrap">[&nbsp;<b>trim</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;|&nbsp;chains,sequence,ligands&nbsp;]</span>
 [&nbsp;<b>alignmentCutoffDistance</b>&nbsp;&nbsp;<i>dist</i>&nbsp;]
 [&nbsp;<b>inFileHistory</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>log</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 <blockquote>
-Fetch and open a hit structure.
-<p>
-<a name="fromSet"></a>
-Although only one set of results can be shown in the
-<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>
-at a time (the default set), other sets may be open and available for analysis.
-Another set can be specified with <b>fromSet</b> <i>set-name</i>.
-The name of a set of results is reported in the 
-<a href="../tools/log.html"><b>Log</b></a> when a search is run,
-and the names of open sets can be listed in the 
-<a href="../tools/log.html"><b>Log</b></a> with
-<a href="#list"><b>similarstructures list</b></a>. However,
-the only way to get a set of results that is open but not shown in the table
-is to use the <b>showTable false</b> option of the search command.
-Results are closed when a new set of results replaces them in the
-<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>,
-when the tool is closed, or when the command
-<a href="#close"><b>similarstructures close</b></a> is used to close them.
-</p><p>
 <a name="hit-ID"></a>
+Fetch and open a hit structure.
 The <i>hit-ID</i> for a structure from the 
 <a href="https://www.rcsb.org" target="_blank">PDB</a>
 is a combination of the PDB
@@ -285,18 +267,36 @@ it may be useful to omit them from the
 <a href="../tools/filehistory.html"><b>File History</b></a> with
 <b>inFileHistory false</b>, and omit their descriptions from the 
 <a href="../tools/log.html"><b>Log</b></a> with <b>log false</b>.
+</p><p>
+<a name="fromSet"></a>
+Although only one set of results can be shown in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>
+at a time (the default set), other sets may be open and available for analysis.
+Another set can be specified with <b>fromSet</b> <i>set-name</i>.
+The name of a set of results is reported in the 
+<a href="../tools/log.html"><b>Log</b></a> when a search is run,
+and the names of open sets can be listed in the 
+<a href="../tools/log.html"><b>Log</b></a> with
+<a href="#list"><b>similarstructures list</b></a>. However,
+the only way to get a set of results that is open but not shown in the table
+is to use the <b>showTable false</b> option of the search command.
+Results are closed when a new set of results replaces them in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>,
+when the tool is closed, or when the command
+<a href="#close"><b>similarstructures close</b></a> is used to close them.
+</p><p>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="sequences"></a>
 <b>similarstructures sequences</b> 
-[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 [&nbsp;<b>showConserved</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>conservedThreshold</b>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
 [&nbsp;<b>conservedColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>identityColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>lddtColoring</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>order</b>&nbsp;&nbsp;evalue&nbsp;|&nbsp;cluster&nbsp;|&nbsp;identity&nbsp;|&nbsp;lddt&nbsp;]
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 <blockquote>
 Show a <a href="../tools/foldseek.html#sequences">sequence plot</a>
 of all hits in the <a href="#fromSet">specified set</a>. This plot 
@@ -347,7 +347,10 @@ otherwise be black are colored by <a href="#lddt">LDDT</a> instead
 <a name="lddt"></a>
 The LDDT (<b><i>local distance difference test</i></b>)
 indicates the similarity of a hit residue to the aligned query 
-residue in a neighborhood of 15 &Aring; from the query residue &alpha;-carbon.
+residue in a neighborhood of 15 &Aring; from the query residue &alpha;-carbon
+(see <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3799472/"
+target="_blank">Mariani <i>et al.</i></a>,
+Bioinformatics <b>29</b>:2722 (2013)).
 </ul>
 <p>
 The sequences (rows in the plot) can be in <b>order</b> of:
@@ -371,7 +374,6 @@ then reissue the command with the desired options.
 <a href="#top" class="nounder">&bull;</a>
 <a name="traces"></a>
 <b>similarstructures traces</b>
-[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 [&nbsp;<b>ofStructures</b></a>&nbsp;&nbsp;<i>hit-ID(s)</i>&nbsp;]
 [&nbsp;<a href="#fitting"><b>alignWith</b></a>&nbsp;&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;]
 [&nbsp;<a href="#fitting"><b>alignmentCutoffDistance</b></a>&nbsp;&nbsp;<i>adist</i>&nbsp;]
@@ -381,6 +383,7 @@ then reissue the command with the desired options.
 [&nbsp;<b>distance</b></a>&nbsp;&nbsp;<i>dist</i>&nbsp;]
 [&nbsp;<b>maxSegmentDistance</b></a>&nbsp;&nbsp;<i>mdist</i>&nbsp;]
 [&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 <blockquote>
 Display &ldquo;licorice&rdquo; (spaghetti-like) ribbons superimposed on the 
 query structure for hits from the <a href="#fromSet">specified set</a>
@@ -449,13 +452,13 @@ model will be generated.
 <a name="cluster"></a>
 <b>similarstructures cluster</b>
 &nbsp;<a href="atomspec.html"><i>reference-residues</i></a>&nbsp;
-[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 [&nbsp;<b>ofStructures</b></a>&nbsp;&nbsp;<i>hit-ID(s)</i>&nbsp;]
 [&nbsp;<a href="#fitting"><b>alignWith</b></a>&nbsp;&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;]
 [&nbsp;<a href="#fitting"><b>alignmentCutoffDistance</b></a>&nbsp;&nbsp;<i>adist</i>&nbsp;]
 [&nbsp;<b>clusterCount</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<b>clusterDistance</b>&nbsp;&nbsp;<i>cdist</i>&nbsp;]
 [&nbsp;<b>colorBySpecies</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 <blockquote>
 Create a <a href="../tools/foldseek.html#clusters">scatter plot</a>
 based on backbone conformations of hits from the 
@@ -524,13 +527,13 @@ plot will be generated.
 <a href="#top" class="nounder">&bull;</a>
 <a name="ligands"></a>
 <b>similarstructures ligands</b>
-[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 [&nbsp;<b>ofStructures</b></a>&nbsp;&nbsp;<i>hit-ID(s)</i>&nbsp;]
 [&nbsp;<b>warn</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>rmsdCutoff</b></a>&nbsp;&nbsp;<i>rmsd</i>&nbsp;]
 [&nbsp;<b>alignmentRange</b></a>&nbsp;&nbsp;<i>range</i>&nbsp;]
 [&nbsp;<b>minimumPaired</b></a>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
 [&nbsp;<b>combine</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 <blockquote>
 Copy ligands, ions, and solvent molecules (nonpolymer residues)  
 from the hit structures
@@ -579,12 +582,12 @@ chain IDs.
 <a href="#top" class="nounder">&bull;</a>
 <a name="fetchcoords"></a>
 <b>similarstructures fetchcoords</b>
-[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 [&nbsp;<b>ofStructures</b></a>&nbsp;&nbsp;<i>hit-ID(s)</i>&nbsp;]
 [&nbsp;<b>minAlignedCoords</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>updateTable</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>rewriteSmsFile</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ask</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 <blockquote>
 <p>
 Search results from the structure-based 
@@ -638,10 +641,10 @@ and highlight that row.
 <a name="pairing"></a>
 <b>similarstructures pairing</b> 
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
-[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>halfbondColoring</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
 <blockquote>
 Draw dashed <a href="../pseudobonds.html">pseudobonds</a> between the paired
 &alpha;-carbons of the (previously opened) atomic model of a hit 

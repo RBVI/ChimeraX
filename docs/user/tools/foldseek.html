@@ -161,7 +161,7 @@ target="_blank">UniProt accession number</a>
 <!-- across aligned positions? -->
 <li><b>E-value</b> &ndash; significance value according to the search method
 <li><b>% Close</b>
-&ndash; percentage of residues in the <a href="#trim">trimmed</a> hit
+&ndash; percentage of residues in the <a href="#options">trimmed</a> hit
 that are close to the paired residue of the query (within the 
 <a href="#options"><b>Alignment pruning C-alpha atom distance</b></a>,
 default <b>2.0</b> &Aring;)
@@ -178,7 +178,7 @@ by the <a href="#notes">Foldseek</a> search method,
 which uses and returns 3D coordinates.
 For the other search methods (which are based on sequence only),
 these columns can be filled in by using 
-<a href="similarstructures.html#fetchcoords"><b>similarstructures 
+<a href="../commands/similarstructures.html#fetchcoords"><b>similarstructures 
 fetchcoords</b></a> to get &alpha;-carbon coordinates for the
 corresponding structures.
 </p><p>
@@ -298,7 +298,7 @@ amino acid codes) plot of the sequence alignment of all of the hits to
 the query. The plot gives an overview of which parts of the query sequence
 are matched by the hits, and the depth of coverage.
 </p><p>
-Each row of the image is one sequence, so finding 200 hits would 
+Each row of the image is one sequence, so 200 hits would 
 produce an image 200 pixels tall. The columns of the image correspond 
 to the residues of the query structure. Initially, pixels in the plot are
 colored as follows:
@@ -352,14 +352,16 @@ query they cover (default, if clustering by coverage gives &gt;1 cluster)
 over all residues in a hit structure.
 The LDDT indicates the similarity of a hit residue to the aligned
 query residue in a neighborhood of 15 &Aring; from the query residue 
-&alpha;-carbon.
+&alpha;-carbon
+(see <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3799472/" 
+target="_blank">Mariani <i>et al.</i></a>, 
+Bioinformatics <b>29</b>:2722 (2013)).
   </ul>
 <li><b>Color conserved</b> (default)
 &ndash; by conservation of the query residue type
 as described <a href="#sequences">above</a>
 <li><b>Color by LDDT</b> 
 &ndash; by <a href="#lddt">LDDT</a> of each aligned residue in each structure:
-<!-- check with TG: is palette the same as for "local alignment" below?  -->
 <table border cellpadding="0" cellspacing="0"
 style="display:inline-block; vertical-align:top"><tr>
 <td bgcolor=red width="30px" title="red"
@@ -487,7 +489,7 @@ traces</b></a> command.
 </p><p>
 Ctrl-double-clicking a trace shows a 
 <a href="../selection.html#context">selection context menu</a>
-for the corresponding hit, including the following tool-specific entries:
+for the corresponding hit, with entries including:
 </p>
 <ul>
 <li><b>Open similar structure [<i>hit</i>]</b>
@@ -621,11 +623,11 @@ are found, and they can be hidden to get a better view of more interesting
 ligands. For example, commands: 
 </p>
 <blockquote>
-<b><a href="../commands.hide.html">hide</a> solvent</b>
+<b><a href="../commands/show.html">hide</a> solvent</b>
 <br>
-<b><a href="../commands.hide.html">hide</a> ions</b>
+<b><a href="../commands/show.html">hide</a> ions</b>
 <br>
-<b><a href="../commands.hide.html">hide</a> :SO4</b>
+<b><a href="../commands/show.html">hide</a> :SO4</b>
 </blockquote>
 <p>
 By default, the copied ligand, ion, and solvent residues are loaded as a 
@@ -669,6 +671,13 @@ MMseqs2 desktop and local web server app for fast, interactive sequence
 searches.</a>
 Mirdita M, Steinegger M, S&ouml;ding J.
 <i>Bioinformatics.</i> 2019 Aug 15;35(16):2856-2858.
+</blockquote>
+<b>Local distance difference test</i> (LDDT)</b>:
+<blockquote>
+<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3799472/" target="_blank">
+lDDT: a local superposition-free score for comparing protein structures and models using distance difference tests.</a>
+Mariani V, Biasini M, Barbato A, Schwede T.
+<i>Bioinformatics.</i> 2013 Nov 1;29(21):2722-8.
 </blockquote>
 
 <hr>

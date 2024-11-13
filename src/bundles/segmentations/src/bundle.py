@@ -44,8 +44,11 @@ class SegmentationsBundle(BundleAPI):
         session, _, ti = args
         if ti.name == "Segmentations":
             from .ui.segmentations import SegmentationTool
-
             return SegmentationTool(session)
+
+        if ti.name == "Orthoplanes":
+            from .ui.orthoplane_tool import OrthoplaneTool
+            return OrthoplaneTool(session)
 
     @staticmethod
     def register_command(*args):

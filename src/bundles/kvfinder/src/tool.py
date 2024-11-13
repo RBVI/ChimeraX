@@ -41,7 +41,7 @@ class LaunchKVFinderTool(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget
+        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget, QGroupBox
         from Qt.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
@@ -60,13 +60,15 @@ class LaunchKVFinderTool(ToolInstance):
         self.structures_list = ShortASLWidget(session, autoselect=ShortASLWidget.AUTOSELECT_SINGLE)
         structures_layout.addWidget(self.structures_list, alignment=Qt.AlignRight)
 
-        from chimerax.ui.widgets import DisclosureArea
-        disclosure_area = DisclosureArea(title="Advanced Options")
-        da_layout = QVBoxLayout()
-        layout.addWidget(disclosure_area, alignment=Qt.AlignTop)
+
+        group = QGroupBox("Cavity detection settings")
+        layout.addWidget(group, alignment=Qt.AlignTop|Qt.AlignHCenter)
+        group_layout = QHBoxLayout()
+        group_layout.setContentsMargins(0,0,0,0)
+        group.setLayout(group_layout)
         from chimerax.ui.options import SettingsPanel, FloatOption
-        panel = SettingsPanel(sorting=False, scrolled=False)
-        da_layout.addWidget(panel)
+        self.options_panel = panel = SettingsPanel(sorting=False, scrolled=False)
+        group_layout.addWidget(panel)
         tool_tips = {
             'probe_in':
                 "A smaller probe that defines the biomolecular surface by rolling around\n"
@@ -83,17 +85,18 @@ class LaunchKVFinderTool(ToolInstance):
                 "A cavity volume filter to exclude cavities with smaller volumes than this\n"
                 " limit. These smaller cavities are typically not relevant for function."
         }
+        # some of the min/max values are there to make the entry areas less wide
         for label, attr_name, kw in [
                 ("Grid spacing", 'grid_spacing', {'min': 'positive'}),
-                ("Inclusion probe radius", 'probe_in', {'min': 'positive'}),
-                ("Exclusion probe radius", 'probe_out', {'min': 'positive'}),
-                ("Exterior trim amount", 'removal_distance', {}),
+                ("Inner probe radius", 'probe_in', {'min': 'positive'}),
+                ("Outer probe radius", 'probe_out', {'min': 'positive'}),
+                ("Exterior trim distance", 'removal_distance', { 'min': -999.9}),
                 ("Minimum cavity volume", 'volume_cutoff', {'min': 0.0})]:
             opt = FloatOption(label, getattr(_launch_settings, attr_name), None, decimal_places=2,
-                balloon=tool_tips.get(attr_name, None), attr_name=attr_name, settings=_launch_settings, **kw)
+                balloon=tool_tips.get(attr_name, None), attr_name=attr_name, settings=_launch_settings,
+                    max=1000.0, **kw)
             setattr(self, attr_name + '_option', opt)
             panel.add_option(opt)
-        disclosure_area.setContentLayout(da_layout)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
