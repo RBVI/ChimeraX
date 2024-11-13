@@ -223,6 +223,7 @@ def _process_results(session, transforms, llgs, ccs, sharpened_map, orig_model, 
     sharpened_map.name = "sharpened local map"
     sharpened_map.display = show_sharpened_map
     session.models.add([sharpened_map])
+    from chimerax.core.commands import run, concise_model_spec, StringArg
     if apply_symmetry:
         sym_map = maps[0]
         if sym_map.deleted:
