@@ -24,7 +24,7 @@
 
 # Make a scatter plot for residues using two mutation scores.
 def mutation_scores_scatter_plot(session, x_score_name, y_score_name, mutation_set = None,
-                                 correlation = False, replace = True):
+                                 color_synonymous = True, bounds = True, correlation = False, replace = True):
     from .ms_data import mutation_scores
     scores = mutation_scores(session, mutation_set)
     x_scores = scores.score_values(x_score_name)
@@ -70,7 +70,13 @@ def mutation_scores_scatter_plot(session, x_score_name, y_score_name, mutation_s
     plot.set_nodes(xy, point_names=point_names, correlation=correlation,
                    title=title, x_label=x_score_name, y_label=y_score_name,
                    node_area = node_area, label_nodes = label_nodes, is_mutation_plot = is_mutation_plot)
-    
+
+    if plot.is_mutation_plot:
+        if color_synonymous:
+            plot._color_synonymous()
+        if bounds:
+            plot._show_synonymous_bounds()
+        
     message = f'Plotted {len(points)} mutations with {x_score_name} on x-axis and {y_score_name} on y-axis'
     if correlation:
         message += f', least squares fit slope {"%.3g" % plot.slope}, intercept {"%.3g" % plot.intercept}, R squared {"%.3g" % plot.r_squared}'
@@ -81,6 +87,7 @@ class MutationScatterPlot(Graph):
 
     def __init__(self, session, mutation_set_name):
         self.mutation_set_name = mutation_set_name
+        self._bounds_artists = []
         nodes = edges = []
         Graph.__init__(self, session, nodes, edges, tool_name = 'DeepMutationalScan',
                        title = 'Deep mutational scan scatter plot', hide_ticks = False,
@@ -111,6 +118,7 @@ class MutationScatterPlot(Graph):
         a.set_title(title)
         a.set_xlabel(x_label)
         a.set_ylabel(y_label)
+        self._show_synonymous_bounds(False)
         if correlation:
             self.show_least_squares_fit(xy)
         self._correlation_shown = correlation
@@ -250,10 +258,13 @@ class MutationScatterPlot(Graph):
                 self.add_menu_entry(menu, f'Color residues near {name}',
                                     lambda self=self, r=r: self._color_near(r))
         if self.is_mutation_plot:
-            self.add_menu_entry(menu, f'Color mutations for selected residues', self._color_selected)
-            self.add_menu_entry(menu, f'Color synonymous mutations blue', self._color_synonymous)
+            self.add_menu_entry(menu, 'Color mutations for selected residues', self._color_selected)
+            self.add_menu_entry(menu, 'Color synonymous mutations blue', self._color_synonymous)
+            show = (len(self._bounds_artists) == 0)
+            show_or_hide = 'Show' if show else 'Hide'
+            self.add_menu_entry(menu, f'{show_or_hide} synonymous bounds', lambda show=show: self._show_synonymous_bounds(show))
         else:
-            self.add_menu_entry(menu, f'Color selected residues on plot', self._color_selected)
+            self.add_menu_entry(menu, 'Color selected residues on plot', self._color_selected)
         self.add_menu_entry(menu, f'Clear plot colors', self._clear_colors)
 
         if item is not None:
@@ -265,13 +276,13 @@ class MutationScatterPlot(Graph):
                 self.add_menu_entry(menu, f'Structure residue {rname}', lambda: None)
                 self.add_menu_entry(menu, f'Select',
                                     lambda self=self, r=r: self._select_residue(r))
-                self.add_menu_entry(menu, f'Color green',
+                self.add_menu_entry(menu, 'Color green',
                                     lambda self=self, r=r, c=(0,1,0,1): self._color_residue(r,c))
-                self.add_menu_entry(menu, f'Color to match plot',
+                self.add_menu_entry(menu, 'Color to match plot',
                                     lambda self=self, r=r, c=item.color: self._color_residue(r,c))
-                self.add_menu_entry(menu, f'Show side chain',
+                self.add_menu_entry(menu, 'Show side chain',
                                     lambda self=self, r=r: self._show_atoms(r))
-                self.add_menu_entry(menu, f'Zoom to residue',
+                self.add_menu_entry(menu, 'Zoom to residue',
                                     lambda self=self, r=r: self._zoom_to_residue(r))
                 if self.is_mutation_plot:
                     a = self.axes
@@ -340,6 +351,42 @@ class MutationScatterPlot(Graph):
         self._color_and_raise_nodes(sel, color, tag = 'sel')
     def _clear_colors(self, clear_color = (.8,.8,.8,1)):
         self._color_and_raise_nodes(self.nodes, clear_color)
+    def _show_synonymous_bounds(self, show = True):
+        ba = self._bounds_artists
+        if (show and ba) or (not show and not ba):
+            return  # Already shown or hidden
+        if show:
+            x0, x1, y0, y1 = self._synonymous_bounds()
+            if x0 is None:
+                return  # No synonymous mutations
+            xmin, xmax, ymin, ymax = self._node_bounds()
+            segment_xy = [((x0,x0), (ymin,ymax)), ((x1,x1), (ymin,ymax)), ((xmin,xmax),(y0,y0)), ((xmin,xmax),(y1,y1))]
+            from matplotlib.lines import Line2D
+            lines = [Line2D(xdata, ydata, color = 'black', linestyle = 'dotted', zorder = 10) for xdata, ydata in segment_xy]
+            self._bounds_artists = [self.axes.add_artist(line) for line in lines]
+        else:
+            for ba in self._bounds_artists:
+                ba.remove()
+            self._bounds_artists = []
+        self.canvas.draw()
+    def _synonymous_bounds(self, standard_deviations = 2.0):
+        syn = [node for node in self.nodes if (node.description[0] == node.description[-1])]
+        if len(syn) == 0:
+            xmin = xmax = ymin = ymax = None
+        else:
+            x,y = [node.position[0] for node in syn], [node.position[1] for node in syn]
+            from numpy import mean, std
+            mx, my, dx, dy = mean(x), mean(y), std(x), std(y)
+            sd = standard_deviations
+            xmin, xmax, ymin, ymax = mx - sd*dx, mx + sd*dx, my - sd*dy, my + sd*dy
+        return xmin, xmax, ymin, ymax
+    def _node_bounds(self):
+        if len(self.nodes) == 0:
+            xmin = xmax = ymin = ymax = None
+        else:
+            x,y = [node.position[0] for node in self.nodes], [node.position[1] for node in self.nodes]
+            xmin, xmax, ymin, ymax = min(x), max(x), min(y), max(y)
+        return xmin, xmax, ymin, ymax
     def _run_residue_command(self, r, command):
         self._run_command(command % r.string(style = 'command'))
     def _run_command(self, command):
@@ -408,6 +455,8 @@ def register_command(logger):
         required = [('x_score_name', StringArg),
                     ('y_score_name', StringArg)],
         keyword = [('mutation_set', StringArg),
+                   ('color_synonymous', BoolArg),
+                   ('bounds', BoolArg),
                    ('correlation', BoolArg),
                    ('replace', BoolArg),
                    ],
