@@ -35,7 +35,7 @@ class SurfaceUpdaters(StateManager):
 #
 def _updater_active(u):
     if hasattr(u, 'surface'):
-        if u.surface is None or u.surface.deleted:
+        if u.surface is None or u.surface.deleted or not u.surface.SESSION_SAVE:
             return False
     if hasattr(u, 'closed') and u.closed():
         return False
