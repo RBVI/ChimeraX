@@ -33,8 +33,16 @@ class _StructureAnisoManager(StateManager):
         from chimerax.atomic import Atoms
         self.shown_atoms = Atoms()
         self.atom_depictions = {}
-        atoms = structure.atoms
-        self._create_depictions(atoms[atoms.has_aniso_u])
+        self.drawing_params = {
+            'axis_color': None,
+            'ellipsoid_color': None,
+            'scale': 1.0,
+            'show_axis': False,
+            'show_ellipsoid': True,
+            'smoothing': 3,
+            'transparency': None,
+        }
+        self._create_depictions()
         if not from_session:
             self._add_handlers()
 
@@ -46,8 +54,12 @@ class _StructureAnisoManager(StateManager):
 
     def hide(self, atoms):
         """Hide thermal ellipsoids for these atoms"""
-        #TODO
-        pass
+        cur_shown = len(self.shown_atoms)
+        self.shown_atoms = self.shown_atoms.subtract(atoms)
+        if len(self.shown_atoms) == cur_shown:
+            return
+        for a in atoms:
+            self.atom_depictions[a].display = False
 
     def show(self, atoms):
         """Show thermal ellipsoids for these atoms"""
@@ -55,7 +67,19 @@ class _StructureAnisoManager(StateManager):
         self.shown_atoms = self.shown_atoms.merge(atoms)
         if len(self.shown_atoms) == cur_shown:
             return
-        #TODO: show (unhide) the depictions for atoms
+        displayed_atoms = atoms.filter(atoms.displays)
+        for a in displayed_atoms.filter(displayed_atoms.hides == 0):
+            self.atom_depictions[a].display = True
+
+    def style(self, **kw):
+        need_rebuild = False
+        for param, value in kw.items():
+            if self.drawing_params.get(param) != value:
+                self.drawing_params[param] = value
+                need_rebuild = True
+
+        if need_rebuild:
+            self._create_depictions()
 
     def _add_handlers(self):
         from chimerax.core.models import REMOVE_MODELS
@@ -64,6 +88,55 @@ class _StructureAnisoManager(StateManager):
             #self.structure.triggers.add_handler('changes', self._changes_cb),
             #self.session.triggers.add_handler(REMOVE_MODELS, self._models_closed_cb)
         ]
+
+    def _create_depictions(self):
+        for drawing in self.atom_depictions.values():
+            drawing.delete()
+        self.atom_depictions.clear()
+
+        atoms = self.structure.atoms
+        atoms = atoms[atoms.has_aniso_u]
+        shown_atoms = set(self.shown_atoms)
+        from chimerax.atomic.shapedrawing import AtomicShapeDrawing
+        from chimerax.atomic import Atoms
+        from numpy.linalg import svd
+        from numpy import dot, sqrt, negative, cross
+        dp = self.drawing_params
+        drawing_info = []
+        for a in atoms:
+            drawing = self.structure.new_drawing('thermal ellipsoid', subclass=AtomicShapeDrawing)
+            self.atom_depictions[a] = drawing
+            drawing.display = a in shown_atoms
+            ignore, lengths, axes = svd(a.aniso_u)
+            lengths2 = sqrt(lengths)
+            lengths2 *= dp['scale']
+            drawing_info.append((a, drawing, Atoms([a]), axes, lengths2))
+
+        from chimerax.surface import calculate_vertex_normals as calc_normals
+        if dp['show_ellipsoid']:
+            color_param = dp['ellipsoid_color']
+            transparency = dp['transparency']
+            from chimerax.geometry.icosahedron import icosahedron_triangulation
+            varray, tarray = icosahedron_triangulation(subdivision_levels=dp['smoothing'], sphere_factor=1.0)
+            for atom, drawing, atoms_arg, axes, lengths2 in drawing_info:
+                ee = varray * lengths2
+                if dot(cross(axes[0], axes[1]), axes[2]) < 0:
+                    axes = negative(axes)
+                ev = dot(ee, axes)
+                ev += atom.coord
+                if color_param is None:
+                    # match atom
+                    color = atom.color
+                else:
+                    color = param_color
+                if transparency is not None:
+                    # transparency is a percentage
+                    color = color[:-1] + (round((100 - transparency) * 2.55),)
+                drawing.add_shape(ev, calc_normals(ev, tarray), tarray, color, atoms_arg)
+
+        if dp['show_axis']:
+            #TODO: implement style control first
+            pass
 
     #TODO
     def _alt_loc_changes_cb(self, change_info, res, alt_loc):
@@ -245,9 +318,7 @@ class _StructureAnisoManager(StateManager):
         }
         return data
 
-def aniso_show(session, atoms=None):
-    ''' Command to display thermal ellipsoids '''
-
+def check_atoms(session, atoms):
     from chimerax.atomic import all_atoms
     if atoms is None:
         atoms = all_atoms(session)
@@ -258,6 +329,13 @@ def aniso_show(session, atoms=None):
     atoms = atoms.filter(atoms.has_aniso_u)
     if not atoms:
         raise UserError("None of the specified atoms have anisotropic temperature factors")
+
+    return atoms
+
+def aniso_show(session, atoms=None):
+    ''' Command to display thermal ellipsoids '''
+
+    atoms = check_atoms(session, atoms)
 
     mgr_info = { mgr.structure: mgr for mgr in session.state_managers(_StructureAnisoManager) }
 
@@ -269,16 +347,7 @@ def aniso_show(session, atoms=None):
 def aniso_hide(session, atoms=None):
     ''' Command to hide thermal ellipsoids '''
 
-    from chimerax.atomic import all_atoms
-    if atoms is None:
-        atoms = all_atoms(session)
-
-    if not atoms:
-        raise UserError("No atoms specified")
-
-    atoms = atoms.filter(atoms.has_aniso_u)
-    if not atoms:
-        raise UserError("None of the specified atoms have anisotropic temperature factors")
+    atoms = check_atoms(session, atoms)
 
     mgr_info = { mgr.structure: mgr for mgr in session.state_managers(_StructureAnisoManager) }
 
@@ -287,15 +356,39 @@ def aniso_hide(session, atoms=None):
             continue
         mgr_info[s].hide(atoms=s_atoms)
 
+def aniso_style(session, atoms=None, **kw):
+
+    atoms = check_atoms(session, atoms)
+
+    mgr_info = { mgr.structure: mgr for mgr in session.state_managers(_StructureAnisoManager) }
+
+    for s, s_atoms in atoms.by_structure:
+        if s not in mgr_info:
+            continue
+        mgr_info[s].style(**kw)
+
 def register_command(logger):
     from chimerax.core.commands import register, CmdDesc
-    from chimerax.core.commands import Or, EmptyArg
+    from chimerax.core.commands import Or, EmptyArg, Color8TupleArg, NoneArg, PositiveFloatArg, BoolArg
+    from chimerax.core.commands import PositiveIntArg, Bounded, FloatArg
     from chimerax.atomic import AtomsArg
 
     desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))],
-        #optional = [('locs', Or(ListOf(CharacterArg), EmptyArg)), ('residues', ResiduesArg)],
         synopsis='show thermal ellipsoids')
     register('aniso', desc, aniso_show, logger=logger)
 
     desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))], synopsis='hide thermal ellipsoids')
     register('~aniso', desc, aniso_hide, logger=logger)
+
+    desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))],
+        keyword=[
+            ('axis_color', Or(Color8TupleArg, NoneArg)),
+            ('ellipsoid_color', Or(Color8TupleArg, NoneArg)),
+            ('scale', PositiveFloatArg),
+            ('show_axis', BoolArg),
+            ('show_ellipsoid', BoolArg),
+            ('smoothing', PositiveIntArg),
+            ('transparency', Bounded(FloatArg, min=0, max=100, name="a percentage (number between 0 and 100)")),
+        ],
+        synopsis='change style of depiction of thermal ellipsoids')
+    register('aniso style', desc, aniso_style, logger=logger)
