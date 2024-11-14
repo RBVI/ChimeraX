@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def open_mutation_scores_csv(session, path, chain = None, name = None):
+def open_mutation_scores_csv(session, path, chain = None, name = None, show_plot = True):
     mset = _read_mutation_scores_csv(path, name = name)
 
     from .ms_data import mutation_scores_manager
@@ -45,6 +45,11 @@ def open_mutation_scores_csv(session, path, chain = None, name = None):
         if mres > 0:
             message += f' Found scores for {mres} residues not present in atomic model.'
 
+    if show_plot and session.ui.is_gui and len(mset.score_names()) >= 2:
+        x_score_name, y_score_name = mset.score_names()[:2]
+        from .ms_scatter_plot import mutation_scores_scatter_plot
+        mutation_scores_scatter_plot(session, x_score_name, y_score_name, mset.name, replace = False)
+        
     return mset, message
 
 def _read_mutation_scores_csv(path, name = None):
