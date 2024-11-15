@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -280,12 +280,15 @@ class Objects:
         from chimerax.geometry import union_bounds, copies_bounding_box
 
         # Model bounds excluding structures and pseudobond groups.
+        models = [m for m in self.models if getattr(m, 'has_scene_bounds', True)]	# Exclude 2D labels
         from chimerax.atomic import Structure, PseudobondGroup
         bm = [copies_bounding_box(_model_bounds(m), m.get_scene_positions())
-              for m in self.models if not isinstance(m, (Structure, PseudobondGroup))]
+              for m in models if not isinstance(m, (Structure, PseudobondGroup))]
 
         # Model instance bounds
         for m, minst in self.model_instances.items():
+            if not getattr(m, 'has_scene_bounds', True):
+                continue  # Exclude 2D labels
             b = m.geometry_bounds()
             ib = copies_bounding_box(b, m.positions.masked(minst))
             sb = copies_bounding_box(ib, m.parent.get_scene_positions())

@@ -5,11 +5,12 @@
 # All rights reserved. This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use. For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import re
 
 from typing import Optional, Union
 
@@ -30,7 +31,21 @@ class BlastResultsRow:
     def __init__(self, row: dict):
         self._internal_dict = row
 
+    def _format_num_match_as_subscript(self, match):
+        return "".join(["<sub>", match.group(), "</sub>"])
+
     def __getitem__(self, key):
+        if key == "ligand_formulas":
+            ligands = self._internal_dict.get(key, "")
+            if ligands:
+                final_ligands = []
+                indiv_ligands = ligands.replace(",", "").split()
+                for ligand in indiv_ligands:
+                    formatted_ligand = re.sub("[0-9]+", self._format_num_match_as_subscript, ligand)
+                    final_ligands.append(formatted_ligand)
+                return ", ".join(final_ligands)
+            else:
+                return ""
         return self._internal_dict.get(key, "")
 
 

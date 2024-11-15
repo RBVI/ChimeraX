@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -24,17 +24,17 @@
 
 from chimerax.core.settings import Settings
 
-label_missing_attr = 'label_missing_structure'
+label_missing_attr = 'label_missing_structure_threshold'
 class _AtomicSettings(Settings):
     EXPLICIT_SAVE = {
         'atomspec_contents': 'simple', # choices: simple, command (-line specifier), serial (number)
-        label_missing_attr: True,
+        label_missing_attr: 4,
     }
 
 # 'settings' module attribute will be set by the initialization of the bundle API
 
 def register_settings_options(session):
-    from chimerax.ui.options import SymbolicEnumOption, BooleanOption
+    from chimerax.ui.options import SymbolicEnumOption, IntOption
     class AtomSpecOption(SymbolicEnumOption):
         values = ("command", "serial", "simple")
         labels = ("command line", "serial number", "simple")
@@ -49,15 +49,20 @@ def register_settings_options(session):
             <tr><td>command line</td><td>&nbsp;</td><td>Form used in commands</td></tr>
             <tr><td>serial number</td><td>&nbsp;</td><td>Atom serial number</td></tr>
             </table>"""),
-        'label_missing_structure': (
-            "Label missing-structure segments",
-            BooleanOption,
-            "Label missing-structure pseudobonds with the number of residues that are missing"),
+        label_missing_attr: (
+            "Label missing-structure segments in models with \N{LESS-THAN OR EQUAL TO} N chains",
+            (IntOption, {'min': 0}),
+            "Label missing-structure pseudobonds with the number of residues that are missing"
+            "\nif the structure has no more than N chains"),
     }
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, balloon = setting_info
+        if isinstance(opt_class, tuple):
+            opt_class, kw = opt_class
+        else:
+            kw = {}
         opt = opt_class(opt_name, getattr(settings, setting), None,
-            attr_name=setting, settings=settings, balloon=balloon)
+            attr_name=setting, settings=settings, balloon=balloon, **kw)
         session.ui.main_window.add_settings_option("Labels", opt)
     from chimerax.core.commands import run
     def setting_changed(trig_name, trig_vals):

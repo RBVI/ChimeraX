@@ -1,0 +1,51 @@
+<BundleInfo name="ChimeraX-MutationScores" version="1.0"
+	    package="chimerax.mutation_scores"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Visualize deep mutational scanning data</Synopsis>
+  <Description>Visualize deep mutational scanning data.</Description>
+
+  <Categories>
+    <Category name="Molecular structure"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="Mutation scores" synopsis="Mutation scores csv file" nicknames="ms" category="Molecular structure" suffixes=".csv" />
+    <Provider name="UniProt Variants" synopsis="UniProt variant scores" category="Structure analysis"
+		suffixes=".json" nicknames="variants" reference_url="https://www.uniprot.org/help/variant" />
+    <Provider name="AlphaMissense" synopsis="AlphaMissense scores" category="Structure analysis"
+	      suffixes=".csv" nicknames="amiss" reference_url="https://www.science.org/doi/10.1126/science.adg7492" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="Mutation scores" want_path="true" />
+    <Provider name="uniprot_variants" type="fetch" format_name="variants" synopsis="UniProt Variants" example_ids="Q9UNQ0"/>
+    <Provider name="alpha_missense" type="fetch" format_name="amiss" synopsis="AlphaMissense scores" example_ids="Q9UNQ0"/>
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: mutationscores label :: Molecular structure :: Label residues with mutation scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores define :: Molecular structure :: Compute new scores from existing mutation scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores undefine :: Molecular structure :: Compute new scores from existing mutation scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores scatterplot :: Molecular structure :: Show a scatter plot for two mutations scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores statistics :: Molecular structure :: Report mean and standard deviation of mutation scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores histogram :: Molecular structure :: Show histogram of mutation scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores umap :: Molecular structure :: Show umap plot of residue mutation scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores list :: Molecular structure :: List names of sets of mutations scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores structure :: Molecular structure :: Associate a structure with a set of mutations scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores close :: Molecular structure :: Close a set of mutations scores</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

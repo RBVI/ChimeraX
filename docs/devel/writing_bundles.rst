@@ -1,12 +1,12 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
-.. 
+..
     === UCSF ChimeraX Copyright ===
     Copyright 2017 Regents of the University of California.
     All rights reserved.  This software provided pursuant to a
     license agreement containing restrictions on its disclosure,
     duplication and use.  For details see:
-    http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+    https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
     This notice must be embedded in or attached to all copies,
     including partial copies, of the software or any revisions
     or derivations thereof.
@@ -151,7 +151,7 @@ All other contents of the bundle should be in ``src``.
 *Bundle Help Files*
 
     This sample bundle does not provide any help files,
-    but if it did they would be provided as HTML files 
+    but if it did they would be provided as HTML files
     under a ``src/docs`` folder.  Inside that folder
     documentation intended for developers should be in
     a ``devel`` subfolder and documentation for users
@@ -275,11 +275,47 @@ appear immediately on the site.
 
 .. _`ChimeraX Toolshed`: https://cxtoolshed.rbvi.ucsf.edu
 
+Bundle Documentation
+--------------------
+
+Your bundle's documentation can be found and shown by ChimeraX's
+help tool. The help tool will look for documentation in
+``docs/user/commands/COMMANDNAME.html`` and
+``docs/user/tools/TOOLNAME.html``.
+
+You can store your documentation in your bundle's ``src`` tree, or
+next to it as long as you use the appropriate ``ExtraDir`` (XML)
+attributes to package them in the correct locations: ::
+
+  src/docs/user/commands/
+  src/docs/user/tools/
+
+For example, if your bundle had these folders: ::
+
+  src docs/user/commands docs/user/tools
+
+Then you would put the following in your ``bundle_info.xml`` ::
+
+  <ExtraFiles>
+    <ExtraDir source='docs'/>
+  </ExtraFiles>
+
+If you use ``pyproject.toml``, you can put your documentation in
+any tree structure you like. For example, if your folder structure
+was ::
+
+  src docs/commands docs/tools
+
+Then your TOML would include: ::
+
+  [chimerax.extra-files]
+  "src/docs/user/commands" = ["docs/commands/*"]
+  "src/docs/user/tools" = ["docs/tools/*"]
 
 Cleaning Up ChimeraX Bundle Source Folders
 ------------------------------------------
 
-Two ``make`` targets are provided for removing intermediate
+Two ````make`` targets are provided for removing intermediate
 files left over from building bundles:
 
 ``make clean``

@@ -4,7 +4,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -182,8 +182,6 @@ PROG = $(PROG_NAME)$(PROG_EXT)
 UPLIBNAME = $(shell echo $(LIBNAME) | tr "[:lower:]" "[:upper:]" | tr '-' '_')
 imex.h:
 	sed -e 's/LIBNAME/$(UPLIBNAME)/' < $(includedir)/imex.i > imex.h
-
-NUMPY_INC += -I"$(shell $(PYTHON_EXE) -c "import numpy; print(numpy.get_include())")"
 
 PYOBJS = $(addprefix __pycache__/,$(addsuffix .cpython-$(PYVER_NODOT).pyc,$(basename $(PYSRCS))))
 

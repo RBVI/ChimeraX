@@ -4,7 +4,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -56,7 +56,7 @@ endif
 
 # Location for fetching third party binaries.
 # Need to use curl --insecure because SSL_CERT_FILE is set below to non-existent file on Mac.
-PREREQS_ARCHIVE = https://cxtoolshed.rbvi.ucsf.edu/prereqs
+PREREQS_ARCHIVE = https://www.rbvi.ucsf.edu/chimerax/data/prereqs
 FETCH_PREREQ = curl --silent --show-error --fail --insecure -O
 PREREQS_UPLOAD = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/prereqs
 
@@ -134,7 +134,7 @@ endif
 ifndef WIN32
 RSYNC = rsync -rltWv --executability
 else
-RSYNC = $(bindir)/rsync.convert -rlptWv
+RSYNC = $(TOP)/prereqs/win32/rsync.convert -rlptWv
 endif
 ifdef FLATPAK_DIST
 RSYNC := $(bindir)/$(RSYNC)

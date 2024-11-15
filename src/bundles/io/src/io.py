@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -78,6 +78,11 @@ def open_output(output, encoding=None, *, append=False, compression=None):
     if _is_stream(output):
         return output
     fs_output = file_system_file_name(output)
+    from os.path import dirname, exists
+    folder = dirname(fs_output)
+    if folder and not exists(folder):
+        from chimerax.core.errors import UserError
+        raise UserError("Folder %s does not exist; you need to create it" % folder)
     compression_type = get_compression_type(fs_output, compression)
     base_mode = 'a' if append else 'w'
     mode = base_mode + ('t' if encoding else 'b')
@@ -85,6 +90,7 @@ def open_output(output, encoding=None, *, append=False, compression=None):
         return handle_compression(compression_type, fs_output,
             mode=mode, encoding=encoding)
     return open(fs_output, mode, encoding=encoding)
+        
 
 def file_system_file_name(file_name):
     import os.path

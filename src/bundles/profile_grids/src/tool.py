@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -39,7 +39,7 @@ class ProfileGridsTool(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=True, statusbar=True)
         self.tool_window._dock_widget.setMouseTracking(True)
-        #self.tool_window.fill_context_menu = self.fill_context_menu
+        self.tool_window.fill_context_menu = self.fill_context_menu
         self.status = self.tool_window.status
         parent = self.tool_window.ui_area
         parent.setMouseTracking(True)
@@ -52,7 +52,7 @@ class ProfileGridsTool(ToolInstance):
             from ._profile_grids import compute_profile
             weights = [getattr(seq, 'weight', 1.0) for seq in alignment.seqs]
             grid_data = compute_profile([seq.cpp_pointer for seq in alignment.seqs], weights, num_cpus)
-            # the returned grid data is (num seqs x num symbols), which is the transpose of what we
+            # the returned grid data is (num positions x num symbols), which is the transpose of what we
             # display, so to reduce confusion in the code, transpose it
             import numpy
             grid_data = numpy.transpose(grid_data)
@@ -67,8 +67,12 @@ class ProfileGridsTool(ToolInstance):
         self.tool_window.manage('side')
 
     def alignment_notification(self, note_name, note_data):
-        raise NotImplementedError("alignment_notification")
+        import sys
+        print("tool notification", note_name, file=sys.__stderr__)
         alignment = self.alignment
+        if note_name == alignment.NOTE_DESTROYED:
+            self.delete()
+        '''
         if note_name == alignment.NOTE_MOD_ASSOC:
             assoc_aseqs = set()
             if note_data[0] != alignment.NOTE_DEL_ASSOC:
@@ -96,18 +100,18 @@ class ProfileGridsTool(ToolInstance):
         elif note_name == alignment.NOTE_COMMAND:
             from .cmd import run
             run(self.session, self, note_data)
+        '''
 
         self.grid_canvas.alignment_notification(note_name, note_data)
 
     def delete(self):
         self.grid_canvas.destroy()
         self.alignment.detach_viewer(self)
-        for seq in self.alignment.seqs:
-            seq.triggers.remove_handler(self._seq_rename_handlers[seq])
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):
-        raise NotImplementedError("fill_context_menu")
+        self.alignment.add_headers_menu_entry(menu)
+        return
         from Qt.QtGui import QAction
         file_menu = menu.addMenu("File")
         save_as_menu = file_menu.addMenu("Save As")

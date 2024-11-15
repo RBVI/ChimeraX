@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -205,6 +205,11 @@ class _StructureAltlocManager(StateManager):
                     continue
                 al_model.display = True
 
+    def _add_alt_loc_changes_handler(self, s, res, alt_loc):
+        s._alt_loc_changes_handler = s.triggers.add_handler('changes',
+            lambda trig_name, change_info, f=self._alt_loc_changes_cb, res=res, al=alt_loc:
+            f(change_info, res, al))
+
     def _add_handlers(self):
         from chimerax.core.models import REMOVE_MODELS
         self.handlers = [
@@ -230,9 +235,7 @@ class _StructureAltlocManager(StateManager):
         self._update_alt_loc_res(alt_loc, res.atoms, s, {})
         s.display = False
         self.res_alt_locs.setdefault(res, {})[alt_loc] = s
-        s._alt_loc_changes_handler = s.triggers.add_handler('changes',
-            lambda trig_name, change_info, f=self._alt_loc_changes_cb, res=res, al=alt_loc:
-            f(change_info, res, al))
+        self._add_alt_loc_changes_handler(s, res, alt_loc)
         return s
 
     def _build_alt_locs(self, res, main_group):
@@ -373,8 +376,15 @@ class _StructureAltlocManager(StateManager):
         inst.main_group = data['main_group']
         inst.res_alt_locs = data['res_alt_locs']
         inst.res_group = data['res_group']
+        def delayed_registration(*args, inst=inst):
+            inst._add_handlers()
+            for r, lookup in inst.res_alt_locs.items():
+                for alt_loc, al_model in lookup.items():
+                    inst._add_alt_loc_changes_handler(al_model, r, alt_loc)
+            from chimerax.core.triggerset import DEREGISTER
+            return DEREGISTER
         from chimerax.atomic import get_triggers
-        get_triggers().add_handler('changes done', lambda *args, inst=inst: inst._add_handlers())
+        get_triggers().add_handler('changes done', delayed_registration)
         return inst
 
     def take_snapshot(self, session, flags):

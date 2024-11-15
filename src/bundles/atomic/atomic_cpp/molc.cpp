@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -2778,6 +2778,27 @@ extern "C" EXPORT void* residue_find_atom(void *residue, char *atom_name)
     Residue *r = static_cast<Residue*>(residue);
     try {
         return r->find_atom(atom_name);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject *residue_find_existing_atoms(void *residues, size_t n, char *atom_name)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    std::vector<Atom *> atoms;
+    try {
+      for (size_t i = 0 ; i < n ; ++i) {
+	Atom *a = r[i]->find_atom(atom_name);
+	if (a)
+	  atoms.push_back(a);
+      }
+      Atom **ap;
+      PyObject *a = python_voidp_array(atoms.size(), (void***)&ap);
+      for (size_t i = 0 ; i < atoms.size() ; ++i)
+	ap[i] = atoms[i];
+      return a;
     } catch (...) {
         molc_error();
         return nullptr;

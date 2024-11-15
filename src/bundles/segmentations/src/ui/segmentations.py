@@ -4,7 +4,7 @@
 # All rights reserved. This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use. For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -124,6 +124,14 @@ class SegmentationToolControlsDialog(QDialog):
         self.settings_container = QWidget(self)
         self.settings_container.setLayout(QVBoxLayout())
         self.panel = SettingsPanel()
+        if sys.platform == "win32":
+            layout_labels=[str(mode) for mode in ViewMode]
+            layout_values=[mode.value for mode in ViewMode]
+        else:
+            layout_labels=[str(mode) for mode in ViewMode if mode != ViewMode.DEFAULT_VR]
+            layout_values=[mode.value for mode in ViewMode if mode != ViewMode.DEFAULT_VR]
+        # TODO: If the person's configuration actually is default_vr, and they try to
+        # port their settings to another platform, this will break!
         self.panel.add_option(
             SymbolicEnumOption(
                 name="Default layout",
@@ -131,8 +139,8 @@ class SegmentationToolControlsDialog(QDialog):
                 attr_name="default_view",
                 settings=settings,
                 callback=None,
-                labels=[str(mode) for mode in ViewMode],
-                values=[mode.value for mode in ViewMode],
+                labels=layout_labels,
+                values=layout_values
             )
         )
         self.panel.add_option(
@@ -144,24 +152,25 @@ class SegmentationToolControlsDialog(QDialog):
                 callback=None,
             )
         )
-        self.panel.add_option(
-            BooleanOption(
-                name="Start VR when the VR layout is chosen",
-                default=None,
-                attr_name="start_vr_automatically",
-                settings=settings,
-                callback=None,
+        if sys.platform == "win32":
+            self.panel.add_option(
+                BooleanOption(
+                    name="Start VR when the VR layout is chosen",
+                    default=None,
+                    attr_name="start_vr_automatically",
+                    settings=settings,
+                    callback=None,
+                )
             )
-        )
-        self.panel.add_option(
-            BooleanOption(
-                name="Set VR controller modes when the VR layout is chosen",
-                attr_name="set_hand_modes_automatically",
-                settings=settings,
-                callback=None,
-                default=None,
+            self.panel.add_option(
+                BooleanOption(
+                    name="Set VR controller modes when the VR layout is chosen",
+                    attr_name="set_hand_modes_automatically",
+                    settings=settings,
+                    callback=None,
+                    default=None,
+                )
             )
-        )
         self.panel.add_option(
             IntOption(
                 "Segmentation opacity",
@@ -394,8 +403,14 @@ class SegmentationTool(ToolInstance):
         self.view_dropdown_label = QLabel("View layout")
         self.view_dropdown = QComboBox(self.parent)
         for view in ViewMode:
+            if sys.platform != "win32" and view == ViewMode.DEFAULT_VR:
+                continue
             self.view_dropdown.addItem(str(view))
-        self.view_dropdown.setCurrentIndex(self.settings.default_view)
+        if sys.platform != "win32" and self.settings.default_view == ViewMode.DEFAULT_VR:
+            self.view_dropdown.setCurrentIndex(ViewMode.DEFAULT_DESKTOP)
+            self.session.logger.info(f"Using {str(ViewMode.DEFAULT_DESKTOP)} as the default view mode because VR is not available on this platform.")
+        else:
+            self.view_dropdown.setCurrentIndex(self.settings.default_view)
         self.view_dropdown.currentIndexChanged.connect(self._on_view_changed)
         self.control_information_button = QToolButton()
         self.control_information_button.setMinimumWidth(1)
@@ -625,12 +640,8 @@ class SegmentationTool(ToolInstance):
                 run(self.session, "ui view sidebyside")
             elif self.settings.default_view == ViewMode.DEFAULT_DESKTOP:
                 self._create_3d_segmentation_sphere()
-                if self.settings.set_mouse_modes_automatically:
-                    self._set_3d_mouse_modes()
             else:
                 self._create_3d_segmentation_sphere()
-                if self.settings.start_vr_automatically:
-                    self._start_vr()
 
         self._on_view_changed()
         self._populate_segmentation_list()
@@ -756,8 +767,10 @@ class SegmentationTool(ToolInstance):
             self._destroy_3d_segmentation_sphere()
         except TypeError:
             pass
-        self._reset_3d_mouse_modes()
-        self._reset_vr_hand_modes()
+        if self.mouse_modes_changed:
+            self._reset_3d_mouse_modes()
+        if self.hand_modes_changed:
+            self._reset_vr_hand_modes()
         super().delete()
 
     def _set_3d_mouse_modes(self):
@@ -960,10 +973,12 @@ class SegmentationTool(ToolInstance):
             self.session.ui.main_window.main_view.redraw_all()
 
     def hide_active_segmentation(self):
-        self.segmentation_tracker.active_segmentation.display = False
+        if self.segmentation_tracker.active_segmentation is not None:
+            self.segmentation_tracker.active_segmentation.display = False
 
     def show_active_segmentation(self):
-        self.segmentation_tracker.active_segmentation.display = True
+        if self.segmentation_tracker.active_segmentation is not None:
+            self.segmentation_tracker.active_segmentation.display = True
 
     def _on_current_menu_item_changed(self, new, prev):
         if new:
@@ -1026,12 +1041,11 @@ class SegmentationTool(ToolInstance):
                 self._destroy_2d_segmentation_pucks()
             if not self.segmentation_sphere:
                 self._create_3d_segmentation_sphere()
-            # if self.autostart_vr_checkbox.isChecked():
-            #    run(self.session, "vr on")
             if self.view_dropdown.currentIndex() == ViewMode.DEFAULT_DESKTOP:
                 if self.settings.set_mouse_modes_automatically:
                     self._set_3d_mouse_modes()
             if self.view_dropdown.currentIndex() == ViewMode.DEFAULT_VR:
+                self._reset_3d_mouse_modes()
                 if self.settings.start_vr_automatically:
                     self._start_vr()
         if need_to_register:

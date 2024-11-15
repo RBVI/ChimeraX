@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -19,6 +19,7 @@ if qt_have_web_engine():
     from .htmlview import HtmlView, ChimeraXHtmlView
 from .color_button import ColorButton, MultiColorButton, hex_color_name
 from .citation import Citation
+from .disclosure import DisclosureArea
 from .histogram import MarkedHistogram
 from .item_chooser import ModelListWidget, ModelMenuButton, ItemListWidget, ItemMenuButton
 from .item_table import ItemTable

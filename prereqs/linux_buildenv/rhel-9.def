@@ -15,7 +15,7 @@ RHEL 9 compatible containter that can build ChimeraX
     dnf -y --setopt=exclude='*.i?86' group install "Development Tools"
     dnf -y --setopt=exclude='*.i?86' install \
 	tcsh python3 \
-	chrpath patch openssh-clients rsync ca-certificates \
+	patchelf patch openssh-clients rsync ca-certificates \
 	autoconf automake libtool pkgconfig \
 	flex bison yasm unzip tar gzip bzip2 xz p7zip \
 	rpm-build rpmdevtools rpmlint \
@@ -35,6 +35,7 @@ RHEL 9 compatible containter that can build ChimeraX
 	gdk-pixbuf2-devel \
 	glib2-devel \
 	glibc-devel \
+	glibc-langpack-en \
 	gtk3-devel \
 	libdrm-devel \
 	libgcc \

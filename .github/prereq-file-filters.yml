@@ -1,0 +1,26 @@
+change_in_ffmpeg: &change_in_ffmpeg
+  - "prereqs/ffmpeg/**"
+change_in_qtshim: &change_in_qtshim
+  - "prereqs/qtshim/**"
+change_in_libglu: &change_in_libglu
+  - "prereqs/libGLU/**"
+change_in_python: &change_in_python
+  - "prereqs/Python/**"
+change_in_imex: &change_in_imex
+  - "prereqs/imex/**"
+change_in_rsync: &change_in_rsync
+  - "prereqs/rsync/**"
+change_in_pips: &change_in_pips
+  - "prereqs/pips/**"
+change_in_linux_buildenv: &change_in_linux_buildenv
+  - "prereqs/linux_buildenv/**"
+change_in_cxservices: &change_in_cxservices
+  - "prereqs/cxservices/**"
+change_in_win32: &change_in_win32
+  - "prereqs/win32/**"
+change_in_ambertools: &change_in_ambertools
+  - "prereqs/ambertools/**"
+change_in_openmm: &change_in_openmm
+  - "prereqs/openmm/**"
+change_in_pyqt: &change_in_pyqt
+  - "prereqs/PyQt/**"

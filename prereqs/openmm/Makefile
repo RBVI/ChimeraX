@@ -63,7 +63,7 @@ endif
 
 $(SOURCE): $(DISTRIBUTION) $(MAC_METAL_PLUGIN)
 	-mkdir $(SOURCE)
-	tar xf $(DISTRIBUTION) -C $(SOURCE)
+	tar xf $(DISTRIBUTION) -C $(SOURCE) --no-same-owner
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(SOURCE) && patch -f -p0) < $$p ; \

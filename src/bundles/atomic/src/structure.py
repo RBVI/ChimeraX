@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -194,7 +194,7 @@ class Structure(Model, StructureData):
 
         # Setup handler to manage C++ data changes that require graphics updates.
         self._graphics_updater.add_structure(self)
-        Model.added_to_session(self, session)
+        Model.added_to_session(self, session, log_info = self._log_info)
 
     def removed_from_session(self, session):
         self._graphics_updater.remove_structure(self)
@@ -334,6 +334,12 @@ class Structure(Model, StructureData):
         self._update_bond_graphics()
         for pbg in self.pbg_map.values():
             pbg._update_graphics()
+            if pbg.name == self.PBG_MISSING_STRUCTURE and self.session.main_view.render is not None:
+                # Can't add labels if no renderer
+                from .settings import settings, label_missing_attr
+                if self.num_chains <= getattr(settings, label_missing_attr):
+                   from .cmd import label_missing_cmd
+                   label_missing_cmd(self.session, [self], self.num_chains)
         self._create_ribbon_graphics()
 
     @property
@@ -1412,13 +1418,6 @@ class AtomicStructure(Structure):
             from chimerax.std_commands.lighting import lighting as light_cmd
             light_cmd(self.session, **lighting)
 
-        if self.session.main_view.render is not None:
-            # Can't add labels if no renderer
-            from .settings import settings, label_missing_attr
-            if getattr(settings, label_missing_attr):
-               from .cmd import label_missing_cmd
-               label_missing_cmd(self.session, [self], True)
-
     def take_snapshot(self, session, flags):
         data = {
             'AtomicStructure version': 3,
@@ -1785,11 +1784,12 @@ def assembly_html_table(mol):
         # chains are transformed. Requires reading more tables.
         return
 
-    lines = ['<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">',
-             '<tr><th colspan=2>%s mmCIF Assemblies' % mol.name]
+    from html import escape
+    lines = ['<table border=1 cellpadding=4 cellspacing=0>',
+             f'<tr><th colspan=3>{escape(mol.name)} mmCIF Assemblies']
     for id, details in sa:
         lines.append('<tr><td><a title="Generate assembly" href="cxcmd:sym #%s assembly %s ; view">%s</a><td>%s'
-                     % (mol.id_string, id, id, details))
+                     % (mol.id_string, id, id, escape(details)))
     lines.append('</table>')
     html = '\n'.join(lines)
     return html

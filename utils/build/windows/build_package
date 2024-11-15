@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+# Name of app in build directory
+app=ChimeraX.app
+
+build_root="$1"
+if [ ! -d "$build_root" ]; then
+	echo "$build_root: not a directory"
+	exit 1
+fi
+
+# Set directory where the script resides so we can find support files
+mydir=$(dirname "$0")
+sig="$2" || unset sig
+
+# Create images needed to create installer
+srcicon="$build_root"/src/apps/ChimeraX/ChimeraX-icon512.png
+magick "$srcicon" -geometry 192x192 chimerax-wizard.bmp
+magick "$srcicon" -geometry 48x48 chimerax-wizard-small.bmp
+
+# Create the innosetup script
+version=$(awk '$1 == "version" { print $3 }' <$build_root/src/bundles/core/src/buildinfo.py | sed 's/"//g')
+root=$(cygpath -m "$(realpath $build_root)")
+here=$(cygpath -m "$(pwd)")
+sed -e "s,\$(VERSION),$version,g" \
+	-e "s,\$(BUILD_ROOT),$root,g" \
+	-e "s,\$(HERE),$here,g" \
+	-e "s/CODESIGN/$sig/" \
+	"$mydir"/chimerax.iss.in >chimerax.iss
+
+# Create installer
+INNOSETUP_PATH=$(regtool --wow32 get "/machine/software/Microsoft/Windows/CurrentVersion/Uninstall/Inno Setup 6_is1/InstallLocation")
+ISCC_PATH="$(cygpath -u "$INNOSETUP_PATH")ISCC"
+"$ISCC_PATH" -Sbyparam='$p' chimerax.iss

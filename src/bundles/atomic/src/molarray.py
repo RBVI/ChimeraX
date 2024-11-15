@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -1034,7 +1034,7 @@ class Elements(Collection):
     '''Returns a :mod:`numpy` array of atomic numbers (integers). Read only.'''
     masses = cvec_property('element_mass', float32, read_only = True)
     '''Returns a :mod:`numpy` array of atomic masses,
-    taken from http://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.
+    taken from https://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.
     Read only.'''
     is_alkali_metal = cvec_property('element_is_alkali_metal', npy_bool, read_only = True)
     '''Returns a :mod:`numpy` array of booleans, where True indicates the
@@ -1424,6 +1424,18 @@ class Residues(Collection):
             loc = loc.encode('utf-8')
         f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
         f(self._c_pointers, len(self), loc)
+
+    def find_atoms(self, atom_name):
+        "Return a list containing an Atom or None for each residue."
+        return [r.find_atom(atom_name) for r in self]
+
+    def find_existing_atoms(self, atom_name):
+        "Return Atoms collection that includes at most one atom per residue with the given name."
+        f = c_function('residue_find_existing_atoms',
+                       args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_char_p),
+                       ret = ctypes.py_object)
+        ptrs = f(self._c_pointers, len(self), atom_name.encode('utf-8'))
+        return Atoms(ptrs)
 
     @classmethod
     def session_restore_pointers(cls, session, data):

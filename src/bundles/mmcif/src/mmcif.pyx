@@ -6,7 +6,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -537,8 +537,12 @@ def _get_template(session, name):
         session.logger.warning("Non-printable residue name.  Corrupt mmCIF file?")
         return None
     filename = '%s.cif' % name
-    url_path = url_quote(f"pub/pdb/refdata/chem_comp/{name[-1]}/{name}/{name}.cif")
-    url = f"https://files.wwpdb.org/{url_path}"
+    if '_' in name:
+        url_path = url_quote(f"reports/{name[0]}/{name}/{name}.cif")
+        url = f"http://ligand-expo.rcsb.org/{url_path}"
+    else:
+        url_path = url_quote(f"pub/pdb/refdata/chem_comp/{name[-1]}/{name}/{name}.cif")
+        url = f"https://files.wwpdb.org/{url_path}"
     try:
         return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD')
     except (UserError, OSError):
@@ -687,7 +691,7 @@ def citations(model, only=None, metadata=None):
             if c[-1] != '.':
                 c += '.'
             d = escape(doi)
-            c += ' DOI: <a href="http://dx.doi.org/%s">%s</a>' % (d, d)
+            c += ' DOI: <a href="https://dx.doi.org/%s">%s</a>' % (d, d)
         citations.append(c)
     return citations
 
@@ -714,7 +718,7 @@ def add_citation(model, citation_id, info, authors=(), editors=(), *, metadata=N
     citation table, then nothing is done.
 
     The `info` dictionary is for the relevant data items from the mmCIF citation category,
-    http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/citation.html
+    https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/citation.html
     except for the citation `id` which is given as an argument to this function.
     The capitalization should match that in the mmCIF dictionary.
     In particular, the following data items are supported:
@@ -830,7 +834,7 @@ def add_software(model, name, info, *, metadata=None):
     already present in the software table, then nothing is done.
 
     The `info` dictionary is for the relevant data items from the mmCIF softare category,
-    http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/software.html
+    https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/software.html
     except for the `name`, which is given as an argument to the function, and `pdbx_ordinal`,
     which is computed.  The capitalization should match that in the mmCIF dictionary.
     In particular, the following data items are supported:
@@ -911,11 +915,11 @@ def get_cif_tables(filename, table_names, *, all_data_blocks=False):
 
     Returns
     -------
-        list or dictionary
+        list
             If all_data_blocks is false, return list of CIF tables found and
             all of the data values in a :py:class:`CIFTable`.
-            If all_data_blocks is true, return an ordered dictionary of tables
-            per data block.
+            If all_data_blocks is true, return a list of (dat-block-name,
+            list of CIP-tables) tuples.
     """
     from os import path
     if path.exists(filename):
@@ -926,6 +930,8 @@ def get_cif_tables(filename, table_names, *, all_data_blocks=False):
 
     def convert_tables(data, table_names):
         tlist = []
+        if not data:
+            return tlist
         for name in table_names:
             if name not in data:
                 tlist.append(CIFTable(name))

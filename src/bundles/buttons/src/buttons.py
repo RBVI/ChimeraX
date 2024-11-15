@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -131,7 +131,10 @@ class ButtonPanel(ToolInstance):
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
         tw.ui_area.setLayout(layout)
-        tw.manage(placement="side")
+        from Qt.QtCore import Qt
+        da = Qt.DockWidgetArea
+        tw.manage(placement="side",
+            allowed_areas=da.RightDockWidgetArea|da.LeftDockWidgetArea|da.TopDockWidgetArea)
 
     def add_button(self, name, command, row=None, column=None):
         parent = self.tool_window.ui_area

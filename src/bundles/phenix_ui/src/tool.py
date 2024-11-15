@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -182,6 +182,113 @@ class LaunchDouseTool(ToolInstance):
         run(self.session, cmd)
         self.delete()
 
+class EmplaceLocalResultsViewer(ToolInstance):
+    def __init__(self, session, *args):
+        # if 'args' is empty, we are being restored from a session and _finalize_init() will be called later
+        super().__init__(session, "Local EM Fitting Results")
+        if not args:
+            return
+        self._finalize_init(*args)
+
+    def _finalize_init(self, orig_model, transforms, llgs, ccs, sym_map, *, table_state=None):
+        self.orig_model = orig_model
+        self.orig_position = orig_model.position
+        self.transforms = transforms
+        self.llgs = llgs
+        self.ccs = ccs
+        self.sym_map = sym_map
+
+        from chimerax.core.models import REMOVE_MODELS
+        from chimerax.atomic import get_triggers
+        self.handlers = [
+            self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
+        ]
+        self._interpolate_handler = None
+
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
+
+        from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
+        from Qt.QtWidgets import QPushButton, QLabel, QToolButton, QGridLayout
+        layout = QVBoxLayout()
+        layout.setContentsMargins(2,2,2,2)
+        layout.setSpacing(0)
+        parent.setLayout(layout)
+
+        #TODO
+        self.table = self._build_table(table_state)
+        layout.addWidget(self.table, stretch=1)
+
+        self.tool_window.manage('side')
+
+    def delete(self):
+        for handler in self.handlers:
+            handler.remove()
+        if self._interpolate_handler:
+            self._interpolate_handler.remove()
+        self.orig_model = self.sym_map = None
+        super().delete()
+
+    def _build_table(self, table_state):
+        class TableDatum:
+            def __init__(self, num, transform, llg, cc):
+                self.num = num
+                self.transform = transform
+                self.llg = llg
+                self.cc = cc
+        from chimerax.ui.widgets import ItemTable
+        table = ItemTable()
+        result_col = table.add_column("Result", "num")
+        table.add_column("Correlation Coefficient", "cc", format="%g")
+        table.add_column("Log-Likelihood Gain", "llg", format="%g")
+        table.data = [TableDatum(*args)
+            for args in zip(range(1, len(self.transforms)+1), self.transforms, self.llgs, self.ccs)]
+        table.launch(select_mode=table.SelectionMode.SingleSelection, session_info=table_state)
+        table.sort_by(result_col, table.SORT_ASCENDING)
+        table.selection_changed.connect(self._new_selection)
+        table.selected = table.data[0:1]
+        return table
+
+    def _interpolate(self, destination):
+        if self._interpolate_handler:
+            self._interpolate_handler.remove()
+        # interpolation code largely cribbed from map_fit.search.move_models/move_step
+        def make_step(trig_name, trig_data, *, tool=self, destination=destination, frame_info=[10]):
+            m = tool.orig_model
+            b = m.bounds()
+            finish = False
+            if b:
+                num_frames = frame_info[0]
+                cscene = .5 * (b.xyz_min + b.xyz_max)
+                c = m.scene_position.inverse() * cscene # Center in model coordinates
+                m.position = m.position.interpolate(destination, c, 1.0/num_frames)
+                if num_frames > 1:
+                    frame_info[0] = num_frames - 1
+                else:
+                    finish = True
+            else:
+                m.position = destination
+                finish = True
+            if finish:
+                tool._interpolate_handler.remove()
+                tool._interpolate_handler = None
+        self._interpolate_handler = self.session.triggers.add_handler("new frame", make_step)
+
+    def _models_removed_cb(self, trig_name, trig_data):
+        if self.orig_model in trig_data:
+            self.delete()
+
+    def _new_selection(self, selected, unselected):
+        if not selected:
+            return
+        from chimerax.geometry import Place
+        destination = Place(selected[0].transform) * self.orig_position
+        if unselected:
+            self._interpolate(destination)
+        else:
+            self.orig_model.position = destination
+
 class LaunchEmplaceLocalTool(ToolInstance):
     help = "help:user/tools/localemfitting.html"
 
@@ -215,7 +322,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
         structure_layout.setSpacing(1)
         centering_widget.setLayout(structure_layout)
         structure_layout.addWidget(QLabel("Fit "), 0, 0, alignment=Qt.AlignRight)
-        from chimerax.atomic.widgets import AtomicStructureMenuButton
+        from chimerax.atomic.widgets import AtomicStructureMenuButton, AtomicStructureListWidget
         self.structure_menu = AtomicStructureMenuButton(session)
         structure_layout.addWidget(self.structure_menu, 0, 1)
         structure_layout.addWidget(QLabel(" using "), 0, 2)
@@ -258,6 +365,26 @@ class LaunchEmplaceLocalTool(ToolInstance):
             "If unknown, and using half maps, providing a value of zero will cause an estimated\n"
             "resolution to be used.  For full maps, providing the resolution is mandatory.")
         res_options.add_option(self.res_option)
+
+        prefitted_widget = QWidget()
+        layout.addWidget(prefitted_widget, alignment=Qt.AlignCenter, stretch=1)
+        prefitted_layout = QHBoxLayout()
+        prefitted_layout.setSpacing(1)
+        prefitted_widget.setLayout(prefitted_layout)
+        prefitted_tip = '''If any structures have already been fit into
+other parts of the map, specify those here.'''
+        prefitted_label = QLabel("Pre-fitted structures (if any):")
+        prefitted_label.setToolTip(prefitted_tip)
+        prefitted_layout.addWidget(prefitted_label, alignment=Qt.AlignRight)
+        class ShortASLWidget(AtomicStructureListWidget):
+            def sizeHint(self):
+                hint = super().sizeHint()
+                hint.setHeight(hint.height()//2)
+                return hint
+        self.prefitted_list = ShortASLWidget(session, autoselect=ShortASLWidget.AUTOSELECT_NONE,
+            filter_func=lambda s, *args, sm=self.structure_menu: s != sm.value)
+        self.structure_menu.value_changed.connect(self.prefitted_list.refresh)
+        prefitted_layout.addWidget(self.prefitted_list, alignment=Qt.AlignLeft)
 
         centering_widget = QWidget()
         layout.addWidget(centering_widget, alignment=Qt.AlignCenter, stretch=1)
@@ -340,6 +467,12 @@ class LaunchEmplaceLocalTool(ToolInstance):
         checkbox_layout.addWidget(self.symmetry_checkbox, alignment=Qt.AlignLeft)
         layout.addSpacing(10)
 
+        layout.addWidget(PhenixCitation(session, tool_name, "emplace_local",
+            title="Likelihood-based interactive local docking into cryo-EM maps in ChimeraX",
+            info=["Read RJ, Pettersen EF, McCoy AJ, Croll TI, Terwilliger TC, Poon BK, Meng EC",
+                "Liebschner D, Adams PD", "Acta Cryst. D80, 588-598 (2024)"],
+            pubmed_id=39058381), alignment=Qt.AlignCenter)
+
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_emplace_local)
@@ -369,6 +502,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
                 raise UserError("Must specify exactly one full map for fitting")
             if res == 0.0:
                 raise UserError("Must specify a resolution value for the full map")
+        prefitted = self.prefitted_list.value
         method = self.centering_button.text()
         if method == self.CENTER_XYZ:
             center = [float(widget.text()) for widget in self.xyz_widgets]
@@ -425,10 +559,11 @@ class LaunchEmplaceLocalTool(ToolInstance):
         apply_symmetry = self.symmetry_checkbox.isChecked()
         if self.verify_center_checkbox.isChecked():
             self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
-            VerifyCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps, ssm,
-                apply_symmetry)
+            VerifyELCenterDialog(self.session, structure, maps, res, prefitted, center,
+                self.settings.opaque_maps, ssm, apply_symmetry)
         else:
-            _run_emplace_local_command(self.session, structure, maps, res, center, ssm, apply_symmetry)
+            _run_emplace_local_command(self.session, structure, maps, res, prefitted, center,
+                ssm, apply_symmetry)
         if not apply:
             self.display(False)
 
@@ -448,6 +583,13 @@ class LaunchEmplaceLocalTool(ToolInstance):
             self.xyz_area.setHidden(False)
         elif method == self.CENTER_MODEL:
             self.model_menu.setHidden(False)
+
+class LaunchEmplaceLocalSettings(Settings):
+    AUTO_SAVE = {
+        'search_center': LaunchEmplaceLocalTool.CENTER_MODEL,
+        'opaque_maps': True,
+        'show_sharpened_map': False
+    }
 
 class LaunchFitLoopsTool(ToolInstance):
     help = "help:user/tools/fitloops.html"
@@ -807,50 +949,34 @@ class LaunchFitLoopsTool(ToolInstance):
             self.no_table_label.setText(self.need_input_message)
             self.target_area.setCurrentWidget(self.no_table_label)
 
+import abc
+
 class VerifyCenterDialog(QDialog):
-    def __init__(self, session, structure, maps, resolution, initial_center, opaque_maps,
-            show_sharpened_map, apply_symmetry):
+    def __init__(self, session, initial_center, opaque_maps):
         super().__init__()
         self.session = session
-        self.structure = structure
-        self.maps = maps
-        self.resolution = resolution
         self.opaque_maps = opaque_maps
-        self.show_sharpened_map = show_sharpened_map
-        self.apply_symmetry = apply_symmetry
 
-        # adjusted_center used to compensate for map origin, but improvements to emplace_local
-        # have made that adjustment unnecessary
-        adjusted_center = initial_center
-        marker_set_id = session.models.next_id()[0]
+        self.marker_set_id = session.models.next_id()[0]
         from chimerax.core.commands import run
         self.marker = run(session, "marker #%d position %g,%g,%g radius %g color 100,65,0,50"
-            % (marker_set_id, *adjusted_center, self.find_search_radius()))
+            % (self.marker_set_id, *initial_center, self.search_radius))
 
         from chimerax.core.models import REMOVE_MODELS
         self.handler = session.triggers.add_handler(REMOVE_MODELS, self._check_still_valid)
+
         from Qt.QtWidgets import QVBoxLayout, QLabel
         layout = QVBoxLayout()
         self.setLayout(layout)
-        search_button_label = "Start search"
-        instructions = QLabel(
-            "A transparent orange marker (model #%d) has been drawn to show the search volume and location. "
-            "  Fits that place any part of the atomic structure within the marker sphere will be evaluated."
-            "  The size of the search volume is based on the size of the structure and cannot be adjusted, "
-            "but the search center can be moved by moving the marker, "
-            "using any ChimeraX method for moving markers or models "
-            '(e.g. the "move markers" right mouse mode in the Markers section of the toolbar).'
-            '  When the position is satisfactory, click "%s."'
-             % (marker_set_id, search_button_label)
-        )
+        instructions = QLabel(self.instructions)
         instructions.setWordWrap(True)
         instructions.setAlignment(Qt.AlignCenter)
         layout.addWidget(instructions)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Cancel)
-        bbox.addButton(search_button_label, bbox.AcceptRole)
-        bbox.accepted.connect(self.launch_emplace_local)
+        bbox.addButton(self.search_button_label, bbox.AcceptRole)
+        bbox.accepted.connect(self.launch)
         bbox.accepted.connect(self.close)
         bbox.rejected.connect(self.close)
         layout.addWidget(bbox)
@@ -867,21 +993,75 @@ class VerifyCenterDialog(QDialog):
 
         self.show()
 
+    @property
+    @abc.abstractmethod
+    def check_models(self):
+        pass
+
     def closeEvent(self, event):
         if not self.marker.structure.deleted:
             self.session.models.close([self.marker.structure])
         self.handler.remove()
         super().closeEvent(event)
 
-    def find_search_radius(self):
-        import numpy
-        crds = self.structure.atoms.coords
-        crd_min = numpy.amin(crds, axis=0)
-        crd_max = numpy.amax(crds, axis=0)
-        mid = (crd_min + crd_max) / 2
-        return max(numpy.linalg.norm(crds-mid, axis=1))
+    @property
+    @abc.abstractmethod
+    def instructions(self):
+        pass
 
-    def launch_emplace_local(self):
+    @property
+    @abc.abstractmethod
+    def launch(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def search_button_label(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def search_radius(self):
+        pass
+
+    def _check_still_valid(self, trig_name, removed_models):
+        for rm in removed_models:
+            if rm in self.check_models + [self.marker.structure]:
+                self.close()
+                break
+
+class VerifyELCenterDialog(VerifyCenterDialog):
+    def __init__(self, session, structure, maps, resolution, prefitted, initial_center, opaque_maps,
+            show_sharpened_map, apply_symmetry):
+        self._search_radius = None
+        self.structure = structure
+        self.maps = maps
+        self.resolution = resolution
+        self.show_sharpened_map = show_sharpened_map
+        self.apply_symmetry = apply_symmetry
+        self.prefitted = prefitted
+        super().__init__(session, initial_center, opaque_maps)
+
+
+    @property
+    @abc.abstractmethod
+    def check_models(self):
+        return self.maps + [self.structure]
+
+    @property
+    def instructions(self):
+        return (
+            "A transparent orange marker (model #%d) has been drawn to show the search volume and location. "
+            "  Fits that place any part of the atomic structure within the marker sphere will be evaluated."
+            "  The size of the search volume is based on the size of the structure and cannot be adjusted, "
+            "but the search center can be moved by moving the marker, "
+            "using any ChimeraX method for moving markers or models "
+            '(e.g. the "move markers" right mouse mode in the Markers section of the toolbar).'
+            '  When the position is satisfactory, click "%s."'
+             % (self.marker_set_id, self.search_button_label)
+        )
+
+    def launch(self):
         if self.opaque_maps:
             for m, alpha in self.opaque_data.items():
                 if not m.deleted:
@@ -889,23 +1069,429 @@ class VerifyCenterDialog(QDialog):
                     rgba[-1] = alpha
                     m.rgba = tuple(rgba)
         center = self.marker.scene_coord
-        _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution, center,
-            self.show_sharpened_map, self.apply_symmetry)
+        _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution, self.prefitted,
+            center, self.show_sharpened_map, self.apply_symmetry)
 
-    def _check_still_valid(self, trig_name, removed_models):
-        for rm in removed_models:
-            if rm in self.maps + [self.structure, self.marker.structure]:
-                self.close()
-                break
+    @property
+    def search_button_label(self):
+        return "Start search"
 
-class LaunchEmplaceLocalSettings(Settings):
+    @property
+    def search_radius(self):
+        if self._search_radius is None:
+            import numpy
+            crds = self.structure.atoms.coords
+            crd_min = numpy.amin(crds, axis=0)
+            crd_max = numpy.amax(crds, axis=0)
+            mid = (crd_min + crd_max) / 2
+            self._search_radius = max(numpy.linalg.norm(crds-mid, axis=1))
+        return self._search_radius
+
+class VerifyLFCenterDialog(VerifyCenterDialog):
+    def __init__(self, session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution,
+            initial_center, opaque_maps):
+        self._search_radius = None
+        self.ligand_fmt = ligand_fmt
+        self.ligand_value = ligand_value
+        self.receptor = receptor
+        self.map = map
+        self.chain_id = chain_id
+        self.res_num = res_num
+        self.resolution = resolution
+        super().__init__(session, initial_center, opaque_maps)
+
+    @property
+    @abc.abstractmethod
+    def check_models(self):
+        check_models = [self.map, self.receptor]
+        from chimerax.core.models import Model
+        if isinstance(self.ligand_value, Model):
+            check_models.append(self.ligand_value)
+        return check_models
+
+    @property
+    def instructions(self):
+        return (
+            "A transparent orange marker (model #%d) has been drawn to show the search center. "
+            "The search center can be moved by moving the marker, "
+            "using any ChimeraX method for moving markers or models "
+            '(e.g. the "move markers" right mouse mode in the Markers section of the toolbar).'
+            '  When the position is satisfactory, click "%s."'
+             % (self.marker_set_id, self.search_button_label)
+        )
+
+    def launch(self):
+        if self.opaque_maps:
+            for m, alpha in self.opaque_data.items():
+                if not m.deleted:
+                    rgba = list(m.rgba)
+                    rgba[-1] = alpha
+                    m.rgba = tuple(rgba)
+        center = self.marker.scene_coord
+        _run_ligand_fit_command(self.session, self.ligand_fmt, self.ligand_value, self.receptor, self.map,
+            self.chain_id, self.res_num, self.resolution, center)
+
+    @property
+    def search_button_label(self):
+        return "Start search"
+
+    @property
+    def search_radius(self):
+        return 2.0
+
+class LaunchLigandFitTool(ToolInstance):
+    #help = "help:user/tools/localemfitting.html"
+    help = None
+
+    CENTER_MODEL = "center of model..."
+    CENTER_SELECTION = "center of selection"
+    CENTER_VIEW = "center of view"
+    CENTER_XYZ = "specified xyz position..."
+    CENTERING_METHODS = [CENTER_MODEL, CENTER_SELECTION, CENTER_VIEW, CENTER_XYZ]
+
+    LIGAND_FMT_CCD = "CCD identifier"
+    LIGAND_FMT_MODEL = "existing structure"
+    LIGAND_FMT_PUBCHEM = "PubChem identifier"
+    LIGAND_FMT_SMILES = "SMILES string"
+    LIGAND_FORMATS = [LIGAND_FMT_CCD, LIGAND_FMT_MODEL, LIGAND_FMT_PUBCHEM, LIGAND_FMT_SMILES]
+
+    def __init__(self, session, tool_name):
+        super().__init__(session, tool_name)
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
+
+        if not hasattr(self.__class__, 'settings'):
+            self.__class__.settings = LaunchLigandFitSettings(session, "launch ligandFit")
+
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
+        from Qt.QtWidgets import QCheckBox, QGridLayout, QGroupBox, QStackedWidget
+        from Qt.QtGui import QDoubleValidator, QIntValidator
+        from Qt.QtCore import Qt
+        layout = QVBoxLayout()
+        parent.setLayout(layout)
+        layout.setSpacing(1)
+
+        ligand_layout = QHBoxLayout()
+        ligand_layout.setContentsMargins(2,2,2,2)
+        layout.addLayout(ligand_layout)
+        ligand_layout.addWidget(QLabel("Ligand from:"))
+        self.ligand_fmt_to_index = {}
+        self.ligand_fmt_button = QPushButton()
+        ligand_layout.addWidget(self.ligand_fmt_button)
+        fmt_menu = QMenu(self.ligand_fmt_button)
+        fmt_menu.triggered.connect(self._fmt_menu_cb)
+        self.ligand_fmt_button.setMenu(fmt_menu)
+        self.ligand_stack = QStackedWidget()
+        ligand_layout.addWidget(self.ligand_stack, stretch=1)
+        from chimerax.atomic.widgets import AtomicStructureMenuButton
+        for ligand_fmt in self.LIGAND_FORMATS:
+            fmt_menu.addAction(ligand_fmt)
+            if ligand_fmt == self.LIGAND_FMT_MODEL:
+                widget = AtomicStructureMenuButton(session)
+            else:
+                widget = QLineEdit()
+                widget.setPlaceholderText("Enter " + ligand_fmt
+                    + (" (a.k.a. PDB 3- or 5-letter residue code)"
+                    if ligand_fmt == self.LIGAND_FMT_CCD else ""))
+            self.ligand_fmt_to_index[ligand_fmt] = self.ligand_stack.addWidget(widget)
+        self._update_fmt_widgets(self.settings.ligand_format)
+
+        spec_centering_widget = QWidget()
+        layout.addWidget(spec_centering_widget, alignment=Qt.AlignCenter)
+        spec_layout = QHBoxLayout()
+        spec_layout.setContentsMargins(2,2,2,2)
+        spec_centering_widget.setLayout(spec_layout)
+        spec_layout.addWidget(QLabel("With chain ID"))
+        self.chain_id_entry = QLineEdit()
+        self.chain_id_entry.setMaximumWidth(5 * self.chain_id_entry.fontMetrics().averageCharWidth())
+        self.chain_id_entry.editingFinished.connect(self._update_res_num_widget)
+        spec_layout.addWidget(self.chain_id_entry)
+        spec_layout.addWidget(QLabel("and residue number"))
+        self.res_num_entry = QLineEdit()
+        self.res_num_entry.setMaximumWidth(5 * self.res_num_entry.fontMetrics().averageCharWidth())
+        self.res_num_entry.setValidator(QIntValidator())
+        spec_layout.addWidget(self.res_num_entry)
+
+        non_lig_layout = QHBoxLayout()
+        layout.addLayout(non_lig_layout)
+        receptor_centering_widget = QWidget()
+        non_lig_layout.addWidget(receptor_centering_widget)
+        receptor_layout = QHBoxLayout()
+        receptor_layout.setSpacing(3)
+        receptor_centering_widget.setLayout(receptor_layout)
+        receptor_layout.addWidget(QLabel("Receptor"))
+        self.receptor_menu = AtomicStructureMenuButton(session)
+        self.receptor_menu.value_changed.connect(self._update_spec_widgets)
+        receptor_layout.addWidget(self.receptor_menu)
+        map_info_centering_widget = QWidget()
+        non_lig_layout.addWidget(map_info_centering_widget)
+        map_info_layout = QVBoxLayout()
+        map_info_layout.setSpacing(0)
+        map_info_centering_widget.setLayout(map_info_layout)
+        map_centering_widget = QWidget()
+        map_info_layout.addWidget(map_centering_widget, alignment=Qt.AlignBottom|Qt.AlignHCenter)
+        map_layout = QHBoxLayout()
+        map_layout.setContentsMargins(0,0,0,0)
+        map_layout.setSpacing(3)
+        map_centering_widget.setLayout(map_layout)
+        map_layout.addWidget(QLabel("Map:"))
+        from chimerax.map import Volume
+        from chimerax.ui.widgets import ModelMenuButton
+        self.map_menu = ModelMenuButton(session, class_filter=Volume)
+        map_layout.addWidget(self.map_menu)
+        res_centering_widget = QWidget()
+        map_info_layout.addWidget(res_centering_widget, alignment=Qt.AlignTop|Qt.AlignHCenter)
+        res_layout = QHBoxLayout()
+        res_layout.setContentsMargins(0,0,0,0)
+        res_centering_widget.setLayout(res_layout)
+        res_layout.addWidget(QLabel("Resolution:"))
+        self.resolution_entry = QLineEdit()
+        self.resolution_entry.setMaximumWidth(5 * self.resolution_entry.fontMetrics().averageCharWidth())
+        self.resolution_entry.setValidator(QDoubleValidator(0.001, 1000.0, 6))
+        res_layout.addWidget(self.resolution_entry)
+        self._update_spec_widgets()
+
+        centering_widget = QWidget()
+        layout.addWidget(centering_widget, alignment=Qt.AlignCenter, stretch=1)
+        centering_layout = QHBoxLayout()
+        centering_layout.setSpacing(1)
+        centering_widget.setLayout(centering_layout)
+        centering_tip = '''How to specify the center of the fitting search.  Choices are:
+
+%s — If the center of rotation is being displayed ("cofr showPivot true") use that.  Otherwise,
+    if the center of rotation is a fixed point ("cofr fixed") use that.  If neither of those is
+    true, use the midpoint of where the center of the window intersects the front and back of
+    the bounding box of the map.
+
+%s — The center of a particular model, frequently the map, or the structure to be fitted once
+    it has been approximately positioned.
+
+%s - The center of the bounding box enclosing currently selected objects.
+
+%s — A specific X/Y/Z position, given in angstroms relative to the origin of the map.
+        ''' % (self.CENTER_VIEW.rstrip('.'), self.CENTER_MODEL.rstrip('.'),
+            self.CENTER_SELECTION.rstrip('.'), self.CENTER_XYZ.rstrip('.'))
+        centering_label = QLabel("Center search at")
+        centering_label.setToolTip(centering_tip)
+        centering_layout.addWidget(centering_label, alignment=Qt.AlignRight)
+        self.centering_button = QPushButton()
+        self.centering_button.setToolTip(centering_tip)
+        centering_layout.addWidget(self.centering_button)
+        centering_menu = QMenu(self.centering_button)
+        for method in self.CENTERING_METHODS:
+            centering_menu.addAction(method)
+        centering_menu.triggered.connect(lambda act: self._set_centering_method(act.text()))
+        self.centering_button.setMenu(centering_menu)
+        self.xyz_area = QWidget()
+        xyz_layout = QHBoxLayout()
+        xyz_layout.setSpacing(1)
+        self.xyz_area.setLayout(xyz_layout)
+        self.xyz_widgets = []
+        for lab in ["X", " Y", " Z"]:
+            xyz_layout.addWidget(QLabel(lab), alignment=Qt.AlignRight)
+            entry = QLineEdit()
+            entry.setValidator(QDoubleValidator())
+            entry.setAlignment(Qt.AlignCenter)
+            entry.setMaximumWidth(50)
+            entry.setText("0")
+            xyz_layout.addWidget(entry, alignment=Qt.AlignLeft)
+            self.xyz_widgets.append(entry)
+        self.model_menu = ModelMenuButton(session)
+        centering_layout.addWidget(self.model_menu)
+        centering_layout.addWidget(self.xyz_area)
+        self._set_centering_method()
+
+        checkbox_area = QWidget()
+        layout.addWidget(checkbox_area, alignment=Qt.AlignCenter)
+        checkbox_layout = QVBoxLayout()
+        checkbox_layout.setContentsMargins(0,0,0,0)
+        checkbox_area.setLayout(checkbox_layout)
+        self.verify_center_checkbox = QCheckBox("Interactively verify/adjust center before searching")
+        self.verify_center_checkbox.setChecked(True)
+        checkbox_layout.addWidget(self.verify_center_checkbox, alignment=Qt.AlignLeft)
+        self.opaque_maps_checkbox = QCheckBox("Make maps opaque while verifying center")
+        self.opaque_maps_checkbox.setToolTip(
+            "ChimeraX cannot show multiple transparent objects correctly, so make maps opaque\n"
+            "while transparent interactive search-center sphere is being displayed"
+        )
+        self.opaque_maps_checkbox.setChecked(self.settings.opaque_maps)
+        self.verify_center_checkbox.clicked.connect(lambda checked, b=self.opaque_maps_checkbox:
+            b.setHidden(not checked))
+        checkbox_layout.addWidget(self.opaque_maps_checkbox, alignment=Qt.AlignLeft)
+        """
+        layout.addSpacing(10)
+
+        layout.addWidget(PhenixCitation(session, tool_name, "emplace_local",
+            title="Likelihood-based interactive local docking into cryo-EM maps in ChimeraX",
+            info=["Read RJ, Pettersen EF, McCoy AJ, Croll TI, Terwilliger TC, Poon BK, Meng EC",
+                "Liebschner D, Adams PD", "Acta Cryst. D80, 588-598 (2024)"],
+            pubmed_id=39058381), alignment=Qt.AlignCenter)
+        """
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.launch_ligand_fit)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_ligand_fit(apply=True))
+        bbox.rejected.connect(self.delete)
+        if self.help:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
+        tw.manage(placement=None)
+
+    def launch_ligand_fit(self, apply=False):
+        ligand_fmt = self.ligand_fmt_button.text()
+        ligand_widget = self.ligand_stack.currentWidget()
+        if ligand_fmt == self.LIGAND_FMT_MODEL:
+            ligand_value = ligand_widget.value
+            if not ligand_value:
+                raise UserError("No ligand model specified")
+        else:
+            ligand_value = ligand_widget.text()
+            if not ligand_value:
+                raise UserError("No " + ligand_fmt + " text provided")
+
+        receptor = self.receptor_menu.value
+        if not receptor:
+            raise UserError("Must specify a receptor structure")
+        map = self.map_menu.value
+        if map:
+            if self.resolution_entry.hasAcceptableInput():
+                resolution = float(self.resolution_entry.text())
+            else:
+                raise UserError("Must specify a resolution value for the map")
+        else:
+            raise UserError("Must specify map for fitting")
+        chain_id = self.chain_id_entry.text().strip()
+        if self.res_num_entry.text().strip():
+            if self.res_num_entry.hasAcceptableInput():
+                res_num = int(self.res_num_entry.text())
+            else:
+                raise UserError("Residue number must be an integer")
+        else:
+            res_num = None
+        method = self.centering_button.text()
+        if method == self.CENTER_XYZ:
+            center = [float(widget.text()) for widget in self.xyz_widgets]
+        elif method == self.CENTER_MODEL:
+            centering_model = self.model_menu.value
+            if centering_model is None:
+                raise UserError("No model chosen for specifying search center")
+            bnds = centering_model.bounds()
+            if bnds is None:
+                raise UserError("No part of model for specifying search center is displayed")
+            center = bnds.center()
+        elif method == self.CENTER_VIEW:
+            # If pivot point shown or using fixed center of rotation, use that.
+            # Otherwise, midpoint where center of window intersects front and back of halfmap bounding box.
+            view_center = None
+            mv = self.session.main_view
+            for d in mv.drawing.child_drawings():
+                if d.__class__.__name__ == "PivotIndicator":
+                    view_center = d.position.origin()
+                    break
+            else:
+                if mv.center_of_rotation_method == "fixed":
+                    view_center = mv.center_of_rotation
+            if view_center is None:
+                from chimerax.map import Volume
+                shown_vols = [v for v in self.session.models if isinstance(v, Volume) and v.display]
+                if len(shown_vols) == 1:
+                    view_map = shown_vols[0]
+                else:
+                    view_map = maps[0]
+                from .emplace_local import view_box, ViewBoxError
+                try:
+                    view_center = view_box(self.session, view_map)
+                except ViewBoxError as e:
+                    raise UserError(str(e))
+            center = view_center
+        elif method == self.CENTER_SELECTION:
+            if self.session.selection.empty():
+                raise UserError("Nothing selected")
+            from chimerax.atomic import selected_atoms
+            sel_atoms = selected_atoms(self.session)
+            from chimerax.geometry import point_bounds, union_bounds
+            atom_bbox = point_bounds(sel_atoms.scene_coords)
+            atom_models = set(sel_atoms.unique_structures)
+            bbox = union_bounds([atom_bbox]
+                + [m.bounds() for m in self.session.selection.models() if m not in atom_models])
+            if bbox is None:
+                raise UserError("No bounding box for selected items")
+            center = bbox.center()
+        else:
+            raise AssertionError("Unknown centering method")
+        self.settings.search_center = method
+        if self.verify_center_checkbox.isChecked():
+            self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
+            VerifyLFCenterDialog(self.session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
+                resolution, center, self.settings.opaque_maps)
+        else:
+            _run_ligand_fit_command(self.session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
+                resolution, center)
+        if not apply:
+            self.display(False)
+
+    def _fmt_menu_cb(self, action):
+        self._update_fmt_widgets(action.text())
+
+    def _set_centering_method(self, method=None):
+        if method is None:
+            method = self.settings.search_center
+            if method not in self.CENTERING_METHODS:
+                method = self.CENTER_MODEL
+        self.centering_button.setText(method)
+        self.xyz_area.setHidden(True)
+        self.model_menu.setHidden(True)
+        if method == self.CENTER_XYZ:
+            self.xyz_area.setHidden(False)
+        elif method == self.CENTER_MODEL:
+            self.model_menu.setHidden(False)
+
+    def _update_fmt_widgets(self, fmt):
+        self.ligand_fmt_button.setText(fmt)
+        self.ligand_stack.setCurrentIndex(self.ligand_fmt_to_index[fmt])
+        h = self.ligand_stack.currentWidget().sizeHint().height()
+        self.ligand_stack.setFixedHeight(h)
+
+    def _update_res_num_widget(self, receptor=None):
+        if receptor is None:
+            receptor = self.receptor_menu.value
+            if not receptor:
+                return
+        chain_id = self.chain_id_entry.text()
+        residues = receptor.residues
+        chain_residues = residues.filter(residues.chain_ids == chain_id)
+        if chain_residues:
+            next_res_num = max(chain_residues.numbers) + 1
+        else:
+            next_res_num = 1
+        self.res_num_entry.setText(str(next_res_num))
+
+    def _update_spec_widgets(self):
+        receptor = self.receptor_menu.value
+        if not receptor:
+            return
+        if self.res_num_entry.text() or self.chain_id_entry.text():
+            return
+        if receptor.num_chains != 1:
+            return
+        chain = receptor.chains[0]
+        self.chain_id_entry.setText(chain.chain_id)
+        self._update_res_num_widget(receptor)
+
+class LaunchLigandFitSettings(Settings):
     AUTO_SAVE = {
-        'search_center': LaunchEmplaceLocalTool.CENTER_MODEL,
+        'ligand_format': LaunchLigandFitTool.LIGAND_FMT_CCD,
+        'search_center': LaunchLigandFitTool.CENTER_MODEL,
         'opaque_maps': True,
-        'show_sharpened_map': False
     }
 
-def _run_emplace_local_command(session, structure, maps, resolution, center, show_sharpened_map,
+def _run_emplace_local_command(session, structure, maps, resolution, prefitted, center, show_sharpened_map,
         apply_symmetry):
     from chimerax.core.commands import run, concise_model_spec, BoolArg, StringArg
     from chimerax.map import Volume
@@ -913,6 +1499,26 @@ def _run_emplace_local_command(session, structure, maps, resolution, center, sho
         " applySymmetry %s" % (
         structure.atomspec, concise_model_spec(session, maps, relevant_types=Volume, allow_empty_spec=False),
         resolution, *center, BoolArg.unparse(show_sharpened_map), BoolArg.unparse(apply_symmetry))
+    if prefitted:
+        from chimerax.atomic import AtomicStructure
+        cmd += " prefitted %s" % concise_model_spec(session, prefitted, relevant_types=AtomicStructure,
+            allow_empty_spec=False)
+    run(session, cmd)
+
+def _run_ligand_fit_command(session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution,
+        center):
+    from chimerax.core.commands import run, StringArg
+    from chimerax.map import Volume
+    LLFT = LaunchLigandFitTool
+    lig_arg = "%s:%s" % ({LLFT.LIGAND_FMT_CCD: "ccd", LLFT.LIGAND_FMT_MODEL: "file",
+        LLFT.LIGAND_FMT_PUBCHEM: "pubchem", LLFT.LIGAND_FMT_SMILES: "smiles"}[ligand_fmt],
+        (ligand_value.atomspec if ligand_fmt == LLFT.LIGAND_FMT_MODEL else ligand_value))
+    cmd = "phenix ligandFit %s %s center %g,%g,%g inMap %s resolution %g" % (
+        receptor.atomspec, StringArg.unparse(lig_arg), *center, map.atomspec, resolution)
+    if chain_id:
+        cmd += " chain " + chain_id
+    if res_num is not None:
+        cmd += " residueNum " + str(res_num)
     run(session, cmd)
 
 class FitLoopsResultsSettings(Settings):

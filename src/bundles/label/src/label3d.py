@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -81,10 +81,11 @@ def label(session, objects = None, object_type = None, text = None,
     if text is not None and attribute is not None:
         raise UserError("Cannot specify both 'text' and 'attribute' keywords")
 
-    has_graphics = session.main_view.render is not None
-    if not has_graphics:
-        from chimerax.core.errors import LimitationError
-        raise LimitationError("Unable to draw 3D labels without rendering images")
+    try:
+        from Qt.QtGui import QImage
+    except ImportError:
+        session.logger.warning("Cannot create 3D label without Qt windowing system -- skipping")
+        return
 
     settings = {}
     if text == 'default':

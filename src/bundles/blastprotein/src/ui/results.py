@@ -487,9 +487,14 @@ class BlastProteinResults(ToolInstance):
                     self.table.data = [BlastResultsRow(item) for item in items]
                     for string in columns:
                         title = self._format_column_title(string)
-                        self.table.add_column(
-                            title, data_fetch=lambda x, i=string: x[i]
-                        )
+                        if string == "ligand_formulas":
+                            self.table.add_column(
+                                title, data_fetch=lambda x, i=string: x[i], is_html=True
+                            )
+                        else:
+                            self.table.add_column(
+                                title, data_fetch=lambda x, i=string: x[i]
+                            )
                     self.table.sortByColumn(columns.index("e-value"), Qt.AscendingOrder)
                     if self._from_restore:
                         self.table.launch(

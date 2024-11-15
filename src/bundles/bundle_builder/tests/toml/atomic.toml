@@ -1,0 +1,787 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-AtomicLibrary ~=14.0",
+  "ChimeraX-PDBLibrary ~=1.0",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Core ~=1.0",
+  "numpy==CURRENT_NUMPY_VERSION",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Atomic"
+version = "1.58.6"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Atomic-structure functionality"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-AtomicLibrary ~=14.0",
+  "ChimeraX-ConnectStructure ~=2.0",
+  "ChimeraX-Geometry ~=1.0",
+  "ChimeraX-Graphics ~=1.0",
+  "ChimeraX-mmCIF ~=2.0",
+  "ChimeraX-Nucleotides ~=2.0",
+  "ChimeraX-PDB ~=2.0",
+  "ChimeraX-PDBLibrary ~=1.0",
+  "ChimeraX-Arrays ~=1.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """Python support for handling atomic structures"""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 5
+custom-init = true
+categories = ["Structure Analysis", "Structure Editing"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.extra-files]
+"src/" = [
+  "atomic_cpp/cymol.pyx",
+  "atomic_cpp/cytmpl.pyx",
+  "atomic_cpp/connect.pyx",
+]
+
+[tool.chimerax.command."log chains"]
+category = "General"
+description = "show chain info in log"
+
+[tool.chimerax.command.combine]
+category = "Structure Editing"
+description = "copy or combine structure models"
+
+[tool.chimerax.command.pbond]
+category = "Structure Editing"
+description = "create a pseudobond"
+
+[tool.chimerax.command."~pbond"]
+category = "Structure Analysis"
+description = "delete a pseudobond"
+
+[tool.chimerax.command."label missing"]
+category = "Structure Analysis"
+description = "label missing-structure pseudobonds"
+
+[tool.chimerax.manager."sequence features"]
+autostart = false
+
+[[tool.chimerax.provider."presets"]]
+category = "Initial Styles"
+name = "Original Look"
+order = "0"
+
+[[tool.chimerax.provider."presets"]]
+category = "Initial Styles"
+name = "Sticks"
+order = "1"
+
+[[tool.chimerax.provider."presets"]]
+category = "Initial Styles"
+name = "Cartoon"
+order = "2"
+
+[[tool.chimerax.provider."presets"]]
+category = "Initial Styles"
+name = "Space-Filling (chain colors)"
+order = "3"
+
+[[tool.chimerax.provider."presets"]]
+category = "Initial Styles"
+name = "Space-Filling (single color)"
+order = "4"
+
+[[tool.chimerax.provider."items inspection"]]
+name = "atoms"
+
+[[tool.chimerax.provider."items inspection"]]
+name = "bonds"
+
+[[tool.chimerax.provider."items inspection"]]
+name = "pseudobond groups"
+ui-name = "pseudobond models"
+
+[[tool.chimerax.provider."items inspection"]]
+name = "pseudobonds"
+
+[[tool.chimerax.provider."items inspection"]]
+name = "residues"
+
+[[tool.chimerax.provider."items inspection"]]
+name = "structures"
+ui-name = "atomic models"
+
+[[tool.chimerax.provider."render by attribute"]]
+name = "atoms"
+
+[[tool.chimerax.provider."render by attribute"]]
+name = "residues"
+
+[[tool.chimerax.provider."render by attribute"]]
+name = "structures"
+
+[tool.chimerax.extension.cymol]
+sources = [
+  "atomic_cpp/cymol.pyx",
+]
+libraries = [
+  "atomstruct",
+  "element",
+]
+include-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.arrays",
+  "chimerax.core",
+  "numpy",
+]
+library-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.arrays",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]
+
+[tool.chimerax.extension.cytmpl]
+sources = [
+  "atomic_cpp/cytmpl.pyx",
+]
+libraries = [
+  "atomstruct",
+  "element",
+]
+include-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.arrays",
+  "chimerax.core",
+  "numpy",
+]
+library-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.arrays",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]
+
+[tool.chimerax.extension.connect]
+sources = [
+  "atomic_cpp/connect.pyx",
+]
+libraries = [
+  "atomstruct",
+  "pdbconnect",
+]
+include-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.arrays",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.arrays",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]
+
+[tool.chimerax.extension._ribbons]
+sources = [
+  "ribbon_cpp/normals.cpp",
+  "ribbon_cpp/parse.cpp",
+  "ribbon_cpp/ribbons.cpp",
+  "ribbon_cpp/spline.cpp",
+  "ribbon_cpp/xsection.cpp",
+]
+libraries = [
+  "atomstruct",
+  "arrays",
+]
+include-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.arrays",
+  "chimerax.core",
+  "numpy",
+]
+library-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.arrays",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]
+
+[tool.chimerax.library.molc]
+sources = [
+  "atomic_cpp/molc.cpp",
+]
+libraries = [
+  "atomstruct",
+  "element",
+  "pyinstance",
+  "arrays",
+]
+include-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.arrays",
+  "chimerax.core",
+  "numpy",
+]
+library-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.arrays",
+  "chimerax.core",
+]
+
+[tool.chimerax.selector."C1"]
+description = "sp-hybridized carbon bonded to 2 other atoms"
+
+[tool.chimerax.selector."C1-"]
+description = "sp-hybridized carbon bonded to 1 other atom"
+
+[tool.chimerax.selector."C2"]
+description = "sp2-hybridized carbon"
+
+[tool.chimerax.selector."C3"]
+description = "sp3-hybridized carbon"
+
+[tool.chimerax.selector."Cac"]
+description = "carboxylate carbon"
+
+[tool.chimerax.selector."Car"]
+description = "aromatic carbon"
+
+[tool.chimerax.selector."D"]
+description = "other deuterium"
+
+[tool.chimerax.selector."DC"]
+description = "deuterium bonded to carbon"
+
+[tool.chimerax.selector."H"]
+description = "H (element)"
+
+[tool.chimerax.selector."HC"]
+description = "hydrogen bonded to carbon"
+
+[tool.chimerax.selector."N1"]
+description = "sp-hybridized nitrogen bonded to 1 other atom"
+
+[tool.chimerax.selector."N1+"]
+description = "sp-hybridized nitrogen bonded to 2 other atoms"
+
+[tool.chimerax.selector."N2"]
+description = "sp2-hybridized nitrogen, double bonded"
+
+[tool.chimerax.selector."N2+"]
+description = "sp2-hybridized nitrogen, double bonded, formal positive charge"
+
+[tool.chimerax.selector."N3"]
+description = "sp3-hybridized nitrogen, neutral"
+
+[tool.chimerax.selector."N3+"]
+description = "sp3-hybridized nitrogen, formal positive charge"
+
+[tool.chimerax.selector."Ng+"]
+description = "guanidinium/amidinium nitrogen, partial positive charge"
+
+[tool.chimerax.selector."Npl"]
+description = "sp2-hybridized nitrogen, not double bonded"
+
+[tool.chimerax.selector."Ntr"]
+description = "nitro nitrogen"
+
+[tool.chimerax.selector."O1"]
+description = "sp-hybridized oxygen"
+
+[tool.chimerax.selector."O1+"]
+description = "sp-hybridized oxygen, formal positive charge"
+
+[tool.chimerax.selector."O2"]
+description = "sp2-hybridized oxygen"
+
+[tool.chimerax.selector."O2-"]
+description = "carboxylate oxygen sharing formal negative charge; nitro group oxygen"
+
+[tool.chimerax.selector."O3"]
+description = "sp3-hybridized oxygen"
+
+[tool.chimerax.selector."O3-"]
+description = "phosphate or sulfate oxygen sharing formal negative charge"
+
+[tool.chimerax.selector."Oar"]
+description = "aromatic oxygen"
+
+[tool.chimerax.selector."Oar+"]
+description = "aromatic oxygen, formal positive charge"
+
+[tool.chimerax.selector."P3+"]
+description = "sp3-hybridized phosphorus, formal positive charge"
+
+[tool.chimerax.selector."Pac"]
+description = "phosphate phosphorus"
+
+[tool.chimerax.selector."Pox"]
+description = "P-oxide phosphorus"
+
+[tool.chimerax.selector."S2"]
+description = "sp2-hybridized sulfur"
+
+[tool.chimerax.selector."S3"]
+description = "sp3-hybridized sulfur, neutral"
+
+[tool.chimerax.selector."S3+"]
+description = "sp3-hybridized sulfur, formal positive charge"
+
+[tool.chimerax.selector."S3-"]
+description = "thiophosphate sulfur, sharing formal negative charge"
+
+[tool.chimerax.selector."Sac"]
+description = "sulfate, sulfonate, or sulfamate sulfur"
+
+[tool.chimerax.selector."Sar"]
+description = "aromatic sulfur"
+
+[tool.chimerax.selector."Son"]
+description = "sulfone sulfur"
+
+[tool.chimerax.selector."Sxd"]
+description = "sulfoxide sulfur"
+
+[tool.chimerax.selector."He"]
+description = "He (element)"
+
+[tool.chimerax.selector."Li"]
+description = "Li (element)"
+
+[tool.chimerax.selector."Be"]
+description = "Be (element)"
+
+[tool.chimerax.selector."B"]
+description = "B (element)"
+
+[tool.chimerax.selector."C"]
+description = "C (element)"
+
+[tool.chimerax.selector."N"]
+description = "N (element)"
+
+[tool.chimerax.selector."O"]
+description = "O (element)"
+
+[tool.chimerax.selector."F"]
+description = "F (element)"
+
+[tool.chimerax.selector."Ne"]
+description = "Ne (element)"
+
+[tool.chimerax.selector."Na"]
+description = "Na (element)"
+
+[tool.chimerax.selector."Mg"]
+description = "Mg (element)"
+
+[tool.chimerax.selector."Al"]
+description = "Al (element)"
+
+[tool.chimerax.selector."Si"]
+description = "Si (element)"
+
+[tool.chimerax.selector."P"]
+description = "P (element)"
+
+[tool.chimerax.selector."S"]
+description = "S (element)"
+
+[tool.chimerax.selector."Cl"]
+description = "Cl (element)"
+
+[tool.chimerax.selector."Ar"]
+description = "Ar (element)"
+
+[tool.chimerax.selector."K"]
+description = "K (element)"
+
+[tool.chimerax.selector."Ca"]
+description = "Ca (element)"
+
+[tool.chimerax.selector."Sc"]
+description = "Sc (element)"
+
+[tool.chimerax.selector."Ti"]
+description = "Ti (element)"
+
+[tool.chimerax.selector."V"]
+description = "V (element)"
+
+[tool.chimerax.selector."Cr"]
+description = "Cr (element)"
+
+[tool.chimerax.selector."Mn"]
+description = "Mn (element)"
+
+[tool.chimerax.selector."Fe"]
+description = "Fe (element)"
+
+[tool.chimerax.selector."Co"]
+description = "Co (element)"
+
+[tool.chimerax.selector."Ni"]
+description = "Ni (element)"
+
+[tool.chimerax.selector."Cu"]
+description = "Cu (element)"
+
+[tool.chimerax.selector."Zn"]
+description = "Zn (element)"
+
+[tool.chimerax.selector."Ga"]
+description = "Ga (element)"
+
+[tool.chimerax.selector."Ge"]
+description = "Ge (element)"
+
+[tool.chimerax.selector."As"]
+description = "As (element)"
+
+[tool.chimerax.selector."Se"]
+description = "Se (element)"
+
+[tool.chimerax.selector."Br"]
+description = "Br (element)"
+
+[tool.chimerax.selector."Kr"]
+description = "Kr (element)"
+
+[tool.chimerax.selector."Rb"]
+description = "Rb (element)"
+
+[tool.chimerax.selector."Sr"]
+description = "Sr (element)"
+
+[tool.chimerax.selector."Y"]
+description = "Y (element)"
+
+[tool.chimerax.selector."Zr"]
+description = "Zr (element)"
+
+[tool.chimerax.selector."Nb"]
+description = "Nb (element)"
+
+[tool.chimerax.selector."Mo"]
+description = "Mo (element)"
+
+[tool.chimerax.selector."Tc"]
+description = "Tc (element)"
+
+[tool.chimerax.selector."Ru"]
+description = "Ru (element)"
+
+[tool.chimerax.selector."Rh"]
+description = "Rh (element)"
+
+[tool.chimerax.selector."Pd"]
+description = "Pd (element)"
+
+[tool.chimerax.selector."Ag"]
+description = "Ag (element)"
+
+[tool.chimerax.selector."Cd"]
+description = "Cd (element)"
+
+[tool.chimerax.selector."In"]
+description = "In (element)"
+
+[tool.chimerax.selector."Sn"]
+description = "Sn (element)"
+
+[tool.chimerax.selector."Sb"]
+description = "Sb (element)"
+
+[tool.chimerax.selector."Te"]
+description = "Te (element)"
+
+[tool.chimerax.selector."I"]
+description = "I (element)"
+
+[tool.chimerax.selector."Xe"]
+description = "Xe (element)"
+
+[tool.chimerax.selector."Cs"]
+description = "Cs (element)"
+
+[tool.chimerax.selector."Ba"]
+description = "Ba (element)"
+
+[tool.chimerax.selector."La"]
+description = "La (element)"
+
+[tool.chimerax.selector."Ce"]
+description = "Ce (element)"
+
+[tool.chimerax.selector."Pr"]
+description = "Pr (element)"
+
+[tool.chimerax.selector."Nd"]
+description = "Nd (element)"
+
+[tool.chimerax.selector."Pm"]
+description = "Pm (element)"
+
+[tool.chimerax.selector."Sm"]
+description = "Sm (element)"
+
+[tool.chimerax.selector."Eu"]
+description = "Eu (element)"
+
+[tool.chimerax.selector."Gd"]
+description = "Gd (element)"
+
+[tool.chimerax.selector."Tb"]
+description = "Tb (element)"
+
+[tool.chimerax.selector."Dy"]
+description = "Dy (element)"
+
+[tool.chimerax.selector."Ho"]
+description = "Ho (element)"
+
+[tool.chimerax.selector."Er"]
+description = "Er (element)"
+
+[tool.chimerax.selector."Tm"]
+description = "Tm (element)"
+
+[tool.chimerax.selector."Yb"]
+description = "Yb (element)"
+
+[tool.chimerax.selector."Lu"]
+description = "Lu (element)"
+
+[tool.chimerax.selector."Hf"]
+description = "Hf (element)"
+
+[tool.chimerax.selector."Ta"]
+description = "Ta (element)"
+
+[tool.chimerax.selector."W"]
+description = "W (element)"
+
+[tool.chimerax.selector."Re"]
+description = "Re (element)"
+
+[tool.chimerax.selector."Os"]
+description = "Os (element)"
+
+[tool.chimerax.selector."Ir"]
+description = "Ir (element)"
+
+[tool.chimerax.selector."Pt"]
+description = "Pt (element)"
+
+[tool.chimerax.selector."Au"]
+description = "Au (element)"
+
+[tool.chimerax.selector."Hg"]
+description = "Hg (element)"
+
+[tool.chimerax.selector."Tl"]
+description = "Tl (element)"
+
+[tool.chimerax.selector."Pb"]
+description = "Pb (element)"
+
+[tool.chimerax.selector."Bi"]
+description = "Bi (element)"
+
+[tool.chimerax.selector."Po"]
+description = "Po (element)"
+
+[tool.chimerax.selector."At"]
+description = "At (element)"
+
+[tool.chimerax.selector."Rn"]
+description = "Rn (element)"
+
+[tool.chimerax.selector."Fr"]
+description = "Fr (element)"
+
+[tool.chimerax.selector."Ra"]
+description = "Ra (element)"
+
+[tool.chimerax.selector."Ac"]
+description = "Ac (element)"
+
+[tool.chimerax.selector."Th"]
+description = "Th (element)"
+
+[tool.chimerax.selector."Pa"]
+description = "Pa (element)"
+
+[tool.chimerax.selector."U"]
+description = "U (element)"
+
+[tool.chimerax.selector."Np"]
+description = "Np (element)"
+
+[tool.chimerax.selector."Pu"]
+description = "Pu (element)"
+
+[tool.chimerax.selector."Am"]
+description = "Am (element)"
+
+[tool.chimerax.selector."Cm"]
+description = "Cm (element)"
+
+[tool.chimerax.selector."Bk"]
+description = "Bk (element)"
+
+[tool.chimerax.selector."Cf"]
+description = "Cf (element)"
+
+[tool.chimerax.selector."Es"]
+description = "Es (element)"
+
+[tool.chimerax.selector."Fm"]
+description = "Fm (element)"
+
+[tool.chimerax.selector."Md"]
+description = "Md (element)"
+
+[tool.chimerax.selector."No"]
+description = "No (element)"
+
+[tool.chimerax.selector."Lr"]
+description = "Lr (element)"
+
+[tool.chimerax.selector."Rf"]
+description = "Rf (element)"
+
+[tool.chimerax.selector."Db"]
+description = "Db (element)"
+
+[tool.chimerax.selector."Sg"]
+description = "Sg (element)"
+
+[tool.chimerax.selector."Bh"]
+description = "Bh (element)"
+
+[tool.chimerax.selector."Hs"]
+description = "Hs (element)"
+
+[tool.chimerax.selector."Mt"]
+description = "Mt (element)"
+
+[tool.chimerax.selector."Ds"]
+description = "Ds (element)"
+
+[tool.chimerax.selector."Rg"]
+description = "Rg (element)"
+
+[tool.chimerax.selector."Cn"]
+description = "Cn (element)"
+
+[tool.chimerax.selector."Uut"]
+description = "Uut (element)"
+
+[tool.chimerax.selector."Fl"]
+description = "Fl (element)"
+
+[tool.chimerax.selector."Uup"]
+description = "Uup (element)"
+
+[tool.chimerax.selector."Uuh"]
+description = "Uuh (element)"
+
+[tool.chimerax.selector."Uus"]
+description = "Uus (element)"
+
+[tool.chimerax.selector."Uuo"]
+description = "Uuo (element)"
+
+[tool.chimerax.selector."backbone"]
+description = "backbone atoms"
+
+[tool.chimerax.selector."mainchain"]
+description = "backbone atoms"
+
+[tool.chimerax.selector."min-backbone"]
+description = "minimal backbone atoms"
+
+[tool.chimerax.selector."ions"]
+description = "ions"
+
+[tool.chimerax.selector."ligand"]
+description = "ligands"
+
+[tool.chimerax.selector."main"]
+description = "main structure"
+
+[tool.chimerax.selector."solvent"]
+description = "solvent"
+
+[tool.chimerax.selector."protein"]
+description = "proteins"
+
+[tool.chimerax.selector."nucleic"]
+description = "nucleic acids"
+
+[tool.chimerax.selector."nucleic-acid"]
+description = "nucleic acids"
+
+[tool.chimerax.selector."sel-residues"]
+description = "current selection promoted to full residues"
+
+[tool.chimerax.selector."strand"]
+description = "beta sheet strands"
+
+[tool.chimerax.selector."helix"]
+description = "protein helices"
+
+[tool.chimerax.selector."coil"]
+description = "protein coils"
+
+[tool.chimerax.selector."sidechain"]
+description = "side-chain atoms"
+
+[tool.chimerax.selector."sideonly"]
+description = "side-chain atoms"
+
+[tool.chimerax.selector."ribose"]
+description = "ribose"
+
+[tool.chimerax.selector."template-mismatch"]
+description = "residues whose heavy atoms don't match the residue template"
+

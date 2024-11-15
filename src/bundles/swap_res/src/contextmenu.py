@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -30,7 +30,14 @@ class MutateMenuEntry(SelectContextMenuAction):
 
     def criteria(self, session):
         from chimerax.atomic import selected_residues
-        return len([r for r in selected_residues(session) if r.polymer_type == r.PT_AMINO]) == 1
+        num_mutatable = 0
+        for r in selected_residues(session):
+            if r.polymer_type == r.PT_AMINO:
+                if r.find_atom('CA') and r.find_atom('N') and r.find_atom('C'):
+                    num_mutatable += 1
+                    if num_mutatable > 1:
+                        return False
+        return num_mutatable == 1
 
     def callback(self, session):
         from chimerax.core.commands import run

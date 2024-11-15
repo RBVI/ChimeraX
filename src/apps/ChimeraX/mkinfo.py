@@ -10,7 +10,7 @@
 # Make ChimeraX's Info.plist
 #
 # Follow the Apple "Runtime Configuration Guidelines" document,
-# <http://developer.apple.com/documentation/MacOSX/Conceptual/BPRuntimeConfig/BPRuntimeConfig.html>,
+# <https://developer.apple.com/documentation/MacOSX/Conceptual/BPRuntimeConfig/BPRuntimeConfig.html>,
 # chapter on "Guidelines for Configuring Applications".
 #
 # Started this script, just wanting to generate
@@ -38,7 +38,7 @@ more_info = {
         "www": "www.web3d.org",
     },
     "Mol2": {
-        "www": "http://www.tripos.com/tripos_resources/fileroot/mol2_format_Dec07.pdf",  # noqa
+        "www": "https://www.tripos.com/tripos_resources/fileroot/mol2_format_Dec07.pdf",  # noqa
     },
     "Bild": {
         "www": "cgl.ucsf.edu",

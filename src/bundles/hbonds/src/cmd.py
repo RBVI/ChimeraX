@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -358,40 +358,55 @@ def _file_output(file_name, output_info, naming_style):
             cs_id = cs_ids[i]
             out_file.write("\nCoordinate set %d" % cs_id)
         out_file.write("\n%d H-bonds" % len(hbonds))
-        out_file.write("\nH-bonds (donor, acceptor, hydrogen, D..A dist, D-H..A dist):\n")
-        # want the bonds listed in some kind of consistent order...
-        hbonds.sort()
+        if naming_style == "residue":
+            out_file.write("\nresidue 1, residue 2, # of inter-residue H-bonds:\n")
+            if not hbonds:
+                continue
+            res_pair_hbonds = {}
+            for don, acc in hbonds:
+                r1, r2 = don.residue, acc.residue
+                key = (r1, r2) if r1 < r2 else (r2, r1)
+                res_pair_hbonds[key] = res_pair_hbonds.get(key, 0) + 1
+            pairs = [(str(r1), str(r2), n) for (r1, r2), n in sorted(list(res_pair_hbonds.items()))]
+            width1 = max([len(pair[0]) for pair in pairs])
+            width2 = max([len(pair[1]) for pair in pairs])
+            for r1, r2, n in pairs:
+                out_file.write(f"{r1:<{width1}}  {r2:<{width2}}  {n}\n")
+        else:
+            out_file.write("\nH-bonds (donor, acceptor, hydrogen, D..A dist, D-H..A dist):\n")
+            # want the bonds listed in some kind of consistent order...
+            hbonds.sort()
 
-        # figure out field widths to make things line up
-        dwidth = awidth = hwidth = 0
-        labels = {}
-        from chimerax.geometry import distance
-        for don, acc in hbonds:
-            if cs_id is None:
-                don_coord = don.scene_coord
-                acc_coord = acc.scene_coord
-            else:
-                don_coord = don.get_coordset_coord(cs_id)
-                acc_coord = acc.get_coordset_coord(cs_id)
-            labels[don] = don.string(style=naming_style)
-            labels[acc] = acc.string(style=naming_style)
-            dwidth = max(dwidth, len(labels[don]))
-            awidth = max(awidth, len(labels[acc]))
-            da = distance(don_coord, acc_coord)
-            dha, hyd = donor_hyd(don, cs_id, acc_coord)
-            if dha is None:
-                dha_out = "N/A"
-                hyd_out = "no hydrogen"
-            else:
-                dha_out = "%5.3f" % dha
-                hyd_out = hyd.string(style=naming_style)
-            hwidth = max(hwidth, len(hyd_out))
-            labels[(don, acc)] = (hyd_out, da, dha_out)
-        for don, acc in hbonds:
-            hyd_out, da, dha_out = labels[(don, acc)]
-            out_file.write("%*s  %*s  %*s  %5.3f  %s\n" % (
-                0-dwidth, labels[don], 0-awidth, labels[acc],
-                0-hwidth, hyd_out, da, dha_out))
+            # figure out field widths to make things line up
+            dwidth = awidth = hwidth = 0
+            labels = {}
+            from chimerax.geometry import distance
+            for don, acc in hbonds:
+                if cs_id is None:
+                    don_coord = don.scene_coord
+                    acc_coord = acc.scene_coord
+                else:
+                    don_coord = don.get_coordset_coord(cs_id)
+                    acc_coord = acc.get_coordset_coord(cs_id)
+                labels[don] = don.string(style=naming_style)
+                labels[acc] = acc.string(style=naming_style)
+                dwidth = max(dwidth, len(labels[don]))
+                awidth = max(awidth, len(labels[acc]))
+                da = distance(don_coord, acc_coord)
+                dha, hyd = donor_hyd(don, cs_id, acc_coord)
+                if dha is None:
+                    dha_out = "N/A"
+                    hyd_out = "no hydrogen"
+                else:
+                    dha_out = "%5.3f" % dha
+                    hyd_out = hyd.string(style=naming_style)
+                hwidth = max(hwidth, len(hyd_out))
+                labels[(don, acc)] = (hyd_out, da, dha_out)
+            for don, acc in hbonds:
+                hyd_out, da, dha_out = labels[(don, acc)]
+                out_file.write("%*s  %*s  %*s  %5.3f  %s\n" % (
+                    0-dwidth, labels[don], 0-awidth, labels[acc],
+                    0-hwidth, hyd_out, da, dha_out))
     if out_file != file_name:
         # we opened it, so close it...
         out_file.close()
@@ -499,7 +514,7 @@ def register_command(command_name, logger):
                 ('relax', BoolArg), ('dist_slop', FloatArg), ('angle_slop', FloatArg),
                 ('two_colors', BoolArg), ('slop_color', ColorArg), ('reveal', BoolArg),
                 ('retain_current', BoolArg), ('save_file', SaveFileNameArg), ('log', BoolArg),
-                ('naming_style', EnumOf(('simple', 'command', 'serial'))), ('batch', BoolArg),
+                ('naming_style', EnumOf(('simple', 'command', 'serial', 'residue'))), ('batch', BoolArg),
                 ('dashes', NonNegativeIntArg), ('salt_only', BoolArg), ('name', StringArg),
                 ('coordsets', BoolArg), ('select', BoolArg), ('update_group', BoolArg)],
             synopsis = 'Find hydrogen bonds'

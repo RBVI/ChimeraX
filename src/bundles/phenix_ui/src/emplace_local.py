@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -34,25 +34,25 @@ class FitJob(Job):
     SESSION_SAVE = False
 
     def __init__(self, session, executable_location, optional_args, map1_file_name,
-            map2_file_name, search_center, model_file_name,
+            map2_file_name, search_center, model_file_name, prefitted_file_name,
             positional_args, temp_dir, resolution, verbose, callback, block):
         super().__init__(session)
         self._running = False
         self._monitor_time = 0
         self._monitor_interval = 10
         self.start(session, executable_location, optional_args, map1_file_name,
-            map2_file_name, search_center, model_file_name, positional_args, temp_dir, resolution,
-            verbose, callback, blocking=block)
+            map2_file_name, search_center, model_file_name, prefitted_file_name, positional_args,
+            temp_dir, resolution, verbose, callback, blocking=block)
 
     def run(self, session, executable_location, optional_args, map1_file_name,
-            map2_file_name, search_center, model_file_name, positional_args, temp_dir, resolution,
-            verbose, callback, **kw):
+            map2_file_name, search_center, model_file_name, prefitted_file_name, positional_args,
+            temp_dir, resolution, verbose, callback, **kw):
         self._running = True
         self.start_t = time()
         def threaded_run(self=self):
             try:
                 results = _run_fit_subprocess(session, executable_location, optional_args,
-                    map1_file_name, map2_file_name, search_center, model_file_name,
+                    map1_file_name, map2_file_name, search_center, model_file_name, prefitted_file_name,
                     positional_args, temp_dir, resolution, verbose)
             finally:
                 self._running = False
@@ -94,8 +94,8 @@ command_defaults = {
     'verbose': False
 }
 def phenix_local_fit(session, model, center=None, map_data=None, *, resolution=0.0, show_sharpened_map=False,
-        apply_symmetry=False, block=None, phenix_location=None, verbose=command_defaults['verbose'],
-        option_arg=[], position_arg=[]):
+        apply_symmetry=False, prefitted=None, show_tool=True, block=None, phenix_location=None,
+        verbose=command_defaults['verbose'], option_arg=[], position_arg=[]):
 
     # Find the phenix.voyager.emplace_local executable
     from .locate import find_phenix_command
@@ -135,14 +135,23 @@ def phenix_local_fit(session, model, center=None, map_data=None, *, resolution=0
     from chimerax.pdb import save_pdb
     save_pdb(session, path.join(temp_dir,'model.pdb'), models=[model], rel_model=map_data[0])
 
+    # Save prefitted models to combined file
+    if prefitted is None:
+        prefitted_arg = None
+    else:
+        from chimerax.atomic.cmd import combine_cmd
+        combo = combine_cmd(session, prefitted, add_to_session=False)
+        prefitted_arg = 'prefitted.pdb'
+        save_pdb(session, path.join(temp_dir, prefitted_arg), models=[combo], rel_model=map_data[0])
+
     # Run phenix.voyager.emplace_local
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # the program runs
-    callback = lambda transform, sharpened_map, *args, session=session, maps=map_data, \
-        ssm=show_sharpened_map, app_sym=apply_symmetry, d_ref=d: _process_results(session,
-        transform, sharpened_map, model, maps, ssm, app_sym)
+    callback = lambda transforms, sharpened_map, llgs, ccs, *args, session=session, maps=map_data, \
+        ssm=show_sharpened_map, app_sym=apply_symmetry, show_tool=show_tool, d_ref=d: \
+        _process_results(session, transforms, sharpened_map, llgs, ccs, model, maps, ssm, app_sym, show_tool)
     FitJob(session, exe_path, option_arg, map_arg1, map_arg2, search_center,
-        "model.pdb", position_arg, temp_dir, resolution, verbose, callback, block)
+        "model.pdb", prefitted_arg, position_arg, temp_dir, resolution, verbose, callback, block)
 
 class ViewBoxError(ValueError):
     pass
@@ -206,35 +215,49 @@ def view_box(session, model):
         return (face_intercepts[0] + face_intercepts[1]) / 2
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
-def _process_results(session, transform, sharpened_map, orig_model, maps, show_sharpened_map,
-        apply_symmetry):
+def _process_results(session, transforms, llgs, ccs, sharpened_map, orig_model, maps, show_sharpened_map,
+        apply_symmetry, show_tool):
+    session.logger.status("Fitting job finished")
     if orig_model.deleted:
         raise UserError("Structure being fitting was deleted during fitting")
-    from chimerax.geometry import Place
-    orig_model.scene_position = Place(transform) * orig_model.scene_position
     sharpened_map.name = "sharpened local map"
     sharpened_map.display = show_sharpened_map
     session.models.add([sharpened_map])
-    session.logger.status("Fitting job finished")
+    from chimerax.core.commands import run, concise_model_spec, StringArg
     if apply_symmetry:
         sym_map = maps[0]
         if sym_map.deleted:
-            raise UserError("Map being fitted has been deleted; not applying symmetry")
-        from chimerax.core.commands import run, concise_model_spec, StringArg
-        run(session, "measure symmetry " + sym_map.atomspec)
-        if maps[0].data.symmetries:
+            session.logger.warning("Map being fitted has been deleted; not applying symmetry")
+            apply_symmetry = False
+        else:
+            run(session, "measure symmetry " + sym_map.atomspec)
+            if not sym_map.data.symmetries:
+                session.logger.warning(
+                    'Could not determine symmetry for %s<br><br>'
+                    'If you know the symmetry of the map, you can create symmetry copies of the structure'
+                    ' with the <a href="help:user/commands/sym.html">sym</a> command and then combine the'
+                    ' symmetry copies with the original structure with the <a'
+                    ' href="help:user/commands/combine.html">combine</a> command'
+                    % sym_map, is_html=True)
+                apply_symmetry = False
+    if show_tool and len(transforms) > 1 and session.ui.is_gui:
+        from .tool import EmplaceLocalResultsViewer
+        EmplaceLocalResultsViewer(session, orig_model, transforms, llgs, ccs,
+            sym_map if apply_symmetry else None)
+    else:
+        from chimerax.geometry import Place
+        orig_model.scene_position = Place(transforms[0]) * orig_model.scene_position
+        if apply_symmetry:
             prev_models = set(session.models[:])
             run(session, "sym " + orig_model.atomspec + " symmetry " + sym_map.atomspec + " copies true")
             added = [m for m in session.models if m not in prev_models]
             run(session, "combine " + concise_model_spec(session, [orig_model] + added) + " close true"
                 " modelId %d name %s" % (orig_model.id[0], StringArg.unparse(orig_model.name)))
-        else:
-            session.logger.warning("Could not determine symmetry for %s" % sym_map)
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
-def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name,
-        map2_file_name, search_center, model_file_name, positional_args, temp_dir, resolution, verbose):
+def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name, map2_file_name, search_center,
+        model_file_name, prefitted_file_name, positional_args, temp_dir, resolution, verbose):
     '''
     Run emplace_local in a subprocess and return the model.
     '''
@@ -246,12 +269,16 @@ def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name,
             "map1=%s" % StringArg.unparse(map1_file_name),
             "map2=%s" % StringArg.unparse(map2_file_name),
         ]
+    if prefitted_file_name is None:
+        prefitted_arg = []
+    else:
+        prefitted_arg = [ "fixed_model_file=%s" % prefitted_file_name ]
     args = [exe_path] + optional_args + map_args + [
             "d_min=%g" % resolution,
             "model_file=%s" % StringArg.unparse(model_file_name),
             "sphere_center=(%g,%g,%g)" % tuple(search_center.scene_coordinates()),
             "--json",
-        ] + positional_args
+        ] + prefitted_arg + positional_args
     tsafe=session.ui.thread_safe
     logger = session.logger
     tsafe(logger.status, f'Running {exe_path} in directory {temp_dir}')
@@ -294,7 +321,7 @@ def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name,
         ', '.join(["%g" % v for v in info["mapCC"]])))
 
     from numpy import array
-    return array(info['RT'][0]), sharpened_maps[0]
+    return [array(rt) for rt in info['RT']], info["mapLLG"], info["mapCC"], sharpened_maps[0]
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
@@ -313,9 +340,11 @@ def register_command(logger):
                    ('verbose', BoolArg),
                    ('option_arg', RepeatOf(StringArg)),
                    ('position_arg', RepeatOf(StringArg)),
+                   ('prefitted', AtomicStructuresArg),
                    ('resolution', NonNegativeFloatArg),
                    ('show_sharpened_map', BoolArg),
                    ('apply_symmetry', BoolArg),
+                   ('show_tool', BoolArg),
         ],
         synopsis = 'Place structure in map'
     )

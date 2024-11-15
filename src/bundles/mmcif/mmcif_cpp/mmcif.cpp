@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -316,6 +316,7 @@ struct ExtractMolecule: public readcif::CIFFile
 #endif
     Residue* find_residue(int model_num, const ChainID& chain_id, long position, const ResName& name);
     Residue* find_residue(const ChainResidueMap& crm, const ChainID& chain_id, const ResidueKey& rk);
+    set<ResName> residue_names;
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
@@ -467,6 +468,7 @@ ExtractMolecule::reset_parse()
     has_poly_seq.clear();
     guess_fixed_width_categories = false;
     hydrogens_missing_in_template = 0;
+    residue_names.clear();
 }
 
 inline Residue*
@@ -508,19 +510,28 @@ ExtractMolecule::find_residue(const ChainResidueMap& crm, const ChainID& chain_i
 const tmpl::Residue*
 ExtractMolecule::find_template_residue(const ResName& name, bool start, bool stop)
 {
-    if (my_templates) {
-        auto tr = my_templates->find_residue(name);
-        if (tr && tr->atoms_map().size() > 0)
-            return tr;
-    }
-    if (missing_residue_templates.find(name) != missing_residue_templates.end())
+    if (missing_residue_templates.find(name) != missing_residue_templates.end()) {
+        if (my_templates) {
+            auto tr = my_templates->find_residue(name);
+            if (tr && tr->atoms_map().size() > 0)
+                return tr;
+        }
         return nullptr;
-    auto tr =  mmcif::find_template_residue(name, start, stop);
+    }
+    auto tr = mmcif::find_template_residue(name, start, stop);
     if (tr == nullptr) {
-        // skipped warning if already given for this molecule
+        // keep track of missing residues to prevent multiple warnings
+        missing_residue_templates.insert(name);
+        if (my_templates) {
+            auto tr = my_templates->find_residue(name);
+            if (tr && tr->atoms_map().size() > 0) {
+                logger::warning(_logger,
+                    "Unable to fetch template for '", name, "': will use incomplete information in mmCIF file");
+                return tr;
+            }
+        }
         logger::warning(_logger,
             "Unable to fetch template for '", name, "': will connect using distance criteria");
-        missing_residue_templates.insert(name);
     }
     return tr;
 }
@@ -724,6 +735,12 @@ ExtractMolecule::finished_parse()
             delete my_templates;
             my_templates = nullptr;
         }
+    }
+
+    // prefetch residue templates, so we know the one-letter code
+    // before set_input_seq_info()
+    for (auto rname: residue_names) {
+        auto tr = find_template_residue(rname);
     }
 
     for (auto& mi: molecules) {
@@ -1437,6 +1454,7 @@ ExtractMolecule::parse_atom_site()
                 rname = auth_residue_name;
             else
                 rname = residue_name;
+            residue_names.insert(rname);
             if (!auth_chain_id.empty())
                 cid = auth_chain_id;
             else

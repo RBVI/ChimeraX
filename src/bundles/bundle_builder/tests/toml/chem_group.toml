@@ -1,0 +1,215 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-AtomicLibrary ~=14.0",
+  "ChimeraX-Core ~=1.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-ChemGroup"
+version = "2.0.1"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Detect chemically functional groups"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Atomic ~=1.0",
+  "ChimeraX-AtomicLibrary ~=14.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """This bundle provides the ability for detection of functional groups in a structure."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+module-name-override = "chem_group"
+custom-init = true
+categories = ["Structure Analysis"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.extension._chem_group]
+sources = [
+  "_cg/cg.cpp",
+]
+libraries = [
+  "atomstruct",
+  "element",
+  "pyinstance",
+  "arrays",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.atomic_lib",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.atomic_lib",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]
+
+[tool.chimerax.selector.acyl-halide]
+description = "R(C=O)X"
+
+[tool.chimerax.selector.adenine]
+description = "6-aminopurine"
+
+[tool.chimerax.selector.aldehyde]
+description = "R(C=O)H"
+
+[tool.chimerax.selector.amide]
+description = "R(C=O)NR2"
+
+[tool.chimerax.selector.amine]
+description = "RxNHy"
+
+[tool.chimerax.selector.aliphatic-amine]
+description = "RxNHy"
+
+[tool.chimerax.selector.aliphatic-primary-amine]
+description = "RNH2"
+
+[tool.chimerax.selector.aliphatic-secondary-amine]
+description = "R2NH"
+
+[tool.chimerax.selector.aliphatic-tertiary-amine]
+description = "R3N"
+
+[tool.chimerax.selector.aliphatic-quaternary-amine]
+description = "R4N+"
+
+[tool.chimerax.selector.aromatic-amine]
+description = "RxNHy"
+
+[tool.chimerax.selector.aromatic-primary-amine]
+description = "RNH2"
+
+[tool.chimerax.selector.aromatic-secondary-amine]
+description = "R2NH"
+
+[tool.chimerax.selector.aromatic-tertiary-amine]
+description = "R3N"
+
+[tool.chimerax.selector.aromatic-ring]
+description = "aromatic"
+
+[tool.chimerax.selector.carbonyl]
+description = "R2C=O"
+
+[tool.chimerax.selector.carboxylate]
+description = "RCOO-"
+
+[tool.chimerax.selector.cytosine]
+description = "2-oxy-4-aminopyrimidine"
+
+[tool.chimerax.selector.disulfide]
+description = "RSSR"
+
+[tool.chimerax.selector.ester]
+description = "R(C=O)OR"
+
+[tool.chimerax.selector.ether-O]
+description = "ROR"
+
+[tool.chimerax.selector.guanine]
+description = "2-amino-6-oxypurine"
+
+[tool.chimerax.selector.halide]
+description = "RX"
+
+[tool.chimerax.selector.hydroxyl]
+description = "COH or NOH"
+
+[tool.chimerax.selector.imine]
+description = "R2C=NR"
+
+[tool.chimerax.selector.ketone]
+description = "R2C=O"
+
+[tool.chimerax.selector.methyl]
+description = "RCH3"
+
+[tool.chimerax.selector.nitrile]
+description = "RC*N"
+
+[tool.chimerax.selector.nitro]
+description = "RNO2"
+
+[tool.chimerax.selector.phosphate]
+description = "PO4"
+
+[tool.chimerax.selector.phosphinyl]
+description = "R2PO2-"
+
+[tool.chimerax.selector.phosphonate]
+description = "RPO3-"
+
+[tool.chimerax.selector.purines]
+description = "purine-like rings"
+
+[tool.chimerax.selector.pyrimidines]
+description = "pyrimidine-like rings"
+
+[tool.chimerax.selector.sulfate]
+description = "SO4"
+
+[tool.chimerax.selector.sulfonamide]
+description = "RSO2NR2"
+
+[tool.chimerax.selector.sulfonate]
+description = "RSO3-"
+
+[tool.chimerax.selector.sulfone]
+description = "R2SO2"
+
+[tool.chimerax.selector.sulfonyl]
+description = "R2SO2"
+
+[tool.chimerax.selector.thiocarbonyl]
+description = "C=S"
+
+[tool.chimerax.selector.thioether]
+description = "RSR"
+
+[tool.chimerax.selector.thiol]
+description = "RSH"
+
+[tool.chimerax.selector.thymine]
+description = "5-methyl-2,4-dioxypyrimidine"
+
+[tool.chimerax.selector.uracil]
+description = "2,4-dioxypyrimidine"
+
+[tool.chimerax.selector.sulphate]
+description = "SO4"
+
+[tool.chimerax.selector.sulphonamide]
+description = "RSO2NR2"
+
+[tool.chimerax.selector.sulphonate]
+description = "RSO3-"
+
+[tool.chimerax.selector.sulphone]
+description = "R2SO2"
+
+[tool.chimerax.selector.sulphonyl]
+description = "R2SO2"
+
+[tool.chimerax.selector.aromatic]
+description = "aromatic"
+

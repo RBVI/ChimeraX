@@ -1,0 +1,37 @@
+<BundleInfo name="ChimeraX-AtomSearch" version="2.0.1"
+            package="chimerax.atom_search" purePython="false"
+            installedIncludeDir="include" installedLibraryDir="lib"
+            cython="true" cythonInclude="search_cpp"
+            minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>3D atom search</Synopsis>
+  <Description>Quickly search 3D space for atom within a certain distance of another atom or a xyz point.</Description>
+
+  <Categories>
+    <Category name="Structure Analysis"/>
+  </Categories>
+
+  <ExtraFiles>
+    <ExtraFile source="search_cpp/ast.pyx">ast.pyx</ExtraFile>
+  </ExtraFiles>
+
+  <CModule name="ast">
+    <SourceFile>search_cpp/ast.pyx</SourceFile>
+    <Library>atomstruct</Library>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=14.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

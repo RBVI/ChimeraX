@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -54,6 +54,7 @@ import re
 import shutil
 import sys
 import sysconfig
+from typing import Optional
 
 if sys.version_info < (3, 11, 0):
     import tomli as tomllib
@@ -134,6 +135,7 @@ from .classifiers import (
 
 # Python version was 3.7 in ChimeraX 1.0
 CHIMERAX1_0_PYTHON_VERSION = "3.7"
+CHIMERAX_LCD_LINUX_TAG = "manylinux_2_28"
 
 _platforms = {
     "linux": ["linux"],
@@ -157,8 +159,15 @@ class Bundle:
         self.logger = logger
         self.bundle_info = bundle_info
         project_data = bundle_info["project"]
-        chimerax_data = bundle_info["chimerax"]
-
+        # If you use something with an automated TOML linter it's never going to shut up
+        # about how additional properties are illegal, so accept 'tool.chimerax' as well
+        # as 'chimerax'
+        if "chimerax" in bundle_info:
+            chimerax_data = bundle_info["chimerax"]
+        elif "chimerax" in bundle_info["tool"]:
+            chimerax_data = bundle_info["tool"]["chimerax"]
+        else:
+            raise ValueError("No [chimerax] or [tool.chimerax] table in pyproject.toml")
         self.pure_python = not (
             bool(chimerax_data.get("extension", {}))
             or bool(chimerax_data.get("library", {}))
@@ -216,13 +225,13 @@ class Bundle:
                 "Bundle renamed to %r after replacing "
                 "underscores with hyphens." % self.name
             )
-
-        self.bundle_base_name = self.name.replace("ChimeraX-", "")
         if "module-name-override" in chimerax_data:
-            self.module_name = f'chimerax.{chimerax_data.get("module-name-override")}'
+            override = chimerax_data.get("module-name-override")
         else:
-            self.module_name = self.name.replace("-", ".").lower()
-        self.dist_info_name = self.name.replace("-", "_")
+            override = None
+        self.bundle_base_name, self.module_name, self.dist_info_name = (
+            self.format_module_name(self.name, override)
+        )
 
         # If version is dynamic then we'll attempt to build the wheel and use the version number
         # that setuptools found to check the built wheel
@@ -300,14 +309,19 @@ class Bundle:
             for manager_name, attrs in chimerax_data["manager"].items():
                 self.managers.append(Manager(manager_name, attrs))
         if "provider" in chimerax_data:
-            for provider_name, attrs in chimerax_data["provider"].items():
-                try:
-                    manager = attrs.pop("manager")
-                except KeyError:
-                    raise ValueError(
-                        "No manager specified for provider %s" % provider_name
-                    )
-                self.providers.append(Provider(manager, provider_name, attrs))
+            for name, attrs in chimerax_data["provider"].items():
+                if type(attrs) is list:
+                    # This is a list of providers for which the name of the table is the name of the manager
+                    for provider in attrs:
+                        provider_name = provider.pop("name")
+                        self.providers.append(Provider(name, provider_name, provider))
+                else:
+                    # This is a single provider for which the name is the name of the provider
+                    try:
+                        manager_name = attrs.pop("manager")
+                    except KeyError:
+                        raise ValueError("No manager specified for provider %s" % name)
+                    self.providers.append(Provider(manager_name, name, attrs))
         if "data-format" in chimerax_data:
             for format_name, attrs in chimerax_data["data-format"].items():
                 if "open" in attrs:
@@ -486,6 +500,16 @@ class Bundle:
         tag = "-".join(bdist_wheel_cmd.get_tag())
         self._expected_wheel_name = f"{distname}-{tag}.whl"
 
+    @staticmethod
+    def format_module_name(name: str, override: Optional[str] = None):
+        bundle_base_name = name.replace("ChimeraX-", "")
+        if override:
+            module_name = f"chimerax.{override}"
+        else:
+            module_name = name.replace("-", ".").lower()
+        dist_info_name = name.replace("-", "_")
+        return bundle_base_name, module_name, dist_info_name
+
     @classmethod
     def from_toml_file(cls, logger, toml_file):
         return cls(logger, read_toml(toml_file))
@@ -495,8 +519,8 @@ class Bundle:
         toml_file = os.path.join(os.path.abspath(bundle_path), "pyproject.toml")
         return cls(logger, read_toml(toml_file))
 
-    def make_wheel(self, debug=False):
-        self.build_wheel()
+    def make_wheel(self, debug=False, release=False):
+        self.build_wheel(debug=debug, release=release)
 
     def make_install(
         self, session, debug=False, user=None, no_deps=None, editable=False
@@ -639,7 +663,7 @@ class Bundle:
                     if os.path.isdir(entry):
                         shutil.copytree(entry, destination)
                     else:
-                        shutil.copyfile(entry, destination)
+                        shutil.copy2(entry, destination)
 
     # Since we aren't trusting setuptools to compile libraries properly we have
     # to remove them ourselves. Work around the prepare_metadata_for_build_editable
@@ -648,16 +672,30 @@ class Bundle:
         for lib in self.c_libraries:
             if lib.static:
                 if sys.platform == "win32":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".lib"])))
+                    try:
+                        os.remove(os.path.join("src/lib/", "".join([lib.name, ".lib"])))
+                    except FileNotFoundError:
+                        pass
                 else:
-                    os.remove(
-                        os.path.join("src/lib/", "".join(["lib", lib.name, ".a"]))
-                    )
+                    try:
+                        os.remove(
+                            os.path.join("src/lib/", "".join(["lib", lib.name, ".a"]))
+                        )
+                    except FileNotFoundError:
+                        pass
             else:
                 if sys.platform == "darwin":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".dylib"])))
+                    try:
+                        os.remove(
+                            os.path.join("src/lib/", "".join([lib.name, ".dylib"]))
+                        )
+                    except FileNotFoundError:
+                        pass
                 elif sys.platform == "linux":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".so"])))
+                    try:
+                        os.remove(os.path.join("src/lib/", "".join([lib.name, ".so"])))
+                    except FileNotFoundError:
+                        pass
 
     def _clean_extrafiles(self):
         for pkg_name, items in self.extra_files.items():
@@ -699,6 +737,10 @@ class Bundle:
             os.chdir(self.path)
             kw = self.setup_arguments.copy()
             kw["package_dir"], kw["packages"] = self._make_package_arguments()
+            # So far as I can tell this instructs setuptools to stop sticking its
+            # nose where it doesn't belong and trust that we've set up our packages
+            # and package data correctly.
+            kw["include_package_data"] = False
             sys.argv = ["setup.py"] + cmd
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)
@@ -732,7 +774,7 @@ class Bundle:
             for executable in self.c_executables:
                 executable.compile(self.logger, self.dependencies)
 
-    def _check_output(self, type_="wheel"):
+    def _check_output(self, type_="wheel", report_name=True):
         if type_ == "wheel":
             output = glob.glob(os.path.join(self.path, "dist", "*.whl"))
         elif type == "sdist":
@@ -747,18 +789,55 @@ class Bundle:
             raise RuntimeError(f"Building wheel failed: {self._expected_wheel_name}")
         else:
             name = output[0]
-            if type_ == "wheel":
+            if type_ == "wheel" and report_name:
                 print("Distribution is in %s" % os.path.join("./dist", name))
         return name
 
-    def build_wheel(self):
+    def _repair_wheel(self, wheel):
+        if platform.machine() == "x86_64":
+            tag = "_".join([CHIMERAX_LCD_LINUX_TAG, "x86_64"])
+        else:
+            tag = "_".join([CHIMERAX_LCD_LINUX_TAG, "aarch64"])
+        library_dirs = []
+        for extension in self.c_modules:
+            library_dirs.extend(set(extension.library_dirs))
+        for library in self.c_libraries:
+            library_dirs.extend(set(library.library_dirs))
+        ld_path = ":".join(library_dirs)
+        old_ldpath = os.environ.get("LD_LIBRARY_PATH", "")
+        os.environ["LD_LIBRARY_PATH"] = f"{ld_path}:$LD_LIBRARY_PATH"
+        output = subprocess.check_output([sys.executable, "-m", "auditwheel", "repair", "--plat", tag, "--only-plat", wheel], stderr=subprocess.STDOUT)
+        wheel_name = output.decode().split('\n')[-2].replace("Fixed up wheel written to ", "")
+        if not os.path.exists(wheel_name):
+            pass
+        os.environ["LD_LIBRARY_PATH"] = old_ldpath
+        return wheel_name.split("/")[-1]
+
+    def build_wheel(self, debug=False, release=False):
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         setup_args = ["--no-user-cfg", "build"]
         setup_args.extend(["bdist_wheel"])
         dist, built = self._run_setup(setup_args)
         if not self.version:
             self.version = dist.get_version()
-        wheel = self._check_output(type_="wheel")
+
+        print_wheel_name = True
+        if sys.platform == "linux" and release:
+            print_wheel_name = False
+        wheel = self._check_output(type_="wheel", report_name=print_wheel_name)
+        if sys.platform == "linux" and release:
+            try:
+                old_wheel = wheel
+                wheel = self._repair_wheel(wheel)
+                os.remove(old_wheel)
+                shutil.copy("./wheelhouse/" + wheel, "./dist")
+                print("Distribution is in %s" % os.path.join("./dist", wheel))
+            except subprocess.CalledProcessError:
+                warnings.warn(
+                    "Could not repair wheel to ChimeraX common glibc tag (manylinux_2_28); this wheel is ineligible for release on the toolshed. Use a CentOS 8 container to build the wheel."
+                )
+            finally:
+                shutil.rmtree("./wheelhouse")
         return wheel
 
     def build_sdist(self):
@@ -832,6 +911,8 @@ class _CompiledCode:
         self.frameworks = attrs.get("frameworks", [])
         self.libraries = attrs.get("libraries", [])
         self.compile_arguments = attrs.get("extra-compile-args", [])
+        if sys.platform == "darwin":
+            self.compile_arguments.append("-mmacos-version-min=11")
         self.link_arguments = attrs.get("extra-link-args", [])
         self.include_dirs = attrs.get("include-dirs", [])
         self.include_modules = attrs.get("include-modules", [])
@@ -946,8 +1027,10 @@ class _CompiledCode:
         distutils.sysconfig.customize_compiler(compiler)
         if inc_dirs:
             compiler.set_include_dirs(inc_dirs)
+            self.include_dirs = lib_dirs
         if lib_dirs:
             compiler.set_library_dirs(lib_dirs)
+            self.library_dirs = lib_dirs
         if libraries:
             compiler.set_libraries(libraries)
         compiler.add_include_dir(distutils.sysconfig.get_python_inc())

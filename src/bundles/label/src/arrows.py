@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -77,6 +77,11 @@ def arrow_create(session, start, end, *, color=None, weight=1.0, visibility=True
     head_style : string; "blocky", "solid", "pointy", or "pointer"
         Style of arrowhead.
     '''
+    try:
+        from Qt.QtGui import QImage
+    except ImportError:
+        session.logger.warning("Cannot draw arrow without Qt windowing system -- skipping")
+        return
     arrows = session_arrows(session, create=False)
     if arrows:
         cur_arrow_names = arrows.arrow_names()
@@ -281,6 +286,7 @@ def register_arrow_command(logger):
 
 from chimerax.core.models import Model
 class Arrows(Model):
+    has_scene_bounds = False
     def __init__(self, session):
         Model.__init__(self, '2D arrows', session)
         self._arrows = []
@@ -369,7 +375,13 @@ class Arrows(Model):
             if 'mid_point' in arrow_state:
                 del arrow_state['mid_point']
             compatible_arrows_state.append(arrow_state)
-        self._arrows = [Arrow(session, **ls) for ls in compatible_arrows_state]
+        try:
+            from Qt.QtGui import QImage
+        except ImportError:
+            session.logger.warning("Cannot restore arrows without Qt windowing system -- skipping")
+            self._arrows = []
+        else:
+            self._arrows = [Arrow(session, **ls) for ls in compatible_arrows_state]
         self._named_arrows = {a.name:a for a in self._arrows if a.name}
 
 
@@ -396,10 +408,6 @@ def session_arrows(session, create=False):
 class Arrow:
     def __init__(self, session, name, color=None, weight=1.0, start=(0.0, 0.0), end=(1.0, 1.0),
             visibility=True, head_style="solid"):
-        from chimerax.core.errors import LimitationError
-        has_graphics = session.main_view.render is not None
-        if not has_graphics:
-            raise LimitationError("Unable to draw arrows without rendering images")
 
         self.session = session
         self.name = name
@@ -572,8 +580,8 @@ class ArrowModel(Model):
         return min(xs), max(xs), min(ys), max(ys)
 
     def _arrow_image_rgba(self):
-    #TODO: same techniques as chimerax.graphics.text_image_rgba, but using QPainter's arc drawing
-    # plus: remainder of this file
+        #TODO: same techniques as chimerax.graphics.text_image_rgba, but using QPainter's arc drawing
+        # plus: remainder of this file
 
         w, h = self._window_size
         h *= self._aspect

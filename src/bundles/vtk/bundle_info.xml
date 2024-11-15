@@ -25,7 +25,7 @@
   <Providers manager="data formats">
     <Provider name="VTK PolyData" category="Generic 3D objects"
 		nicknames="vtk" suffixes=".vtk"
-		reference_url="http://www.vtk.org/wp-content/uploads/2015/04/file-formats.pdf" />
+		reference_url="https://www.vtk.org/wp-content/uploads/2015/04/file-formats.pdf" />
   </Providers>
 
   <Providers manager="open command">

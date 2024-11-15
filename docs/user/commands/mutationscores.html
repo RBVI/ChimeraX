@@ -1,0 +1,306 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: mutationscores</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3 align="center">* under construction *</h3>
+
+<h3><a href="../index.html#commands">Command</a>: mutationscores</h3>
+<p>
+The <b>mutationscores</b> command shows the results of deep mutational 
+scanning on protein structures and as interactive 2D plots.
+Deep mutational scanning generally involves mutating each position in a 
+protein to all 20 standard amino acids and assessing the resulting
+large number of mutants with multiple high-throughput assays. 
+For example, the assays could include growing cells expressing the mutants
+in the presence of different drugs and measuring cell viability or fluorescence.
+</p><p>
+<a name="mutant"></a>
+In this page, <b><i>mutant</i></b> refers to a variant of the protein 
+defined by a specific residue type (which could be the original,
+wild-type residue) at a specific position in the sequence, and in which
+all of the other positions have the wild-type residue.
+The result of a &ldquo;synonymous&rdquo; mutation is the wild-type protein.
+</p><p>
+In general, each type of assay yields a score for each mutant.
+The scores are read from a <i><b>mutation scores</b></i> .csv file
+(<a href="../formats/mutationcsv.html">details...</a>) that can be opened
+from the the <a href="../menu.html#file"><b>File</b> menu</a>
+or with the <a href="../commands/open.html"><b>open</b></a> command.
+Each file gives rise to a <b><i>mutation set</i></b>,
+and multiple mutation sets can be open at the same time.
+</p><p>
+<a name="associated"></a>
+The data can be associated with an atomic structure by using the 
+<a href="../commands/open.html#chain"><b>chain</b></a> option of the 
+<a href="../commands/open.html"><b>open</b></a> command when opening
+the .csv file, or subsequently by using the command
+<a href="#structure"><b>mutationscores structure</b></a>.
+See also: 
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html" 
+target="_blank">ChimeraX visualization of mutation scores</a>
+</p>
+<ul>
+<li><a href="#scatterplot"><b>mutationscores scatterplot</b></a>
+&ndash; plot mutants by two types of score
+<li><a href="#define"><b>mutationscores define</b></a>
+&ndash; define a new score based on existing scores
+<li><a href="#undefine"><b>mutationscores undefine</b></a>
+&ndash; remove a previously defined score
+<li><a href="#histogram"><b>mutationscores histogram</b></a>
+&ndash; show a histogram of score values
+<li><a href="#label"><b>mutationscores label</b></a>
+&ndash; show color-coded residue labels on the associated structure
+<li><a href="#statistics"><b>mutationscores statistics</b></a>
+&ndash; compute mutation score averages and standard deviations 
+<li><a href="#umap"><b>mutationscores umap</b></a>
+&ndash; project the 20-dimensional vector of the scores of the 20 residue types
+at a position into 2D with UMAP
+<li><a href="#structure"><b>mutationscores structure</b></a>
+&ndash; associate the data with a specified structure chain
+<li><a href="#list"><b>mutationscores list</b></a>
+&ndash; list the currently open sets of mutation data
+<li><a href="#close"><b>mutationscores close</b></a>
+&ndash; close a set of mutation data
+</ul>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="scatterplot"></a>
+<b>mutationscores scatterplot</b>
+&nbsp;<i>x-score</i>&nbsp; &nbsp;<i>y-score</i>&nbsp;
+[&nbsp;<b>correlation</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
+<blockquote>
+<table class="clRight">
+<tr><td><img src="scatterplot.png"
+alt="mutation scores scatter plot" width="300px">
+</td></tr>
+</table>
+<p>
+Show a scatter plot of mutants for two scores, <i>x-score</i> and <i>y-score</i>.
+Only mutants with values for both scores will be plotted. The <b>correlation</b>
+option indicates whether to draw a line showing the least-squares fit (default
+<b>false</b>). The scatter plot will replace a pre-existing scatter plot unless
+<b>replace false</b> is given.
+</p><p>
+<a name="mutationSet"></a>
+The <b>mutationSet</b> option allows specifying which dataset to use when 
+more than one is open. If only one is open, the option is not needed.
+The name of a mutation set is derived from the input filename
+(for example, <b>abcg2</b> if read from <b>abcg2.csv</b>).
+The names of open sets can be listed in the 
+<a href="../tools/log.html"><b>Log</b></a> with
+<a href="#list"><b>mutationscores list</b></a>,
+and a set can be closed with
+<a href="#list"><b>mutationscores close</b></a>.
+</p><p>
+Clicking the scatter plot raises a context menu; entries that refer to
+a specific mutant only appear when the click is on a circle, and some entries 
+only appear if there is an <a href="#associated">associated structure</a>:
+</p>
+<ul>
+<li><b>Mutation [<i>mutant</i>]</b>
+&ndash; information for the user (no action): which mutant was clicked
+<li><b>Color mutations for [<i>mutant position</i>]</b>
+&ndash; color in green all circles representating mutations at the 
+same position as the clicked mutant
+<li><b>Color mutations near residue [<i>mutant position</i>]</b>
+&ndash; circles representating mutations at positions within 3.5 &Aring; of
+the position of the clicked mutant (in the 3D structure of the 
+<a href="#associated">associated structure</a>)
+<li><b>Color mutations for selected residues</b>
+&ndash; color in cyan all circles representing mutations at positions
+of residues <a href="../selection.html">selected</a> in the 
+<a href="#associated">associated structure</a>
+<li><b>Color synonymous mutations blue</b>
+&ndash; color in blue all circles for &ldquo;mutants&rdquo; that are actually
+the wild-type protein (initial coloring)
+<li><b>Hide (Show) synonymous bounds</b>
+&ndash; dashed lines delimiting the bulk of wild-type protein results
+(shown initially)
+<li><b>Clear plot colors</b>
+&ndash; color all circles gray
+</ul>
+The following entries apply to the
+<a href="#associated">associated structure</a>:
+<ul>
+<li><b>Structure residue [<i>mutant position in structure</i>]</b>
+&ndash; information for the user (no action): the corresponding structure residue
+<li><b>Select</b>
+&ndash; <a href="../selection.html">select</a> the corresponding residue
+<li><b>Color green</b>
+&ndash; color the ribbon and carbon atoms of the corresponding residue green
+<li><b>Color to match plot</b>
+&ndash; color the ribbon and carbon atoms of the corresponding residue to match
+the circle in the plot
+<li><b>Show side chain</b>
+&ndash; show the sidechain atoms of the corresponding residue
+<li><b>Zoom to residue</b>
+&ndash; zoom and clip to focus the view on the corresponding residue;
+clipping can be turned off with <a href="clip.html"><b>clip off</b><a>,
+or with <a href="view.html"><b>view</b></a> to view all
+<li><b>Label with [<i>x-score</i>] scores</b>
+&ndash; <a href="#label">label</a>
+the corresponding residue with a matrix of the <i>x-score</i>
+values for all substitutions at that position; the matrix
+can be removed with <a href="label.html#delete"><b>label delete</b></a>
+<li><b>Label with [<i>y-score</i>] scores</b>
+&ndash; <a href="#label">label</a>
+the corresponding residue with a matrix of the <i>y-score</i>
+values for all substitutions at that position; the matrix
+can be removed with <a href="label.html#delete"><b>label delete</b></a>
+</ul>
+The remaining tool-specific entry is for saving the plot as an image file.
+<ul>
+<li><b>Save Plot As...</b> save the scatter plot as PNG, SVG, or PDF
+</ul>
+(Other entries such as <b>Hide Tool</b> appear in all tool context menus
+and are not not specific to mutation scores.)
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="define"></a>
+<b>mutationscores define</b>
+[&nbsp;<i>new-score</i>&nbsp;]
+[&nbsp;<b>fromScoreName</b>&nbsp;&nbsp;<i>from-score</i>&nbsp;]
+[&nbsp;<b>subtractFit</b>&nbsp;&nbsp;<i>sub-score</i>&nbsp;]
+[&nbsp;<b>aa</b>&nbsp;&nbsp;<i>one-letter-codes</i>&nbsp;]
+[&nbsp;<b>toAa</b>&nbsp;&nbsp;<i>one-letter-codes</i>&nbsp;]
+[&nbsp;<b>synonymous</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>above</b>&nbsp;&nbsp;<i>value</i>&nbsp;]
+[&nbsp;<b>below</b>&nbsp;&nbsp;<i>value</i>&nbsp;]
+[&nbsp;<b>ranges</b>&nbsp;&nbsp;<i>comparison-expression</i>&nbsp;]
+[&nbsp;<b>combine</b>&nbsp;&nbsp;count&nbsp;|&nbsp;mean&nbsp;|&nbsp;stddev&nbsp;|&nbsp;sum&nbsp;|&nbsp;sum_absolute&nbsp;]
+[&nbsp;<b>setAttribute</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
+<blockquote>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="undefine"></a>
+<b>mutationscores undefine</b> &nbsp;<i>score</i>&nbsp;
+[&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
+<blockquote>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="histogram"></a>
+<b>mutationscores histogram</b> &nbsp;<i>score</i>&nbsp;
+[&nbsp;<b>bins</b>&nbsp;&nbsp;<i>b</i>&nbsp;]
+[&nbsp;<b>curve</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>smoothWidth</b>&nbsp;&nbsp;<i>w</i>&nbsp;]
+[&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
+<blockquote>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="label"></a>
+<b>mutationscores label</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>residue-spec</i></a>&nbsp;
+&nbsp;<i>score</i>&nbsp;
+[&nbsp;<a href="color.html#palette"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
+[&nbsp;<a href="color.html#range"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;<b>full</b>&nbsp;]
+[&nbsp;<b>noDataColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]
+[&nbsp;<b>offset</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
+[&nbsp;<b>onTop</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
+<blockquote>
+<table class="clRight">
+<tr><td><img src="mutationlabel.png"
+alt="mutation scores residue label" width="80px">
+</td></tr>
+</table>
+Defaults for the coloring options are:
+  <blockquote>
+<b><a href="color.html#palette">palette</a> redblue
+&nbsp;<a href="color.html#range">range</a> full</b>
+  </blockquote>
+... meaning <table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=red width="10px" title="red"></td>
+<td bgcolor=white width="10px" title="white"></td>
+<td bgcolor=blue width="10px" title="blue"></td>
+</tr></table> 
+across the full range of values (including the values of
+residues not being labeled); a narrower range can be specified as 
+comma-separated values <i>low,high</i>.
+The <b>noDataColor</b> is used for residues without mutation scores (default 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=#B4B4B4 width="10px" title="#B4B4B4"></td>
+</tr></table>).
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="statistics"></a>
+<b>mutationscores statistics</b> &nbsp;<i>score</i>&nbsp;
+[&nbsp;<b>type</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<b>synonymous</b>&nbsp;]
+[&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
+<blockquote>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="umap"></a>
+<b>mutationscores umap</b> &nbsp;<i>score</i>&nbsp;
+[&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
+<blockquote>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="structure"></a>
+<b>mutationscores structure</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+[&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
+<blockquote>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="list"></a>
+<b>mutationscores list</b>
+<blockquote>
+List the names of the currently available score sets in the
+<a href="../tools/log.html"><b>Log</b></a>.
+The names are derived from the input filenames
+(for example, <b>abcg2</b> if read from <b>abcg2.csv</b>).
+A set can be closed with <a href="#close"><b>mutationscores close</b></a>.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="close"></a>
+<b>mutationscores close</b>
+[&nbsp;<i>mutation-set-name</i>&nbsp;]
+<blockquote>
+Close a specified set of mutation scores.
+The names of currently open sets can be listed in the
+<a href="../tools/log.html"><b>Log</b></a>
+with <a href="#list"><b>mutationscores list</b></a>.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+November 2024</address>
+</body></html>
