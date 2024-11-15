@@ -175,8 +175,8 @@ class _StructureAnisoManager(StateManager):
             color_param = dp['ellipse_color']
             thickness = dp['ellipse_thickness']
             if smoothing not in self._cylinder_cache:
-                from chimerax.shape.shape import _cylinder_divisions, cylinder_geometry
-                nz, nc = _cylinder_divisions(1.0, 1.0, 9 * (2**smoothing))
+                from chimerax.shape.shape import cylinder_divisions, cylinder_geometry
+                nz, nc = cylinder_divisions(1.0, 1.0, 9 * (2**smoothing))
                 self._cylinder_cache[smoothing] = cylinder_geometry(1.0, 1.0, nz, nc, True)
             ellipse_vertices, ellipse_triangles = self._cylinder_cache[smoothing]
             for atom, drawing, atoms_arg, axes, lengths2 in drawing_info:
