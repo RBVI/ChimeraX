@@ -25,14 +25,14 @@
 # Plot a histogram of mutation scores.
 def mutation_scores_histogram(session, score_name, mutation_set = None,
                               bins = 20, curve = True, smooth_width = None, smooth_bins = 200,
-                              scale = 'linear', replace = True):
+                              scale = 'log', synonymous = True, bounds = True, replace = True):
     plot = _find_mutation_histogram(session, mutation_set) if replace else None
     if plot is None:
         plot = MutationHistogram(session)
 
-    values = plot.set_plot_data(score_name, mutation_set, bins=bins,
+    values = plot.set_plot_data(score_name, mutation_set, bins=bins, scale=scale,
                                 curve=curve, smooth_width=smooth_width, smooth_bins=smooth_bins,
-                                scale=scale)
+                                synonymous = synonymous, bounds = bounds)
 
     range = f'having range {"%.3g"%min(values)} to {"%.3g"%max(values)}' if len(values) > 0 else ''
     message = f'Plotted {len(values)} scores {range} for {score_name}'
@@ -43,8 +43,10 @@ class MutationHistogram(Plot):
 
     def __init__(self, session):
         self.mutation_set_name = ''
-
-        Plot.__init__(self, session, tool_name = 'Deep mutational scan histogram')
+        self._synonymous_histogram = None
+        self._bounds_artists = None
+        
+        Plot.__init__(self, session, tool_name = 'Mutation scores histogram')
 
         tw = self.tool_window
         tw.fill_context_menu = self._fill_context_menu
@@ -90,15 +92,13 @@ class MutationHistogram(Plot):
             
         scale = self._yscale
 
-        self.set_plot_data(score_name, mutation_set_name, bins = self._bins,
+        self.set_plot_data(score_name, mutation_set_name, bins = self._bins, scale = self._yscale,
                            curve = self._smooth_curve, smooth_width = self._smooth_width, smooth_bins = self._smooth_bins,
-                           scale = self._yscale)
+                           synonymous = self._show_synonymous, bounds = self._synonymous_bounds)
 
-        if scale == 'log':
-            self._set_log_scale()
-
-    def set_plot_data(self, score_name, mutation_set_name, bins = 20,
-                      curve = True, smooth_bins = 20, smooth_width = None, scale = 'linear'):
+    def set_plot_data(self, score_name, mutation_set_name, bins = 20, scale = 'linear',
+                      curve = True, smooth_bins = 20, smooth_width = None,
+                      synonymous = True, bounds = True):
         from .ms_data import mutation_scores
         scores = mutation_scores(self.session, mutation_set_name)
         score_values = scores.score_values(score_name)
@@ -107,26 +107,39 @@ class MutationHistogram(Plot):
         self._mutation_set_menu.value = self.mutation_set_name = scores.name
 
         values = [value for res_num, from_aa, to_aa, value in score_values.all_values()]
+        syn_values = [value for res_num, from_aa, to_aa, value in score_values.all_values() if to_aa == from_aa]
 
-        self._set_values(values, title=scores.name, x_label=score_name, bins=bins,
-                         smooth_curve=curve, smooth_width=smooth_width, smooth_bins=smooth_bins, yscale=scale)
+        self._set_values(values, title=scores.name, x_label=score_name, bins=bins, yscale=scale,
+                         smooth_curve=curve, smooth_width=smooth_width, smooth_bins=smooth_bins,
+                         show_synonymous = synonymous, synonymous_scores = syn_values, synonymous_bounds = bounds)
         return values
     
-    def _set_values(self, scores, title = '', x_label = '', bins = 20,
-                   smooth_curve = False, smooth_width = None, smooth_bins = 200, yscale = 'linear'):
+    def _set_values(self, scores, title = '', x_label = '', bins = 20, yscale = 'log',
+                    smooth_curve = False, smooth_width = None, smooth_bins = 200,
+                    show_synonymous = False, synonymous_scores = None, synonymous_bounds = False):
+        # Remember state for session saving
+        self._scores, self._bins, self._smooth_curve, self._smooth_width, self._smooth_bins = \
+            scores, bins, smooth_curve, smooth_width, smooth_bins
+        self._show_synonymous, self._synonymous_scores, self._synonymous_bounds = \
+            show_synonymous, synonymous_scores, synonymous_bounds
+
         a = self.axes
         a.clear()
-        a.hist(scores, bins=bins)
+        self._synonymous_histogram = self._bounds_artists = None
+
+        a.hist(scores, bins=bins, color = 'lightgray')
+
+        self._show_synonymous_histogram(show_synonymous)
+        self._show_synonymous_bounds(synonymous_bounds)
+
         a.set_title(title)
         a.set_xlabel(x_label)
         a.set_ylabel('Count')
         if smooth_curve:
             x, y = gaussian_histogram(scores, sdev = smooth_width, bins = smooth_bins)
             y *= (smooth_bins / bins)	# Scale to match histogram bar height
-            a.plot(x, y)
-        # Remember state for session saving
-        self._scores, self._bins, self._smooth_curve, self._smooth_width, self._smooth_bins = \
-            scores, bins, smooth_curve, smooth_width, smooth_bins
+            a.plot(x, y, color = 'orange')
+
         self.canvas.draw()
         ymin, self._ymax = a.get_ylim()
         if yscale == 'log':
@@ -142,6 +155,15 @@ class MutationHistogram(Plot):
         else:
             self.add_menu_entry(menu, 'Linear scale', self._set_linear_scale)
 
+        show_syn = not self._show_synonymous
+        show_or_hide = 'Show' if show_syn else 'Hide'
+        self.add_menu_entry(menu, f'{show_or_hide} synonymous',
+                            lambda show_syn=show_syn: self._show_synonymous_histogram(show_syn))
+        show_bounds = not self._synonymous_bounds
+        show_or_hide = 'Show' if show_bounds else 'Hide'
+        self.add_menu_entry(menu, f'{show_or_hide} synonymous bounds',
+                            lambda show_bounds=show_bounds: self._show_synonymous_bounds(show_bounds))
+            
         self.add_menu_separator(menu)
         self.add_menu_entry(menu, 'New plot', self._copy_plot)
         self.add_menu_entry(menu, 'Save plot as...', self.save_plot_as)
@@ -158,6 +180,35 @@ class MutationHistogram(Plot):
         a = self.axes
         a.set_yscale('linear')
         a.set_ylim(0, self._ymax)
+        self.canvas.draw()
+
+    def _show_synonymous_histogram(self, show = True):
+        if show and self._synonymous_histogram is None:
+            _,_,self._synonymous_histogram = \
+                self.axes.hist(self._synonymous_scores, bins = self._bins, color = 'blue')
+        elif not show and self._synonymous_histogram:
+            self._synonymous_histogram.remove()
+            self._synonymous_histogram = None
+        self._show_synonymous = show
+        self.canvas.draw()
+    def _show_synonymous_bounds(self, show = True):
+        if show and not self._bounds_artists:
+            from numpy import mean, std
+            m, d = mean(self._synonymous_scores), std(self._synonymous_scores)
+            sd = standard_deviations = 2
+            smin, smax = m - sd*d, m + sd*d
+            a = self.axes
+            ymin, ymax = a.get_ylim()
+            segment_xy = [((smin,smin), (ymin,ymax)), ((smax,smax), (ymin,ymax))]
+            from matplotlib.lines import Line2D
+            lines = [Line2D(xdata, ydata, color = 'black', linestyle = 'dotted', zorder = 10)
+                     for xdata, ydata in segment_xy]
+            self._bounds_artists = [a.add_artist(line) for line in lines]
+        elif not show and self._bounds_artists:
+            for ba in self._bounds_artists:
+                ba.remove()
+            self._bounds_artists.clear()
+        self._synonymous_bounds = show
         self.canvas.draw()
 
     def _copy_plot(self):
@@ -183,6 +234,9 @@ class MutationHistogram(Plot):
                 'smooth_width': self._smooth_width,
                 'smooth_bins': self._smooth_bins,
                 'yscale': self._yscale,
+                'show_synonymous': self._show_synonymous,
+                'synonymous_scores': self._synonymous_scores,
+                'synonymous_bounds': self._synonymous_bounds,
                 'version': '1'}
         return data
 
@@ -193,7 +247,9 @@ class MutationHistogram(Plot):
         hp._score_menu.value = data.get('score_name', '')
         hp._set_values(data['scores'], title = data['title'], x_label = data['x_label'], bins = data['bins'],
                        smooth_curve = data['smooth_curve'], smooth_width = data['smooth_width'],
-                       smooth_bins = data['smooth_bins'], yscale = data.get('yscale', 'linear'))
+                       smooth_bins = data['smooth_bins'], yscale = data.get('yscale', 'linear'),
+                       show_synonymous = data.get('show_synonymous'),
+                       synonymous_scores = data.get('synonymous_scores'), synonymous_bounds = data.get('synonymous_bounds'))
         return hp
 
 def gaussian_histogram(values, sdev = None, pad = 5, bins = 256):
@@ -224,10 +280,12 @@ def register_command(logger):
         required = [('score_name', StringArg)],
         keyword = [('mutation_set', StringArg),
                    ('bins', IntArg),
+                   ('scale', EnumOf(['linear', 'log'])),
                    ('curve', BoolArg),
                    ('smooth_width', FloatArg),
                    ('smooth_bins', IntArg),
-                   ('scale', EnumOf(['linear', 'log'])),
+                   ('synonymous', BoolArg),
+                   ('bounds', BoolArg),
                    ('replace', BoolArg),
                    ],
         synopsis = 'Show histogram of mutation scores'
