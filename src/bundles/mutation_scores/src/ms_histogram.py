@@ -49,11 +49,14 @@ class MutationHistogram(Plot):
     def __init__(self, session, mutation_set_name):
         self.mutation_set_name = mutation_set_name
         Plot.__init__(self, session, tool_name = 'Deep mutational scan histogram')
+        tw = self.tool_window
+        tw.fill_context_menu = self._fill_context_menu
+        self.canvas.mousePressEvent = tw._show_context_menu  # Show menu on left click.
         self._highlight_color = (0,255,0,255)
         self._unhighlight_color = (150,150,150,255)
 
     def set_values(self, scores, title = '', x_label = '', bins = 20,
-                   smooth_curve = False, smooth_width = None, smooth_bins = 200):
+                   smooth_curve = False, smooth_width = None, smooth_bins = 200, yscale = 'linear'):
         a = self.axes
         a.clear()
         a.hist(scores, bins=bins)
@@ -68,23 +71,34 @@ class MutationHistogram(Plot):
         self._scores, self._bins, self._smooth_curve, self._smooth_width, self._smooth_bins = \
             scores, bins, smooth_curve, smooth_width, smooth_bins
         self.canvas.draw()
+        ymin, self._ymax = a.get_ylim()
+        if yscale == 'log':
+            self._set_log_scale()
 
     def tight_layout(self):
         # Don't hide axes and reduce padding
         pass
 
-    def _select_residue(self, r):
-        self._run_residue_command(r, 'select %s')
-    def _highlight_residue(self, r):
-        self._run_residue_command(r, 'color %s lime')
-    def _zoom_to_residue(self, r):
-        self._run_residue_command(r, 'view %s')
-    def _run_residue_command(self, r, command):
-        self._run_command(command % r.string(style = 'command'))
-    def _run_command(self, command):
-        from chimerax.core.commands import run
-        run(self.session, command)
-    
+    def _fill_context_menu(self, menu, x, y):
+        if self._yscale == 'linear':
+            self.add_menu_entry(menu, 'Log scale', self._set_log_scale)
+        else:
+            self.add_menu_entry(menu, 'Linear scale', self._set_linear_scale)
+
+    @property
+    def _yscale(self):
+        return self.axes.get_yscale()
+    def _set_log_scale(self):
+        a = self.axes
+        a.set_yscale('log')
+        a.set_ylim(1)
+        self.canvas.draw()
+    def _set_linear_scale(self):
+        a = self.axes
+        a.set_yscale('linear')
+        a.set_ylim(0, self._ymax)
+        self.canvas.draw()
+
     # ---------------------------------------------------------------------------
     # Session save and restore.
     #
@@ -99,6 +113,7 @@ class MutationHistogram(Plot):
                 'smooth_curve': self._smooth_curve,
                 'smooth_width': self._smooth_width,
                 'smooth_bins': self._smooth_bins,
+                'yscale': self._yscale,
                 'version': '1'}
         return data
 
@@ -107,7 +122,7 @@ class MutationHistogram(Plot):
         hp = cls(session, data['mutation_set_name'])
         hp.set_values(data['scores'], title = data['title'], x_label = data['x_label'], bins = data['bins'],
                       smooth_curve = data['smooth_curve'], smooth_width = data['smooth_width'],
-                      smooth_bins = data['smooth_bins'])
+                      smooth_bins = data['smooth_bins'], yscale = data.get('yscale', 'linear'))
         return hp
 
 def gaussian_histogram(values, sdev = None, pad = 5, bins = 256):
