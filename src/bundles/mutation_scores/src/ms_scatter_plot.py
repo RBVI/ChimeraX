@@ -382,6 +382,7 @@ class MutationScatterPlot(Graph):
 
         self.add_menu_separator(menu)
         self.add_menu_entry(menu, 'New plot', self._copy_plot)
+        self.add_menu_entry(menu, 'Show histogram', self._show_histogram)
         self.add_menu_entry(menu, 'Save plot as...', self.save_plot_as)
 
     def _select_residue(self, r):
@@ -487,6 +488,10 @@ class MutationScatterPlot(Graph):
         if self._bounds_shown:
             copy._show_synonymous_bounds()
         return copy
+    def _show_histogram(self):
+        score_name = self._x_axis_menu.value
+        mset_name = self._mutation_set_menu.value
+        self._run_command(f'mutationscores histogram {score_name} mutationSet {mset_name}')
     def _run_residue_command(self, r, command):
         self._run_command(command % r.string(style = 'command'))
     def _run_command(self, command):
