@@ -24,20 +24,15 @@
 
 # Plot a histogram of mutation scores.
 def mutation_scores_histogram(session, score_name, mutation_set = None,
-                              bins = 20, curve = True, smooth_width = None,
-                              replace = True):
-    from .ms_data import mutation_scores
-    scores = mutation_scores(session, mutation_set)
-    score_values = scores.score_values(score_name)
-
-    values = [value for res_num, from_aa, to_aa, value in score_values.all_values()]
-
-    plot = _find_mutation_histogram(session, scores.name) if replace else None
+                              bins = 20, curve = True, smooth_width = None, smooth_bins = 200,
+                              scale = 'linear', replace = True):
+    plot = _find_mutation_histogram(session, mutation_set) if replace else None
     if plot is None:
-        plot = MutationHistogram(session, scores.name)
+        plot = MutationHistogram(session)
 
-    plot.set_values(values, title=scores.name, x_label=score_name, bins=bins,
-                    smooth_curve=curve, smooth_width=smooth_width)
+    values = plot.set_plot_data(score_name, mutation_set, bins=bins,
+                                curve=curve, smooth_width=smooth_width, smooth_bins=smooth_bins,
+                                scale=scale)
 
     range = f'having range {"%.3g"%min(values)} to {"%.3g"%max(values)}' if len(values) > 0 else ''
     message = f'Plotted {len(values)} scores {range} for {score_name}'
@@ -46,16 +41,78 @@ def mutation_scores_histogram(session, score_name, mutation_set = None,
 from chimerax.interfaces.graph import Plot
 class MutationHistogram(Plot):
 
-    def __init__(self, session, mutation_set_name):
-        self.mutation_set_name = mutation_set_name
+    def __init__(self, session):
+        self.mutation_set_name = ''
+
         Plot.__init__(self, session, tool_name = 'Deep mutational scan histogram')
+
         tw = self.tool_window
         tw.fill_context_menu = self._fill_context_menu
         self.canvas.mousePressEvent = tw._show_context_menu  # Show menu on left click.
-        self._highlight_color = (0,255,0,255)
-        self._unhighlight_color = (150,150,150,255)
 
-    def set_values(self, scores, title = '', x_label = '', bins = 20,
+        parent = tw.ui_area
+        layout = parent.layout()
+
+        # Add score and mutation set menus.
+        from chimerax.ui.widgets import EntriesRow
+        menus = EntriesRow(parent, ' Score', ('score1', 'score2'), 'Mutations', ('set1', 'set2'))
+        self._score_menu, self._mutation_set_menu = menus.values
+        for m in menus.values:
+            menu = m.widget.menu()
+            menu.aboutToShow.connect(lambda menu=menu: self._menu_about_to_show(menu))
+            menu.triggered.connect(self._menu_selection_changed)
+        layout.addWidget(menus.frame)
+
+    def _menu_about_to_show(self, menu):
+        menu.clear()
+        if menu is self._mutation_set_menu.widget.menu():
+            from .ms_data import mutation_scores_list
+            for ms_name in mutation_scores_list(self.session):
+                menu.addAction(ms_name)
+        else:
+            from .ms_data import mutation_scores
+            ms_name = self._mutation_set_menu.value
+            mset = mutation_scores(self.session, ms_name)
+            for name in mset.score_names():
+                menu.addAction(name)
+
+    def _menu_selection_changed(self, action):
+        mutation_set_name = self._mutation_set_menu.value
+        score_name = self._score_menu.value
+
+        if mutation_set_name != self.mutation_set_name:
+            # If mutation set is changed, make sure the score name s valid.
+            from .ms_data import mutation_scores
+            mset = mutation_scores(self.session, mutation_set_name)
+            score_names = mset.score_names()
+            if score_name not in score_names:
+                score_name = self._score_menu.value = score_names[0]
+            
+        scale = self._yscale
+
+        self.set_plot_data(score_name, mutation_set_name, bins = self._bins,
+                           curve = self._smooth_curve, smooth_width = self._smooth_width, smooth_bins = self._smooth_bins,
+                           scale = self._yscale)
+
+        if scale == 'log':
+            self._set_log_scale()
+
+    def set_plot_data(self, score_name, mutation_set_name, bins = 20,
+                      curve = True, smooth_bins = 20, smooth_width = None, scale = 'linear'):
+        from .ms_data import mutation_scores
+        scores = mutation_scores(self.session, mutation_set_name)
+        score_values = scores.score_values(score_name)
+
+        self._score_menu.value = score_name
+        self._mutation_set_menu.value = self.mutation_set_name = scores.name
+
+        values = [value for res_num, from_aa, to_aa, value in score_values.all_values()]
+
+        self._set_values(values, title=scores.name, x_label=score_name, bins=bins,
+                         smooth_curve=curve, smooth_width=smooth_width, smooth_bins=smooth_bins, yscale=scale)
+        return values
+    
+    def _set_values(self, scores, title = '', x_label = '', bins = 20,
                    smooth_curve = False, smooth_width = None, smooth_bins = 200, yscale = 'linear'):
         a = self.axes
         a.clear()
@@ -85,6 +142,10 @@ class MutationHistogram(Plot):
         else:
             self.add_menu_entry(menu, 'Linear scale', self._set_linear_scale)
 
+        self.add_menu_separator(menu)
+        self.add_menu_entry(menu, 'New plot', self._copy_plot)
+        self.add_menu_entry(menu, 'Save plot as...', self.save_plot_as)
+
     @property
     def _yscale(self):
         return self.axes.get_yscale()
@@ -99,6 +160,13 @@ class MutationHistogram(Plot):
         a.set_ylim(0, self._ymax)
         self.canvas.draw()
 
+    def _copy_plot(self):
+        copy = MutationHistogram(self.session)
+        copy.set_plot_data(self._score_menu.value, self._mutation_set_menu.value, bins = self._bins,
+                           curve = self._smooth_curve, smooth_width = self._smooth_width, smooth_bins = self._smooth_bins,
+                           scale = self._yscale)
+        return copy
+
     # ---------------------------------------------------------------------------
     # Session save and restore.
     #
@@ -106,6 +174,7 @@ class MutationHistogram(Plot):
     def take_snapshot(self, session, flags):
         axes = self.axes
         data = {'mutation_set_name': self.mutation_set_name,
+                'score_name': self._score_menu.value,
                 'scores': self._scores,
                 'title': axes.get_title(),
                 'x_label': axes.get_xlabel(),
@@ -119,10 +188,12 @@ class MutationHistogram(Plot):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        hp = cls(session, data['mutation_set_name'])
-        hp.set_values(data['scores'], title = data['title'], x_label = data['x_label'], bins = data['bins'],
-                      smooth_curve = data['smooth_curve'], smooth_width = data['smooth_width'],
-                      smooth_bins = data['smooth_bins'], yscale = data.get('yscale', 'linear'))
+        hp = cls(session)
+        hp.mutation_set_name = hp._mutation_set_menu.value = data['mutation_set_name']
+        hp._score_menu.value = data.get('score_name', '')
+        hp._set_values(data['scores'], title = data['title'], x_label = data['x_label'], bins = data['bins'],
+                       smooth_curve = data['smooth_curve'], smooth_width = data['smooth_width'],
+                       smooth_bins = data['smooth_bins'], yscale = data.get('yscale', 'linear'))
         return hp
 
 def gaussian_histogram(values, sdev = None, pad = 5, bins = 256):
@@ -144,17 +215,19 @@ def gaussian_histogram(values, sdev = None, pad = 5, bins = 256):
 
 def _find_mutation_histogram(session, mutation_set_name):
     hists = [tool for tool in session.tools.list()
-             if isinstance(tool, MutationHistogram) and tool.mutation_set_name == mutation_set_name]
+             if isinstance(tool, MutationHistogram) and (mutation_set_name is None or tool.mutation_set_name == mutation_set_name)]
     return hists[-1] if hists else None
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, FloatArg, IntArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, FloatArg, IntArg, EnumOf
     desc = CmdDesc(
         required = [('score_name', StringArg)],
         keyword = [('mutation_set', StringArg),
                    ('bins', IntArg),
                    ('curve', BoolArg),
                    ('smooth_width', FloatArg),
+                   ('smooth_bins', IntArg),
+                   ('scale', EnumOf(['linear', 'log'])),
                    ('replace', BoolArg),
                    ],
         synopsis = 'Show histogram of mutation scores'
