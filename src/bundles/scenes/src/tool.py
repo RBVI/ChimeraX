@@ -97,12 +97,8 @@ class SceneItem(QWidget):
 
         # Thumbnail
         self.thumbnail_label = QLabel()
-        pixmap = QPixmap()
-        image_data = base64.b64decode(self.thumbnail_data)
-        pixmap.loadFromData(image_data)
-        pixmap = pixmap.scaled(100, 100, Qt.KeepAspectRatio)
-        self.thumbnail_label.setPixmap(pixmap)
-        self.thumbnail_label.setAlignment(Qt.AlignCenter)
+        self.pixmap = QPixmap()
+        self.set_thumbnail(self.thumbnail_data)
         layout.addWidget(self.thumbnail_label)
 
         # Label
@@ -112,7 +108,14 @@ class SceneItem(QWidget):
         layout.addWidget(self.label)
 
         # Set fixed size for the SceneItem
-        self.setFixedSize(pixmap.width(), pixmap.height() + self.label.sizeHint().height())
+        self.setFixedSize(self.pixmap.width(), self.pixmap.height() + self.label.sizeHint().height())
+
+    def set_thumbnail(self, thumbnail_data):
+        image_data = base64.b64decode(thumbnail_data)
+        self.pixmap.loadFromData(image_data)
+        self.pixmap = self.pixmap.scaled(100, 100, Qt.KeepAspectRatio)
+        self.thumbnail_label.setPixmap(self.pixmap)
+        self.thumbnail_label.setAlignment(Qt.AlignCenter)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
