@@ -59,9 +59,9 @@ class ScenesWidget(QWidget):
         super().__init__()
         self.main_layout = QGridLayout()
         self.setLayout(self.main_layout)
-        self.add_scenes(session)
+        self.init_scene_item_widgets(session)
 
-    def add_scenes(self, session):
+    def init_scene_item_widgets(self, session):
         self.main_layout.setRowStretch(0, 0)
         self.main_layout.setColumnStretch(0, 0)
         scenes = session.scenes.get_scenes()
