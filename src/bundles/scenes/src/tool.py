@@ -1,7 +1,7 @@
 import base64
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
-from Qt.QtWidgets import QHBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QSizePolicy, QPushButton
+from Qt.QtWidgets import QHBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton
 from Qt.QtGui import QPixmap
 from Qt.QtCore import Qt
 from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, ADDED
@@ -36,17 +36,17 @@ class ScenesTool(ToolInstance):
 
         self.main_layout.addWidget(self.scroll_area)
 
-        self.buttons_layout = QHBoxLayout()
+        self.collapsible_box = CollapsibleBox("Actions")
 
         self.add_button = QPushButton("Add")
         self.edit_button = QPushButton("Edit")
         self.delete_button = QPushButton("Delete")
 
-        self.buttons_layout.addWidget(self.add_button)
-        self.buttons_layout.addWidget(self.edit_button)
-        self.buttons_layout.addWidget(self.delete_button)
+        self.collapsible_box.add_widget(self.add_button)
+        self.collapsible_box.add_widget(self.edit_button)
+        self.collapsible_box.add_widget(self.delete_button)
 
-        self.main_layout.addLayout(self.buttons_layout)
+        self.main_layout.addWidget(self.collapsible_box)
 
     def scene_selected_cb(self, trigger_name, scene_name):
         run(self.session, f"scene restore {scene_name}")
@@ -176,3 +176,25 @@ class SceneItem(QWidget):
 
     def get_name(self):
         return self.name
+
+
+class CollapsibleBox(QGroupBox):
+    def __init__(self, title="", parent=None):
+        super().__init__(title, parent)
+        self.setCheckable(True)
+        self.setChecked(False)
+        self.toggled.connect(self.on_toggled)
+
+        self.content = QWidget()
+        self.content_layout = QVBoxLayout()
+        self.content.setLayout(self.content_layout)
+
+        self.main_layout = QVBoxLayout()
+        self.main_layout.addWidget(self.content)
+        self.setLayout(self.main_layout)
+
+    def on_toggled(self, checked):
+        self.content.setVisible(checked)
+
+    def add_widget(self, widget):
+        self.content_layout.addWidget(widget)
