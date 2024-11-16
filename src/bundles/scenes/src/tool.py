@@ -45,6 +45,7 @@ class ScenesTool(ToolInstance):
         self.collapsible_box.add_widget(self.add_button)
         self.collapsible_box.add_widget(self.edit_button)
         self.collapsible_box.add_widget(self.delete_button)
+        self.collapsible_box.on_toggled(False)
 
         self.main_layout.addWidget(self.collapsible_box)
 
