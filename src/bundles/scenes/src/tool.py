@@ -46,6 +46,7 @@ class ScenesTool(ToolInstance):
             scene = scenes_mgr.get_scene(scene_name)
             if scene:
                 scene_widget.set_thumbnail(scene.get_thumbnail())
+                self.scenes_widget.set_latest_scene(scene_name)
 
     def scene_added_cb(self, trigger_name, scene_name):
         scene = self.session.scenes.get_scene(scene_name)
@@ -78,6 +79,13 @@ class ScenesWidget(QWidget):
         scene_item = SceneItem(scene_name, thumbnail_data)
         self.scene_items.insert(0, scene_item)
         self.update_layout()
+
+    def set_latest_scene(self, scene_name):
+        scene_item = self.get_scene_item(scene_name)
+        if scene_item:
+            self.scene_items.remove(scene_item)
+            self.scene_items.insert(0, scene_item)
+            self.update_layout()
 
     def resizeEvent(self, event):
         self.update_layout()
