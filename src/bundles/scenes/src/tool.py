@@ -137,6 +137,9 @@ class ScenesWidget(QWidget):
 
 
 class SceneItem(QWidget):
+    IMAGE_WIDTH = 100
+    IMAGE_HEIGHT = 100
+
     def __init__(self, scene_name, thumbnail_data, parent=None):
         super().__init__(parent)
         self.name = scene_name
@@ -165,7 +168,7 @@ class SceneItem(QWidget):
     def set_thumbnail(self, thumbnail_data):
         image_data = base64.b64decode(thumbnail_data)
         self.pixmap.loadFromData(image_data)
-        self.pixmap = self.pixmap.scaled(100, 100, Qt.KeepAspectRatio)
+        self.pixmap = self.pixmap.scaled(self.IMAGE_WIDTH, self.IMAGE_HEIGHT, Qt.KeepAspectRatio)
         self.thumbnail_label.setPixmap(self.pixmap)
         self.thumbnail_label.setAlignment(Qt.AlignCenter)
 
