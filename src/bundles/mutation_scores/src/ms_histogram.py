@@ -211,7 +211,7 @@ class MutationHistogram(Graph):
         a.setChecked(self._drag_colors_structure)
             
         self.add_menu_separator(menu)
-        self.add_menu_entry(menu, 'New plot', self._copy_plot)
+        self.add_menu_entry(menu, 'New histogram', self._copy_histogram)
         self.add_menu_entry(menu, 'Save plot as...', self.save_plot_as)
 
     @property
@@ -264,7 +264,7 @@ class MutationHistogram(Graph):
         from chimerax.core.commands import run
         run(self.session, command)
 
-    def _copy_plot(self):
+    def _copy_histogram(self):
         copy = MutationHistogram(self.session)
         copy.set_plot_data(self._score_menu.value, self._mutation_set_menu.value, bins = self._bins,
                            curve = self._smooth_curve, smooth_width = self._smooth_width, smooth_bins = self._smooth_bins,
