@@ -163,13 +163,13 @@ clipping can be turned off with <a href="clip.html"><b>clip off</b><a>,
 or with <a href="view.html"><b>view</b></a> to view all
 <li><b>Label with [<i>x-score</i>] scores</b>
 &ndash; <a href="#label">label</a>
-the corresponding residue with a matrix of the <i>x-score</i>
-values for all substitutions at that position; the matrix
+the corresponding residue with a color-coded grid of the <i>x-score</i>
+values for all substitutions at that position; the grid
 can be removed with <a href="label.html#delete"><b>label delete</b></a>
 <li><b>Label with [<i>y-score</i>] scores</b>
 &ndash; <a href="#label">label</a>
-the corresponding residue with a matrix of the <i>y-score</i>
-values for all substitutions at that position; the matrix
+the corresponding residue with a color-coded grid of the <i>y-score</i>
+values for all substitutions at that position; the grid
 can be removed with <a href="label.html#delete"><b>label delete</b></a>
 </ul>
 The remaining tool-specific entry is for saving the plot as an image file.
@@ -185,7 +185,6 @@ and are not not specific to mutation scores.)
 <b>mutationscores define</b>
 [&nbsp;<i>new-score</i>&nbsp;]
 [&nbsp;<b>fromScoreName</b>&nbsp;&nbsp;<i>from-score</i>&nbsp;]
-[&nbsp;<b>subtractFit</b>&nbsp;&nbsp;<i>sub-score</i>&nbsp;]
 [&nbsp;<b>aa</b>&nbsp;&nbsp;<i>one-letter-codes</i>&nbsp;]
 [&nbsp;<b>toAa</b>&nbsp;&nbsp;<i>one-letter-codes</i>&nbsp;]
 [&nbsp;<b>synonymous</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
@@ -194,15 +193,58 @@ and are not not specific to mutation scores.)
 [&nbsp;<b>ranges</b>&nbsp;&nbsp;<i>comparison-expression</i>&nbsp;]
 [&nbsp;<b>combine</b>&nbsp;&nbsp;count&nbsp;|&nbsp;mean&nbsp;|&nbsp;stddev&nbsp;|&nbsp;sum&nbsp;|&nbsp;sum_absolute&nbsp;]
 [&nbsp;<b>setAttribute</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>subtractFit</b>&nbsp;&nbsp;<i>sub-score</i>&nbsp;]
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
-<blockquote>
-</blockquote>
-
+<br><br>
 <a href="#top" class="nounder">&bull;</a>
 <a name="undefine"></a>
 <b>mutationscores undefine</b> &nbsp;<i>score</i>&nbsp;
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
+A new score can be computed from one or more of the existing scores with 
+<b>mutationscores define</b> and then used in other
+<b>mutationscores</b> analyses just like any of the original scores.
+The <b>mutationscores define</b> command without any arguments
+will list the existing score names (same as <a href="#list"><b>mutationscores
+list</b></a>), and <b>mutationscores undefine</b> can be used to 
+delete a score.
+<p>
+A new score can also define an interesting subset of the mutations. 
+The <b>aa</b> and <b>toAa</b> options limit the mutations to specific 
+&ldquo;before and after&rdquo; (before and after mutation) amino acid types.
+Specifying <b>synonymous true</b> limits the &ldquo;mutations&rdquo; 
+to those in which the before and after amino acids are the same (wild-type),
+although the nucleic acid codon could have been different.
+The <b>above</b> and <b>below</b> options limit the mutations to those
+within a given range of a single type of score specified with
+<b>fromScoreName</b> <i>from-score</i>.
+This can also be achieved more flexibly, potentially involving more
+than one type of score, with the <b>ranges</b> option, which specifies a 
+boolean expression involving any existing score names along with
+"and", "or", "not", ">", ">=", "<", "<=", "!=", and "==" operators and 
+parentheses, for example, "mtx <= -1.5 and sn38 >= 1.0".
+<p>
+A per-residue score has only a single value per position in the sequence.
+Several options create per-residue scores: 
+<b>synonymous true</b>, or <b>combine</b>, or <b>toAa</b>
+with a single amino acid type specified. 
+The <b>combine</b> option combines the scores for all mutations at a 
+given position using the specified operation. 
+With <b>setAttribute true</b> (default), defining a per-residue score
+assigns an attribute with the same name as the score 
+to the <a href="#associated">associated structure</a> residues.
+<p>
+The <b>subtractFit</b> option performs a linear least-squares fit of the 
+<i>from-score</i> to the <i>sub-score</i> and subtracts the linear values 
+from the <i>from-score</i> values. 
+The typical use of this would be to normalize a score.
+For instance, if the <i>from-score</i> is a cell growth measure in response 
+to a drug and the <i>sub-score</i> is a surface expression score for the 
+protein, then the subtraction attempts to normalize the drug response to 
+account for the different amounts of protein reaching the membrane.
+A limitation of this simplistic normalization, however, is that the variation
+in response might not be a linear function of the quantity of 
+surface-expressed protein.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -234,7 +276,11 @@ and are not not specific to mutation scores.)
 alt="mutation scores residue label" width="80px">
 </td></tr>
 </table>
-Defaults for the coloring options are:
+Label each of the specified residues in the 
+<a href="#associated">associated structure</a>
+with a grid of all possible substitutions (the 20 standard amino acids) 
+color-coded by the values of the <i>score</i> at that position.
+The coloring defaults are:
   <blockquote>
 <b><a href="color.html#palette">palette</a> redblue
 &nbsp;<a href="color.html#range">range</a> full</b>
@@ -246,13 +292,24 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=blue width="10px" title="blue"></td>
 </tr></table> 
 across the full range of values (including the values of
-residues not being labeled); a narrower range can be specified as 
-comma-separated values <i>low,high</i>.
+residues not being labeled).
+A narrower range can be specified as comma-separated values <i>low,high</i>.
 The <b>noDataColor</b> is used for residues without mutation scores (default 
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=#B4B4B4 width="10px" title="#B4B4B4"></td>
 </tr></table>).
+<p>
+The label <b>height</b>&nbsp;&nbsp;<i>h</i> defaults to <b>1.5</b> &Aring;.
+The <b>offset</b>&nbsp;&nbsp;<i>x,y,z</i> is the position of the
+lower left corner of the grid relative to the &alpha;-carbon of the
+residue along the X-, Y-, and Z-axes in the
+<a href="view.html#screencoords">screen coordinate system</a>
+(default <b>0,0,3</b> &Aring;). The <b>onTop</b> setting is whether 
+to draw the labels on top of other objects regardless of their
+relative positions in 3D (default <b>false</b>).
+The labels can be removed with 
+<a href="label.html#delete"><b>label delete</b></a>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
