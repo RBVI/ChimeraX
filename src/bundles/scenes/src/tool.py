@@ -4,7 +4,7 @@ from chimerax.ui import MainToolWindow
 from Qt.QtWidgets import QHBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QSizePolicy
 from Qt.QtGui import QPixmap
 from Qt.QtCore import Qt
-from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED
+from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, ADDED
 from chimerax.core.commands import run
 
 
@@ -22,6 +22,7 @@ class ScenesTool(ToolInstance):
         self.handlers = []
         self.handlers.append(add_handler(SCENE_SELECTED, self.scene_selected_cb))
         self.handlers.append(add_handler(EDITED, self.scene_edited_cb))
+        self.handlers.append(add_handler(ADDED, self.scene_added_cb))
 
     def build_ui(self):
         self.main_layout = QHBoxLayout()
@@ -46,6 +47,11 @@ class ScenesTool(ToolInstance):
             if scene:
                 scene_widget.set_thumbnail(scene.get_thumbnail())
 
+    def scene_added_cb(self, trigger_name, scene_name):
+        scene = self.session.scenes.get_scene(scene_name)
+        if scene:
+            self.scenes_widget.add_scene_item(scene_name, scene.get_thumbnail())
+
     def delete(self):
         for handler in self.handlers:
             handler.remove()
@@ -66,6 +72,11 @@ class ScenesWidget(QWidget):
         self.main_layout.setColumnStretch(0, 0)
         scenes = session.scenes.get_scenes()
         self.scene_items = [SceneItem(scene.get_name(), scene.get_thumbnail()) for scene in scenes]
+        self.update_layout()
+
+    def add_scene_item(self, scene_name, thumbnail_data):
+        scene_item = SceneItem(scene_name, thumbnail_data)
+        self.scene_items.insert(0, scene_item)
         self.update_layout()
 
     def resizeEvent(self, event):
