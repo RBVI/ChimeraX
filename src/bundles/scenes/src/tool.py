@@ -1,7 +1,7 @@
 import base64
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
-from Qt.QtWidgets import QHBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QSizePolicy
+from Qt.QtWidgets import QHBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QSizePolicy, QPushButton
 from Qt.QtGui import QPixmap
 from Qt.QtCore import Qt
 from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, ADDED
@@ -25,7 +25,7 @@ class ScenesTool(ToolInstance):
         self.handlers.append(add_handler(ADDED, self.scene_added_cb))
 
     def build_ui(self):
-        self.main_layout = QHBoxLayout()
+        self.main_layout = QVBoxLayout()
         self.tool_window.ui_area.setLayout(self.main_layout)
 
         self.scroll_area = QScrollArea()
@@ -35,6 +35,18 @@ class ScenesTool(ToolInstance):
         self.scroll_area.setWidget(self.scenes_widget)
 
         self.main_layout.addWidget(self.scroll_area)
+
+        self.buttons_layout = QHBoxLayout()
+
+        self.add_button = QPushButton("Add")
+        self.edit_button = QPushButton("Edit")
+        self.delete_button = QPushButton("Delete")
+
+        self.buttons_layout.addWidget(self.add_button)
+        self.buttons_layout.addWidget(self.edit_button)
+        self.buttons_layout.addWidget(self.delete_button)
+
+        self.main_layout.addLayout(self.buttons_layout)
 
     def scene_selected_cb(self, trigger_name, scene_name):
         run(self.session, f"scene restore {scene_name}")
