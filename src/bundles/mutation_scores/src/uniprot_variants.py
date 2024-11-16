@@ -24,13 +24,20 @@
 
 def fetch_uniprot_variants(session, uniprot_id, chain = None, identifier = None, ignore_cache = False):
     '''
-    Fetch UniProt variants for a UniProt entry specified by its accession code.  Data is in JSON format.
+    Fetch UniProt variants for a UniProt entry specified by its name or accession code.  Data is in JSON format.
     Create a mutation scores instance. Example URL
 
        https://www.ebi.ac.uk/proteins/api/variation/Q9UNQ0
     '''
+    if '_' in uniprot_id:
+        # Convert uniprot name to accession code.
+        from chimerax.uniprot import map_uniprot_ident
+        uid = map_uniprot_ident(uniprot_id, return_value = 'entry')
+    else:
+        uid = uniprot_id
+
     url_pattern = 'https://www.ebi.ac.uk/proteins/api/variation/%s'
-    url = url_pattern % uniprot_id
+    url = url_pattern % uid
     file_name = f'{uniprot_id}_variants.json'
     save_dir = 'UniProtVariants'
     from chimerax.core.fetch import fetch_file
