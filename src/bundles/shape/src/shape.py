@@ -182,6 +182,9 @@ def _cylinder_divisions(radius, height, divisions):
     nc = max(3, int(ceil(divisions)))
     nz = max(2, int(ceil(nc * height / (sqrt(3)*pi*radius))))
     return nz, nc
+# Make above function publicly accessible, since it's frequently needed to
+# compute the input parameters for the next function
+cylinder_divisions = _cylinder_divisions
 
 # -----------------------------------------------------------------------------
 #
