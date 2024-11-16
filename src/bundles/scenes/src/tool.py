@@ -4,7 +4,7 @@ from chimerax.ui import MainToolWindow
 from Qt.QtWidgets import QHBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QSizePolicy
 from Qt.QtGui import QPixmap
 from Qt.QtCore import Qt
-from .triggers import activate_trigger, add_handler, SCENE_SELECTED
+from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED
 from chimerax.core.commands import run
 
 
@@ -21,6 +21,7 @@ class ScenesTool(ToolInstance):
 
         self.handlers = []
         self.handlers.append(add_handler(SCENE_SELECTED, self.scene_selected_cb))
+        self.handlers.append(add_handler(EDITED, self.scene_edited_cb))
 
     def build_ui(self):
         self.main_layout = QHBoxLayout()
@@ -36,6 +37,14 @@ class ScenesTool(ToolInstance):
 
     def scene_selected_cb(self, trigger_name, scene_name):
         run(self.session, f"scene restore {scene_name}")
+
+    def scene_edited_cb(self, trigger_name, scene_name):
+        scene_widget = self.scenes_widget.get_scene_item(scene_name)
+        if scene_widget:
+            scenes_mgr = self.session.scenes
+            scene = scenes_mgr.get_scene(scene_name)
+            if scene:
+                scene_widget.set_thumbnail(scene.get_thumbnail())
 
     def delete(self):
         for handler in self.handlers:
@@ -83,6 +92,18 @@ class ScenesWidget(QWidget):
         required_height = (row + 1) * item_height
         self.setMinimumHeight(required_height)
 
+    def get_scene_item(self, name):
+        """
+        Get the scene item by name.
+
+        Args:
+            name (str): The name of the scene item.
+
+        Returns:
+            SceneItem | None: The scene item. None if not found.
+        """
+        return next((scene_item for scene_item in self.scene_items if scene_item.get_name() == name), None)
+
 
 class SceneItem(QWidget):
     def __init__(self, scene_name, thumbnail_data, parent=None):
@@ -121,3 +142,6 @@ class SceneItem(QWidget):
         if event.button() == Qt.LeftButton:
             activate_trigger(SCENE_SELECTED, self.name)
         super().mousePressEvent(event)
+
+    def get_name(self):
+        return self.name
