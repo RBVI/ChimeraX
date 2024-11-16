@@ -29,6 +29,8 @@ using atomstruct::Atom;
 using atomstruct::Chain;
 using atomstruct::AtomSearchTree;
 
+namespace { // so these class declarations are not visible outside this file
+
 class EndPoint
 {
 public:
@@ -57,6 +59,8 @@ public:
     }
 };
 
+} // end namespace
+
 typedef std::vector<std::shared_ptr<Link>> LinkList;
 
 class CircularLinkData
@@ -65,6 +69,73 @@ public:
     std::vector<LinkList> links1, links2;
     LinkList link_list;
 };
+
+static void
+find_prune_crosslinks(
+    LinkList& all_links,
+    std::map<const Chain*, std::vector<LinkList>>& pairings,
+    const Chain* seq1, const Chain* seq2,
+    LinkList& link_list, std::vector<LinkList>& links1, std::vector<LinkList>& links2,
+    std::string& tag, const char* status_prefix, PyObject* py_logger)
+{
+    logger::status(py_logger, status_prefix, "Finding crosslinks ", tag);
+    std::vector<LinkList::size_type> ends;
+    LinkList seq2_links;
+    for (auto& links: links2) {
+        ends.push_back(seq2_links.size());
+        seq2_links.insert(seq2_links.end(), links.begin(), links.end());
+    }
+    std::vector<LinkList> l2_lists;
+    for (auto end: ends)
+        l2_lists.insert(l2_lists.end(), seq2_links.begin(), seq2_links.begin() + end);
+    for (auto& link1: link_list) {
+        auto i1 = link1->info[0]->pos;
+        auto i2 = link1->info[1]->pos;
+        for (auto& link2: l2_lists[i2]) {
+            if (link2->info[0]->pos <= i1)
+                continue;
+            link1->crosslinks.push_back(link2);
+            link2->crosslinks.push_back(link1);
+            link1->penalty += link2->val;
+            link2->penalty += link1->val;
+        }
+    }
+    
+    logger::status(py_logger, status_prefix, "Pruning crosslinks ", tag);
+    while (link_list.size() > 0) {
+        LinkList::iterator pos;
+        decltype(Link::penalty) pen;
+        for (auto iter = link_list.begin(); iter != link_list.end(); ++iter) {
+            auto x_pen = (*iter)->penalty;
+            if (iter == link_list.begin() || x_pen > pen) {
+                pos = iter;
+                pen = x_pen;
+            }
+        }
+        if (pen <= 0.0001))
+            break;
+        auto& link = *pos;
+        auto& l1_list = links1[link->info[0]->pos];
+        l1_list.erase(std::find(l1_list.begin(), l1_list.end(), link);
+        auto& l2_list = links2[link->info[1]->pos];
+        l2_list.erase(std::find(l2_list.begin(), l2_list.end(), link);
+        for (auto& clink: link->crosslinks)
+            clink->penalty -= link->val;
+        link_list.erase(pos);
+    }
+
+    auto& p1 = pairings[seq1];
+    for (auto iter = links1.begin(); iter != links1.end(); ++iter) {
+        auto& p1_ll = p1[iter - links1.begin()];
+        p1_ll.insert(p1_ll.end(), (*iter)->begin(), (*iter)->end());
+        all_links.insert(all_links.begin(), (*iter)->begin(), (*iter)->end());
+    }
+    auto& p2 = pairings[seq2];
+    for (auto iter = links2.begin(); iter != links2.end(); ++iter) {
+        auto& p2_ll = p2[iter - links2.begin()];
+        p2_ll.insert(p2_ll.end(), (*iter)->begin(), (*iter)->end());
+    }
+}
 
 PyObject *
 multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all, char gap_char,
@@ -81,7 +152,7 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
     // figure out what previous links are crossed and keep a running
     // "penalty" for links based on what they cross.  Sort links by
     // penalty and keep pruning worst link until no links cross.
-    LinkList all_links;
+    std::vector<LinkList> all_links;
 
     std::map<const Chain*, std::vector<Atom*>> pas;
     std::map<const Chain*, std::vector<LinkList>> pairings;
@@ -122,16 +193,17 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
         auto num_pas1 = seq1_pas.size();
         for (decltype(i) j = i+1; j < num_chains; ++j) {
             loop_count += 1;
+            std::string tag;
+            tag << "(" << j-i << "/" << num_chains-1 << ")";
             auto seq2 = chains[j];
             auto len2 = pairings[seq2].size();
-            LinkList links1(len1);
-            LinkList links2(len2);
+            std::vector<LinkList> links1(len1);
+            std::vector<LinkList> links2(len2);
             LinkList link_list;
             auto tree_i = trees.find(seq2);
             decltype(trees)::mapped_type tree;
             if (tree_i == trees.end()) {
-                logger::status(py_logger, status_prefix,
-                    "Building search tree (", j-i, "/", num_chains-1, ")");
+                logger::status(py_logger, status_prefix, "Building search tree ", tag);
                 auto& seq2_pas = pas[seq2];
                 auto num_pas = seq2_pas.size();
                 std::vector<Atom*> atoms;
@@ -163,18 +235,33 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
                     if (val <= 0.0)
                         continue;
                     auto i2 = data[pa2];
-                    //TODO
+                    auto link = Link(EndPoint(seq1, k), EndPoint(seq2, i2), val);
+                    links1[k].push_back(&link);
+                    links2[i2].push_back(&link);
+                    link_list.push_back(&link);
                 }
+            }
+            if (circular) {
+                //TODO
+            } else {
+                find_prune_crosslinks(all_links, pairings, seq1, seq2, link_list, links1, links2, tag,
+                    status_prefix);
             }
         }
     }
     for (auto chain_tree: trees) {
         delete chain_tree.second;
     }
-    //TODO: lots
+
+    if (circular) {
+        //TODO
+    }
+
+    //TODO: column collation
 
     PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align not implemented");
     return nullptr;
+    // return Python map from original sequence to realigned sequence ;
 }
 
 static PyObject*
