@@ -102,7 +102,6 @@ class SceneItem(QWidget):
         pixmap.loadFromData(image_data)
         pixmap = pixmap.scaled(100, 100, Qt.KeepAspectRatio)
         self.thumbnail_label.setPixmap(pixmap)
-        self.thumbnail_label.setPixmap(pixmap)
         self.thumbnail_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.thumbnail_label)
 
