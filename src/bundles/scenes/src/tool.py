@@ -1,7 +1,7 @@
 import base64
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
-from Qt.QtWidgets import QHBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton
+from Qt.QtWidgets import QSizePolicy, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton
 from Qt.QtGui import QPixmap
 from Qt.QtCore import Qt
 from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, ADDED
@@ -28,11 +28,7 @@ class ScenesTool(ToolInstance):
         self.main_layout = QVBoxLayout()
         self.tool_window.ui_area.setLayout(self.main_layout)
 
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-
-        self.scenes_widget = ScenesWidget(self.session)
-        self.scroll_area.setWidget(self.scenes_widget)
+        self.scroll_area = SceneScrollArea(self.session)
 
         self.main_layout.addWidget(self.scroll_area)
 
@@ -53,18 +49,18 @@ class ScenesTool(ToolInstance):
         run(self.session, f"scene restore {scene_name}")
 
     def scene_edited_cb(self, trigger_name, scene_name):
-        scene_widget = self.scenes_widget.get_scene_item(scene_name)
-        if scene_widget:
+        scene_item_widget = self.scroll_area.get_scene_item(scene_name)
+        if scene_item_widget:
             scenes_mgr = self.session.scenes
             scene = scenes_mgr.get_scene(scene_name)
             if scene:
-                scene_widget.set_thumbnail(scene.get_thumbnail())
-                self.scenes_widget.set_latest_scene(scene_name)
+                scene_item_widget.set_thumbnail(scene.get_thumbnail())
+                self.scroll_area.set_latest_scene(scene_name)
 
     def scene_added_cb(self, trigger_name, scene_name):
         scene = self.session.scenes.get_scene(scene_name)
         if scene:
-            self.scenes_widget.add_scene_item(scene_name, scene.get_thumbnail())
+            self.scroll_area.add_scene_item(scene_name, scene.get_thumbnail())
 
     def delete(self):
         for handler in self.handlers:
@@ -72,12 +68,68 @@ class ScenesTool(ToolInstance):
         super().delete()
 
 
+class SceneScrollArea(QScrollArea):
+    def __init__(self, session, parent=None):
+        super().__init__(parent)
+        self.setWidgetResizable(True)
+        self.container_widget = QWidget()
+        self.grid = QGridLayout(self.container_widget)
+        self.setWidget(self.container_widget)
+        self.cols = 0
+        self.scene_items = []
+        self.init_scene_item_widgets(session)
+
+    def init_scene_item_widgets(self, session):
+        self.grid.setRowStretch(0, 0)
+        self.grid.setColumnStretch(0, 0)
+        scenes = session.scenes.get_scenes()
+        self.scene_items = [SceneItem(scene.get_name(), scene.get_thumbnail()) for scene in scenes]
+        self.update_grid()
+
+    def resizeEvent(self, event):
+        required_cols = self.viewport().width() // SceneItem.IMAGE_WIDTH
+        if required_cols != self.cols:
+            self.update_grid()
+        super().resizeEvent(event)
+
+    def update_grid(self):
+        # Clear the grid before repopulating it in the correct orientation
+        for i in reversed(range(self.grid.count())):
+            self.grid.itemAt(i).widget().setParent(None)
+
+        width = self.viewport().width()
+        self.cols = max(1, width // SceneItem.IMAGE_WIDTH)  # Adjust to the desired width of each SceneItem
+        row, col = 0, 0
+        for scene_item in self.scene_items:
+            self.grid.addWidget(scene_item, row, col)
+            col += 1
+            if col >= self.cols:
+                self.grid.setRowMinimumHeight(row, scene_item.height())
+                col = 0
+                row += 1
+
+    def add_scene_item(self, scene_name, thumbnail_data):
+        scene_item = SceneItem(scene_name, thumbnail_data)
+        self.scene_items.insert(0, scene_item)
+        self.update_grid()
+
+    def set_latest_scene(self, scene_name):
+        scene_item = self.get_scene_item(scene_name)
+        if scene_item:
+            self.scene_items.remove(scene_item)
+            self.scene_items.insert(0, scene_item)
+            self.update_grid()
+
+    def get_scene_item(self, name):
+        return next((scene_item for scene_item in self.scene_items if scene_item.get_name() == name), None)
+
 class ScenesWidget(QWidget):
     ITEM_WIDTH = 110
 
     def __init__(self, session):
         super().__init__()
         self.main_layout = QGridLayout()
+        self.cols = 0
         self.setLayout(self.main_layout)
         self.init_scene_item_widgets(session)
 
@@ -101,7 +153,9 @@ class ScenesWidget(QWidget):
             self.update_layout()
 
     def resizeEvent(self, event):
-        self.update_layout()
+        required_cols = self.width() // SceneItem.IMAGE_WIDTH
+        if required_cols != self.cols:
+            self.update_layout()
         super().resizeEvent(event)
 
     def update_layout(self):
@@ -109,13 +163,16 @@ class ScenesWidget(QWidget):
         for i in reversed(range(self.main_layout.count())):
             self.main_layout.itemAt(i).widget().setParent(None)
 
+        # Ensure the ScenesWidget resizes with the scroll area
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
         width = self.width()
-        columns = max(1, width // self.ITEM_WIDTH)  # Adjust to the desired width of each SceneItem
+        self.cols = max(1, width // self.ITEM_WIDTH)  # Adjust to the desired width of each SceneItem
         row, col = 0, 0
         for scene_item in self.scene_items:
             self.main_layout.addWidget(scene_item, row, col)
             col += 1
-            if col >= columns:
+            if col >= self.cols:
                 col = 0
                 row += 1
 
