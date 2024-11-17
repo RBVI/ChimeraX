@@ -77,6 +77,7 @@ class SceneScrollArea(QScrollArea):
         self.grid.setContentsMargins(0, 0, 0, 0)  # Remove margins
         self.grid.setHorizontalSpacing(0)  # Remove horizontal spacing
         self.grid.setVerticalSpacing(0)  # Remove vertical spacing"""
+        self.grid.setAlignment(Qt.AlignLeft | Qt.AlignTop)  # Align items to the top-left
         self.setWidget(self.container_widget)
         self.cols = 0
         self.scene_items = []
