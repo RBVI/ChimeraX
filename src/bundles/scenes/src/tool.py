@@ -74,6 +74,9 @@ class SceneScrollArea(QScrollArea):
         self.setWidgetResizable(True)
         self.container_widget = QWidget()
         self.grid = QGridLayout(self.container_widget)
+        self.grid.setContentsMargins(0, 0, 0, 0)  # Remove margins
+        self.grid.setHorizontalSpacing(0)  # Remove horizontal spacing
+        self.grid.setVerticalSpacing(0)  # Remove vertical spacing"""
         self.setWidget(self.container_widget)
         self.cols = 0
         self.scene_items = []
@@ -121,76 +124,6 @@ class SceneScrollArea(QScrollArea):
             self.update_grid()
 
     def get_scene_item(self, name):
-        return next((scene_item for scene_item in self.scene_items if scene_item.get_name() == name), None)
-
-class ScenesWidget(QWidget):
-    ITEM_WIDTH = 110
-
-    def __init__(self, session):
-        super().__init__()
-        self.main_layout = QGridLayout()
-        self.cols = 0
-        self.setLayout(self.main_layout)
-        self.init_scene_item_widgets(session)
-
-    def init_scene_item_widgets(self, session):
-        self.main_layout.setRowStretch(0, 0)
-        self.main_layout.setColumnStretch(0, 0)
-        scenes = session.scenes.get_scenes()
-        self.scene_items = [SceneItem(scene.get_name(), scene.get_thumbnail()) for scene in scenes]
-        self.update_layout()
-
-    def add_scene_item(self, scene_name, thumbnail_data):
-        scene_item = SceneItem(scene_name, thumbnail_data)
-        self.scene_items.insert(0, scene_item)
-        self.update_layout()
-
-    def set_latest_scene(self, scene_name):
-        scene_item = self.get_scene_item(scene_name)
-        if scene_item:
-            self.scene_items.remove(scene_item)
-            self.scene_items.insert(0, scene_item)
-            self.update_layout()
-
-    def resizeEvent(self, event):
-        required_cols = self.width() // SceneItem.IMAGE_WIDTH
-        if required_cols != self.cols:
-            self.update_layout()
-        super().resizeEvent(event)
-
-    def update_layout(self):
-        # Clear the layout. Before repopulating it in the correct orientation
-        for i in reversed(range(self.main_layout.count())):
-            self.main_layout.itemAt(i).widget().setParent(None)
-
-        # Ensure the ScenesWidget resizes with the scroll area
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-
-        width = self.width()
-        self.cols = max(1, width // self.ITEM_WIDTH)  # Adjust to the desired width of each SceneItem
-        row, col = 0, 0
-        for scene_item in self.scene_items:
-            self.main_layout.addWidget(scene_item, row, col)
-            col += 1
-            if col >= self.cols:
-                col = 0
-                row += 1
-
-        # Calculate the required height based on the number of rows
-        item_height = self.scene_items[0].height() if self.scene_items else 0
-        required_height = (row + 1) * item_height
-        self.setMinimumHeight(required_height)
-
-    def get_scene_item(self, name):
-        """
-        Get the scene item by name.
-
-        Args:
-            name (str): The name of the scene item.
-
-        Returns:
-            SceneItem | None: The scene item. None if not found.
-        """
         return next((scene_item for scene_item in self.scene_items if scene_item.get_name() == name), None)
 
 
