@@ -1,10 +1,10 @@
 import base64
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
-from Qt.QtWidgets import QSizePolicy, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton
+from Qt.QtWidgets import QSizePolicy, QFrame, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton
 from Qt.QtGui import QPixmap
 from Qt.QtCore import Qt
-from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, ADDED
+from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, ADDED, SCENE_HIGHLIGHTED
 from chimerax.core.commands import run
 
 
@@ -23,6 +23,9 @@ class ScenesTool(ToolInstance):
         self.handlers.append(add_handler(SCENE_SELECTED, self.scene_selected_cb))
         self.handlers.append(add_handler(EDITED, self.scene_edited_cb))
         self.handlers.append(add_handler(ADDED, self.scene_added_cb))
+        self.handlers.append(add_handler(SCENE_HIGHLIGHTED, self.scene_highlighted_cb))
+
+        self.highlighted_scene = None
 
     def build_ui(self):
         self.main_layout = QVBoxLayout()
@@ -36,11 +39,13 @@ class ScenesTool(ToolInstance):
 
         self.add_button = QPushButton("Add")
         self.edit_button = QPushButton("Edit")
+        self.edit_button.clicked.connect(self.edit_button_clicked)
         self.delete_button = QPushButton("Delete")
 
         self.collapsible_box.add_widget(self.add_button)
         self.collapsible_box.add_widget(self.edit_button)
         self.collapsible_box.add_widget(self.delete_button)
+
         self.collapsible_box.on_toggled(False)
 
         self.main_layout.addWidget(self.collapsible_box)
@@ -61,6 +66,20 @@ class ScenesTool(ToolInstance):
         scene = self.session.scenes.get_scene(scene_name)
         if scene:
             self.scroll_area.add_scene_item(scene_name, scene.get_thumbnail())
+
+    def scene_highlighted_cb(self, trigger_name, scene_name):
+        if self.highlighted_scene:
+            if self.highlighted_scene.get_name() == scene_name:
+                activate_trigger(SCENE_SELECTED, scene_name)
+            else:
+                self.highlighted_scene.set_highlighted(False)
+        self.highlighted_scene = self.scroll_area.get_scene_item(scene_name)
+
+    def edit_button_clicked(self):
+        if self.highlighted_scene:
+            run(self.session, f"scene edit {self.highlighted_scene.get_name()}")
+        else:
+            self.session.logger.warning("No scene selected to edit")
 
     def delete(self):
         for handler in self.handlers:
@@ -166,8 +185,15 @@ class SceneItem(QWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            activate_trigger(SCENE_SELECTED, self.name)
+            self.set_highlighted(True)
+            activate_trigger(SCENE_HIGHLIGHTED, self.name)
         super().mousePressEvent(event)
+
+    def set_highlighted(self, highlighted):
+        if highlighted:
+            self.setStyleSheet("border: 2px solid green;")
+        else:
+            self.setStyleSheet("")
 
     def get_name(self):
         return self.name
