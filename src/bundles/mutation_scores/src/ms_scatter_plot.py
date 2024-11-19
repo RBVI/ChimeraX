@@ -53,10 +53,11 @@ class MutationScatterPlot(Graph):
         self.mutation_set_name = ''
         self._correlation_shown = False
         self._bounds_artists = []
+        self._drag_colors_structure = True
         nodes = edges = []
-        Graph.__init__(self, session, nodes, edges, tool_name = 'DeepMutationalScan',
-                       title = 'Deep mutational scan scatter plot', hide_ticks = False,
-                       drag_select_callback = self._rectangle_selected)
+        Graph.__init__(self, session, nodes, edges,
+                       tool_name = 'Mutation scores plot', title = 'Mutation scores plot',
+                       hide_ticks = False, drag_select_callback = self._rectangle_selected)
 
         parent = self.tool_window.ui_area
         layout = parent.layout()
@@ -125,13 +126,13 @@ class MutationScatterPlot(Graph):
     def set_plot_data(self, x_score_name, y_score_name, mutation_set = None,
                       color_synonymous = False, preserve_colors = False):
         from .ms_data import mutation_scores
-        scores = mutation_scores(self.session, mutation_set)
-        x_scores = scores.score_values(x_score_name)
-        y_scores = scores.score_values(y_score_name)
+        mset = mutation_scores(self.session, mutation_set)
+        x_scores = mset.score_values(x_score_name)
+        y_scores = mset.score_values(y_score_name)
 
         self._x_axis_menu.value = x_score_name
         self._y_axis_menu.value = y_score_name
-        self._mutation_set_menu.value = self.mutation_set_name = scores.name
+        self._mutation_set_menu.value = self.mutation_set_name = mset.name
         
         points = []
         point_names = []
@@ -164,7 +165,7 @@ class MutationScatterPlot(Graph):
         from numpy import array, float32
         xy = array(points, float32)
 
-        title = f'File {scores.name}'
+        title = f'File {mset.name}'
         label_nodes, node_area = (False, 20) if is_mutation_plot else (True, 200)
 
         if preserve_colors:
@@ -270,15 +271,8 @@ class MutationScatterPlot(Graph):
     def _node_residue(self, node):
         return self._node_residues([node])[0]
     def _node_residues(self, nodes):
-        from .ms_data import mutation_scores
-        scores = mutation_scores(self.session, self.mutation_set_name, raise_error = False)
-        if scores is None:
-            rmap = {}
-        else:
-            chain = scores.chain
-            if chain is None:
-                chain = scores.find_matching_chain(self.session)
-            rmap = {} if chain is None else {r.number:r for r in chain.existing_residues}
+        chain = self._chain
+        rmap = {} if chain is None else {r.number:r for r in chain.existing_residues}
         res = []
         for node in nodes:
             mut_name = node.description
@@ -287,6 +281,18 @@ class MutationScatterPlot(Graph):
             res.append(r)
         return res
 
+    @property
+    def _chain(self):
+        from .ms_data import mutation_scores
+        mset = mutation_scores(self.session, self.mutation_set_name, raise_error = False)
+        if mset is None:
+            chain = None
+        else:
+            chain = mset.chain
+            if chain is None:
+                chain = mset.find_matching_chain(self.session)
+        return chain
+        
     def mouse_hover(self, event):
         a = self.axes
         xlabel, ylabel = a.get_xlabel(), a.get_ylabel()
@@ -317,10 +323,16 @@ class MutationScatterPlot(Graph):
             nres = self._node_residues(rnodes)
             res = Residues(tuple(set(r for r in nres if r is not None)))	# Unique residues
             rspec = concise_residue_spec(self.session, res)
-            cmd = f'select {rspec}'
+            cmds = [f'select {rspec}']
+            if self._drag_colors_structure and len(res) > 0:
+                cspec = res[0].chain.string(style = 'command')
+                cmds.append(f'color {cspec} lightgray ; color {rspec} lime')
         else:
-            cmd = 'select clear'
-        self._run_command(cmd)
+            cmds = ['select clear']
+            if self._drag_colors_structure and self._chain:
+                cmds.append(f'color {self._chain} lightgray')
+        for cmd in cmds:
+            self._run_command(cmd)
 
         # The matplotlig RectangleSelector with useblit restores old matplotlib artists after the selection
         # callback and our coloring code replaces the node drawing artist, so matplotlib brings it back
@@ -352,6 +364,9 @@ class MutationScatterPlot(Graph):
             self.add_menu_entry(menu, f'{show_or_hide} synonymous bounds', lambda show=show: self._show_synonymous_bounds(show))
         else:
             self.add_menu_entry(menu, 'Color selected residues on plot', self._color_selected)
+        a = self.add_menu_entry(menu, f'Ctrl-drag colors structure', self._toggle_drag_colors_structure)
+        a.setCheckable(True)
+        a.setChecked(self._drag_colors_structure)
         self.add_menu_entry(menu, f'Clear plot colors', self._clear_colors)
 
         if item is not None:
@@ -492,6 +507,8 @@ class MutationScatterPlot(Graph):
         score_name = self._x_axis_menu.value
         mset_name = self._mutation_set_menu.value
         self._run_command(f'mutationscores histogram {score_name} mutationSet {mset_name}')
+    def _toggle_drag_colors_structure(self):
+        self._drag_colors_structure = not self._drag_colors_structure
     def _run_residue_command(self, r, command):
         self._run_command(command % r.string(style = 'command'))
     def _run_command(self, command):
