@@ -194,9 +194,9 @@ class MutationHistogram(Graph):
 
     def _fill_context_menu(self, menu, x, y):
         if self._yscale == 'linear':
-            self.add_menu_entry(menu, 'Log scale', self._set_log_scale)
+            self.add_menu_entry(menu, 'Switch linear to log scale', self._set_log_scale)
         else:
-            self.add_menu_entry(menu, 'Linear scale', self._set_linear_scale)
+            self.add_menu_entry(menu, 'Switch log to linear scale', self._set_linear_scale)
 
         show_syn = not self._show_synonymous
         show_or_hide = 'Show' if show_syn else 'Hide'
