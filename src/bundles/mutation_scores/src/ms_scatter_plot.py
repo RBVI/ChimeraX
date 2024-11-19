@@ -325,7 +325,8 @@ class MutationScatterPlot(Graph):
             rspec = concise_residue_spec(self.session, res)
             cmds = [f'select {rspec}']
             if self._drag_colors_structure and len(res) > 0:
-                cmds.append(f'color {res[0].chain} lightgray ; color {rspec} lime')
+                cspec = res[0].chain.string(style = 'command')
+                cmds.append(f'color {cspec} lightgray ; color {rspec} lime')
         else:
             cmds = ['select clear']
             if self._drag_colors_structure and self._chain:
