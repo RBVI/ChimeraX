@@ -22,7 +22,8 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def fetch_alpha_missense_scores(session, uniprot_id, chain = None, identifier = None, ignore_cache = False):
+def fetch_alpha_missense_scores(session, uniprot_id, chain = None, allow_mismatches = False,
+                                identifier = None, ignore_cache = False):
     '''
     Fetch AlphaMissense scores for a UniProt entry specified by its UniProt name or accession code.
     Data is in tab separated value format.
@@ -50,10 +51,11 @@ def fetch_alpha_missense_scores(session, uniprot_id, chain = None, identifier = 
 
     if identifier is None:
         identifier = uniprot_id
-    mset, msg = open_alpha_missense_scores(session, path, chain = chain, identifier = identifier)
+    mset, msg = open_alpha_missense_scores(session, path, identifier = identifier,
+                                           chain = chain, allow_mismatches = allow_mismatches)
     return mset, msg
 
-def open_alpha_missense_scores(session, path, chain = None, identifier = None):
+def open_alpha_missense_scores(session, path, identifier = None, chain = None, allow_mismatches = False):
     with open(path, 'r') as f:
         lines = f.readlines()
 
@@ -78,10 +80,14 @@ def open_alpha_missense_scores(session, path, chain = None, identifier = None):
     mset = msm.mutation_set(mset_name)
     if mset is None:
         from .ms_data import MutationSet
-        mset = MutationSet(mset_name, mutation_scores, chain = chain, path = path)
+        mset = MutationSet(mset_name, mutation_scores,
+                           chain = chain, allow_mismatches = allow_mismatches,
+                           path = path)
         msm.add_scores(mset)
     else:
         mset.add_scores(mutation_scores)
+        if chain:
+            mset.set_chain(chain, allow_mismatches)
 
     nres = len(set(ms.residue_number for ms in mutation_scores))
     msg = f'Fetched AlphaMissense scores {identifier} for {nres} residues'

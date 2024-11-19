@@ -22,15 +22,15 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def open_mutation_scores_csv(session, path, chain = None, name = None, show_plot = True):
+def open_mutation_scores_csv(session, path, name = None, show_plot = True, chain = None, allow_mismatches = False):
     mset = _read_mutation_scores_csv(path, name = name)
+
+    if chain:
+        mset.set_chain(chain, allow_mismatches = allow_mismatches)
 
     from .ms_data import mutation_scores_manager
     msm = mutation_scores_manager(session)
     msm.add_scores(mset)
-
-    if chain:
-        mset.chain = chain
 
     nmut = len(mset.mutation_scores)
     dresnums = set(mset.residue_number_to_amino_acid().keys())
