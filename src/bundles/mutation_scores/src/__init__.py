@@ -56,8 +56,10 @@ class _MutationScoresAPI(BundleAPI):
                         return [], message
                     @property
                     def open_args(self):
+                        from chimerax.core.commands import BoolArg
                         from chimerax.atomic import ChainArg
-                        return {'chain': ChainArg}
+                        return {'chain': ChainArg,
+                                'allow_mismatches': BoolArg}
                 return MutationScoresInfo()
 
             elif name == 'UniProt Variants':
@@ -69,9 +71,10 @@ class _MutationScoresAPI(BundleAPI):
                         return [], message
                     @property
                     def open_args(self):
-                        from chimerax.core.commands import StringArg
+                        from chimerax.core.commands import StringArg, BoolArg
                         from chimerax.atomic import ChainArg
                         return {'chain': ChainArg,
+                                'allow_mismatches': BoolArg,
                                 'identifier': StringArg}
                 return MutationScoresInfo()
 
@@ -89,9 +92,10 @@ class _MutationScoresAPI(BundleAPI):
                         return [], msg
                     @property
                     def fetch_args(self):
-                        from chimerax.core.commands import StringArg
+                        from chimerax.core.commands import StringArg, BoolArg
                         from chimerax.atomic import ChainArg
                         return {'chain': ChainArg,
+                                'allow_mismatches': BoolArg,
                                 'identifier': StringArg}
                 return UniProtVariantsInfo()
 
@@ -104,9 +108,10 @@ class _MutationScoresAPI(BundleAPI):
                         return [], message
                     @property
                     def open_args(self):
-                        from chimerax.core.commands import StringArg
+                        from chimerax.core.commands import StringArg, BoolArg
                         from chimerax.atomic import ChainArg
                         return {'chain': ChainArg,
+                                'allow_mismatches': BoolArg,
                                 'identifier': StringArg}
                 return AlphaMissenseScoresInfo()
 
@@ -123,9 +128,10 @@ class _MutationScoresAPI(BundleAPI):
                         return [], msg
                     @property
                     def fetch_args(self):
-                        from chimerax.core.commands import StringArg
+                        from chimerax.core.commands import StringArg, BoolArg
                         from chimerax.atomic import ChainArg
                         return {'chain': ChainArg,
+                                'allow_mismatches': BoolArg,
                                 'identifier': StringArg}
                 return AlphaMissenseInfo()
 
