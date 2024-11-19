@@ -304,25 +304,32 @@ provides an overview of which parts of the query sequence were matched
 and the depth of coverage. Each row of pixels in the image represents 
 one hit sequence, and the columns correspond to the residues of the query.
 The plot is white where there is no residue aligned with the query:
-<font style="background:white;border:solid black 1px; 
-padding:0px 1px">&nbsp;&nbsp;&nbsp;</font>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="white" width="10px" title="white"></td></tr></table>
 <p>
 Several options specify how to color the positions with aligned residues:
 <ul>
 <li>with <b>showConserved true</b>:
   <ul>
   <li>use the specified <b>identityColor</b> (default 
-<font style="background:#E1BE6A;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>)
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#E1BE6A" width="10px" title="#E1BE6A"></td></tr></table>)
 for residues of the same amino acid type as the query
 in a column where at least <b>conservedThreshold</b> <i>fraction</i> 
 (default <b>0.5</b>) of the residues have that type (and the column
 contains at least 10 residues)
   <li>use the specified <b>conservedColor</b> (default
-<font style="background:#40B0A6;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>)
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#40B0A6" width="10px" title="#40B0A6"></td></tr></table>)
 for residues of the same amino acid type as the query, but not meeting the
 column criteria above
   <li>use black
-(<font style="background:black;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>)
+(<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="black" width="10px" title="black"></td></tr></table>)
 for residues of a different amino acid type than the aligned query residue
   </ul>
 <li>with <b>lddtColoring true</b>: by <a href="#lddt">LDDT</a>
@@ -651,7 +658,9 @@ Draw dashed <a href="../pseudobonds.html">pseudobonds</a> between the paired
 from the <a href="#fromSet">specified</a> set and the query structure. 
 The <a href="../pseudobonds.html">pseudobonds</a> are assigned
 the specified <b>color</b> (default
-<font style="background:gold;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>)
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="gold" width="10px" title="gold"></td></tr></table>)
 and <b>radius</b>&nbsp;&nbsp;<i>r</i> (default <b>0.1</b> &Aring;),
 except that giving <b>halfbondColoring true</b> will instead color the 
 pseudobond halves to match the endpoint atoms (default is
