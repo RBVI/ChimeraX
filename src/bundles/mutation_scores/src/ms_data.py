@@ -268,17 +268,25 @@ def mutation_scores_structure(session, chain, mutation_set = None):
     matches, mismatches = _residue_type_matches(chain.existing_residues, scores.residue_number_to_amino_acid())
     if mismatches:
         r = mismatches[0]
-        session.logger.warning(f'Sequence of chain {chain} does not match mutation scores {scores.name} at {len(mistmatches)} positions, first mistmatch is {r.name}{r.number}')
+        session.logger.warning(f'Sequence of chain {chain} does not match mutation scores {scores.name} at {len(mismatches)} positions, first mistmatch is {r.name}{r.number}')
 
 def mutation_scores_close(session, mutation_set = None):
     msm = mutation_scores_manager(session)
     if mutation_set is None:
         for mutation_set in msm.names():
             msm.remove_scores(mutation_set)
-    elif not msm.remove_scores(mutation_set):
+            _close_plots(session, mutation_set)
+    elif msm.remove_scores(mutation_set):
+        _close_plots(session, mutation_set)
+    else:
         from chimerax.core.errors import UserError
         raise UserError(f'No mutation scores named {mutation_set}')
-    
+
+def _close_plots(session, mutation_set_name):
+    for tool in session.tools.list():
+        if getattr(tool, 'mutation_set_name', None) == mutation_set_name:
+            tool.delete()
+
 def register_commands(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg
     from chimerax.atomic import ChainArg
