@@ -1068,7 +1068,11 @@ standard <a href="pointspec.html#vector">point specifications</a>.
 When opening a <a href="../formats/mutationcsv.html">mutation scores</a> (.csv)
 file, associate the data with a specified structure chain for analysis
 with the <a href="mutationscores.html"><b>mutationscores</b></a> command.
-Alternatively, the association can be made later with the command
+Opening a mutation scores file automatically associates the data with a
+structure chain open in ChimeraX, if its sequence and residue numbering
+match the mutation data. However, if more than one matching chain
+is present, this option allows specifying which to use.
+An association can also be made later with the command
 <a href="mutationscores.html#structure"><b>mutationscores structure</b></a>.
 </blockquote>
 <blockquote>
