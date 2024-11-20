@@ -24,24 +24,24 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRighticon" title="User Guide Index"/></a>
 
-<h3 align="center">* under construction *</h3>
-
 <h3><a href="../index.html#commands">Command</a>: mutationscores</h3>
 <p>
 The <b>mutationscores</b> command shows the results of deep mutational 
 scanning on protein structures and as interactive 2D plots.
-Deep mutational scanning generally involves mutating each position in a 
-protein to all 20 standard amino acids and assessing the resulting
-large number of mutants with multiple high-throughput assays. 
+Deep mutational scanning generally entails making all possible
+substitutions (of the 20 standard amino acids) at each position of a protein
+and assessing the results with multiple high-throughput assays. 
 For example, the assays could include growing cells expressing the mutants
 in the presence of different drugs and measuring cell viability or fluorescence.
 </p><p>
 <a name="mutant"></a>
 In this page, <b><i>mutant</i></b> refers to a variant of the protein 
-defined by a specific residue type (which could be the original,
-wild-type residue) at a specific position in the sequence, and in which
+defined by a specific residue type (which could be the same as the wild type)
+at a specific position in the sequence, and in which
 all of the other positions have the wild-type residue.
-The result of a &ldquo;synonymous&rdquo; mutation is the wild-type protein.
+The result of a <b><i>synonymous mutation</i></b> is the same amino acid
+as in the wild-type protein, although the nucleic acid codon could 
+have been different.
 </p><p>
 In general, each type of assay yields a score for each mutant.
 The scores are read from a <i><b>mutation scores</b></i> .csv file
@@ -50,10 +50,18 @@ from the the <a href="../menu.html#file"><b>File</b> menu</a>
 or with the <a href="../commands/open.html"><b>open</b></a> command.
 Each file gives rise to a <b><i>mutation set</i></b>,
 and multiple mutation sets can be open at the same time.
+A mutation set can also be <a href="../commands/open.html#fetch">fetched</a>
+from the <a href="https://www.science.org/doi/10.1126/science.adg7492" 
+target="_blank">AlphaMissense database</a> (score name <b>amiss</b>) or from
+<a href="https://www.uniprot.org/help/disease_phenotypes_variants_section"
+target="_blank">UniProt Variants</a> (score names <b>PolyPhen</b> and
+<b>SIFT</b>).
 </p><p>
 Opening a mutation scores file
 automatically shows a <a href="#scatterplot">scatter plot</a> of the mutants
-with the first two scores as the axes. The menus below the plot can be used
+with the first two scores as the axes, or a <a href="#histogram">histogram</a>
+if the file only contains one kind of score.
+The menus below the plot can be used
 to change which scores are plotted and for which mutation set.
 </p><p>
 <a name="associated"></a>
@@ -65,6 +73,7 @@ the <a href="../commands/open.html#chain"><b>chain</b></a> option of
 which one to use. The association can also be made later
 (after opening the mutation data) by using the command
 <a href="#structure"><b>mutationscores structure</b></a>.
+</p><p>
 See also: 
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html" 
 target="_blank">ChimeraX visualization of mutation scores</a>
@@ -82,7 +91,7 @@ target="_blank">ChimeraX visualization of mutation scores</a>
 &ndash; show a color-coded grid of the score values 
 per position on the associated structure
 <li><a href="#statistics"><b>mutationscores statistics</b></a>
-&ndash; compute mutation score averages and standard deviations 
+&ndash; compute mutation score average and standard deviation 
 <li><a href="#umap"><b>mutationscores umap</b></a>
 &ndash; project the 20 residue-type scores per sequence position
 into 2D with UMAP
@@ -175,7 +184,6 @@ and the other structure residues <b>light gray</b>
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor="lightgray" width="10px" title="light gray"></td></tr></table>
-(initially on)
 <li><b>Clear plot colors</b>
 &ndash; color all circles gray
 </ul>
@@ -253,8 +261,7 @@ A new score can also define an interesting subset of the mutations.
 The <b>aa</b> and <b>toAa</b> options limit the mutations to specific 
 &ldquo;before and after&rdquo; (before and after mutation) amino acid types.
 Specifying <b>synonymous true</b> limits the &ldquo;mutations&rdquo; 
-to those in which the before and after amino acids are the same (wild-type),
-although the nucleic acid codon could have been different.
+to those in which the before and after amino acids are the same (wild-type).
 The <b>above</b> and <b>below</b> options limit the mutations to those
 within a given range of a single type of score specified with
 <b>fromScoreName</b> <i>from-score</i>.
@@ -330,8 +337,8 @@ to change which score is plotted and for which
 Clicking the histogram raises a context menu, including:
 </p>
 <ul>
-<li><b>Linear (Log) scale</b> 
-&ndash; type of histogram bar scaling (initially logarithmic)
+<li><b>Switch log (linear) to linear (log) scale</b> 
+&ndash; type of histogram bar scaling
 <li><b>Hide (Show) synonymous</b>
 &ndash; blue histogram bars showing results for &ldquo;mutants&rdquo;
 with the same residue type as the wild-type protein
@@ -417,6 +424,11 @@ The labels can be removed with
 [&nbsp;<b>type</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<b>synonymous</b>&nbsp;]
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
+Compute the mean and standard deviation of a score.
+The statistics are reported in the <a href="../tools/log.html"><b>Log</b></a>.
+By default, only the scores of synonymous mutants (proteins with the 
+same amino acid sequence as the wild type) are included, but <b>type all</b>
+can be used to include the scores of missense mutants as well.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -424,14 +436,36 @@ The labels can be removed with
 <b>mutationscores umap</b> &nbsp;<i>score</i>&nbsp;
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
+Project the 20-dimensional vector of the scores of the 20 amino acid types
+at each sequence position into 2D using UMAP
+(<a href="https://umap-learn.readthedocs.io/en/latest/"
+target="_blank">Uniform Manifold Approximation and Projection</a>).
+In the UMAP plot, each sequence position is shown as a circle labeled with
+the residue number and colored by the wild-type residue (20 distinct colors
+for the 20 residue types). Only positions at which all 20 residue types 
+have scores are plotted. This is an experimental feature and thus far,
+has not revealed any striking patterns.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="structure"></a>
 <b>mutationscores structure</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+[&nbsp;<b>allowMismatches</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
+Associate the mutation scores with a specified structure chain for further
+analysis. Opening a <a href="../formats/mutationcsv.html">mutation scores
+file</a> automatically associates the data with a structure chain open 
+in ChimeraX, if its sequence and residue numbering match the mutation data.
+However, if more than one matching chain is present, this command 
+allows controlling which is used. Only one structure chain can be associated
+per <a href="#mutationSet">mutation set</a>. (Association can also be 
+specified with the <a href="open.html#chain"><b>chain</b></a> option of the 
+<a href="open.html#local"><b>open</b></a> command.)
+If the chain does not have exactly the same residue types and residue numbering
+as in the mutation data, however, <b>allowMismatches true</b> is needed to
+force the association.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
