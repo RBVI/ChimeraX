@@ -156,6 +156,7 @@ class Plot(ToolInstance):
         #a.setStatusTip("Info about this menu entry")
         a.triggered.connect(lambda *, cb=callback, args=args: cb(*args))
         menu.addAction(a)
+        return a
 
     def add_menu_separator(self, menu):
         '''Add menu separator to context menu'''

@@ -25,59 +25,23 @@
 # Make a scatter plot for residues using two mutation scores.
 def mutation_scores_scatter_plot(session, x_score_name, y_score_name, mutation_set = None,
                                  color_synonymous = True, bounds = True, correlation = False, replace = True):
-    from .ms_data import mutation_scores
-    scores = mutation_scores(session, mutation_set)
-    x_scores = scores.score_values(x_score_name)
-    y_scores = scores.score_values(y_score_name)
     
-    points = []
-    point_names = []
-    if x_scores.per_residue and y_scores.per_residue:
-        for res_num in x_scores.residue_numbers():
-            x_value = x_scores.residue_value(res_num)
-            y_value = y_scores.residue_value(res_num)
-            if x_value is not None and y_value is not None:
-                points.append((x_value, y_value))
-                point_names.append(f'{res_num}')
-        is_mutation_plot = False	# Residues plotted instead of mutations
-    elif x_scores.per_residue or y_scores.per_residue:
-        rscores, mscores = (x_scores,y_scores) if x_scores.per_residue else (y_scores,x_scores)
-        r_values = {(res_num,from_aa):r_value for res_num, from_aa, to_aa, r_value in rscores.all_values()}
-        for res_num, from_aa, to_aa, m_value in mscores.all_values():
-            r_value = r_values.get((res_num, from_aa))
-            if r_value is not None:
-                points.append((r_value, m_value) if x_scores.per_residue else (m_value, r_value))
-                point_names.append(f'{from_aa}{res_num}{to_aa}')
-        is_mutation_plot = True
-    else:
-        y_values = {(res_num,from_aa,to_aa):y_value for res_num, from_aa, to_aa, y_value in y_scores.all_values()}
-        for res_num, from_aa, to_aa, x_value in x_scores.all_values():
-            y_value = y_values.get((res_num, from_aa, to_aa))
-            if y_value is not None:
-                points.append((x_value, y_value))
-                point_names.append(f'{from_aa}{res_num}{to_aa}')
-        is_mutation_plot = True
-    
-    from numpy import array, float32
-    xy = array(points, float32)
-    
-    plot = _find_mutation_scatter_plot(session, scores.name) if replace else None
+    plot = _find_mutation_scatter_plot(session, mutation_set) if replace else None
     if plot is None:
-        plot = MutationScatterPlot(session, scores.name)
+        plot = MutationScatterPlot(session)
 
-    title = f'File {scores.name}'
-    label_nodes, node_area = (False, 20) if is_mutation_plot else (True, 200)
-    plot.set_nodes(xy, point_names=point_names, correlation=correlation,
-                   title=title, x_label=x_score_name, y_label=y_score_name,
-                   node_area = node_area, label_nodes = label_nodes, is_mutation_plot = is_mutation_plot)
+    plot.set_plot_data(x_score_name, y_score_name, mutation_set)
 
     if plot.is_mutation_plot:
         if color_synonymous:
             plot._color_synonymous()
         if bounds:
             plot._show_synonymous_bounds()
+                
+    if correlation:
+        plot.show_least_squares_fit()
         
-    message = f'Plotted {len(points)} mutations with {x_score_name} on x-axis and {y_score_name} on y-axis'
+    message = f'Plotted {len(plot.nodes)} mutations with {x_score_name} on x-axis and {y_score_name} on y-axis'
     if correlation:
         message += f', least squares fit slope {"%.3g" % plot.slope}, intercept {"%.3g" % plot.intercept}, R squared {"%.3g" % plot.r_squared}'
     session.logger.info(message)
@@ -85,16 +49,33 @@ def mutation_scores_scatter_plot(session, x_score_name, y_score_name, mutation_s
 from chimerax.interfaces.graph import Graph
 class MutationScatterPlot(Graph):
 
-    def __init__(self, session, mutation_set_name):
-        self.mutation_set_name = mutation_set_name
+    def __init__(self, session):
+        self.mutation_set_name = ''
+        self._correlation_shown = False
         self._bounds_artists = []
+        self._drag_colors_structure = True
         nodes = edges = []
-        Graph.__init__(self, session, nodes, edges, tool_name = 'DeepMutationalScan',
-                       title = 'Deep mutational scan scatter plot', hide_ticks = False,
-                       drag_select_callback = self._rectangle_selected)
+        Graph.__init__(self, session, nodes, edges,
+                       tool_name = 'Mutation scores plot', title = 'Mutation scores plot',
+                       hide_ticks = False, drag_select_callback = self._rectangle_selected)
+
+        parent = self.tool_window.ui_area
+        layout = parent.layout()
+
+        # Add x-axis, y-axis and mutation set menus.
+        from chimerax.ui.widgets import EntriesRow
+        menus = EntriesRow(parent,
+                           ' X axis', ('score1', 'score2'),
+                           'Y axis', ('score1', 'score2'),
+                           'Mutations', ('set1', 'set2'))
+        self._x_axis_menu, self._y_axis_menu, self._mutation_set_menu = menus.values
+        for m in menus.values:
+            menu = m.widget.menu()
+            menu.aboutToShow.connect(lambda menu=menu: self._menu_about_to_show(menu))
+            menu.triggered.connect(self._menu_selection_changed)
+        layout.addWidget(menus.frame)
 
         # Add status line
-        parent = self.tool_window.ui_area
         from Qt.QtWidgets import QLabel, QSizePolicy
         self._status_line = sl = QLabel(parent)
         sl.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -102,15 +83,119 @@ class MutationScatterPlot(Graph):
         font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
         font.setPointSize(14)
         sl.setFont(font)	# Fixed space font so text maintains alignment
-        parent.layout().addWidget(sl)
+        layout.addWidget(sl)
 
-    def set_nodes(self, xy, point_names = None, colors = None, correlation = False,
-                  title = '', x_label = '', y_label = '',
-                  node_font_size = 5, node_area = 200, label_nodes = True, is_mutation_plot = True):
+    def _menu_about_to_show(self, menu):
+        menu.clear()
+        if menu is self._mutation_set_menu.widget.menu():
+            from .ms_data import mutation_scores_list
+            for ms_name in mutation_scores_list(self.session):
+                menu.addAction(ms_name)
+        else:
+            from .ms_data import mutation_scores
+            ms_name = self._mutation_set_menu.value
+            mset = mutation_scores(self.session, ms_name)
+            for name in mset.score_names():
+                menu.addAction(name)
+
+    def _menu_selection_changed(self, action):
+        mutation_set_name = self._mutation_set_menu.value
+        x_score_name = self._x_axis_menu.value
+        y_score_name = self._y_axis_menu.value
+
+        if mutation_set_name != self.mutation_set_name:
+            # If mutation set is changed, make sure x and y-axis score names are valid.
+            from .ms_data import mutation_scores
+            mset = mutation_scores(self.session, mutation_set_name)
+            score_names = mset.score_names()
+            if x_score_name not in score_names:
+                x_score_name = self._x_axis_menu.value = score_names[0]
+            if y_score_name not in score_names:
+                y_score_name = self._y_axis_menu.value = score_names[1] if len(score_names) > 1 else score_names[0]
+            
+        bounds_shown = self._bounds_shown
+        preserve_colors = (self.mutation_set_name == mutation_set_name)
+
+        self.set_plot_data(x_score_name, y_score_name, mutation_set_name,
+                           color_synonymous = not preserve_colors, preserve_colors = preserve_colors)
+
+        if bounds_shown:
+            self._show_synonymous_bounds()
+
+
+    def set_plot_data(self, x_score_name, y_score_name, mutation_set = None,
+                      color_synonymous = False, preserve_colors = False):
+        from .ms_data import mutation_scores
+        mset = mutation_scores(self.session, mutation_set)
+        x_scores = mset.score_values(x_score_name)
+        y_scores = mset.score_values(y_score_name)
+
+        self._x_axis_menu.value = x_score_name
+        self._y_axis_menu.value = y_score_name
+        self._mutation_set_menu.value = self.mutation_set_name = mset.name
+        
+        points = []
+        point_names = []
+        if x_scores.per_residue and y_scores.per_residue:
+            for res_num in x_scores.residue_numbers():
+                x_value = x_scores.residue_value(res_num)
+                y_value = y_scores.residue_value(res_num)
+                if x_value is not None and y_value is not None:
+                    points.append((x_value, y_value))
+                    point_names.append(f'{res_num}')
+            is_mutation_plot = False	# Residues plotted instead of mutations
+        elif x_scores.per_residue or y_scores.per_residue:
+            rscores, mscores = (x_scores,y_scores) if x_scores.per_residue else (y_scores,x_scores)
+            r_values = {(res_num,from_aa):r_value for res_num, from_aa, to_aa, r_value in rscores.all_values()}
+            for res_num, from_aa, to_aa, m_value in mscores.all_values():
+                r_value = r_values.get((res_num, from_aa))
+                if r_value is not None:
+                    points.append((r_value, m_value) if x_scores.per_residue else (m_value, r_value))
+                    point_names.append(f'{from_aa}{res_num}{to_aa}')
+            is_mutation_plot = True
+        else:
+            y_values = {(res_num,from_aa,to_aa):y_value for res_num, from_aa, to_aa, y_value in y_scores.all_values()}
+            for res_num, from_aa, to_aa, x_value in x_scores.all_values():
+                y_value = y_values.get((res_num, from_aa, to_aa))
+                if y_value is not None:
+                    points.append((x_value, y_value))
+                    point_names.append(f'{from_aa}{res_num}{to_aa}')
+            is_mutation_plot = True
+
+        from numpy import array, float32
+        xy = array(points, float32)
+
+        title = f'File {mset.name}'
+        label_nodes, node_area = (False, 20) if is_mutation_plot else (True, 200)
+
+        if preserve_colors:
+            from chimerax.core.colors import rgba_to_rgba8
+            default_color = rgba_to_rgba8((.8,.8,.8))
+            node_colors = {node.description:rgba_to_rgba8(node.color) for node in self.nodes}
+            colors = [node_colors.get(name, default_color) for name in point_names]
+            node_index = {node.description:i for i,node in enumerate(self.nodes)}
+            index = [node_index.get(name, 0) for name in point_names]
+            from numpy import argsort
+            stack_order = argsort(index)
+        else:
+            colors = stack_order = None
+
+        self._set_nodes(xy, point_names=point_names, colors=colors, stack_order=stack_order,
+                        title=title, x_label=x_score_name, y_label=y_score_name,
+                        node_area = node_area, label_nodes = label_nodes, is_mutation_plot = is_mutation_plot)
+
+        if color_synonymous:
+            self._color_synonymous()
+
+    def _set_nodes(self, xy, point_names = None, colors = None, stack_order = None,
+                   title = '', x_label = '', y_label = '',
+                   node_font_size = 5, node_area = 200, label_nodes = True, is_mutation_plot = True):
         self.is_mutation_plot = is_mutation_plot
         self.font_size = node_font_size	# Override graph default value of 12 points
         self.nodes = self._make_nodes(xy, point_names=point_names, colors=colors,
                                       node_area=node_area, label_nodes=label_nodes)
+        if stack_order is not None:
+            self.nodes = [self.nodes[i] for i in stack_order]  # Last drawn nodes are on top
         self.graph = self._make_graph()
         a = self.axes
         a.clear()
@@ -119,13 +204,15 @@ class MutationScatterPlot(Graph):
         a.set_xlabel(x_label)
         a.set_ylabel(y_label)
         self._show_synonymous_bounds(False)
-        if correlation:
-            self.show_least_squares_fit(xy)
-        self._correlation_shown = correlation
+        self._correlation_shown = False
         self.canvas.draw()
 
-    def show_least_squares_fit(self, xy):
-        x, y = xy[:,0], xy[:,1]
+    def show_least_squares_fit(self, xy = None):
+        if xy is None:
+            x = [node.position[0] for node in self.nodes]
+            y = [node.position[1] for node in self.nodes]
+        else:
+            x, y = xy[:,0], xy[:,1]
         degree = 1
         from numpy import polyfit
         p, ss_r = polyfit(x, y, degree, full=True)[:2]
@@ -133,6 +220,7 @@ class MutationScatterPlot(Graph):
         fy = tuple(p[0]*x + p[1] for x in fx)
         self.axes.plot(fx, fy)
         self.slope, self.intercept, self.r_squared = p[0], p[1], self._r_squared(p, x, y, ss_r)
+        self._correlation_shown = correlation
 
     def _r_squared(self, p, x, y, ss_r):
         r_ys = x*p[0] + p[1]
@@ -183,15 +271,8 @@ class MutationScatterPlot(Graph):
     def _node_residue(self, node):
         return self._node_residues([node])[0]
     def _node_residues(self, nodes):
-        from .ms_data import mutation_scores
-        scores = mutation_scores(self.session, self.mutation_set_name, raise_error = False)
-        if scores is None:
-            rmap = {}
-        else:
-            chain = scores.chain
-            if chain is None:
-                chain = scores.find_matching_chain(self.session)
-            rmap = {} if chain is None else {r.number:r for r in chain.existing_residues}
+        chain = self._chain
+        rmap = {} if chain is None else {r.number:r for r in chain.existing_residues}
         res = []
         for node in nodes:
             mut_name = node.description
@@ -200,6 +281,18 @@ class MutationScatterPlot(Graph):
             res.append(r)
         return res
 
+    @property
+    def _chain(self):
+        from .ms_data import mutation_scores
+        mset = mutation_scores(self.session, self.mutation_set_name, raise_error = False)
+        if mset is None:
+            chain = None
+        else:
+            chain = mset.chain
+            if chain is None:
+                chain = mset.find_matching_chain(self.session)
+        return chain
+        
     def mouse_hover(self, event):
         a = self.axes
         xlabel, ylabel = a.get_xlabel(), a.get_ylabel()
@@ -230,10 +323,15 @@ class MutationScatterPlot(Graph):
             nres = self._node_residues(rnodes)
             res = Residues(tuple(set(r for r in nres if r is not None)))	# Unique residues
             rspec = concise_residue_spec(self.session, res)
-            cmd = f'select {rspec}'
+            cmds = [f'select {rspec}']
+            if self._drag_colors_structure and len(res) > 0:
+                cmds.append(f'color {res[0].chain} lightgray ; color {rspec} lime')
         else:
-            cmd = 'select clear'
-        self._run_command(cmd)
+            cmds = ['select clear']
+            if self._drag_colors_structure and self._chain:
+                cmds.append(f'color {self._chain} lightgray')
+        for cmd in cmds:
+            self._run_command(cmd)
 
         # The matplotlig RectangleSelector with useblit restores old matplotlib artists after the selection
         # callback and our coloring code replaces the node drawing artist, so matplotlib brings it back
@@ -265,6 +363,9 @@ class MutationScatterPlot(Graph):
             self.add_menu_entry(menu, f'{show_or_hide} synonymous bounds', lambda show=show: self._show_synonymous_bounds(show))
         else:
             self.add_menu_entry(menu, 'Color selected residues on plot', self._color_selected)
+        a = self.add_menu_entry(menu, f'Ctrl-drag colors structure', self._toggle_drag_colors_structure)
+        a.setCheckable(True)
+        a.setChecked(self._drag_colors_structure)
         self.add_menu_entry(menu, f'Clear plot colors', self._clear_colors)
 
         if item is not None:
@@ -293,8 +394,10 @@ class MutationScatterPlot(Graph):
                                         lambda self=self, r=r, ylabel=ylabel: self._label(r, ylabel))
                     
 
-        self.add_menu_separator(menu)                
-        self.add_menu_entry(menu, 'Save Plot As...', self.save_plot_as)
+        self.add_menu_separator(menu)
+        self.add_menu_entry(menu, 'New plot', self._copy_plot)
+        self.add_menu_entry(menu, 'Show histogram', self._show_histogram)
+        self.add_menu_entry(menu, 'Save plot as...', self.save_plot_as)
 
     def _select_residue(self, r):
         self._run_residue_command(r, 'select %s')
@@ -352,8 +455,7 @@ class MutationScatterPlot(Graph):
     def _clear_colors(self, clear_color = (.8,.8,.8,1)):
         self._color_and_raise_nodes(self.nodes, clear_color)
     def _show_synonymous_bounds(self, show = True):
-        ba = self._bounds_artists
-        if (show and ba) or (not show and not ba):
+        if (show and self._bounds_shown) or (not show and not self._bounds_shown):
             return  # Already shown or hidden
         if show:
             x0, x1, y0, y1 = self._synonymous_bounds()
@@ -369,6 +471,9 @@ class MutationScatterPlot(Graph):
                 ba.remove()
             self._bounds_artists = []
         self.canvas.draw()
+    @property
+    def _bounds_shown(self):
+        return len(self._bounds_artists) > 0
     def _synonymous_bounds(self, standard_deviations = 2.0):
         syn = [node for node in self.nodes if (node.description[0] == node.description[-1])]
         if len(syn) == 0:
@@ -387,6 +492,22 @@ class MutationScatterPlot(Graph):
             x,y = [node.position[0] for node in self.nodes], [node.position[1] for node in self.nodes]
             xmin, xmax, ymin, ymax = min(x), max(x), min(y), max(y)
         return xmin, xmax, ymin, ymax
+    def _copy_plot(self):
+        copy = MutationScatterPlot(self.session)
+        copy.nodes = self.nodes  # Used for preserving colors
+        mutation_set_name = self._mutation_set_menu.value
+        x_score_name = self._x_axis_menu.value
+        y_score_name = self._y_axis_menu.value
+        copy.set_plot_data(x_score_name, y_score_name, mutation_set = mutation_set_name, preserve_colors = True)
+        if self._bounds_shown:
+            copy._show_synonymous_bounds()
+        return copy
+    def _show_histogram(self):
+        score_name = self._x_axis_menu.value
+        mset_name = self._mutation_set_menu.value
+        self._run_command(f'mutationscores histogram {score_name} mutationSet {mset_name}')
+    def _toggle_drag_colors_structure(self):
+        self._drag_colors_structure = not self._drag_colors_structure
     def _run_residue_command(self, r, command):
         self._run_command(command % r.string(style = 'command'))
     def _run_command(self, command):
@@ -422,17 +543,23 @@ class MutationScatterPlot(Graph):
                 'node_area': node_area,
                 'label_nodes': label_nodes,
                 'is_mutation_plot': self.is_mutation_plot,
+                'bounds_shown': self._bounds_shown,
                 'version': '1'}
         return data
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        sp = cls(session, data['mutation_set_name'])
-        sp.set_nodes(data['xy'], point_names = data['point_names'], colors = data['colors'],
-                     correlation = data['correlation'],
-                     title = data['title'], x_label = data['x_label'], y_label = data['y_label'],
-                     node_font_size = data['font_size'], node_area = data['node_area'], label_nodes = data['label_nodes'],
-                     is_mutation_plot = data['is_mutation_plot'])
+        sp = cls(session)
+        sp.mutation_set_name = sp._mutation_set_menu.value = data['mutation_set_name']
+        sp._x_axis_menu.value = data.get('x_label')
+        sp._y_axis_menu.value = data.get('y_label')
+        sp._set_nodes(data['xy'], point_names = data['point_names'], colors = data['colors'],
+                      title = data['title'], x_label = data['x_label'], y_label = data['y_label'],
+                      node_font_size = data['font_size'], node_area = data['node_area'], label_nodes = data['label_nodes'],
+                      is_mutation_plot = data['is_mutation_plot'])
+        sp._show_synonymous_bounds(data.get('bounds_shown'))
+        if data['correlation']:
+            sp.show_least_squares_fit()
         return sp
 
 def _find_close_residues(residue, residues, distance):
@@ -444,9 +571,9 @@ def _find_close_residues(residue, residues, distance):
     close_res = aatoms[ai].residues.unique()
     return close_res
 
-def _find_mutation_scatter_plot(session, mutation_set_name):
+def _find_mutation_scatter_plot(session, mutation_set_name = None):
     plots = [tool for tool in session.tools.list()
-             if isinstance(tool, MutationScatterPlot) and tool.mutation_set_name == mutation_set_name]
+             if isinstance(tool, MutationScatterPlot) and (mutation_set_name is None or tool.mutation_set_name == mutation_set_name)]
     return plots[-1] if plots else None
 
 def register_command(logger):

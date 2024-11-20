@@ -24,7 +24,7 @@
 
 def fetch_alpha_missense_scores(session, uniprot_id, chain = None, identifier = None, ignore_cache = False):
     '''
-    Fetch AlphaMissense scores for a UniProt entry specified by its accession code.
+    Fetch AlphaMissense scores for a UniProt entry specified by its UniProt name or accession code.
     Data is in tab separated value format.
     Create a mutation scores instance. Example URL
 
@@ -33,14 +33,23 @@ def fetch_alpha_missense_scores(session, uniprot_id, chain = None, identifier = 
     It seems DeepMind didn't make the data fetchable on a per-protein basis. We can get it from the EBI alphafold
     database only it is per-fragment.  Zenodo has the original data but in a gbyte size file.
     '''
+    if '_' in uniprot_id:
+        # Convert uniprot name to accession code.
+        from chimerax.uniprot import map_uniprot_ident
+        uid = map_uniprot_ident(uniprot_id, return_value = 'entry')
+    else:
+        uid = uniprot_id
+
     url_pattern = 'https://alphafold.ebi.ac.uk/files/AF-%s-F1-aa-substitutions.csv'
-    url = url_pattern % uniprot_id
+    url = url_pattern % uid
     file_name = url.split('/')[-1]
     save_dir = 'AlphaMissense'
     from chimerax.core.fetch import fetch_file
     path = fetch_file(session, url, f'AlphaMissense {uniprot_id}',
                           file_name, save_dir, ignore_cache = ignore_cache)
 
+    if identifier is None:
+        identifier = uniprot_id
     mset, msg = open_alpha_missense_scores(session, path, chain = chain, identifier = identifier)
     return mset, msg
 

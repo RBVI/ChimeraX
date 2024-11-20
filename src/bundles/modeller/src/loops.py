@@ -209,8 +209,14 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         pir_seqs = [pir_target]
 
         pir_template = Sequence(name=structure_save_name(s))
+        index = len(residues)
+        while index > 0:
+            index -= 1
+            last_chain = residues[index].chain
+            if last_chain is not None:
+                break
         pir_template.description = "structure:%s:FIRST:%s:LAST:%s::::" % (
-            pir_template.name, residues[0].chain_id, residues[-1].chain_id)
+            pir_template.name, residues[0].chain_id, last_chain.chain_id)
         pir_template.characters = ''.join(template_chars)
         pir_seqs.append(pir_template)
 
