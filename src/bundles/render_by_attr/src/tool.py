@@ -594,16 +594,13 @@ class RenderByAttrTool(ToolInstance):
             return False
 
     def _models_changed(self):
+        render_type = self.render_type_widget.tabText(self.render_type_widget.currentIndex())
+        markers_attr = self.render_marker_attrs[render_type]
         model_val = self.model_list.value
         if model_val:
             if self.render_attr_menu_button.isEnabled():
-                render_type = self.render_type_widget.tabText(self.render_type_widget.currentIndex())
-                markers_attr = self.render_marker_attrs[render_type]
                 attr_name = self.render_attr_menu_button.text()
-                if not model_val:
-                    setattr(self, markers_attr, getattr(self, 'default_' + markers_attr))
-                    self._prev_model_value = None
-                elif len(model_val) == 1:
+                if len(model_val) == 1:
                     model = model_val[0]
                     self._update_markers(None, markers_attr, self._prev_model_value, model, None, attr_name)
                     self._prev_model_value = model
@@ -620,6 +617,8 @@ class RenderByAttrTool(ToolInstance):
             else:
                 self._new_select_attr()
         else:
+            setattr(self, markers_attr, getattr(self, 'default_' + markers_attr))
+            self._prev_model_value = None
             self._new_render_attr()
             self._new_select_attr()
         self._update_deworm_button()
@@ -869,15 +868,17 @@ class RenderByAttrTool(ToolInstance):
         if prev_markers_attr is not None:
             # render type changing...
             prev_markers = self._clone_markers(getattr(self, prev_markers_attr))
-            self._render_markers[prev_markers_attr].setdefault(model, {})[attr_name] = prev_markers
+            if model is not None:
+                self._render_markers[prev_markers_attr].setdefault(model, {})[attr_name] = prev_markers
         if prev_model is not None:
             # model changing...
             prev_markers = self._clone_markers(getattr(self, markers_attr))
             self._render_markers[markers_attr].setdefault(prev_model, {})[attr_name] = prev_markers
         if prev_attr_name is not None:
-            # model changing...
+            # attr changing...
             prev_markers = self._clone_markers(getattr(self, markers_attr))
-            self._render_markers[markers_attr].setdefault(model, {})[prev_attr_name] = prev_markers
+            if model is not None:
+                self._render_markers[markers_attr].setdefault(model, {})[prev_attr_name] = prev_markers
         try:
             if model is None or attr_name is None:
                 # weak-key dicts don't like referencing None
