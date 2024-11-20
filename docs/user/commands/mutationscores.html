@@ -24,24 +24,24 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRighticon" title="User Guide Index"/></a>
 
-<h3 align="center">* under construction *</h3>
-
 <h3><a href="../index.html#commands">Command</a>: mutationscores</h3>
 <p>
 The <b>mutationscores</b> command shows the results of deep mutational 
 scanning on protein structures and as interactive 2D plots.
-Deep mutational scanning generally involves mutating each position in a 
-protein to all 20 standard amino acids and assessing the resulting
-large number of mutants with multiple high-throughput assays. 
+Deep mutational scanning generally entails making all possible
+substitutions (of the 20 standard amino acids) at each position of a protein
+and assessing the results with multiple high-throughput assays. 
 For example, the assays could include growing cells expressing the mutants
 in the presence of different drugs and measuring cell viability or fluorescence.
 </p><p>
 <a name="mutant"></a>
 In this page, <b><i>mutant</i></b> refers to a variant of the protein 
-defined by a specific residue type (which could be the original,
-wild-type residue) at a specific position in the sequence, and in which
+defined by a specific residue type (which could be the same as the wild type)
+at a specific position in the sequence, and in which
 all of the other positions have the wild-type residue.
-The result of a &ldquo;synonymous&rdquo; mutation is the wild-type protein.
+The result of a <b><i>synonymous mutation</i></b> is the same amino acid
+as in the wild-type protein, although the nucleic acid codon could 
+have been different.
 </p><p>
 In general, each type of assay yields a score for each mutant.
 The scores are read from a <i><b>mutation scores</b></i> .csv file
@@ -52,9 +52,10 @@ Each file gives rise to a <b><i>mutation set</i></b>,
 and multiple mutation sets can be open at the same time.
 A mutation set can also be <a href="../commands/open.html#fetch">fetched</a>
 from the <a href="https://www.science.org/doi/10.1126/science.adg7492" 
-target="_blank">AlphaMissense database</a> or from
+target="_blank">AlphaMissense database</a> (score name <b>amiss</b>) or from
 <a href="https://www.uniprot.org/help/disease_phenotypes_variants_section"
-target="_blank">UniProt Variants</a>.
+target="_blank">UniProt Variants</a> (score names <b>PolyPhen</b> and
+<b>SIFT</b>).
 </p><p>
 Opening a mutation scores file
 automatically shows a <a href="#scatterplot">scatter plot</a> of the mutants
@@ -260,8 +261,7 @@ A new score can also define an interesting subset of the mutations.
 The <b>aa</b> and <b>toAa</b> options limit the mutations to specific 
 &ldquo;before and after&rdquo; (before and after mutation) amino acid types.
 Specifying <b>synonymous true</b> limits the &ldquo;mutations&rdquo; 
-to those in which the before and after amino acids are the same (wild-type),
-although the nucleic acid codon could have been different.
+to those in which the before and after amino acids are the same (wild-type).
 The <b>above</b> and <b>below</b> options limit the mutations to those
 within a given range of a single type of score specified with
 <b>fromScoreName</b> <i>from-score</i>.
