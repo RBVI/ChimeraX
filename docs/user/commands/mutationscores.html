@@ -51,11 +51,19 @@ or with the <a href="../commands/open.html"><b>open</b></a> command.
 Each file gives rise to a <b><i>mutation set</i></b>,
 and multiple mutation sets can be open at the same time.
 </p><p>
+Opening a mutation scores file
+automatically shows a <a href="#scatterplot">scatter plot</a> of the mutants
+with the first two scores as the axes. The menus below the plot can be used
+to change which scores are plotted and for which mutation set.
+</p><p>
 <a name="associated"></a>
-The data can be associated with an atomic structure by using the 
-<a href="../commands/open.html#chain"><b>chain</b></a> option of the 
-<a href="../commands/open.html"><b>open</b></a> command when opening
-the .csv file, or subsequently by using the command
+Opening a mutation scores file automatically associates the data with a
+structure chain, if there is one with matching sequence and residue numbering
+already open. However, if more than one matching structure chain is present, 
+the <a href="../commands/open.html#chain"><b>chain</b></a> option of
+<a href="../commands/open.html"><b>open</b></a> can be used to specify
+which one to use. The association can also be made later
+(after opening the mutation data) by using the command
 <a href="#structure"><b>mutationscores structure</b></a>.
 See also: 
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html" 
@@ -71,14 +79,15 @@ target="_blank">ChimeraX visualization of mutation scores</a>
 <li><a href="#histogram"><b>mutationscores histogram</b></a>
 &ndash; show a histogram of score values
 <li><a href="#label"><b>mutationscores label</b></a>
-&ndash; show color-coded residue labels on the associated structure
+&ndash; show a color-coded grid of the score values 
+per position on the associated structure
 <li><a href="#statistics"><b>mutationscores statistics</b></a>
 &ndash; compute mutation score averages and standard deviations 
 <li><a href="#umap"><b>mutationscores umap</b></a>
-&ndash; project the 20-dimensional vector of the scores of the 20 residue types
-at a position into 2D with UMAP
+&ndash; project the 20 residue-type scores per sequence position
+into 2D with UMAP
 <li><a href="#structure"><b>mutationscores structure</b></a>
-&ndash; associate the data with a specified structure chain
+&ndash; associate mutation data with a specified structure chain
 <li><a href="#list"><b>mutationscores list</b></a>
 &ndash; list the currently open sets of mutation data
 <li><a href="#close"><b>mutationscores close</b></a>
@@ -89,20 +98,29 @@ at a position into 2D with UMAP
 <a name="scatterplot"></a>
 <b>mutationscores scatterplot</b>
 &nbsp;<i>x-score</i>&nbsp; &nbsp;<i>y-score</i>&nbsp;
+[&nbsp;<b>colorSynonymous</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>bounds</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>correlation</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
 <table class="clRight">
-<tr><td><img src="scatterplot.png"
+<tr><td><img border=1 src="scatterplot.png"
 alt="mutation scores scatter plot" width="300px">
 </td></tr>
 </table>
 <p>
-Show a scatter plot of mutants for two scores, <i>x-score</i> and <i>y-score</i>.
-Only mutants with values for both scores will be plotted. The <b>correlation</b>
-option indicates whether to draw a line showing the least-squares fit (default
-<b>false</b>). The scatter plot will replace a pre-existing scatter plot unless
+Show a scatter plot of mutants for two scores, <i>x-score</i> and 
+<i>y-score</i>. Only mutants with values for both scores will be plotted.
+The <b>colorSynonymous</b> option indicates whether to
+color in blue all circles for &ldquo;mutants&rdquo; that have the same
+residue type as the wild-type protein (default <b>true</b>) 
+and the <b>bounds</b> option indicates
+whether to show dashed lines delimiting mean &plusmn; 2 standard deviations 
+of their values (default <b>true</b>).
+The <b>correlation</b> option indicates whether to draw a line 
+showing the least-squares fit (default <b>false</b>).
+The scatter plot will replace a pre-existing scatter plot unless
 <b>replace false</b> is given.
 </p><p>
 <a name="mutationSet"></a>
@@ -116,7 +134,12 @@ The names of open sets can be listed in the
 and a set can be closed with
 <a href="#list"><b>mutationscores close</b></a>.
 </p><p>
-Clicking the scatter plot raises a context menu; entries that refer to
+The menus below the plot can be used to change which scores are plotted 
+and for which <a href="#mutationSet">mutation set</a>. 
+Placing the cursor over a plotted point (circle)
+reports the specific mutation and its score values at the bottom of the panel.
+</p><p>
+Clicking the plot raises a context menu; entries that refer to
 a specific mutant only appear when the click is on a circle, and some entries 
 only appear if there is an <a href="#associated">associated structure</a>:
 </p>
@@ -135,11 +158,24 @@ the position of the clicked mutant (in the 3D structure of the
 of residues <a href="../selection.html">selected</a> in the 
 <a href="#associated">associated structure</a>
 <li><b>Color synonymous mutations blue</b>
-&ndash; color in blue all circles for &ldquo;mutants&rdquo; that are actually
-the wild-type protein (initial coloring)
+&ndash; color in blue all circles for &ldquo;mutants&rdquo; with
+the same residue type as the wild-type protein
 <li><b>Hide (Show) synonymous bounds</b>
-&ndash; dashed lines delimiting the bulk of wild-type protein results
-(shown initially)
+&ndash; dashed lines delimiting mean &plusmn; 2 standard deviations
+of results for mutants with the same residue type as the wild-type protein
+<li><b>Ctrl-drag colors structure</b>
+&ndash; Ctrl-dragging a rectangle in the plot shows the enclosed circles in
+green and <a href=../selection.html">selects</a> the corresponding
+structure residues; this option indicates whether to also color
+the corresponding structure residues <b>lime</b> 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="lime" width="10px" title="lime"></td></tr></table>
+and the other structure residues <b>light gray</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="lightgray" width="10px" title="light gray"></td></tr></table>
+(initially on)
 <li><b>Clear plot colors</b>
 &ndash; color all circles gray
 </ul>
@@ -162,22 +198,26 @@ the circle in the plot
 clipping can be turned off with <a href="clip.html"><b>clip off</b><a>,
 or with <a href="view.html"><b>view</b></a> to view all
 <li><b>Label with [<i>x-score</i>] scores</b>
-&ndash; <a href="#label">label</a>
-the corresponding residue with a color-coded grid of the <i>x-score</i>
+&ndash; label the corresponding residue with a 
+<a href="#label">color-coded grid</a> of the <i>x-score</i>
 values for all substitutions at that position; the grid
 can be removed with <a href="label.html#delete"><b>label delete</b></a>
 <li><b>Label with [<i>y-score</i>] scores</b>
-&ndash; <a href="#label">label</a>
-the corresponding residue with a color-coded grid of the <i>y-score</i>
+&ndash; label the corresponding residue with a 
+<a href="#label">color-coded grid</a> of the <i>y-score</i>
 values for all substitutions at that position; the grid
 can be removed with <a href="label.html#delete"><b>label delete</b></a>
 </ul>
-The remaining tool-specific entry is for saving the plot as an image file.
+The following relate to plots:
 <ul>
-<li><b>Save Plot As...</b> save the scatter plot as PNG, SVG, or PDF
+<li><b>New plot</b> 
+&ndash; duplicate the current plot window to allow changing one copy
+while retaining the settings of the other
+<li><b>Show histogram</b> 
+&ndash; show a <a href="#histogram">histogram</a> of the X-axis values
+<li><b>Save Plot As...</b> save the scatter plot as an image file
+(PNG, SVG, or PDF)
 </ul>
-(Other entries such as <b>Hide Tool</b> appear in all tool context menus
-and are not not specific to mutation scores.)
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -231,8 +271,13 @@ with a single amino acid type specified.
 The <b>combine</b> option combines the scores for all mutations at a 
 given position using the specified operation. 
 With <b>setAttribute true</b> (default), defining a per-residue score
-assigns an attribute with the same name as the score 
+assigns an <a href="../attributes.html">attribute</a> 
+with the same name as the score 
 to the <a href="#associated">associated structure</a> residues.
+An <a href="../attributes.html">attribute</a>
+can be shown with <a href="color.html#byattribute">coloring</a> and
+used in <a href="../selection.html">selection</a> and
+and <a href="atomspec.html#attributes">command-line specification</a>.
 <p>
 The <b>subtractFit</b> option performs a linear least-squares fit of the 
 <i>from-score</i> to the <i>sub-score</i> and subtracts the linear values 
@@ -250,12 +295,67 @@ surface-expressed protein.
 <a href="#top" class="nounder">&bull;</a>
 <a name="histogram"></a>
 <b>mutationscores histogram</b> &nbsp;<i>score</i>&nbsp;
+[&nbsp;<b>scale</b>&nbsp;&nbsp;linear&nbsp;|&nbsp;<b>log</b>&nbsp;]
 [&nbsp;<b>bins</b>&nbsp;&nbsp;<i>b</i>&nbsp;]
 [&nbsp;<b>curve</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>smoothWidth</b>&nbsp;&nbsp;<i>w</i>&nbsp;]
+[&nbsp;<b>smoothBins</b>&nbsp;&nbsp;<i>sb</i>&nbsp;]
+[&nbsp;<b>synonymous</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>bounds</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
+<table class="clRight">
+<tr><td><img border=1 src="histogram.png"
+alt="mutation scores histogram" width="300px">
+</td></tr>
+</table>
+Show a histogram of mutation scores, with bar-height scaling either linear or
+log (default <b>log</b>). The number of <b>bins</b> <i>b</i> in the histogram
+defaults to <b>20</b>. With <b>curve true</b> (default), a smooth curve
+is drawn in orange by approximating the histogram with a Gaussian convolution 
+using <b>smoothWidth</b> <i>w</i> (default 10% of the standard deviation of 
+the score) and <b>smoothBins</b> <i>sb</i> (default <b>200</b>).
+The <b>synonymous</b> option indicates whether to
+show blue histogram bars for the &ldquo;mutants&rdquo; that have the same 
+residue type as the wild-type protein (default <b>true</b>)
+and the <b>bounds</b> option indicates
+whether to show dashed lines delimiting mean &plusmn; 2 standard deviations 
+of their values (default <b>true</b>).
+The histogram will replace a pre-existing histogram unless
+<b>replace false</b> is given. The menus below the histogram can be used
+to change which score is plotted and for which
+<a href="#mutationSet">mutation set</a>. 
+</p><p>
+Clicking the histogram raises a context menu, including:
+</p>
+<ul>
+<li><b>Linear (Log) scale</b> 
+&ndash; type of histogram bar scaling (initially logarithmic)
+<li><b>Hide (Show) synonymous</b>
+&ndash; blue histogram bars showing results for &ldquo;mutants&rdquo;
+with the same residue type as the wild-type protein
+<li><b>Hide (Show) synonymous bounds</b>
+&ndash; dashed lines delimiting mean &plusmn; 2 standard deviations
+of results for mutants with the same residue type as the wild-type protein
+<li><b>Ctrl-drag colors structure</b>
+&ndash; Ctrl-dragging a rectangle in the plot
+<a href=../selection.html">selects</a> the corresponding
+structure residues; this option indicates whether to also color
+the corresponding structure residues <b>lime</b> 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="lime" width="10px" title="lime"></td></tr></table>
+and the other structure residues <b>light gray</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="lightgray" width="10px" title="light gray"></td></tr></table>
+<li><b>New histogram</b> 
+&ndash; duplicate the current plot window to allow changing one copy
+while retaining the settings of the other
+<li><b>Save Plot As...</b> save the histogram as an image file
+(PNG, SVG, or PDF)
+</ul>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -285,7 +385,7 @@ The coloring defaults are:
 <b><a href="color.html#palette">palette</a> redblue
 &nbsp;<a href="color.html#range">range</a> full</b>
   </blockquote>
-... meaning <table border cellpadding="4" cellspacing="0"
+... meaning <table border=1 cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=red width="10px" title="red"></td>
 <td bgcolor=white width="10px" title="white"></td>
@@ -302,9 +402,8 @@ style="display:inline-block; vertical-align:middle"><tr>
 <p>
 The label <b>height</b>&nbsp;&nbsp;<i>h</i> defaults to <b>1.5</b> &Aring;.
 The <b>offset</b>&nbsp;&nbsp;<i>x,y,z</i> is the position of the
-lower left corner of the grid relative to the &alpha;-carbon of the
-residue along the X-, Y-, and Z-axes in the
-<a href="view.html#screencoords">screen coordinate system</a>
+lower left corner of the grid relative to the residue's &alpha;-carbon
+along X, Y, and Z in <a href="view.html#screencoords">screen coordinates</a>
 (default <b>0,0,3</b> &Aring;). The <b>onTop</b> setting is whether 
 to draw the labels on top of other objects regardless of their
 relative positions in 3D (default <b>false</b>).

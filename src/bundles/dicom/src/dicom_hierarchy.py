@@ -713,7 +713,7 @@ class DicomData:
                 nt = len(times)
                 for data in self.files:
                     data._time = times.index(data.trigger_time) + 1
-                    data.inferred_properties += "TemporalPositionIdentifier"
+                    data.inferred_properties.add("TemporalPositionIdentifier")
                 if nt > 1:
                     self.session.logger.warning(
                         "Inferring time series from TriggerTime metadata \
@@ -1007,7 +1007,7 @@ class SeriesFile:
     def __init__(self, data):
         self.data = data
         self.path = data.filename
-        self.inferred_properties = []
+        self.inferred_properties = set()
         orient = getattr(
             data, "ImageOrientationPatient", None
         )  # horz and vertical image axes
