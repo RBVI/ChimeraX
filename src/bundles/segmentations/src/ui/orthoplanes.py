@@ -16,7 +16,7 @@ import numpy as np
 
 from Qt import qt_object_is_deleted
 from Qt.QtCore import Qt, QEvent, QSize
-from Qt.QtGui import QContextMenuEvent, QWindow, QSurface, QInputDevice
+from Qt.QtGui import QContextMenuEvent, QWindow, QSurface, QInputDevice, QImage
 from Qt.QtWidgets import QComboBox, QVBoxLayout, QHBoxLayout, QWidget, QSlider, QLabel
 from Qt.QtCore import QTimer, QPoint
 
@@ -361,6 +361,7 @@ class PlaneViewer(QWindow):
         # loop otherwise we get a traceback
 
         self.widget.setMinimumSize(QSize(20, 20))
+        self.widget.grab = self._grab_viewport
 
         self.button_container = QWidget()
         button_layout = QHBoxLayout()
@@ -395,6 +396,11 @@ class PlaneViewer(QWindow):
                 SEGMENTATION_MODIFIED, self._on_segmentation_modified
             )
         )
+
+    def _grab_viewport(self):
+        image = self.view.image_rgba()
+        height, width, channels = image.shape
+        return QImage(image.data, width, height, width * channels, QImage.Format_RGBA8888).mirrored(False, True)
 
     def _on_axis_changed(self, axis):
         self.axis = Axis.from_string(axis.lower())
