@@ -49,6 +49,7 @@ class ScenesTool(ToolInstance):
         self.collapsible_box.add_widget(self.scene_line_edit_widget)
 
         self.add_button = QPushButton("Add")
+        self.add_button.clicked.connect(self.add_button_clicked)
         self.edit_button = QPushButton("Edit")
         self.edit_button.clicked.connect(self.edit_button_clicked)
         self.delete_button = QPushButton("Delete")
@@ -91,6 +92,13 @@ class ScenesTool(ToolInstance):
         self.scroll_area.remove_scene_item(scene_name)
         if self.highlighted_scene.get_name() == scene_name:
             self.highlighted_scene = None
+
+    def add_button_clicked(self):
+        scene_name = self.scene_name_entry.text()
+        if not scene_name:
+            self.session.logger.warning("Scene name cannot be empty.")
+            return
+        run(self.session, f"scene save {scene_name}")
 
     def edit_button_clicked(self):
         if self.highlighted_scene:
