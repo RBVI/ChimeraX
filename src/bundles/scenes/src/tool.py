@@ -26,6 +26,7 @@ class ScenesTool(ToolInstance):
         self.handlers.append(add_handler(SCENE_HIGHLIGHTED, self.scene_highlighted_cb))
         self.handlers.append(add_handler(DELETED, self.scene_deleted_cb))
 
+        # SceneItem widget that is highlighted
         self.highlighted_scene = None
 
     def build_ui(self):
@@ -78,6 +79,8 @@ class ScenesTool(ToolInstance):
 
     def scene_deleted_cb(self, trigger_name, scene_name):
         self.scroll_area.remove_scene_item(scene_name)
+        if self.highlighted_scene.get_name() == scene_name:
+            self.highlighted_scene = None
 
     def edit_button_clicked(self):
         if self.highlighted_scene:
