@@ -15,7 +15,7 @@ EDITED: Trigger name for edited scenes.
 """
 These triggers are designed to be used in the bundle's tool
 
-SCENE_SELECTED: Trigger name for the scene.
+SCENE_SELECTED: Trigger from the tool for when a scene needs to be restored.
 SCENE_HIGHLIGHTED: Trigger name for a SceneItem widget that was highlighted.
 """
 
