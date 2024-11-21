@@ -1053,6 +1053,13 @@ class StructureSeq(Sequence):
     though associated residues may change to None if those residues are deleted/closed.
     '''
 
+    # For attribute registration...
+    # Chain will also get these
+    _attr_reg_info = [
+        ('chain_id', (str,)), ('circular', (bool,)), ('description', (bool,)),
+        ('num_existing_residues', (int,)), ('num_residues', (int,)), ('polymer_type', (int,)),
+    ]
+
     def __init__(self, sseq_pointer=None, *, chain_id=None, structure=None, polymer_type=Residue.PT_NONE):
         if sseq_pointer is None:
             sseq_pointer = c_function('sseq_new',
@@ -1345,12 +1352,6 @@ class Chain(StructureSeq):
     Chain objects are not always equivalent to Protein Databank chains.
 
     '''
-
-    # For attribute registration...
-    _attr_reg_info = [
-        ('chain_id', (str,)), ('circular', (bool,)), ('description', (bool,)),
-        ('num_existing_residues', (int,)), ('num_residues', (int,)), ('polymer_type', int),
-    ]
 
     def __str__(self):
         return self.string()

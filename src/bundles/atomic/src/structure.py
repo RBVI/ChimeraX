@@ -2641,10 +2641,10 @@ def _register_hover_trigger(session):
 
 # custom Chain attrs should be registered in the StructureSeq base class
 from chimerax.core.attributes import register_class
-from .molobject import python_instances_of_class, Atom, Bond, CoordSet, Pseudobond, PseudobondManager, \
-    Residue, Sequence, StructureSeq
+from .molobject import python_instances_of_class, Atom, Bond, CoordSet, Pseudobond, \
+    PseudobondManager, Residue, Sequence, StructureSeq, Chain
 from .pbgroup import PseudobondGroup
 for reg_class in [ Atom, Structure, Bond, CoordSet, Pseudobond, PseudobondGroup, PseudobondManager,
-        Residue, Sequence, StructureSeq ]:
+        Residue, Sequence, StructureSeq, Chain ]:
     register_class(reg_class, lambda *args, cls=reg_class: python_instances_of_class(cls),
         {attr_name: types for attr_name, types in getattr(reg_class, '_attr_reg_info', [])})
