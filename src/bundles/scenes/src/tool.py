@@ -1,7 +1,7 @@
 import base64
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
-from Qt.QtWidgets import QSizePolicy, QFrame, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton
+from Qt.QtWidgets import QHBoxLayout, QLineEdit, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton
 from Qt.QtGui import QPixmap
 from Qt.QtCore import Qt
 from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, ADDED, SCENE_HIGHLIGHTED, DELETED
@@ -38,6 +38,15 @@ class ScenesTool(ToolInstance):
         self.main_layout.addWidget(self.scroll_area)
 
         self.collapsible_box = CollapsibleBox("Actions")
+
+        self.scene_line_edit_widget = QWidget()
+        self.scene_entry_label = QLabel("Scene Name:")
+        self.scene_name_entry = QLineEdit()
+        self.line_edit_layout = QHBoxLayout()
+        self.line_edit_layout.addWidget(self.scene_entry_label)
+        self.line_edit_layout.addWidget(self.scene_name_entry)
+        self.scene_line_edit_widget.setLayout(self.line_edit_layout)
+        self.collapsible_box.add_widget(self.scene_line_edit_widget)
 
         self.add_button = QPushButton("Add")
         self.edit_button = QPushButton("Edit")
