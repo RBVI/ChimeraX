@@ -4,7 +4,7 @@ from chimerax.ui import MainToolWindow
 from Qt.QtWidgets import QSizePolicy, QFrame, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton
 from Qt.QtGui import QPixmap
 from Qt.QtCore import Qt
-from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, ADDED, SCENE_HIGHLIGHTED
+from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, ADDED, SCENE_HIGHLIGHTED, DELETED
 from chimerax.core.commands import run
 
 
@@ -24,6 +24,7 @@ class ScenesTool(ToolInstance):
         self.handlers.append(add_handler(EDITED, self.scene_edited_cb))
         self.handlers.append(add_handler(ADDED, self.scene_added_cb))
         self.handlers.append(add_handler(SCENE_HIGHLIGHTED, self.scene_highlighted_cb))
+        self.handlers.append(add_handler(DELETED, self.scene_deleted_cb))
 
         self.highlighted_scene = None
 
@@ -74,6 +75,9 @@ class ScenesTool(ToolInstance):
             else:
                 self.highlighted_scene.set_highlighted(False)
         self.highlighted_scene = self.scroll_area.get_scene_item(scene_name)
+
+    def scene_deleted_cb(self, trigger_name, scene_name):
+        self.scroll_area.remove_scene_item(scene_name)
 
     def edit_button_clicked(self):
         if self.highlighted_scene:
@@ -135,6 +139,12 @@ class SceneScrollArea(QScrollArea):
         scene_item = SceneItem(scene_name, thumbnail_data)
         self.scene_items.insert(0, scene_item)
         self.update_grid()
+
+    def remove_scene_item(self, scene_name):
+        scene_item = self.get_scene_item(scene_name)
+        if scene_item:
+            self.scene_items.remove(scene_item)
+            self.update_grid()
 
     def set_latest_scene(self, scene_name):
         scene_item = self.get_scene_item(scene_name)
