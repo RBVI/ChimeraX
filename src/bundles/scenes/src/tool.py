@@ -43,6 +43,7 @@ class ScenesTool(ToolInstance):
         self.edit_button = QPushButton("Edit")
         self.edit_button.clicked.connect(self.edit_button_clicked)
         self.delete_button = QPushButton("Delete")
+        self.delete_button.clicked.connect(self.delete_button_clicked)
 
         self.collapsible_box.add_widget(self.add_button)
         self.collapsible_box.add_widget(self.edit_button)
@@ -87,6 +88,12 @@ class ScenesTool(ToolInstance):
             run(self.session, f"scene edit {self.highlighted_scene.get_name()}")
         else:
             self.session.logger.warning("No scene selected to edit")
+
+    def delete_button_clicked(self):
+        if self.highlighted_scene:
+            run(self.session, f"scene delete {self.highlighted_scene.get_name()}")
+        else:
+            self.session.logger.warning("No scene selected to delete")
 
     def delete(self):
         for handler in self.handlers:
