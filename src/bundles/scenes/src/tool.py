@@ -90,7 +90,7 @@ class ScenesTool(ToolInstance):
 
     def scene_deleted_cb(self, trigger_name, scene_name):
         self.scroll_area.remove_scene_item(scene_name)
-        if self.highlighted_scene.get_name() == scene_name:
+        if self.highlighted_scene and self.highlighted_scene.get_name() == scene_name:
             self.highlighted_scene = None
 
     def add_button_clicked(self):
