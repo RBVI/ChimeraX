@@ -40,8 +40,6 @@ class SceneManager(StateManager):
 
     Attributes:
         version (int): The version of the SceneManager.
-        ADDED (str): Trigger name for added scenes.
-        DELETED (str): Trigger name for deleted scenes.
         scenes (dict): A dictionary mapping scene names to Scene objects.
         session: The current session.
     """
