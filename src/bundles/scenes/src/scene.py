@@ -237,32 +237,6 @@ class Scene(State):
         return self.thumbnail
 
     @staticmethod
-    def interpolatable(scene1, scene2):
-        """
-        Check if two scenes are interpolatable. Scenes are interpolatable if they have the same models in their
-        model:data mappings in NamedView, SceneColors, and SceneVisibility. View state is not included because view
-        state is model independent it is implied that there is always a View for each session.
-
-        Args:
-            scene1 (Scene): The first Scene instance.
-            scene2 (Scene): The second Scene instance.
-
-        Returns:
-            bool: True if the two scenes are interpolatable, False otherwise.
-        """
-
-        scene1_models = scene1.named_view.positions.keys()
-        scene2_models = scene2.named_view.positions.keys()
-        # Sets to disregard order
-        named_views = set(scene1_models) == set(scene2_models)
-
-        scene_colors = SceneColors.interpolatable(scene1.get_colors(), scene2.get_colors())
-        scene_visibility = SceneVisibility.interpolatable(scene1.get_visibility(), scene2.get_visibility())
-
-        # All three must be interpolatable
-        return named_views and scene_colors and scene_visibility
-
-    @staticmethod
     def restore_snapshot(session, data):
         if data['version'] != Scene.version:
             raise ValueError("Cannot restore Scene data with version %d" % data['version'])
@@ -448,91 +422,6 @@ class SceneColors(State):
     def get_ring_colors(self):
         return self.ring_colors
 
-    @staticmethod
-    def interpolatable(scene1_colors, scene2_colors):
-        """
-        Check if two SceneColors objects are interpolatable. Two SceneColors objects are interpolatable if they have the
-        same models in their model:data mappings.
-
-        Args:
-            scene1_colors (SceneColors): The first SceneColors instance.
-            scene2_colors (SceneColors): The second SceneColors instance.
-
-        Returns:
-            bool: True if the two SceneColors objects are interpolatable, False otherwise.
-        """
-
-        if scene1_colors.atom_colors.keys() != scene2_colors.atom_colors.keys():
-            return False
-        if scene1_colors.bond_colors.keys() != scene2_colors.bond_colors.keys():
-            return False
-        if scene1_colors.halfbonds.keys() != scene2_colors.halfbonds.keys():
-            return False
-        if scene1_colors.pseudobond_colors.keys() != scene2_colors.pseudobond_colors.keys():
-            return False
-        if scene1_colors.pbond_halfbonds.keys() != scene2_colors.pbond_halfbonds.keys():
-            return False
-        if scene1_colors.ribbon_colors.keys() != scene2_colors.ribbon_colors.keys():
-            return False
-        if scene1_colors.ring_colors.keys() != scene2_colors.ring_colors.keys():
-            return False
-        return True
-
-    @staticmethod
-    def interpolate(session, scene1_colors, scene2_colors, fraction):
-        """
-        Set the session state to an interpolated state between two SceneColors objects. Uses linear interpolation and
-        threshold interpolation.
-
-        Args:
-            session: The current session.
-            scene1_colors (SceneColors): The first SceneColors instance.
-            scene2_colors (SceneColors): The second SceneColors instance.
-            fraction (float): The weight of the second SceneColors instance. 0.0 is all scene1_colors, 1.0 is all
-                scene2_colors.
-        """
-
-        objects = all_objects(session)
-
-        atom_colors_1 = scene1_colors.get_atom_colors()
-        atom_colors_2 = scene2_colors.get_atom_colors()
-        for (model, atoms) in objects.atoms.by_structure:
-            if model in atom_colors_1 and model in atom_colors_2:
-                atoms.colors = rgba_ndarray_lerp(atom_colors_1[model], atom_colors_2[model], fraction)
-
-        # Bond colors
-        bond_colors_1 = scene1_colors.get_bond_colors()
-        bond_colors_2 = scene2_colors.get_bond_colors()
-        halfbonds_1 = scene1_colors.get_halfbonds()
-        halfbonds_2 = scene2_colors.get_halfbonds()
-        for (model, bonds) in objects.bonds.by_structure:
-            if model in bond_colors_1 and model in bond_colors_2:
-                bonds.colors = rgba_ndarray_lerp(bond_colors_1[model], bond_colors_2[model], fraction)
-            if model in halfbonds_1 and model in halfbonds_2:
-                bonds.halfbonds = bool_ndarray_threshold_lerp(halfbonds_1[model], halfbonds_2[model], fraction)
-
-        # Pseudobond colors
-        pseudobond_colors_1 = scene1_colors.get_pseudobond_colors()
-        pseudobond_colors_2 = scene2_colors.get_pseudobond_colors()
-        pbond_halfbonds_1 = scene1_colors.get_pbond_halfbonds()
-        pbond_halfbonds_2 = scene2_colors.get_pbond_halfbonds()
-        for (pbond_group, pseudobonds) in objects.pseudobonds.by_group:
-            if pbond_group in pseudobond_colors_1 and pbond_group in pseudobond_colors_2:
-                pseudobonds.colors = rgba_ndarray_lerp(pseudobond_colors_1[pbond_group], pseudobond_colors_2[pbond_group], fraction)
-            if pbond_group in pbond_halfbonds_1 and pbond_group in pbond_halfbonds_2:
-                pseudobonds.halfbonds = bool_ndarray_threshold_lerp(pbond_halfbonds_1[pbond_group], pbond_halfbonds_2[pbond_group], fraction)
-
-        # Residues colors
-        ribbon_colors_1 = scene1_colors.get_ribbon_colors()
-        ribbon_colors_2 = scene2_colors.get_ribbon_colors()
-        ring_colors_1 = scene1_colors.get_ring_colors()
-        ring_colors_2 = scene2_colors.get_ring_colors()
-        for (model, ribbons) in objects.residues.by_structure:
-            if model in ribbon_colors_1 and model in ribbon_colors_2:
-                ribbons.ribbon_colors = rgba_ndarray_lerp(ribbon_colors_1[model], ribbon_colors_2[model], fraction)
-            if model in ring_colors_1 and model in ring_colors_2:
-                ribbons.ring_colors = rgba_ndarray_lerp(ring_colors_1[model], ring_colors_2[model], fraction)
-
     def take_snapshot(self, session, flags):
         return {
             'version': self.version,
@@ -683,81 +572,6 @@ class SceneVisibility(State):
     def get_ring_displays(self):
         return self.ring_displays
 
-    @staticmethod
-    def interpolatable(scene1_visibility, scene2_visibility):
-        """
-        Check if two SceneVisibility instances are interpolatable. Two SceneVisibility instances are interpolatable if
-        they have the same models in their model:data mappings.
-
-        Args:
-            scene1_visibility (SceneVisibility): The first SceneVisibility instance.
-            scene2_visibility (SceneVisibility): The second SceneVisibility instance.
-
-        Returns:
-            bool: True if the two SceneVisibility instances are interpolatable, False otherwise.
-        """
-        if scene1_visibility.model_visibility.keys() != scene2_visibility.model_visibility.keys():
-            return False
-        if scene1_visibility.atom_displays.keys() != scene2_visibility.atom_displays.keys():
-            return False
-        if scene1_visibility.bond_displays.keys() != scene2_visibility.bond_displays.keys():
-            return False
-        if scene1_visibility.pseudobond_displays.keys() != scene2_visibility.pseudobond_displays.keys():
-            return False
-        if scene1_visibility.ribbon_displays.keys() != scene2_visibility.ribbon_displays.keys():
-            return False
-        if scene1_visibility.ring_displays.keys() != scene2_visibility.ring_displays.keys():
-            return False
-        return True
-
-    @staticmethod
-    def interpolate(session, scene1_visibility, scene2_visibility, fraction):
-        """
-        Set the session state to an interpolated state between two SceneVisibility instances.
-
-        Args:
-            session: The current session.
-            scene1_visibility (SceneVisibility): The first SceneVisibility instance.
-            scene2_visibility (SceneVisibility): The second SceneVisibility instance.
-            fraction (float): The weight of the second SceneVisibility instance. 0.0 is all scene1_visibility, 1.0 is
-            all scene2_visibility.
-        """
-        objects = all_objects(session)
-
-        model_visibility_1 = scene1_visibility.get_model_visibility()
-        model_visibility_2 = scene2_visibility.get_model_visibility()
-        for model in objects.models:
-            if model in model_visibility_1 and model in model_visibility_2:
-                model.display = bool_ndarray_threshold_lerp(model_visibility_1[model], model_visibility_2[model], fraction)
-
-        atom_displays_1 = scene1_visibility.get_atom_displays()
-        atom_displays_2 = scene2_visibility.get_atom_displays()
-        for (structure, atom) in objects.atoms.by_structure:
-            if structure in atom_displays_1 and structure in atom_displays_2:
-                atom.displays = bool_ndarray_threshold_lerp(atom_displays_1[structure], atom_displays_2[structure], fraction)
-
-        bond_displays_1 = scene1_visibility.get_bond_displays()
-        bond_displays_2 = scene2_visibility.get_bond_displays()
-        for (structure, bond) in objects.bonds.by_structure:
-            if structure in bond_displays_1 and structure in bond_displays_2:
-                bond.displays = bool_ndarray_threshold_lerp(bond_displays_1[structure], bond_displays_2[structure], fraction)
-
-        pseudobond_displays_1 = scene1_visibility.get_pbond_displays()
-        pseudobond_displays_2 = scene2_visibility.get_pbond_displays()
-        for (pbond_group, pseudobonds) in objects.pseudobonds.by_group:
-            if pbond_group in pseudobond_displays_1 and pbond_group in pseudobond_displays_2:
-                pseudobonds.displays = bool_ndarray_threshold_lerp(pseudobond_displays_1[pbond_group], pseudobond_displays_2[pbond_group], fraction)
-
-        ribbon_displays_1 = scene1_visibility.get_ribbon_displays()
-        ribbon_displays_2 = scene2_visibility.get_ribbon_displays()
-        ring_displays_1 = scene1_visibility.get_ring_displays()
-        ring_displays_2 = scene2_visibility.get_ring_displays()
-        for (structure, residues) in objects.residues.by_structure:
-            if structure in ribbon_displays_1 and structure in ribbon_displays_2:
-                residues.ribbon_displays = bool_ndarray_threshold_lerp(ribbon_displays_1[structure], ribbon_displays_2[structure], fraction)
-            if structure in ring_displays_1 and structure in ring_displays_2:
-                residues.ring_displays = bool_ndarray_threshold_lerp(ring_displays_1[structure], ring_displays_2[structure], fraction)
-
     def take_snapshot(self, session, flags):
         return {
             'version': self.version,
@@ -774,22 +588,3 @@ class SceneVisibility(State):
         if SceneVisibility.version != data['version']:
             raise ValueError("Cannot restore SceneVisibility data with version %d" % data['version'])
         return SceneVisibility(session, visibility_data=data)
-
-
-def bool_ndarray_threshold_lerp(bool_arr1, bool_arr2, fraction):
-    """
-    Threshold lerp for bool numpy arrays. Fraction 0.5 is the threshold.
-    """
-    return bool_arr1 if fraction < 0.5 else bool_arr2
-
-
-def rgba_ndarray_lerp(rgba_arr1, rgba_arr2, fraction):
-    """
-    Linear interpolation of two RGBA numpy arrays. Fraction is the weight of the second array.
-    """
-    rgba_arr1_copy = np.copy(rgba_arr1)
-    rgba_arr2_copy = np.copy(rgba_arr2)
-    interpolated = rgba_arr1_copy * (1 - fraction) + rgba_arr2_copy * fraction
-    # Convert back to uint8. This is necessary because the interpolation may have created floats which is not supported
-    # by the colors attribute in the atoms object.
-    return interpolated.astype(np.uint8)

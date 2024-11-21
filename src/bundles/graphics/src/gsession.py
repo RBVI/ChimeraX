@@ -1,7 +1,4 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
-import numpy as np
-from chimerax.geometry.psession import PlaceState
-
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2022 Regents of the University of California. All rights reserved.
@@ -140,77 +137,6 @@ class ViewState:
     def include_state(view):
         return True
 
-    @staticmethod
-    def interpolate(view, scene1, scene2, frac):
-        """
-        Interpolate view at frac of the way between two scene datasets.
-        :param view: View object to interpolate
-        :param scene1: Starting ViewState scene data
-        :param scene2: Ending ViewState scene data
-        :param frac: Fraction of the way between scene1 and scene2 to interpolate
-
-        save_attrs = ['camera', 'lighting', 'material',
-                  'center_of_rotation', 'center_of_rotation_method',
-                  'background_color', 'highlight_color', 'highlight_thickness']
-        silhouette_attrs = ['enabled', 'thickness', 'color', 'depth_jump']
-        """
-
-        for view_attr in ViewState.save_attrs:
-            if view_attr in scene1 and view_attr in scene2:
-                # Setting the center_of_rotation resets the center_of_rotation method to fixed. Changing the other
-                # center of rotation methods automatically calculate the center of rotation.
-                # For simplicity use a threshold lerp for center_of_rotation and center_of_rotation_method.
-
-                if view_attr == "center_of_rotation":
-                    # Center of rotation is interpolated first according to save_attrs order, settattr will
-                    # automatically switch the center of rotation method to fixed because we set its value.
-                    lerp_val = threshold_frac_lerp(scene1[view_attr], scene2[view_attr], frac)
-                    setattr(view, view_attr, lerp_val)
-                elif view_attr == "center_of_rotation_method":
-                    # center_of_rotation method will be interpolated second according to save_attrs order. Since we set
-                    # the center of rotation first, the method will be set to fixed. If it is not supposed to be fixed
-                    # we will overwrite it with the correct method here, and it will automatically recalculate the
-                    # appropriate center of rotation.
-                    lerp_val = threshold_frac_lerp(scene1[view_attr], scene2[view_attr], frac)
-                    setattr(view, view_attr, lerp_val)
-                elif view_attr == "background_color":
-                    lerp_val = list_frac_lerp(scene1[view_attr], scene2[view_attr], frac)
-                    setattr(view, view_attr, lerp_val)
-                elif view_attr == "highlight_color":
-                    # Highlight color is the select option color
-                    lerp_val = list_frac_lerp(scene1[view_attr], scene2[view_attr], frac)
-                    setattr(view, view_attr, lerp_val)
-                elif view_attr == "highlight_thickness":
-                    # Highlight thickness only changes on the whole number. Round to avoid only potential issues
-                    lerp_val = round(num_frac_lerp(scene1[view_attr], scene2[view_attr], frac))
-                    setattr(view, view_attr, lerp_val)
-                elif view_attr == "lighting":
-                    LightingState.interpolate(view.lighting, scene1[view_attr], scene2[view_attr], frac)
-                elif view_attr == "material":
-                    MaterialState.interpolate(view.material, scene1[view_attr], scene2[view_attr], frac)
-
-        s_data1 = scene1['silhouettes']
-        s_data2 = scene2['silhouettes']
-        for silhouette_attr in ViewState.silhouette_attrs:
-            if silhouette_attr in s_data1 and silhouette_attr in s_data2:
-                if silhouette_attr == "enabled":
-                    # Enabled is a boolean
-                    lerp_val = threshold_frac_lerp(s_data1[silhouette_attr], s_data2[silhouette_attr], frac)
-                    setattr(view.silhouette, silhouette_attr, lerp_val)
-                elif silhouette_attr == "thickness":
-                    # Not a fluid interpolation. Some value steps don't display changes like view.highlight_thickness
-                    lerp_val = num_frac_lerp(s_data1[silhouette_attr], s_data2[silhouette_attr], frac)
-                    setattr(view.silhouette, silhouette_attr, lerp_val)
-                elif silhouette_attr == "color":
-                    lerp_val = list_frac_lerp(s_data1[silhouette_attr], s_data2[silhouette_attr], frac)
-                    setattr(view.silhouette, silhouette_attr, lerp_val)
-                elif silhouette_attr == "depth_jump":
-                    lerp_val = num_frac_lerp(s_data1[silhouette_attr], s_data2[silhouette_attr], frac)
-                    setattr(view.silhouette, silhouette_attr, lerp_val)
-
-        view.update_lighting = True
-        view.redraw_needed = True
-
 
 class CameraState:
 
@@ -304,78 +230,6 @@ class LightingState:
     def reset_state(lighting, session):
         pass
 
-    @staticmethod
-    def interpolate(lighting, scene1, scene2, frac):
-        """
-        save_attrs = ['key_light_direction', 'key_light_color', 'key_light_intensity', 'fill_light_direction',
-        'fill_light_color', 'fill_light_intensity', 'ambient_light_color', 'ambient_light_intensity', 'depth_cue',
-        'depth_cue_start', 'depth_cue_end', 'depth_cue_color', 'move_lights_with_camera', 'shadows',
-        'shadow_map_size', 'shadow_depth_bias', 'multishadow', 'multishadow_map_size', 'multishadow_depth_bias']
-        """
-        for light_attr in LightingState.save_attrs:
-            if light_attr in scene1 and light_attr in scene2:
-                if light_attr == "key_light_direction":
-                    # Numpy array
-                    lerp_val = list_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "key_light_color":
-                    lerp_val = list_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "key_light_intensity":
-                    lerp_val = num_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "fill_light_direction":
-                    lerp_val = list_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "fill_light_color":
-                    lerp_val = list_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "fill_light_intensity":
-                    lerp_val = num_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "ambient_light_color":
-                    lerp_val = list_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "ambient_light_intensity":
-                    lerp_val = num_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "depth_cue":
-                    lerp_val = threshold_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "depth_cue_start":
-                    lerp_val = num_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "depth_cue_end":
-                    # This works, but it could maybe take a 'shorter path' in interpolating to look better.
-                    lerp_val = num_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "depth_cue_color":
-                    lerp_val = list_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "move_lights_with_camera":
-                    lerp_val = threshold_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "shadows":
-                    lerp_val = threshold_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "shadow_map_size":
-                    # Shadow map size needs to be a whole number
-                    lerp_val = round(num_frac_lerp(scene1[light_attr], scene2[light_attr], frac))
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "shadow_depth_bias":
-                    lerp_val = num_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "multishadow":
-                    # Need whole number values
-                    lerp_val = round(num_frac_lerp(scene1[light_attr], scene2[light_attr], frac))
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "multishadow_map_size":
-                    lerp_val = round(num_frac_lerp(scene1[light_attr], scene2[light_attr], frac))
-                    setattr(lighting, light_attr, lerp_val)
-                elif light_attr == "multishadow_depth_bias":
-                    lerp_val = num_frac_lerp(scene1[light_attr], scene2[light_attr], frac)
-                    setattr(lighting, light_attr, lerp_val)
-
 
 class MaterialState:
 
@@ -413,38 +267,6 @@ class MaterialState:
     @staticmethod
     def reset_state(Material, session):
         pass
-
-    @staticmethod
-    def interpolate(material, scene1, scene2, frac):
-        """
-        save_attrs = [
-        'ambient_reflectivity', 'diffuse_reflectivity',
-        'specular_reflectivity', 'specular_exponent',
-        'transparent_cast_shadows', 'meshes_cast_shadows']
-        """
-
-        for mat_attr in MaterialState.save_attrs:
-            if mat_attr in scene1 and mat_attr in scene2:
-                if mat_attr == "ambient_reflectivity":
-                    lerp_val = num_frac_lerp(scene1[mat_attr], scene2[mat_attr], frac)
-                    setattr(material, mat_attr, lerp_val)
-                elif mat_attr == "diffuse_reflectivity":
-                    lerp_val = num_frac_lerp(scene1[mat_attr], scene2[mat_attr], frac)
-                    setattr(material, mat_attr, lerp_val)
-                elif mat_attr == "specular_reflectivity":
-                    lerp_val = num_frac_lerp(scene1[mat_attr], scene2[mat_attr], frac)
-                    setattr(material, mat_attr, lerp_val)
-                elif mat_attr == "specular_exponent":
-                    lerp_val = num_frac_lerp(scene1[mat_attr], scene2[mat_attr], frac)
-                    setattr(material, mat_attr, lerp_val)
-                elif mat_attr == "transparent_cast_shadows":
-                    # TODO find something to test this interpolation with
-                    lerp_val = threshold_frac_lerp(scene1[mat_attr], scene2[mat_attr], frac)
-                    setattr(material, mat_attr, lerp_val)
-                elif mat_attr == "meshes_cast_shadows":
-                    # TODO find something to test this interpolation with
-                    lerp_val = threshold_frac_lerp(scene1[mat_attr], scene2[mat_attr], frac)
-                    setattr(material, mat_attr, lerp_val)
 
 
 class ClipPlaneState:
@@ -586,27 +408,3 @@ class DrawingState:
     @staticmethod
     def reset_state(drawing, session):
         pass
-
-
-def num_frac_lerp(value1, value2, fraction):
-    """
-    Linear interpolation between two values based on a fraction.
-    Supported Types: number types, np.ndarray
-    """
-    return value1 + fraction * (value2 - value1)
-
-
-def list_frac_lerp(value1, value2, fraction):
-    """
-    Linear interpolation between two list-like types based on a fraction.
-    Supported Types: list, tuple ...
-    """
-    return [value1[i] + fraction * (value2[i] - value1[i]) for i in range(len(value1))]
-
-
-def threshold_frac_lerp(value1, value2, fraction):
-    """
-    Either value1 or value2 based on a threshold.
-    Supported Types: bool, str
-    """
-    return value1 if fraction < 0.5 else value2

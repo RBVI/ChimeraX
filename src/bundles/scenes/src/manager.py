@@ -106,44 +106,6 @@ class SceneManager(StateManager):
             self.get_scene(scene_name).restore_scene()
         return
 
-    def interpolate_scenes(self, scene_name1, scene_name2, fraction):
-        """
-        Interpolate between two scenes.
-
-        Args:
-            scene_name1 (str): The name of the first scene.
-            scene_name2 (str): The name of the second scene.
-            fraction (float): The interpolation fraction (0.0 to 1.0).
-        """
-        if self.scene_exists(scene_name1) and self.scene_exists(scene_name2):
-            scene1 = self.get_scene(scene_name1)
-            scene2 = self.get_scene(scene_name2)
-
-            # Check if scenes are compatible
-            if not Scene.interpolatable(scene1, scene2):
-                self.session.logger.warning(f"Cannot interpolate between scenes {scene_name1} and {scene_name2} because"
-                                         f"they are incompatible.")
-                return
-
-            # Interpolate main view data
-            ViewState.interpolate(
-                self.session.view,
-                scene1.main_view_data,
-                scene2.main_view_data,
-                fraction
-            )
-
-            # Use NamedViews to interpolate camera, clip planes, and model positions. See _InterpolateViews
-            view1 = scene1.named_view
-            view2 = scene2.named_view
-            centers = _model_motion_centers(view1.positions, view2.positions)
-            _interpolate_views(view1, view2, fraction, self.session.main_view, centers)
-
-            # Interpolate scene color and visibility data
-            SceneColors.interpolate(self.session, scene1.get_colors(), scene2.get_colors(), fraction)
-            SceneVisibility.interpolate(self.session, scene1.get_visibility(), scene2.get_visibility(), fraction)
-        return
-
     def _remove_models_cb(self, trig_name, models):
         """
         Callback for removing models from scenes.

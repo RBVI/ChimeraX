@@ -14,12 +14,6 @@ def register_command(command_name, logger):
     elif command_name == "scenes restore":
         func = restore_scene
         desc = restore_scene_desc
-    elif command_name == "scenes interpolate":
-        func = interpolate_scenes
-        desc = interpolate_scenes_desc
-    elif command_name == "scenes dInterpolate":
-        func = dynamic_interpolate_scenes
-        desc = dynamic_interpolate_scenes_desc
     elif command_name == "scenes list":
         func = list_scenes
         desc = list_scenes_desc
@@ -69,47 +63,6 @@ def restore_scene(session, scene_name):
 restore_scene_desc = CmdDesc(
     required=[("scene_name", StringArg)],
     synopsis="Restore the scene named 'scene_name'."
-)
-
-
-def interpolate_scenes(session, scene_name1, scene_name2, fraction):
-    """Interpolate between two scenes."""
-    if fraction < 0.0 or fraction > 1.0:
-        print("Fraction must be between 0.0 and 1.0")
-        return
-    session.scenes.interpolate_scenes(scene_name1, scene_name2, fraction)
-
-
-interpolate_scenes_desc = CmdDesc(
-    required=[
-        ("scene_name1", StringArg),
-        ("scene_name2", StringArg),
-        ("fraction", FloatArg)
-    ],
-    synopsis="Interpolate between two scenes."
-)
-
-
-def dynamic_interpolate_scenes(session, scene_name1, scene_name2):
-    """Interpolate between two scenes using a fraction but make the animation take 5 seconds and split it into
-    60fps"""
-    from chimerax.core.commands import run
-    import time
-    from chimerax.core.commands.motion import CallForNFrames
-
-    def frame_func(session, f):
-        fraction = f / 300
-        session.scenes.interpolate_scenes(scene_name1, scene_name2, fraction)
-
-    CallForNFrames(frame_func, 300, session)
-
-
-dynamic_interpolate_scenes_desc = CmdDesc(
-    required=[
-        ("scene_name1", StringArg),
-        ("scene_name2", StringArg)
-    ],
-    synopsis="Interpolate between two scenes dynamically."
 )
 
 

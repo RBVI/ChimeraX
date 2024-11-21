@@ -46,10 +46,6 @@
     Edit a scene from the sessions scene manager. </ChimeraXClassifier>
   <ChimeraXClassifier>ChimeraX :: Command :: scenes restore :: General ::
     Save a scene to the sessions scene manager. </ChimeraXClassifier>
-  <ChimeraXClassifier>ChimeraX :: Command :: scenes interpolate :: General ::
-    Interpolate between two scenes. </ChimeraXClassifier>
-  <ChimeraXClassifier>ChimeraX :: Command :: scenes dInterpolate :: General ::
-    Interpolate between two scenes dynamically. </ChimeraXClassifier>
   <ChimeraXClassifier>ChimeraX :: Command :: scenes list :: General ::
     List current scenes in the log. </ChimeraXClassifier>
   </Classifiers>
