@@ -54,6 +54,11 @@ class _HelpWebView(ChimeraXHtmlView):
     def __init__(self, session, tool, profile):
         super().__init__(session, tool.tabs, size_hint=(840, 800), profile=profile)
         self.help_tool = tool
+        from Qt.QtWebEngineCore import QWebEngineSettings
+        settings = self.settings()
+        settings.setAttribute(QWebEngineSettings.PluginsEnabled, True)
+        settings.setAttribute(QWebEngineSettings.PdfViewerEnabled, True)
+
 
     def createWindow(self, win_type):  # noqa
         # win_type is window, tab, dialog, backgroundtab
