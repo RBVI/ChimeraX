@@ -82,9 +82,7 @@ class ScenesTool(ToolInstance):
 
     def scene_highlighted_cb(self, trigger_name, scene_name):
         if self.highlighted_scene:
-            if self.highlighted_scene.get_name() == scene_name:
-                activate_trigger(SCENE_SELECTED, scene_name)
-            else:
+            if self.highlighted_scene.get_name() != scene_name:
                 self.highlighted_scene.set_highlighted(False)
         self.highlighted_scene = self.scroll_area.get_scene_item(scene_name)
 
@@ -225,6 +223,10 @@ class SceneItem(QWidget):
             self.set_highlighted(True)
             activate_trigger(SCENE_HIGHLIGHTED, self.name)
         super().mousePressEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        activate_trigger(SCENE_SELECTED, self.name)
+        super().mouseDoubleClickEvent(event)
 
     def set_highlighted(self, highlighted):
         if highlighted:
