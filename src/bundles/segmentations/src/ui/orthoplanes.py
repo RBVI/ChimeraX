@@ -37,6 +37,8 @@ from chimerax.ui.widgets import ModelMenu
 from ..segmentation import Segmentation, copy_volume_for_auxiliary_display
 from ..segmentation_tracker import get_tracker
 
+from chimerax.segmentations.ui.color_key import ColorKeyModel
+
 import chimerax.segmentations.triggers
 from chimerax.segmentations.triggers import (
     ACTIVE_SEGMENTATION_CHANGED,
@@ -265,6 +267,18 @@ class PlaneViewer(QWindow):
         self.label = Label(
             self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0
         )
+
+        self.color_key = ColorKeyModel(self.session, self.view)
+        self.color_key.ticks = True
+        self.color_key.tick_length = 30
+        self.color_key.font_size = 16
+        self.color_key.label_side = ColorKeyModel.LS_LEFT_TOP
+        self.color_key.size = (0.04, 0.6)
+        self.color_key.pos = (0.95, 0.2)
+        self.color_key.display = False
+        # TODO: Set rgbas and labels, e.g. self.color_key.rgbas_and_labels=[(rgba,label)] based on
+        # colormap. Get it from the histogram
+        self.view.add_overlay(self.color_key)
 
         def _not_volume_surface_or_segmentation(m):
             ok_to_list = not isinstance(m, VolumeSurface)
@@ -704,6 +718,20 @@ class PlaneViewer(QWindow):
             self.render()
         self._redraw()
 
+    def on_color_changed(self):
+        colors = self.view.drawing.parent.image_colors
+        levels = self.view.drawing.parent.image_levels
+        rgba_and_labels = []
+        for colors, levels in zip(colors, levels):
+            color = colors[:3]
+            alpha = levels[1]
+            # Interpret low alpha as black
+            color = [c * alpha for c in color]
+            level = "{:0.2f}".format(levels[0])
+            rgba_and_labels.append(((*color, 1), level))
+        rgba_and_labels.sort(key = lambda x: float(x[1]))
+        self.color_key.rgbas_and_labels = rgba_and_labels
+
     def close(self):
         # TODO: why does this call make it crash?
         # self.setParent(None)
@@ -724,6 +752,8 @@ class PlaneViewer(QWindow):
         if volume_viewer:
             self._remove_axis_from_volume_viewer(volume_viewer[0], v)
         self.view.drawing.delete()
+        self.view.remove_overlays([self.color_key], delete = False)
+        self.color_key.delete()
         self.view.delete()
         self.mouse_move_timer.stop()
         self.volume_viewer_opened_timer.stop()
@@ -857,6 +887,9 @@ class PlaneViewer(QWindow):
         settings = get_settings(self.session)
         settings.display_guidelines = not settings.display_guidelines
         chimerax.segmentations.triggers.activate_trigger(GUIDELINES_VISIBILITY_CHANGED)
+
+    def toggle_color_key(self):
+        self.color_key.display = not self.color_key.display
 
     def _on_guideline_visibility_changed(self, _, __):
         from chimerax.segmentations.settings import get_settings
@@ -1069,9 +1102,14 @@ class PlaneViewer(QWindow):
                     if not self.context_menu:
                         self.context_menu = QMenu(parent=self.parent)
                         toggle_guidelines_action = QAction("Toggle Guidelines")
+                        toggle_color_key_action = QAction("Toggle Color Guide")
                         self.context_menu.addAction(toggle_guidelines_action)
+                        self.context_menu.addAction(toggle_color_key_action)
                         toggle_guidelines_action.triggered.connect(
                             lambda: self.toggle_guidelines()
+                        )
+                        toggle_color_key_action.triggered.connect(
+                            lambda: self.toggle_color_key()
                         )
                         self.context_menu.aboutToHide.connect(self.enterEvent)
                     self.context_menu.exec(self.context_menu_coords)
@@ -1482,6 +1520,7 @@ class PlaneViewer(QWindow):
                 self.pos = orthoplane_positions[self.axis]
                 self._plane_indices[self.axis] = self.pos
                 self.manager.update_location(self)
+                self.on_color_changed()
         self.render()
 
     def set_label_text(self, text):
@@ -1784,4 +1823,5 @@ class SegmentationVolumePanel(Histogram_Pane):
     def _color_chosen(self, color):
         super()._color_chosen(color)
         self.plane_viewer.color_changed = True
+        self.plane_viewer.on_color_changed()
         self.plane_viewer._redraw()
