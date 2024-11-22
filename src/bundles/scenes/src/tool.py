@@ -162,6 +162,10 @@ class SceneScrollArea(QScrollArea):
                 col = 0
                 row += 1
 
+        # Remove empty rows
+        for i in range(row, self.grid.rowCount()):
+            self.grid.setRowMinimumHeight(i, 0)
+
     def add_scene_item(self, scene_name, thumbnail_data):
         scene_item = SceneItem(scene_name, thumbnail_data)
         self.scene_items.insert(0, scene_item)
