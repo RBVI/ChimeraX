@@ -63,6 +63,8 @@ class ScenesTool(ToolInstance):
 
         self.main_layout.addWidget(self.collapsible_box)
 
+        self.tool_window.ui_area.setMinimumWidth(300)
+
     def scene_selected_cb(self, trigger_name, scene_name):
         run(self.session, f"scene restore {scene_name}")
 
