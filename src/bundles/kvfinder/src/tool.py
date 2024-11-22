@@ -41,7 +41,7 @@ class LaunchKVFinderTool(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget, QGroupBox
+        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget, QGroupBox, QCheckBox
         from Qt.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
@@ -98,9 +98,14 @@ class LaunchKVFinderTool(ToolInstance):
             setattr(self, attr_name + '_option', opt)
             panel.add_option(opt)
 
+        self.replace_prev = QCheckBox("Replace existing cavities, if any")
+        self.replace_prev.setChecked(True)
+        layout.addWidget(self.replace_prev, alignment=Qt.AlignCenter)
+
         from Qt.QtWidgets import QDialogButtonBox as qbbox
-        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.find_cavities)
+        bbox.button(qbbox.Apply).clicked.connect(self.find_cavities)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         if getattr(self, 'help', None) is None:
@@ -125,6 +130,8 @@ class LaunchKVFinderTool(ToolInstance):
             cur_val = getattr(_launch_settings, attr_name)
             if cur_val != default_value:
                 cmd += " " + camel_case(attr_name) + " %g" % cur_val
+        if not self.replace_prev.isChecked():
+            cmd += " replace false"
         run(self.session, cmd)
 
 

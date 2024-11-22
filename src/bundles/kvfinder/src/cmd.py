@@ -26,7 +26,8 @@ from chimerax.core.errors import LimitationError, UserError
 import pyKVFinder
 
 def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, probe_in=1.4, probe_out=4.0,
-        removal_distance=2.4, show_tool=True, grid_spacing=0.6, surface_type='SES', volume_cutoff=5.0):
+        removal_distance=2.4, show_tool=True, grid_spacing=0.6, surface_type='SES', volume_cutoff=5.0,
+        replace=True):
     if [box_origin, box_extent].count(None) == 1:
         raise UserError("Must specify both 'boxOrigin' and 'boxExtent' or neither")
     from chimerax.atomic import all_atomic_structures, Structure
@@ -38,6 +39,7 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
     from chimerax.atomic.struct_edit import add_atom
     import numpy
     return_values = []
+    cavity_group_name = "cavities"
     for s in structures:
         session.logger.status("Find Cavities for %s: preparing KVFinder input" % s)
         insert_codes = s.residues.insertion_codes
@@ -52,6 +54,13 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
         num_cavities, cavity_matrix = pyKVFinder.detect(struct_input, vertices, grid_spacing,
             probe_in, probe_out, removal_distance, volume_cutoff, None, 5.0, box_origin is not None,
             surface_type, None, False)
+        if replace:
+            closures = []
+            for child in s.child_models():
+                if child.name == cavity_group_name:
+                    closures.append(child)
+            if closures:
+                session.models.close(closures)
         session.logger.info("%d cavities found for %s" % (num_cavities, s))
         if num_cavities == 0:
             return_values.append((s, num_cavities, cavity_matrix, None))
@@ -62,7 +71,7 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
         depths, max_depth, avg_depth = pyKVFinder.depth(cavity_matrix)
         session.logger.status("Find Cavities for %s: creating cavity models" % s)
         from chimerax.core.models import Model
-        cavity_group = Model("cavities", session)
+        cavity_group = Model(cavity_group_name, session)
         s.add([cavity_group])
         return_values.append((s, num_cavities, cavity_matrix, cavity_group))
         model_lookup = {}
@@ -174,6 +183,7 @@ def register_command(command_name, logger):
             ('probe_in', FloatArg),
             ('probe_out', FloatArg),
             ('removal_distance', FloatArg),
+            ('replace', BoolArg),
             ('show_tool', BoolArg),
             ('grid_spacing', FloatArg),
             ('surface_type', EnumOf(['SAS', 'SES'])),
