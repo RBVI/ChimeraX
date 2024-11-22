@@ -186,6 +186,8 @@ class KVFinderResultsDialog(ToolInstance):
         self.table.add_column("Volume", "kvfinder_volume", format="%g")
         self.table.add_column("Surface Area", "kvfinder_area", format="%g")
         self.table.add_column("Points", "num_atoms", format="%d")
+        self.table.add_column("Maximum Depth", "kvfinder_max_depth", format="%g")
+        self.table.add_column("Average Depth", "kvfinder_average_depth", format="%g")
         def color_refresh_cb(trig_name, change_info, *args, table=self.table):
             s, changes = change_info
             if "color changed" in changes.atom_reasons():

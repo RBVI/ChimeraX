@@ -30,8 +30,8 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
     if [box_origin, box_extent].count(None) == 1:
         raise UserError("Must specify both 'boxOrigin' and 'boxExtent' or neither")
     from chimerax.atomic import all_atomic_structures, Structure
-    Structure.register_attr(session, "kvfinder_area", "KVFinder", attr_type=float)
-    Structure.register_attr(session, "kvfinder_volume", "KVFinder", attr_type=float)
+    for attr_name in ["area", "volume", "max_depth", "average_depth"]:
+        Structure.register_attr(session, "kvfinder_" + attr_name, "KVFinder", attr_type=float)
     if structures is None:
         structures = all_atomic_structures(session)
     from .prep import prep_input
@@ -58,6 +58,8 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
             continue
         session.logger.status("Find Cavities for %s: determining cavities' surface/volume" % s)
         surface_grid, k_volume, k_area = pyKVFinder.spatial(cavity_matrix)
+        session.logger.status("Find Cavities for %s: finding cavity depths" % s)
+        depths, max_depth, avg_depth = pyKVFinder.depth(cavity_matrix)
         session.logger.status("Find Cavities for %s: creating cavity models" % s)
         from chimerax.core.models import Model
         cavity_group = Model("cavities", session)
@@ -80,6 +82,8 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
             k_index = pyKVFinder.grid._get_cavity_name(i)
             cav_s.kvfinder_area = k_area[k_index]
             cav_s.kvfinder_volume = k_volume[k_index]
+            cav_s.kvfinder_max_depth = max_depth[k_index]
+            cav_s.kvfinder_average_depth = avg_depth[k_index]
         origin, *args = vertices
         assert (nx, ny, nz) == cavity_matrix.shape
         # Using the explicit triple loop instead of more numpy-like code, because AFAICT the
@@ -117,7 +121,7 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
             '<table %s>' % html_table_params,
             '  <thead>',
             '    <tr>',
-            '      <th colspan="5">%s Cavities</th>' % s.name,
+            '      <th colspan="7">%s Cavities</th>' % s.name,
             '    </tr>',
             '    <tr>',
             '      <th>ID</th>',
@@ -125,6 +129,8 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
             '      <th>Volume</th>',
             '      <th>Area</th>',
             '      <th>Points</th>',
+            '      <th>Maximum<br>Depth</th>',
+            '      <th>Average<br>Depth</th>',
             '    </tr>',
             '  </thead>',
             '  <tbody>',
@@ -140,6 +146,8 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
             '      <td style="text-align:center">%g</td>' % cav_s.kvfinder_volume,
             '      <td style="text-align:center">%g</td>' % cav_s.kvfinder_area,
             '      <td style="text-align:center">%d</td>' % cav_s.num_atoms,
+            '      <td style="text-align:center">%g</td>' % cav_s.kvfinder_max_depth,
+            '      <td style="text-align:center">%g</td>' % cav_s.kvfinder_average_depth,
             '    </tr>',
             ])
         table_lines.extend([
