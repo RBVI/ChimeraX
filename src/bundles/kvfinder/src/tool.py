@@ -98,7 +98,7 @@ class LaunchKVFinderTool(ToolInstance):
             setattr(self, attr_name + '_option', opt)
             panel.add_option(opt)
 
-        self.replace_prev = QCheckBox("Replace existing cavities, if any")
+        self.replace_prev = QCheckBox("Replace existing results, if any")
         self.replace_prev.setChecked(True)
         layout.addWidget(self.replace_prev, alignment=Qt.AlignCenter)
 
