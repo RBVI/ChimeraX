@@ -1,0 +1,93 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Mutation Scores Format</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3>Mutation Scores Format</h3>
+<p>
+ChimeraX can read the results of deep mutational scanning
+from a <b><i>mutation scores file</i></b>
+(format name <b>ms</b>, filename suffix <b>.csv</b>) 
+for visualization and analysis with the
+<a href="../commands/mutationscores.html"><b>mutationscores</b></a> command.
+Deep mutational scanning generally involves mutating each position in a
+protein to all 20 standard amino acids and evaluating the large number
+of mutants with various high-throughput assays.
+The assay scores are tabulated in the file as comma-separated values.
+</p><p>
+The first line of the file gives the names of the columns, and subsequent 
+lines give the values, for example:
+</p>
+<pre>
+variants,wildtype,position,mutation,type,surface,surface_se,abundance,abundance_se,dox,dox_se,mtx,mtx_se,sn38,sn38_se
+p.(V6A),V,6,A,missense,0.052806582,0.311071605,0.095010571,0.391069124,-0.549746993,0.43742939,0.253708238,0.317841138,-0.373043663,0.444088911
+p.(V6C),V,6,C,missense,0.132574054,0.300261964,0.129538083,0.371928707,-0.012776432,0.376829305,-0.005007274,0.220479589,0.447843883,0.270068523
+[...]
+</pre>
+<p>
+The first column should describe the mutation in the 
+<a href="https://hgvs-nomenclature.org/stable/recommendations/protein/substitution/" 
+target="_blank">format</a>
+recommended by the <a href="https://hgvs-nomenclature.org/stable/"
+target="_blank">Human Genome Variation Society (HGVS)</a>,
+except with 1-letter amino acid codes instead of 3-letter codes.
+For example, a mutation of tyrosine 392 to alanine would be described as:
+</p>
+<blockquote>
+p.(Y392A)
+</blockquote>
+<p>
+Deep mutational scans often include deletions. For example,
+the following denotes a deletion of valine 6:
+<blockquote>
+p.(V6del)
+</blockquote>
+<p>
+ChimeraX currently offers no way to visualize the deletions and will
+ignore such lines. 
+</p><p>
+</p><p>
+Opening a mutation scores file automatically shows a 
+<a href="../commands/mutationscores.html#scatterplot">scatter plot</a> 
+of the mutants with the first two scores as the axes,
+or a <a href="../commands/mutationscores.html#histogram">histogram</a>
+if the file only contains one kind of score.
+The menus below the plot can be used
+to change which scores are plotted and for which mutation set.
+</p><p>
+Opening a mutation scores file automatically associates the data with a
+structure chain open in ChimeraX, if its sequence and residue numbering
+match that in the file.  However, if more than one matching chain is present,
+the <a href="../commands/open.html#local"><b>open</b></a> command
+<a href="../commands/open.html#chain"><b>chain</b></a> option
+can be used to specify which to use.
+Alternatively, the scores can be associated with a structure later with the
+<a href="../commands/mutationscores.html#structure"><b>mutationscores
+structure</b></a> command.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+November 2024</address>
+</body></html>
