@@ -72,7 +72,7 @@ class Scene(State):
             self.thumbnail = scene_data['thumbnail']
             self.main_view_data = scene_data['main_view_data']
             self.named_view = NamedView.restore_snapshot(session, scene_data['named_view'])
-            self.scene_restorables = scene_data['scene_restorables']
+            self.scene_restoreables = scene_data['scene_restorables']
         return
 
     def init_form_session(self):
@@ -80,10 +80,10 @@ class Scene(State):
         self.main_view_data = self.create_main_view_data()
         models = self.session.models.list()
         self.named_view = NamedView(self.session.view, self.session.view.center_of_rotation, models)
-        self.scene_restorables = {}
+        self.scene_restoreables = {}
         for model in all_objects(self.session).models:
             if isinstance(model, SceneRestoreable):
-                self.scene_restorables[model] = model.take_scene()
+                self.scene_restoreables[model] = model.take_scene()
 
     def take_thumbnail(self):
         """
@@ -113,8 +113,8 @@ class Scene(State):
         for model in current_models:
             if model in self.named_view.positions:
                 model.positions = self.named_view.positions[model]
-            if model in self.scene_restorables:
-                model.restore_scene(self.scene_restorables[model])
+            if model in self.scene_restoreables:
+                model.restore_scene(self.scene_restoreables[model])
 
     def models_removed(self, models: [str]):
         """
@@ -244,7 +244,7 @@ class Scene(State):
             'thumbnail': self.thumbnail,
             'main_view_data': self.main_view_data,
             'named_view': self.named_view.take_snapshot(session, flags),
-            'scene_restorables': self.scene_restorables
+            'scene_restorables': self.scene_restoreables
         }
 
 
