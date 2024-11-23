@@ -44,8 +44,8 @@ class QCxTableModel(QAbstractTableModel):
                 widget = self._item_table.indexWidget(sorted_index)
                 if not widget:
                     has_alpha = col.display_format == ItemTable.COL_FORMAT_TRANSPARENT_COLOR
-                    from .color_button import ColorButton
-                    widget = ColorButton(self._item_table, has_alpha_channel=has_alpha)
+                    from .color_button import MultiColorButton
+                    widget = MultiColorButton(self._item_table, has_alpha_channel=has_alpha)
                     widget.color_changed.connect(lambda clr, c=col, i=item: c.set_value(i, clr))
                     self._item_table.setIndexWidget(sorted_index, widget)
                 widget.color = val
@@ -153,8 +153,8 @@ class QCxTableModel(QAbstractTableModel):
             # the default size hint doesn't handle multi-line titles right
             title = self._title_text(col)
             buffer_size = QSize(22, 8)
-            if title is None:
-                return buffer_size
+            if not title:
+                return None
             fm = self._item_table.horizontalHeader().fontMetrics()
             return fm.size(0, title) + buffer_size
 

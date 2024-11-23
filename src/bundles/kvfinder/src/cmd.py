@@ -30,9 +30,10 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
         replace=True):
     if [box_origin, box_extent].count(None) == 1:
         raise UserError("Must specify both 'boxOrigin' and 'boxExtent' or neither")
-    from chimerax.atomic import all_atomic_structures, Structure
+    from chimerax.atomic import all_atomic_structures, Structure, Atom
     for attr_name in ["area", "volume", "max_depth", "average_depth"]:
         Structure.register_attr(session, "kvfinder_" + attr_name, "KVFinder", attr_type=float)
+    Atom.register_attr(session, "kvfinder_depth", "KVFinder", attr_type=float)
     if structures is None:
         structures = all_atomic_structures(session)
     from .prep import prep_input
@@ -107,6 +108,7 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
         #            a.radius = 0.1
         session.logger.status("Find Cavities for %s: filling in cavity models" % s)
         cavity_iter = cavity_matrix.flat
+        depth_iter = depths.flat
         for xi in range(nx):
             x = origin[0] + xi * grid_spacing
             for yi in range(ny):
@@ -114,11 +116,13 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
                 for zi in range(nz):
                     #val = cavity_matrix[xi][yi][zi]
                     val = int(next(cavity_iter))
+                    depth = float(next(depth_iter))
                     if val < 2:
                         continue
                     z = origin[2] + zi * grid_spacing
                     cav_s, r, rgba = model_lookup[val]
                     a = add_atom("Z%d" % cav_s.num_atoms, "He", r, numpy.array((x,y,z)))
+                    a.kvfinder_depth = depth
         for cav_s, r, rgba in model_lookup.values():
             cav_s.overall_color = [255.0 * c for c in rgba]
             cav_s.ball_scale = 0.25
