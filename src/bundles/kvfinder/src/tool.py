@@ -105,6 +105,7 @@ class LaunchKVFinderTool(ToolInstance):
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.find_cavities)
+        # Since ApplyRole is not AcceptRole, simply connecting to the Apply button won't dismiss the dialog
         bbox.button(qbbox.Apply).clicked.connect(self.find_cavities)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
@@ -193,8 +194,8 @@ class KVFinderResultsDialog(ToolInstance):
         self.table.add_column("Volume", "kvfinder_volume", format="%g")
         self.table.add_column("Surface Area", "kvfinder_area", format="%g")
         self.table.add_column("Points", "num_atoms", format="%d")
-        self.table.add_column("Maximum Depth", "kvfinder_max_depth", format="%g")
         self.table.add_column("Average Depth", "kvfinder_average_depth", format="%g")
+        self.table.add_column("Maximum Depth", "kvfinder_max_depth", format="%g")
         def color_refresh_cb(trig_name, change_info, *args, table=self.table):
             s, changes = change_info
             if "color changed" in changes.atom_reasons():
