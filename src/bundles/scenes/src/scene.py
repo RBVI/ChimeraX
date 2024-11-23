@@ -78,8 +78,6 @@ class Scene(State):
         self.main_view_data = self.create_main_view_data()
         models = self.session.models.list()
         self.named_view = NamedView(self.session.view, self.session.view.center_of_rotation, models)
-        self.scene_colors = SceneColors(self.session)
-        self.scene_visibility = SceneVisibility(self.session)
 
     def take_thumbnail(self):
         """
@@ -109,9 +107,7 @@ class Scene(State):
         for model in current_models:
             if model in self.named_view.positions:
                 model.positions = self.named_view.positions[model]
-        # Restore colors and visibility
-        self.scene_colors.restore_colors()
-        self.scene_visibility.restore_visibility()
+
 
     def models_removed(self, models: [str]):
         """
@@ -124,8 +120,6 @@ class Scene(State):
         for model in models:
             if model in self.named_view.positions:
                 del self.named_view.positions[model]
-        self.scene_colors.models_removed(models)
-        self.scene_visibility.models_removed(models)
         return
 
     def create_main_view_data(self):
@@ -222,12 +216,6 @@ class Scene(State):
         self.session.restore_options['restore camera'] = True
         ViewState.restore_snapshot(self.session, restore_data)
         del self.session.restore_options['restore camera']
-
-    def get_colors(self):
-        return self.scene_colors
-
-    def get_visibility(self):
-        return self.scene_visibility
 
     def get_name(self):
         return self.name
