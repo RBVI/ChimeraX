@@ -31,7 +31,9 @@ from chimerax.std_commands.view import NamedView
 import numpy as np
 from .scene_attrs import SceneColors, SceneVisibility
 import copy
-
+from abc import ABC, abstractmethod
+from typing import Dict, Any
+from chimerax.core.objects import all_objects
 
 class Scene(State):
     """
@@ -69,8 +71,7 @@ class Scene(State):
             self.thumbnail = scene_data['thumbnail']
             self.main_view_data = scene_data['main_view_data']
             self.named_view = NamedView.restore_snapshot(session, scene_data['named_view'])
-            self.scene_colors = SceneColors(session, color_data=scene_data['scene_colors'])
-            self.scene_visibility = SceneVisibility(session, visibility_data=scene_data['scene_visibility'])
+            self.scene_restorables = scene_data['scene_restorables']
         return
 
     def init_form_session(self):
@@ -78,6 +79,9 @@ class Scene(State):
         self.main_view_data = self.create_main_view_data()
         models = self.session.models.list()
         self.named_view = NamedView(self.session.view, self.session.view.center_of_rotation, models)
+        for model in all_objects(self.session).models:
+            if isinstance(model, SceneRestoreable):
+                self.scene_restorables[model] = model.take_scene()
 
     def take_thumbnail(self):
         """
@@ -236,7 +240,28 @@ class Scene(State):
             'thumbnail': self.thumbnail,
             'main_view_data': self.main_view_data,
             'named_view': self.named_view.take_snapshot(session, flags),
-            'scene_colors': self.scene_colors.take_snapshot(session, flags),
-            'scene_visibility': self.scene_visibility.take_snapshot(session, flags)
+            'scene_restorables': self.scene_restorables
         }
 
+
+class SceneRestoreable(ABC):
+
+    @abstractmethod
+    def take_scene(self) -> Dict[str, Any]:
+        """
+        Take a snapshot of the current state of a session object.
+
+        Returns:
+            Dict[str, Any]: A dictionary of attributes and their values.
+        """
+        pass
+
+    @abstractmethod
+    def restore_scene(self, scene_data: Dict[str, Any]):
+        """
+        Restore the model state from the given scene data.
+
+        Args:
+            scene_data (Dict[str, Any]): A dictionary of attributes and their values.
+        """
+        pass
