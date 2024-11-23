@@ -1762,6 +1762,14 @@ class AtomicStructure(Structure):
             base_cmd = ""
         run(self.session, base_cmd + "log metadata %s; log chains %s" % (spec, spec))
 
+    def take_scene(self):
+        # Implementation of take_scene method from SceneRestorable
+        return {"atoms.colors": self.atoms.colors}
+
+    def restore_scene(self, scene_data) -> None:
+        # Implementation of restore_scene method from SceneRestorable
+        self.atoms.colors = scene_data["atoms.colors"]
+
 
 # also used by model panel to determine if its "Info" button should issue a "sym" command...
 def assembly_html_table(mol):

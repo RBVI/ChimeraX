@@ -80,6 +80,7 @@ class Scene(State):
         self.main_view_data = self.create_main_view_data()
         models = self.session.models.list()
         self.named_view = NamedView(self.session.view, self.session.view.center_of_rotation, models)
+        self.scene_restorables = {}
         for model in all_objects(self.session).models:
             if isinstance(model, SceneRestoreable):
                 self.scene_restorables[model] = model.take_scene()
@@ -112,6 +113,8 @@ class Scene(State):
         for model in current_models:
             if model in self.named_view.positions:
                 model.positions = self.named_view.positions[model]
+            if model in self.scene_restorables:
+                model.restore_scene(self.scene_restorables[model])
 
     def models_removed(self, models: [str]):
         """

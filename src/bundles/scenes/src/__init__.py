@@ -43,6 +43,9 @@ class _ScenesBundleAPI(BundleAPI):
         """Install scene manager into existing session"""
         from .manager import SceneManager
         session.scenes = SceneManager(session)
+        from .scene import SceneRestoreable
+        from chimerax.atomic import AtomicStructure
+        SceneRestoreable.register(AtomicStructure)
         return
 
     @staticmethod
