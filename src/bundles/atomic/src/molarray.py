@@ -891,6 +891,17 @@ class Atoms(Collection):
         atom_ids = [s.session_atom_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
         return [structures, array(atom_ids)]
 
+    def take_scene(self):
+        scene_data = {}
+        scene_data['colors'] = self.colors
+        scene_data['displays'] = self.displays
+        return scene_data
+
+    def restore_scene(self, scene_data):
+        for attr, value in scene_data.items():
+            if hasattr(self, attr):
+                setattr(self, attr, value)
+
 # -----------------------------------------------------------------------------
 #
 class Bonds(Collection):

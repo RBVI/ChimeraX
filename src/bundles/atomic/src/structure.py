@@ -1764,11 +1764,11 @@ class AtomicStructure(Structure):
 
     def take_scene(self):
         # Implementation of take_scene method from SceneRestorable
-        return {"atoms.colors": self.atoms.colors}
+        return {"atoms": self.atoms.take_scene()}
 
     def restore_scene(self, scene_data) -> None:
         # Implementation of restore_scene method from SceneRestorable
-        self.atoms.colors = scene_data["atoms.colors"]
+        self.atoms.restore_scene(scene_data["atoms"])
 
 
 # also used by model panel to determine if its "Info" button should issue a "sym" command...
