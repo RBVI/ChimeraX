@@ -420,13 +420,25 @@ class Model(State, Drawing):
         if 'opened_data_format' in data:
             self.opened_data_format = data['opened_data_format']
 
+    def take_scene(self):
+        scene_data = {}
+        scene_attrs = ['selected', 'overall_color', 'model_color', 'display']
+        for attr in scene_attrs:
+            scene_data[attr] = getattr(self, attr)
+        return scene_data
+
     def restore_scene(self, scene_data):
         '''
         Restore model to state from scene_data
         (obtained from take_snapshot() with State.SCENE flag)
-        '''
+
         #TODO: restore base Model state here
         raise NotImplementedError("restore_scene not implemented")
+        '''
+        for attr, val in scene_data.items():
+            if hasattr(self, attr):
+                setattr(self, attr, val)
+        return
 
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
         '''

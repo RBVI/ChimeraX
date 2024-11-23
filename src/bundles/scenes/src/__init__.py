@@ -45,6 +45,8 @@ class _ScenesBundleAPI(BundleAPI):
         session.scenes = SceneManager(session)
         from .scene import SceneRestoreable
         from chimerax.atomic import Atoms, Structure
+        from chimerax.core.models import Model
+        SceneRestoreable.register(Model)
         SceneRestoreable.register(Structure)
         SceneRestoreable.register(Atoms)
         return
