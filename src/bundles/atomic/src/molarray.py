@@ -894,6 +894,7 @@ class Atoms(Collection):
     def take_scene(self):
         scene_data = {}
         scene_data['colors'] = self.colors
+        scene_data['coords'] = self.coords
         scene_data['displays'] = self.displays
         return scene_data
 
