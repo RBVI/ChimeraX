@@ -35,6 +35,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any
 from chimerax.core.objects import all_objects
 
+
 class Scene(State):
     """
     A Scene object is a snapshot of the current state of the session. Scenes save data from ViewState, NamedView,
@@ -111,7 +112,6 @@ class Scene(State):
         for model in current_models:
             if model in self.named_view.positions:
                 model.positions = self.named_view.positions[model]
-
 
     def models_removed(self, models: [str]):
         """
@@ -192,7 +192,8 @@ class Scene(State):
         # param:data is a pass by reference to a dict we are storing in our scene. We should not overwrite it
         restore_data = copy.deepcopy(data)
 
-        restore_data['camera']['position'] = PlaceState.restore_snapshot(self.session, restore_data['camera']['position'])
+        restore_data['camera']['position'] = PlaceState.restore_snapshot(self.session,
+                                                                         restore_data['camera']['position'])
         restore_data['camera'] = CameraState.restore_snapshot(self.session, restore_data['camera'])
 
         restore_data['lighting'] = LightingState.restore_snapshot(self.session, restore_data['lighting'])
