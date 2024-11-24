@@ -1031,6 +1031,18 @@ class Bonds(Collection):
         bond_ids = [s.session_bond_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
         return [structures, array(bond_ids)]
 
+    def take_scene(self):
+        scene_data = {}
+        save_attrs = ['colors', 'displays', 'halfbonds', 'selected']
+        for attr in save_attrs:
+            scene_data[attr] = getattr(self, attr)
+        return scene_data
+
+    def restore_scene(self, scene_data):
+        for attr, value in scene_data.items():
+            if hasattr(self, attr):
+                setattr(self, attr, value)
+
 # -----------------------------------------------------------------------------
 #
 class Elements(Collection):

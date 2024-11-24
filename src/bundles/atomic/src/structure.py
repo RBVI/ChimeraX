@@ -1056,12 +1056,14 @@ class Structure(Model, StructureData):
         # get Model's scene data
         scene_data['super'] = super().take_scene()
         scene_data['atoms'] = self.atoms.take_scene()
+        scene_data['bonds'] = self.bonds.take_scene()
         return scene_data
 
     def restore_scene(self, scene_data) -> None:
         # Implementation of restore_scene method from SceneRestorable
         super().restore_scene(scene_data['super'])
         self.atoms.restore_scene(scene_data['atoms'])
+        self.bonds.restore_scene(scene_data['bonds'])
 
 
 class AtomsDrawing(Drawing):
