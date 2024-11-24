@@ -348,6 +348,16 @@ class PseudobondGroup(PseudobondGroupData, Model):
         grp.set_custom_attrs(data)
         return grp
 
+    def take_scene(self):
+        scene_data = {}
+        scene_data['super'] = super().take_scene()
+        scene_data['psuedobonds'] = self.pseudobonds.take_scene()
+        return scene_data
+
+    def restore_scene(self, scene_data):
+        super().restore_scene(scene_data['super'])
+        self.pseudobonds.restore_scene(scene_data['psuedobonds'])
+
 # -----------------------------------------------------------------------------
 #
 def selected_pseudobonds(session):
