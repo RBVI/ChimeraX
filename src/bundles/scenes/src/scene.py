@@ -28,8 +28,6 @@ from chimerax.graphics.gsession import (ViewState, CameraState, LightingState, M
                                         SceneClipPlaneState)
 from chimerax.geometry.psession import PlaceState
 from chimerax.std_commands.view import NamedView
-import numpy as np
-from .scene_attrs import SceneColors, SceneVisibility
 import copy
 from abc import ABC, abstractmethod
 from typing import Dict, Any
