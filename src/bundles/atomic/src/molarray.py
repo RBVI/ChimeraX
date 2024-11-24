@@ -1212,7 +1212,7 @@ class Pseudobonds(Collection):
 
     def take_scene(self):
         scene_data = {}
-        save_attrs = ['colors', 'displays', 'halfbonds' 'selected']
+        save_attrs = ['colors', 'displays', 'halfbonds', 'selected']
         for attr in save_attrs:
             scene_data[attr] = getattr(self, attr)
         return scene_data
