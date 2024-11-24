@@ -1057,6 +1057,7 @@ class Structure(Model, StructureData):
         scene_data['super'] = super().take_scene()
         scene_data['atoms'] = self.atoms.take_scene()
         scene_data['bonds'] = self.bonds.take_scene()
+        scene_data['residues'] = self.residues.take_scene()
         return scene_data
 
     def restore_scene(self, scene_data) -> None:
@@ -1064,6 +1065,7 @@ class Structure(Model, StructureData):
         super().restore_scene(scene_data['super'])
         self.atoms.restore_scene(scene_data['atoms'])
         self.bonds.restore_scene(scene_data['bonds'])
+        self.residues.restore_scene(scene_data['residues'])
 
 
 class AtomsDrawing(Drawing):

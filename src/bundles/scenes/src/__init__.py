@@ -44,11 +44,12 @@ class _ScenesBundleAPI(BundleAPI):
         from .manager import SceneManager
         session.scenes = SceneManager(session)
         from .scene import SceneRestoreable
-        from chimerax.atomic import Atoms, Bonds, Pseudobonds, PseudobondGroup
+        from chimerax.atomic import Atoms, Bonds, Pseudobonds, PseudobondGroup, Residues
         from chimerax.core.models import Model
         SceneRestoreable.register(Model)
         SceneRestoreable.register(Atoms)
         SceneRestoreable.register(Bonds)
+        SceneRestoreable.register(Residues)
         SceneRestoreable.register(PseudobondGroup)
         SceneRestoreable.register(Pseudobonds)
         return

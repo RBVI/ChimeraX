@@ -1483,6 +1483,17 @@ class Residues(Collection):
         residue_ids = [s.session_residue_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
         return [structures, array(residue_ids)]
 
+    def take_scene(self):
+        scene_data = {}
+        save_attrs = ['ribbon_colors', 'ribbon_displays', 'ring_colors', 'ring_displays']
+        for attr in save_attrs:
+            scene_data[attr] = getattr(self, attr)
+        return scene_data
+
+    def restore_scene(self, scene_data):
+        for attr, value in scene_data.items():
+            if hasattr(self, attr):
+                setattr(self, attr, value)
 
 # -----------------------------------------------------------------------------
 #
