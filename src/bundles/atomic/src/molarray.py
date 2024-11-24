@@ -893,9 +893,10 @@ class Atoms(Collection):
 
     def take_scene(self):
         scene_data = {}
-        scene_data['colors'] = self.colors
-        scene_data['coords'] = self.coords
-        scene_data['displays'] = self.displays
+        scene_attrs = ['colors', 'coords', 'displays', 'selected']
+        for attr in scene_attrs:
+            if hasattr(self, attr):
+                scene_data[attr] = getattr(self, attr)
         return scene_data
 
     def restore_scene(self, scene_data):
