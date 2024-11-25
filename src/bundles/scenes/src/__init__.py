@@ -52,6 +52,10 @@ class _ScenesBundleAPI(BundleAPI):
         SceneRestoreable.register(Residues)
         SceneRestoreable.register(PseudobondGroup)
         SceneRestoreable.register(Pseudobonds)
+
+
+        from chimerax.map import VolumeSurface
+        SceneRestoreable.register(VolumeSurface)
         return
 
     @staticmethod
