@@ -56,6 +56,10 @@ class _ScenesBundleAPI(BundleAPI):
 
         from chimerax.map import VolumeSurface
         SceneRestoreable.register(VolumeSurface)
+
+        from chimerax.label.label2d import Label, LabelModel
+        SceneRestoreable.register(Label)
+        SceneRestoreable.register(LabelModel)
         return
 
     @staticmethod
