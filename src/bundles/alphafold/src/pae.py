@@ -281,6 +281,12 @@ class OpenPredictedAlignedError(ToolInstance):
 #	fold_2024_05_08_15_09_model_0.cif
 #	fold_2024_05_08_15_09_full_data_0.json
 #
+# AlphaFold 3 local run
+#
+#	abcg2_human_model.cif
+#	abcg2_human_confidences.json
+#	  not abcg2_human_data.json which is the input specification including MSA
+#
 # AlphaFold database files
 #
 #	AF-P01445-F1-model_v2.cif
@@ -319,6 +325,8 @@ def _matching_pae_file(structure_path):
                 fname = filename.replace('_unrelaxed_', '_scores_')
             elif '_model_' in filename:
                 fname = filename.replace('_model_', '_full_data_')
+            elif filename.endswith('model.cif'):
+                fname = filename.replace('model', 'confidences')
             mfile = _longest_matching_prefix(fname, json_files, min_length = min_length)
         if mfile is None:
             mfile = _longest_matching_suffix(filename, json_files, min_length = min_length)
