@@ -59,6 +59,7 @@ target="_blank">recipe for reading CASTp pockets</a>
 </p><p>
 Conceptually, the method rolls two spherical probes
 over the VDW spheres of the macromolecule to identify cavities. 
+PDB HET residues (solvent, ligands, and ions) are ignored.
 The smaller &ldquo;inner&rdquo; probe defines the
 molecular surface, and the larger &ldquo;outer&rdquo; probe
 gives an initial estimate of the outer limits of the cavities. 
@@ -96,17 +97,28 @@ without changing any preferences
 <li><b>Restore</b> populates the dialog with the last saved preferences
 </ul>
 <p>
-Clicking <b>OK</b> runs the calculation, and tabulates the results for 
-each atomic model in a separate <a href="#cavitylist">cavity list</a> window.
-These results are also reported in the <a href="log.html"><b>Log</b></a>.
-PDB HET residues (solvent, ligands, and ions) are ignored, and
-default parameters are used.
-For more details on the method and/or to adjust additional parameters,
-see the <a href="../commands/kvfinder.html"><b>kvfinder</b></a> command.
+Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
+runs the calculation. The first time the tool is used,
+it may take a little longer to run as
+<a href="https://lbc-lnbio.github.io/pyKVFinder/"
+target="_blank"><i>pyKVFinder</i></a> is installed locally.
 </p><p>
+The results for each atomic model are tabulated
+in a separate <a href="#cavitylist">cavity list</a> window
+and reported in the <a href="log.html"><b>Log</b></a>.
 In the graphics window, the cavities are shown as clouds of points 
 on a grid. These collections of dots are opened as (pseudo)atomic models
 in ChimeraX, each cavity as a separate submodel assigned a unique color.
+</p><p>
+<b>Replace existing results, if any</b> (default <b>on</b>) 
+indicates whether to overwrite the cavity dots and
+<a href="#cavitylist">cavity list</a> when the calculation is
+re-run on the same atomic model. Otherwise, a new
+<a href="#cavitylist">cavity list</a> and additional
+cavity models will be created without closing the existing ones.
+<p><p>
+For more details on the method and/or to adjust additional parameters,
+see the <a href="../commands/kvfinder.html"><b>kvfinder</b></a> command.
 </p>
 
 <a name="cavitylist"></a>
@@ -129,6 +141,12 @@ in the <a href="modelpanel.html"><b>Model Panel</b></a>)
 as determined by <b><i>KVFinder</i></b>
 <li><b>Points</b> &ndash; number of grid points in the cavity,
 displayed as (pseudo)atoms in ChimeraX
+<li><b>Average Depth</b> 
+&ndash; average depth of pocket points, where the depth of a point 
+is its approximate distance from the pocket opening. 
+Points in completely enclosed pockets are assigned a zero depth.
+<li><b>Maximum Depth</b> 
+&ndash; how far from the opening the pocket extends
 </ul>
 <p>
 If a cavity list is closed but the corresponding cavity models still exist,
@@ -224,5 +242,5 @@ These types of coloring can be combined with surface transparency, for example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2024</address>
+November 2024</address>
 </body></html>
