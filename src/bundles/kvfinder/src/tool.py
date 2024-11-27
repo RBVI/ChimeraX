@@ -254,6 +254,16 @@ class KVFinderResultsDialog(ToolInstance):
         nearby_layout.addWidget(self.nearby_entry)
         nearby_layout.addWidget(QLabel(" angstroms of cavity points"))
 
+        depth_widget = QWidget()
+        layout.addWidget(depth_widget, alignment=Qt.AlignCenter)
+        depth_layout = QHBoxLayout()
+        depth_layout.setSpacing(0)
+        depth_widget.setLayout(depth_layout)
+        depth_button = QPushButton("Color")
+        depth_button.clicked.connect(self.color_by_depth)
+        depth_layout.addWidget(depth_button)
+        depth_layout.addWidget(QLabel(" open cavities by depth from outside"))
+
         layout.addSpacing(10)
 
         from chimerax.ui.widgets import Citation
@@ -278,6 +288,16 @@ class KVFinderResultsDialog(ToolInstance):
         inst.finalize_init(data['structure'], data['cavity_group'], data['cavity_models'],
             data['probe_radius'], data.get('surface_made', False), table_state=data['table state'])
         return inst
+
+    def color_by_depth(self):
+        open_cavities = [c for c in self.table.data if c.kvfinder_max_depth > 0]
+        if not open_cavities:
+            self.session.logger.warning("All cavities are completely enclosed")
+            return
+
+        from chimerax.core.commands import concise_model_spec, run
+        model_spec = concise_model_spec(self.session, open_cavities)
+        run(self.session, f"color byattr a:kvfinder_depth {model_spec}")
 
     def take_snapshot(self, session, flags):
         data = {
@@ -323,9 +343,17 @@ class KVFinderResultsDialog(ToolInstance):
             if _results_settings.surface:
                 probe_arg = "" if self.probe_radius == 1.4 else f" probeRadius {self.probe_radius}"
                 if not self._surface_made:
-                    run(self.session, f"surface {self.cavity_group.atomspec}{probe_arg} ;"
-                        f" trans {self.cavity_group.atomspec} 50")
+                    run(self.session, f"surface {self.cavity_group.atomspec}{probe_arg} trans 50")
+                    multicolor = False
+                    for cavity in self.table.data:
+                        unique_colors = set([tuple(x) for x in cavity.atoms.colors])
+                        if len(unique_colors) > 1:
+                            multicolor = True
+                            break
+                    if multicolor:
+                        run(self.session, f"color {self.cavity_group.atomspec} fromatoms trans 50")
                     run(self.session, f"~surface {self.cavity_group.atomspec}")
+                else:
                     self._surface_made = True
                 run(self.session, f"surface {model_spec}{probe_arg}")
         if setting_name in ["select_atoms", "show"] or setting_name is None \
