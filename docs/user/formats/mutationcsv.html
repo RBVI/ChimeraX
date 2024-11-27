@@ -50,7 +50,7 @@ The first column should describe the mutation in the
 <a href="https://hgvs-nomenclature.org/stable/recommendations/protein/substitution/" 
 target="_blank">format</a>
 recommended by the <a href="https://hgvs-nomenclature.org/stable/"
-target-"_blank">Human Genome Variation Society (HGVS)</a>,
+target="_blank">Human Genome Variation Society (HGVS)</a>,
 except with 1-letter amino acid codes instead of 3-letter codes.
 For example, a mutation of tyrosine 392 to alanine would be described as:
 </p>
@@ -66,6 +66,25 @@ p.(V6del)
 <p>
 ChimeraX currently offers no way to visualize the deletions and will
 ignore such lines. 
+</p><p>
+</p><p>
+Opening a mutation scores file automatically shows a 
+<a href="../commands/mutationscores.html#scatterplot">scatter plot</a> 
+of the mutants with the first two scores as the axes,
+or a <a href="../commands/mutationscores.html#histogram">histogram</a>
+if the file only contains one kind of score.
+The menus below the plot can be used
+to change which scores are plotted and for which mutation set.
+</p><p>
+Opening a mutation scores file automatically associates the data with a
+structure chain open in ChimeraX, if its sequence and residue numbering
+match that in the file.  However, if more than one matching chain is present,
+the <a href="../commands/open.html#local"><b>open</b></a> command
+<a href="../commands/open.html#chain"><b>chain</b></a> option
+can be used to specify which to use.
+Alternatively, the scores can be associated with a structure later with the
+<a href="../commands/mutationscores.html#structure"><b>mutationscores
+structure</b></a> command.
 </p>
 
 <hr>

@@ -100,6 +100,7 @@
   <Providers manager="render by attribute">
     <Provider name="atoms"/>
     <Provider name="residues"/>
+    <Provider name="chains"/>
     <Provider name="structures"/>
   </Providers>
 

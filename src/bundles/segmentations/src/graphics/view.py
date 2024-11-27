@@ -42,6 +42,10 @@ class OrthoplaneView(View):
     def remove_segmentation_overlay(self, overlay):
         self.segmentation_overlays.remove(overlay)
 
+    def background_contrast_color(self):
+        from chimerax.core.colors import contrast_with
+        return contrast_with(self.background_color)
+
     def prepare_scene_for_drawing(self, camera=None, check_for_changes=True):
         if not self._use_opengl():
             return

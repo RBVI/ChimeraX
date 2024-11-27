@@ -57,6 +57,10 @@ performs protein sequence searches using a
 web service hosted by the
 <a href="https://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
 Resource for Biocomputing, Visualization, and Informatics (RBVI)</a>.
+This service is also used by
+the <a href="user/tools/foldseek.html"><b>Foldseek</b></a> tool and the
+<a href="user/commands/similarstructures.html#blast"><b>similarstructures
+blast</b></a> command.
 <br><br>
 
 <dt><a name="clustalomega"><b>Clustal Omega</b></a>
@@ -81,6 +85,18 @@ target="_blank">structure prediction server</a> used by the command
 <a href="user/commands/esmfold.html#predict"><b>esmfold predict</b></a>.
 <br><br>
 
+<dt><a name="foldseek"><b>Foldseek</b></a>
+<dd>
+The <a href="user/tools/foldseek.html"><b>Foldseek</b></a> tool and
+<a href="user/commands/foldseek.html"><b>foldseek</b></a> command 
+perform a fast 3D structure similarity search
+using the <a href="https://search.foldseek.com/search"
+target="_blank">Foldseek Search Service</a> provided by the
+<a href="https://www.mpinat.mpg.de/soeding" target="_blank">S&ouml;ding</a>
+and <a href="https://steineggerlab.com/en/" target="_blank">Steinegger</a>
+groups.
+<br><br>
+
 <dt><a name="k-mer"><b>Fast Sequence Database Search</b></a>
 <dd>
 A <a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html">K-mer sequence search</a>
@@ -95,6 +111,15 @@ This search algorithm is fast but low-sensitivity, as appropriate for
 searching large sequence databases for matches with very high % identity. 
 <br><br>
 
+<dt><a name="mmseqs2"><b>MMseqs2</b></a>
+<dd>
+<a href="user/tools/foldseek.html#notes">MMseqs2</a> is a very fast
+sequence similarity search method run by the
+<a href="user/tools/foldseek.html"><b>Foldseek</b></a> tool and the
+<a href="user/commands/sequence.html#search"><b>sequence search</b></a> 
+command using the
+<a href="https://search.rcsb.org" target="_blank">RCSB web service</a>.
+<br><br>
 
 <dt><a name="modeller"><b>Modeller</b></a>
 <dd>
@@ -110,7 +135,6 @@ performs comparative (homology) modeling
 <li><a href="user/tools/modelloops.html"><b>Model Loops</b></a>
 performs untemplated modeling (loop remodeling and building missing segments)
 </ul>
-<br>
 
 <dt><a name="muscle"><b>MUSCLE</b></a>
 <dd>
@@ -176,6 +200,10 @@ target="_blank">PDB-Dev</a>
 <li><a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a>
 &ndash; artificial intelligence-predicted protein structures
+<li><a href="https://www.science.org/doi/10.1126/science.adg7492"
+target="_blank">AlphaMissense</a>
+&ndash; predicted pathogenicity scores of mutations for analysis
+with <a href="user/commands/mutationscores.html"><b>mutationscores</b></a>
 <!--
 <li><a href="http://www.cellpack.org"
 target="_blank">cellPACK</a>
@@ -188,11 +216,12 @@ target="_blank">PubChem3D</a>
 target="_blank">PubChem Compound</a>
 <li><a href="https://www.uniprot.org"
 target="_blank">UniProt</a>
-&ndash; protein sequences
+&ndash; protein sequences, sequence feature annotations, predicted
+pathogenicity scores of variants
 </ul>
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2023</address>
+November 2024</address>
 </body></html>

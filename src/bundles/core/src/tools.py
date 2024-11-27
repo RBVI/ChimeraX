@@ -253,6 +253,9 @@ class Tools(StateManager):
 
         self._id_counter = itertools.count(1)
 
+    def __repr__(self):
+        return repr(list(self._tool_instances))
+
     def take_snapshot(self, session, flags):
         """Save state of running tools.
 
