@@ -32,7 +32,8 @@ import copy
 from abc import ABC, abstractmethod
 from typing import Dict, Any
 from chimerax.core.objects import all_objects
-
+import inspect
+from chimerax.core.models import Model
 
 class Scene(State):
     """
@@ -244,6 +245,22 @@ class Scene(State):
             'named_view': self.named_view.take_snapshot(session, flags),
             'scene_restorables': self.scene_restoreables
         }
+
+
+def most_derived_scene_implementation(model: Model):
+    """
+    Find the most derived class that implements restore_scene. If no class implements restore_scene, return Model.
+
+    Args:
+        model (Model): The model to find the most derived class that implements restore_scene for.
+
+    Returns:
+        Model: The most derived class that implements restore_scene.
+    """
+    for cls in inspect.getmro(type(model)):
+        if 'restore_scene' in cls.__dict__:
+            return cls
+    return Model  # Default to Model if no other class implements restore_scene
 
 
 class SceneRestoreable(ABC):
