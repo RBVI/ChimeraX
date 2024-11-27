@@ -26,6 +26,7 @@ from chimerax.vive.xr import vr_button as openxr_button
 from chimerax.vive.xr import OpenXRCamera
 
 from chimerax.segmentations.ui import find_segmentation_tool
+from chimerax.segmentations.triggers import activate_trigger, Trigger
 
 _saved_mouse_bindings = {
     "left": {
@@ -101,6 +102,7 @@ def save_mouse_bindings(session):
             for modifier in binding.modifiers:
                 _saved_mouse_bindings[binding.button][modifier] = binding.mode.name
     _have_saved_mouse_bindings = True
+    activate_trigger(Trigger.MouseModesChanged, _have_saved_mouse_bindings)
 
 
 def restore_mouse_bindings(session):
@@ -146,6 +148,7 @@ def restore_mouse_bindings(session):
             ),
         )
         _have_saved_mouse_bindings = False
+        activate_trigger(Trigger.MouseModesChanged, _have_saved_mouse_bindings)
     else:
         session.logger.warning("No mouse bindings saved")
 
