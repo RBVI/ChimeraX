@@ -636,22 +636,6 @@ class SegmentationTool(ToolInstance):
             Trigger.MouseModesChanged, self._on_mouse_modes_changed
         )
 
-        # TODO: VR started trigger
-        if not self.session.ui.main_window.view_layout == "orthoplanes":
-            if self.settings.default_view == ViewMode.TWO_BY_TWO:
-                self._create_2d_segmentation_pucks()
-                run(self.session, "ui view fourup")
-            elif self.settings.default_view == ViewMode.ORTHOPLANES_OVER_3D:
-                self._create_2d_segmentation_pucks()
-                run(self.session, "ui view overunder")
-            elif self.settings.default_view == ViewMode.ORTHOPLANES_BESIDE_3D:
-                self._create_2d_segmentation_pucks()
-                run(self.session, "ui view sidebyside")
-            elif self.settings.default_view == ViewMode.DEFAULT_DESKTOP:
-                self._create_3d_segmentation_sphere()
-            else:
-                self._create_3d_segmentation_sphere()
-
         self._on_view_changed()
         self._populate_segmentation_list()
 
