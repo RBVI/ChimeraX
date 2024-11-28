@@ -36,6 +36,7 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
     Atom.register_attr(session, "kvfinder_depth", "KVFinder", attr_type=float)
     if structures is None:
         structures = all_atomic_structures(session)
+    show_tool = show_tool and session.ui.is_gui
     from .prep import prep_input
     from chimerax.atomic.struct_edit import add_atom
     import numpy
@@ -55,12 +56,20 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
         num_cavities, cavity_matrix = pyKVFinder.detect(struct_input, vertices, grid_spacing,
             probe_in, probe_out, removal_distance, volume_cutoff, None, 5.0, box_origin is not None,
             surface_type, None, False)
+        placement = None
         if replace:
             closures = []
             for child in s.child_models():
                 if child.name == cavity_group_name:
                     closures.append(child)
             if closures:
+                if show_tool:
+                    from .tool import KVFinderResultsDialog
+                    for tool in session.tools:
+                        if isinstance(tool, KVFinderResultsDialog):
+                            if tool.cavity_group in closures:
+                                placement = None if tool.tool_window.floating else 'side'
+                                break
                 session.models.close(closures)
         session.logger.info("%d cavities found for %s" % (num_cavities, s))
         if num_cavities == 0:
@@ -171,7 +180,7 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
         if show_tool:
             from .tool import KVFinderResultsDialog
             KVFinderResultsDialog(session, "%s Cavities" % s.name, s, cavity_group,
-                [ml[0] for ml in model_lookup.values()], probe_in)
+                [ml[0] for ml in model_lookup.values()], probe_in, placement=placement)
         session.logger.status("Find Cavities for %s: done" % s)
 
     return return_values
