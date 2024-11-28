@@ -343,17 +343,22 @@ class KVFinderResultsDialog(ToolInstance):
             if _results_settings.surface:
                 probe_arg = "" if self.probe_radius == 1.4 else f" probeRadius {self.probe_radius}"
                 if not self._surface_made:
-                    run(self.session, f"surface {self.cavity_group.atomspec}{probe_arg} trans 50")
-                    multicolor = False
+                    from chimerax.atomic import surfaces_with_atoms
+                    unsurfaced = set()
                     for cavity in self.table.data:
+                        if not surfaces_with_atoms(cavity.atoms):
+                            unsurfaced.add(cavity)
+                    unsurfaced_spec = concise_model_spec(self.session, unsurfaced)
+                    run(self.session, f"surface {unsurfaced_spec}{probe_arg} trans 50")
+                    multicolor = False
+                    for cavity in unsurfaced:
                         unique_colors = set([tuple(x) for x in cavity.atoms.colors])
                         if len(unique_colors) > 1:
                             multicolor = True
                             break
                     if multicolor:
-                        run(self.session, f"color {self.cavity_group.atomspec} fromatoms trans 50")
+                        run(self.session, f"color {unsurfaced_spec} fromatoms trans 50")
                     run(self.session, f"~surface {self.cavity_group.atomspec}")
-                else:
                     self._surface_made = True
                 run(self.session, f"surface {model_spec}{probe_arg}")
         if setting_name in ["select_atoms", "show"] or setting_name is None \
