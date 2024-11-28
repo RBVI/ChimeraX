@@ -143,14 +143,14 @@ class KVFinderResultsDialog(ToolInstance):
     help = "help:user/tools/findcavities.html#cavitylist"
     SESSION_SAVE = True
 
-    def __init__(self, session, tool_name, *args):
+    def __init__(self, session, tool_name, *args, **kw):
         ToolInstance.__init__(self, session, tool_name)
         if args:
             # being called directly rather than during session restore
-            self.finalize_init(*args, False)
+            self.finalize_init(*args, False, **kw)
 
     def finalize_init(self, structure, cavity_group, cavity_models, probe_radius, surface_made,
-            *, table_state=None):
+            *, table_state=None, placement=None):
         self.structure = structure
         self.cavity_group = cavity_group
         self.probe_radius = probe_radius
@@ -275,7 +275,7 @@ class KVFinderResultsDialog(ToolInstance):
             prefix="The Find Cavities tool uses the <i>pyKVFinder</i> package.  Please cite:",
             pubmed_id=34930115), alignment=Qt.AlignCenter)
 
-        self.tool_window.manage(placement=None)
+        self.tool_window.manage(placement=placement)
 
     def delete(self, from_mgr=False):
         for handler in self.handlers:
