@@ -81,8 +81,9 @@ class Scene(State):
         self.named_view = NamedView(self.session.view, self.session.view.center_of_rotation, models)
         self.scene_restoreables = {}
         for model in all_objects(self.session).models:
-            if isinstance(model, SceneRestoreable):
-                self.scene_restoreables[model] = model.take_scene()
+            scene_implemented_cls = most_derived_scene_implementation(model)
+            if hasattr(scene_implemented_cls, 'take_snapshot'):
+                self.scene_restoreables[model] = scene_implemented_cls.take_snapshot(model, self.session, flags=State.SCENE)
 
     def take_thumbnail(self):
         """
@@ -258,7 +259,7 @@ def most_derived_scene_implementation(model: Model):
         Model: The most derived class that implements restore_scene.
     """
     for cls in inspect.getmro(type(model)):
-        if 'restore_scene' in cls.__dict__:
+        if hasattr(cls, 'restore_scene'):
             return cls
     return Model  # Default to Model if no other class implements restore_scene
 
