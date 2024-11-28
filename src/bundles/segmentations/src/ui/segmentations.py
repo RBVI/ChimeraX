@@ -75,6 +75,8 @@ from chimerax.segmentations.actions import (
 )
 
 import chimerax.segmentations.triggers
+from chimerax.segmentations.triggers import Trigger
+
 from chimerax.segmentations.triggers import (
     ENTER_EVENTS,
     LEAVE_EVENTS,
@@ -622,26 +624,17 @@ class SegmentationTool(ToolInstance):
             LEAVE_EVENTS[Axis.SAGITTAL], self._on_sagittal_plane_viewer_leave_event
         )
         self.view_layout_changed_handler = chimerax.segmentations.triggers.add_handler(
-            VIEW_LAYOUT_CHANGED, self._on_view_changed_trigger
+            Trigger.ViewLayoutChanged, self._on_view_changed_trigger
         )
         self.guideline_visibility_handler = chimerax.segmentations.triggers.add_handler(
-            GUIDELINES_VISIBILITY_CHANGED, self._on_guidelines_visibility_changed
+            Trigger.GuidelinesVisibilityChanged, self._on_guidelines_visibility_changed
         )
-        # TODO: VR started trigger
-        if not self.session.ui.main_window.view_layout == "orthoplanes":
-            if self.settings.default_view == ViewMode.TWO_BY_TWO:
-                self._create_2d_segmentation_pucks()
-                run(self.session, "ui view fourup")
-            elif self.settings.default_view == ViewMode.ORTHOPLANES_OVER_3D:
-                self._create_2d_segmentation_pucks()
-                run(self.session, "ui view overunder")
-            elif self.settings.default_view == ViewMode.ORTHOPLANES_BESIDE_3D:
-                self._create_2d_segmentation_pucks()
-                run(self.session, "ui view sidebyside")
-            elif self.settings.default_view == ViewMode.DEFAULT_DESKTOP:
-                self._create_3d_segmentation_sphere()
-            else:
-                self._create_3d_segmentation_sphere()
+        self.hand_mode_change_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.HandModesChanged, self._on_hand_modes_changed
+        )
+        self.mouse_mode_change_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.MouseModesChanged, self._on_mouse_modes_changed
+        )
 
         self._on_view_changed()
         self._populate_segmentation_list()
@@ -666,6 +659,12 @@ class SegmentationTool(ToolInstance):
 
     def _on_sagittal_plane_viewer_leave_event(self, *_):
         self.make_puck_invisible(Axis.SAGITTAL)
+
+    def _on_hand_modes_changed(self, _, state: bool) -> None:
+        self.hand_modes_changed = state
+
+    def _on_mouse_modes_changed(self, _, state: bool) -> None:
+        self.mouse_modes_changed = state
 
     def _populate_segmentation_list(self):
         reference_model = self.model_menu.value
@@ -774,15 +773,15 @@ class SegmentationTool(ToolInstance):
         super().delete()
 
     def _set_3d_mouse_modes(self):
-        run(self.session, "segmentations mouseModes on")
-        self.mouse_modes_changed = True
+        if not self.mouse_modes_changed:
+            run(self.session, "segmentations mouseModes on")
 
     def _reset_3d_mouse_modes(self):
         """Set mouse modes back to what they were but only if we changed them automatically.
         If you set the mode by hand, or in between the change and restore you're on your own!
         """
-        run(self.session, "segmentations mouseModes off")
-        self.mouse_modes_changed = False
+        if self.mouse_modes_changed:
+            run(self.session, "segmentations mouseModes off")
 
     def _set_vr_hand_modes(self):
         run(self.session, "segmentations handModes on")

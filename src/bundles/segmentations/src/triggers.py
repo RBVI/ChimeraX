@@ -97,43 +97,80 @@ GUIDELINES_VISIBILITY_CHANGED: Activated when a UI or command changes the
                                and react accordingly to the new value.
                                If you are both a caller and a listener, take care
                                to block your own handler when activating.
+
 """
 
 # from collections import defaultdict
-from typing import Any, Callable, Optional
+from typing import Any, Optional
+from enum import StrEnum
 
 from chimerax.core.triggerset import TriggerSet
 
 from chimerax.segmentations.types import Axis
 
-SEGMENTATION_ADDED = "segmentation added"
-SEGMENTATION_REMOVED = "segmentation removed"
-SEGMENTATION_MODIFIED = "segmentation modified"
+class Trigger(StrEnum):
+    SegmentationAdded = "segmentation added"
+    SegmentationRemoved = "segmentation removed"
+    SegmentationModified = "segmentation modified"
+    SegmentationStarted = "segmentation started"
+    SegmentationEnded = "segmentation ended"
 
-REFERENCE_MODEL_CHANGED = "reference model changed"
-ACTIVE_SEGMENTATION_CHANGED = "active segmentation changed"
+    ReferenceModelChanged = "reference model changed"
+    ActiveSegmentationChanged = "active segmentation changed"
 
-AXIAL_CURSOR_MOVED = "axial cursor moved"
-CORONAL_CURSOR_MOVED = "coronal cursor moved"
-SAGITTAL_CURSOR_MOVED = "sagittal cursor moved"
-SPHERE_CURSOR_MOVED = "sphere cursor moved"
+    AxialCursorMoved = "axial cursor moved"
+    CoronalCursorMoved = "coronal cursor moved"
+    SagittalCursorMoved = "sagittal cursor moved"
+    SphereCursorMoved = "sphere cursor moved"
 
-AXIAL_CURSOR_RESIZED = "axial cursor resized"
-CORONAL_CURSOR_RESIZED = "coronal cursor resized"
-SAGITTAL_CURSOR_RESIZED = "sagittal cursor resized"
-SPHERE_CURSOR_RESIZED = "sphere cursor resized"
+    AxialCursorResized = "axial cursor resized"
+    CoronalCursorResized = "coronal cursor resized"
+    SagittalCursorResized = "sagittal cursor resized"
+    SphereCursorResized = "sphere cursor resized"
 
-AXIAL_PLANE_VIEWER_ENTER = "axial plane viewer enter"
-CORONAL_PLANE_VIEWER_ENTER = "coronal plane viewer enter"
-SAGITTAL_PLANE_VIEWER_ENTER = "sagittal plane viewer enter"
+    AxialPlaneViewerEnter = "axial plane viewer enter"
+    CoronalPlaneViewerEnter = "coronal plane viewer enter"
+    SagittalPlaneViewerEnter = "sagittal plane viewer enter"
 
-AXIAL_PLANE_VIEWER_LEAVE = "axial plane viewer leave"
-CORONAL_PLANE_VIEWER_LEAVE = "coronal plane viewer leave"
-SAGITTAL_PLANE_VIEWER_LEAVE = "sagittal plane viewer leave"
+    AxialPlaneViewerLeave = "axial plane viewer leave"
+    CoronalPlaneViewerLeave = "coronal plane viewer leave"
+    SagittalPlaneViewerLeave = "sagittal plane viewer leave"
 
-VIEW_LAYOUT_CHANGED = "view layout changed"
-GUIDELINES_VISIBILITY_CHANGED = "guidelines visibility changed"
+    ViewLayoutChanged = "view layout changed"
+    GuidelinesVisibilityChanged = "guidelines visibility changed"
 
+    HandModesChanged = "hand modes changed"
+    MouseModesChanged = "mouse modes changed"
+
+SEGMENTATION_ADDED = Trigger.SegmentationAdded
+SEGMENTATION_REMOVED = Trigger.SegmentationRemoved
+SEGMENTATION_MODIFIED = Trigger.SegmentationModified
+SEGMENTATION_STARTED = Trigger.SegmentationStarted
+SEGMENTATION_ENDED = Trigger.SegmentationEnded
+
+REFERENCE_MODEL_CHANGED = Trigger.ReferenceModelChanged
+ACTIVE_SEGMENTATION_CHANGED = Trigger.ActiveSegmentationChanged
+
+AXIAL_CURSOR_MOVED = Trigger.AxialCursorMoved
+CORONAL_CURSOR_MOVED = Trigger.CoronalCursorMoved
+SAGITTAL_CURSOR_MOVED = Trigger.SagittalCursorMoved
+SPHERE_CURSOR_MOVED = Trigger.SphereCursorMoved
+
+AXIAL_CURSOR_RESIZED = Trigger.AxialCursorResized
+CORONAL_CURSOR_RESIZED = Trigger.CoronalCursorResized
+SAGITTAL_CURSOR_RESIZED = Trigger.SagittalCursorResized
+SPHERE_CURSOR_RESIZED = Trigger.SphereCursorResized
+
+AXIAL_PLANE_VIEWER_ENTER = Trigger.AxialPlaneViewerEnter
+CORONAL_PLANE_VIEWER_ENTER = Trigger.CoronalPlaneViewerEnter
+SAGITTAL_PLANE_VIEWER_ENTER = Trigger.SagittalPlaneViewerEnter
+
+AXIAL_PLANE_VIEWER_LEAVE = Trigger.AxialPlaneViewerLeave
+CORONAL_PLANE_VIEWER_LEAVE = Trigger.CoronalPlaneViewerLeave
+SAGITTAL_PLANE_VIEWER_LEAVE = Trigger.SagittalPlaneViewerLeave
+
+VIEW_LAYOUT_CHANGED = Trigger.ViewLayoutChanged
+GUIDELINES_VISIBILITY_CHANGED = Trigger.GuidelinesVisibilityChanged
 
 ENTER_EVENTS = {
     Axis.AXIAL: AXIAL_PLANE_VIEWER_ENTER,
@@ -147,44 +184,48 @@ LEAVE_EVENTS = {
     Axis.SAGITTAL: SAGITTAL_PLANE_VIEWER_LEAVE,
 }
 
-_triggers = TriggerSet()
+class SegmentationTriggerSet(TriggerSet):
+    def __init__(self):
+        super().__init__()
+        self.add_trigger(SEGMENTATION_REMOVED)
+        self.add_trigger(SEGMENTATION_ADDED)
+        self.add_trigger(SEGMENTATION_MODIFIED)
+        self.add_trigger(SEGMENTATION_STARTED)
+        self.add_trigger(SEGMENTATION_ENDED)
 
-_triggers.add_trigger(SEGMENTATION_REMOVED)
-_triggers.add_trigger(SEGMENTATION_ADDED)
-_triggers.add_trigger(SEGMENTATION_MODIFIED)
+        self.add_trigger(ACTIVE_SEGMENTATION_CHANGED)
+        self.add_trigger(REFERENCE_MODEL_CHANGED)
 
-_triggers.add_trigger(ACTIVE_SEGMENTATION_CHANGED)
-_triggers.add_trigger(REFERENCE_MODEL_CHANGED)
+        self.add_trigger(AXIAL_CURSOR_MOVED)
+        self.add_trigger(CORONAL_CURSOR_MOVED)
+        self.add_trigger(SAGITTAL_CURSOR_MOVED)
+        self.add_trigger(SPHERE_CURSOR_MOVED)
 
-_triggers.add_trigger(AXIAL_CURSOR_MOVED)
-_triggers.add_trigger(CORONAL_CURSOR_MOVED)
-_triggers.add_trigger(SAGITTAL_CURSOR_MOVED)
-_triggers.add_trigger(SPHERE_CURSOR_MOVED)
+        self.add_trigger(AXIAL_CURSOR_RESIZED)
+        self.add_trigger(CORONAL_CURSOR_RESIZED)
+        self.add_trigger(SAGITTAL_CURSOR_RESIZED)
+        self.add_trigger(SPHERE_CURSOR_RESIZED)
 
-_triggers.add_trigger(AXIAL_CURSOR_RESIZED)
-_triggers.add_trigger(CORONAL_CURSOR_RESIZED)
-_triggers.add_trigger(SAGITTAL_CURSOR_RESIZED)
-_triggers.add_trigger(SPHERE_CURSOR_RESIZED)
+        self.add_trigger(AXIAL_PLANE_VIEWER_ENTER)
+        self.add_trigger(CORONAL_PLANE_VIEWER_ENTER)
+        self.add_trigger(SAGITTAL_PLANE_VIEWER_ENTER)
 
-_triggers.add_trigger(AXIAL_PLANE_VIEWER_ENTER)
-_triggers.add_trigger(CORONAL_PLANE_VIEWER_ENTER)
-_triggers.add_trigger(SAGITTAL_PLANE_VIEWER_ENTER)
+        self.add_trigger(AXIAL_PLANE_VIEWER_LEAVE)
+        self.add_trigger(CORONAL_PLANE_VIEWER_LEAVE)
+        self.add_trigger(SAGITTAL_PLANE_VIEWER_LEAVE)
 
-_triggers.add_trigger(AXIAL_PLANE_VIEWER_LEAVE)
-_triggers.add_trigger(CORONAL_PLANE_VIEWER_LEAVE)
-_triggers.add_trigger(SAGITTAL_PLANE_VIEWER_LEAVE)
+        self.add_trigger(VIEW_LAYOUT_CHANGED)
+        self.add_trigger(GUIDELINES_VISIBILITY_CHANGED)
+        self.add_trigger(Trigger.HandModesChanged)
+        self.add_trigger(Trigger.MouseModesChanged)
 
 
-_triggers.add_trigger(VIEW_LAYOUT_CHANGED)
-_triggers.add_trigger(GUIDELINES_VISIBILITY_CHANGED)
+_triggers = SegmentationTriggerSet()
 
 # TODO:
 # _handlers_by_object = defaultdict(defaultdict(set).copy)
 
-
-def activate_trigger(
-    trigger_name: str, data: Optional[Any] = None, absent_okay: bool = False
-) -> None:
+def activate_trigger(trigger: str, data: Optional[Any] = None) -> None:
     """
     Expected data by trigger:
 
@@ -205,8 +246,7 @@ def activate_trigger(
     GUIDELINES_TOGGLED: bool representing whether guidelines are on or off
     """
     global _triggers
-    _triggers.activate_trigger(trigger_name, data)
-
+    _triggers.activate_trigger(trigger, data)
 
 add_dependency = _triggers.add_dependency
 add_handler = _triggers.add_handler
