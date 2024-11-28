@@ -355,6 +355,13 @@ class Model(State, Drawing):
         return m is None
 
     def take_snapshot(self, session, flags):
+        if flags == State.SCENE:
+            scene_data = {}
+            scene_attrs = ['selected', 'overall_color', 'model_color', 'display']
+            for attr in scene_attrs:
+                scene_data[attr] = getattr(self, attr)
+            return scene_data
+
         p = self.parent
         if p is session.models.scene_root_model:
             p = None    # Don't include root as a parent since root is not saved.
@@ -419,13 +426,6 @@ class Model(State, Drawing):
 
         if 'opened_data_format' in data:
             self.opened_data_format = data['opened_data_format']
-
-    def take_scene(self):
-        scene_data = {}
-        scene_attrs = ['selected', 'overall_color', 'model_color', 'display']
-        for attr in scene_attrs:
-            scene_data[attr] = getattr(self, attr)
-        return scene_data
 
     def restore_scene(self, scene_data):
         '''
