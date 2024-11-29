@@ -49,7 +49,10 @@ def read_nmr_star(session, path, name,
             continue
         constraint_loop = saveframe.get_loop('Gen_dist_constraint')
         clist = constraint_loop.get_tag(constraint_tag_names)
-        clist = [_parse_constraint(session, c) for c in clist]
+        clist = list(filter(
+            lambda c: c is not None,
+            (_parse_constraint(session, c) for c in clist)
+        ))
         constraint_sets.append((constraint_type, clist))
 
     if structures is None:
@@ -76,16 +79,22 @@ def read_nmr_star(session, path, name,
 #
 def _parse_constraint(session, clist_item):
     cid1, rnum1, rname1, atom1, cid2, rnum2, rname2, atom2, dist_min_raw, dist_max_raw = clist_item
+    dist_min_valid, dist_max_valid = True, True
     try:
         dist_min = float(dist_min_raw)
     except ValueError as e:
         session.logger.warning(f'Invalid minimum distance in {clist_item}; using fallback value (-1). Error message: "{str(e)}"')
         dist_min = -1.0
+        dist_min_valid = False
     try:
         dist_max = float(dist_max_raw)
     except ValueError as e:
         session.logger.warning(f'Invalid maximum distance in {clist_item}; using fallback value (infinity). Error message: "{str(e)}"')
         dist_max = float("inf")
+        dist_max_valid = False
+    if (not dist_min_valid) and (not dist_max_valid):
+        session.logger.warning(f'Minimum and maximum distance both invalid in {clist_item}; ignoring this constraint.')
+        return None
     return cid1, int(rnum1), rname1, atom1, cid2, int(rnum2), rname2, atom2, dist_min, dist_max
 
 # -----------------------------------------------------------------------------
