@@ -1885,5 +1885,6 @@ class SegmentationVolumePanel(Histogram_Pane):
 
     def moved_marker_cb(self, marker):
         super().moved_marker_cb(marker)
+        self.plane_viewer.color_changed = True
         self.plane_viewer.on_color_changed()
         self.plane_viewer._redraw()

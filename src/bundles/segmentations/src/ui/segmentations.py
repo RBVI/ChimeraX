@@ -593,6 +593,7 @@ class SegmentationTool(ToolInstance):
         self.current_segmentation = None
         self.threshold_max = 0
         self.threshold_min = 0
+        self.segmenting = False
 
         self.model_added_handler = self.session.triggers.add_handler(
             ADD_MODELS, self._on_model_added_to_session
@@ -635,6 +636,24 @@ class SegmentationTool(ToolInstance):
         self.mouse_mode_change_handler = chimerax.segmentations.triggers.add_handler(
             Trigger.MouseModesChanged, self._on_mouse_modes_changed
         )
+        self.mouse_drag_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.SegmentationMouseModeMoveEvent, self._on_segmentation_sphere_moved
+        )
+        self.vr_drag_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.SegmentationMouseModeVRMoveEvent, self._on_segmentation_sphere_moved_vr
+        )
+        self.mouse_wheel_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.SegmentationMouseModeWheelEvent, self._on_sphere_radius_changed
+        )
+        self.segmentation_started_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.SegmentationStarted, self._on_segmentation_started
+        )
+        self.segmentation_ended_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.SegmentationEnded, self._on_segmentation_ended
+        )
+        self.segmentation_visibility_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.SegmentationVisibilityChanged, self._on_segmentation_visibility_changed
+        )
 
         self._on_view_changed()
         self._populate_segmentation_list()
@@ -665,6 +684,65 @@ class SegmentationTool(ToolInstance):
 
     def _on_mouse_modes_changed(self, _, state: bool) -> None:
         self.mouse_modes_changed = state
+
+    def _on_sphere_radius_changed(self, _, direction: int) -> None:
+        if direction > 0:
+            self.segmentation_sphere.radius += 1
+        else:
+            self.segmentation_sphere.radius -= 1
+
+    def _on_segmentation_visibility_changed(self, _, visibility: bool) -> None:
+        if visibility:
+            self.show_active_segmentation()
+        else:
+            self.hide_active_segmentation()
+
+    def _on_segmentation_started(self, _, value) -> None:
+        self.segmenting = True
+        self.set_segmentation_step(2)
+        self.setSphereRegionToValue(
+            self.segmentation_sphere.scene_position.origin(),
+            self.segmentation_sphere.radius,
+            value,
+        )
+
+    def _on_segmentation_ended(self, _, value) -> None:
+        self.segmenting = False
+        self.set_segmentation_step(1)
+        self.setSphereRegionToValue(
+            self.segmentation_sphere.scene_position.origin(),
+            self.segmentation_sphere.radius,
+            value,
+        )
+
+    def _on_segmentation_sphere_moved(self, _, move_event) -> None:
+        if self.segmentation_sphere:
+            dx, dy, shift_down, value = move_event
+            c = self.segmentation_sphere.scene_position.origin()
+            v = self.session.main_view
+            s = v.pixel_size(c)
+            shift = (s * dx, -s * dy, 0)
+            dxyz = v.camera.position.transform_vector(shift)
+            self.move_sphere(dxyz)
+            if self.segmenting:
+                self.setSphereRegionToValue(
+                    self.segmentation_sphere.scene_position.origin(),
+                    self.segmentation_sphere.radius,
+                    value,
+                )
+
+    def _on_segmentation_sphere_moved_vr(self, _, move_event) -> None:
+        if self.segmentation_sphere:
+            motion, value = move_event
+            c = self.segmentation_sphere.scene_position.origin()
+            delta_xyz = motion * c - c
+            self.move_sphere(delta_xyz)
+            if self.segmenting:
+                self.setSphereRegionToValue(
+                    self.segmentation_sphere.scene_position.origin(),
+                    self.segmentation_sphere.radius,
+                    value,
+                )
 
     def _populate_segmentation_list(self):
         reference_model = self.model_menu.value
@@ -753,9 +831,14 @@ class SegmentationTool(ToolInstance):
         chimerax.segmentations.triggers.remove_handler(self.sagittal_enter_handler)
         chimerax.segmentations.triggers.remove_handler(self.sagittal_leave_handler)
         chimerax.segmentations.triggers.remove_handler(self.view_layout_changed_handler)
-        chimerax.segmentations.triggers.remove_handler(
-            self.guideline_visibility_handler
-        )
+        chimerax.segmentations.triggers.remove_handler(self.guideline_visibility_handler)
+        chimerax.segmentations.triggers.remove_handler(self.hand_mode_change_handler)
+        chimerax.segmentations.triggers.remove_handler(self.mouse_mode_change_handler)
+        chimerax.segmentations.triggers.remove_handler(self.mouse_drag_handler)
+        chimerax.segmentations.triggers.remove_handler(self.mouse_wheel_handler)
+        chimerax.segmentations.triggers.remove_handler(self.segmentation_started_handler)
+        chimerax.segmentations.triggers.remove_handler(self.segmentation_ended_handler)
+        chimerax.segmentations.triggers.remove_handler(self.segmentation_visibility_handler)
         # TODO: Restore old mouse modes if necessary
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.clear_segmentation_tool()
