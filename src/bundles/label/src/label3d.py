@@ -366,10 +366,6 @@ class ObjectLabels(Model):
         self._background_color_handler = core_settings.triggers.add_handler(
             'setting changed', self._background_changed_cb)
 
-        from chimerax.atomic import get_triggers
-        ta = get_triggers()
-        self._structure_change_handler = ta.add_handler('changes', self._structure_changed)
-        
         self.use_lighting = False
         Model.set_color(self, (255,255,255,255))	# Do not modulate texture colors
 
@@ -379,6 +375,20 @@ class ObjectLabels(Model):
         self._visibility_needs_update = True		# Does an atom hide require a label to hide?
         self._monitored_attr_info = {}
         
+    def added_to_session(self, session, **kw):
+        # If labeled objects get deleted before we're opened in the session, the deletions will
+        # get discarded and we'll never be notified, so look through the object map at this point
+        # and discard deleted objects/labels [#16385]
+
+        super().added_to_session(session, **kw)
+
+        from chimerax.atomic import get_triggers
+        ta = get_triggers()
+        self._structure_change_handler = ta.add_handler('changes', self._structure_changed)
+        
+        # since delete_labels can close us, do the super() first
+        self.delete_labels([obj for obj in self._object_label.keys() if obj.deleted])
+
     def delete(self):
         h = self._update_graphics_handler
         if h is not None:
