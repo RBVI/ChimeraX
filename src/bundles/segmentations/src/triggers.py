@@ -38,6 +38,15 @@ SEGMENTATION_REMOVED: Activated when this bundle's segmentation tracker
                       emitted at the end of this bundle's REMOVE_MODEL trigger
                       handler.
 
+SEGMENTATION_STARTED: Activated by a hand mode when either the create or erase
+                      segmentation button is pressed
+
+SEGMENTATION_ENDED: Activated by a hand mode when either the create or erase segmentation
+                    button is release
+
+SEGMENTATION_MOUSE_MODE_MOVE_EVENT: Activated when the spherical (3D) segmentation cursor
+                                   is moved on desktop
+
 SEGMENTATION_MODIFIED: Should be activated any time a segmentation is modified,
                        i.e. regions are added to or subtracted from the
                        segmentation.
@@ -98,6 +107,9 @@ GUIDELINES_VISIBILITY_CHANGED: Activated when a UI or command changes the
                                If you are both a caller and a listener, take care
                                to block your own handler when activating.
 
+HAND_MODES_CHANGED: Activated whenever the hand modes preset is toggled on or off.
+
+MOUSE_MODES_CHANGED: Activated whenever the mouse modes preset is toggled on or off.
 """
 
 # from collections import defaultdict
@@ -112,8 +124,16 @@ class Trigger(StrEnum):
     SegmentationAdded = "segmentation added"
     SegmentationRemoved = "segmentation removed"
     SegmentationModified = "segmentation modified"
-    SegmentationStarted = "segmentation started"
-    SegmentationEnded = "segmentation ended"
+
+    SegmentationStarted = "segmentation add started"
+    SegmentationEnded = "segmentation add ended"
+
+    SegmentationMouseModeMoveEvent = "segmentation mouse mode move event"
+    SegmentationMouseModeVRMoveEvent = "segmentation mouse mode vr move event"
+    SegmentationMouseModeWheelEvent = "segmentation mouse mode wheel event"
+    SegmentationMouseModeVRWheelEvent = "segmentation mouse mode vr wheel event"
+
+    SegmentationVisibilityChanged = "segmentation visibility changed"
 
     ReferenceModelChanged = "reference model changed"
     ActiveSegmentationChanged = "active segmentation changed"
@@ -145,6 +165,7 @@ class Trigger(StrEnum):
 SEGMENTATION_ADDED = Trigger.SegmentationAdded
 SEGMENTATION_REMOVED = Trigger.SegmentationRemoved
 SEGMENTATION_MODIFIED = Trigger.SegmentationModified
+
 SEGMENTATION_STARTED = Trigger.SegmentationStarted
 SEGMENTATION_ENDED = Trigger.SegmentationEnded
 
@@ -172,50 +193,60 @@ SAGITTAL_PLANE_VIEWER_LEAVE = Trigger.SagittalPlaneViewerLeave
 VIEW_LAYOUT_CHANGED = Trigger.ViewLayoutChanged
 GUIDELINES_VISIBILITY_CHANGED = Trigger.GuidelinesVisibilityChanged
 
+HAND_MODES_CHANGED = Trigger.HandModesChanged
+MOUSE_MODES_CHANGED = Trigger.MouseModesChanged
+
 ENTER_EVENTS = {
-    Axis.AXIAL: AXIAL_PLANE_VIEWER_ENTER,
-    Axis.CORONAL: CORONAL_PLANE_VIEWER_ENTER,
-    Axis.SAGITTAL: SAGITTAL_PLANE_VIEWER_ENTER,
+    Axis.AXIAL: Trigger.AxialPlaneViewerEnter,
+    Axis.CORONAL: Trigger.CoronalPlaneViewerEnter,
+    Axis.SAGITTAL: Trigger.SagittalPlaneViewerEnter,
 }
 
 LEAVE_EVENTS = {
-    Axis.AXIAL: AXIAL_PLANE_VIEWER_LEAVE,
-    Axis.CORONAL: CORONAL_PLANE_VIEWER_LEAVE,
-    Axis.SAGITTAL: SAGITTAL_PLANE_VIEWER_LEAVE,
+    Axis.AXIAL: Trigger.AxialPlaneViewerLeave,
+    Axis.CORONAL: Trigger.CoronalPlaneViewerLeave,
+    Axis.SAGITTAL: Trigger.SagittalPlaneViewerLeave,
 }
 
 class SegmentationTriggerSet(TriggerSet):
     def __init__(self):
         super().__init__()
-        self.add_trigger(SEGMENTATION_REMOVED)
-        self.add_trigger(SEGMENTATION_ADDED)
-        self.add_trigger(SEGMENTATION_MODIFIED)
-        self.add_trigger(SEGMENTATION_STARTED)
-        self.add_trigger(SEGMENTATION_ENDED)
+        self.add_trigger(Trigger.SegmentationAdded)
+        self.add_trigger(Trigger.SegmentationRemoved)
+        self.add_trigger(Trigger.SegmentationModified)
+        self.add_trigger(Trigger.SegmentationVisibilityChanged)
 
-        self.add_trigger(ACTIVE_SEGMENTATION_CHANGED)
-        self.add_trigger(REFERENCE_MODEL_CHANGED)
+        self.add_trigger(Trigger.SegmentationStarted)
+        self.add_trigger(Trigger.SegmentationEnded)
 
-        self.add_trigger(AXIAL_CURSOR_MOVED)
-        self.add_trigger(CORONAL_CURSOR_MOVED)
-        self.add_trigger(SAGITTAL_CURSOR_MOVED)
-        self.add_trigger(SPHERE_CURSOR_MOVED)
+        self.add_trigger(Trigger.SegmentationMouseModeMoveEvent)
+        self.add_trigger(Trigger.SegmentationMouseModeVRMoveEvent)
+        self.add_trigger(Trigger.SegmentationMouseModeWheelEvent)
+        self.add_trigger(Trigger.SegmentationMouseModeVRWheelEvent)
 
-        self.add_trigger(AXIAL_CURSOR_RESIZED)
-        self.add_trigger(CORONAL_CURSOR_RESIZED)
-        self.add_trigger(SAGITTAL_CURSOR_RESIZED)
-        self.add_trigger(SPHERE_CURSOR_RESIZED)
+        self.add_trigger(Trigger.ActiveSegmentationChanged)
+        self.add_trigger(Trigger.ReferenceModelChanged)
 
-        self.add_trigger(AXIAL_PLANE_VIEWER_ENTER)
-        self.add_trigger(CORONAL_PLANE_VIEWER_ENTER)
-        self.add_trigger(SAGITTAL_PLANE_VIEWER_ENTER)
+        self.add_trigger(Trigger.AxialCursorMoved)
+        self.add_trigger(Trigger.CoronalCursorMoved)
+        self.add_trigger(Trigger.SagittalCursorMoved)
+        self.add_trigger(Trigger.SphereCursorMoved)
 
-        self.add_trigger(AXIAL_PLANE_VIEWER_LEAVE)
-        self.add_trigger(CORONAL_PLANE_VIEWER_LEAVE)
-        self.add_trigger(SAGITTAL_PLANE_VIEWER_LEAVE)
+        self.add_trigger(Trigger.AxialCursorResized)
+        self.add_trigger(Trigger.CoronalCursorResized)
+        self.add_trigger(Trigger.SagittalCursorResized)
+        self.add_trigger(Trigger.SphereCursorResized)
 
-        self.add_trigger(VIEW_LAYOUT_CHANGED)
-        self.add_trigger(GUIDELINES_VISIBILITY_CHANGED)
+        self.add_trigger(Trigger.AxialPlaneViewerEnter)
+        self.add_trigger(Trigger.CoronalPlaneViewerEnter)
+        self.add_trigger(Trigger.SagittalPlaneViewerEnter)
+
+        self.add_trigger(Trigger.AxialPlaneViewerLeave)
+        self.add_trigger(Trigger.CoronalPlaneViewerLeave)
+        self.add_trigger(Trigger.SagittalPlaneViewerLeave)
+
+        self.add_trigger(Trigger.ViewLayoutChanged)
+        self.add_trigger(Trigger.GuidelinesVisibilityChanged)
         self.add_trigger(Trigger.HandModesChanged)
         self.add_trigger(Trigger.MouseModesChanged)
 
