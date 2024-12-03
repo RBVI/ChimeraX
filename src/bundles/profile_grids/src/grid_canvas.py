@@ -78,6 +78,8 @@ class GridCanvas:
         self.main_scene = QGraphicsScene()
         self.main_scene.setBackgroundBrush(Qt.white)
         self.main_scene.mouseReleaseEvent = self.mouse_click
+        self.main_scene.helpEvent = self.mouse_hover
+        from Qt.QtWidgets import QToolTip
         """if gray background desired...
         ms_brush = self.main_scene.backgroundBrush()
         from Qt.QtGui import QColor
@@ -255,19 +257,11 @@ class GridCanvas:
         self._update_scene_rects()
 
     def mouse_click(self, event):
-        from Qt.QtCore import Qt
-        width, height = self.font_pixels
-        raw_rows, grid_columns = self.grid_data.shape
-        grid_rows = raw_rows - len(self.empty_rows)
-        pos = event.scenePos()
-        row = int(pos.y() / height)
-        if row < 0 or row > grid_rows - 1:
+        residues = self._residues_for_event(event)
+        if not residues:
             return
-        col = int(pos.x() / width)
-        if col < 0 or col > grid_columns - 1:
-            return
-        residues = self._residues_at(row, col)
         final_cmd = None
+        from Qt.QtCore import Qt
         if event.modifiers() & Qt.ShiftModifier:
             if not residues:
                 return
@@ -285,6 +279,18 @@ class GridCanvas:
             final_cmd = cmd + ' ' + concise_residue_spec(self.pg.session, residues)
         from chimerax.core.commands import run
         run(self.pg.session, final_cmd)
+
+    def mouse_hover(self, event):
+        if event.type() != event.GraphicsSceneHelp:
+            return
+        from Qt.QtWidgets import QToolTip
+        residues = self._residues_for_event(event)
+        if not residues:
+            QToolTip.hideText()
+            return
+        from chimerax.atomic import concise_residue_spec
+        self.main_view.setToolTip(concise_residue_spec(self.pg.session, residues))
+        QToolTip.showText(event.screenPos(), self.main_view.toolTip())
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
         raise NotImplementedError("refresh")
@@ -317,7 +323,7 @@ class GridCanvas:
             if isinstance(val, str):
                 text = self.header_scene.addSimpleText(val, font=self.font)
                 rect = text.sceneBoundingRect()
-                text.setPos(x - rect.width()/2, y+2)
+                text.setPos(x - rect.width()/2, y+4)
                 text.setBrush(QBrush(color))
                 items.append(text)
             elif val != None and val > 0.0:
@@ -384,6 +390,19 @@ class GridCanvas:
                     continue
         return residues
 
+    def _residues_for_event(self, event):
+        width, height = self.font_pixels
+        raw_rows, grid_columns = self.grid_data.shape
+        grid_rows = raw_rows - len(self.empty_rows)
+        pos = event.scenePos()
+        row = int(pos.y() / height)
+        if row < 0 or row > grid_rows - 1:
+            return None
+        col = int(pos.x() / width)
+        if col < 0 or col > grid_columns - 1:
+            return None
+        return self._residues_at(row, col)
+
     def _update_scene_rects(self):
         # have to play with setViewportMargins to get correct scrolling...
         #self.main_view.setViewportMargins(0, 0, 0, -20)
@@ -397,9 +416,12 @@ class GridCanvas:
         height = max(lbr.y() + lbr.height() - y, mbr.y() + mbr.height() - y)
         mr = self.main_scene.sceneRect()
         hbr = self.header_scene.itemsBoundingRect()
-        self.main_label_scene.setSceneRect(lbr.x(), y, lbr.width(), height)
+        self.main_label_scene.setSceneRect(lbr.x(), y,
+            lbr.width(), height)
+            #lbr.width(), height + self.main_view.horizontalScrollBar().size().height())
         self.main_scene.setSceneRect(mbr.x(), y, mbr.width(), height)
-        self.header_scene.setSceneRect(mr.x(), hbr.y(), mr.width(), hbr.height())
+        self.header_scene.setSceneRect(mr.x(), hbr.y(),
+            mr.width() + self.main_view.verticalScrollBar().size().width(), hbr.height())
         from math import ceil
         max_header_height = ceil(max(hbr.height(), self.header_label_scene.itemsBoundingRect().height())) + 7
         self.header_view.setMaximumHeight(max_header_height)
