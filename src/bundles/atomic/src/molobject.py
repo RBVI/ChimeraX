@@ -1348,7 +1348,7 @@ class Chain(StructureSeq):
 
     # For attribute registration...
     _attr_reg_info = [
-        ('chain_id', (str,)), ('circular', (bool,)), ('description', (str,)),
+        ('chain_id', (str,)), ('circular', (bool,)), ('description', (bool,)),
         ('num_existing_residues', (int,)), ('num_residues', (int,)), ('polymer_type', int),
     ]
 
