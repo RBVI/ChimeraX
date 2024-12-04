@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -1053,6 +1053,13 @@ class StructureSeq(Sequence):
     though associated residues may change to None if those residues are deleted/closed.
     '''
 
+    # For attribute registration...
+    # Chain will also get these
+    _attr_reg_info = [
+        ('chain_id', (str,)), ('circular', (bool,)), ('description', (str,)),
+        ('num_existing_residues', (int,)), ('num_residues', (int,)), ('polymer_type', (int,)),
+    ]
+
     def __init__(self, sseq_pointer=None, *, chain_id=None, structure=None, polymer_type=Residue.PT_NONE):
         if sseq_pointer is None:
             sseq_pointer = c_function('sseq_new',
@@ -1264,14 +1271,20 @@ class StructureSeq(Sequence):
         if "name changed" in changes.residue_reasons():
             updated_chars = []
             some_changed = False
-            for res, cur_char in zip(self.residues, self.characters):
-                if res:
-                    uc = Sequence.rname3to1(res.name)
-                    updated_chars.append(uc)
-                    if uc != cur_char:
-                        some_changed = True
+            for gi, c in enumerate(self.characters):
+                ugi = self.gapped_to_ungapped(gi)
+                if ugi is None:
+                    updated_chars.append(c)
                 else:
-                    updated_chars.append(cur_char)
+                    res = self.residues[ugi]
+                    if res:
+                        uc = Sequence.rname3to1(res.name)
+                        updated_chars.append(uc)
+                        if uc != c:
+                            some_changed = True
+                    else:
+                        updated_chars.append(c)
+
             if some_changed:
                 self.bulk_set(self.residues, ''.join(updated_chars), fire_triggers=False)
                 self._fire_trigger('characters changed', self)
@@ -1339,12 +1352,6 @@ class Chain(StructureSeq):
     Chain objects are not always equivalent to Protein Databank chains.
 
     '''
-
-    # For attribute registration...
-    _attr_reg_info = [
-        ('chain_id', (str,)), ('circular', (bool,)), ('description', (bool,)),
-        ('num_existing_residues', (int,)), ('num_residues', (int,)), ('polymer_type', int),
-    ]
 
     def __str__(self):
         return self.string()

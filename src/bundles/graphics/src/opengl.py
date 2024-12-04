@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -429,6 +429,7 @@ class Render:
         self._opengl_context = oc = opengl_context
         self._recording_calls = None
         self._front_buffer_valid = False
+        self.show_depth_buffer = False
 
         if not hasattr(oc, 'shader_programs'):
             oc.shader_programs = {}
@@ -723,10 +724,13 @@ class Render:
                 self.shadow._set_shadow_shader_variables(shader)
         if self.SHADER_DEPTH_CUE & c:
             self.set_depth_cue_parameters()
-        if not (self.SHADER_TEXTURE_OUTLINE & c
-                or self.SHADER_DEPTH_OUTLINE & c
-                or self.SHADER_BLEND_TEXTURE_2D & c
-                or self.SHADER_BLEND_TEXTURE_3D & c):
+        if not (
+            self.SHADER_TEXTURE_OUTLINE & c
+            or self.SHADER_DEPTH_OUTLINE & c
+            or self.SHADER_BLEND_TEXTURE_2D & c
+            or self.SHADER_BLEND_TEXTURE_3D & c
+            or self.SHADER_SHOW_DEPTH_BUFFER & c
+        ):
             self.set_projection_matrix()
             self.set_model_matrix()
         if (self.SHADER_TEXTURE_2D & c
@@ -746,7 +750,7 @@ class Render:
         if self.SHADER_VOLUME_RAYCASTING & c:
             self._set_camera_params()
             self._set_window_params()
-        if not self.SHADER_VERTEX_COLORS & c:
+        if not (self.SHADER_VERTEX_COLORS & c or self.SHADER_SHOW_DEPTH_BUFFER & c):
             self.set_model_color()
         if self.SHADER_FRAME_NUMBER & c:
             self.set_frame_number()
@@ -1394,6 +1398,23 @@ class Render:
         texture.bind_texture()
         self._opengl_shader(shader_options)
         return tw
+
+    def _draw_depth_buffer(self):
+        # Copy the depth buffer into a texture and display it as a fullscreen quad
+        t = Texture()
+        fb = self.current_framebuffer()
+        t.initialize_depth((fb.width, fb.height))
+        tw = self._texture_window(t, self.SHADER_SHOW_DEPTH_BUFFER)
+        GL.glReadBuffer(GL.GL_BACK)
+        GL.glCopyTexImage2D(
+            GL.GL_TEXTURE_2D, 0, GL.GL_DEPTH_COMPONENT, 0, 0, fb.width, fb.height, 0
+        )
+        p = self.current_shader_program
+        p.set_integer("depth_texture", 0)
+        tw.draw()
+        t.unbind_texture()
+        t.delete_texture()
+        # self._opengl_context.current_shader_program = None
 
     def allow_equal_depth(self, equal):
         GL.glDepthFunc(GL.GL_LEQUAL if equal else GL.GL_LESS)
@@ -2096,47 +2117,53 @@ class BlendTextures:
             fb.set_color_buffer(color_texture)
         return fb
 
+
 # Options used with Render.shader()
 shader_options = (
-    'SHADER_LIGHTING',
-    'SHADER_LIGHTING_NORMALS',
-    'SHADER_DEPTH_CUE',
-    'SHADER_NO_DEPTH_CUE',
-    'SHADER_TEXTURE_2D',
-    'SHADER_TEXTURE_3D',
-    'SHADER_COLORMAP',
-    'SHADER_DEPTH_TEXTURE',
-    'SHADER_TEXTURE_CUBEMAP',
-    'SHADER_TEXTURE_3D_AMBIENT',
-    'SHADER_BLEND_TEXTURE_2D',
-    'SHADER_BLEND_TEXTURE_3D',
-    'SHADER_BLEND_COLORMAP',
-    'SHADER_SHADOW',
-    'SHADER_NO_SHADOW',
-    'SHADER_MULTISHADOW',
-    'SHADER_NO_MULTISHADOW',
-    'SHADER_SHIFT_AND_SCALE',
-    'SHADER_INSTANCING',
-    'SHADER_TEXTURE_OUTLINE',
-    'SHADER_DEPTH_OUTLINE',
-    'SHADER_VERTEX_COLORS',
-    'SHADER_FRAME_NUMBER',
-    'SHADER_TRANSPARENT_ONLY',
-    'SHADER_OPAQUE_ONLY',
-    'SHADER_STEREO_360',
-    'SHADER_CLIP_PLANES',
-    'SHADER_NO_CLIP_PLANES',
-    'SHADER_ALPHA_DEPTH',
-    'SHADER_ALL_WHITE',
-    'SHADER_VOLUME_RAYCASTING',
+    "SHADER_LIGHTING",
+    "SHADER_LIGHTING_NORMALS",
+    "SHADER_DEPTH_CUE",
+    "SHADER_NO_DEPTH_CUE",
+    "SHADER_TEXTURE_2D",
+    "SHADER_TEXTURE_3D",
+    "SHADER_COLORMAP",
+    "SHADER_DEPTH_TEXTURE",
+    "SHADER_TEXTURE_CUBEMAP",
+    "SHADER_TEXTURE_3D_AMBIENT",
+    "SHADER_BLEND_TEXTURE_2D",
+    "SHADER_BLEND_TEXTURE_3D",
+    "SHADER_BLEND_COLORMAP",
+    "SHADER_SHADOW",
+    "SHADER_NO_SHADOW",
+    "SHADER_MULTISHADOW",
+    "SHADER_NO_MULTISHADOW",
+    "SHADER_SHIFT_AND_SCALE",
+    "SHADER_INSTANCING",
+    "SHADER_TEXTURE_OUTLINE",
+    "SHADER_DEPTH_OUTLINE",
+    "SHADER_VERTEX_COLORS",
+    "SHADER_FRAME_NUMBER",
+    "SHADER_TRANSPARENT_ONLY",
+    "SHADER_OPAQUE_ONLY",
+    "SHADER_STEREO_360",
+    "SHADER_CLIP_PLANES",
+    "SHADER_NO_CLIP_PLANES",
+    "SHADER_ALPHA_DEPTH",
+    "SHADER_ALL_WHITE",
+    "SHADER_VOLUME_RAYCASTING",
+    "SHADER_SHOW_DEPTH_BUFFER",
 )
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
 
-Render.SHADER_NO_PROJECTION_MATRIX = (Render.SHADER_TEXTURE_OUTLINE |
-                                      Render.SHADER_DEPTH_OUTLINE |
-                                      Render.SHADER_BLEND_TEXTURE_2D |
-                                      Render.SHADER_BLEND_TEXTURE_3D)
+Render.SHADER_NO_PROJECTION_MATRIX = (
+    Render.SHADER_TEXTURE_OUTLINE
+    | Render.SHADER_DEPTH_OUTLINE
+    | Render.SHADER_BLEND_TEXTURE_2D
+    | Render.SHADER_BLEND_TEXTURE_3D
+    | Render.SHADER_SHOW_DEPTH_BUFFER
+)
+
 
 def shader_capability_names(capabilities_bit_mask):
     return [name for i, name in enumerate(shader_options)

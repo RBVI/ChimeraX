@@ -1,4 +1,4 @@
-# vim: syntax=bash:
+# vim: syntax=bash noexpandtab ts=8 sts=8:
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -12,28 +12,25 @@
 
 # port of VSINSTALLDIR/Common7/Tools/vsvars32.bat to bash
 # and merged with Visual Studio 2008's version and 64-bit version
-if [ ! -z "$AUTOMATIC_DISCOVERY" ]
-then
-	if [ -e "$(cygpath --absolute C:/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/Installer)" ]
-	then 
+if [ ! -z "$AUTOMATIC_DISCOVERY" ]; then
+	if [ -e "$(cygpath --absolute C:/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/Installer)" ]; then
 		export VSWHEREPATH="$(cygpath --absolute C:/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/Installer)"
-		if ! command -v vswhere &> /dev/null
-		then
+		if ! command -v vswhere &>/dev/null; then
 			export PATH="$PATH:$VSWHEREPATH"
 		fi
-		
-		VCTBinDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/bin/Hostx64/x64")"
-		VCTRedistDirCRLF="$(vswhere.exe -find "VC/Redist/MSVC/*/x64")"
-		VCTLibDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/lib/x64")"
-		VCTATLMFCLibDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/atlmfc/lib/x64")"
-		VCTATLMFCIncDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/atlmfc/include")"
-		VCTIncludeDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/include")"
-		VCTRefDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/lib/x86/store/references")"
-		CRTPathCRLF="$(vswhere.exe -find "VC/Redist/MSVC/*/x64/Microsoft*CRT")"
+
+		VCTBinDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/bin/Hostx64/x64" | tail -n 1)"
+		VCTRedistDirCRLF="$(vswhere.exe -find "VC/Redist/MSVC/*/x64" | tail -n 1)"
+		VCTLibDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/lib/x64" | tail -n 1)"
+		VCTATLMFCLibDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/atlmfc/lib/x64" | tail -n 1)"
+		VCTATLMFCIncDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/atlmfc/include" | tail -n 1)"
+		VCTIncludeDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/include" | tail -n 1)"
+		VCTRefDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/lib/x86/store/references" | tail -n 1)"
+		CRTPathCRLF="$(vswhere.exe -find "VC/Redist/MSVC/*/x64/Microsoft*CRT" | tail -n 1)"
 		WindowsSDKDirCRLF="$(regtool -W get '/HKLM/SOFTWARE/Microsoft/Microsoft SDKs/Windows/v10.0/InstallationFolder')"
 		WindowsSDKVerCRLF="$(regtool -W get '/HKLM/SOFTWARE/Microsoft/Microsoft SDKs/Windows/v10.0/ProductVersion')"
 		WindowsSDKVer="${WindowsSDKVerCRLF%$'\r'}.0"
-		
+
 		export VCTInstallDir="$(cygpath --absolute "${VCTBinDirCRLF%$'\r'}")"
 		export VCTRedistDir="$(cygpath -u "${VCTRedistDirCRLF%$'\r'}")"
 		export VCTLibDir="$(cygpath -w "${VCTLibDirCRLF%$'\r'}")"
@@ -41,7 +38,7 @@ then
 		export VCTATLMFCIncDir="$(cygpath -w "${VCTATLMFCIncDirCRLF%$'\r'}")"
 		export VCTIncludeDir="$(cygpath -w "${VCTIncludeDirCRLF%$'\r'}")"
 		export VCTRefDir="$(cygpath -w "${VCTRefDirCRLF%$'\r'}")"
-		
+
 		export WindowsSDKUmDir="$(cygpath -w "${WindowsSDKDirCRLF}Lib\\${WindowsSDKVer}\um\x64")"
 		export WindowsSDKUmIncDir="$(cygpath -w "${WindowsSDKDirCRLF}Include\\${WindowsSDKVer}\um")"
 		export WindowsSDKUCRTDir="$(cygpath -w "${WindowsSDKDirCRLF}Lib\\${WindowsSDKVer}\ucrt\x64")"
@@ -49,13 +46,13 @@ then
 		export WindowsSDKSharedIncDir="$(cygpath -w "${WindowsSDKDirCRLF}Include\\${WindowsSDKVer}\shared")"
 		export WindowsSDKWinRTIncDir="$(cygpath -w "${WindowsSDKDirCRLF}Include\\${WindowsSDKVer}\winrt")"
 		export WindowsSDKCPPWinRTIncDir="$(cygpath -w "${WindowsSDKDirCRLF}Include\\${WindowsSDKVer}\cppwinrt")"
-		
+
 		export WindowsSDKLibRefDir="$(cygpath -w "${WindowsSDKDirCRLF}References\\${WindowsSDKVer}")"
 		export WindowsSDKLibUMDir="$(cygpath -w "${WindowsSDKDirCRLF}UnionMetadata${WindowsSDKVer}")"
 
 		export WindowsSDKBinDir="$(cygpath -u "${WindowsSDKDirCRLF}bin\\${WindowsSDKVer}\x64")"
 		export CRTPath="$(cygpath -u "${CRTPathCRLF%$'\r'}")"
-		
+
 		export NEW_STYLE_VSVARS=1
 		export VSINSTALLDIR=1
 
@@ -64,6 +61,9 @@ then
 		export INCLUDE="${VCTIncludeDir};${VCTATLMFCIncDir};${WindowsSDKUmIncDir};${WindowsSDKUCRTIncDir};${WindowsSDKSharedIncDir};${WindowsSDKWinRTIncDir};${WindowsSDKCPPWinRTIncDir};$INCLUDE"
 		export LIB="${VCTLibDir};${VCTATLMFCLibDir};${WindowsSDKUCRTDir};${WindowsSDKUmDir};$LIB"
 		export LIBPATH="${VCTLibDir};${VCTATLMFCLibDir};${VCTRefDir};${WindowsSDKLibRefDir};${WindowsSDKLibUMDir};$LIBPATH"
+		VCToolsVersion=$(echo "${VCTIncludeDir}" | cut -d'\' -f 9)
+		echo "VC Tools Version: ${VCToolsVersion}"
+		echo "Windows SDK Version: ${WindowsSDKVer}"
 
 		return 0
 	else
@@ -73,8 +73,7 @@ then
 else
 	B64=""
 	X64=""
-	if [ ! -z "$GITHUB_ACTIONS_CI" ]
-	then
+	if [ ! -z "$GITHUB_ACTIONS_CI" ]; then
 		echo Setting environment for using Microsoft Visual Studio 2019
 		Platform=x64
 		VSINSTALLDIR="c:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise"
@@ -85,10 +84,9 @@ else
 		B64=64
 		X64="\\x64"
 
-		Framework40Version=v4.0 # referenced nowhere else??
-		FrameworkVersion=v4.0.30319 # still valid on Windows Server 2022 runner
-		FrameworkVersion64=v4.0.30319 # still valid on Windows Server 2022 runner
-		VCToolsVersion=14.34.31933 # could be 14.16.27023 or 14.29.30133 instead
+		# If the windows build is ever spuriously breaking, GitHub probably changed the version
+		# of the tools out from under us. 
+		VCToolsVersion=14.41.34120    # could be 14.16.27023 or 14.29.30133 instead
 		VisualStudioVersion=17.0
 		# Could be 10.0.10240.0; 10.0.17763.0; 10.0.19041.0; 10.0.20348.0; 10.0.22000.0; 10.0.22621.0
 		WindowsSDKLibVersion=10.0.19041.0
@@ -96,11 +94,10 @@ else
 
 		VCINSTALLDIR="$VSINSTALLDIR\\VC"
 		VCToolsInstallDir="$VCINSTALLDIR\\Tools\\MSVC\\$VCToolsVersion"
-		VCToolsRedistDir="$VCINSTALLDIR\\Redist\MSVC\\14.34.31931" # could be 14.16.27012, 14.29.30133, 14.32.31326, or v143
+		VCToolsRedistDir="$VCINSTALLDIR\\Redist\MSVC\\$VCToolsVersion" # could be 14.16.27012, 14.29.30133, 14.32.31326, or v143
 
 	else
-		if [ -e "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019" ]
-		then
+		if [ -e "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019" ]; then
 			echo Setting environment for using Microsoft Visual Studio 2019
 			Platform=x64
 			VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community"
@@ -121,8 +118,7 @@ else
 			VCINSTALLDIR="$VSINSTALLDIR\\VC"
 			VCToolsInstallDir="$VCINSTALLDIR\\Tools\\MSVC\\$VCToolsVersion"
 			VCToolsRedistDir="$VCINSTALLDIR\\Redist\MSVC\\14.24.28127"
-		elif [ -e "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2017" ]
-		then
+		elif [ -e "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2017" ]; then
 			echo Setting environment for using Microsoft Visual Studio 2017
 			Platform=x64
 			VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community"
@@ -156,13 +152,11 @@ else
 	export FrameworkDir="c:\\Windows\\Microsoft.NET\\Framework$B64"
 	export VisualStudioVersion
 
-	function GetMicrosoftSdkDir () {
-		GetMicrosoftSdkDirHelper HKLM > /dev/null 2>&1
-		if [ $? -ne 0 ]
-		then
-			GetMicrosoftSdkDirHelper HKCU > /dev/null 2>&1
-			if [ $? -ne 0 ]
-			then
+	function GetMicrosoftSdkDir() {
+		GetMicrosoftSdkDirHelper HKLM >/dev/null 2>&1
+		if [ $? -ne 0 ]; then
+			GetMicrosoftSdkDirHelper HKCU >/dev/null 2>&1
+			if [ $? -ne 0 ]; then
 				# VS2003 location
 				export MicrosoftSdkDir="$VCINSTALLDIR\\PlatformSDK"
 			fi
@@ -170,10 +164,9 @@ else
 		return 0
 	}
 
-	function GetMicrosoftSdkDirHelper () {
-		i=`regtool get "/$1/SOFTWARE/Microsoft/Microsoft SDKs/Windows/CurrentInstallFolder"`
-		if [ "$i" ]
-		then
+	function GetMicrosoftSdkDirHelper() {
+		i=$(regtool get "/$1/SOFTWARE/Microsoft/Microsoft SDKs/Windows/CurrentInstallFolder")
+		if [ "$i" ]; then
 			export MicrosoftSdkDir="$i"
 			return 0
 		fi
@@ -192,18 +185,17 @@ else
 	#	unset WSD
 	#fi
 
-
 	#
 	# Root of Visual Studio ide installed files.
 	#
 	export DevEnvDir="$VSINSTALLDIR\\Common7\\IDE"
 
-	DED=`cygpath -u "$DevEnvDir"`
-	VSD=`cygpath -u "$VSINSTALLDIR"`
-	VCD=`cygpath -u "$VCINSTALLDIR"`
-	VCT=`cygpath -u "$VCToolsInstallDir"`
-	FD=`cygpath -u "$FrameworkDir"`
-	WSD=`cygpath -u "$WindowsSdkDir"`
+	DED=$(cygpath -u "$DevEnvDir")
+	VSD=$(cygpath -u "$VSINSTALLDIR")
+	VCD=$(cygpath -u "$VCINSTALLDIR")
+	VCT=$(cygpath -u "$VCToolsInstallDir")
+	FD=$(cygpath -u "$FrameworkDir")
+	WSD=$(cygpath -u "$WindowsSdkDir")
 
 	export PATH="$VCT/bin/HostX64/x64:\
 $WSD/bin/x64:\

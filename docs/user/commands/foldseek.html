@@ -1,0 +1,168 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: foldseek</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: foldseek</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>foldseek</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+[&nbsp;<b>database</b>&nbsp;&nbsp;<i>structure-database</i>&nbsp;]
+[&nbsp;<b>showTable</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<span class="nowrap">[&nbsp;<b>trim</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;|&nbsp;chains,sequence,ligands&nbsp;]</span>
+[&nbsp;<b>alignmentCutoffDistance</b>&nbsp;&nbsp;<i>dist</i>&nbsp;]
+[&nbsp;<b>saveDirectory</b></a>&nbsp;&nbsp;<i>results-folder</i>&nbsp;]
+[&nbsp;<b>wait</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</h3>
+<p>
+The <b>foldseek</b> command performs a fast 3D structure search of the
+<a href="https://www.rcsb.org" target="_blank">PDB</a> or
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
+for structures similar to a protein chain already open in ChimeraX.
+The <a href="../tools/foldseek.html"><b>Foldseek</b>
+(<b>Similar Structures</b>)</a> tool provides a graphical interface
+to running this command. See also:
+<a href="similarstructures.html"><b>similarstructures</b></a>,
+<a href="sequence.html#search"><b>sequence search</b></a>,
+<a href="blastprotein.html"><b>blastprotein</b></a>
+</p><p>
+The <a href="https://github.com/steineggerlab/foldseek"
+target="_blank">Foldseek</a> method
+finds similar 3D structures (regardless of sequence similarity)
+using extremely fast approaches that were developed for sequence searches.
+It does so by describing the 3D interactions along a chain of amino acids
+as a linear sequence of characters, as described in:
+</p>
+<blockquote>
+<a href="https://www.nature.com/articles/s41587-023-01773-0" target="_blank">
+Fast and accurate protein structure search with Foldseek.</a>
+van Kempen M, Kim SS, Tumescheit C, Mirdita M, Lee J, Gilchrist CLM, Söding J, Steinegger M.
+<i>Nat Biotechnol.</i> 2024 Feb;42(2):243-246.
+</blockquote>
+<p>
+The search uses the <a href="https://search.foldseek.com/search"
+target="_blank">Foldseek Search Service</a> provided by the
+<a href="https://www.mpinat.mpg.de/soeding" target="_blank">S&ouml;ding</a>
+and <a href="https://steineggerlab.com/en/" target="_blank">Steinegger</a>
+groups, with maximum number of hits 1000.
+</p><p>
+The choices of <b>database</b> to search are derived from the
+<a href="https://www.rcsb.org/" target="_blank">Protein Data Bank</a>
+(PDB) or the <a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold Database</a> (AFDB) version 4:
+</p>
+<ul>
+<li><b>pdb100</b> (default) &ndash; a redundancy-filtered version of the PDB 
+created with Foldseek (one chain per cluster with 100% sequence identity
+and &ge;95% sequence overlap, reducing ~1 million chains to 340,000)
+<!--
+see https://www.ebi.ac.uk/training/online/courses/alphafold/glossary-of-terms/
+-->
+<li><b>afdb50</b>
+&ndash; UniProt50 subset of Alphafold DB (AFDB)
+<!--
+UniRef50??  https://www.uniprot.org/help/uniref
+-->
+<li><b>afdb-swissprot</b>
+&ndash; SwissProt subset of AFDB
+(<a href="https://alphafold.ebi.ac.uk/faq#faq-4" target="_blank">details...</a>)
+<li><b>afdb-proteome</b>
+&ndash; proteomes subset of AFDB
+(<a href="https://alphafold.ebi.ac.uk/faq#faq-4" target="_blank">details...</a>)
+</ul>
+<p>
+The <b>showTable</b> option (default <b>true</b>)
+indicates whether to show the results in the 
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a> tool,
+which facilitates exploring large sets of protein structures 
+by efficiently showing them in 3D as backbone traces and in
+2D as sequence alignment schematics or scatter plots based on conformation.
+Even with <b>showTable false</b>, however, 
+the results can still be analyzed in those
+ways by referring to them by name (<b>fs1</b> or <b>fs2</b>) in
+<a href="similarstructures.html"><b>similarstructures</b></a> commands.
+The <a href="../tools/log.html"><b>Log</b></a> reports the name
+assigned to the results when the search is run.
+</p><p>
+The <b>trim</b> and <b>alignmentCutoffDistance</b> options do not act
+immediately. Instead, they specify how to process the hit structures 
+if later opened from the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a>
+tool or with the command
+<a href="../commands/similarstructures.html#open"><b>similarstructures
+open</b></a>. The structures are fetched from the respective database
+(<a href="https://www.rcsb.org/" target="_blank">Protein Data Bank</a>
+or <a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold Database</a>) and processed as follows:
+<ul>
+<li>The <b>trim</b> option indicates deleting all of the following
+(if true, default), or none of them (if false), or a comma-separated list of:
+  <ul>
+  <li><b>chains</b> &ndash; for PDB entries, chains other than the hit chain
+  <li><b>sequence</b> &ndash; N- and C-terminal segments of the hit chain
+that were not included in the sequence alignment returned by the search method
+  <li><b>ligands</b> &ndash; ligands, solvent, and ions &gt; 3 &Aring;
+from the hit chain
+  </ul>
+The <b>trim</b> default is the current setting in the
+<a href="../tools/foldseek.html#options"><b>Similar Structures</b> options</a>,
+otherwise (if the tool is not open) <b>true</b>.
+<br><br>
+<li>The hit chain is superimposed onto the query chain by 
+least-squares fitting the &alpha;-carbons of the paired residues 
+and iteratively pruning far-apart pairs as described for the
+<a href="align.html"><b>align</b></a> command.
+The <b>alignmentCutoffDistance</b> <i>d</i> is the alignment pruning distance
+so that only &alpha;-carbon pairs within the specified distance 
+are used in the final fit (default as per the
+<a href="../tools/foldseek.html#options"><b>Similar Structures</b> options</a>,
+otherwise <b>2.0</b> &Aring;)
+</ul>
+<p>
+Search results are saved in a
+<a href="../formats/sms.html">similar structures file</a>
+(suffix .sms, a JSON file format specific to ChimeraX)
+with filename based on the query name and the database searched.
+The file will be listed in the
+<a href="../tools/filehistory.html"><b>File History</b></a> for easy access,
+and simply opening it loads the set of results into the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a>
+interface.
+The <b>saveDirectory</b> option allows specifying the save location,
+either directly or as the word 
+<a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window
+(default location <b>~/Downloads/ChimeraX/Foldseek/</b>).
+</p><p>
+By default (<b>wait false</b>), the search is run in the background 
+so that ChimeraX can be used for other tasks at the same time.
+Specifying <b>wait true</b> makes ChimeraX wait until the search completes
+before executing any subsequent commands; this may be necessary
+in command scripts that process the output.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+November 2024</address>
+</body></html>

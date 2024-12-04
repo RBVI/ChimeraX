@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -713,7 +713,7 @@ class DicomData:
                 nt = len(times)
                 for data in self.files:
                     data._time = times.index(data.trigger_time) + 1
-                    data.inferred_properties += "TemporalPositionIdentifier"
+                    data.inferred_properties.add("TemporalPositionIdentifier")
                 if nt > 1:
                     self.session.logger.warning(
                         "Inferring time series from TriggerTime metadata \
@@ -1007,7 +1007,7 @@ class SeriesFile:
     def __init__(self, data):
         self.data = data
         self.path = data.filename
-        self.inferred_properties = []
+        self.inferred_properties = set()
         orient = getattr(
             data, "ImageOrientationPatient", None
         )  # horz and vertical image axes
@@ -1117,9 +1117,10 @@ class SeriesFile:
         # So maybe we take this and move it to somewhere with more context
         pos = self.data.get("ImagePositionPatient", None)
         if self._num_frames is not None and pos is None:
-            pos_x, pos_y = self.frame_positions[0][:2]
-            z_origin = min(x[2] for x in self.frame_positions)
-            pos = [pos_x, pos_y, z_origin]
+            if self.frame_positions is not None:
+                pos_x, pos_y = self.frame_positions[0][:2]
+                z_origin = min(x[2] for x in self.frame_positions)
+                pos = [pos_x, pos_y, z_origin]
         return tuple(float(p) for p in pos) if pos else (0, 0, 0)
 
     @property

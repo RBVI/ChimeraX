@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -29,6 +29,7 @@ class _LogSettings(Settings):
         'errors_raise_dialog': True,
         'warnings_raise_dialog': False,
         'session_restore_clears': True,
+        'show_if_new_content': False,
     }
 
     AUTO_SAVE = {
@@ -53,6 +54,10 @@ def register_settings_options(session):
             CustomSortString('Restoring session clears log', 2),
             BooleanOption,
             'Restoring session clears log'),
+        'show_if_new_content': (
+            CustomSortString('Raise log when logging occurs', 2),
+            BooleanOption,
+            'Show and raise the log if new content is logged'),
     }
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, balloon = setting_info

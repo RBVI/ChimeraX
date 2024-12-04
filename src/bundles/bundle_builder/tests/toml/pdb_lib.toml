@@ -1,0 +1,82 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-AtomicLibrary ~=14.0",
+  "ChimeraX-Core ~=1.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-PDBLibrary"
+version = "1.0.4"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "C++ PDB support"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-Atomic ~=1.0",
+  "ChimeraX-AtomicLibrary ~=14.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """This provides a PDB-related C++ library."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+module-name-override = "pdb_lib"
+categories = ["Molecular structure"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.extra-files]
+"src/include/pdb/" = [
+  "connect_cpp/connect.h",
+  "connect_cpp/imex.h",
+]
+
+[tool.chimerax.extension._load_libs]
+sources = [
+  "connect_cpp/load_libs.cpp",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]
+libraries = [
+  "atomstruct",
+  "pdbconnect",
+]
+include-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.core",
+]
+
+[tool.chimerax.library.pdbconnect]
+sources = [
+  "connect_cpp/connect.cpp",
+]
+libraries = [
+  "atomstruct",
+  "element",
+  "pyinstance",
+]
+include-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.core",
+]
+

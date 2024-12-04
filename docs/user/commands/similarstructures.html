@@ -1,0 +1,714 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: similarstructures</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: similarstructures</h3>
+<p>
+The <b>similarstructures</b> command performs several functions related to the 
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a> tool.
+The tool searches for similar protein structures and facilitates exploring 
+large sets of results by efficiently showing them in 3D as backbone traces 
+and in 2D as sequence alignment plots and conformation-based scatter plots.
+</p>
+<ul>
+<li>Similar structures BLAST search
+(see also <a href="foldseek.html"><b>foldseek</b></a>,
+<a href="sequence.html#search"><b>sequence search</b></a>):
+ <ul>
+ <li><a href="#blast"><b>similarstructures blast</b></a>
+&ndash; BLAST protein with structure chain as query, show results in
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a>
+ <li><a href="#fromblast"><b>similarstructures fromblast</b></a>
+&ndash; convert results from a previous 
+<a href="../tools/blastprotein.html"><b>Blast Protein</b></a> search
+(using a structure chain as the query) to 
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a> results
+ </ul>
+<li>Similar structures analysis:
+ <ul>
+ <li><a href="#open"><b>similarstructures open</b></a>
+&ndash; open hit structures
+ <li><a href="#sequences"><b>similarstructures sequences</b></a>
+&ndash; show a <a href="../tools/foldseek.html#sequences">sequence plot</a>
+overview of query sequence coverage by all hits 
+ <li><a href="#traces"><b>similarstructures traces</b></a>
+&ndash; show &alpha;-carbon traces of hit structures
+ <li><a href="#cluster"><b>similarstructures cluster</b></a>
+&ndash; show a <a href="../tools/foldseek.html#clusters">scatter plot</a>
+(UMAP) of hits based on their atomic positions, colored by cluster
+ <li><a href="#ligands"><b>similarstructures ligands</b></a>
+&ndash; spatially map ligands, ions, and solvent from hit structures onto the
+query structure
+ </ul>
+<li>Similar structures utilities:
+ <ul>
+ <li><a href="#fetchcoords"><b>similarstructures fetchcoords</b></a>
+&ndash; fetch &alpha;-carbon coordinates for hits from sequence searches
+ <li><a href="#scrollto"><b>similarstructures scrollto</b></a>
+&ndash; scroll to the row for a specific hit in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>
+and highlight that row
+ <li><a href="#pairing"><b>similarstructures pairing</b></a>
+&ndash; draw <a href="../pseudobonds.html">pseudobonds</a> between the
+paired &alpha;-carbons of the query and a hit structure
+ <li><a href="#seqalign"><b>similarstructures seqalign</b></a>
+&ndash; show the sequence alignment of the query and a hit structure
+in the <a href=../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+ <li><a href="#list"><b>similarstructures list</b></a>
+&ndash; list the names of available sets of search results
+ <li><a href="#close"><b>similarstructures close</b></a>
+&ndash; close a set of search results
+ </ul>
+</ul>
+
+<h3>Similar Structures BLAST Search</h3>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="blast"></a>
+<b>similarstructures blast</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+[&nbsp;<b>database</b>&nbsp;&nbsp;<b>pdb</b>&nbsp;|&nbsp;afdb&nbsp;]
+[&nbsp;<b>showTable</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>evalueCutoff</b>&nbsp;&nbsp;<i>max-evalue</i>&nbsp;]
+[&nbsp;<b>maxHits</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+<span class="nowrap">[&nbsp;<b>trim</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;|&nbsp;chains,sequence,ligands&nbsp;]</span>
+[&nbsp;<b>alignmentCutoffDistance</b>&nbsp;&nbsp;<i>dist</i>&nbsp;]
+[&nbsp;<b>saveDirectory</b></a>&nbsp;&nbsp;<i>results-folder</i>&nbsp;]
+<blockquote>
+<p>
+Run a <a href="../tools/blastprotein.html#notes">BLAST</a> search of the
+<a href="https://www.rcsb.org" target="_blank">PDB</a> or
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
+with a protein structure chain as the query, using the web service hosted by the
+<a href="https://www.cgl.ucsf.edu/Overview/index.html"
+target="_blank">UCSF RBVI</a>.
+The <a href="../tools/foldseek.html"><b>Foldseek</b>
+(<b>Similar Structures</b>)</a> tool provides a graphical interface
+to running this command.
+</p><p>
+The <b>showTable</b> option (default <b>true</b>)
+indicates whether to show the results in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a> tool,
+which facilitates exploring large sets of protein structures
+by efficiently showing them in 3D as backbone traces and in
+2D as sequence alignment schematics or scatter plots based on conformation.
+The related <a href="blastprotein.html"><b>blastprotein</b></a> command 
+and <a href="../tools/blastprotein.html"><b>Blast Protein</b></a> tool
+are different in that they
+can use sequence only as the query, not just a structure chain, and they show
+results in a <a href="../tools/blastprotein.html#results">different table</a>
+that may contain several additional features of the hits
+(such as crystallographic resolution, ligand residue names, <i>etc.</i>);
+if a structure chain was used as the query, such results can be converted to a
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>
+with the command
+<a href="#fromblast"><b>similarstructures fromblast</b></a>.
+</p><p>
+A BLAST search may take several minutes, during which ChimeraX cannot be used
+for other tasks. A much faster (~100X) MMseqs2 search can be performed instead
+with the <a href="sequence.html#search"><b>sequence search</b></a> command,
+and a fast 3D structure search with the 
+<a href="foldseek.html"><b>foldseek</b></a> command.
+</p><p>
+The name assigned to a set of results (<b>bl1</b> or <b>bl2</b>)
+is reported in the <a href="../tools/log.html"><b>Log</b></a>
+when the search is run.
+</p><p>
+Choices of <b>database</b> to search:
+</p>
+<ul>
+<li><b>pdb</b> (default)
+&ndash; <a href="https://www.rcsb.org" target="_blank">PDB</a>
+<li><b>afdb</b>
+&ndash; <a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold Database</a>
+</ul>
+<p>
+The hits can be limited with the following options:
+</p>
+<ul>
+<li><b>evalueCutoff</b>&nbsp;&nbsp;<i>max-evalue</i>
+&ndash; maximum E-value of a hit to be retained (default <b>1e-3</b>)
+<li><b>maxHits</b>&nbsp;&nbsp;<i>N</i>
+&ndash; maximum number of hits retained (default <b>1000</b>)
+</ul>
+<p>
+The <b>trim</b> and <b>alignmentCutoffDistance</b> options do not act
+immediately when the search is run. Instead, they specify how to process 
+the hit structures if later opened from the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a>
+tool or with the command
+<a href="../commands/similarstructures.html#open"><b>similarstructures
+open</b></a>. The structures are fetched from the respective database
+(<a href="https://www.rcsb.org/" target="_blank">Protein Data Bank</a>
+or <a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold Database</a>) and processed as follows:
+<ul>
+<a name="trim"></a>
+<li>The <b>trim</b> option indicates deleting all of the following
+(if true), or none of them (if false), or a comma-separated list of:
+  <ul>
+  <li><b>chains</b> &ndash; for PDB entries, chains other than the hit chain
+  <li><b>sequence</b> &ndash; N- and C-terminal segments of the hit chain
+that were not included in the sequence alignment returned by the search method
+  <li><b>ligands</b> &ndash; ligands, solvent, and ions &gt; 3 &Aring;
+from the hit chain
+  </ul>
+The <b>trim</b> default is the current setting in the
+<a href="../tools/foldseek.html#options"><b>Similar Structures</b> options</a>,
+otherwise (if the tool is not open) <b>true</b>.
+<br><br>
+<li>The hit chain is superimposed onto the query chain by
+least-squares fitting the &alpha;-carbons of the paired residues
+and iteratively pruning far-apart pairs as described for the
+<a href="align.html"><b>align</b></a> command.
+The <b>alignmentCutoffDistance</b> <i>d</i> is the alignment pruning distance 
+so that only &alpha;-carbon pairs within the specified distance
+are used in the final fit (default as per the
+<a href="../tools/foldseek.html#options"><b>Similar Structures</b> options</a>,
+otherwise <b>2.0</b> &Aring;)
+</ul>
+<p>
+Search results are saved in a
+<a href="../formats/sms.html">similar structures file</a>
+(suffix .sms, a JSON file format specific to ChimeraX)
+with filename based on the query name and the database searched.
+The file will be listed in the
+<a href="../tools/filehistory.html"><b>File History</b></a> for easy access,
+and simply opening it loads the set of results into the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a>
+interface.
+The <b>saveDirectory</b> option allows specifying the save location,
+either directly or as the word
+<a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window
+(default location <b>~/Downloads/ChimeraX/BLAST/</b>).
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="fromblast"></a>
+<b>similarstructures fromblast</b>
+[&nbsp;<i>blast-results-name</i>&nbsp;]
+[&nbsp;<b>save</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>saveDirectory</b></a>&nbsp;&nbsp;<i>results-folder</i>&nbsp;]
+<blockquote>
+Convert results from a previous search with the
+<a href="../tools/blastprotein.html"><b>Blast Protein</b></a>
+tool or <a href="blastprotein.html"><b>blastprotein</b></a> command
+(with structure chain as query) to show in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>.
+If more than one set of 
+<a href="../tools/blastprotein.html#results"><b>Blast Protein</b> results</a>
+is open, the <i>blast-results-name</i> (as shown in its title bar, <i>e.g.</i>
+<b>bp1</b> or <b>bp2</b>) can be given.
+The <b>save</b> option indicates whether to also save the converted results
+as a <a href="../formats/sms.html">similar structures file</a> (default 
+<b>true</b>). The <b>saveDirectory</b> option
+allows specifying the save location, either directly or as the word
+<a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window
+(default location <b>~/Downloads/ChimeraX/BLAST/</b>).
+</blockquote>
+
+<h3>Similar Structures Analysis</h3>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="open"></a>
+<b>similarstructures open</b>
+&nbsp;<a href="#hit-ID"><i>hit-ID</i></a>&nbsp;
+[&nbsp;<b>align</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<span class="nowrap">[&nbsp;<b>trim</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;|&nbsp;chains,sequence,ligands&nbsp;]</span>
+[&nbsp;<b>alignmentCutoffDistance</b>&nbsp;&nbsp;<i>dist</i>&nbsp;]
+[&nbsp;<b>inFileHistory</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>log</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
+<blockquote>
+<a name="hit-ID"></a>
+Fetch and open a hit structure.
+The <i>hit-ID</i> for a structure from the 
+<a href="https://www.rcsb.org" target="_blank">PDB</a>
+is a combination of the PDB
+ID and chain ID (for example, <b>6cmi_B</b>), and for a structure from the
+a <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>,
+its <a href="https://www.uniprot.org/help/accession_numbers" 
+target="_blank">UniProt accession number</a>.
+The <i>hit-ID</i> is shown in the first column of the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>.
+<p>
+By default, the opened structure will be C&alpha;-aligned with the query
+using the  sequence alignment provided by the search method, with fit
+iteration as described for the command <a href="align.html"><b>align</b></a>.
+The <b>trim</b> and <b>alignmentCutoffDistance</b> options are as described
+<a href="#trim">above</a>. If a large number of structures are opened,
+it may be useful to omit them from the 
+<a href="../tools/filehistory.html"><b>File History</b></a> with
+<b>inFileHistory false</b>, and omit their descriptions from the 
+<a href="../tools/log.html"><b>Log</b></a> with <b>log false</b>.
+</p><p>
+<a name="fromSet"></a>
+Although only one set of results can be shown in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>
+at a time (the default set), other sets may be open and available for analysis.
+Another set can be specified with <b>fromSet</b> <i>set-name</i>.
+The name of a set of results is reported in the 
+<a href="../tools/log.html"><b>Log</b></a> when a search is run,
+and the names of open sets can be listed in the 
+<a href="../tools/log.html"><b>Log</b></a> with
+<a href="#list"><b>similarstructures list</b></a>. However,
+the only way to get a set of results that is open but not shown in the table
+is to use the <b>showTable false</b> option of the search command.
+Results are closed when a new set of results replaces them in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>,
+when the tool is closed, or when the command
+<a href="#close"><b>similarstructures close</b></a> is used to close them.
+</p><p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="sequences"></a>
+<b>similarstructures sequences</b> 
+[&nbsp;<b>showConserved</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>conservedThreshold</b>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
+[&nbsp;<b>conservedColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>identityColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>lddtColoring</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>order</b>&nbsp;&nbsp;evalue&nbsp;|&nbsp;cluster&nbsp;|&nbsp;identity&nbsp;|&nbsp;lddt&nbsp;]
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
+<blockquote>
+Show a <a href="../tools/foldseek.html#sequences">sequence plot</a>
+of all hits in the <a href="#fromSet">specified set</a>. This plot 
+provides an overview of which parts of the query sequence were matched
+and the depth of coverage. Each row of pixels in the image represents 
+one hit sequence, and the columns correspond to the residues of the query.
+The plot is white where there is no residue aligned with the query:
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="white" width="10px" title="white"></td></tr></table>
+<p>
+Several options specify how to color the positions with aligned residues:
+<ul>
+<li>with <b>showConserved true</b>:
+  <ul>
+  <li>use the specified <b>identityColor</b> (default 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#E1BE6A" width="10px" title="#E1BE6A"></td></tr></table>)
+for residues of the same amino acid type as the query
+in a column where at least <b>conservedThreshold</b> <i>fraction</i> 
+(default <b>0.5</b>) of the residues have that type (and the column
+contains at least 10 residues)
+  <li>use the specified <b>conservedColor</b> (default
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#40B0A6" width="10px" title="#40B0A6"></td></tr></table>)
+for residues of the same amino acid type as the query, but not meeting the
+column criteria above
+  <li>use black
+(<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="black" width="10px" title="black"></td></tr></table>)
+for residues of a different amino acid type than the aligned query residue
+  </ul>
+<li>with <b>lddtColoring true</b>: by <a href="#lddt">LDDT</a>
+of each aligned residue in each structure:
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor=red width="30px" title="red"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor=orange width="30px" title="orange"
+align="center"><font size="-1">0.2</font></td>
+<td bgcolor=yellow width="30px" title="yellow"
+align="center"><font size="-1" color="black">0.4</font></td>
+<td bgcolor=cornflowerblue width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">0.6</font></td>
+<td bgcolor=blue width="30px" title="blue"
+align="center"><font size="-1" color="white">0.8</font></td>
+</tr></table>
+<li>with both of the above <b>true</b>, only the positions that would
+otherwise be black are colored by <a href="#lddt">LDDT</a> instead
+  </ul>
+<p>
+<a name="lddt"></a>
+The LDDT (<b><i>local distance difference test</i></b>)
+indicates the similarity of a hit residue to the aligned query 
+residue in a neighborhood of 15 &Aring; from the query residue &alpha;-carbon
+(see <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3799472/"
+target="_blank">Mariani <i>et al.</i></a>,
+Bioinformatics <b>29</b>:2722 (2013)).
+</ul>
+<p>
+The sequences (rows in the plot) can be in <b>order</b> of:
+</p>
+<ul>
+<li><b>evalue</b> &ndash; lowest to highest E-value (default,
+if clustering by coverage only gives one cluster, see below)
+<li><b>cluster</b> &ndash; grouping the sequences by which part of the
+query they cover (default, if clustering by coverage gives &gt;1 cluster)
+<li><b>identity</b>
+&ndash; percent sequence identity compared to the query
+<li><b>lddt</b>
+&ndash; average <a href="#lddt">LDDT</a> over all residues in a hit structure
+</ul>
+<!-- is the following a bug? -->
+Reissuing the command with different coloring options does not recolor the
+already open plot. To change the coloring, first close the plot and
+then reissue the command with the desired options.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="traces"></a>
+<b>similarstructures traces</b>
+[&nbsp;<b>ofStructures</b></a>&nbsp;&nbsp;<i>hit-ID(s)</i>&nbsp;]
+[&nbsp;<a href="#fitting"><b>alignWith</b></a>&nbsp;&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;]
+[&nbsp;<a href="#fitting"><b>alignmentCutoffDistance</b></a>&nbsp;&nbsp;<i>adist</i>&nbsp;]
+[&nbsp;<b>show</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<b>close</b>&nbsp;]
+[&nbsp;<b>breakSegmentDistance</b></a>&nbsp;&nbsp;<i>bdist</i>&nbsp;]
+[&nbsp;<b>minSegmentResidues</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>distance</b></a>&nbsp;&nbsp;<i>dist</i>&nbsp;]
+[&nbsp;<b>maxSegmentDistance</b></a>&nbsp;&nbsp;<i>mdist</i>&nbsp;]
+[&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
+<blockquote>
+Display &ldquo;licorice&rdquo; (spaghetti-like) ribbons superimposed on the 
+query structure for hits from the <a href="#fromSet">specified set</a>
+of results, either all hits or a subset specified as a comma-separated list
+of <a href="#hit-ID">hit identifiers</a> with the <b>ofStructures</b> option.
+These traces are meant to give an overview of the variability
+of a large number of stuctures and their coverage of the query.
+They are calculated from &alpha;-carbons only and do not show
+helix and strand assignments. 
+<p>
+Search results from the structure-based 
+<a href="../tools/foldseek.html#notes">Foldseek</a> method automatically
+include the &alpha;-carbon coordinates of the hits.
+Search results from sequence methods 
+(<a href="../tools/foldseek.html#notes">MMSeqs2</a> and 
+<a href="../tools/blastprotein.html#notes">BLAST</a>)
+do not automatically include &alpha;-carbon coordinates, 
+but trying to show traces will raise a dialog asking the user 
+whether to fetch them, which could take several minutes.
+(Alternatively, <a href="#fetchcoords"><b>similarstructures fetchcoords</b></a>
+can be used beforehand to fetch the &alpha;-carbon coordinates for the
+structures of interest.)
+All of the hit structure &alpha;-carbons are loaded as a single atomic model,
+one chain per structure, with chain ID set to the database ID of the structure.
+The residue types of the hit are retained, but the residues are renumbered
+according to the paired residues of the query structure.
+</p><p>
+<a name="fitting"></a>
+Each hit is superimposed on the query structure by fitting the
+&alpha;-carbons of the residues paired by the search method.
+The fitting is done as described for the 
+<a href="align.html"><b>align</b></a> command,
+with iteration so that only &alpha;-carbon pairs within the specified 
+<b>alignmentCutoffDistance</b> <i>adist</i>
+are used in the final fit (default as per the
+<a href="../tools/foldseek.html#options"><b>Similar Structures</b> options</a>,
+otherwise <b>2.0</b> &Aring;).
+The <b>alignWith</b> option can be used to specify a subset of 
+the query residues to use for superposition, instead of all paired positions.
+</p><p>
+With <b>show close</b> (default, where &ldquo;close&rdquo; means 
+&ldquo;nearby&rdquo;), the traces are displayed as follows:
+</p>
+<ol>
+<li>The ribbon is broken into segments where
+two consecutive aligned &alpha;-carbons are &gt; 
+<b>breakSegmentDistance</b>&nbsp;&nbsp;<i>bdist</i> apart 
+(default <b>5.0</b> &Aring;).
+<li>Ribbons are shown for &ge; <b>minSegmentResidues</b>&nbsp;&nbsp;<i>N</i>
+contiguous &alpha;-carbons within a segment (default <b>5</b>) 
+and within <b>distance</b>&nbsp;&nbsp;<i>dist</i> of the corresponding 
+query &alpha;-carbons (default <b>4.0</b> &Aring;).
+<li>Ribbons are shown for entire segments in which every &alpha;-carbon
+is within <b>maxSegmentDistance</b>&nbsp;&nbsp;<i>mdist</i> of its counterpart 
+(default <b>10.0</b> &Aring;).
+</ol>
+With <b>show all</b>, the traces are instead shown for all residues
+regardless of how far they are from the query structure.
+<p>
+The <b>replace</b> option indicates whether to overwrite a pre-existing
+trace model (<b>true</b>, default). If <b>false</b>, an additional
+model will be generated.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="cluster"></a>
+<b>similarstructures cluster</b>
+&nbsp;<a href="atomspec.html"><i>reference-residues</i></a>&nbsp;
+[&nbsp;<b>ofStructures</b></a>&nbsp;&nbsp;<i>hit-ID(s)</i>&nbsp;]
+[&nbsp;<a href="#fitting"><b>alignWith</b></a>&nbsp;&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;]
+[&nbsp;<a href="#fitting"><b>alignmentCutoffDistance</b></a>&nbsp;&nbsp;<i>adist</i>&nbsp;]
+[&nbsp;<b>clusterCount</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<b>clusterDistance</b>&nbsp;&nbsp;<i>cdist</i>&nbsp;]
+[&nbsp;<b>colorBySpecies</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
+<blockquote>
+Create a <a href="../tools/foldseek.html#clusters">scatter plot</a>
+based on backbone conformations of hits from the 
+<a href="#fromSet">specified set</a> of results, 
+either all hits or a subset specified as a comma-separated list
+of <a href="#hit-ID">hit identifiers</a> with the <b>ofStructures</b> option.
+The plot is generated as follows:
+<ol>
+<li>Each hit is superimposed on the query structure by fitting the
+&alpha;-carbons of the paired residues as described
+<a href="#fitting">above</a>.
+<li>After fitting, the x,y,z coordinates of the hit &alpha;-carbons paired with
+the query <a href="atomspec.html"><i>reference-residues</i></a>
+are concatenated into a vector. Any hits without a residue aligned to one
+or more of the reference residues will be omitted from the plot, so it is
+best to use a relatively small set (&lt;30) of query residues with 
+highly populated columns in the sequence alignment of hits to the query.
+<li>The vector is projected to a point in two dimensions with UMAP
+(<a href="https://umap-learn.readthedocs.io/en/latest/"
+target="_blank">Uniform Manifold Approximation and Projection</a>).
+When <b>similarstructures cluster</b> is first run, it may take a minute
+to install the large UMAP Python package 
+<a href="https://pypi.org/project/umap-learn/" target="_blank">umap-learn</a>.
+<li>The points (circles) in the plot may be clustered and colored
+according to the additional parameters described below.
+</ol>
+Search results from the structure-based 
+<a href="../tools/foldseek.html#notes">Foldseek</a> method automatically
+include the &alpha;-carbon coordinates of the hits.
+Search results from sequence methods 
+(<a href="../tools/foldseek.html#notes">MMSeqs2</a> and 
+<a href="../tools/blastprotein.html#notes">BLAST</a>)
+do not automatically include &alpha;-carbon coordinates, 
+but trying to show clusters will raise a dialog asking the user 
+whether to fetch them, which could take several minutes.
+(Alternatively, <a href="#fetchcoords"><b>similarstructures fetchcoords</b></a>
+can be used beforehand to fetch the &alpha;-carbon coordinates for the
+structures of interest.)
+<p>
+Two methods of clustering the points are available. 
+Either one (but not both) of the following can be used: 
+<ul>
+<li>If <b>clusterCount</b> <i>N</i> is given (say 5 clusters),
+the k-means algorithm will be used to produce that number of clusters.
+<li>If <b>clusterDistance</b> <i>cdist</i> is given (say 1.5 &Aring;), 
+points within that distance of each other in the 2D projection
+will be clustered together.
+</ul>
+If neither option is used, clustering will not be not done 
+(they do not have default values).
+<p>
+Colors are chosen randomly. If the coloring is unpleasant, simply
+reissuing the command may give a better set of colors.
+By default (<b>colorBySpecies false</b>), the circles in the plot are 
+colored by cluster, if clustering was done.
+With <b>colorBySpecies true</b>, they are colored by source species
+and the color corresponding to each species is reported in the 
+<a href="../tools/log.html"><b>Log</b></a>.
+<p>
+The <b>replace</b> option indicates whether to overwrite a pre-existing
+cluster plot (<b>true</b>, default). If <b>false</b>, an additional
+plot will be generated.
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="ligands"></a>
+<b>similarstructures ligands</b>
+[&nbsp;<b>ofStructures</b></a>&nbsp;&nbsp;<i>hit-ID(s)</i>&nbsp;]
+[&nbsp;<b>warn</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>rmsdCutoff</b></a>&nbsp;&nbsp;<i>rmsd</i>&nbsp;]
+[&nbsp;<b>alignmentRange</b></a>&nbsp;&nbsp;<i>range</i>&nbsp;]
+[&nbsp;<b>minimumPaired</b></a>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
+[&nbsp;<b>combine</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
+<blockquote>
+Copy ligands, ions, and solvent molecules (nonpolymer residues)  
+from the hit structures
+onto corresponding locations on the query structure.
+Either all hits from the <a href="#fromSet">specified set</a> of results
+can be used, or a subset specified as a comma-separated list
+of <a href="#hit-ID">hit identifiers</a> with the <b>ofStructures</b> option.
+Copying the residues requires fetching the full coordinates of each structure.
+With <b>warn true</b> (default), a dialog will appear to ask the user 
+whether to proceed with the fetch, which could take several minutes to complete.
+<p>
+Each ligand (ion, solvent) residue is evaluated for mapping onto the query
+structure, as follows:
+</p>
+<ol>
+<li>Protein residues within <b>alignmentRange</b>&nbsp;&nbsp;<i>range</i>
+(default <b>5.0</b> &Aring;) of the ligand are identified.
+<li>If at least <b>minimumPaired</b>&nbsp;&nbsp;<i>fraction</i> of those 
+nearby protein residues are paired with query residues (default <b>0.5</b>),
+the &alpha;-carbons of those pairs are fitted.
+<li>If the resulting RMSD is &le; <b>rmsdCutoff</b>&nbsp;&nbsp;<i>rmsd</i>
+(default <b>3.0</b> &Aring;), the ligand is copied to corresponding position 
+relative to the query structure.
+</ol>
+<p>
+How many residues were copied and their residue types
+are reported in the <a href="log.html"><b>Log</b></a>.
+Often thousands of water molecules, and ions, and crystallization adjuvants
+are found, and they can be hidden to get a better view of more interesting
+ligands (<a href="../tools/foldseek.html#ligands">details...</a>).
+</p><p>
+With <b>combine true</b> (default),
+the copied ligand, ion, and solvent residues are loaded as a
+single atomic model, in which the chain ID of a residue is generated from the
+PDB ID and chain ID of its source structure (<i>e.g.</i>, <b>2cml_B</b>).
+Pausing the cursor over a residue in the graphics window shows
+its name and chain ID in a pop-up balloon. With <b>combine false</b>,
+a separate model is generated for each hit with mappable residues, 
+containing the residues in their mapped positions with their original
+chain IDs.
+</p>
+</blockquote>
+
+<h3>Similar Structures Utilities</h3>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="fetchcoords"></a>
+<b>similarstructures fetchcoords</b>
+[&nbsp;<b>ofStructures</b></a>&nbsp;&nbsp;<i>hit-ID(s)</i>&nbsp;]
+[&nbsp;<b>minAlignedCoords</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>updateTable</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>rewriteSmsFile</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>ask</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
+<blockquote>
+<p>
+Search results from the structure-based 
+<a href="../tools/foldseek.html#notes">Foldseek</a> method automatically
+include the &alpha;-carbon coordinates of the hits.
+Search results from sequence methods 
+(<a href="../tools/foldseek.html#notes">MMSeqs2</a> and 
+<a href="../tools/blastprotein.html#notes">BLAST</a>)
+do not automatically include &alpha;-carbon coordinates, 
+but <b>similarstructures fetchcoords</b> can be used to fetch them
+for hits from the <a href="#fromSet">specified set</a>
+of results, either all hits or a subset specified as a comma-separated list
+of <a href="#hit-ID">hit identifiers</a> with the <b>ofStructures</b> option.
+The <b>minAlignedCoords</b> option allows further excluding hits with 
+fewer than <i>N</i> residues aligned to the query by the search method 
+(default <b>10</b>). 
+</p><p>
+Fetching the &alpha;-carbon coordinates enables:
+<ul>
+<li><a href="#traces">trace</a> display and 
+<a href="#cluster">cluster</a> plotting
+<li>with <b>updateTable true</b> (default),
+filling in the <b>% Close</b> and <b>% Cover</b> columns in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>
+of results
+<li>with <b>rewriteSmsFile true</b> (default),
+adding the &alpha;-carbon coordinates into the corresponding
+<a href="../formats/sms.html">similar structures file</a> (.sms);
+when a similar structures search is performed, the resulting .sms 
+file is cached under ~/Downloads/ChimeraX/
+(<a href="../tools/foldseek.html#sms">details...</a>), and it is
+the file in this default location that is rewritten
+</ul>
+The <b>ask</b> option (default <b>false</b>) is whether to prompt the user
+to confirm the fetch, since it may take some time. Typically this is set to
+true when the command is called by other functions, such as plotting clusters.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="scrollto"></a>
+<b>similarstructures scrollto</b>
+&nbsp;<a href="#hit-ID"><i>hit-ID</i></a>&nbsp;
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
+<blockquote>
+Scroll to the row for a <a href="#hit-ID">specified hit</a> in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>
+and highlight that row.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="pairing"></a>
+<b>similarstructures pairing</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>halfbondColoring</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
+<blockquote>
+Draw dashed <a href="../pseudobonds.html">pseudobonds</a> between the paired
+&alpha;-carbons of the (previously opened) atomic model of a hit 
+from the <a href="#fromSet">specified</a> set and the query structure. 
+The <a href="../pseudobonds.html">pseudobonds</a> are assigned
+the specified <b>color</b> (default
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="gold" width="10px" title="gold"></td></tr></table>)
+and <b>radius</b>&nbsp;&nbsp;<i>r</i> (default <b>0.1</b> &Aring;),
+except that giving <b>halfbondColoring true</b> will instead color the 
+pseudobond halves to match the endpoint atoms (default is
+<b>halfbondColoring false</b>).
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="seqalign"></a>
+<b>similarstructures seqalign</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;<a href="#fromSet"><b>fromSet</b></a>&nbsp;&nbsp;<i>set-name</i>&nbsp;]
+<blockquote>
+Show the pairwise sequence alignment between the (previously opened)
+atomic model of a hit from the <a href="#fromSet">specified</a> set
+and the query 
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="list"></a>
+<b>similarstructures list</b>
+<blockquote>
+List the names of currently available sets of search results in the 
+<a href="../tools/log.html"><b>Log</b></a>. 
+The name is reported in the <a href="../tools/log.html"><b>Log</b></a>
+when the results are generated.
+Although only one set of results can be shown in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>
+at a time, additional sets may be open and available for analysis with
+<a href="#top"><b>similarstructures</b></a> commands. However,
+the only way to get a set of results that is open but not shown in the table
+is to use the <b>showTable false</b> option of the search command.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="close"></a>
+<b>similarstructures close</b> &nbsp;<i>set-name</i>
+<blockquote>
+Close a specified set of results.
+The names of currently open sets of results can be listed in the
+<a href="../tools/log.html"><b>Log</b></a> with
+<a href="#list"><b>similarstructures list</b></a>. 
+Results are also closed when a new set of results replaces them in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b> table</a>
+or when the tool is closed.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+November 2024</address>
+</body></html>

@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -1361,6 +1361,10 @@ Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
             change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_COORD);
             structure()->change_tracker()->add_modified(structure(), structure(),
                 ChangeTracker::REASON_SCENE_COORD);
+            // changing backbone alt locs can/should change ribbons, but don't bother
+            // (and in particular _don't_ call is_backbone()) if chains have not been made
+            if (structure()->chains_made() && is_backbone(BBE_MIN))
+                graphics_changes()->set_gc_ribbon();
         }
     } else {
         residue()->set_alt_loc(alt_loc);

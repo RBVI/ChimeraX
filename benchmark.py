@@ -6,6 +6,7 @@
 #
 import gc
 import os
+import sys
 import socket
 import subprocess
 from chimerax.core.commands import run
@@ -21,7 +22,10 @@ current_memory_usage = None
 
 def get_memory_use():
     gc.collect()
-    output = subprocess.check_output(['/usr/bin/pmap', str(os.getpid())])
+    if sys.platform == "darwin":
+        output = subprocess.check_output(["/usr/bin/vmmap", str(os.getpid())])
+    else:
+        output = subprocess.check_output(["/usr/bin/pmap", str(os.getpid())])
     usage = output.split()[-1].decode()
     return usage
 
@@ -41,6 +45,7 @@ session.logger.add_log(NoOutputLog())
 
 def time_command(command):
     from time import time
+
     t0 = time()
     try:
         run(session, command)
@@ -75,6 +80,7 @@ def time_open_close(open_cmd):
 
 def print_results(command, times):
     from numpy import std
+
     if len(times) >= 3:
         # throw out high and low
         times = sorted(times)[1:-1]
@@ -83,8 +89,7 @@ def print_results(command, times):
     if len(times) == 1:
         print(f"{round(mean, 4)}: {command}")
     else:
-        print(f"{round(mean, 4)} \N{Plus-Minus Sign}"
-              f" {round(var,3)}: {command}")
+        print(f"{round(mean, 4)} \N{Plus-Minus Sign}" f" {round(var,3)}: {command}")
 
 
 def print_delta_memory(tag, first, second):
@@ -101,8 +106,7 @@ def print_increased_memory():
     current_memory_usage = usage
 
 
-print(f"UCSF ChimeraX version: {buildinfo.version}"
-      f" ({buildinfo.date.split()[0]})")
+print(f"UCSF ChimeraX version: {buildinfo.version}" f" ({buildinfo.date.split()[0]})")
 print(f"Running benchmark on {socket.gethostname()}")
 
 start_usage = get_memory_use()

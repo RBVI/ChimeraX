@@ -1080,6 +1080,7 @@ will include the entire models regardless of which parts
 [&nbsp;<b>format</b>&nbsp;&nbsp;gltf&nbsp;]
 [&nbsp;<a href="#models"><b>models</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<a href="#center"><b>center</b></a>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#centerEachNode"><b>centerEachNode</b></a>&nbsp;&nbsp<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>shortVertexIndices</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>floatColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -1112,6 +1113,17 @@ at a specific position in the output file coordinates:
 <li><b>center true</b> (default) &ndash; at 0,0,0 (same as <b>center 0,0,0</b>)
 <li><b>center false</b> &ndash; unchanged from the current scene
 <li><b>center <i>x,y,z</i></b> (allowed for GLTF only) &ndash; at <i>x,y,z</i>
+</blockquote>
+<blockquote>
+<a name="centerEachNode"></a>
+<b>centerEachNode</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+The <b>centerEachNode</b> option indicates whether to adjust the transform
+of each node to place its geometric center (average of vertex positions) at
+(0,0,0) in its local coordinate system (default <b>true</b>).
+This does not affect the positions of the objects in the scene, only how their 
+coordinates are expressed. Centering objects in their local coordinate 
+systems makes them easier to edit in other applications such as Blender.
 </blockquote>
 <blockquote>
 <b>size</b>&nbsp;&nbsp;<i>s</i>
@@ -1236,5 +1248,5 @@ that the scene is opaque.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2024</address>
+September 2024</address>
 </body></html>

@@ -28,3 +28,4 @@ b29e6a8003f8952cb2aecaaff0d0fe10a6869a6a # Format two files in segmentations
 6ef077499b7ea8ab249388ff73b09db2413663d2 # Format core/tools.py with black
 8a7ef8e61d9234c4428457eb9d550a196f0a068f # Format core/commands/__init__.py with black
 b35a1fbe6fcfeea68085417ecc90f1a169bfca92 # Format std_commands/src/graphics.py with black
+de111cf4da7726dc5c0db48847e2f1567641672e # Change all the urls in the codebase to https

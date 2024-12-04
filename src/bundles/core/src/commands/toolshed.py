@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -31,18 +31,9 @@ _bundle_types = EnumOf(["all", "installed", "user", "available"])
 _reload_types = EnumOf(["all", "cache", "installed", "available"])
 
 
-class WheelArg(OpenFileNameArg):
-    name = "a wheel file name"
-
-    @staticmethod
-    def parse(text, session):
-        if not text:
-            raise AnnotationError("Expected %s" % WheelArg.name)
-        token, text, rest = OpenFileNameArg.parse(text, session)
-        import os
-        if os.path.splitext(token)[1] != ".whl":
-            raise AnnotationError("Expected %s" % WheelArg.name)
-        return token, text, rest
+class BundleFileNameArg(OpenFileNameArg):
+    name = "a bundle file name"
+    name_filter = "Bundle files (*.whl)"
 
 
 class BundleNameArg(StringArg):
@@ -317,7 +308,7 @@ def toolshed_install(session, bundle_names, user_only=True,
         help_viewer.reload_toolshed_tabs(session)
 
 
-toolshed_install_desc = CmdDesc(required=[("bundle_names", ListOf(Or(BundleNameArg, WheelArg)))],
+toolshed_install_desc = CmdDesc(required=[("bundle_names", ListOf(Or(BundleFileNameArg, BundleNameArg)))],
                                 optional=[("version", StringArg)],
                                 keyword=[("user_only", BoolArg),
                                          ("reinstall", BoolArg),

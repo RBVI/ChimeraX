@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -44,8 +44,8 @@ class QCxTableModel(QAbstractTableModel):
                 widget = self._item_table.indexWidget(sorted_index)
                 if not widget:
                     has_alpha = col.display_format == ItemTable.COL_FORMAT_TRANSPARENT_COLOR
-                    from .color_button import ColorButton
-                    widget = ColorButton(self._item_table, has_alpha_channel=has_alpha)
+                    from .color_button import MultiColorButton
+                    widget = MultiColorButton(self._item_table, has_alpha_channel=has_alpha)
                     widget.color_changed.connect(lambda clr, c=col, i=item: c.set_value(i, clr))
                     self._item_table.setIndexWidget(sorted_index, widget)
                 widget.color = val
@@ -120,13 +120,7 @@ class QCxTableModel(QAbstractTableModel):
 
         col = self._item_table._columns[section]
         if role is None or role == Qt.DisplayRole:
-            if not col.title_display or col.icon is not None:
-                return None
-            if self._item_table._auto_multiline_headers:
-                title = self._make_multiline(col.title)
-            else:
-                title = col.title
-            return title
+            return self._title_text(col)
 
         elif role == Qt.TextAlignmentRole:
             return self._convert_justification(col.header_justification)
@@ -154,6 +148,15 @@ class QCxTableModel(QAbstractTableModel):
                 else:
                     icon = col.icon
                 return icon
+
+        elif role == Qt.SizeHintRole:
+            # the default size hint doesn't handle multi-line titles right
+            title = self._title_text(col)
+            buffer_size = QSize(22, 8)
+            if not title:
+                return None
+            fm = self._item_table.horizontalHeader().fontMetrics()
+            return fm.size(0, title) + buffer_size
 
         return None
 
@@ -231,6 +234,15 @@ class QCxTableModel(QAbstractTableModel):
         except ValueError:
             return left_data.casefold() < right_data.casefold()
         return left_num < right_num
+
+    def _title_text(self, col):
+        if not col.title_display or col.icon is not None:
+            return None
+        if self._item_table._auto_multiline_headers:
+            title = self._make_multiline(col.title)
+        else:
+            title = col.title
+        return title
 
 class NumSortingProxyModel(QSortFilterProxyModel):
     def lessThan(self, left_index, right_index):

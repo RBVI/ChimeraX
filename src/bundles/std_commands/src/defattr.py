@@ -3,7 +3,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -286,14 +286,14 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None, summa
                 num_assignments, (recipient if num_assignments != 1 else recipient[:-1]), match_mode))
 
 def parse_attribute_name(session, attr_name, *, allowable_types=None):
-    from chimerax.atomic import Atom, Residue, Structure
+    from chimerax.atomic import Atom, Residue, Chain, Structure
     from chimerax.core.attributes import MANAGER_NAME, type_attrs
     if len(attr_name) > 1 and attr_name[1] == ':':
         attr_level = attr_name[0]
-        if attr_level not in "arm":
+        if attr_level not in "arcm":
             raise UserError("Unknown attribute level: '%s'" % attr_level)
         attr_name = attr_name[2:]
-        class_obj = {'a': Atom, 'r': Residue, 'm': Structure}[attr_level]
+        class_obj = {'a': Atom, 'r': Residue, 'c': Chain, 'm': Structure}[attr_level]
         if allowable_types:
             allowable_attrs = session.get_state_manager(MANAGER_NAME).attributes_returning(
                 class_obj, allowable_types, none_okay=True)
@@ -303,7 +303,7 @@ def parse_attribute_name(session, attr_name, *, allowable_types=None):
             raise UserError("Unknown/unregistered %s attribute %s" % (class_obj.__name__, attr_name))
     else:
         # try to find the attribute, in the order Atom->Residue->Structure
-        for class_obj, attr_level in [(Atom, 'a'), (Residue, 'r'), (Structure, 'm')]:
+        for class_obj, attr_level in [(Atom, 'a'), (Residue, 'r'), (Chain, 'c'), (Structure, 'm')]:
             if allowable_types:
                 allowable_attrs = session.get_state_manager(MANAGER_NAME).attributes_returning(
                     class_obj, allowable_types, none_okay=True)
@@ -330,8 +330,8 @@ def parse_attribute_name(session, attr_name, *, allowable_types=None):
 def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1-to-1", model_ids=None,
             selected_only=False):
     """'attr_name' is the same as for "color byattr": it can be the plain attribute name or prefixed with
-       'a:', 'r:' or 'm:' to indicate what "level" (atom, residue, model/structure) to look for the
-       attribute.  If no prefix, then look in the order a->r->m until one is found.
+       'a:', 'r:', 'c:' or 'm:' to indicate what "level" (atom, residue, model/structure) to look for the
+       attribute.  If no prefix, then look in the order a->r->c=>m until one is found.
 
        'model_ids' indicates whether the atom specifiers written should include the model component.
        'None' indicates that they should be included only if multiple structures are open.
@@ -343,7 +343,7 @@ def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1
     if attr_name is None:
         raise UserError("Must specify an attribute name to save")
 
-    from chimerax.atomic import Atom, Residue, Structure, concatenate
+    from chimerax.atomic import Atom, Residue, Chain, Structure, concatenate
     if models is None:
         structures = session.models.list(type=Structure)
     else:
@@ -351,7 +351,7 @@ def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1
 
     # gather items whose attributes will be saved
     attr_name, class_obj = parse_attribute_name(session, attr_name)
-    recipient = {Atom: 'atoms', Residue: 'residues', Structure: 'structures'}[class_obj]
+    recipient = {Atom: 'atoms', Residue: 'residues', Chain: 'chains', Structure: 'structures'}[class_obj]
     sources = []
     if selected_only:
         for s in structures:

@@ -1,0 +1,116 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-AtomicLibrary ~=14.0",
+  "ChimeraX-PDBLibrary ~=1.0",
+  "ChimeraX-Core ~=1.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-PDB"
+version = "2.7.6"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "PDB format read/write"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Atomic ~=1.0",
+  "ChimeraX-AtomicLibrary ~=14.0",
+  "ChimeraX-DataFormats ~=1.0",
+  "ChimeraX-IO ~=1.0.1",
+  "ChimeraX-OpenCommand ~=1.0",
+  "ChimeraX-PDBLibrary ~=1.0",
+  "ChimeraX-SaveCommand ~=1.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """This bundle provides the abiility to fetch and read PDB files."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Molecular structure"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[[tool.chimerax.provider."data formats"]]
+name = "PDB"
+category = "Molecular structure"
+suffixes = ".pdb,.pdb1,.ent,.pqr"
+default-for = ".pdb"
+mime-types = "chemical/x-pdb,chemical/x-spdbv"
+encoding = "utf-8"
+reference-url = "http://www.wwpdb.org/documentation/file-format"
+
+[[tool.chimerax.provider."open command"]]
+name = "PDB"
+
+[[tool.chimerax.provider."open command"]]
+name = "pdb"
+type = "fetch"
+format-name = "pdb"
+is-default = false
+
+[[tool.chimerax.provider."open command"]]
+name = "pdbe"
+type = "fetch"
+format-name = "pdb"
+is-default = false
+
+[[tool.chimerax.provider."open command"]]
+name = "pdbj"
+type = "fetch"
+format-name = "pdb"
+is-default = false
+
+[[tool.chimerax.provider."open command"]]
+name = "redo"
+type = "fetch"
+format-name = "pdb"
+is-default = false
+
+[[tool.chimerax.provider."save command"]]
+name = "PDB"
+compression-okay = false
+
+[tool.chimerax.extension._pdbio]
+sources = [
+  "pdbio_cpp/PDBio.cpp",
+]
+include-dirs = [
+  "pdb_cpp/include",
+  "src/include",
+]
+library-dirs = [
+  "pdb_cpp/lib",
+  "src/lib",
+]
+libraries = [
+  "atomstruct",
+  "element",
+  "pyinstance",
+  "logger",
+  "pdb",
+  "pdbconnect",
+  "arrays",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.core",
+]
+

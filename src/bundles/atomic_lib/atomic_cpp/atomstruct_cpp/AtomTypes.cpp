@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -1930,21 +1930,19 @@ t0 = t1;
                 a->set_computed_idatm_type("N3+");
             
         } else if (a->idatm_type() == "C2") {
-            int num_Npls = 0;
+            std::vector<Atom*> Ng_plus_candidates;
             for (auto bondee: a->neighbors()) {
-                if ((bondee->idatm_type() == "Npl"
+                if (((bondee->idatm_type() == "Npl"
+                || (bondee->element() == Element::N && bondee->neighbors().size() == 1))
                 && untyped_set.find(bondee) != untyped_set.end())
                 || bondee->idatm_type() == "Ng+")
-                    // Ng+ possible through template
-                    // typing
-                    num_Npls++;
+                    // Ng+ possible through template typing
+                    Ng_plus_candidates.push_back(bondee);
             }
 
             bool noplus = false;
-            if (num_Npls >= 2) {
-                for (auto bondee: a->neighbors()) {
-                    if (bondee->idatm_type() != "Npl")
-                        continue;
+            if (Ng_plus_candidates.size() >= 2) {
+                for (auto bondee: Ng_plus_candidates) {
                     if (untyped_set.find(bondee) == untyped_set.end())
                         continue;
                     
@@ -1957,7 +1955,7 @@ t0 = t1;
                 }
             }
             if (noplus) {
-                for (auto bondee: a->neighbors()) {
+                for (auto bondee: Ng_plus_candidates) {
                     if (untyped_set.find(bondee) == untyped_set.end())
                         continue;
                     if (bondee->idatm_type() == "Ng+")

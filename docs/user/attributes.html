@@ -152,12 +152,12 @@ see also <a href="#alt_loc"><b>alt_loc</b></a></td>
 </tr><tr>
 <td align=center><b>num_bonds=</b><i>N</i></td>
 <td class="text"><i>N</i> is the total number of atoms bonded to the atom,
-including those linked by missing-segment 
+not including those linked by missing-segment 
 <a href="pseudobonds.html">pseudobonds</a></td>
 </tr><tr>
 <td align=center><b>num_explicit_bonds=</b><i>N</i></td>
 <td class="text"><i>N</i> is the total number of atoms bonded to the atom,
-not including those linked by missing-segment 
+including those linked by missing-segment 
 <a href="pseudobonds.html">pseudobonds</a></td>
 </tr><tr>
 <td align=center><b>occupancy=</b><i>occupancy</i></td>
@@ -272,6 +272,15 @@ value in the
 the alignment must contain at least two sequences
 </td>
 </tr><tr>
+<td align=center><b>seq_identity=</b><i>identity</i></td>
+<td class="text">
+<i>identity</i> is the percentage of a column in the
+<a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+that contains the most common nongap character in that column; 
+it does not depend on the type of the
+<a href="tools/sequenceviewer.html#association">associated</a> residue
+</td>
+</tr><tr>
 <td align=center><b>seq_rmsd=</b><i>rmsd</i></td>
 <td class="text">
 <i>rmsd</i> is the
@@ -319,6 +328,20 @@ also applies to nonpolymeric residues)</td>
 <td width="150px" align=center><b>characters=</b><i>sequence</i></td>
 <td class="text"><i>sequence</i> is the entire sequence of the polymer
 chain, in one-letter residue codes</td>
+</tr><tr>
+<td width="150px" align=center><b>description=</b>"<i>chain info</i>"</td>
+<td class="text"><i>chain info</i> is the descriptive text shown in the
+<a href="window.html">status line</a> upon mouseover of the
+chain in the graphics window; this information can also be shown 
+with <a href="commands/log.html#chains"><b>log chains</b></a></td>
+</tr><tr>
+<td width="150px" align=center><b>num_residues=</b><i>N</i></td>
+<td class="text"><i>N</i> is the number of residues in the chain according
+to PDB SEQRES records or the mmCIF equivalent</td>
+</tr><tr>
+<td width="150px" align=center><b>num_existing_residues=</b><i>M</i></td>
+<td class="text"><i>M</i> is the number of residues in the chain
+that have atomic coordinates</td>
 </tr><tr>
 <td width="150px" align=center><b>polymer_type=</b><i>type</i></td>
 <td class="text"><i>type</i> is 1 for protein, 2 for nucleic acid</td>
@@ -389,5 +412,5 @@ from the <a href="https://www.wwpdb.org" target="_blank">wwPDB</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2024</address>
+December 2024</address>
 </body></html>

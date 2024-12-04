@@ -6,7 +6,7 @@
     All rights reserved.  This software provided pursuant to a
     license agreement containing restrictions on its disclosure,
     duplication and use.  For details see:
-    http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+    https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
     This notice must be embedded in or attached to all copies,
     including partial copies, of the software or any revisions
     or derivations thereof.
@@ -41,7 +41,7 @@ Source Code Organization
 
 The source code for this example may be downloaded
 as a `zip-format file
-<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial.zip?name=hello_world>`_
+<https://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial.zip?name=hello_world>`_
 containing a folder named `hello_world`.
 Alternatively, one can start with an empty folder
 and create source files based on the samples below.
@@ -114,6 +114,11 @@ in the ``version`` attribute of the ``Dependency`` tag for
 additional bundle that must be installed.  During installation
 for this bundle, if any of the bundles listed in ``Dependency``
 tags are missing, they are automatically installed as well.
+
+A ``Dependency`` tag can also list non-ChimeraX PyPi packages 
+needed by the bundle, such as *pandas* or *pytorch*, along with
+required version numbers, and such packages will be installed 
+with the bundle.
 
 Finally, there are ``Classifier`` tags, of which there are two
 flavors: Python and ChimeraX.  Values for Python classifiers

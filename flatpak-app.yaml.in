@@ -47,7 +47,7 @@ modules:
     buildsystem: simple
     sources:
       - type: git
-        url: ssh://git@github.com/RBVI/ChimeraX.git
+        url: https://github.com/RBVI/ChimeraX.git
         branch: BRANCH
         commit: COMMIT
     build-commands:

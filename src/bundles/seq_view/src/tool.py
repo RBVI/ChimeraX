@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -437,7 +437,8 @@ class SequenceViewer(ToolInstance):
             # opened along with MAV a chance to load
             parent.after_idle(lambda: self._loadStructures(auto=1))
         """
-        self.tool_window.manage('side')
+        from Qt.QtCore import Qt
+        self.tool_window.manage('side', allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas)
 
     @property
     def active_region(self):
@@ -575,9 +576,15 @@ class SequenceViewer(ToolInstance):
         if len(self.alignment.seqs) > 1:
             expand_action = QAction("Expand Selection to Columns", structure_menu)
             expand_action.triggered.connect(self.expand_selection_to_columns)
-            from chimerax.atomic import AtomicStructure
             expand_action.setEnabled(bool(self.alignment.associations))
             structure_menu.addAction(expand_action)
+            cons_sel_menu = structure_menu.addMenu("Select by Column Identity")
+            cons_sel_menu.setEnabled(bool(self.alignment.associations))
+            for entry_text, value in [("100%", 100.0), ("<100%", -100.0), (">=50%", 50.0), ("<50%", -50.0)]:
+                action = QAction(entry_text, cons_sel_menu)
+                action.triggered.connect(lambda act, *args, func=self.select_by_column_identity, val=value:
+                    func(val))
+                cons_sel_menu.addAction(action)
         xfer_action = QAction("Update Chain Sequence...", structure_menu)
         xfer_action.triggered.connect(self.show_transfer_seq_dialog)
         xfer_action.setEnabled(bool(self.alignment.associations))
@@ -761,6 +768,21 @@ class SequenceViewer(ToolInstance):
             rt_window.fill_context_menu = self.fill_context_menu
             rt_window.manage(None)
         self._regions_tool.shown = shown
+
+    def select_by_column_identity(self, col_percent):
+        """Select residues associated with columns that match the criteria, which is a percentage value.
+           Positive values mean greater than or equal to, and negative values mean less than.
+        """
+        from chimerax.core.commands import StringArg, run
+        log = len(self.session.alignments) > 1
+        run(self.session, "seq refreshAttrs " + StringArg.unparse(self.alignment.ident), log=log)
+        if col_percent < 0.0:
+            criteria = "<%g" % -col_percent
+        else:
+            criteria = ">=%g" % col_percent
+        from chimerax.atomic import concise_residue_spec
+        spec = concise_residue_spec(self.session, self.alignment.associated_residues())
+        run(self.session, "select ::%s%s & %s" % (self.alignment.COL_IDENTITY_ATTR, criteria, spec))
 
     def show_associations(self):
         if not hasattr(self, "associations_tool"):

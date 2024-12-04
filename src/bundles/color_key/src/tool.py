@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -222,7 +222,16 @@ class ColorKeyTool(ToolInstance):
             else:
                 new_mode = 'none'
             self._self_mm_change = True
-            run(self.session, "ui mousemode %s %s" % (button, StringArg.unparse(new_mode)))
+            cmd = "ui mousemode %s %s" % (button, StringArg.unparse(new_mode))
+            if self.session.restore_options:
+                # delay running command until end of restore [#16296]
+                def reset_mousemode(trig_name, session, *, cmd=cmd):
+                    run(session, cmd)
+                    from chimerax.core.triggerset import DEREGISTER
+                    return DEREGISTER
+                self.session.triggers.add_handler("end restore session", reset_mousemode)
+            else:
+                run(self.session, cmd)
             self._self_mm_change = False
         for handler in self.handlers:
             handler.remove()

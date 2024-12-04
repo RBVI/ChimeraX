@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -160,6 +160,12 @@ class Log(ToolInstance, HtmlLog):
                 menu.addAction("Select All", lambda:
                     log_window.page().triggerAction(log_window.page().SelectAll))
                 from Qt.QtGui import QAction
+                show_action = QAction("Raise Log When Logging Occurs", menu)
+                show_action.setCheckable(True)
+                show_action.setChecked(self.tool_instance.settings.show_if_new_content)
+                show_action.triggered.connect(lambda checked, settings=self.tool_instance.settings:
+                    setattr(settings, 'show_if_new_content', checked))
+                menu.addAction(show_action)
                 link_action = QAction("Executable Command Links", menu)
                 link_action.setCheckable(True)
                 link_action.setChecked(self.tool_instance.settings.exec_cmd_links)
@@ -353,7 +359,8 @@ class Log(ToolInstance, HtmlLog):
             else:
                 # If we're not raising a dialog, at least try to bring the Log to the front
                 # if it is somehow obscured
-                self.tool_window.shown = True
+                if settings.show_if_new_content:
+                    self.tool_window.shown = True
 
             if not is_html:
                 from html import escape
@@ -521,6 +528,8 @@ class Log(ToolInstance, HtmlLog):
             date = "unknown"
         from lxml import html
         contents = log_data['contents']
+        if not contents:
+            contents = '<html></html>'
         tmp = html.fromstring(contents)
         script_elements = tmp.findall(".//script")
         if script_elements:

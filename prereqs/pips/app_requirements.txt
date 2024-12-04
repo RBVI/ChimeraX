@@ -11,7 +11,7 @@ beautifulsoup4==4.12.3
 build==1.2.1
 colorama==0.4.6
 Cython==3.0.10 ; platform_machine != 'arm64'
-filelock==3.13.4
+filelock==3.15.4
 # grako==3.16.5 # See the Makefile; need patched Grako for 3.11
 html2text==2024.2.26
 ihm==1.3
@@ -23,22 +23,23 @@ ipython==8.26.0
 # the version of jedi that works with ipython
 jedi==0.19.1
 jupyter-client==8.6.2
-line_profiler==4.1.2
-lxml==5.2.1
+line_profiler==4.1.3
+lxml==5.2.2
 lz4==4.3.3
-matplotlib==3.9.1
+matplotlib==3.9.2
 msgpack==1.0.8
 nibabel == 5.2.0
 netCDF4==1.6.5
 networkx==3.3
 numpy==1.26.4
 openvr==1.26.701
+packaging==23.2
 # as per Tristan's request in ticket #3055
 ParmEd==4.2.2
 pep517==0.13.1
 Pillow==10.4.0
-pkginfo==1.10.0
-psutil==5.9.8
+pkginfo==1.11.1
+psutil==6.0.0
 pycollada==0.8
 pydicom==2.4.4
 pynrrd==1.0.0
@@ -57,27 +58,27 @@ six==1.16.0
 sortedcontainers==2.4.0
 # Used by the DICOM bundle for a double-ended QSlider
 superqt==0.6.3
-tables==3.8.0 ; platform_machine != 'arm64'
+tables==3.10.1
 tifffile==2024.7.24
 # tinyarray==1.2.4 # 3.11 requires getting this from Plato
-webcolors==1.13
+webcolors==24.6.0
 wheel-filename==1.4.1
 #
 # Documentation
 #
 blockdiag==3.0.0
-docutils==0.20.1
+docutils==0.21.2
 Jinja2==3.1.4
-Pygments==2.17.2
-Sphinx==7.2.6
+Pygments==2.18.0
+Sphinx==8.0.2
 sphinxcontrib-blockdiag==3.0.0
-sphinx_autodoc_typehints==2.0.1
+sphinx_autodoc_typehints==2.2.3
 #
 # Windows
 #
 pywin32==306; sys_platform == 'win32'
 WMI==1.5.1; sys_platform == 'win32'
-comtypes==1.4.1; sys_platform == 'win32'
+comtypes==1.4.5; sys_platform == 'win32'
 #
 # Linux
 #
@@ -85,4 +86,4 @@ distro==1.9.0; sys_platform == 'linux'
 #
 # Indirect dependencies listed here to pin the version number
 #
-traitlets==5.14.2
+traitlets==5.14.3

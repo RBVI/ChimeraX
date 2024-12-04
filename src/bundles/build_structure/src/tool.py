@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -48,7 +48,7 @@ class BuildStructureTool(ToolInstance):
                 msg_box.setWindowTitle("Confirm Close")
                 msg_box.setText(f"There are active {text}")
                 msg_box.setInformativeText(f"Closing Build Structure will deactivate these {text}"
-                    " md forget their orignal values.\nReally close?" )
+                    " and forget their original values.\nReally close?" )
                 msg_box.setStandardButtons(QMessageBox.No | QMessageBox.Yes)
                 msg_box.setDefaultButton(QMessageBox.Yes)
                 cb = QCheckBox("Don't ask in the future")

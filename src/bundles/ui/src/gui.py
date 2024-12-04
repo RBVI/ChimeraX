@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -28,6 +28,7 @@ in a thread-safe manner.  The UI instance is accessed as session.ui.
 
 from Qt.QtWidgets import QApplication
 from chimerax.core.logger import PlainTextLog
+import site
 import sys
 from contextlib import contextmanager
 from chimerax.core.colors import scheme_color, set_default_color_scheme
@@ -108,6 +109,11 @@ class UI(QApplication):
         from Qt import qt_have_web_engine
         if qt_have_web_engine():
             import Qt.QtWebEngineWidgets
+
+        # make sure that validated input fields (QValidator) generate numbers
+        # Python's float will accept [#16374]...
+        from Qt.QtCore import QLocale
+        QLocale.setDefault(QLocale.c())
 
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
@@ -2105,6 +2111,13 @@ def _find_child_menu(w, name):
 def _open_dropped_file(session, path):
     if not path:
         return
+    # Ignore debugpy passing the path to itself to ChimeraX when debugging. This is for some reason
+    # not caught in __main__
+    if any(
+        path == spp + "/debugpy/launcher/../../debugpy"
+        for spp in site.getsitepackages()
+    ):
+        return
     from chimerax.core.commands import run, FileNameArg
     run(session, 'open %s' % FileNameArg.unparse(path))
 
@@ -2210,7 +2223,8 @@ class ToolWindow(StatusLogger):
         dock_area_value(Qt.DockWidgetArea.TopDockWidgetArea): "top",
         dock_area_value(Qt.DockWidgetArea.BottomDockWidgetArea): "bottom"
     }
-    def manage(self, placement = None, fixed_size=False, allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas,
+    def manage(self, placement = None, fixed_size=False,
+            allowed_areas=Qt.DockWidgetArea.RightDockWidgetArea|Qt.DockWidgetArea.LeftDockWidgetArea,
             initially_hidden=False):
         """Supported API. Show this tool window in the interface
 
@@ -2238,6 +2252,7 @@ class ToolWindow(StatusLogger):
             if tool_name not in settings.undockable:
                 settings.undockable = settings.undockable + [tool_name]
         from Qt.QtCore import Qt
+        self.default_allowed_areas = allowed_areas
         if tool_name in settings.undockable:
             allowed_areas = Qt.DockWidgetArea.NoDockWidgetArea
         geometry = None
@@ -2554,7 +2569,7 @@ class _Qt:
     @dockable.setter
     def dockable(self, dockable):
         from Qt.QtCore import Qt
-        areas = Qt.DockWidgetArea.AllDockWidgetAreas if dockable else Qt.DockWidgetArea.NoDockWidgetArea
+        areas = self.tool_window.default_allowed_areas if dockable else Qt.DockWidgetArea.NoDockWidgetArea
         self.dock_widget.setAllowedAreas(areas)
         if not dockable and not self.dock_widget.isFloating():
             self.dock_widget.setFloating(True)
@@ -2675,6 +2690,7 @@ class _Qt:
             self.dock_widget.show()
             #ensure it's on top
             self.dock_widget.raise_()
+            self.dock_widget.activateWindow()
         else:
             self.dock_widget.hide()
 

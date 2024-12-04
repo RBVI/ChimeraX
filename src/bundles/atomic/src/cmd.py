@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -31,7 +31,8 @@ def log_chains(session, structures=None):
     for s in structures:
         s._report_chain_descriptions(session)
 
-def combine_cmd(session, structures, *, close=False, model_id=None, name=None, retain_ids=False):
+def combine_cmd(session, structures, *, close=False, model_id=None, name=None, retain_ids=False,
+        add_to_session=True):
 
     if structures is None:
         from chimerax.atomic import AtomicStructure
@@ -166,10 +167,11 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None, r
         session.models.close(list(closures))
     if model_id is not None:
         combination.id = model_id
-    session.models.add([combination])
+    if add_to_session:
+        session.models.add([combination])
     return combination
 
-def label_missing_cmd(session, structures, show):
+def label_missing_cmd(session, structures, max_chains):
     from . import all_atomic_structures, Pseudobonds
     lm_group_name = 'missing-structure length labels'
     if structures is None:
@@ -183,6 +185,7 @@ def label_missing_cmd(session, structures, show):
             pbg = structure.pbg_map[structure.PBG_MISSING_STRUCTURE]
         except KeyError:
             continue
+        show = structure.num_chains <= max_chains
         if show:
             for pb in pbg.pseudobonds:
                 a1, a2 = pb.atoms
@@ -216,7 +219,8 @@ def pbond_cmd(session, atoms, *, color=BuiltinColors["slate gray"], current_coor
         if current_coordset_only:
             raise UserError("Cannot create per-coordset pseudobonds for global pseudobond groups")
         pbg = session.pb_manager.get_group(name, create=True)
-        session.models.add([pbg])
+        if pbg.id is None:
+            session.models.add([pbg])
     else:
         try:
             pbg = a1.structure.pseudobond_group(name,
@@ -256,17 +260,18 @@ def xpbond_cmd(session, atoms, *, global_=False, name="custom"):
     if global_ or a1.structure != a2.structure:
         pbg = session.pb_manager.get_group(name, create=False)
         if not pbg:
-            raise UserError("Cannot find global psudobond group named '%s'" % name)
+            raise UserError("Cannot find global pseudobond group named '%s'" % name)
     else:
         pbg = a1.structure.pseudobond_group(name, create_type=None)
         if not pbg:
-            raise UserError("Cannot find psudobond group named '%s' for structure %s" % (name, a1.structure))
-    for pb in pbg.pseudobonds:
+            raise UserError("Cannot find pseudobond group named '%s' for structure %s"
+                % (name, a1.structure))
+    for pb in pbg.pseudobonds[:]:
         if a1 in pb.atoms and a2 in pb.atoms:
             pbg.delete_pseudobond(pb)
             if pbg.num_pseudobonds == 0:
                 session.models.close([pbg])
-            break
+                break
     else:
         raise UserError("No pseudobond between %s and %s found for %s" % (a1, a2, pbg))
 
@@ -322,7 +327,7 @@ def register_command(logger):
     label_missing_desc = CmdDesc(
         required=[
             ('structures', Or(AtomicStructuresArg,EmptyArg)),
-            ('show', BoolArg),
+            ('max_chains', NonNegativeIntArg),
         ],
         synopsis = 'Show/hide missing-structure pseudobond labels')
     register('label missing', label_missing_desc, label_missing_cmd, logger=logger)

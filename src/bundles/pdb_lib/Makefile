@@ -11,5 +11,5 @@ CLEAN_ALWAYS =	src/lib src/include src/*.$(PYMOD_EXT) \
 wheel install app-install:	$(CSRCS)
 
 connect_cpp/imex.h:
-	sed -e 's/LIBNAME/PDB_CONNECT/' < $(TOP)/prereqs/imex/imex.i > $@
+	sed -e 's/LIBNAME/PDB_CONNECT/' < $(TOP)/prereqs/imex/imex.i > $@ || (rm $@ ; exit 1)
 

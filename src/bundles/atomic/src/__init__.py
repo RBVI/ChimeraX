@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -153,10 +153,28 @@ class _AtomicBundleAPI(BundleAPI):
             from .inspectors import item_options
             return item_options(session, name, **kw)
         else:
-            class_obj = {'atoms': Atom, 'residues': Residue, 'structures': Structure }[name]
+            class_obj = {'atoms': Atom, 'residues': Residue, 'chains': Chain, 'structures': Structure }[name]
             from chimerax.render_by_attr import RenderAttrInfo
             class Info(RenderAttrInfo):
                 _class_obj = class_obj
+                monitorings = set()
+                handler = None
+
+                def attr_change_notify(self, attr_name, callback, *, prefix=name[:-1]):
+                    if callback is None:
+                        self.monitorings.discard(attr_name)
+                        if not self.monitorings and self.handler:
+                            self.handler.remove()
+                            self.handler = None
+                    else:
+                        self.monitorings.add(attr_name)
+                        if not self.handler:
+                            def handler(trig_name, changes, *, attr_name=attr_name, prefix=prefix,
+                                    callback=callback):
+                                if attr_name + " changed" in getattr(changes, prefix + "_reasons")():
+                                    callback()
+                            from .triggers import get_triggers
+                            self.handler = get_triggers().add_handler('changes', handler)
 
                 @property
                 def class_object(self):
@@ -169,17 +187,23 @@ class _AtomicBundleAPI(BundleAPI):
                     return False
 
                 def hide_attr(self, attr_name, rendering):
-                    if not rendering and self.class_object == Atom and attr_name in [
-                            'is_side_connector', 'num_bonds',
-                            'num_explicit_bonds', 'selected', 'visible']:
-                        return True
+                    if rendering:
+                        if self.class_object == Chain and attr_name.startswith('num') \
+                        and attr_name.endswith('residues'):
+                            return False
+                        if self.class_object == Chain and attr_name == 'polymer_type':
+                            return True
+                    else:
+                        if self.class_object == Atom and attr_name in ['is_side_connector', 'num_bonds',
+                                'num_explicit_bonds', 'selected', 'visible']:
+                            return True
                     return super().hide_attr(attr_name, rendering)
 
                 def model_filter(self, model):
                     return isinstance(model, Structure)
 
                 def render(self, session, attr_name, models, method, params, sel_only):
-                    prefix = { Atom: 'a', Residue: 'r', Structure: 'm' }[self.class_object]
+                    prefix = { Atom: 'a', Residue: 'r', Chain: 'c', Structure: 'm' }[self.class_object]
                     from chimerax.core.commands import run, concise_model_spec, StringArg
                     spec = concise_model_spec(session, models)
                     if sel_only:
@@ -235,7 +259,7 @@ class _AtomicBundleAPI(BundleAPI):
                             run(session, "~worm %s" % spec)
 
                 def select(self, session, attr_name, models, discrete, params):
-                    prefix = { Atom: '@@', Residue: '::', Structure: '##' }[self.class_object]
+                    prefix = { Atom: '@@', Residue: '::', Chain: '//', Structure: '##' }[self.class_object]
                     from chimerax.core.commands import run, concise_model_spec, StringArg, BoolArg, FloatArg
                     spec = concise_model_spec(session, models)
                     if spec and self.class_object == Structure:
@@ -265,6 +289,8 @@ class _AtomicBundleAPI(BundleAPI):
                         collections = [m.atoms for m in models]
                     elif self._class_obj == Residue:
                         collections = [m.residues for m in models]
+                    elif self._class_obj == Chain:
+                        collections = [m.chains for m in models]
                     else:
                         collections = [Structures(models)]
                     from chimerax.core.commands import plural_of

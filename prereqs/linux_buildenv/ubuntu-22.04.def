@@ -16,7 +16,7 @@ Ubuntu 22.04 containter that can build ChimeraX
 	language-selector-common ffmpeg vim-nox \
 	build-essential g++ gfortran gfortran-9 \
 	tcsh cmake bc \
-	chrpath patch openssh-client rsync ca-certificates \
+	patchelf patch openssh-client rsync ca-certificates \
 	make autoconf automake libtool pkg-config \
 	flex bison yasm unzip tar fakeroot curl wget \
 	python3 python-is-python3 \

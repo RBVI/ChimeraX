@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -182,6 +182,9 @@ def _cylinder_divisions(radius, height, divisions):
     nc = max(3, int(ceil(divisions)))
     nz = max(2, int(ceil(nc * height / (sqrt(3)*pi*radius))))
     return nz, nc
+# Make above function publicly accessible, since it's frequently needed to
+# compute the input parameters for the next function
+cylinder_divisions = _cylinder_divisions
 
 # -----------------------------------------------------------------------------
 #

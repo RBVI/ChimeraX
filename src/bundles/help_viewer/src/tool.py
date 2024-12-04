@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -54,6 +54,11 @@ class _HelpWebView(ChimeraXHtmlView):
     def __init__(self, session, tool, profile):
         super().__init__(session, tool.tabs, size_hint=(840, 800), profile=profile)
         self.help_tool = tool
+        from Qt.QtWebEngineCore import QWebEngineSettings
+        settings = self.settings()
+        settings.setAttribute(QWebEngineSettings.PluginsEnabled, True)
+        settings.setAttribute(QWebEngineSettings.PdfViewerEnabled, True)
+
 
     def createWindow(self, win_type):  # noqa
         # win_type is window, tab, dialog, backgroundtab

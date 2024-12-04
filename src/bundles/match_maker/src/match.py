@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -83,7 +83,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
             gap_open_strand=-gap_open_strand,
             gap_open_other=-gap_open_other)
         gapped_ref, gapped_match = seqs
-    elif algorithm =="sw":
+    elif algorithm == "sw":
         def ss_let(r):
             if not r:
                 return ' '
@@ -554,10 +554,21 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                     if hasattr(s, '_dm_rebuild_info'):
                         residues = s.residues
                         characters = list(s.characters)
+                        if alg == 'sw':
+                            for i, r in enumerate(residues):
+                                if r:
+                                    offset = r.chain.residues.index(r) - i
+                                    break
+                        else:
+                            offset = 0
                         for i, c, r in s._dm_rebuild_info:
-                            g = s.ungapped_to_gapped(i)
+                            if i < offset:
+                                continue
+                            if i - offset >= len(s):
+                                break
+                            g = s.ungapped_to_gapped(i-offset)
                             characters[g] = c
-                            residues[i] = r
+                            residues[i-offset] = r
                             skip.add(r)
                         s.bulk_set(residues, characters)
                 with show_context():

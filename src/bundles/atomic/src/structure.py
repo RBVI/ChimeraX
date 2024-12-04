@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -337,9 +337,9 @@ class Structure(Model, StructureData):
             if pbg.name == self.PBG_MISSING_STRUCTURE and self.session.main_view.render is not None:
                 # Can't add labels if no renderer
                 from .settings import settings, label_missing_attr
-                if getattr(settings, label_missing_attr):
+                if self.num_chains <= getattr(settings, label_missing_attr):
                    from .cmd import label_missing_cmd
-                   label_missing_cmd(self.session, [self], True)
+                   label_missing_cmd(self.session, [self], self.num_chains)
         self._create_ribbon_graphics()
 
     @property
@@ -2641,10 +2641,10 @@ def _register_hover_trigger(session):
 
 # custom Chain attrs should be registered in the StructureSeq base class
 from chimerax.core.attributes import register_class
-from .molobject import python_instances_of_class, Atom, Bond, CoordSet, Pseudobond, PseudobondManager, \
-    Residue, Sequence, StructureSeq
+from .molobject import python_instances_of_class, Atom, Bond, CoordSet, Pseudobond, \
+    PseudobondManager, Residue, Sequence, StructureSeq, Chain
 from .pbgroup import PseudobondGroup
 for reg_class in [ Atom, Structure, Bond, CoordSet, Pseudobond, PseudobondGroup, PseudobondManager,
-        Residue, Sequence, StructureSeq ]:
+        Residue, Sequence, StructureSeq, Chain ]:
     register_class(reg_class, lambda *args, cls=reg_class: python_instances_of_class(cls),
         {attr_name: types for attr_name, types in getattr(reg_class, '_attr_reg_info', [])})

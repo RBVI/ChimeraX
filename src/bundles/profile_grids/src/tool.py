@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -70,21 +70,9 @@ class ProfileGridsTool(ToolInstance):
         alignment = self.alignment
         if note_name == alignment.NOTE_DESTROYED:
             self.delete()
+            return
         '''
         if note_name == alignment.NOTE_MOD_ASSOC:
-            assoc_aseqs = set()
-            if note_data[0] != alignment.NOTE_DEL_ASSOC:
-                match_maps = note_data[1]
-            else:
-                match_maps = [note_data[1]['match map']]
-            for match_map in match_maps:
-                aseq = match_map.align_seq
-                assoc_aseqs.add(aseq)
-            for aseq in assoc_aseqs:
-                self.grid_canvas.assoc_mod(aseq)
-                self._update_errors_gaps(aseq)
-            if self.alignment.intrinsic:
-                self.show_ss(True)
             if hasattr(self, 'associations_tool'):
                 self.associations_tool._assoc_mod(note_data)
         elif note_name == alignment.NOTE_PRE_DEL_SEQS:
