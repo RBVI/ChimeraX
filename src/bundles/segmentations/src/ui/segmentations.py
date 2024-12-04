@@ -58,7 +58,7 @@ from chimerax.ui.options import (
 from chimerax.ui.widgets import ModelMenu
 from chimerax.ui.icons import get_qt_icon
 
-from ..ui.orthoplanes import Axis
+from ..types import Axis
 from ..graphics.cylinder import SegmentationDisk
 from ..graphics.sphere import SegmentationSphere
 from ..dicom_segmentations import PlanePuckSegmentation, SphericalSegmentation
