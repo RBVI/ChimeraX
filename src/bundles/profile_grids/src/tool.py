@@ -67,26 +67,12 @@ class ProfileGridsTool(ToolInstance):
         self.tool_window.manage('side')
 
     def alignment_notification(self, note_name, note_data):
-        import sys
-        print("tool notification", note_name, file=sys.__stderr__)
         alignment = self.alignment
         if note_name == alignment.NOTE_DESTROYED:
             self.delete()
+            return
         '''
         if note_name == alignment.NOTE_MOD_ASSOC:
-            assoc_aseqs = set()
-            if note_data[0] != alignment.NOTE_DEL_ASSOC:
-                match_maps = note_data[1]
-            else:
-                match_maps = [note_data[1]['match map']]
-            for match_map in match_maps:
-                aseq = match_map.align_seq
-                assoc_aseqs.add(aseq)
-            for aseq in assoc_aseqs:
-                self.grid_canvas.assoc_mod(aseq)
-                self._update_errors_gaps(aseq)
-            if self.alignment.intrinsic:
-                self.show_ss(True)
             if hasattr(self, 'associations_tool'):
                 self.associations_tool._assoc_mod(note_data)
         elif note_name == alignment.NOTE_PRE_DEL_SEQS:

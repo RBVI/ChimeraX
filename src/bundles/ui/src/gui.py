@@ -110,6 +110,11 @@ class UI(QApplication):
         if qt_have_web_engine():
             import Qt.QtWebEngineWidgets
 
+        # make sure that validated input fields (QValidator) generate numbers
+        # Python's float will accept [#16374]...
+        from Qt.QtCore import QLocale
+        QLocale.setDefault(QLocale.c())
+
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
         import sys

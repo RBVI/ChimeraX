@@ -203,9 +203,10 @@ class BugReporter(ToolInstance):
     def hide(self):
         self.tool_window.shown = False
 
-    def set_description(self, text):
+    def set_description(self, text, minimum_height = None):
         self.description.setText(text)
-        self.description.selectAll()
+        if minimum_height is not None:
+            self.description.setMinimumHeight(minimum_height)
 
     def submit(self):
 
