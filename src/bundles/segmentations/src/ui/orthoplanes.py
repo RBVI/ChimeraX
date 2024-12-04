@@ -53,10 +53,9 @@ from chimerax.segmentations.triggers import (
     SEGMENTATION_REMOVED,
     SEGMENTATION_ADDED,
     SEGMENTATION_MODIFIED,
-    ENTER_EVENTS,
-    LEAVE_EVENTS,
     GUIDELINES_VISIBILITY_CHANGED,
 )
+from chimerax.segmentations.triggers import Trigger
 
 from ..graphics import (
     OrthoplaneView,
@@ -1090,16 +1089,15 @@ class PlaneViewer(QWindow):
         self.segmentation_cursor_overlay.display = False
 
     def enterEvent(self):
-        chimerax.segmentations.triggers.activate_trigger(ENTER_EVENTS[self.axis])
+        chimerax.segmentations.triggers.activate_trigger(Trigger.PlaneViewerEnter, self.axis)
         if self.segmentation_tool:
             self.enableSegmentationOverlays()
             self.resize3DSegmentationCursor()
         self.render()
 
     def leaveEvent(self):
-        chimerax.segmentations.triggers.activate_trigger(LEAVE_EVENTS[self.axis])
-        if self.segmentation_tool:
-            self.disableSegmentationOverlays()
+        chimerax.segmentations.triggers.activate_trigger(Trigger.PlaneViewerLeave, self.axis)
+        self.disableSegmentationOverlays()
         self.level_label.hide()
         self.mouse_move_timer.stop()
         self.render()

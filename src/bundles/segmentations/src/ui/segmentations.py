@@ -606,23 +606,11 @@ class SegmentationTool(ToolInstance):
         # overlays to views when the layout changes
         self.previous_layout = None
         self.current_layout = self.settings.default_view
-        self.axial_enter_handler = chimerax.segmentations.triggers.add_handler(
-            ENTER_EVENTS[Axis.AXIAL], self._on_axial_plane_viewer_enter_event
+        self.plane_viewer_enter_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.PlaneViewerEnter, self._on_plane_viewer_enter_event
         )
-        self.coronal_enter_handler = chimerax.segmentations.triggers.add_handler(
-            ENTER_EVENTS[Axis.CORONAL], self._on_coronal_plane_viewer_enter_event
-        )
-        self.sagittal_enter_handler = chimerax.segmentations.triggers.add_handler(
-            ENTER_EVENTS[Axis.SAGITTAL], self._on_sagittal_plane_viewer_enter_event
-        )
-        self.axial_leave_handler = chimerax.segmentations.triggers.add_handler(
-            LEAVE_EVENTS[Axis.AXIAL], self._on_axial_plane_viewer_leave_event
-        )
-        self.coronal_leave_handler = chimerax.segmentations.triggers.add_handler(
-            LEAVE_EVENTS[Axis.CORONAL], self._on_coronal_plane_viewer_leave_event
-        )
-        self.sagittal_leave_handler = chimerax.segmentations.triggers.add_handler(
-            LEAVE_EVENTS[Axis.SAGITTAL], self._on_sagittal_plane_viewer_leave_event
+        self.plane_viewer_leave_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.PlaneViewerLeave, self._on_plane_viewer_leave_event
         )
         self.view_layout_changed_handler = chimerax.segmentations.triggers.add_handler(
             Trigger.ViewLayoutChanged, self._on_view_changed_trigger
@@ -661,23 +649,11 @@ class SegmentationTool(ToolInstance):
         self.tool_window.fill_context_menu = self.fill_context_menu
         self._surface_chosen()
 
-    def _on_axial_plane_viewer_enter_event(self, *_):
-        self.make_puck_visible(Axis.AXIAL)
+    def _on_plane_viewer_enter_event(self, _, axis):
+        self.make_puck_visible(axis)
 
-    def _on_coronal_plane_viewer_enter_event(self, *_):
-        self.make_puck_visible(Axis.CORONAL)
-
-    def _on_sagittal_plane_viewer_enter_event(self, *_):
-        self.make_puck_visible(Axis.SAGITTAL)
-
-    def _on_axial_plane_viewer_leave_event(self, *_):
-        self.make_puck_invisible(Axis.AXIAL)
-
-    def _on_coronal_plane_viewer_leave_event(self, *_):
-        self.make_puck_invisible(Axis.CORONAL)
-
-    def _on_sagittal_plane_viewer_leave_event(self, *_):
-        self.make_puck_invisible(Axis.SAGITTAL)
+    def _on_plane_viewer_leave_event(self, _, axis):
+        self.make_puck_invisible(axis)
 
     def _on_hand_modes_changed(self, _, state: bool) -> None:
         self.hand_modes_changed = state
@@ -824,12 +800,8 @@ class SegmentationTool(ToolInstance):
     def delete(self):
         self.session.triggers.remove_handler(self.model_added_handler)
         self.session.triggers.remove_handler(self.model_closed_handler)
-        chimerax.segmentations.triggers.remove_handler(self.axial_enter_handler)
-        chimerax.segmentations.triggers.remove_handler(self.axial_leave_handler)
-        chimerax.segmentations.triggers.remove_handler(self.coronal_enter_handler)
-        chimerax.segmentations.triggers.remove_handler(self.coronal_leave_handler)
-        chimerax.segmentations.triggers.remove_handler(self.sagittal_enter_handler)
-        chimerax.segmentations.triggers.remove_handler(self.sagittal_leave_handler)
+        chimerax.segmentations.triggers.remove_handler(self.plane_viewer_enter_handler)
+        chimerax.segmentations.triggers.remove_handler(self.plane_viewer_leave_handler)
         chimerax.segmentations.triggers.remove_handler(self.view_layout_changed_handler)
         chimerax.segmentations.triggers.remove_handler(self.guideline_visibility_handler)
         chimerax.segmentations.triggers.remove_handler(self.hand_mode_change_handler)
