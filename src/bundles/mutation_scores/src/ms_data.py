@@ -24,16 +24,19 @@
 
 from chimerax.core.state import State  # For session saving
 class MutationSet(State):
-    def __init__(self, name, mutation_scores, chain = None, path = None):
+    def __init__(self, name, mutation_scores, chain = None, allow_mismatches = False, path = None):
         self.name = name
         self.path = path
         self.mutation_scores = mutation_scores	# List of MutationScores instances
-        self._chain = chain		# Associated Chain instance
+        self._chain = None		# Associated Chain instance
         self._computed_scores = {}	# Map computed score name to ScoreValues instance
 
         # Cached values
         self._score_names = None
         self._resnum_to_aa = None
+
+        if chain:
+            self.set_chain(chain, allow_mismatches)
 
     def score_values(self, score_name, raise_error = True):
         svalues = [(ms.residue_number, ms.from_aa, ms.to_aa, ms.scores[score_name])
@@ -78,6 +81,19 @@ class MutationSet(State):
     def _set_chain(self, chain):
         self._chain = chain
     chain = property(_get_chain, _set_chain)
+
+    def set_chain(self, chain, allow_mismatches = False):
+        matches, mismatches = _residue_type_matches(chain.existing_residues,
+                                                    self.residue_number_to_amino_acid())
+        if mismatches:
+            r = mismatches[0]
+            mismatch_msg = f'sequence does not match mutation set {self.name} at {len(mismatches)} positions, first mistmatch is {r.name} {r.number}'
+            if allow_mismatches:
+                msg = f'Associated chain {chain} although {mismatch_msg}'
+            else:
+                msg = f'Did not associate chain {chain} because {mismatch_msg}'
+            chain.structure.session.logger.warning(msg)
+        self.chain = chain
 
     def find_matching_chain(self, session):
         self._chain = _find_matching_chain(session, self.residue_number_to_amino_acid())
@@ -262,25 +278,29 @@ def mutation_scores_list(session):
     session.logger.info(f'{len(score_sets)} mutation score sets\n{sets}')
     return msm.names()
 
-def mutation_scores_structure(session, chain, mutation_set = None):
-    scores = mutation_scores(session, mutation_set)
-    scores.chain = chain
-    matches, mismatches = _residue_type_matches(chain.existing_residues, scores.residue_number_to_amino_acid())
-    if mismatches:
-        r = mismatches[0]
-        session.logger.warning(f'Sequence of chain {chain} does not match mutation scores {scores.name} at {len(mistmatches)} positions, first mistmatch is {r.name}{r.number}')
+def mutation_scores_structure(session, chain, allow_mismatches = False, mutation_set = None):
+    mset = mutation_scores(session, mutation_set)
+    mset.set_chain(chain, allow_mismatches = allow_mismatches)
 
 def mutation_scores_close(session, mutation_set = None):
     msm = mutation_scores_manager(session)
     if mutation_set is None:
         for mutation_set in msm.names():
             msm.remove_scores(mutation_set)
-    elif not msm.remove_scores(mutation_set):
+            _close_plots(session, mutation_set)
+    elif msm.remove_scores(mutation_set):
+        _close_plots(session, mutation_set)
+    else:
         from chimerax.core.errors import UserError
         raise UserError(f'No mutation scores named {mutation_set}')
-    
+
+def _close_plots(session, mutation_set_name):
+    for tool in session.tools.list():
+        if getattr(tool, 'mutation_set_name', None) == mutation_set_name:
+            tool.delete()
+
 def register_commands(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg
     from chimerax.atomic import ChainArg
     
     desc = CmdDesc(synopsis = 'List names of sets of mutation scores')
@@ -288,7 +308,8 @@ def register_commands(logger):
 
     desc = CmdDesc(
         required = [('chain', ChainArg)],
-        keyword = [('mutation_set', StringArg)],
+        keyword = [('allow_mismatches', BoolArg),
+                   ('mutation_set', StringArg)],
         synopsis = 'Associate a structure with a set of mutation scores'
     )
     register('mutationscores structure', desc, mutation_scores_structure, logger=logger)
