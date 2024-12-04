@@ -257,7 +257,7 @@ class GridCanvas:
         self._update_scene_rects()
 
     def mouse_click(self, event):
-        residues = self._residues_for_event(event)
+        residues, row, col = self._residues_for_event(event)
         if not residues:
             return
         final_cmd = None
@@ -284,7 +284,7 @@ class GridCanvas:
         if event.type() != event.GraphicsSceneHelp:
             return
         from Qt.QtWidgets import QToolTip
-        residues = self._residues_for_event(event)
+        residues, row, col = self._residues_for_event(event)
         if not residues:
             QToolTip.hideText()
             return
@@ -397,11 +397,11 @@ class GridCanvas:
         pos = event.scenePos()
         row = int(pos.y() / height)
         if row < 0 or row > grid_rows - 1:
-            return None
+            return None, None, None
         col = int(pos.x() / width)
         if col < 0 or col > grid_columns - 1:
-            return None
-        return self._residues_at(row, col)
+            return None, None, None
+        return self._residues_at(row, col), row, col
 
     def _update_scene_rects(self):
         # have to play with setViewportMargins to get correct scrolling...
@@ -418,7 +418,6 @@ class GridCanvas:
         hbr = self.header_scene.itemsBoundingRect()
         self.main_label_scene.setSceneRect(lbr.x(), y,
             lbr.width(), height)
-            #lbr.width(), height + self.main_view.horizontalScrollBar().size().height())
         self.main_scene.setSceneRect(mbr.x(), y, mbr.width(), height)
         self.header_scene.setSceneRect(mr.x(), hbr.y(),
             mr.width() + self.main_view.verticalScrollBar().size().width(), hbr.height())
@@ -426,3 +425,13 @@ class GridCanvas:
         max_header_height = ceil(max(hbr.height(), self.header_label_scene.itemsBoundingRect().height())) + 7
         self.header_view.setMaximumHeight(max_header_height)
         self.header_label_view.setMaximumHeight(max_header_height)
+
+        # Apparently the height of the horizontal scrollbar gets added to main view at some point,
+        # need to compensate
+        def adjust_scrollbars(sb1=self.main_label_view.verticalScrollBar(), sb2=self.main_view.verticalScrollBar()):
+            min_val = min(sb1.minimum(), sb2.minimum())
+            max_val = max(sb1.maximum(), sb2.maximum())
+            sb1.setRange(min_val, max_val)
+            sb2.setRange(min_val, max_val)
+        from Qt.QtCore import QTimer
+        QTimer.singleShot(100, adjust_scrollbars)
