@@ -174,6 +174,15 @@ class SegmentationToolControlsDialog(QDialog):
                 )
             )
         self.panel.add_option(
+            BooleanOption(
+                name="Sync plane viewer models with Segmentation Tool's model menu",
+                default=None,
+                attr_name="automatically_switch_models_on_menu_changes",
+                settings=settings,
+                callback=None,
+            )
+        )
+        self.panel.add_option(
             IntOption(
                 "Segmentation opacity",
                 default=None,
@@ -879,10 +888,8 @@ class SegmentationTool(ToolInstance):
             self.threshold_min = min_
             self.threshold_max = max_
             self.range_slider.setTickInterval((max_ - min_) // 12)
-            if self.session.ui.main_window.view_layout == "orthoplanes":
-                self.session.ui.main_window.main_view.update_displayed_model(
-                    self.model_menu.value
-                )
+            if self.settings.automatically_switch_models_on_menu_changes:
+                chimerax.segmentations.triggers.activate_trigger(Trigger.ReferenceModelChanged, self.model_menu.value)
         except AttributeError:  # No more volumes!
             pass
 

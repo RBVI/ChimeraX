@@ -167,9 +167,6 @@ class PlaneViewerManager:
             return None
         return self.axes[Axis.AXIAL].segmentation_tool
 
-    def update_displayed_model(self, model):
-        for viewer in self.axes.values():
-            viewer.model_menu._menu.set_value(model)
 
     def _on_segmentation_added(self, _, segmentation):
         self.add_segmentation(segmentation)
@@ -433,6 +430,12 @@ class PlaneViewer(QWindow):
                 SEGMENTATION_MODIFIED, self._on_segmentation_modified
             )
         )
+        self.reference_model_changed_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.ReferenceModelChanged, self._on_reference_model_changed
+        )
+
+    def _on_reference_model_changed(self, _, model):
+        self.model_menu._menu.set_value(model)
 
     def _grab_viewport(self):
         image = self.view.image_rgba()
