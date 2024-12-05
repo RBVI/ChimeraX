@@ -20,7 +20,8 @@ class GridCanvas:
     TEXT_MARGIN = 2
 
     def __init__(self, parent, pg, alignment, grid_data, weights):
-        from Qt.QtWidgets import QGraphicsView, QGraphicsScene, QGridLayout, QShortcut
+        from Qt.QtWidgets import QGraphicsView, QGraphicsScene, QGridLayout, QShortcut, QHBoxLayout, QLabel
+        from Qt.QtWidgets import QRadioButton
         from Qt.QtCore import Qt, QSize
 
         self.pg = pg
@@ -122,15 +123,32 @@ class GridCanvas:
         layout.setColumnStretch(1, 1)
         layout.setRowStretch(0, 0)
         layout.setRowStretch(1, 1)
+        layout.setRowStretch(2, 0)
+        mouse_control_layout = QHBoxLayout()
+        mouse_control_layout.setContentsMargins(0,0,0,0)
+        mouse_control_layout.addWidget(QLabel("Mouse click:  "), alignment=Qt.AlignRight)
+        self.mouse_selects = QRadioButton("selects residues ")
+        mouse_control_layout.addWidget(self.mouse_selects)
+        self._choose_cell_text = "chooses cell"
+        mouse_control_layout.addWidget(QRadioButton(self._choose_cell_text))
+        mouse_control_layout.addWidget(QLabel(" (shift-click toggles)"), alignment=Qt.AlignLeft)
+        self.mouse_selects.setChecked(True)
+        layout.addLayout(mouse_control_layout, 2, 0, 1, 2, alignment=Qt.AlignHCenter|Qt.AlignTop)
         parent.setLayout(layout)
         #self.header_view.show()
         self.main_label_view.show()
         self.main_view.show()
         self.layout_alignment()
+        self.chosen_cells = {}
         self.selection_items = {}
         self.update_selection()
         from chimerax.core.selection import SELECTION_CHANGED
         self.handlers = [ self.pg.session.triggers.add_handler(SELECTION_CHANGED, self.update_selection) ]
+
+    def alignment_from_cells(self, *args):
+        seqs =self._check_cells()
+
+        self.pg.session.alignments.new_alignment(seqs, "grid subalignment")
 
     def alignment_notification(self, note_name, note_data):
         alignment = self.alignment
@@ -212,6 +230,7 @@ class GridCanvas:
                 x = j * width
                 val = self.grid_data[i,j]
                 fraction = val / divisor
+                # The "cell chosen" contrast color has to change if this color changes
                 non_blue = int(255 * (1.0 - fraction) + 0.5)
                 fill_color = QColor(non_blue, non_blue, 255)
                 self.main_scene.addRect(x, y, width, height, brush=QBrush(fill_color))
@@ -220,6 +239,7 @@ class GridCanvas:
                     text_val = str(int(100  * fraction + 0.5))
                     cell_text = self.main_scene.addSimpleText(text_val, self.font)
                     cell_text.moveBy(x, y)
+                    cell_text.setZValue(1)
                     bbox = cell_text.boundingRect()
                     cell_text.moveBy((width - bbox.width())/2, y_adjust + (height - bbox.height())/2)
                     cell_text.setBrush(QBrush(QColor(*[int(255 * channel + 0.5) for channel in text_rgb])))
@@ -257,28 +277,50 @@ class GridCanvas:
         self._update_scene_rects()
 
     def mouse_click(self, event):
-        residues, row, col = self._residues_for_event(event)
-        if not residues:
-            return
-        final_cmd = None
         from Qt.QtCore import Qt
-        if event.modifiers() & Qt.ShiftModifier:
+        shifted = event.modifiers() & Qt.ShiftModifier
+
+        residues, row, col = self._residues_for_event(event)
+        if self.mouse_selects.isChecked():
             if not residues:
                 return
-            if (row, col) in self.selection_items:
-                cmd = "sel subtract"
+            final_cmd = None
+            if shifted:
+                if not residues:
+                    return
+                if (row, col) in self.selection_items:
+                    cmd = "sel subtract"
+                else:
+                    cmd = "sel add"
             else:
-                cmd = "sel add"
+                if residues:
+                    cmd = "sel"
+                else:
+                    final_cmd = "sel clear"
+            if final_cmd is None:
+                from chimerax.atomic import concise_residue_spec
+                final_cmd = cmd + ' ' + concise_residue_spec(self.pg.session, residues)
+            from chimerax.core.commands import run
+            run(self.pg.session, final_cmd)
         else:
-            if residues:
-                cmd = "sel"
-            else:
-                final_cmd = "sel clear"
-        if final_cmd is None:
-            from chimerax.atomic import concise_residue_spec
-            final_cmd = cmd + ' ' + concise_residue_spec(self.pg.session, residues)
-        from chimerax.core.commands import run
-        run(self.pg.session, final_cmd)
+            if not shifted:
+                for item in self.chosen_cells.values():
+                    self.main_scene.removeItem(item)
+                self.chosen_cells.clear()
+            from Qt.QtGui import QPen, QColor, QPolygonF
+            from Qt.QtCore import QPointF
+            pen = QPen(QColor(255, 147, 0))
+            pen.setWidth(3)
+            width, height = self.font_pixels
+            left_x = col * width
+            mid_x = left_x + width/2
+            right_x = left_x + width
+            top_y = row * height
+            mid_y = top_y + height/2
+            bottom_y = top_y + height
+            self.chosen_cells[(row, col)] = self.main_scene.addPolygon(QPolygonF([QPointF(x, y) for x,y in
+                [(left_x, mid_y), (mid_x, top_y), (right_x, mid_y), (mid_x, bottom_y), (left_x, mid_y)]]),
+                pen)
 
     def mouse_hover(self, event):
         if event.type() != event.GraphicsSceneHelp:
@@ -377,18 +419,46 @@ class GridCanvas:
             self.selection_items[(row, col)] = self.main_scene.addRect(
                 col * width, row * height, width, height, pen=pen)
 
+    def _check_cells(self):
+        from chimerax.core.errors import UserError
+        if not self.chosen_cells:
+            raise UserError("No grid cells are chosen.\n"
+                "Choose cells by changing mouse-click mode at bottom of window to '%s'\n"
+                " and then clicking on desired cell(s)" % self._choose_cell_text)
+
+        # since cells in the same column 'union' together, but columns intersect, organize by column...
+        by_col = {}
+        for row, col in self.chosen_cells.keys():
+            by_col.setdefault(col, []).append(row)
+        seqs = set(self.alignment.seqs)
+        for col, rows in by_col.items():
+            col_seqs = set()
+            for row in rows:
+                col_seqs.update(self._sequences_at(row, col))
+            seqs &= col_seqs
+        # in same order though
+        aln_seqs = [seq for seq in self.alignment.seqs if seq in seqs]
+        if not aln_seqs:
+            raise UserError("No sequences match the chosen cells")
+        return aln_seqs
+
     def _residues_at(self, grid_row, grid_col):
         residues = []
-        row_label = self.existing_row_labels[grid_row]
-        for seq in self.alignment.seqs:
-            if seq.characters[grid_col].upper() != row_label:
-                continue
+        for seq in self._sequences_at(grid_row, grid_col):
             for match_map in seq.match_maps.values():
                 try:
                     residues.append(match_map[seq.gapped_to_ungapped(grid_col)])
                 except KeyError:
                     continue
         return residues
+
+    def _sequences_at(self, grid_row, grid_col):
+        seqs = []
+        row_label = self.existing_row_labels[grid_row]
+        for seq in self.alignment.seqs:
+            if seq.characters[grid_col].upper() == row_label:
+                seqs.append(seq)
+        return seqs
 
     def _residues_for_event(self, event):
         width, height = self.font_pixels
