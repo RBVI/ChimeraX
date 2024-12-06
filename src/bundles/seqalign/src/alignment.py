@@ -93,7 +93,10 @@ class Alignment(State):
         self._session_restore = session_restore
         if isinstance(seqs, tuple):
             seqs = list(seqs)
-        self._seqs = seqs[:] # prevent later accidental modification
+        # prevent later accidental modification; also different alignments may contain the same sequence
+        # (so prevent Alignment.destroy from messing up other alignments)
+        from copy import copy
+        self._seqs = [copy(seq) for seq in seqs]
         self.ident = ident
         self.file_attrs = file_attrs
         self.file_markups = file_markups

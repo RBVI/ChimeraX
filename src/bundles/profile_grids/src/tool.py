@@ -99,9 +99,16 @@ class ProfileGridsTool(ToolInstance):
     def fill_context_menu(self, menu, x, y):
         from Qt.QtGui import QAction
         cell_menu = menu.addMenu("Chosen Cells")
-        alignment_action = QAction("New Alignment", cell_menu)
-        alignment_action.triggered.connect(self.grid_canvas.alignment_from_cells)
-        cell_menu.addAction(alignment_action)
+        action = QAction("List Sequence Names", cell_menu)
+        action.triggered.connect(lambda *args, f=self.grid_canvas.list_from_cells: f())
+        cell_menu.addAction(action)
+        alignment_menu = cell_menu.addMenu("New Alignment")
+        viewers = self.session.alignments.registered_viewers("alignment")
+        viewers.sort()
+        for viewer in viewers:
+            alignment_menu.addAction(viewer.title())
+        alignment_menu.triggered.connect(
+            lambda action, f=self.grid_canvas.alignment_from_cells: f(action.text().lower()))
 
         self.alignment.add_headers_menu_entry(menu)
 

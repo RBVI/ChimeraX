@@ -127,7 +127,7 @@ class GridCanvas:
         mouse_control_layout = QHBoxLayout()
         mouse_control_layout.setContentsMargins(0,0,0,0)
         mouse_control_layout.addWidget(QLabel("Mouse click:  "), alignment=Qt.AlignRight)
-        self.mouse_selects = QRadioButton("selects residues ")
+        self.mouse_selects = QRadioButton("selects residues / ")
         mouse_control_layout.addWidget(self.mouse_selects)
         self._choose_cell_text = "chooses cell"
         mouse_control_layout.addWidget(QRadioButton(self._choose_cell_text))
@@ -145,10 +145,15 @@ class GridCanvas:
         from chimerax.core.selection import SELECTION_CHANGED
         self.handlers = [ self.pg.session.triggers.add_handler(SELECTION_CHANGED, self.update_selection) ]
 
-    def alignment_from_cells(self, *args):
-        seqs =self._check_cells()
-
-        self.pg.session.alignments.new_alignment(seqs, "grid subalignment")
+    def alignment_from_cells(self, viewer):
+        seqs = self._check_cells()
+        if len(seqs) == 1:
+            seq_viewers = self.pg.session.alignments.registered_viewers("sequence")
+            if viewer not in seq_viewers:
+                self.pg.session.logger.warning(
+                    "Cells only select a single sequence, showing in sequence viewer instead")
+                viewer = True
+        self.pg.session.alignments.new_alignment(seqs, None, name="grid subalignment", viewer=viewer)
 
     def alignment_notification(self, note_name, note_data):
         alignment = self.alignment
@@ -275,6 +280,10 @@ class GridCanvas:
             self.show_ruler, None, self.show_numberings, self.sv.settings,
             self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps())
         self._update_scene_rects()
+
+    def list_from_cells(self):
+        seqs = self._check_cells()
+        _SeqList(self.pg.session, seqs).show()
 
     def mouse_click(self, event):
         from Qt.QtCore import Qt
@@ -505,3 +514,26 @@ class GridCanvas:
             sb2.setRange(min_val, max_val)
         from Qt.QtCore import QTimer
         QTimer.singleShot(100, adjust_scrollbars)
+
+_seq_lists = [] # hold references so the lists aren't immediately destroyed
+from Qt.QtWidgets import QDialog
+class _SeqList(QDialog):
+    def __init__(self, session, seqs):
+        super().__init__()
+        _seq_lists.append(self)
+        self.session = session
+        self.setWindowTitle("Cell-Chosen Sequence List")
+        self.setSizeGripEnabled(True)
+        from Qt.QtWidgets import QVBoxLayout, QListWidget
+        from Qt.QtCore import Qt
+        layout = QVBoxLayout()
+        list_widget = QListWidget()
+        list_widget.addItems([seq.name for seq in seqs])
+        layout.addWidget(list_widget, alignment=Qt.AlignCenter, stretch=1)
+        self.setLayout(layout)
+        #TODO: copy to log; save to file, Help/Close button box
+
+    def closeEvent(self, event):
+        _seq_lists.remove(self)
+        return super().closeEvent(event)
+
