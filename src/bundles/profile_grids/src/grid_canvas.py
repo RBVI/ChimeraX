@@ -518,22 +518,75 @@ class GridCanvas:
 _seq_lists = [] # hold references so the lists aren't immediately destroyed
 from Qt.QtWidgets import QDialog
 class _SeqList(QDialog):
+    help = None
+
     def __init__(self, session, seqs):
         super().__init__()
         _seq_lists.append(self)
         self.session = session
         self.setWindowTitle("Cell-Chosen Sequence List")
         self.setSizeGripEnabled(True)
-        from Qt.QtWidgets import QVBoxLayout, QListWidget
+        from Qt.QtWidgets import QVBoxLayout, QTextEdit, QHBoxLayout, QPushButton, QLabel, QWidget
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
-        list_widget = QListWidget()
-        list_widget.addItems([seq.name for seq in seqs])
-        layout.addWidget(list_widget, alignment=Qt.AlignCenter, stretch=1)
+        list_widget = QTextEdit('<br>'.join([seq.name for seq in seqs]))
+        list_widget.setReadOnly(True)
+        layout.addWidget(list_widget, stretch=1)
+
+        centering_widget = QWidget()
+        button_layout = QVBoxLayout()
+        button_layout.setSpacing(0)
+        button_layout.setContentsMargins(0,0,0,0)
+        centering_widget.setLayout(button_layout)
+        layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
+
+        centering_widget = QWidget()
+        log_layout = QHBoxLayout()
+        log_layout.setSpacing(0)
+        log_layout.setContentsMargins(0,0,0,0)
+        centering_widget.setLayout(log_layout)
+        log_button = QPushButton("Copy")
+        log_button.clicked.connect(lambda *args, seqs=seqs, f=self._log_sequences: f(seqs))
+        log_layout.addWidget(log_button, alignment=Qt.AlignRight)
+        log_layout.addWidget(QLabel(" sequence names to log"), alignment=Qt.AlignLeft)
+        button_layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
+
+        centering_widget = QWidget()
+        file_layout = QHBoxLayout()
+        file_layout.setSpacing(0)
+        file_layout.setContentsMargins(0,0,0,0)
+        centering_widget.setLayout(file_layout)
+        file_button = QPushButton("Save")
+        file_button.clicked.connect(lambda *args, seqs=seqs, f=self._save_sequences: f(seqs))
+        file_layout.addWidget(file_button, alignment=Qt.AlignRight)
+        file_layout.addWidget(QLabel(" sequence names to file"), alignment=Qt.AlignLeft)
+        button_layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Close | qbbox.Help)
+        bbox.rejected.connect(self.close)
+        if self.help:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
         self.setLayout(layout)
-        #TODO: copy to log; save to file, Help/Close button box
 
     def closeEvent(self, event):
         _seq_lists.remove(self)
         return super().closeEvent(event)
+
+    def _log_sequences(self, seqs):
+        self.session.logger.info('<br>'.join(["<br><b>Chosen Profile Grid Sequences</b>"]
+            + [seq.name for seq in seqs]) + '<br>', is_html=True)
+
+    def _save_sequences(self, seqs):
+        from Qt.QtWidgets import QFileDialog
+        file_name, file_type = QFileDialog.getSaveFileName(caption="Choose Sequence-Name Save File")
+        if file_name:
+            with open(file_name, 'w') as f:
+                for seq in seqs:
+                    print(seq.name, file=f)
 
