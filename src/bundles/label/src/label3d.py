@@ -386,7 +386,11 @@ class ObjectLabels(Model):
         super().added_to_session(session, **kw)
 
         # since delete_labels can close us, do the super() first
-        self.delete_labels([obj for obj in self._object_label.keys() if obj.deleted])
+        dead_labels = [obj for obj in self._object_label.keys() if obj.deleted]
+        if dead_labels:
+            # Also, calling delete_labels before we have any would close us, so only call if some dead
+            # labels actually exist
+            self.delete_labels(dead_labels)
 
     def delete(self):
         h = self._update_graphics_handler
