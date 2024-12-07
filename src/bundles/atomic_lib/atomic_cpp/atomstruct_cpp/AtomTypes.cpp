@@ -1942,6 +1942,19 @@ t0 = t1;
                     // guanidinium carbon can't be double bonded
                     Ng_plus_candidates.clear();
                     break;
+                } else if (bondee->idatm_type() == "N2") {
+                    auto my_d2 = a->coord().sqdistance(bondee->coord());
+                    for (auto grand_bondee: bondee->neighbors()) {
+                        if (grand_bondee == a)
+                            continue;
+                        my_d2 -= bondee->coord().sqdistance(grand_bondee->coord());
+                        break;
+                    }
+                    if (my_d2 < 0.0) {
+                        // N2 bond shorter on C2 side -- looks like double bond
+                        Ng_plus_candidates.clear();
+                        break;
+                    }
                 }
             }
 
