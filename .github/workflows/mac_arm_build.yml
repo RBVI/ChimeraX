@@ -35,6 +35,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.branch || 'develop' }}
+      - name: Unlink pkg-config to stop failures
+        run: brew unlink pkg-config@0.29.2 || true
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master

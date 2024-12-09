@@ -31,27 +31,39 @@ title="ChimeraX Home" class="clRighticon"/></a>
 Solutions for common ChimeraX problems:
 </p>
 
-<ol>
-<li><a href="#winstart">ChimeraX won't start on Windows.</a>
-<li><a href="#maccrash">ChimeraX crashes on Mac.</a>
-</ol>
+<ul>
+  <li><a href="#winstart">ChimeraX won't start on Windows</a>
+    <ol>
+      <li><a href="#wingraphics">Broken graphics driver</a>
+      <li><a href="#winprefs">Corrupted preference settings</a>
+      <li><a href="#windebug">Debug mode</a>
+    </ol>
+  <li><a href="#maccrash">ChimeraX crashes on Mac</a>
+    <ol>
+      <li><a href="#macgraphics">Mac Intel or AMD graphics driver crash</a>
+      <li><a href="#macdisplay">Display configuration crash</a>
+    </ol>
+</ul>
 
-<h2>Problems</h2>
-
-<ol>
-
-<hr>
 <a name="winstart">
-<li><b>ChimeraX won't start on Windows.</b>
+<h2>ChimeraX won't start on Windows</h2>
 </a>
 
+<hr>
+
 <p>
+<a name="wingraphics">
 <b>Broken graphics driver.</b>
+</a>
 The most common reason ChimeraX fails to start is your system graphics driver updated and is broken now. The fix is to install a working graphics driver (either a newer version or older version).
 </p>
 
+<hr>
+
 <p>
+<a name="winprefs">
 <b>Corrupted preference settings.</b>
+</a>
 Another rare possibility is that the saved ChimeraX preferences got corrupted somehow. These are saved in directory
 </p>
 
@@ -63,8 +75,12 @@ Another rare possibility is that the saved ChimeraX preferences got corrupted so
 and you could rename that directory so that ChimeraX creates a new one to see if that is the problem.
 </p>
 
+<hr>
+
 <p>
+<a name="windebug">
 <b>Start in debug mode.</b>
+</a>
 One last thing you could try to see if there is an error message is to start ChimeraX in debug mode by right clicking the desktop icon, choose Properties, and change Target from
 </p>
 
@@ -85,41 +101,85 @@ Then when you double click that icon it will bring up a console that logs Chimer
 <hr>
 
 <a name="maccrash">
-<li><b>ChimeraX crashes on Mac.</b>
+<h2>ChimeraX crashes on Mac</h2>
 </a>
 
+<hr>
+
 <p>
-<b>Graphics driver crash.</b>
+<a name="macgraphics">
+<b>Mac Intel or AMD graphics driver crash.</b>
+</a>
 The most common cause of Mac crashes is because of unstable Apple OpenGL graphics drivers.
+There is nothing ChimeraX can do to prevent crashes from  bugs in Apple's graphics drivers.
+Most ChimeraX crashes on Mac computers are in Apple's graphics drivers.
 </p>
 
 <p>
-  We suggest you press the "<b>Report to Apple</b>" button when ChimeraX crashes to remind Apple that users still want support for OpenGL.  There is nothing ChimeraX can do to prevent crashes from  bugs in Apple's graphics drivers.  Most ChimeraX crashes on Mac computers are in Apple's graphics drivers.
-</p>
-
-<p>
-<b>Apple deprecated OpenGL graphics</b>:
-  Apple's OpenGL graphics drivers in macOS frequently crash.
-  Apple <a href="https://www.anandtech.com/show/12894/apple-deprecates-opengl-across-all-oses">deprecated</a> the community standard OpenGL 3D graphics library in 2018 in favor of their proprietary Metal graphics library.  Even prior to that Apple OpenGL version was 4.1 which dates from 2010.  Crashes in macOS versions 10.14 (Mojave), 10.15 (Catalina), and 11 (Big Sur) are all common.
-</p>
-
-<p>
-<b>No graphics crashes on new Apple M1 computers</b>:
+No graphics crashes on new Apple M1 computers:
 No ChimeraX graphics crashes have been reported on Apple's new Mac computers based on the M1 graphics processor which was released a year ago (November 2020).  Also the graphics performance on the new Apple M1 computers is good, with the M1 Pro graphics (Nov 2021) about as fast as a top-of-the-line 2019 Mac Book Pro with discrete AMD Vega 20 graphics (<a href="https://www.rbvi.ucsf.edu/chimerax/data/czi-nov2021/apple_m1.html">details</a>).
 </p>
 
 <p>
-<b>Windows and Linux have stable graphics</b>:
-  ChimeraX uses OpenGL so that it can run on Windows, Linux and macOS.  Over a hundred
-  <a href="https://www.rbvi.ucsf.edu/trac/ChimeraX/search?q=gpusGenerateCrashLog">ChimeraX crashes</a>
-  in the macOS OpenGL graphics driver have been reported, while almost no graphics crashes
-  are reported on Windows and Linux which provide reliable OpenGL drivers.
+Apple deprecated OpenGL graphics:
+  Apple's OpenGL graphics drivers in macOS frequently crash.
+  Apple <a href="https://www.anandtech.com/show/12894/apple-deprecates-opengl-across-all-oses">deprecated</a> the community standard OpenGL 3D graphics library in 2018 in favor of their proprietary Metal graphics library.  Even prior to that Apple OpenGL version was 4.1 which dates from 2010.  Crashes in macOS versions 10.14 (Mojave), 10.15 (Catalina), and 11 (Big Sur) are all common.
 </p>
 
+<hr>
 
-</ol>
+<p>
+<a name="macdisplay">
+<b>Mac display configuration crash.</b>
+</a>
+On Mac computers ChimeraX sometimes crashes when waking from sleep or disconnecting or connecting an external display.
+This is a bug in the Qt window toolkit (versions 6.6 and 6.7) used by ChimeraX.  We have not been able to reproduce
+this crash although it has been reported 50 times.  We update ChimeraX daily builds when new Qt toolkit versions
+are released and will report here if an update fixes this crash.
+</p>
+
+<hr>
 
 <pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

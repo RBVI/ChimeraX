@@ -64,29 +64,16 @@ class ProfileGridsTool(ToolInstance):
         #    self._seq_rename_handlers[seq] = seq.triggers.add_handler("rename",
         #        self.region_browser._seq_renamed_cb)
 
-        self.tool_window.manage('side')
+        from Qt.QtCore import Qt
+        self.tool_window.manage(None, allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas)
 
     def alignment_notification(self, note_name, note_data):
-        import sys
-        print("tool notification", note_name, file=sys.__stderr__)
         alignment = self.alignment
         if note_name == alignment.NOTE_DESTROYED:
             self.delete()
+            return
         '''
         if note_name == alignment.NOTE_MOD_ASSOC:
-            assoc_aseqs = set()
-            if note_data[0] != alignment.NOTE_DEL_ASSOC:
-                match_maps = note_data[1]
-            else:
-                match_maps = [note_data[1]['match map']]
-            for match_map in match_maps:
-                aseq = match_map.align_seq
-                assoc_aseqs.add(aseq)
-            for aseq in assoc_aseqs:
-                self.grid_canvas.assoc_mod(aseq)
-                self._update_errors_gaps(aseq)
-            if self.alignment.intrinsic:
-                self.show_ss(True)
             if hasattr(self, 'associations_tool'):
                 self.associations_tool._assoc_mod(note_data)
         elif note_name == alignment.NOTE_PRE_DEL_SEQS:
@@ -110,7 +97,21 @@ class ProfileGridsTool(ToolInstance):
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        cell_menu = menu.addMenu("Chosen Cells")
+        action = QAction("List Sequence Names", cell_menu)
+        action.triggered.connect(lambda *args, f=self.grid_canvas.list_from_cells: f())
+        cell_menu.addAction(action)
+        alignment_menu = cell_menu.addMenu("New Alignment")
+        viewers = self.session.alignments.registered_viewers("alignment")
+        viewers.sort()
+        for viewer in viewers:
+            alignment_menu.addAction(viewer.title())
+        alignment_menu.triggered.connect(
+            lambda action, f=self.grid_canvas.alignment_from_cells: f(action.text().lower()))
+
         self.alignment.add_headers_menu_entry(menu)
+
         return
         from Qt.QtGui import QAction
         file_menu = menu.addMenu("File")

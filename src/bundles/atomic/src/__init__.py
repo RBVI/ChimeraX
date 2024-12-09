@@ -153,7 +153,7 @@ class _AtomicBundleAPI(BundleAPI):
             from .inspectors import item_options
             return item_options(session, name, **kw)
         else:
-            class_obj = {'atoms': Atom, 'residues': Residue, 'structures': Structure }[name]
+            class_obj = {'atoms': Atom, 'residues': Residue, 'chains': Chain, 'structures': Structure }[name]
             from chimerax.render_by_attr import RenderAttrInfo
             class Info(RenderAttrInfo):
                 _class_obj = class_obj
@@ -187,17 +187,23 @@ class _AtomicBundleAPI(BundleAPI):
                     return False
 
                 def hide_attr(self, attr_name, rendering):
-                    if not rendering and self.class_object == Atom and attr_name in [
-                            'is_side_connector', 'num_bonds',
-                            'num_explicit_bonds', 'selected', 'visible']:
-                        return True
+                    if rendering:
+                        if self.class_object == Chain and attr_name.startswith('num') \
+                        and attr_name.endswith('residues'):
+                            return False
+                        if self.class_object == Chain and attr_name == 'polymer_type':
+                            return True
+                    else:
+                        if self.class_object == Atom and attr_name in ['is_side_connector', 'num_bonds',
+                                'num_explicit_bonds', 'selected', 'visible']:
+                            return True
                     return super().hide_attr(attr_name, rendering)
 
                 def model_filter(self, model):
                     return isinstance(model, Structure)
 
                 def render(self, session, attr_name, models, method, params, sel_only):
-                    prefix = { Atom: 'a', Residue: 'r', Structure: 'm' }[self.class_object]
+                    prefix = { Atom: 'a', Residue: 'r', Chain: 'c', Structure: 'm' }[self.class_object]
                     from chimerax.core.commands import run, concise_model_spec, StringArg
                     spec = concise_model_spec(session, models)
                     if sel_only:
@@ -253,7 +259,7 @@ class _AtomicBundleAPI(BundleAPI):
                             run(session, "~worm %s" % spec)
 
                 def select(self, session, attr_name, models, discrete, params):
-                    prefix = { Atom: '@@', Residue: '::', Structure: '##' }[self.class_object]
+                    prefix = { Atom: '@@', Residue: '::', Chain: '//', Structure: '##' }[self.class_object]
                     from chimerax.core.commands import run, concise_model_spec, StringArg, BoolArg, FloatArg
                     spec = concise_model_spec(session, models)
                     if spec and self.class_object == Structure:
@@ -283,6 +289,8 @@ class _AtomicBundleAPI(BundleAPI):
                         collections = [m.atoms for m in models]
                     elif self._class_obj == Residue:
                         collections = [m.residues for m in models]
+                    elif self._class_obj == Chain:
+                        collections = [m.chains for m in models]
                     else:
                         collections = [Structures(models)]
                     from chimerax.core.commands import plural_of
