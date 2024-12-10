@@ -363,18 +363,19 @@ std::cerr << "Parsing text " << trial_text << "\n";
             return nullptr;
         }
         return nullptr;
-    } catch (std::logic_error& e) {
-        Py_DECREF(models);
-        try {
-            set_error_info(semantics_error_class, e.what());
-        } catch (std::runtime_error &e) {
-            return nullptr;
-        }
-        return nullptr;
     } catch (std::invalid_argument& e) {
         Py_DECREF(models);
         try {
             set_error_info(parse_error_class, e.what());
+        } catch (std::runtime_error &e) {
+            return nullptr;
+        }
+        return nullptr;
+    } catch (std::logic_error& e) {
+        // invalid_argument is a subclass of logic_error, so catch logic_error second
+        Py_DECREF(models);
+        try {
+            set_error_info(semantics_error_class, e.what());
         } catch (std::runtime_error &e) {
             return nullptr;
         }
@@ -434,10 +435,13 @@ static auto grammar = (R"---(
     atom_specifier <- as_term "&" atom_specifier / as_term "|" atom_specifier / as_term
     as_term <- "(" atom_specifier ")" zone_selector? / "~" as_term zone_selector? / SELECTOR_NAME zone_selector? / model_list
     model_list <- model+
-    model <- HASH_TYPE model_hierarchy ("##" attribute_list)? zone_selector? / "##" attribute_list zone_selector?
+    model <- HASH_TYPE model_hierarchy ("##" attribute_list)? model_parts* zone_selector? / "##" attribute_list model_parts* zone_selector? / model_parts zone_selector?
     model_hierarchy <- < model_range_list (!Space "." !Space model_hierarchy)* >
     model_range_list <- model_range ("," model_range_list)*
     model_range <- MODEL_SPEC_START "-" MODEL_SPEC_END / MODEL_SPEC_ANY
+    model_parts <- chain+
+    chain <- "/" part_list ("//" attribute_list)? / "//" attribute_list
+    part_list <- PART_RANGE_LIST "," part_list / PART_RANGE_LIST
     attribute_list <- attr_test ("," attr_test)*
     attr_test <- ATTR_NAME ATTR_OPERATOR ATTR_VALUE / "^" ATTR_NAME / ATTR_NAME
     zone_selector <- ZONE_OPERATOR real_number / ZONE_OPERATOR integer
@@ -451,6 +455,9 @@ static auto grammar = (R"---(
     MODEL_SPEC_ANY <- MODEL_SPEC / "*"
     MODEL_SPEC_END <- MODEL_SPEC / "end" / "*"
     MODEL_SPEC_START <- MODEL_SPEC / "start" / "*"
+    RANGE_CHAR <- [^-#/:@,; \t\n]
+    RANGE_PART <- < "-"? RANGE_CHAR+ >
+    PART_RANGE_LIST <- < RANGE_PART "-" RANGE_PART > / RANGE_PART
     SELECTOR_NAME <- < [a-zA-Z_][-+a-zA-Z0-9_]* >
     ZONE_OPERATOR <- "@>" | "@<" | ":>" | ":<" | "/>" | "/<" | "#>" | "#<"
     EndOfLine <- "\r\n" / "\n" / "\r"
@@ -868,8 +875,6 @@ PyMODINIT_FUNC PyInit__spec_parser()
             
     // model
     spec_parser["model"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " model semantic values\n";
-        debug_semantic_values(vs);
         std::cerr << "model choice: " << vs.choice() << "\n";
         std::cerr << "tokens:";
         for (auto tk: vs.tokens)
@@ -882,32 +887,53 @@ PyMODINIT_FUNC PyInit__spec_parser()
         if (vs.choice() == 0) {
             gmatcher = GlobalModelMatcher(std::any_cast<bool>(vs[0]), 
                 std::any_cast<std::vector<std::vector<ModelMatcher>>>(vs[1]));
-            for (auto py_model: gmatcher.matches()) {
+            for (auto py_model: gmatcher.matches())
                 add_model_to_objects(py_model, objects_inst);
-                if (vs.size() == 4) {
-                    attr_index = 2;
-                    zone_index = 3;
-                } else if (vs.size() == 3) {
-                    attr_index = 2;
+            if (vs.size() == 5) {
+                attr_index = 2;
+                parts_index = 3;
+                zone_index = 4;
+            } else if (vs.size() > 2) {
+                for (std::vector<std::any>::size_type vs_i = 2; vs_i < vs.size(); ++vs_i) {
                     try {
-                        auto test = std::any_cast<std::vector<AttrTester>>(vs[2]);
+                        (void) std::any_cast<std::vector<AttrTester>>(vs[vs_i]);
+                        attr_index = vs_i;
+                        continue;
                     } catch (std::bad_any_cast& e) {
-                        attr_index = -1;
-                        zone_index = 2;
+                        ;
                     }
+                    try {
+                        (void) std::any_cast<std::pair<std::string_view, float>>(vs[vs_i]);
+                        zone_index = vs_i;
+                        continue;
+                    } catch (std::bad_any_cast& e) {
+                        ;
+                    }
+                    parts_index = vs_i;
                 }
             }
         } else if (vs.choice() == 1) {
             attr_index = 0;
             if (vs.size() > 1)
-                zone_index = 1;
+                for (std::vector<std::any>::size_type vs_i = 1; vs_i < vs.size(); ++vs_i) {
+                    try {
+                        (void) std::any_cast<std::pair<std::string_view, float>>(vs[vs_i]);
+                        zone_index = vs_i;
+                        continue;
+                    } catch (std::bad_any_cast& e) {
+                        ;
+                    }
+                    parts_index = vs_i;
+                }
             auto list_size = PySequence_Fast_GET_SIZE(models);
             for (decltype(list_size) i = 0; i < list_size; ++i) {
                 auto m = PySequence_Fast_GET_ITEM(models, i);
                 add_model_to_objects(m, objects_inst);
             }
         } else {
-            // not implemented yet
+            parts_index = 0;
+            if (vs.size() > 1)
+                zone_index = 1;
         }
 std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index << "; zone_index: " << zone_index << "\n";
         if (attr_index >= 0)
@@ -1149,6 +1175,42 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
         if (vs.choice() > 0)
             return ModelPart();
         return std::any_cast<ModelPart>(vs[0]);
+    };
+            
+    // RANGE_CHAR
+    spec_parser["RANGE_CHAR"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " RANGE_CHAR semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        return vs.token();
+    };
+            
+    // RANGE_PART
+    spec_parser["RANGE_PART"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " RANGE_PART semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        return vs.token();
+    };
+
+    // PART_RANGE_LIST
+    spec_parser["PART_RANGE_LIST"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " PART_RANGE_LIST semantic values\n";
+        debug_semantic_values(vs);
+        for (auto v: vs)
+            std::cerr << "semantic value: " << std::any_cast<std::string_view>(v) << "\n";
+        std::cerr << "PART_RANGE_LIST choice:" << vs.choice() << "\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        //if (vs.choice() > 0)
+        //    return ModelPart();
+        //return std::any_cast<ModelPart>(vs[0]);
     };
             
     // SELECTOR_NAME
