@@ -94,8 +94,12 @@ class Mmseqs2WebQuery:
         r = requests.post(self.rcsb_search_url, data = data, headers = headers)
         if r.status_code != 200:
             error_msg = r.text
+            if not error_msg and r.status_code == 204:
+                msg = 'RCSB sequence search no matches found'
+            else:
+                msg = f'RCSB sequence search failed (status {r.status_code}): {error_msg}'
             from chimerax.core.errors import UserError
-            raise UserError(f'RCSB sequence search failed: {error_msg}')
+            raise UserError(msg)
 
         results = r.json()
         return results
