@@ -876,6 +876,9 @@ PyMODINIT_FUNC PyInit__spec_parser()
     // model
     spec_parser["model"] = [](const SemanticValues &vs) {
         std::cerr << "model choice: " << vs.choice() << "\n";
+        debug_semantic_values(vs);
+        //for (auto v: vs)
+        //    std::cerr << "model semantic value: " << std::any_cast<std::string_view>(v) << "\n";
         std::cerr << "tokens:";
         for (auto tk: vs.tokens)
             std::cerr << " " << tk;
@@ -1200,17 +1203,14 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
     // PART_RANGE_LIST
     spec_parser["PART_RANGE_LIST"] = [](const SemanticValues &vs) {
         std::cerr << vs.size() << " PART_RANGE_LIST semantic values\n";
-        debug_semantic_values(vs);
-        for (auto v: vs)
-            std::cerr << "semantic value: " << std::any_cast<std::string_view>(v) << "\n";
-        std::cerr << "PART_RANGE_LIST choice:" << vs.choice() << "\n";
         std::cerr << "tokens:";
         for (auto tk: vs.tokens)
             std::cerr << " " << tk;
         std::cerr << "\n";
-        //if (vs.choice() > 0)
-        //    return ModelPart();
-        //return std::any_cast<ModelPart>(vs[0]);
+        std::vector<std::string_view> parts;
+        for (auto v: vs)
+            parts.push_back(std::any_cast<std::string_view>(v));
+        return parts;
     };
             
     // SELECTOR_NAME
