@@ -50,6 +50,7 @@ static PyObject* invert_arg;
 static PyObject* list_arg;
 static PyObject* add_model_arg;
 static PyObject* add_atoms_arg;
+static PyObject* add_parts_arg;
 static PyObject* add_pseudobonds_arg;
 static PyObject* atomspec_has_atoms_arg;
 static PyObject* atomspec_has_pseudobonds_arg;
@@ -68,6 +69,9 @@ static PyObject* op_le;
 static PyObject* op_lt;
 static PyObject* op_not;
 static PyObject* op_truth;
+static PyObject* _Chain_class;
+static PyObject* _Part_class;
+static PyObject* _PartList_class;
 static std::string use_python_error("Use Python error");
 static bool add_implied, order_implicit_atoms, outermost_inversion;
 
@@ -744,6 +748,9 @@ PyMODINIT_FUNC PyInit__spec_parser()
     add_atoms_arg = PyUnicode_FromString("add_atoms");
     if (add_atoms_arg == nullptr)
         return nullptr;
+    add_parts_arg = PyUnicode_FromString("add_parts");
+    if (add_parts_arg == nullptr)
+        return nullptr;
     add_pseudobonds_arg = PyUnicode_FromString("add_pseudobonds");
     if (add_pseudobonds_arg == nullptr)
         return nullptr;
@@ -797,6 +804,15 @@ PyMODINIT_FUNC PyInit__spec_parser()
         return nullptr;
     op_truth = get_module_attribute("operator", "truth");
     if (op_truth == nullptr)
+        return nullptr;
+    _Chain_class = get_module_attribute("chimerax.core.commands.atomspec", "_Chain");
+    if (_Chain_class == nullptr)
+        return nullptr;
+    _Part_class = get_module_attribute("chimerax.core.commands.atomspec", "_Part");
+    if (_Part_class == nullptr)
+        return nullptr;
+    _PartList_class = get_module_attribute("chimerax.core.commands.atomspec", "_PartList");
+    if (_PartList_class == nullptr)
         return nullptr;
 
     // atom_specifier
@@ -877,8 +893,6 @@ PyMODINIT_FUNC PyInit__spec_parser()
     spec_parser["model"] = [](const SemanticValues &vs) {
         std::cerr << "model choice: " << vs.choice() << "\n";
         debug_semantic_values(vs);
-        //for (auto v: vs)
-        //    std::cerr << "model semantic value: " << std::any_cast<std::string_view>(v) << "\n";
         std::cerr << "tokens:";
         for (auto tk: vs.tokens)
             std::cerr << " " << tk;
@@ -992,6 +1006,95 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
         if (vs.choice() == 0)
             return ModelMatcher(std::any_cast<ModelPart>(vs[0]), std::any_cast<ModelPart>(vs[1]));
         return ModelMatcher(std::any_cast<ModelPart>(vs[0]));
+    };
+
+    // model_parts
+    spec_parser["model_parts"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " model_parts semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        std::vector<PyObject*> chains;
+        for (auto v: vs)
+            chains.push_back(std::any_cast<PyObject*>(v));
+        return chains;
+    };
+            
+    // chain
+    spec_parser["chain"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " chain semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        PyObject* chain_part;
+        if (vs.choice() == 0) {
+            auto part_list = std::any_cast<PyObject*>(vs[0]);
+            PyObject* attr_list;
+            if (vs.size() > 1) {
+                auto attr_tests = std::any_cast<std::vector<AttrTester>>(vs[1]);
+                auto at_size = attr_tests.size();
+                attr_list = PyList_New(at_size);
+                if (attr_list == nullptr) {
+                    Py_DECREF(part_list);
+                    throw std::runtime_error("Cannot create Python list for attribute tests");
+                }
+                for (decltype(at_size) i = 0; i < at_size; ++i) {
+                    PyList_SET_ITEM(attr_list, i, attr_tests[i].py_attr_test());
+                }
+            } else
+                attr_list = Py_None;
+            chain_part = PyObject_CallFunctionObjArgs(_Chain_class, part_list, attr_list, nullptr);
+            if (chain_part == nullptr) {
+                Py_DECREF(part_list);
+                if (attr_list != Py_None)
+                    Py_DECREF(attr_list);
+                throw std::logic_error(use_python_error);
+            }
+        } else {
+            auto attr_tests = std::any_cast<std::vector<AttrTester>>(vs[0]);
+            auto at_size = attr_tests.size();
+            auto attr_list = PyList_New(at_size);
+            if (attr_list == nullptr) {
+                throw std::runtime_error("Cannot create Python list for attribute tests");
+            }
+            for (decltype(at_size) i = 0; i < at_size; ++i) {
+                PyList_SET_ITEM(attr_list, i, attr_tests[i].py_attr_test());
+            }
+            chain_part = PyObject_CallFunctionObjArgs(_Chain_class, Py_None, attr_list, nullptr);
+            if (chain_part == nullptr) {
+                Py_DECREF(attr_list);
+                throw std::logic_error(use_python_error);
+            }
+        }
+        return chain_part;
+    };
+            
+    // part_list
+    spec_parser["part_list"] = [](const SemanticValues &vs) {
+        std::cerr << vs.size() << " part_list semantic values\n";
+        std::cerr << "tokens:";
+        for (auto tk: vs.tokens)
+            std::cerr << " " << tk;
+        std::cerr << "\n";
+        PyObject* part_list;
+        auto part = std::any_cast<PyObject*>(vs[0]);
+        if (vs.choice() == 0) {
+            part_list = std::any_cast<PyObject*>(vs[1]);
+            if (PyObject_CallMethodOneArg(part_list, add_parts_arg, part) == nullptr) {
+                Py_DECREF(part_list);
+                Py_DECREF(part);
+                throw std::logic_error(use_python_error);
+            }
+        } else {
+            part_list = PyObject_CallFunctionObjArgs(_PartList_class, part, nullptr);
+            if (part_list == nullptr) {
+                Py_DECREF(part);
+                throw std::logic_error(use_python_error);
+            }
+        }
+        return part_list;
     };
             
     // attribute_list
@@ -1197,7 +1300,7 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
         for (auto tk: vs.tokens)
             std::cerr << " " << tk;
         std::cerr << "\n";
-        return vs.token();
+        return vs.token_to_string();
     };
 
     // PART_RANGE_LIST
@@ -1208,9 +1311,28 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             std::cerr << " " << tk;
         std::cerr << "\n";
         std::vector<std::string_view> parts;
-        for (auto v: vs)
-            parts.push_back(std::any_cast<std::string_view>(v));
-        return parts;
+        auto arg1 = PyUnicode_FromString(std::any_cast<std::string>(vs[0]).c_str());
+        if (arg1 == nullptr)
+            throw std::runtime_error("Could not convert token to string");
+        decltype(arg1) arg2;
+        if (vs.size() == 1)
+            arg2 = Py_None;
+        else {
+            arg2 = PyUnicode_FromString(std::any_cast<std::string>(vs[1]).c_str());
+            if (arg2 == nullptr)
+                throw std::runtime_error("Could not convert token to string");
+        }
+        auto part = PyObject_CallFunctionObjArgs(_Part_class, arg1, arg2, nullptr);
+        if (part == nullptr) {
+            Py_DECREF(arg1);
+            if (arg2 != Py_None)
+                Py_DECREF(arg2);
+            throw std::logic_error(use_python_error);
+        }
+        Py_DECREF(arg1);
+        if (arg2 != Py_None)
+            Py_DECREF(arg2);
+        return part;
     };
             
     // SELECTOR_NAME
