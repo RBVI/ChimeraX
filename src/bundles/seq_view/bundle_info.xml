@@ -25,7 +25,7 @@
 
   <Providers manager="alignments">
 	<!-- subcommand_name also defined in __init__.py and used in various other .py files -->
-    <Provider name="seqview" synonyms="sv,view" subcommand_name="viewer" type="viewer"/>
+    <Provider name="sequence viewer" synonyms="sv,seqview,view" subcommand_name="viewer" type="viewer"/>
   </Providers>
 
 

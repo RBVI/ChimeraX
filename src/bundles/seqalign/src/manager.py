@@ -64,6 +64,8 @@ class AlignmentsManager(StateManager, ProviderManager):
         ----------
         name : str
             Header or viewer name.
+            For viewers, this is the name that will be used in the user interface when listing possible
+            viewers (probably after being "title-ized").  It should be lower case.
         type : str
             "header" or "viewer"
 
@@ -105,9 +107,9 @@ class AlignmentsManager(StateManager, ProviderManager):
             if synonyms:
                 # comma-separated text -> list
                 synonyms = [x.strip() for x in synonyms.split(',')]
-            if sequence_viewer:
+            if sequence_viewer and sequence_viewer != "false":
                 self.viewer_info['sequence'][name] = synonyms
-            if alignment_viewer:
+            if alignment_viewer and alignment_viewer != "false":
                 self.viewer_info['alignment'][name] = synonyms
             self._viewers[name] = bundle_info
         elif type is None:
@@ -260,7 +262,6 @@ class AlignmentsManager(StateManager, ProviderManager):
             self.triggers.activate_trigger("new alignment", alignment)
         return alignment
 
-    @property
     def registered_viewers(self, seq_or_align):
         """Return the registered viewers of type 'seq_or_align'
             (which must be "sequence"  or "alignent")

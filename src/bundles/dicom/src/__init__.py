@@ -45,7 +45,7 @@ class _DICOMBundle(BundleAPI):
         else:
             from chimerax.dicom.ui import DICOMDatabases
 
-            return DICOMDatabases(session)
+            return get_singleton(session, DICOMDatabases, "DICOM Browser")
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):

@@ -64,7 +64,8 @@ class ProfileGridsTool(ToolInstance):
         #    self._seq_rename_handlers[seq] = seq.triggers.add_handler("rename",
         #        self.region_browser._seq_renamed_cb)
 
-        self.tool_window.manage('side')
+        from Qt.QtCore import Qt
+        self.tool_window.manage(None, allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas)
 
     def alignment_notification(self, note_name, note_data):
         alignment = self.alignment
@@ -96,7 +97,21 @@ class ProfileGridsTool(ToolInstance):
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        cell_menu = menu.addMenu("Chosen Cells")
+        action = QAction("List Sequence Names", cell_menu)
+        action.triggered.connect(lambda *args, f=self.grid_canvas.list_from_cells: f())
+        cell_menu.addAction(action)
+        alignment_menu = cell_menu.addMenu("New Alignment")
+        viewers = self.session.alignments.registered_viewers("alignment")
+        viewers.sort()
+        for viewer in viewers:
+            alignment_menu.addAction(viewer.title())
+        alignment_menu.triggered.connect(
+            lambda action, f=self.grid_canvas.alignment_from_cells: f(action.text().lower()))
+
         self.alignment.add_headers_menu_entry(menu)
+
         return
         from Qt.QtGui import QAction
         file_menu = menu.addMenu("File")

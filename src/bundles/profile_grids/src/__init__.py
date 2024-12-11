@@ -36,6 +36,6 @@ class _ProfileGridsBundleAPI(BundleAPI):
     def run_provider(session, name, manager, *, alignment=None):
         """Register sequence viewer with alignments manager"""
         from .tool import ProfileGridsTool
-        return ProfileGridsTool(session, "Sequence Viewer", alignment)
+        return ProfileGridsTool(session, "Profile Grids", alignment)
 
 bundle_api = _ProfileGridsBundleAPI()

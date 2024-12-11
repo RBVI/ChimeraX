@@ -138,6 +138,9 @@ class Trigger(StrEnum):
     ReferenceModelChanged = "reference model changed"
     ActiveSegmentationChanged = "active segmentation changed"
 
+    PlaneViewerEnter = "plane viewer enter"
+    PlaneViewerLeave = "plane viewer leave"
+
     AxialCursorMoved = "axial cursor moved"
     CoronalCursorMoved = "coronal cursor moved"
     SagittalCursorMoved = "sagittal cursor moved"
@@ -226,6 +229,9 @@ class SegmentationTriggerSet(TriggerSet):
 
         self.add_trigger(Trigger.ActiveSegmentationChanged)
         self.add_trigger(Trigger.ReferenceModelChanged)
+
+        self.add_trigger(Trigger.PlaneViewerEnter)
+        self.add_trigger(Trigger.PlaneViewerLeave)
 
         self.add_trigger(Trigger.AxialCursorMoved)
         self.add_trigger(Trigger.CoronalCursorMoved)
