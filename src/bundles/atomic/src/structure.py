@@ -1438,6 +1438,18 @@ class AtomicStructure(Structure):
             light_cmd(self.session, **lighting)
 
     def take_snapshot(self, session, flags):
+        if flags == State.SCENE:
+            scene_data = {}
+            from chimerax.scenes.scene import most_derived_scene_implementation
+            # get Model's scene data
+            scene_supported_super = most_derived_scene_implementation(super())
+            scene_data['super'] = scene_supported_super.take_snapshot(super(), session, flags)
+
+            scene_data['atoms'] = self.atoms.take_scene()
+            scene_data['bonds'] = self.bonds.take_scene()
+            scene_data['residues'] = self.residues.take_scene()
+            return scene_data
+
         data = {
             'AtomicStructure version': 3,
             'structure state': Structure.take_snapshot(self, session, flags),
