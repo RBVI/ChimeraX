@@ -78,8 +78,6 @@ import chimerax.segmentations.triggers
 from chimerax.segmentations.triggers import Trigger
 
 from chimerax.segmentations.triggers import (
-    ENTER_EVENTS,
-    LEAVE_EVENTS,
     VIEW_LAYOUT_CHANGED,
     GUIDELINES_VISIBILITY_CHANGED,
 )
