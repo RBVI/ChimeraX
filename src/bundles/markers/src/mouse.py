@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -286,6 +286,9 @@ def _exclude_transparent_surfaces(drawing):
         any_opaque, any_transparent = drawing._transparency()
         if any_transparent:
             return True
+    from chimerax.map import Volume
+    if isinstance(drawing, Volume) and drawing.image_shown and drawing.image_model().showing_transparent():
+        return True
     return False
 
 # -----------------------------------------------------------------------------

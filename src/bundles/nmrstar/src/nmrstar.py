@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -49,7 +49,9 @@ def read_nmr_star(session, path, name,
             continue
         constraint_loop = saveframe.get_loop('Gen_dist_constraint')
         clist = constraint_loop.get_tag(constraint_tag_names)
-        clist = [(cid1, int(rnum1), rname1, atom1, cid2, int(rnum2), rname2, atom2, float(dist_min), float(dist_max))
+        clist = [(cid1, int(rnum1), rname1, atom1, cid2, int(rnum2), rname2, atom2,
+                  (None if dist_min == '.' else float(dist_min)),
+                  (None if dist_max == '.' else float(dist_max)))
                  for cid1, rnum1, rname1, atom1, cid2, rnum2, rname2, atom2, dist_min, dist_max in clist]
         constraint_sets.append((constraint_type, clist))
 
@@ -62,7 +64,7 @@ def read_nmr_star(session, path, name,
             for ctype, clist in constraint_sets:
                 pbgroup = _make_constraint_pseudobonds(structure, ctype, clist,
                                                        color, radius, long_color, long_radius)
-                if dashes is not None:
+                if dashes is not None and pbgroup is not None:
                     pbgroup.dashes = dashes
 
             
@@ -76,19 +78,11 @@ def read_nmr_star(session, path, name,
 # -----------------------------------------------------------------------------
 #
 def _make_constraint_pseudobonds(structure, ctype, clist, color, radius, long_color, long_radius):
-    gname = ctype + ' constraints'
-    g = structure.pseudobond_group(gname, create_type = None)
-    if g is not None:
-        # Pseudobond group with this name already exists.  Add a suffix
-        i = 2
-        while structure.pseudobond_group(gname + f' {i}', create_type = None):
-            i += 1
-        gname = gname + f' {i}'
-    g = structure.pseudobond_group(gname)
 
-    atom_table = {(a.residue.chain_id, a.residue.number, a.name):a for a in structure.atoms}
+    aplist = []
     missing = set()
     mcount = 0
+    atom_table = {(a.residue.chain_id, a.residue.number, a.name):a for a in structure.atoms}
     for cid1, rnum1, rname1, atom1, cid2, rnum2, rname2, atom2, dist_min, dist_max in clist:
         a1 = atom_table.get((cid1, rnum1, atom1))
         if a1 is None:
@@ -100,8 +94,29 @@ def _make_constraint_pseudobonds(structure, ctype, clist, color, radius, long_co
             missing.add((cid2, rnum2, atom2))
             mcount += 1
             continue
+        aplist.append((a1, a2, dist_min, dist_max))
+
+    if missing:
+        matoms = ','.join(f'/{cid}:{rnum}@{aname}' for cid, rnum, aname in sorted(missing))
+        log = structure.session.logger
+        log.warning(f'Missing {len(missing)} atoms in {mcount} of {len(clist)} {ctype} constraints: {matoms}')
+
+    if len(aplist) == 0:
+        return None
+    
+    gname = ctype + ' constraints'
+    g = structure.pseudobond_group(gname, create_type = None)
+    if g is not None:
+        # Pseudobond group with this name already exists.  Add a suffix
+        i = 2
+        while structure.pseudobond_group(gname + f' {i}', create_type = None):
+            i += 1
+        gname = gname + f' {i}'
+    g = structure.pseudobond_group(gname)
+
+    for a1, a2, dist_min, dist_max in aplist:
         b = g.new_pseudobond(a1, a2)
-        if b.length > dist_max:
+        if dist_max is not None and b.length > dist_max:
             b.color = long_color
             b.radius = long_radius
         else:
@@ -109,11 +124,6 @@ def _make_constraint_pseudobonds(structure, ctype, clist, color, radius, long_co
             b.radius = radius
         b.nmr_min_distance = dist_min
         b.nmr_max_distance = dist_max
-
-    if missing:
-        matoms = ','.join(f'/{cid}:{rnum}@{aname}' for cid, rnum, aname in sorted(missing))
-        log = structure.session.logger
-        log.warning(f'Missing {len(missing)} atoms in {mcount} of {len(clist)} {ctype} constraints: {matoms}')
 
     return g
 

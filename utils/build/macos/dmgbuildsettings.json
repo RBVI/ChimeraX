@@ -1,0 +1,15 @@
+{
+  "title": "ChimeraX Installer",
+  "background": "./utils/build/macos/macos-dmg-background.png",
+  "format": "ULMO",
+  "compression-level": 9,
+  "hide-extensions": ["true"],
+  "contents": [
+    { "x": 190, "y": 190, "type": "file", "path": "ChimeraX.app" },
+    { "x": 594, "y": 190, "type": "link", "path": "/Applications" }
+  ],
+  "window": {
+    "position": { "x": 200, "y": 120 },
+    "size": { "width": 800, "height": 400 }
+  }
+}

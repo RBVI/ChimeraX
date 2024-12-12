@@ -6,7 +6,7 @@ Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  For details see:
-http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
@@ -16,12 +16,13 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command: phenix</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: phenix</h3>
 <p>
@@ -35,9 +36,22 @@ See also: <a href="volume.html"><b>volume</b></a>
 &ndash; place waters into EM density
 <li><a href="#emplaceLocal"><b>phenix emplaceLocal</b></a>
 &ndash; local fitting into EM density
+<li><a href="#fitLoops"><b>phenix fitLoops</b></a>
+&ndash; build short peptide segments into density
 <li><a href="#location"><b>phenix location</b></a>
 &ndash; specify location of Phenix installation
 </ul>
+<p>
+Users should cite:
+</p>
+<blockquote>
+<a href="https://journals.iucr.org/d/issues/2019/10/00/di5033/index.html"
+target="_blank">
+Macromolecular structure determination using X-rays, neutrons and electrons:
+recent developments in Phenix.</a>
+Liebschner D, Afonine PV, Baker ML, Bunk&oacute;czi G, Chen VB, Croll TI, Hintze B, Hung LW, Jain S, McCoy AJ, Moriarty NW, Oeffner RD, Poon BK, Prisant MG, Read RJ, Richardson JS, Richardson DC, Sammito MD, Sobolev OV, Stockwell DH, Terwilliger TC, Urzhumtsev AG, Videau LL, Williams CJ, Adams PD.
+<i>Acta Crystallogr D Struct Biol.</i> 2019 Oct 1;75(Pt 10):861-877.
+</blockquote>
 
 <a name="douse"></a>
 <a href="#top" class="nounder">&bull;</a>
@@ -136,6 +150,7 @@ can be used multiple times in the same command
 <b>mapData</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model(s)</i></a>&nbsp;
 <b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;
 [&nbsp;<b>resolution</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>prefitted</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model(s)</i></a>&nbsp;]
 [&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>phenixLocation</b> &nbsp;<i>folder</i>&nbsp;]
 [&nbsp;<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
@@ -148,8 +163,17 @@ target="_blank"><i>voyager.emplace_local</i></a>
 (included in the Phenix nightly build)
 to fit an atomic structure within a local region of cryo-EM density.
 The graphical interface to this command is
-<a href="../tools/localemfitting.html"><b>Local EM Fitting</b></a>.
-</p><p>
+<a href="../tools/localemfitting.html"><b>Local EM Fitting</b></a>, and
+the method is described in:
+</p>
+<blockquote>
+<a href="https://journals.iucr.org/d/issues/2024/08/00/id5013/index.html"
+target="_blank">
+Likelihood-based interactive local docking into cryo-EM maps in ChimeraX.</a>
+<authors>Read RJ, Pettersen EF, McCoy AJ, Croll TI, Terwilliger TC, Poon BK, Meng EC, Liebschner D, Adams PD.</authors>
+<i>Acta Crystallogr D Struct Biol.</i> 2024 Aug 1;80(Pt 8):588-598.
+</blockquote>
+<p>
 The method evaluates signal and noise using either two &ldquo;half maps&rdquo;
 that cover the same spatial region but are each generated from half of the
 experimental data, or a single full map, although results will not be as 
@@ -175,10 +199,72 @@ is optional, and if it is omitted, the value will be estimated
 from the half maps.
 </ul>
 <p>
+The <b>prefitted</b> option is for specifying atomic models, if any,
+that are already in place within parts of the map.
+</p><p>
 The remaining options are as described above for
 <a href="#douse"><b>phenix douse</b></a>. See also: 
 <a href="../tools/localemfitting.html#symmetry">adding symmetry copies
 after fitting</a>
+</p>
+</blockquote>
+
+<a name="fitLoops"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>phenix fitLoops</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>residue-spec</i></a>&nbsp;
+<b>inMap</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;
+[&nbsp;<b>gapOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>sequenceFile</b> &nbsp;<i>filename</i>&nbsp;]
+[&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>processors</b> &nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>phenixLocation</b> &nbsp;<i>folder</i>&nbsp;]
+[&nbsp;<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#advanced"><i>advanced-options</i></a>
+<blockquote>
+<p>
+Run the <a href="https://phenix-online.org" target="_blank">Phenix</a> program
+<a href="https://phenix-online.org/documentation/reference/fit_loops.html"
+target="_blank"><i>fit_loops</i></a>
+to build short peptide segments such as missing loops into density.
+The graphical interface to this command is
+<a href="../tools/fitloops.html"><b>Fit Loops</b></a>.
+The density map (<a href="atomspec.html#othermodels"><i>map-model</i></a>)
+and corresponding atomic structure should be already open.
+The <a href="atomspec.html#hierarchy"><i>res-spec</i></a> indicates
+which residues in the atomic structure to model or remodel, where
+any missing segments or gaps can be indicated by including the residues
+at both ends of the gap (those connected by the corresponding missing-structure
+<a href="../pseudobonds.html">pseudobond</a>). 
+Setting <b>gapOnly true</b> indicates modeling the gap only, not the 
+endpoint residues that were included in the specification.
+</p><p>
+Missing-structure segments are identified by comparing the atomic coordinates 
+to the amino acid sequence given in the PDB SEQRES records or the mmCIF 
+equivalent. For atomic structures lacking such information, the sequence
+can be read from a FASTA file specified with the <b>sequenceFile</b> option,
+where <i>filename</i> is a pathname. Giving <i>filename</i> as the word
+<a href="usageconventions.html#browse"><b>browse</b></a> to open
+a file browser window for locating the file interactively.
+Other options:
+</p>
+<ul>
+<li><b>replace</b>
+&ndash; whether to modify the original atomic structure (<b>true</b>, default); 
+if <b>false</b>, open the resulting structure as a new model
+<li><b>processors</b>
+&ndash; how many CPUs/cores to devote to the fit_loops process
+(default is the maximum number allowed by the system per process)
+</ul>
+<p>
+The remaining options are as described above for
+<a href="#douse"><b>phenix douse</b></a>.
+</p><p>
+If the <b>phenix fitLoops</b> result is unsatisfactory,
+the structure can be reverted to its previous state with the
+<a href="undo.html"><b>undo</b></a> command or by choosing
+<a href="../menu.html#edit"><b>Edit... Undo</b></a> from the ChimeraX menu.
 </p>
 </blockquote>
 
@@ -199,5 +285,5 @@ in the <a href="../tools/log.html"><b>Log</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-December 2023</address>
+October 2024</address>
 </body></html>

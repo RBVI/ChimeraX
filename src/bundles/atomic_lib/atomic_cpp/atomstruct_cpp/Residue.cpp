@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -114,6 +114,10 @@ Residue::add_atom(Atom* a, bool copying_or_restoring)
         return;
     auto pbg = structure()->pb_mgr().get_group(Structure::PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
     if (pbg == nullptr)
+        return;
+    // an additional test to avoid doing the expensive computation below if possible, which can
+    // severely impact addh for instance [#15840]
+    if (a->element().valence() < 2)
         return;
     // Okay, make residue-index map so that we can see if missing-structure bonds are relevant to our residue
     std::map<Residue*, Structure::Residues::size_type> res_map;
@@ -228,9 +232,10 @@ Residue::add_atom(Atom* a, bool copying_or_restoring)
                 } else {
                     auto here_name_index = std::find(bb_names.begin(), bb_names.end(), here_a->name())
                         - bb_names.begin();
-                    // if new atom's name to the left of existing, and this residue is on the right
-                    // side of the bond, or vice verse, change the bond
-                    if ((here_name_index < name_index) == (my_index > there_i)) {
+                    // if current pseudobond partner in this residue is to the left of the new atom
+                    // (here_name_index < name_index) then change the endpoint if this residue precedes
+                    // the other residue (my_index < there_i), and vice versa
+                    if ((here_name_index > name_index) == (my_index > there_i)) {
                         change_atom = here_a;
                     }
                 }
@@ -349,6 +354,7 @@ Residue::delete_alt_loc(char alt_loc)
         } else
             _alt_loc = ' ';
     }
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_ALT_LOCS);
 }
 
 Atom *
@@ -406,28 +412,47 @@ Residue::principal_atom() const
     // Normally returns th C4' from a nucleic acid since that is always
     // present, but in the case of a P-only trace it returns the P
     auto am = atoms_map();
-    auto caf = am.find("CA");
-    if (caf != am.end()) {
-        auto ca = caf->second;
-        if (ca->element() != Element::C)
-            return nullptr;
-        if (am.find("N") != am.end() && am.find("C") != am.end())
-            return ca;
-        return am.size() == 1 ? ca : nullptr;
+    if (structure()->chains_made()) {
+        auto pt = polymer_type();
+        if (pt == PolymerType::PT_AMINO) {
+            auto caf = am.find("CA");
+            if (caf != am.end())
+                return caf->second;
+        } else if (pt == PolymerType::PT_NUCLEIC) {
+            auto c4f = am.find("C4'");
+            if (c4f == am.end()) {
+                if (am.size() == 1) {
+                    auto pf = am.find("P");
+                    if (pf != am.end())
+                        return pf->second;
+                }
+            } else
+                return c4f->second;
+        }
+    } else {
+        auto caf = am.find("CA");
+        if (caf != am.end()) {
+            auto ca = caf->second;
+            if (ca->element() != Element::C)
+                return nullptr;
+            if (am.find("N") != am.end() && am.find("C") != am.end())
+                return ca;
+            return am.size() == 1 ? ca : nullptr;
+        }
+        auto c4f = am.find("C4'");
+        if (c4f == am.end()) {
+            if (am.size() > 1)
+                return nullptr;
+            auto pf = am.find("P");
+            if (pf == am.end())
+                return nullptr;
+            auto p = pf->second;
+            return p->element() == Element::P ? p : nullptr;
+        }
+        auto c4 = c4f->second;
+        if (am.find("C3'") != am.end() && am.find("C5'") != am.end() && am.find("O5'") != am.end())
+            return c4;
     }
-    auto c4f = am.find("C4'");
-    if (c4f == am.end()) {
-        if (am.size() > 1)
-            return nullptr;
-        auto pf = am.find("P");
-        if (pf == am.end())
-            return nullptr;
-        auto p = pf->second;
-        return p->element() == Element::P ? p : nullptr;
-    }
-    auto c4 = c4f->second;
-    if (am.find("C3'") != am.end() && am.find("C5'") != am.end() && am.find("O5'") != am.end())
-        return c4;
     return nullptr;
 }
 

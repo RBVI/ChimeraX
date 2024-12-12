@@ -6,7 +6,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -138,7 +138,7 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
         for m in models:
             used_data_names = set()
             file_name = path.replace("[ID]", m.id_string).replace("[NAME]", m.name)
-            with open(file_name, 'w', encoding='utf-8', newline='\r\n') as f:
+            with open(file_name, 'w', encoding='utf-8', newline='\n') as f:
                 f.write(MMCIF_PREAMBLE)
                 save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets, computed_sheets)
         return
@@ -165,7 +165,7 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
         is_ensemble[g] = all(_same_chains(chains, m.chains) for m in models[1:])
 
     used_data_names = set()
-    with open(path, 'w', encoding='utf-8', newline='\r\n') as f:
+    with open(path, 'w', encoding='utf-8', newline='\n') as f:
         f.write(MMCIF_PREAMBLE)
         for g, models in grouped.items():
             if is_ensemble[g]:
@@ -184,7 +184,7 @@ ChimeraX_audit_conform = mmcif.CIFTable(
     ], [
         "mmcif_pdbx.dic",
         "4.007",
-        "http://mmcif.pdb.org/dictionaries/ascii/mmcif_pdbx.dic",
+        "https://mmcif.pdb.org/dictionaries/ascii/mmcif_pdbx.dic",
     ]
 )
 

@@ -11,6 +11,7 @@ dependencies = [
   'numpy==1.26.4',
   'setuptools==72.1.0',
   'lxml==5.2.2',
+  'auditwheel>=6.1.0',
 ]
 classifiers = [
   # From https://pypi.python.org/pypi?%3Aaction=list_classifiers

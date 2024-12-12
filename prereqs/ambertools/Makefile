@@ -5,8 +5,8 @@ include $(TOP)/mk/config.make
 # Using AmberTools distribution from https://ambermd.org
 
 #ifeq ($(OS),Darwin)
-#VERSION = 23
-#SRC_VERSION = 22
+#VERSION = 24
+#SRC_VERSION = 24
 #else
 VERSION = 20
 SRC_VERSION = 20
@@ -39,7 +39,7 @@ FLIB_NAMES_FILE = $(tmpdir)/mac_flib_names
 endif
 endif
 
-CMAKE = /usr/local/bin/cmake
+CMAKE = cmake
 
 DISTRIBUTION = AmberTools$(VERSION).tar.bz2
 SOURCE = $(tmpdir)/AmberTools$(VERSION)
@@ -80,33 +80,20 @@ else ifeq ($(OS),Darwin)
 CONFIG_ARGS = clang
 endif
 
+LIBGCCDIR=
 ifeq ($(wildcard /usr/local/gfortran/*),)
 ifeq ($(wildcard /usr/local/opt/gcc/lib/gcc/current/*),)
 ifeq ($(wildcard /opt/homebrew/opt/gcc/lib/gcc/current/*),)
 FLIBDIR = /usr/local/lib
 else
 FLIBDIR = /opt/homebrew/opt/gcc/lib/gcc/current
+LIBGCCDIR = /opt/homebrew/opt/gcc/lib/gcc/current
 endif
 else
 FLIBDIR = /usr/local/opt/gcc/lib/gcc/current
 endif
 else
 FLIBDIR = /usr/local/gfortran/lib
-endif
-
-
-ifeq ($(wildcard /usr/local/opt/gcc/lib/gcc/current/*),)
-ifeq ($(wildcard /opt/homebrew/opt/gcc/lib/gcc/current/*),)
-ifeq ($(wildcard /usr/local/gfortran/*),)
-LOCALLIBDIR = /usr/local/lib
-else
-LOCALLIBDIR = /usr/local/gfortran/lib
-endif
-else
-LOCALLIBDIR = /opt/homebrew/opt/gcc/lib/gcc/current
-endif
-else
-LOCALLIBDIR = /usr/local/opt/gcc/lib/gcc/current
 endif
 
 ifeq ($(USE_PREBUILT),true)
@@ -118,7 +105,7 @@ ifeq ($(OS),Windows)
 	# Antechamber complains bitterly about a missing tmp directory otherwise
 	-mkdir -p $(AMBERBIN_DST_HOME)/tmp
 endif
-	 tar xf $(AMBERTOOLS_PREBUILT) -C $(AMBERBIN_DST_HOME)
+	 tar xf $(AMBERTOOLS_PREBUILT) -C $(AMBERBIN_DST_HOME) --no-same-owner
 ifeq ($(OS),Darwin)
 	tar xf $(AMBERTOOLS_FLIBS_PREBUILT) -C $(app_libdir)
 endif
@@ -132,7 +119,7 @@ endif
 else
 install: $(SOURCE)
 	-mkdir $(CMAKE_BUILD_DIR) $(CMAKE_INSTALL_DIR)
-	cd $(CMAKE_BUILD_DIR) && env PATH=$(PATH):/usr/local/bin:/opt/homebrew/bin $(CMAKE) $(AMBERHOME) -DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_DIR) -DCOMPILER=CLANG -DDOWNLOAD_MINICONDA=FALSE -DBUILD_PYTHON=FALSE -DFORCE_INTERNAL_LIBS=netcdf
+	cd $(CMAKE_BUILD_DIR) && env PATH=$(PATH):/opt/homebrew/bin:/usr/local/bin $(CMAKE) $(AMBERHOME) -DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_DIR) -DCOMPILER=CLANG -DDOWNLOAD_MINICONDA=FALSE -DBUILD_PYTHON=FALSE -DFORCE_INTERNAL_LIBS=netcdf
 	for i in netcdf-4.6.1 netcdf-fortran-4.4.4 arpack sff cifparse ; do \
 		if [ -e $(CMAKE_TOOL_SRC)/$$i ] ; then \
 			cd $(CMAKE_TOOL_SRC)/$$i && $(MAKE) install ; \
@@ -149,15 +136,14 @@ app-install: install
 	$(RSYNC) $(AMBERBIN_SRC)/wrapped_progs/* $(AMBERBIN_DST)
 	$(RSYNC) $(AMBERDAT_ANTECHAMBER_SRC)/* $(AMBERDAT_ANTECHAMBER_DST)
 	$(RSYNC) $(AMBERDAT_PARM_SRC)/gaff2.dat $(AMBERDAT_PARM_DST)
-ifeq ($(OS),Darwin)
-	for i in $(AMBERLIB_SRC)/*.$(SHLIB_EXT); do \
-		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(LOCALLIBDIR))/) { print $$1 }'`; do \
-			filename=`basename $$j`; \
-			install_name_tool -change $$j @executable_path/../../../lib/$$filename $$i; \
-		done; \
-	done
-endif
 	$(RSYNC) $(AMBERLIB_SRC)/*.$(SHLIB_EXT) $(app_libdir)
+ifneq ($(LIBGCCDIR),)
+	for gcclib in $(LIBGCCDIR)/libgcc*.$(SHLIB_EXT) ; do \
+		$(RSYNC) $$gcclib $(app_libdir); \
+		filename=`basename $$gcclib`; \
+		install_name_tool -id @executable_path/$$filename $(app_libdir)/$$filename; \
+	done;
+endif
 ifeq ($(OS),Windows)
 	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /usr/bin/cygreadline*.dll /usr/bin/cygintl*.dll /usr/bin/cygncursesw*.dll /usr/bin/cygiconv*.dll /bin/sh.exe $(AMBERBIN_DST)
 endif
@@ -165,6 +151,7 @@ ifeq ($(OS),Darwin)
 	install_name_tool -rpath @loader_path/../../lib @loader_path/../../../lib $(AMBERBIN_DST)/antechamber
 	install_name_tool -rpath @loader_path/../lib @loader_path/../../../lib $(AMBERBIN_DST)/sqm
 	# copy the shared libraries needed by the fortran executables and fix up their paths
+	# then do the same for libs that those shared libraries use
 	cat /dev/null > $(FLIB_NAMES_FILE)
 	cd $(AMBERBIN_DST) && for i in sqm; do \
 		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
@@ -174,12 +161,18 @@ ifeq ($(OS),Darwin)
 			install_filename=$(app_libdir)/$$filename; \
 			install_name_tool -id @executable_path/$$filename $$install_filename; \
 			install_name_tool -change $$j @executable_path/../../../lib/$$filename $$i; \
-			for k in `otool -L $$j | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
-				subfilename=`basename $$k`; \
-				install_name_tool -change $$k @executable_path/../../../lib/$$subfilename $$install_filename; \
-			done; \
+			codesign --force -s - $$install_filename ; \
 		done; \
-	done
+	done; \
+	for copied_lib in $(AMBERLIB_SRC)/*.$(SHLIB_EXT); do \
+		libname=`basename $$copied_lib`; \
+		copy=$(app_libdir)/$$libname; \
+		for k in `otool -L $$copied_lib | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
+			subfilename=`basename $$k`; \
+			install_name_tool -change $$k @executable_path/../../../lib/$$subfilename $$copy; \
+			codesign --force -s - $$copy ; \
+		done; \
+	done;
 endif
 ifeq ($(UPLOAD_PREBUILT),true)
 	tar cjf $(AMBERTOOLS_PREBUILT) -C "$(AMBERBIN_DST_HOME)" .
@@ -194,7 +187,7 @@ endif
 
 $(SOURCE): $(DISTRIBUTION)
 	-mkdir $(SOURCE)
-	tar xf $(DISTRIBUTION) -C $(SOURCE)
+	tar xf $(DISTRIBUTION) -C $(SOURCE) --no-same-owner
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(AMBERHOME) && patch -f -p0) < $$p ; \

@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -459,8 +459,9 @@ class SequenceViewer(ToolInstance):
                 self._update_errors_gaps(aseq)
             if self.alignment.intrinsic:
                 self.show_ss(True)
-            if hasattr(self, 'associations_tool'):
-                self.associations_tool._assoc_mod(note_data)
+            for opt_tool in ['associations_tool', 'transfer_seq_tool']:
+                if hasattr(self, opt_tool):
+                    getattr(self, opt_tool)._assoc_mod(note_data)
         elif note_name == alignment.NOTE_PRE_DEL_SEQS:
             self.region_manager._pre_remove_lines(note_data)
             for seq in note_data:
@@ -515,6 +516,14 @@ class SequenceViewer(ToolInstance):
         get_triggers().remove_handler(self._atomic_changes_handler)
         ToolInstance.delete(self)
 
+    def expand_selection_to_columns(self):
+        from chimerax.core.commands import StringArg, run
+        if len(self.session.alignments) > 1:
+            align_arg = ' ' + StringArg.unparse(self.alignment.ident)
+        else:
+            align_arg = ''
+        run(self.session, "seq expandsel" + align_arg)
+
     def fill_context_menu(self, menu, x, y):
         from Qt.QtGui import QAction
         file_menu = menu.addMenu("File")
@@ -563,6 +572,22 @@ class SequenceViewer(ToolInstance):
         else:
             assoc_action.setEnabled(False)
         structure_menu.addAction(assoc_action)
+        if len(self.alignment.seqs) > 1:
+            expand_action = QAction("Expand Selection to Columns", structure_menu)
+            expand_action.triggered.connect(self.expand_selection_to_columns)
+            expand_action.setEnabled(bool(self.alignment.associations))
+            structure_menu.addAction(expand_action)
+            cons_sel_menu = structure_menu.addMenu("Select by Column Identity")
+            cons_sel_menu.setEnabled(bool(self.alignment.associations))
+            for entry_text, value in [("100%", 100.0), ("<100%", -100.0), (">=50%", 50.0), ("<50%", -50.0)]:
+                action = QAction(entry_text, cons_sel_menu)
+                action.triggered.connect(lambda act, *args, func=self.select_by_column_identity, val=value:
+                    func(val))
+                cons_sel_menu.addAction(action)
+        xfer_action = QAction("Update Chain Sequence...", structure_menu)
+        xfer_action.triggered.connect(self.show_transfer_seq_dialog)
+        xfer_action.setEnabled(bool(self.alignment.associations))
+        structure_menu.addAction(xfer_action)
         view_targets = []
         # bounded_by expects the scene coordinate system...
         from Qt.QtCore import QPointF
@@ -603,28 +628,7 @@ class SequenceViewer(ToolInstance):
             view_action.setEnabled(False)
             structure_menu.addAction(view_action)
 
-        headers_menu = menu.addMenu("Headers")
-        headers = self.alignment.headers
-        headers.sort(key=lambda hdr: hdr.ident.casefold())
-        from chimerax.core.commands import run
-        for hdr in headers:
-            action = QAction(hdr.name, headers_menu)
-            action.setCheckable(True)
-            action.setChecked(hdr.shown)
-            if not hdr.relevant:
-                action.setEnabled(False)
-            action.triggered.connect(lambda *, action=action, hdr=hdr, align_arg=align_arg, self=self: run(
-                self.session, "seq header %s%s %s" % (align_arg, hdr.ident, "show" if action.isChecked() else "hide")))
-            headers_menu.addAction(action)
-        headers_menu.addSeparator()
-        hdr_save_menu = headers_menu.addMenu("Save")
-        for hdr in headers:
-            if not hdr.relevant:
-                continue
-            action = QAction(hdr.name, hdr_save_menu)
-            action.triggered.connect(lambda *, hdr=hdr, align_arg=align_arg, self=self: run(
-                self.session, "seq header %s%s save browse" % (align_arg, hdr.ident)))
-            hdr_save_menu.addAction(action)
+        self.alignment.add_headers_menu_entry(menu)
 
         numberings_menu = menu.addMenu("Numberings")
         action = QAction("Overall", numberings_menu)
@@ -637,14 +641,14 @@ class SequenceViewer(ToolInstance):
         action = QAction("No Reference Sequence", refseq_menu)
         action.setCheckable(True)
         action.setChecked(self.alignment.reference_seq is None)
-        action.triggered.connect(lambda*, align_arg=align_arg, action=action, self=self:
+        action.triggered.connect(lambda*, align_arg=align_arg[:-1], action=action, self=self:
             run(self.session, "seq ref " + align_arg) if action.isChecked() else None)
         refseq_menu.addAction(action)
         for seq in self.alignment.seqs:
             action = QAction(seq.name, refseq_menu)
             action.setCheckable(True)
             action.setChecked(self.alignment.reference_seq is seq)
-            action.triggered.connect(lambda*, seq_arg=StringArg.unparse(align_arg + ':' + seq.name),
+            action.triggered.connect(lambda*, seq_arg=StringArg.unparse(align_arg[:-1] + ':' + seq.name),
                 action=action: run(self.session, "seq ref " + seq_arg) if action.isChecked() else None)
             refseq_menu.addAction(action)
         numberings_menu.addSeparator()
@@ -764,6 +768,21 @@ class SequenceViewer(ToolInstance):
             rt_window.manage(None)
         self._regions_tool.shown = shown
 
+    def select_by_column_identity(self, col_percent):
+        """Select residues associated with columns that match the criteria, which is a percentage value.
+           Positive values mean greater than or equal to, and negative values mean less than.
+        """
+        from chimerax.core.commands import StringArg, run
+        log = len(self.session.alignments) > 1
+        run(self.session, "seq refreshAttrs " + StringArg.unparse(self.alignment.ident), log=log)
+        if col_percent < 0.0:
+            criteria = "<%g" % -col_percent
+        else:
+            criteria = ">=%g" % col_percent
+        from chimerax.atomic import concise_residue_spec
+        spec = concise_residue_spec(self.session, self.alignment.associated_residues())
+        run(self.session, "select ::%s%s & %s" % (self.alignment.COL_IDENTITY_ATTR, criteria, spec))
+
     def show_associations(self):
         if not hasattr(self, "associations_tool"):
             from .associations_tool import AssociationsTool
@@ -795,6 +814,14 @@ class SequenceViewer(ToolInstance):
                 self.tool_window.create_child_window("Percent Identity", close_destroys=False))
             self.percent_identity_dialog.tool_window.manage(None)
         self.percent_identity_dialog.tool_window.shown = True
+
+    def show_transfer_seq_dialog(self):
+        if not hasattr(self, "transfer_seq_dialog"):
+            from .transfer_seq_tool import TransferSeqTool
+            self.transfer_seq_dialog = TransferSeqTool(self,
+                self.tool_window.create_child_window("Update Chain Sequence", close_destroys=False))
+            self.transfer_seq_dialog.tool_window.manage(None)
+        self.transfer_seq_dialog.tool_window.shown = True
 
     def show_settings(self):
         if not hasattr(self, "settings_tool"):

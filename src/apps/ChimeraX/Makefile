@@ -2,7 +2,9 @@ TOP	= ../../..
 include $(TOP)/mk/config.make
 
 ifeq ($(OS),Linux)
+ifdef FLATPAK_DIST
 LDFLAGS	+= -Wl,-rpath,'$$ORIGIN/../lib'
+endif
 endif
 ifeq ($(OS),Darwin)
 LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib'
@@ -131,10 +133,9 @@ pylint:
 $(PROG): $(OBJS)
 	$(PROG_LINK)
 ifeq ($(OS),Linux)
-	# convert to RPATH
-	if objdump -p $(PROG) | grep RUNPATH > /dev/null; then \
-		$(bindir)/chrpath -C $(PROG); \
-	fi
+ifndef FLATPAK_DIST
+	patchelf --force-rpath --set-rpath '$$ORIGIN/../lib' $(PROG)
+endif
 endif
 ifeq ($(OS),Darwin)
 	# Add RPATH so Python ssl module can find libssl.dylib.
@@ -200,6 +201,6 @@ $(APP_NAME).ico: $(APP_NAME)-icon512.png
 icon.$(OBJ_EXT): $(APP_NAME).ico
 
 icon.rc: icon.rc.in
-	sed -e 's/YEAR/$(YEAR)/' -e 's/CHIMERAX_VERSION/$(VER)/' -e 's/CHIMERAX_PRODUCT/$(PRODVER)/' -e 's/CHIMERAX_FLAGS/$(FLAGS)/' < icon.rc.in > icon.rc
+	sed -e 's/YEAR/$(YEAR)/' -e 's/CHIMERAX_VERSION/$(VER)/' -e 's/CHIMERAX_PRODUCT/$(PRODVER)/' -e 's/CHIMERAX_FLAGS/$(FLAGS)/' < icon.rc.in > icon.rc || (rm $@ ; exit 1)
 
 endif

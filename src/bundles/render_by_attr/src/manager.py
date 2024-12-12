@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -28,6 +28,13 @@ class RenderAttrInfo(metaclass=abc.ABCMeta):
     """Info needed for rendering attributes for instances of a class"""
     def __init__(self, session):
         self.session = session
+
+    def attr_change_notify(self, attr_name, callback):
+        """Set up monitoring of attr_name value changes and call callback (with no args) when they change.
+           If callback is None, stop monitoring the attribute.  More than one attribute may be being
+           monitored at once.
+        """
+        pass
 
     @abc.abstractproperty
     def class_object(self):

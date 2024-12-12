@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -277,7 +277,6 @@ class View:
             if offscreen:
                 offscreen.finish(r)
 
-                
     def _drawings_by_pass(self, drawings):
         pass_drawings = {}
         for d in drawings:
@@ -843,7 +842,7 @@ class View:
             ucxyz1, ucxyz2 = self.clip_plane_points(win_x, win_y, include_scene_clipping = False)
             if ucxyz1 is not None and ucxyz2 is not None:
                 def exclude_clipped(d, exclude=exclude):
-                    return exclude(d) or d.allow_clipping
+                    return exclude(d) or (d.allow_clipping and not d.empty_drawing())
                 ucp = self.picked_object_on_segment(ucxyz1, ucxyz2,
                                                     max_transparent_layers = max_transparent_layers,
                                                     exclude = exclude_clipped)

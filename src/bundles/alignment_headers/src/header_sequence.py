@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -455,6 +455,15 @@ class DynamicStructureHeaderSequence(HeaderSequence):
             return len(set([x.structure
                 for x in self.alignment.associations])) >= self.min_structure_relevance
         return len(self.alignment.associations) > 0
+
+def position_color_to_qcolor(color_info):
+    if isinstance(color_info, str):
+        from chimerax.core.colors import BuiltinColors
+        rgba = BuiltinColors[color_info].rgba
+    else:
+        rgba = color_info
+    from Qt.QtGui import QColor
+    return QColor(*[round(255 * chan) for chan in rgba])
 
 registered_headers = []
 def register_header(header_class, default_on=True):

@@ -1,5 +1,5 @@
 window.onload = function() {
-  cxlinks_base="http://www.rbvi.ucsf.edu/chimerax/docs/"
+  cxlinks_base="https://www.rbvi.ucsf.edu/chimerax/docs/"
   if(!window.navigator.userAgent.includes("ChimeraX")){
     window.onclick = function(e){
       if(e.target.tagName.toLowerCase()!="a")

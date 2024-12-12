@@ -22,5 +22,5 @@ install: all
 clean:
 	rm -f $(SUPPRESS)
 
-$(SUPPRESS): $(wildcard *.supp)
-	cat $^ > $@
+$(SUPPRESS): $(wildcard *.supp $(datadir)/valgrind-python.supp)
+	cat $^ > $@ || (rm $@ ; exit 1)

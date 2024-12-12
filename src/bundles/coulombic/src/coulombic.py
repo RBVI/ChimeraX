@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -84,7 +84,7 @@ def assign_charges(session, uncharged_residues, his_scheme, charge_method, *, st
                     copy_r_to_orig[c_r] = o_r
                 from chimerax.addh.cmd import cmd_addh
                 hbond = False
-                if his_scheme is None:
+                if his_scheme is None and struct.num_coordsets == 1:
                     if len(struct_residues[struct_residues.names == "HIS"]) > 0:
                         hbond = True
                 from chimerax.atomic import AtomicStructures

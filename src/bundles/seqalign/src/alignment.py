@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -26,6 +26,7 @@ clustal_strong_groups = ["STA", "NEQK", "NHQK", "NDEQ", "QHRK", "MILV", "MILF", 
 clustal_weak_groups = ["CSA", "ATV", "SAG", "STNK", "STPA", "SGND", "SNDEQK", "NDEQHK",
     "NEQHRK", "FVLIM", "HFY"]
 
+from chimerax.core.errors import NotABug
 from chimerax.core.state import State
 class Alignment(State):
     """A sequence alignment,
@@ -78,6 +79,11 @@ class Alignment(State):
     # associated note_data for the above is just the header except for:
     #   NOTE_HDR_VALUES: a 2-tuple of the header and where the values changed (either a 2-tuple of 0-based
     #       indices into the header, or None -- which indicates the entire header)
+
+    class NoSelectionError(NotABug): pass
+    class NoSelectionExpansionError(NotABug): pass
+
+    COL_IDENTITY_ATTR = "seq_identity"
 
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
             description, intrinsic, *, create_headers=True, session_restore=False):
@@ -155,6 +161,10 @@ class Alignment(State):
             attr_headers = []
             for header in self._headers:
                 header.shown = header.settings.initially_shown and header.relevant
+            if len(seqs) > 1:
+                from chimerax.atomic import Residue
+                Residue.register_attr(self.session, self.COL_IDENTITY_ATTR, "sequence alignment",
+                    attr_type=float, can_return_none=False)
             self._set_residue_attributes()
 
     def add_fixed_header(self, name, contents, *, shown=True, identifier=None, base_class=None):
@@ -173,6 +183,34 @@ class Alignment(State):
         self._headers.sort(key=lambda hdr: hdr.name.casefold())
         header.shown = shown
         return header
+
+    def add_headers_menu_entry(self, menu):
+        headers_menu = menu.addMenu("Headers")
+        headers = self.headers
+        headers.sort(key=lambda hdr: hdr.ident.casefold())
+        from chimerax.core.commands import run, StringArg
+        align_arg = "%s " % self if len(self.session.alignments.alignments) > 1 else ""
+        from Qt.QtGui import QAction
+        for hdr in headers:
+            action = QAction(hdr.name, headers_menu)
+            action.setCheckable(True)
+            action.setChecked(hdr.shown)
+            if not hdr.relevant:
+                action.setEnabled(False)
+            action.triggered.connect(lambda *, action=action, hdr=hdr, align_arg=align_arg, ses=self.session:
+                run(ses, "seq header %s%s %s" % (align_arg, hdr.ident,
+                "show" if action.isChecked() else "hide")))
+            headers_menu.addAction(action)
+        headers_menu.addSeparator()
+        hdr_save_menu = headers_menu.addMenu("Save")
+        for hdr in headers:
+            if not hdr.relevant:
+                continue
+            action = QAction(hdr.name, hdr_save_menu)
+            action.triggered.connect(lambda *, hdr=hdr, align_arg=align_arg, ses=self.session: run(
+                ses, "seq header %s%s save browse" % (align_arg, hdr.ident)))
+            hdr_save_menu.addAction(action)
+        return headers_menu
 
     def add_observer(self, observer):
         """Called by objects that care about alignment changes that are not themselves viewer
@@ -381,7 +419,7 @@ class Alignment(State):
             # since StructureSeq demotion notifications may be delayed until the 'changes done'
             # trigger, we need to do a hacky check here and possibly also delay this notification
             for seq in self.associations:
-                if not hasattr(seq, 'structure'):
+                if getattr(seq, 'structure', None) is None:
                     # it's been demoted
                     def _delay_assoc(_, __, *, name=note_name, data=note_data):
                         self._notify_observers(name, data)
@@ -392,6 +430,15 @@ class Alignment(State):
                     break
             else:
                 self._notify_observers(note_name, note_data)
+
+    def associated_residues(self, aseqs=None):
+        if aseqs is None:
+            aseqs = self.seqs
+        residues = []
+        for aseq in aseqs:
+            for match_map in aseq.match_maps.values():
+                residues.extend(match_map.res_to_pos.keys())
+        return residues
 
     def attach_viewer(self, viewer, *, subcommand_name=None):
         """Called by the viewer (with the viewer instance as the arg) to receive notifications
@@ -471,11 +518,12 @@ class Alignment(State):
         num_unknown = 0
         structures = set()
         for sseq in self.associations:
-            try:
-                structures.add(sseq.structure)
-            except AttributeError:
+            structure = getattr(sseq, 'structure', None)
+            if structure is None:
                 # demoted
                 num_unknown += 1
+            else:
+                structures.add(structure)
         data = {
             'match map': match_map,
             'num remaining associations': len(self.associations),
@@ -493,6 +541,41 @@ class Alignment(State):
             return DEREGISTER
         from chimerax import atomic
         atomic.get_triggers().add_handler('changes done', _delay_disassoc)
+
+    def expand_selection_by_columns(self):
+        from chimerax.atomic import selected_residues, Residues
+        sel_residues = set(selected_residues(self.session))
+        if not sel_residues:
+            raise self.NoSelectionError("No selection to expand")
+
+        sel_columns = set()
+        for aseq in self.seqs:
+            for mm in aseq.match_maps.values():
+                for sr in sel_residues:
+                    try:
+                        ungapped = mm[sr]
+                    except KeyError:
+                        continue
+                    sel_columns.add(aseq.ungapped_to_gapped(ungapped))
+
+        expansion = []
+        for aseq in self.seqs:
+            for mm in aseq.match_maps.values():
+                for sc in sel_columns:
+                    ungapped = aseq.gapped_to_ungapped(sc)
+                    if ungapped is None:
+                        continue
+                    try:
+                        sr = mm[ungapped]
+                    except KeyError:
+                        continue
+                    if sr not in sel_residues:
+                        expansion.append(sr)
+        if not expansion:
+            raise self.NoSelectionExpansionError("No extra residues selected by expanding columns")
+        from chimerax.std_commands.select import select_add
+        from chimerax.core.objects import Objects
+        select_add(self.session, Objects(atoms=Residues(expansion).atoms))
 
     @property
     def headers(self):
@@ -839,6 +922,13 @@ class Alignment(State):
         """For restoring scenes/sessions"""
         ident = data['ident'] if 'ident' in data else data['name']
         create_headers = data['version'] < 2
+        for seq in data['seqs']:
+            if seq.characters == "AYVINEACISCGACEPECPVNAISSGDDRYVIDADTCIDCGACAGVCPVDAPVQA" and len(seq) < len(data['seqs'][0]):
+                if hasattr(seq, 'residues'):
+                    import sys
+                    print("structure sequence", file=sys.__stderr__)
+                else:
+                    seq.characters = "AYVINEA--CISCGACEPECPVNAISSGDD---RYVIDADTCIDCGACAGVCPVDA-PVQA"
         aln = Alignment(session, data['seqs'], ident, data['file attrs'],
             data['file markups'], data['auto_destroy'],
             "session" if data['auto_associate'] else False,
@@ -881,7 +971,7 @@ class Alignment(State):
             return
         from chimerax.atomic import StructureSeq
         for chain in self.associations:
-            if chain.deleted or not isinstance(chain, StructureSeq):
+            if chain.deleted or getattr(chain, 'structure', None) is None:
                 # the ensuing disassociation/demotion will update the RMSD
                 return
         for chain in self.associations:
@@ -905,19 +995,13 @@ class Alignment(State):
         self._notify_observers(self.NOTE_REALIGNMENT, prev_seqs)
 
     def _set_residue_attributes(self, *, headers=None, match_maps=None):
-        if headers is None:
-            headers = [hdr for hdr in self._headers if hdr.shown or hdr.eval_while_hidden]
         if match_maps is None:
             match_maps = [mm for aseq in self.associations.values() for mm in aseq.match_maps.values()]
-        from chimerax.atomic import Residue
-        for header in headers:
-            attr_name = header.residue_attr_name
-            Residue.register_attr(self.session, attr_name, "sequence alignment",
-                attr_type=header.value_type, can_return_none=header.value_none_okay)
+        def process_attr(attr_name, col_vals):
             assigned = set()
             for match_map in match_maps:
                 aseq = match_map.align_seq
-                for i, val in enumerate(header):
+                for i, val in enumerate(col_vals):
                     ui = aseq.gapped_to_ungapped(i)
                     if ui is None:
                         continue
@@ -925,10 +1009,37 @@ class Alignment(State):
                         r = match_map[ui]
                     except KeyError:
                         continue
-                    setattr(r, attr_name, val)
-                    assigned.add(r)
+                    if not hasattr(r, attr_name) or getattr(r, attr_name) != val:
+                        setattr(r, attr_name, val)
+                        assigned.add(r)
             if assigned:
                 self.session.change_tracker.add_modified(assigned, attr_name + " changed")
+        if headers is None:
+            headers = [hdr for hdr in self._headers if hdr.shown or hdr.eval_while_hidden]
+            if len(self.seqs) > 1:
+                values = []
+                for i in range(len(self._seqs[0])):
+                    counts = {}
+                    for seq in self._seqs:
+                        c = seq[i]
+                        if not c.isalnum():
+                            continue
+                        counts[c] = counts.get(c, 0) + 1
+                    if not counts:
+                        values.append(0.0)
+                        continue
+                    max_count = None
+                    for c, count in counts.items():
+                        if max_count is None or count > max_count:
+                            max_count = count
+                    values.append(100.0 * max_count / len(self._seqs))
+                process_attr(self.COL_IDENTITY_ATTR, values)
+        from chimerax.atomic import Residue
+        for header in headers:
+            attr_name = header.residue_attr_name
+            Residue.register_attr(self.session, attr_name, "sequence alignment",
+                attr_type=header.value_type, can_return_none=header.value_none_okay)
+            process_attr(attr_name, header)
 
     def __str__(self):
         return self.ident

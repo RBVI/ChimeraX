@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -191,7 +191,7 @@ class Settings(ConfigFile):
             import warnings
             import numpy as np
             with warnings.catch_warnings():
-                warnings.simplefilter('ignore', category=np.VisibleDeprecationWarning)
+                warnings.simplefilter('ignore', category=np.exceptions.VisibleDeprecationWarning)
                 unequal = not np.array_equal(cur_val, value)
             if unequal:
                 self._cur_settings[name] = value

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -25,8 +25,12 @@
 def pwd(session):
     '''Report the current directory to the log.'''
     import os
-    directory = os.getcwd()
-    session.logger.info('Current working directory is: %s' % directory)
+    try:
+        directory = os.getcwd()
+    except FileNotFoundError:
+        session.logger.info('Current working directory no longer exists!')
+    else:
+        session.logger.info('Current working directory is: %s' % directory)
 
 
 def register_command(logger):

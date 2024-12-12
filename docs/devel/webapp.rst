@@ -6,7 +6,7 @@
     All rights reserved.  This software provided pursuant to a
     license agreement containing restrictions on its disclosure,
     duplication and use.  For details see:
-    http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+    https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
     This notice must be embedded in or attached to all copies,
     including partial copies, of the software or any revisions
     or derivations thereof.
@@ -79,8 +79,8 @@ are in the following sections:
 ----------------
 
 The data exchange between client and server will be in
-`JSON <http://www.json.org>`_ format.  Typically, the exchange
-is communicated using `AJAX <http://www.w3schools.com/ajax/ajax_intro.asp>`_.
+`JSON <https://www.json.org>`_ format.  Typically, the exchange
+is communicated using `AJAX <https://www.w3schools.com/ajax/ajax_intro.asp>`_.
 
 Data from client to server are arrays of requests, each of which is a
 three-element array:

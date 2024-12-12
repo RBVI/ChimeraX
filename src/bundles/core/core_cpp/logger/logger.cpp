@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -81,8 +81,10 @@ void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level, bool is_ht
             method_name = "error";
         else if (level == _LogLevel::WARNING)
             method_name = "warning";
-        else
+        else if (level == _LogLevel::INFO)
             method_name = "info";
+        else
+            method_name = "status";
         PyObject* method = PyObject_GetAttrString(logger, method_name);
         if (method == nullptr) {
             std::stringstream err_msg;

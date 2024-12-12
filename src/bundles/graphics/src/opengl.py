@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -142,7 +142,7 @@ class OpenGLContext:
         # Use screen window is on if it has been mapped.
         screen = window.screen()
         if screen is None:
-            self._screen
+            screen = self._screen
         qc.setScreen(screen)
 
         if self._share_context:
@@ -429,6 +429,7 @@ class Render:
         self._opengl_context = oc = opengl_context
         self._recording_calls = None
         self._front_buffer_valid = False
+        self.show_depth_buffer = False
 
         if not hasattr(oc, 'shader_programs'):
             oc.shader_programs = {}
@@ -496,13 +497,17 @@ class Render:
         self._depth_texture_scale = None # texture xscale, yscale and value zscale
 
         self.frame_number = 0
+        self.check_uniforms = True
 
         # Camera origin, y, and xshift for SHADER_STEREO_360 mode
         self._stereo_360_params = ((0,0,0),(0,1,0),0)
 
+        self._mono_camera_origin = (0, 0, 0)
+        self._mono_camera_fov = 60
+
         # OpenGL texture size limit
         self._max_3d_texture_size = None
-        
+
     def delete(self):
         if self._opengl_context._deleted:
             raise RuntimeError('Render.delete(): OpenGL context deleted before Render instance')
@@ -644,7 +649,7 @@ class Render:
         if self._max_3d_texture_size is None:
             self._max_3d_texture_size = GL.glGetInteger(GL.GL_MAX_3D_TEXTURE_SIZE)
         return self._max_3d_texture_size
-    
+
     def framebuffer_rgba_bits(self):
         # This is only valid for default framebuffer.
         # Need to use GL_COLOR_ATTACHMENT0 for offscreen framebuffers.
@@ -691,7 +696,7 @@ class Render:
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_OUTLINE,
         SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS,
         SHADER_TRANSPARENT_ONLY, SHADER_OPAQUE_ONLY, SHADER_STEREO_360
-        SHADER_CLIP_PLANES, SHADER_ALL_WHITE
+        SHADER_CLIP_PLANES, SHADER_ALL_WHITE, SHADER_VOLUME_RAYCASTING
         '''
         options |= self.enable_capabilities
         options &= ~self.disable_capabilities
@@ -702,6 +707,7 @@ class Render:
         '''
         Set the current shader.
         '''
+        shader.check_uniforms = self.check_uniforms
         if shader == self.current_shader_program:
             return
 
@@ -718,10 +724,13 @@ class Render:
                 self.shadow._set_shadow_shader_variables(shader)
         if self.SHADER_DEPTH_CUE & c:
             self.set_depth_cue_parameters()
-        if not (self.SHADER_TEXTURE_OUTLINE & c
-                or self.SHADER_DEPTH_OUTLINE & c
-                or self.SHADER_BLEND_TEXTURE_2D & c
-                or self.SHADER_BLEND_TEXTURE_3D & c):
+        if not (
+            self.SHADER_TEXTURE_OUTLINE & c
+            or self.SHADER_DEPTH_OUTLINE & c
+            or self.SHADER_BLEND_TEXTURE_2D & c
+            or self.SHADER_BLEND_TEXTURE_3D & c
+            or self.SHADER_SHOW_DEPTH_BUFFER & c
+        ):
             self.set_projection_matrix()
             self.set_model_matrix()
         if (self.SHADER_TEXTURE_2D & c
@@ -738,7 +747,10 @@ class Render:
             self._set_depth_texture_shader_variables(shader)
         if self.SHADER_TEXTURE_CUBEMAP & c:
             shader.set_integer("texcube", 0)
-        if not self.SHADER_VERTEX_COLORS & c:
+        if self.SHADER_VOLUME_RAYCASTING & c:
+            self._set_camera_params()
+            self._set_window_params()
+        if not (self.SHADER_VERTEX_COLORS & c or self.SHADER_SHOW_DEPTH_BUFFER & c):
             self.set_model_color()
         if self.SHADER_FRAME_NUMBER & c:
             self.set_frame_number()
@@ -801,6 +813,9 @@ class Render:
         self._use_shader(p)
         return p
 
+    def flush_shader_cache(self):
+        self._opengl_context.shader_programs = {}
+        self._opengl_context.current_shader_program = None
     def set_projection_matrix(self, pm=None):
         '''
         Set the shader to use the given 4x4 OpenGL projection matrix.
@@ -859,10 +874,13 @@ class Render:
                 if cmm:
                     p.set_matrix('model_matrix', cmm.opengl_matrix())
                     self.set_clip_parameters()
-            if self.SHADER_STEREO_360 & p.capabilities:
+            if (
+                self.SHADER_STEREO_360 & p.capabilities
+                or self.SHADER_VOLUME_RAYCASTING & p.capabilities
+            ):
                 cmm = self.current_model_matrix
                 cvm = self.current_view_matrix
-                if cmm:
+                if cmm and not self.SHADER_VOLUME_RAYCASTING & p.capabilities:
                     p.set_matrix('model_matrix', cmm.opengl_matrix())
                 if cvm:
                     p.set_matrix('view_matrix', cvm.opengl_matrix())
@@ -1381,6 +1399,23 @@ class Render:
         self._opengl_shader(shader_options)
         return tw
 
+    def _draw_depth_buffer(self):
+        # Copy the depth buffer into a texture and display it as a fullscreen quad
+        t = Texture()
+        fb = self.current_framebuffer()
+        t.initialize_depth((fb.width, fb.height))
+        tw = self._texture_window(t, self.SHADER_SHOW_DEPTH_BUFFER)
+        GL.glReadBuffer(GL.GL_BACK)
+        GL.glCopyTexImage2D(
+            GL.GL_TEXTURE_2D, 0, GL.GL_DEPTH_COMPONENT, 0, 0, fb.width, fb.height, 0
+        )
+        p = self.current_shader_program
+        p.set_integer("depth_texture", 0)
+        tw.draw()
+        t.unbind_texture()
+        t.delete_texture()
+        # self._opengl_context.current_shader_program = None
+
     def allow_equal_depth(self, equal):
         GL.glDepthFunc(GL.GL_LEQUAL if equal else GL.GL_LESS)
 
@@ -1397,7 +1432,52 @@ class Render:
     def finish_rendering(self):
         GL.glFinish()
 
-    def set_stereo_360_params(self, camera_origin = None, camera_y = None, x_shift = None):
+    def _set_camera_params(self, camera_origin=None, camera_fov=None):
+        if camera_origin is None:
+            camera_origin = self._mono_camera_origin
+            camera_fov = self._mono_camera_fov
+        else:
+            self._mono_camera_origin = camera_origin
+            self._mono_camera_fov = camera_fov
+        p = self.current_shader_program
+        if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
+            import math
+
+            p.set_vector3("camera_pos", tuple(camera_origin))
+            p.set_float("camera_fov", camera_fov)
+            p.set_rgba("background_color", self._last_background_color)
+            # p.set_float("focal_length", 1.0 / math.tan(math.radians(camera_fov / 2)))
+
+    def _set_window_params(self) -> None:
+        p = self.current_shader_program
+        if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
+            pscale = self.pixel_scale()
+            width = self.opengl_context.window.width() * pscale
+            height = self.opengl_context.window.height() * pscale
+            p.set_vector2("window_size", (width, height))
+            # p.set_float("aspect_ratio", (width / height))
+
+    def set_volume_parameters(
+        self,
+        step: tuple[int, int, int],
+        full_region_min: tuple[int, int, int],
+        full_region_max: tuple[int, int, int],
+    ) -> None:
+        p = self.current_shader_program
+        if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
+            p.set_float("step_size", step)
+            p.set_vector3("full_region_min", full_region_min)
+            p.set_vector3("full_region_max", full_region_max)
+
+    def set_bounding_box_planes(
+        self, max_corner: tuple[int, int, int], min_corner: tuple[int, int, int]
+    ) -> None:
+        p = self.current_shader_program
+        if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
+            p.set_vector3("bbox_min", min_corner)
+            p.set_vector3("bbox_max", max_corner)
+
+    def set_stereo_360_params(self, camera_origin=None, camera_y=None, x_shift=None):
         '''
         Shifts scene vertices to effectively make left/right eye camera positions face the
         vertex being rendered.
@@ -2037,46 +2117,53 @@ class BlendTextures:
             fb.set_color_buffer(color_texture)
         return fb
 
+
 # Options used with Render.shader()
 shader_options = (
-    'SHADER_LIGHTING',
-    'SHADER_LIGHTING_NORMALS',
-    'SHADER_DEPTH_CUE',
-    'SHADER_NO_DEPTH_CUE',
-    'SHADER_TEXTURE_2D',
-    'SHADER_TEXTURE_3D',
-    'SHADER_COLORMAP',
-    'SHADER_DEPTH_TEXTURE',
-    'SHADER_TEXTURE_CUBEMAP',
-    'SHADER_TEXTURE_3D_AMBIENT',
-    'SHADER_BLEND_TEXTURE_2D',
-    'SHADER_BLEND_TEXTURE_3D',
-    'SHADER_BLEND_COLORMAP',
-    'SHADER_SHADOW',
-    'SHADER_NO_SHADOW',
-    'SHADER_MULTISHADOW',
-    'SHADER_NO_MULTISHADOW',
-    'SHADER_SHIFT_AND_SCALE',
-    'SHADER_INSTANCING',
-    'SHADER_TEXTURE_OUTLINE',
-    'SHADER_DEPTH_OUTLINE',
-    'SHADER_VERTEX_COLORS',
-    'SHADER_FRAME_NUMBER',
-    'SHADER_TRANSPARENT_ONLY',
-    'SHADER_OPAQUE_ONLY',
-    'SHADER_STEREO_360',
-    'SHADER_CLIP_PLANES',
-    'SHADER_NO_CLIP_PLANES',
-    'SHADER_ALPHA_DEPTH',
-    'SHADER_ALL_WHITE',
+    "SHADER_LIGHTING",
+    "SHADER_LIGHTING_NORMALS",
+    "SHADER_DEPTH_CUE",
+    "SHADER_NO_DEPTH_CUE",
+    "SHADER_TEXTURE_2D",
+    "SHADER_TEXTURE_3D",
+    "SHADER_COLORMAP",
+    "SHADER_DEPTH_TEXTURE",
+    "SHADER_TEXTURE_CUBEMAP",
+    "SHADER_TEXTURE_3D_AMBIENT",
+    "SHADER_BLEND_TEXTURE_2D",
+    "SHADER_BLEND_TEXTURE_3D",
+    "SHADER_BLEND_COLORMAP",
+    "SHADER_SHADOW",
+    "SHADER_NO_SHADOW",
+    "SHADER_MULTISHADOW",
+    "SHADER_NO_MULTISHADOW",
+    "SHADER_SHIFT_AND_SCALE",
+    "SHADER_INSTANCING",
+    "SHADER_TEXTURE_OUTLINE",
+    "SHADER_DEPTH_OUTLINE",
+    "SHADER_VERTEX_COLORS",
+    "SHADER_FRAME_NUMBER",
+    "SHADER_TRANSPARENT_ONLY",
+    "SHADER_OPAQUE_ONLY",
+    "SHADER_STEREO_360",
+    "SHADER_CLIP_PLANES",
+    "SHADER_NO_CLIP_PLANES",
+    "SHADER_ALPHA_DEPTH",
+    "SHADER_ALL_WHITE",
+    "SHADER_VOLUME_RAYCASTING",
+    "SHADER_SHOW_DEPTH_BUFFER",
 )
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
 
-Render.SHADER_NO_PROJECTION_MATRIX = (Render.SHADER_TEXTURE_OUTLINE |
-                                      Render.SHADER_DEPTH_OUTLINE |
-                                      Render.SHADER_BLEND_TEXTURE_2D |
-                                      Render.SHADER_BLEND_TEXTURE_3D)
+Render.SHADER_NO_PROJECTION_MATRIX = (
+    Render.SHADER_TEXTURE_OUTLINE
+    | Render.SHADER_DEPTH_OUTLINE
+    | Render.SHADER_BLEND_TEXTURE_2D
+    | Render.SHADER_BLEND_TEXTURE_3D
+    | Render.SHADER_SHOW_DEPTH_BUFFER
+)
+
 
 def shader_capability_names(capabilities_bit_mask):
     return [name for i, name in enumerate(shader_options)
@@ -2784,6 +2871,8 @@ class Shader:
     def __init__(self, capabilities = 0, max_shadows = 0,
                  vertex_shader_path = None, fragment_shader_path = None):
 
+        self.check_uniforms = True
+
         self.capabilities = capabilities
 
         if vertex_shader_path is None:
@@ -2834,7 +2923,7 @@ class Shader:
         else:
             p = self.program_id
             uid = GL.glGetUniformLocation(p, name.encode('utf-8'))
-            if uid == -1:
+            if uid == -1 and self.check_uniforms:
                 raise OpenGLError('Shader does not have uniform variable "%s"\n shader capabilities %s'
                                    % (name, ', '.join(shader_capability_names(self.capabilities))))
             uids[name] = uid

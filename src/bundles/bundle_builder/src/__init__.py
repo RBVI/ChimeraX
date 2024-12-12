@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -21,7 +21,7 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "1.3.2"
+__version__ = "1.4.0"
 import importlib.metadata
 import logging
 import sys
@@ -581,7 +581,7 @@ def _extract_selectors(bundle_info) -> list[dict[str, str]]:
 
 
 def xml_to_toml(
-    bundle_info, dynamic_version=False, write: bool = False
+    bundle_info, dynamic_version=False, write: bool = False, quiet: bool = False
 ) -> Optional[str]:
     bundle = BundleBuilder(logger=log, bundle_xml=bundle_info)
     python_classifiers = bundle.python_classifiers
@@ -614,7 +614,7 @@ def xml_to_toml(
         if reqs:
             for dep in reqs:
                 if dep.startswith("numpy"):
-                    build_dependencies.append(dep)
+                    build_dependencies.append(dep.replace(" ", ""))
                     break
 
     # Set the build backend to require this version of bundle builder or greater.
@@ -857,12 +857,13 @@ def xml_to_toml(
     # description = "Get results for a finished BlastProtein job"
     # """
 
-    if dynamic_version:
-        print(
-            "\nYou enabled dynamic versioning; you must add the following to your top level __init__.py:"
-        )
-        print('__version__ = "%s"' % bundle.version)
-        print("This must be the first uncommented line in the file.\n")
+    if not quiet:
+        if dynamic_version:
+            print(
+                "\nYou enabled dynamic versioning; you must add the following to your top level __init__.py:"
+            )
+            print('__version__ = "%s"' % bundle.version)
+            print("This must be the first uncommented line in the file.\n")
 
-    print(toml)
+        print(toml)
     return toml

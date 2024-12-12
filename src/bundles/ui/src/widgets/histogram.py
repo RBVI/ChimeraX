@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -492,6 +492,10 @@ class MarkedHistogram(QWidget):
 
     def _button_up_cb(self, event=None):
         if self._drag_marker:
+            from numbers import Integral
+            if isinstance(self._min_val, Integral) and isinstance(self._max_val, Integral):
+                # presumably histogram of ints...
+                self._move_cur_marker(round(self._marker2abs(self._drag_marker)[0]))
             self._drag_marker = None
             if self._active_markers.move_callback:
                 self._active_markers.move_callback('end')
@@ -632,6 +636,12 @@ class MarkedHistogram(QWidget):
             hist_size.width() - 2*dx, hist_size.height()
         self._min_val, self._max_val, self._bins = ds
         filled_range = self._max_val - self._min_val
+        temp_abs_markers = False
+        if self._draw_min != None or self._draw_max != None:
+            if self._active_markers is not None and self._active_markers.coord_type == "relative":
+                # keep markers at their same absolute positions as the range expands
+                temp_abs_markers = True
+                self._active_markers.coord_type = "absolute"
         empty_ranges = [0, 0]
         if self._draw_min != None:
             empty_ranges[0] = self._min_val - self._draw_min
@@ -639,6 +649,8 @@ class MarkedHistogram(QWidget):
         if self._draw_max != None:
             empty_ranges[1] = self._draw_max - self._max_val
             self._max_val = self._draw_max
+        if temp_abs_markers:
+            self._active_markers.coord_type = "relative"
         def handle_list(left, bins, right):
             # can't '+' a list to a numpy array (#9328)...
             bins = list(bins)
@@ -698,16 +710,19 @@ class MarkedHistogram(QWidget):
                 line.setZValue(-1)  # keep bars below markers
         else:
             x_scale = (hist_width - 1) / float(num_bins)
+            from Qt.QtCore import Qt
+            from Qt.QtGui import QBrush, QColor
             for b, n in enumerate(self._bins):
                 x1 = border + b * x_scale
                 x2 = border + (b+1) * x_scale
                 h = int(h_scale * n)
-                rect = self._hist_scene.addRect(x1, bottom-h, x2-x1, h)
+                rect = self._hist_scene.addRect(x1, bottom-h, x2-x1, h, brush=QBrush(QColor(225,225,225)))
                 self._hist_bars.addToGroup(rect)
                 rect.setZValue(-1) # keep bars below markers
         self._markable = True
         if self._active_markers is not None:
-            self._active_markers._update_plot()
+            if not temp_abs_markers:
+                self._active_markers._update_plot()
             marker = self._active_markers._sel_marker
             if marker:
                 self._set_value_entry(self._marker2abs(marker)[0])

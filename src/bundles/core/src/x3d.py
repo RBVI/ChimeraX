@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -114,7 +114,7 @@ class X3DScene:
             print("<?xml version='1.0' encoding='UTF-8'?>", file=stream)
             # use schema in preference to DOCTYPE
             #  "<!DOCTYPE X3D PUBLIC 'ISO//Web3D//DTD X3D 3.1//EN'"
-            #  " 'http://www.web3d.org/specifications/x3d-3.1.dtd'>"
+            #  " 'https://www.web3d.org/specifications/x3d-3.1.dtd'>"
 
         if units:
             # The UNIT statement first appeared in version 3.3
@@ -124,8 +124,8 @@ class X3DScene:
         profile = self.get_profile(profile_name)
         tab = ' ' * indent
         print("%s<X3D version='%s' profile='%s'" % (tab, self.version(), profile_name), file=stream)
-        print("%s xmlns:xsd='http://www.w3.org/2001/XMLSchema-instance'" % tab, file=stream)
-        print("%s xsd:noNamespaceSchemaLocation='http://www.web3d.org/specifications/x3d-%s.xsd'" % (tab, self.version()), end='', file=stream)
+        print("%s xmlns:xsd='https://www.w3.org/2001/XMLSchema-instance'" % tab, file=stream)
+        print("%s xsd:noNamespaceSchemaLocation='https://www.web3d.org/specifications/x3d-%s.xsd'" % (tab, self.version()), end='', file=stream)
         for prefix, uri in namespaces.items():
             print("\n%s xmlns:%s=\"%s\"" % (tab, escape(prefix), escape(uri)),
                   end='', file=stream)

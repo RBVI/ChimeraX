@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -84,7 +84,9 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False, type
     from chimerax.core.commands import plural_form
     match_msg = "Assigning %s attribute to %d %s" % (attr_name, len(items), plural_form(items, "item"))
     if not items:
-        session.logger.info('<font color="OrangeRed">' +  match_msg + "</font>", is_html=True)
+        from chimerax.core.colors import scheme_color
+        color = scheme_color('warning')
+        session.logger.info(f'<font color="{color}">{match_msg}</font>', is_html=True)
         return
     session.logger.info(match_msg)
 

@@ -16,12 +16,13 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command: clashes, contacts</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: clashes, contacts</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -118,16 +119,16 @@ r<sub>VDW<i>i</i></sub> + r<sub>VDW<i>j</i></sub>
 <p>
 <a name="recommended"></a>
 <table border cellpadding="4" cellspacing="0"><tr>
-<th style="background-color: #eaeaea" rowspan="2">&nbsp;command&nbsp;</th>
-<th style="background-color: #eaeaea" colspan="2">
+<th class="shaded" rowspan="2">&nbsp;command&nbsp;</th>
+<th class="shaded" colspan="2">
 <a href="#overlapCutoff">overlapCutoff</a> (&Aring;)</th>
-<th style="background-color: #eaeaea" colspan="2">
+<th class="shaded" colspan="2">
 <a href="#hbondAllowance">hbondAllowance</a> (&Aring;)</th>
 </tr><tr>
-<td align="center" style="background-color: #eaeaea">default</td>
-<td align="center" style="background-color: #eaeaea">usual range</td>
-<td align="center" style="background-color: #eaeaea">default</td>
-<td align="center" style="background-color: #eaeaea">usual range</td>
+<td align="center" class="shaded">default</td>
+<td align="center" class="shaded">usual range</td>
+<td align="center" class="shaded">default</td>
+<td align="center" class="shaded">usual range</td>
 </tr><tr>
 <td align="center"><b>clashes</b></td>
 <td align="center"><b>0.6</b></td>
@@ -414,7 +415,7 @@ assigned when <a href="#setAttrs"><b>setAttrs</b></a> is <b>true</b>.
 <br>
 Specify writing contact/clash information to a file
 (disallowed with <a href="#continuous">continuous monitoring</a>).
-The information includes atom specifications
+The atomic information includes atom specifications
 (see <a href="#namingStyle"><b>namingStyle</b></a>),
 <a href="#overlap-def">overlaps</a>, and interatomic distances.
 <i>File</i> is the output file pathname,
@@ -433,9 +434,9 @@ Disallowed with <a href="#continuous">continuous monitoring</a>.
 </blockquote>
 <blockquote>
 <a name="namingStyle"></a>
-<b>namingStyle</b> &nbsp;simple&nbsp;|&nbsp;command&nbsp;|&nbsp;serial
+<b>namingStyle</b> &nbsp;simple&nbsp;|&nbsp;command&nbsp;|&nbsp;serial&nbsp;|&nbsp;residue
 <br>
-How to describe atoms in contact/clash information written
+How to describe atoms/residues in contact/clash information written
 to a <a href="#saveFile">file</a> or the <a href="#log">log</a>:
 <ul>
 <li><b>simple</b> &ndash; chain ID (preceded by slash),
@@ -445,10 +446,15 @@ residue name, residue number, atom name (for example, /B ASN 21 OD1)
 (for example, /B:21@OD1)
 <li><b>serial</b> &ndash; atom serial number
 (for example, 126)
+<li><b>residue</b> &ndash; condense all results to the residue level,
+omitting atom names and reporting only the largest (or least negative) 
+overlap per unique pair of residues 
 </ul>
 Model number will be included when multiple models are present.
 The <a href="../preferences.html#labels"><b>Labels</b> preference</a>
-<b>Balloon-help specifier style</b> sets which is the default.
+<b>Balloon-help specifier style</b> sets which is the default (atom)
+naming style, as well as how residues are listed if
+<b>namingStyle residue</b> is used.
 </blockquote>
 <blockquote>
 <a name="summary"><b>summary</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>
@@ -465,5 +471,5 @@ but only the initial and final summaries are reported in the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2023</address>
+August 2024</address>
 </body></html>

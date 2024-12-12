@@ -1,13 +1,11 @@
 [build-system]
 requires = [
-  "ChimeraX-BundleBuilder>=1.3.0",
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
   "ChimeraX-AtomicLibrary ~=14.0",
-  "ChimeraX-Geometry ~=1.0",
-  "ChimeraX-Graphics ~=1.0",
   "ChimeraX-PDBLibrary ~=1.0",
   "ChimeraX-Arrays ~=1.0",
   "ChimeraX-Core ~=1.0",
-  "numpy ==1.26.4",
+  "numpy==CURRENT_NUMPY_VERSION",
 ]
 build-backend = "chimerax.bundle_builder.cx_pep517"
 
@@ -139,8 +137,6 @@ libraries = [
 ]
 include-modules = [
   "chimerax.atomic_lib",
-  "chimerax.geometry",
-  "chimerax.graphics",
   "chimerax.pdb_lib",
   "chimerax.arrays",
   "chimerax.core",
@@ -148,8 +144,6 @@ include-modules = [
 ]
 library-modules = [
   "chimerax.atomic_lib",
-  "chimerax.geometry",
-  "chimerax.graphics",
   "chimerax.pdb_lib",
   "chimerax.arrays",
   "chimerax.core",
@@ -171,8 +165,6 @@ libraries = [
 ]
 include-modules = [
   "chimerax.atomic_lib",
-  "chimerax.geometry",
-  "chimerax.graphics",
   "chimerax.pdb_lib",
   "chimerax.arrays",
   "chimerax.core",
@@ -180,8 +172,6 @@ include-modules = [
 ]
 library-modules = [
   "chimerax.atomic_lib",
-  "chimerax.geometry",
-  "chimerax.graphics",
   "chimerax.pdb_lib",
   "chimerax.arrays",
   "chimerax.core",
@@ -203,16 +193,12 @@ libraries = [
 ]
 include-modules = [
   "chimerax.atomic_lib",
-  "chimerax.geometry",
-  "chimerax.graphics",
   "chimerax.pdb_lib",
   "chimerax.arrays",
   "chimerax.core",
 ]
 library-modules = [
   "chimerax.atomic_lib",
-  "chimerax.geometry",
-  "chimerax.graphics",
   "chimerax.pdb_lib",
   "chimerax.arrays",
   "chimerax.core",
@@ -238,8 +224,6 @@ libraries = [
 ]
 include-modules = [
   "chimerax.atomic_lib",
-  "chimerax.geometry",
-  "chimerax.graphics",
   "chimerax.pdb_lib",
   "chimerax.arrays",
   "chimerax.core",
@@ -247,8 +231,6 @@ include-modules = [
 ]
 library-modules = [
   "chimerax.atomic_lib",
-  "chimerax.geometry",
-  "chimerax.graphics",
   "chimerax.pdb_lib",
   "chimerax.arrays",
   "chimerax.core",
@@ -272,8 +254,6 @@ libraries = [
 ]
 include-modules = [
   "chimerax.atomic_lib",
-  "chimerax.geometry",
-  "chimerax.graphics",
   "chimerax.pdb_lib",
   "chimerax.arrays",
   "chimerax.core",
@@ -281,8 +261,6 @@ include-modules = [
 ]
 library-modules = [
   "chimerax.atomic_lib",
-  "chimerax.geometry",
-  "chimerax.graphics",
   "chimerax.pdb_lib",
   "chimerax.arrays",
   "chimerax.core",

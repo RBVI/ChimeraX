@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -54,6 +54,11 @@ class _HelpWebView(ChimeraXHtmlView):
     def __init__(self, session, tool, profile):
         super().__init__(session, tool.tabs, size_hint=(840, 800), profile=profile)
         self.help_tool = tool
+        from Qt.QtWebEngineCore import QWebEngineSettings
+        settings = self.settings()
+        settings.setAttribute(QWebEngineSettings.PluginsEnabled, True)
+        settings.setAttribute(QWebEngineSettings.PdfViewerEnabled, True)
+
 
     def createWindow(self, win_type):  # noqa
         # win_type is window, tab, dialog, backgroundtab
@@ -108,7 +113,6 @@ class HelpUI(ToolInstance):
         from Qt.QtCore import Qt
         shortcuts = (
             (Qt.CTRL | Qt.Key_0, self.page_reset_zoom),
-            (Qt.CTRL | Qt.Key_T, lambda: self.create_tab(empty=True)),
             (Qt.CTRL | Qt.Key_W, self.close_current_tab),
             (Qt.CTRL | Qt.Key_Tab, lambda: self.cycle_tab(1)),
             (Qt.CTRL | Qt.SHIFT | Qt.Key_Tab, lambda: self.cycle_tab(-1)),
@@ -133,32 +137,34 @@ class HelpUI(ToolInstance):
         parent.setLayout(layout)
         import os.path
         icon_dir = os.path.dirname(__file__)
-        # attribute, text, tool tip, callback, shortcut(s), enabled
+        # attribute, text, tool tip, callback, shortcut(s), enabled, icon
         buttons = (
             ("back", "Back", "Back to previous page", self.page_back,
-                Qt.Key_Back, False),
+                Qt.Key_Back, False, QIcon.ThemeIcon.GoPrevious),
             ("forward", "Forward", "Next page", self.page_forward,
-                Qt.Key_Forward, False),
+                Qt.Key_Forward, False, QIcon.ThemeIcon.GoNext),
             ("reload", "Reload", "Reload page", self.page_reload,
-                Qt.Key_Reload, True),
+                Qt.Key_Reload, True, QIcon.ThemeIcon.ViewRefresh),
             ("new_tab", "New Tab", "New Tab", lambda: self.create_tab(empty=True),
-                Qt.Key_Reload, True),
+                Qt.CTRL | Qt.Key_T, True, QIcon.ThemeIcon.DocumentNew),
             ("zoom_in", "Zoom in", "Zoom in", self.page_zoom_in,
-                [Qt.CTRL | Qt.Key_Plus, Qt.Key_ZoomIn, Qt.CTRL | Qt.Key_Equal], True),
+                [Qt.CTRL | Qt.Key_Plus, Qt.Key_ZoomIn, Qt.CTRL | Qt.Key_Equal],
+                True, QIcon.ThemeIcon.ZoomIn),
             ("zoom_out", "Zoom out", "Zoom out", self.page_zoom_out,
-                [Qt.CTRL | Qt.Key_Minus, Qt.Key_ZoomOut], True),
+                [Qt.CTRL | Qt.Key_Minus, Qt.Key_ZoomOut],
+                True, QIcon.ThemeIcon.ZoomOut),
             ("home", "Home", "Home page", self.page_home,
-                Qt.Key_HomePage, True),
-            (None, None, None, None, None, None),
+                Qt.Key_HomePage, True, QIcon.ThemeIcon.GoHome),
+            (None, None, None, None, None, None, None),
             ("search", "Search", "Search in page", self.page_search,
-                Qt.Key_Search, True),
+                Qt.Key_Search, True, QIcon.ThemeIcon.SystemSearch),
         )
-        for attribute, text, tooltip, callback, shortcut, enabled in buttons:
+        dark_mode = session.ui.dark_mode()
+        for attribute, text, tooltip, callback, shortcut, enabled, icon in buttons:
             if attribute is None:
                 tb.addSeparator()
                 continue
-            icon_path = os.path.join(icon_dir, "%s.svg" % attribute)
-            setattr(self, attribute, QAction(QIcon(icon_path), text, tb))
+            setattr(self, attribute, QAction(QIcon.fromTheme(icon), text, tb))
             a = getattr(self, attribute)
             a.setToolTip(tooltip)
             a.triggered.connect(callback)

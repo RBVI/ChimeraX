@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -32,7 +32,8 @@ class GridCanvas:
         self.row_labels = list(string.ascii_uppercase) + ['?', 'gap', 'misc']
         import numpy
         self.empty_rows = numpy.where(~self.grid_data.any(axis=1))[0]
-        from Qt.QtGui import QFont, QFontMetrics
+        self.existing_row_labels = [rl for i, rl in enumerate(self.row_labels) if i not in self.empty_rows]
+        from Qt.QtGui import QFont, QFontMetrics, QPalette
         self.font = QFont("Helvetica")
         self.font_metrics = QFontMetrics(self.font)
         self.max_label_width = 0
@@ -40,6 +41,12 @@ class GridCanvas:
             if i in self.empty_rows:
                 continue
             self.max_label_width = max(self.max_label_width, self.font_metrics.horizontalAdvance(text + ' '))
+        self.max_main_label_width = self.max_label_width
+
+        #palette = QPalette()
+        #palette.setColor(QPalette.Window, Qt.white)
+        #parent.setAutoFillBackground(True)
+        #parent.setPalette(palette)
 
         self.main_label_scene = QGraphicsScene()
         """
@@ -47,7 +54,7 @@ class GridCanvas:
         """
         self.main_label_scene.setBackgroundBrush(Qt.white)
         self.main_label_view = QGraphicsView(self.main_label_scene)
-        self.main_label_view.setMaximumWidth(self.max_label_width)
+        self.main_label_view.setAlignment(Qt.AlignRight|Qt.AlignTop)
         self.main_label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         self.header_scene = QGraphicsScene()
         """
@@ -56,8 +63,21 @@ class GridCanvas:
         self.header_scene.setBackgroundBrush(Qt.white)
         self.header_view = QGraphicsView(self.header_scene)
         self.header_view.setAttribute(Qt.WA_AlwaysShowToolTips)
+        self.header_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.header_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.header_view.setAlignment(Qt.AlignLeft|Qt.AlignBottom)
+        self.header_label_scene = QGraphicsScene()
+        """
+        self.header_label_scene.setBackgroundBrush(Qt.lightGray)
+        """
+        self.header_label_scene.setBackgroundBrush(Qt.white)
+        self.header_label_view = QGraphicsView(self.header_label_scene)
+        self.header_label_view.setAlignment(Qt.AlignRight|Qt.AlignBottom)
+        self.header_label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
+
         self.main_scene = QGraphicsScene()
         self.main_scene.setBackgroundBrush(Qt.white)
+        self.main_scene.mouseReleaseEvent = self.mouse_click
         """if gray background desired...
         ms_brush = self.main_scene.backgroundBrush()
         from Qt.QtGui import QColor
@@ -92,7 +112,8 @@ class GridCanvas:
         layout = QGridLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
-        layout.addWidget(self.header_view, 0, 1)
+        layout.addWidget(self.header_label_view, 0, 0, alignment=Qt.AlignRight | Qt.AlignBottom)
+        layout.addWidget(self.header_view, 0, 1, alignment=Qt.AlignLeft | Qt.AlignBottom)
         layout.addWidget(self.main_label_view, 1, 0, alignment=Qt.AlignRight | Qt.AlignTop)
         layout.addWidget(self.main_view, 1, 1, alignment=Qt.AlignLeft | Qt.AlignTop)
         layout.setColumnStretch(0, 0)
@@ -100,13 +121,62 @@ class GridCanvas:
         layout.setRowStretch(0, 0)
         layout.setRowStretch(1, 1)
         parent.setLayout(layout)
-        self.header_view.show()
+        #self.header_view.show()
         self.main_label_view.show()
         self.main_view.show()
         self.layout_alignment()
+        self.selection_items = {}
+        self.update_selection()
+        from chimerax.core.selection import SELECTION_CHANGED
+        self.handlers = [ self.pg.session.triggers.add_handler(SELECTION_CHANGED, self.update_selection) ]
+
+    def alignment_notification(self, note_name, note_data):
+        import sys
+        print("canvas notification", note_name, file=sys.__stderr__)
+        alignment = self.alignment
+        if note_name == alignment.NOTE_MOD_ASSOC:
+            self.update_selection()
+        '''
+        if note_name == self.alignment.NOTE_REF_SEQ:
+            self.lead_block.rerule()
+        elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
+            self.refresh(note_data)
+        elif note_name == self.alignment.NOTE_REALIGNMENT:
+            # headers are notified before us, so they should be "ready to go"
+            self.sv.region_browser.clear_regions()
+            self._reformat()
+        '''
+        if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
+                self.alignment.NOTE_HDR_NAME):
+            return
+        if type(note_data) == tuple:
+            hdr, bounds = note_data
+        else:
+            hdr = note_data
+        if note_name == self.alignment.NOTE_HDR_SHOWN:
+            if hdr.shown:
+                self.show_header(hdr)
+            else:
+                self.hide_header(hdr)
+        elif hdr.shown:
+            #TODO
+            if note_name == self.alignment.NOTE_HDR_VALUES:
+                if bounds is None:
+                    bounds = (0, len(hdr)-1)
+                self.lead_block.refresh(hdr, *bounds)
+                self.main_scene.update()
+            elif note_name == self.alignment.NOTE_HDR_NAME:
+                if self.label_width == _find_label_width(self.alignment.seqs +
+                        [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
+                        self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
+                    self.lead_block.replace_label(hdr)
+                    self.main_label_scene.update()
+                else:
+                    self._reformat()
 
     def destroy(self):
-        pass
+        for handler in self.handlers:
+            handler.remove()
 
     def hide_header(self, header):
         raise NotImplementedError("hide_header")
@@ -125,7 +195,7 @@ class GridCanvas:
         from chimerax.core.colors import contrast_with
         y = 0
         # adjust for rectangle outline width / inter-line spacing
-        y_adjust = 1
+        y_adjust = 2
         for i in range(rows):
             if i in self.empty_rows:
                 continue
@@ -148,6 +218,11 @@ class GridCanvas:
             label_width = self.font_metrics.horizontalAdvance(self.row_labels[i] + ' ')
             label_text.moveBy((self.max_label_width - label_width) / 2, y + y_adjust)
             y += height
+        self.header_groups = {}
+        self.header_label_items = {}
+        for hdr in self.alignment.headers:
+            if hdr.shown:
+                self.show_header(hdr)
         self._update_scene_rects()
         #TODO: everything else
         return
@@ -171,43 +246,37 @@ class GridCanvas:
             self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps())
         self._update_scene_rects()
 
-    def alignment_notification(self, note_name, note_data):
-        raise NotImplementedError("alignment_notification")
-        if hasattr(self, 'lead_block'):
-            if note_name == self.alignment.NOTE_REF_SEQ:
-                self.lead_block.rerule()
-            elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
-                self.refresh(note_data)
-            elif note_name == self.alignment.NOTE_REALIGNMENT:
-                # headers are notified before us, so they should be "ready to go"
-                self.sv.region_browser.clear_regions()
-                self._reformat()
-            if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
-                    self.alignment.NOTE_HDR_NAME):
+    def mouse_click(self, event):
+        from Qt.QtCore import Qt
+        width, height = self.font_pixels
+        raw_rows, grid_columns = self.grid_data.shape
+        grid_rows = raw_rows - len(self.empty_rows)
+        pos = event.scenePos()
+        row = int(pos.y() / height)
+        if row < 0 or row > grid_rows - 1:
+            return
+        col = int(pos.x() / width)
+        if col < 0 or col > grid_columns - 1:
+            return
+        residues = self._residues_at(row, col)
+        final_cmd = None
+        if event.modifiers() & Qt.ShiftModifier:
+            if not residues:
                 return
-            if type(note_data) == tuple:
-                hdr, bounds = note_data
+            if (row, col) in self.selection_items:
+                cmd = "sel subtract"
             else:
-                hdr = note_data
-            if note_name == self.alignment.NOTE_HDR_SHOWN:
-                if hdr.shown:
-                    self.show_header(hdr)
-                else:
-                    self.hide_header(hdr)
-            elif hdr.shown:
-                if note_name == self.alignment.NOTE_HDR_VALUES:
-                    if bounds is None:
-                        bounds = (0, len(hdr)-1)
-                    self.lead_block.refresh(hdr, *bounds)
-                    self.main_scene.update()
-                elif note_name == self.alignment.NOTE_HDR_NAME:
-                    if self.label_width == _find_label_width(self.alignment.seqs +
-                            [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
-                            self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
-                        self.lead_block.replace_label(hdr)
-                        self.main_label_scene.update()
-                    else:
-                        self._reformat()
+                cmd = "sel add"
+        else:
+            if residues:
+                cmd = "sel"
+            else:
+                final_cmd = "sel clear"
+        if final_cmd is None:
+            from chimerax.atomic import concise_residue_spec
+            final_cmd = cmd + ' ' + concise_residue_spec(self.pg.session, residues)
+        from chimerax.core.commands import run
+        run(self.pg.session, final_cmd)
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
         raise NotImplementedError("refresh")
@@ -219,10 +288,93 @@ class GridCanvas:
         self.main_scene.update()
 
     def show_header(self, header):
-        raise NotImplementedError("show_header")
-        self.lead_block.show_header(header)
-        self.sv.region_browser.redraw_regions()
+        width, height = self.font_pixels
+        if not self.header_groups:
+            y = 0
+        else:
+            y = max([grp.boundingRect().y() for grp in self.header_groups.values()]) + height
+        import sys
+        print("show header", header.name, "at", y, file=sys.__stderr__)
+        x = width / 2
+        items = []
+        if hasattr(header, 'depiction_val'):
+            val_func = lambda i, hdr=header: hdr.depiction_val(i)
+        else:
+            val_func = lambda i, hdr=header: hdr[i]
+        from chimerax.alignment_headers import position_color_to_qcolor as qcolor
+        from Qt.QtGui import QBrush
+        for i in range(len(header)):
+            val = val_func(i)
+            color = qcolor(header.position_color(i))
+            if isinstance(val, str):
+                text = self.header_scene.addSimpleText(val, font=self.font)
+                rect = text.sceneBoundingRect()
+                text.setPos(x - rect.width()/2, y - rect.height())
+                text.setBrush(QBrush(color))
+                items.append(text)
+            elif val != None and val > 0.0:
+                items.append(self.header_scene.addRect(x - width/2, y - height, width, -val * height,
+                    brush=QBrush(color)))
+            x += width
+
+        self.header_groups[header] = group = self.header_scene.createItemGroup(items);
+        self.header_label_items[header] = label = self.header_label_scene.addSimpleText(header.name,
+            font=self.font)
+        label_rect = label.sceneBoundingRect()
+        group_rect = group.boundingRect()
+        label.setPos(-label_rect.width(), group_rect.y() - label_rect.height())
+        self.header_view.show()
         self._update_scene_rects()
+
+    def update_selection(self, *args):
+        for item in self.selection_items.values():
+            self.main_scene.removeItem(item)
+        self.selection_items.clear()
+        from chimerax.atomic import selected_chains, selected_residues
+        sel_chains = set(selected_chains(self.pg.session))
+        if not sel_chains:
+            return
+        sel_residues = set(selected_residues(self.pg.session))
+        needs_highlight = set()
+        chars_to_rows = { c:i for i,c in enumerate(self.existing_row_labels) }
+        for chain, aseq in self.alignment.associations.items():
+            if chain not in sel_chains:
+                continue
+            match_map = aseq.match_maps[chain]
+            for r in chain.existing_residues:
+                if r not in sel_residues:
+                    continue
+                try:
+                    ungapped_seq_index = match_map[r]
+                except KeyError:
+                    continue
+                gapped_seq_index = aseq.ungapped_to_gapped(ungapped_seq_index)
+                char = aseq[gapped_seq_index].upper()
+                if char.isupper() or char == '?':
+                    row = chars_to_rows[char]
+                else:
+                    row = chars_to_rows['misc']
+                needs_highlight.add((row, gapped_seq_index))
+        from Qt.QtGui import QPen, QColor
+        pen = QPen(QColor(87, 202, 35))
+        pen.setWidth(3)
+        width, height = self.font_pixels
+        for row, col in needs_highlight:
+            self.selection_items[(row, col)] = self.main_scene.addRect(
+                col * width, row * height, width, height, pen=pen)
+
+    def _residues_at(self, grid_row, grid_col):
+        residues = []
+        row_label = self.existing_row_labels[grid_row]
+        for seq in self.alignment.seqs:
+            if seq.characters[grid_col].upper() != row_label:
+                continue
+            for match_map in seq.match_maps.values():
+                try:
+                    residues.append(match_map[seq.gapped_to_ungapped(grid_col)])
+                except KeyError:
+                    continue
+        return residues
 
     def _update_scene_rects(self):
         # have to play with setViewportMargins to get correct scrolling...
@@ -236,7 +388,11 @@ class GridCanvas:
         y = min(lbr.y(), mbr.y())
         height = max(lbr.y() + lbr.height() - y, mbr.y() + mbr.height() - y)
         mr = self.main_scene.sceneRect()
-        #hbr = self.header_scene.itemsBoundingRect()
+        hbr = self.header_scene.itemsBoundingRect()
         self.main_label_scene.setSceneRect(lbr.x(), y, lbr.width(), height)
         self.main_scene.setSceneRect(mbr.x(), y, mbr.width(), height)
-        #self.header_scene.setSceneRect(mr.x(), hbr.y(), mr.width(), hbr.height())
+        self.header_scene.setSceneRect(mr.x(), hbr.y(), mr.width(), hbr.height())
+        from math import ceil
+        max_header_height = ceil(max(hbr.height(), self.header_label_scene.itemsBoundingRect().height())) + 7
+        self.header_view.setMaximumHeight(max_header_height)
+        self.header_label_view.setMaximumHeight(max_header_height)

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -27,46 +27,14 @@
 # resolution.  The simulated map is useful for fitting the model into
 # an experimental map using correlation coefficient as a goodness of fit.
 #
-def register_molmap_command(logger):
-
-    from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg, PositiveFloatArg
-    from chimerax.core.commands import CenterArg, AxisArg, CoordSysArg
-    from chimerax.atomic import SymmetryArg, AtomsArg
-    from . import MapArg
-    molmap_desc = CmdDesc(
-        required = [
-            ('atoms', AtomsArg),
-            ('resolution', PositiveFloatArg),
-        ],
-        keyword = [
-            ('grid_spacing', PositiveFloatArg),
-            ('edge_padding', FloatArg),
-            ('on_grid', MapArg),
-            ('cutoff_range', FloatArg),
-            ('sigma_factor', FloatArg),
-            ('balls', BoolArg),
-            ('symmetry', SymmetryArg),
-            ('center', CenterArg),   # Can be a 3 floats or atom spec
-            ('axis', AxisArg),     # Can be a 3 floats or atom spec
-            ('coordinate_system', CoordSysArg),
-            ('display_threshold', FloatArg),
-#            ('modelId', model_id_arg),
-            ('replace', BoolArg),
-            ('show_dialog', BoolArg),
-        ],
-        synopsis = 'Compute a map by placing Gaussians at atom positions'
-    )
-    register('molmap', molmap_desc, molmap, logger=logger)
-
-# -----------------------------------------------------------------------------
-#
 from math import sqrt, pi
 def molmap(session,
            atoms,
            resolution,
            grid_spacing = None,    # default is 1/3 resolution
            edge_padding = None,    # default is 3 times resolution
-           on_grid = None,	  # use this grid instead of bounding grid
+           cube = False,	   # whether to make the grid size equal along all 3 axes
+           on_grid = None,         # use this grid instead of bounding grid
            cutoff_range = 5,       # in standard deviations
            sigma_factor = 1/(pi*sqrt(2)), # standard deviation / resolution
            balls = False,         # Use balls instead of Gaussians
@@ -92,6 +60,10 @@ def molmap(session,
       Default is 1/3 resolution.
     edge_padding : float
       Default is 3 times resolution.
+    cube : bool or int
+      Whether to make grid size equal along all 3 axes. Also the grid size will be made even.  Default false.
+      If an integer is given the grid will be made that size by adjusting the grid_spacing as needed, unless
+      the grid_spacing option is given in which case the requested grid spacing will be used.
     cutoff_range : float
       In standard deviations.
     sigma_factor : float
@@ -126,7 +98,13 @@ def molmap(session,
         raise UserError('No atoms specified')
 
     pad = 3*resolution if edge_padding is None else edge_padding
-    step = (1./3) * resolution if grid_spacing is None else grid_spacing
+
+    if grid_spacing is not None:
+        step = grid_spacing
+    elif type(cube) == int:
+        step = None	# Step will be calculated to meet requested grid size
+    else:
+        step = (1./3) * resolution
 
     if symmetry is None:
         transforms = None
@@ -140,7 +118,7 @@ def molmap(session,
 
     if not open_model:
         show_dialog = False
-    v = make_molecule_map(atoms, resolution, step, pad, on_grid,
+    v = make_molecule_map(atoms, resolution, step, cube, pad, on_grid,
                           cutoff_range, sigma_factor, balls, transforms,
                           display_threshold, model_id, replace, show_dialog, name, session,
                           open_model=open_model)
@@ -151,14 +129,16 @@ molecule_map = molmap
 
 # -----------------------------------------------------------------------------
 #
-def make_molecule_map(atoms, resolution, step, pad, on_grid, cutoff_range,
+def make_molecule_map(atoms, resolution, step, cube, pad, on_grid, cutoff_range,
                       sigma_factor, balls, transforms,
                       display_threshold, model_id,
                       replace, show_dialog, name, session, open_model = True):
 
-    grid = molecule_grid_data(atoms, resolution, step, pad, on_grid,
+    grid = molecule_grid_data(atoms, resolution, step, cube, pad, on_grid,
                               cutoff_range, sigma_factor, balls,
                               transforms, name)
+    if step is None:
+        step = grid.step[0]
 
     if replace:
         from .volume import volume_list
@@ -184,7 +164,7 @@ def make_molecule_map(atoms, resolution, step, pad, on_grid, cutoff_range,
 
 # -----------------------------------------------------------------------------
 #
-def molecule_grid_data(atoms, resolution, step, pad, on_grid,
+def molecule_grid_data(atoms, resolution, step, cube, pad, on_grid,
                        cutoff_range, sigma_factor, balls = False,
                        transforms = None, name = 'molmap'):
 
@@ -207,7 +187,7 @@ def molecule_grid_data(atoms, resolution, step, pad, on_grid,
         from numpy import float32
         grid = on_grid.region_grid(on_grid.region, float32)
     else:
-        grid = bounding_grid(xyz, step, pad, transforms)
+        grid = bounding_grid(xyz, step, pad, transforms = transforms, cube = cube)
     grid.name = name
 
     sdev = resolution * sigma_factor
@@ -222,13 +202,28 @@ def molecule_grid_data(atoms, resolution, step, pad, on_grid,
 
 # -----------------------------------------------------------------------------
 #
-def bounding_grid(xyz, step, pad, transforms = None):
+def bounding_grid(xyz, step, pad, transforms = None, cube = False):
     from chimerax.geometry import bounds
     b = bounds.point_bounds(xyz, transforms)
-    origin = [x-pad for x in b.xyz_min]
-    from math import ceil
-    shape = [int(ceil((b.xyz_max[a] - b.xyz_min[a] + 2*pad) / step))
-             for a in (2,1,0)]
+
+    if type(cube) == int:
+        shape = (cube, cube, cube)
+        if step is None:
+            from math import ceil
+            extent = max([(b.xyz_max[a] - b.xyz_min[a] + 2*pad) for a in (0,1,2)])
+            step = extent / (cube - 1)
+    else:
+        from math import ceil
+        shape = [int(ceil((b.xyz_max[a] - b.xyz_min[a] + 2*pad) / step))
+                 for a in (2,1,0)]
+        if cube:
+            size = max(shape)
+            if size % 2 == 1:
+                size += 1		# Make size even.
+            shape = (size, size, size)
+
+    origin = b.center() - [0.5*(s-1)*step for s in shape[::-1]]
+
     from numpy import zeros, float32
     matrix = zeros(shape, float32)
     from chimerax.map_data import ArrayGridData
@@ -277,3 +272,37 @@ def add_balls(grid, xyz, radii, sdev, cutoff_range, transforms = None):
         ijk[:] = xyz
         (grid.xyz_to_ijk_transform * tf).transform_points(ijk, in_place = True)
         sum_of_balls(ijk, r, sdev, cutoff_range, matrix)
+
+# -----------------------------------------------------------------------------
+#
+def register_molmap_command(logger):
+
+    from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg, PositiveFloatArg, IntArg, Or
+    from chimerax.core.commands import CenterArg, AxisArg, CoordSysArg
+    from chimerax.atomic import SymmetryArg, AtomsArg
+    from . import MapArg
+    molmap_desc = CmdDesc(
+        required = [
+            ('atoms', AtomsArg),
+            ('resolution', PositiveFloatArg),
+        ],
+        keyword = [
+            ('grid_spacing', PositiveFloatArg),
+            ('edge_padding', FloatArg),
+            ('cube', Or(BoolArg, IntArg)),
+            ('on_grid', MapArg),
+            ('cutoff_range', FloatArg),
+            ('sigma_factor', FloatArg),
+            ('balls', BoolArg),
+            ('symmetry', SymmetryArg),
+            ('center', CenterArg),   # Can be a 3 floats or atom spec
+            ('axis', AxisArg),     # Can be a 3 floats or atom spec
+            ('coordinate_system', CoordSysArg),
+            ('display_threshold', FloatArg),
+#            ('modelId', model_id_arg),
+            ('replace', BoolArg),
+            ('show_dialog', BoolArg),
+        ],
+        synopsis = 'Compute a map by placing Gaussians at atom positions'
+    )
+    register('molmap', molmap_desc, molmap, logger=logger)

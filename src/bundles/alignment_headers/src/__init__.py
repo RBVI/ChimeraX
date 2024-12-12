@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -29,7 +29,7 @@ def get_bin() -> str:
     return os.path.join(os.path.dirname(__file__), "bin")
 
 from .header_sequence import HeaderSequence, FixedHeaderSequence, DynamicHeaderSequence, \
-    DynamicStructureHeaderSequence
+    DynamicStructureHeaderSequence, position_color_to_qcolor
 
 from chimerax.core.toolshed import BundleAPI
 

@@ -43,20 +43,11 @@ class FourPanelView(QWidget):
     def graphics_area(self):
         return self._graphics_area
 
-    def set_guideline_visibility(self, visible: bool) -> None:
-        if visible:
-            self._orthoplane_manager.show_guidelines()
-        else:
-            self._orthoplane_manager.hide_guidelines()
-
     def register_segmentation_tool(self, tool):
         self._orthoplane_manager.register_segmentation_tool(tool)
 
     def clear_segmentation_tool(self):
         self._orthoplane_manager.clear_segmentation_tool()
-
-    def toggle_guidelines(self):
-        self._orthoplane_manager.toggle_guidelines()
 
     def add_segmentation(self, seg):
         self._orthoplane_manager.add_segmentation(seg)

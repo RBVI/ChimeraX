@@ -327,7 +327,7 @@ class ESMFoldDB(Database):
     fetchable_col: str = "mgnify_id"
     parser_factory: object = dbparsers.PDBParser
     database_url: str = "https://esmatlas.com/resources/detail/%s"
-    default_cols: tuple = ("hit_#", "mgnify_id", "name", "e-value", "score")
+    default_cols: tuple = ("hit_#", "mgnify_id", "e-value", "score")
     excluded_cols: tuple = ("id", "url")
 
     @staticmethod
@@ -343,8 +343,9 @@ class ESMFoldDB(Database):
     def add_info(matches, sequences):
         # TODO: Get more data?
         for chain_id, hit in sequences.items():
-            hit["mgnify_id"] = hit["description"]
-            hit["url"] = ESMFoldDB.database_url % hit["description"]
+            mgnify_id = hit["name"]
+            hit["mgnify_id"] = mgnify_id
+            hit["url"] = ESMFoldDB.database_url % mgnify_id
             del hit["description"]
 
 

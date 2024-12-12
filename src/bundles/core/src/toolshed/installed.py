@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -56,13 +56,21 @@ class InstalledBundleCache(list):
         # and look for ChimeraX bundles
         #
         _debug("InstalledBundleCache.load: rebuilding cache")
-        from pkg_resources import WorkingSet
+        from importlib.metadata import distributions
         dist_bundle_map = {}
-        for d in WorkingSet():
+        dists = distributions()
+        filtered_dists = list(filter(lambda d: any([c.startswith('ChimeraX') for c in d.metadata.json.get('classifier', [])]), dists))
+        # work around https://github.com/pypa/setuptools/issues/4170
+        # all packages are duplicated when an editable package is installed
+        seen_bundles = set()
+        for d in filtered_dists:
             _debug("InstalledBundleCache.load: package %s" % d)
             bi = _make_bundle_info(d, True, logger)
             if bi is not None:
                 _debug("InstalledBundleCache.load: bundle %s" % bi)
+                if bi.name in seen_bundles:
+                    continue
+                seen_bundles.add(bi.name)
                 dist_bundle_map[d] = bi
         #
         # The ordering of the bundles is important because we want
@@ -114,7 +122,7 @@ class InstalledBundleCache(list):
             from chimerax import app_data_dir as directory
         timestamp_file = os.path.join(directory, _TIMESTAMP)
         try:
-            os.makedirs(directory, exist_ok = True)
+            os.makedirs(directory, exist_ok=True)
             with open(timestamp_file, 'w+') as f:
                 # Contents of file are never read, see _is_cache_newer()
                 import time
@@ -124,10 +132,10 @@ class InstalledBundleCache(list):
         except (OSError, PermissionError):
             pass
 
-
     #
     # Methods below are internal
     #
+
     def _read_cache(self, cache_file):
         """Read installed bundle information from cache file.
 
@@ -136,7 +144,10 @@ class InstalledBundleCache(list):
         import os.path
         if not os.path.exists(cache_file):
             return False
-        import filelock, json, os, sys
+        import filelock
+        import json
+        import os
+        import sys
         from .info import BundleInfo
         try:
             lock_file = cache_file + '.lock'
@@ -202,7 +213,10 @@ class InstalledBundleCache(list):
     def _write_cache(self, cache_file, logger):
         """Write current bundle information to cache file."""
         _debug("InstalledBundleCache._write_cache", cache_file)
-        import os, os.path, filelock, json, sys
+        import filelock
+        import json
+        import os
+        import sys
         os.makedirs(os.path.dirname(cache_file), exist_ok=True)
         lock = filelock.FileLock(cache_file + '.lock')
         with lock.acquire():
@@ -234,17 +248,18 @@ class InstalledBundleCache(list):
         return self._help_directories
 
     def _order_bundles(self, dist_bundle_map, logger):
+        from packaging.requirements import Requirement, InvalidRequirement
         # First we build a list of distribution names that
         # map to bundles.  This is so we can ignore dependencies
         # that are not bundles.
-        dist_names = set([d.project_name for d in dist_bundle_map.keys()])
+        dist_names = set([d.name for d in dist_bundle_map.keys()])
         # build a dependency-exclusion map from the bi.inits value
         # [built from Initialization tags], and prevent the reverse
         # dependency from being used to determine initialization order.
         # This "should" break all circular dependencies.
         bundle_name_to_dist_key = {}
         for d, bi in dist_bundle_map.items():
-            bundle_name_to_dist_key[bi.name] = d.key
+            bundle_name_to_dist_key[bi.name] = d.name
         explicit_reverse_order = {}
         for d, bi in dist_bundle_map.items():
             if not bi.inits:
@@ -255,9 +270,9 @@ class InstalledBundleCache(list):
                         dist_key = bundle_name_to_dist_key[bundle_name]
                     except KeyError:
                         logger.warning("Unknown bundle name '%s' listed in Initializations"
-                            " section for bundle %s" % (bundle_name, bi.name))
+                                " section for bundle %s" % (bundle_name, bi.name))
                         continue
-                    explicit_reverse_order.setdefault(dist_key, set()).add(d.key)
+                    explicit_reverse_order.setdefault(dist_key, set()).add(d.name)
         # Then we build a dependency map where the key is a
         # distribution instance and the value is a list of
         # bundle distribution names that it depends on.
@@ -265,11 +280,17 @@ class InstalledBundleCache(list):
         dist_needs = {}
         for d, bi in dist_bundle_map.items():
             dist_needs[d] = needs = []
-            for r in d.requires():
-                if r.project_name in dist_names:
-                    if r.key in explicit_reverse_order.get(d.key, []):
+            if d.requires is None:
+                continue
+            for req in d.requires:
+                try:
+                    r = Requirement(req)
+                except InvalidRequirement:
+                    continue
+                if r.name in dist_names:
+                    if r.name in explicit_reverse_order.get(d.name, []):
                         continue
-                    needs.append(r.key)
+                    needs.append(r.name)
         # Now we start with all bundle distributions in the
         # "to_be_done" list and nothing in the "ready" list.
         # We then repeatedly move all to_be_done distributions
@@ -291,7 +312,7 @@ class InstalledBundleCache(list):
             if can_move:
                 ready.extend(can_move)
                 to_be_done.difference_update(can_move)
-                seen.update([d.key for d in can_move])
+                seen.update([d.name for d in can_move])
             else:
                 # dependency declaration are not necessarily install-time,
                 # so it's okay for there to be circular dependencies.  The
@@ -337,6 +358,7 @@ def _report_difference(logger, before, after):
         else:
             versions[1] = bi.version
     changes = {}
+
     def add_change(kind, name, version):
         try:
             d = changes[kind]
@@ -372,35 +394,26 @@ def _make_bundle_info(d, installed, logger):
     """Convert distribution into a list of :py:class:`BundleInfo` instances."""
     from .info import BundleInfo, ToolInfo, CommandInfo, SelectorInfo, FormatInfo
     from ..commands import unescape
-    import pkginfo
-    name = d.project_name
+    name = d.name
     if not name[0].isalpha():
         # pip uninstall renames package ChimeraX-XXX to ~himeraX-XXX,
         # which we somehow translate to -himeraX-XXX.
         return None
     version = d.version
-    metadata_file = "METADATA"
-    if not d.has_metadata(metadata_file):
-        _debug("InstalledBundleCache._make_bundle_info: "
-               "no metadata in %s" % d)
-        return None
-    md = pkginfo.Distribution()
-    md.parse(d.get_metadata(metadata_file))
-    if not md.classifiers:
-        _debug("InstalledBundleCache._make_bundle_info: "
-               "no classifiers in %s" % d)
-        return None
-
     bi = None
+    description = None
     kw = {"name": name, "version": version}
-    try:
-        kw['synopsis'] = md.summary
-    except KeyError:
-        _debug("InstalledBundleCache._make_bundle_info: no summary in %s" % d)
-        return None
     kw['packages'] = _get_installed_packages(d, logger)
-    for classifier in md.classifiers:
-        parts = [v.strip() for v in classifier.split(" ::")]
+    for metadata_type, data in d.metadata.items():
+        if metadata_type == "Summary":
+            kw['synopsis'] = data.strip()
+            continue
+        if metadata_type == "Description":
+            description = data.strip()
+            continue
+        if metadata_type != "Classifier":
+            continue
+        parts = [v.strip() for v in data.split(" ::")]
         if parts[0] != 'ChimeraX':
             continue
         if parts[1] == 'Bundle':
@@ -517,15 +530,15 @@ def _make_bundle_info(d, installed, logger):
                 logger.warning("Expected at least three fields and got %d." % len(parts))
                 continue
             name = parts[2]
-            kw = {}
+            params = {}
             for p in parts[3:]:
                 k, v = p.split(':', 1)
                 if v[0] in '\'"':
                     v = unescape(v[1:-1])
                 else:
                     v = unescape(v)
-                kw[k] = v
-            bi.managers[name] = kw
+                params[k] = v
+            bi.managers[name] = params
         elif parts[1] == 'Provider':
             # ChimeraX :: Provider :: name :: manager [:: key:value]*
             if bi is None:
@@ -537,15 +550,15 @@ def _make_bundle_info(d, installed, logger):
                 continue
             name = parts[2]
             mgr = parts[3]
-            kw = {}
+            params = {}
             for p in parts[4:]:
                 k, v = p.split(':', 1)
                 if v[0] in '\'"':
                     v = unescape(v[1:-1])
                 else:
                     v = unescape(v)
-                kw[k] = v
-            bi.providers[mgr + '/' + name] = kw
+                params[k] = v
+            bi.providers[mgr + '/' + name] = params
         elif parts[1] == 'InitAfter':
             # ChimeraX :: InitAfter :: type :: name [:: name]*
             if bi is None:
@@ -557,19 +570,15 @@ def _make_bundle_info(d, installed, logger):
                 continue
             name = parts[2]
             bi.inits[name] = parts[3:]
-    if bi is None:
-        _debug("InstalledBundleCache._make_bundle_info: no ChimeraX bundle in %s" % d)
+    if 'synopsis' not in kw:
+        _debug("InstalledBundleCache._make_bundle_info: no summary in %s" % d.name)
         return None
-    try:
-        description = md.description
-        # In new versions of setuptools, wheels that have no description won't get one
-        # at all, and this causes an AttributeError. If we test the object (none is Falsy)
-        # we can short circuit past the access that would throw the error.
-        if not description or description.startswith("UNKNOWN"):
-            description = "Missing bundle description"
-        bi.description = description
-    except (KeyError, OSError):
-        pass
+    if bi is None:
+        _debug("InstalledBundleCache._make_bundle_info: no ChimeraX bundle in %s" % d.name)
+        return None
+    if not description or description.startswith("UNKNOWN"):
+        description = "Missing bundle description"
+    bi.description = description
     return bi
 
 
@@ -578,53 +587,45 @@ def _get_installed_packages(d, logger):
 
     For example, 'foo.bar' from foo/bar/__init__.py becomes ('foo', 'bar')
     """
-    import csv
-    record_file = "RECORD"
-    if not d.has_metadata(record_file):
-        logger.warning("cannot get installed file list for %r" % d.project_name)
-        return []
     packages = []
     finder_file = None
     path_file = None
-    for row in csv.reader(d.get_metadata_lines(record_file)):
-        if len(row) != 3:
-            continue
-        path = row[0]
-        if path.endswith('finder.py'):
+    for path in d.files:
+        if path.name.startswith("__editable___") and path.name.endswith('finder.py'):
             finder_file = path
-        if path.endswith('.pth'):
-            path_file = path
-        if not path.endswith('/__init__.py'):
             continue
-        parts = path.split('/')
-        packages.append(tuple(parts[:-1]))
+        elif path.suffix == '.pth':
+            path_file = path
+            continue
+        elif path.name == '__init__.py':
+            packages.append(path.parent.parts)
     # If we looked at the RECORD file and didn't find any packages, then the
     # bundle was probably installed in editable mode. Instead, we can list the
     # source directory tree and add any directory that has an init.py to the
     # list. While we add ALL packages to the installed packages list, for ChimeraX's
     # purposes, things only really break if we don't know where our bundles are.
-    if not packages and "chimerax" in d.project_name.lower():
+    if not packages and "chimerax" in d.name.lower():
         if not finder_file and not path_file:
             logger.warning("tried to get metadata for package installed in editable mode (%r) "
-                           "but could not find the package's finder.py or path file" % d.project_name)
+                           "but could not find the package's finder.py or path file" % d.name)
             return []
         elif finder_file:
             # This is a pretty complex way of avoiding eval, but if we don't do it then
             # any build system could throw whatever trash they wanted on the MAPPING
             # line and we'd have an ACE vulnerability
             import os
-            with open(os.path.join(d.location, finder_file)) as f:
+            with open(d.locate_file(finder_file)) as f:
                 for line in f:
                     if line.startswith("MAPPING"):
                         break
                 else:
                     logger.warning("editable install likely broken; no mapping found for "
-                                   "bundle %r" % d.project_name)
+                                   "bundle %r" % d.name)
                     return []
                 # MAPPING = {'chimerax.XXXX': '/Some/path/to/a/folder'}
                 # json.loads rejects single quotes, so not only do we need to filter the string
                 # for just the dictionary, we need to replace the quotes too
-                # This was really close to being an exec, but this is a lot safer 
+                # This was really close to being an exec, but this is a lot safer
                 import json
                 module_map = json.loads(line.split('=')[1].replace('\'', '"'))
                 source_directory = list(module_map.values())[0]
@@ -637,19 +638,19 @@ def _get_installed_packages(d, logger):
                 for dir_, _, files in os.walk(source_directory):
                     if dir_.endswith('__pycache__'):
                         continue
-                    if "__init__.py"  in files:
+                    if "__init__.py" in files:
                         packages.append(_directory_to_package(dir_, path_to_package, module_prefix))
-                return packages
         elif path_file:
             import os
-            with open(os.path.join(d.location, path_file)) as f:
+            with open(d.locate_file(path_file)) as f:
                 # The whole file will typically point at a folder
                 source_directory = f.read().rstrip() + "/"
             for dir_, _, files in os.walk(source_directory):
                 package = dir_.replace(source_directory, "")
-                if "__init__.py"  in files:
+                if "__init__.py" in files:
                     packages.append(tuple(package.split('/')))
     return packages
+
 
 def _directory_to_package(directory, base_directory, bundle_name) -> tuple:
     import os

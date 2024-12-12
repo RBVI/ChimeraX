@@ -6,7 +6,7 @@ Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  For details see:
-http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
@@ -16,12 +16,13 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Tool: Local EM Fitting</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Local EM Fitting</h3>
 <p>
@@ -35,6 +36,7 @@ The command implementation is
 See also:
 <a href="fitmap.html"><b>Fit in Map</b></a>,
 <a href="waterplacement.html"><b>Water Placement</b></a>,
+<a href="fitloops.html"><b>Fit Loops</b></a>,
 <a href="#symmetry">adding symmetry copies after fitting</a>
 </p><p>
 Limiting the search space to a local region of the map (subvolume)
@@ -43,18 +45,11 @@ where global search fails, in addition to being much faster.
 The method is described in:
 </p>
 <blockquote>
-<a href="https://journals.iucr.org/d/issues/2023/04/00/vo5011/index.html"
+<a href="https://journals.iucr.org/d/issues/2024/08/00/id5013/index.html"
 target="_blank">
-Likelihood-based signal and noise analysis for docking of models into 
-cryo-EM maps.</a>
-Read RJ, Mill&aacute;n C, McCoy AJ, Terwilliger TC.
-<i>Acta Crystallogr D Struct Biol.</i> 2023 Apr 1;79(Pt 4):271-280.
-<br>
-<a href="https://journals.iucr.org/d/issues/2023/04/00/vo5012/index.html" 
-target="_blank">
-Likelihood-based docking of models into cryo-EM maps.</a>
-Mill&aacute;n C, McCoy AJ, Terwilliger TC, Read RJ.
-<i>Acta Crystallogr D Struct Biol.</i> 2023 Apr 1;79(Pt 4):281-289.
+Likelihood-based interactive local docking into cryo-EM maps in ChimeraX.</a>
+<authors>Read RJ, Pettersen EF, McCoy AJ, Croll TI, Terwilliger TC, Poon BK, Meng EC, Liebschner D, Adams PD.</authors>
+<i>Acta Crystallogr D Struct Biol.</i> 2024 Aug 1;80(Pt 8):588-598.
 </blockquote>
 <p>
 <a href="https://phenix-online.org" target="_blank">Phenix</a>
@@ -88,6 +83,9 @@ Although the local resolution is initially set to <b>0.0</b> &Aring;,
 a positive value is required and must be supplied if a full map is used.
 If half maps are used but no positive value is supplied,
 the local resolution will be estimated from the half maps.
+<li><b>Pre-fitted structures (if any)</b> 
+&ndash; specify atomic models, if any,
+that are already in place within parts of the map
 <li><b>Center search at</b>
   <ul>
   <li><b>center of model...</b> center of the bounding box of the chosen model
@@ -190,5 +188,5 @@ in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2023</address>
+October 2024</address>
 </body></html>

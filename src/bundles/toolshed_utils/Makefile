@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -27,6 +27,7 @@ install app-install: wheel
 	$(PYTHON) -m pip install --no-build-isolation .
 
 build: install
+	# unlike normal bundles, install as well
 	$(MAKE) sync
 
 install-editable:
@@ -34,10 +35,6 @@ install-editable:
 
 sync:
 	cp -av dist/*.whl $(TOP)/build/sync/
-
-build: install
-	# unlike normal bundles, install as well
-	$(MAKE) sync
 
 test:
 	for t in $(wildcard test*.cxc) $(wildcard test*.py);\

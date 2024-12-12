@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -883,6 +883,17 @@ void
 AtomicStructure::compute_secondary_structure(float energy_cutoff,
     int min_helix_length, int min_strand_length, bool report, CompSSInfo* ss_info)
 {
+	auto instance = py_instance(false);
+	if (instance != Py_None) {
+		auto id_attr = PyObject_GetAttrString(instance, "id");
+		if (id_attr != nullptr) {
+			if (id_attr != Py_None)
+				logger::info(_logger, "Computing secondary structure");
+			Py_DECREF(id_attr);
+		}
+	}
+	Py_DECREF(instance);
+
     // initialize
     KsdsspParams params;
     try {
@@ -945,7 +956,7 @@ AtomicStructure::compute_secondary_structure(float energy_cutoff,
             delete crd;
         for (auto ih: params.imide_Hs)
             delete ih;
-        logger::error(logger(), e.what());
+        logger::error(_logger, e.what());
     } catch (...) {
         set_ss_assigned(true); // leave as all-turn; don't try again
         for (auto crd: params.coords)

@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Help" version="1.2.2"
+<BundleInfo name="ChimeraX-Help" version="1.3"
     package="chimerax.help_viewer"
     minSessionVersion="1" maxSessionVersion="1" customInit="true">
 
@@ -8,10 +8,6 @@
 
   <Synopsis>Show ChimeraX Help</Synopsis>
   <Description>Support help command and GUI.</Description>
-
-  <DataFiles>
-    <DataFile>*.svg</DataFile>
-  </DataFiles>
 
   <Categories>
     <Category name="Documentation"/>
@@ -27,7 +23,7 @@
   <Providers manager="data formats">
     <Provider name="HTML" category="Documentation"
 		suffixes=".html,.htm,.xhtml,.xht,.xml" encoding="utf-8"
-		reference_url="http://en.wikipedia.org/wiki/Html "
+		reference_url="https://en.wikipedia.org/wiki/Html "
 		mime_types="text/html,application/xhtml+xml" />
   </Providers>
 

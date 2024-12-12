@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -73,7 +73,11 @@ def copyMolecule(m):
         c = m.copy()
         c.delete_alt_locs()
         if c.num_coordsets != 1 or c.active_coordset_id != 1:
-                xyz = c.atoms.coords
+                nc = c.coordset_size
+                from numpy import empty, float64
+                xyz = empty((nc,3), float64)
+                atoms = c.atoms
+                xyz[atoms.coord_indices] = atoms.coords
                 c.remove_coordsets()
                 c.add_coordset(1, xyz)
                 c.active_coordset_id = 1

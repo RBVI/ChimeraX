@@ -16,12 +16,13 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Tool: Render/Select by Attribute</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <table class="clRight">
 <tr><td>
@@ -75,6 +76,8 @@ from the main ChimeraX menu opens the tool set to its
 <a href="#choosemodel">Choosing Model and Attribute</a>
 <br>
 <a href="#histogram">Histogram or List of Attribute Values</a>
+<br>
+<a href="#context">Buttons and Context Menu</a>
 <br>
 <a href="#colors">Colors</a>
 <br>
@@ -212,12 +215,35 @@ Which alternate locations to use can be set with the
 <a href="../commands/altlocs.html"><b>altlocs</b></a> command.
 </p>
 </blockquote>
+
+<a name="context"></a>
+<p class="nav">
+[<a href="#top">back to top: Render/Select by Attribute</a>]
+</p>
+<h3>Buttons and Context Menu</h3>
 <p>
-Clicking <b>Apply</b> performs the action without closing the dialog,
+Clicking <b>Apply</b> performs the action (rendering or
+<a href="../selection.html">selection</a>) without closing the dialog,
 whereas <b>OK</b> performs the action and dismisses the dialog.
+Clicking <b>Save File...</b> opens a dialog to save attribute values to an
+<a href="../formats/defattr.html">attribute assignment file</a>.
 <b>Close</b> simply dismisses the dialog, and <b>Help</b> shows this page 
 in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 </p>
+<p>
+<b>Render/Select by Attribute</b> has a
+<a href="../window.html#context-menu">context menu</a>
+with choices including:
+<p>
+<ul>
+<li><b>Histogram Scaling</b>
+&ndash; <a href="#histogram">histogram</a> bar heights indicate
+the prevalence of different values of the attribute, with scaling as follows:
+ <ul>
+ <li><b>Linear</b>
+ <li><b>Logarithmic</b> (default)
+ </ul>
+</ul>
 
 <a name="colors"></a>
 <p class="nav">
@@ -339,5 +365,5 @@ cartoon and a previously defined worm display.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2024</address>
+September 2024</address>
 </body></html>

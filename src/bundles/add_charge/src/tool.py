@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -142,8 +142,12 @@ class AddChargeTool(ToolInstance):
             spec = "sel" if sel_restrict else ""
         self.session.logger.info("Closest equivalent command: <b>addcharge %s standardizeResidues %s</b>"
             % (spec, ",".join(standardizable_residues) if standardize else "none"), is_html=True)
-        from .charge import add_standard_charges
-        non_std = add_standard_charges(self.session, residues=residues, **params)
+        from .charge import add_standard_charges, ChargeError
+        try:
+            non_std = add_standard_charges(self.session, residues=residues, **params)
+        except ChargeError as e:
+            from chimerax.core.errors import NonChimeraXError
+            raise NonChimeraXError(e)
         if non_std:
             if self.dock_prep_info is not None:
                 from chimerax.atomic import AtomicStructures

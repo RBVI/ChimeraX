@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -14,18 +14,18 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.core.logger import HtmlLog
 
-cxcmd_css = """
+_cxcmd_css = """
 .cxcmd {
     display: block;
     font-weight: bold;
     margin-top: .5em;
-    background-color: #ddd;
+    background-color: BACKGROUND;
 }
 a.no_underline {
     text-decoration: none;
 }
 """
-cxcmd_as_doc_css = """
+_cxcmd_as_doc_css = """
 .cxcmd_as_doc {
     display: inline;
 }
@@ -33,7 +33,7 @@ cxcmd_as_doc_css = """
     display: none;
 }
 """
-cxcmd_as_cmd_css = """
+_cxcmd_as_cmd_css = """
 .cxcmd_as_doc {
     display: none;
 }
@@ -41,6 +41,15 @@ cxcmd_as_cmd_css = """
     display: inline;
 }
 """
+
+def cxcmd_css(exec_links):
+    from chimerax.core.colors import scheme_color
+    background = scheme_color('command')
+    base_css = _cxcmd_css.replace('BACKGROUND', background)
+    if exec_links:
+        return base_css + _cxcmd_as_cmd_css
+    return base_css + _cxcmd_as_doc_css
+
 
 context_menu_html = """
 <nav id="context-menu" class="context-menu">
@@ -135,6 +144,7 @@ class Log(ToolInstance, HtmlLog):
         self.settings = settings
         self.suppress_scroll = False
         self._log_file = None
+        self.page_source = ""
         from chimerax.ui import MainToolWindow
         class LogToolWindow(MainToolWindow):
             def fill_context_menu(self, menu, x, y, session=session):
@@ -150,6 +160,12 @@ class Log(ToolInstance, HtmlLog):
                 menu.addAction("Select All", lambda:
                     log_window.page().triggerAction(log_window.page().SelectAll))
                 from Qt.QtGui import QAction
+                show_action = QAction("Raise Log When Logging Occurs", menu)
+                show_action.setCheckable(True)
+                show_action.setChecked(self.tool_instance.settings.show_if_new_content)
+                show_action.triggered.connect(lambda checked, settings=self.tool_instance.settings:
+                    setattr(settings, 'show_if_new_content', checked))
+                menu.addAction(show_action)
                 link_action = QAction("Executable Command Links", menu)
                 link_action.setCheckable(True)
                 link_action.setChecked(self.tool_instance.settings.exec_cmd_links)
@@ -340,6 +356,12 @@ class Log(ToolInstance, HtmlLog):
                 bug = (level == self.LEVEL_BUG)
                 f = lambda self=self, msg=dlg_msg: self.show_error_message(msg, bug=bug)
                 self.session.ui.thread_safe(f)
+            else:
+                # If we're not raising a dialog, at least try to bring the Log to the front
+                # if it is somehow obscured
+                if settings.show_if_new_content:
+                    self.tool_window.shown = True
+
             if not is_html:
                 from html import escape
                 msg = escape(msg)
@@ -347,9 +369,11 @@ class Log(ToolInstance, HtmlLog):
 
             if level == self.LEVEL_ERROR:
                 from chimerax.core.logger import error_text_format
-                msg = error_text_format % msg
+                msg = error_text_format(msg)
             elif level == self.LEVEL_WARNING:
-                msg = '<p style="color:darkorange">' + msg + '</p>'
+                from chimerax.core.colors import scheme_color
+                color = scheme_color('warning')
+                msg = f'<p style="color:{color}">{msg}</p>'
 
             # compact repeated output, e.g. ISOLDE's 'stepto' command
             #
@@ -427,11 +451,12 @@ class Log(ToolInstance, HtmlLog):
             self.suppress_scroll = False
         else:
             height = 'document.body.scrollHeight'
-        html = "<style>%s%s</style>\n<body onload=\"window.scrollTo(0, %s);\">%s</body>" % (
-            cxcmd_css,
-            cxcmd_as_cmd_css if self.settings.exec_cmd_links else cxcmd_as_doc_css,
-            height,
-            self.page_source
+        css = cxcmd_css(self.settings.exec_cmd_links) + self.session.ui.dark_css()
+        html = (
+            f"<style>{css}</style>\n"
+            f"<body onload=\"window.scrollTo(0, {height});\">\n"
+            f"{self.page_source}"
+            "</body>"
         )
         lw = self.log_window
         lw.setHtml(html)
@@ -450,26 +475,24 @@ class Log(ToolInstance, HtmlLog):
         from os.path import expanduser
         path = expanduser(path)
         with open(path, 'w', encoding='utf-8') as f:
-            f.write("<html>\n"
-                    "<head>\n"
-                    "<meta charset='utf-8'>\n"
-                    "<title> ChimeraX Log </title>\n"
-                    '<script type="text/javascript">\n'
-                    "%s"
-                    "</script>\n"
-                    "</head>\n"
-                    "<h1> ChimeraX Log </h1>\n"
-                    "<style>\n"
-                    "%s"
-                    "%s"
-                    "</style>\n" % (
-                        self._get_cxcmd_script(), cxcmd_css,
-                        cxcmd_as_cmd_css if executable_links else cxcmd_as_doc_css,
-                    )
+            f.write(
+                "<html>\n"
+                "<head>\n"
+                "<meta charset='utf-8'>\n"
+                "<title> ChimeraX Log </title>\n"
+                '<script type="text/javascript">\n'
+                f"{self._get_cxcmd_script()}"
+                "</script>\n"
+                "<style>\n"
+                f"{_cxcmd_as_cmd_css if executable_links else _cxcmd_as_doc_css}"
+                "</style>\n"
+                "</head>\n"
+                "<body>\n"
+                "<h1> ChimeraX Log </h1>\n"
+                f"{self.page_source}"
+                "</body>\n"
+                "</html>\n"
             )
-            f.write(self.page_source)
-            f.write("</body>\n"
-                    "</html>\n")
 
     def _get_cxcmd_script(self):
         try:
@@ -505,6 +528,8 @@ class Log(ToolInstance, HtmlLog):
             date = "unknown"
         from lxml import html
         contents = log_data['contents']
+        if not contents:
+            contents = '<html></html>'
         tmp = html.fromstring(contents)
         script_elements = tmp.findall(".//script")
         if script_elements:

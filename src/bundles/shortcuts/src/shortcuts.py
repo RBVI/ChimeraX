@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -150,7 +150,7 @@ def standard_shortcuts(session):
         ('cz', color_zone, 'Color map to match atoms', mapcat, sesarg, mmenu),
         ('vz', volume_zone, 'Show map near atoms', mapcat, sesarg, mmenu),
         ('hd', hide_dust, 'Hide dust', mapcat, sesarg, mmenu),
-        
+
         ('aw', run_on_maps('volume %s appearance airways'), 'Airways CT scan coloring', mapcat, sesarg, mmenu),
         ('as', run_on_maps('volume %s appearance CT_Skin'), 'Skin preset', mapcat, sesarg, mmenu),
         ('bc', run_on_maps('volume %s appearance brain'), 'Brain CT scan coloring', mapcat, sesarg, mmenu),
@@ -159,6 +159,7 @@ def standard_shortcuts(session):
         ('dc', run_on_maps('volume %s appearance initial'), 'Default volume curve', mapcat, sesarg, mmenu),
         ('zs', run_on_maps('volume %s projectionMode 2d-xyz'), 'Volume xyz slices', mapcat, sesarg, mmenu),
         ('ps', run_on_maps('volume %s projectionMode 3d'), 'Volume perpendicular slices', mapcat, sesarg, mmenu),
+        ('rs', run_on_maps('volume %s projectionMode rays'), 'Volume raycasting', mapcat, sesarg, mmenu),
 
         # Molecules
         ('da', run_on_atoms('show %s atoms'), 'Show atoms', molcat, sesarg, mlmenu),
@@ -302,7 +303,7 @@ class Shortcut:
         self.view_arg = view_arg
         self.mouse_modes_arg = mouse_modes_arg
         self.session_arg = session_arg
-        
+
     def run(self, session, status = True):
         f = self.func
         s = session
@@ -374,7 +375,7 @@ class Keyboard_Shortcuts:
 
     def forwarded_keystroke(self, event):
         self.key_pressed(event)
-      
+
     def key_pressed(self, event):
         k = event.key()
         from Qt.QtCore import Qt
@@ -533,16 +534,16 @@ def sel_unsel_molecules(session, undisplayed = False):
 def run(session, command, **kw):
   from chimerax.core.commands import run as run_command
   run_command(session, command, **kw)
-  
+
 def run_on_atoms(command, all_command = None):
     from chimerax.atomic import Structure
     return run_on_models(command, all_command, model_class = Structure)
-  
+
 def run_on_maps(command, all_command = None, visible_only = True):
     from chimerax.map import Volume
     return run_on_models(command, all_command, model_class = Volume,
                          visible_only = visible_only)
-  
+
 def run_on_models(command, all_command = None, model_class = None, visible_only = True):
     '''
     Return a function that runs the command string with %s replaced with a model specifier.
@@ -559,10 +560,10 @@ def run_on_models(command, all_command = None, model_class = None, visible_only 
     if not visible_only:
         return _run_on_hidden_models(command, all_command = all_command,
                                      model_class = model_class)
-    
+
     if all_command is None:
         all_command = command.replace(' %s', '')
-        
+
     def run_expanded_command(session):
         mall = session.models.list(type = model_class)
         msel = [m for m in mall if m.selected]
@@ -590,9 +591,9 @@ def run_on_models(command, all_command = None, model_class = None, visible_only 
             return   # No visible models to run command on.
         cmd = all_command if target == 'all' else command.replace(' %s', ' ' + target)
         run(session, cmd)
-        
+
     return run_expanded_command
-  
+
 def _run_on_hidden_models(command, all_command = None, model_class = None):
     '''
     See run_on_models() description.  This version does not restrict to visible models.
@@ -622,7 +623,7 @@ def shown_models_spec(session, model_class = None):
         from chimerax.core.commands import concise_model_spec
         spec = concise_model_spec(session, mshown)
     return spec
-    
+
 def show_mesh(session):
     for m in shortcut_surfaces(session):
         m.display_style = m.Mesh
@@ -651,7 +652,7 @@ def show_one_plane(m):
   m.set_parameters(image_mode == 'full region')
   m.new_region(ijk_min, ijk_max, ijk_step, adjust_step = False)
   m.set_display_style('image')
-        
+
 def show_all_planes(m):
   ijk_min = (0,0,0)
   ijk_max = tuple(s-1 for s in m.data.size)
@@ -712,7 +713,7 @@ def enable_move_selected_mouse_mode(mouse_modes):
     from chimerax.mouse_modes import RotateSelectedModelsMouseMode, TranslateSelectedModelsMouseMode
     m = mouse_modes
     m.bind_mouse_mode('left', RotateSelectedModelsMouseMode(m.session))
-    m.bind_mouse_mode('middle', TranslateSelectedMOdelsMouseMode(m.session))
+    m.bind_mouse_mode('middle', TranslateSelectedModelsMouseMode(m.session))
 
 def enable_translate_selected_mouse_mode(mouse_modes, button = 'right'):
     from chimerax.mouse_modes import TranslateSelectedModelsMouseMode
@@ -760,7 +761,7 @@ def fit_subtract(session):
     mfitset = set(molfit)
     from chimerax.atomic import AtomicStructure
     molsub = [m for m in models
-              if isinstance(m, AtomicStructure) and m.visible and not m in mfitset]
+              if isinstance(m, AtomicStructure) and m.visible and m not in mfitset]
     print ('fs', len(maps), len(molfit), len(molsub))
     log = session.logger
     if len(maps) != 1:
@@ -1009,7 +1010,7 @@ def toggle_silhouettes(session):
 
 def depth_cue(viewer):
     viewer.depth_cue = not viewer.depth_cue
-    
+
 def selection_mouse_mode(session):
     mm = session.mouse_modes
     mm.mouse_modes.bind_mouse_mode('right', mm.mouse_select)
@@ -1052,7 +1053,7 @@ def molecule_bonds(m, session):
         log.info(msg)
         if missing:
             log.info('Missing %d templates: %s' % (len(missing), ', '.join(missing)))
-          
+
 def select_residue_interval(session):
     specs = []
     from chimerax.atomic import selected_residues
@@ -1314,7 +1315,6 @@ def unused_file_name(directory, basename, suffix):
     dir = path.expanduser(directory)
     if not path.isdir(dir):
         directory = dir = default_save_directory()
-    from os import listdir
     try:
         files = listdir(dir)
     except PermissionError:
@@ -1322,7 +1322,7 @@ def unused_file_name(directory, basename, suffix):
         raise UserError('Permission denied reading directory "%s"' % dir +
                         ' while trying to determine next unused file name %s#%s.'
                         % (basename, suffix))
-    
+
     nums = []
     for f in files:
         if f.startswith(basename) and f.endswith(suffix):
@@ -1343,7 +1343,7 @@ def default_save_directory():
     if not path.isdir(d):
         d = getcwd()
     return d
-    
+
 def keyboard_shortcuts(session):
     ks = getattr(session, 'keyboard_shortcuts', None)
     if ks is None:
@@ -1387,4 +1387,4 @@ def run_provider(session, name):
     except NotABug as err:
         from html import escape
         from chimerax.core.logger import error_text_format
-        session.logger.info(error_text_format % escape(str(err)), is_html=True)
+        session.logger.info(error_text_format(escape(str(err))), is_html=True)

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -176,7 +176,8 @@ class Fit:
             move_models(self.models, self.transforms, self.volume, frames, session)
         else:
             for m, tf in self.model_transforms():
-                m.position = tf
+                if not m.deleted:
+                    m.position = tf
 
     # -------------------------------------------------------------------------
     #
@@ -314,7 +315,7 @@ def save_fits(session, fits, path = None):
 
     idir = ifile = None
     vlist = [f.volume for f in fits]
-    pmlist = [m for m in mlist + vlist if hasattr(m, 'filename')]
+    pmlist = [m for m in mlist + vlist if hasattr(m, 'filename') and m.filename]
     if pmlist:
         for m in pmlist:
             import os.path

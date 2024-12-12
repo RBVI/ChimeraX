@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -87,12 +87,14 @@ class _AlphaFoldBundle(BundleAPI):
                                                **kw)
                     @property
                     def fetch_args(self):
-                        from chimerax.core.commands import BoolArg, Or, EnumOf
+                        from chimerax.core.commands import BoolArg, Or, EnumOf, IntArg
                         from chimerax.atomic import ChainArg
                         return {
                             'color_confidence': BoolArg,
                             'align_to': ChainArg,
                             'trim': BoolArg,
+                            'pae': BoolArg,
+                            'version': IntArg,
                         }
                 return AlphaFoldDatabaseInfo()
             elif name == 'alphafold_pae':
@@ -123,16 +125,6 @@ class _AlphaFoldBundle(BundleAPI):
                 from chimerax.open_command import OpenerInfo
                 class AlphaFoldPAEInfo(OpenerInfo):
                     def open(self, session, path, file_name, **kw):
-                        if 'structure' not in kw:
-                            from chimerax.atomic import AtomicStructure
-                            from os.path import dirname
-                            structs = [m for m in session.models.list(type = AtomicStructure)
-                                       if hasattr(m, 'filename') and dirname(m.filename) == dirname(path)]
-                            if len(structs) == 1:
-                                kw['structure'] = structs[0]
-                            else:
-                                from chimerax.core.errors import UserError
-                                raise UserError(f'Opening an AlphaFold PAE file requires specifying the structure to associate.  Did not find an open structure from the same directory.  To specify the structure use menu\n\n\tTools / Structure Prediction / AlphaFold Error Plot\n\nor use the open command, for example\n\n\topen {path} format pae structure #1')
                         from .pae import alphafold_pae
                         pae = alphafold_pae(session, file = path, **kw)
                         return [], f'Opened AlphaFold PAE with values for {pae.matrix_size} residues and atoms'

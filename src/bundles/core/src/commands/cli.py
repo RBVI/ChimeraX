@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -3281,9 +3281,10 @@ class Command:
                     session.logger.error("%s^" % ("." * error_at))
         else:
             from html import escape
+            from ..colors import scheme_color
 
             ci = self._ci
-            err_color = "crimson"
+            err_color = scheme_color('error')
             msg = '<div class="cxcmd">'
             if ci is None or ci.url is None:
                 offset = 0
@@ -3295,10 +3296,9 @@ class Command:
                     self.current_text[self.start + offset : self.amount_parsed]
                 )
             else:
-                msg += '%s<span style="color:white; background-color:%s;">%s</span>' % (
+                msg += '%s<span style="background-color:%s;">%s</span>' % (
                     escape(self.current_text[self.start + offset : error_at]),
-                    err_color,
-                    escape(self.current_text[error_at:]),
+                    err_color, escape(self.current_text[error_at:]),
                 )
             msg += "</div>"
             session.logger.info(msg, is_html=True, add_newline=False)

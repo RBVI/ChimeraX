@@ -6,7 +6,7 @@ Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  For details see:
-http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
@@ -16,12 +16,13 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Tool: ViewDockX</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRight" title="User Guide Index"/></a>
+class="clRighticon" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#tools">Tool</a>: ViewDockX</h3>
 <p>
@@ -34,7 +35,7 @@ and scores or other numerical descriptors can be plotted.
 See also: 
 an <a href="../formats/dock4.mol2">example file</a> of compounds docked to 
 H-ras (the protein part of PDB entry
-<a href="http://www.rcsb.org/pdb/explore/explore.do?structureId=121p"
+<a href="https://www.rcsb.org/pdb/explore/explore.do?structureId=121p"
 target="_blank">121p</a>),
 <a href="hbonds.html"><b>H-Bonds</b></a>,
 <a href="clashes.html"><b>Clashes/Contacts</b></a>,
@@ -47,9 +48,9 @@ of docking results:
 <ul>
 <li>Mol2 (.mol2) from
   <ul>
-  <li><a href="http://dock.compbio.ucsf.edu/" 
+  <li><a href="https://dock.compbio.ucsf.edu/" 
 target="_blank">UCSF&nbsp;DOCK</a>&nbsp;v4-6 
-  <li><a href="http://dock.compbio.ucsf.edu/DOCK3.7/" 
+  <li><a href="https://dock.compbio.ucsf.edu/DOCK3.7/" 
 target="_blank">UCSF&nbsp;DOCK&nbsp;v3.7</a>
 (however, the ligand descriptors in condensed tabular form will not be shown)
   <li><a 
@@ -59,14 +60,14 @@ target="_blank">GOLD</a>
 href="https://www.chemcomp.com/MOE-Molecular_Operating_Environment.htm/" 
 target="_blank">MOE</a>
   </ul>
-<li><a href="http://vina.scripps.edu/" target="_blank">AutoDock Vina</a> PDBQT
+<li><a href="https://vina.scripps.edu/" target="_blank">AutoDock Vina</a> PDBQT
 (.pdbqt) (Protein Data Bank with partial charge Q and atom type T format)
 <li><a href="https://www.schrodinger.com/glide" target="_blank">Glide</a>
 Maestro (.mae, .maegz) 
 &ndash; to be recognized as docking results, the file must contain the
 <b>r_i_docking_score</b> descriptor; other Maestro files
 (those not produced by Glide) may not contain this descriptor
-<li><a href="http://www.swissdock.ch/" target="_blank">SwissDock</a>
+<li><a href="https://www.swissdock.ch/" target="_blank">SwissDock</a>
 modified PDB format (<a href="../commands/open.html#local"><b>open</b></a>
 with <a href="../commands/open.html#file-table"><b>format swissdock</b></a>;
 the ligand and receptor files can be opened in either order, and with 
@@ -80,8 +81,9 @@ opening a file that contains multiple docked ligands or ligand poses
 will automatically start the <b>ViewDockX</b> interface. 
 Alternatively, one or more such files can be opened with
 <a href="../commands/open.html#showTool"><b>showTool false</b></a>,
-and subsequently the <b>ViewDockX</b> tool 
-started from the <b>Tools</b> menu or by using the command:
+and subsequently the <b>ViewDockX</b> tool can be started
+from the <b>Binding Analysis</b> section of the <b>Tools</b> menu
+or by using the command:
 </p>
 <blockquote>
 <a href="../commands/viewdockx.html"><b>viewdockx</b></a>
@@ -176,7 +178,7 @@ the number of clashes between each compound and all other atoms
 <a href="../commands/clashes.html"><b>clashes</b></a> command
 <!-- clashes [dock-models] test others reveal true -->
 <blockquote>
-<table cellpadding="8px" cellspacing="0px" border=1 bgcolor="#f0f0f0"><tr><td>
+<table cellpadding="8px" cellspacing="0px" border=1><tr><td class="shaded">
 Because <b><i>all</i></b> other atoms besides the docked compounds
 are treated as the receptor for identifying H-bonds and clashes,
 any atoms not meant to be considered (generally solvent, 
@@ -227,5 +229,5 @@ in the graphics window and hides the others.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2024</address>
+October 2024</address>
 </body></html>
