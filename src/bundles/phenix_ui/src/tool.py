@@ -250,12 +250,17 @@ class EmplaceLocalResultsViewer(ToolInstance):
 
         self.tool_window.manage(None)
 
+    def accept_fit(self):
+        self.delete()
+
     def delete(self):
         for handler in self.handlers:
             handler.remove()
         if self._interpolate_handler:
             self._interpolate_handler.remove()
-        self.orig_model = self.sym_map = None
+        if not self.map_group.deleted:
+            self.session.models.close([self.map_group])
+        self.map_group = self.orig_model = self.sym_map = None
         super().delete()
 
     def _build_table(self, table_state):
