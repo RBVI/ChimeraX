@@ -683,20 +683,10 @@ class SegmentationTool(ToolInstance):
     def _on_segmentation_started(self, _, value) -> None:
         self.segmenting = True
         self.set_segmentation_step(2)
-        self.setSphereRegionToValue(
-            self.segmentation_sphere.scene_position.origin(),
-            self.segmentation_sphere.radius,
-            value,
-        )
 
     def _on_segmentation_ended(self, _, value) -> None:
         self.segmenting = False
         self.set_segmentation_step(1)
-        self.setSphereRegionToValue(
-            self.segmentation_sphere.scene_position.origin(),
-            self.segmentation_sphere.radius,
-            value,
-        )
 
     def _on_segmentation_sphere_moved(self, _, move_event) -> None:
         if self.segmentation_sphere:
