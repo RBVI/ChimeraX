@@ -1445,9 +1445,9 @@ class AtomicStructure(Structure):
             scene_supported_super = most_derived_scene_implementation(super())
             scene_data['super'] = scene_supported_super.take_snapshot(super(), session, flags)
 
-            scene_data['atoms'] = self.atoms.take_scene()
-            scene_data['bonds'] = self.bonds.take_scene()
-            scene_data['residues'] = self.residues.take_scene()
+            scene_data['atoms'] = self.atoms.take_snapshot(session, flags)
+            scene_data['bonds'] = self.bonds.take_snapshot(session, flags)
+            scene_data['residues'] = self.residues.take_snapshot(session, flags)
             return scene_data
 
         data = {
