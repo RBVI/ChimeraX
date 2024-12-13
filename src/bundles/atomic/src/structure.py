@@ -1431,7 +1431,7 @@ class AtomicStructure(Structure):
 
     def take_snapshot(self, session, flags):
         if flags == State.SCENE:
-            scene_data = {}
+            scene_data = {'AtomicStructure version': 3}
             from chimerax.scenes.scene import md_scene_implementation
             # get Model's scene data
             scene_supported_super = md_scene_implementation(super())
@@ -1457,6 +1457,9 @@ class AtomicStructure(Structure):
     def restore_scene(self, scene_data) -> None:
         # Implementation of restore_scene method from SceneRestorable
         super().restore_scene(scene_data['super'])
+
+        if scene_data['AtomicStructure version'] != 3:
+            raise ValueError("AtomicStructure version mismatch on scene restore")
         self.atoms.restore_scene(scene_data['atoms'])
         self.bonds.restore_scene(scene_data['bonds'])
         self.residues.restore_scene(scene_data['residues'])
