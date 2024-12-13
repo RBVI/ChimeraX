@@ -81,7 +81,7 @@ class Scene(State):
         self.named_view = NamedView(self.session.view, self.session.view.center_of_rotation, models)
         self.scene_restoreables = {}
         for model in all_objects(self.session).models:
-            scene_implemented_cls = most_derived_scene_implementation(model)
+            scene_implemented_cls = md_scene_implementation(model)
             if hasattr(scene_implemented_cls, 'take_snapshot'):
                 self.scene_restoreables[model] = scene_implemented_cls.take_snapshot(model, self.session, flags=State.SCENE)
 
@@ -248,7 +248,7 @@ class Scene(State):
         }
 
 
-def most_derived_scene_implementation(model: Model):
+def md_scene_implementation(model: Model):
     """
     Find the most derived class that implements restore_scene. If no class implements restore_scene, return Model.
 
