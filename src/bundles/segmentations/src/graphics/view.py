@@ -69,14 +69,9 @@ class OrthoplaneView(View):
         if camera is None:
             camera = self.camera
         camera.combine_rendered_camera_views(self._render)
-
         # We want to draw the overlays in a specific order: segmentations first, then the guidelines, then the cursor
         #
         if self._overlays and should_draw_overlays:
-            odrawings = sum(
-                [o.all_drawings(displayed_only=True) for o in self._overlays], []
-            )
-            draw_overlays(odrawings, self._render)
             odrawings = sum(
                 [
                     o.all_drawings(displayed_only=True)
@@ -92,6 +87,10 @@ class OrthoplaneView(View):
             draw_overlays(odrawings, self._render)
             odrawings = sum(
                 [o.all_drawings(displayed_only=True) for o in self.cursor_overlays], []
+            )
+            draw_overlays(odrawings, self._render)
+            odrawings = sum(
+                [o.all_drawings(displayed_only=True) for o in self._overlays], []
             )
             draw_overlays(odrawings, self._render)
 
