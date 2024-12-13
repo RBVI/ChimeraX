@@ -33,9 +33,7 @@ class CoordinateSetSlider(Slider):
                                            compute_ss = compute_ss, steady_atoms = steady_atoms)
         self.set_slider(structure.active_coordset_id)
 
-        from chimerax import atomic
-        t = atomic.get_triggers(session)
-        self._coordset_change_handler = t.add_handler('changes', self.coordset_change_cb)
+        self._coordset_change_handler = structure.triggers.add_handler('changes', self.coordset_change_cb)
         
         from chimerax.core.models import REMOVE_MODELS
         self._model_close_handler = session.triggers.add_handler(REMOVE_MODELS, self.models_closed_cb)
@@ -50,11 +48,20 @@ class CoordinateSetSlider(Slider):
     def valid_value(self, i):
         return i in self.coordset_ids
 
-    def coordset_change_cb(self, name, changes):
+    def coordset_change_cb(self, name, change_info):
         # If coordset changed by command, update slider
-        s = self.structure
-        if ('active_coordset changed' in changes.structure_reasons() and
-            s in changes.modified_structures()):
+        s, changes = change_info
+        if changes.num_deleted_coordsets() > 0 or len(changes.created_coordsets()) > 0:
+            pf = self.pause_frames
+            mfr = self.movie_framerate
+            sa = self._player.steady_atoms
+            css = self._player.compute_ss
+            self.delete()
+            if s.num_coordsets > 1:
+                CoordinateSetSlider(s.session, s, pause_frames=pf, movie_framerate=mfr, steady_atoms=sa,
+                    compute_ss=css)
+            return
+        if 'active_coordset changed' in changes.structure_reasons():
             self.set_slider(s.active_coordset_id)
             
     def models_closed_cb(self, name, models):
@@ -63,9 +70,7 @@ class CoordinateSetSlider(Slider):
 
     # Override ToolInstance method
     def delete(self):
-        from chimerax import atomic
-        t = atomic.get_triggers(self.session)
-        t.remove_handler(self._coordset_change_handler)
+        self._coordset_change_handler.remove()
         self._coordset_change_handler = None
 
         self.session._coord_set_sliders.remove(self)
