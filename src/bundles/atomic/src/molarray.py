@@ -281,8 +281,11 @@ class Collection(State):
         return [self._object_class.c_ptr_to_existing_py_inst(p) for p in self._pointers]
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):
-        return {'version': self.STATE_VERSION,
-                'pointers': self.session_save_pointers(session)}
+        if flags == State.SCENE:
+            return {'version': self.STATE_VERSION}
+        else:
+            return {'version': self.STATE_VERSION,
+                    'pointers': self.session_save_pointers(session)}
     @classmethod
     def restore_snapshot(cls, session, data):
         if data['version'] > cls.STATE_VERSION:
@@ -291,6 +294,11 @@ class Collection(State):
                              " update your ChimeraX".format(data['version'], self.STATE_VERSION))
         c_pointers = cls.session_restore_pointers(session, data['pointers'])
         return cls(c_pointers)
+
+    def restore_scene(self, scene_data):
+        if scene_data['version'] > self.STATE_VERSION:
+            raise ValueError(f"Don't know how to restore Collections from scene version {self.STATE_VERSION}")
+
     @classmethod
     def session_restore_pointers(cls, session, data):
         raise NotImplementedError(
@@ -894,6 +902,7 @@ class Atoms(Collection):
     def take_snapshot(self, session, flags):
         if flags == State.SCENE:
             scene_data = {}
+            scene_data['super'] = super().take_snapshot(session, flags)
             scene_attrs = ['colors', 'coords', 'displays', 'selected']
             for attr in scene_attrs:
                 if hasattr(self, attr):
@@ -903,6 +912,7 @@ class Atoms(Collection):
             return super().take_snapshot(session, flags)
 
     def restore_scene(self, scene_data):
+        super().restore_scene(scene_data['super'])
         for attr, value in scene_data.items():
             if hasattr(self, attr):
                 setattr(self, attr, value)
@@ -1037,6 +1047,7 @@ class Bonds(Collection):
     def take_snapshot(self, session, flags):
         if flags == State.SCENE:
             scene_data = {}
+            scene_data['super'] = super().take_snapshot(session, flags)
             save_attrs = ['colors', 'displays', 'halfbonds', 'selected']
             for attr in save_attrs:
                 scene_data[attr] = getattr(self, attr)
@@ -1045,6 +1056,7 @@ class Bonds(Collection):
             return super().take_snapshot(session, flags)
 
     def restore_scene(self, scene_data):
+        super().restore_scene(scene_data['super'])
         for attr, value in scene_data.items():
             if hasattr(self, attr):
                 setattr(self, attr, value)
@@ -1492,6 +1504,7 @@ class Residues(Collection):
     def take_snapshot(self, session, flags):
         if flags == State.SCENE:
             scene_data = {}
+            scene_data['super'] = super().take_snapshot(session, flags)
             save_attrs = ['ribbon_colors', 'ribbon_displays', 'ring_colors', 'ring_displays']
             for attr in save_attrs:
                 scene_data[attr] = getattr(self, attr)
@@ -1500,6 +1513,7 @@ class Residues(Collection):
             return super().take_snapshot(session, flags)
 
     def restore_scene(self, scene_data):
+        super().restore_scene(scene_data['super'])
         for attr, value in scene_data.items():
             if hasattr(self, attr):
                 setattr(self, attr, value)
