@@ -431,9 +431,6 @@ class Model(State, Drawing):
         '''
         Restore model to state from scene_data
         (obtained from take_snapshot() with State.SCENE flag)
-
-        #TODO: restore base Model state here
-        raise NotImplementedError("restore_scene not implemented")
         '''
         for attr, val in scene_data.items():
             if hasattr(self, attr):
