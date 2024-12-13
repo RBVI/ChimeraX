@@ -356,7 +356,7 @@ class Model(State, Drawing):
 
     def take_snapshot(self, session, flags):
         if flags == State.SCENE:
-            scene_data = {}
+            scene_data = {'version': MODEL_STATE_VERSION}
             scene_attrs = ['selected', 'overall_color', 'model_color', 'display']
             for attr in scene_attrs:
                 scene_data[attr] = getattr(self, attr)
@@ -432,6 +432,9 @@ class Model(State, Drawing):
         Restore model to state from scene_data
         (obtained from take_snapshot() with State.SCENE flag)
         '''
+        if scene_data['version'] != MODEL_STATE_VERSION:
+            raise ValueError(f'Model version mismatch in restore_scene. '
+                             f'Expected {MODEL_STATE_VERSION}, got {scene_data["version"]}')
         for attr, val in scene_data.items():
             if hasattr(self, attr):
                 setattr(self, attr, val)

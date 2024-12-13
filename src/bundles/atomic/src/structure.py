@@ -1060,14 +1060,6 @@ class Structure(Model, StructureData):
         scene_data['residues'] = self.residues.take_scene()
         return scene_data
 
-    def restore_scene(self, scene_data) -> None:
-        # Implementation of restore_scene method from SceneRestorable
-        super().restore_scene(scene_data['super'])
-        self.atoms.restore_scene(scene_data['atoms'])
-        self.bonds.restore_scene(scene_data['bonds'])
-        self.residues.restore_scene(scene_data['residues'])
-
-
 class AtomsDrawing(Drawing):
     # can't have any child drawings
     # requires self.parent._atom_display_radii()
@@ -1461,6 +1453,13 @@ class AtomicStructure(Structure):
         s = AtomicStructure(session, auto_style = False, log_info = False)
         s.set_state_from_snapshot(session, data)
         return s
+
+    def restore_scene(self, scene_data) -> None:
+        # Implementation of restore_scene method from SceneRestorable
+        super().restore_scene(scene_data['super'])
+        self.atoms.restore_scene(scene_data['atoms'])
+        self.bonds.restore_scene(scene_data['bonds'])
+        self.residues.restore_scene(scene_data['residues'])
 
     def set_state_from_snapshot(self, session, data):
         version = data.get('AtomicStructure version', 1)
