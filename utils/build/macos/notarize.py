@@ -566,11 +566,16 @@ def sign_binaries_and_make_dmg(defaults):
 
 
 def notarize_dmg(defaults):
-    plist = request_notarization(defaults)
-    status = report_notarization_result(defaults, plist["id"])
-    if status == 0:
-        staple_notarization_to_dmg(defaults)
-    else:
+    tries = 0
+    status = None
+    while tries < 5 && status != 0:
+        plist = request_notarization(defaults)
+        status = report_notarization_result(defaults, plist["id"])
+        if status == 0:
+            staple_notarization_to_dmg(defaults)
+        else:
+            tries += 1
+    if status != 0:
         raise RuntimeError(f"Mac notarization failed with status code {status}")
 
 
