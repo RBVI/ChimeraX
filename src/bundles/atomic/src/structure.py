@@ -216,9 +216,10 @@ class Structure(Model, StructureData):
 
     def take_snapshot(self, session, flags):
         if flags == State.SCENE:
-            scene_data = {}
-            scene_data['super'] = super().take_snapshot(session, flags)
-            scene_data['version'] = STRUCTURE_STATE_VERSION
+            scene_data = {
+                'model state': Model.take_snapshot(self, session, flags),
+                'version': STRUCTURE_STATE_VERSION
+            }
             return scene_data
 
         data = {'model state': Model.take_snapshot(self, session, flags),
@@ -236,7 +237,7 @@ class Structure(Model, StructureData):
         return s
 
     def restore_scene(self, scene_data):
-        super().restore_scene(scene_data['super'])
+        Model.restore_scene(self, scene_data['model state'])
         if scene_data['version'] != STRUCTURE_STATE_VERSION:
             raise TypeError(f"Can't restore incompatible version "
                             f"{scene_data['version']}; expected {STRUCTURE_STATE_VERSION}")
@@ -1443,12 +1444,13 @@ class AtomicStructure(Structure):
 
     def take_snapshot(self, session, flags):
         if flags == State.SCENE:
-            scene_data = {'AtomicStructure version': 3}
-            scene_data['super'] = super().take_snapshot(session, flags)
-
-            scene_data['atoms'] = self.atoms.take_snapshot(session, flags)
-            scene_data['bonds'] = self.bonds.take_snapshot(session, flags)
-            scene_data['residues'] = self.residues.take_snapshot(session, flags)
+            scene_data = {
+                'AtomicStructure version': 3,
+                'structure state': Structure.take_snapshot(self, session, flags),
+                'atoms': self.atoms.take_snapshot(session, flags),
+                'bonds': self.bonds.take_snapshot(session, flags),
+                'residues': self.residues.take_snapshot(session, flags)
+            }
             return scene_data
 
         data = {
@@ -1465,7 +1467,7 @@ class AtomicStructure(Structure):
 
     def restore_scene(self, scene_data) -> None:
         # Implementation of restore_scene method from SceneRestorable
-        super().restore_scene(scene_data['super'])
+        Structure.restore_scene(self, scene_data['structure state'])
         if scene_data['AtomicStructure version'] != 3:
             raise ValueError("AtomicStructure version mismatch on scene restore")
         self.atoms.restore_scene(scene_data['atoms'])
