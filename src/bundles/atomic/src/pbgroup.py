@@ -326,6 +326,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
                 'version': 1,
                 'dashes': self.dashes,
                 'model state': Model.take_snapshot(self, session, flags),
+                'pseudobond data': PseudobondGroupData.take_scene(self, session, flags),
             }
 
         data = {
@@ -359,6 +360,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def restore_scene(self, scene_data):
         Model.restore_scene(self, scene_data['model state'])
         self.dashes = scene_data['dashes']
+        PseudobondGroupData.restore_scene(self, scene_data['pseudobond data'])
 
 # -----------------------------------------------------------------------------
 #

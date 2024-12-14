@@ -477,6 +477,20 @@ class PseudobondGroupData:
         from .molarray import Pseudobonds
         return Pseudobonds(ptrs)
 
+    def take_scene(self, session, flags):
+        return {
+            'color': self.color,
+            'halfbond': self.halfbond,
+            'radius': self.radius,
+            'pseudobonds': self.pseudobonds.take_snapshot(session, flags)
+        }
+
+    def restore_scene(self, data):
+        self.color = data['color']
+        self.halfbond = data['halfbond']
+        self.radius = data['radius']
+        self.pseudobonds.restore_scene(data['pseudobonds'])
+
     # Graphics changed flags used by rendering code.  Private.
     _SHAPE_CHANGE = 0x1
     _COLOR_CHANGE = 0x2
