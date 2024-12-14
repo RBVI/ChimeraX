@@ -259,7 +259,7 @@ def md_scene_implementation(model: Model):
         Model: The most derived class that implements restore_scene.
     """
     for cls in inspect.getmro(type(model)):
-        if hasattr(cls, 'restore_scene'):
+        if 'restore_scene' in cls.__dict__:
             return cls
     return Model  # Default to Model if no other class implements restore_scene
 
