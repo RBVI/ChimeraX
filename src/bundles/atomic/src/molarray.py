@@ -902,7 +902,7 @@ class Atoms(Collection):
     def take_snapshot(self, session, flags):
         if flags == State.SCENE:
             scene_data = {}
-            scene_data['super'] = super().take_snapshot(session, flags)
+            scene_data['collection state'] = Collection.take_snapshot(self, session, flags)
             scene_attrs = ['colors', 'coords', 'displays', 'selected']
             for attr in scene_attrs:
                 if hasattr(self, attr):
@@ -912,7 +912,7 @@ class Atoms(Collection):
             return super().take_snapshot(session, flags)
 
     def restore_scene(self, scene_data):
-        super().restore_scene(scene_data['super'])
+        Collection.restore_scene(self, scene_data['collection state'])
         for attr, value in scene_data.items():
             if hasattr(self, attr):
                 setattr(self, attr, value)
@@ -1047,7 +1047,7 @@ class Bonds(Collection):
     def take_snapshot(self, session, flags):
         if flags == State.SCENE:
             scene_data = {}
-            scene_data['super'] = super().take_snapshot(session, flags)
+            scene_data['collection state'] = Collection.take_snapshot(self, session, flags)
             save_attrs = ['colors', 'displays', 'halfbonds', 'selected']
             for attr in save_attrs:
                 scene_data[attr] = getattr(self, attr)
@@ -1056,7 +1056,7 @@ class Bonds(Collection):
             return super().take_snapshot(session, flags)
 
     def restore_scene(self, scene_data):
-        super().restore_scene(scene_data['super'])
+        Collection.restore_scene(self, scene_data['collection state'])
         for attr, value in scene_data.items():
             if hasattr(self, attr):
                 setattr(self, attr, value)
@@ -1504,7 +1504,7 @@ class Residues(Collection):
     def take_snapshot(self, session, flags):
         if flags == State.SCENE:
             scene_data = {}
-            scene_data['super'] = super().take_snapshot(session, flags)
+            scene_data['collection state'] = Collection.take_snapshot(self, session, flags)
             save_attrs = ['ribbon_colors', 'ribbon_displays', 'ring_colors', 'ring_displays']
             for attr in save_attrs:
                 scene_data[attr] = getattr(self, attr)
@@ -1513,7 +1513,7 @@ class Residues(Collection):
             return super().take_snapshot(session, flags)
 
     def restore_scene(self, scene_data):
-        super().restore_scene(scene_data['super'])
+        Collection.restore_scene(self, scene_data['collection state'])
         for attr, value in scene_data.items():
             if hasattr(self, attr):
                 setattr(self, attr, value)
