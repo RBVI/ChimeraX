@@ -320,6 +320,14 @@ class PseudobondGroup(PseudobondGroupData, Model):
         return [p]
 
     def take_snapshot(self, session, flags):
+        from chimerax.core.state import State
+        if flags == State.SCENE:
+            return {
+                'version': 1,
+                'dashes': self.dashes,
+                'model state': Model.take_snapshot(self, session, flags),
+            }
+
         data = {
             'version': 1,
             'category': self.name,
@@ -348,15 +356,9 @@ class PseudobondGroup(PseudobondGroupData, Model):
         grp.set_custom_attrs(data)
         return grp
 
-    def take_scene(self):
-        scene_data = {}
-        scene_data['super'] = super().take_scene()
-        scene_data['psuedobonds'] = self.pseudobonds.take_scene()
-        return scene_data
-
     def restore_scene(self, scene_data):
-        super().restore_scene(scene_data['super'])
-        self.pseudobonds.restore_scene(scene_data['psuedobonds'])
+        Model.restore_scene(self, scene_data['model state'])
+        self.dashes = scene_data['dashes']
 
 # -----------------------------------------------------------------------------
 #
