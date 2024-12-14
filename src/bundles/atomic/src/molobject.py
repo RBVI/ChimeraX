@@ -1548,6 +1548,9 @@ class StructureData:
         doc = "Supported API. Return array of ids of all coordinate sets.")
     coordset_size = c_property('structure_coordset_size', int32, read_only = True,
         doc = "Supported API. Return the size of the active coordinate set array.")
+    coordsets = c_property('structure_coordsets', cptr, 'num_coordsets', astype = convert.coordsets,
+        read_only = True,
+        doc = "Supported API. :class:`.CoordSets` collection containing all coordsets of the structure.")
     display = c_property('structure_display', npy_bool, doc =
         "Don't call this directly.  Use Model's 'display' attribute instead.  Only exposed so that "
         "Model's 'display' attribute can call it so that 'display changed' shows up in triggers.")

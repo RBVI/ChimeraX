@@ -4509,6 +4509,20 @@ extern "C" EXPORT void structure_coordset_size(void *mols, size_t n, int32_t *co
     }
 }
 
+extern "C" EXPORT void structure_coordsets(void *mols, size_t n, pyobject_t *coordsets)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const Structure::CoordSets &cs = m[i]->coord_sets();
+            for (size_t j = 0; j != cs.size(); ++j)
+                *coordsets++ = cs[j];
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_num_coordsets(void *mols, size_t n, size_t *ncoord_sets)
 {
     Structure **m = static_cast<Structure **>(mols);

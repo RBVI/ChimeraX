@@ -58,7 +58,7 @@ from chimerax.ui.options import (
 from chimerax.ui.widgets import ModelMenu
 from chimerax.ui.icons import get_qt_icon
 
-from ..ui.orthoplanes import Axis
+from ..types import Axis
 from ..graphics.cylinder import SegmentationDisk
 from ..graphics.sphere import SegmentationSphere
 from ..dicom_segmentations import PlanePuckSegmentation, SphericalSegmentation
@@ -78,8 +78,6 @@ import chimerax.segmentations.triggers
 from chimerax.segmentations.triggers import Trigger
 
 from chimerax.segmentations.triggers import (
-    ENTER_EVENTS,
-    LEAVE_EVENTS,
     VIEW_LAYOUT_CHANGED,
     GUIDELINES_VISIBILITY_CHANGED,
 )
@@ -173,6 +171,15 @@ class SegmentationToolControlsDialog(QDialog):
                     default=None,
                 )
             )
+        self.panel.add_option(
+            BooleanOption(
+                name="Sync plane viewer models with Segmentation Tool's model menu",
+                default=None,
+                attr_name="automatically_switch_models_on_menu_changes",
+                settings=settings,
+                callback=None,
+            )
+        )
         self.panel.add_option(
             IntOption(
                 "Segmentation opacity",
@@ -606,23 +613,11 @@ class SegmentationTool(ToolInstance):
         # overlays to views when the layout changes
         self.previous_layout = None
         self.current_layout = self.settings.default_view
-        self.axial_enter_handler = chimerax.segmentations.triggers.add_handler(
-            ENTER_EVENTS[Axis.AXIAL], self._on_axial_plane_viewer_enter_event
+        self.plane_viewer_enter_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.PlaneViewerEnter, self._on_plane_viewer_enter_event
         )
-        self.coronal_enter_handler = chimerax.segmentations.triggers.add_handler(
-            ENTER_EVENTS[Axis.CORONAL], self._on_coronal_plane_viewer_enter_event
-        )
-        self.sagittal_enter_handler = chimerax.segmentations.triggers.add_handler(
-            ENTER_EVENTS[Axis.SAGITTAL], self._on_sagittal_plane_viewer_enter_event
-        )
-        self.axial_leave_handler = chimerax.segmentations.triggers.add_handler(
-            LEAVE_EVENTS[Axis.AXIAL], self._on_axial_plane_viewer_leave_event
-        )
-        self.coronal_leave_handler = chimerax.segmentations.triggers.add_handler(
-            LEAVE_EVENTS[Axis.CORONAL], self._on_coronal_plane_viewer_leave_event
-        )
-        self.sagittal_leave_handler = chimerax.segmentations.triggers.add_handler(
-            LEAVE_EVENTS[Axis.SAGITTAL], self._on_sagittal_plane_viewer_leave_event
+        self.plane_viewer_leave_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.PlaneViewerLeave, self._on_plane_viewer_leave_event
         )
         self.view_layout_changed_handler = chimerax.segmentations.triggers.add_handler(
             Trigger.ViewLayoutChanged, self._on_view_changed_trigger
@@ -661,23 +656,11 @@ class SegmentationTool(ToolInstance):
         self.tool_window.fill_context_menu = self.fill_context_menu
         self._surface_chosen()
 
-    def _on_axial_plane_viewer_enter_event(self, *_):
-        self.make_puck_visible(Axis.AXIAL)
+    def _on_plane_viewer_enter_event(self, _, axis):
+        self.make_puck_visible(axis)
 
-    def _on_coronal_plane_viewer_enter_event(self, *_):
-        self.make_puck_visible(Axis.CORONAL)
-
-    def _on_sagittal_plane_viewer_enter_event(self, *_):
-        self.make_puck_visible(Axis.SAGITTAL)
-
-    def _on_axial_plane_viewer_leave_event(self, *_):
-        self.make_puck_invisible(Axis.AXIAL)
-
-    def _on_coronal_plane_viewer_leave_event(self, *_):
-        self.make_puck_invisible(Axis.CORONAL)
-
-    def _on_sagittal_plane_viewer_leave_event(self, *_):
-        self.make_puck_invisible(Axis.SAGITTAL)
+    def _on_plane_viewer_leave_event(self, _, axis):
+        self.make_puck_invisible(axis)
 
     def _on_hand_modes_changed(self, _, state: bool) -> None:
         self.hand_modes_changed = state
@@ -700,20 +683,10 @@ class SegmentationTool(ToolInstance):
     def _on_segmentation_started(self, _, value) -> None:
         self.segmenting = True
         self.set_segmentation_step(2)
-        self.setSphereRegionToValue(
-            self.segmentation_sphere.scene_position.origin(),
-            self.segmentation_sphere.radius,
-            value,
-        )
 
     def _on_segmentation_ended(self, _, value) -> None:
         self.segmenting = False
         self.set_segmentation_step(1)
-        self.setSphereRegionToValue(
-            self.segmentation_sphere.scene_position.origin(),
-            self.segmentation_sphere.radius,
-            value,
-        )
 
     def _on_segmentation_sphere_moved(self, _, move_event) -> None:
         if self.segmentation_sphere:
@@ -824,12 +797,8 @@ class SegmentationTool(ToolInstance):
     def delete(self):
         self.session.triggers.remove_handler(self.model_added_handler)
         self.session.triggers.remove_handler(self.model_closed_handler)
-        chimerax.segmentations.triggers.remove_handler(self.axial_enter_handler)
-        chimerax.segmentations.triggers.remove_handler(self.axial_leave_handler)
-        chimerax.segmentations.triggers.remove_handler(self.coronal_enter_handler)
-        chimerax.segmentations.triggers.remove_handler(self.coronal_leave_handler)
-        chimerax.segmentations.triggers.remove_handler(self.sagittal_enter_handler)
-        chimerax.segmentations.triggers.remove_handler(self.sagittal_leave_handler)
+        chimerax.segmentations.triggers.remove_handler(self.plane_viewer_enter_handler)
+        chimerax.segmentations.triggers.remove_handler(self.plane_viewer_leave_handler)
         chimerax.segmentations.triggers.remove_handler(self.view_layout_changed_handler)
         chimerax.segmentations.triggers.remove_handler(self.guideline_visibility_handler)
         chimerax.segmentations.triggers.remove_handler(self.hand_mode_change_handler)
@@ -907,10 +876,8 @@ class SegmentationTool(ToolInstance):
             self.threshold_min = min_
             self.threshold_max = max_
             self.range_slider.setTickInterval((max_ - min_) // 12)
-            if self.session.ui.main_window.view_layout == "orthoplanes":
-                self.session.ui.main_window.main_view.update_displayed_model(
-                    self.model_menu.value
-                )
+            if self.settings.automatically_switch_models_on_menu_changes:
+                chimerax.segmentations.triggers.activate_trigger(Trigger.ReferenceModelChanged, self.model_menu.value)
         except AttributeError:  # No more volumes!
             pass
 

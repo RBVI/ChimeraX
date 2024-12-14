@@ -889,6 +889,8 @@ class Session:
             self.triggers.activate_trigger("end restore session", self)
             self.restore_options.clear()
             mgr.cleanup()
+        from chimerax.core.commands import run
+        run(self, "view name session-start")
 
 
 class InScriptFlag:
