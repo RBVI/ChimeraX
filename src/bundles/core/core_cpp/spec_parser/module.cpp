@@ -72,6 +72,7 @@ static PyObject* op_truth;
 static PyObject* _Chain_class;
 static PyObject* _Part_class;
 static PyObject* _PartList_class;
+static PyObject* _add_model_parts;
 static std::string use_python_error("Use Python error");
 static bool add_implied, order_implicit_atoms, outermost_inversion;
 
@@ -448,7 +449,7 @@ static auto grammar = (R"---(
     part_list <- PART_RANGE_LIST "," part_list / PART_RANGE_LIST
     attribute_list <- attr_test ("," attr_test)*
     attr_test <- ATTR_NAME ATTR_OPERATOR ATTR_VALUE / "^" ATTR_NAME / ATTR_NAME
-    zone_selector <- ZONE_OPERATOR real_number / ZONE_OPERATOR integer
+    zone_selector <- Space* ZONE_OPERATOR real_number / Space* ZONE_OPERATOR integer
     # limit model numbers to 5 digits to avoid conflicts with hex colors
     ATTR_NAME <- < [a-zA-Z_] [a-zA-Z0-9_]* >
     ATTR_OPERATOR <- ">=" | ">" | "<=" | "<" | "==" | "=" | "!==" | "!=" | "<>"
@@ -620,7 +621,8 @@ static RGBA make_color_val(std::string& val_str)
     return rgba;
 }
 
-static PyObject* process_model_attrs(PyObject* base_objects, const std::any& parser_model_attrs)
+static PyObject*
+process_model_attrs(PyObject* base_objects, const std::any& parser_model_attrs)
 {
     auto model_attr_tests = std::any_cast<std::vector<AttrTester>>(parser_model_attrs);
     auto attrs_objects = new_objects_instance();
@@ -671,7 +673,61 @@ static PyObject* process_model_attrs(PyObject* base_objects, const std::any& par
     return attrs_objects;
 }
 
-static PyObject* process_zone(PyObject* base_objects, const std::any& parser_zone)
+static PyObject*
+process_model_parts(PyObject* base_objects, const std::any& parser_model_parts)
+{
+    auto parts = std::any_cast<std::vector<PyObject*>>(parser_model_parts);
+    auto parts_objects = new_objects_instance();
+    auto obj_models = PyObject_GetAttrString(base_objects, "models");
+    Py_DECREF(base_objects);
+    if (obj_models == nullptr) {
+        Py_DECREF(parts_objects);
+        throw std::logic_error(use_python_error);
+    }
+    auto fast_models = PySequence_Fast(obj_models, "Cannot convert Objects.models to fast sequence");
+    Py_DECREF(obj_models);
+    if (fast_models == nullptr) {
+        Py_DECREF(parts_objects);
+        throw std::logic_error(use_python_error);
+    }
+    auto num_tests = parts.size();
+    auto py_part_tests = PyTuple_New(num_tests);
+    if (py_part_tests == nullptr) {
+        Py_DECREF(parts_objects);
+        Py_DECREF(fast_models);
+        throw std::runtime_error("Could not create tuple");
+    }
+    for (decltype(num_tests) i = 0; i < num_tests; ++i)
+        PyTuple_SET_ITEM(py_part_tests, i, parts[i]);
+
+    auto num_models = PySequence_Fast_GET_SIZE(fast_models);
+    for (Py_ssize_t i = 0; i < num_models; ++i) {
+        auto m = PySequence_Fast_GET_ITEM(fast_models, i);
+        auto ret = PyObject_CallFunctionObjArgs(_add_model_parts, session, m, py_part_tests, parts_objects,
+            order_implicit_atoms ? Py_True : Py_False, nullptr);
+        if (ret == nullptr) {
+            Py_DECREF(parts_objects);
+            Py_DECREF(fast_models);
+            Py_DECREF(py_part_tests);
+            throw std::logic_error(use_python_error);
+        }
+        if (ret == Py_True) {
+            try {
+                add_model_to_objects(m, parts_objects);
+            } catch (std::exception& e) {
+                Py_DECREF(fast_models);
+                Py_DECREF(py_part_tests);
+                throw;
+            }
+        }
+    }
+    Py_DECREF(fast_models);
+    Py_DECREF(py_part_tests);
+    return parts_objects;
+}
+
+static PyObject*
+process_zone(PyObject* base_objects, const std::any& parser_zone)
 {
     auto zone_info = std::any_cast<std::pair<std::string_view, float>>(parser_zone);
     auto zone_objects = new_objects_instance();
@@ -814,6 +870,9 @@ PyMODINIT_FUNC PyInit__spec_parser()
     _PartList_class = get_module_attribute("chimerax.core.commands.atomspec", "_PartList");
     if (_PartList_class == nullptr)
         return nullptr;
+    _add_model_parts = get_module_attribute("chimerax.core.commands.atomspec", "_add_model_parts");
+    if (_add_model_parts == nullptr)
+        return nullptr;
 
     // atom_specifier
     spec_parser["atom_specifier"] = [](const SemanticValues &vs) {
@@ -906,6 +965,12 @@ PyMODINIT_FUNC PyInit__spec_parser()
                 std::any_cast<std::vector<std::vector<ModelMatcher>>>(vs[1]));
             for (auto py_model: gmatcher.matches())
                 add_model_to_objects(py_model, objects_inst);
+        } else {
+            auto list_size = PySequence_Fast_GET_SIZE(models);
+            for (decltype(list_size) i = 0; i < list_size; ++i)
+                add_model_to_objects(PySequence_Fast_GET_ITEM(models, i), objects_inst);
+        }
+        if (vs.choice() == 0) {
             if (vs.size() == 5) {
                 attr_index = 2;
                 parts_index = 3;
@@ -955,7 +1020,8 @@ PyMODINIT_FUNC PyInit__spec_parser()
 std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index << "; zone_index: " << zone_index << "\n";
         if (attr_index >= 0)
             objects_inst = process_model_attrs(objects_inst, vs[attr_index]);
-        //TODO: parts, and only process if model.atomspec_has_atoms()
+        if (parts_index >= 0)
+            objects_inst = process_model_parts(objects_inst, vs[parts_index]);
         if (zone_index >= 0)
             objects_inst = process_zone(objects_inst, vs[zone_index]);
         return objects_inst;
@@ -1185,10 +1251,10 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
         std::cerr << "\n";
         float dist;
         if (vs.choice() == 0)
-            dist = std::any_cast<float>(vs[1]);
+            dist = std::any_cast<float>(vs[vs.size()-1]);
         else
-            dist = std::any_cast<int>(vs[1]);
-        return std::make_pair(std::any_cast<std::string_view>(vs[0]), dist);
+            dist = std::any_cast<int>(vs[vs.size()-1]);
+        return std::make_pair(std::any_cast<std::string_view>(vs[vs.size()-2]), dist);
     };
 
     // ATTR_NAME
