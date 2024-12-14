@@ -65,7 +65,7 @@ class Scene(State):
         self.name = name
         if scene_data is None:
             # Want a new scene
-            self.init_form_session()
+            self.init_from_session()
         else:
             # load a scene from snapshot
             self.thumbnail = scene_data['thumbnail']
@@ -74,7 +74,7 @@ class Scene(State):
             self.scene_restoreables = scene_data['scene_restorables']
         return
 
-    def init_form_session(self):
+    def init_from_session(self):
         self.thumbnail = self.take_thumbnail()
         self.main_view_data = self.create_main_view_data()
         models = self.session.models.list()

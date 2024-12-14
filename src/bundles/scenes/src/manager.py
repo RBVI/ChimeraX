@@ -75,7 +75,7 @@ class SceneManager(StateManager):
 
     def edit_scene(self, scene_name):
         if self.scene_exists(scene_name):
-            self.get_scene(scene_name).init_form_session()
+            self.get_scene(scene_name).init_from_session()
             activate_trigger(EDITED, scene_name)
         else:
             self.session.logger.warning(f"Scene {scene_name} does not exist.")
