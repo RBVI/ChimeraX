@@ -387,8 +387,10 @@ runs:
       shell: bash
       if: ${{ steps.cache-rsync-linux.outputs.cache-hit != 'true' }}
       run: |
-        curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/rsync/rsync-3.2.7.tar.gz
-        mv rsync* prereqs/rsync/
+        if [ "${{ inputs.platform }}" = "linux" ] ; then
+          curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/rsync/rsync-3.2.7.tar.gz
+          mv rsync* prereqs/rsync/
+        fi
 
     - name: Fetch Python
       shell: bash
