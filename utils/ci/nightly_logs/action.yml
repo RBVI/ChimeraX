@@ -34,5 +34,5 @@ runs:
         -F "run_id=${{ inputs.run_id }}" \
         -F "job_id=${{ inputs.job_id }}" \
         -F "platform=${{ inputs.platform }}" \
-        -F "build_type=${{ inputs.build_type }} \
+        -F "build_type=${{ inputs.build_type }}" \
         https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/register_log_ids.py
