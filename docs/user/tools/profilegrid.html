@@ -27,18 +27,21 @@ class="clRighticon" title="User Guide Index"/></a>
 <table class="clRight">
 <tr><td>
 <img class="outline" src="7lcj.png" width="180px"
-alt="7LCJ associated with alignment"></td></tr>
+alt="structure 7LCJ associated with alignment"
+title="structure 7LCJ associated with alignment"></td></tr>
 </table>
 
 <table align="right">
 <tr><td>
 <img class="outline" src="profilegrid.png"
+title="PFAM family 2 seed alignment"
 alt="PFAM family 2 seed alignment" width="630px"></td></tr>
-<tr><td width="610px" align="center">
+<tr><td width="600px" align="center">
 <font size=-1>
-Profile grid of the seed alignment for the 
+Profile grid of the
 <a href="https://www.ebi.ac.uk/interpro/entry/pfam/PF00002/entry_alignments/?type=seed" target="_blank">PFAM 7 transmembrane receptor (Secretin family)</a>
-associated with a structure of the glucagon-like peptide-1 receptor, PDB
+seed alignment associated with a structure of the glucagon-like 
+peptide-1 receptor, PDB 
 <a href="http://www.rcsb.org/structure/7LCJ" target="_blank">7LCJ</a>.
 Two residues with 100% type conservation are 
 <a href="../selection.html">selected</a> and labeled.
@@ -52,7 +55,10 @@ Two residues with 100% type conservation are
 in which the rows are the possible sequence characters (residue one-letter
 codes and gap), the columns are positions in the alignment 
 (as in the standard view of a sequence alignment), and the values 
-in the cells are percentages of that type of residue at that position. 
+in the cells are percentages of that type of residue at that position,
+rounded to the nearest integer. A blank cell means that no sequences
+at all have that residue type at that position, whereas a displayed value
+of 0 means that some do, but &lt;0.5%.
 </p><p>
 Much like the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>,
 the <b>Profile Grid</b> tool interacts with any 
@@ -68,9 +74,27 @@ shows it as a <b>Profile Grid</b>.
 Multiple <b>Profile Grid</b> windows can be shown at the same time, 
 and they can be manipulated like other panels in ChimeraX 
 (<a href="../window.html#panels">more...</a>).
+</p><p>
+A <b>Mouse click</b> can interact with the grid cells in either of two ways,
+as specified near the bottom of the window:
 </p>
-
-<h3 align="center">*Page Under Construction*</h3>
+<ul>
+<li><b>selects residues</b>
+&ndash; <a href="../selection.html">selection</a> of the corresponding 
+residue(s) in any <a href="sequenceviewer.html#association">associated</a> 
+structures; if no associated structure has that type of residue at that 
+position, nothing happens.
+As in the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>,
+<a href="../selection.html">selection</a> of an associated structure residue
+by any means will be shown as a green outline around the corresponding cell.
+<li><a name="chosen"></a><b>chooses cell</b>
+&ndash; designating <b>Profile Grid</b> cells for subsequent actions,
+shown with an orange diamond on each chosen cell.
+</ul>
+<p>
+Either way, cell status can be toggled or the cell added to the existing set
+of highlighted/chosen cells with Shift-click.
+</p>
 
 <!--
 <blockquote><b>
@@ -87,9 +111,35 @@ and they can be manipulated like other panels in ChimeraX
 </p>
 <h3>Profile Grid Context Menu</h3>
 <p>
-Each <b>Profile Grid</b> window has a 
-<a href="../window.html#context-menu">context menu</a> 
+The <b>Profile Grid</b> <a href="../window.html#context-menu">context menu</a>
+includes:
 </p>
+<ul>
+<li><b>Chosen Cells</b> 
+&ndash; actions based on the <a href="#chosen">chosen</a> cells, if any:
+ <ul>
+ <li><b>List Sequence Names</b> &ndash; list the names of the corresponding 
+sequences in a separate dialog for copying or saving to a text file
+ <li><b>New Alignment</b> &ndash; open the corresponding sequences in a
+new window in the specified viewer:
+   <ul>
+   <li><a href="sequenceviewer.html"><b>Sequence Viewer</b></a>
+   <li><a href="#top"><b>Profile Grid</b></a>
+   </ul>
+ </ul>
+<li><b>Headers</b>
+&ndash; which <a href="sequenceviewer.html#headers">headers</a> are shown:
+  <ul>
+  <li><b>Consensus</b>
+  <li><b>Conservation</b>
+  <li><b>RMSD</b> &ndash; root-mean-square distance among residues
+<a href="sequenceviewer.html#association">associated</a> with a column,
+based on <b>C&alpha;</b> for peptides, <b>C4'</b> for nucleic acids
+  <li><b>Save</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
+  [choice of available headers]
+  &ndash; save header information to file
+  </ul>
+</ul>
 
 
 <hr>
