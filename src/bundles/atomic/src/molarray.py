@@ -1227,24 +1227,6 @@ class Pseudobonds(Collection):
         return ptrs
     def session_save_pointers(self, session):
         return [self.groups, self._ses_ids]
-
-    def take_snapshot(self, session, flags):
-        if flags == State.SCENE:
-            scene_data = {}
-            scene_data['collection state'] = Collection.take_snapshot(self, session, flags)
-            save_attrs = ['colors', 'displays', 'halfbonds', 'radii', 'selected']
-            for attr in save_attrs:
-                scene_data[attr] = getattr(self, attr)
-            return scene_data
-        else:
-            return super().take_snapshot(session, flags)
-
-    def restore_scene(self, scene_data):
-        Collection.restore_scene(self, scene_data['collection state'])
-        for attr, value in scene_data.items():
-            if hasattr(self, attr):
-                setattr(self, attr, value)
-
 # -----------------------------------------------------------------------------
 #
 class Residues(Collection):

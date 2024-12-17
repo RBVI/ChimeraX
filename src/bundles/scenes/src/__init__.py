@@ -43,24 +43,6 @@ class _ScenesBundleAPI(BundleAPI):
         """Install scene manager into existing session"""
         from .manager import SceneManager
         session.scenes = SceneManager(session)
-        from .scene import SceneRestoreable
-        from chimerax.atomic import Atoms, Bonds, Pseudobonds, PseudobondGroup, Residues
-        from chimerax.core.models import Model
-        SceneRestoreable.register(Model)
-        SceneRestoreable.register(Atoms)
-        SceneRestoreable.register(Bonds)
-        SceneRestoreable.register(Residues)
-        SceneRestoreable.register(PseudobondGroup)
-        SceneRestoreable.register(Pseudobonds)
-
-
-        from chimerax.map import VolumeSurface
-        SceneRestoreable.register(VolumeSurface)
-
-        from chimerax.label.label2d import Label, LabelModel
-        SceneRestoreable.register(Label)
-        SceneRestoreable.register(LabelModel)
-        return
 
     @staticmethod
     def finish(session, bundle_info):

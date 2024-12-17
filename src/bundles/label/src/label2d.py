@@ -566,21 +566,6 @@ class Label:
     @property
     def is_scalebar(self):
         return self.scalebar_width is not None
-
-    def take_scene(self):
-        scene_data = {}
-        scene_attrs = ('text', 'color', 'background', 'size', 'font', 'bold', 'italic',
-                       'xpos', 'ypos', 'visibility', 'margin', 'outline_width', 'scalebar_width', 'scalebar_height')
-        for attr in scene_attrs:
-            scene_data[attr] = getattr(self, attr)
-        return scene_data
-
-    def restore_scene(self, scene_data):
-        for attr, value in scene_data.items():
-            if hasattr(self, attr):
-                setattr(self, attr, value)
-        self.update_drawing()
-
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.models import Model
@@ -769,13 +754,3 @@ class LabelModel(Model):
         params = {key:val for key,val in ls.items() if key in param_names}
         return params 
 
-    def take_scene(self):
-        scene_data = {
-            'super': super().take_scene(),
-            'label': self.label.take_scene()
-        }
-        return scene_data
-
-    def restore_scene(self, scene_data):
-        super().restore_scene(scene_data['super'])
-        self.label.restore_scene(scene_data['label'])

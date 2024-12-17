@@ -1061,18 +1061,6 @@ class Structure(Model, StructureData):
         if expand_by:
             results.add_atoms(expand_by)
             results.add_model(self)
-
-    def take_scene(self):
-        # Implementation of take_scene method from SceneRestorable
-        scene_data = {}
-
-        # get Model's scene data
-        scene_data['super'] = super().take_scene()
-        scene_data['atoms'] = self.atoms.take_scene()
-        scene_data['bonds'] = self.bonds.take_scene()
-        scene_data['residues'] = self.residues.take_scene()
-        return scene_data
-
 class AtomsDrawing(Drawing):
     # can't have any child drawings
     # requires self.parent._atom_display_radii()

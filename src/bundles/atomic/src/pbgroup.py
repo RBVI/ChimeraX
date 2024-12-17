@@ -320,15 +320,6 @@ class PseudobondGroup(PseudobondGroupData, Model):
         return [p]
 
     def take_snapshot(self, session, flags):
-        from chimerax.core.state import State
-        if flags == State.SCENE:
-            return {
-                'version': 1,
-                'dashes': self.dashes,
-                'model state': Model.take_snapshot(self, session, flags),
-                'pseudobond data': PseudobondGroupData.take_scene(self, session, flags),
-            }
-
         data = {
             'version': 1,
             'category': self.name,

@@ -173,26 +173,3 @@ def md_scene_implementation(model: Model):
         if 'restore_scene' in cls.__dict__:
             return cls
     return Model  # Default to Model if no other class implements restore_scene
-
-
-class SceneRestoreable(ABC):
-
-    @abstractmethod
-    def take_scene(self) -> Dict[str, Any]:
-        """
-        Take a snapshot of the current state of a session object.
-
-        Returns:
-            Dict[str, Any]: A dictionary of attributes and their values.
-        """
-        pass
-
-    @abstractmethod
-    def restore_scene(self, scene_data: Dict[str, Any]):
-        """
-        Restore the model state from the given scene data.
-
-        Args:
-            scene_data (Dict[str, Any]): A dictionary of attributes and their values.
-        """
-        pass

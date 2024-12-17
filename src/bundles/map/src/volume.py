@@ -2361,19 +2361,6 @@ class VolumeSurface(Surface):
       if len(s.vertices) == len(vc):
         s.vertex_colors = vc
     return s
-
-  def take_scene(self):
-    return {
-      'level': self.level,
-      'rgba': self.rgba,
-      'show_mesh': self.show_mesh
-    }
-
-  def restore_scene(self, scene_data):
-    self.level = scene_data['level']
-    self.rgba = scene_data['rgba']
-    self.show_mesh = scene_data['show_mesh']
-
 # -----------------------------------------------------------------------------
 #
 def maps_pickable(session, pickable):
