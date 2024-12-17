@@ -77,7 +77,11 @@ class Scene(State):
 
     def init_from_session(self):
         self.thumbnail = self.take_thumbnail()
-        self.main_view_data = self.create_main_view_data()
+        # View State
+        main_view = self.session.view
+        view_state = self.session.snapshot_methods(main_view)
+        self.main_view_data = view_state.take_snapshot(main_view, self.session, State.SCENE)
+        # Session Models
         models = self.session.models.list()
         self.named_view = NamedView(self.session.view, self.session.view.center_of_rotation, models)
         self.scene_models = {}
@@ -130,58 +134,6 @@ class Scene(State):
             if model in self.named_view.positions:
                 del self.named_view.positions[model]
         return
-
-    def create_main_view_data(self):
-        """
-        Build a data tree to represent the data in ViewState. This data is used for saving snapshot of the scene.
-        This method first calls take_snapshot on the ViewState. By default, that snapshot will contain references to
-        objects but not the actual object data itself. This method steps into each of the nested objects in the
-        ViewState attributes and replaces the object references in the ViewState take snapshot with the raw data from
-        each object. Most attributes of the sessions main view are handled by one State manager class, so they can be
-        nested as raw data and converted back knowing that all the data is converted using one State manager. The
-        exception is clip planes attr (a list of clip planes) which are handled by two different State manager
-        classes. Therefore, the clip planes are stored as a dictionary with the key being the type of clip plane and
-        the value being the raw data of the clip plane so that when it is time to restore the scene, the correct
-        State manager can be used to restore the data entry.
-
-        Returns:
-            dict: A dictionary containing the main view data.
-        """
-
-        main_view = self.session.view
-
-        view_state = self.session.snapshot_methods(main_view)
-        data = view_state.take_snapshot(main_view, self.session, State.SCENE)
-
-        # By default, ViewState take_snapshot uses class name references and uids to store data for object attrs stored
-        # in the View. For the simplicity of Scenes we want to convert all the nested objects into raw data.
-        v_camera = main_view.camera
-        data['camera'] = CameraState.take_snapshot(v_camera, self.session, State.SCENE)
-        c_position = v_camera.position
-        data['camera']['position'] = PlaceState.take_snapshot(c_position, self.session, State.SCENE)
-
-        v_lighting = main_view.lighting
-        data['lighting'] = LightingState.take_snapshot(v_lighting, self.session, State.SCENE)
-
-        v_material = main_view.material
-        data['material'] = MaterialState.take_snapshot(v_material, self.session, State.SCENE)
-
-        # 'clip_planes in data is an array of clip planes objects. The clip plane objects can be either scene or camera
-        # clip planes. Need to convert them into raw data before storing them in the scene, but also need to keep track
-        # of which state class the data was derived from, so it can be restored. Replace the 'clip_planes' key in data
-        # with the raw data map.
-        clip_planes = data['clip_planes']
-        clip_planes_data = []
-        for clip_pane in clip_planes:
-            cp_state_manager = self.session.snapshot_methods(clip_pane)
-            if cp_state_manager == CameraClipPlaneState:
-                clip_planes_data.append(("camera", CameraClipPlaneState.take_snapshot(clip_pane, self.session, State.SCENE)))
-            if cp_state_manager == SceneClipPlaneState:
-                clip_planes_data.append(("scene", SceneClipPlaneState.take_snapshot(clip_pane, self.session, State.SCENE)))
-
-        data['clip_planes'] = clip_planes_data
-
-        return data
 
     def restore_main_view_data(self, data):
         """
