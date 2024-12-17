@@ -69,6 +69,40 @@ class ViewState:
         data['clipping_cap_offset'] = surf_settings.clipping_cap_offset
 
         data['version'] = ViewState.version
+
+        from chimerax.core.state import State
+        if flags == State.SCENE:
+            # By default, ViewState take_snapshot uses class name references and uids to store data for object attrs
+            # stored in the View. For the simplicity of Scenes we want to convert all the nested objects into raw data.
+            v_camera = v.camera
+            data['camera'] = CameraState.take_snapshot(v_camera, session, State.SCENE)
+            c_position = v_camera.position
+            from chimerax.geometry.psession import PlaceState
+            data['camera']['position'] = PlaceState.take_snapshot(c_position, session, State.SCENE)
+
+            v_lighting = v.lighting
+            data['lighting'] = LightingState.take_snapshot(v_lighting, session, State.SCENE)
+
+            v_material = v.material
+            data['material'] = MaterialState.take_snapshot(v_material, session, State.SCENE)
+
+            # 'clip_planes in data is an array of clip planes objects. The clip plane objects can be either scene or
+            # camera clip planes. Need to convert them into raw data before storing them in the scene, but also need
+            # to keep track of which state class the data was derived from, so it can be restored. This is done by
+            # storing a tuple of a state class identifier and the raw data.
+            clip_planes = data['clip_planes']
+            clip_planes_data = []
+            for clip_pane in clip_planes:
+                cp_state_manager = session.snapshot_methods(clip_pane)
+                if cp_state_manager == CameraClipPlaneState:
+                    clip_planes_data.append(
+                        ("camera", CameraClipPlaneState.take_snapshot(clip_pane, session, State.SCENE)))
+                if cp_state_manager == SceneClipPlaneState:
+                    clip_planes_data.append(
+                        ("scene", SceneClipPlaneState.take_snapshot(clip_pane, session, State.SCENE)))
+
+            data['clip_planes'] = clip_planes_data
+
         return data
 
     @staticmethod
