@@ -24,9 +24,6 @@ import io
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.state import State
-from chimerax.graphics.gsession import (ViewState, CameraState, LightingState, MaterialState, CameraClipPlaneState,
-                                        SceneClipPlaneState)
-from chimerax.geometry.psession import PlaceState
 from chimerax.std_commands.view import NamedView
 import copy
 from abc import ABC, abstractmethod
