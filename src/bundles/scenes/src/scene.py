@@ -137,50 +137,6 @@ class Scene(State):
                 del self.named_view.positions[model]
         return
 
-    def restore_main_view_data(self, data):
-        """
-        Restore the main view data using ViewState's restore snapshot method to restore session state. ViewState
-        restore_snapshot method expects certain nested values to be objects, not raw data. This method converts all
-        the primitive data that represents nested objects formatted by the scene, back into the appropriate objects
-        using the appropriate state managers.
-
-        Args:
-            data (dict): A dictionary containing the main view data.
-        """
-
-        # param:data is a pass by reference to a dict we are storing in our scene. We should not overwrite it
-        restore_data = copy.deepcopy(data)
-
-        restore_data['camera']['position'] = PlaceState.restore_snapshot(self.session,
-                                                                         restore_data['camera']['position'])
-        restore_data['camera'] = CameraState.restore_snapshot(self.session, restore_data['camera'])
-
-        restore_data['lighting'] = LightingState.restore_snapshot(self.session, restore_data['lighting'])
-
-        restore_data['material'] = MaterialState.restore_snapshot(self.session, restore_data['material'])
-
-        # Restore the clip planes. The 'clip_planes' key in restore_data is an array of clip planes objects in snapshot
-        # form. We need to convert them back into CameraClipPlane objects before restoring the main view data.
-        clip_planes_data = restore_data['clip_planes']
-        restored_clip_planes = []
-        for clip_plane_type, clip_plane_data in clip_planes_data:
-            if clip_plane_type == "camera":
-                restored_clip_planes.append(CameraClipPlaneState.restore_snapshot(self.session, clip_plane_data))
-            # TODO find a way to test scene clip planes
-            if clip_plane_type == "scene":
-                restored_clip_planes.append(SceneClipPlaneState.restore_snapshot(self.session, clip_plane_data))
-
-        restore_data['clip_planes'] = restored_clip_planes
-
-        # The ViewState by default skips resetting the camera because session.restore_options.get('restore camera')
-        # is None. We set it to True, let the camera be restored, and then delete the option, so it reads None again in
-        # case it is an important option for other parts of the code. We don't need to use the NamedView stored in the
-        # scene to restore camera because the camera position is stored/restored using ViewState take and restore
-        # snapshot.
-        self.session.restore_options['restore camera'] = True
-        ViewState.restore_snapshot(self.session, restore_data)
-        del self.session.restore_options['restore camera']
-
     def get_name(self):
         return self.name
 
