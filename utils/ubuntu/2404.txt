@@ -1,3 +1,4 @@
+jq
 language-selector-common
 ffmpeg
 build-essential

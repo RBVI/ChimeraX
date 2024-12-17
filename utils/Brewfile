@@ -7,6 +7,7 @@ brew "autoconf"
 brew "automake"
 brew "libtool"
 # if installing scipy from source
-brew "openblas" 
+brew "openblas"
+brew "jq"
 
 brew "python@3.10"
