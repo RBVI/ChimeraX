@@ -181,6 +181,7 @@ runs:
       with:
         path: |
           prereqs/ffmpeg/ffmpeg-3.2.4.tar.bz2
+          prereqs/ffmpeg/ffmpeg-6.1.tar.xz
           prereqs/ffmpeg/libtheora-1.1.1.tar.xz
           prereqs/ffmpeg/libogg-1.3.2.tar.xz
           prereqs/ffmpeg/libvpx-1.6.1.tar.xz
@@ -314,6 +315,7 @@ runs:
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-3.2.4.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-6.1.tar.xz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libtheora-1.1.1.tar.xz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libogg-1.3.2.tar.xz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libvpx-1.6.1.tar.xz -O -J
