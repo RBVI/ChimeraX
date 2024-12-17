@@ -43,6 +43,14 @@ jobs:
           python3.10 -m pip install dmgbuild
           # Make dmgbuild allocate an adult sized DMG
           patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
+      - name: Note the run and job IDs on Plato
+        uses: ./utils/ci/nightly_logs
+        with:
+          platform: mac_universal
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          run_id: ${{ github.run_id }}
+          job_id: ${{ github.job }}
+          build_type: daily
       - uses: ./utils/ci/download_mac_chimerax
         with:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}

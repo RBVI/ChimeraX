@@ -68,6 +68,14 @@ jobs:
           platform: windows
           architecture: x86
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Note the run and job IDs on Plato
+        uses: ./utils/ci/nightly_logs
+        with:
+          platform: windows
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          run_id: ${{ github.run_id }}
+          job_id: ${{ github.job }}
+          build_type: daily
       - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) install
       - name: Run the legacy test suite
         run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test

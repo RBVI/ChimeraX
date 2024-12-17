@@ -52,6 +52,14 @@ jobs:
           platform: macos
           architecture: arm64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Note the run and job IDs on Plato
+        uses: ./utils/ci/nightly_logs
+        with:
+          platform: mac_arm64
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          run_id: ${{ github.run_id }}
+          job_id: ${{ github.job }}
+          build_type: daily
       - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) install-rbvi
       - name: Run the legacy test suite
         run: make test

@@ -31,6 +31,14 @@ jobs:
           platform: linux
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Note the run and job IDs on Plato
+        uses: ./utils/ci/nightly_logs
+        with:
+          platform: ${{ matrix.os }}
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          run_id: ${{ github.run_id }}
+          job_id: ${{ github.job }}
+          build_type: daily
       - name: Restore bundles and includes from cache
         uses: actions/cache/restore@v4
         with:
