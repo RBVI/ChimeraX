@@ -39,13 +39,17 @@ jobs:
             linux-bundles.tar.gz
             linux-include.tar.gz
           key: linux-bundles-${{ inputs.release_type }}-${{ github.sha }}
+      - uses: Triyoh/gha-jobid-action@v1
+        id: get_job_id
+        with:
+          job_name: $ {{ github.job }}
       - name: Note the run and job IDs on Plato
         uses: ./utils/ci/nightly_logs
         with:
           platform: flatpak
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
           run_id: ${{ github.run_id }}
-          job_id: ${{ github.job }}
+          job_id: ${{ steps.get_job_id.outputs.job_id }}
           build_type: daily
       - run: chown -R $(id -u):$(id -g) $PWD
       - name: Unpack the bundles to build/sync

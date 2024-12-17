@@ -27,7 +27,7 @@ runs:
         export PREBUILT_CACHE_KEY=${{ inputs.deploy_key }}
         echo "::add-mask::$PREBUILT_CACHE_KEY"
 
-    - name: Upload the docs
+    - name: Upload the log IDs
       shell: bash
       run: |
         curl -v -F "key=${{ inputs.deploy_key }}" \
