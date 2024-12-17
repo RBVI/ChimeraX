@@ -172,13 +172,13 @@ class Scene(State):
         # with the raw data map.
         # TODO Test multiple clip planes?
         clip_planes = data['clip_planes']
-        clip_planes_data = {}
+        clip_planes_data = []
         for clip_pane in clip_planes:
             cp_state_manager = self.session.snapshot_methods(clip_pane)
             if cp_state_manager == CameraClipPlaneState:
-                clip_planes_data["camera"] = CameraClipPlaneState.take_snapshot(clip_pane, self.session, State.SCENE)
+                clip_planes_data.append(("camera", CameraClipPlaneState.take_snapshot(clip_pane, self.session, State.SCENE)))
             if cp_state_manager == SceneClipPlaneState:
-                clip_planes_data["scene"] = SceneClipPlaneState.take_snapshot(clip_pane, self.session, State.SCENE)
+                clip_planes_data.append(("scene", SceneClipPlaneState.take_snapshot(clip_pane, self.session, State.SCENE)))
 
         data['clip_planes'] = clip_planes_data
 
@@ -210,7 +210,7 @@ class Scene(State):
         # form. We need to convert them back into CameraClipPlane objects before restoring the main view data.
         clip_planes_data = restore_data['clip_planes']
         restored_clip_planes = []
-        for clip_plane_type, clip_plane_data in clip_planes_data.items():
+        for clip_plane_type, clip_plane_data in clip_planes_data:
             if clip_plane_type == "camera":
                 restored_clip_planes.append(CameraClipPlaneState.restore_snapshot(self.session, clip_plane_data))
             # TODO find a way to test scene clip planes
