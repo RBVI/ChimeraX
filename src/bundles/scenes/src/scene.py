@@ -106,7 +106,8 @@ class Scene(State):
 
     def restore_scene(self):
         """
-        Restore the session state with the data in this scene.
+        Restore the session state with the data in this scene. All data is passed to restore_scene implementations
+        as deep copies to prevent possibility of altering the scene data.
         """
         # Restore the main view
         main_view = self.session.view
@@ -119,7 +120,8 @@ class Scene(State):
             if model in self.named_view.positions:
                 model.positions = self.named_view.positions[model]
             if model in self.scene_models:
-                model.restore_scene(self.scene_models[model])
+                model_data_copy = copy.deepcopy(self.scene_models[model])
+                model.restore_scene(model_data_copy)
 
     def models_removed(self, models: [str]):
         """
