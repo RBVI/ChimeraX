@@ -170,6 +170,7 @@ class Scene(State):
         # clip planes. Need to convert them into raw data before storing them in the scene, but also need to keep track
         # of which state class the data was derived from, so it can be restored. Replace the 'clip_planes' key in data
         # with the raw data map.
+        # TODO Test multiple clip planes?
         clip_planes = data['clip_planes']
         clip_planes_data = {}
         for clip_pane in clip_planes:
