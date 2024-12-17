@@ -140,12 +140,6 @@ class Scene(State):
     def get_thumbnail(self):
         return self.thumbnail
 
-    @staticmethod
-    def restore_snapshot(session, data):
-        if data['version'] != Scene.version:
-            raise ValueError("Cannot restore Scene data with version %d" % data['version'])
-        return Scene(session, data['name'], scene_data=data)
-
     def take_snapshot(self, session, flags):
         return {
             'version': self.version,
@@ -155,6 +149,12 @@ class Scene(State):
             'named_view': self.named_view.take_snapshot(session, flags),
             'scene_models': self.scene_models
         }
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        if data['version'] != Scene.version:
+            raise ValueError("Cannot restore Scene data with version %d" % data['version'])
+        return Scene(session, data['name'], scene_data=data)
 
 
 def md_scene_implementation(model: Model):
