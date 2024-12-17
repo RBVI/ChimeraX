@@ -72,7 +72,7 @@ class Scene(State):
             self.thumbnail = scene_data['thumbnail']
             self.main_view_data = scene_data['main_view_data']
             self.named_view = NamedView.restore_snapshot(session, scene_data['named_view'])
-            self.scene_restoreables = scene_data['scene_restorables']
+            self.scene_models = scene_data['scene_restorables']
         return
 
     def init_from_session(self):
@@ -80,12 +80,12 @@ class Scene(State):
         self.main_view_data = self.create_main_view_data()
         models = self.session.models.list()
         self.named_view = NamedView(self.session.view, self.session.view.center_of_rotation, models)
-        self.scene_restoreables = {}
+        self.scene_models = {}
         for model in all_objects(self.session).models:
             scene_implemented_cls = md_scene_implementation(model)
             if hasattr(scene_implemented_cls, 'take_snapshot'):
-                self.scene_restoreables[model] = scene_implemented_cls.take_snapshot(model, self.session,
-                                                                                     flags=State.SCENE)
+                self.scene_models[model] = scene_implemented_cls.take_snapshot(model, self.session,
+                                                                               flags=State.SCENE)
 
     def take_thumbnail(self):
         """
@@ -115,8 +115,8 @@ class Scene(State):
         for model in current_models:
             if model in self.named_view.positions:
                 model.positions = self.named_view.positions[model]
-            if model in self.scene_restoreables:
-                model.restore_scene(self.scene_restoreables[model])
+            if model in self.scene_models:
+                model.restore_scene(self.scene_models[model])
 
     def models_removed(self, models: [str]):
         """
@@ -246,7 +246,7 @@ class Scene(State):
             'thumbnail': self.thumbnail,
             'main_view_data': self.main_view_data,
             'named_view': self.named_view.take_snapshot(session, flags),
-            'scene_restorables': self.scene_restoreables
+            'scene_restorables': self.scene_models
         }
 
 
