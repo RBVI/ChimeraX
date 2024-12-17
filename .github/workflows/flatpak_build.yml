@@ -42,7 +42,7 @@ jobs:
       - uses: Tiryoh/gha-jobid-action@v1
         id: get_job_id
         with:
-          job_name: "flatpak-build"
+          job_name: "Build ChimeraX FlatPak / flatpak-build"
       - name: Note the run and job IDs on Plato
         uses: ./utils/ci/nightly_logs
         with:
