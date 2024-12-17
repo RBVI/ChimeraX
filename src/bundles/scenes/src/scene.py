@@ -72,7 +72,7 @@ class Scene(State):
             self.thumbnail = scene_data['thumbnail']
             self.main_view_data = scene_data['main_view_data']
             self.named_view = NamedView.restore_snapshot(session, scene_data['named_view'])
-            self.scene_models = scene_data['scene_restorables']
+            self.scene_models = scene_data['scene_models']
         return
 
     def init_from_session(self):
@@ -198,7 +198,7 @@ class Scene(State):
             'thumbnail': self.thumbnail,
             'main_view_data': self.main_view_data,
             'named_view': self.named_view.take_snapshot(session, flags),
-            'scene_restorables': self.scene_models
+            'scene_models': self.scene_models
         }
 
 
