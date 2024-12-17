@@ -298,7 +298,8 @@ class ProfileGridsTool(ToolInstance):
                 inst.show_feature_browser(seq, state=fb_data)
         return inst
 
-    SESSION_SAVE = True
+    #TODO: change to the below when snapshot methods implemented
+    #SESSION_SAVE = True
 
     def take_snapshot(self, session, flags):
         raise NotImplementedError("take_snaphot")

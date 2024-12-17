@@ -568,7 +568,7 @@ def sign_binaries_and_make_dmg(defaults):
 def notarize_dmg(defaults):
     tries = 0
     status = None
-    while tries < 5 && status != 0:
+    while tries < 5 and status != 0:
         plist = request_notarization(defaults)
         status = report_notarization_result(defaults, plist["id"])
         if status == 0:
