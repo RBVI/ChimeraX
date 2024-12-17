@@ -112,7 +112,9 @@ class Scene(State):
         Restore the session state with the data in this scene.
         """
         # Restore the main view
-        self.restore_main_view_data(self.main_view_data)
+        main_view = self.session.view
+        view_state = self.session.snapshot_methods(main_view)
+        view_state.restore_scene(self.session, copy.deepcopy(self.main_view_data))
         # Restore model positions. Even though the view state contains camera and clip plane positions, on a restore
         # main view handles restoring the camera and clip plane positions.
         current_models = self.session.models.list()

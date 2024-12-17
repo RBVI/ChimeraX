@@ -113,6 +113,35 @@ class ViewState:
         return v
 
     @staticmethod
+    def restore_scene(session, scene_data):
+        from chimerax.geometry.psession import PlaceState
+        scene_data['camera']['position'] = PlaceState.restore_snapshot(session, scene_data['camera']['position'])
+        scene_data['camera'] = CameraState.restore_snapshot(session, scene_data['camera'])
+        scene_data['lighting'] = LightingState.restore_snapshot(session, scene_data['lighting'])
+        scene_data['material'] = MaterialState.restore_snapshot(session, scene_data['material'])
+
+        # Restore the clip planes. The 'clip_planes' key in restore_data is an array of clip planes objects in snapshot
+        # form. We need to convert them back into CameraClipPlane objects before restoring the main view data.
+        clip_planes_data = scene_data['clip_planes']
+        restored_clip_planes = []
+        for clip_plane_type, clip_plane_data in clip_planes_data:
+            if clip_plane_type == "camera":
+                restored_clip_planes.append(CameraClipPlaneState.restore_snapshot(self.session, clip_plane_data))
+            # TODO test scene clip planes
+            if clip_plane_type == "scene":
+                restored_clip_planes.append(SceneClipPlaneState.restore_snapshot(self.session, clip_plane_data))
+
+        scene_data['clip_planes'] = restored_clip_planes
+
+        # The ViewState by default skips resetting the camera because session.restore_options.get('restore camera')
+        # is None. We set it to True, let the camera be restored, and then delete the option, so it reads None again in
+        # case it is an important option for other parts of the code.
+
+        session.restore_options['restore camera'] = True
+        ViewState.restore_snapshot(session, scene_data)
+        del session.restore_options['restore camera']
+
+    @staticmethod
     def set_state_from_snapshot(view, session, data):
         v = view
         restore_camera = session.restore_options.get('restore camera')
