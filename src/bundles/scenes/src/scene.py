@@ -35,6 +35,7 @@ from chimerax.core.objects import all_objects
 import inspect
 from chimerax.core.models import Model
 
+
 class Scene(State):
     """
     A Scene object is a snapshot of the current state of the session. Scenes save data from ViewState, NamedView,
@@ -83,7 +84,8 @@ class Scene(State):
         for model in all_objects(self.session).models:
             scene_implemented_cls = md_scene_implementation(model)
             if hasattr(scene_implemented_cls, 'take_snapshot'):
-                self.scene_restoreables[model] = scene_implemented_cls.take_snapshot(model, self.session, flags=State.SCENE)
+                self.scene_restoreables[model] = scene_implemented_cls.take_snapshot(model, self.session,
+                                                                                     flags=State.SCENE)
 
     def take_thumbnail(self):
         """
