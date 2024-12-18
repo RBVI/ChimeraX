@@ -110,6 +110,11 @@ class UI(QApplication):
         if qt_have_web_engine():
             import Qt.QtWebEngineWidgets
 
+        # make sure that validated input fields (QValidator) generate numbers
+        # Python's float will accept [#16374]...
+        from Qt.QtCore import QLocale
+        QLocale.setDefault(QLocale.c())
+
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
         import sys
@@ -2396,10 +2401,23 @@ class ToolWindow(StatusLogger):
         # are "unhandled" if those keys only change keyboard state (e.g. CapsLock).  Important
         # for the Python Shell retaining focus.
         from Qt.QtWidgets import QLineEdit, QComboBox, QAbstractSpinBox
-        if self.tool_instance.tool_name != "Help Viewer" \
-        and not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox, QAbstractSpinBox)) \
-        and event.key() not in keyboard_state_keys:
-            self.tool_instance.session.ui.forward_keystroke(event)
+        if self.tool_instance.tool_name == "Help Viewer":
+            return
+
+        if isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox, QAbstractSpinBox)):
+            return
+
+        if event.key() in keyboard_state_keys:
+            return
+
+        from Qt.QtCore import Qt
+        import sys
+        if sys.platform == 'darwin' and event.key() == 0 and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+            # In Qt 6.7 pressing the Command key caused forwarding and focus switch to command-line
+            # preventing Command+C copying from the Log, ChimeraX bug #16453.
+            return
+        
+        self.tool_instance.session.ui.forward_keystroke(event)
 
     def _mw_set_dockable(self, dockable):
         self.__toolkit.dockable = dockable

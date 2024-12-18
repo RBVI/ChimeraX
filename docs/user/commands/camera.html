@@ -55,9 +55,19 @@ The camera <i>mode</i> can be:
 (apparent size decreasing with distance from the viewer)
 <li><b>ortho</b> &ndash; orthographic, monoscopic without perspective
 <li><b>crosseye</b> &ndash; side-by-side left- and right-eye views
-for visualization with crossed eyes 
-<li><b>walleye</b> &ndash; side-by-side left- and right-eye views
-for visualization with diverged eyes
+for visualization with crossed eyes; 
+defaults aim to place the virtual scene 30 cm from the eyes
+with the screen 60 cm away so that the whole scene is visible:
+eye separation twice the scene diameter <i>d</i>,
+camera distance 10<i>d</i>, field of view 6&deg;, and convergence 6&deg.
+Ideally, the window width onscreen should be about 12 cm.
+<li><b>walleye</b> &ndash; side-by-side left- and right-eye views.
+for visualization with diverged eyes;
+defaults aim to place the virtual scene 60 cm from the eyes
+with the screen 30 cm away so that the whole scene is visible:
+eye separation same as the scene diameter <i>d</i>,
+camera distance 10<i>d</i>, field of view 6&deg;, and convergence 3&deg;.
+Ideally, the window width onscreen should be about 12 cm.
 <li><b>stereo</b> &ndash; sequential stereoscopic; see also the
 <a href="../options.html#stereo"><b>--stereo</b> startup option</a>
 <li><b>sbs</b> &ndash; stereoscopic side-by-side layout (similar to walleye)
@@ -77,15 +87,18 @@ see also <a href="../window.html#fullscreen">using ChimeraX fullscreen</a>
 The <b>eyeSeparation</b> option specifies the distance between
 left- and right-eye viewpoints in scene distance units, 
 usually &Aring;, for all stereo modes
-(default <b>0.2</b> for 360&deg; modes, otherwise <b>5.0</b>).
+(default <b>0.2</b> for 360&deg; modes, twice the scene diameter for
+<b>crosseye</b>, same as the scene diameter for <b>walleye</b>,
+otherwise <b>5.0</b>).
 </p><p>
 The <b>fieldOfView</b> option specifies the horizontal
-angular field of view (default <b>30</b>&deg;) for all modes
+angular field of view (default <b>6</b>&deg; for <b>crosseye</b>
+and <b>walleye</b>, otherwise <b>30</b>&deg;) for all modes
 except 360&deg; and orthographic.
 </p><p>
 The <b>convergence</b> option sets the angle of convergence between
-the eyes and applies only to the <b>crosseye</b> (default <b>10</b>&deg;)
-and <b>walleye</b> (default <b>&ndash;5</b>&deg;) modes.
+the eyes and applies only to the <b>crosseye</b> (default <b>6</b>&deg;)
+and <b>walleye</b> (default <b>3</b>&deg;) modes.
 </p><p>
 The <b>pixelEyeSeparation</b> option specifies the distance between
 left- and right-eye viewpoints in screen pixels (default <b>200</b>)

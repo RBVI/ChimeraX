@@ -102,7 +102,7 @@ runs:
       with:
         path: |
           prereqs/ambertools/ambertools-20-Linux-Rocky-8.10.tar.bz2
-          prereqs/ambertools/ambertools-20-Linux-Rocky-9.4.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Rocky-9.5.tar.bz2
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2
@@ -145,6 +145,14 @@ runs:
         path: |
           prereqs/openmm/openmm-8.0.0-win-py311h9957787_1_tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-openmm
+
+    - name: Restore cached rsync (linux)
+      id: cache-rsync-linux
+      if: ${{ inputs.platform == 'linux' }}
+      uses: actions/cache@v4
+      with:
+        path: prereqs/rsync/rsync-3.2.7.tar.gz
+        key: ${{ runner.os }}-${{ inputs.architecture }}-rsync
 
     - name: Restore cached openmm (macOS arm64)
       id: cache-openmm-macos-arm64
@@ -352,7 +360,7 @@ runs:
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
           curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ambertools/ambertools-20-Linux-Rocky-8.10.tar.bz2 -O -J
-          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ambertools/ambertools-20-Linux-Rocky-9.4.tar.bz2 -O -J
+          curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ambertools/ambertools-20-Linux-Rocky-9.5.tar.bz2 -O -J
           curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2 -O -J
           curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2 -O -J
           curl https://www.rbvi.ucsf.edu/chimerax/data/prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2 -O -J
@@ -374,6 +382,13 @@ runs:
         curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/mmtf/mmtf-cpp-1.1.0.zip
         mv mmtf*.zip src/bundles/mmtf/
         mv msgpack*.zip src/bundles/mmtf/
+
+    - name: Fetch rsync
+      shell: bash
+      if: ${{ steps.cache-rsync-linux.outputs.cache-hit != 'true' }}
+      run: |
+        curl --silent --show-error --fail --insecure -O https://www.rbvi.ucsf.edu/chimerax/data/prereqs/rsync/rsync-3.2.7.tar.gz
+        mv rsync* prereqs/rsync/
 
     - name: Fetch Python
       shell: bash

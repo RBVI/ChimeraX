@@ -35,6 +35,9 @@ def similar_structures_blast(session, chain, database = 'pdb',
 
     def show_results(job, session=session, chain=chain, database=database, save_directory=save_directory, show_table=show_table):
         hits = _blast_job_hits(job, database)
+        if len(hits) == 0:
+            session.logger.warning(f'No BLAST matches found in {database} database.')
+            return
 
         from .simstruct import SimilarStructures
         results = SimilarStructures(hits, chain, program = 'blast', database = database)

@@ -41,7 +41,7 @@ class LaunchKVFinderTool(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget, QGroupBox
+        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget, QGroupBox, QCheckBox
         from Qt.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
@@ -98,9 +98,15 @@ class LaunchKVFinderTool(ToolInstance):
             setattr(self, attr_name + '_option', opt)
             panel.add_option(opt)
 
+        self.replace_prev = QCheckBox("Replace existing results, if any")
+        self.replace_prev.setChecked(True)
+        layout.addWidget(self.replace_prev, alignment=Qt.AlignCenter)
+
         from Qt.QtWidgets import QDialogButtonBox as qbbox
-        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.find_cavities)
+        # Since ApplyRole is not AcceptRole, simply connecting to the Apply button won't dismiss the dialog
+        bbox.button(qbbox.Apply).clicked.connect(self.find_cavities)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         if getattr(self, 'help', None) is None:
@@ -125,6 +131,8 @@ class LaunchKVFinderTool(ToolInstance):
             cur_val = getattr(_launch_settings, attr_name)
             if cur_val != default_value:
                 cmd += " " + camel_case(attr_name) + " %g" % cur_val
+        if not self.replace_prev.isChecked():
+            cmd += " replace false"
         run(self.session, cmd)
 
 
@@ -135,14 +143,14 @@ class KVFinderResultsDialog(ToolInstance):
     help = "help:user/tools/findcavities.html#cavitylist"
     SESSION_SAVE = True
 
-    def __init__(self, session, tool_name, *args):
+    def __init__(self, session, tool_name, *args, **kw):
         ToolInstance.__init__(self, session, tool_name)
         if args:
             # being called directly rather than during session restore
-            self.finalize_init(*args, False)
+            self.finalize_init(*args, False, **kw)
 
     def finalize_init(self, structure, cavity_group, cavity_models, probe_radius, surface_made,
-            *, table_state=None):
+            *, table_state=None, placement=None):
         self.structure = structure
         self.cavity_group = cavity_group
         self.probe_radius = probe_radius
@@ -186,6 +194,8 @@ class KVFinderResultsDialog(ToolInstance):
         self.table.add_column("Volume", "kvfinder_volume", format="%g")
         self.table.add_column("Surface Area", "kvfinder_area", format="%g")
         self.table.add_column("Points", "num_atoms", format="%d")
+        self.table.add_column("Average Depth", "kvfinder_average_depth", format="%g")
+        self.table.add_column("Maximum Depth", "kvfinder_max_depth", format="%g")
         def color_refresh_cb(trig_name, change_info, *args, table=self.table):
             s, changes = change_info
             if "color changed" in changes.atom_reasons():
@@ -244,6 +254,16 @@ class KVFinderResultsDialog(ToolInstance):
         nearby_layout.addWidget(self.nearby_entry)
         nearby_layout.addWidget(QLabel(" angstroms of cavity points"))
 
+        depth_widget = QWidget()
+        layout.addWidget(depth_widget, alignment=Qt.AlignCenter)
+        depth_layout = QHBoxLayout()
+        depth_layout.setSpacing(0)
+        depth_widget.setLayout(depth_layout)
+        depth_button = QPushButton("Color")
+        depth_button.clicked.connect(self.color_by_depth)
+        depth_layout.addWidget(depth_button)
+        depth_layout.addWidget(QLabel(" open cavities by depth from outside"))
+
         layout.addSpacing(10)
 
         from chimerax.ui.widgets import Citation
@@ -255,7 +275,7 @@ class KVFinderResultsDialog(ToolInstance):
             prefix="The Find Cavities tool uses the <i>pyKVFinder</i> package.  Please cite:",
             pubmed_id=34930115), alignment=Qt.AlignCenter)
 
-        self.tool_window.manage(placement=None)
+        self.tool_window.manage(placement=placement)
 
     def delete(self, from_mgr=False):
         for handler in self.handlers:
@@ -268,6 +288,16 @@ class KVFinderResultsDialog(ToolInstance):
         inst.finalize_init(data['structure'], data['cavity_group'], data['cavity_models'],
             data['probe_radius'], data.get('surface_made', False), table_state=data['table state'])
         return inst
+
+    def color_by_depth(self):
+        open_cavities = [c for c in self.table.data if c.kvfinder_max_depth > 0]
+        if not open_cavities:
+            self.session.logger.warning("All cavities are completely enclosed")
+            return
+
+        from chimerax.core.commands import concise_model_spec, run
+        model_spec = concise_model_spec(self.session, open_cavities)
+        run(self.session, f"color byattr a:kvfinder_depth {model_spec}")
 
     def take_snapshot(self, session, flags):
         data = {
@@ -313,8 +343,21 @@ class KVFinderResultsDialog(ToolInstance):
             if _results_settings.surface:
                 probe_arg = "" if self.probe_radius == 1.4 else f" probeRadius {self.probe_radius}"
                 if not self._surface_made:
-                    run(self.session, f"surface {self.cavity_group.atomspec}{probe_arg} ;"
-                        f" trans {self.cavity_group.atomspec} 50")
+                    from chimerax.atomic import surfaces_with_atoms
+                    unsurfaced = set()
+                    for cavity in self.table.data:
+                        if not surfaces_with_atoms(cavity.atoms):
+                            unsurfaced.add(cavity)
+                    unsurfaced_spec = concise_model_spec(self.session, unsurfaced)
+                    run(self.session, f"surface {unsurfaced_spec}{probe_arg} trans 50")
+                    multicolor = False
+                    for cavity in unsurfaced:
+                        unique_colors = set([tuple(x) for x in cavity.atoms.colors])
+                        if len(unique_colors) > 1:
+                            multicolor = True
+                            break
+                    if multicolor:
+                        run(self.session, f"color {unsurfaced_spec} fromatoms trans 50")
                     run(self.session, f"~surface {self.cavity_group.atomspec}")
                     self._surface_made = True
                 run(self.session, f"surface {model_spec}{probe_arg}")
