@@ -898,7 +898,7 @@ class SegmentationTool(ToolInstance):
                         cursor.axis
                     ]
                 )
-            self.session.models.add(cursor)
+            self.session.models.add([cursor])
             self.session.logger.info("Created segmentation sphere cursor with ID #%s" % cursor.id_string)
 
     def _destroy_2d_segmentation_pucks(self) -> None:
