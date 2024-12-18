@@ -120,10 +120,10 @@ def only_line_endings_differ(arm_path, intel_path):
 
 need_lipo = set(
     [
-        lief.MachO.FILE_TYPES.BUNDLE,
-        lief.MachO.FILE_TYPES.DYLIB,
-        lief.MachO.FILE_TYPES.EXECUTE,
-        lief.MachO.FILE_TYPES.OBJECT,
+        lief.MachO.Header.FILE_TYPE.BUNDLE,
+        lief.MachO.Header.FILE_TYPE.DYLIB,
+        lief.MachO.Header.FILE_TYPE.EXECUTE,
+        lief.MachO.Header.FILE_TYPE.OBJECT,
     ]
 )
 lief.logging.disable()
@@ -135,7 +135,9 @@ def is_executable(path):
         return False
     try:
         m = lief.MachO.parse(path)
-    except lief.bad_file:
+    # Bare except is usually bad, but lief does not provide its own
+    # exceptions
+    except Exception as e:
         return False
     if m is None or m.at(0) is None:
         return False

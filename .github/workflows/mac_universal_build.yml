@@ -39,7 +39,7 @@ jobs:
         run: |
           brew install python@3.10
           python3.10 -m pip install setuptools==54.0
-          python3.10 -m pip install lief==0.12.2
+          python3.10 -m pip install lief
           python3.10 -m pip install dmgbuild
           # Make dmgbuild allocate an adult sized DMG
           patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
