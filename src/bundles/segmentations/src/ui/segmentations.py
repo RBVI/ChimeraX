@@ -1015,13 +1015,7 @@ class SegmentationTool(ToolInstance):
         self.segmentation_tracker.active_segmentation.save(filename)
 
     def setActiveSegment(self, segment):
-        if self.segmentation_tracker.active_segmentation:
-            self.segmentation_tracker.active_segmentation.active = False
         self.segmentation_tracker.active_segmentation = segment
-        if self.segmentation_tracker.active_segmentation:
-            self.segmentation_tracker.active_segmentation.active = True
-        if self.session.ui.main_window.view_layout == "orthoplanes":
-            self.session.ui.main_window.main_view.redraw_all()
 
     def hide_active_segmentation(self):
         if self.segmentation_tracker.active_segmentation is not None:
