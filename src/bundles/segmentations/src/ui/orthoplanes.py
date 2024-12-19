@@ -52,7 +52,6 @@ from chimerax.segmentations.triggers import (
     SEGMENTATION_REMOVED,
     SEGMENTATION_ADDED,
     SEGMENTATION_MODIFIED,
-    GUIDELINES_VISIBILITY_CHANGED,
 )
 from chimerax.segmentations.triggers import Trigger
 
@@ -415,7 +414,7 @@ class PlaneViewer(QWindow):
             ADD_TOOL_INSTANCE, self._tool_instance_added_cb
         )
         self.guideline_visibility_handler = chimerax.segmentations.triggers.add_handler(
-            GUIDELINES_VISIBILITY_CHANGED, self._on_guideline_visibility_changed
+            Trigger.GuidelinesVisibilityChanged, self._on_guideline_visibility_changed
         )
         self.segmentation_modified_handler = (
             chimerax.segmentations.triggers.add_handler(
@@ -940,7 +939,9 @@ class PlaneViewer(QWindow):
 
         settings = get_settings(self.session)
         settings.display_guidelines = not settings.display_guidelines
-        chimerax.segmentations.triggers.activate_trigger(GUIDELINES_VISIBILITY_CHANGED)
+        chimerax.segmentations.triggers.activate_trigger(
+            Trigger.GuidelinesVisibilityChanged
+        )
 
     def toggle_color_key(self):
         self.color_key.display = not self.color_key.display

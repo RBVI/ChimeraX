@@ -79,7 +79,6 @@ from chimerax.segmentations.triggers import Trigger
 
 from chimerax.segmentations.triggers import (
     VIEW_LAYOUT_CHANGED,
-    GUIDELINES_VISIBILITY_CHANGED,
 )
 
 
@@ -1134,7 +1133,7 @@ class SegmentationTool(ToolInstance):
         check_state = self.guidelines_checkbox.isChecked()
 
         settings.display_guidelines = not settings.display_guidelines
-        chimerax.segmentations.triggers.activate_trigger(GUIDELINES_VISIBILITY_CHANGED)
+        chimerax.segmentations.triggers.activate_trigger(Trigger.GuidelinesVisibilityChanged)
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.register_segmentation_tool(self)
 
@@ -1148,7 +1147,7 @@ class SegmentationTool(ToolInstance):
         else:
             state = Qt.CheckState.Unchecked
         with chimerax.segmentations.triggers.block_trigger(
-            GUIDELINES_VISIBILITY_CHANGED
+            Trigger.GuidelinesVisibilityChanged
         ):
             self.guidelines_checkbox.blockSignals(True)
             self.guidelines_checkbox.setCheckState(state)

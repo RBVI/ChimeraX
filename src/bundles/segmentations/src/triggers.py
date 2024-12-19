@@ -161,7 +161,6 @@ SAGITTAL_CURSOR_RESIZED = Trigger.SagittalCursorResized
 SPHERE_CURSOR_RESIZED = Trigger.SphereCursorResized
 
 VIEW_LAYOUT_CHANGED = Trigger.ViewLayoutChanged
-GUIDELINES_VISIBILITY_CHANGED = Trigger.GuidelinesVisibilityChanged
 
 HAND_MODES_CHANGED = Trigger.HandModesChanged
 MOUSE_MODES_CHANGED = Trigger.MouseModesChanged
