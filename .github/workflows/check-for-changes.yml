@@ -5,13 +5,14 @@ on:
     branches: [develop, release/*]
 
 jobs:
-  build-and-test-rocky8-docker:
-    runs-on: ubuntu-20.04
+  build-and-test-rocky9-docker:
+    runs-on: ubuntu-22.04
     container:
-      image: rockylinux:8
+      image: rockylinux:9
     env:
       SHELL: /bin/bash
       PATH: /usr/bin:/usr/sbin:/bin:/sbin
+      PYOPENGL_PLATFORM: egl
     steps:
       - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
       - run: dnf update -y
