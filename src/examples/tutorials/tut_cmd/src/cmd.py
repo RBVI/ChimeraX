@@ -14,7 +14,7 @@ from chimerax.core.commands import Or, Bounded  # Argument modifiers
 # ==========================================================================
 
 
-def cofm(session, atoms, weighted=False, transformed=True):
+def cofm(session, atoms, *, weighted=False, transformed=True):
     """Report center of mass of given atoms."""
 
     # ``session``     - ``chimerax.core.session.Session`` instance
@@ -28,10 +28,42 @@ def cofm(session, atoms, weighted=False, transformed=True):
 
 
 cofm_desc = CmdDesc(required=[("atoms", Or(AtomsArg, EmptyArg))],
-                    optional=[("weighted", BoolArg),
+                    keyword=[("weighted", BoolArg),
                               ("transformed", BoolArg)])
 
-# CmdDesc contains the command description.
+# CmdDesc contains a description of how the user-typed command arguments
+# should be translated into Python arguments for the function that actually
+# implements the command.  There are three styles:
+#   required:  the user must provide such arguments and the Python function
+#       should declare them as mandatory (i.e. with no default value)
+#   optional:  the user can optionally provide these arguments, immediately
+#       after the mandatory arguments, and in the same order as declared
+#       in the Python function, which should provide default values for them
+#   keyword:  the user must provide a keyword to specify these arguments, but
+#       they can be in any order after the required and optional arguments.
+#       The Python function normally declares them after a '*,' (which
+#       indicates the start of mandatory keyword arguments)
+#
+# Most commands should only use required and keyword arguments.  Optional
+# arguments should be used in the rare case that an argument's meaning is
+# obvious from its position, and it is acceptable for the argument to be
+# missing.  For instance, the ChimeraX 'torsion' command requires an atom
+# spec specifying four atoms as its first argument, but accepts an optional
+# floating point value as a second argument.  If only the first argumeht is
+# given, the torsion angle value is reported.  If both arguments are given,
+# then the torsion angle is set to that value.
+#
+# The required/optional/keyword descriptions are passed as keyword arguments
+# to the ``CmdDesc`` constructor.  Each set of descriptions is passed as a
+# list of 2-tuples.  The first element of the tuple must match the name
+# of a parameter of the callback function.  The second element must be a class
+# describing the expected input; ChimeraX provides many such classes,
+# e.g., BoolArg for boolean values, IntArg for integer values, etc.
+# The order of tuples is important for required arguments as the user
+# must enter them in that order.
+#TODO: The order is irrelevant for optional
+# arguments since they are identified by keywords.
+
 # For the "cofm" command, we expect three arguments:
 #   ``atoms``       - collection of atoms (required), default: all atoms
 #   ``weighted``    - boolean (optional), default: False
@@ -47,16 +79,6 @@ cofm_desc = CmdDesc(required=[("atoms", Or(AtomsArg, EmptyArg))],
 #   tut cofm /A                (cofm of chain A)
 #   tut cofm weighted t        (weighted cofm of all atoms)
 #   tut cofm :23 trans false   (cofm of input coordinates of residue 23)
-#
-# The required and optional arguments are passed as keyword arguments to
-# the ``CmdDesc`` constructor.  Each set of arguments is passed as a
-# list of 2-tuples.  The first element of the tuple must match the name
-# of a parameter of callback function.  The second element must be a class
-# describing the expected input; ChimeraX provides many such classes,
-# e.g., BoolArg for boolean values, IntArg for integer values, etc.
-# The order of tuples is important for require arguments as the user
-# must enter them in that order.  The order is irrelevant for optional
-# arguments since they are identified by keywords.
 #
 # Note the trick used for the "atoms" argument, which may be left out to
 # mean "use all atoms".  If we make "atoms" an optional argument, the user
