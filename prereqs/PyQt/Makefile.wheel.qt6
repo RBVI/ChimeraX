@@ -9,11 +9,11 @@ REMOTE_HOST = plato.cgl.ucsf.edu:
 REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt6
 
 # QT_VERSION is overriden by Makefile
-BASE_VERSION = 6.7
-QT_MINOR_VERSION = 3
-PYQT_MINOR_VERSION = 1
+BASE_VERSION = 6.8
+QT_MINOR_VERSION = 1
+PYQT_MINOR_VERSION = 0
 ifeq ($(OS),Linux)
-PYQT_REVISION = 1
+PYQT_REVISION =
 else
 PYQT_REVISION =
 endif
@@ -36,14 +36,19 @@ SIP_VERSION = 13.8.0
 ifeq (0, $(shell sort -CV <<< "$(PYQT_VERSION)"$$'\n'"6.6.0" && echo $$?))
 # PyQt version <= 6.6.0
 PYTHON_TAGS = cp37
-else
+else ifeq (0, $(shell sort -CV <<< "$(PYQT_VERSION)"$$'\n'"6.7.99" && echo $$?))
+# PyQt version < 6.8
 PYTHON_TAGS = cp38
+else
+PYTHON_TAGS = cp39
 endif
 ifeq (0, $(shell sort -CV <<< "$(PYQTWE_VERSION)"$$'\n'"6.6.0" && echo $$?))
 # PyQt WebEngine version <= 6.6.0
 WE_PYTHON_TAGS = cp37
-else
+else ifeq (0, $(shell sort -CV <<< "$(PYQT_VERSION)"$$'\n'"6.7.99" && echo $$?))
 WE_PYTHON_TAGS = cp38
+else
+WE_PYTHON_TAGS = cp39
 endif
 WHEEL_ABI = abi3
 
@@ -57,8 +62,11 @@ BIN_PLATFORM = linux
 ifeq (0, $(shell sort -CV <<< "$(PYQT_VERSION)"$$'\n'"6.3.99" && echo $$?))
 # For PyQt version < 6.4
 WHEEL_PLATFORM = manylinux1_x86_64
-else
+else ifeq (0, $(shell sort -CV <<< "$(PYQT_VERSION)"$$'\n'"6.7.99" && echo $$?))
+# For PyQt version < 6.4
 WHEEL_PLATFORM = manylinux_2_28_x86_64
+else
+WHEEL_PLATFORM = manylinux_2_35_x86_64
 endif
 WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
 MISSING_QTWEBENGINE_DICT = PyQt6/Qt6/libexec/qtwebengine_dictionaries
