@@ -898,7 +898,8 @@ class SegmentationTool(ToolInstance):
                         cursor.axis
                     ]
                 )
-        self.session.models.add(self.segmentation_cursors.values())
+            self.session.models.add([cursor])
+            self.session.logger.info("Created segmentation sphere cursor with ID #%s" % cursor.id_string)
 
     def _destroy_2d_segmentation_pucks(self) -> None:
         seg_cursors = self.segmentation_cursors.values()
@@ -919,6 +920,7 @@ class SegmentationTool(ToolInstance):
             self.segmentation_sphere.position = Place(
                 origin=current_reference_model.bounds().center()
             )
+        self.session.logger.info("Created segmentation sphere cursor with ID #%s" % self.segmentation_sphere.id_string)
 
     def _destroy_3d_segmentation_sphere(self) -> None:
         if self.segmentation_sphere:
