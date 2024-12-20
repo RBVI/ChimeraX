@@ -49,7 +49,6 @@ from chimerax.segmentations.ui.color_key import ColorKeyModel
 
 import chimerax.segmentations.triggers
 from chimerax.segmentations.triggers import (
-    ACTIVE_SEGMENTATION_CHANGED,
     SEGMENTATION_REMOVED,
     SEGMENTATION_ADDED,
     SEGMENTATION_MODIFIED,
@@ -104,9 +103,6 @@ class PlaneViewerManager:
         self.have_seg_tool = False
         self.axes = {}
         self.segmentation_tracker = get_tracker()
-        self._active_seg_changed_handler = chimerax.segmentations.triggers.add_handler(
-            ACTIVE_SEGMENTATION_CHANGED, self._active_segmentation_changed_cb
-        )
         self._segmentation_added_handler = chimerax.segmentations.triggers.add_handler(
             SEGMENTATION_ADDED, self._on_segmentation_added
         )
@@ -139,14 +135,10 @@ class PlaneViewerManager:
                 self.axes[Axis.CORONAL].sagittal_index = viewer.sagittal_index
 
     def deregister_triggers(self):
-        chimerax.segmentations.triggers.remove_handler(self._active_seg_changed_handler)
         chimerax.segmentations.triggers.remove_handler(self._segmentation_added_handler)
         chimerax.segmentations.triggers.remove_handler(
             self._segmentation_removed_handler
         )
-
-    def _active_segmentation_changed_cb(self, _, segmentation):
-        pass
 
     def update_dimensions(self, dimensions):
         for axis in self.axes.values():
@@ -433,7 +425,14 @@ class PlaneViewer(QWindow):
         self.reference_model_changed_handler = chimerax.segmentations.triggers.add_handler(
             Trigger.ReferenceModelChanged, self._on_reference_model_changed
         )
+        self.active_segmentation_changed_handler = (
+            chimerax.segmentations.triggers.add_handler(
+                Trigger.ActiveSegmentationChanged, self._on_active_segmentation_changed
+            )
+        )
 
+    def _on_active_segmentation_changed(self, _, data):
+        self._redraw()
     def _on_reference_model_changed(self, _, model):
         self.model_menu._menu.set_value(model)
 
@@ -795,6 +794,9 @@ class PlaneViewer(QWindow):
         )
         chimerax.segmentations.triggers.remove_handler(
             self.segmentation_modified_handler
+        )
+        chimerax.segmentations.triggers.remove_handler(
+            self.active_segmentation_changed_handler
         )
 
         del self.label
