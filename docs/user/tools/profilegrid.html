@@ -55,11 +55,23 @@ Two residues with 100% type conservation are
 in which the rows are the possible sequence characters (residue one-letter
 codes and gap), the columns are positions in the alignment 
 (as in the standard view of a sequence alignment), and the values 
-in the cells are percentages of that type of residue at that position,
+in the cells are the prevalences of that type of residue at that position.
+</p><p>
+<b>Profile Grid</b> is a reimplementation of the viewer developed 
+by Alberto Roca, as described in:
+</p>
+<blockquote>
+<a href="https://bmcproc.biomedcentral.com/articles/10.1186/1753-6561-8-S2-S6"
+target="_blank">
+ProfileGrids: a sequence alignment visualization paradigm that avoids the limitations of Sequence Logos.</a>
+Roca AI.  <i>BMC Proc.</i> 2014 Aug 28;8(Suppl 2 Proceedings of the 
+3rd Annual Symposium on Biologica):S6.
+</blockquote>
+<p>
+The values in the ChimeraX <b>Profile Grid</b> are percentages
 rounded to the nearest integer. A blank cell means that no sequences
 at all have that residue type at that position, whereas a displayed value
 of 0 means that some do, but &lt;0.5%.
-</p><p>
 Much like the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>,
 the <b>Profile Grid</b> tool interacts with any 
 <a href="sequenceviewer.html#association">associated</a> structures, and it
