@@ -27,7 +27,7 @@ jobs:
           platform: linux
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - run: MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos build-minimal
+      - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos build-minimal
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
