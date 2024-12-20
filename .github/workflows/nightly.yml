@@ -7,6 +7,7 @@ on:
 jobs:
   build-rocky9-docker:
     name: Build ChimeraX for Rocky 9
+    needs: [build-rocky8-docker]
     uses: ./.github/workflows/rocky9_build.yml
     with:
       release_type: daily
