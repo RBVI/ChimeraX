@@ -35,14 +35,14 @@ cofm_desc = CmdDesc(required=[("atoms", Or(AtomsArg, EmptyArg))],
 # should be translated into Python arguments for the function that actually
 # implements the command.  There are three styles:
 #   required:  the user must provide such arguments and the Python function
-#       should declare them as mandatory (i.e. with no default value)
-#   optional:  the user can optionally provide these arguments, immediately
-#       after the mandatory arguments, and in the same order as declared
-#       in the Python function, which should provide default values for them
+#       should declare them as mandatory (i.e. with no default value).
+#   optional:  the user can optionally provide these arguments immediately
+#       after the mandatory arguments.  The Python function should provide
+#       default values for them.
 #   keyword:  the user must provide a keyword to specify these arguments, but
 #       they can be in any order after the required and optional arguments.
 #       The Python function normally declares them after a '*,' (which
-#       indicates the start of mandatory keyword arguments)
+#       indicates the start of Python keyword-only arguments)
 #
 # Most commands should only use required and keyword arguments.  Optional
 # arguments should be used in the rare case that an argument's meaning is
@@ -55,25 +55,19 @@ cofm_desc = CmdDesc(required=[("atoms", Or(AtomsArg, EmptyArg))],
 #
 # The required/optional/keyword descriptions are passed as keyword arguments
 # to the ``CmdDesc`` constructor.  Each set of descriptions is passed as a
-# list of 2-tuples.  The first element of the tuple must match the name
-# of a parameter of the callback function.  The second element must be a class
-# describing the expected input; ChimeraX provides many such classes,
-# e.g., BoolArg for boolean values, IntArg for integer values, etc.
-# The order of tuples is important for required arguments as the user
-# must enter them in that order.
-#TODO: The order is irrelevant for optional
-# arguments since they are identified by keywords.
+# list of 2-tuples.  The first element of the tuple must match the name of a
+# parameter of the callback function.  The second element must be a class
+# describing the expected input; ChimeraX provides many such classes, e.g.,
+# BoolArg for boolean values, IntArg for integer values, etc.  The order of
+# the 2-tuples in the required and optional lists determine the order that
+# the user must provide those arguments to the command.  That need not be the
+# same order as the arguments of the callback function, though it is typically
+# good programming practice to have the orders the same.
 
-# For the "cofm" command, we expect three arguments:
+# For the "cofm" command, we declare three arguments:
 #   ``atoms``       - collection of atoms (required), default: all atoms
-#   ``weighted``    - boolean (optional), default: False
-#   ``transformed`` - boolean (optional), default: True
-# ChimeraX expects the command syntax to be something like:
-#   command_name req1 req2 [opt1_keyword opt1 value] [opt2_keyword opt2_value]
-# where reqX is the value for a required argument, and optX_keyword and
-# optX_value are the keyword and value for an optional argument.
-# Required arguments are listed in the order expected.  Optional arguments
-# appear after required arguments but may be in any order.
+#   ``weighted``    - boolean (keyword), default: False
+#   ``transformed`` - boolean (keyword), default: True
 #
 # Example commands:
 #   tut cofm /A                (cofm of chain A)
@@ -81,18 +75,18 @@ cofm_desc = CmdDesc(required=[("atoms", Or(AtomsArg, EmptyArg))],
 #   tut cofm :23 trans false   (cofm of input coordinates of residue 23)
 #
 # Note the trick used for the "atoms" argument, which may be left out to
-# mean "use all atoms".  If we make "atoms" an optional argument, the user
+# mean "use all atoms".  If we make "atoms" a keyword argument, the user
 # would have to enter "tut cofm atoms /A" rather than "tut cofm /A".
-# The trick is to make "atoms" required, so the input does not need to
-# include the "atoms" keyword; the value for "atoms" can be either an
-# AtomsArg or an EmptyArg.  If the user enters an atom specification as
+# The trick is to make "atoms" required, so that the typed command does not
+# need to include the "atoms" keyword; the value for "atoms" can be either
+# an AtomsArg or an EmptyArg.  If the user enters an atom specification as
 # part of the command, then "atoms" value matches AtomsArg, which
 # translates to a ``chimerax.atomic.Atoms`` instance for the function
 # parameter; if not, "atoms" matches EmptyArg, which translates to ``None``.
 #
 
 
-def highlight(session, atoms, color, weighted=False, transformed=True, count=1):
+def highlight(session, atoms, color, *, weighted=False, transformed=True, count=1):
     """Highlight the atoms nearest the center of mass of given atoms."""
 
     # ``session``     - ``chimerax.core.session.Session`` instance
@@ -125,7 +119,7 @@ def highlight(session, atoms, color, weighted=False, transformed=True, count=1):
 
 highlight_desc = CmdDesc(required=[("atoms", Or(AtomsArg, EmptyArg)),
                                    ("color", ColorArg)],
-                         optional=[("weighted", BoolArg),
+                         keyword=[("weighted", BoolArg),
                                    ("transformed", BoolArg),
                                    ("count", Bounded(IntArg, 1, 5))])
 
@@ -143,8 +137,8 @@ def _get_cofm(session, atoms, transformed, weighted):
 
     # If user did not specify the list of atoms, use all atoms
     if atoms is None:
-        from chimerax.core.commands import all_objects
-        atoms = all_objects(session).atoms
+        from chimerax.atomic import all_atoms
+        atoms = all_atoms(session)
 
     # We can use either transformed or untransformed coordinates.
     # Transformed coordinates are "scene coordinates", which
