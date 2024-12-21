@@ -26,13 +26,29 @@ QTSHIM_WHEEL = qtshim-1.1-py3-none-any.whl
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 GRAKO_WHEEL = grako-3.16.5-py2.py3-none-any.whl
 
-PLATO_WHEELS = $(GRAKO_WHEEL) $(CXSERVICES_WHEEL)
-
 ifeq ($(OSARCH),DarwinArm64)
 CYTHON_BUILD_ARGS= --no-binary :all:
 else
 CYTHON_BUILD_ARGS=
 endif
+
+ifeq ($(OS),Windows) 
+ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.7-cp313-cp313-win_amd64.whl
+else
+ifeq ($(OS),Linux)
+ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.7-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.whl
+ifeq ($(OSARCH),LinuxArm64)
+ACCELERATE_WHEEL = 
+endif
+else
+ifeq ($(OS),Darwin)
+WHEEL_CFLAGS="-Wno-error=int-conversion"
+ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.7-cp313-cp313-macosx_10_13_universal2.whl
+endif
+endif
+endif
+
+PLATO_WHEELS = $(GRAKO_WHEEL) $(CXSERVICES_WHEEL) $(QTSHIM_WHEEL) $(ACCELERATE_WHEEL)
 
 all:
 
@@ -47,10 +63,10 @@ app-list:
 upgrade:
 
 app-install: $(PLATO_WHEELS)
-	# Install numpy first so that PyOpenGL_Accelerate will compile numpy_formathandler
-	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt)
-	# Install Cython second because source packages will complain otherwise
+	# Install Cython first because source packages will complain otherwise
 	$(APP_PIP_INSTALL) $(CYTHON_BUILD_ARGS) $(shell grep Cython app_requirements.txt)
+	# Install numpy second so that PyOpenGL_Accelerate will compile numpy_formathandler
+	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt)
 	$(APP_PIP_INSTALL) $(shell grep lz4 app_requirements.txt)
 	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifneq (,$(SOURCE_WHEELS))
@@ -114,6 +130,9 @@ app-outdated:
 
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src
+
+$(ACCELERATE_WHEEL):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pyopengl/$(ACCELERATE_WHEEL)
 
 $(GRAKO_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/grako/$(GRAKO_WHEEL)

@@ -157,7 +157,6 @@ def _init_primitives():
             except Exception:
                 pass
         yield numpy.bool_
-        yield numpy.bool8
 
     _final_primitives = (
         type(None),
