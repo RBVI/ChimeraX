@@ -35,10 +35,12 @@ endif
 ifeq ($(OS),Windows) 
 ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.7-cp313-cp313-win_amd64.whl
 TABLES_WHEEL = tables-3.10.2.dev0-cp313-cp313-win_amd64.whl
+TINYARRAY_WHEEL = tinyarray-1.2.4-cp313-cp313-win_amd64.whl
 else
 ifeq ($(OS),Linux)
 ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.7-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.whl
 TABLES_WHEEL=
+TINYARRAY_WHEEL=
 ifeq ($(OSARCH),LinuxArm64)
 ACCELERATE_WHEEL = 
 endif
@@ -47,11 +49,12 @@ ifeq ($(OS),Darwin)
 WHEEL_CFLAGS="-Wno-error=int-conversion"
 ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.7-cp313-cp313-macosx_10_13_universal2.whl
 TABLES_WHEEL=
+TINYARRAY_WHEEL=
 endif
 endif
 endif
 
-PLATO_WHEELS = $(GRAKO_WHEEL) $(CXSERVICES_WHEEL) $(QTSHIM_WHEEL) $(ACCELERATE_WHEEL) $(TABLES_WHEEL)
+PLATO_WHEELS = $(GRAKO_WHEEL) $(CXSERVICES_WHEEL) $(QTSHIM_WHEEL) $(ACCELERATE_WHEEL) $(TABLES_WHEEL) $(TINYARRAY_WHEEL)
 
 all:
 
@@ -136,6 +139,9 @@ src-outdated:
 
 $(TABLES_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/tables/$(TABLES_WHEEL)
+
+$(TINYARRAY_WHEEL):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/tables/$(TINYARRAY_WHEEL)
 
 $(ACCELERATE_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pyopengl/$(ACCELERATE_WHEEL)
