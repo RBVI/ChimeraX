@@ -77,7 +77,7 @@ sphinx_autodoc_typehints==2.2.3
 #
 # Windows
 #
-pywin32==306; sys_platform == 'win32'
+pywin32==308; sys_platform == 'win32'
 WMI==1.5.1; sys_platform == 'win32'
 comtypes==1.4.5; sys_platform == 'win32'
 #
