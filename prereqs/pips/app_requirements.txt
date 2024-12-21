@@ -47,7 +47,7 @@ pynrrd==1.0.0
 pyopenxr==1.0.3401
 tcia_utils==1.5.1
 PyOpenGL==3.1.7
-PyOpenGL-accelerate==3.1.7
+# PyOpenGL-accelerate==3.1.7
 python-dateutil==2.9.0.post0
 # PyQt handled in prereqs/PyQt
 # sip handled in prereqs/PyQt
