@@ -26,7 +26,7 @@ QTSHIM_WHEEL = qtshim-1.1-py3-none-any.whl
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 GRAKO_WHEEL = grako-3.16.5-py2.py3-none-any.whl
 
-PLATO_WHEELS = $(GRAKO_WHEEL) $(CXSERVICES_WHEEL)
+PLATO_WHEELS = $(GRAKO_WHEEL) $(CXSERVICES_WHEEL) $(QTSHIM_WHEEL)
 
 ifeq ($(OSARCH),DarwinArm64)
 CYTHON_BUILD_ARGS= --no-binary :all:
