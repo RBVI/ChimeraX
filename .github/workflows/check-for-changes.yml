@@ -30,7 +30,7 @@ jobs:
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
-        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
+        run: ./ChimeraX.app/bin/python3.13 -I -m pip install pytest pytest-cov
       - name: Set up the repo for coverage reporting
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
@@ -61,7 +61,7 @@ jobs:
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
-        run: ./ChimeraX.app/Contents/bin/python3.11 -I -m pip install pytest pytest-cov
+        run: ./ChimeraX.app/Contents/bin/python3.13 -I -m pip install pytest pytest-cov
       - name: Set up the repo for coverage reporting
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
