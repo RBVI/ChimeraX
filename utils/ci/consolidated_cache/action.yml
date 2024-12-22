@@ -308,8 +308,10 @@ runs:
           curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/tinyarray/tinyarray-1.2.4-cp313-cp313-win_amd64.whl
           curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/tables/tables-3.10.2.dev0-cp313-cp313-win_amd64.whl
           curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/pyopengl/PyOpenGL_accelerate-3.1.7-cp313-cp313-win_amd64.whl
+          mv tinyarray* prereqs/pips/
+          mv tables* prereqs/pips/
         fi
-        mv tinyarray* prereqs/pips/
+        mv PyOpenGL* prereqs/pips/
 
     - name: Fetch ffmpeg
       shell: bash
