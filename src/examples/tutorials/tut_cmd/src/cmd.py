@@ -84,6 +84,14 @@ cofm_desc = CmdDesc(required=[("atoms", Or(AtomsArg, EmptyArg))],
 # translates to a ``chimerax.atomic.Atoms`` instance for the function
 # parameter; if not, "atoms" matches EmptyArg, which translates to ``None``.
 #
+# The astute reader will note that the "atoms" argument could have instead 
+# been declared as optional, with a parser class of AtomsArg and a Python
+# default value of None.  In ChimeraX, commands that require some kind of
+# atom specification typically have that as their first argument.  If the
+# command has additional required arguments, then you would have to use the
+# "trick" demonstrated here in order to allow the atom spec to be the first
+# argument while still allowing that argument to be omitted in order to
+# indicate "all atoms".
 
 
 def highlight(session, atoms, color, *, weighted=False, transformed=True, count=1):
