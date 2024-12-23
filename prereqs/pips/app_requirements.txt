@@ -10,12 +10,12 @@ appdirs==1.4.4
 beautifulsoup4==4.12.3
 build==1.2.1
 colorama==0.4.6
-Cython==3.0.10
+Cython==3.0.10 ; platform_machine != 'arm64'
 filelock==3.15.4
 # grako==3.16.5 # See the Makefile; need patched Grako for 3.11
 html2text==2024.2.26
 ihm==1.3
-imagecodecs==2024.9.22
+imagecodecs==2024.6.1
 ipykernel==6.29.5
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi
@@ -24,14 +24,14 @@ ipython==8.26.0
 jedi==0.19.1
 jupyter-client==8.6.2
 line_profiler==4.1.3
-lxml==5.3.0
+lxml==5.2.2
 lz4==4.3.3
 matplotlib==3.9.2
 msgpack==1.0.8
 nibabel == 5.2.0
-netCDF4==1.7.2
+netCDF4==1.6.5
 networkx==3.3
-numpy==2.2.0
+numpy==1.26.4
 openvr==1.26.701
 openmm==8.2.0
 packaging==23.2
@@ -47,21 +47,21 @@ pynrrd==1.0.0
 pyopenxr==1.0.3401
 tcia_utils==1.5.1
 PyOpenGL==3.1.7
-# PyOpenGL-accelerate==3.1.7
+PyOpenGL-accelerate==3.1.7
 python-dateutil==2.9.0.post0
 # PyQt handled in prereqs/PyQt
 # sip handled in prereqs/PyQt
 #PySide2==5.15.2
 qtconsole==5.5.2
 requests==2.32.3
-scipy==1.14.1
+scipy==1.14.0
 six==1.16.0
 sortedcontainers==2.4.0
 # Used by the DICOM bundle for a double-ended QSlider
 superqt==0.6.3
 tables==3.10.1
 tifffile==2024.7.24
-tinyarray==1.2.4
+# tinyarray==1.2.4 # 3.11 requires getting this from Plato
 webcolors==24.6.0
 wheel-filename==1.4.1
 #

@@ -16,6 +16,7 @@ WHEEL_CFLAGS ?=
 
 # On macOS, only the x86_64 version of Cython is available from pypi.
 # So we install the same version on arm64, but from source.
+CYTHON_VERSION = $(shell grep Cython= app_requirements.txt  | sed -e 's/ ;.*//' -e 's/.*=//')
 CXSERVICES_VER = 1.2.3
 CXSERVICES_DEPLOYMENT_VER ?= production
 
@@ -25,30 +26,33 @@ PATCHES = tcia_utils.patch tcia_utils_metadata.patch
 QTSHIM_WHEEL = qtshim-1.1-py3-none-any.whl
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 GRAKO_WHEEL = grako-3.16.5-py2.py3-none-any.whl
-
-ifeq ($(OSARCH),DarwinArm64)
-CYTHON_BUILD_ARGS= --no-binary :all:
-else
-CYTHON_BUILD_ARGS=
-endif
-
-ifeq ($(OS),Windows) 
-ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.7-cp313-cp313-win_amd64.whl
+ifeq ($(OS),Windows)
+TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-win_amd64.whl
 else
 ifeq ($(OS),Linux)
-ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.7-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.whl
 ifeq ($(OSARCH),LinuxArm64)
-ACCELERATE_WHEEL = 
+TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-linux_aarch64.whl
+else
+TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 endif
 else
 ifeq ($(OS),Darwin)
 WHEEL_CFLAGS="-Wno-error=int-conversion"
-ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.7-cp313-cp313-macosx_10_13_universal2.whl
+TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
+ifeq ($(OSARCH),DarwinArm64)
+CYTHON_WHEEL = Cython-$(CYTHON_VERSION)-cp311-cp311-macosx_10_9_universal2.whl
+else
+ifeq ($(OSARCH),DarwinIntel64)
+endif
+endif
 endif
 endif
 endif
 
-PLATO_WHEELS = $(GRAKO_WHEEL) $(CXSERVICES_WHEEL) $(QTSHIM_WHEEL) $(ACCELERATE_WHEEL)
+PLATO_WHEELS = $(GRAKO_WHEEL) $(TINYARRAY_WHEEL) $(CXSERVICES_WHEEL) $(QTSHIM_WHEEL)
+ifeq ($(OSARCH),DarwinArm64)
+PLATO_WHEELS += $(CYTHON_WHEEL)
+endif
 
 all:
 
@@ -63,11 +67,8 @@ app-list:
 upgrade:
 
 app-install: $(PLATO_WHEELS)
-	# Install Cython first because source packages will complain otherwise
-	$(APP_PIP_INSTALL) $(CYTHON_BUILD_ARGS) $(shell grep Cython app_requirements.txt)
-	# Install numpy second so that PyOpenGL_Accelerate will compile numpy_formathandler
+	# Install numpy first so that PyOpenGL_Accelerate will compile numpy_formathandler
 	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt)
-	$(APP_PIP_INSTALL) $(shell grep lz4 app_requirements.txt)
 	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifneq (,$(SOURCE_WHEELS))
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
@@ -131,11 +132,14 @@ app-outdated:
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src
 
-$(ACCELERATE_WHEEL):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pyopengl/$(ACCELERATE_WHEEL)
-
 $(GRAKO_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/grako/$(GRAKO_WHEEL)
+
+$(TINYARRAY_WHEEL):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/tinyarray/$(TINYARRAY_WHEEL)
+
+$(CYTHON_WHEEL):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cython/$(CYTHON_WHEEL)
 
 $(CXSERVICES_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cxservices/cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl
