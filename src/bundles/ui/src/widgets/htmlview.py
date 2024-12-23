@@ -451,7 +451,11 @@ def chimerax_intercept(request_info, *args, session=None, view=None):
                 if prev_dir:
                     os.chdir(prev_dir)
         from Qt.QtCore import QUrl
-        no_formatting = QUrl.UrlFormattingOption.None_
+        from Qt import using_pyqt6, using_pyside6
+        if using_pyqt6:
+            no_formatting = QUrl.UrlFormattingOption.None_
+        elif using_pyside6:
+            no_formatting = QUrl.ComponentFormattingOption.FullyEncoded
         session.ui.thread_safe(defer, session, qurl.url(no_formatting), from_dir)
         return
 
