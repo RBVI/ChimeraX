@@ -121,7 +121,11 @@ def delete_profile(profile):
         del profile._handlers
         del profile._scheme_handler
         del profile._schemes
-    profile.setUrlRequestInterceptor(None)
+    from Qt.QtCore import QT_VERSION
+    if QT_VERSION < 0x050d00:
+        profile.setRequestInterceptor(None)
+    else:
+        profile.setUrlRequestInterceptor(None)
 
 
 class HtmlView(QWebEngineView):
