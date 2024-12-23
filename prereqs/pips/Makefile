@@ -28,12 +28,6 @@ GRAKO_WHEEL = grako-3.16.5-py2.py3-none-any.whl
 
 PLATO_WHEELS = $(GRAKO_WHEEL) $(CXSERVICES_WHEEL)
 
-ifeq ($(OSARCH),DarwinArm64)
-CYTHON_BUILD_ARGS= --no-binary :all:
-else
-CYTHON_BUILD_ARGS=
-endif
-
 all:
 
 install:
@@ -50,8 +44,7 @@ app-install: $(PLATO_WHEELS)
 	# Install numpy first so that PyOpenGL_Accelerate will compile numpy_formathandler
 	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt)
 	# Install Cython second because source packages will complain otherwise
-	$(APP_PIP_INSTALL) $(CYTHON_BUILD_ARGS) $(shell grep Cython app_requirements.txt)
-	$(APP_PIP_INSTALL) $(shell grep lz4 app_requirements.txt)
+	$(APP_PIP_INSTALL) $(shell grep Cython app_requirements.txt)
 	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifneq (,$(SOURCE_WHEELS))
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
