@@ -38,12 +38,17 @@ else
 ifeq ($(OS),Linux)
 ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.7-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.whl
 ifeq ($(OSARCH),LinuxArm64)
+else
 ACCELERATE_WHEEL = 
 endif
 else
 ifeq ($(OS),Darwin)
 WHEEL_CFLAGS="-Wno-error=int-conversion"
 ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.7-cp313-cp313-macosx_10_13_universal2.whl
+ifeq ($(OSARCH),DarwinArm64)
+else
+ifeq ($(OSARCH),DarwinIntel64)
+endif
 endif
 endif
 endif
