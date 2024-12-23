@@ -68,14 +68,14 @@ jobs:
           MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial make -j$(nproc) -C prereqs install
           MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial make -j$(nproc) -C prereqs app-install
           make -C src/apps/ChimeraX install BUILD_TYPE=daily
-          ChimeraX.app/bin/python3.13 -m pip install wheels/*.whl
+          ChimeraX.app/bin/python3.11 -m pip install wheels/*.whl
           cp -rp include ChimeraX.app
           make -C src/apps install BUILD_TYPE=daily
           make -C docs install BUILD_TYPE=daily
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
-        run: ./ChimeraX.app/bin/python3.13 -I -m pip install pytest pytest-cov
+        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
       - name: Set up the repo for coverage reporting
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
