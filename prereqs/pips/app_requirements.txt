@@ -61,7 +61,7 @@ sortedcontainers==2.4.0
 superqt==0.6.3
 tables==3.10.1 ; sys_platform != 'win32'
 tifffile==2024.7.24
-tinyarray==1.2.4 ; sys_platform != 'win32'
+tinyarray==1.2.4
 webcolors==24.6.0
 wheel-filename==1.4.1
 #
