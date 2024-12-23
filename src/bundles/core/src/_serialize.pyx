@@ -55,7 +55,7 @@ PRIMITIVE_TYPES = frozenset((
     bool, int, float, bytes, bytearray, str, dict, list, memoryview, type(None),
     # additionally supported types
     complex, tuple, range, _UniqueName,
-    numpy.ndarray, numpy.number, numpy.bool_,
+    numpy.ndarray, numpy.number, numpy.bool_, numpy.bool8,
     set, frozenset, deque, OrderedDict,
     datetime, timedelta, timezone,
     Image.Image, FinalizedState,
