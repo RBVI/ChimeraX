@@ -302,6 +302,7 @@ runs:
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
           curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/pyopengl/PyOpenGL_accelerate-3.1.7-cp313-cp313-macosx_10_13_universal2.whl
+          mv Cython* prereqs/pips/
         fi
         if [ "${{ inputs.platform }}" = "windows" ] ; then
           curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/tinyarray/tinyarray-1.2.4-cp313-cp313-win_amd64.whl
