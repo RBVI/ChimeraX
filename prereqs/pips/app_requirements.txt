@@ -29,7 +29,7 @@ lz4==4.3.3
 matplotlib==3.9.2
 msgpack==1.0.8
 nibabel == 5.2.0
-netCDF4==1.7.2
+netCDF4==1.6.5
 networkx==3.3
 numpy==2.2.0
 openvr==1.26.701
