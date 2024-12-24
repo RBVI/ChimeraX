@@ -63,7 +63,13 @@ class CoordinateSetSlider(Slider):
             return
         if 'active_coordset changed' in changes.structure_reasons():
             self.set_slider(s.active_coordset_id)
-            
+
+    def fill_context_menu(self, menu, x, y):
+        from chimerax.md_crds.gui import fill_context_menu
+        fill_context_menu(menu, self.tool_window, self.structure)
+        menu.addSeparator()
+        super().fill_context_menu(menu, x, y)
+
     def models_closed_cb(self, name, models):
       if self.structure in models:
         self.delete()

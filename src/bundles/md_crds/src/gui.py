@@ -52,3 +52,59 @@ class SaveOptionsWidget(QFrame):
         else:
             cmd = ""
         return cmd
+
+def fill_context_menu(menu, parent_tool_window, structure):
+    from Qt.QtGui import QAction
+    plot_menu = menu.addMenu("Plot")
+    action = QAction("Distances", plot_menu)
+    action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure: _show_distances_plot(tw, s))
+    plot_menu.addAction(action)
+
+class PlotDialog:
+    def __init__(self, plot_window, structure):
+        self.tool_window = tw = plot_window
+        self.session = structure.session
+        from Qt.QtWidgets import QHBoxLayout
+        self.section_layout = layout = QVBoxLayout()
+        layout.setSpacing(0)
+        tw.ui_area.setLayout(layout)
+
+        self.sections = {}
+
+        tw.manage(None)
+
+    def make_section(self, section_name):
+        from Qt.QtWidgets import QWidget, QLabel, QHBoxLayout
+        section = QWidget()
+        section_layout = QHBoxLayout()
+        section_layout.setSpacing(0)
+        section.setLayout(section_layout)
+        self.section_layout.addWidget(section, stretch=1)
+        if section_name == "distances":
+            section_layout.addWidget(QLabel("Distance plotting goes here"))
+        else:
+            raise ValueError("Don't know how to make plot section '%s'" % section_name)
+        return section
+
+    def show_section(self, section_name):
+        try:
+            section = self.sections[section_name]
+        except KeyError:
+            section = self.sections[section_name] = self.make_section(section_name)
+
+        section.show()
+
+def _show_distances_plot(main_tool_window, structure):
+    try:
+        tws = main_tool_window._md_tool_windows
+    except AttributeError:
+        tws = main_tool_window._md_tool_windows = {}
+
+    try:
+        plot_dialog = tws["plot"]
+    except KeyError:
+        plot_dialog = tws["plot"] = PlotDialog(main_tool_window.create_child_window("Plots"), structure)
+
+    plot_dialog.show_section("distances")
+    plot_dialog.tool_window.shown = True
+
