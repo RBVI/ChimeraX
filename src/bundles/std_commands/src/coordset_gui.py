@@ -42,7 +42,9 @@ class CoordinateSetSlider(Slider):
             session._coord_set_sliders = set()
         session._coord_set_sliders.add(self)
         session.logger.status(
-            "Use coordset-slider context menu to access plotting and other analysis features",
+            "Use coordset-slider context menu to access plotting",
+            # When there are additional analysis features...
+            #"Use coordset-slider context menu to access plotting and other analysis features",
             color="forest green", blank_after=10)
 
     def change_value(self, i, playing = False):
