@@ -110,6 +110,11 @@ class UI(QApplication):
         if qt_have_web_engine():
             import Qt.QtWebEngineWidgets
 
+        # make sure that validated input fields (QValidator) generate numbers
+        # Python's float will accept [#16374]...
+        from Qt.QtCore import QLocale
+        QLocale.setDefault(QLocale.c())
+
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
         import sys
@@ -303,7 +308,11 @@ class UI(QApplication):
         # times on the command line.
         self._bad_drop_events = list(ignore_files)
         for bad_drop in getattr(self, '_seen_bad_drops', []):
-            self._bad_drop_events.remove(bad_drop)
+            # Debuggers stop here when ChimeraX is opened. Somehow bad_drop's value becomes the
+            # path to the debugpy executable but it is not in bad_drop_events, so we'll just check
+            # before trying to remove bad_drop from the list
+            if bad_drop in self._bad_drop_events:
+                self._bad_drop_events.remove(bad_drop)
         for path in self._files_to_open:
             if path not in ignore_files:
                 try:
@@ -633,7 +642,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 resize_h = min(req_height, round(0.9 * (vg.height() - ydec)))
             if need_resize:
                 self.resize(resize_w, resize_h)
-            
+
             # Then ensure the corners are onscreen
             fgeom = self.frameGeometry() # above resize may have changed it
             geom = self.geometry()
@@ -2396,10 +2405,23 @@ class ToolWindow(StatusLogger):
         # are "unhandled" if those keys only change keyboard state (e.g. CapsLock).  Important
         # for the Python Shell retaining focus.
         from Qt.QtWidgets import QLineEdit, QComboBox, QAbstractSpinBox
-        if self.tool_instance.tool_name != "Help Viewer" \
-        and not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox, QAbstractSpinBox)) \
-        and event.key() not in keyboard_state_keys:
-            self.tool_instance.session.ui.forward_keystroke(event)
+        if self.tool_instance.tool_name == "Help Viewer":
+            return
+
+        if isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox, QAbstractSpinBox)):
+            return
+
+        if event.key() in keyboard_state_keys:
+            return
+
+        from Qt.QtCore import Qt
+        import sys
+        if sys.platform == 'darwin' and event.key() == 0 and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+            # In Qt 6.7 pressing the Command key caused forwarding and focus switch to command-line
+            # preventing Command+C copying from the Log, ChimeraX bug #16453.
+            return
+
+        self.tool_instance.session.ui.forward_keystroke(event)
 
     def _mw_set_dockable(self, dockable):
         self.__toolkit.dockable = dockable

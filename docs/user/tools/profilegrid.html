@@ -1,0 +1,162 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Profile Grid</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<table class="clRight">
+<tr><td>
+<img class="outline" src="7lcj.png" width="180px"
+alt="structure 7LCJ associated with alignment"
+title="structure 7LCJ associated with alignment"></td></tr>
+</table>
+
+<table align="right">
+<tr><td>
+<img class="outline" src="profilegrid.png"
+title="PFAM family 2 seed alignment"
+alt="PFAM family 2 seed alignment" width="630px"></td></tr>
+<tr><td width="600px" align="center">
+<font size=-1>
+Profile grid of the
+<a href="https://www.ebi.ac.uk/interpro/entry/pfam/PF00002/entry_alignments/?type=seed" target="_blank">PFAM 7 transmembrane receptor (Secretin family)</a>
+seed alignment associated with a structure of the glucagon-like 
+peptide-1 receptor, PDB 
+<a href="http://www.rcsb.org/structure/7LCJ" target="_blank">7LCJ</a>.
+Two residues with 100% type conservation are 
+<a href="../selection.html">selected</a> and labeled.
+</font>
+</td><tr>
+</table>
+
+<h3><a href="../index.html#tools">Tool</a>: Profile Grid</h3>
+<p>
+<b>Profile Grid</b> shows a condensed view of a multiple sequence alignment
+in which the rows are the possible sequence characters (residue one-letter
+codes and gap), the columns are positions in the alignment 
+(as in the standard view of a sequence alignment), and the values 
+in the cells are the prevalences of that type of residue at that position.
+</p><p>
+<b>Profile Grid</b> is a reimplementation of the viewer developed 
+by Alberto Roca, as described in:
+</p>
+<blockquote>
+<a href="https://bmcproc.biomedcentral.com/articles/10.1186/1753-6561-8-S2-S6"
+target="_blank">
+ProfileGrids: a sequence alignment visualization paradigm that avoids the limitations of Sequence Logos.</a>
+Roca AI.  <i>BMC Proc.</i> 2014 Aug 28;8(Suppl 2 Proceedings of the 
+3rd Annual Symposium on Biologica):S6.
+</blockquote>
+<p>
+The values in the ChimeraX <b>Profile Grid</b> are percentages
+rounded to the nearest integer. A blank cell means that no sequences
+at all have that residue type at that position, whereas a displayed value
+of 0 means that some do, but &lt;0.5%.
+Much like the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>,
+the <b>Profile Grid</b> tool interacts with any 
+<a href="sequenceviewer.html#association">associated</a> structures, and it
+can include <a href="sequenceviewer.html#headers">headers</a> above 
+the sequence data.
+</p><p>
+Opening a <a href="../commands/open.html#sequence">sequence alignment file</a>
+with the <a href="../commands/open.html"><b>open</b></a> command option 
+<a href="../commands/open.html#viewer"><b>viewer grid</b></a>
+shows it as a <b>Profile Grid</b>.
+Multiple <b>Profile Grid</b> windows can be shown at the same time, 
+and they can be manipulated like other panels in ChimeraX 
+(<a href="../window.html#panels">more...</a>).
+</p><p>
+A <b>Mouse click</b> can interact with the grid cells in either of two ways,
+as specified near the bottom of the window:
+</p>
+<ul>
+<li><b>selects residues</b>
+&ndash; <a href="../selection.html">selection</a> of the corresponding 
+residue(s) in any <a href="sequenceviewer.html#association">associated</a> 
+structures; if no associated structure has that type of residue at that 
+position, nothing happens.
+As in the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>,
+<a href="../selection.html">selection</a> of an associated structure residue
+by any means will be shown as a green outline around the corresponding cell.
+<li><a name="chosen"></a><b>chooses cell</b>
+&ndash; designating <b>Profile Grid</b> cells for subsequent actions,
+shown with an orange diamond on each chosen cell.
+</ul>
+<p>
+Either way, cell status can be toggled or the cell added to the existing set
+of highlighted/chosen cells with <b>Shift</b>-click.
+</p>
+
+<!--
+<blockquote><b>
+<a href="#context">Context Menu</a>
+<br><a href="#headers">Headers and Residue Attributes</a>
+<br><a href="#association">Sequence-Structure Association</a>
+<br><a href="#settings">Settings</a>
+</b></blockquote>
+-->
+
+<a name="context"></a>
+<p class="nav">
+[<a href="#top">back to top: Profile Grid</a>]
+</p>
+<h3>Context Menu</h3>
+<p>
+The <b>Profile Grid</b> <a href="../window.html#context-menu">context menu</a>
+includes:
+</p>
+<ul>
+<li><b>Chosen Cells</b> 
+&ndash; actions based on the <a href="#chosen">chosen</a> cells, if any:
+ <ul>
+ <li><b>List Sequence Names</b> &ndash; list the names of the corresponding 
+sequences in a separate dialog for copying or saving to a text file
+ <li><b>New Alignment</b> &ndash; open the corresponding sequences in a
+new window in the specified viewer:
+   <ul>
+   <li><a href="sequenceviewer.html"><b>Sequence Viewer</b></a>
+   <li><b>Profile Grid</b>
+   </ul>
+ </ul>
+<li><b>Headers</b>
+&ndash; which <a href="sequenceviewer.html#headers">headers</a> are shown:
+  <ul>
+  <li><b>Consensus</b>
+  <li><b>Conservation</b>
+  <li><b>RMSD</b> &ndash; root-mean-square distance among residues
+<a href="sequenceviewer.html#association">associated</a> with a column,
+based on <b>C&alpha;</b> for peptides, <b>C4'</b> for nucleic acids
+  <li><b>Save</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
+  [choice of available headers]
+  &ndash; save header information to file. 
+Headers are saved to a simple text format that lists the alignment positions
+and values. See also: 
+<a href="../commands/sequence.html#header"><b>sequence header</b></a>
+  </ul>
+</ul>
+
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+December 2024</address>
+</body></html>

@@ -1935,9 +1935,27 @@ t0 = t1;
                 if (((bondee->idatm_type() == "Npl"
                 || (bondee->element() == Element::N && bondee->neighbors().size() == 1))
                 && untyped_set.find(bondee) != untyped_set.end())
-                || bondee->idatm_type() == "Ng+")
+                || bondee->idatm_type() == "Ng+") {
                     // Ng+ possible through template typing
                     Ng_plus_candidates.push_back(bondee);
+                } else if (bondee->idatm_type() == "O2" || bondee->idatm_type() == "S2") {
+                    // guanidinium carbon can't be double bonded
+                    Ng_plus_candidates.clear();
+                    break;
+                } else if (bondee->idatm_type() == "N2") {
+                    auto my_d2 = a->coord().sqdistance(bondee->coord());
+                    for (auto grand_bondee: bondee->neighbors()) {
+                        if (grand_bondee == a)
+                            continue;
+                        my_d2 -= bondee->coord().sqdistance(grand_bondee->coord());
+                        break;
+                    }
+                    if (my_d2 < 0.0) {
+                        // N2 bond shorter on C2 side -- looks like double bond
+                        Ng_plus_candidates.clear();
+                        break;
+                    }
+                }
             }
 
             bool noplus = false;

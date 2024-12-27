@@ -23,6 +23,7 @@ glibc
 gtk3
 ImageMagick
 ImageMagick-devel
+jq
 libatomic
 libdrm
 libffi

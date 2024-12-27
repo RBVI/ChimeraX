@@ -143,14 +143,14 @@ class KVFinderResultsDialog(ToolInstance):
     help = "help:user/tools/findcavities.html#cavitylist"
     SESSION_SAVE = True
 
-    def __init__(self, session, tool_name, *args):
+    def __init__(self, session, tool_name, *args, **kw):
         ToolInstance.__init__(self, session, tool_name)
         if args:
             # being called directly rather than during session restore
-            self.finalize_init(*args, False)
+            self.finalize_init(*args, False, **kw)
 
     def finalize_init(self, structure, cavity_group, cavity_models, probe_radius, surface_made,
-            *, table_state=None):
+            *, table_state=None, placement=None):
         self.structure = structure
         self.cavity_group = cavity_group
         self.probe_radius = probe_radius
@@ -275,7 +275,7 @@ class KVFinderResultsDialog(ToolInstance):
             prefix="The Find Cavities tool uses the <i>pyKVFinder</i> package.  Please cite:",
             pubmed_id=34930115), alignment=Qt.AlignCenter)
 
-        self.tool_window.manage(placement=None)
+        self.tool_window.manage(placement=placement)
 
     def delete(self, from_mgr=False):
         for handler in self.handlers:
@@ -343,17 +343,22 @@ class KVFinderResultsDialog(ToolInstance):
             if _results_settings.surface:
                 probe_arg = "" if self.probe_radius == 1.4 else f" probeRadius {self.probe_radius}"
                 if not self._surface_made:
-                    run(self.session, f"surface {self.cavity_group.atomspec}{probe_arg} trans 50")
-                    multicolor = False
+                    from chimerax.atomic import surfaces_with_atoms
+                    unsurfaced = set()
                     for cavity in self.table.data:
+                        if not surfaces_with_atoms(cavity.atoms):
+                            unsurfaced.add(cavity)
+                    unsurfaced_spec = concise_model_spec(self.session, unsurfaced)
+                    run(self.session, f"surface {unsurfaced_spec}{probe_arg} trans 50")
+                    multicolor = False
+                    for cavity in unsurfaced:
                         unique_colors = set([tuple(x) for x in cavity.atoms.colors])
                         if len(unique_colors) > 1:
                             multicolor = True
                             break
                     if multicolor:
-                        run(self.session, f"color {self.cavity_group.atomspec} fromatoms trans 50")
+                        run(self.session, f"color {unsurfaced_spec} fromatoms trans 50")
                     run(self.session, f"~surface {self.cavity_group.atomspec}")
-                else:
                     self._surface_made = True
                 run(self.session, f"surface {model_spec}{probe_arg}")
         if setting_name in ["select_atoms", "show"] or setting_name is None \

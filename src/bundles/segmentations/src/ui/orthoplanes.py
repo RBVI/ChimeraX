@@ -49,14 +49,11 @@ from chimerax.segmentations.ui.color_key import ColorKeyModel
 
 import chimerax.segmentations.triggers
 from chimerax.segmentations.triggers import (
-    ACTIVE_SEGMENTATION_CHANGED,
     SEGMENTATION_REMOVED,
     SEGMENTATION_ADDED,
     SEGMENTATION_MODIFIED,
-    ENTER_EVENTS,
-    LEAVE_EVENTS,
-    GUIDELINES_VISIBILITY_CHANGED,
 )
+from chimerax.segmentations.triggers import Trigger
 
 from ..graphics import (
     OrthoplaneView,
@@ -105,9 +102,6 @@ class PlaneViewerManager:
         self.have_seg_tool = False
         self.axes = {}
         self.segmentation_tracker = get_tracker()
-        self._active_seg_changed_handler = chimerax.segmentations.triggers.add_handler(
-            ACTIVE_SEGMENTATION_CHANGED, self._active_segmentation_changed_cb
-        )
         self._segmentation_added_handler = chimerax.segmentations.triggers.add_handler(
             SEGMENTATION_ADDED, self._on_segmentation_added
         )
@@ -140,14 +134,10 @@ class PlaneViewerManager:
                 self.axes[Axis.CORONAL].sagittal_index = viewer.sagittal_index
 
     def deregister_triggers(self):
-        chimerax.segmentations.triggers.remove_handler(self._active_seg_changed_handler)
         chimerax.segmentations.triggers.remove_handler(self._segmentation_added_handler)
         chimerax.segmentations.triggers.remove_handler(
             self._segmentation_removed_handler
         )
-
-    def _active_segmentation_changed_cb(self, _, segmentation):
-        pass
 
     def update_dimensions(self, dimensions):
         for axis in self.axes.values():
@@ -168,9 +158,6 @@ class PlaneViewerManager:
             return None
         return self.axes[Axis.AXIAL].segmentation_tool
 
-    def update_displayed_model(self, model):
-        for viewer in self.axes.values():
-            viewer.model_menu._menu.set_value(model)
 
     def _on_segmentation_added(self, _, segmentation):
         self.add_segmentation(segmentation)
@@ -427,13 +414,26 @@ class PlaneViewer(QWindow):
             ADD_TOOL_INSTANCE, self._tool_instance_added_cb
         )
         self.guideline_visibility_handler = chimerax.segmentations.triggers.add_handler(
-            GUIDELINES_VISIBILITY_CHANGED, self._on_guideline_visibility_changed
+            Trigger.GuidelinesVisibilityChanged, self._on_guideline_visibility_changed
         )
         self.segmentation_modified_handler = (
             chimerax.segmentations.triggers.add_handler(
                 SEGMENTATION_MODIFIED, self._on_segmentation_modified
             )
         )
+        self.reference_model_changed_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.ReferenceModelChanged, self._on_reference_model_changed
+        )
+        self.active_segmentation_changed_handler = (
+            chimerax.segmentations.triggers.add_handler(
+                Trigger.ActiveSegmentationChanged, self._on_active_segmentation_changed
+            )
+        )
+
+    def _on_active_segmentation_changed(self, _, data):
+        self._redraw()
+    def _on_reference_model_changed(self, _, model):
+        self.model_menu._menu.set_value(model)
 
     def _grab_viewport(self):
         image = self.view.image_rgba()
@@ -794,6 +794,9 @@ class PlaneViewer(QWindow):
         chimerax.segmentations.triggers.remove_handler(
             self.segmentation_modified_handler
         )
+        chimerax.segmentations.triggers.remove_handler(
+            self.active_segmentation_changed_handler
+        )
 
         del self.label
 
@@ -936,7 +939,9 @@ class PlaneViewer(QWindow):
 
         settings = get_settings(self.session)
         settings.display_guidelines = not settings.display_guidelines
-        chimerax.segmentations.triggers.activate_trigger(GUIDELINES_VISIBILITY_CHANGED)
+        chimerax.segmentations.triggers.activate_trigger(
+            Trigger.GuidelinesVisibilityChanged
+        )
 
     def toggle_color_key(self):
         self.color_key.display = not self.color_key.display
@@ -1090,16 +1095,15 @@ class PlaneViewer(QWindow):
         self.segmentation_cursor_overlay.display = False
 
     def enterEvent(self):
-        chimerax.segmentations.triggers.activate_trigger(ENTER_EVENTS[self.axis])
+        chimerax.segmentations.triggers.activate_trigger(Trigger.PlaneViewerEnter, self.axis)
         if self.segmentation_tool:
             self.enableSegmentationOverlays()
             self.resize3DSegmentationCursor()
         self.render()
 
     def leaveEvent(self):
-        chimerax.segmentations.triggers.activate_trigger(LEAVE_EVENTS[self.axis])
-        if self.segmentation_tool:
-            self.disableSegmentationOverlays()
+        chimerax.segmentations.triggers.activate_trigger(Trigger.PlaneViewerLeave, self.axis)
+        self.disableSegmentationOverlays()
         self.level_label.hide()
         self.mouse_move_timer.stop()
         self.render()
@@ -1885,5 +1889,6 @@ class SegmentationVolumePanel(Histogram_Pane):
 
     def moved_marker_cb(self, marker):
         super().moved_marker_cb(marker)
+        self.plane_viewer.color_changed = True
         self.plane_viewer.on_color_changed()
         self.plane_viewer._redraw()

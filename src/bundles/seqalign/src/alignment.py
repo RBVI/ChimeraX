@@ -93,7 +93,13 @@ class Alignment(State):
         self._session_restore = session_restore
         if isinstance(seqs, tuple):
             seqs = list(seqs)
-        self._seqs = seqs[:] # prevent later accidental modification
+        # prevent later accidental modification; also different alignments may contain the same sequence
+        # (so prevent Alignment._destroy from messing up other alignments)
+        if session_restore:
+            self._seqs = seqs
+        else:
+            from copy import copy
+            self._seqs = [copy(seq) for seq in seqs]
         self.ident = ident
         self.file_attrs = file_attrs
         self.file_markups = file_markups
@@ -922,13 +928,6 @@ class Alignment(State):
         """For restoring scenes/sessions"""
         ident = data['ident'] if 'ident' in data else data['name']
         create_headers = data['version'] < 2
-        for seq in data['seqs']:
-            if seq.characters == "AYVINEACISCGACEPECPVNAISSGDDRYVIDADTCIDCGACAGVCPVDAPVQA" and len(seq) < len(data['seqs'][0]):
-                if hasattr(seq, 'residues'):
-                    import sys
-                    print("structure sequence", file=sys.__stderr__)
-                else:
-                    seq.characters = "AYVINEA--CISCGACEPECPVNAISSGDD---RYVIDADTCIDCGACAGVCPVDA-PVQA"
         aln = Alignment(session, data['seqs'], ident, data['file attrs'],
             data['file markups'], data['auto_destroy'],
             "session" if data['auto_associate'] else False,

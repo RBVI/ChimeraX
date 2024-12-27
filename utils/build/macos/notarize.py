@@ -303,10 +303,10 @@ def executable_paths(app_path):
 
     need_signature = set(
         [
-            lief.MachO.FILE_TYPES.BUNDLE,
-            lief.MachO.FILE_TYPES.DYLIB,
-            lief.MachO.FILE_TYPES.EXECUTE,
-            lief.MachO.FILE_TYPES.OBJECT,
+            lief.MachO.Header.FILE_TYPE.BUNDLE,
+            lief.MachO.Header.FILE_TYPE.DYLIB,
+            lief.MachO.Header.FILE_TYPE.EXECUTE,
+            lief.MachO.Header.FILE_TYPE.OBJECT,
         ]
     )
     contents_dir = os.path.join(app_path, "Contents")
@@ -335,7 +335,7 @@ def executable_paths(app_path):
                     # On Mac ARM64 lief fails to parse several .a archives.
                     # With python 3.11 ChimeraX a file config-3.11-darwin/python.o
                     # also is not recognized by lief.  ChimeraX ticket 9148
-                    file_type = lief.MachO.FILE_TYPES.OBJECT
+                    file_type = lief.MachO.Header.FILE_TYPE.OBJECT
                 else:
                     continue
             else:
@@ -566,11 +566,16 @@ def sign_binaries_and_make_dmg(defaults):
 
 
 def notarize_dmg(defaults):
-    plist = request_notarization(defaults)
-    status = report_notarization_result(defaults, plist["id"])
-    if status == 0:
-        staple_notarization_to_dmg(defaults)
-    else:
+    tries = 0
+    status = None
+    while tries < 5 and status != 0:
+        plist = request_notarization(defaults)
+        status = report_notarization_result(defaults, plist["id"])
+        if status == 0:
+            staple_notarization_to_dmg(defaults)
+        else:
+            tries += 1
+    if status != 0:
         raise RuntimeError(f"Mac notarization failed with status code {status}")
 
 

@@ -23,7 +23,7 @@ CXSERVICES_DEPLOYMENT_VER ?= production
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
 PATCHES = tcia_utils.patch tcia_utils_metadata.patch
-QTSHIM_WHEEL = qtshim-1.0-py3-none-any.whl
+QTSHIM_WHEEL = qtshim-1.1-py3-none-any.whl
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 GRAKO_WHEEL = grako-3.16.5-py2.py3-none-any.whl
 ifeq ($(OS),Windows)

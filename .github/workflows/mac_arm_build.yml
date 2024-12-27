@@ -42,7 +42,7 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@master
       - run: |
           brew install python@3.10
-          python3.10 -m pip install lief==0.12.2 dmgbuild
+          python3.10 -m pip install lief dmgbuild
           patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
       - uses: actions/checkout@v4
       - run: ${PWD}/utils/set_up_macos.sh
@@ -52,6 +52,18 @@ jobs:
           platform: macos
           architecture: arm64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - uses: Tiryoh/gha-jobid-action@v1
+        id: get_job_id
+        with:
+          job_name: "Build ChimeraX for arm64 macOS / build-arm-macos"
+      - name: Note the run and job IDs on Plato
+        uses: ./utils/ci/nightly_logs
+        with:
+          platform: mac_arm64
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          run_id: ${{ github.run_id }}
+          job_id: ${{ steps.get_job_id.outputs.job_id }}
+          build_type: daily
       - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) install-rbvi
       - name: Run the legacy test suite
         run: make test
