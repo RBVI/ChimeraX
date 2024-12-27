@@ -5,16 +5,13 @@ from chimerax.core.toolshed import BundleAPI
 
 class _AnisoAPI(BundleAPI):
 
-    """
     @staticmethod
     def get_class(class_name):
-        from . import _data
-        if class_name == 'NucleotideState':
-            return _data.NucleotideState
-        if class_name == 'Params':
-            return _data.Params
-        return None
+        if class_name == '_StructureAnisoManager':
+            from . import mgr
+            return getattr(mgr, class_name)
 
+    """
     @staticmethod
     def start_tool(session, tool_name, **kw):
         from .tool import NucleotidesTool

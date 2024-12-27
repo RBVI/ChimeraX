@@ -40,25 +40,25 @@ class _StructureAnisoManager(StateManager):
         self.init_state_manager(session, "structure thermal ellipsoids")
         self.session = session
         self.structure = structure
-        from chimerax.atomic import Atoms
-        self.shown_atoms = Atoms()
-        self.atom_depictions = {}
-        self.drawing_params = {
-            'axis_color': None,
-            'axis_factor': None,
-            'axis_thickness': 0.01,
-            'ellipse_color': None,
-            'ellipse_factor': None,
-            'ellipse_thickness': 0.02,
-            'ellipsoid_color': None,
-            'scale': 1.0,
-            'show_ellipsoid': True,
-            'smoothing': 3,
-            'transparency': None,
-        }
         self._cylinder_cache = {}
-        self._create_depictions()
         if not from_session:
+            from chimerax.atomic import Atoms
+            self.shown_atoms = Atoms()
+            self.atom_depictions = {}
+            self.drawing_params = {
+                'axis_color': None,
+                'axis_factor': None,
+                'axis_thickness': 0.01,
+                'ellipse_color': None,
+                'ellipse_factor': None,
+                'ellipse_thickness': 0.02,
+                'ellipsoid_color': None,
+                'scale': 1.0,
+                'show_ellipsoid': True,
+                'smoothing': 3,
+                'transparency': None,
+            }
+            self._create_depictions()
             self._add_handlers()
 
     def destroy(self):
@@ -221,18 +221,17 @@ class _StructureAnisoManager(StateManager):
             self.destroy()
             return
 
-    #TODO
+    def reset_state(self, session):
+        self.destroy()
+
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = cls(session, data['structure'], from_session=True)
-        inst.main_group = data['main_group']
-        inst.res_alt_locs = data['res_alt_locs']
-        inst.res_group = data['res_group']
+        inst.atom_depictions = data['atom_depictions']
+        inst.drawing_params = data['drawing_params']
+        inst.shown_atoms = data['shown_atoms']
         def delayed_registration(*args, inst=inst):
             inst._add_handlers()
-            for r, lookup in inst.res_alt_locs.items():
-                for alt_loc, al_model in lookup.items():
-                    inst._add_alt_loc_changes_handler(al_model, r, alt_loc)
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
         from chimerax.atomic import get_triggers
@@ -241,9 +240,9 @@ class _StructureAnisoManager(StateManager):
 
     def take_snapshot(self, session, flags):
         data = {
+            'atom_depictions': self.atom_depictions,
+            'drawing_params': self.drawing_params,
+            'shown_atoms': self.shown_atoms,
             'structure': self.structure,
-            'main_group': self.main_group,
-            'res_alt_locs': self.res_alt_locs,
-            'res_group': self.res_group,
         }
         return data
