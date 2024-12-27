@@ -5,7 +5,7 @@ def open_pdbqt(*args):
     for encoding in encodings:
         try:
            return  _open_pdbqt(*args, encoding)
-        except UnicodeDecodeError:
+        except UnicodeError:
             if encoding == encodings[-1]:
                 raise
 
