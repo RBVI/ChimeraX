@@ -39,10 +39,22 @@ jobs:
         run: |
           brew install python@3.10
           python3.10 -m pip install setuptools==54.0
-          python3.10 -m pip install lief==0.12.2
+          python3.10 -m pip install lief
           python3.10 -m pip install dmgbuild
           # Make dmgbuild allocate an adult sized DMG
           patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
+      - uses: Tiryoh/gha-jobid-action@v1
+        id: get_job_id
+        with:
+          job_name: "Build Universal ChimeraX for macOS / build-mac-universal"
+      - name: Note the run and job IDs on Plato
+        uses: ./utils/ci/nightly_logs
+        with:
+          platform: mac_universal
+          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          run_id: ${{ github.run_id }}
+          job_id: ${{ steps.get_job_id.outputs.job_id }}
+          build_type: daily
       - uses: ./utils/ci/download_mac_chimerax
         with:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
@@ -60,6 +72,11 @@ jobs:
       - name: Make the universal build
         run: |
           python3.10 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app 2>&1
+      # Local machines keep the executable bits on these files. Runner machines for whatever reason do not.
+      # Perhaps they are quarantined? al2co doesn't have this problem?
+      - name: Make ambertools executable
+        run: |
+          chmod +x ChimeraX.app/Contents/bin/amber*/bin/*
       - name: Remove unneeded ChimeraXes
         run: |
           rm -r chimerax_arm64.app

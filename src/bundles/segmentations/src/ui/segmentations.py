@@ -79,7 +79,6 @@ from chimerax.segmentations.triggers import Trigger
 
 from chimerax.segmentations.triggers import (
     VIEW_LAYOUT_CHANGED,
-    GUIDELINES_VISIBILITY_CHANGED,
 )
 
 
@@ -898,7 +897,8 @@ class SegmentationTool(ToolInstance):
                         cursor.axis
                     ]
                 )
-        self.session.models.add(self.segmentation_cursors.values())
+            self.session.models.add([cursor])
+            self.session.logger.info("Created segmentation sphere cursor with ID #%s" % cursor.id_string)
 
     def _destroy_2d_segmentation_pucks(self) -> None:
         seg_cursors = self.segmentation_cursors.values()
@@ -919,6 +919,7 @@ class SegmentationTool(ToolInstance):
             self.segmentation_sphere.position = Place(
                 origin=current_reference_model.bounds().center()
             )
+        self.session.logger.info("Created segmentation sphere cursor with ID #%s" % self.segmentation_sphere.id_string)
 
     def _destroy_3d_segmentation_sphere(self) -> None:
         if self.segmentation_sphere:
@@ -1013,13 +1014,7 @@ class SegmentationTool(ToolInstance):
         self.segmentation_tracker.active_segmentation.save(filename)
 
     def setActiveSegment(self, segment):
-        if self.segmentation_tracker.active_segmentation:
-            self.segmentation_tracker.active_segmentation.active = False
         self.segmentation_tracker.active_segmentation = segment
-        if self.segmentation_tracker.active_segmentation:
-            self.segmentation_tracker.active_segmentation.active = True
-        if self.session.ui.main_window.view_layout == "orthoplanes":
-            self.session.ui.main_window.main_view.redraw_all()
 
     def hide_active_segmentation(self):
         if self.segmentation_tracker.active_segmentation is not None:
@@ -1138,7 +1133,7 @@ class SegmentationTool(ToolInstance):
         check_state = self.guidelines_checkbox.isChecked()
 
         settings.display_guidelines = not settings.display_guidelines
-        chimerax.segmentations.triggers.activate_trigger(GUIDELINES_VISIBILITY_CHANGED)
+        chimerax.segmentations.triggers.activate_trigger(Trigger.GuidelinesVisibilityChanged)
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.register_segmentation_tool(self)
 
@@ -1152,7 +1147,7 @@ class SegmentationTool(ToolInstance):
         else:
             state = Qt.CheckState.Unchecked
         with chimerax.segmentations.triggers.block_trigger(
-            GUIDELINES_VISIBILITY_CHANGED
+            Trigger.GuidelinesVisibilityChanged
         ):
             self.guidelines_checkbox.blockSignals(True)
             self.guidelines_checkbox.setCheckState(state)

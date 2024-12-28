@@ -1,0 +1,38 @@
+name: Tell Plato what logs are current
+description: Upload log IDs
+
+inputs:
+  deploy_key:
+    description: deploy key
+    required: true
+  run_id:
+    description: GitHub action run ID
+    required: true
+  job_id:
+    description: GitHub job ID
+    required: true
+  platform:
+    description: Platform for which ChimeraX is being built
+    required: true
+  build_type:
+    description: The type of ChimeraX build
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Mask input parameters
+      shell: bash
+      run: |
+        export PREBUILT_CACHE_KEY=${{ inputs.deploy_key }}
+        echo "::add-mask::$PREBUILT_CACHE_KEY"
+
+    - name: Upload the log IDs
+      shell: bash
+      run: |
+        curl -v -F "key=${{ inputs.deploy_key }}" \
+        -F "run_id=${{ inputs.run_id }}" \
+        -F "job_id=${{ inputs.job_id }}" \
+        -F "platform=${{ inputs.platform }}" \
+        -F "build_type=${{ inputs.build_type }}" \
+        https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/register_log_ids.py
