@@ -15,8 +15,7 @@ from chimerax.core.tools import ToolInstance
 class ProfileGridsTool(ToolInstance):
     """ Viewer displays a multiple sequence alignment as a grid/table """
 
-    #help = "help:user/tools/sequenceviewer.html"
-    help = None
+    help = "help:user/tools/profilegrid.html"
 
     def __init__(self, session, tool_name, alignment=None):
         """ if 'alignment' is None, then we are being restored from a session and
@@ -102,6 +101,7 @@ class ProfileGridsTool(ToolInstance):
         action = QAction("List Sequence Names", cell_menu)
         action.triggered.connect(lambda *args, f=self.grid_canvas.list_from_cells: f())
         cell_menu.addAction(action)
+        cell_menu.setEnabled(bool(self.grid_canvas.chosen_cells))
         alignment_menu = cell_menu.addMenu("New Alignment")
         viewers = self.session.alignments.registered_viewers("alignment")
         viewers.sort()
@@ -298,7 +298,8 @@ class ProfileGridsTool(ToolInstance):
                 inst.show_feature_browser(seq, state=fb_data)
         return inst
 
-    SESSION_SAVE = True
+    #TODO: change to the below when snapshot methods implemented
+    #SESSION_SAVE = True
 
     def take_snapshot(self, session, flags):
         raise NotImplementedError("take_snaphot")

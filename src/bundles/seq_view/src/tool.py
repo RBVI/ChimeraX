@@ -853,9 +853,9 @@ class SequenceViewer(ToolInstance):
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
         inst._finalize_init(data['alignment'])
-        inst.region_manager.restore_state(data['region browser'])
         if 'seq canvas' in data:
             inst.seq_canvas.restore_state(session, data['seq canvas'])
+        inst.region_manager.restore_state(data['region browser'])
         # feature browsers depend on regions (and therefore the region browser) being restored first
         if 'feature browsers' in data:
             from .feature_browser import FeatureBrowser

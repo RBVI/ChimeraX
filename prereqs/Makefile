@@ -56,7 +56,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= ambertools openmm pips PyQt Python
+SUBDIRS	+= ambertools pips PyQt Python
 
 
 # All needed subdirectories must be set by now.

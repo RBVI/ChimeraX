@@ -133,13 +133,6 @@ class Trigger(StrEnum):
     SagittalCursorResized = "sagittal cursor resized"
     SphereCursorResized = "sphere cursor resized"
 
-    AxialPlaneViewerEnter = "axial plane viewer enter"
-    CoronalPlaneViewerEnter = "coronal plane viewer enter"
-    SagittalPlaneViewerEnter = "sagittal plane viewer enter"
-
-    AxialPlaneViewerLeave = "axial plane viewer leave"
-    CoronalPlaneViewerLeave = "coronal plane viewer leave"
-    SagittalPlaneViewerLeave = "sagittal plane viewer leave"
 
     ViewLayoutChanged = "view layout changed"
     GuidelinesVisibilityChanged = "guidelines visibility changed"
@@ -168,7 +161,6 @@ SAGITTAL_CURSOR_RESIZED = Trigger.SagittalCursorResized
 SPHERE_CURSOR_RESIZED = Trigger.SphereCursorResized
 
 VIEW_LAYOUT_CHANGED = Trigger.ViewLayoutChanged
-GUIDELINES_VISIBILITY_CHANGED = Trigger.GuidelinesVisibilityChanged
 
 HAND_MODES_CHANGED = Trigger.HandModesChanged
 MOUSE_MODES_CHANGED = Trigger.MouseModesChanged
