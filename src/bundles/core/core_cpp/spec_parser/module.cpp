@@ -104,25 +104,32 @@ class AttrTester {
     std::string  name, op = "";
     bool  exists;
     Value  val;
-    PyObject*  _py_attr_test = nullptr;
+    mutable PyObject*  _py_attr_test = nullptr;
+    mutable bool  _incremented_ref_count = false;
 public:
     AttrTester(std::string n, std::string o, Value v) { name = n; op = o; val = v; }
     AttrTester(std::string_view n, std::string o, Value v) { name = n; op = o; val = v; }
     AttrTester(std::string n, bool e) { name = n; exists = e; }
     AttrTester(std::string_view n, bool e) { name = n; exists = e; }
-    virtual ~AttrTester() { if (_py_attr_test != nullptr) Py_DECREF(_py_attr_test); }
+    virtual ~AttrTester() {
+        if (_incremented_ref_count) { Py_DECREF(_py_attr_test); }
+    }
     AttrTester(const AttrTester& obj) {
         name = obj.name;
         op = obj.op;
         exists = obj.exists;
         val = obj.val;
         _py_attr_test = obj._py_attr_test;
-        if (_py_attr_test != nullptr) Py_INCREF(_py_attr_test);
+        if (_py_attr_test != nullptr) {
+            Py_INCREF(_py_attr_test);
+            _incremented_ref_count = true;
+        } else
+            _incremented_ref_count = false;
     }
-    PyObject*  py_attr_test();
+    PyObject*  py_attr_test() const;
 };
 
-PyObject*  AttrTester::py_attr_test() {
+PyObject*  AttrTester::py_attr_test() const {
     if (_py_attr_test == nullptr) {
         PyObject *no_arg, *name_arg, *op_arg, *value_arg;
         op_arg = nullptr;
@@ -203,6 +210,7 @@ PyObject*  AttrTester::py_attr_test() {
             throw std::logic_error(use_python_error);
         }
     }
+    _incremented_ref_count = true;
     return _py_attr_test;
 }
 
@@ -645,8 +653,11 @@ process_model_attrs(PyObject* base_objects, const std::any& parser_model_attrs)
         Py_DECREF(fast_models);
         throw std::runtime_error("Could not create tuple");
     }
-    for (decltype(num_tests) i = 0; i < num_tests; ++i)
-        PyTuple_SET_ITEM(py_attr_tests, i, model_attr_tests[i].py_attr_test());
+    for (decltype(num_tests) i = 0; i < num_tests; ++i) {
+        auto py_attr_test = model_attr_tests[i].py_attr_test();
+        Py_INCREF(py_attr_test);
+        PyTuple_SET_ITEM(py_attr_tests, i, py_attr_test);
+    }
 
     auto num_models = PySequence_Fast_GET_SIZE(fast_models);
     for (Py_ssize_t i = 0; i < num_models; ++i) {
@@ -1090,6 +1101,7 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
     // chain
     spec_parser["chain"] = [](const SemanticValues &vs) {
         std::cerr << vs.size() << " chain semantic values\n";
+        std::cerr << "chain choice: " << vs.choice() << "\n";
         std::cerr << "tokens:";
         for (auto tk: vs.tokens)
             std::cerr << " " << tk;
@@ -1107,7 +1119,9 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
                     throw std::runtime_error("Cannot create Python list for attribute tests");
                 }
                 for (decltype(at_size) i = 0; i < at_size; ++i) {
-                    PyList_SET_ITEM(attr_list, i, attr_tests[i].py_attr_test());
+                    auto py_attr_test = attr_tests[i].py_attr_test();
+                    Py_INCREF(py_attr_test);
+                    PyList_SET_ITEM(attr_list, i, py_attr_test);
                 }
             } else
                 attr_list = Py_None;
@@ -1119,20 +1133,21 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
                 throw std::logic_error(use_python_error);
             }
         } else {
-            auto attr_tests = std::any_cast<std::vector<AttrTester>>(vs[0]);
-            auto at_size = attr_tests.size();
+            auto attr_tests = std::any_cast<std::vector<AttrTester>>(&vs[0]);
+            auto at_size = attr_tests->size();
             auto attr_list = PyList_New(at_size);
             if (attr_list == nullptr) {
                 throw std::runtime_error("Cannot create Python list for attribute tests");
             }
             for (decltype(at_size) i = 0; i < at_size; ++i) {
-                PyList_SET_ITEM(attr_list, i, attr_tests[i].py_attr_test());
+                auto py_attr_test = attr_tests->at(i).py_attr_test();
+                Py_INCREF(py_attr_test);
+                PyList_SET_ITEM(attr_list, i, py_attr_test);
             }
             chain_part = PyObject_CallFunctionObjArgs(_Chain_class, Py_None, attr_list, nullptr);
-            if (chain_part == nullptr) {
-                Py_DECREF(attr_list);
+            Py_DECREF(attr_list);
+            if (chain_part == nullptr)
                 throw std::logic_error(use_python_error);
-            }
         }
         return chain_part;
     };
