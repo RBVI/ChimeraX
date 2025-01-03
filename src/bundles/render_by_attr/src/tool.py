@@ -558,7 +558,9 @@ class RenderByAttrTool(ToolInstance):
             move_callback=markers.move_callback, color_change_callback=markers.color_change_callback,
             new_color=markers.new_color)
         for marker in markers:
-            cloned.append((marker.xy, marker.rgba))
+            cmarker = cloned.append((marker.xy, marker.rgba))
+            if hasattr(marker, 'radius'):
+                cmarker.radius = marker.radius
         cloned.add_del_callback = markers.add_del_callback
         return cloned
 
