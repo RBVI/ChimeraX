@@ -35,16 +35,35 @@ from chimerax.core.models import Model
 
 class Scene(State):
     """
-    A Scene object is a snapshot of the current state of the session. Scenes save data from ViewState, NamedView,
-    and model display and color data. ViewState uses implemented snapshot methods for itself and all nested objects (
-    LightingState, MaterialState ect.) to store and restore data in a scene snapshot. NamedView is from
-    std_commands.view and has interpolation methods for camera, clipping planes, and model positions. NamedView also
-    is stored in scenes using snapshot methods. SceneColors and SceneVisibility are custom data storage containers
-    that store {model: data} mappings for color and display data. Scenes can restore session state using the stored
-    data. The class also has a static method to check if two scenes are interpolatable. Testing if scenes are
-    interpolate-able involves checking that {model: data} mappings in NamedView, SceneColors, and SceneVisibility
-    contain the same models. ViewState is a consistent instance across all sessions, so it is implied that ViewState
-    is interpolatable always.
+    A Scene object is a snapshot of the current state of the session which includes the ViewState, CameraState and model
+    states. Scenes allow a user to save and restore significant states of their session view and models. Scenes are
+    different from a Session save state because a Scene does not need to restore objects, it only
+    restores the state of the objects which are assumed to already exist.
+
+    When a new Scene is created from a Session, take_snapshot() with the State.SCENE flag is called on the ViewState
+    and all Scene supported session models. Scenes also save a NamedView object which stores and can interpolate camera
+    and model positions and is relevant for animating Scenes.
+
+    For a model to support Scene snapshots, the model must implement a take_snapshot() (Enforced by State inheritance)
+    and restore_scene() method. When a Scene is created take_snapshot() will be called with flags=State.SCENE. The model
+    should return a dictionary of data that is needed to restore the model to the state it was in when the snapshot was
+    taken. When the Scene is restored, restore_scene() will be called on the model with the data that was returned from
+    take_snapshot(flags=State.SCENE).
+
+    How to implement Scene support for a Model derived object:
+
+    1) Make sure that take_snapshot(flags=State.SCENE) returns a dictionary of data that is appropriate for capturing
+    Scene state.
+
+    2) Implement restore_scene(data) where data is a pass by
+    value dictionary that was returned from take_snapshot(flags=State.SCENE).
+
+    Note:
+    - It may be wise to make a call to your model's parent take_snapshot() and restore_scene() methods first in
+    your implementations to allow generic model property states to be handled by generic model implementations.
+    - Be aware that being able to call take_snapshot(flags=State.SCENE) does not mean that the model supports
+    Scenes. The model MUST also implement restore_scene() to be considered Scene supported.
+    - Model positions are saved by the NamedView object and do not need to be saved in Scene interface implementations.
     """
 
     version = 0
@@ -73,14 +92,21 @@ class Scene(State):
         return
 
     def init_from_session(self):
+        """
+        Initialize from the current session state.
+        """
         self.thumbnail = self.take_thumbnail()
-        # View State
+        # View State does not inherit from State so we need to get the state managers take_snapshot.
         main_view = self.session.view
         view_state = self.session.snapshot_methods(main_view)
         self.main_view_data = view_state.take_snapshot(main_view, self.session, State.SCENE)
         # Session Models
         models = self.session.models.list()
+        # Create a NamedView object to store camera and model positions. NamedView's are built in to allow future support
+        # for interpolating scenes.
         self.named_view = NamedView(self.session.view, self.session.view.center_of_rotation, models)
+        # Scene model will store the snapshot data for each model that supports Scenes. This is a dictionary mapping so
+        # that it is eay look up or delete model data.
         self.scene_models = {}
         for model in all_objects(self.session).models:
             scene_implemented_cls = md_scene_implementation(model)
@@ -93,7 +119,7 @@ class Scene(State):
         Take a thumbnail of the current session.
 
         Returns:
-            str: The thumbnail image as a base64 encoded string.
+            str: The thumbnail image as a base64 encoded JPEG string.
         """
         image = self.session.main_view.image(*self.THUMBNAIL_SIZE)
         import io
@@ -113,10 +139,10 @@ class Scene(State):
         main_view = self.session.view
         view_state = self.session.snapshot_methods(main_view)
         view_state.restore_scene(self.session, copy.deepcopy(self.main_view_data))
-        # Restore model positions. Even though the view state contains camera and clip plane positions, on a restore
-        # main view handles restoring the camera and clip plane positions.
         current_models = self.session.models.list()
         for model in current_models:
+            # NamedView only handles restoring model positions. Camera and clip plane positions are restored with the
+            # ViewState.
             if model in self.named_view.positions:
                 model.positions = self.named_view.positions[model]
             if model in self.scene_models:
