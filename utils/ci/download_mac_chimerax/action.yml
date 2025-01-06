@@ -19,10 +19,23 @@ runs:
         echo "::add-mask::$PREBUILT_CACHE_KEY"
 
     - name: Fetch the builds
+      if: ${{ inputs.build_type != "canary" }}
       shell: bash
       run: |
         export CHIMERAX_AMD64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=macosx&build_type=${{ inputs.build_type }}&architecture=x86_64"
         export CHIMERAX_ARM64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=mac_arm64&build_type=${{ inputs.build_type }}&architecture=arm64"
+        curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${CHIMERAX_AMD64_URL} -O -J
+        mv chimerax-${{ inputs.build_type}}.dmg chimerax_intel.dmg
+        curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${CHIMERAX_ARM64_URL} -O -J
+        mv chimerax-${{ inputs.build_type}}.dmg chimerax_arm.dmg
+
+    - name: Fetch canary builds
+      if: ${{ inputs.build_type == "canary" }}
+      shell: bash
+      run: |
+        export BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA)
+        export CHIMERAX_AMD64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=macosx&build_type=${{ inputs.build_type }}&architecture=x86_64&version=$BUILD_COMMIT"
+        export CHIMERAX_ARM64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=mac_arm64&build_type=${{ inputs.build_type }}&architecture=arm64&version=$BUILD_COMMIT"
         curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${CHIMERAX_AMD64_URL} -O -J
         mv chimerax-${{ inputs.build_type}}.dmg chimerax_intel.dmg
         curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${CHIMERAX_ARM64_URL} -O -J
