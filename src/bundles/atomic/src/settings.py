@@ -42,7 +42,7 @@ def register_settings_options(session):
 
     settings_info = {
         'always_label_structure': (
-            "Always show structure model number in specifiers",
+            "Balloon-help specifiers always show atomic model number",
             BooleanOption,
             "Always show structure model number in balloons and other output"
         ),
