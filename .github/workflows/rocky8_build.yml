@@ -42,7 +42,7 @@ jobs:
         with:
           job_name: "Build ChimeraX for Rocky 8 / Build ChimeraX for Rocky 8"
       - name: Note the run and job IDs on Plato
-        if: ${{ inputs.release_type == "daily" }} || ${{ inputs.release_type == "candidate" }}
+        if: ${{ inputs.release_type == 'daily' }} || ${{ inputs.release_type == 'candidate' }}
         uses: ./utils/ci/nightly_logs
         with:
           platform: centos-8
