@@ -110,7 +110,7 @@ class Scene(State):
         self.scene_models = {}
         for model in all_objects(self.session).models:
             scene_implemented_cls = md_scene_implementation(model)
-            if hasattr(scene_implemented_cls, 'take_snapshot'):
+            if scene_implemented_cls is not None and hasattr(scene_implemented_cls, 'take_snapshot'):
                 self.scene_models[model] = scene_implemented_cls.take_snapshot(model, self.session,
                                                                                flags=State.SCENE)
 
@@ -187,15 +187,19 @@ class Scene(State):
 
 def md_scene_implementation(model: Model):
     """
-    Find the most derived class that implements restore_scene. If no class implements restore_scene, return Model.
+    Find the most derived model subclass that implements restore_scene. If no class implements restore_scene, return
+    None. This function is needed because Scenes are not enforced through inheritance so it is necessary to manually
+    find the most derived class that implements restore_scene.
 
     Args:
         model (Model): The model to find the most derived class that implements restore_scene for.
 
     Returns:
-        Model: The most derived class that implements restore_scene.
+        Model | None: The most derived class that implements restore_scene or None if no class up the inheritance tree
+        implements restore_scene.
     """
     for cls in inspect.getmro(type(model)):
         if 'restore_scene' in cls.__dict__:
             return cls
-    return Model  # Default to Model if no other class implements restore_scene
+    # Default to None if no class at or above param model in the Model inheritance tree implements restore_scene
+    return None
