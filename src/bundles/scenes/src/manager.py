@@ -35,7 +35,7 @@ class SceneManager(StateManager):
     """
     Manager for scenes in ChimeraX.
 
-    This class manages the creation, deletion, saving, restoring, and interpolation of scenes. It also handles the
+    This class manages the creation, deletion, editing, saving, and restoring of scenes. It also handles the
     removal of models from scenes and provides methods to reset the state and take or restore snapshots.
 
     Attributes:
@@ -74,6 +74,9 @@ class SceneManager(StateManager):
             self.session.logger.warning(f"Scene {scene_name} does not exist.")
 
     def edit_scene(self, scene_name):
+        """
+        Edit a scene by name. This method will re-initialize the scene from the current session state.
+        """
         if self.scene_exists(scene_name):
             self.get_scene(scene_name).init_from_session()
             activate_trigger(EDITED, scene_name)
@@ -164,4 +167,8 @@ class SceneManager(StateManager):
         return None
 
     def get_scene_names(self) -> {str, Scene}:
+        """
+        Returns:
+            list[str]: Array of scene names.
+        """
         return [scene.get_name() for scene in self.scenes]
