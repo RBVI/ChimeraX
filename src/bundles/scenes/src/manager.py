@@ -23,11 +23,8 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.state import StateManager
-from chimerax.graphics.gsession import ViewState
 from .scene import Scene
-from chimerax.core.triggerset import TriggerSet
 from chimerax.core.models import REMOVE_MODELS
-from chimerax.std_commands.view import _interpolate_views, _model_motion_centers
 from .triggers import activate_trigger, ADDED, DELETED, EDITED
 
 
