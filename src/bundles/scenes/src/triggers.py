@@ -5,7 +5,7 @@ from typing import Any, Callable, Optional
 (SCENE_SELECTED, SCENE_HIGHLIGHTED) = tool_triggers = ("scene selected", "scene highlighted")
 
 """
-These triggers are all desiged to be triggered from the scene manager
+These triggers are all designed to be triggered from the scene manager
 
 ADDED: Trigger name for added scenes.
 DELETED: Trigger name for deleted scenes.
