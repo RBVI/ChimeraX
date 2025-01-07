@@ -1,8 +1,6 @@
 name: Nightly Build (Tech Preview)
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 7 * * *" # 7AM UTC / 11PM PST / 12AM PDT
 
 jobs:
   build-rocky8-docker:
