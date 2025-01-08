@@ -99,7 +99,9 @@ class Scene(State):
         # View State does not inherit from State so we need to get the state managers take_snapshot.
         main_view = self.session.view
         view_state = self.session.snapshot_methods(main_view)
-        self.main_view_data = view_state.take_snapshot(main_view, self.session, State.SCENE)
+        # Make sure that the ViewState implements Scenes.
+        if implements_scene(view_state):
+            self.main_view_data = view_state.take_snapshot(main_view, self.session, State.SCENE)
         # Session Models
         models = self.session.models.list()
         # Create a NamedView object to store camera and model positions. NamedView's are built in to allow future support
@@ -138,7 +140,8 @@ class Scene(State):
         # Restore the main view
         main_view = self.session.view
         view_state = self.session.snapshot_methods(main_view)
-        view_state.restore_scene(self.session, copy.deepcopy(self.main_view_data))
+        if implements_scene(view_state):
+            view_state.restore_scene(self.session, copy.deepcopy(self.main_view_data))
         current_models = self.session.models.list()
         for model in current_models:
             # NamedView only handles restoring model positions. Camera and clip plane positions are restored with the
@@ -203,3 +206,6 @@ def md_scene_implementation(model: Model):
             return cls
     # Default to None if no class at or above param model in the Model inheritance tree implements restore_scene
     return None
+
+def implements_scene(cls):
+    return 'restore_scene' in cls.__dict__
