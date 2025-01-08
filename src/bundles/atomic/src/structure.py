@@ -1431,20 +1431,20 @@ class AtomicStructure(Structure):
             light_cmd(self.session, **lighting)
 
     def take_snapshot(self, session, flags):
-        if flags == State.SCENE:
-            scene_data = {
-                'AtomicStructure version': 3,
-                'structure state': Structure.take_snapshot(self, session, flags),
-                'atoms': self.atoms.take_snapshot(session, flags),
-                'bonds': self.bonds.take_snapshot(session, flags),
-                'residues': self.residues.take_snapshot(session, flags)
-            }
-            return scene_data
-
         data = {
             'AtomicStructure version': 3,
             'structure state': Structure.take_snapshot(self, session, flags),
         }
+
+        # Scene interface implementation
+        if flags == State.SCENE:
+            data['atoms'] = self.atoms.take_snapshot(session, flags)
+            data['bonds'] = self.bonds.take_snapshot(session, flags)
+            data['residues'] = self.residues.take_snapshot(session, flags)
+
+        return data
+
+
         return data
 
     @staticmethod
