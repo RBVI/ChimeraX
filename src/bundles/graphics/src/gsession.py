@@ -126,10 +126,10 @@ class ViewState:
         restored_clip_planes = []
         for clip_plane_type, clip_plane_data in clip_planes_data:
             if clip_plane_type == "camera":
-                restored_clip_planes.append(CameraClipPlaneState.restore_snapshot(self.session, clip_plane_data))
+                restored_clip_planes.append(CameraClipPlaneState.restore_snapshot(session, clip_plane_data))
             # TODO test scene clip planes
             if clip_plane_type == "scene":
-                restored_clip_planes.append(SceneClipPlaneState.restore_snapshot(self.session, clip_plane_data))
+                restored_clip_planes.append(SceneClipPlaneState.restore_snapshot(session, clip_plane_data))
 
         scene_data['clip_planes'] = restored_clip_planes
 
