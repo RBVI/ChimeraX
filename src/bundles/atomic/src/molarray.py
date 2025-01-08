@@ -300,7 +300,7 @@ class Collection(State):
         """
         Implement Scene interface.  Restore the collection from the scene data.
         """
-        if scene_data['version'] > self.STATE_VERSION:
+        if scene_data['version'] != self.STATE_VERSION:
             raise ValueError(f"Don't know how to restore Collections from scene version {self.STATE_VERSION}")
 
     @classmethod
