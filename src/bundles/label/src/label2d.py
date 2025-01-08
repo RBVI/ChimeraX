@@ -566,6 +566,7 @@ class Label:
     @property
     def is_scalebar(self):
         return self.scalebar_width is not None
+    
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.models import Model
@@ -753,4 +754,4 @@ class LabelModel(Model):
         ls = data['label state']
         params = {key:val for key,val in ls.items() if key in param_names}
         return params 
-
+        
