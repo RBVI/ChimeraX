@@ -25,7 +25,7 @@
 from chimerax.core.state import StateManager
 from .scene import Scene
 from chimerax.core.models import REMOVE_MODELS
-from .triggers import activate_trigger, ADDED, DELETED, EDITED
+from .triggers import activate_trigger, SAVED, DELETED, EDITED
 
 
 class SceneManager(StateManager):
@@ -95,7 +95,7 @@ class SceneManager(StateManager):
             self.session.logger.warning(f"Scene {scene_name} already exists.")
             return
         self.scenes.append(Scene(self.session, scene_name))
-        activate_trigger(ADDED, scene_name)
+        activate_trigger(SAVED, scene_name)
         return
 
     def restore_scene(self, scene_name):
