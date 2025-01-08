@@ -38,7 +38,7 @@ packaging==23.2
 ParmEd==4.2.2
 pep517==0.13.1
 # pickleshare suppresses warning in Python shell [#16571]
-pickleshare=0.7.5
+pickleshare==0.7.5
 Pillow==10.4.0
 pkginfo==1.11.1
 psutil==6.0.0
