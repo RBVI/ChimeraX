@@ -70,7 +70,7 @@ wheel-filename==1.4.1
 #
 blockdiag==3.0.0
 docutils==0.21.2
-Jinja2==3.1.4
+Jinja2==3.1.5
 Pygments==2.18.0
 Sphinx==8.0.2
 sphinxcontrib-blockdiag==3.0.0
