@@ -1,6 +1,7 @@
 import base64
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
+from chimerax.ui.widgets import DisclosureArea
 from Qt.QtWidgets import QHBoxLayout, QLineEdit, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton
 from Qt.QtGui import QPixmap
 from Qt.QtCore import Qt
@@ -37,7 +38,8 @@ class ScenesTool(ToolInstance):
 
         self.main_layout.addWidget(self.scroll_area)
 
-        self.collapsible_box = CollapsibleBox("Actions")
+        self.disclosure_area = DisclosureArea(title="Scene Actions")
+        self.main_disclosure_layout = QVBoxLayout()
 
         self.scene_line_edit_widget = QWidget()
         self.scene_entry_label = QLabel("Scene Name:")
@@ -46,7 +48,9 @@ class ScenesTool(ToolInstance):
         self.line_edit_layout.addWidget(self.scene_entry_label)
         self.line_edit_layout.addWidget(self.scene_name_entry)
         self.scene_line_edit_widget.setLayout(self.line_edit_layout)
-        self.collapsible_box.add_widget(self.scene_line_edit_widget)
+        self.main_disclosure_layout.addWidget(self.scene_line_edit_widget)
+
+        self.disclosure_buttons_layout = QHBoxLayout()
 
         self.add_button = QPushButton("Add")
         self.add_button.clicked.connect(self.add_button_clicked)
@@ -55,13 +59,14 @@ class ScenesTool(ToolInstance):
         self.delete_button = QPushButton("Delete")
         self.delete_button.clicked.connect(self.delete_button_clicked)
 
-        self.collapsible_box.add_widget(self.add_button)
-        self.collapsible_box.add_widget(self.edit_button)
-        self.collapsible_box.add_widget(self.delete_button)
+        self.disclosure_buttons_layout.addWidget(self.add_button)
+        self.disclosure_buttons_layout.addWidget(self.edit_button)
+        self.disclosure_buttons_layout.addWidget(self.delete_button)
 
-        self.collapsible_box.on_toggled(False)
+        self.main_disclosure_layout.addLayout(self.disclosure_buttons_layout)
 
-        self.main_layout.addWidget(self.collapsible_box)
+        self.disclosure_area.setContentLayout(self.main_disclosure_layout)
+        self.main_layout.addWidget(self.disclosure_area)
 
         self.tool_window.ui_area.setMinimumWidth(300)
 
@@ -242,25 +247,3 @@ class SceneItem(QWidget):
 
     def get_name(self):
         return self.name
-
-
-class CollapsibleBox(QGroupBox):
-    def __init__(self, title="", parent=None):
-        super().__init__(title, parent)
-        self.setCheckable(True)
-        self.setChecked(False)
-        self.toggled.connect(self.on_toggled)
-
-        self.content = QWidget()
-        self.content_layout = QVBoxLayout()
-        self.content.setLayout(self.content_layout)
-
-        self.main_layout = QVBoxLayout()
-        self.main_layout.addWidget(self.content)
-        self.setLayout(self.main_layout)
-
-    def on_toggled(self, checked):
-        self.content.setVisible(checked)
-
-    def add_widget(self, widget):
-        self.content_layout.addWidget(widget)
