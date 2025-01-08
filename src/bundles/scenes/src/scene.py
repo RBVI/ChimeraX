@@ -202,7 +202,7 @@ def md_scene_implementation(model: Model):
         implements restore_scene.
     """
     for cls in inspect.getmro(type(model)):
-        if 'restore_scene' in cls.__dict__:
+        if implements_scene(cls):
             return cls
     # Default to None if no class at or above param model in the Model inheritance tree implements restore_scene
     return None
