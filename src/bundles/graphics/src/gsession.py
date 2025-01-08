@@ -70,6 +70,7 @@ class ViewState:
 
         data['version'] = ViewState.version
 
+        # Scenes interface implementation
         from chimerax.core.state import State
         if flags == State.SCENE:
             # By default, ViewState take_snapshot uses class name references and uids to store data for object attrs
@@ -114,6 +115,9 @@ class ViewState:
 
     @staticmethod
     def restore_scene(session, scene_data):
+        """
+        Scenes interface implementation
+        """
         from chimerax.geometry.psession import PlaceState
         scene_data['camera']['position'] = PlaceState.restore_snapshot(session, scene_data['camera']['position'])
         scene_data['camera'] = CameraState.restore_snapshot(session, scene_data['camera'])
@@ -127,7 +131,6 @@ class ViewState:
         for clip_plane_type, clip_plane_data in clip_planes_data:
             if clip_plane_type == "camera":
                 restored_clip_planes.append(CameraClipPlaneState.restore_snapshot(session, clip_plane_data))
-            # TODO test scene clip planes
             if clip_plane_type == "scene":
                 restored_clip_planes.append(SceneClipPlaneState.restore_snapshot(session, clip_plane_data))
 

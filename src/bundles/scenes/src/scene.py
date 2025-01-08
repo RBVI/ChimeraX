@@ -1,13 +1,10 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
-import io
-
 # === UCSF ChimeraX Copyright ===
-# Copyright 2022 Regents of the University of California. All rights reserved.
+# Copyright 2025 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
 # <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
-# This particular file is part of the ChimeraX library. You can also
+# You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
 # Public License version 2.1 as published by the Free Software Foundation.
 # For more details, see
@@ -35,20 +32,19 @@ from chimerax.core.models import Model
 
 class Scene(State):
     """
-    A Scene object is a snapshot of the current state of the session which includes the ViewState, CameraState and model
-    states. Scenes allow a user to save and restore significant states of their session view and models. Scenes are
-    different from a Session save state because a Scene does not need to restore objects, it only
-    restores the state of the objects which are assumed to already exist.
+    A Scene object is a snapshot of the current state of the session. Scenes allow a user to save and restore
+    significant states of their session. Scenes are different from a Session save state because a Scene does not need to
+    restore objects, it only restores the state of the objects which are assumed to already exist.
 
-    When a new Scene is created from a Session, take_snapshot() with the State.SCENE flag is called on the ViewState
-    and all Scene supported session models. Scenes also save a NamedView object which stores and can interpolate camera
-    and model positions and is relevant for animating Scenes.
+    When a new Scene is created from a Session, take_snapshot() with the State.SCENE flag is called on the ViewState and
+    models that implement the Scene Interface. Scenes also save a NamedView object which stores and can interpolate
+    camera and model positions which is relevant for animating Scenes.
 
-    For a model to support Scene snapshots, the model must implement a take_snapshot() (Enforced by State inheritance)
-    and restore_scene() method. When a Scene is created take_snapshot() will be called with flags=State.SCENE. The model
-    should return a dictionary of data that is needed to restore the model to the state it was in when the snapshot was
-    taken. When the Scene is restored, restore_scene() will be called on the model with the data that was returned from
-    take_snapshot(flags=State.SCENE).
+    For a model to support the Scene Interface, the model must implement a take_snapshot() (Enforced by State inheritance)
+    and restore_scene() method. When a Scene is created take_snapshot() will be called on the model with
+    flags=State.SCENE. The model should return a dictionary of data that is needed to restore the model to the state it
+    was in when the snapshot was taken. When the Scene is restored, restore_scene() will be called on the model with the
+    data that was returned from take_snapshot(flags=State.SCENE).
 
     How to implement Scene support for a Model derived object:
 
@@ -107,8 +103,7 @@ class Scene(State):
         # Create a NamedView object to store camera and model positions. NamedView's are built in to allow future support
         # for interpolating scenes.
         self.named_view = NamedView(self.session.view, self.session.view.center_of_rotation, models)
-        # Scene model will store the snapshot data for each model that supports Scenes. This is a dictionary mapping so
-        # that it is eay look up or delete model data.
+        # Attr scene_models stores model -> snapshot data mappings.
         self.scene_models = {}
         for model in all_objects(self.session).models:
             scene_implemented_cls = md_scene_implementation(model)
