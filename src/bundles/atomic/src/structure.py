@@ -215,6 +215,7 @@ class Structure(Model, StructureData):
             lighting(self.session, preset = 'full', **kw)
 
     def take_snapshot(self, session, flags):
+        # Scene interface implementation.
         if flags == State.SCENE:
             scene_data = {
                 'model state': Model.take_snapshot(self, session, flags),
@@ -237,6 +238,9 @@ class Structure(Model, StructureData):
         return s
 
     def restore_scene(self, scene_data):
+        """
+        Scene interface implementation.
+        """
         Model.restore_scene(self, scene_data['model state'])
         if scene_data['version'] != STRUCTURE_STATE_VERSION:
             raise TypeError(f"Can't restore incompatible version "
@@ -1454,7 +1458,9 @@ class AtomicStructure(Structure):
         return s
 
     def restore_scene(self, scene_data) -> None:
-        # Implementation of restore_scene method from SceneRestorable
+        """
+        Scene interface implementation.
+        """
         Structure.restore_scene(self, scene_data['structure state'])
         if scene_data['AtomicStructure version'] != 3:
             raise ValueError("AtomicStructure version mismatch on scene restore")

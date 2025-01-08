@@ -355,6 +355,7 @@ class Model(State, Drawing):
         return m is None
 
     def take_snapshot(self, session, flags):
+        # Scene interface implementation
         if flags == State.SCENE:
             scene_data = {'version': MODEL_STATE_VERSION}
             scene_attrs = ['selected', 'overall_color', 'model_color', 'display']
@@ -429,6 +430,8 @@ class Model(State, Drawing):
 
     def restore_scene(self, scene_data):
         '''
+        Scene interface implementation
+
         Restore model to state from scene_data
         (obtained from take_snapshot() with State.SCENE flag)
         '''
