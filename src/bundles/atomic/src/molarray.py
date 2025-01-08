@@ -282,6 +282,7 @@ class Collection(State):
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):
         if flags == State.SCENE:
+            # Scene implementation
             return {'version': self.STATE_VERSION}
         else:
             return {'version': self.STATE_VERSION,
@@ -296,6 +297,9 @@ class Collection(State):
         return cls(c_pointers)
 
     def restore_scene(self, scene_data):
+        """
+        Implement Scene interface.  Restore the collection from the scene data.
+        """
         if scene_data['version'] > self.STATE_VERSION:
             raise ValueError(f"Don't know how to restore Collections from scene version {self.STATE_VERSION}")
 
@@ -900,6 +904,7 @@ class Atoms(Collection):
         return [structures, array(atom_ids)]
 
     def take_snapshot(self, session, flags):
+        # Scene implementation
         if flags == State.SCENE:
             scene_data = {}
             scene_data['collection state'] = Collection.take_snapshot(self, session, flags)
@@ -912,6 +917,9 @@ class Atoms(Collection):
             return super().take_snapshot(session, flags)
 
     def restore_scene(self, scene_data):
+        """
+        Implementaiton of Scene interface
+        """
         Collection.restore_scene(self, scene_data['collection state'])
         for attr, value in scene_data.items():
             if hasattr(self, attr):
@@ -1045,6 +1053,7 @@ class Bonds(Collection):
         return [structures, array(bond_ids)]
 
     def take_snapshot(self, session, flags):
+        # Implementation of Scene interface
         if flags == State.SCENE:
             scene_data = {}
             scene_data['collection state'] = Collection.take_snapshot(self, session, flags)
@@ -1056,6 +1065,9 @@ class Bonds(Collection):
             return super().take_snapshot(session, flags)
 
     def restore_scene(self, scene_data):
+        """
+        Implementation of Scene interface
+        """
         Collection.restore_scene(self, scene_data['collection state'])
         for attr, value in scene_data.items():
             if hasattr(self, attr):
@@ -1489,6 +1501,7 @@ class Residues(Collection):
         return [structures, array(residue_ids)]
 
     def take_snapshot(self, session, flags):
+        # Implementation of Scene interface
         if flags == State.SCENE:
             scene_data = {}
             scene_data['collection state'] = Collection.take_snapshot(self, session, flags)
@@ -1500,6 +1513,9 @@ class Residues(Collection):
             return super().take_snapshot(session, flags)
 
     def restore_scene(self, scene_data):
+        """
+        Implementation of Scene interface
+        """
         Collection.restore_scene(self, scene_data['collection state'])
         for attr, value in scene_data.items():
             if hasattr(self, attr):
