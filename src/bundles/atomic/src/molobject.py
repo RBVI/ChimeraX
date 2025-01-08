@@ -476,6 +476,7 @@ class PseudobondGroupData:
         ptrs = f(self._c_pointer, atoms1._c_pointers, atoms2._c_pointers, len(atoms1))
         from .molarray import Pseudobonds
         return Pseudobonds(ptrs)
+
     # Graphics changed flags used by rendering code.  Private.
     _SHAPE_CHANGE = 0x1
     _COLOR_CHANGE = 0x2

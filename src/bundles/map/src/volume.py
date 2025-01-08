@@ -2361,6 +2361,7 @@ class VolumeSurface(Surface):
       if len(s.vertices) == len(vc):
         s.vertex_colors = vc
     return s
+
 # -----------------------------------------------------------------------------
 #
 def maps_pickable(session, pickable):
