@@ -10,6 +10,12 @@ from chimerax.core.commands import run
 
 
 class ScenesTool(ToolInstance):
+    """
+    Main tool for managing scenes. This tool contains a custom scroll area for displaying SceneItem widgets and a
+    chimerax.ui DisclosureArea for adding, editing, and deleting scenes. The tool contains handlers for the following
+    triggers: SCENE_SELECTED, EDITED, ADDED, SCENE_HIGHLIGHTED, DELETED.
+    """
+
     SESSION_ENDURING = False
     SESSION_SAVE = True
 
@@ -124,6 +130,15 @@ class ScenesTool(ToolInstance):
 
 
 class SceneScrollArea(QScrollArea):
+    """
+    The SceneScrollArea is a custom scroll area that contains SceneItem widgets. The scroll area is designed to display
+    SceneItem widgets in a grid layout that adjusts to the width of the scroll area.
+
+    Attributes:
+        grid (QGridLayout): The grid layout that contains the SceneItem widgets.
+        scene_items (list of SceneItem): List of SceneItem widgets.
+    """
+
     def __init__(self, session, parent=None):
         super().__init__(parent)
         self.setWidgetResizable(True)
@@ -152,6 +167,13 @@ class SceneScrollArea(QScrollArea):
         super().resizeEvent(event)
 
     def update_grid(self):
+        """
+        Update the grid layout with the current SceneItem widgets. This method will clear the grid layout and repopulate
+        it with the SceneItem widgets in the correct orientation. The grid layout will adjust the number of columns based
+        on the width of the scroll area. This method should be called whenever the scroll area is resized or when a new
+        SceneItem widget is added or removed.
+        """
+
         # Clear the grid before repopulating it in the correct orientation
         for i in reversed(range(self.grid.count())):
             self.grid.itemAt(i).widget().setParent(None)
@@ -167,7 +189,7 @@ class SceneScrollArea(QScrollArea):
                 col = 0
                 row += 1
 
-        # Remove empty rows
+        # Remove spacing on empty rows from previous grid setups
         for i in range(row, self.grid.rowCount()):
             self.grid.setRowMinimumHeight(i, 0)
 
@@ -183,6 +205,11 @@ class SceneScrollArea(QScrollArea):
             self.update_grid()
 
     def set_latest_scene(self, scene_name):
+        """
+        Move the SceneItem widget to the top of the grid layout. This method adjusts the ordering of the scene_items
+        attribute and updates the grid layout to reflect the new ordering in order to move a recently edited or added
+        scene to the top of the grid layout.
+        """
         scene_item = self.get_scene_item(scene_name)
         if scene_item:
             self.scene_items.remove(scene_item)
@@ -194,6 +221,12 @@ class SceneScrollArea(QScrollArea):
 
 
 class SceneItem(QWidget):
+    """
+    The SceneItem widget is a custom widget that displays a thumbnail image and the name of a scene. The widget handles
+    mouse events for selecting and highlighting itself as well as activating relevant tool triggers for click events.
+    The widget is designed to be used in the SceneScrollArea.
+    """
+
     IMAGE_WIDTH = 100
     IMAGE_HEIGHT = 100
 
@@ -223,6 +256,12 @@ class SceneItem(QWidget):
         self.setFixedSize(self.pixmap.width(), self.pixmap.height() + self.label.sizeHint().height())
 
     def set_thumbnail(self, thumbnail_data):
+        """
+        Set the thumbnail image for the SceneItem widget.
+
+        Args:
+            thumbnail_data (str): Base64 encoded image data for the thumbnail image.
+        """
         image_data = base64.b64decode(thumbnail_data)
         self.pixmap.loadFromData(image_data)
         self.pixmap = self.pixmap.scaled(self.IMAGE_WIDTH, self.IMAGE_HEIGHT, Qt.KeepAspectRatio)
