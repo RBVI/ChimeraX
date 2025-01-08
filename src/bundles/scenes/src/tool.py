@@ -241,7 +241,7 @@ class SceneItem(QWidget):
 
     def set_highlighted(self, highlighted):
         if highlighted:
-            self.setStyleSheet("border: 2px solid green;")
+            self.setStyleSheet("border: 2px solid #007BFF;")
         else:
             self.setStyleSheet("")
 
