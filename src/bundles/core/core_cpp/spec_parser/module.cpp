@@ -385,10 +385,13 @@ std::cerr << "Parsing text " << trial_text << "\n";
         }
         return nullptr;
     } catch (std::logic_error& e) {
+std::cerr << "caught logic_error\n";
         // invalid_argument is a subclass of logic_error, so catch logic_error second
         Py_DECREF(models);
         try {
+std::cerr << "call set_error_info\n";
             set_error_info(semantics_error_class, e.what());
+std::cerr << "called set_error_info\n";
         } catch (std::runtime_error &e) {
             return nullptr;
         }
@@ -444,6 +447,7 @@ static struct PyModuleDef spec_parser_def =
     nullptr
 };
 
+    //RANGE_CHAR <- [^-#/:@,;()&| \t\n]
 static auto grammar = (R"---(
     atom_specifier <- as_term "&" atom_specifier / as_term "|" atom_specifier / as_term
     as_term <- "(" atom_specifier ")" zone_selector? / "~" as_term zone_selector? / SELECTOR_NAME zone_selector? / model_list
@@ -453,7 +457,8 @@ static auto grammar = (R"---(
     model_range_list <- model_range ("," model_range_list)*
     model_range <- MODEL_SPEC_START "-" MODEL_SPEC_END / MODEL_SPEC_ANY
     model_parts <- chain+
-    chain <- "/" part_list ("//" attribute_list)? / "//" attribute_list
+    chain <- "/" part_list ("//" attribute_list)? residue* / "//" attribute_list residue* / residue+
+    residue <- ":" part_list ("::" attribute_list)? / "::" attribute_list
     part_list <- PART_RANGE_LIST "," part_list / PART_RANGE_LIST
     attribute_list <- attr_test ("," attr_test)*
     attr_test <- ATTR_NAME ATTR_OPERATOR ATTR_VALUE / "^" ATTR_NAME / ATTR_NAME
@@ -468,7 +473,7 @@ static auto grammar = (R"---(
     MODEL_SPEC_ANY <- MODEL_SPEC / "*"
     MODEL_SPEC_END <- MODEL_SPEC / "end" / "*"
     MODEL_SPEC_START <- MODEL_SPEC / "start" / "*"
-    RANGE_CHAR <- [^-#/:@,; \t\n]
+    RANGE_CHAR <- [A-Za-z0-9_'"\[\]\\]
     RANGE_PART <- < "-"? RANGE_CHAR+ >
     PART_RANGE_LIST <- < RANGE_PART "-" RANGE_PART > / RANGE_PART
     SELECTOR_NAME <- < [a-zA-Z_][-+a-zA-Z0-9_]* >
@@ -579,6 +584,30 @@ static void add_model_to_objects(PyObject* py_model, PyObject* objects_inst)
         throw std::logic_error(use_python_error);
     }
     Py_DECREF(ret_val);
+}
+
+static void find_indices(const SemanticValues& vs, int& parts_index, int& attr_index, int& subparts_index)
+{
+    attr_index = parts_index = subparts_index = -1;
+    if (vs.choice() == 0) {
+        parts_index = 0;
+        if (vs.size() == 2) {
+            try {
+                (void) std::any_cast<std::vector<AttrTester>>(vs[1]);
+                attr_index = 1;
+            } catch (std::bad_any_cast& e) {
+                subparts_index = 1;
+            }
+        } else if (vs.size() == 3) {
+            attr_index = 1;
+            subparts_index = 2;
+        }
+    } else if (vs.choice() == 1) {
+        attr_index = 0;
+        if (vs.size() > 1)
+            subparts_index = 1;
+    } else
+        subparts_index = 1;
 }
 
 static PyObject* get_module_attribute(const char* mod_name, const char* attr_name)
@@ -708,8 +737,11 @@ process_model_parts(PyObject* base_objects, const std::any& parser_model_parts)
         Py_DECREF(fast_models);
         throw std::runtime_error("Could not create tuple");
     }
-    for (decltype(num_tests) i = 0; i < num_tests; ++i)
-        PyTuple_SET_ITEM(py_part_tests, i, parts[i]);
+    for (decltype(num_tests) i = 0; i < num_tests; ++i) {
+        auto part = parts[i];
+        Py_INCREF(part);
+        PyTuple_SET_ITEM(py_part_tests, i, part);
+    }
 
     auto num_models = PySequence_Fast_GET_SIZE(fast_models);
     for (Py_ssize_t i = 0; i < num_models; ++i) {
@@ -784,7 +816,8 @@ PyMODINIT_FUNC PyInit__spec_parser()
         PyErr_SetString(PyExc_SyntaxError, "Atom-specifier grammar is bad");
         return nullptr;
     }
-    spec_parser.enable_packrat_parsing();
+    // parsing "/V & protein" fails with packrat parsing on
+    //spec_parser.enable_packrat_parsing();
     objects_class = get_module_attribute("chimerax.core.objects", "Objects");
     if (objects_class == nullptr)
         return nullptr;
@@ -901,6 +934,7 @@ PyMODINIT_FUNC PyInit__spec_parser()
             outermost_inversion = false;
             PyObject* op = vs.choice() == 0 ? objects_intersect : objects_union;
             auto right_objects = std::any_cast<PyObject*>(vs[1]);
+std::cerr << "right_objects: " << right_objects << "; refcount: " << Py_REFCNT(right_objects) << "\n";
             results = PyObject_CallFunctionObjArgs(op, left_objects, right_objects, nullptr);
             Py_DECREF(left_objects);
             Py_DECREF(right_objects);
@@ -1098,7 +1132,7 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
         return chains;
     };
             
-    // chain
+    // chain <- "/" part_list ("//" attribute_list)? residue* / "//" attribute_list residue* / residue+
     spec_parser["chain"] = [](const SemanticValues &vs) {
         std::cerr << vs.size() << " chain semantic values\n";
         std::cerr << "chain choice: " << vs.choice() << "\n";
@@ -1106,49 +1140,41 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
         for (auto tk: vs.tokens)
             std::cerr << " " << tk;
         std::cerr << "\n";
-        PyObject* chain_part;
-        if (vs.choice() == 0) {
-            auto part_list = std::any_cast<PyObject*>(vs[0]);
-            PyObject* attr_list;
-            if (vs.size() > 1) {
-                auto attr_tests = std::any_cast<std::vector<AttrTester>>(vs[1]);
-                auto at_size = attr_tests.size();
-                attr_list = PyList_New(at_size);
-                if (attr_list == nullptr) {
-                    Py_DECREF(part_list);
-                    throw std::runtime_error("Cannot create Python list for attribute tests");
-                }
-                for (decltype(at_size) i = 0; i < at_size; ++i) {
-                    auto py_attr_test = attr_tests[i].py_attr_test();
-                    Py_INCREF(py_attr_test);
-                    PyList_SET_ITEM(attr_list, i, py_attr_test);
-                }
-            } else
-                attr_list = Py_None;
-            chain_part = PyObject_CallFunctionObjArgs(_Chain_class, part_list, attr_list, nullptr);
-            if (chain_part == nullptr) {
-                Py_DECREF(part_list);
-                if (attr_list != Py_None)
-                    Py_DECREF(attr_list);
-                throw std::logic_error(use_python_error);
-            }
-        } else {
-            auto attr_tests = std::any_cast<std::vector<AttrTester>>(&vs[0]);
-            auto at_size = attr_tests->size();
-            auto attr_list = PyList_New(at_size);
+        int parts_index, attr_index, subparts_index;
+        find_indices(vs, parts_index, attr_index, subparts_index);
+        PyObject *chain_part, *part_list, *attr_list, *subpart_list;
+        if (parts_index >= 0) {
+            part_list = std::any_cast<PyObject*>(vs[parts_index]);
+        } else
+            part_list = Py_None;
+        if (attr_index >= 0) {
+            auto attr_tests = std::any_cast<std::vector<AttrTester>>(vs[attr_index]);
+            auto at_size = attr_tests.size();
+            attr_list = PyList_New(at_size);
             if (attr_list == nullptr) {
+                Py_DECREF(part_list);
                 throw std::runtime_error("Cannot create Python list for attribute tests");
             }
             for (decltype(at_size) i = 0; i < at_size; ++i) {
-                auto py_attr_test = attr_tests->at(i).py_attr_test();
+                auto py_attr_test = attr_tests[i].py_attr_test();
                 Py_INCREF(py_attr_test);
                 PyList_SET_ITEM(attr_list, i, py_attr_test);
             }
-            chain_part = PyObject_CallFunctionObjArgs(_Chain_class, Py_None, attr_list, nullptr);
+        } else
+            attr_list = Py_None;
+        if (subparts_index >= 0) {
+            subpart_list = std::any_cast<PyObject*>(vs[subparts_index]);
+        } else
+            subpart_list = Py_None;
+        chain_part = PyObject_CallFunctionObjArgs(_Chain_class, part_list, attr_list, subpart_list);
+        if (part_list != Py_None)
+            Py_DECREF(part_list);
+        if (attr_list != Py_None)
             Py_DECREF(attr_list);
-            if (chain_part == nullptr)
-                throw std::logic_error(use_python_error);
-        }
+        if (subpart_list != Py_None)
+            Py_DECREF(subpart_list);
+        if (chain_part == nullptr)
+            throw std::logic_error(use_python_error);
         return chain_part;
     };
             
@@ -1421,6 +1447,7 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
         auto sel_text = PyUnicode_FromString(vs.token_to_string().c_str());
         if (sel_text == nullptr)
             throw std::runtime_error("Could not convert token to string");
+std::cerr << "selector text: " << vs.token_to_string() << "\n";
         auto selector = PyObject_CallOneArg(get_selector, sel_text);
         if (selector == nullptr) {
             Py_DECREF(sel_text);
@@ -1444,9 +1471,11 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             throw std::runtime_error(use_python_error);
         }
         auto selector_objects = new_objects_instance();
+std::cerr << "selector_objects: " << selector_objects << "; refcount: " << Py_REFCNT(selector_objects) << "\n";
         if (is_inst) {
             if (PyObject_CallMethodOneArg(selector_objects, combine_arg, selector) == nullptr) {
                 Py_DECREF(selector);
+                Py_DECREF(selector_objects);
                 throw std::logic_error(use_python_error);
             }
             Py_DECREF(selector);
@@ -1454,16 +1483,22 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             auto args = PyTuple_New(3);
             if (args == nullptr) {
                 Py_DECREF(selector);
+                Py_DECREF(selector_objects);
                 throw std::runtime_error("Could not create 3-tuple for selector args");
             }
             PyTuple_SetItem(args, 0, session);
+            Py_INCREF(session);
             PyTuple_SetItem(args, 1, models);
+            Py_INCREF(models);
             PyTuple_SetItem(args, 2, selector_objects);
+            Py_INCREF(selector_objects);
             auto ret = PyObject_CallObject(selector, args);
             Py_DECREF(selector);
             Py_DECREF(args);
-            if (ret == nullptr)
+            if (ret == nullptr) {
+                Py_DECREF(selector_objects);
                 throw std::logic_error(use_python_error);
+            }
             Py_DECREF(ret);
         }
         return selector_objects;
