@@ -150,6 +150,26 @@ class ScenesTool(ToolInstance):
             handler.remove()
         super().delete()
 
+    def take_snapshot(self, session, flags):
+        """
+        Save the active highlighted scene
+        """
+        data = super().take_snapshot(session, flags)
+        data['highlighted_scene'] = self.highlighted_scene.get_name() if self.highlighted_scene else None
+        data['scroll_area'] = self.scroll_area.take_snapshot(session, flags)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        """
+        Restore highlighted SceneItem in the tools scroll area when needed.
+        """
+        ti = super().restore_snapshot(session, data) # get tool instance
+        highlighted_scene = data.get('highlighted_scene')
+        if highlighted_scene:
+            ti.scroll_area.get_scene_item(highlighted_scene).set_highlighted(True)
+        ti.scroll_area.set_state_from_snapshot(session, data.get('scroll_area'))
+        return ti
 
 class SceneScrollArea(QScrollArea):
     """
@@ -241,6 +261,23 @@ class SceneScrollArea(QScrollArea):
     def get_scene_item(self, name):
         return next((scene_item for scene_item in self.scene_items if scene_item.get_name() == name), None)
 
+    def take_snapshot(self, session, flags):
+        """
+        Save the order of the scenes in the grid for the snapshot data.
+        """
+        data = {'scene_items': [scene_item.get_name() for scene_item in self.scene_items]}
+        return data
+
+    def set_state_from_snapshot(self, session, data):
+        """
+        Restore the order of the scenes in the SceneScrollArea from the snapshot data.
+        """
+        ordered_scene_names = data.get('scene_items', [])
+        # Create a dictionary for quick lookup of SceneItem by name from scene_items attribute.
+        scene_item_dict = {scene_item.get_name(): scene_item for scene_item in self.scene_items}
+        # Reorder self.scene_items based on snapshot data
+        self.scene_items = [scene_item_dict[name] for name in ordered_scene_names if name in scene_item_dict]
+        self.update_grid() # Make sure the grid layout reflects the new ordering
 
 class SceneItem(QWidget):
     """
