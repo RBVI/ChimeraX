@@ -68,6 +68,7 @@ class ScenesTool(ToolInstance):
 
         self.disclosure_area = DisclosureArea(title="Scene Actions")
         self.main_disclosure_layout = QVBoxLayout()
+        self.main_disclosure_layout.setSpacing(0)
 
         self.scene_line_edit_widget = QWidget()
         self.scene_entry_label = QLabel("Scene Name:")
