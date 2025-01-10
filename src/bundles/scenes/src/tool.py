@@ -73,11 +73,13 @@ class ScenesTool(ToolInstance):
         self.scene_entry_label = QLabel("Scene Name:")
         self.scene_name_entry = QLineEdit()
         self.line_edit_layout = QHBoxLayout()
+        self.line_edit_layout.setSpacing(10)
         self.line_edit_layout.addWidget(self.scene_entry_label)
         self.line_edit_layout.addWidget(self.scene_name_entry)
         self.main_disclosure_layout.addLayout(self.line_edit_layout)
 
         self.disclosure_buttons_layout = QHBoxLayout()
+        self.disclosure_buttons_layout.setSpacing(5)
 
         self.save_button = QPushButton("Save")
         self.save_button.clicked.connect(self.save_button_clicked)
