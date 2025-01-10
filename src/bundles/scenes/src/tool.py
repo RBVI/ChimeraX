@@ -293,7 +293,6 @@ class SceneItem(QWidget):
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.set_highlighted(True)
-            activate_trigger(SCENE_HIGHLIGHTED, self.name)
         super().mousePressEvent(event)
 
     def mouseDoubleClickEvent(self, event):
@@ -303,6 +302,7 @@ class SceneItem(QWidget):
     def set_highlighted(self, highlighted):
         if highlighted:
             self.setStyleSheet("border: 2px solid #007BFF;")
+            activate_trigger(SCENE_HIGHLIGHTED, self.name)
         else:
             self.setStyleSheet("")
 
