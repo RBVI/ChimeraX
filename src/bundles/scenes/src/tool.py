@@ -70,14 +70,12 @@ class ScenesTool(ToolInstance):
         self.main_disclosure_layout = QVBoxLayout()
         self.main_disclosure_layout.setSpacing(0)
 
-        self.scene_line_edit_widget = QWidget()
         self.scene_entry_label = QLabel("Scene Name:")
         self.scene_name_entry = QLineEdit()
         self.line_edit_layout = QHBoxLayout()
         self.line_edit_layout.addWidget(self.scene_entry_label)
         self.line_edit_layout.addWidget(self.scene_name_entry)
-        self.scene_line_edit_widget.setLayout(self.line_edit_layout)
-        self.main_disclosure_layout.addWidget(self.scene_line_edit_widget)
+        self.main_disclosure_layout.addLayout(self.line_edit_layout)
 
         self.disclosure_buttons_layout = QHBoxLayout()
 
