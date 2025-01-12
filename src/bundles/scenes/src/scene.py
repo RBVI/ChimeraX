@@ -189,33 +189,34 @@ class Scene(State):
         return Scene(session, data['name'], scene_data=data)
 
 
-def md_scene_implementation(model: Model):
+def md_scene_implementation(obj):
     """
-    Find the most derived model subclass that implements restore_scene. This DOES include the param 'model'. Finds the
-    appropriate class to call take_snapshot(flags=State.SCENE) on when it is unknown if param 'model' implements
-    Scene support. take_snapshot() is inherited from State so it does not imply Scene support.
+    Find the most derived class in the object's method resolution order that implements restore_scene. This can include
+    the object itself. Finds the appropriate class to call take_snapshot(flags=State.SCENE) on when it is unknown
+    if the passed object implements Scene support. take_snapshot() is inherited from State so it does not imply Scene
+    support.
 
     Args:
-        model (Model): The model to find the most derived class that implements restore_scene for.
+        obj: The object to find the most derived class that implements restore_scene for.
 
     Returns:
-        Model | None: The most derived class that implements restore_scene or None if no class up the inheritance tree
+        Object | None: The most derived class that implements restore_scene or None if no class up the inheritance tree
         implements restore_scene.
     """
-    for cls in inspect.getmro(type(model)):
+    for cls in inspect.getmro(type(obj)):
         if implements_scene(cls):
             return cls
-    # Default to None if no class at or above param model in the Model inheritance tree implements restore_scene
+    # Default to None if no class at or above obj implements restore_scene
     return None
 
-def scene_super(model: Model):
+def scene_super(obj):
     """
-    Find the most derived super class of param 'model' that implements restore_scene. DOES NOT include param 'model'.
-    If no superclass of param 'model' implements restore_scene, return None. Use this function to replace super() when
-    calling a scene implemented parent take_snapshot(). take_snapshot() is inherited from State so it does not
-    imply Scene support so super().take_snapshot() does not guarantee calling on a Scene implemented class.
+    Find the most derived super class of an object that implements restore_scene. DOES NOT include object itself.
+    If no superclass of the object implements restore_scene, return None. Use this function to replace super() when
+    calling a scene implemented parent take_snapshot(). take_snapshot is inherited from State so it does not
+    imply Scene support. super().take_snapshot() does not guarantee calling on a Scene implemented class.
     """
-    for cls in inspect.getmro(type(model))[1:]:
+    for cls in inspect.getmro(type(obj))[1:]:
         if implements_scene(cls):
             return cls
     return None
