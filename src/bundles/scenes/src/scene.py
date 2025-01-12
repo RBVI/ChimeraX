@@ -48,17 +48,23 @@ class Scene(State):
 
     How to implement Scene support for a Model derived object:
 
-    1) Make sure that take_snapshot(flags=State.SCENE) returns a dictionary of data that is appropriate for capturing
+    1) Ensure that take_snapshot(flags=State.SCENE) returns a dictionary of data that is appropriate for capturing
     Scene state.
 
     2) Implement restore_scene(data) where data is a pass by
     value dictionary that was returned from take_snapshot(flags=State.SCENE).
 
     Note:
+
+    - Be aware that being able to call take_snapshot(flags=State.SCENE) does not mean that the model supports
+    Scenes. take_snapshot() is a State method, not a Scene interface method. The model MUST also implement
+    restore_scene() to be considered Scene supported.
+
     - It may be wise to make a call to your model's parent take_snapshot() and restore_scene() methods first in
     your implementations to allow generic model property states to be handled by generic model implementations.
-    - Be aware that being able to call take_snapshot(flags=State.SCENE) does not mean that the model supports
-    Scenes. The model MUST also implement restore_scene() to be considered Scene supported.
+    restore_scene() can be called from super() but it is recommended to use scene_super().take_snapshot(State.SCENE)
+    instead of super().take_snapshot(State.SCENE) to ensure you are calling a Scene supported parent class.
+
     - Model positions are saved by the NamedView object and do not need to be saved in Scene interface implementations.
     """
 
@@ -185,9 +191,9 @@ class Scene(State):
 
 def md_scene_implementation(model: Model):
     """
-    Find the most derived model subclass that implements restore_scene. If no class implements restore_scene, return
-    None. This function is needed because Scenes are not enforced through inheritance so it is necessary to manually
-    find the most derived class that implements restore_scene.
+    Find the most derived model subclass that implements restore_scene. This DOES include the param 'model'. Finds the
+    appropriate class to call take_snapshot(flags=State.SCENE) on when it is unknown if param 'model' implements
+    Scene support. take_snapshot() is inherited from State so it does not imply Scene support.
 
     Args:
         model (Model): The model to find the most derived class that implements restore_scene for.
@@ -201,6 +207,20 @@ def md_scene_implementation(model: Model):
             return cls
     # Default to None if no class at or above param model in the Model inheritance tree implements restore_scene
     return None
+
+def scene_super(model: Model):
+    """
+    Find the most derived super class of param 'model' that implements restore_scene. DOES NOT include param 'model'.
+    If no superclass of param 'model' implements restore_scene, return None. Use this function to replace super() when
+    calling a scene implemented parent take_snapshot(). take_snapshot() is inherited from State so it does not
+    imply Scene support so super().take_snapshot() does not guarantee calling on a Scene implemented class.
+    """
+    for cls in inspect.getmro(type(model))[1:]:
+        if implements_scene(cls):
+            return cls
+    return None
+
+
 
 def implements_scene(cls):
     return 'restore_scene' in cls.__dict__
