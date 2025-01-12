@@ -101,7 +101,8 @@ class Scene(State):
         # View State does not inherit from State so we need to get the state managers take_snapshot.
         main_view = self.session.view
         view_state = self.session.snapshot_methods(main_view)
-        # Make sure that the ViewState implements Scenes.
+        # Check if the ViewState implements Scenes.
+        self.main_view_data = None
         if implements_scene(view_state):
             self.main_view_data = view_state.take_snapshot(main_view, self.session, State.SCENE)
         # Session Models
