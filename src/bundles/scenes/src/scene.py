@@ -102,7 +102,7 @@ class Scene(State):
         main_view = self.session.view
         view_state = self.session.snapshot_methods(main_view)
         # Check if the ViewState implements Scenes.
-        self.main_view_data = None
+        #self.main_view_data = None
         if implements_scene(view_state):
             self.main_view_data = view_state.take_snapshot(main_view, self.session, State.SCENE)
         # Session Models

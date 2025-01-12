@@ -1,6 +1,4 @@
 from chimerax.scenes import scene
-from chimerax.core.models import Model
-
 
 
 class MockModelA:
@@ -46,3 +44,27 @@ def test_scene_super():
     # While MockModelC implements restore_scene, the closest parent class that implements scenes is MockModelA,
     # not MockModelB
     assert scene.scene_super(model_c) == MockModelA
+
+""" Tests for the Scene class """
+
+def test_take_thumbnail(*args):
+    """
+    Use this function to patch the Scene class take_thumbnail method because it requires a GUI to run and this test is
+    running in no GUI mode.
+    """
+    return 'base64_encoded_thumbnail_string'
+
+def test_init_from_session(test_production_session):
+    scenes_mgr = test_production_session.scenes
+    scenes_mgr.save_scene("test_scene")
+
+    test_scene = scenes_mgr.get_scene("test_scene")
+    test_scene.init_from_session()
+
+    # Make sure version, name, thumbnail, main_view_data, named_view, and scene_models attributes are initialized
+    assert hasattr(test_scene, 'version')
+    assert hasattr(test_scene, 'name')
+    assert hasattr(test_scene, 'thumbnail')
+    assert hasattr(test_scene, 'main_view_data')
+    assert hasattr(test_scene, 'named_view')
+    assert hasattr(test_scene, 'scene_models')

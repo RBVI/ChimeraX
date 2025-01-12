@@ -24,6 +24,7 @@
 import warnings
 
 import pytest
+from unittest.mock import patch
 
 
 @pytest.fixture(scope="function")
@@ -57,11 +58,13 @@ def get_test_session():
 
 
 @pytest.fixture(scope="function")
-def test_production_session():
+def test_production_session(mocker):
     session = get_test_session()
-    yield session
+    # Patch the take_thumbnail method of the Scene which will error in no GUI mode.
+    from chimerax.scenes.scene import Scene
+    with patch.object(Scene, 'take_thumbnail', new=lambda *args: 'base64_encoded_thumbnail_string'):
+        yield session
     session.reset()
-
 
 def pytest_configure(config):
     markexpr = config.getoption("markexpr")
