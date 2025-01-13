@@ -273,8 +273,8 @@ class EmplaceLocalResultsViewer(ToolInstance):
         from chimerax.ui.widgets import ItemTable
         table = ItemTable()
         result_col = table.add_column("Result", "num")
-        table.add_column("Correlation Coefficient", "cc", format="%g")
-        table.add_column("Log-Likelihood Gain", "llg", format="%g")
+        table.add_column("Correlation Coefficient", "cc", format="%.3g")
+        table.add_column("Log-Likelihood Gain", "llg", format="%.3g")
         table.data = [TableDatum(*args)
             for args in zip(range(1, len(self.transforms)+1), self.transforms, self.llgs, self.ccs)]
         table.launch(select_mode=table.SelectionMode.SingleSelection, session_info=table_state)
