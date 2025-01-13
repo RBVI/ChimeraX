@@ -88,16 +88,24 @@ class CxServicesJob(Job):
         self.chimerax_api = None
         self.next_poll = None
         if settings.https_proxy:
-            url, port = settings.https_proxy
+            try:
+                protocol, url, port = settings.https_proxy
+            except ValueError: # protocol added starting in 1.10 [#16505]
+                url, port = settings.https_proxy
+                protocol = "https"
             if url:
                 self.chimerax_api = get_cxservices_api_with_proxy(
-                    proxy_url=url, proxy_port=port, https=True
+                    proxy_url=url, proxy_port=port, https=(protocol == "https")
                 )
         elif settings.http_proxy:
-            url, port = settings.http_proxy
+            try:
+                protocol, url, port = settings.http_proxy
+            except ValueError: # protocol added starting in 1.10 [#16505]
+                url, port = settings.http_proxy
+                protocol = "http"
             if url:
                 self.chimerax_api = get_cxservices_api_with_proxy(
-                    proxy_url=url, proxy_port=port, https=False
+                    proxy_url=url, proxy_port=port, https=(protocol == "https")
                 )
         if not self.chimerax_api:
             self.chimerax_api = default_api.DefaultApi()

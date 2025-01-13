@@ -183,6 +183,7 @@ class LaunchDouseTool(ToolInstance):
         self.delete()
 
 class EmplaceLocalResultsViewer(ToolInstance):
+    help = None
     def __init__(self, session, *args):
         # if 'args' is empty, we are being restored from a session and _finalize_init() will be called later
         super().__init__(session, "Local EM Fitting Results")
@@ -190,12 +191,14 @@ class EmplaceLocalResultsViewer(ToolInstance):
             return
         self._finalize_init(*args)
 
-    def _finalize_init(self, orig_model, transforms, llgs, ccs, sym_map, *, table_state=None):
+    def _finalize_init(self, orig_model, transforms, llgs, ccs, show_sharpened_map, map_group, sym_map,
+            *, table_state=None):
         self.orig_model = orig_model
         self.orig_position = orig_model.position
         self.transforms = transforms
         self.llgs = llgs
         self.ccs = ccs
+        self.map_group = map_group
         self.sym_map = sym_map
 
         from chimerax.core.models import REMOVE_MODELS
@@ -210,24 +213,54 @@ class EmplaceLocalResultsViewer(ToolInstance):
         parent = tw.ui_area
 
         from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
-        from Qt.QtWidgets import QPushButton, QLabel, QToolButton, QGridLayout
+        from Qt.QtWidgets import QPushButton, QLabel, QToolButton, QGridLayout, QWidget
         layout = QVBoxLayout()
         layout.setContentsMargins(2,2,2,2)
         layout.setSpacing(0)
         parent.setLayout(layout)
 
-        #TODO
+        # Building the table is going to call _new_selection, so these widgets need to exist before
+        # building the table, but don't add them to the layout until after the table
+        check_box_area = QWidget()
+        cb_layout = QHBoxLayout()
+        check_box_area.setLayout(cb_layout)
+        self.sharpened_checkbox = QCheckBox("Show sharpened map")
+        self.sharpened_checkbox.setChecked(show_sharpened_map)
+        self.sharpened_checkbox.toggled.connect(self._show_sharpened_cb)
+        cb_layout.addWidget(self.sharpened_checkbox, alignment=Qt.AlignCenter)
+
         self.table = self._build_table(table_state)
         layout.addWidget(self.table, stretch=1)
 
-        self.tool_window.manage('side')
+        layout.addWidget(check_box_area, alignment=Qt.AlignCenter)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        if hasattr(self, 'accept_fit'):
+            bbox.accepted.connect(self.accept_fit)
+        else:
+            bbox.button(qbbox.Ok).setEnabled(False)
+        bbox.rejected.connect(self.delete)
+        if self.help:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
+        self.tool_window.manage(None)
+
+    def accept_fit(self):
+        self.delete()
 
     def delete(self):
         for handler in self.handlers:
             handler.remove()
         if self._interpolate_handler:
             self._interpolate_handler.remove()
-        self.orig_model = self.sym_map = None
+        if not self.map_group.deleted:
+            self.session.models.close([self.map_group])
+        self.map_group = self.orig_model = self.sym_map = None
         super().delete()
 
     def _build_table(self, table_state):
@@ -240,8 +273,8 @@ class EmplaceLocalResultsViewer(ToolInstance):
         from chimerax.ui.widgets import ItemTable
         table = ItemTable()
         result_col = table.add_column("Result", "num")
-        table.add_column("Correlation Coefficient", "cc", format="%g")
-        table.add_column("Log-Likelihood Gain", "llg", format="%g")
+        table.add_column("Correlation Coefficient", "cc", format="%.3g")
+        table.add_column("Log-Likelihood Gain", "llg", format="%.3g")
         table.data = [TableDatum(*args)
             for args in zip(range(1, len(self.transforms)+1), self.transforms, self.llgs, self.ccs)]
         table.launch(select_mode=table.SelectionMode.SingleSelection, session_info=table_state)
@@ -288,6 +321,27 @@ class EmplaceLocalResultsViewer(ToolInstance):
             self._interpolate(destination)
         else:
             self.orig_model.position = destination
+
+        if self.sharpened_checkbox.isChecked():
+            for data, disp_state in [(unselected, False), (selected, True)]:
+                for datum in data:
+                    smap = self._sharpened_map(datum.num)
+                    if smap:
+                        smap.display = disp_state
+
+    def _sharpened_map(self, num):
+        if self.map_group.deleted:
+            return None
+        for child in self.map_group.child_models():
+            if child.name == "map %d" % num:
+                return child
+        return None
+
+    def _show_sharpened_cb(self, checked):
+        for datum in self.table.selected:
+            smap = self._sharpened_map(datum.num)
+            if smap:
+                smap.display = checked
 
 class LaunchEmplaceLocalTool(ToolInstance):
     help = "help:user/tools/localemfitting.html"

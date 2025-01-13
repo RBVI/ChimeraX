@@ -198,12 +198,16 @@ an object in the <a href="window.html">main window</a> (see the
   <li><b>simple</b> (initial default) &ndash; chain ID (preceded by slash),
   residue name, residue number, atom name (for example, /B ASN 21 OD1)
   </ul>
-Model number will be included when multiple models are present.
 This setting is also the default style for atom logging by
 the <a href="tools/hbonds.html"><b>H-Bonds</b></a> tool and
 the <a href="commands/hbonds.html"><b>hbonds</b></a> and
 <a href="commands/clashes.html"><b>clashes/contacts</b></a> commands
 (see their <b>namingStyle</b> options).
+<li><b>Balloon-help specifiers always show atomic model number</b>
+(initial default <b>off</b>)
+&ndash; whether balloon-help specifiers on atomic models should include the
+model number regardless of how many atomic models are open, instead of only
+when multiple atomic models are present
 <li><b>Label missing-structure segments in models with &le; N chains</b> 
 (initial default <b>4</b>) &ndash; label missing-structure 
 <a href="pseudobonds.html">pseudobonds</a> with the number of biopolymer
@@ -386,12 +390,20 @@ is 3 times that of three-finger drag (XY translation)
 Proxy settings are needed to allow users at certain sites to 
 <a href="commands/open.html#fetch">fetch data</a> over the web; 
 these settings should be the same as for web browsers.
+The <i>protocol-type</i> can be <b>http</b> or <b>https</b>.
 </p>
 <ul>
-<li><b>HTTP proxy host</b> [&nbsp;<i>hostname</i>&nbsp;] <b>port</b> [&nbsp;<i>number</i>&nbsp;]
-(initial default <b>80</b>)
-<li><b>HTTPS proxy host</b> [&nbsp;<i>hostname</i>&nbsp;] <b>port</b> [&nbsp;<i>number</i>&nbsp;]
-(initial default <b>443</b>)
+<li><b>HTTP proxy &nbsp;protocol</b> [&nbsp;<i>protocol-type</i>&nbsp;] 
+<b>host</b> [&nbsp;<i>hostname</i>&nbsp;]
+<b>port</b> [&nbsp;<i>number</i>&nbsp;]
+<br>
+(initial default protocol <b>http</b> and port number <b>80</b>)
+<br><br>
+<li><b>HTTPS proxy &nbsp;protocol</b> [&nbsp;<i>protocol-type</i>&nbsp;] 
+<b>host</b> [&nbsp;<i>hostname</i>&nbsp;] 
+<b>port</b> [&nbsp;<i>number</i>&nbsp;]
+<br>
+(initial default protocol <b>https</b> and port number <b>443</b>)
 </ul>
 
 <a name="window"></a>
@@ -475,5 +487,5 @@ Examples include:
 </ul>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2024</address>
+January 2025</address>
 </body></html> 
