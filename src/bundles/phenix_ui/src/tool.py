@@ -259,7 +259,18 @@ class EmplaceLocalResultsViewer(ToolInstance):
         if self._interpolate_handler:
             self._interpolate_handler.remove()
         if not self.map_group.deleted:
-            self.session.models.close([self.map_group])
+            close_group = True
+            if self.sharpened_checkbox.isChecked():
+                sel = self.table.selected
+                for datum in self.table.data:
+                    if datum in sel:
+                        close_group = False
+                    else:
+                        smap = self._sharpened_map(datum.num)
+                        if smap:
+                            self.session.models.close([smap])
+            if close_group:
+                self.session.models.close([self.map_group])
         self.map_group = self.orig_model = self.sym_map = None
         super().delete()
 
