@@ -30,6 +30,7 @@ from chimerax.dicom import Study
 from chimerax.segmentations.segmentation import Segmentation
 
 import chimerax.segmentations.triggers
+from chimerax.segmentations.triggers import Trigger
 
 _tracker = None
 
@@ -53,7 +54,7 @@ class SegmentationTracker:
         else:
             self._unparented_segmentations.add(segmentation)
         chimerax.segmentations.triggers.activate_trigger(
-            chimerax.segmentations.triggers.SEGMENTATION_ADDED, segmentation
+            Trigger.SegmentationAdded, segmentation
         )
 
     def remove_segmentation(self, segmentation):
@@ -64,7 +65,7 @@ class SegmentationTracker:
         else:
             self._unparented_segmentations.remove(segmentation)
         chimerax.segmentations.triggers.activate_trigger(
-            chimerax.segmentations.triggers.SEGMENTATION_REMOVED, segmentation
+            Trigger.SegmentationRemoved, segmentation
         )
 
     def __delitem__(self, item):
@@ -90,9 +91,13 @@ class SegmentationTracker:
             raise ValueError(
                 f"Segmentation {segmentation} is not associated with any open volumes."
             )
+        if self._active_segmentation:
+            self._active_segmentation.active = False
         self._active_segmentation = segmentation
+        if self._active_segmentation:
+            self._active_segmentation.active = True
         chimerax.segmentations.triggers.activate_trigger(
-            chimerax.segmentations.triggers.ACTIVE_SEGMENTATION_CHANGED, segmentation
+            Trigger.ActiveSegmentationChanged, segmentation
         )
 
 

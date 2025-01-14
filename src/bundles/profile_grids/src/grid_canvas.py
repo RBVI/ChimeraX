@@ -314,6 +314,7 @@ class GridCanvas:
         else:
             if not shifted:
                 for item in self.chosen_cells.values():
+                    item.hide()
                     self.main_scene.removeItem(item)
                 self.chosen_cells.clear()
             from Qt.QtGui import QPen, QColor, QPolygonF
@@ -563,13 +564,8 @@ class _SeqList(QDialog):
         button_layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
-        bbox = qbbox(qbbox.Close | qbbox.Help)
+        bbox = qbbox(qbbox.Close)
         bbox.rejected.connect(self.close)
-        if self.help:
-            from chimerax.core.commands import run
-            bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
-        else:
-            bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
 
         self.setLayout(layout)

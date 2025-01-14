@@ -219,8 +219,8 @@ class EmplaceLocalResultsViewer(ToolInstance):
         layout.setSpacing(0)
         parent.setLayout(layout)
 
-        # Building the table is going to call _new_selection, so these widgets need to exist before
-        # building the table, but don't add them to the layout until after the table
+        # Building the table is going to call _new_selection, so the "sharpened" check box needs to exist
+        # before building the table, but don't add them to the layout until after the table
         check_box_area = QWidget()
         cb_layout = QHBoxLayout()
         check_box_area.setLayout(cb_layout)
@@ -228,11 +228,19 @@ class EmplaceLocalResultsViewer(ToolInstance):
         self.sharpened_checkbox.setChecked(show_sharpened_map)
         self.sharpened_checkbox.toggled.connect(self._show_sharpened_cb)
         cb_layout.addWidget(self.sharpened_checkbox, alignment=Qt.AlignCenter)
+        if sym_map:
+            self.symmetry_checkbox = QCheckBox("Show symmetry copies")
+            self.symmetry_checkbox.setChecked(True)
+            self.symmetry_checkbox.toggled.connect(self._show_symmetry_cb)
+            cb_layout.addWidget(self.symmetry_checkbox, alignment=Qt.AlignCenter)
 
         self.table = self._build_table(table_state)
         layout.addWidget(self.table, stretch=1)
 
         layout.addWidget(check_box_area, alignment=Qt.AlignCenter)
+
+        if sym_map:
+            self._show_symmetry_cb(True)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
@@ -251,6 +259,12 @@ class EmplaceLocalResultsViewer(ToolInstance):
         self.tool_window.manage(None)
 
     def accept_fit(self):
+        # running commands directly in delete() can be hazardous, so...
+        if self.sym_map and self.symmetry_checkbox.isChecked():
+            from chimerax.core.commands import run
+            modelspec = self.orig_model.atomspec
+            run(self.session,
+                f"sym clear {modelspec} ; sym {modelspec} symmetry {self.sym_map.atomspec} copies true")
         self.delete()
 
     def delete(self):
@@ -259,7 +273,18 @@ class EmplaceLocalResultsViewer(ToolInstance):
         if self._interpolate_handler:
             self._interpolate_handler.remove()
         if not self.map_group.deleted:
-            self.session.models.close([self.map_group])
+            close_group = True
+            if self.sharpened_checkbox.isChecked():
+                sel = self.table.selected
+                for datum in self.table.data:
+                    if datum in sel:
+                        close_group = False
+                    else:
+                        smap = self._sharpened_map(datum.num)
+                        if smap:
+                            self.session.models.close([smap])
+            if close_group:
+                self.session.models.close([self.map_group])
         self.map_group = self.orig_model = self.sym_map = None
         super().delete()
 
@@ -273,8 +298,8 @@ class EmplaceLocalResultsViewer(ToolInstance):
         from chimerax.ui.widgets import ItemTable
         table = ItemTable()
         result_col = table.add_column("Result", "num")
-        table.add_column("Correlation Coefficient", "cc", format="%g")
-        table.add_column("Log-Likelihood Gain", "llg", format="%g")
+        table.add_column("Correlation Coefficient", "cc", format="%.3g")
+        table.add_column("Log-Likelihood Gain", "llg", format="%.3g")
         table.data = [TableDatum(*args)
             for args in zip(range(1, len(self.transforms)+1), self.transforms, self.llgs, self.ccs)]
         table.launch(select_mode=table.SelectionMode.SingleSelection, session_info=table_state)
@@ -342,6 +367,14 @@ class EmplaceLocalResultsViewer(ToolInstance):
             smap = self._sharpened_map(datum.num)
             if smap:
                 smap.display = checked
+
+    def _show_symmetry_cb(self, checked):
+        from chimerax.core.commands import run
+        if checked:
+            run(self.session, "sym " + self.orig_model.atomspec + " symmetry " + self.sym_map.atomspec
+                + " copies false")
+        else:
+            run(self.session, "sym clear " + self.orig_model.atomspec)
 
 class LaunchEmplaceLocalTool(ToolInstance):
     help = "help:user/tools/localemfitting.html"

@@ -33,10 +33,13 @@ netCDF4==1.6.5
 networkx==3.3
 numpy==1.26.4
 openvr==1.26.701
+openmm==8.2.0
 packaging==23.2
 # as per Tristan's request in ticket #3055
 ParmEd==4.2.2
 pep517==0.13.1
+# optional package to prevent warning in Python shell [#16571]
+pickleshare==0.7.5
 Pillow==10.4.0
 pkginfo==1.11.1
 psutil==6.0.0
@@ -50,7 +53,8 @@ PyOpenGL-accelerate==3.1.7
 python-dateutil==2.9.0.post0
 # PyQt handled in prereqs/PyQt
 # sip handled in prereqs/PyQt
-#PySide2==5.15.2
+#PySide6==6.8.1.1
+#shiboken6==6.8.1.1
 qtconsole==5.5.2
 requests==2.32.3
 scipy==1.14.0
@@ -68,7 +72,7 @@ wheel-filename==1.4.1
 #
 blockdiag==3.0.0
 docutils==0.21.2
-Jinja2==3.1.4
+Jinja2==3.1.5
 Pygments==2.18.0
 Sphinx==8.0.2
 sphinxcontrib-blockdiag==3.0.0

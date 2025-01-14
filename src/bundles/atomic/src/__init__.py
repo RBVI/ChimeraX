@@ -37,8 +37,8 @@ from .molobject import next_chain_id, chain_id_characters
 # pbgroup must precede molarray since molarray uses interatom_pseudobonds in global scope
 from .pbgroup import PseudobondGroup, all_pseudobond_groups, all_pseudobonds
 from .pbgroup import interatom_pseudobonds, selected_pseudobonds
-from .molarray import Collection, Atoms, AtomicStructures, Bonds, Chains, Pseudobonds, Structures, \
-    PseudobondGroups, Residues, concatenate
+from .molarray import Collection, Atoms, AtomicStructures, Bonds, Chains, CoordSets, Pseudobonds, \
+    Structures, PseudobondGroups, Residues, concatenate
 from .structure import AtomicStructure, Structure, LevelOfDetail
 from .structure import selected_atoms, selected_bonds, selected_residues, selected_chains
 from .structure import all_atoms, all_bonds, all_residues, all_atomic_structures, all_structures

@@ -215,26 +215,14 @@ class ColorKeyTool(ToolInstance):
         tw.manage(placement=None)
 
     def delete(self):
-        if self._mouse_handler:
-            button = self.mouse_button_button.text()
-            if self._prev_mouse_mode:
-                new_mode = self._prev_mouse_mode.name
-            else:
-                new_mode = 'none'
-            self._self_mm_change = True
-            cmd = "ui mousemode %s %s" % (button, StringArg.unparse(new_mode))
-            if self.session.restore_options:
-                # delay running command until end of restore [#16296]
-                def reset_mousemode(trig_name, session, *, cmd=cmd):
-                    run(session, cmd)
-                    from chimerax.core.triggerset import DEREGISTER
-                    return DEREGISTER
-                self.session.triggers.add_handler("end restore session", reset_mousemode)
-            else:
-                run(self.session, cmd)
-            self._self_mm_change = False
         for handler in self.handlers:
             handler.remove()
+        if self._mouse_handler:
+            button = self.mouse_button_button.text()
+            self._self_mm_change = True
+            # Running a command in a delete() call, which can fire triggers, is asking for trouble so...
+            self.session.ui.mouse_modes.bind_mouse_mode(button, [], self._prev_mouse_mode)
+            self._self_mm_change = False
         self.key = None
         super().delete()
 

@@ -1,5 +1,5 @@
 from chimerax.segmentations.ui.orthoplanes import PlaneViewer, PlaneViewerManager, Axis
-import PyQt6.sip
+from Qt import qt_delete
 from Qt.QtCore import Qt
 from Qt.QtWidgets import (
     QWidget,
@@ -94,7 +94,7 @@ class FourPanelView(QWidget):
             self._clean_fourup()
         elif self._view_layout == "overunder":
             self._clean_side_by_side()
-        PyQt6.sip.delete(self.layout())
+        qt_delete(self.layout())
         self._construct_over_under()
         self._view_layout = "overunder"
 
@@ -103,13 +103,13 @@ class FourPanelView(QWidget):
             self._clean_fourup()
         elif self._view_layout == "overunder":
             self._clean_over_under()
-        PyQt6.sip.delete(self.layout())
+        qt_delete(self.layout())
         self._construct_side_by_side()
         self._view_layout = "sidebyside"
 
     def _convert_to_fourup(self):
         self._clean_side_by_side()
-        PyQt6.sip.delete(self.layout())
+        qt_delete(self.layout())
         self._construct_fourup()
         self._view_layout = "fourup"
 

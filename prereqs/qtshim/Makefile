@@ -14,7 +14,7 @@ upload_new_version: clean wheel
 	$(RSYNC) dist/qtshim*.whl $(PREREQS_UPLOAD)/qt/
 
 wheel:
-	python -m build .
+	python3 -m build .
 
 clean:
 	rm -rf *.egg-info build dist

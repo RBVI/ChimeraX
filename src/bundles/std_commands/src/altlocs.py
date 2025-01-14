@@ -25,7 +25,7 @@
 from chimerax.core.errors import UserError
 
 def altlocs_change(session, alt_loc, residues=None):
-    '''List altocs for residues
+    '''Change altocs for residues
 
     Parameters
     ----------

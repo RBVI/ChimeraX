@@ -17,6 +17,7 @@ from enum import Enum
 from chimerax.core.commands import run
 from chimerax.core.settings import Settings
 from chimerax.mouse_modes import MouseMode
+from chimerax.geometry.place import Place
 
 from chimerax.vive.vr import vr_camera as steamvr_camera
 from chimerax.vive.vr import vr_button as steamvr_button
@@ -228,22 +229,26 @@ class CreateSegmentation3DMouseMode(MouseMode):
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         activate_trigger(Trigger.SegmentationStarted, 1)
-
-    def wheel(self, event):
-        activate_trigger(Trigger.SegmentationMouseModeWheelEvent, event.wheel_value())
+        activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (*self.mouse_motion(event), event.shift_down(), 1))
 
     def mouse_drag(self, event):
         activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (*self.mouse_motion(event), event.shift_down(), 1))
 
+    def mouse_up(self, event):
+        MouseMode.mouse_up(self, event)
+        activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (*self.mouse_motion(event), event.shift_down(), 1))
+        activate_trigger(Trigger.SegmentationEnded, 1)
+
+    def wheel(self, event):
+        activate_trigger(Trigger.SegmentationMouseModeWheelEvent, event.wheel_value())
+
     def vr_press(self, event):
         activate_trigger(Trigger.SegmentationStarted, 1)
+        activate_trigger(Trigger.SegmentationMouseModeVRMoveEvent, (Place(), event.shift_down(), 1))
 
     def vr_release(self, event):
         MouseMode.mouse_up(self, event)
-        activate_trigger(Trigger.SegmentationEnded, 1)
-
-    def mouse_up(self, event):
-        MouseMode.mouse_up(self, event)
+        activate_trigger(Trigger.SegmentationMouseModeVRMoveEvent, (Place(), event.shift_down(), 1))
         activate_trigger(Trigger.SegmentationEnded, 1)
 
     def vr_motion(self, event):
@@ -261,7 +266,8 @@ class EraseSegmentation3DMouseMode(MouseMode):
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
-        activate_trigger(Trigger.SegmentationStarted, 0)
+        activate_trigger(Trigger.SegmentationStarted)
+        activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (*self.mouse_motion(event), event.shift_down(), 0))
 
     def wheel(self, event):
         activate_trigger(Trigger.SegmentationMouseModeWheelEvent, event.wheel_value())
@@ -271,13 +277,16 @@ class EraseSegmentation3DMouseMode(MouseMode):
 
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
+        activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (*self.mouse_motion(event), event.shift_down(), 0))
         activate_trigger(Trigger.SegmentationEnded, 0)
 
     def vr_press(self, event):
         activate_trigger(Trigger.SegmentationStarted, 0)
+        activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (Place(), mouse_motion(event), event.shift_down(), 0))
 
     def vr_release(self, event):
         MouseMode.mouse_up(self, event)
+        activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (Place(), event.shift_down(), 0))
         activate_trigger(Trigger.SegmentationEnded, 0)
 
     def vr_motion(self, event):

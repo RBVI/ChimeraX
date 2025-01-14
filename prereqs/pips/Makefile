@@ -23,7 +23,7 @@ CXSERVICES_DEPLOYMENT_VER ?= production
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
 PATCHES = tcia_utils.patch tcia_utils_metadata.patch
-QTSHIM_WHEEL = qtshim-1.0-py3-none-any.whl
+QTSHIM_WHEEL = qtshim-1.1-py3-none-any.whl
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 GRAKO_WHEEL = grako-3.16.5-py2.py3-none-any.whl
 ifeq ($(OS),Windows)
@@ -70,6 +70,10 @@ app-install: $(PLATO_WHEELS)
 	# Install numpy first so that PyOpenGL_Accelerate will compile numpy_formathandler
 	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt)
 	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
+ifdef USE_PYSIDE6
+	$(APP_PIP_INSTALL) $(shell grep PySide6 app_requirements.txt | sed -e 's/#//')
+	$(APP_PIP_INSTALL) $(shell grep shiboken6 app_requirements.txt | sed -e 's/#//')
+endif
 ifneq (,$(SOURCE_WHEELS))
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
 endif

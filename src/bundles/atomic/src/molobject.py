@@ -1425,8 +1425,10 @@ class Chain(StructureSeq):
     def string(self, style=None, include_structure=None):
         chain_str = self.chain_id_to_atom_spec(self.chain_id)
         from .structure import Structure
+        from .settings import settings
         if include_structure is not False and (
         include_structure is True
+        or settings.always_label_structure
         or len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1
         or not chain_str):
             struct_string = self.structure.string(style=style)
@@ -1548,6 +1550,9 @@ class StructureData:
         doc = "Supported API. Return array of ids of all coordinate sets.")
     coordset_size = c_property('structure_coordset_size', int32, read_only = True,
         doc = "Supported API. Return the size of the active coordinate set array.")
+    coordsets = c_property('structure_coordsets', cptr, 'num_coordsets', astype = convert.coordsets,
+        read_only = True,
+        doc = "Supported API. :class:`.CoordSets` collection containing all coordsets of the structure.")
     display = c_property('structure_display', npy_bool, doc =
         "Don't call this directly.  Use Model's 'display' attribute instead.  Only exposed so that "
         "Model's 'display' attribute can call it so that 'display changed' shows up in triggers.")
