@@ -5,6 +5,9 @@ class MockModelA:
     def restore_scene(self, data):
         pass
 
+    def take_snapshot(self):
+        pass
+
 class MockModelB(MockModelA):
     pass
 
@@ -12,8 +15,19 @@ class MockModelC(MockModelB):
     def restore_scene(self, data):
         pass
 
+    def take_snapshot(self):
+        pass
+
 class MockModelD:
     pass
+
+class MockModelE():
+    def take_snapshot(self):
+        pass
+
+class MockModelF():
+    def restore_scene(self, data):
+        pass
 
 def test_md_scene_implementation():
     """
@@ -22,6 +36,9 @@ def test_md_scene_implementation():
     model_a = MockModelA()
     model_b = MockModelB()
     model_c = MockModelC()
+    model_d = MockModelD()
+    model_e = MockModelE()
+    model_f = MockModelF()
 
     # MockModelA implements restore_scene
     assert scene.md_scene_implementation(model_a) == MockModelA
@@ -30,7 +47,11 @@ def test_md_scene_implementation():
     # MockModelC implements restore_scene
     assert scene.md_scene_implementation(model_c) == MockModelC
     # MockModelD does not implement restore_scene and neither do any of its super classes
-    assert scene.md_scene_implementation(MockModelD) is None
+    assert scene.md_scene_implementation(model_d) is None
+    # Mock Model E does not implement restore_scene
+    assert scene.md_scene_implementation(model_e) is None
+    # Mock Model F does not implement take_snapshot
+    assert scene.md_scene_implementation(model_f) is None
 
 def test_scene_super():
     model_a = MockModelA()

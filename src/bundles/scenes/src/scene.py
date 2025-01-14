@@ -222,7 +222,5 @@ def scene_super(obj):
             return cls
     return None
 
-
-
 def implements_scene(cls):
-    return 'restore_scene' in cls.__dict__
+    return 'restore_scene' in cls.__dict__ and 'take_snapshot' in cls.__dict__
