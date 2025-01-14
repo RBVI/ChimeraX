@@ -128,24 +128,6 @@ runs:
           prereqs/ambertools/ambertools-flibs-20-Darwin.tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-ambertools
 
-    - name: Restore cached openmm (Linux)
-      id: cache-openmm-linux-x86_64
-      if: ${{ inputs.platform == 'linux' }}
-      uses: actions/cache@v4
-      with:
-        path: |
-          prereqs/openmm/openmm-8.0.0-linux-py311_cuda112.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-openmm
-
-    - name: Restore cached openmm (Windows)
-      id: cache-openmm-windows-x86_64
-      if: ${{ inputs.platform == 'windows' }}
-      uses: actions/cache@v4
-      with:
-        path: |
-          prereqs/openmm/openmm-8.0.0-win-py311h9957787_1_tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-openmm
-
     - name: Restore cached rsync (linux)
       id: cache-rsync-linux
       if: ${{ inputs.platform == 'linux' }}
@@ -153,26 +135,6 @@ runs:
       with:
         path: prereqs/rsync/rsync-3.2.7.tar.gz
         key: ${{ runner.os }}-${{ inputs.architecture }}-rsync
-
-    - name: Restore cached openmm (macOS arm64)
-      id: cache-openmm-macos-arm64
-      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'arm64' }}
-      uses: actions/cache@v4
-      with:
-        path: |
-          prereqs/openmm/openmm-8.0.0-mac-py311h68ae2cc_1_apple.tar.bz2
-          prereqs/openmm/openmm-8.0.0-mac-metal.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-openmm
-
-    - name: Restore cached openmm (macOS Intel)
-      id: cache-openmm-macos-x86_64
-      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'x86_64' }}
-      uses: actions/cache@v4
-      with:
-        path: |
-          prereqs/openmm/openmm-8.0.0-mac-py311hf4819f2_1_apple.tar.bz2
-          prereqs/openmm/openmm-8.0.0-mac-metal.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-openmm
 
     - name: Restore cached ffmpeg (Linux)
       id: cache-ffmpeg-linux-x86_64
@@ -334,26 +296,6 @@ runs:
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-3.2.4-Windows.exe -O -J
         fi
         mv ffmpeg* prereqs/ffmpeg/
-
-    - name: Fetch openmm
-      shell: bash
-      if: ${{ steps[format('cache-openmm-{0}-{1}', inputs.platform, inputs.architecture)].outputs.cache-hit != 'true' }}
-      run: |
-        if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/openmm/openmm-8.0.0-linux-py311_cuda112.tar.bz2 -O -J
-        fi
-        if [ "${{ inputs.platform }}" = "macos" ] ; then
-          if [ "${{ inputs.architecture }}" = "arm64" ] ; then
-            curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/openmm/openmm-8.0.0-mac-py311h68ae2cc_1_apple.tar.bz2 -O -J
-          else
-            curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/openmm/openmm-8.0.0-mac-py311hf4819f2_1_apple.tar.bz2 -O -J
-          fi
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/openmm/openmm-8.0.0-mac-metal.tar.bz2 -O -J
-        fi
-        if [ "${{ inputs.platform }}" = "windows" ] ; then
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/openmm/openmm-8.0.0-win-py311h9957787_1_tar.bz2 -O -J
-        fi
-        mv openmm* prereqs/openmm/
 
     - name: Fetch ambertools
       shell: bash
