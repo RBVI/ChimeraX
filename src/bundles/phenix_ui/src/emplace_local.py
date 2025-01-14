@@ -246,7 +246,7 @@ def _process_results(session, transforms, sharpened_maps, llgs, ccs, orig_model,
                     'Could not determine symmetry for %s<br><br>'
                     'If you know the symmetry of the map, you can create symmetry copies of the structure'
                     ' with the <a href="help:user/commands/sym.html">sym</a> command and then combine the'
-                    ' symmetry copies with the original structure with the <a'
+                    ' symmetry copies into a single structure with the <a'
                     ' href="help:user/commands/combine.html">combine</a> command'
                     % sym_map, is_html=True)
                 apply_symmetry = False
@@ -258,11 +258,14 @@ def _process_results(session, transforms, sharpened_maps, llgs, ccs, orig_model,
         from chimerax.geometry import Place
         orig_model.scene_position = Place(transforms[0]) * orig_model.scene_position
         if apply_symmetry:
+            modelspec = orig_model.atomspec
             prev_models = set(session.models[:])
-            run(session, "sym " + orig_model.atomspec + " symmetry " + sym_map.atomspec + " copies true")
+            run(session, f"sym {modelspec} symmetry {sym_map.atomspec} copies true")
             added = [m for m in session.models if m not in prev_models]
-            run(session, "combine " + concise_model_spec(session, [orig_model] + added) + " close true"
-                " modelId %d name %s" % (orig_model.id[0], StringArg.unparse(orig_model.name)))
+            orig_id, orig_name = orig_model.id[0], orig_model.name
+            run(session, f"close {modelspec}")
+            run(session, "combine " + concise_model_spec(session, added) + " close true"
+                " modelId %d name %s" % (orig_id, StringArg.unparse(orig_name)))
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 

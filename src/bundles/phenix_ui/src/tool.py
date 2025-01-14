@@ -40,6 +40,7 @@ class PhenixCitation(Citation):
         cite = '<br>'.join(["<b>" + title + "</b>"] + info)
         kw['prefix'] = "%s uses the Phenix <i>%s</i> command. Please cite:" % (tool_name, phenix_name)
         super().__init__(session, cite, **kw)
+
 class DouseSettings(Settings):
     AUTO_SAVE = {
         "show_hbonds": True,
@@ -203,6 +204,7 @@ class EmplaceLocalResultsViewer(ToolInstance):
 
         from chimerax.core.models import REMOVE_MODELS
         from chimerax.atomic import get_triggers
+        self._finalizing_symmetry = False
         self.handlers = [
             self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
         ]
@@ -219,8 +221,8 @@ class EmplaceLocalResultsViewer(ToolInstance):
         layout.setSpacing(0)
         parent.setLayout(layout)
 
-        # Building the table is going to call _new_selection, so these widgets need to exist before
-        # building the table, but don't add them to the layout until after the table
+        # Building the table is going to call _new_selection, so the "sharpened" check box needs to exist
+        # before building the table, but don't add them to the layout until after the table
         check_box_area = QWidget()
         cb_layout = QHBoxLayout()
         check_box_area.setLayout(cb_layout)
@@ -228,11 +230,19 @@ class EmplaceLocalResultsViewer(ToolInstance):
         self.sharpened_checkbox.setChecked(show_sharpened_map)
         self.sharpened_checkbox.toggled.connect(self._show_sharpened_cb)
         cb_layout.addWidget(self.sharpened_checkbox, alignment=Qt.AlignCenter)
+        if sym_map:
+            self.symmetry_checkbox = QCheckBox("Show symmetry copies")
+            self.symmetry_checkbox.setChecked(True)
+            self.symmetry_checkbox.toggled.connect(self._show_symmetry_cb)
+            cb_layout.addWidget(self.symmetry_checkbox, alignment=Qt.AlignCenter)
 
         self.table = self._build_table(table_state)
         layout.addWidget(self.table, stretch=1)
 
         layout.addWidget(check_box_area, alignment=Qt.AlignCenter)
+
+        if sym_map:
+            self._show_symmetry_cb(True)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
@@ -251,6 +261,19 @@ class EmplaceLocalResultsViewer(ToolInstance):
         self.tool_window.manage(None)
 
     def accept_fit(self):
+        # running commands directly in delete() can be hazardous, so...
+        if self.sym_map and self.symmetry_checkbox.isChecked():
+            self._finalizing_symmetry = True
+            from chimerax.core.commands import run, concise_model_spec, StringArg
+            modelspec = self.orig_model.atomspec
+            prev_models = set(self.session.models[:])
+            run(self.session,
+                f"sym clear {modelspec} ; sym {modelspec} symmetry {self.sym_map.atomspec} copies true")
+            added = [m for m in self.session.models if m not in prev_models]
+            orig_id, orig_name = self.orig_model.id[0], self.orig_model.name
+            run(self.session, f"close {modelspec}")
+            run(self.session, "combine " + concise_model_spec(self.session, added) + " close true"
+                " modelId %d name %s" % (orig_id, StringArg.unparse(orig_name)))
         self.delete()
 
     def delete(self):
@@ -317,10 +340,14 @@ class EmplaceLocalResultsViewer(ToolInstance):
             if finish:
                 tool._interpolate_handler.remove()
                 tool._interpolate_handler = None
+                if self.sym_map and self.symmetry_checkbox.isChecked():
+                    from chimerax.core.commands import run
+                    run(self.session, "sym " + self.orig_model.atomspec + " symmetry "
+                        + self.sym_map.atomspec + " copies false", log=False)
         self._interpolate_handler = self.session.triggers.add_handler("new frame", make_step)
 
     def _models_removed_cb(self, trig_name, trig_data):
-        if self.orig_model in trig_data:
+        if self.orig_model in trig_data and not self._finalizing_symmetry:
             self.delete()
 
     def _new_selection(self, selected, unselected):
@@ -353,6 +380,14 @@ class EmplaceLocalResultsViewer(ToolInstance):
             smap = self._sharpened_map(datum.num)
             if smap:
                 smap.display = checked
+
+    def _show_symmetry_cb(self, checked):
+        from chimerax.core.commands import run
+        if checked:
+            run(self.session, "sym " + self.orig_model.atomspec + " symmetry " + self.sym_map.atomspec
+                + " copies false")
+        else:
+            run(self.session, "sym clear " + self.orig_model.atomspec)
 
 class LaunchEmplaceLocalTool(ToolInstance):
     help = "help:user/tools/localemfitting.html"
