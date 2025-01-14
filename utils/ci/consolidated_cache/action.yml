@@ -280,12 +280,8 @@ runs:
       shell: bash
       if: ${{ steps[format('cache-pyqt6-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
       run: |
-        if [ "${{ inputs.platform }}" = "linux" ] ; then
-          export PYQT_VERSION=6.7.1-1
-        else
-          export PYQT_VERSION=6.7.1
-        fi
-        export PYQTWE_VERSION=6.7.0
+        export PYQT_VERSION=6.8.0
+        export PYQTWE_VERSION=6.8.0
         export PYQT_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_pyqt.py?platform=${{ inputs.platform }}&version=${PYQT_VERSION}&webengine=false&architecture=${{ inputs.architecture }}"
         export PYQTWE_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_pyqt.py?platform=${{ inputs.platform }}&version=${PYQTWE_VERSION}&webengine=true&architecture=${{ inputs.architecture }}"
         curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${PYQT_URL} -O -J
