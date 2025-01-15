@@ -33,6 +33,10 @@
     <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
   </Dependencies>
 
+  <Managers>
+    <Manager name="MD plotting" autostart="false"/>
+  </Managers>
+
   <Providers manager="data formats">
     <Provider name="Gromacs full-precision coordinates" category="Molecular trajectory"
 		nicknames="trr" suffixes=".trr" encoding="utf-8"
