@@ -68,13 +68,6 @@ def test_scene_super():
 
 """ Tests for the Scene class """
 
-def test_take_thumbnail(*args):
-    """
-    Use this function to patch the Scene class take_thumbnail method because it requires a GUI to run and this test is
-    running in no GUI mode.
-    """
-    return 'base64_encoded_thumbnail_string'
-
 def test_init_from_session(test_production_session):
     scenes_mgr = test_production_session.scenes
     scenes_mgr.save_scene("test_scene")
