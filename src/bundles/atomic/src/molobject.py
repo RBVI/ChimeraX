@@ -1425,8 +1425,10 @@ class Chain(StructureSeq):
     def string(self, style=None, include_structure=None):
         chain_str = self.chain_id_to_atom_spec(self.chain_id)
         from .structure import Structure
+        from .settings import settings
         if include_structure is not False and (
         include_structure is True
+        or settings.always_label_structure
         or len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1
         or not chain_str):
             struct_string = self.structure.string(style=style)
