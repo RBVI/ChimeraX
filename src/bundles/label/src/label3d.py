@@ -554,10 +554,12 @@ class ObjectLabels(Model):
             self._positions_need_update = True
             
         camera_move = v.camera.redraw_needed
+        suppress_cofr_change = False
         if camera_move:
             ra = _reorient_angle(ses)
             if ra == 0 or self._num_pixel_labels > 0:
                 self._positions_need_update = True
+                suppress_cofr_change = True
             elif ra > 0:
                 # Don't update label positions if minimum camera motion has not occured.
                 # This optimization is to maintain high frame rate with virtual reality.
@@ -569,12 +571,13 @@ class ObjectLabels(Model):
                 elif degrees((cpos.inverse() * lcpos).rotation_angle()) >= ra:
                     self._positions_need_update = True
                     ses._last_label_view = cpos
+                    suppress_cofr_change = True
 
         if self._texture_needs_update:
             self._rebuild_label_graphics()
         else:
             if self._positions_need_update:
-                self._reposition_label_graphics()
+                self._reposition_label_graphics(suppress_cofr_change)
             if self._visibility_needs_update:
                 self._update_triangles()
 
@@ -660,10 +663,14 @@ class ObjectLabels(Model):
                 return False
         return True
     
-    def _reposition_label_graphics(self):
+    def _reposition_label_graphics(self, suppress_cofr_change = False):
+        if suppress_cofr_change and self.shape_changed:
+            suppress_cofr_change = False  # Shape already changed
         self.set_geometry(self._label_vertices(), self.normals, self.triangles)
         self._positions_need_update = False
-        
+        if suppress_cofr_change:
+            self.session.main_view.clear_shape_change()
+
     def _label_vertices(self):
         spos = self.scene_position
         cpos = self.session.main_view.camera.position	# Camera position in scene coords
