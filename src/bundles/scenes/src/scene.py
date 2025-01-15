@@ -163,6 +163,8 @@ class Scene(State):
             models (list of str): List of model identifiers to remove.
         """
         for model in models:
+            if model in self.scene_models:
+                del self.scene_models[model]
             if model in self.named_view.positions:
                 del self.named_view.positions[model]
         return
