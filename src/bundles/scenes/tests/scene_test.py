@@ -82,3 +82,27 @@ def test_init_from_session(test_production_session):
     assert hasattr(test_scene, 'main_view_data')
     assert hasattr(test_scene, 'named_view')
     assert hasattr(test_scene, 'scene_models')
+
+def test_models_removed(test_production_session):
+    scenes_mgr = test_production_session.scenes
+    from chimerax.core.commands import run
+    # Add model to the session
+    run(test_production_session, "open 3rec")
+    run(test_production_session, "open 6zf1")
+    # save a scene
+    scenes_mgr.save_scene("test_scene")
+
+    test_scene = scenes_mgr.get_scene("test_scene")
+
+    # Directly test removing a model from the scene with models_removed
+    test_scene.models_removed([test_production_session.models[0]])
+
+    # Check that the model was removed from the scene data
+    assert test_production_session.models[0] not in test_scene.scene_models
+    assert test_production_session.models[0] not in test_scene.named_view.positions
+
+    # Test that removing a model from the session removes it from the scene
+    run(test_production_session, "close #1")
+
+    assert test_production_session.models[0] not in test_scene.scene_models
+    assert test_production_session.models[0] not in test_scene.named_view.positions
