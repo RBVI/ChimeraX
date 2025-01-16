@@ -58,7 +58,7 @@ class _HelpWebView(ChimeraXHtmlView):
         settings = self.settings()
         settings.setAttribute(QWebEngineSettings.PluginsEnabled, True)
         settings.setAttribute(QWebEngineSettings.PdfViewerEnabled, True)
-
+        self.page().certificateError.connect(self.onCertificateError)
 
     def createWindow(self, win_type):  # noqa
         # win_type is window, tab, dialog, backgroundtab
@@ -90,6 +90,53 @@ class _HelpWebView(ChimeraXHtmlView):
         # if not page.contextMenuData().selectedText():
         #    menu.addAction(page.action(QWebEnginePage.SavePage))
         menu.popup(event.globalPos())
+
+    def onCertificateError(self, error):
+        # dialog asking user what to do
+        #   - show who certificate is issued to, start date, end date
+        from Qt.QtWidgets import QMessageBox, QDialog
+        from Qt.QtNetwork import QSsl
+        from Qt.QtCore import Qt
+
+        if not error.isMainFrame():
+            # introduced in Qt 6.8
+            error.rejectCertificate()
+            return
+
+        info = QMessageBox(
+            QMessageBox.Warning, "Certificate Error", error.description(), parent=self.parent())
+        # info.setWindowModality(Qt.WindowModal) -- use open instead of exec
+        info.addButton("OK", QMessageBox.RejectRole)
+
+        chain = error.certificateChain()
+        if chain:
+            cert = chain[0]
+            effective = cert.effectiveDate().toLocalTime().toString()
+            expires = cert.expiryDate().toLocalTime().toString()
+            name = cert.subjectDisplayName()
+            altnames = [names for entry, names in cert.subjectAlternativeNames().items() if entry == QSsl.DnsEntry]
+            details = f"Subject Name: {name}\n"
+            if altnames:
+                alternates = [name for names in altnames for name in names]
+                try:
+                    alternates.remove(name)
+                except ValueError:
+                    pass
+                if alternates:
+                    details += f"Alternate names: {' '.join(alternates)}\n"
+            details += f"Starting date: {effective}\nExpires: {expires}\n"
+            info.setDetailedText(details)
+
+        if error.isOverridable():
+            accept_risk = info.addButton("Accept Risk", QMessageBox.AcceptRole)
+        else:
+            accept_risk = 'skip'
+
+        acceptable = info.exec()
+        if info.clickedButton() == accept_risk:
+            error.acceptCertificate()
+            return
+        error.rejectCertificate()
 
 
 class HelpUI(ToolInstance):
