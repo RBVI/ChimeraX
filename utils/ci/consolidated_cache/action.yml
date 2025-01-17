@@ -23,7 +23,7 @@ runs:
 
     - name: Restore cached plato pips (Linux)
       id: cache-plato-pips-linux
-      if: ${{ inputs.platform }} == 'linux'
+      if: ${{ inputs.platform == 'linux' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -32,7 +32,7 @@ runs:
 
     - name: Restore cached plato pips (Windows)
       id: cache-plato-pips-windows
-      if: ${{ inputs.platform }} == 'windows'
+      if: ${{ inputs.platform == 'windows' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -41,7 +41,7 @@ runs:
 
     - name: Restore cached plato pips (macOS)
       id: cache-plato-pips-macos
-      if: ${{ inputs.platform }} == 'macos'
+      if: ${{ inputs.platform == 'macos' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -162,7 +162,7 @@ runs:
 
     - name: Restore cached ffmpeg (macOS arm64)
       id: cache-ffmpeg-macos-arm64
-      if: ${{ inputs.platform == 'macos' }}
+      if: ${{ inputs.platform == 'macos' }} && ${{ inputs.architecture == 'arm64' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -171,7 +171,7 @@ runs:
 
     - name: Restore cached ffmpeg (macOS Intel)
       id: cache-ffmpeg-macos-x86_64
-      if: ${{ inputs.platform == 'macos' }}
+      if: ${{ inputs.platform == 'macos' }} && ${{ inputs.architecture == 'x86_64' }}
       uses: actions/cache@v4
       with:
         path: |
