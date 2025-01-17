@@ -19,7 +19,7 @@ QUOTE_CC := $(subst ','\'',$(CC) $(TARGET_ARCH))
 QUOTE_CXX := $(subst ','\'',$(CXX) $(TARGET_ARCH))
 
 # Make xdrfile use our compiler options
-ENV_CONFIGURE = env CC='$(QUOTE_CC)' CXX='$(QUOTE_CXX)' LDFLAGS="$(TARGET_ARCH) $(LDFLAGS)"
+ENV_CONFIGURE = env CC=gcc CXX=g++ LDFLAGS="$(TARGET_ARCH) -O3 -Wall -Wextra"
 
 PATCHES =
 
@@ -39,7 +39,7 @@ ifneq ($(PATCHES),)
 endif
 ifneq ($(filter $(MSYSTEM),MSYS MINGW64),)
 	# Though it says 'mingw32' inspection of the generated static library shows x86_64
-	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) ./configure --build=x86_64-w64-mingw32 --enable-shared --with-pic CC=gcc
+	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) ./configure --build=x86_64-w64-mingw32 --enable-shared --with-pic
 else
 	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) ./configure --enable-shared --with-pic
 endif
