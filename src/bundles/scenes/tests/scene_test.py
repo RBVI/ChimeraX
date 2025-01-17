@@ -101,8 +101,8 @@ def test_models_removed(test_production_session):
     assert test_production_session.models[0] not in test_scene.scene_models
     assert test_production_session.models[0] not in test_scene.named_view.positions
 
-    # Test that removing a model from the session removes it from the scene
-    run(test_production_session, "close #1")
+    # Test that removing the second model from the session. Model 2 at this point be the only data in the scene
+    run(test_production_session, "close #2")
 
     assert test_production_session.models[0] not in test_scene.scene_models
     assert test_production_session.models[0] not in test_scene.named_view.positions
