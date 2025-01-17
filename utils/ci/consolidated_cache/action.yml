@@ -162,7 +162,7 @@ runs:
 
     - name: Restore cached ffmpeg (macOS arm64)
       id: cache-ffmpeg-macos-arm64
-      if: ${{ inputs.platform == 'macos' }} && ${{ inputs.architecture == 'arm64' }}
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'arm64' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -171,7 +171,7 @@ runs:
 
     - name: Restore cached ffmpeg (macOS Intel)
       id: cache-ffmpeg-macos-x86_64
-      if: ${{ inputs.platform == 'macos' }} && ${{ inputs.architecture == 'x86_64' }}
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'x86_64' }}
       uses: actions/cache@v4
       with:
         path: |
