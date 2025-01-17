@@ -27,7 +27,6 @@ SUBDIRS += win32
 endif
 
 ifdef FLATPAK_DIST
-NEED_RSYNC=1
 NEED_LIBGLU=1
 endif
 
@@ -36,13 +35,6 @@ SUBDIRS += ffmpeg
 else
 ffmpeg.install:
 ffmpeg.app-install:
-endif
-
-ifdef NEED_RSYNC
-SUBDIRS += rsync
-else
-rsync.install:
-rsync.app-install:
 endif
 
 ifdef NEED_LIBGLU
@@ -116,12 +108,6 @@ $(SUBDIR_APP_INSTALL): build-app-dirs
 # Whole platform dependencies
 ifdef WIN32
 $(subst win32.install,,$(SUBDIR_INSTALL)): win32.install
-endif
-#ifdef UNIX
-#$(subst unix.install,,$(SUBDIR_INSTALL)): unix.install
-#endif
-ifdef FLATPAK_DIST
-$(subst rsync.install,,$(SUBDIR_INSTALL)): rsync.install
 endif
 
 # Please keep dependencies in alphabetical order.
