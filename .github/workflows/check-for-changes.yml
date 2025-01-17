@@ -90,6 +90,7 @@ jobs:
           platform: windows
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - uses: mxschmitt/action-tmate@v3
       - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) build-minimal
       - name: Run the legacy test suite
         run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test
