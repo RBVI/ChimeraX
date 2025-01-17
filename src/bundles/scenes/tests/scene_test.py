@@ -83,29 +83,59 @@ def test_init_from_session(test_production_session):
     assert hasattr(test_scene, 'named_view')
     assert hasattr(test_scene, 'scene_models')
 
+from chimerax.core.models import Model
+class TestModel(Model):
+    """
+    A test model class that implements the Scene interface.
+    """
+
+    def take_snapshot(self, session, flags):
+        return {}
+
+    def restore_snapshot(self, data):
+        pass
+
 def test_models_removed(test_production_session):
+    models_mgr = test_production_session.models
+    test_model1 = TestModel('test_model1', test_production_session)
+    models_mgr.add([test_model1])
+
     scenes_mgr = test_production_session.scenes
-    from chimerax.core.commands import run
-    # Add model to the session
-    run(test_production_session, "open 3rec")
-    run(test_production_session, "open 6zf1")
+
     # save a scene
     scenes_mgr.save_scene("test_scene")
+    test_scene1 = scenes_mgr.get_scene("test_scene")
 
-    test_scene = scenes_mgr.get_scene("test_scene")
+    # Make sure model1 was added to the scene data
+    assert test_model1 in test_scene1.scene_models
+    assert test_model1 in test_scene1.named_view.positions
 
-    # Directly test removing a model from the scene with models_removed
-    test_scene.models_removed([test_production_session.models[0]])
+    # Directly test removing model1 from the scene with models_removed
+    test_scene1.models_removed(models_mgr.list("test_model1"))
 
-    # Check that the model was removed from the scene data
-    assert test_production_session.models[0] not in test_scene.scene_models
-    assert test_production_session.models[0] not in test_scene.named_view.positions
+    # Check that the model1 was removed from the scene data
+    assert test_model1 not in test_scene1.scene_models
+    assert test_model1 not in test_scene1.named_view.positions
 
-    # Test that removing the second model from the session. Model 2 at this point be the only data in the scene
-    run(test_production_session, "close #2")
+    models_mgr.remove([test_model1])
 
-    assert test_production_session.models[0] not in test_scene.scene_models
-    assert test_production_session.models[0] not in test_scene.named_view.positions
+    # Create a new model and add it to the scene
+    test_model2 = TestModel('test_model2', test_production_session)
+    models_mgr.add([test_model2])
+
+    scenes_mgr.save_scene("test_scene2")
+    test_scene2 = scenes_mgr.get_scene("test_scene2")
+
+    # Make sure that the model2 was added to the scene data
+    assert test_model2 in test_scene2.scene_models
+    assert test_model2 in test_scene2.named_view.positions
+
+    # Remove a model with the models' manager. This should trigger the models_removed callback in the scene
+    models_mgr.remove([test_model2])
+
+    # Check that the model2 was removed from the scene data
+    assert test_model2 not in test_scene2.scene_models
+    assert test_model2 not in test_scene2.named_view.positions
 
 def test_get_name(test_production_session):
     scenes_mgr = test_production_session.scenes
