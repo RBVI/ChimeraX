@@ -106,3 +106,10 @@ def test_models_removed(test_production_session):
 
     assert test_production_session.models[0] not in test_scene.scene_models
     assert test_production_session.models[0] not in test_scene.named_view.positions
+
+def test_get_name(test_production_session):
+    scenes_mgr = test_production_session.scenes
+    scenes_mgr.save_scene("test_scene")
+
+    test_scene = scenes_mgr.get_scene("test_scene")
+    assert test_scene.get_name() == "test_scene"
