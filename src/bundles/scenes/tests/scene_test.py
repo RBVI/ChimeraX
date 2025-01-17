@@ -96,6 +96,11 @@ class TestModel(Model):
         pass
 
 def test_models_removed(test_production_session):
+    """
+    Test that the models_removed callback removes models from the scene data. First we test that the callback function
+    removes the model data from the scene correctly. Second, we test that the callback function is called when a model
+    is removed from the models' manager.
+    """
     models_mgr = test_production_session.models
     test_model1 = TestModel('test_model1', test_production_session)
     models_mgr.add([test_model1])
@@ -111,18 +116,20 @@ def test_models_removed(test_production_session):
     assert test_model1 in test_scene1.named_view.positions
 
     # Directly test removing model1 from the scene with models_removed
-    test_scene1.models_removed(models_mgr.list("test_model1"))
+    test_scene1.models_removed([models_mgr[0]])
 
     # Check that the model1 was removed from the scene data
     assert test_model1 not in test_scene1.scene_models
     assert test_model1 not in test_scene1.named_view.positions
 
+    # Remove the model that we removed from the scene from the session
     models_mgr.remove([test_model1])
 
     # Create a new model and add it to the scene
     test_model2 = TestModel('test_model2', test_production_session)
     models_mgr.add([test_model2])
 
+    # save a scene
     scenes_mgr.save_scene("test_scene2")
     test_scene2 = scenes_mgr.get_scene("test_scene2")
 
