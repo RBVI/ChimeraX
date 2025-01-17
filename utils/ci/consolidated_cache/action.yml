@@ -328,7 +328,7 @@ runs:
 
     - name: Fetch rsync
       shell: bash
-      if: ${{ steps.cache-rsync-linux.outputs.cache-hit != 'true' }}
+      if: ${{ inputs.platform == 'linux'}} && ${{ steps.cache-rsync-linux.outputs.cache-hit != 'true' }}
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
           curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/rsync/rsync-3.2.7.tar.gz
