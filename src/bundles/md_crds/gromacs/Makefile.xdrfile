@@ -40,11 +40,11 @@ ifneq ($(PATCHES),)
 		fi ; \
 	done
 endif
+	cp configure.edited $(XDRFILE_LIB_SOURCE)/configure
 ifneq ($(filter $(MSYSTEM),MSYS MINGW64),)
 	# Though it says 'mingw32' inspection of the generated static library shows x86_64
 	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) ./configure --build=x86_64-w64-mingw32 --enable-shared --with-pic
 else
-	cp configure.edited $(XDRFILE_LIB_SOURCE)/configure
 	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) ./configure --enable-shared --with-pic
 endif
 
