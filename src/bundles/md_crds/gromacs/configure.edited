@@ -5748,7 +5748,7 @@ case "${host_cpu}-${host_os}" in
     # stuff (not gromacs-related) when we are using ia64 assembly.
     # For this reason we disable warnings...
 
-   if $CC -V 2>&1 | grep 'Microsoft Corporation' > /dev/null 2>&1; then
+   if echo $CC | grep -w cl > /dev/null 2>&1; then
      xCFLAGS="-O3 -w"
      xASFLAGS=$xCFLAGS
      ac_cv_c_compiler_gnu="no"
@@ -5959,7 +5959,7 @@ case "${host_cpu}-${host_os}" in
     # stuff (not gromacs-related) when we are using assembly.
     # For this reason we disable warnings...
 
-    if $CC -V 2>&1 | grep 'Microsoft Corporation' > /dev/null 2>&1; then
+    if echo $CC | grep -w cl > /dev/null 2>&1; then
       ac_cv_c_compiler_gnu="no"
       case "${host_cpu}" in
         x86_64)
@@ -21908,7 +21908,7 @@ fi
 ############################################################################
 #
 # Don't add math library for intel compilers
-if $CC -V 2>&1 | grep 'Microsoft Corporation' > /dev/null 2>&1; then
+if echo $CC | grep -w cl > /dev/null 2>&1; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: Using built-in math library with intel compiler" >&5
 $as_echo "$as_me: Using built-in math library with intel compiler" >&6;}
 else
