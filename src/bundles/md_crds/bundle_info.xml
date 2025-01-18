@@ -19,8 +19,14 @@
 
   <CModule name="_gromacs" usesNumpy="true">
     <IncludeDir>gromacs/xdrfile-1.1.4/include</IncludeDir>
+    <LibraryDir platform="win32">C:\msys64\mingw64\lib</LibraryDir>
+    <LibraryDir platform="win32">C:\msys64\mingw64\lib\gcc\x86_64-w64-mingw32\14.2.0</LibraryDir>
+    <LibraryDir platform="win32">C:\mingw64\x86_64-w64-mingw32\lib</LibraryDir>
+    <LibraryDir platform="win32">C:\mingw64\lib\gcc\x86_64-w64-mingw32\12.2.0</LibraryDir>
     <SourceFile>gromacs/gromacs.cpp</SourceFile>
-    <LinkArgument platform="win32">gromacs/xdrfile-1.1.4/src/.libs/libxdrfile.lib</LinkArgument>
+    <LinkArgument platform="win32">gromacs/xdrfile-1.1.4/src/.libs/libxdrfile.a</LinkArgument>
+    <LinkArgument platform="win32">libmingwex.a</LinkArgument>
+    <LinkArgument platform="win32">libgcc.a</LinkArgument>
     <LinkArgument platform="mac">gromacs/xdrfile-1.1.4/src/.libs/libxdrfile.a</LinkArgument>
     <LinkArgument platform="linux">gromacs/xdrfile-1.1.4/src/.libs/libxdrfile.a</LinkArgument>
   </CModule>

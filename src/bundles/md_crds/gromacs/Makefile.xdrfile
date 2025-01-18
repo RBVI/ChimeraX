@@ -15,11 +15,14 @@ include $(TOP)/mk/config.make
 
 include Makefile.common
 
-QUOTE_CC := $(subst ','\'',$(CC) $(TARGET_ARCH))
-QUOTE_CXX := $(subst ','\'',$(CXX) $(TARGET_ARCH))
+# The configure script checks for the compiler banner message, so..
+VERBOSE_CC := $(subst -nologo,,$(CC))
+VERBOSE_CXX := $(subst -nologo,,$(CXX))
+QUOTE_CC := $(subst ','\'',$(VERBOSE_CC) $(TARGET_ARCH))
+QUOTE_CXX := $(subst ','\'',$(VERBOSE_CXX) $(TARGET_ARCH))
 
 # Make xdrfile use our compiler options
-ENV_CONFIGURE = env CC=gcc CXX=g++ LDFLAGS="$(TARGET_ARCH) -O3 -Wall -Wextra"
+ENV_CONFIGURE = CC='$(QUOTE_CC)' CXX='$(QUOTE_CXX)' LDFLAGS="$(TARGET_ARCH) $(LDFLAGS)" CFLAGS=
 
 PATCHES =
 
@@ -41,6 +44,7 @@ ifneq ($(filter $(MSYSTEM),MSYS MINGW64),)
 	# Though it says 'mingw32' inspection of the generated static library shows x86_64
 	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) ./configure --build=x86_64-w64-mingw32 --enable-shared --with-pic
 else
+	cp configure.edited $(XDRFILE_LIB_SOURCE)/configure
 	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) ./configure --enable-shared --with-pic
 endif
 
