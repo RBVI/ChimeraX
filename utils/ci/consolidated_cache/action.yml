@@ -128,14 +128,6 @@ runs:
           prereqs/ambertools/ambertools-flibs-20-Darwin.tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-ambertools
 
-    - name: Restore cached rsync (linux)
-      id: cache-rsync-linux
-      if: ${{ inputs.platform == 'linux' }}
-      uses: actions/cache@v4
-      with:
-        path: prereqs/rsync/rsync-3.2.7.tar.gz
-        key: ${{ runner.os }}-${{ inputs.architecture }}-rsync
-
     - name: Restore cached ffmpeg (Linux)
       id: cache-ffmpeg-linux-x86_64
       if: ${{ inputs.platform == 'linux' }}
@@ -329,15 +321,6 @@ runs:
         curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/mmtf/mmtf-cpp-1.1.0.zip
         mv mmtf*.zip src/bundles/mmtf/
         mv msgpack*.zip src/bundles/mmtf/
-
-    - name: Fetch rsync
-      shell: bash
-      if: ${{ inputs.platform == 'linux'}} && ${{ steps.cache-rsync-linux.outputs.cache-hit != 'true' }}
-      run: |
-        if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/rsync/rsync-3.2.7.tar.gz
-          mv rsync* prereqs/rsync/
-        fi
 
     - name: Fetch Python
       shell: bash
