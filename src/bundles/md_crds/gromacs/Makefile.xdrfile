@@ -22,14 +22,14 @@ QUOTE_CC := $(subst ','\'',$(VERBOSE_CC) $(TARGET_ARCH))
 QUOTE_CXX := $(subst ','\'',$(VERBOSE_CXX) $(TARGET_ARCH))
 
 # Make xdrfile use our compiler options
-ENV_CONFIGURE = CC='$(QUOTE_CC)' CXX='$(QUOTE_CXX)' LDFLAGS="$(TARGET_ARCH) $(LDFLAGS)" CFLAGS=
+ENV_CONFIGURE = MSYS2_ARG_CONV_EXCL=/OUT CC='$(QUOTE_CC)' CXX='$(QUOTE_CXX)' LDFLAGS="$(TARGET_ARCH) $(LDFLAGS)" CFLAGS=
 
 PATCHES =
 
 all: $(XDRFILE_LIB)
 
 $(XDRFILE_LIB): $(XDRFILE_LIB_SOURCE)
-	cd $(XDRFILE_LIB_SOURCE) ; $(MAKE)
+	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) $(MAKE)
 
 $(XDRFILE_LIB_SOURCE):
 	tar zxf $(XDRFILE_ARCHIVE)
@@ -40,7 +40,8 @@ ifneq ($(PATCHES),)
 		fi ; \
 	done
 endif
-	cp configure.edited $(XDRFILE_LIB_SOURCE)/configure
+	cp configure.ac $(XDRFILE_LIB_SOURCE)/configure.ac
+	cd $(XDRFILE_LIB_SOURCE) ; autoconf
 ifneq ($(filter $(MSYSTEM),MSYS MINGW64),)
 	# Though it says 'mingw32' inspection of the generated static library shows x86_64
 	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) ./configure --build=x86_64-w64-mingw32 --enable-shared --with-pic
