@@ -6,7 +6,6 @@ on:
 
 jobs:
   matrix_definitions:
-    if: false
     runs-on: ubuntu-latest
     strategy:
       matrix: &build-matrix
