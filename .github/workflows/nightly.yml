@@ -16,6 +16,8 @@ jobs:
           # These are the lines to change to change the current release branch
           # - branch: release/v1.9
           #   release_type: candidate
+    steps:
+      - run: echo true
   build-rocky8-docker:
     name: Build ChimeraX for Rocky 8
     strategy:
