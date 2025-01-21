@@ -8,12 +8,10 @@ jobs:
   build-rocky8-docker:
     name: Build ChimeraX for Rocky 8
     strategy:
-      matrix: &build-matrix
+      matrix:
         include: 
           - branch: develop
             release_type: daily
-          - branch: release/v1.9
-            release_type: candidate
     uses: ./.github/workflows/rocky8_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -24,7 +22,9 @@ jobs:
     needs: [build-rocky8-docker]
     strategy:
       matrix:
-        <<: *build-matrix
+        include: 
+          - branch: develop
+            release_type: daily
     uses: ./.github/workflows/rocky9_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -35,7 +35,9 @@ jobs:
     needs: [build-rocky8-docker]
     strategy:
       matrix:
-        <<: *build-matrix
+        include: 
+          - branch: develop
+            release_type: daily
     uses: ./.github/workflows/ubuntu_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -46,7 +48,9 @@ jobs:
     needs: [build-rocky8-docker]
     strategy:
       matrix:
-        <<: *build-matrix
+        include: 
+          - branch: develop
+            release_type: daily
     uses: ./.github/workflows/flatpak_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -56,7 +60,9 @@ jobs:
     name: Build ChimeraX for arm64 macOS
     strategy:
       matrix:
-        <<: *build-matrix
+        include: 
+          - branch: develop
+            release_type: daily
     uses: ./.github/workflows/mac_arm_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -66,7 +72,9 @@ jobs:
     name: Build ChimeraX for Intel macOS
     strategy:
       matrix:
-        <<: *build-matrix
+        include: 
+          - branch: develop
+            release_type: daily
     uses: ./.github/workflows/mac_intel_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -77,7 +85,9 @@ jobs:
     needs: [build-arm-macos, build-intel-macos]
     strategy:
       matrix:
-        <<: *build-matrix
+        include: 
+          - branch: develop
+            release_type: daily
     uses: ./.github/workflows/mac_universal_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -87,7 +97,9 @@ jobs:
     name: Build ChimeraX for Windows
     strategy:
       matrix:
-        <<: *build-matrix
+        include: 
+          - branch: develop
+            release_type: daily
     uses: ./.github/workflows/windows_build.yml
     with:
       branch: ${{ matrix.branch }}
