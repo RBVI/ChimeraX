@@ -3,6 +3,7 @@ name: Rebuild on change
 on:
   push:
     branches: [develop, release/*]
+    paths-ignore: [.github/workflows/nightly.yml, .github/workflows/*build.yml]
 
 jobs:
   build-and-test-rocky8-docker:
