@@ -4,20 +4,16 @@ on:
   schedule:
     - cron: "0 7 * * *" # 7AM UTC / 11PM PST / 12AM PDT
 
-x-build-matrix: &build-matrix # yamllint disable-line noqa
-  include:
-    - branch: develop
-      release_type: daily
-    - branch: release/v1.9
-      release_type: candidate
-
-
 jobs:
   build-rocky8-docker:
     name: Build ChimeraX for Rocky 8
     strategy:
-      matrix:
-        <<: *build-matrix
+      matrix: &build-matrix
+        include: 
+          - branch: develop
+            release_type: daily
+          - branch: release/v1.9
+            release_type: candidate
     uses: ./.github/workflows/rocky8_build.yml
     with:
       branch: ${{ matrix.branch }}
