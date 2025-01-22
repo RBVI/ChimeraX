@@ -16,9 +16,9 @@ test_lammps_dump = os.path.join(test_data_folder, "gly.dump")
 def test_md_crds(test_production_session, test_pdb, test_crd_file, expected_coordsets):
     session = test_production_session
     from chimerax.core.commands import run
-	if test_pdb.endswith(".pdb"):
-		run(session, "open %s" % test_pdb)
-		run(session, "open %s structureModel #1" % test_crd_file)
-	else:
-		run(session, "open %s coords %s" % (test_pdb, test_crd_file))
+    if test_pdb.endswith(".pdb"):
+        run(session, "open %s" % test_pdb)
+        run(session, "open %s structureModel #1" % test_crd_file)
+    else:
+        run(session, "open %s coords %s" % (test_pdb, test_crd_file))
     assert(session.models[0].num_coordsets == expected_coordsets), "Expected %i coordinate sets; actually produced %s" % (expected_coordsets, session.models[0].num_coordsets)
