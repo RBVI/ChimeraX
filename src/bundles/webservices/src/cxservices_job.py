@@ -216,7 +216,7 @@ class CxServicesJob(Job):
                 )
             reason = json.loads(e.body)["description"]
             if reason.startswith("No such job"):
-                self.state = TaskState.FINISHED
+                self.state = TaskState.DELETED
                 return
             raise JobMonitorError(str(e))
         self.state = status
