@@ -78,3 +78,24 @@ def test_save_scene(scene_manager):
     assert scene_manager.scene_exists('test_scene') # test_scene exists now
 
     scene_triggers.remove_handler(trigger_handler)
+
+def test_clear_scenes(scene_manager):
+    """
+    Test that clear deletes all scenes from the scene manager and the DELETED trigger is activated for each scene.
+    """
+    handler_func1, trigger_handler1 = setup_trigger_handler(scene_triggers.DELETED, 'test_scene_1')
+    handler_func2, trigger_handler2 = setup_trigger_handler(scene_triggers.DELETED, 'test_scene_2')
+
+    scene_manager.save_scene('test_scene_1') # create first test scene
+    scene_manager.save_scene('test_scene_2') # create second test scene
+    assert scene_manager.scene_exists('test_scene_1') # test_scene_1 exists now
+    assert scene_manager.scene_exists('test_scene_2') # test_scene_2 exists now
+
+    scene_manager.clear() # clear all scenes
+    assert not scene_manager.scene_exists('test_scene_1') # test_scene_1 does not exist anymore
+    assert not scene_manager.scene_exists('test_scene_2') # test_scene_2 does not exist anymore
+    assert handler_func1.called # ensure handler for test_scene_1 was called
+    assert handler_func2.called # ensure handler for test_scene_2 was called
+
+    scene_triggers.remove_handler(trigger_handler1)
+    scene_triggers.remove_handler(trigger_handler2)
