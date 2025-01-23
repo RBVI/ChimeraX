@@ -238,7 +238,7 @@ def install(use_amber = False, use_templates = False, install_log = 'install_log
     cmds = f'''
 set -e
 # We have to use "--no-warn-conflicts" because colab already has a lot preinstalled with requirements different to ours
-pip install --no-warn-conflicts "colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold@29395e7dee2c2895eaf585ef6b6cde932fd95e72"
+pip install --no-warn-conflicts "colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold@406d4c6cf25a0755f61b3adac7c5d47d3025f42c"
 # We use the Google Colab system jaxlib since it needs to be compatible with CUDA.
 # Haiku works with jax and we need an updated version to work with jax newer than 0.3.25
 pip install --upgrade dm-haiku
@@ -281,7 +281,7 @@ touch HH_READY
     cmds = f'''  
 # setup openmm for amber refinement
 set -e
-conda install -y -q -c conda-forge openmm=7.7.0 python={python_version} pdbfixer 2>&1 1>/dev/null
+conda install -y -q -c conda-forge openmm=8.0.0 python={python_version} pdbfixer 2>&1 1>/dev/null
 # Make colab python find conda openmm and pdbfixer
 ln -s /usr/local/lib/python{python_version}/site-packages/simtk .
 ln -s /usr/local/lib/python{python_version}/site-packages/openmm .

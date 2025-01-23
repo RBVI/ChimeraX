@@ -43,6 +43,14 @@ finish-args:
   - --filesystem=host
 
 modules:
+  - name: rsync
+    cleanup: /share/man
+    no-autogen: true
+    sources:
+      - type: archive
+        url: https://download.samba.org/pub/rsync/src/rsync-3.4.1.tar.gz
+        sha256: 2924bcb3a1ed8b551fc101f740b9f0fe0a202b115027647cf69850d65fd88c52
+
   - name: chimerax
     builddir: true
     buildsystem: simple
@@ -79,3 +87,6 @@ modules:
       - (cd lib; for m in $(find . -name Makefile); do sed -i "s/SHLIB_RDIRS=.*/SHLIB_RDIRS='\$\$ORIGIN'/" $m; done)
       - make -j -C src/lib
       - cd src/lib && cp libkrb5.so.3 libk5crypto.so.3 libcom_err.so.3 libkrb5support.so.0 libgssapi_krb5.so.2 /app/lib/python3*/site-packages/PyQt6/Qt6/lib/
+
+cleanup:
+  - '/bin/rsync*'

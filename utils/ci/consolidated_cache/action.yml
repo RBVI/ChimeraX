@@ -23,7 +23,7 @@ runs:
 
     - name: Restore cached plato pips (Linux)
       id: cache-plato-pips-linux
-      if: ${{ inputs.platform }} == 'linux'
+      if: ${{ inputs.platform == 'linux' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -32,7 +32,7 @@ runs:
 
     - name: Restore cached plato pips (Windows)
       id: cache-plato-pips-windows
-      if: ${{ inputs.platform }} == 'windows'
+      if: ${{ inputs.platform == 'windows' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -41,7 +41,7 @@ runs:
 
     - name: Restore cached plato pips (macOS)
       id: cache-plato-pips-macos
-      if: ${{ inputs.platform }} == 'macos'
+      if: ${{ inputs.platform == 'macos' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -128,14 +128,6 @@ runs:
           prereqs/ambertools/ambertools-flibs-20-Darwin.tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-ambertools
 
-    - name: Restore cached rsync (linux)
-      id: cache-rsync-linux
-      if: ${{ inputs.platform == 'linux' }}
-      uses: actions/cache@v4
-      with:
-        path: prereqs/rsync/rsync-3.2.7.tar.gz
-        key: ${{ runner.os }}-${{ inputs.architecture }}-rsync
-
     - name: Restore cached ffmpeg (Linux)
       id: cache-ffmpeg-linux-x86_64
       if: ${{ inputs.platform == 'linux' }}
@@ -162,7 +154,7 @@ runs:
 
     - name: Restore cached ffmpeg (macOS arm64)
       id: cache-ffmpeg-macos-arm64
-      if: ${{ inputs.platform == 'macos' }}
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'arm64' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -171,7 +163,7 @@ runs:
 
     - name: Restore cached ffmpeg (macOS Intel)
       id: cache-ffmpeg-macos-x86_64
-      if: ${{ inputs.platform == 'macos' }}
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'x86_64' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -184,8 +176,8 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/PyQt6_commercial-6.8.0-cp39-abi3-manylinux_2_28_x86_64.whl
-          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-manylinux_2_28_x86_64.whl
+          prereqs/PyQt/PyQt6_commercial-6.7.1-1-cp38-abi3-manylinux_2_28_x86_64.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.7.0-cp38-abi3-manylinux_2_28_x86_64.whl
         key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (Windows)
@@ -194,8 +186,8 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/PyQt6_commercial-6.8.0-cp39-abi3-win_amd64.whl
-          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-win_amd64.whl
+          prereqs/PyQt/PyQt6_commercial-6.7.1-cp38-abi3-win_amd64.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.7.0-cp38-abi3-win_amd64.whl
         key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (macOS)
@@ -204,8 +196,8 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/PyQt6_commercial-6.8.0-cp39-abi3-macosx_10_14_universal2.whl
-          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-macosx_10_14_universal2.whl
+          prereqs/PyQt/PyQt6_commercial-6.7.1-cp38-abi3-macosx_11_0_universal2.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.7.0-cp38-abi3-macosx_10_14_universal2.whl
         key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
 
     - name: Restore cached seggerx dependency sources
@@ -242,8 +234,12 @@ runs:
       shell: bash
       if: ${{ steps[format('cache-pyqt6-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
       run: |
-        export PYQT_VERSION=6.8.0
-        export PYQTWE_VERSION=6.8.0
+        if [ "${{ inputs.platform }}" = "linux" ] ; then
+          export PYQT_VERSION=6.7.1-1
+        else
+          export PYQT_VERSION=6.7.1
+        fi
+        export PYQTWE_VERSION=6.7.0
         export PYQT_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_pyqt.py?platform=${{ inputs.platform }}&version=${PYQT_VERSION}&webengine=false&architecture=${{ inputs.architecture }}"
         export PYQTWE_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_pyqt.py?platform=${{ inputs.platform }}&version=${PYQTWE_VERSION}&webengine=true&architecture=${{ inputs.architecture }}"
         curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${PYQT_URL} -O -J
@@ -325,15 +321,6 @@ runs:
         curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/mmtf/mmtf-cpp-1.1.0.zip
         mv mmtf*.zip src/bundles/mmtf/
         mv msgpack*.zip src/bundles/mmtf/
-
-    - name: Fetch rsync
-      shell: bash
-      if: ${{ steps.cache-rsync-linux.outputs.cache-hit != 'true' }}
-      run: |
-        if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/rsync/rsync-3.2.7.tar.gz
-          mv rsync* prereqs/rsync/
-        fi
 
     - name: Fetch Python
       shell: bash

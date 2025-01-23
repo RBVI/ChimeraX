@@ -136,9 +136,6 @@ RSYNC = rsync -rltWv --executability
 else
 RSYNC = $(TOP)/prereqs/win32/rsync.convert -rlptWv
 endif
-ifdef FLATPAK_DIST
-RSYNC := $(bindir)/$(RSYNC)
-endif
 
 ifdef WIN32
 PYTHON_INCLUDE_DIRS = -I'$(shell cygpath -m '$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)')'

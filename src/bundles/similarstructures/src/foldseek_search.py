@@ -153,7 +153,7 @@ class FoldseekWebQuery:
         results = requests.get(result_url, stream = True, headers = self._user_agent)
         if report_progress:
             total_bytes = results.headers.get('Content-length')
-            of_total = '' if total_bytes is None else f'of {"%.1f" % (total_bytes / (1024 * 1024))}'
+            of_total = '' if total_bytes is None else f'of {"%.1f" % (int(total_bytes) / (1024 * 1024))}'
             from time import time
             start_time = time()
         # Result is a tar gzip file containing a .m8 tab-separated value file.

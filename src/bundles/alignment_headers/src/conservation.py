@@ -37,6 +37,8 @@ class Conservation(DynamicHeaderSequence):
     STYLE_AL2CO = "AL2CO"
     styles = (STYLE_PERCENT, STYLE_CLUSTAL_CHARS, STYLE_AL2CO)
 
+    MAX_AL2CO_SEQS = 10000
+
     AL2CO_cite = ["Pei, J. and Grishin, N.V. (2001)",
             "AL2CO: calculation of positional conservation in a protein sequence alignment",
             "Bioinformatics, 17, 700-712."]
@@ -48,6 +50,10 @@ class Conservation(DynamicHeaderSequence):
         self.alignment = alignment
         if not hasattr(self.__class__, 'settings'):
             self.__class__.settings = self.make_settings(alignment.session)
+        if self.settings.style == self.STYLE_AL2CO and len(alignment.seqs) > self.MAX_AL2CO_SEQS:
+            alignment.session.logger.warning("%s performs poorly for more than %d sequences; switching to"
+                " %s conservation" % (self.STYLE_AL2CO, self.MAX_AL2CO_SEQS, self.STYLE_PERCENT))
+            self.settings.style = self.STYLE_PERCENT
         self._set_update_vars(self.settings.style)
         self.handler_ID = self.settings.triggers.add_handler('setting changed', self._setting_changed_cb)
         super().__init__(alignment, *args, eval_while_hidden=True, **kw)
@@ -289,7 +295,7 @@ class Conservation(DynamicHeaderSequence):
             sseq.name = str(i)
             sseq.characters = sseq.characters.replace(' ', '.')
 
-        temp_alignment = session.alignments.new_alignment(sane_seqs, False, auto_associate=False, name="temp", create_headers=False)
+        temp_alignment = session.alignments.new_alignment(sane_seqs, False, auto_associate=False, name="temp", create_headers=False, copy_seqs=False)
         from tempfile import NamedTemporaryFile
         temp_stream = NamedTemporaryFile(mode='w', encoding='utf8', suffix=".aln", delete=False)
         temp_alignment.save(temp_stream, format_name="aln")

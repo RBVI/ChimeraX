@@ -123,7 +123,7 @@ def parse_v2000(session, file_name, lines, structures, auto_style):
                     % (file_name, line))
             a1 = atoms[a1_index-1]
             a2 = atoms[a2_index-1]
-            if not a1 or not a2:
+            if not a1 or not a2 or a1 in a2.neighbors:
                 continue
             s.new_bond(a1, a2).order = order
         elif state == "properties":
