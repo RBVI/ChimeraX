@@ -86,7 +86,7 @@ class Alignment(State):
     COL_IDENTITY_ATTR = "seq_identity"
 
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
-            description, intrinsic, *, create_headers=True, session_restore=False):
+            description, intrinsic, *, create_headers=True, session_restore=False, copy_seqs=True):
         if not seqs:
             raise ValueError("Cannot create alignment of zero sequences")
         self.session = session
@@ -95,7 +95,7 @@ class Alignment(State):
             seqs = list(seqs)
         # prevent later accidental modification; also different alignments may contain the same sequence
         # (so prevent Alignment._destroy from messing up other alignments)
-        if session_restore:
+        if session_restore or not copy_seqs:
             self._seqs = seqs
         else:
             from copy import copy
@@ -143,7 +143,9 @@ class Alignment(State):
             # will do that), but allow future auto-association
             if auto_associate != "session":
                 from chimerax.atomic import AtomicStructure
-                self.associate([s for s in session.models if isinstance(s, AtomicStructure)], force=False)
+                structures = [s for s in session.models if isinstance(s, AtomicStructure)]
+                if structures:
+                    self.associate(structures, force=False)
             # get the auto-association working...
             self._auto_associate = False
             self.auto_associate = True
@@ -171,7 +173,8 @@ class Alignment(State):
                 from chimerax.atomic import Residue
                 Residue.register_attr(self.session, self.COL_IDENTITY_ATTR, "sequence alignment",
                     attr_type=float, can_return_none=False)
-            self._set_residue_attributes()
+            if not session_restore:
+                self._set_residue_attributes()
 
     def add_fixed_header(self, name, contents, *, shown=True, identifier=None, base_class=None):
         if len(contents) != len(self._seqs[0]):
@@ -996,6 +999,8 @@ class Alignment(State):
     def _set_residue_attributes(self, *, headers=None, match_maps=None):
         if match_maps is None:
             match_maps = [mm for aseq in self.associations.values() for mm in aseq.match_maps.values()]
+        if not match_maps:
+            return
         def process_attr(attr_name, col_vals):
             assigned = set()
             for match_map in match_maps:
