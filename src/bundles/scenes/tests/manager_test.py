@@ -50,5 +50,31 @@ def test_delete_scene(scene_manager):
     assert handler_func.called # ensure handler was called
     assert not scene_manager.scene_exists('test_scene') # test_scene does not exist anymore
 
-    triggers.remove_handler(del_handler)
+    scene_triggers.remove_handler(trigger_handler)
+
+def test_edit_scene(scene_manager):
+    """
+    Test that edit_scene re-initializes the scene from the current session state and activates the EDITED trigger.
+    """
+    handler_func, trigger_handler = setup_trigger_handler(scene_triggers.EDITED, 'test_scene')
+
+    scene_manager.save_scene('test_scene') # create test scene
+    assert scene_manager.scene_exists('test_scene') # test_scene exists now
+
+    scene_manager.edit_scene('test_scene') # edit test scene
+    assert handler_func.called # ensure handler was called
+
+    scene_triggers.remove_handler(trigger_handler)
+
+def test_save_scene(scene_manager):
+    """
+    Test that save_scene saves the current state as a scene and activates the SAVED trigger.
+    """
+    handler_func, trigger_handler = setup_trigger_handler(scene_triggers.SAVED, 'test_scene')
+
+    assert not scene_manager.scene_exists('test_scene') # test_scene does not exist yet
+    scene_manager.save_scene('test_scene') # save test scene
+    assert handler_func.called # ensure handler was called
+    assert scene_manager.scene_exists('test_scene') # test_scene exists now
+
     scene_triggers.remove_handler(trigger_handler)
