@@ -693,6 +693,10 @@ class Drawing:
                         return True
         return False
 
+    def set_shader_options(self, renderer):
+        '''Set any shader options that are unique to this drawing.'''
+        pass
+
     def set_geometry(self, vertices, normals, triangles,
                      edge_mask = None, triangle_mask = None):
         '''Set vertices, normals and triangles defining the shape to be drawn.'''
@@ -816,6 +820,7 @@ class Drawing:
         sopt = self._shader_options(transparent_only, opaque_only)
         r = renderer
         shader = r.shader(sopt)
+        self.set_shader_options(r)
 
         # Set color
         if self.vertex_colors is None and len(self._colors) == 1:
@@ -1624,7 +1629,7 @@ def draw_highlight_outline(renderer, drawings, color=(0,1,0,1), pixel_width=1):
     _draw_multiple(drawings, r, Drawing.HIGHLIGHT_DRAW_PASS)
     r.outline.finish_rendering_outline(color=color, pixel_width=pixel_width)
 
-    
+
 def draw_on_top(renderer, drawings):
     '''Draws the specified drawings but not their children.'''
     renderer.enable_depth_test(False)
