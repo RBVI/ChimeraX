@@ -161,7 +161,7 @@ class SceneManager(StateManager):
                 return scene
         return None
 
-    def get_scene_names(self) -> {str, Scene}:
+    def get_scene_names(self):
         """
         Returns:
             list[str]: Array of scene names.
