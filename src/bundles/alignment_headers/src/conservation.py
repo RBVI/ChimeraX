@@ -171,24 +171,12 @@ class Conservation(DynamicHeaderSequence):
 
     def percent_identity(self, pos, for_histogram=False):
         """actually returns a fraction"""
-        occur = {}
-        for seq in self.alignment.seqs:
-            let = seq[pos]
-            try:
-                occur[let] += 1
-            except KeyError:
-                occur[let] = 1
-        best = 0
-        for let, num in occur.items():
-            if not let.isalpha():
-                continue
-            if num > best:
-                best = num
-        if best == 0:
+        char, count = self.alignment.most_common(pos)
+        if count == 0:
             return 0.0
         if for_histogram:
-            return (best - 1) / (len(self.alignment.seqs) - 1)
-        return best / len(self.alignment.seqs)
+            return (count - 1) / (len(self.alignment.seqs) - 1)
+        return count / len(self.alignment.seqs)
 
     def reevaluate(self, pos1=0, pos2=None, *, evaluation_func=None):
         if self.style == self.STYLE_AL2CO:
