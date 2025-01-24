@@ -86,7 +86,7 @@ class Alignment(State):
     COL_IDENTITY_ATTR = "seq_identity"
 
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
-            description, intrinsic, *, create_headers=True, session_restore=False):
+            description, intrinsic, *, create_headers=True, session_restore=False, copy_seqs=True):
         if not seqs:
             raise ValueError("Cannot create alignment of zero sequences")
         self.session = session
@@ -95,7 +95,7 @@ class Alignment(State):
             seqs = list(seqs)
         # prevent later accidental modification; also different alignments may contain the same sequence
         # (so prevent Alignment._destroy from messing up other alignments)
-        if session_restore:
+        if session_restore or not copy_seqs:
             self._seqs = seqs
         else:
             from copy import copy
@@ -109,6 +109,7 @@ class Alignment(State):
         self.viewers = []
         self.viewers_by_subcommand = {}
         self.viewer_to_subcommand = {}
+        self._column_counts_cache = None
         self._observer_notification_suspended = 0
         self._ob_note_suspended_data = []
         self._modified_mmaps = []
@@ -143,7 +144,9 @@ class Alignment(State):
             # will do that), but allow future auto-association
             if auto_associate != "session":
                 from chimerax.atomic import AtomicStructure
-                self.associate([s for s in session.models if isinstance(s, AtomicStructure)], force=False)
+                structures = [s for s in session.models if isinstance(s, AtomicStructure)]
+                if structures:
+                    self.associate(structures, force=False)
             # get the auto-association working...
             self._auto_associate = False
             self.auto_associate = True
@@ -171,7 +174,8 @@ class Alignment(State):
                 from chimerax.atomic import Residue
                 Residue.register_attr(self.session, self.COL_IDENTITY_ATTR, "sequence alignment",
                     attr_type=float, can_return_none=False)
-            self._set_residue_attributes()
+            if not session_restore:
+                self._set_residue_attributes()
 
     def add_fixed_header(self, name, contents, *, shown=True, identifier=None, base_class=None):
         if len(contents) != len(self._seqs[0]):
@@ -487,6 +491,19 @@ class Alignment(State):
     def being_destroyed(self):
         return self._in_destroy
 
+    def column_counts(self):
+        """Returns a dictionary keyed on column index, with values that are 2-tuples of numpy
+           arrays; the first member is the array of unique characters in that column, and the
+           second array is the corresponding counts for those characters.
+        """
+        if self._column_counts_cache is None:
+            import numpy
+            data = numpy.array([list(seq.characters) for seq in self._seqs])
+            cache = self._column_counts_cache = {}
+            for i in range(len(data[0])):
+                cache[i] = numpy.unique(data[:,i], return_counts=True)
+        return self._column_counts_cache.copy()
+
     def detach_viewer(self, viewer):
         """Called when a viewer is done with the alignment (see attach_viewer)"""
         self.viewers.remove(viewer)
@@ -662,6 +679,27 @@ class Alignment(State):
             except align.IterationError:
                 return_vals.append((None, None, None, None, None))
         return return_vals
+
+    def most_common(self, col_index, *, non_gap=True):
+        """Returns most common character in the column given by 'col_index' and the count for that character.
+           For ties, one of the most common characters, chosen arbitrarily, will be returned.  If 'non_gap'
+           is True, gap characters will be ignored.
+        """
+        chars, counts = self.column_counts()[col_index]
+        if non_gap:
+            max_count = 0
+            for char, count in zip(chars, counts):
+                if not char.isalpha():
+                    continue
+                if count > max_count:
+                    max_count = count
+                    max_char = char
+            if max_count == 0:
+                return ' ', 0
+            return max_char, max_count
+        import numpy
+        max_index = numpy.argmax(counts)
+        return chars[max_index], counts[max_index]
 
     def notify(self, note_name, note_data):
         """Used by headers to issue notifications, but theoretically could be used by anyone"""
@@ -979,6 +1017,7 @@ class Alignment(State):
                 break
 
     def _seq_characters_changed_cb(self, trig_name, seq):
+        self._column_counts_cache = None
         if not getattr(self, '_realigning', False):
             self._notify_observers(self.NOTE_SEQ_CONTENTS, seq)
 
@@ -996,6 +1035,8 @@ class Alignment(State):
     def _set_residue_attributes(self, *, headers=None, match_maps=None):
         if match_maps is None:
             match_maps = [mm for aseq in self.associations.values() for mm in aseq.match_maps.values()]
+        if not match_maps:
+            return
         def process_attr(attr_name, col_vals):
             assigned = set()
             for match_map in match_maps:
@@ -1016,22 +1057,7 @@ class Alignment(State):
         if headers is None:
             headers = [hdr for hdr in self._headers if hdr.shown or hdr.eval_while_hidden]
             if len(self.seqs) > 1:
-                values = []
-                for i in range(len(self._seqs[0])):
-                    counts = {}
-                    for seq in self._seqs:
-                        c = seq[i]
-                        if not c.isalnum():
-                            continue
-                        counts[c] = counts.get(c, 0) + 1
-                    if not counts:
-                        values.append(0.0)
-                        continue
-                    max_count = None
-                    for c, count in counts.items():
-                        if max_count is None or count > max_count:
-                            max_count = count
-                    values.append(100.0 * max_count / len(self._seqs))
+                values = [100.0 * self.most_common(col)[1] for col in range(len(self._seqs[0]))]
                 process_attr(self.COL_IDENTITY_ATTR, values)
         from chimerax.atomic import Residue
         for header in headers:

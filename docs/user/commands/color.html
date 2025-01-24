@@ -608,6 +608,7 @@ to make the cap match the nearby atoms.
 [&nbsp;<a href="#palette"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
 [&nbsp;<b>range</b>&nbsp;&nbsp;<i>low</i>,<i>high</i>&nbsp;|&nbsp;full&nbsp;]
 [&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<b>outsideColor</b>&nbsp&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 </blockquote>
 <p>
 The <b>sample</b>, <b>electrostatic</b>, and <b>gradient</b> coloring options
@@ -627,7 +628,12 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=white width="10px" title="white"></td>
 <td bgcolor=blue width="10px" title="blue"></td>
 </tr></table> and the <a href="#range"><b>range</b></a> default depends on the 
-specific type of map coloring, explained below.
+specific type of map coloring, explained below;
+the <b>outsideColor</b> is used for surface vertices 
+that fall outside the volume data grid box
+(default <b>#808080</b> <table border cellpadding="4" cellspacing="0"
+style="display:inline-block"><tr>
+<td bgcolor="#808080" width="10px" title="#808080"></td></tr></table>).
 </p><p>
 When the coloring command is run interactively (in gui mode and not via a
 <a href="usageconventions.html#cxc-files">script</a>),
@@ -1311,5 +1317,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2024</address>
+January 2025</address>
 </body></html>
