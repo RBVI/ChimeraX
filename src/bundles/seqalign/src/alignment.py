@@ -109,6 +109,7 @@ class Alignment(State):
         self.viewers = []
         self.viewers_by_subcommand = {}
         self.viewer_to_subcommand = {}
+        self._column_counts_cache = None
         self._observer_notification_suspended = 0
         self._ob_note_suspended_data = []
         self._modified_mmaps = []
@@ -490,6 +491,19 @@ class Alignment(State):
     def being_destroyed(self):
         return self._in_destroy
 
+    def column_counts(self):
+        """Returns a dictionary keyed on column index, with values that are 2-tuples of numpy
+           arrays; the first member is the array of unique characters in that column, and the
+           second array is the corresponding counts for those characters.
+        """
+        if self._column_counts_cache is None:
+            import numpy
+            data = numpy.array([list(seq.characters) for seq in self._seqs])
+            cache = self._column_counts_cache = {}
+            for i in range(len(data[0])):
+                cache[i] = numpy.unique(data[:,i], return_counts=True)
+        return self._column_counts_cache.copy()
+
     def detach_viewer(self, viewer):
         """Called when a viewer is done with the alignment (see attach_viewer)"""
         self.viewers.remove(viewer)
@@ -665,6 +679,27 @@ class Alignment(State):
             except align.IterationError:
                 return_vals.append((None, None, None, None, None))
         return return_vals
+
+    def most_common(self, col_index, *, non_gap=True):
+        """Returns most common character in the column given by 'col_index' and the count for that character.
+           For ties, one of the most common characters, chosen arbitrarily, will be returned.  If 'non_gap'
+           is True, gap characters will be ignored.
+        """
+        chars, counts = self.column_counts()[col_index]
+        if non_gap:
+            max_count = 0
+            for char, count in zip(chars, counts):
+                if not char.isalpha():
+                    continue
+                if count > max_count:
+                    max_count = count
+                    max_char = char
+            if max_count == 0:
+                return ' ', 0
+            return max_char, max_count
+        import numpy
+        max_index = numpy.argmax(counts)
+        return chars[max_index], counts[max_index]
 
     def notify(self, note_name, note_data):
         """Used by headers to issue notifications, but theoretically could be used by anyone"""
@@ -982,6 +1017,7 @@ class Alignment(State):
                 break
 
     def _seq_characters_changed_cb(self, trig_name, seq):
+        self._column_counts_cache = None
         if not getattr(self, '_realigning', False):
             self._notify_observers(self.NOTE_SEQ_CONTENTS, seq)
 
@@ -1021,22 +1057,7 @@ class Alignment(State):
         if headers is None:
             headers = [hdr for hdr in self._headers if hdr.shown or hdr.eval_while_hidden]
             if len(self.seqs) > 1:
-                values = []
-                for i in range(len(self._seqs[0])):
-                    counts = {}
-                    for seq in self._seqs:
-                        c = seq[i]
-                        if not c.isalnum():
-                            continue
-                        counts[c] = counts.get(c, 0) + 1
-                    if not counts:
-                        values.append(0.0)
-                        continue
-                    max_count = None
-                    for c, count in counts.items():
-                        if max_count is None or count > max_count:
-                            max_count = count
-                    values.append(100.0 * max_count / len(self._seqs))
+                values = [100.0 * self.most_common(col)[1] for col in range(len(self._seqs[0]))]
                 process_attr(self.COL_IDENTITY_ATTR, values)
         from chimerax.atomic import Residue
         for header in headers:
