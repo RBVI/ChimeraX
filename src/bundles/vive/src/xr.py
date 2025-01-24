@@ -783,6 +783,11 @@ class OpenXRCamera(Camera, StateManager):
         if self._xr is None:
             return
 
+        if self._xr.connection_closed:
+            self._session.logger.error('OpenXR connection closed')
+            stop_vr(self._session)
+            return
+
         self.process_controller_events()
         self.user_interface.update_if_needed()
 
