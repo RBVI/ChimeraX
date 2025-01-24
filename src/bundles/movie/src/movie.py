@@ -379,6 +379,7 @@ class Movie:
 
 def getRandomChars():
     import string, random
+    random.seed()	# Initialize random seed using current time
     alphanum = string.ascii_letters + string.digits
     return ''.join(random.choice(alphanum) for x in range(4))
 
