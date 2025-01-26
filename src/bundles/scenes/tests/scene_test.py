@@ -150,3 +150,21 @@ def test_get_name(test_production_session):
 
     test_scene = scenes_mgr.get_scene("test_scene")
     assert test_scene.get_name() == "test_scene"
+
+def test_restore_snapshot(test_production_session):
+    """
+    Test that restore_snapshot restores the scene data from the snapshot data with the correct version number.
+    """
+    scenes_mgr = test_production_session.scenes
+    scenes_mgr.save_scene("test_scene")
+
+    test_scene = scenes_mgr.get_scene("test_scene")
+    snapshot_data = test_scene.take_snapshot(test_production_session, 0)
+    snapshot_data['version'] = -1
+
+    try:
+        test_scene.restore_snapshot(test_production_session, snapshot_data)
+    except ValueError as e:
+        assert str(e) == "Cannot restore Scene data with version -1"
+    else:
+        assert False, "ValueError not raised when restoring invalid scene version number"
