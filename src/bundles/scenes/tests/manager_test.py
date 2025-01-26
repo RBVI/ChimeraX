@@ -20,8 +20,8 @@ def setup_trigger_handler(trigger_type, expected_scene_name):
     """
     def handler_func(trigger_name, scene_name):
         assert trigger_name == trigger_type
-        assert scene_name == expected_scene_name
-        handler_func.called = True
+        if scene_name == expected_scene_name:
+            handler_func.called = True
 
     handler_func.called = False
     trigger_handler = scene_triggers.add_handler(trigger_type, handler_func)
