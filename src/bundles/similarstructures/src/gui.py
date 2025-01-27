@@ -317,13 +317,18 @@ class SimilarStructuresPanel(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _from_set_option(self):
-        if self.results is None:
-            from chimerax.core.errors import UserError
-            raise UserError('Must run search first')
+        self._warn_if_no_results()
         from .simstruct import similar_structures_manager
         ssm = similar_structures_manager(self.session)
         option = f' from {self.results.name}' if ssm.count > 1 else ''
         return option
+
+    # ---------------------------------------------------------------------------
+    #
+    def _warn_if_no_results(self):
+        if self.results is None:
+            from chimerax.core.errors import UserError
+            raise UserError('Must run search first')
 
     # ---------------------------------------------------------------------------
     #
@@ -335,6 +340,7 @@ class SimilarStructuresPanel(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _show_cluster_plot(self, *, nres = 5):
+        self._warn_if_no_results()
         r = self.results
         if r.query_chain is None:
             self.session.logger.error('Cannot compute similar structure clusters without query structure')
@@ -355,6 +361,7 @@ class SimilarStructuresPanel(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _show_ligands(self):
+        self._warn_if_no_results()
         pdb_hits = [hit for hit in self.results.hits if hit['database'].startswith('pdb')]
         if len(pdb_hits) == 0:
             self.session.logger.error('Only search results from the Protein Databank have ligands')
