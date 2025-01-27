@@ -28,7 +28,7 @@
 #
 from chimerax.core.tools import ToolInstance
 class SimilarStructuresPanel(ToolInstance):
-    help = 'help:user/tools/similarstructures.html'
+    help = 'help:user/tools/foldseek.html'
 
     def __init__(self, session, tool_name = 'Similar Structures'):
 
