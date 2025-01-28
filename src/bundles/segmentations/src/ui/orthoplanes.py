@@ -761,26 +761,32 @@ class PlaneViewer(QWindow):
         self.color_key.rgbas_and_labels = rgba_and_labels
 
     def _update_position_label_text(self) -> None:
-        dicom_data = self.view.drawing.parent.data.dicom_data
-        x_spacing, y_spacing = dicom_data.sample_file.PixelSpacing
-        z_spacing = dicom_data.sample_file.SliceThickness
-        minimum_value = dicom_data.sample_file.ImagePositionPatient[self.axis]
-        # TODO: Re-do the camera so we don't have to do this +/- conversion anymore
-        # it's starting to get a little ridiculous
-        spacing = 0
-        factor = 1
-        if self.axis == Axis.AXIAL:
-            spacing = z_spacing
-        if self.axis == Axis.CORONAL:
-            spacing = x_spacing
-            factor = -1
-        if self.axis == Axis.SAGITTAL:
-            spacing = y_spacing
-        position = round(factor * (minimum_value + self.pos * spacing), 4)
-        self._set_position_label_text(position)
+        if hasattr(self.view.drawing.parent.data, "dicom_data"):
+            dicom_data = self.view.drawing.parent.data.dicom_data
+            x_spacing, y_spacing = dicom_data.sample_file.PixelSpacing
+            z_spacing = dicom_data.sample_file.SliceThickness
+            minimum_value = dicom_data.sample_file.ImagePositionPatient[self.axis]
+            # TODO: Re-do the camera so we don't have to do this +/- conversion anymore
+            # it's starting to get a little ridiculous
+            spacing = 0
+            factor = 1
+            if self.axis == Axis.AXIAL:
+                spacing = z_spacing
+            if self.axis == Axis.CORONAL:
+                spacing = x_spacing
+                factor = -1
+            if self.axis == Axis.SAGITTAL:
+                spacing = y_spacing
+            position = round(factor * (minimum_value + self.pos * spacing), 4)
+            label_text = f"{position:.4f}mm"
+        else:
+            pos = self.pos
+            max = self.dimensions[self.axis]
+            label_text = f"Slice {pos}/{max}"
+        self._set_position_label_text(label_text)
 
-    def _set_position_label_text(self, value: float) -> None:
-        self.position_label.setText(f"{value:.4f}mm")
+    def _set_position_label_text(self, text: str) -> None:
+        self.position_label.setText(text)
 
     def close(self):
         # TODO: why does this call make it crash?
