@@ -640,6 +640,9 @@ class Image3d(Model):
                 pm = ("2d-x", "2d-y", "2d-z")[list(s).index(smin)]
             else:
                 pm = "3d"
+        if pm == 'rays':
+            self._rendering_options.colormap_on_gpu = True
+            self._rendering_options.full_region_on_gpu = True
         return pm
 
     # ---------------------------------------------------------------------------
