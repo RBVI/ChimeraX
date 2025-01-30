@@ -18,7 +18,7 @@ include $(TOP)/mk/config.make
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
 REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
-	  alphafold altloc_explorer amber_info arrays atom_search \
+	  alphafold altloc_explorer amber_info aniso arrays atom_search \
 	  atomic atomic_lib axes_planes basic_actions bild \
 	  blastprotein bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \

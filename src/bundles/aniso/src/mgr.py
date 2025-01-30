@@ -44,7 +44,7 @@ class _StructureAnisoManager(StateManager):
         if not from_session:
             from chimerax.atomic import Atoms
             self.shown_atoms = Atoms()
-            self.atom_depictions = {}
+            self.atom_depictions = None
             self.drawing_params = {
                 'axis_color': None,
                 'axis_factor': None,
@@ -65,30 +65,28 @@ class _StructureAnisoManager(StateManager):
         for handler in self.handlers:
             handler.remove()
         if not self.structure.deleted:
-            self.structure.remove_drawings(self.atom_depictions.values())
+            self.structure.remove_drawing(self.atom_depictions)
         self.structure = self.session = None
         super().destroy()
 
     def hide(self, atoms):
         """Hide thermal ellipsoids for these atoms"""
         cur_shown = len(self.shown_atoms)
-        self.shown_atoms = self.shown_atoms.subtract(atoms)
-        if len(self.shown_atoms) == cur_shown:
-            return
-        for a in atoms:
-            self.atom_depictions[a].display = False
+        self.shown_atoms = self.shown_atoms.subtract(self._filter_aniso(atoms))
+        if len(self.shown_atoms) != cur_shown:
+            self._create_depictions()
 
     def show(self, atoms):
         """Show thermal ellipsoids for these atoms"""
         cur_shown = len(self.shown_atoms)
+        atoms = self._filter_aniso(atoms)
         self.shown_atoms = self.shown_atoms.merge(atoms)
         if len(self.shown_atoms) == cur_shown:
             return
-        displayed_atoms = atoms.filter(atoms.displays)
-        for a in displayed_atoms.filter(displayed_atoms.hides == 0):
-            self.atom_depictions[a].display = True
+        self._create_depictions(atoms)
 
     def style(self, **kw):
+        print("style keywords:", kw)
         need_rebuild = False
         for param, value in kw.items():
             if self.drawing_params.get(param) != value:
@@ -117,34 +115,31 @@ class _StructureAnisoManager(StateManager):
         and set(changes.atom_reasons()).isdisjoint(self.atom_reasons)):
             self._create_depictions()
         elif changes.num_deleted_atoms() > 0:
-            dead_drawings = [d for a, d in self.atom_depictions.items() if a.deleted]
-            if dead_drawings:
-                structure.remove_drawings(dead_drawings)
-                self.atom_depictions = {a:d for a,d in self.atom_depictions.items() if not a.deleted}
+            self._create_depictions()
 
-    def _create_depictions(self):
-        if self.atom_depictions:
-            self.structure.remove_drawings(self.atom_depictions.values())
-        self.atom_depictions.clear()
-
-        atoms = self.structure.atoms
-        atoms = atoms[atoms.has_aniso_u]
-        displayed_atoms = self.shown_atoms.filter(self.shown_atoms.displays)
-        explicitly_depicted = set(displayed_atoms.filter(displayed_atoms.hides == 0))
+    def _create_depictions(self, added_atoms=None):
+        # added_atoms and self.shown_atoms already filtered for having aniso info
         from chimerax.atomic.shapedrawing import AtomicShapeDrawing
+        if not added_atoms:
+            if self.atom_depictions is not None:
+                self.structure.remove_drawing(self.atom_depictions)
+            self.atom_depictions = self.structure.new_drawing('thermal ellipsoid',
+                subclass=AtomicShapeDrawing)
+            added_atoms = self.shown_atoms
+
+        displayed_atoms = added_atoms.filter(added_atoms.displays)
+        explicitly_depicted = set(displayed_atoms.filter(displayed_atoms.hides == 0))
+
         from chimerax.atomic import Atoms
         from numpy.linalg import svd
         from numpy import dot, sqrt, negative, cross, array
         dp = self.drawing_params
         drawing_info = []
-        for a in atoms:
-            drawing = self.structure.new_drawing('thermal ellipsoid', subclass=AtomicShapeDrawing)
-            self.atom_depictions[a] = drawing
-            drawing.display = a in explicitly_depicted
+        for a in explicitly_depicted:
             ignore, lengths, axes = svd(a.aniso_u)
             lengths2 = sqrt(lengths)
             lengths2 *= dp['scale']
-            drawing_info.append((a, drawing, Atoms([a]), axes, lengths2))
+            drawing_info.append((Atoms([a]), axes, lengths2))
 
         smoothing = dp['smoothing']
 
@@ -154,7 +149,8 @@ class _StructureAnisoManager(StateManager):
             transparency = dp['transparency']
             from chimerax.geometry.icosahedron import icosahedron_triangulation
             varray, tarray = icosahedron_triangulation(subdivision_levels=smoothing, sphere_factor=1.0)
-            for atom, drawing, atoms_arg, axes, lengths2 in drawing_info:
+            for atoms_arg, axes, lengths2 in drawing_info:
+                atom = atoms_arg[0]
                 ee = varray * lengths2
                 if dot(cross(axes[0], axes[1]), axes[2]) < 0:
                     axes = negative(axes)
@@ -168,13 +164,14 @@ class _StructureAnisoManager(StateManager):
                 if transparency is not None:
                     # transparency is a percentage
                     color = color[:-1] + (round((100 - transparency) * 2.55),)
-                drawing.add_shape(ev, calc_normals(ev, tarray), tarray, color, atoms_arg)
+                self.atom_depictions.add_shape(ev, calc_normals(ev, tarray), tarray, color, atoms_arg)
 
         axis_factor = dp['axis_factor']
         if axis_factor is not None:
             color_param = dp['axis_color']
             thickness = dp['axis_thickness']
-            for atom, drawing, atoms_arg, axes, lengths2 in drawing_info:
+            for atoms_arg, axes, lengths2 in drawing_info:
+                atom = atoms_arg[0]
                 if color_param is None:
                     # match atom
                     color = atom.color
@@ -187,7 +184,7 @@ class _StructureAnisoManager(StateManager):
                     ev = dot(ee, axes)
                     ev += atom.coord
                     tarray = cube_triangles
-                    drawing.add_shape(ev, calc_normals(ev, tarray), tarray, color, atoms_arg)
+                    self.atom_depictions.add_shape(ev, calc_normals(ev, tarray), tarray, color, atoms_arg)
 
         ellipse_factor = dp['ellipse_factor']
         if ellipse_factor is not None:
@@ -198,7 +195,8 @@ class _StructureAnisoManager(StateManager):
                 nz, nc = cylinder_divisions(1.0, 1.0, 9 * (2**smoothing))
                 self._cylinder_cache[smoothing] = cylinder_geometry(1.0, 1.0, nz, nc, True)
             ellipse_vertices, ellipse_triangles = self._cylinder_cache[smoothing]
-            for atom, drawing, atoms_arg, axes, lengths2 in drawing_info:
+            for atoms_arg, axes, lengths2 in drawing_info:
+                atom = atoms_arg[0]
                 if color_param is None:
                     # match atom
                     color = atom.color
@@ -214,7 +212,10 @@ class _StructureAnisoManager(StateManager):
                     ev = dot(ee, axes)
                     ev += atom.coord
                     tarray = ellipse_triangles
-                    drawing.add_shape(ev, calc_normals(ev, tarray), tarray, color, atoms_arg)
+                    self.atom_depictions.add_shape(ev, calc_normals(ev, tarray), tarray, color, atoms_arg)
+
+    def _filter_aniso(self, atoms):
+        return atoms[atoms.has_aniso_u]
 
     def _models_closed_cb(self, trigger_name, closed_models):
         if self.structure in closed_models:
@@ -228,6 +229,7 @@ class _StructureAnisoManager(StateManager):
     def restore_snapshot(cls, session, data):
         inst = cls(session, data['structure'], from_session=True)
         inst.atom_depictions = data['atom_depictions']
+        inst.structure.add_drawing(inst.atom_depictions)
         inst.drawing_params = data['drawing_params']
         inst.shown_atoms = data['shown_atoms']
         def delayed_registration(*args, inst=inst):
