@@ -767,7 +767,7 @@ class PlaneViewer(QWindow):
         if hasattr(self.view.drawing.parent.data, "dicom_data"):
             dicom_data = self.view.drawing.parent.data.dicom_data
             x_spacing, y_spacing = dicom_data.sample_file.PixelSpacing
-            z_spacing = dicom_data.sample_file.SliceThickness
+            z_spacing = dicom_data.affine[3][3]
             minimum_value = dicom_data.sample_file.ImagePositionPatient[self.axis]
             # TODO: Re-do the camera so we don't have to do this +/- conversion anymore
             # it's starting to get a little ridiculous
