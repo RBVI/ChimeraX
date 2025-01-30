@@ -1566,7 +1566,9 @@ class PlaneViewer(QWindow):
                     "region": (v.region[0], v.region[1]),
                     "planes": self.axis.cartesian,
                 },
-                roptions={},
+                roptions={
+                    "projection_mode": "3d"
+                },
                 image_mode_off=False,
                 session=self.session,
             )
