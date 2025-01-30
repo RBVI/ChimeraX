@@ -86,6 +86,7 @@ class _StructureAnisoManager(StateManager):
         self._create_depictions(atoms)
 
     def style(self, **kw):
+        print("style keywords:", kw)
         need_rebuild = False
         for param, value in kw.items():
             if self.drawing_params.get(param) != value:
