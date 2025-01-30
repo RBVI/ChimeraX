@@ -416,6 +416,9 @@ class PlaneViewer(QWindow):
         self.guideline_visibility_handler = chimerax.segmentations.triggers.add_handler(
             Trigger.GuidelinesVisibilityChanged, self._on_guideline_visibility_changed
         )
+        self.color_key_visibility_changed_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.ColorKeysVisibilityChanged, self._on_color_key_visibility_changed
+        )
         self.segmentation_modified_handler = (
             chimerax.segmentations.triggers.add_handler(
                 SEGMENTATION_MODIFIED, self._on_segmentation_modified
@@ -798,6 +801,9 @@ class PlaneViewer(QWindow):
             self.guideline_visibility_handler
         )
         chimerax.segmentations.triggers.remove_handler(
+            self.color_key_visibility_changed_handler
+        )
+        chimerax.segmentations.triggers.remove_handler(
             self.segmentation_modified_handler
         )
         chimerax.segmentations.triggers.remove_handler(
@@ -949,8 +955,20 @@ class PlaneViewer(QWindow):
             Trigger.GuidelinesVisibilityChanged
         )
 
-    def toggle_color_key(self):
-        self.color_key.display = not self.color_key.display
+    def toggle_color_keys(self):
+        from chimerax.segmentations.settings import get_settings
+        settings = get_settings(self.session)
+        settings.display_color_keys = not settings.display_color_keys
+
+        chimerax.segmentations.triggers.activate_trigger(
+            Trigger.ColorKeysVisibilityChanged
+        )
+
+    def _on_color_key_visibility_changed(self, _, __):
+        from chimerax.segmentations.settings import get_settings
+
+        settings = get_settings(self.session)
+        self.setColorKeyVisibility(settings.display_color_keys)
 
     def _on_guideline_visibility_changed(self, _, __):
         from chimerax.segmentations.settings import get_settings
@@ -1094,6 +1112,10 @@ class PlaneViewer(QWindow):
         self.vertical_slice_overlay.display = visibility
         self.render()
 
+    def setColorKeyVisibility(self, visibility: bool):
+        self.color_key.display = visibility
+        self.render()
+
     def enableSegmentationOverlays(self):
         self.segmentation_cursor_overlay.display = True
 
@@ -1162,14 +1184,14 @@ class PlaneViewer(QWindow):
                     if not self.context_menu:
                         self.context_menu = QMenu(parent=self.parent)
                         toggle_guidelines_action = QAction("Toggle Guidelines")
-                        toggle_color_key_action = QAction("Toggle Color Guide")
+                        toggle_color_key_action = QAction("Toggle Color Keys")
                         self.context_menu.addAction(toggle_guidelines_action)
                         self.context_menu.addAction(toggle_color_key_action)
                         toggle_guidelines_action.triggered.connect(
                             lambda: self.toggle_guidelines()
                         )
                         toggle_color_key_action.triggered.connect(
-                            lambda: self.toggle_color_key()
+                            lambda: self.toggle_color_keys()
                         )
                         self.context_menu.aboutToHide.connect(self.enterEvent)
                     self.context_menu.exec(self.context_menu_coords)
