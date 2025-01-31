@@ -880,6 +880,8 @@ t0 = t1;
                                     if (grand_O2)
                                         continue;
                                 }
+                                if (bondee->idatm_type() == "C")
+                                    redo[a] = 4;
                                 set_N2 = true;
                                 break;
                             }
@@ -1081,7 +1083,8 @@ t0 = t1;
                         a->set_computed_idatm_type("Npl");
                     break;
                 }
-            } else if (redo[a] == 3) {
+            //} else if (redo[a] == 3) {
+            } else {
                 if ((sqlen <= p4c2c && bondee_element == Element::C)
                 || (sqlen <= p4c2n && bondee_element == Element::N)) {
                     a->set_computed_idatm_type("C2");
@@ -1819,6 +1822,17 @@ t0 = t1;
 #ifdef TIME_PASSES
 t1 = clock();
 std::cerr << "pass 4.5 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
+
+    // "pass 4.75":  this pass is a followup to Car determination and
+    //    therefore also not in the IDATM paper:  reexamine nitrogens
+    //    that are now adjacent to Car atoms and ensure that their N2
+    //    vs. Npl assignments still make sense
+
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 4.75 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
 t0 = t1;
 #endif
 
