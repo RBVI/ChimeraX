@@ -859,6 +859,8 @@ class Sequence(State):
     def __copy__(self, copy_seq=None):
         if copy_seq is None:
             copy_seq = Sequence(name=self.name, characters=self.characters)
+            if hasattr(self, 'description'):
+                copy_seq.description = self.description
         else:
             copy_seq.characters = self.characters
         from copy import copy

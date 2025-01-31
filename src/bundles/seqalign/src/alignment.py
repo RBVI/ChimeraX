@@ -86,7 +86,7 @@ class Alignment(State):
     COL_IDENTITY_ATTR = "seq_identity"
 
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
-            description, intrinsic, *, create_headers=True, session_restore=False, copy_seqs=True):
+            description, intrinsic, *, create_headers=True, session_restore=False, copy_seqs=None):
         if not seqs:
             raise ValueError("Cannot create alignment of zero sequences")
         self.session = session
@@ -95,6 +95,8 @@ class Alignment(State):
             seqs = list(seqs)
         # prevent later accidental modification; also different alignments may contain the same sequence
         # (so prevent Alignment._destroy from messing up other alignments)
+        if copy_seqs is None:
+            copy_seqs = False if ident is False else True
         if session_restore or not copy_seqs:
             self._seqs = seqs
         else:
