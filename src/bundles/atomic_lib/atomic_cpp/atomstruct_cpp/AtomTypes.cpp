@@ -865,7 +865,7 @@ t0 = t1;
                                     continue;
                                 if (sqlen > p4n2c)
                                     continue;
-                                if (bondee->idatm_type() == "Cac" || bondee->idatm_type() == "C")
+                                if (bondee->idatm_type() == "Cac")
                                     continue;
                                 if (bondee->idatm_type() == "C2") {
                                     bool grand_O2 = false;
@@ -880,6 +880,8 @@ t0 = t1;
                                     if (grand_O2)
                                         continue;
                                 }
+                                if (bondee->idatm_type() == "C")
+                                    redo[a] = 4;
                                 set_N2 = true;
                                 break;
                             }
@@ -1081,7 +1083,9 @@ t0 = t1;
                         a->set_computed_idatm_type("Npl");
                     break;
                 }
-            } else if (redo[a] == 3) {
+            } else if (redo[a] == 3 || redo[a] == -1) {
+                // seems to work better with -1 also, though that isn't original
+                // IDATM (HEMs in 4hhb)
                 if ((sqlen <= p4c2c && bondee_element == Element::C)
                 || (sqlen <= p4c2n && bondee_element == Element::N)) {
                     a->set_computed_idatm_type("C2");
@@ -1819,6 +1823,58 @@ t0 = t1;
 #ifdef TIME_PASSES
 t1 = clock();
 std::cerr << "pass 4.5 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
+
+    // "pass 4.75":  this pass is a followup to Car determination and
+    //    therefore also not in the IDATM paper:  reexamine nitrogens
+    //    that are now adjacent to Car atoms and ensure that their N2
+    //    vs. Npl assignments still make sense
+    for (auto a: untyped_atoms) {
+
+        if (redo[a] != 4)
+            continue;
+
+        if (a->idatm_type() != "N2")
+            continue;
+
+        bool all_single = true;
+        bool seen_Car = false;
+        for (auto nb: a->neighbors()) {
+            auto nb_type = nb->idatm_type();
+            if (nb_type == "Car")
+                seen_Car = true;
+            else {
+                auto type_ptr = info_map.find(nb_type);
+                if (type_ptr == info_map.end())
+                    continue;
+                if ((*type_ptr).second.geometry != 3)
+                    continue;
+                bool other_double = false;
+                for (auto gnb: nb->neighbors()) {
+                    if (gnb == a)
+                        continue;
+                    auto gtype_ptr = info_map.find(gnb->idatm_type());
+                    if (gtype_ptr == info_map.end())
+                        continue;
+                    if ((*gtype_ptr).second.geometry == 3) {
+                        other_double = true;
+                        break;
+                    }
+                }
+                if (!other_double) {
+                    all_single = false;
+                    break;
+                }
+            }
+        }
+        if (seen_Car && all_single)
+            a->set_computed_idatm_type("Npl");
+    }
+
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 4.75 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
 t0 = t1;
 #endif
 
