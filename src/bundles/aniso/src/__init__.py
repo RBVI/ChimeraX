@@ -21,6 +21,6 @@ class _AnisoAPI(BundleAPI):
     @staticmethod
     def register_command(command_name, logger):
         from . import cmd
-        cmd.register_command(logger)
+        cmd.register_command(logger, command_name)
 
 bundle_api = _AnisoAPI()
