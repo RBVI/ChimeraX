@@ -865,7 +865,7 @@ t0 = t1;
                                     continue;
                                 if (sqlen > p4n2c)
                                     continue;
-                                if (bondee->idatm_type() == "Cac" || bondee->idatm_type() == "C")
+                                if (bondee->idatm_type() == "Cac")
                                     continue;
                                 if (bondee->idatm_type() == "C2") {
                                     bool grand_O2 = false;
