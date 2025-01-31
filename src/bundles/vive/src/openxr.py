@@ -381,6 +381,8 @@ class XR:
     def _poll_xr_events(self):
         import xr
         while True:
+            if self.connection_closed:
+                return
             try:
                 event_buffer = xr.poll_event(self._instance)
                 try:
@@ -727,6 +729,10 @@ class XR:
             xr.destroy_instance(self._instance)
             self._instance = None
 
+    @property
+    def connection_closed(self):
+        return self._instance is None
+    
     def headset_pose(self):
         # head to room coordinates.  None if not available
         e0, e1 = self.eye_pose
@@ -738,6 +744,8 @@ class XR:
 
     def poll_next_event(self):
         self._poll_xr_events()	# Update self._session_state to detect headset has lost focus
+        if self.connection_closed:
+            return None
         q = self._event_queue
         q.extend(self._button_events())
         if len(q) == 0:

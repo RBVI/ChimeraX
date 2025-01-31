@@ -26,7 +26,7 @@ clustal_strong_groups = ["STA", "NEQK", "NHQK", "NDEQ", "QHRK", "MILV", "MILF", 
 clustal_weak_groups = ["CSA", "ATV", "SAG", "STNK", "STPA", "SGND", "SNDEQK", "NDEQHK",
     "NEQHRK", "FVLIM", "HFY"]
 
-from chimerax.core.errors import NotABug
+from chimerax.core.errors import NotABug, UserError
 from chimerax.core.state import State
 class Alignment(State):
     """A sequence alignment,
@@ -86,7 +86,7 @@ class Alignment(State):
     COL_IDENTITY_ATTR = "seq_identity"
 
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
-            description, intrinsic, *, create_headers=True, session_restore=False, copy_seqs=True):
+            description, intrinsic, *, create_headers=True, session_restore=False, copy_seqs=None):
         if not seqs:
             raise ValueError("Cannot create alignment of zero sequences")
         self.session = session
@@ -95,6 +95,8 @@ class Alignment(State):
             seqs = list(seqs)
         # prevent later accidental modification; also different alignments may contain the same sequence
         # (so prevent Alignment._destroy from messing up other alignments)
+        if copy_seqs is None:
+            copy_seqs = False if ident is False else True
         if session_restore or not copy_seqs:
             self._seqs = seqs
         else:
@@ -109,6 +111,7 @@ class Alignment(State):
         self.viewers = []
         self.viewers_by_subcommand = {}
         self.viewer_to_subcommand = {}
+        self._column_counts_cache = None
         self._observer_notification_suspended = 0
         self._ob_note_suspended_data = []
         self._modified_mmaps = []
@@ -490,6 +493,19 @@ class Alignment(State):
     def being_destroyed(self):
         return self._in_destroy
 
+    def column_counts(self):
+        """Returns a dictionary keyed on column index, with values that are 2-tuples of numpy
+           arrays; the first member is the array of unique characters in that column, and the
+           second array is the corresponding counts for those characters.
+        """
+        if self._column_counts_cache is None:
+            import numpy
+            data = numpy.array([list(seq.characters) for seq in self._seqs])
+            cache = self._column_counts_cache = {}
+            for i in range(len(data[0])):
+                cache[i] = numpy.unique(data[:,i], return_counts=True)
+        return self._column_counts_cache.copy()
+
     def detach_viewer(self, viewer):
         """Called when a viewer is done with the alignment (see attach_viewer)"""
         self.viewers.remove(viewer)
@@ -614,13 +630,13 @@ class Alignment(State):
             These values can all be None, if the matching failed (usually too few atoms to match).
         """
         if ref_chain not in self.associations:
-            raise ValueError("%s not associated with any sequence" % ref_chain.full_name)
+            raise UserError("%s not associated with any sequence" % ref_chain.full_name)
 
         match_structures = set([mc.structure for mc in match_chains])
         if len(match_structures) != len(match_chains):
-            raise ValueError("Match chains must all come from different structures")
+            raise UserError("Match chains must all come from different structures")
         if ref_chain.structure in match_structures:
-            raise ValueError("Match chains and reference chain must come from different structures")
+            raise UserError("Match chains and reference chain must come from different structures")
 
         if iterate == -1:
             from .settings import settings
@@ -632,7 +648,7 @@ class Alignment(State):
             ref_ungapped_positions = [ref_seq.gapped_to_ungapped(i) for i in restriction]
         for match_chain in match_chains:
             if match_chain not in self.associations:
-                raise ValueError("%s not associated with any sequence" % match_chain.full_name)
+                raise UserError("%s not associated with any sequence" % match_chain.full_name)
             match_seq = self.associations[match_chain]
             if restriction is not None:
                 match_ungapped_positions = [match_seq.gapped_to_ungapped(i) for i in restriction]
@@ -652,12 +668,13 @@ class Alignment(State):
                 mpos = match_seq.gapped_to_ungapped(ref_seq.ungapped_to_gapped(rpos))
                 if mpos is None:
                     continue
-                mres = match_pos_to_res[mpos]
-                if mres is None:
+                try:
+                    mres = match_pos_to_res[mpos]
+                except KeyError:
                     continue
                 ref_atoms.append(rres.principal_atom)
                 match_atoms.append(mres.principal_atom)
-            from chimerax.core.commands import align
+            from chimerax.std_commands import align
             from chimerax.atomic import Atoms
             try:
                 return_vals.append(align.align(self.session, Atoms(match_atoms), Atoms(ref_atoms),
@@ -665,6 +682,27 @@ class Alignment(State):
             except align.IterationError:
                 return_vals.append((None, None, None, None, None))
         return return_vals
+
+    def most_common(self, col_index, *, non_gap=True):
+        """Returns most common character in the column given by 'col_index' and the count for that character.
+           For ties, one of the most common characters, chosen arbitrarily, will be returned.  If 'non_gap'
+           is True, gap characters will be ignored.
+        """
+        chars, counts = self.column_counts()[col_index]
+        if non_gap:
+            max_count = 0
+            for char, count in zip(chars, counts):
+                if not char.isalpha():
+                    continue
+                if count > max_count:
+                    max_count = count
+                    max_char = char
+            if max_count == 0:
+                return ' ', 0
+            return max_char, max_count
+        import numpy
+        max_index = numpy.argmax(counts)
+        return chars[max_index], counts[max_index]
 
     def notify(self, note_name, note_data):
         """Used by headers to issue notifications, but theoretically could be used by anyone"""
@@ -832,14 +870,12 @@ class Alignment(State):
             handler.remove()
 
     def _dispatch_header_command(self, subcommand_text):
-        from chimerax.core.errors import UserError
         from chimerax.core.commands import EnumOf
         enum = EnumOf(self.headers, ids=[header.ident for header in self._headers])
         header, ident_text, remainder = enum.parse(subcommand_text, self.session)
         header.process_command(remainder)
 
     def _dispatch_viewer_command(self, viewer_keyword, subcommand_text):
-        from chimerax.core.errors import UserError
         viewers = self.viewers_by_subcommand.get(viewer_keyword, [])
         if not viewers:
             raise UserError("No '%s' viewers attached to alignment '%s'"
@@ -982,6 +1018,7 @@ class Alignment(State):
                 break
 
     def _seq_characters_changed_cb(self, trig_name, seq):
+        self._column_counts_cache = None
         if not getattr(self, '_realigning', False):
             self._notify_observers(self.NOTE_SEQ_CONTENTS, seq)
 
@@ -1021,22 +1058,7 @@ class Alignment(State):
         if headers is None:
             headers = [hdr for hdr in self._headers if hdr.shown or hdr.eval_while_hidden]
             if len(self.seqs) > 1:
-                values = []
-                for i in range(len(self._seqs[0])):
-                    counts = {}
-                    for seq in self._seqs:
-                        c = seq[i]
-                        if not c.isalnum():
-                            continue
-                        counts[c] = counts.get(c, 0) + 1
-                    if not counts:
-                        values.append(0.0)
-                        continue
-                    max_count = None
-                    for c, count in counts.items():
-                        if max_count is None or count > max_count:
-                            max_count = count
-                    values.append(100.0 * max_count / len(self._seqs))
+                values = [100.0 * self.most_common(col)[1] for col in range(len(self._seqs[0]))]
                 process_attr(self.COL_IDENTITY_ATTR, values)
         from chimerax.atomic import Residue
         for header in headers:

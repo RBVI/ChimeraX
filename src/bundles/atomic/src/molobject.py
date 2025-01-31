@@ -859,6 +859,8 @@ class Sequence(State):
     def __copy__(self, copy_seq=None):
         if copy_seq is None:
             copy_seq = Sequence(name=self.name, characters=self.characters)
+            if hasattr(self, 'description'):
+                copy_seq.description = self.description
         else:
             copy_seq.characters = self.characters
         from copy import copy
@@ -1139,6 +1141,8 @@ class StructureSeq(Sequence):
             self._fire_trigger('residues changed', self)
 
     def __copy__(self):
+        if self.structure is None:
+            return super().__copy__()
         f = c_function('sseq_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
         copy_sseq = StructureSeq(f(self._c_pointer))
         Sequence.__copy__(self, copy_seq = copy_sseq)
