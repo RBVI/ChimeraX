@@ -283,7 +283,7 @@ class Conservation(DynamicHeaderSequence):
             sseq.name = str(i)
             sseq.characters = sseq.characters.replace(' ', '.')
 
-        temp_alignment = session.alignments.new_alignment(sane_seqs, False, auto_associate=False, name="temp", create_headers=False, copy_seqs=False)
+        temp_alignment = session.alignments.new_alignment(sane_seqs, False, auto_associate=False, name="temp", create_headers=False)
         from tempfile import NamedTemporaryFile
         temp_stream = NamedTemporaryFile(mode='w', encoding='utf8', suffix=".aln", delete=False)
         temp_alignment.save(temp_stream, format_name="aln")

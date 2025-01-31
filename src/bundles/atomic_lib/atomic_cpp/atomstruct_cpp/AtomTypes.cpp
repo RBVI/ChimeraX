@@ -865,7 +865,7 @@ t0 = t1;
                                     continue;
                                 if (sqlen > p4n2c)
                                     continue;
-                                if (bondee->idatm_type() == "Cac")
+                                if (bondee->idatm_type() == "Cac" || bondee->idatm_type() == "C")
                                     continue;
                                 if (bondee->idatm_type() == "C2") {
                                     bool grand_O2 = false;
@@ -1048,7 +1048,7 @@ std::cerr << "pass 3 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n"
 t0 = t1;
 #endif
 
-    // "pass 4": re-examine all atoms with non-zero 'redo' values and
+    // "pass 4": re-examine most atoms with non-zero 'redo' values and
     //   retype them if necessary
     for (auto a: untyped_atoms) {
 
@@ -1081,7 +1081,7 @@ t0 = t1;
                         a->set_computed_idatm_type("Npl");
                     break;
                 }
-            } else {
+            } else if (redo[a] == 3) {
                 if ((sqlen <= p4c2c && bondee_element == Element::C)
                 || (sqlen <= p4c2n && bondee_element == Element::N)) {
                     a->set_computed_idatm_type("C2");
