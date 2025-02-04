@@ -684,6 +684,10 @@ def init(argv, event_loop=True):
 
     # initialize qt
     if opts.gui:
+        if os.environ.get("WAYLAND_DISPLAY", ""):
+            # ChimeraX needs to use XWayland for now
+            os.environ["QT_QPA_PLATFORM"] = "xcb"
+            os.environ["PYOPENGL_PLATFORM"] = "x11"
         from chimerax.ui import initialize_qt
 
         initialize_qt()

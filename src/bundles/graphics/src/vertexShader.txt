@@ -47,7 +47,7 @@ uniform mat4 view_matrix; // Map scene coordinates to camera coordinates
 #endif
 
 #if defined(USE_VOLUME_RAYCASTING)
-uniform vec3 step_size;
+uniform float step_size;
 uniform vec3 camera_pos;
 uniform float camera_fov;
 uniform vec2 window_size;
