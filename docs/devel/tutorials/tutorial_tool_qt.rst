@@ -273,6 +273,11 @@ merely shows how to use those toolkits in the context of ChimeraX.
 To gain additional familarity with those toolkits, there are
 `PyQt6 tutorials`_ and
 `Qt6 tutorials <https://zetcode.com/gui/qt6/>`_ available on the web.
+Note that in ChimeraX, Qt functionality is imported from "Qt" rather than directly from PyQt6.
+"Qt" is a shim module that in turn imports from whatever module is actually providing
+the Python Qt wrapping.  This insulates your code from changes in the major Qt version
+number (such as when we went from 5 to 6) and from ChimeraX using an alternate wrapping,
+such as `PySide <https://wiki.qt.io/Qt_for_Python>`_.
 
 On line 69 we import the widgets will need for our interface from the `PyQt6`_ toolkit:
 
