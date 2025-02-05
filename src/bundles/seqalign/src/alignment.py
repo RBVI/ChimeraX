@@ -606,7 +606,7 @@ class Alignment(State):
     def headers(self):
         return self._headers[:]
 
-    def match(self, ref_chain, match_chains, *, iterate=-1, restriction=None):
+    def match(self, ref_chain, match_chains, *, iterate=-1, conservation=None, restriction=None):
         """Match the match_chains onto the ref_chain.  All chains must already be associated
            with the alignment.
 
@@ -614,8 +614,11 @@ class Alignment(State):
            If 'iterate' is None, then no iteration occurs.  Otherwise, it is the cutoff value
            where iteration stops.
 
+           'conservation', if provided, is the percent identity that a column has to have to
+           be included in the matching.
+
            'restriction', if provided, is a list of gapped column positions that the matching
-           should be limited to.
+           should be (further) limited to.
 
            This returns a series of tuples, one per match chain, describing the resulting
            match.  The values in the 5-tuple are:
@@ -642,16 +645,31 @@ class Alignment(State):
             from .settings import settings
             iterate = settings.iterate
 
+        if restriction is None:
+            if conservation is None:
+                final_restriction = None
+            else:
+                threshold = len(self._seqs) * conservation / 100.0
+                final_restriction = set([col for col in range(len(self._seqs[0]))
+                    if self.most_common(col)[-1] >= threshold])
+        else:
+            if conservation is None:
+                final_restriction = set(restriction)
+            else:
+                threshold = len(self._seqs) * conservation / 100.0
+                final_restriction = set([col for col in restriction
+                    if self.most_common(col)[-1] >= threshold])
+
         return_vals = []
         ref_seq = self.associations[ref_chain]
-        if restriction is not None:
-            ref_ungapped_positions = [ref_seq.gapped_to_ungapped(i) for i in restriction]
+        if final_restriction is not None:
+            ref_ungapped_positions = [ref_seq.gapped_to_ungapped(i) for i in final_restriction]
         for match_chain in match_chains:
             if match_chain not in self.associations:
                 raise UserError("%s not associated with any sequence" % match_chain.full_name)
             match_seq = self.associations[match_chain]
-            if restriction is not None:
-                match_ungapped_positions = [match_seq.gapped_to_ungapped(i) for i in restriction]
+            if final_restriction is not None:
+                match_ungapped_positions = [match_seq.gapped_to_ungapped(i) for i in final_restriction]
                 restriction_set = set()
                 for ur, um in zip(ref_ungapped_positions, match_ungapped_positions):
                     if ur is not None and um is not None:
@@ -661,7 +679,7 @@ class Alignment(State):
             ref_res_to_pos = ref_seq.match_maps[ref_chain].res_to_pos
             match_pos_to_res = match_seq.match_maps[match_chain].pos_to_res
             for rres, rpos in ref_res_to_pos.items():
-                if restriction is not None and rpos not in restriction_set:
+                if final_restriction is not None and rpos not in restriction_set:
                     continue
                 gpd = ref_seq.ungapped_to_gapped(rpos)
                 mug = match_seq.gapped_to_ungapped(gpd)
