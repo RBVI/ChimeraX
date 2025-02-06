@@ -963,7 +963,7 @@ The doc strings of that class discuss its methods in detail, but briefly:
   options in the ChimeraX Save dialog, you must override the
   :py:meth:`~chimerax.save_command.SaverInfo.save_args_widget` method and return a widget
   containing your interface (typically a subclass of
-  `QFrame <https://doc.qt.io/qt-5/qframe.html>`_).
+  `QFrame <https://doc.qt.io/qt-6/qframe.html>`_).
   Conversely, you must also override
   :py:meth:`~chimerax.save_command.SaverInfo.save_args_string_from_widget`
   that takes your widget and returns a string containing the corresponding options and

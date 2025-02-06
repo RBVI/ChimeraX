@@ -585,6 +585,11 @@ class SequenceViewer(ToolInstance):
                 action.triggered.connect(lambda act, *args, func=self.select_by_column_identity, val=value:
                     func(val))
                 cons_sel_menu.addAction(action)
+        match_action = QAction("Match...", structure_menu)
+        match_action.triggered.connect(self.show_match_dialog)
+        match_action.setEnabled(
+            len(set([chain.structure for chain in self.alignment.associations.keys()])) > 1)
+        structure_menu.addAction(match_action)
         xfer_action = QAction("Update Chain Sequence...", structure_menu)
         xfer_action.triggered.connect(self.show_transfer_seq_dialog)
         xfer_action.setEnabled(bool(self.alignment.associations))
@@ -807,6 +812,14 @@ class SequenceViewer(ToolInstance):
                 self.tool_window.create_child_window("%s Features" % seq.name, close_destroys=False))
             self._feature_browsers[seq].tool_window.manage(None)
         self._feature_browsers[seq].tool_window.shown = True
+
+    def show_match_dialog(self):
+        if not hasattr(self, "match_dialog"):
+            from .match import MatchDialog
+            self.match_dialog = MatchDialog(self,
+                self.tool_window.create_child_window("Match", close_destroys=False))
+            self.match_dialog.tool_window.manage(None)
+        self.match_dialog.tool_window.shown = True
 
     def show_percent_identity_dialog(self):
         if not hasattr(self, "percent_identity_dialog"):
