@@ -867,6 +867,8 @@ class Sequence(State):
         copy_seq.attrs = copy(self.attrs)
         copy_seq.markups = copy(self.markups)
         copy_seq.numbering_start = self.numbering_start
+        if hasattr(self, '_features'):
+            copy_seq._features = self._features
         return copy_seq
 
     def __del__(self):

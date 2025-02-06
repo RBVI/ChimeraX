@@ -46,7 +46,7 @@ def fetch_uniprot(session, ident, ignore_cache=False, *, associate=None):
     seq.accession_id["UniProt"] = accession
     seq.set_features("UniProt", expand_features(features))
     session.logger.status("Opening UniProt %s" % ident)
-    aln = session.alignments.new_alignment([seq], ident, auto_associate=(associate is None))
+    aln = session.alignments.new_alignment([seq], ident, auto_associate=(associate is None), copy_seqs=False)
     if associate is not None:
         for chain in associate:
             aln.associate(chain, min_length=2)
