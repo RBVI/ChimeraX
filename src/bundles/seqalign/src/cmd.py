@@ -498,7 +498,7 @@ def seqalign_align(session, seq_source, *, program=CLUSTAL_OMEGA, replace=False)
 def register_seqalign_command(logger):
     # REMINDER: update manager._builtin_subcommands as additional subcommands are added
     from chimerax.core.commands import CmdDesc, register, create_alias, Or, EmptyArg, RestOfLine, ListOf, \
-        EnumOf, BoolArg, NoneArg, PositiveIntArg, PercentFloatArg
+        EnumOf, BoolArg, NoneArg, PositiveIntArg, PercentFloatArg, NonNegativeFloatArg
     from chimerax.atomic import UniqueChainsArg, SequencesArg, ChainArg
 
     apns = list(alignment_program_name_args.keys())
@@ -552,7 +552,7 @@ def register_seqalign_command(logger):
     desc = CmdDesc(
         required = [('alignment', Or(AlignmentArg, EmptyArg)), ('match_chains', UniqueChainsArg)],
         required_arguments = ['to'],
-        keyword = [('to', ChainArg), ('iterate', Or(NoneArg, PositiveIntArg)),
+        keyword = [('to', ChainArg), ('iterate', Or(NoneArg, NonNegativeFloatArg)),
             ('conservation', PercentFloatArg),
             ('columns', ListOf(PositiveIntArg))],
         synopsis = "superimpose chains associated with sequence alignment"

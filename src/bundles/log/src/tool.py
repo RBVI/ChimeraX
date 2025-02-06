@@ -244,6 +244,7 @@ class Log(ToolInstance, HtmlLog):
                 from Qt.QtCore import QSize
                 return QSize(600, 300)
         self.error_dialog = BiggerErrorDialog(parent)
+        self.error_dialog.finished.connect(lambda *args: print("error dialog finished"))
         self._add_report_bug_button()
         layout = QGridLayout(parent)
         layout.setContentsMargins(0,0,0,0)
