@@ -241,6 +241,11 @@ class EmplaceLocalResultsViewer(ToolInstance):
 
         layout.addWidget(check_box_area, alignment=Qt.AlignCenter)
 
+        from chimerax.ui import shrink_font
+        instructions = QLabel("Click OK to retain the chosen fit and remove others")
+        shrink_font(instructions)
+        layout.addWidget(instructions, alignment=Qt.AlignCenter)
+
         if sym_map:
             self._show_symmetry_cb(True)
 
