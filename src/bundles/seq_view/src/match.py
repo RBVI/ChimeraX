@@ -41,7 +41,7 @@ class MatchDialog:
         chains_layout.addWidget(QLabel("Reference chain"), 0, 0, alignment=Qt.AlignCenter)
         chains_layout.addWidget(QLabel("Match chain(s)"), 0, 1, alignment=Qt.AlignCenter)
         self.ref_chain_menu = ChainMenuButton(sv.session, list_func=sv.alignment.associations.keys)
-        chains_layout.addWidget(self.ref_chain_menu, 1, 0, alignment=Qt.AlignCenter)
+        chains_layout.addWidget(self.ref_chain_menu, 1, 0, alignment=Qt.AlignHCenter|Qt.AlignTop)
         self.match_chain_list = ChainListWidget(sv.session, autoselect=ChainListWidget.AUTOSELECT_FIRST,
             list_func=sv.alignment.associations.keys, filter_func=lambda c, menu=self.ref_chain_menu:
             c.structure is not getattr(menu.value, 'structure', None))
