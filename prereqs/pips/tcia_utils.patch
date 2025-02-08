@@ -7,7 +7,7 @@ diff --color -u tcia_utils.orig/datacite.py tcia_utils/datacite.py
  import requests
  from datetime import datetime
  import logging
- 
+
  _log = logging.getLogger(__name__)
 -logging.basicConfig(
 -    format='%(asctime)s:%(levelname)s:%(message)s'
@@ -17,13 +17,13 @@ diff --color -u tcia_utils.orig/datacite.py tcia_utils/datacite.py
 +#    format='%(asctime)s:%(levelname)s:%(message)s'
 +#    , level=logging.INFO
 +#)
- 
+
  ####### getDoi function
  # Gets metadata for one or more DOIs
 @@ -24,6 +23,7 @@
             license = "",
             format = ""):
- 
+
 +    import pandas as pd
      datacite_url = "https://api.datacite.org/dois/"
      datacite_headers = {"accept": "application/vnd.api+json"}
@@ -32,22 +32,22 @@ diff --color -u tcia_utils.orig/datacite.py tcia_utils/datacite.py
                      citation_count = item["attributes"]["citationCount"]
                      reference_count = item["attributes"]["referenceCount"]
                      related = f"{relation_type}: {related_identifier}" if relation_type and related_identifier else None
--                    dois.append({"DOI": doi, 
--                                "Identifier": identifier, 
+-                    dois.append({"DOI": doi,
+-                                "Identifier": identifier,
 +                    dois.append({"DOI": doi,
 +                                "Identifier": identifier,
                                  "CreatorNames": ", ".join(creator_names),
--                                "Title": title, 
--                                "Created": created, 
--                                "Updated": updated, 
--                                "Related": related, 
--                                "Version": version, 
--                                "Rights": rights, 
--                                "RightsURI": rights_uri, 
--                                "Description": description, 
--                                "FundingReferences": funding_references, 
--                                "URL": url, 
--                                "CitationCount": citation_count, 
+-                                "Title": title,
+-                                "Created": created,
+-                                "Updated": updated,
+-                                "Related": related,
+-                                "Version": version,
+-                                "Rights": rights,
+-                                "RightsURI": rights_uri,
+-                                "Description": description,
+-                                "FundingReferences": funding_references,
+-                                "URL": url,
+-                                "CitationCount": citation_count,
 +                                "Title": title,
 +                                "Created": created,
 +                                "Updated": updated,
@@ -60,10 +60,10 @@ diff --color -u tcia_utils.orig/datacite.py tcia_utils/datacite.py
 +                                "URL": url,
 +                                "CitationCount": citation_count,
                                  "ReferenceCount": reference_count})
- 
--                df = pd.DataFrame(dois, columns=["DOI", "Identifier", "CreatorNames", "Title", "Created", "Updated", "Related", 
--                                                  "Version", "Rights", "RightsURI", "Description", "FundingReferences", "URL", 
--                                                  "CitationCount", "ReferenceCount"])  
+
+-                df = pd.DataFrame(dois, columns=["DOI", "Identifier", "CreatorNames", "Title", "Created", "Updated", "Related",
+-                                                  "Version", "Rights", "RightsURI", "Description", "FundingReferences", "URL",
+-                                                  "CitationCount", "ReferenceCount"])
 +                df = pd.DataFrame(dois, columns=["DOI", "Identifier", "CreatorNames", "Title", "Created", "Updated", "Related",
 +                                                  "Version", "Rights", "RightsURI", "Description", "FundingReferences", "URL",
 +                                                  "CitationCount", "ReferenceCount"])
@@ -74,7 +74,7 @@ diff --color -u tcia_utils.orig/datacite.py tcia_utils/datacite.py
                  return data
          else:
              _log.info(f'No results found.')
--            
+-
 +
      # handle errors
      except requests.exceptions.HTTPError as errh:
@@ -97,16 +97,16 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
  import getpass
  import json
  import zipfile
-@@ -13,17 +12,16 @@
- import matplotlib.pyplot as plt
+@@ -13,17 +12,15 @@
+-import matplotlib.pyplot as plt
  import pydicom
  import numpy as np
 -from ipywidgets import interact
- 
+
  class StopExecution(Exception):
      def _render_traceback_(self):
          pass
- 
+
  _log = logging.getLogger(__name__)
 -logging.basicConfig(
 -    format='%(asctime)s:%(levelname)s:%(message)s'
@@ -116,15 +116,15 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
 +#    format='%(asctime)s:%(levelname)s:%(message)s'
 +#    , level=logging.INFO
 +#)
- 
+
  # Used by functions that accept parameters used in GUI Simple Search
  # e.g. getSimpleSearchWithModalityAndBodyPartPaged()
 @@ -50,14 +48,14 @@
  def setApiUrl(endpoint, api_url):
      """
      setApiUrl() is used by most other functions to select the correct base URL
--    and is generally not something that needs to be called directly in your code.  
--    
+-    and is generally not something that needs to be called directly in your code.
+-
 +    and is generally not something that needs to be called directly in your code.
 +
      It assists with:
@@ -132,7 +132,7 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
          2. selecting the correct base URL for Search vs Advanced APIs
          3. selecting the correct base URL for regular collections vs NLST
          4. ensuring you have a valid security token where necessary
--    
+-
 +
      Learn more about the NBIA APIs at https://wiki.cancerimagingarchive.net/x/ZoATBg
      """
@@ -141,16 +141,16 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
                      getToken(user = "nbia_guest", api_url = "nlst")
                  if 'nlst_token_exp_time' in globals() and datetime.now() > nlst_token_exp_time:
                      refreshToken(api_url = "nlst")
--                base_url = "https://nlst.cancerimagingarchive.net/nbia-api/services/"                
+-                base_url = "https://nlst.cancerimagingarchive.net/nbia-api/services/"
 +                base_url = "https://nlst.cancerimagingarchive.net/nbia-api/services/"
          elif api_url == "restricted":
              if endpoint in searchEndpoints:
                  # Using "Search with Authentication" API (login required): https://wiki.cancerimagingarchive.net/x/X4ATBg
 @@ -146,7 +144,7 @@
- 
+
          return base_url
- 
--def getToken(user = "", pw = "", api_url = ""): 
+
+-def getToken(user = "", pw = "", api_url = ""):
 +def getToken(user = "", pw = "", api_url = ""):
      """
      getToken() accepts user and pw parameters to create a token to access APIs that require authorization.
@@ -159,7 +159,7 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
      if api_url == "nlst":
          token_url = "https://nlst.cancerimagingarchive.net/nbia-api/oauth/token"
          userName = "nbia_guest"
--        passWord = ""        
+-        passWord = ""
 +        passWord = ""
      # specify user/pw unless nbia_guest is being used for accessing Advanced API anonymously
      else:
@@ -168,7 +168,7 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
          'username' : userName,
          'password': passWord
          }
--        
+-
 +
          data = requests.post(token_url, data = params)
          data.raise_for_status()
@@ -177,7 +177,7 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
              nlst_refresh_token = data.json()["refresh_token"]
              _log.info(f'Success - Token saved to nlst_api_call_headers variable and expires at {nlst_token_exp_time}')
          else:
--            token_exp_time = current_time + timedelta(seconds=expires_in)            
+-            token_exp_time = current_time + timedelta(seconds=expires_in)
 +            token_exp_time = current_time + timedelta(seconds=expires_in)
              api_call_headers = {'Authorization': 'Bearer ' + access_token}
              refresh_token = data.json()["refresh_token"]
@@ -186,11 +186,11 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
      """
      refreshToken() refreshes security tokens to extend access time for APIs that require authorization.
      It attempts to verify that a refresh token exists and recommends using getToken() to create a new token if needed.
--    This function is called as needed by setApiUrl() and is generally not something that needs to be called directly in your code.    
+-    This function is called as needed by setApiUrl() and is generally not something that needs to be called directly in your code.
 +    This function is called as needed by setApiUrl() and is generally not something that needs to be called directly in your code.
      """
      global token_exp_time, nlst_token_exp_time, api_call_headers, nlst_api_call_headers
--   
+-
 +
      # token URLs
      if api_url == "nlst":
@@ -199,7 +199,7 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
              raise StopExecution
          else:
              token_url = "https://nlst.cancerimagingarchive.net/nbia-api/oauth/token"
--    
+-
 +
      else:
          try:
@@ -208,7 +208,7 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
          'grant_type': 'refresh_token',
          'refresh_token' : token,
          }
--        
+-
 +
          # obtain new access token
          data = requests.post(token_url, data = params)
@@ -217,8 +217,8 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
          _log.error(f"Timeout Error: {data.status_code}")
      except requests.exceptions.RequestException as err:
          _log.error(f"Request Error: {data.status_code}")
--            
--def logoutToken(api_url = ""): 
+-
+-def logoutToken(api_url = ""):
 +
 +def logoutToken(api_url = ""):
      """
@@ -228,16 +228,16 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
          api_call_headers = nlst_api_call_headers
      elif api_url != "nlst" and 'api_call_headers' in globals():
          url = "https://services.cancerimagingarchive.net/nbia-api/logout"
--    else: 
+-    else:
 +    else:
          _log.error("Error: You haven't created a token yet, or have already logged out.")
          raise StopExecution
- 
+
 @@ -315,14 +313,14 @@
- 
+
  def makeCredentialFile(user = "", pw = ""):
      """
--    Creates a credential file to use with NBIA Data Retriever. 
+-    Creates a credential file to use with NBIA Data Retriever.
 +    Creates a credential file to use with NBIA Data Retriever.
      Interactive prompts are provided for user/pw if they're not specified as parameters.
      The credential file is a text file that passes the user's credentials in the following format:
@@ -245,7 +245,7 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
          passWord = YourPassword
          Both parameters are case-sensitive.
      Additional documentation:
--        https://wiki.cancerimagingarchive.net/x/2QKPBQ 
+-        https://wiki.cancerimagingarchive.net/x/2QKPBQ
 +        https://wiki.cancerimagingarchive.net/x/2QKPBQ
          https://github.com/kirbyju/TCIA_Notebooks/blob/main/TCIA_Linux_Data_Retriever_App.ipynb
      """
@@ -254,26 +254,26 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
          _log.error(errt)
      except requests.exceptions.RequestException as err:
          _log.error(err)
--    
- 
+-
+
 +
  def getCollections(api_url = "",
                     format = ""):
      """
 @@ -822,7 +820,7 @@
- 
+
      # get base URL
      base_url = setApiUrl(endpoint, api_url)
--    
+-
 +
      # if input = manifest convert manifest to python list of uids
      if input_type == "manifest":
          series_data = manifestToList(series_data)
 @@ -1182,7 +1180,7 @@
- 
+
      data = queryData(endpoint, options, api_url, format)
      return data
--    
+-
 +
  ####### getSegRefSeries function (Advanced)
  # Gets DICOM tag metadata for a given SEG/RTSTRUCT series UID (scan)
@@ -282,7 +282,7 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
                  # Retrieve the value of "Series Instance UID" from the next row
                  refSeriesUid = df.loc[index + 1, 'data']
                  return refSeriesUid
--            
+-
 +
              else:
                  print("Segmentation doesn't contain a reference series UID.")
@@ -291,7 +291,7 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
                  # Retrieve the value of "Series Instance UID" from the next row
                  refSeriesUid = df.loc[index + 1, 'data']
                  return refSeriesUid
--            
+-
 +
              else:
                  print("Segmentation doesn't contain a reference series UID.")
@@ -300,7 +300,7 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
  # Specify input_type = "manifest" to ingest a *.TCIA manifest file or "list" for a python list of UIDs
  # If input_type = "manifest" or "list" and there are series UIDs that are restricted
  #    you must call getToken() with a user ID that has access to all UIDs before calling this function.
--# Specifying api_url is only necessary if you are using input_type = "manifest" or "list" with NLST data (e.g. api_url = "nlst") 
+-# Specifying api_url is only necessary if you are using input_type = "manifest" or "list" with NLST data (e.g. api_url = "nlst")
 +# Specifying api_url is only necessary if you are using input_type = "manifest" or "list" with NLST data (e.g. api_url = "nlst")
  # Specify format = "var" to return the report values as a dictionary
  # Access variables example after saving function output to report_data: subjects = report_data["subjects"]
@@ -309,7 +309,7 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
      # if input_type is manifest convert it to a list
      if input_type == "manifest":
          series_data = manifestToList(series_data)
--        
+-
 +
      # if input_type is a list or manifest download relevant metadata
      if input_type == "list" or input_type == "manifest":
@@ -330,7 +330,7 @@ diff --color -u tcia_utils.orig/pathdb.py tcia_utils/pathdb.py
  import requests
  from datetime import datetime
  import logging
- 
+
  _log = logging.getLogger(__name__)
 -logging.basicConfig(
 -    format='%(asctime)s:%(levelname)s:%(message)s'
@@ -340,13 +340,13 @@ diff --color -u tcia_utils.orig/pathdb.py tcia_utils/pathdb.py
 +#    format='%(asctime)s:%(levelname)s:%(message)s'
 +#    , level=logging.INFO
 +#)
- 
+
  base_url = 'https://pathdb.cancerimagingarchive.net/'
- 
+
 @@ -19,6 +18,7 @@
- 
+
  def getCollections(query = "", format = ""):
- 
+
 +    import pandas as pd
      extracted_data = []
      url = base_url + 'collections?_format=json'
@@ -355,32 +355,32 @@ diff --color -u tcia_utils.orig/pathdb.py tcia_utils/pathdb.py
          _log.info(f"File saved to {filename}.")
      else:
          return extracted_data
--        
+-
 +
  ###################
  # getImages()
  # use "query" parameter to search collection names or enter a specific collection ID
 @@ -65,12 +65,13 @@
  #    or "csv" to save it to a file
- 
+
  def getImages(query, format=""):
--    
+-
 +
      collectionList = []  # for queries that match multiple collection names
 +    import pandas as pd
      extracted_data = []
- 
+
      def getPaginatedResults(id):
--        page = 0  
+-        page = 0
 +        page = 0
- 
+
          while True:
              url = base_url + 'listofimages/' + str(id) + '?page=' + str(page) + '&_format=json'
 @@ -80,7 +81,7 @@
                  data = response.json()
                  if len(data) == 0:
                      break  # No more pages, exit the loop
--                
+-
 +
                  # Extract desired fields from the JSON data
                  for item in data:
@@ -389,13 +389,13 @@ diff --color -u tcia_utils.orig/pathdb.py tcia_utils/pathdb.py
                  return None
              page += 1
          return extracted_data
--    
+-
 +
      # if query was a collection ID (integer)
      if isinstance(query,int):
          extracted_data = getPaginatedResults(query)
      # if query is a string, look for matching collection names
--    else:  
+-    else:
 +    else:
          collections = getCollections(query=query)
          # iterate through all collections that matched query

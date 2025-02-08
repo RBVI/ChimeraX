@@ -79,10 +79,10 @@ class MatchDialog:
         ur_layout.addWidget(self.use_region_check_box, alignment=Qt.AlignLeft, stretch=1)
         layout.addLayout(ur_layout)
 
-        #cr_layout = QHBoxLayout()
-        #self.create_region_check_box = QCheckBox("Create region showing matched residues")
-        #cr_layout.addWidget(self.create_region_check_box, alignment=Qt.AlignLeft, stretch=1)
-        #layout.addLayout(cr_layout)
+        cr_layout = QHBoxLayout()
+        self.create_region_check_box = QCheckBox("Create region showing matched residues")
+        cr_layout.addWidget(self.create_region_check_box, alignment=Qt.AlignLeft, stretch=1)
+        layout.addLayout(cr_layout)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -139,9 +139,61 @@ class MatchDialog:
         if not apply:
             self.tool_window.shown = False
         from chimerax.core.commands import run, StringArg
-        results = run(self.sv.session, "seq match %s %s to %s%s"
-            % (StringArg.unparse(self.sv.alignment.ident), ref.atomspec,
-            ','.join([c.atomspec for c in matches]), args))
+        results = run(self.sv.session, "seq match %s %s to %s%s" %
+            (StringArg.unparse(self.sv.alignment.ident),
+            ''.join([c.atomspec for c in matches]), ref.atomspec, args))
 
         if self.create_region_check_box.isChecked():
-            pass #TODO
+            def get_info(a, aln=self.sv.alignment):
+                r = a.residue
+                c = r.chain
+                aseq = aln.associations[c]
+                mmap = aseq.match_maps[c]
+                return aseq, aseq.ungapped_to_gapped(mmap[r])
+            region_indices = { seq: set() for seq in self.sv.alignment.seqs }
+            for match_atoms, ref_atoms, rmsd, full_rmsd, xform in results:
+                if match_atoms is None:
+                    continue
+                for atoms in (match_atoms, ref_atoms):
+                    for a in atoms:
+                        aseq, index = get_info(a)
+                        region_indices[aseq].add(index)
+            region_blocks = []
+            seqs = self.sv.alignment.seqs
+            while seqs:
+                aseq = seqs.pop(0)
+                aseq_indices = region_indices.pop(aseq)
+                if not aseq_indices:
+                    continue
+                collate(aseq, aseq_indices, region_indices, seqs, region_blocks)
+            if not region_blocks:
+                self.sv.sesson.logger.warn("No matching occurred; not creating 'match' region")
+            reg_name, fill, outline = self.sv.MATCHED_REGION_INFO
+            reg = self.sv.region_manager.get_region(reg_name, fill=fill, outline=outline, create=True,
+                cover_gaps=True)
+            reg.clear()
+            reg.add_blocks(region_blocks)
+
+def collate(aseq, aseq_indices, region_indices, seqs, region_blocks):
+    while aseq_indices:
+        first_i = last_i = min(aseq_indices)
+        while last_i+1 in aseq_indices:
+            last_i += 1
+        first_seq = last_seq = aseq
+        for seq in seqs:
+            seq_indices = region_indices[seq]
+            for i in range(first_i, last_i+1):
+                if i not in seq_indices:
+                    break
+            else:
+                last_seq = seq
+                continue
+            break
+        region_blocks.append((first_seq, last_seq, first_i, last_i))
+        for i in range(first_i, last_i+1):
+            aseq_indices.remove(i)
+            if last_seq != aseq:
+                for seq in seqs:
+                    region_indices[seq].remove(i)
+                    if seq == last_seq:
+                        break
