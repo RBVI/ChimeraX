@@ -1026,12 +1026,16 @@ class Sequence(State):
         # ... because ...
         # this class has a __del__ method that can execute multiple times because the
         # __del__ method in some cases can create a self reference.  If the only reference
-        # back to this class is the delayed trigger handler below, then as the set of
+        # back to this class is the delayed trigger handler below [now moot though], then as the set of
         # trigger handlers is cleared, the __del__ can execute multiple times and the
         # dict/set-clearing code doesn't like that and can crash
         if not self.triggers.trigger_handlers(trig_name):
             return
 
+        self.triggers.activate_trigger(trig_name, arg)
+        # changes to the way downgrade-to-Sequence works makes the below code unnecessary;
+        # furthermore, no 'changes' trigger fires for a sequence rename
+        '''
         # when C++ layer notifies us directly of change, delay firing trigger until
         # next 'changes' trigger to ensure that entire C++ layer is in a consistent state
         def delayed(*args, trigs=self.triggers, trig_name=trig_name, trig_arg=arg):
@@ -1041,6 +1045,7 @@ class Sequence(State):
         from chimerax.atomic import get_triggers
         atomic_trigs = get_triggers()
         atomic_trigs.add_handler('changes', delayed)
+        '''
 
 
     @atexit.register
