@@ -63,6 +63,7 @@ class MatchDialog:
 
         it_layout = QHBoxLayout()
         self.iterate_check_box = QCheckBox("Iterate by pruning long atom pairs until no pair exceeds ")
+        self.iterate_check_box.setChecked(True)
         it_layout.addWidget(self.iterate_check_box)
         self.iteration_value = iv = QLineEdit("2.0")
         iv.setAlignment(Qt.AlignCenter)
@@ -120,10 +121,10 @@ class MatchDialog:
             args += " conservation " + self.conservation_value.text()
         if self.iterate_check_box.isChecked():
             if not self.iteration_value.hasAcceptableInput():
-                raise UserError("Iteration cutoff value must be 0 or more")
-            args += " iterate " + self.iteration_value.text()
+                raise UserError("Distance cutoff value must be 0 or more")
+            args += " cutoffDistance " + self.iteration_value.text()
         else:
-            args += " iterate none"
+            args += " cutoffDistance none"
         if self.use_region_check_box.isChecked():
             region = self.sv.active_region
             if region is None:
