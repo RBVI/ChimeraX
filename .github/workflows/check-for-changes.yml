@@ -92,6 +92,8 @@ jobs:
       - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) build-minimal
       - name: Run the legacy test suite
         run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Install Pytest
         run: ./ChimeraX.app/bin/python.exe -I -m pip install pytest pytest-cov
       - name: Set up the repo for coverage reporting
