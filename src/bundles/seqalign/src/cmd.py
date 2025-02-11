@@ -398,6 +398,16 @@ def seqalign_refseq(session, ref_seq_info):
         aln, ref_seq = ref_seq_info, None
     aln.reference_seq = ref_seq
 
+def seqalign_rename(session, sequence, name):
+    if sequence is None:
+        alignments = session.alignments.alignments
+        if len(alignments) != 1 or len(alignments[0].seqs) != 1:
+            raise UserError("Must specify sequence to rename")
+        sequence = alignments[0].seqs[0]
+    if ':' in name:
+        raise UserError("New sequence name cannot contain ':' character.")
+    sequence.name = name
+
 def seqalign_update(session, chains, *, alignment=None):
     if alignment is None:
         alignments = session.alignments.alignments
@@ -534,6 +544,12 @@ def register_seqalign_command(logger):
             url="help:user/commands/sequence.html#disassociate")
 
     desc = CmdDesc(
+        required = [('alignments', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg))],
+        synopsis = "expand selection by columns"
+    )
+    register('sequence expandsel', desc, seqalign_expandsel, logger=logger)
+
+    desc = CmdDesc(
         required = [('alignments', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg)),
             ('subcommand_text', RestOfLine)],
         synopsis = "send subcommand to header"
@@ -572,10 +588,10 @@ def register_seqalign_command(logger):
     register('sequence refreshAttrs', desc, seqalign_refresh_attrs, logger=logger)
 
     desc = CmdDesc(
-        required = [('alignments', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg))],
-        synopsis = "expand selection by columns"
+        required = [('sequence', Or(SeqArg, EmptyArg)), ('name', StringArg)],
+        synopsis = "change sequence rename"
     )
-    register('sequence expandsel', desc, seqalign_expandsel, logger=logger)
+    register('sequence rename', desc, seqalign_rename, logger=logger)
 
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],

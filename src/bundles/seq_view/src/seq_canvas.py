@@ -1057,6 +1057,8 @@ class SeqCanvas:
                 self.lead_block.rerule()
             elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
                 self.refresh(note_data)
+            elif note_name == self.alignment.NOTE_SEQ_NAME:
+                self._update_label(note_data)
             elif note_name == self.alignment.NOTE_REALIGNMENT:
                 # headers are notified before us, so they should be "ready to go"
                 self.sv.region_manager.clear_regions()
@@ -1080,13 +1082,7 @@ class SeqCanvas:
                     self.lead_block.refresh(hdr, *bounds)
                     self.main_scene.update()
                 elif note_name == self.alignment.NOTE_HDR_NAME:
-                    if self.label_width == _find_label_width(self.alignment.seqs +
-                            [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
-                            self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
-                        self.lead_block.replace_label(hdr)
-                        self.label_scene.update()
-                    else:
-                        self._reformat()
+                    self._update_label(hdr)
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
         if seq in self.alignment.headers and not seq.shown:
@@ -1527,6 +1523,15 @@ class SeqCanvas:
             seq[:] = chkSeq
         self._editRefresh(self.alignment.seqs, left, right)
         """
+
+    def _update_label(self, line):
+        if self.label_width == _find_label_width(self.alignment.seqs +
+                [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
+                self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
+            self.lead_block.replace_label(line)
+            self.label_scene.update()
+        else:
+            self._reformat()
 
     def _update_scene_rects(self):
         self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())

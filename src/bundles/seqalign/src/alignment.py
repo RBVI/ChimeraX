@@ -49,6 +49,7 @@ class Alignment(State):
     NOTE_COMMAND       = "command"
     NOTE_REF_SEQ       = "reference seq changed"
     NOTE_SEQ_CONTENTS  = "seq contents changed"  # Not fired if NOTE_REALIGNMENT applicable
+    NOTE_SEQ_NAME      = "sequence name changed"
     NOTE_REALIGNMENT   = "sequences realigned"  # preempts NOTE_SEQ_CONTENTS
     NOTE_RMSD_UPDATE   = "rmsd change"  # RMSD value changed, or chains relevant to RMSD may have changed
 
@@ -68,6 +69,7 @@ class Alignment(State):
     #   NOTE_COMMAND: the observer subcommand text
     #   NOTE_REF_SEQ: the new reference sequence (which could be None)
     #   NOTE_SEQ_CONTENTS: the sequence whose characters changed
+    #   NOTE_SEQ_NAME: the sequence whose name changed
     #   NOTE_REALIGNMENT: a list of copies of the previous sequences
     #   not yet implemented:  NOTE_ADD_SEQS, NOTE_PRE_DEL_SEQS, NOTE_DEL_SEQS, NOTE_ADD_DEL_SEQS,
 
@@ -131,6 +133,9 @@ class Alignment(State):
                 from copy import copy
                 self._seqs[i] = copy(seq)
             self._seqs[i].match_maps = {}
+            print("Registering rename handler for", id(seq))
+            self._seq_handlers.append(
+                self._seqs[i].triggers.add_handler("rename", self._seq_name_changed_cb))
             if isinstance(self._seqs[i], StructureSeq):
                 self._seq_handlers.append(self._seqs[i].triggers.add_handler("characters changed",
                     self._seq_characters_changed_cb))
@@ -1039,6 +1044,9 @@ class Alignment(State):
         self._column_counts_cache = None
         if not getattr(self, '_realigning', False):
             self._notify_observers(self.NOTE_SEQ_CONTENTS, seq)
+
+    def _seq_name_changed_cb(self, trig_name, seq):
+        self._notify_observers(self.NOTE_SEQ_NAME, seq)
 
     def _set_realigned(self, realigned_seqs):
         # realigned sequences need to be in the same order as the current sequences
