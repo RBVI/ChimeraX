@@ -31,7 +31,7 @@ class StructureListWidget(ModelListWidget):
 
 class StructureMenuButton(ModelMenuButton):
     def __init__(self, session, **kw):
-        super().__init__(session, class_filter=Structure, **kw)
+        super().__init__(session, no_value_button_text="No structure chosen", class_filter=Structure, **kw)
 
 class AtomicStructureListWidget(ModelListWidget):
     def __init__(self, session, **kw):
@@ -39,7 +39,7 @@ class AtomicStructureListWidget(ModelListWidget):
 
 class AtomicStructureMenuButton(ModelMenuButton):
     def __init__(self, session, **kw):
-        super().__init__(session, class_filter=AtomicStructure, **kw)
+        super().__init__(session, no_value_button_text="No structure chosen", class_filter=AtomicStructure, **kw)
 
 class ChainListWidget(ItemListWidget):
     def __init__(self, session, *, group_identical=False, **kw):
@@ -136,8 +136,8 @@ class ChainListWidget(ItemListWidget):
         return specs
 
 class ChainMenuButton(ItemMenuButton):
-    def __init__(self, session, **kw):
-        super().__init__(**_process_chain_kw(session, **kw))
+    def __init__(self, session, no_value_button_text="No chain chosen", **kw):
+        super().__init__(no_value_button_text=no_value_button_text,  **_process_chain_kw(session, **kw))
 
 def _process_chain_kw(session, list_func=None, trigger_info=None, **kw):
     if list_func is None:
@@ -163,8 +163,8 @@ class ResidueListWidget(ItemListWidget):
         super().__init__(**_process_residue_kw(session, **kw))
 
 class ResidueMenuButton(ItemMenuButton):
-    def __init__(self, session, **kw):
-        super().__init__(**_process_residue_kw(session, **kw))
+    def __init__(self, session, no_value_button_text="No residue chosen", **kw):
+        super().__init__(no_value_button_text=no_value_button_text, **_process_residue_kw(session, **kw))
 
 def _process_residue_kw(session, list_func=None, trigger_info=None, **kw):
     if list_func is None:

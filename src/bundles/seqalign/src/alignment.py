@@ -49,6 +49,7 @@ class Alignment(State):
     NOTE_COMMAND       = "command"
     NOTE_REF_SEQ       = "reference seq changed"
     NOTE_SEQ_CONTENTS  = "seq contents changed"  # Not fired if NOTE_REALIGNMENT applicable
+    NOTE_SEQ_NAME      = "sequence name changed"
     NOTE_REALIGNMENT   = "sequences realigned"  # preempts NOTE_SEQ_CONTENTS
     NOTE_RMSD_UPDATE   = "rmsd change"  # RMSD value changed, or chains relevant to RMSD may have changed
 
@@ -68,6 +69,7 @@ class Alignment(State):
     #   NOTE_COMMAND: the observer subcommand text
     #   NOTE_REF_SEQ: the new reference sequence (which could be None)
     #   NOTE_SEQ_CONTENTS: the sequence whose characters changed
+    #   NOTE_SEQ_NAME: the sequence whose name changed
     #   NOTE_REALIGNMENT: a list of copies of the previous sequences
     #   not yet implemented:  NOTE_ADD_SEQS, NOTE_PRE_DEL_SEQS, NOTE_DEL_SEQS, NOTE_ADD_DEL_SEQS,
 
@@ -86,7 +88,7 @@ class Alignment(State):
     COL_IDENTITY_ATTR = "seq_identity"
 
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
-            description, intrinsic, *, create_headers=True, session_restore=False, copy_seqs=True):
+            description, intrinsic, *, create_headers=True, session_restore=False, copy_seqs=None):
         if not seqs:
             raise ValueError("Cannot create alignment of zero sequences")
         self.session = session
@@ -95,6 +97,9 @@ class Alignment(State):
             seqs = list(seqs)
         # prevent later accidental modification; also different alignments may contain the same sequence
         # (so prevent Alignment._destroy from messing up other alignments)
+        print("copy_seqs:", repr(copy_seqs), ident, id(self))
+        if copy_seqs is None:
+            copy_seqs = False if ident is False else True
         if session_restore or not copy_seqs:
             self._seqs = seqs
         else:
@@ -129,6 +134,8 @@ class Alignment(State):
                 from copy import copy
                 self._seqs[i] = copy(seq)
             self._seqs[i].match_maps = {}
+            self._seq_handlers.append(
+                self._seqs[i].triggers.add_handler("rename", self._seq_name_changed_cb))
             if isinstance(self._seqs[i], StructureSeq):
                 self._seq_handlers.append(self._seqs[i].triggers.add_handler("characters changed",
                     self._seq_characters_changed_cb))
@@ -604,7 +611,7 @@ class Alignment(State):
     def headers(self):
         return self._headers[:]
 
-    def match(self, ref_chain, match_chains, *, iterate=-1, restriction=None):
+    def match(self, ref_chain, match_chains, *, iterate=-1, conservation=None, restriction=None):
         """Match the match_chains onto the ref_chain.  All chains must already be associated
            with the alignment.
 
@@ -612,8 +619,11 @@ class Alignment(State):
            If 'iterate' is None, then no iteration occurs.  Otherwise, it is the cutoff value
            where iteration stops.
 
+           'conservation', if provided, is the percent identity that a column has to have to
+           be included in the matching.
+
            'restriction', if provided, is a list of gapped column positions that the matching
-           should be limited to.
+           should be (further) limited to.
 
            This returns a series of tuples, one per match chain, describing the resulting
            match.  The values in the 5-tuple are:
@@ -640,16 +650,31 @@ class Alignment(State):
             from .settings import settings
             iterate = settings.iterate
 
+        if restriction is None:
+            if conservation is None:
+                final_restriction = None
+            else:
+                threshold = len(self._seqs) * conservation / 100.0
+                final_restriction = set([col for col in range(len(self._seqs[0]))
+                    if self.most_common(col)[-1] >= threshold])
+        else:
+            if conservation is None:
+                final_restriction = set(restriction)
+            else:
+                threshold = len(self._seqs) * conservation / 100.0
+                final_restriction = set([col for col in restriction
+                    if self.most_common(col)[-1] >= threshold])
+
         return_vals = []
         ref_seq = self.associations[ref_chain]
-        if restriction is not None:
-            ref_ungapped_positions = [ref_seq.gapped_to_ungapped(i) for i in restriction]
+        if final_restriction is not None:
+            ref_ungapped_positions = [ref_seq.gapped_to_ungapped(i) for i in final_restriction]
         for match_chain in match_chains:
             if match_chain not in self.associations:
                 raise UserError("%s not associated with any sequence" % match_chain.full_name)
             match_seq = self.associations[match_chain]
-            if restriction is not None:
-                match_ungapped_positions = [match_seq.gapped_to_ungapped(i) for i in restriction]
+            if final_restriction is not None:
+                match_ungapped_positions = [match_seq.gapped_to_ungapped(i) for i in final_restriction]
                 restriction_set = set()
                 for ur, um in zip(ref_ungapped_positions, match_ungapped_positions):
                     if ur is not None and um is not None:
@@ -659,7 +684,7 @@ class Alignment(State):
             ref_res_to_pos = ref_seq.match_maps[ref_chain].res_to_pos
             match_pos_to_res = match_seq.match_maps[match_chain].pos_to_res
             for rres, rpos in ref_res_to_pos.items():
-                if restriction is not None and rpos not in restriction_set:
+                if final_restriction is not None and rpos not in restriction_set:
                     continue
                 gpd = ref_seq.ungapped_to_gapped(rpos)
                 mug = match_seq.gapped_to_ungapped(gpd)
@@ -1019,6 +1044,9 @@ class Alignment(State):
         self._column_counts_cache = None
         if not getattr(self, '_realigning', False):
             self._notify_observers(self.NOTE_SEQ_CONTENTS, seq)
+
+    def _seq_name_changed_cb(self, trig_name, seq):
+        self._notify_observers(self.NOTE_SEQ_NAME, seq)
 
     def _set_realigned(self, realigned_seqs):
         # realigned sequences need to be in the same order as the current sequences

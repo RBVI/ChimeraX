@@ -23,7 +23,7 @@ Main Packages
 -------------
 
 * Python - most of ChimeraX is Python code
-* PyQt5 - Qt window toolkit
+* PyQt6 - Qt window toolkit
 * PyOpenGL - Python interface to OpenGL graphics used to render all graphics
 * numpy - arrays, volume data, atomic coordinates, ... (from PyPi)
 

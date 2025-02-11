@@ -12,12 +12,12 @@
 .. _Mozilla Firefox: https://www.mozilla.org/firefox/
 .. _NCBI: https://www.ncbi.nlm.nih.gov/
 .. _NumPy: https://docs.scipy.org/doc/numpy-dev/user/quickstart.html
-.. _Qt: https://doc.qt.io/qt-5/index.html
-.. _Qt5: https://doc.qt.io/qt-5/index.html
-.. _Qt WebEngine: https://doc.qt.io/qt-5/qtwebengine-index.html
+.. _Qt: https://doc.qt.io/qt-6/index.html
+.. _Qt6: https://doc.qt.io/qt-6/index.html
+.. _Qt WebEngine: https://doc.qt.io/qt-6/qtwebengine-index.html
 .. _PyQt: https://riverbankcomputing.com/software/pyqt/intro
-.. _PyQt5: https://riverbankcomputing.com/software/pyqt/intro
-.. _PyQt5 tutorials: https://wiki.python.org/moin/PyQt/Tutorials
+.. _PyQt6: https://riverbankcomputing.com/software/pyqt/intro
+.. _PyQt6 tutorials: https://wiki.python.org/moin/PyQt/Tutorials
 .. _Python wheel: https://wheel.readthedocs.org/
 .. _Python package: https://docs.python.org/3/tutorial/modules.html#packages
 .. _Python package setup scripts: https://docs.python.org/3/distutils/setupscript.html

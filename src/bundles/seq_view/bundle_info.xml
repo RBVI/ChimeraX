@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-SeqView" version="2.15"
+<BundleInfo name="ChimeraX-SeqView" version="2.17"
 	    package="chimerax.seq_view"
 	    supercedes="ChimeraX-SEQ-VIEW"
   	    minSessionVersion="1" maxSessionVersion="1">

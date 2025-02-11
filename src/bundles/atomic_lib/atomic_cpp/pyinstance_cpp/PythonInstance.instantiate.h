@@ -35,6 +35,7 @@
 
 #include "Python.h"
 
+#include <iostream>
 namespace pyinstance {
 
 template <class C> std::string PythonInstance<C>::_buffer;
@@ -218,11 +219,14 @@ PyObject*
 PythonInstance<C>::py_call_method(const std::string& method_name, const char* fmt, const void* arg) const
 // limited to 0 or 1 arg methods
 {
+std::cerr << "Call Python method " << method_name << "\n";
     auto inst = py_instance(false);
     PyObject* ret;
     if (inst == Py_None) {
+std::cerr << "instance is None\n";
         return nullptr;
     } else {
+std::cerr << "instance is not None\n";
         auto gil = AcquireGIL();
         ret = PyObject_CallMethod(inst, method_name.c_str(), fmt, arg);
         if (ret == nullptr) {

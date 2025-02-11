@@ -48,6 +48,9 @@ with the same column(s) of the sequence alignment
 &ndash; show, hide, save alignment headers
 <li><a href="#identity"><b>sequence identity</b></a>
 &ndash; calculate pairwise percent identities
+<li><a href="#match"><b>sequence match</b></a>
+&ndash; superimpose structures based on the alignment of their 
+<a href="../tools/sequenceviewer.html#association">associated</a> sequences
 <li><a href="#refreshAttrs"><b>sequence refreshAttrs</b></a>
 &ndash; for structure chains 
 <a href="../tools/sequenceviewer.html#association">associated</a>
@@ -166,6 +169,62 @@ that have the same name.
 For <b>sequence dissociate</b>, only the alignment needs to be specified, 
 not an individual sequence, because a structure chain can only be 
 associated with one sequence per alignment.
+</p>
+
+<a name="match"></a>
+<p class="nav">
+[<a href="#top">back to top: sequence</a>]
+</p>
+<h3>Structure Superposition</h3>
+<blockquote>
+<a href="usageconventions.html">Usage</a>:
+<b>sequence &nbsp;match</b> [&nbsp;<i>alignment-ID</i>&nbsp;]
+&nbsp;<a href="atomspec.html#hierarchy"><i>matchchain(s)</i></a>&nbsp; <b>to</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>refchain</i></a>&nbsp;
+[&nbsp;<b>cutoffDistance</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;|&nbsp;none</a>&nbsp;]
+[&nbsp;<b>conservation</b>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<b>columns</b>&nbsp;&nbsp;<i>list-of-positions</i>&nbsp;]
+</blockquote>
+<p>
+Superimpose the specified structures based on the alignment of their 
+<a href="../tools/sequenceviewer.html#association">associated</a> sequences.
+The <i>alignment-ID</i> is shown in the title bar of the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window.
+</p><p>
+By default (<b>cutoffDistance</b> option not used), 
+structures are fit iteratively with a <i>cutoff</i> of
+<b>2.0</b> &Aring; for omitting farther-apart pairs from the fit.
+Specifying the <i>cutoff</i> as <b>none</b> turns iteration off.
+When iteration is performed,
+the sequence alignment is not changed, but residue pairs in the
+alignment can be pruned from the &ldquo;match list&rdquo; used to
+superimpose the structures. 
+Fitting uses <a href="../tools/sequenceviewer.html#onepoint">one atom</a>
+per residue. In each cycle of fitting,
+pairs of atoms are removed from the match list and the remaining
+pairs are fitted until no matched pair is
+more than <i>cutoff</i> apart (default <b>2.0</b> &Aring;).
+The atom pairs removed are either the 10% farthest apart of all pairs
+or the 50% farthest apart of all pairs exceeding the cutoff, whichever
+is the lesser number of pairs. The result of iteration is that the
+best-matching &ldquo;core&rdquo; regions are maximally superimposed,
+and conformationally dissimilar regions such as flexible
+loops are not included in the final fit, even though they may be aligned
+in the sequence alignment.
+</p><p>
+The <b>conservation</b> option specifies omitting columns with less than
+<i>percent</i> identity from the initial fit.
+</p><p>
+The <b>columns</b> option specifies omitting columns other than those
+listed from the initial fit.
+The list must consist of positive integers separated by commas only;
+hyphenated ranges cannot be used.
+</p><p>
+The number of atom pairs fitted and the resulting RMSD are reported in the
+<a href="../tools/log.html"><b>Log</b></a> and the status line at the bottom
+of the <a href="../window.html">ChimeraX window</a>. See also:
+<a href="matchmaker.html"><b>matchmaker</b></a>,
+<a href="align.html"><b>align</b></a>
 </p>
 
 <a name="expandsel"></a>
@@ -608,5 +667,5 @@ Edgar RC.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2024</address>
+February 2025</address>
 </body></html>
