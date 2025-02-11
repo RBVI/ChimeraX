@@ -831,7 +831,12 @@ class Sequence(State):
         set_c_pointer(self, seq_pointer)
         # since this Sequence has been created in the Python layer, don't call
         # set_sequence_py_instance, since that will add a reference and the
-        # Sequence will not be properly garbage collected
+        # Sequence will not be properly garbage collected.  Yet we need the
+        # C++ layer to know about the Python instance so that callbacks (such
+        # as "sequence renamed") occur, so we call a different setter that
+        # does not produce an additional reference.
+        f = c_function('set_pysequence_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
+        f(self._c_pointer, self)
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,

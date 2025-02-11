@@ -141,6 +141,7 @@ class SeqCanvas:
         self.mainCanvas.bind('<Configure>', self._configureCB)
 
         """
+
         self.sv = sv
         self.alignment = alignment
         """TODO
@@ -1058,7 +1059,7 @@ class SeqCanvas:
             elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
                 self.refresh(note_data)
             elif note_name == self.alignment.NOTE_SEQ_NAME:
-                self._update_label(note_data)
+                self._update_label(note_data[0])
             elif note_name == self.alignment.NOTE_REALIGNMENT:
                 # headers are notified before us, so they should be "ready to go"
                 self.sv.region_manager.clear_regions()
@@ -2718,7 +2719,20 @@ class SeqBlock:
         return min(rawY - self.top_y, self.bottom_y - self.top_y)
 
     def replace_label(self, line):
+        text = self.label_texts[line]
+        old_rect = text.sceneBoundingRect()
         self.label_texts[line].setText(line.name)
+        # maintain right justification
+        new_rect = text.sceneBoundingRect()
+        width_diff = old_rect.width() - new_rect.width()
+        text.moveBy(width_diff, 0)
+        # update size of "colorization" rectangle
+        if line in self.label_rects:
+            rect_item = self.label_rects[line]
+            rect = rect_item.rect()
+            rect.setX(rect.x() + width_diff)
+            rect_item.setRect(rect)
+
         if self.next_block:
             self.next_block.replace_label(line)
 
