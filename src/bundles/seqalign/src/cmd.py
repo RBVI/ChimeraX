@@ -374,7 +374,7 @@ def seqalign_identity(session, src1, src2=None, *, denominator=IdentityDenominat
     return identity
 
 def seqalign_match(session, alignment, match_chains, to=None, *,
-        iterate=-1, conservation=None, columns=None):
+        cutoff_distance=-1, conservation=None, columns=None):
     if alignment is None:
         alignment = get_alignment_by_id(session, None)
     if columns is None:
@@ -386,7 +386,7 @@ def seqalign_match(session, alignment, match_chains, to=None, *,
             if col > length:
                 raise UserError("match column (%d) greater than alignment length (%d)" % (col, length))
             indices.append(col-1)
-    return alignment.match(to, match_chains, iterate=iterate, conservation=conservation, restriction=indices)
+    return alignment.match(to, match_chains, iterate=cutoff_distance, conservation=conservation, restriction=indices)
 
 def seqalign_refresh_attrs(session, alignment):
     alignment._set_residue_attributes()
@@ -552,7 +552,7 @@ def register_seqalign_command(logger):
     desc = CmdDesc(
         required = [('alignment', Or(AlignmentArg, EmptyArg)), ('match_chains', UniqueChainsArg)],
         required_arguments = ['to'],
-        keyword = [('to', ChainArg), ('iterate', Or(NoneArg, NonNegativeFloatArg)),
+        keyword = [('to', ChainArg), ('cutoff_distance', Or(NoneArg, NonNegativeFloatArg)),
             ('conservation', PercentFloatArg),
             ('columns', ListOf(PositiveIntArg))],
         synopsis = "superimpose chains associated with sequence alignment"
