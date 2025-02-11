@@ -29,7 +29,7 @@ linux-gnu)
 	CHIMERAX_PYTHON_BIN=./ChimeraX.app/bin/python3.11
 	CHIMERAX_BIN=./ChimeraX.app/bin/ChimeraX
 	;;
-msys)
+msys | cygwin)
 	CHIMERAX_PYTHON_BIN=./ChimeraX.app/bin/python.exe
 	CHIMERAX_BIN=./ChimeraX.app/bin/ChimeraX-console.exe
 	;;
