@@ -39,6 +39,8 @@ darwin*)
 	;;
 esac
 
+echo "OSTYPE: ${OSTYPE}"
+
 if [ ! -e "${CHIMERAX_PYTHON_BIN}" ]; then
   echo "Looked for ChimeraX Python at ${CHIMERAX_PYTHON_BIN}"
 	echo "No ChimeraX Python binary found" && exit 1
