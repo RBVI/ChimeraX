@@ -97,6 +97,7 @@ class Alignment(State):
             seqs = list(seqs)
         # prevent later accidental modification; also different alignments may contain the same sequence
         # (so prevent Alignment._destroy from messing up other alignments)
+        print("copy_seqs:", repr(copy_seqs), ident, id(self))
         if copy_seqs is None:
             copy_seqs = False if ident is False else True
         if session_restore or not copy_seqs:
@@ -133,7 +134,6 @@ class Alignment(State):
                 from copy import copy
                 self._seqs[i] = copy(seq)
             self._seqs[i].match_maps = {}
-            print("Registering rename handler for", id(seq))
             self._seq_handlers.append(
                 self._seqs[i].triggers.add_handler("rename", self._seq_name_changed_cb))
             if isinstance(self._seqs[i], StructureSeq):

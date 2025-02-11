@@ -1018,10 +1018,12 @@ class Sequence(State):
         return f(self._c_pointer, index)
 
     def _cpp_rename(self, old_name):
+        print("_cpp_rename called")
         # called from C++ layer when 'name' attr changed
         self._fire_trigger('rename', (self, old_name))
 
     def _fire_trigger(self, trig_name, arg):
+        print("trigger firing requested")
         # If no one is listening to the trigger, don't create a delayed firing of the trigger
         # ... because ...
         # this class has a __del__ method that can execute multiple times because the
@@ -1032,6 +1034,7 @@ class Sequence(State):
         if not self.triggers.trigger_handlers(trig_name):
             return
 
+        print("actually firing trigger")
         self.triggers.activate_trigger(trig_name, arg)
         # changes to the way downgrade-to-Sequence works makes the below code unnecessary;
         # furthermore, no 'changes' trigger fires for a sequence rename

@@ -141,6 +141,7 @@ class SeqCanvas:
         self.mainCanvas.bind('<Configure>', self._configureCB)
 
         """
+
         self.sv = sv
         self.alignment = alignment
         """TODO
@@ -1058,6 +1059,7 @@ class SeqCanvas:
             elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
                 self.refresh(note_data)
             elif note_name == self.alignment.NOTE_SEQ_NAME:
+                print("seq name notification received")
                 self._update_label(note_data)
             elif note_name == self.alignment.NOTE_REALIGNMENT:
                 # headers are notified before us, so they should be "ready to go"
