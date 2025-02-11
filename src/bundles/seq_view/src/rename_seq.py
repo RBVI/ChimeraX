@@ -49,6 +49,7 @@ class RenameSeqDialog:
 
         name_layout.addWidget(QLabel("as:"))
         self.name_entry = QLineEdit()
+        self.name_entry.returnPressed.connect(self.rename_seq)
         name_layout.addWidget(self.name_entry, stretch=1)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox

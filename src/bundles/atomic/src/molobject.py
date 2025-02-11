@@ -831,7 +831,12 @@ class Sequence(State):
         set_c_pointer(self, seq_pointer)
         # since this Sequence has been created in the Python layer, don't call
         # set_sequence_py_instance, since that will add a reference and the
-        # Sequence will not be properly garbage collected
+        # Sequence will not be properly garbage collected.  Yet we need the
+        # C++ layer to know about the Python instance so that callbacks (such
+        # as "sequence renamed") occur, so we call a different setter that
+        # does not produce an additional reference.
+        f = c_function('set_pysequence_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
+        f(self._c_pointer, self)
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,
@@ -1018,12 +1023,10 @@ class Sequence(State):
         return f(self._c_pointer, index)
 
     def _cpp_rename(self, old_name):
-        print("_cpp_rename called")
         # called from C++ layer when 'name' attr changed
         self._fire_trigger('rename', (self, old_name))
 
     def _fire_trigger(self, trig_name, arg):
-        print("trigger firing requested")
         # If no one is listening to the trigger, don't create a delayed firing of the trigger
         # ... because ...
         # this class has a __del__ method that can execute multiple times because the
@@ -1034,7 +1037,6 @@ class Sequence(State):
         if not self.triggers.trigger_handlers(trig_name):
             return
 
-        print("actually firing trigger")
         self.triggers.activate_trigger(trig_name, arg)
         # changes to the way downgrade-to-Sequence works makes the below code unnecessary;
         # furthermore, no 'changes' trigger fires for a sequence rename
