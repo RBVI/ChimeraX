@@ -142,6 +142,7 @@ runs:
           prereqs/ffmpeg/libvpx-1.13.1.tar.xz
           prereqs/ffmpeg/yasm-1.3.0.tar.bz2
           prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz
+          prereqs/ffmpeg/x264-stable.tar.xz
         key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
 
     - name: Restore cached ffmpeg (Windows)
@@ -273,6 +274,7 @@ runs:
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libvpx-1.13.1.tar.xz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/yasm-1.3.0.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/x264-stable.tar.xz -O -J
           mv libtheora* prereqs/ffmpeg/
           mv libogg* prereqs/ffmpeg/
           mv libvpx* prereqs/ffmpeg/
