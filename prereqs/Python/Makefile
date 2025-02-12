@@ -5,9 +5,9 @@ include $(TOP)/mk/config.make
 # PYTHON_VERSION is in config.make
 PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 
-PIP_VERSION = 24.2
 WHEEL_VERSION = 0.43
 SETUPTOOLS_VERSION = 72.1.0
+PIP_VERSION = 25.0.1
 
 ifeq ($(OS),Windows)
 DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-win-amd64.tar.bz2
