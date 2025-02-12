@@ -231,7 +231,7 @@ runs:
       shell: bash
       if: ${{ steps.cache-libglu-linux.cache-hit != 'true' && runner.os == 'linux' }}
       run: |
-        curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/libGLU/glu-glu-9.0.2.tar.bz2
+        curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/libGLU/glu-glu-9.0.2.tar.bz2 -O -J
         mv glu* prereqs/libGLU/
 
     - name: Fetch holoplaycore
