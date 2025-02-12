@@ -450,6 +450,7 @@ static struct PyModuleDef spec_parser_def =
 };
 
     //RANGE_CHAR <- [^-#/:@,;()&| \t\n]
+    //ATOM_NAME <- < [^#/:@; \t\n]+ >
 static auto grammar = (R"---(
     atom_specifier <- as_term "&" atom_specifier / as_term "|" atom_specifier / as_term
     as_term <- "(" atom_specifier ")" zone_selector? / "~" as_term zone_selector? / SELECTOR_NAME zone_selector? / model_list
@@ -470,7 +471,7 @@ static auto grammar = (R"---(
     attribute_list <- attr_test ("," attr_test)*
     attr_test <- ATTR_NAME ATTR_OPERATOR ATTR_VALUE / "^" ATTR_NAME / ATTR_NAME
     zone_selector <- Space* ZONE_OPERATOR real_number / Space* ZONE_OPERATOR integer
-    ATOM_NAME <- < [^#/:@; \t\n]+ >
+    ATOM_NAME <- < [-+a-zA-Z0-9_'"*?\[\]\\]+ >
     ATTR_NAME <- < [a-zA-Z_] [a-zA-Z0-9_]* >
     ATTR_OPERATOR <- ">=" | ">" | "<=" | "<" | "==" | "=" | "!==" | "!=" | "<>"
     # Outer token delimiters to prevent automatic whitespace elimination inside quotes
@@ -481,7 +482,7 @@ static auto grammar = (R"---(
     MODEL_SPEC_ANY <- MODEL_SPEC / "*"
     MODEL_SPEC_END <- MODEL_SPEC / "end" / "*"
     MODEL_SPEC_START <- MODEL_SPEC / "start" / "*"
-    RANGE_CHAR <- [A-Za-z0-9_'"\[\]\\]
+    RANGE_CHAR <- [A-Za-z0-9_'"*?\[\]\\]
     RANGE_PART <- < "-"? RANGE_CHAR+ >
     PART_RANGE_LIST <- < RANGE_PART "-" RANGE_PART > / RANGE_PART
     SELECTOR_NAME <- < [a-zA-Z_][-+a-zA-Z0-9_]* >
