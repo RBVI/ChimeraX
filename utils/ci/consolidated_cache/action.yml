@@ -229,7 +229,7 @@ runs:
 
     - name: Fetch LibGLU
       shell: bash
-      if: ${{ steps.cache-libglu-linux.cache-hit != 'true' && inputs.platform == 'linux' }}
+      if: ${{ steps.cache-libglu-linux.outputs.cache-hit != 'true' && inputs.platform == 'linux' }}
       run: |
         curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/libGLU/glu-glu-9.0.2.tar.bz2 -O -J
         mv glu* prereqs/libGLU/
