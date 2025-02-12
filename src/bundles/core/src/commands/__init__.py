@@ -48,13 +48,14 @@ from .cli import (
     EnumOf,
     DynamicEnum,
 )
-from .cli import IntArg, Int2Arg, Int3Arg, IntsArg, NonNegativeIntArg, PositiveIntArg
+from .cli import IntArg, Int2Arg, Int3Arg, IntsArg, NonNegativeIntArg, PercentIntArg, PositiveIntArg
 from .cli import (
     FloatArg,
     Float2Arg,
     Float3Arg,
     FloatsArg,
     NonNegativeFloatArg,
+	PercentFloatArg,
     PositiveFloatArg,
 )
 from .cli import FloatOrDeltaArg

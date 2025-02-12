@@ -5913,6 +5913,18 @@ GET_PYTHON_INSTANCES(sequence, Sequence)
 GET_PYTHON_INSTANCES(structure, Structure)
 GET_PYTHON_INSTANCES(structureseq, StructureSeq)
 
+// need a special setter for Sequences created in the Python layer that does not add a reference
+extern "C" EXPORT void set_pysequence_py_instance(void* pysequence, PyObject* py_inst)
+{
+   Sequence *s = static_cast<Sequence *>(pysequence);
+   try {
+       s->set_py_instance(py_inst);
+       Py_DECREF(py_inst);
+   } catch (...) {
+       molc_error();
+   }
+}
+
 #include <pyinstance/PythonInstance.declare.h>
 extern "C" EXPORT PyObject *python_instances_of_class(PyObject* cls)
 {

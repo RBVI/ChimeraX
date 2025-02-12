@@ -215,7 +215,8 @@ class EmplaceLocalResultsViewer(ToolInstance):
         parent = tw.ui_area
 
         from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
-        from Qt.QtWidgets import QPushButton, QLabel, QToolButton, QGridLayout, QWidget
+        from Qt.QtWidgets import QPushButton, QLabel, QToolButton, QGridLayout, QWidget, QDockWidget
+
         layout = QVBoxLayout()
         layout.setContentsMargins(2,2,2,2)
         layout.setSpacing(0)
@@ -241,6 +242,11 @@ class EmplaceLocalResultsViewer(ToolInstance):
 
         layout.addWidget(check_box_area, alignment=Qt.AlignCenter)
 
+        from chimerax.ui import shrink_font
+        instructions = QLabel("Click OK to retain the chosen fit and remove others")
+        shrink_font(instructions)
+        layout.addWidget(instructions, alignment=Qt.AlignCenter)
+
         if sym_map:
             self._show_symmetry_cb(True)
 
@@ -258,7 +264,7 @@ class EmplaceLocalResultsViewer(ToolInstance):
             bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
 
-        self.tool_window.manage(None)
+        self.tool_window.manage("side")
 
     def accept_fit(self):
         # running commands directly in delete() can be hazardous, so...

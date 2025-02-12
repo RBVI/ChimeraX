@@ -16,7 +16,7 @@ jobs:
   build-ubuntu:
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        os: [ubuntu-22.04, ubuntu-24.04]
     env:
       PYOPENGL_PLATFORM: egl
     runs-on: ${{ matrix.os }}

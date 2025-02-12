@@ -3199,7 +3199,13 @@ class Texture:
         '''
         # PyOpenGL 3.1.5 leaks memory if data not contiguous, PyOpenGL github issue #47.
         d = data if data.flags['C_CONTIGUOUS'] else data.copy()
-        self.data = d
+        # OpenGL doesn't support float64 textures so if for some reason that's the data type
+        # we end up with truncate it to float32
+        from numpy import float64, float32 
+        if d.dtype == float64:
+            self.data = d.astype(float32)
+        else:
+            self.data = d
         if now:
             self.fill_opengl_texture()
 

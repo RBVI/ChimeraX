@@ -37,7 +37,7 @@ class _ViperDBBundleAPI(BundleAPI):
                     models, info = open_pdb(session, data, file_name, **kw)
                     from chimerax.std_commands.sym import sym
                     from chimerax.atomic.args import Symmetry
-                    sym(session, models, Symmetry('i222', session))
+                    sym(session, models, Symmetry('i,222', session))
                     return models, info
             return ViperDBInfo()
 

@@ -520,7 +520,7 @@ class DicomData:
             rsi = int(rsi)
         self.rescale_intercept = rsi
         self.rescale_slope = int(self.dicom_series.rescale_slope)
-        if not self.contour_series:
+        if self.image_series and not self.contour_series:
             bits = self.sample_file.get("BitsAllocated")
             rep = self.sample_file.get("PixelRepresentation")
             self.value_type = self.numpy_value_type(
@@ -662,6 +662,18 @@ class DicomData:
                 "it had no pixel data. Metadata will still "
                 "be available." % (self.number, self.patient_id)
             )
+
+    @property
+    def number(self):
+        if self.sample_file.get("SeriesNumber", None) is None:
+            self.session.logger.warning("SeriesNumber not specified; setting to 0")
+            return 0
+        else:
+            return int(self.sample_file.get("SeriesNumber", 0))
+
+    @property
+    def patient_id(self):
+        return self.sample_file.get("PatientID", "")
 
     @property
     def columns(self):

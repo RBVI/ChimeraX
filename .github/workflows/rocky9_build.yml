@@ -14,7 +14,7 @@ on:
 
 jobs:
   build-rocky9-docker:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container:
       image: rockylinux:9
     env:
