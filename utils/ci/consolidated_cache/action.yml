@@ -139,6 +139,7 @@ runs:
           prereqs/ffmpeg/libtheora-1.1.1.tar.xz
           prereqs/ffmpeg/libogg-1.3.2.tar.xz
           prereqs/ffmpeg/libvpx-1.6.1.tar.xz
+          prereqs/ffmpeg/libvpx-1.13.1.tar.xz
           prereqs/ffmpeg/yasm-1.3.0.tar.bz2
           prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz
         key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
@@ -269,6 +270,7 @@ runs:
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libtheora-1.1.1.tar.xz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libogg-1.3.2.tar.xz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libvpx-1.6.1.tar.xz -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libvpx-1.13.1.tar.xz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/yasm-1.3.0.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz -O -J
           mv libtheora* prereqs/ffmpeg/
