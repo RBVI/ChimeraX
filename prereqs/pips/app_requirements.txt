@@ -7,7 +7,7 @@
 # TODO: Deprecate conda version when pip gets arm64 ports
 #
 appdirs==1.4.4
-beautifulsoup4==4.12.3
+beautifulsoup4==4.13.3
 build==1.2.1
 colorama==0.4.6
 Cython==3.0.10 ; platform_machine != 'arm64'
