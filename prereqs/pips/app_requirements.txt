@@ -24,7 +24,7 @@ ipython==8.26.0
 jedi==0.19.1
 jupyter-client==8.6.2
 line_profiler==4.2.0
-lxml==5.2.2
+lxml==5.3.1
 lz4==4.4.3
 matplotlib==3.9.2
 msgpack==1.1.0
