@@ -66,7 +66,7 @@ runs:
       with:
         path: |
           prereqs/Python/Python-3.11.4.tar.xz
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.4
 
     - name: Restore cached Python (Windows)
       id: cache-python-windows
@@ -75,7 +75,7 @@ runs:
       with:
         path: |
           prereqs/Python/python-3.11.4-win-amd64.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.4
 
     - name: Restore cached Python (macOS)
       id: cache-python-macos
@@ -84,7 +84,7 @@ runs:
       with:
         path: |
           prereqs/Python/python-3.11.4-mac.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.4
 
     - name: Restore cached mmtf dependency sources
       id: cache-mmtf
