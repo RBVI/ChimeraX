@@ -182,14 +182,13 @@ jobs:
           msystem: MINGW64
           update: true
           install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
         with:
           platform: windows
-          architecture: x86
+          architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - uses: ./utils/ci/cache_mmtf/
-      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) install
+      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" BUILD_TYPE=techpreview make -j$(nproc) install-rbvi
       - name: Run the legacy test suite
         run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test
       - name: Install Pytest
@@ -220,3 +219,4 @@ jobs:
           release_type: ${{ inputs.release_type }}
           platform: windows
           deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+
