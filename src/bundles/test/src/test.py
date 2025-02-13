@@ -189,3 +189,9 @@ def run_expectfail(session, command):
         session.logger.info("Failed as expected")
     else:
         raise UserError("Command failed to fail")
+
+def run_new_parser(session, use_parser):
+    session.logger.info("Using %s parser" % ("cpp-peglib" if use_parser else "grako"))
+    from chimerax.core.commands import AtomSpecArg
+    AtomSpecArg.use_peglib_parser = use_parser
+

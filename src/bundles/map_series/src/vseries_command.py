@@ -416,8 +416,12 @@ class SeriesArg(AtomSpecArg):
 
     @classmethod
     def parse(cls, text, session):
-        value, used, rest = super().parse(text, session)
-        models = value.evaluate(session).models
+        if cls.use_peglib_parser:
+            objs, used, rest = super().evaluate(session, text)
+            models = objs,models
+        else:
+            value, used, rest = super().parse(text, session)
+            models = value.evaluate(session).models
         from .series import MapSeries
         ms = [m for m in models if isinstance(m, MapSeries)]
         return ms, used, rest

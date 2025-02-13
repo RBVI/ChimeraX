@@ -1443,6 +1443,8 @@ class ModelsArg(AtomSpecArg):
 
     @classmethod
     def parse(cls, text, session):
+        if cls.use_peglib_parser:
+            return super().evaluate(session, text)
         aspec, text, rest = super().parse(text, session)
         models = aspec.evaluate(session).models
         return models, text, rest
@@ -1461,6 +1463,8 @@ class TopModelsArg(AtomSpecArg):
 
     @classmethod
     def parse(cls, text, session):
+        if cls.use_peglib_parser:
+            return super().evaluate(session, text)
         aspec, text, rest = super().parse(text, session)
         models = aspec.evaluate(session).models
         tmodels = _remove_child_models(models)
@@ -1480,12 +1484,11 @@ class ObjectsArg(AtomSpecArg):
 
     @classmethod
     def parse(cls, text, session):
-        if cls.use_cpp_peglib:
-            objects, text, rest = super().evaluate(session, text)
-        else:
-            aspec, text, rest = super().parse(text, session)
-            objects = aspec.evaluate(session)
-            objects.spec = str(aspec)
+        if cls.use_peglib_parser:
+            return super().evaluate(session, text)
+        aspec, text, rest = super().parse(text, session)
+        objects = aspec.evaluate(session)
+        objects.spec = str(aspec)
         return objects, text, rest
 
 
@@ -1496,8 +1499,12 @@ class ModelArg(AtomSpecArg):
 
     @classmethod
     def parse(cls, text, session):
-        aspec, text, rest = super().parse(text, session)
-        models = _remove_child_models(aspec.evaluate(session).models)
+        if cls.use_peglib_parser:
+            objs, text, rest = super().evaluate(session, text)
+            models = _remove_child_models(objs.models)
+        else:
+            aspec, text, rest = super().parse(text, session)
+            models = _remove_child_models(aspec.evaluate(session).models)
         if len(models) != 1:
             raise AnnotationError(
                 "Must specify 1 model, got %d" % len(models), len(text)

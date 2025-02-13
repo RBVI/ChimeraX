@@ -114,7 +114,7 @@ class AtomSpecArg(Annotation):
     name = "an atom specifier"
     url = "help:user/commands/atomspec.html"
 
-    use_cpp_peglib = True
+    use_peglib_parser = False
 
     @staticmethod
     def evaluate(session, text, models=None, *, order_implicit_atoms=False, add_implied=None, **kw):
@@ -143,7 +143,7 @@ class AtomSpecArg(Annotation):
         if models is None:
             models = session.models.list(**kw)
             models.sort(key=lambda m: m.id)
-        quoted = text[0] == '"'
+        quoted = text and text[0] == '"'
         if quoted:
             # Split out quoted argument
             start = 0
@@ -163,7 +163,7 @@ class AtomSpecArg(Annotation):
             parse_text = text
             def find_offset(e):
                 return e.args[0] + 0 if add_implied else 1
-        spec_add_implied = parse_text[0] != '='
+        spec_add_implied = not parse_text or parse_text[0] != '='
         if not spec_add_implied:
             parse_text = parse_text[1:]
         if add_implied is None:
@@ -227,35 +227,31 @@ class AtomSpecArg(Annotation):
         from .cli import unescape_with_index_map
         token, index_map = unescape_with_index_map(text[start + 1:end - 1])
         # Create parser and parse converted token
-        if cls.use_cpp_peglib:
-            #TODO: provide equivalent of next block
-            raise NotImplementedError("cpp-peglib parsing not implemented")
-        else:
-            from ._atomspec import _atomspecParser
-            parser = _atomspecParser(parseinfo=True)
-            semantics = _AtomSpecSemantics(session, add_implied=add_implied)
-            from grako.exceptions import FailedParse, FailedSemantics
-            try:
-                with maximum_stack():
-                    ast = parser.parse(token, "atom_specifier", semantics=semantics)
-            except FailedSemantics as e:
-                from .cli import AnnotationError
-                raise AnnotationError(str(e), offset=e.pos)
-            except FailedParse as e:
-                from .cli import AnnotationError, discard_article
-                # Add one to offset for leading quote
-                offset = index_map[e.pos]
-                message = 'invalid ' + discard_article(cls.name)
-                if str(e.message) != 'no available options':
-                    message = '%s: %s' % (message, e.message)
-                raise AnnotationError(message, offset=offset)
-            # Must consume everything inside quotes
-            if ast.parseinfo.endpos != len(token):
-                from .cli import AnnotationError
-                offset = index_map[ast.parseinfo.endpos] + 1
-                raise AnnotationError("mangled atom specifier", offset=offset)
-            # Success!
-            return ast, consumed, rest
+        from ._atomspec import _atomspecParser
+        parser = _atomspecParser(parseinfo=True)
+        semantics = _AtomSpecSemantics(session, add_implied=add_implied)
+        from grako.exceptions import FailedParse, FailedSemantics
+        try:
+            with maximum_stack():
+                ast = parser.parse(token, "atom_specifier", semantics=semantics)
+        except FailedSemantics as e:
+            from .cli import AnnotationError
+            raise AnnotationError(str(e), offset=e.pos)
+        except FailedParse as e:
+            from .cli import AnnotationError, discard_article
+            # Add one to offset for leading quote
+            offset = index_map[e.pos]
+            message = 'invalid ' + discard_article(cls.name)
+            if str(e.message) != 'no available options':
+                message = '%s: %s' % (message, e.message)
+            raise AnnotationError(message, offset=offset)
+        # Must consume everything inside quotes
+        if ast.parseinfo.endpos != len(token):
+            from .cli import AnnotationError
+            offset = index_map[ast.parseinfo.endpos] + 1
+            raise AnnotationError("mangled atom specifier", offset=offset)
+        # Success!
+        return ast, consumed, rest
 
     @classmethod
     def _parse_unquoted(cls, text, session):
@@ -270,53 +266,49 @@ class AtomSpecArg(Annotation):
             parse_text = text
             add_implied = True
             text_offset = 0
-        if cls.use_cpp_peglib:
-            #TODO: provide equivalent of next block
-            raise NotImplementedError("cpp-peglib parsing not implemented")
-        else:
-            from ._atomspec import _atomspecParser
-            parser = _atomspecParser(parseinfo=True)
-            semantics = _AtomSpecSemantics(session, add_implied=add_implied)
-            from grako.exceptions import FailedParse, FailedSemantics
-            try:
-                with maximum_stack():
-                    ast = parser.parse(parse_text, "atom_specifier", semantics=semantics)
-            except FailedSemantics as e:
-                from .cli import AnnotationError
-                raise AnnotationError(str(e), offset=e.pos)
-            except FailedParse as e:
-                from .cli import AnnotationError, discard_article
-                message = 'invalid ' + discard_article(cls.name)
-                if str(e.message) != 'no available options':
-                    message = '%s: %s' % (message, e.message)
-                raise AnnotationError(message, offset=e.pos)
+        from ._atomspec import _atomspecParser
+        parser = _atomspecParser(parseinfo=True)
+        semantics = _AtomSpecSemantics(session, add_implied=add_implied)
+        from grako.exceptions import FailedParse, FailedSemantics
+        try:
+            with maximum_stack():
+                ast = parser.parse(parse_text, "atom_specifier", semantics=semantics)
+        except FailedSemantics as e:
+            from .cli import AnnotationError
+            raise AnnotationError(str(e), offset=e.pos)
+        except FailedParse as e:
+            from .cli import AnnotationError, discard_article
+            message = 'invalid ' + discard_article(cls.name)
+            if str(e.message) != 'no available options':
+                message = '%s: %s' % (message, e.message)
+            raise AnnotationError(message, offset=e.pos)
 
-            end = ast.parseinfo.endpos
-            if end == 0:
-                from .cli import AnnotationError
-                raise AnnotationError("not an atom specifier")
-            if end < len(parse_text) and _terminator.match(parse_text[end]) is None:
-                # We got an error in the middle of a string (no whitespace or
-                # semicolon).  We check if there IS whitespace between the
-                # start of the string and the error location.  If so, we
-                # assume that the atomspec successfully ended at the whitespace
-                # and leave the rest as unconsumed input.
-                blank = end
-                while blank > 0:
-                    if parse_text[blank].isspace():
-                        break
-                    else:
-                        blank -= 1
-                if blank == 0:
-                    # No whitespace found
-                    from .cli import AnnotationError
-                    raise AnnotationError('only initial part "%s" of atom specifier valid'
-                                          % text[:end + text_offset])
+        end = ast.parseinfo.endpos
+        if end == 0:
+            from .cli import AnnotationError
+            raise AnnotationError("not an atom specifier")
+        if end < len(parse_text) and _terminator.match(parse_text[end]) is None:
+            # We got an error in the middle of a string (no whitespace or
+            # semicolon).  We check if there IS whitespace between the
+            # start of the string and the error location.  If so, we
+            # assume that the atomspec successfully ended at the whitespace
+            # and leave the rest as unconsumed input.
+            blank = end
+            while blank > 0:
+                if parse_text[blank].isspace():
+                    break
                 else:
-                    ast, used, rem = AtomSpecArg._parse_unquoted(text[:blank + text_offset], session)
-                    return ast, used, rem + text[blank + text_offset:]
-            # Consume what we used and return the remainder
-            return ast, text[:end + text_offset], text[end + text_offset:]
+                    blank -= 1
+            if blank == 0:
+                # No whitespace found
+                from .cli import AnnotationError
+                raise AnnotationError('only initial part "%s" of atom specifier valid'
+                                      % text[:end + text_offset])
+            else:
+                ast, used, rem = AtomSpecArg._parse_unquoted(text[:blank + text_offset], session)
+                return ast, used, rem + text[blank + text_offset:]
+        # Consume what we used and return the remainder
+        return ast, text[:end + text_offset], text[end + text_offset:]
 
 
 #

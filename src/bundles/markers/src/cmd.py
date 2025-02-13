@@ -310,9 +310,13 @@ class MarkerSetArg(AtomSpecArg):
 
     @classmethod
     def parse(cls, text, session):
-        aspec, text, rest = super().parse(text, session)
         from . import MarkerSet
-        msets = [m for m in aspec.evaluate(session).models if isinstance(m, MarkerSet)]
+        if cls.use_peglib_parser:
+            objs, text, rest = super().evaluate(session, text)
+            msets = [m for m in objs.models if isinstance(m, MarkerSet)]
+        else:
+            aspec, text, rest = super().parse(text, session)
+            msets = [m for m in aspec.evaluate(session).models if isinstance(m, MarkerSet)]
         if len(msets) != 1:
             raise AnnotationError('Must specify 1 marker set, got %d for "%s"' % (len(msets), aspec))
         return msets[0], text, rest
