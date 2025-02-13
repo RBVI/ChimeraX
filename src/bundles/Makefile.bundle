@@ -41,18 +41,33 @@ OS=Windows
 endif
 endif
 ifeq ($(OS),Windows)
+ifneq ($(CHIMERAX_APP),)
 APP_PYTHON_EXE = $(wildcard $(CHIMERAX_APP)/bin/python.exe)
 CX_BIN = $(CHIMERAX_APP)/bin/ChimeraX-console.exe
+else
+APP_PYTHON_EXE =
+CX_BIN =
+endif
 PYMOD_EXT = pyd
 endif
 ifeq ($(OS),Darwin)
+ifneq ($(CHIMERAX_APP),)
 APP_PYTHON_EXE = $(wildcard $(CHIMERAX_APP)/Contents/bin/python3.*)
 CX_BIN = $(CHIMERAX_APP)/Contents/bin/ChimeraX
+else
+APP_PYTHON_EXE =
+CX_BIN =
+endif
 PYMOD_EXT = so
 endif
 ifeq ($(OS),Linux)
+ifneq ($(CHIMERAX_APP),)
 APP_PYTHON_EXE = $(wildcard $(CHIMERAX_APP)/bin/python3.*)
 CX_BIN = $(CHIMERAX_APP)/bin/chimerax
+else
+APP_PYTHON_EXE =
+CX_BIN =
+endif
 PYMOD_EXT = so
 endif
 PYTHON ?= $(APP_PYTHON_EXE)

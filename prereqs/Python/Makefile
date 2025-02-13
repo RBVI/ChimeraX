@@ -216,10 +216,11 @@ ifdef USE_MAC_FRAMEWORKS
 			-e /HAVE_CLOCK_SETTIME/d \
 			< pyconfig.h.old > pyconfig.h
 endif
+	# No longer necessary with Python 3.13 -- it's missing setup.py
 	# Don't use stuff from /usr/local (especially Tcl, Tk, and SSL)
-	cd $(SOURCE) && \
-	    mv setup.py setup.py.orig ; \
-	    sed -e 's;/usr/local;$(build_prefix);' -e 's;/ssl/;/;' < setup.py.orig > setup.py
+	# cd $(SOURCE) && \
+	#    mv setup.py setup.py.orig ; \
+	#    sed -e 's;/usr/local;$(build_prefix);' -e 's;/ssl/;/;' < setup.py.orig > setup.py
 ifdef USE_MAC_FRAMEWORKS
 	# say where to find Tcl and Tk (and any other frameworks)
 	(echo ':/framework_dirs =/s:$$: "$(frameworkdir)",:'; echo ':wq') \

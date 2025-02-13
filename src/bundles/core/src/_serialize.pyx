@@ -55,7 +55,7 @@ PRIMITIVE_TYPES = frozenset((
     bool, int, float, bytes, bytearray, str, dict, list, memoryview, type(None),
     # additionally supported types
     complex, tuple, range, _UniqueName,
-    numpy.ndarray, numpy.number, numpy.bool_, numpy.bool8,
+    numpy.ndarray, numpy.number, numpy.bool_,
     set, frozenset, deque, OrderedDict,
     datetime, timedelta, timezone,
     Image.Image, FinalizedState,
@@ -244,7 +244,7 @@ cdef object _encode_ext(object obj):
         return ExtType(8, _pack_as_array((obj.days, obj.seconds, obj.microseconds)))
     if isinstance(obj, Image.Image):
         return ExtType(9, _encode_image(obj))
-    if isinstance(obj, (numpy.number, numpy.bool_, numpy.bool8)):
+    if isinstance(obj, (numpy.number, numpy.bool_)):
         # handle numpy scalar subclasses
         packer = Packer(**_packer_args)
         return ExtType(10, packer.pack(_encode_numpy_number(obj)))

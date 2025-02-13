@@ -488,7 +488,8 @@ def _set_app_dirs(version):
     from packaging.version import Version
 
     ver = Version(version)
-    partial_version = f"{ver.major}.{ver.minor}"
+    py_ver = sys.version_info
+    partial_version = f"{ver.major}.{ver.minor}+python{py_ver.major}.{py_ver.minor}"
 
     import chimerax
     import appdirs

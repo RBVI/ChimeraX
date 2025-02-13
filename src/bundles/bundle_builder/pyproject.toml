@@ -9,7 +9,7 @@ description = "Bundle building utilities" # one line synopsis
 authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
 dependencies = [
   'tomli; python_version < "3.11"',
-  'numpy==1.26.4',
+  'numpy==2.2.0',
   'setuptools==78.1.0',
   'lxml==5.3.1',
   'auditwheel>=6.1.0',

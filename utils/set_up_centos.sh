@@ -10,6 +10,8 @@ else
 	exit 1
 fi
 
+echo "Detected CentOS: ${CENTOS_VER}"
+
 dnf install -y epel-release
 
 case $CENTOS_VER in

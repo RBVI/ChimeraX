@@ -152,7 +152,7 @@ def _count_object_types(obj):
     if isinstance(obj, numpy.ndarray):
         _object_counts[numpy.ndarray] += 1
         return
-    if isinstance(obj, (numpy.number, numpy.bool_, numpy.bool8)):
+    if isinstance(obj, (numpy.number, numpy.bool_)):
         _object_counts[numpy.number] += 1
         return
     t = type(obj)
