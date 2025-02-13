@@ -89,6 +89,9 @@ SCRIPT_COVERAGE_ARGS := $(if $(USE_COVERAGE),-c -s,)
 COVERAGE_ARGS := $(if $(USE_COVERAGE),--cov=chimerax --cov-append,)
 SILENT_COVERAGE_ARGS := $(if $(USE_COVERAGE),$(COVERAGE_ARGS) --cov-report=,)
 
+pytest-install:
+	$(APP_PYTHON_EXE) -I -m pip install pytest $(if $(USE_COVERAGE),pytest-cov,)
+
 clean-coverage:
 	-rm .coverage
 	-rm -rf chimerax
