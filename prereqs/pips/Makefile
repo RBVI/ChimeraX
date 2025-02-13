@@ -73,6 +73,7 @@ app-install: $(PLATO_WHEELS)
 ifeq ($(OS),Darwin)
 	# Install Cython first so PyOpenGL_accelerate builds
 	$(APP_PIP_INSTALL) $(CYTHON_BUILD_ARGS) $(shell grep Cython app_requirements.txt | sed -e 's/#//')
+	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt)
 endif
 	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifdef USE_PYSIDE6
