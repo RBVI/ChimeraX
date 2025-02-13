@@ -67,8 +67,6 @@ app-list:
 upgrade:
 
 app-install: $(PLATO_WHEELS)
-	# Install numpy first so that PyOpenGL_Accelerate will compile numpy_formathandler
-	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt)
 	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifdef USE_PYSIDE6
 	$(APP_PIP_INSTALL) $(shell grep PySide6 app_requirements.txt | sed -e 's/#//')
