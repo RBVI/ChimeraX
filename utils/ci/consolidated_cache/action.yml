@@ -66,7 +66,7 @@ runs:
       with:
         path: |
           prereqs/Python/Python-3.11.4.tar.xz
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.4
 
     - name: Restore cached Python (Windows)
       id: cache-python-windows
@@ -75,7 +75,7 @@ runs:
       with:
         path: |
           prereqs/Python/python-3.11.4-win-amd64.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.4
 
     - name: Restore cached Python (macOS)
       id: cache-python-macos
@@ -84,7 +84,7 @@ runs:
       with:
         path: |
           prereqs/Python/python-3.11.4-mac.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.4
 
     - name: Restore cached mmtf dependency sources
       id: cache-mmtf
@@ -106,7 +106,7 @@ runs:
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2
-
+          prereqs/ambertools/ambertools-20-Linux-Freedesktop-23.08.tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-ambertools
 
     - name: Restore cached ambertools (Windows)
@@ -139,8 +139,10 @@ runs:
           prereqs/ffmpeg/libtheora-1.1.1.tar.xz
           prereqs/ffmpeg/libogg-1.3.2.tar.xz
           prereqs/ffmpeg/libvpx-1.6.1.tar.xz
+          prereqs/ffmpeg/libvpx-1.13.1.tar.xz
           prereqs/ffmpeg/yasm-1.3.0.tar.bz2
           prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz
+          prereqs/ffmpeg/x264-stable.tar.xz
         key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
 
     - name: Restore cached ffmpeg (Windows)
@@ -176,8 +178,8 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/PyQt6_commercial-6.8.1-cp38-abi3-manylinux_2_28_x86_64.whl
-          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp38-abi3-manylinux_2_28_x86_64.whl
+          prereqs/PyQt/PyQt6_commercial-6.8.1-cp39-abi3-manylinux_2_28_x86_64.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-manylinux_2_28_x86_64.whl
         key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (Windows)
@@ -186,8 +188,8 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/PyQt6_commercial-6.8.1-cp38-abi3-win_amd64.whl
-          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp38-abi3-win_amd64.whl
+          prereqs/PyQt/PyQt6_commercial-6.8.1-cp39-abi3-win_amd64.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-win_amd64.whl
         key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (macOS)
@@ -196,8 +198,8 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/PyQt6_commercial-6.8.1-cp38-abi3-macosx_11_0_universal2.whl
-          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp38-abi3-macosx_10_14_universal2.whl
+          prereqs/PyQt/PyQt6_commercial-6.8.1-cp39-abi3-macosx_10_14_universal2.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-macosx_10_14_universal2.whl
         key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
 
     - name: Restore cached seggerx dependency sources
@@ -215,6 +217,22 @@ runs:
         path: |
           src/bundles/looking_glass/holoplaycore-0.1.0.tar.gz
         key: holoplaycore-source-zip-file
+
+    - name: Restore cached LibGLU (Linux)
+      id: cache-libglu-linux
+      if: ${{ inputs.platform == 'linux' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/libGLU/glu-glu-9.0.2.tar.bz2
+        key: ${{ runner.os }}-${{ inputs.architecture }}-libglu
+
+    - name: Fetch LibGLU
+      shell: bash
+      if: ${{ steps.cache-libglu-linux.outputs.cache-hit != 'true' && inputs.platform == 'linux' }}
+      run: |
+        curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/libGLU/glu-glu-9.0.2.tar.bz2 -O -J
+        mv glu* prereqs/libGLU/
 
     - name: Fetch holoplaycore
       shell: bash
@@ -269,8 +287,10 @@ runs:
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libtheora-1.1.1.tar.xz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libogg-1.3.2.tar.xz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libvpx-1.6.1.tar.xz -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libvpx-1.13.1.tar.xz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/yasm-1.3.0.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/x264-stable.tar.xz -O -J
           mv libtheora* prereqs/ffmpeg/
           mv libogg* prereqs/ffmpeg/
           mv libvpx* prereqs/ffmpeg/
@@ -299,6 +319,7 @@ runs:
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Freedesktop-23.08.tar.bz2 -O -J
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-flibs-20-Darwin.tar.bz2 -O -J

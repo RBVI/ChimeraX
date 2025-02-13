@@ -29,7 +29,7 @@ linux-gnu)
 	CHIMERAX_PYTHON_BIN=./ChimeraX.app/bin/python3.11
 	CHIMERAX_BIN=./ChimeraX.app/bin/ChimeraX
 	;;
-msys)
+msys | cygwin)
 	CHIMERAX_PYTHON_BIN=./ChimeraX.app/bin/python.exe
 	CHIMERAX_BIN=./ChimeraX.app/bin/ChimeraX-console.exe
 	;;
@@ -39,10 +39,14 @@ darwin*)
 	;;
 esac
 
+echo "OSTYPE: ${OSTYPE}"
+
 if [ ! -e "${CHIMERAX_PYTHON_BIN}" ]; then
+  echo "Looked for ChimeraX Python at ${CHIMERAX_PYTHON_BIN}"
 	echo "No ChimeraX Python binary found" && exit 1
 fi
 if [ ! -e "${CHIMERAX_BIN}" ]; then
+  echo "Looked for ChimeraX binary at ${CHIMERAX_BIN}"
 	echo "No ChimeraX binary found" && exit 1
 fi
 

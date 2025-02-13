@@ -7,11 +7,11 @@
 # TODO: Deprecate conda version when pip gets arm64 ports
 #
 appdirs==1.4.4
-beautifulsoup4==4.12.3
+beautifulsoup4==4.13.3
 build==1.2.1
 colorama==0.4.6
 Cython==3.0.10 ; platform_machine != 'arm64'
-filelock==3.15.4
+filelock==3.17.0
 # grako==3.16.5 # See the Makefile; need patched Grako for 3.11
 html2text==2024.2.26
 ihm==1.3
@@ -23,11 +23,11 @@ ipython==8.26.0
 # the version of jedi that works with ipython
 jedi==0.19.1
 jupyter-client==8.6.2
-line_profiler==4.1.3
-lxml==5.2.2
-lz4==4.3.3
+line_profiler==4.2.0
+lxml==5.3.1
+lz4==4.4.3
 matplotlib==3.9.2
-msgpack==1.0.8
+msgpack==1.1.0
 nibabel == 5.2.0
 netCDF4==1.6.5
 networkx==3.3
@@ -53,20 +53,20 @@ PyOpenGL-accelerate==3.1.7
 python-dateutil==2.9.0.post0
 # PyQt handled in prereqs/PyQt
 # sip handled in prereqs/PyQt
-#PySide6==6.8.1.1
-#shiboken6==6.8.1.1
+#PySide6==6.8.2.1
+#shiboken6==6.8.2.1
 qtconsole==5.5.2
 requests==2.32.3
 scipy==1.14.0
 six==1.16.0
 sortedcontainers==2.4.0
 # Used by the DICOM bundle for a double-ended QSlider
-superqt==0.6.3
+superqt==0.7.1
 tables==3.10.2
 tifffile==2024.7.24
 # tinyarray==1.2.4 # 3.11 requires getting this from Plato
-webcolors==24.6.0
-wheel-filename==1.4.1
+webcolors==24.11.1
+wheel-filename==1.4.2
 #
 # Documentation
 #
@@ -74,9 +74,9 @@ blockdiag==3.0.0
 docutils==0.21.2
 Jinja2==3.1.5
 Pygments==2.18.0
-Sphinx==8.0.2
+Sphinx==8.1.3
 sphinxcontrib-blockdiag==3.0.0
-sphinx_autodoc_typehints==2.2.3
+sphinx_autodoc_typehints==3.0.1
 #
 # Windows
 #

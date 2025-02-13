@@ -128,6 +128,7 @@ class _StructureAnisoManager(StateManager):
 
         displayed_atoms = added_atoms.filter(added_atoms.displays)
         explicitly_depicted = set(displayed_atoms.filter(displayed_atoms.hides == 0))
+        shapes = []
 
         from chimerax.atomic import Atoms
         from numpy.linalg import svd
@@ -163,7 +164,7 @@ class _StructureAnisoManager(StateManager):
                 if transparency is not None:
                     # transparency is a percentage
                     color = color[:-1] + (round((100 - transparency) * 2.55),)
-                self.atom_depictions.add_shape(ev, calc_normals(ev, tarray), tarray, color, atoms_arg)
+                shapes.append((ev, calc_normals(ev, tarray), tarray, color, atoms_arg, None))
 
         axis_factor = dp['axis_factor']
         if axis_factor is not None:
@@ -183,7 +184,7 @@ class _StructureAnisoManager(StateManager):
                     ev = dot(ee, axes)
                     ev += atom.coord
                     tarray = cube_triangles
-                    self.atom_depictions.add_shape(ev, calc_normals(ev, tarray), tarray, color, atoms_arg)
+                    shapes.append((ev, calc_normals(ev, tarray), tarray, color, atoms_arg, None))
 
         ellipse_factor = dp['ellipse_factor']
         if ellipse_factor is not None:
@@ -211,7 +212,9 @@ class _StructureAnisoManager(StateManager):
                     ev = dot(ee, axes)
                     ev += atom.coord
                     tarray = ellipse_triangles
-                    self.atom_depictions.add_shape(ev, calc_normals(ev, tarray), tarray, color, atoms_arg)
+                    shapes.append((ev, calc_normals(ev, tarray), tarray, color, atoms_arg, None))
+        if shapes:
+            self.atom_depictions.add_shapes(shapes)
 
     def _filter_aniso(self, atoms):
         return atoms[atoms.has_aniso_u]
