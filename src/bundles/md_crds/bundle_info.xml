@@ -18,11 +18,11 @@
   </Categories>
 
   <CModule name="_gromacs" usesNumpy="true">
-    <IncludeDir>gromacs/xdrfile-1.1b/include</IncludeDir>
+    <IncludeDir>gromacs/xdrfile-1.1.4/include</IncludeDir>
     <SourceFile>gromacs/gromacs.cpp</SourceFile>
-    <LinkArgument platform="win32">gromacs/xdrfile-1.1b/src/.libs/libxdrfile.lib</LinkArgument>
-    <LinkArgument platform="mac">gromacs/xdrfile-1.1b/src/.libs/libxdrfile.a</LinkArgument>
-    <LinkArgument platform="linux">gromacs/xdrfile-1.1b/src/.libs/libxdrfile.a</LinkArgument>
+    <LinkArgument platform="win32">gromacs/xdrfile-1.1.4/src/.libs/libxdrfile.lib</LinkArgument>
+    <LinkArgument platform="mac">gromacs/xdrfile-1.1.4/src/.libs/libxdrfile.a</LinkArgument>
+    <LinkArgument platform="linux">gromacs/xdrfile-1.1.4/src/.libs/libxdrfile.a</LinkArgument>
   </CModule>
 
   <Dependencies>
@@ -52,6 +52,12 @@
 		nicknames="gro" suffixes=".gro" synopsis="Gromos87 structure" reference_url="https://gromos.net" />
     <Provider name="Protein structure file" category="Molecular structure" encoding="utf-8"
 		nicknames="psf" suffixes=".psf" synopsis="PSF" />
+    <Provider name="LAMMPS coordinates" category="Molecular structure"
+		nicknames="data" suffixes=".data" default_for=".data" encoding="utf-8"
+		synopsis="LAMMPS data format" reference_url="https://docs.lammps.org/write_data.html" />
+    <Provider name="LAMMPS trajectory" category="Molecular trajectory"
+		nicknames="dump" suffixes=".dump" default_for=".dump" encoding="utf-8"
+		synopsis="LAMMPS dump format" reference_url="https://docs.lammps.org/dump.html" />
   </Providers>
 
   <Providers manager="open command">
@@ -61,6 +67,8 @@
     <Provider name="amber" want_path="true" />
     <Provider name="gro" />
     <Provider name="psf" want_path="true" />
+	<Provider name="data" want_path="false" />
+    <Provider name="dump" want_path="false" />
   </Providers>
 
   <Providers manager="save command">

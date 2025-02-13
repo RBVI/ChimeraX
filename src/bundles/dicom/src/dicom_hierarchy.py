@@ -520,7 +520,7 @@ class DicomData:
             rsi = int(rsi)
         self.rescale_intercept = rsi
         self.rescale_slope = int(self.dicom_series.rescale_slope)
-        if not self.contour_series:
+        if self.image_series and not self.contour_series:
             bits = self.sample_file.get("BitsAllocated")
             rep = self.sample_file.get("PixelRepresentation")
             self.value_type = self.numpy_value_type(
@@ -662,6 +662,18 @@ class DicomData:
                 "it had no pixel data. Metadata will still "
                 "be available." % (self.number, self.patient_id)
             )
+
+    @property
+    def number(self):
+        if self.sample_file.get("SeriesNumber", None) is None:
+            self.session.logger.warning("SeriesNumber not specified; setting to 0")
+            return 0
+        else:
+            return int(self.sample_file.get("SeriesNumber", 0))
+
+    @property
+    def patient_id(self):
+        return self.sample_file.get("PatientID", "")
 
     @property
     def columns(self):
@@ -890,14 +902,21 @@ class DicomData:
         return x_scale, y_scale, z_scale
 
     def rotation(self):
-        affine = self.affine
-        x_scale, y_scale, z_scale = self.pixel_spacing()
-        rotation_matrix = [
-            [affine[0][0] / x_scale, affine[0][1] / y_scale, affine[0][2] / z_scale],
-            [affine[1][0] / x_scale, affine[1][1] / y_scale, affine[1][2] / z_scale],
-            [affine[2][0] / x_scale, affine[2][1] / y_scale, affine[2][2] / z_scale],
-        ]
-        return rotation_matrix
+        #affine = self.affine
+        #x_scale, y_scale, z_scale = self.pixel_spacing()
+        #rotation_matrix = [
+        #    [affine[0][0] / x_scale, affine[0][1] / y_scale, affine[0][2] / z_scale],
+        #    [affine[1][0] / x_scale, affine[1][1] / y_scale, affine[1][2] / z_scale],
+        #    [affine[2][0] / x_scale, affine[2][1] / y_scale, affine[2][2] / z_scale],
+        #]
+        # We're ignoring the rotation given by the DICOM files until someone complains about it.
+        # Doing this simplifies other areas of the codebase significantly.
+        # 1) The plane viewers use orthographic cameras pointed down the X, Y, and Z axes, and
+        #    ignoring the rotations of the files means we don't have to calculate new axes to
+        #    point the cameras down when files aren't axis aligned.
+        # 2) We don't have to modify the raycasting shader to do such calculations either.
+        return [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        #return rotation_matrix
 
     def origin(self):
         affine = self.affine

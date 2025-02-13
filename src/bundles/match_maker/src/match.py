@@ -697,6 +697,10 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
     # 'to' only needed to sidestep problem with adjacent atom specs...
     ref_atoms = to
 
+    # Ignore child structures (e.g. altlocs, rotamers) of parent structures
+    match_atoms = _remove_child_models(match_atoms)
+    ref_atoms = _remove_child_models(ref_atoms)
+
     from chimerax import sim_matrices
     if matrix not in sim_matrices.matrices(session.logger):
         raise UserError("No such matrix name: %s" % str(matrix))
@@ -808,6 +812,15 @@ def check_domain_matching(chains, sel_residues):
             nc.bulk_set(residues, chars)
         chains = new_chains
     return chains
+
+def _remove_child_models(atoms):
+    structures = atoms.structures.unique()
+    main_structures = set(structures)
+    for s in structures:
+        for c in s.all_models():
+            if c is not s:
+                main_structures.discard(c)
+    return atoms.filter([s in main_structures for s in atoms.structures])
 
 _registered = False
 def register_command(logger):

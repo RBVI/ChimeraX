@@ -65,28 +65,31 @@ def aniso_hide(session, atoms=None):
             continue
         mgr_info[s].hide(atoms=s_atoms)
 
-def register_command(logger):
+def register_command(logger, name):
     from chimerax.core.commands import register, CmdDesc
     from chimerax.core.commands import Or, EmptyArg, Color8TupleArg, NoneArg, PositiveFloatArg, BoolArg
     from chimerax.core.commands import PositiveIntArg, Bounded, FloatArg
     from chimerax.atomic import AtomsArg
 
-    desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))],
-        keyword=[
-            ('axis_color', Or(Color8TupleArg, NoneArg)),
-            ('axis_factor', Or(PositiveFloatArg, NoneArg)),
-            ('axis_thickness', PositiveFloatArg),
-            ('ellipse_color', Or(Color8TupleArg, NoneArg)),
-            ('ellipse_factor', Or(PositiveFloatArg, NoneArg)),
-            ('ellipse_thickness', PositiveFloatArg),
-            ('ellipsoid_color', Or(Color8TupleArg, NoneArg)),
-            ('scale', PositiveFloatArg),
-            ('show_ellipsoid', BoolArg),
-            ('smoothing', PositiveIntArg),
-            ('transparency', Bounded(FloatArg, min=0, max=100, name="a percentage (number between 0 and 100)")),
-        ],
-        synopsis='show and/or change style of depiction of thermal ellipsoids')
-    register('aniso', desc, aniso_show, logger=logger)
-
-    desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))], synopsis='hide thermal ellipsoids')
-    register('~aniso', desc, aniso_hide, logger=logger)
+    tilde_desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))], synopsis='hide thermal ellipsoids')
+    if name == "aniso":
+        desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))],
+            keyword=[
+                ('axis_color', Or(Color8TupleArg, NoneArg)),
+                ('axis_factor', Or(PositiveFloatArg, NoneArg)),
+                ('axis_thickness', PositiveFloatArg),
+                ('ellipse_color', Or(Color8TupleArg, NoneArg)),
+                ('ellipse_factor', Or(PositiveFloatArg, NoneArg)),
+                ('ellipse_thickness', PositiveFloatArg),
+                ('ellipsoid_color', Or(Color8TupleArg, NoneArg)),
+                ('scale', PositiveFloatArg),
+                ('show_ellipsoid', BoolArg),
+                ('smoothing', PositiveIntArg),
+                ('transparency', Bounded(FloatArg, min=0, max=100,
+                    name="a percentage (number between 0 and 100)")),
+            ],
+            synopsis='show and/or change style of depiction of thermal ellipsoids')
+        register('aniso', desc, aniso_show, logger=logger)
+        register('aniso hide', tilde_desc, aniso_hide, logger=logger)
+    else:
+        register('~aniso', tilde_desc, aniso_hide, logger=logger)

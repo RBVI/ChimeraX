@@ -32,11 +32,14 @@ class _MDCrdsBundleAPI(BundleAPI):
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
             from chimerax.open_command import OpenerInfo
-            if name == "psf":
+            if name in ("psf", "data"):
                 class MDInfo(OpenerInfo):
-                    def open(self, session, data, file_name, *, slider=True, **kw):
-                        from .read_psf import read_psf
-                        models, status = read_psf(session, data, file_name, **kw)
+                    def open(self, session, data, file_name, *, slider=True, format_name=name, **kw):
+                        if format_name == "psf":
+                            from .read_psf import read_psf as read_topology
+                        else:
+                            from .read_lammps import read_data as read_topology
+                        models, status = read_topology(session, data, file_name, **kw)
                         if slider and session.ui.is_gui:
                             from chimerax.std_commands.coordset import coordset_slider
                             coordset_slider(session, models)

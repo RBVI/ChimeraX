@@ -136,6 +136,7 @@ class Trigger(StrEnum):
 
     ViewLayoutChanged = "view layout changed"
     GuidelinesVisibilityChanged = "guidelines visibility changed"
+    ColorKeysVisibilityChanged = "color keys visibility changed"
 
     HandModesChanged = "hand modes changed"
     MouseModesChanged = "mouse modes changed"
@@ -200,6 +201,7 @@ class SegmentationTriggerSet(TriggerSet):
 
         self.add_trigger(Trigger.ViewLayoutChanged)
         self.add_trigger(Trigger.GuidelinesVisibilityChanged)
+        self.add_trigger(Trigger.ColorKeysVisibilityChanged)
         self.add_trigger(Trigger.HandModesChanged)
         self.add_trigger(Trigger.MouseModesChanged)
 

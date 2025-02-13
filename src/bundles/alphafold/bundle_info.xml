@@ -21,7 +21,7 @@
 
   <Providers manager="data formats">
     <Provider name="AlphaFold PAE" synopsis="AlphaFold predicted aligned error" category="Structure analysis"
-		suffixes=".json" default_for=".json" nicknames="pae"
+		suffixes=".json,.npy,.npz,.pkl" default_for=".json" nicknames="pae"
 		reference_url="https://en.wikipedia.org/wiki/Predicted_Aligned_Error" />
   </Providers>
 

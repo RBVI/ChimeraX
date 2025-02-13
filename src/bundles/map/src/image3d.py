@@ -640,6 +640,9 @@ class Image3d(Model):
                 pm = ("2d-x", "2d-y", "2d-z")[list(s).index(smin)]
             else:
                 pm = "3d"
+        if pm == 'rays':
+            self._rendering_options.colormap_on_gpu = True
+            self._rendering_options.full_region_on_gpu = True
         return pm
 
     # ---------------------------------------------------------------------------
@@ -1224,28 +1227,9 @@ class VolumeRaycastDrawing(Drawing):
                 b.blend3d(vap.texture, modulation_color, self.texture)
         b.finish_blending()
 
-    def draw(self, renderer, draw_pass):
+    def set_shader_options(self, renderer):
         from chimerax.geometry import point_bounds
-        from numpy import prod
-
-        renderer.enable_backface_culling(True)
-
-        renderer.enable_capabilities |= renderer.SHADER_VOLUME_RAYCASTING
-        depth_cue_enabled = renderer.enable_capabilities & renderer.SHADER_DEPTH_CUE
-        renderer.enable_capabilities &= ~renderer.SHADER_DEPTH_CUE
-        view = self._image_render._session.main_view
         step_size = self._image_render._rendering_options.ray_step
-        from chimerax.graphics.camera import MonoCamera
-
-        if isinstance(view.camera, MonoCamera):
-            renderer._set_camera_params(
-                view.camera.position.origin(), view.camera.field_of_view
-            )
-        else:
-            renderer._set_camera_params(view.camera.position.origin(), 1)
-        renderer._set_window_params()
-        dx, dy, dz = self.parent._plane_spacings()
-        # Get the full bounds so users can crop the volume to regions of interest
         full_corners = _box_corners(
             self.parent.parent.full_region(), self._image_render._ijk_to_xyz
         )
@@ -1261,6 +1245,27 @@ class VolumeRaycastDrawing(Drawing):
             self.parent.bounds().xyz_min,
         )
 
+        renderer.set_volume_parameters(step_size, full_region_min, full_region_max)
+        renderer.set_bounding_box_planes(max_corner, min_corner)
+
+    def draw(self, renderer, draw_pass):
+
+        renderer.enable_backface_culling(True)
+
+        renderer.enable_capabilities |= renderer.SHADER_VOLUME_RAYCASTING
+        depth_cue_enabled = renderer.enable_capabilities & renderer.SHADER_DEPTH_CUE
+        renderer.enable_capabilities &= ~renderer.SHADER_DEPTH_CUE
+        view = self._image_render._session.main_view
+        from chimerax.graphics.camera import MonoCamera
+
+        if isinstance(view.camera, MonoCamera):
+            renderer._set_camera_params(
+                view.camera.position.origin(), view.camera.field_of_view
+            )
+        else:
+            renderer._set_camera_params(view.camera.position.origin(), 1)
+        renderer._set_window_params()
+        # Get the full bounds so users can crop the volume to regions of interest
         # See VTK
         #step_size = 1
         #spacing_adjusted_step_size = (dx + dy + dz) / 6
@@ -1273,8 +1278,6 @@ class VolumeRaycastDrawing(Drawing):
         #):
         #    step_size = spacing_adjusted_step_size
         # TODO: Make step size user configurable
-        renderer.set_volume_parameters(step_size, full_region_min, full_region_max)
-        renderer.set_bounding_box_planes(max_corner, min_corner)
         Drawing.draw(self, renderer, draw_pass)
         renderer.enable_capabilities &= ~renderer.SHADER_VOLUME_RAYCASTING
         renderer.enable_capabilities &= depth_cue_enabled

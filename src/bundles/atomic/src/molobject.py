@@ -831,7 +831,12 @@ class Sequence(State):
         set_c_pointer(self, seq_pointer)
         # since this Sequence has been created in the Python layer, don't call
         # set_sequence_py_instance, since that will add a reference and the
-        # Sequence will not be properly garbage collected
+        # Sequence will not be properly garbage collected.  Yet we need the
+        # C++ layer to know about the Python instance so that callbacks (such
+        # as "sequence renamed") occur, so we call a different setter that
+        # does not produce an additional reference.
+        f = c_function('set_pysequence_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
+        f(self._c_pointer, self)
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,
@@ -859,12 +864,16 @@ class Sequence(State):
     def __copy__(self, copy_seq=None):
         if copy_seq is None:
             copy_seq = Sequence(name=self.name, characters=self.characters)
+            if hasattr(self, 'description'):
+                copy_seq.description = self.description
         else:
             copy_seq.characters = self.characters
         from copy import copy
         copy_seq.attrs = copy(self.attrs)
         copy_seq.markups = copy(self.markups)
         copy_seq.numbering_start = self.numbering_start
+        if hasattr(self, '_features'):
+            copy_seq._features = self._features
         return copy_seq
 
     def __del__(self):
@@ -1022,12 +1031,16 @@ class Sequence(State):
         # ... because ...
         # this class has a __del__ method that can execute multiple times because the
         # __del__ method in some cases can create a self reference.  If the only reference
-        # back to this class is the delayed trigger handler below, then as the set of
+        # back to this class is the delayed trigger handler below [now moot though], then as the set of
         # trigger handlers is cleared, the __del__ can execute multiple times and the
         # dict/set-clearing code doesn't like that and can crash
         if not self.triggers.trigger_handlers(trig_name):
             return
 
+        self.triggers.activate_trigger(trig_name, arg)
+        # changes to the way downgrade-to-Sequence works makes the below code unnecessary;
+        # furthermore, no 'changes' trigger fires for a sequence rename
+        '''
         # when C++ layer notifies us directly of change, delay firing trigger until
         # next 'changes' trigger to ensure that entire C++ layer is in a consistent state
         def delayed(*args, trigs=self.triggers, trig_name=trig_name, trig_arg=arg):
@@ -1037,6 +1050,7 @@ class Sequence(State):
         from chimerax.atomic import get_triggers
         atomic_trigs = get_triggers()
         atomic_trigs.add_handler('changes', delayed)
+        '''
 
 
     @atexit.register
@@ -1139,6 +1153,8 @@ class StructureSeq(Sequence):
             self._fire_trigger('residues changed', self)
 
     def __copy__(self):
+        if self.structure is None:
+            return super().__copy__()
         f = c_function('sseq_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
         copy_sseq = StructureSeq(f(self._c_pointer))
         Sequence.__copy__(self, copy_seq = copy_sseq)

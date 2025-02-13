@@ -216,7 +216,7 @@ class CxServicesJob(Job):
                 )
             reason = json.loads(e.body)["description"]
             if reason.startswith("No such job"):
-                self.state = TaskState.FINISHED
+                self.state = TaskState.DELETED
                 return
             raise JobMonitorError(str(e))
         self.state = status
@@ -235,6 +235,12 @@ class CxServicesJob(Job):
             and self.end_time is None
         ):
             self.end_time = datetime.datetime.now()
+        if self.session.ui.is_gui:
+            self.session.ui.thread_safe(
+                self.session.logger.info,
+                f"Webservices job finished: {self.job_id}"
+            )
+
 
     def exited_normally(self) -> bool:
         """Return whether background process terminated normally."""
