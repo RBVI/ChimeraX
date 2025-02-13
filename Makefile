@@ -119,6 +119,9 @@ else
 pytest: pytest-both-exes pytest-wheel pytest-app
 endif
 
+install-common-wheels:
+	$(APP_PYTHON_EXE) -m pip install wheels/*.whl
+
 sync:
 	mkdir -p $(build_prefix)/sync/
 	$(MAKE) -C src/bundles sync

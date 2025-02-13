@@ -64,7 +64,7 @@ jobs:
           MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }} PYQT_LICENSE=commercial make -j$(nproc) -C prereqs install
           MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }} PYQT_LICENSE=commercial make -j$(nproc) -C prereqs app-install
           make -C src/apps/ChimeraX install BUILD_TYPE="${{ inputs.release_type }}"
-          ChimeraX.app/bin/python3.11 -m pip install wheels/*.whl
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }} PYQT_LICENSE=commercial make -j$(nproc) install-common-wheels
           cp -rp include ChimeraX.app
           make -C src/apps install BUILD_TYPE="${{ inputs.release_type }}"
           make -C docs install BUILD_TYPE="${{ inputs.release_type }}"
