@@ -31,7 +31,7 @@ jobs:
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
-        run: make pytest-install
+        run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
@@ -60,7 +60,7 @@ jobs:
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
-        run: make pytest-install
+        run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
@@ -93,7 +93,7 @@ jobs:
       - name: Run the legacy test suite
         run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test
       - name: Install Pytest
-        run: make pytest-install
+        run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
