@@ -26,6 +26,13 @@ PATCHES = tcia_utils.patch tcia_utils_metadata.patch
 QTSHIM_WHEEL = qtshim-1.1-py3-none-any.whl
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 GRAKO_WHEEL = grako-3.16.5-py2.py3-none-any.whl
+
+ifeq ($(OSARCH),DarwinArm64)
+CYTHON_BUILD_ARGS= --no-binary :all:
+else
+CYTHON_BUILD_ARGS=
+endif
+
 ifeq ($(OS),Windows)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-win_amd64.whl
 else
@@ -40,7 +47,6 @@ ifeq ($(OS),Darwin)
 WHEEL_CFLAGS="-Wno-error=int-conversion"
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
 ifeq ($(OSARCH),DarwinArm64)
-CYTHON_WHEEL = Cython-$(CYTHON_VERSION)-cp311-cp311-macosx_10_9_universal2.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
 endif
@@ -50,9 +56,6 @@ endif
 endif
 
 PLATO_WHEELS = $(GRAKO_WHEEL) $(TINYARRAY_WHEEL) $(CXSERVICES_WHEEL) $(QTSHIM_WHEEL)
-ifeq ($(OSARCH),DarwinArm64)
-PLATO_WHEELS += $(CYTHON_WHEEL)
-endif
 
 all:
 
@@ -67,8 +70,11 @@ app-list:
 upgrade:
 
 app-install: $(PLATO_WHEELS)
-	# Install numpy first so that PyOpenGL_Accelerate will compile numpy_formathandler
+ifeq ($(OS),Darwin)
+	# Install Cython first so PyOpenGL_accelerate builds
+	$(APP_PIP_INSTALL) $(CYTHON_BUILD_ARGS) $(shell grep Cython app_requirements.txt | sed -e 's/#//')
 	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt)
+endif
 	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifdef USE_PYSIDE6
 	$(APP_PIP_INSTALL) $(shell grep PySide6 app_requirements.txt | sed -e 's/#//')
