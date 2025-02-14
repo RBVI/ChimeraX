@@ -75,6 +75,10 @@
     <Provider name="dcd" />
   </Providers>
 
+  <Providers manager="MD plotting">
+    <Provider name="distance" num_atoms="2" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>

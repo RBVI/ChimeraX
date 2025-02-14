@@ -20,14 +20,19 @@ class MDPlottingManager(ProviderManager):
         self.providers = {}
         self._provider_bundles = {}
         self._ui_names = {}
-        self._new_providers = []
-        super().__init__("start structure")
+        self._num_atoms = {}
+        self._min_vals = {}
+        self._max_vals = {}
+        super().__init__("MD plotting")
 
-    def add_provider(self, bundle_info, name, *, ui_name=None, num_atoms=None):
+    def add_provider(self, bundle_info, name, *, ui_name=None, num_atoms=None, min_val=None, max_val=None):
         # 'name' is the name used as an arg in the command
         # 'ui_name' is the name used in the tool interface (defaults to 'name')
         # 'num_atoms' indicates how many atoms are needed to compute the quantity (and therefore are
         #   needed in the command form).  If num_atoms is zero, the quantity is a scalar (e.g. energy).
+        #  'min_val'/'max_val' are suggested minimum / maximum values to use for the plotting axis;
+        #      if omitted, the min/max of the data values (possibly enlarged to the next esthetic value)
+        #      will be used.
         if num_atoms is None:
             raise ValueError(f"MD plotting provider {name} did not supply 'num_atoms' in its description")
         try:
@@ -38,14 +43,10 @@ class MDPlottingManager(ProviderManager):
         self._provider_bundles[name] = bundle_info
         self._ui_names[name] = name if ui_name is None else ui_name
         self._num_atoms[name] = num_atoms
-        self._new_providers.append(name)
+        self._min_vals[name] = min_val if min_val is None else float(min_val)
+        self._max_vals[name] = max_val if max_val is None else float(max_val)
 
-    def end_providers(self):
-        from .tool import BuildStructureTool
-        for tool in self.session.tools.find_by_class(BuildStructureTool):
-            tool._new_start_providers(self._new_providers)
-        self._new_providers = []
-
+    '''
     def execute_command(self, name, structure, args):
         return self._get_provider(name).execute_command(structure, args)
 
@@ -74,6 +75,13 @@ class MDPlottingManager(ProviderManager):
         # given the settings in the parameter widget, get the corresponding command args
         # (can return None if the widget doesn't directly add atoms [e.g. links to another tool])
         return self._get_provider(name).command_string(param_widget)
+    '''
+
+    def max_val(self, provider_name):
+        return self._max_vals[provider_name]
+
+    def min_val(self, provider_name):
+        return self._min_vals[provider_name]
 
     def num_atoms(self, provider_name):
         return self._num_atoms[provider_name]
@@ -85,10 +93,12 @@ class MDPlottingManager(ProviderManager):
     def ui_name(self, provider_name):
         return self._ui_names[provider_name]
 
+    '''
     def _get_provider(self, name):
         if name not in self.providers:
             self.providers[name] = self._provider_bundles[name].run_provider(self.session, name, self)
         return self.providers[name]
+    '''
 
 _plotting_manager = None
 def get_plotting_manager(session):

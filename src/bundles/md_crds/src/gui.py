@@ -54,47 +54,92 @@ class SaveOptionsWidget(QFrame):
         return cmd
 
 def fill_context_menu(menu, parent_tool_window, structure):
+    from .manager import get_plotting_manager
+    mgr = get_plotting_manager(structure.session)
+
     from Qt.QtGui import QAction
     plot_menu = menu.addMenu("Plot")
-    action = QAction("Distances", plot_menu)
-    action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure: _show_distances_plot(tw, s))
-    plot_menu.addAction(action)
+
+    from chimerax.core.commands import plural_of
+    for provider_name in mgr.provider_names:
+        ui_name = mgr.ui_name(provider_name)
+        menu_name = plural_of(ui_name)
+        if menu_name.lower() == menu_name:
+            # no caps
+            menu_name = ui_name.capitalize()
+
+        action = QAction(menu_name, plot_menu)
+        action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure, name=provider_name:
+            _show_plot(name, tw, s))
+        plot_menu.addAction(action)
 
 class PlotDialog:
     def __init__(self, plot_window, structure):
         self.tool_window = tw = plot_window
         self.session = structure.session
-        from Qt.QtWidgets import QHBoxLayout
-        self.section_layout = layout = QVBoxLayout()
+        from .manager import get_plotting_manager
+        self.mgr = get_plotting_manager(self.session)
+        from Qt.QtWidgets import QHBoxLayout, QTabWidget
+        layout = QVBoxLayout()
         layout.setSpacing(0)
         tw.ui_area.setLayout(layout)
+        self.plot_tabs = QTabWidget()
+        self.plot_tabs.setTabsClosable(True)
+        #TODO tabCloseRequested(index) signal
+        layout.addWidget(self.plot_tabs, stretch=1)
 
-        self.sections = {}
+        self.tab_info = {}
+        self._tables = {}
 
         tw.manage(None)
 
-    def make_section(self, section_name):
-        from Qt.QtWidgets import QWidget, QLabel, QHBoxLayout
-        section = QWidget()
-        section_layout = QHBoxLayout()
-        section_layout.setSpacing(0)
-        section.setLayout(section_layout)
-        self.section_layout.addWidget(section, stretch=1)
-        if section_name == "distances":
-            section_layout.addWidget(QLabel("Distance plotting goes here"))
-        else:
-            raise ValueError("Don't know how to make plot section '%s'" % section_name)
-        return section
+    def make_tab(self, provider_name):
+        if self.mgr.num_atoms(provider_name) == 0:
+            return self._make_scalar_tab(provider_name)
+        return self._make_atomic_tab(provider_name)
 
-    def show_section(self, section_name):
+    def show_tab(self, provider_name):
         try:
-            section = self.sections[section_name]
+            tab_name, tab_widget = self.tab_info[provider_name]
         except KeyError:
-            section = self.sections[section_name] = self.make_section(section_name)
+            tab_name, tab_widget = self.tab_info[provider_name] = self.make_tab(provider_name)
 
-        section.show()
+        self.plot_tabs.setCurrentWidget(tab_widget)
 
-def _show_distances_plot(main_tool_window, structure):
+    def _make_atomic_tab(self, provider_name):
+        ui_name = self.mgr.ui_name(provider_name)
+        from chimerax.core.commands import plural_of
+        tab_name = plural_of(ui_name)
+        if tab_name.lower() == tab_name:
+            # no caps
+            tab_name = tab_name.capitalize()
+        from Qt.QtWidgets import QWidget, QLabel, QHBoxLayout, QVBoxLayout
+        page = QWidget()
+        page_layout = QHBoxLayout()
+        page_layout.setSpacing(0)
+        page.setLayout(page_layout)
+        page_layout.addWidget(QLabel("%s plotting goes here" % ui_name.capitalize()), stretch=1)
+        controls_area = QWidget()
+        controls_layout = QVBoxLayout()
+        controls_area.setLayout(controls_layout)
+        self._tables[tab_name] = table = self._make_table(provider_name)
+        controls_layout.addWidget(table, stretch=1)
+        controls_layout.addWidget(QLabel("Controls"))
+        page_layout.addWidget(controls_area)
+        self.plot_tabs.addTab(page, tab_name)
+        return tab_name, page
+
+    def _make_scalar_tab(self, provider_name):
+        #TODO
+        raise NotImplementedError("Scalar plotting not implemented")
+
+    def _make_table(self, provider_name):
+        from chimerax.ui.widgets import ItemTable
+        #TODO
+        from Qt.QtWidgets import QLabel
+        return QLabel("Table")
+
+def _show_plot(provider_name, main_tool_window, structure):
     try:
         tws = main_tool_window._md_tool_windows
     except AttributeError:
@@ -103,8 +148,8 @@ def _show_distances_plot(main_tool_window, structure):
     try:
         plot_dialog = tws["plot"]
     except KeyError:
-        plot_dialog = tws["plot"] = PlotDialog(main_tool_window.create_child_window("Plots"), structure)
+        plot_dialog = tws["plot"] = PlotDialog(main_tool_window.create_child_window("MD Plots"), structure)
 
-    plot_dialog.show_section("distances")
+    plot_dialog.show_tab(provider_name)
     plot_dialog.tool_window.shown = True
 
