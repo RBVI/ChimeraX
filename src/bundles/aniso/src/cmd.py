@@ -38,7 +38,7 @@ def check_atoms(session, atoms):
 
     return atoms
 
-def aniso_show(session, atoms=None, **kw):
+def aniso_show(session, atoms=None):
     ''' Command to display thermal ellipsoids '''
 
     atoms = check_atoms(session, atoms)
@@ -49,8 +49,25 @@ def aniso_show(session, atoms=None, **kw):
     for s, s_atoms in atoms.by_structure:
         if s not in mgr_info:
             mgr_info[s] = _StructureAnisoManager(session, s)
-        mgr_info[s].style(**kw)
         mgr_info[s].show(atoms=s_atoms)
+
+def aniso_style(session, structures=None, **kw):
+    ''' Command to display thermal ellipsoids '''
+
+    if structures is None:
+        from chimerax.atomic import all_atomic_structures
+        atoms = all_atomic_structures(session).atoms
+    else:
+        atoms = structures.atoms
+    atoms = check_atoms(session, atoms)
+
+    from .mgr import _StructureAnisoManager
+    mgr_info = { mgr.structure: mgr for mgr in session.state_managers(_StructureAnisoManager) }
+
+    for s, s_atoms in atoms.by_structure:
+        if s not in mgr_info:
+            mgr_info[s] = _StructureAnisoManager(session, s)
+        mgr_info[s].style(**kw)
 
 def aniso_hide(session, atoms=None):
     ''' Command to hide thermal ellipsoids '''
@@ -69,11 +86,13 @@ def register_command(logger, name):
     from chimerax.core.commands import register, CmdDesc
     from chimerax.core.commands import Or, EmptyArg, Color8TupleArg, NoneArg, PositiveFloatArg, BoolArg
     from chimerax.core.commands import PositiveIntArg, Bounded, FloatArg
-    from chimerax.atomic import AtomsArg
+    from chimerax.atomic import AtomsArg, AtomicStructuresArg
 
     tilde_desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))], synopsis='hide thermal ellipsoids')
     if name == "aniso":
-        desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))],
+        show_desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))],
+            synopsis='show depictions of thermal ellipsoids')
+        style_desc = CmdDesc(required=[('structures', Or(AtomicStructuresArg, EmptyArg))],
             keyword=[
                 ('axis_color', Or(Color8TupleArg, NoneArg)),
                 ('axis_factor', Or(PositiveFloatArg, NoneArg)),
@@ -88,8 +107,9 @@ def register_command(logger, name):
                 ('transparency', Bounded(FloatArg, min=0, max=100,
                     name="a percentage (number between 0 and 100)")),
             ],
-            synopsis='show and/or change style of depiction of thermal ellipsoids')
-        register('aniso', desc, aniso_show, logger=logger)
+            synopsis='change style of depictions of thermal ellipsoids')
+        register('aniso', show_desc, aniso_show, logger=logger)
+        register('aniso style', style_desc, aniso_style, logger=logger)
         register('aniso hide', tilde_desc, aniso_hide, logger=logger)
     else:
         register('~aniso', tilde_desc, aniso_hide, logger=logger)
