@@ -31,7 +31,9 @@ class StructureListWidget(ModelListWidget):
 
 class StructureMenuButton(ModelMenuButton):
     def __init__(self, session, **kw):
-        super().__init__(session, no_value_button_text="No structure chosen", class_filter=Structure, **kw)
+        if 'no_value_button_text' not in kw:
+            kw['no_value_button_text'] = "No structure chosen"
+        super().__init__(session, class_filter=Structure, **kw)
 
 class AtomicStructureListWidget(ModelListWidget):
     def __init__(self, session, **kw):
@@ -39,7 +41,9 @@ class AtomicStructureListWidget(ModelListWidget):
 
 class AtomicStructureMenuButton(ModelMenuButton):
     def __init__(self, session, **kw):
-        super().__init__(session, no_value_button_text="No structure chosen", class_filter=AtomicStructure, **kw)
+        if 'no_value_button_text' not in kw:
+            kw['no_value_button_text'] = "No structure chosen"
+        super().__init__(session, class_filter=AtomicStructure, **kw)
 
 class ChainListWidget(ItemListWidget):
     def __init__(self, session, *, group_identical=False, **kw):
