@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # name: Tell Plato what logs are current
 # description: Upload log IDs
 
