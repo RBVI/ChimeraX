@@ -70,9 +70,11 @@ class AnisoTool(ToolInstance):
         main_layout.addLayout(hide_show_layout)
         hide_show_layout.addStretch(1)
         show_button = QPushButton("Show")
+        show_button.clicked.connect(lambda f=self._show_hide_cb("aniso"))
         hide_show_layout.addWidget(show_button)
         hide_show_layout.addWidget(QLabel("/"))
         hide_button = QPushButton("Hide")
+        hide_button.clicked.connect(lambda f=self._show_hide_cb("aniso hide"))
         hide_show_layout.addWidget(hide_button)
         hide_show_layout.addWidget(QLabel("depictions"))
         hide_show_layout.addStretch(1)
@@ -90,3 +92,7 @@ class AnisoTool(ToolInstance):
         menu.clear()
         #TODO
 
+    def _show_hide_cb(self, cmd):
+        s = self.structure_button.value:
+        if not s:
+            #TODO: use dialog_user_error()
