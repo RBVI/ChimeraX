@@ -61,10 +61,11 @@ jobs:
           tar -xvf linux-include.tar.gz
       - name: Build the rest of ChimeraX
         run: |
-          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }} PYQT_LICENSE=commercial make -j$(nproc) -C prereqs install
-          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }} PYQT_LICENSE=commercial make -j$(nproc) -C prereqs app-install
+          make build-dirs
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }}" PYQT_LICENSE=commercial make -j$(nproc) -C prereqs install
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }}" PYQT_LICENSE=commercial make -j$(nproc) -C prereqs app-install
           make -C src/apps/ChimeraX install BUILD_TYPE="${{ inputs.release_type }}"
-          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }} PYQT_LICENSE=commercial make -j$(nproc) install-common-wheels
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }}" PYQT_LICENSE=commercial make -j$(nproc) install-common-wheels
           cp -rp include ChimeraX.app
           make -C src/apps install BUILD_TYPE="${{ inputs.release_type }}"
           make -C docs install BUILD_TYPE="${{ inputs.release_type }}"
