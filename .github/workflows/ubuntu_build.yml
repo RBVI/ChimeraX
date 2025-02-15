@@ -33,10 +33,11 @@ jobs:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - uses: Tiryoh/gha-jobid-action@v1
         id: get_job_id
+        if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         with:
           job_name: ${{ format('Build ChimeraX for Ubuntu ({0}, {1}) / build-ubuntu ({2})', inputs.branch, inputs.release_type, matrix.os) }}
       - name: Note the run and job IDs on Plato
-        if: ${{ inputs.release_type == 'daily' }} || ${{ inputs.release_type == 'candidate' }}
+        if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         uses: ./utils/ci/nightly_logs
         with:
           platform: ${{ matrix.os }}
@@ -60,17 +61,18 @@ jobs:
           tar -xvf linux-include.tar.gz
       - name: Build the rest of ChimeraX
         run: |
-          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial make -j$(nproc) -C prereqs install
-          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial make -j$(nproc) -C prereqs app-install
-          make -C src/apps/ChimeraX install BUILD_TYPE=daily
-          ChimeraX.app/bin/python3.11 -m pip install wheels/*.whl
+          make build-dirs
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }}" PYQT_LICENSE=commercial make -j$(nproc) -C prereqs install
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }}" PYQT_LICENSE=commercial make -j$(nproc) -C prereqs app-install
+          make -C src/apps/ChimeraX install BUILD_TYPE="${{ inputs.release_type }}"
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }}" PYQT_LICENSE=commercial make -j$(nproc) install-common-wheels
           cp -rp include ChimeraX.app
-          make -C src/apps install BUILD_TYPE=daily
-          make -C docs install BUILD_TYPE=daily
+          make -C src/apps install BUILD_TYPE="${{ inputs.release_type }}"
+          make -C docs install BUILD_TYPE="${{ inputs.release_type }}"
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
-        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
+        run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent

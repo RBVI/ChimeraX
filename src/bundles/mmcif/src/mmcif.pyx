@@ -963,8 +963,11 @@ def get_mmcif_tables_from_metadata(obj, table_names, *, metadata=None):
     metadata : optional metadata dictonary
         Allow reuse of existing metadata dictionary.
 
-    Returns a list of :py:class:`CIFTable`s or :external+python:ref:`None`,
-    one for each table name.
+    Returns
+    -------
+        list 
+            A list of :py:class:`CIFTable`s or :external+python:ref:`None`,
+            one for each table name.
     """
     if metadata is None:
         try:
