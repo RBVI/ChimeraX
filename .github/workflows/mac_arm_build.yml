@@ -80,7 +80,7 @@ jobs:
       - name: Report coverage
         run: make report-coverage
       - name: Sign the macOS package
-        uses: Wandalen/wretry.action@master
+        uses: Wandalen/wretry.action/main@master
         with:
           attempt_limit: 100000000000000000000000000000000000000000000000
           action: ./utils/ci/sign_macos/
@@ -95,7 +95,7 @@ jobs:
             email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
             release_type: ${{ inputs.release_type }}
       - name: Upload ChimeraX
-        uses: Wandalen/wretry.action@master
+        uses: Wandalen/wretry.action/main@master
         with:
           attempt_limit: 100000000000000000000000000000000000000000000000
           uses: ./utils/ci/upload_artifact
