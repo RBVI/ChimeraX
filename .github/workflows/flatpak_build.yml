@@ -71,10 +71,10 @@ jobs:
           upload-artifact: false
       # For now, we're skipping tests for the Flatpak
       - name: Upload ChimeraX
-        uses: ./utils/ci/upload_artifact
+        uses: nick-fields/retry@v3
         with:
-          artifact_path: chimerax.flatpak
-          full_build: true
-          release_type: ${{ inputs.release_type  }}
-          platform: flatpak
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
+          # GitHub Actions couldn't contact Plato.
+          max_attempts: 100000000000000000000000000000000000000000000000 
+          timeout_minutes: 60
+          command: BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA) BUILD_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u) curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=flatpak" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax.flatpak" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
