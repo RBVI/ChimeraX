@@ -58,15 +58,32 @@ jobs:
           timeout_seconds: 60
           command: ./utils/ci/nightly_logs.sh ${{ secrets.PREBUILT_CACHE_SECRET }} ${{ github.run_id }} ${{ steps.get_job_id.outputs.job_id }} mac_universal ${{ inputs.release_type }}
       # This never fails, but it's also never going to fail again
-      - name: Upload ChimeraX
-        uses: Wandalen/wretry.action/main@master
+      - name: Download the Intel ChimeraX
+        uses: nick-fields/retry@v3
         with:
-          attempt_limit: 1000
-          uses: ./utils/ci/download_mac_chimerax
-          pre_retry_command: rm chimerax*.dmg || true
-          with: |
-            cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-            build_type: ${{ inputs.release_type }}
+          # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
+          # GitHub Actions couldn't contact Plato.
+          max_attempts: 1000 
+          timeout_minutes: 30
+          command: CHIMERAX_AMD64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=macosx&build_type=${{ inputs.build_type }}&architecture=x86_64" curl -H "X-API-KEY:${{ secrets.PREBUILT_CACHE_SECRET }}" $CHIMERAX_AMD64_URL -O -J
+
+      - name: Give the Intel ChimeraX a standard name
+        run: |
+          mv chimerax-${{ inputs.build_type}}.dmg chimerax_intel.dmg
+ 
+      - name: Download the ARM ChimeraX
+        uses: nick-fields/retry@v3
+        with:
+          # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
+          # GitHub Actions couldn't contact Plato.
+          max_attempts: 1000 
+          timeout_minutes: 30
+          command: CHIMERAX_ARM64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=mac_arm64&build_type=${{ inputs.build_type }}&architecture=arm64" curl -H "X-API-KEY:${{ inputs.cache_key }}" ${CHIMERAX_ARM64_URL} -O -J
+
+      - name: Give the ARM ChimeraX a standard name
+        run: |
+         mv chimerax-${{ inputs.build_type}}.dmg chimerax_arm.dmg
+
       - name: Extract the ChimeraXes
         run: |
           hdiutil attach chimerax_intel.dmg
