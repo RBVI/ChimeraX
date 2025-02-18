@@ -139,7 +139,7 @@ runs:
           prereqs/ffmpeg/libtheora-1.1.1.tar.xz
           prereqs/ffmpeg/libogg-1.3.2.tar.xz
           prereqs/ffmpeg/libvpx-1.6.1.tar.xz
-          prereqs/ffmpeg/libvpx-1.13.1.tar.xz
+          prereqs/ffmpeg/libvpx-1.13.1.tar.gz
           prereqs/ffmpeg/yasm-1.3.0.tar.bz2
           prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz
           prereqs/ffmpeg/x264-stable.tar.xz
