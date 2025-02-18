@@ -219,4 +219,5 @@ jobs:
           # GitHub Actions couldn't contact Plato.
           max_attempts: 1000 
           timeout_minutes: 60
+          shell: bash
           command: BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA) BUILD_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u) curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax-installer.exe" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
