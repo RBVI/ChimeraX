@@ -77,7 +77,7 @@ jobs:
 
       - name: Give the Intel ChimeraX a standard name
         run: |
-          mv chimerax-${{ inputs.build_type}}.dmg chimerax_intel.dmg
+          mv chimerax-${{ inputs.release_type}}.dmg chimerax_intel.dmg
  
       - name: Download the ARM ChimeraX
         uses: nick-fields/retry@v3
@@ -90,7 +90,7 @@ jobs:
 
       - name: Give the ARM ChimeraX a standard name
         run: |
-         mv chimerax-${{ inputs.build_type}}.dmg chimerax_arm.dmg
+         mv chimerax-${{ inputs.release_type}}.dmg chimerax_arm.dmg
 
       - name: Extract the ChimeraXes
         run: |
