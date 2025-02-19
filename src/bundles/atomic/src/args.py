@@ -716,3 +716,17 @@ def concise_residue_spec(session, residues):
                 full_spec += '/' + _form_range(chain_ids, chain_id_index_map, str) + spec
 
     return full_spec
+
+def concise_chain_spec(chains):
+    schains = {}
+    for c in chains:
+        s = c.structure
+        if s not in schains:
+            schains[s] = set()
+        schains[s].add(c)
+    specs = []
+    for structure, cset in schains.items():
+        cids = sorted([c.chain_id for c in cset])
+        specs.append(structure.string(style = 'command') + '/' + ','.join(cids))
+    spec = ''.join(specs)
+    return spec
