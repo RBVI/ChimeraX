@@ -65,8 +65,8 @@ jobs:
 #            release_type: candidate
           - branch: develop
             release_type: daily
-          - branch: python3.13
-            release_type: techpreview
+          #- branch: python3.13
+          #  release_type: techpreview
     uses: ./.github/workflows/flatpak_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -114,8 +114,8 @@ jobs:
 #            release_type: candidate
           - branch: develop
             release_type: daily
-          - branch: python3.13
-            release_type: techpreview
+          #- branch: python3.13
+          #  release_type: techpreview
     uses: ./.github/workflows/mac_universal_build.yml
     with:
       branch: ${{ matrix.branch }}
