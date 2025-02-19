@@ -24,19 +24,20 @@
 
 from chimerax.core.state import State  # For session saving
 class MutationSet(State):
-    def __init__(self, name, mutation_scores, chain = None, allow_mismatches = False, path = None):
+    def __init__(self, name, mutation_scores, chains = None, allow_mismatches = False, path = None):
         self.name = name
         self.path = path
         self.mutation_scores = mutation_scores	# List of MutationScores instances
-        self._chain = None		# Associated Chain instance
+        self._associated_chains = []		# Chain instances
+        self._associated_residues = []		# List of (res_number, residue)
         self._computed_scores = {}	# Map computed score name to ScoreValues instance
 
         # Cached values
         self._score_names = None
         self._resnum_to_aa = None
 
-        if chain:
-            self.set_chain(chain, allow_mismatches)
+        if chains:
+            self.set_associated_chains(chains, allow_mismatches)
 
     def score_values(self, score_name, raise_error = True):
         svalues = [(ms.residue_number, ms.from_aa, ms.to_aa, ms.scores[score_name])
@@ -74,30 +75,81 @@ class MutationSet(State):
     def computed_values_names(self):
         return tuple(self._computed_scores.keys())
 
-    def _get_chain(self):
-        if self._chain is not None and self._chain.structure is None:
-            self._chain = None
-        return self._chain
-    def _set_chain(self, chain):
-        self._chain = chain
-    chain = property(_get_chain, _set_chain)
+    def associate_chains(self, session):
+        if len(self.associated_chains()) == 0:
+            chains = _find_matching_chains(session, self.residue_number_to_amino_acid())
+            self._associated_chains = chains
+            self._associated_residues = [(r.number, r) for chain in chains for r in chain.existing_residues]
+        return self._associated_chains
 
-    def set_chain(self, chain, allow_mismatches = False):
-        matches, mismatches = _residue_type_matches(chain.existing_residues,
-                                                    self.residue_number_to_amino_acid())
-        if mismatches:
-            r = mismatches[0]
-            mismatch_msg = f'sequence does not match mutation set {self.name} at {len(mismatches)} positions, first mistmatch is {r.name} {r.number}'
-            if allow_mismatches:
-                msg = f'Associated chain {chain} although {mismatch_msg}'
+    def associated_chains(self):
+        self._remove_deleted_chains()
+        return self._associated_chains
+
+    def set_associated_chains(self, chains, allow_mismatches = False, align_sequences = False):
+        achains = []
+        ares = []
+        rnum_to_aa = self.residue_number_to_amino_acid()
+        for chain in chains:
+            cres = chain.existing_residues
+            if align_sequences:
+                renum = _alignment_renumbering(chain.characters, rnum_to_aa)
+                rnums = {r:rnum for r, rnum in zip(chain.residues, renum) if r is not None and rnum is not None}
+                from chimerax.atomic import Residues
+                cres = Residues([r for r in cres if r in rnums])
+                cres_num = [rnums[r] for r in cres]
+                msg = (f'Aligned {len(rnums)} residues of sequence for chain {chain.string(style="command")} and '
+                       f'{len(cres)} aligned residues have coordinates and mutation scores.')
+                chain.structure.session.logger.info(msg)
+                if len(cres) == 0:
+                    continue
             else:
-                msg = f'Did not associate chain {chain} because {mismatch_msg}'
-            chain.structure.session.logger.warning(msg)
-        self.chain = chain
+                cres_num = cres.numbers
+            matches, mismatches = _residue_type_matches(cres, cres_num, rnum_to_aa)
+            if matches > 0 and (len(mismatches) == 0 or allow_mismatches or align_sequences):
+                achains.append(chain)
+                ares.extend([(rnum,r) for r,rnum in zip(cres,cres_num) if rnum in rnum_to_aa])
+            if mismatches:
+                r = mismatches[0]
+                mismatch_msg = f'sequence does not match mutation set {self.name} at {len(mismatches)} positions, first mistmatch is {r.name} {r.number}'
+                if allow_mismatches or align_sequences:
+                    msg = f'Associated chain {chain} although {mismatch_msg}'
+                else:
+                    msg = f'Did not associate chain {chain} because {mismatch_msg}'
+                chain.structure.session.logger.warning(msg)
+        self._associated_chains = achains
+        self._associated_residues = ares
 
-    def find_matching_chain(self, session):
-        self._chain = _find_matching_chain(session, self.residue_number_to_amino_acid())
-        return self._chain
+    def _remove_deleted_chains(self):
+        deleted = False
+        for chain in self._associated_chains:
+            if chain.structure is None:
+                deleted = True
+        if deleted:
+            self._associated_chains = [chain for chain in self._associated_chains if chain.structure is not None]
+            self._remove_deleted_residues()
+
+    def _remove_deleted_residues(self):
+        self._associated_residues = [(rnum, r) for rnum, r in self._associated_residues if not r.deleted]
+
+    def associated_residues(self, res_nums):
+        rlist = []
+        rnums = []
+        res_nums_set = set(res_nums)
+        deleted = False
+        for rnum, r in self._associated_residues:
+            if rnum in res_nums_set:
+                if r.deleted:
+                    deleted = True
+                else:
+                    rlist.append(r)
+                    rnums.append(rnum)
+        if deleted:
+            self._remove_deleted_residues()
+            self._remove_deleted_chains()
+        from chimerax.atomic import Residues
+        res = Residues(rlist)
+        return res, rnums
 
     def residue_number_to_amino_acid(self):
         if self._resnum_to_aa is None:
@@ -105,36 +157,47 @@ class MutationSet(State):
         return self._resnum_to_aa
 
     def take_snapshot(self, session, flags):
+        self._remove_deleted_chains()
+        self._remove_deleted_residues()
         return {'name': self.name,
                 'path': self.path,
                 'mutation_scores': self.mutation_scores,
-                'chain': self.chain,
+                'associated_chains': self._associated_chains,
+                'associated_residues': self._associated_residues,
                 'computed_scores': self._computed_scores,
                 'version': 1}
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        ms = cls(data['name'], data['mutation_scores'], chain = data['chain'], path = data['path'])
+        ms = cls(data['name'], data['mutation_scores'], path = data['path'])
+        ms._associated_chains = data.get('associated_chains', [])
+        ms._associated_residues = data.get('associated_residues', [])
+        if 'chain' in data:
+            chain = data['chain']
+            ms._associated_chains = [chain]
+            ms._associated_residues = [(r.number,r) for r in chain.existing_residues]
         ms._computed_scores = data['computed_scores']
         return ms
 
-def _find_matching_chain(session, resnum_to_aa):
+def _find_matching_chains(session, resnum_to_aa):
     from chimerax.atomic import AtomicStructure
     structs = session.models.list(type = AtomicStructure)
+    mchains = []
     for s in structs:
         chains = list(s.chains)
         chains.sort(key = lambda c: c.chain_id)
         for c in chains:
-            matches, mismatches = _residue_type_matches(c.existing_residues, resnum_to_aa)
+            cres = c.existing_residues
+            matches, mismatches = _residue_type_matches(cres, cres.numbers, resnum_to_aa)
             if len(mismatches) == 0 and matches > 0:
-                return c
-    return None
+                mchains.append(c)
+    return mchains
         
-def _residue_type_matches(residues, resnum_to_aa):
+def _residue_type_matches(residues, res_nums, resnum_to_aa):
     matches = 0
     mismatches = []
-    for r in residues:
-        rtype = resnum_to_aa.get(r.number)
+    for r,rnum in zip(residues,res_nums):
+        rtype = resnum_to_aa.get(rnum)
         if rtype is not None:
             if r.one_letter_code == rtype:
                 matches += 1
@@ -142,6 +205,26 @@ def _residue_type_matches(residues, resnum_to_aa):
                 mismatches.append(r)
     return matches, mismatches
 
+def _alignment_renumbering(seq, rnum_to_aa):
+    rnums = list(rnum_to_aa.keys())
+    rmin, rmax = min(rnums), max(rnums)
+    ref_aa = ['X'] * (rmax - rmin + 1)
+    for rnum, aa in rnum_to_aa.items():
+        ref_aa[rnum-rmin] = aa
+    ref = ''.join(ref_aa)
+    
+    from chimerax.atomic import Sequence
+    from chimerax.alignment_algs import NeedlemanWunsch
+    score, pairs = NeedlemanWunsch.nw(Sequence(characters=ref), Sequence(characters=seq))
+
+    print ('pairs', len(pairs))
+    snums = [None]*len(seq)
+    for refi,seqi in pairs:
+        i = refi + rmin
+        snums[seqi] = i if i in rnum_to_aa else None
+
+    return snums
+    
 class MutationScores(State):
     def __init__(self, residue_number, from_aa, to_aa, scores):
         self.residue_number = residue_number
@@ -278,9 +361,17 @@ def mutation_scores_list(session):
     session.logger.info(f'{len(score_sets)} mutation score sets\n{sets}')
     return msm.names()
 
-def mutation_scores_structure(session, chain, allow_mismatches = False, mutation_set = None):
+def mutation_scores_structure(session, chains = None, allow_mismatches = False, align_sequences = False,
+                              mutation_set = None):
     mset = mutation_scores(session, mutation_set)
-    mset.set_chain(chain, allow_mismatches = allow_mismatches)
+    if chains is None:
+        chains = [chain for chain in mset.associated_chains()]
+        from chimerax.atomic import concise_chain_spec
+        cspec = concise_chain_spec(chains)
+        session.logger.status(f'Mutation set {mset.name} has {len(chains)} associated chains {cspec}.', log=True)
+    else:
+        mset.set_associated_chains(chains, allow_mismatches = allow_mismatches,
+                                   align_sequences = align_sequences)
 
 def mutation_scores_close(session, mutation_set = None):
     msm = mutation_scores_manager(session)
@@ -301,14 +392,15 @@ def _close_plots(session, mutation_set_name):
 
 def register_commands(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg
-    from chimerax.atomic import ChainArg
+    from chimerax.atomic import UniqueChainsArg
     
     desc = CmdDesc(synopsis = 'List names of sets of mutation scores')
     register('mutationscores list', desc, mutation_scores_list, logger=logger)
 
     desc = CmdDesc(
-        required = [('chain', ChainArg)],
+        optional = [('chains', UniqueChainsArg)],
         keyword = [('allow_mismatches', BoolArg),
+                   ('align_sequences', BoolArg),
                    ('mutation_set', StringArg)],
         synopsis = 'Associate a structure with a set of mutation scores'
     )

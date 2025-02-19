@@ -91,21 +91,16 @@ def mutation_scores_define(session, score_name = None, from_score_name = None, m
 
     # Set residue attribute
     if set_attribute:
-        chain = scores.chain
-        if chain is None:
-            chain = scores.find_matching_chain(session)
-        if chain:
+        scores.associate_chains(session)
+        res, rnums = scores.associated_residues(rvalues.residue_numbers())
+        if len(res) > 0:
             from chimerax.atomic import Residue
             Residue.register_attr(session, score_name, "Deep Mutational Scan", attr_type=float)
-
-            count = 0
-            for res in chain.existing_residues:
-                value = rvalues.residue_value(res.number)
-                if value is not None:
-                    setattr(res, score_name, value)
-                    count += 1
-
-            message = f'Set attribute {score_name} for {count} residues of chain {chain}'
+            for r,rnum in zip(res, rnums):
+                setattr(r, score_name, rvalues.residue_value(rnum))
+            from chimerax.atomic import concise_chain_spec
+            cspec = concise_chain_spec(res.unique_chains)
+            message = f'Set attribute {score_name} for {len(res)} residues of chain {cspec}'
             session.logger.info(message)
 
     return rvalues
