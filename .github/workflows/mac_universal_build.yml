@@ -60,8 +60,8 @@ jobs:
 
       - name: Put the URLs of the ChimeraXes in GitHub's environment
         run: |
-          export CHIMERAX_AMD64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=macosx&build_type=${{ inputs.build_type }}&architecture=x86_64"
-          export CHIMERAX_ARM64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=mac_arm64&build_type=${{ inputs.build_type }}&architecture=arm64"
+          export CHIMERAX_AMD64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=macosx&build_type=${{ inputs.release_type }}&architecture=x86_64"
+          export CHIMERAX_ARM64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=mac_arm64&build_type=${{ inputs.release_type }}&architecture=arm64"
           echo CHIMERAX_AMD64_URL >> $GITHUB_ENV
           echo CHIMERAX_ARM64_URL >> $GITHUB_ENV
 
