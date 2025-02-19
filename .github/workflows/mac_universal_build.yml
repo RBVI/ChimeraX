@@ -62,8 +62,8 @@ jobs:
         run: |
           export CHIMERAX_AMD64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=macosx&build_type=${{ inputs.release_type }}&architecture=x86_64"
           export CHIMERAX_ARM64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=mac_arm64&build_type=${{ inputs.release_type }}&architecture=arm64"
-          echo CHIMERAX_AMD64_URL >> $GITHUB_ENV
-          echo CHIMERAX_ARM64_URL >> $GITHUB_ENV
+          echo "CHIMERAX_AMD64_URL=$CHIMERAX_AMD64_URL" >> $GITHUB_ENV
+          echo "CHIMERAX_ARM64_URL=$CHIMERAX_ARM64_URL" >> $GITHUB_ENV
 
       # This never fails, but it's also never going to fail again
       - name: Download the Intel ChimeraX
