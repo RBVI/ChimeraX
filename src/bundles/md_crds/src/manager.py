@@ -23,16 +23,21 @@ class MDPlottingManager(ProviderManager):
         self._num_atoms = {}
         self._min_vals = {}
         self._max_vals = {}
+        self._text_formats = {}
         super().__init__("MD plotting")
 
-    def add_provider(self, bundle_info, name, *, ui_name=None, num_atoms=None, min_val=None, max_val=None):
+    def add_provider(self, bundle_info, name, *, ui_name=None, num_atoms=None, min_val=None, max_val=None,
+            text_format="%g"):
         # 'name' is the name used as an arg in the command
         # 'ui_name' is the name used in the tool interface (defaults to 'name')
         # 'num_atoms' indicates how many atoms are needed to compute the quantity (and therefore are
-        #   needed in the command form).  If num_atoms is zero, the quantity is a scalar (e.g. energy).
-        #  'min_val'/'max_val' are suggested minimum / maximum values to use for the plotting axis;
-        #      if omitted, the min/max of the data values (possibly enlarged to the next esthetic value)
-        #      will be used.
+        #     needed in the command form).  If num_atoms is zero, the quantity is a scalar (e.g. energy).
+        # 'min_val'/'max_val' are suggested minimum / maximum values to use for the plotting axis;
+        #     if omitted, the min/max of the data values (possibly enlarged to the next esthetic value)
+        #     will be used.
+        # 'text_format' is the formatting operator to convert the numeric plotting value to the text
+        #     displayed in the corresponding table.  It can be "distance" or "angle" for values that
+        #     are distances or angles, which will get a more specific treatment than a generic format.
         if num_atoms is None:
             raise ValueError(f"MD plotting provider {name} did not supply 'num_atoms' in its description")
         try:
@@ -45,37 +50,11 @@ class MDPlottingManager(ProviderManager):
         self._num_atoms[name] = num_atoms
         self._min_vals[name] = min_val if min_val is None else float(min_val)
         self._max_vals[name] = max_val if max_val is None else float(max_val)
+        self._text_formats[name] = text_format
 
-    '''
-    def execute_command(self, name, structure, args):
-        return self._get_provider(name).execute_command(structure, args)
-
-    def fill_parameters_widget(self, name, widget):
-        if self._provider_bundles[name].installed:
-            self._get_provider(name).fill_parameters_widget(widget)
-        else:
-            from Qt.QtWidgets import QLabel, QVBoxLayout
-            from Qt.QtCore import Qt
-            layout = QVBoxLayout()
-            widget.setLayout(layout)
-            info = QLabel('This feature is not installed.  To enable it,'
-                ' <a href="internal toolshed">install the %s bundle</a>'
-                " from the Toolshed.  Then restart ChimeraX." % self._provider_bundles[name].short_name)
-            from chimerax.core.commands import run
-            info.linkActivated.connect(lambda *args, bundle_name=self._provider_bundles[name].name:
-                run(self.session, "toolshed show %s" % bundle_name))
-            info.setWordWrap(True)
-            # specify alignment within the label itself (instead of the layout) so that the label
-            # is given the full width of the layout to work with, otherwise you get unneeded line
-            # wrapping
-            info.setAlignment(Qt.AlignCenter)
-            layout.addWidget(info)
-
-    def get_command_substring(self, name, param_widget):
-        # given the settings in the parameter widget, get the corresponding command args
-        # (can return None if the widget doesn't directly add atoms [e.g. links to another tool])
-        return self._get_provider(name).command_string(param_widget)
-    '''
+    def get_values(self, provider_name, **kw):
+        return self._provider_bundles[provider_name].run_provider(self.session,
+            provider_name, self, **kw)
 
     def max_val(self, provider_name):
         return self._max_vals[provider_name]
@@ -90,15 +69,16 @@ class MDPlottingManager(ProviderManager):
     def provider_names(self):
         return list(self._provider_bundles.keys())
 
+    def text_format(self, provider_name):
+        tf = self._text_formats[provider_name]
+        if tf == "distance":
+            return self.session.pb_dist_monitor.distance_format
+        elif tf == "angle":
+            return "%.1f\N{DEGREE SIGN}"
+        return tf
+
     def ui_name(self, provider_name):
         return self._ui_names[provider_name]
-
-    '''
-    def _get_provider(self, name):
-        if name not in self.providers:
-            self.providers[name] = self._provider_bundles[name].run_provider(self.session, name, self)
-        return self.providers[name]
-    '''
 
 _plotting_manager = None
 def get_plotting_manager(session):

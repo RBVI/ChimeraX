@@ -76,7 +76,7 @@
   </Providers>
 
   <Providers manager="MD plotting">
-    <Provider name="distance" num_atoms="2" />
+    <Provider name="distance" num_atoms="2" text_format="distance" />
   </Providers>
 
   <Classifiers>

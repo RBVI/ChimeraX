@@ -12,8 +12,10 @@
 # === UCSF ChimeraX Copyright ===
 
 from Qt.QtWidgets import QFrame, QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QPushButton, QMenu, \
-    QGridLayout, QSizePolicy
+    QSizePolicy, QWidget
 from Qt.QtCore import Qt
+
+from chimerax.core.commands import plural_of
 
 class SaveOptionsWidget(QFrame):
 
@@ -60,7 +62,6 @@ def fill_context_menu(menu, parent_tool_window, structure):
     from Qt.QtGui import QAction
     plot_menu = menu.addMenu("Plot")
 
-    from chimerax.core.commands import plural_of
     for provider_name in mgr.provider_names:
         ui_name = mgr.ui_name(provider_name)
         menu_name = plural_of(ui_name)
@@ -77,6 +78,8 @@ class PlotDialog:
     def __init__(self, plot_window, structure):
         self.tool_window = tw = plot_window
         self.session = structure.session
+        self.structure = structure
+        #TODO: respond to structure deletion
         from .manager import get_plotting_manager
         self.mgr = get_plotting_manager(self.session)
         from Qt.QtWidgets import QHBoxLayout, QTabWidget
@@ -90,6 +93,7 @@ class PlotDialog:
 
         self.tab_info = {}
         self._tables = {}
+        self._value_columns = {}
 
         tw.manage(None)
 
@@ -108,7 +112,6 @@ class PlotDialog:
 
     def _make_atomic_tab(self, provider_name):
         ui_name = self.mgr.ui_name(provider_name)
-        from chimerax.core.commands import plural_of
         tab_name = plural_of(ui_name)
         if tab_name.lower() == tab_name:
             # no caps
@@ -117,17 +120,56 @@ class PlotDialog:
         page = QWidget()
         page_layout = QHBoxLayout()
         page_layout.setSpacing(0)
+        page_layout.setContentsMargins(0,0,0,0)
         page.setLayout(page_layout)
         page_layout.addWidget(QLabel("%s plotting goes here" % ui_name.capitalize()), stretch=1)
         controls_area = QWidget()
         controls_layout = QVBoxLayout()
         controls_area.setLayout(controls_layout)
-        self._tables[tab_name] = table = self._make_table(provider_name)
+        self._tables[provider_name] = table = self._make_table(provider_name)
         controls_layout.addWidget(table, stretch=1)
-        controls_layout.addWidget(QLabel("Controls"))
+        controls_layout.addWidget(self._make_buttons_area(provider_name), alignment=Qt.AlignCenter)
         page_layout.addWidget(controls_area)
         self.plot_tabs.addTab(page, tab_name)
         return tab_name, page
+
+    def _make_buttons_area(self, provider_name):
+        ui_name = self.mgr.ui_name(provider_name)
+
+        buttons_area = QWidget()
+        area_layout = QVBoxLayout()
+        area_layout.setSpacing(0)
+        area_layout.setContentsMargins(0,0,0,0)
+        buttons_area.setLayout(area_layout)
+
+        plot_control_area = QWidget()
+        area_layout.addWidget(plot_control_area)
+        pc_layout = QHBoxLayout()
+        pc_layout.setSpacing(0)
+        pc_layout.setContentsMargins(0,0,0,0)
+        plot_control_area.setLayout(pc_layout)
+        plot_button = QPushButton("Plot")
+        plot_button.clicked.connect(lambda *args, f=self._plot_atomic, pv=provider_name: f(pv))
+        pc_layout.addWidget(plot_button, alignment=Qt.AlignRight)
+        pc_layout.addWidget(QLabel(" %s from %d selected atoms" % (ui_name,
+            self.mgr.num_atoms(provider_name))), alignment=Qt.AlignLeft)
+
+        delete_control_area = QWidget()
+        area_layout.addWidget(delete_control_area)
+        dc_layout = QHBoxLayout()
+        dc_layout.setSpacing(0)
+        dc_layout.setContentsMargins(0,0,0,0)
+        delete_control_area.setLayout(dc_layout)
+        delete_button = QPushButton("Delete")
+        delete_button.clicked.connect(lambda *args, f=self._delete_table_entries, pv=provider_name: f(pv))
+        dc_layout.addWidget(delete_button, alignment=Qt.AlignRight)
+        dc_layout.addWidget(QLabel(" chosen %s" % plural_of(ui_name)), alignment=Qt.AlignLeft)
+
+        return buttons_area
+
+    def _delete_table_entries(self, provider_name):
+        #TODO
+        raise NotImplementedError("Deleting table entries not implemented")
 
     def _make_scalar_tab(self, provider_name):
         #TODO
@@ -135,9 +177,53 @@ class PlotDialog:
 
     def _make_table(self, provider_name):
         from chimerax.ui.widgets import ItemTable
-        #TODO
-        from Qt.QtWidgets import QLabel
-        return QLabel("Table")
+        table = ItemTable(allow_user_sorting=False)
+        table.add_column("Color", "rgba8", format=table.COL_FORMAT_OPAQUE_COLOR, title_display=False)
+        table.add_column("Shown", "shown", format=table.COL_FORMAT_BOOLEAN)
+        self._value_columns[provider_name] = table.add_column(self.mgr.ui_name(provider_name).capitalize(),
+            "value", format=self.mgr.text_format(provider_name),
+            justification="decimal", header_justification="center")
+        for i in range(self.mgr.num_atoms(provider_name)):
+            table.add_column("Atom %d" % (i+1), lambda x, i=i: x.atoms[i])
+        table.data = []
+        table.launch()
+        return table
+
+    def _plot_atomic(self, provider_name):
+        from chimerax.ui import tool_user_error
+        s_atoms = self.structure.atoms
+        sel_atoms = s_atoms[s_atoms.selecteds == True]
+        expected_sel = self.mgr.num_atoms(provider_name)
+        if len(sel_atoms) != expected_sel:
+            ui_name = self.mgr.ui_name(provider_name)
+            return tool_user_error("Plotting %s requires exactly %d selected atoms in the structure;"
+                " %d are currently selected" % (plural_of(ui_name), expected_sel, len(sel_atoms)))
+        table = self._tables[provider_name]
+        table.data += [TableEntry(self, provider_name, sel_atoms)]
+
+class TableEntry:
+    def __init__(self, plot_dialog, provider_name, atoms):
+        self.plot_dialog = plot_dialog
+        self.provider_name = provider_name
+        self.atoms = atoms
+        from chimerax.core.colors import distinguish_from
+        self.rgba = distinguish_from([(1.0,1.0,1.0,1.0)]
+            + [datum.rgba for datum in plot_dialog._tables[provider_name].data])
+        self.shown = True
+        self._values = plot_dialog.mgr.get_values(provider_name,
+                            structure=plot_dialog.structure, atoms=atoms)
+
+    @property
+    def rgba8(self):
+        return [round(c*255.0) for c in self.rgba]
+
+    @rgba8.setter
+    def rgba8(self, rgba8):
+        self.rgba = [c/255.0 for c in rgba8]
+
+    @property
+    def value(self):
+        return self._values[self.plot_dialog.structure.active_coordset_id]
 
 def _show_plot(provider_name, main_tool_window, structure):
     try:
