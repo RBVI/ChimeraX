@@ -22,10 +22,9 @@ CXSERVICES_DEPLOYMENT_VER ?= production
 
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
-PATCHES = tcia_utils.patch tcia_utils_metadata.patch
+PATCHES = tcia_utils.patch tcia_utils_metadata.patch grako.patch
 QTSHIM_WHEEL = qtshim-1.1-py3-none-any.whl
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
-GRAKO_WHEEL = grako-3.16.5-py2.py3-none-any.whl
 
 ifeq ($(OSARCH),DarwinArm64)
 CYTHON_BUILD_ARGS= --no-binary :all:
@@ -92,7 +91,7 @@ endif
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
 	# tcia_utils (a DICOM dependency) pulls in Pandas, but it is patched
-	# so that pandas is not needed. When those patches are upstreamed 
+	# so that pandas is not needed. When those patches are upstreamed
 	# and pandas is optional this line can be removed
 	$(APP_PIP) uninstall -y pandas
 
@@ -117,8 +116,8 @@ app-upgrade:
 #	done
 
 clean:
-	-rm -f pip.log 
-	make -C package_checker clean	
+	-rm -f pip.log
+	make -C package_checker clean
 
 outdated:
 	$(PIP) list --outdated --format=columns
@@ -142,9 +141,6 @@ app-outdated:
 
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src
-
-$(GRAKO_WHEEL):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/grako/$(GRAKO_WHEEL)
 
 $(TINYARRAY_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/tinyarray/$(TINYARRAY_WHEEL)
