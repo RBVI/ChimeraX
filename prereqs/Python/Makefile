@@ -184,7 +184,8 @@ endif
 	$(APP_PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
 	$(APP_PYTHON_EXE) -m pip install --upgrade \
 		wheel==$(WHEEL_VERSION) \
-		setuptools==$(SETUPTOOLS_VERSION)
+		setuptools==$(SETUPTOOLS_VERSION) \
+		build==$(BUILD_VERSION)
 
 ifeq ($(OS),Windows)
 
