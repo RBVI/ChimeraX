@@ -56,7 +56,6 @@ runs:
         path: |
           prereqs/pips/grako-3.16.5-py2.py3-none-any.whl
           prereqs/pips/cxservices-1.2.3-py3-none-any.whl
-          prereqs/pips/qtshim-1.1-py3-none-any.whl
         key: generic-plato-pips
 
     - name: Restore cached Python (Linux)
@@ -362,7 +361,5 @@ runs:
       run: |
         curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/grako/grako-3.16.5-py2.py3-none-any.whl
         curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/cxservices/cxservices-1.2.3-production-py3-none-any.whl
-        curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/qt/qtshim-1.1-py3-none-any.whl
         mv grako* prereqs/pips/
         mv cxservices* prereqs/pips/cxservices-1.2.3-py3-none-any.whl
-        mv qtshim* prereqs/pips/

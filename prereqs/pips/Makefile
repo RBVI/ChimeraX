@@ -55,7 +55,7 @@ endif
 endif
 endif
 
-PLATO_WHEELS = $(GRAKO_WHEEL) $(TINYARRAY_WHEEL) $(CXSERVICES_WHEEL) $(QTSHIM_WHEEL)
+PLATO_WHEELS = $(GRAKO_WHEEL) $(TINYARRAY_WHEEL) $(CXSERVICES_WHEEL)
 
 all:
 
@@ -87,6 +87,7 @@ ifdef DEV_DEPENDENCIES
 	$(APP_PIP_INSTALL) --no-build-isolation -r dev_requirements.txt
 endif
 	$(APP_PIP_INSTALL) $(PLATO_WHEELS)
+	$(APP_PIP_INSTALL) $(QTSHIM_WHEEL)
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
@@ -156,4 +157,5 @@ $(CXSERVICES_WHEEL):
 	mv cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl $(CXSERVICES_WHEEL)
 
 $(QTSHIM_WHEEL):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/qt/$(QTSHIM_WHEEL)
+	$(MAKE) -C ../qtshim wheel
+	mv ../qtshim/dist/*.whl .
