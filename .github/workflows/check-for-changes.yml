@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-test-rocky8-docker:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container:
       image: rockylinux:8
     env:
@@ -31,7 +31,7 @@ jobs:
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
-        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
+        run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
@@ -60,7 +60,7 @@ jobs:
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
-        run: ./ChimeraX.app/Contents/bin/python3.11 -I -m pip install pytest pytest-cov
+        run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
@@ -93,7 +93,7 @@ jobs:
       - name: Run the legacy test suite
         run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test
       - name: Install Pytest
-        run: ./ChimeraX.app/bin/python.exe -I -m pip install pytest pytest-cov
+        run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent

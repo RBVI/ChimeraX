@@ -3465,3 +3465,15 @@ def precise_target(session):
         # some selected bonds have neither endpoint atom selected
         return 'ab'
     return 'a'
+
+def tool_user_error(msg, parent=None, *, title="Error"):
+    # for (floating) dialogs, so they don't disappear behind the main window (which is what happens
+    # if you raise UserError)
+    from Qt.QtWidgets import QMessageBox
+    em = QMessageBox(parent)
+    em.setWindowTitle(title)
+    em.setText(msg)
+    b = em.addButton("OK", QMessageBox.AcceptRole)
+    em.setDefaultButton(b)
+    em.exec() if hasattr(em, 'exec') else em.exec_()
+

@@ -22,11 +22,11 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def open_mutation_scores_csv(session, path, name = None, show_plot = True, chain = None, allow_mismatches = False):
+def open_mutation_scores_csv(session, path, name = None, show_plot = True, chains = None, allow_mismatches = False):
     mset = _read_mutation_scores_csv(path, name = name)
 
-    if chain:
-        mset.set_chain(chain, allow_mismatches = allow_mismatches)
+    if chains:
+        mset.set_associated_chains(chains, allow_mismatches = allow_mismatches)
 
     from .ms_data import mutation_scores_manager
     msm = mutation_scores_manager(session)
@@ -37,13 +37,16 @@ def open_mutation_scores_csv(session, path, name = None, show_plot = True, chain
     score_names = ', '.join(mset.score_names())
     message = f'Opened deep mutational scan data for {nmut} mutations of {len(dresnums)} residues with score names {score_names}.'
     
-    if chain:
-        cres = chain.existing_residues
-        sresnums = set(r.number for r in cres)
-        message += f' Assigned scores to {len(sresnums & dresnums)} of {len(cres)} residues of chain {chain}.'
+    if chains:
+        res, rnums = mset.associated_residues(dresnums)
+        from chimerax.atomic import concatenate, concise_chain_spec
+        cres = concatenate([chain.existing_residues for chain in chains])
+        cspec = concise_chain_spec(chains)
+        message += f' Assigned scores to {len(res)} of {len(cres)} residues of chain {cspec}.'
+        sresnums = set(rnums)
         mres = len(dresnums - sresnums)
         if mres > 0:
-            message += f' Found scores for {mres} residues not present in atomic model.'
+            message += f' Found scores for {mres} residues not present in structures {cspec}.'
 
     if show_plot and session.ui.is_gui and len(mset.score_names()) >= 2:
         x_score_name, y_score_name = mset.score_names()[:2]

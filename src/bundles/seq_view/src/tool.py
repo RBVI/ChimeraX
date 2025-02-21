@@ -562,6 +562,9 @@ class SequenceViewer(ToolInstance):
                 prog_menu.addAction(realign_action)
             if single_seq:
                 prog_menu.setEnabled(False)
+        rename_action = QAction("Rename Sequence...", edit_menu)
+        rename_action.triggered.connect(self.show_rename_sequence_dialog)
+        edit_menu.addAction(rename_action)
 
         structure_menu = menu.addMenu("Structure")
         assoc_action = QAction("Associations...", structure_menu)
@@ -828,6 +831,14 @@ class SequenceViewer(ToolInstance):
                 self.tool_window.create_child_window("Percent Identity", close_destroys=False))
             self.percent_identity_dialog.tool_window.manage(None)
         self.percent_identity_dialog.tool_window.shown = True
+
+    def show_rename_sequence_dialog(self):
+        if not hasattr(self, "rename_sequence_dialog"):
+            from .rename_seq import RenameSeqDialog
+            self.rename_sequence_dialog = RenameSeqDialog(self,
+                self.tool_window.create_child_window("Rename Sequence", close_destroys=False))
+            self.rename_sequence_dialog.tool_window.manage(None)
+        self.rename_sequence_dialog.tool_window.shown = True
 
     def show_transfer_seq_dialog(self):
         if not hasattr(self, "transfer_seq_dialog"):

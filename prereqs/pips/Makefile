@@ -22,10 +22,16 @@ CXSERVICES_DEPLOYMENT_VER ?= production
 
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
-PATCHES = tcia_utils.patch tcia_utils_metadata.patch
+PATCHES = tcia_utils.patch tcia_utils_metadata.patch grako.patch
 QTSHIM_WHEEL = qtshim-1.1-py3-none-any.whl
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
-GRAKO_WHEEL = grako-3.16.5-py2.py3-none-any.whl
+
+ifeq ($(OSARCH),DarwinArm64)
+CYTHON_BUILD_ARGS= --no-binary :all:
+else
+CYTHON_BUILD_ARGS=
+endif
+
 ifeq ($(OS),Windows)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-win_amd64.whl
 else
@@ -40,7 +46,6 @@ ifeq ($(OS),Darwin)
 WHEEL_CFLAGS="-Wno-error=int-conversion"
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
 ifeq ($(OSARCH),DarwinArm64)
-CYTHON_WHEEL = Cython-$(CYTHON_VERSION)-cp311-cp311-macosx_10_9_universal2.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
 endif
@@ -49,10 +54,7 @@ endif
 endif
 endif
 
-PLATO_WHEELS = $(GRAKO_WHEEL) $(TINYARRAY_WHEEL) $(CXSERVICES_WHEEL) $(QTSHIM_WHEEL)
-ifeq ($(OSARCH),DarwinArm64)
-PLATO_WHEELS += $(CYTHON_WHEEL)
-endif
+PLATO_WHEELS = $(GRAKO_WHEEL) $(TINYARRAY_WHEEL) $(CXSERVICES_WHEEL)
 
 all:
 
@@ -66,9 +68,12 @@ app-list:
 
 upgrade:
 
-app-install: $(PLATO_WHEELS)
-	# Install numpy first so that PyOpenGL_Accelerate will compile numpy_formathandler
+app-install: $(PLATO_WHEELS) $(QTSHIM_WHEEL)
+ifeq ($(OS),Darwin)
+	# Install Cython first so PyOpenGL_accelerate builds
+	$(APP_PIP_INSTALL) $(CYTHON_BUILD_ARGS) $(shell grep Cython app_requirements.txt | sed -e 's/#//')
 	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt)
+endif
 	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifdef USE_PYSIDE6
 	$(APP_PIP_INSTALL) $(shell grep PySide6 app_requirements.txt | sed -e 's/#//')
@@ -81,11 +86,12 @@ ifdef DEV_DEPENDENCIES
 	$(APP_PIP_INSTALL) --no-build-isolation -r dev_requirements.txt
 endif
 	$(APP_PIP_INSTALL) $(PLATO_WHEELS)
+	$(APP_PIP_INSTALL) $(QTSHIM_WHEEL)
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
 	# tcia_utils (a DICOM dependency) pulls in Pandas, but it is patched
-	# so that pandas is not needed. When those patches are upstreamed 
+	# so that pandas is not needed. When those patches are upstreamed
 	# and pandas is optional this line can be removed
 	$(APP_PIP) uninstall -y pandas
 
@@ -110,8 +116,8 @@ app-upgrade:
 #	done
 
 clean:
-	-rm -f pip.log 
-	make -C package_checker clean	
+	-rm -f pip.log
+	make -C package_checker clean
 
 outdated:
 	$(PIP) list --outdated --format=columns
@@ -136,9 +142,6 @@ app-outdated:
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src
 
-$(GRAKO_WHEEL):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/grako/$(GRAKO_WHEEL)
-
 $(TINYARRAY_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/tinyarray/$(TINYARRAY_WHEEL)
 
@@ -150,4 +153,5 @@ $(CXSERVICES_WHEEL):
 	mv cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl $(CXSERVICES_WHEEL)
 
 $(QTSHIM_WHEEL):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/qt/$(QTSHIM_WHEEL)
+	$(MAKE) -C ../qtshim wheel
+	mv ../qtshim/dist/*.whl .
