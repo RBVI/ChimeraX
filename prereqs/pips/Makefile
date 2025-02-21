@@ -68,7 +68,7 @@ app-list:
 
 upgrade:
 
-app-install: $(PLATO_WHEELS)
+app-install: $(PLATO_WHEELS) $(QTSHIM_WHEEL)
 ifeq ($(OS),Darwin)
 	# Install Cython first so PyOpenGL_accelerate builds
 	$(APP_PIP_INSTALL) $(CYTHON_BUILD_ARGS) $(shell grep Cython app_requirements.txt | sed -e 's/#//')
