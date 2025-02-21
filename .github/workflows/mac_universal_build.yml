@@ -246,6 +246,13 @@ jobs:
           timeout_minutes: 60
           command: python3.10 utils/build/macos/notarize.py notarize -a $CHIMERAX_APP_NAME -d ChimeraX.dmg -T $MAC_SIGNING_TEAM_ID -s $MAC_SIGNING_TEAM_ID -p $MAC_SIGNING_APP_PW -P $MAC_SIGNING_PROVIDER -i $MAC_SIGNING_EMAIL -k $RUNNER_TEMP/app-signing.keychain-db -K $MAC_SIGNING_KEYCHAIN_PW -v -v -v
 
+      - name: Put the build date and commit in the environment
+        run: |
+          export BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA) 
+          export BUILD_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u) 
+          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
+          echo "BUILD_COMMIT=$BUILD_COMMIT" >> $GITHUB_ENV
+
       - name: Upload ChimeraX
         uses: nick-fields/retry@v3
         with:
@@ -253,4 +260,4 @@ jobs:
           # GitHub Actions couldn't contact Plato.
           max_attempts: 1000 
           timeout_minutes: 60
-          command: BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA) BUILD_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u) curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=mac_universal" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/ChimeraX.dmg" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=mac_universal" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/ChimeraX.dmg" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
