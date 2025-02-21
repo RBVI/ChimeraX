@@ -89,6 +89,9 @@ SCRIPT_COVERAGE_ARGS := $(if $(USE_COVERAGE),-c -s,)
 COVERAGE_ARGS := $(if $(USE_COVERAGE),--cov=chimerax --cov-append,)
 SILENT_COVERAGE_ARGS := $(if $(USE_COVERAGE),$(COVERAGE_ARGS) --cov-report=,)
 
+pytest-install:
+	$(APP_PYTHON_EXE) -I -m pip install pytest $(if $(USE_COVERAGE),pytest-cov,)
+
 clean-coverage:
 	-rm .coverage
 	-rm -rf chimerax
@@ -115,6 +118,9 @@ pytest: clean-coverage prepare-coverage pytest-both-exes pytest-wheel pytest-app
 else
 pytest: pytest-both-exes pytest-wheel pytest-app
 endif
+
+install-common-wheels:
+	$(APP_PYTHON_EXE) -m pip install wheels/*.whl
 
 sync:
 	mkdir -p $(build_prefix)/sync/
@@ -220,5 +226,3 @@ endif
 	echo "branch: $(SNAPSHOT_TAG)" > $(SNAPSHOT_DIR)/last-commit
 	git show --summary --date=iso --pretty=fuller $(SNAPSHOT_TAG) >> $(SNAPSHOT_DIR)/last-commit
 	git archive $(SNAPSHOT_TAG) | tar -C $(SNAPSHOT_DIR) -xf -
-
-include $(TOP)/Makefile.tests

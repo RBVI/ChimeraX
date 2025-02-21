@@ -46,7 +46,7 @@ or::
         f.close(e)
 
 """
-import os
+import os, psutil
 
 
 class SaveFile:
@@ -81,7 +81,10 @@ class SaveFile:
         self.name = filename
         self._critical = critical
         # prevent conflicts between ChimeraX's running/starting at the same time
-        self._tmp_filename = filename + "." + str(os.getpid()) + ".tmp"
+        # Flatpak processes may have the same PID (typically 2), so also embed
+        # process start time
+        pid = os.getpid()
+        self._tmp_filename = filename + "." + str(pid) + "." + str(psutil.Process(pid).create_time()) + ".tmp"
         self._f = open(self._tmp_filename)
         assert(self._f.writable())
 

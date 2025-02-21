@@ -7,3 +7,11 @@ run(session, "close; open test-data/start.pdb; open test-data/test.dcd structure
 if session.models[0].num_coordsets != 2:
 	raise SystemExit("Expected chimera_test.xtc to produce 2 coordinate sets; actually produced %s"
 		% session.models[0].num_coordsets)
+run(session, "close; open test-data/gly.psf coords test-data/gly.xtc")
+if session.models[0].num_coordsets != 4:
+	raise SystemExit("Expected gly.xtc to produce 4 coordinate sets; actually produced %s"
+		% session.models[0].num_coordsets)
+run(session, "close; open test-data/gly.data coords test-data/gly.dump")
+if session.models[0].num_coordsets != 4:
+	raise SystemExit("Expected gly.dump to produce 4 coordinate sets; actually produced %s"
+		% session.models[0].num_coordsets)

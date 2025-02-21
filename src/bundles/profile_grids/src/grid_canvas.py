@@ -130,7 +130,8 @@ class GridCanvas:
         self.mouse_selects = QRadioButton("selects residues / ")
         mouse_control_layout.addWidget(self.mouse_selects)
         self._choose_cell_text = "chooses cell"
-        mouse_control_layout.addWidget(QRadioButton(self._choose_cell_text))
+        self.mouse_chooses = QRadioButton(self._choose_cell_text)
+        mouse_control_layout.addWidget(self.mouse_chooses)
         mouse_control_layout.addWidget(QLabel(" (shift-click toggles)"), alignment=Qt.AlignLeft)
         self.mouse_selects.setChecked(True)
         layout.addLayout(mouse_control_layout, 2, 0, 1, 2, alignment=Qt.AlignHCenter|Qt.AlignTop)
@@ -314,22 +315,10 @@ class GridCanvas:
         else:
             if not shifted:
                 for item in self.chosen_cells.values():
+                    item.hide()
                     self.main_scene.removeItem(item)
                 self.chosen_cells.clear()
-            from Qt.QtGui import QPen, QColor, QPolygonF
-            from Qt.QtCore import QPointF
-            pen = QPen(QColor(255, 147, 0))
-            pen.setWidth(3)
-            width, height = self.font_pixels
-            left_x = col * width
-            mid_x = left_x + width/2
-            right_x = left_x + width
-            top_y = row * height
-            mid_y = top_y + height/2
-            bottom_y = top_y + height
-            self.chosen_cells[(row, col)] = self.main_scene.addPolygon(QPolygonF([QPointF(x, y) for x,y in
-                [(left_x, mid_y), (mid_x, top_y), (right_x, mid_y), (mid_x, bottom_y), (left_x, mid_y)]]),
-                pen)
+            self._choose_cell(row, col)
 
     def mouse_hover(self, event):
         if event.type() != event.GraphicsSceneHelp:
@@ -351,6 +340,12 @@ class GridCanvas:
             right = len(self.alignment.seqs[0])-1
         self.lead_block.refresh(seq, left, right)
         self.main_scene.update()
+
+    def restore_state(self, state):
+        for row, col in state['chosen cells']:
+            self._choose_cell(row, col)
+        check_box = self.mouse_selects if state['mouse selects'] else self.mouse_chooses
+        check_box.setChecked(True)
 
     def show_header(self, header):
         self.displayed_headers.append(header)
@@ -390,6 +385,12 @@ class GridCanvas:
         label.setPos(-label_rect.width(), group_rect.y() - label_rect.height())
         self.header_view.show()
         self._update_scene_rects()
+
+    def state(self):
+        return {
+            'chosen cells': list(self.chosen_cells.keys()),
+            'mouse selects': self.mouse_selects.isChecked(),
+        }
 
     def update_selection(self, *args):
         for item in self.selection_items.values():
@@ -450,6 +451,21 @@ class GridCanvas:
         if not aln_seqs:
             raise UserError("No sequences match the chosen cells")
         return aln_seqs
+
+    def _choose_cell(self, row, col):
+        from Qt.QtGui import QPen, QColor, QPolygonF
+        from Qt.QtCore import QPointF
+        pen = QPen(QColor(255, 147, 0))
+        pen.setWidth(3)
+        width, height = self.font_pixels
+        left_x = col * width
+        mid_x = left_x + width/2
+        right_x = left_x + width
+        top_y = row * height
+        mid_y = top_y + height/2
+        bottom_y = top_y + height
+        self.chosen_cells[(row, col)] = self.main_scene.addPolygon(QPolygonF([QPointF(x, y) for x,y in
+            [(left_x, mid_y), (mid_x, top_y), (right_x, mid_y), (mid_x, bottom_y), (left_x, mid_y)]]), pen)
 
     def _residues_at(self, grid_row, grid_col):
         residues = []
@@ -563,13 +579,8 @@ class _SeqList(QDialog):
         button_layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
-        bbox = qbbox(qbbox.Close | qbbox.Help)
+        bbox = qbbox(qbbox.Close)
         bbox.rejected.connect(self.close)
-        if self.help:
-            from chimerax.core.commands import run
-            bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
-        else:
-            bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
 
         self.setLayout(layout)

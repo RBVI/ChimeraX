@@ -56,4 +56,5 @@ def _execute(session, name):
         residues.ribbon_displays = False
         residues.ring_displays = False
         s.worm_ribbon = False
+        s.ribbon_mode_helix = s.RIBBON_MODE_DEFAULT
         s.apply_auto_styling(**kw)

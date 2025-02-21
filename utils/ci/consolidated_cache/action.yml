@@ -23,7 +23,7 @@ runs:
 
     - name: Restore cached plato pips (Linux)
       id: cache-plato-pips-linux
-      if: ${{ inputs.platform }} == 'linux'
+      if: ${{ inputs.platform == 'linux' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -32,7 +32,7 @@ runs:
 
     - name: Restore cached plato pips (Windows)
       id: cache-plato-pips-windows
-      if: ${{ inputs.platform }} == 'windows'
+      if: ${{ inputs.platform == 'windows' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -41,7 +41,7 @@ runs:
 
     - name: Restore cached plato pips (macOS)
       id: cache-plato-pips-macos
-      if: ${{ inputs.platform }} == 'macos'
+      if: ${{ inputs.platform == 'macos' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -56,7 +56,7 @@ runs:
         path: |
           prereqs/pips/grako-3.16.5-py2.py3-none-any.whl
           prereqs/pips/cxservices-1.2.3-py3-none-any.whl
-          prereqs/pips/qtshim-1.0-py3-none-any.whl
+          prereqs/pips/qtshim-1.1-py3-none-any.whl
         key: generic-plato-pips
 
     - name: Restore cached Python (Linux)
@@ -66,7 +66,7 @@ runs:
       with:
         path: |
           prereqs/Python/Python-3.11.4.tar.xz
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.4
 
     - name: Restore cached Python (Windows)
       id: cache-python-windows
@@ -75,7 +75,7 @@ runs:
       with:
         path: |
           prereqs/Python/python-3.11.4-win-amd64.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.4
 
     - name: Restore cached Python (macOS)
       id: cache-python-macos
@@ -84,7 +84,7 @@ runs:
       with:
         path: |
           prereqs/Python/python-3.11.4-mac.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.4
 
     - name: Restore cached mmtf dependency sources
       id: cache-mmtf
@@ -106,7 +106,7 @@ runs:
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2
-
+          prereqs/ambertools/ambertools-20-Linux-Freedesktop-23.08.tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-ambertools
 
     - name: Restore cached ambertools (Windows)
@@ -128,52 +128,6 @@ runs:
           prereqs/ambertools/ambertools-flibs-20-Darwin.tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-ambertools
 
-    - name: Restore cached openmm (Linux)
-      id: cache-openmm-linux-x86_64
-      if: ${{ inputs.platform == 'linux' }}
-      uses: actions/cache@v4
-      with:
-        path: |
-          prereqs/openmm/openmm-8.0.0-linux-py311_cuda112.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-openmm
-
-    - name: Restore cached openmm (Windows)
-      id: cache-openmm-windows-x86_64
-      if: ${{ inputs.platform == 'windows' }}
-      uses: actions/cache@v4
-      with:
-        path: |
-          prereqs/openmm/openmm-8.0.0-win-py311h9957787_1_tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-openmm
-
-    - name: Restore cached rsync (linux)
-      id: cache-rsync-linux
-      if: ${{ inputs.platform == 'linux' }}
-      uses: actions/cache@v4
-      with:
-        path: prereqs/rsync/rsync-3.2.7.tar.gz
-        key: ${{ runner.os }}-${{ inputs.architecture }}-rsync
-
-    - name: Restore cached openmm (macOS arm64)
-      id: cache-openmm-macos-arm64
-      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'arm64' }}
-      uses: actions/cache@v4
-      with:
-        path: |
-          prereqs/openmm/openmm-8.0.0-mac-py311h68ae2cc_1_apple.tar.bz2
-          prereqs/openmm/openmm-8.0.0-mac-metal.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-openmm
-
-    - name: Restore cached openmm (macOS Intel)
-      id: cache-openmm-macos-x86_64
-      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'x86_64' }}
-      uses: actions/cache@v4
-      with:
-        path: |
-          prereqs/openmm/openmm-8.0.0-mac-py311hf4819f2_1_apple.tar.bz2
-          prereqs/openmm/openmm-8.0.0-mac-metal.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-openmm
-
     - name: Restore cached ffmpeg (Linux)
       id: cache-ffmpeg-linux-x86_64
       if: ${{ inputs.platform == 'linux' }}
@@ -185,8 +139,10 @@ runs:
           prereqs/ffmpeg/libtheora-1.1.1.tar.xz
           prereqs/ffmpeg/libogg-1.3.2.tar.xz
           prereqs/ffmpeg/libvpx-1.6.1.tar.xz
+          prereqs/ffmpeg/libvpx-1.13.1.tar.gz
           prereqs/ffmpeg/yasm-1.3.0.tar.bz2
           prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz
+          prereqs/ffmpeg/x264-stable.tar.xz
         key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
 
     - name: Restore cached ffmpeg (Windows)
@@ -200,7 +156,7 @@ runs:
 
     - name: Restore cached ffmpeg (macOS arm64)
       id: cache-ffmpeg-macos-arm64
-      if: ${{ inputs.platform == 'macos' }}
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'arm64' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -209,7 +165,7 @@ runs:
 
     - name: Restore cached ffmpeg (macOS Intel)
       id: cache-ffmpeg-macos-x86_64
-      if: ${{ inputs.platform == 'macos' }}
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'x86_64' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -222,8 +178,8 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/PyQt6_commercial-6.7.1-1-cp38-abi3-manylinux_2_28_x86_64.whl
-          prereqs/PyQt/PyQt6_WebEngine_commercial-6.7.0-cp38-abi3-manylinux_2_28_x86_64.whl
+          prereqs/PyQt/PyQt6_commercial-6.8.1-cp39-abi3-manylinux_2_28_x86_64.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-manylinux_2_28_x86_64.whl
         key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (Windows)
@@ -232,8 +188,8 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/PyQt6_commercial-6.7.1-cp38-abi3-win_amd64.whl
-          prereqs/PyQt/PyQt6_WebEngine_commercial-6.7.0-cp38-abi3-win_amd64.whl
+          prereqs/PyQt/PyQt6_commercial-6.8.1-cp39-abi3-win_amd64.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-win_amd64.whl
         key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (macOS)
@@ -242,8 +198,8 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/PyQt6_commercial-6.7.1-cp38-abi3-macosx_11_0_universal2.whl
-          prereqs/PyQt/PyQt6_WebEngine_commercial-6.7.0-cp38-abi3-macosx_10_14_universal2.whl
+          prereqs/PyQt/PyQt6_commercial-6.8.1-cp39-abi3-macosx_10_14_universal2.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-macosx_10_14_universal2.whl
         key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
 
     - name: Restore cached seggerx dependency sources
@@ -261,6 +217,22 @@ runs:
         path: |
           src/bundles/looking_glass/holoplaycore-0.1.0.tar.gz
         key: holoplaycore-source-zip-file
+
+    - name: Restore cached LibGLU (Linux)
+      id: cache-libglu-linux
+      if: ${{ inputs.platform == 'linux' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/libGLU/glu-glu-9.0.2.tar.bz2
+        key: ${{ runner.os }}-${{ inputs.architecture }}-libglu
+
+    - name: Fetch LibGLU
+      shell: bash
+      if: ${{ steps.cache-libglu-linux.outputs.cache-hit != 'true' && inputs.platform == 'linux' }}
+      run: |
+        curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/libGLU/glu-glu-9.0.2.tar.bz2 -O -J
+        mv glu* prereqs/libGLU/
 
     - name: Fetch holoplaycore
       shell: bash
@@ -280,12 +252,8 @@ runs:
       shell: bash
       if: ${{ steps[format('cache-pyqt6-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
       run: |
-        if [ "${{ inputs.platform }}" = "linux" ] ; then
-          export PYQT_VERSION=6.7.1-1
-        else
-          export PYQT_VERSION=6.7.1
-        fi
-        export PYQTWE_VERSION=6.7.0
+        export PYQT_VERSION=6.8.1
+        export PYQTWE_VERSION=6.8.0
         export PYQT_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_pyqt.py?platform=${{ inputs.platform }}&version=${PYQT_VERSION}&webengine=false&architecture=${{ inputs.architecture }}"
         export PYQTWE_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_pyqt.py?platform=${{ inputs.platform }}&version=${PYQTWE_VERSION}&webengine=true&architecture=${{ inputs.architecture }}"
         curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${PYQT_URL} -O -J
@@ -319,8 +287,10 @@ runs:
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libtheora-1.1.1.tar.xz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libogg-1.3.2.tar.xz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libvpx-1.6.1.tar.xz -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libvpx-1.13.1.tar.gz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/yasm-1.3.0.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/x264-stable.tar.xz -O -J
           mv libtheora* prereqs/ffmpeg/
           mv libogg* prereqs/ffmpeg/
           mv libvpx* prereqs/ffmpeg/
@@ -339,26 +309,6 @@ runs:
         fi
         mv ffmpeg* prereqs/ffmpeg/
 
-    - name: Fetch openmm
-      shell: bash
-      if: ${{ steps[format('cache-openmm-{0}-{1}', inputs.platform, inputs.architecture)].outputs.cache-hit != 'true' }}
-      run: |
-        if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/openmm/openmm-8.0.0-linux-py311_cuda112.tar.bz2 -O -J
-        fi
-        if [ "${{ inputs.platform }}" = "macos" ] ; then
-          if [ "${{ inputs.architecture }}" = "arm64" ] ; then
-            curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/openmm/openmm-8.0.0-mac-py311h68ae2cc_1_apple.tar.bz2 -O -J
-          else
-            curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/openmm/openmm-8.0.0-mac-py311hf4819f2_1_apple.tar.bz2 -O -J
-          fi
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/openmm/openmm-8.0.0-mac-metal.tar.bz2 -O -J
-        fi
-        if [ "${{ inputs.platform }}" = "windows" ] ; then
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/openmm/openmm-8.0.0-win-py311h9957787_1_tar.bz2 -O -J
-        fi
-        mv openmm* prereqs/openmm/
-
     - name: Fetch ambertools
       shell: bash
       if: ${{ steps[format('cache-ambertools-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
@@ -369,6 +319,7 @@ runs:
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Freedesktop-23.08.tar.bz2 -O -J
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-flibs-20-Darwin.tar.bz2 -O -J
@@ -387,15 +338,6 @@ runs:
         curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/mmtf/mmtf-cpp-1.1.0.zip
         mv mmtf*.zip src/bundles/mmtf/
         mv msgpack*.zip src/bundles/mmtf/
-
-    - name: Fetch rsync
-      shell: bash
-      if: ${{ steps.cache-rsync-linux.outputs.cache-hit != 'true' }}
-      run: |
-        if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/rsync/rsync-3.2.7.tar.gz
-          mv rsync* prereqs/rsync/
-        fi
 
     - name: Fetch Python
       shell: bash
@@ -420,7 +362,7 @@ runs:
       run: |
         curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/grako/grako-3.16.5-py2.py3-none-any.whl
         curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/cxservices/cxservices-1.2.3-production-py3-none-any.whl
-        curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/qt/qtshim-1.0-py3-none-any.whl
+        curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/qt/qtshim-1.1-py3-none-any.whl
         mv grako* prereqs/pips/
         mv cxservices* prereqs/pips/cxservices-1.2.3-py3-none-any.whl
         mv qtshim* prereqs/pips/

@@ -15,8 +15,7 @@ from chimerax.core.tools import ToolInstance
 class ProfileGridsTool(ToolInstance):
     """ Viewer displays a multiple sequence alignment as a grid/table """
 
-    #help = "help:user/tools/sequenceviewer.html"
-    help = None
+    help = "help:user/tools/profilegrid.html"
 
     def __init__(self, session, tool_name, alignment=None):
         """ if 'alignment' is None, then we are being restored from a session and
@@ -102,6 +101,7 @@ class ProfileGridsTool(ToolInstance):
         action = QAction("List Sequence Names", cell_menu)
         action.triggered.connect(lambda *args, f=self.grid_canvas.list_from_cells: f())
         cell_menu.addAction(action)
+        cell_menu.setEnabled(bool(self.grid_canvas.chosen_cells))
         alignment_menu = cell_menu.addMenu("New Alignment")
         viewers = self.session.alignments.registered_viewers("alignment")
         viewers.sort()
@@ -285,29 +285,19 @@ class ProfileGridsTool(ToolInstance):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        raise NotImplementedError("restore_snaphot")
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        inst._finalize_init(data['alignment'])
-        inst.region_browser.restore_state(data['region browser'])
-        if 'seq canvas' in data:
-            inst.grid_canvas.restore_state(session, data['seq canvas'])
-        # feature browsers depend on regions (and therefore the region browser) being restored first
-        if 'feature browsers' in data:
-            from .feature_browser import FeatureBrowser
-            for seq, fb_data in data['feature browsers'].items():
-                inst.show_feature_browser(seq, state=fb_data)
+        inst._finalize_init(data['alignment'], session_data=(data['grid data'], data['weights']))
+        inst.grid_canvas.restore_state(data['grid canvas'])
         return inst
 
-    #TODO: change to the below when snapshot methods implemented
-    #SESSION_SAVE = True
+    SESSION_SAVE = True
 
     def take_snapshot(self, session, flags):
-        raise NotImplementedError("take_snaphot")
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'alignment': self.alignment,
-            'feature browsers': {seq: fb.state() for seq, fb in self._feature_browsers.items()},
-            'region browser': self.region_browser.state(),
+            'grid data': self.grid_canvas.grid_data,
+            'weights': self.grid_canvas.weights,
             'grid canvas': self.grid_canvas.state()
         }
         return data

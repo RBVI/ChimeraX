@@ -46,7 +46,7 @@ def fetch_uniprot(session, ident, ignore_cache=False, *, associate=None):
     seq.accession_id["UniProt"] = accession
     seq.set_features("UniProt", expand_features(features))
     session.logger.status("Opening UniProt %s" % ident)
-    aln = session.alignments.new_alignment([seq], ident, auto_associate=(associate is None))
+    aln = session.alignments.new_alignment([seq], ident, auto_associate=(associate is None), copy_seqs=False)
     if associate is not None:
         for chain in associate:
             aln.associate(chain, min_length=2)
@@ -66,6 +66,7 @@ def map_uniprot_ident(ident, *, return_value="identifier"):
     request = Request(mapping_url, bytes(data, 'utf-8'),
         headers={ "User-Agent": "Python chimerax-bugs@cgl.ucsf.edu" })
     from chimerax.core.errors import NonChimeraError
+    print(request)
     try:
         response = urlopen(request)
     except HTTPError as e:

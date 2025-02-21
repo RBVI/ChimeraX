@@ -362,6 +362,8 @@ class PickedAtomicShape(Pick):
     def description(self):
         d = self.shape.description
         if d is None and self.shape.atoms:
+            if len(self.shape.atoms) == 1:
+                return str(self.shape.atoms[0])
             from collections import OrderedDict
             ra = OrderedDict()
             for a in self.shape.atoms:
