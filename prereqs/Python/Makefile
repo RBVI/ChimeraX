@@ -8,6 +8,7 @@ PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 PIP_VERSION = 25.0.1
 WHEEL_VERSION = 0.45.1
 SETUPTOOLS_VERSION = 75.8.0
+BUILD_VERSION = 1.2.2.post1
 
 ifeq ($(OS),Windows)
 DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-win-amd64.tar.bz2
@@ -143,6 +144,7 @@ endif
 	$(PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
 	$(PYTHON_EXE) -m pip install --upgrade setuptools==$(SETUPTOOLS_VERSION)
 	$(PYTHON_EXE) -m pip install --upgrade wheel==$(WHEEL_VERSION)
+	$(PYTHON_EXE) -m pip install --upgrade build==$(BUILD_VERSION)
 
 	# double check that _ssl was successfully made
 	test -f $(DYNLOAD_DIR)/_ssl.*$(PYMOD_EXT)
@@ -182,7 +184,8 @@ endif
 	$(APP_PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
 	$(APP_PYTHON_EXE) -m pip install --upgrade \
 		wheel==$(WHEEL_VERSION) \
-		setuptools==$(SETUPTOOLS_VERSION)
+		setuptools==$(SETUPTOOLS_VERSION) \
+		build==$(BUILD_VERSION)
 
 ifeq ($(OS),Windows)
 
