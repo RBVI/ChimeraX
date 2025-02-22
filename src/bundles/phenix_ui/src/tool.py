@@ -244,7 +244,7 @@ class EmplaceLocalResultsViewer(ToolInstance):
 
         from chimerax.ui import shrink_font
         instructions = QLabel("Click OK to retain the chosen fit and remove others")
-        shrink_font(instructions)
+        shrink_font(instructions, 0.85)
         layout.addWidget(instructions, alignment=Qt.AlignCenter)
 
         if sym_map:
