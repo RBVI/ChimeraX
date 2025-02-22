@@ -381,7 +381,10 @@ def mutation_scores_structure(session, chains = None, allow_mismatches = False, 
         if isinstance(align_sequences, Sequence):
             alignment = _sequence_alignment(align_sequences, chains)
         elif isinstance(align_sequences, Alignment):
-            alignment = align_sequences
+            if len(align_sequences.seqs) == 1:
+                alignment = _sequence_alignment(align_sequences.seqs[0], chains)	# Single sequence specified
+            else:
+                alignment = align_sequences
         else:
             alignment = None
         mset.set_associated_chains(chains, allow_mismatches = allow_mismatches, alignment = alignment)
