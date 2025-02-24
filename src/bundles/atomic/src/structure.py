@@ -1448,9 +1448,6 @@ class AtomicStructure(Structure):
 
         return data
 
-
-        return data
-
     @staticmethod
     def restore_snapshot(session, data):
         s = AtomicStructure(session, auto_style = False, log_info = False)
