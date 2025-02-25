@@ -37,6 +37,7 @@ norecursedirs = [
   # Add tests for bundles that aren't going into the distribution yet here
   # TODO: A better protocol for this
   "src/bundles/scenes/tests",
+  "src/bundles/alphafold",
 ]
 markers = [
   "wheel: marks tests to run only for the PyPi wheel (deselect with '-m \"not wheel\"')",
