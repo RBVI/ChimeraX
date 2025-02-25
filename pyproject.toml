@@ -23,7 +23,6 @@ ignore_patterns = [
 [tool.pytest.ini_options]
 addopts = "-rs --cache-clear --verbose --ignore=tests/test_env.py --ignore=tests/test_imports_app.py --ignore=tests/test_imports_wheel.py"
 console_output_style = "count"
-testpaths = ["tests", "src/bundles/**/tests"]
 norecursedirs = [
   ".venv",
   "ChimeraX.app",
@@ -34,7 +33,11 @@ norecursedirs = [
   "src/bundles/**/build",
   "src/bundles/**/dist",
   "src/bundles/**/src",
-  "src/core/toolshed/unused",
+  "src/bundles/core/toolshed/unused",
+  # Add tests for bundles that aren't going into the distribution yet here
+  # TODO: A better protocol for this
+  "src/bundles/scenes/tests",
+  "src/bundles/alphafold",
 ]
 markers = [
   "wheel: marks tests to run only for the PyPi wheel (deselect with '-m \"not wheel\"')",

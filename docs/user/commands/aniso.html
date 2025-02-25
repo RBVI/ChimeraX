@@ -25,22 +25,37 @@ or derivations thereof.
 class="clRighticon" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: aniso</h3>
+
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>aniso</b>
-&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
-[&nbsp;<b>scale</b>&nbsp;&nbsp;<i>factor</i>&nbsp;]
-[&nbsp;<b>smoothing</b>&nbsp;&nbsp;<i>level</i>&nbsp;]
-&nbsp;<a href="#options"><i>other-options</i></a>
+<br><b>aniso</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>(<b>~aniso</b>&nbsp;|&nbsp;<b>aniso&nbsp;hide</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 </h3>
+<a name="style"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>aniso style</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+[&nbsp;<b>scale</b>&nbsp;&nbsp;<i>factor</i>&nbsp;]
+[&nbsp;<b>smoothing</b>&nbsp;&nbsp;<i>level</i>&nbsp;]
+&nbsp;<a href="#options"><i>other-style-options</i></a>
+</h3>
 <p>
 The <b>aniso</b> command shows atomic anisotropic B-factors
-as ellipsoids, their principal axes, and/or their principal ellipses.
+as ellipsoids, their principal axes, and/or their principal ellipses,
+according to <a href="#options">options</a> 
+that can be adjusted with <b>aniso style</b>.
 These special depictions are created only for atoms with anisotropic
-B-factor information.
+B-factor information, and can only be shown for atoms that are also displayed.
+The command <b>~aniso</b> or <b>aniso hide</b> removes the depictions.
+<p>
+Whereas <b>aniso</b> and <b>~aniso</b> can show and hide the depictions
+for a subset of the displayed atoms, the <b>aniso style</b> settings are 
+per-model, in that they apply to all atoms in a model 
+even if only part of the model is specified in the command.
+</p>
+</p><p>
 Anisotropic B-factors are read from the input coordinate file
 (from ANISOU records in a PDB file or the analogous in CIF/mmCIF)
 and are included with only certain high-resolution structures.
@@ -48,8 +63,6 @@ Ellipsoid axes and radii correspond to the eigenvectors and eigenvalues
 of the atomic mean-square displacement matrix.
 The radii are proportional to the root-mean-square displacements (RMSDs),
 the square roots of the eigenvalues.
-</p><p>
-The command <b>~aniso</b> or <b>aniso hide</b> removes the depictions.
 <!--
 </p><p>
 Some <a href="../presets.html">predefined combinations</a> of settings are 
@@ -74,8 +87,7 @@ balls or spheres, using a thin stick representation is recommended
 <p class="nav">
 [<a href="#top">back to top: aniso</a>]
 </p>
-<h3>Options</h3>
-
+<h3>Style Options</h3>
 <blockquote>
 <b>scale</b>&nbsp;&nbsp;<i>factor</i>
 <br>
@@ -147,5 +159,5 @@ Color to use for principal ellipse depictions, where
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2025</address>
+February 2025</address>
 </body></html>

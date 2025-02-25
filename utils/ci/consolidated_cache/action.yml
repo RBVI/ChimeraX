@@ -54,9 +54,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/pips/grako-3.16.5-py2.py3-none-any.whl
           prereqs/pips/cxservices-1.2.3-py3-none-any.whl
-          prereqs/pips/qtshim-1.1-py3-none-any.whl
         key: generic-plato-pips
 
     - name: Restore cached Python (Linux)
@@ -139,7 +137,7 @@ runs:
           prereqs/ffmpeg/libtheora-1.1.1.tar.xz
           prereqs/ffmpeg/libogg-1.3.2.tar.xz
           prereqs/ffmpeg/libvpx-1.6.1.tar.xz
-          prereqs/ffmpeg/libvpx-1.13.1.tar.xz
+          prereqs/ffmpeg/libvpx-1.13.1.tar.gz
           prereqs/ffmpeg/yasm-1.3.0.tar.bz2
           prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz
           prereqs/ffmpeg/x264-stable.tar.xz
@@ -287,7 +285,7 @@ runs:
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libtheora-1.1.1.tar.xz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libogg-1.3.2.tar.xz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libvpx-1.6.1.tar.xz -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libvpx-1.13.1.tar.xz -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libvpx-1.13.1.tar.gz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/yasm-1.3.0.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/x264-stable.tar.xz -O -J
@@ -360,9 +358,5 @@ runs:
       shell: bash
       if: ${{ steps.cache-plato-pips-generic.outputs.cache-hit != 'true' }}
       run: |
-        curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/grako/grako-3.16.5-py2.py3-none-any.whl
         curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/cxservices/cxservices-1.2.3-production-py3-none-any.whl
-        curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/qt/qtshim-1.1-py3-none-any.whl
-        mv grako* prereqs/pips/
         mv cxservices* prereqs/pips/cxservices-1.2.3-py3-none-any.whl
-        mv qtshim* prereqs/pips/

@@ -215,6 +215,14 @@ class Structure(Model, StructureData):
             lighting(self.session, preset = 'full', **kw)
 
     def take_snapshot(self, session, flags):
+        # Scene interface implementation.
+        if flags == State.SCENE:
+            scene_data = {
+                'model state': Model.take_snapshot(self, session, flags),
+                'version': STRUCTURE_STATE_VERSION
+            }
+            return scene_data
+
         data = {'model state': Model.take_snapshot(self, session, flags),
                 'structure state': StructureData.save_state(self, session, flags),
                 'custom attrs': self.custom_attrs }
@@ -228,6 +236,15 @@ class Structure(Model, StructureData):
         s = Structure(session, auto_style = False, log_info = False)
         s.set_state_from_snapshot(session, data)
         return s
+
+    def restore_scene(self, scene_data):
+        """
+        Scene interface implementation.
+        """
+        Model.restore_scene(self, scene_data['model state'])
+        if scene_data['version'] != STRUCTURE_STATE_VERSION:
+            raise TypeError(f"Can't restore incompatible version "
+                            f"{scene_data['version']}; expected {STRUCTURE_STATE_VERSION}")
 
     def set_state_from_snapshot(self, session, data):
         StructureData.set_state_from_snapshot(self, session, data['structure state'])
@@ -1048,7 +1065,6 @@ class Structure(Model, StructureData):
         if expand_by:
             results.add_atoms(expand_by)
             results.add_model(self)
-
 class AtomsDrawing(Drawing):
     # can't have any child drawings
     # requires self.parent._atom_display_radii()
@@ -1423,6 +1439,13 @@ class AtomicStructure(Structure):
             'AtomicStructure version': 3,
             'structure state': Structure.take_snapshot(self, session, flags),
         }
+
+        # Scene interface implementation
+        if flags == State.SCENE:
+            data['atoms'] = self.atoms.take_snapshot(session, flags)
+            data['bonds'] = self.bonds.take_snapshot(session, flags)
+            data['residues'] = self.residues.take_snapshot(session, flags)
+
         return data
 
     @staticmethod
@@ -1430,6 +1453,17 @@ class AtomicStructure(Structure):
         s = AtomicStructure(session, auto_style = False, log_info = False)
         s.set_state_from_snapshot(session, data)
         return s
+
+    def restore_scene(self, scene_data) -> None:
+        """
+        Scene interface implementation.
+        """
+        Structure.restore_scene(self, scene_data['structure state'])
+        if scene_data['AtomicStructure version'] != 3:
+            raise ValueError("AtomicStructure version mismatch on scene restore")
+        self.atoms.restore_scene(scene_data['atoms'])
+        self.bonds.restore_scene(scene_data['bonds'])
+        self.residues.restore_scene(scene_data['residues'])
 
     def set_state_from_snapshot(self, session, data):
         version = data.get('AtomicStructure version', 1)

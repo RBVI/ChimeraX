@@ -1,12 +1,10 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
-
 # === UCSF ChimeraX Copyright ===
-# Copyright 2022 Regents of the University of California. All rights reserved.
+# Copyright 2025 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
 # <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
-# This particular file is part of the ChimeraX library. You can also
+# You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
 # Public License version 2.1 as published by the Free Software Foundation.
 # For more details, see
@@ -24,19 +22,25 @@
 
 from chimerax.core.toolshed import BundleAPI
 
+
 class _ScenesBundleAPI(BundleAPI):
+
+    api_version = 1
 
     @staticmethod
     def get_class(class_name):
         if class_name == "SceneManager":
             from . import manager
             return manager.SceneManager
+        elif class_name == "ScenesTool":
+            from . import tool
+            return tool.ScenesTool
 
     @staticmethod
     def initialize(session, bundle_info):
         """Install scene manager into existing session"""
         from .manager import SceneManager
-        session.scenes = SceneManager(session, bundle_info)
+        session.scenes = SceneManager(session)
 
     @staticmethod
     def finish(session, bundle_info):
@@ -44,9 +48,16 @@ class _ScenesBundleAPI(BundleAPI):
         del session.scenes
 
     @staticmethod
-    def register_command(command_name, logger):
+    def register_command(bi, ci, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import cmd
-        cmd.register_command(command_name, logger)
+        cmd.register_command(ci.name, logger)
+
+    @staticmethod
+    def start_tool(session, bi, ti):
+        if ti.name == "Scenes":
+            from .tool import ScenesTool
+            return ScenesTool(session, ti)
+        raise ValueError("unknown tool %s" % ti.name)
 
 bundle_api = _ScenesBundleAPI()
