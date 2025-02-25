@@ -355,6 +355,14 @@ class Model(State, Drawing):
         return m is None
 
     def take_snapshot(self, session, flags):
+        # Scene interface implementation
+        if flags == State.SCENE:
+            scene_data = {'version': MODEL_STATE_VERSION}
+            scene_attrs = ['selected', 'overall_color', 'model_color', 'display']
+            for attr in scene_attrs:
+                scene_data[attr] = getattr(self, attr)
+            return scene_data
+
         p = self.parent
         if p is session.models.scene_root_model:
             p = None    # Don't include root as a parent since root is not saved.
@@ -422,11 +430,18 @@ class Model(State, Drawing):
 
     def restore_scene(self, scene_data):
         '''
+        Scene interface implementation
+
         Restore model to state from scene_data
         (obtained from take_snapshot() with State.SCENE flag)
         '''
-        #TODO: restore base Model state here
-        raise NotImplementedError("restore_scene not implemented")
+        if scene_data['version'] != MODEL_STATE_VERSION:
+            raise ValueError(f'Model version mismatch in restore_scene. '
+                             f'Expected {MODEL_STATE_VERSION}, got {scene_data["version"]}')
+        for attr, val in scene_data.items():
+            if hasattr(self, attr):
+                setattr(self, attr, val)
+        return
 
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
         '''
