@@ -1,0 +1,37 @@
+<BundleInfo name="ChimeraX-DMS" version="1.0"
+	    package="chimerax.dms"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Dot Molecular Surface (DMS) format writer</Synopsis>
+  <Description>DMS was originally developed for the MS (Molecular Surface) program by Michael Connolly to represent molecular surfaces. The DMS file format stores atomic and surface point information, typically used in molecular modeling and docking applications. DMS files represent solvent-accessible molecular surfaces (SAS) or solvent-excluded surfaces (SES) for molecular interactions, docking, and structure-based drug design.</Description>
+
+  <Categories>
+    <Category name="Generic 3D objects"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="DMS" category="Generic 3D objects"
+		nicknames="dms" suffixes=".dms"
+		reference_url="https://dock.compbio.ucsf.edu/DOCK_6/dock6_manual.htm" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="DMS" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>
