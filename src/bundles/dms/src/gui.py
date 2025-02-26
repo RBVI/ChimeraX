@@ -20,17 +20,26 @@
 #
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
-# === UCSF ChimeraX Copyright ===
+# === UCSF ChimeraX Copyright ==
 
-from chimerax.core.toolshed import BundleAPI
+from Qt.QtWidgets import QFileDialog, QPushButton, QVBoxLayout, QWidget
 
-class DMSBundleAPI(BundleAPI):
-    api_version = 1
 
-    @staticmethod
-    def register_command(bundles, bundle_info):
-        from chimerax.core.commands import register
-        from .dms import save_dms
-        register("save dms", save_dms, logger=bundle_info.logger)
+class DMSWriterTool(QWidget):
+    def __init__(self, session):
+        super().__init__()
+        self.session = session
+        self.setWindowTitle("Save Dot Molecular Surface (DMS)")
 
-bundle_api = DMSBundleAPI()
+        self.save_button = QPushButton("Save DMS")
+        self.save_button.clicked.connect(self.save_dms)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.save_button)
+        self.setLayout(layout)
+
+    def save_dms(self):
+        filename, _ = QFileDialog.getSaveFileName(self, "Save DMS", "", "DMS Files (*.dms)")
+        if filename:
+            from .dms import save_dms
+            save_dms(self.session, filename)
