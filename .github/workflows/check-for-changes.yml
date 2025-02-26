@@ -4,6 +4,8 @@ on:
   push:
     branches: [develop, release/*]
     paths-ignore: [.github/workflows/nightly.yml, .github/workflows/*build.yml]
+  pull_request:
+    branches: [develop, release/*]
 
 jobs:
   build-and-test-rocky8-docker:
