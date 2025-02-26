@@ -28,17 +28,19 @@ class DMS(Surface):
 
     def save_dms(session, filename, models = None):
 
-    if models is None:
-        models = session.models.list()
+        if models is None:
+            models = session.models.list()
 
-    #geom_list = models_geometry(models)
+        #geom_list = models_geometry(models)
 
-    with open(filename, 'w') as file:
-        file.write("QUUX")
-        #file.write(vrml_string(geom_list, backface_culling))
+        with open(filename, 'w') as file:
+            file.write("QUUX")
+            #file.write(vrml_string(geom_list, backface_culling))
+
+
 
 """
-def dms_string(geom_list, backface_culling):
+def vrml_string(geom_list, backface_culling):
 
     template = \
 '''#VRML V2.0 utf8
