@@ -48,7 +48,7 @@ class SimilarStructures(State):
         self._query_coord_to_sequence_index = qc2f
         qf2c = {fi:ci for ci, fi in enumerate(qc2f)}
         self._query_sequence_to_coord_index = qf2c
-        self._alignment_indexing = 'coordinates' if hits[0].get('coordinate_indexing') else 'sequence'
+        self._alignment_indexing = 'coordinates' if len(hits) > 0 and hits[0].get('coordinate_indexing') else 'sequence'
 
         self.name = add_similar_structures(self.session, self)
 
