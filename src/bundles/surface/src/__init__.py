@@ -138,14 +138,17 @@ class _SurfaceBundle(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
+        print('ok 1')
         from chimerax.open_command import OpenerInfo
         if mgr == session.open_command:
+            print('ok 2')
             class ColladaOpenerInfo(OpenerInfo):
                 def open(self, session, data, file_name, **kw):
                     from . import collada
                     return collada.read_collada_surfaces(session, data, file_name)
             return ColladaOpenerInfo()
         else:
+            print('ok 3')
             from chimerax.save_command import SaverInfo
             class DmsInfo(SaverInfo):
                 def save(self, session, path, *, models=None):
