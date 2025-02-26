@@ -199,7 +199,7 @@ def devel_dump(session, path):
     path : string
       Path to folder containing bundle source code or bundle alias.
     '''
-    bb = _get_builder(path, session.logger)
+    bb = _get_builder(session.logger, path)
     if bb is not None:
         bb.dump()
 
