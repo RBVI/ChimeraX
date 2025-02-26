@@ -63,6 +63,10 @@
     <Provider name="collada" />
   </Providers>
 
+  <Providers manager="save command">
+    <Provider name="DMS" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
