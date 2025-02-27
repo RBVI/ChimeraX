@@ -109,37 +109,6 @@ def compute_ses_areas_per_vertex(vertices, triangles):
     return vertex_ses_areas
 
 
-def compute_ses_areas_per_vertex(vertices, triangles):
-    """
-    Compute per-vertex SES (Solvent-Excluded Surface) areas from a molecular surface mesh.
-    
-    Parameters:
-        vertices (np.ndarray): Nx3 array of surface vertex coordinates.
-        triangles (np.ndarray): Mx3 array of vertex indices forming triangles.
-    
-    Returns:
-        np.ndarray: Length-N array of SES areas per vertex.
-    """
-    # Compute vectors for two triangle edges
-    v0, v1, v2 = vertices[triangles[:, 0]], vertices[triangles[:, 1]], vertices[triangles[:, 2]]
-    
-    # Compute triangle normal using cross product
-    cross_prod = np.cross(v1 - v0, v2 - v0)
-    
-    # Compute triangle areas (0.5 * magnitude of cross product)
-    triangle_areas = 0.5 * np.linalg.norm(cross_prod, axis=1)
-    
-    # Initialize per-vertex SES area accumulator
-    vertex_ses_areas = np.zeros(len(vertices))  
-    
-    # Distribute triangle areas to its 3 vertices equally
-    for tri_idx, tri in enumerate(triangles):
-        for vert_idx in tri:
-            vertex_ses_areas[vert_idx] += triangle_areas[tri_idx] / 3.0  # Each vertex gets 1/3
-
-    return vertex_ses_areas
-
-
 def classify_vertex_types(atom_coords, vertices, normals, triangles, probe_radius=1.4):
     """
     Approximate vtypes for ChimeraX MolecularSurface.
