@@ -45,4 +45,20 @@ class DockPrepAPI(BundleAPI):
         from .tool import DockPrepTool
         DockPrepTool(session)
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        print('ok 1')
+        from chimerax.save_command import SaverInfo
+        class DmsInfo(SaverInfo):
+            def save(self, session, path, *, models=None):
+                from . import dms
+                dms.save(session, path, models)
+
+            @property
+            def save_args(self):
+                from chimerax.core.commands import ModelsArg
+                return { 'models': ModelsArg }
+
+        return DmsInfo()
+
 bundle_api = DockPrepAPI()
