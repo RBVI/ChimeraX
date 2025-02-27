@@ -18,11 +18,21 @@
     <Dependency name="ChimeraX-AddCharge" version="~=1.4"/>
     <Dependency name="ChimeraX-AddH" version="~=2.2"/>
     <Dependency name="ChimeraX-Mol2" version="~=2.0"/>
-	  <Dependency name="ChimeraX-RotamerLibMgr" version="~=4.0"/>
+    <Dependency name="ChimeraX-RotamerLibMgr" version="~=4.0"/>
     <Dependency name="ChimeraX-SwapRes" version="~=2.1"/>
     <Dependency name="ChimeraX-UI" version="~=1.10"/>
     <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="DMS" category="Generic 3D objects"
+      reference_url="https://dock.compbio.ucsf.edu/DOCK_6/dock6_manual.htm"
+      suffixes=".dms" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="DMS" />
+  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 3 - Alpha</PythonClassifier>
