@@ -324,6 +324,14 @@ target="_blank">Gromacs full-precision coordinates</a> (binary)</td>
 <td align="center">atomic <a href="../trajectories.html">trajectory</a>
 coordinates</td>
 </tr><tr>
+<td align="center"><a href="https://docs.lammps.org/dump.html"
+target="_blank">LAMMPS dump</a></td>
+<td align="center"><b>dump</b></td>
+<td align="center">.dump</td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+coordinates
+<br>(LAMMPS support courtesy of Mitch Murphy)</td>
+</tr><tr>
 <td colspan=4 align="center" class="shaded">
 <a name="trajtop"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
@@ -1569,7 +1577,7 @@ from two different files, either:
 with topology provided by an already-open atomic model specified with the
 <a href="#structureModel"><b>structureModel</b></a> option, for example:
 <br><b>open myfile.trr structureModel #1</b>
-<li> a PSF <a href="#trajtop">trajectory topology file</a> 
+<li>a PSF <a href="#trajtop">trajectory topology file</a> 
 with the corresponding <a href="#trajectory">trajectory coordinate file</a>
 specified with the <a href="#coords"><b>coords</b></a> option, for example:
 <br><b>open myfile.psf coords myfile.dcd</b>
