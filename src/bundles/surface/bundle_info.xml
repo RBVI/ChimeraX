@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Surface" version="1.1.1"
+<BundleInfo name="ChimeraX-Surface" version="1.0.1"
 	    package="chimerax.surface" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -47,24 +47,16 @@
     <Dependency name="ChimeraX-StdCommands" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
-    <Dependency name="ChimeraX-SaveCommand" version="~=1.5.1"/>
   </Dependencies>
 
   <Providers manager="data formats">
     <Provider name="COLLADA" category="Generic 3D objects"
 		reference_url="https://www.khronos.org/collada"
 		suffixes=".dae" />
-    <Provider name="DMS" category="Generic 3D objects"
-		reference_url="https://dock.compbio.ucsf.edu/DOCK_6/dock6_manual.htm"
-		suffixes=".dms" />
   </Providers>
 
   <Providers manager="open command">
     <Provider name="collada" />
-  </Providers>
-
-  <Providers manager="save command">
-    <Provider name="DMS" />
   </Providers>
 
   <Classifiers>
