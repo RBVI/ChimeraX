@@ -51,8 +51,8 @@ class DockPrepAPI(BundleAPI):
         from chimerax.save_command import SaverInfo
         class DmsInfo(SaverInfo):
             def save(self, session, path, *, models=None):
-                from . import dms
-                dms.save(session, path, models)
+                from .dms import save_dms
+                save_dms(session, path, models)
 
             @property
             def save_args(self):
