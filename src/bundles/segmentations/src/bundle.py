@@ -28,6 +28,7 @@ class SegmentationsBundle(BundleAPI):
                 Toggle3DSegmentationVisibilityMouseMode,
             ]:
                 session.ui.mouse_modes.add_mode(mode(session))
+            register_view_triggers(session)
         register_model_trigger_handlers(session)
 
     @staticmethod
