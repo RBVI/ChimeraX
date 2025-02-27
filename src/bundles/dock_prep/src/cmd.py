@@ -136,7 +136,7 @@ def dock_prep_caller(session, structures, *, memorization=MEMORIZE_NONE, memoriz
         DockPrepTool(session, dock_prep_info=dock_prep_info)
         return
     state = {
-        'steps': dock_prep_steps(session, memorization, final_memorize_name, **kw),
+        'steps': dock_prep_steps(session, memorization, final_memorize_name, from_tool=_from_tool, **kw),
         'memorization': memorization,
         'memorize_name': final_memorize_name,
         'process_name': process_name,
