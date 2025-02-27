@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-DockPrep" version="1.1.4"
+<BundleInfo name="ChimeraX-DockPrep" version="1.1.5"
 	    package="chimerax.dock_prep"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -18,13 +18,14 @@
     <Dependency name="ChimeraX-AddCharge" version="~=1.4"/>
     <Dependency name="ChimeraX-AddH" version="~=2.2"/>
     <Dependency name="ChimeraX-Mol2" version="~=2.0"/>
-	<Dependency name="ChimeraX-RotamerLibMgr" version="~=4.0"/>
+	  <Dependency name="ChimeraX-RotamerLibMgr" version="~=4.0"/>
     <Dependency name="ChimeraX-SwapRes" version="~=2.1"/>
     <Dependency name="ChimeraX-UI" version="~=1.10"/>
+    <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
   </Dependencies>
 
   <Classifiers>
-    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>Development Status :: 3 - Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: dockprep :: Structure Editing :: prepare structures for docking</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Dock Prep :: Structure Editing :: prepare structures for docking</ChimeraXClassifier>
