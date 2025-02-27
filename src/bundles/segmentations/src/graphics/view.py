@@ -8,8 +8,6 @@ from chimerax.graphics.drawing import (
     draw_on_top,
     draw_overlays,
 )
-from chimerax.graphics import gllist
-
 
 class OrthoplaneView(View):
     """OrthoplaneView splits the draw() method of view in two, which gives us more fine-grained
@@ -144,10 +142,7 @@ class OrthoplaneView(View):
                 silhouette.start_silhouette_drawing(self._render)
             camera.draw_background(vnum, self._render)
             self._update_projection(camera, vnum)
-            if self._render.recording_opengl:
-                cp = gllist.ViewMatrixFunc(self, vnum)
-            else:
-                cp = camera.get_position(vnum)
+            cp = camera.get_position(vnum)
             self._view_matrix = vm = cp.inverse(is_orthonormal=True)
             self._render.set_view_matrix(vm)
             if shadow:
