@@ -32,6 +32,7 @@ from .prep import prep as run_for_dock_prep, handle_memorization, MEMORIZE_USE, 
 #--- toolshed/session-init funcs ---
 
 from chimerax.core.toolshed import BundleAPI
+from .dms import save_dms
 
 class DockPrepAPI(BundleAPI):
 
@@ -50,7 +51,6 @@ class DockPrepAPI(BundleAPI):
         from chimerax.save_command import SaverInfo
         class DmsInfo(SaverInfo):
             def save(self, session, path, *, models=None):
-                from .dms import save_dms
                 save_dms(session, path, models)
 
             @property
