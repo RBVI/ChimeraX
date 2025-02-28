@@ -32,10 +32,12 @@ def save_dms(session, filename, models = None):
     if models is None:
         models = session.models.list()
 
-    if len(models) == 0:
+    models_list = list(models)  # Convert OrderedSet to list
+    
+    if len(models_list) == 0:
         raise UserError("No model available.")
 
-    molecular_surfaces = models[0].surfaces()
+    molecular_surfaces = models_list[0].surfaces()
 
     if len(molecular_surfaces) == 0:
         raise UserError(f"No surface available for model {models[0].id}.")
