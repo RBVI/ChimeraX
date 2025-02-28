@@ -233,6 +233,7 @@ def view_box(session, model):
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
 def _process_results(session, placed_ligand, model, chain_id, residue_number):
+    session.logger.status("Fitting job finished")
     if model.deleted:
         placed_ligand.delete()
         raise UserError("Receptor structure was deleted during ligand fitting")
