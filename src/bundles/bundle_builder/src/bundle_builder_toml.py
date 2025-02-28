@@ -268,7 +268,7 @@ class Bundle:
             self.supersedes = chimerax_data.get("supercedes")
         else:
             self.supersedes = []
-        self.custom_init = str(chimerax_data.get("custom-init", ""))
+        self.custom_init = chimerax_data.get("custom-init", False)
         self.categories = chimerax_data.get("categories", [])
         if len(self.categories) == 0:
             category = chimerax_data.get("category", "")
