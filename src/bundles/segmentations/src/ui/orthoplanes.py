@@ -40,10 +40,9 @@ from chimerax.map.volume_viewer import VolumeViewer, Histogram_Pane
 from chimerax.map.volumecommand import apply_volume_options
 from chimerax.mouse_modes.mousemodes import decode_modifier_bits
 from chimerax.mouse_modes.trackpad import MultitouchEvent, Touch
-from chimerax.ui.widgets import ModelMenu
 
-from ..segmentation import Segmentation, copy_volume_for_auxiliary_display
-from ..segmentation_tracker import get_tracker
+from chimerax.segmentations.segmentation import Segmentation, copy_volume_for_auxiliary_display
+from chimerax.segmentations.segmentation_tracker import get_tracker
 
 from chimerax.segmentations.ui.color_key import ColorKeyModel
 
@@ -55,7 +54,7 @@ from chimerax.segmentations.triggers import (
 )
 from chimerax.segmentations.triggers import Trigger
 
-from ..graphics import (
+from chimerax.segmentations.graphics import (
     OrthoplaneView,
     OrthoCamera,
     SegmentationOverlay,
@@ -63,8 +62,8 @@ from ..graphics import (
     SegmentationCursorOnOtherAxisOverlay,
     OrthoplaneLocationOverlay,
 )
-from ..types import Direction, Axis
-from .label import Label
+from chimerax.segmentations.types import Direction, Axis
+from chimerax.segmentations.ui.label import Label
 
 TRACKPAD_ZOOM_SPEED: int = 7
 TRACKPAD_PAN_SPEED: int = 100
@@ -185,6 +184,7 @@ class PlaneViewerManager:
 
 class PlaneViewer(QWindow):
     def __init__(self, parent, manager, session, axis=Axis.AXIAL):
+        from chimerax.ui.widgets import ModelMenu
         QWindow.__init__(self)
         self.parent = parent
         self.manager = manager
