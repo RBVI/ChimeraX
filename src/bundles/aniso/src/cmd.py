@@ -22,6 +22,100 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+builtin_presets = {
+    "simple": {
+        'axis_color': None,
+        'axis_factor': None,
+        'axis_thickness': 0.01,
+        'ellipse_color': None,
+        'ellipse_factor': None,
+        'ellipse_thickness': 0.02,
+        'ellipsoid_color': None,
+        'scale': 1.0,
+        'show_ellipsoid': True,
+        'smoothing': 3,
+        'transparency': None,
+    },
+    "simple-axes": {
+        'axis_color': None,
+        'axis_factor': 1.0,
+        'axis_thickness': 0.01,
+        'ellipse_color': None,
+        'ellipse_factor': None,
+        'ellipse_thickness': 0.02,
+        'ellipsoid_color': None,
+        'scale': 1.0,
+        'show_ellipsoid': False,
+        'smoothing': 3,
+        'transparency': None,
+    },
+    "ellipses": {
+        'axis_color': None,
+        'axis_factor': None,
+        'axis_thickness': 0.01,
+        'ellipse_color': None,
+        'ellipse_factor': 1.0,
+        'ellipse_thickness': 0.02,
+        'ellipsoid_color': None,
+        'scale': 1.0,
+        'show_ellipsoid': False,
+        'smoothing': 3,
+        'transparency': None,
+    },
+    "axes": {
+        'axis_color': None,
+        'axis_factor': 1.5,
+        'axis_thickness': 0.01,
+        'ellipse_color': None,
+        'ellipse_factor': None,
+        'ellipse_thickness': 0.02,
+        'ellipsoid_color': None,
+        'scale': 1.0,
+        'show_ellipsoid': True,
+        'smoothing': 3,
+        'transparency': None,
+    },
+    "octant": {
+        'axis_color': None,
+        'axis_factor': None,
+        'axis_thickness': 0.01,
+        'ellipse_color': (0,0,0,255),
+        'ellipse_factor': 1.01,
+        'ellipse_thickness': 0.02,
+        'ellipsoid_color': None,
+        'scale': 1.0,
+        'show_ellipsoid': True,
+        'smoothing': 3,
+        'transparency': None,
+    },
+    "snowglobe-axes": {
+        'axis_color': None,
+        'axis_factor': 0.99,
+        'axis_thickness': 0.01,
+        'ellipse_color': None,
+        'ellipse_factor': None,
+        'ellipse_thickness': 0.02,
+        'ellipsoid_color': (255,255,255,255),
+        'scale': 1.0,
+        'show_ellipsoid': True,
+        'smoothing': 3,
+        'transparency': 50,
+    },
+    "snowglobe-ellipses": {
+        'axis_color': None,
+        'axis_factor': None,
+        'axis_thickness': 0.01,
+        'ellipse_color': None,
+        'ellipse_factor': 0.99,
+        'ellipse_thickness': 0.02,
+        'ellipsoid_color': (255,255,255,255),
+        'scale': 1.0,
+        'show_ellipsoid': True,
+        'smoothing': 3,
+        'transparency': 50,
+    },
+}
+
 from chimerax.core.errors import UserError
 
 def check_atoms(session, atoms, *, error_text="atoms"):
@@ -96,44 +190,77 @@ def get_preset_name(presets, name):
             matches.append(preset_name)
     return matches
 
+def make_preset_info(session):
+    from .settings import get_settings
+    settings = get_settings(session)
+    preset_info = { k: (True, v) for k,v in builtin_presets.items() }
+    preset_info.update({ k: (False, v) for k,v in settings.custom_presets.items() })
+    return preset_info
+
 def aniso_preset(session, structures=None, name=None):
     if name is not None:
         name = name.strip()
+    preset_info = make_preset_info(session)
     if not name:
-        from .settings import get_settings
-        settings = get_settings(session)
-        output_lines = ["Preset names (builtin names in <b>bold</b>):", '<ul style="list-style: none;">']
-        names = sorted(list(settings.presets.keys()))
+        output_lines = ["Preset names (built-in names in <b>bold</b>):", '<ul style="list-style: none;">']
+        names = sorted(list(preset_info.keys()))
         for name in names:
-            info = settings.presets[name]
-            output_lines.append('<li>%s</li>' % (('<b>%s</b>' if info['intrinsic'] else '%s') % name))
+            builtin, style_settings = preset_info[name]
+            output_lines.append('<li>%s</li>' % (('<b>%s</b>' if builtin else '%s') % name))
         output_lines.append("</ul>")
         session.logger.info("\n".join(output_lines), is_html=True)
         return
 
-    from .settings import get_settings
-    settings = get_settings(session)
-    matching_names = get_preset_name(settings.presets, name)
+    matching_names = get_preset_name(preset_info, name)
     if not matching_names:
         raise UserError("No preset name matches or begins with '%s'" % name)
     if len(matching_names) > 1:
         raise UserError("Multiple preset names match or begin with '%s': %s"
             % (name, ', '.join(matching_names)))
-    style_kw = { k:v for k,v in settings.presets[matching_names[0]].items() if k != 'intrinsic' }
-    aniso_style(session, structures, **style_kw)
+    aniso_style(session, structures, **preset_info[matching_names[0]][1])
+
+def aniso_preset_delete(session, name):
+    name = name.strip()
+    if not name:
+        raise UserError("No preset name provided")
+    preset_info = make_preset_info(session)
+    matching_names = get_preset_name(preset_info, name)
+    if not matching_names:
+        raise UserError("No preset name matches or begins with '%s'" % name)
+    if len(matching_names) > 1:
+        matching_custom = []
+        for matching_name in matching_names:
+            if not preset_info[matching_name][0]:
+                matching_custom.append(matching_name)
+        if len(matching_custom) == 0:
+            raise UserError("Cannot delete built-in presets; multiple built-in presets match or begin"
+                " with '%s': %s" % (name, ', '.join(matching_names)))
+        elif len(matching_custom) > 1:
+            raise UserError("Multiple preset names match or begin with '%s': %s"
+                % (name, ', '.join(matching_custom)))
+        matching_names = matching_custom
+
+    from .settings import get_settings
+    settings = get_settings(session)
+    # settings doesn't recognize when a dict has changed intermally, so...
+    presets = settings.custom_presets.copy()
+    del presets[matching_names[0]]
+    settings.custom_presets = presets
+    settings.save()
+    session.logger.info("Deleted custom preset '%s'" % matching_names[0])
 
 def aniso_preset_save(session, structures=None, name=None):
     if name is not None:
         name = name.strip()
     if not name:
         raise UserError("No preset name provided")
-    from .settings import get_settings
-    settings = get_settings(session)
+    preset_info = make_preset_info(session)
     updating = False
-    for preset, info in settings.presets.items():
+    for preset, info in preset_info.items():
         if name == preset:
-            if info['intrinsic']:
-                raise UserError("Cannot change builtin %s preset" % name)
+            builtin, style_settings = info
+            if builtin:
+                raise UserError("Cannot change built-in %s preset" % name)
             updating = True
             break
 
@@ -158,11 +285,12 @@ def aniso_preset_save(session, structures=None, name=None):
             if s_settings != preset_settings:
                 raise UserError("The structures have different depiction settings. Specify the"
                     " structure you want to save settings from as the first argument of the command.")
-    preset_settings['intrinsic'] = False
+    from .settings import get_settings
+    settings = get_settings(session)
     # settings doesn't recognize when a dict has changed intermally, so...
-    presets = settings.presets.copy()
+    presets = settings.custom_presets.copy()
     presets[name] = preset_settings
-    settings.presets = presets
+    settings.custom_presets = presets
     settings.save()
     session.logger.info("%s settings for preset '%s'" % (("Updated" if updating else "Saved"), name))
 
@@ -203,5 +331,9 @@ def register_command(logger, name):
             required=[('structures', Or(AtomicStructuresArg, EmptyArg)), ('name', RestOfLine)],
             synopsis='save thermal-ellipsoid settings as preset')
         register('aniso preset save', preset_save_desc, aniso_preset_save, logger=logger)
+        preset_delete_desc = CmdDesc(
+            required=[('name', RestOfLine)],
+            synopsis='delete custom thermal-ellipsoid preset')
+        register('aniso preset delete', preset_delete_desc, aniso_preset_delete, logger=logger)
     else:
         register('~aniso', tilde_desc, aniso_hide, logger=logger)

@@ -26,9 +26,15 @@ class AnisoSettings(Settings):
         "custom_presets": Value({}, json.loads, json.dumps),
     }
 
-builtin_presets = {
-    
-}
+'''
+        "simple ellipsoid": {
+        "principal axes": {
+        "principal ellipses": {
+        "ellipsoid and principal axes": {
+        "octant lines": {
+        "snow globe axes": {
+        "snow globe ellipses": {
+'''
 
 class AnisoTool(ToolInstance):
 
