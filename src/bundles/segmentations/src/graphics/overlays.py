@@ -25,7 +25,7 @@ from chimerax.map import VolumeSurface
 from chimerax.graphics import Drawing
 from chimerax.graphics.drawing import rgba_drawing, position_rgba_drawing
 from chimerax.graphics.camera import ortho
-from ..types import Direction, Axis
+from chimerax.segmentations.types import Direction, Axis
 
 
 class SegmentationCursorOverlay(Drawing):

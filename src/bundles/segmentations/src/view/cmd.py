@@ -2,7 +2,6 @@ from chimerax.core.commands import CmdDesc, register, BoolArg, EnumOf
 from chimerax.core.models import REMOVE_MODELS
 
 from chimerax.map import Volume
-from chimerax.dicom.dicom_volumes import DICOMVolume
 
 import chimerax.segmentations.triggers
 from chimerax.segmentations.triggers import Trigger

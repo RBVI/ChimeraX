@@ -58,12 +58,12 @@ from chimerax.ui.options import (
 from chimerax.ui.widgets import ModelMenu
 from chimerax.ui.icons import get_qt_icon
 
-from ..types import Axis
-from ..graphics.cylinder import SegmentationDisk
-from ..graphics.sphere import SegmentationSphere
-from ..dicom_segmentations import PlanePuckSegmentation, SphericalSegmentation
-from ..segmentation import Segmentation, segment_volume
-from ..segmentation_tracker import get_tracker
+from chimerax.segmentations.types import Axis
+from chimerax.segmentations.graphics.cylinder import SegmentationDisk
+from chimerax.segmentations.graphics.sphere import SegmentationSphere
+from chimerax.segmentations.dicom_segmentations import PlanePuckSegmentation, SphericalSegmentation
+from chimerax.segmentations.segmentation import Segmentation, segment_volume
+from chimerax.segmentations.segmentation_tracker import get_tracker
 
 from chimerax.segmentations.settings import get_settings
 from chimerax.segmentations.view.modes import ViewMode

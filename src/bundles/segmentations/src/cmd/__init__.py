@@ -1,1 +1,1 @@
-from .segmentations import register_seg_cmds
+from chimerax.segmentations.cmd.segmentations import register_seg_cmds
