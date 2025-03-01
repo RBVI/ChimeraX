@@ -49,6 +49,7 @@ class="clRighticon" title="User Guide Index"/></a>
 <br><b>aniso preset save</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 &nbsp;<i>preset-name</i>
+<br><b>aniso preset delete</b> &nbsp;<i>preset-name</i>
 </h3>
 <p>
 The <b>aniso</b> command shows atomic anisotropic B-factors
@@ -80,7 +81,8 @@ applicable model in <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 Several presets are built in, and the current anisotropic style 
 settings of a model can be saved as a new preset with <b>aniso preset save</b>;
 if multiple models are specified with with this command, they must
-all have the same anisotropic style settings.
+all have the same anisotropic style settings. A previously saved user-defined
+preset can be removed with <b>aniso preset delete</b>.
 </p><p>
 Anisotropic B-factors are read from the input coordinate file
 (from ANISOU records in a PDB file or the analogous in CIF/mmCIF)
