@@ -1,6 +1,6 @@
 <BundleInfo name="ChimeraX-ViewDock" version="0.1"
 	    package="chimerax.viewdock"
-  	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
+  	    customInit="false" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
   <Author>UCSF RBVI</Author>
