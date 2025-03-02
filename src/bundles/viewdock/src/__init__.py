@@ -21,3 +21,6 @@ class _MyAPI(BundleAPI):
             from .tool import ViewDockTool
             return ViewDockTool
         return None
+
+
+bundle_api = _MyAPI()
