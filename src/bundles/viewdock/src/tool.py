@@ -1,0 +1,15 @@
+from chimerax.core.tools import ToolInstance
+
+class ViewDockTool(ToolInstance):
+
+    SESSION_ENDURING = False
+    SESSION_SAVE = True
+
+    def __init__(self, session, tool_name):
+        super().__init__(session, tool_name)
+        self.display_name = "ViewDock"
+
+        from chimerax.ui import MainToolWindow
+        self.tool_window = MainToolWindow(self)
+
+        self.tool_window.manage('side')
