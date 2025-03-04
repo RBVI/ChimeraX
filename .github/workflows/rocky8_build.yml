@@ -90,12 +90,12 @@ jobs:
       - name: Tar the docs directory
         run: |
           cp -r ChimeraX.app/share/docs chimerax-docs
-          cp -r src/bundles/viewdockx/src/docs/user/commands/ chimerax-docs/user/commands/
-          cp -r src/bundles/viewdockx/src/docs/user/tools/ chimerax-docs/user/tools/
-          cp -r src/bundles/phenix_ui/src/docs/user/commands/ chimerax-docs/user/commands/
-          cp -r src/bundles/phenix_ui/src/docs/user/tools/ chimerax-docs/user/tools/
-          cp -r src/bundles/toolshed_utils/src/docs/user/tools/ chimerax-docs/user/tools/
-          cp -r src/bundles/linux_support/src/docs/user/commands/ chimerax-docs/user/commands/
+          cp -r src/bundles/viewdockx/src/docs/user/commands/* chimerax-docs/user/commands/
+          cp -r src/bundles/viewdockx/src/docs/user/tools/* chimerax-docs/user/tools/
+          cp -r src/bundles/phenix_ui/src/docs/user/commands/* chimerax-docs/user/commands/
+          cp -r src/bundles/phenix_ui/src/docs/user/tools/* chimerax-docs/user/tools/
+          cp -r src/bundles/toolshed_utils/src/docs/user/tools/* chimerax-docs/user/tools/
+          cp -r src/bundles/linux_support/src/docs/user/commands/* chimerax-docs/user/commands/
           tar -cvzf chimerax-docs.tar.gz -C chimerax-docs/ .
       - name: Upload the documentation
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
