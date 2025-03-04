@@ -96,7 +96,7 @@ jobs:
           cp -r src/bundles/phenix_ui/src/docs/user/tools/ chimerax-docs/user/tools/
           cp -r src/bundles/toolshed_utils/src/docs/user/tools/ chimerax-docs/user/tools/
           cp -r src/bundles/linux_support/src/docs/user/commands/ chimerax-docs/user/commands/
-          run: tar -cvzf chimerax-docs.tar.gz -C chimerax-docs/ .
+          tar -cvzf chimerax-docs.tar.gz -C chimerax-docs/ .
       - name: Upload the documentation
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         uses: nick-fields/retry@v3
