@@ -205,6 +205,7 @@ class GridCanvas:
 
     def hide_header(self, header):
         header_group = self.header_groups[header]
+        bounding_rect = header_group.boundingRect()
         del self.header_groups[header]
         for item in header_group.childItems():
             item.hide()
@@ -214,6 +215,14 @@ class GridCanvas:
         del self.header_label_items[header]
         label_item.hide()
         self.header_label_scene.removeItem(label_item)
+        after_removed = False
+        for disp_hdr in self.displayed_headers:
+            if disp_hdr == header:
+                after_removed = True
+            elif after_removed:
+                adjust = bounding_rect.height()
+                self.header_groups[disp_hdr].moveBy(0, -adjust)
+                self.header_label_items[disp_hdr].moveBy(0, -adjust)
         self.displayed_headers.remove(header)
         self._update_scene_rects()
 
@@ -369,7 +378,7 @@ class GridCanvas:
             if isinstance(val, str):
                 text = self.header_scene.addSimpleText(val, font=self.font)
                 rect = text.sceneBoundingRect()
-                text.setPos(x - rect.width()/2, y+4)
+                text.setPos(x - rect.width()/2, y)
                 text.setBrush(QBrush(color))
                 items.append(text)
             elif val != None and val > 0.0:
@@ -378,13 +387,24 @@ class GridCanvas:
             x += width
 
         self.header_groups[header] = group = self.header_scene.createItemGroup(items);
+        # center the header vertically
+        bbox = group.sceneBoundingRect()
+        import sys
+        print(header.name, "y; bbox.y:", y, bbox.y(), "height, bbox.height:", height, bbox.height(), file=sys.__stderr__)
+        group.moveBy(0, y + height - bbox.y() - (height - bbox.height())/2)
         self.header_label_items[header] = label = self.header_label_scene.addSimpleText(header.name,
             font=self.font)
         label_rect = label.sceneBoundingRect()
         group_rect = group.boundingRect()
         label.setPos(-label_rect.width(), group_rect.y() - label_rect.height())
+        dbg = group.sceneBoundingRect()
+        print(header.name, "before show, y, height:", dbg.y(), dbg.height(), file=sys.__stderr__)
         self.header_view.show()
+        dbg = group.sceneBoundingRect()
+        print(header.name, "after show, y, height:", dbg.y(), dbg.height(), file=sys.__stderr__)
         self._update_scene_rects()
+        dbg = group.sceneBoundingRect()
+        print(header.name, "after update, y, height:", dbg.y(), dbg.height(), file=sys.__stderr__)
 
     def state(self):
         return {
@@ -516,8 +536,11 @@ class GridCanvas:
         self.main_scene.setSceneRect(mbr.x(), y, mbr.width(), height)
         self.header_scene.setSceneRect(mr.x(), hbr.y(),
             mr.width() + self.main_view.verticalScrollBar().size().width(), hbr.height())
+        hlbr = self.header_label_scene.itemsBoundingRect()
+        self.header_label_scene.setSceneRect(hlbr.x() + hlbr.width() - lbr.width(),
+            hlbr.y() + (hbr.height() - hlbr.height())/2, lbr.width(), hbr.height())
         from math import ceil
-        max_header_height = ceil(max(hbr.height(), self.header_label_scene.itemsBoundingRect().height())) + 7
+        max_header_height = ceil(max(hbr.height(), hlbr.height())) + 7
         self.header_view.setMaximumHeight(max_header_height)
         self.header_label_view.setMaximumHeight(max_header_height)
 
