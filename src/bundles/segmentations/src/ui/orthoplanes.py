@@ -1231,6 +1231,13 @@ class PlaneViewer(QWindow):
         if self.segmentation_tool:
             ww, wh = self.main_view.window_size
             width, height = self.view.window_size
+            if (
+                ww <= 0
+                or wh <= 0
+                or width <= 0
+                or height <= 0
+            ):
+                return
             psize = self.view.pixel_size()
             radius = self.segmentation_cursor_overlay.radius
             rel_size = (radius / width) * psize
