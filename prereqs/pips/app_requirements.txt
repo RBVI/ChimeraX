@@ -34,7 +34,7 @@ networkx==3.3
 numpy==1.26.4
 openvr==1.26.701
 openmm==8.2.0
-packaging==23.2
+packaging==24.2
 # as per Tristan's request in ticket #3055
 ParmEd==4.2.2
 pep517==0.13.1
