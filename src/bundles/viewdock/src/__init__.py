@@ -51,10 +51,7 @@ class _MyAPI(BundleAPI):
                         show_dock = False
                     if show_dock:
                         from Qt.QtCore import QTimer
-                        from chimerax.core.commands import run, concise_model_spec
-                        QTimer.singleShot(0,
-                            lambda *args, run=run, ses=session, spec=concise_model_spec, models=models:
-                                run(ses, "viewdock %s" % spec(ses, models)))
+                        QTimer.singleShot(0, lambda s=session, m=models: open_viewdock_tool(s, m))
                 return models, status
 
             @property
@@ -65,3 +62,17 @@ class _MyAPI(BundleAPI):
         return ViewDockOpenerInfo()
 
 bundle_api = _MyAPI()
+
+def open_viewdock_tool(session, structures=None):
+    """
+    Open the ViewDock tool for the given structures. If no structures are given, the tool will handle finding them.
+
+    Args:
+        session: the ChimeraX session
+        structures: a list of structures to open in the tool
+    """
+    toolshed = session.toolshed
+
+    bi = toolshed.find_bundle("ViewDock", session.logger)
+    bi.start_tool(session, "ViewDock")
+
