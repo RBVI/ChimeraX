@@ -46,7 +46,6 @@ runs:
       with:
         path: |
           prereqs/pips/tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
-          prereqs/pips/Cython-3.0.10-cp311-cp311-macosx_10_9_universal2.whl
         key: ${{ runner.os }}-${{ inputs.architecture}}-pips
 
     - name: Restore cached generic pips
@@ -54,9 +53,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/pips/grako-3.16.5-py2.py3-none-any.whl
           prereqs/pips/cxservices-1.2.3-py3-none-any.whl
-          prereqs/pips/qtshim-1.1-py3-none-any.whl
         key: generic-plato-pips
 
     - name: Restore cached Python (Linux)
@@ -269,8 +266,6 @@ runs:
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
           curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/tinyarray/tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
-          curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/cython/Cython-3.0.10-cp311-cp311-macosx_10_9_universal2.whl
-          mv Cython* prereqs/pips/
         fi
         if [ "${{ inputs.platform }}" = "windows" ] ; then
           curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/tinyarray/tinyarray-1.2.4-cp311-cp311-win_amd64.whl
@@ -360,9 +355,5 @@ runs:
       shell: bash
       if: ${{ steps.cache-plato-pips-generic.outputs.cache-hit != 'true' }}
       run: |
-        curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/grako/grako-3.16.5-py2.py3-none-any.whl
         curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/cxservices/cxservices-1.2.3-production-py3-none-any.whl
-        curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/qt/qtshim-1.1-py3-none-any.whl
-        mv grako* prereqs/pips/
         mv cxservices* prereqs/pips/cxservices-1.2.3-py3-none-any.whl
-        mv qtshim* prereqs/pips/

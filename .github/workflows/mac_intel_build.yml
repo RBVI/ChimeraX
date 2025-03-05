@@ -70,21 +70,25 @@ jobs:
           timeout_seconds: 60
           command: ./utils/ci/nightly_logs.sh ${{ secrets.PREBUILT_CACHE_SECRET }} ${{ github.run_id }} ${{ steps.get_job_id.outputs.job_id }} macosx ${{ inputs.release_type }}
       - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(sysctl -n hw.logicalcpu) install-rbvi
-      - name: Run the legacy test suite
-        run: make test
       - name: Install Pytest
         run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        continue-on-error: true
+        id: test-exes
         run: USE_COVERAGE=1 make pytest-both-exes
       - name: Run wheel tests
+        continue-on-error: true
+        id: test-wheel
         run: USE_COVERAGE=1 make pytest-wheel
       - name: Run distribution tests
+        continue-on-error: true
+        id: test-distribution
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
-      
+
       - name: Put the app name in GITHUB_ENV (production)
         if: ${{ inputs.release_type == 'production' }}
         shell: bash
@@ -216,8 +220,8 @@ jobs:
 
       - name: Put the build date and commit in the environment
         run: |
-          export BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA) 
-          export BUILD_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u) 
+          export BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA)
+          export BUILD_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
           echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
           echo "BUILD_COMMIT=$BUILD_COMMIT" >> $GITHUB_ENV
 

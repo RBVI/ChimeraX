@@ -453,7 +453,7 @@ has not revealed any striking patterns.
 <b>mutationscores structure</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
 [&nbsp;<b>allowMismatches</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>alignSequences</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>alignSequences</b>&nbsp;&nbsp;<i>alignment-ID</i>&nbsp;|&nbsp;<i>sequence</i>&nbsp;]
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
 Designate one or more structure chains to be associated with the mutation 
@@ -464,15 +464,43 @@ numbering (as in the mutation data) the first time some analysis action
 is performed, such as interacting with a scatter plot.
 Multiple structure chains can be associated per 
 <a href="#mutationSet">mutation set</a>. 
-If the chain does not have exactly the same residue types 
-as in the mutation data, however, <b>allowMismatches true</b> is needed to
-force the association, and if the residue numbering is different,
-<b>alignSequences true</b> should be used to perform a basic Needleman-Wunsch
-alignment to determine the correspondences. The sequence alignment parameters
-are not adjustable, nor is it possible to display the resulting sequence 
-alignment, so users should be cautious about interpreting the mapping of data 
-onto the structure depending on the level of sequence dissimilarity.
-<p>
+If the chain does not have exactly the same residue types as the wild type 
+in the mutation data, however, <b>allowMismatches true</b> is needed to
+force the association, and if the residue numbering is different, a sequence 
+alignment must be specified with the <b>alignSequences</b> option, either:
+<ul>
+<li>a sequence alignment aleady open in the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
+specified by the <i>alignment-ID</i> shown in the title bar of that tool.
+The first sequence in the alignment must be the same as the sequence
+that goes with the mutation data, and there must also be a sequence
+that exactly matches (including numbering) each of the structure chains 
+to be associated. If multiple structure chains to be associated have the
+same sequence, the alignment only needs to contain one copy, and the
+alignment may also contain additional sequences not used for association
+purposes.
+<br>&ndash; or &ndash;<br>
+<li>the sequence that goes with the mutation data, 
+to be aligned to the sequence(s) of the specified structure chain(s)
+using a Clustal Omega web service hosted by the 
+<a href="https://www.rbvi.ucsf.edu/Overview/index.html" 
+target="_blank">UCSF RBVI</a>. 
+As with <a href="sequence.html#align"><b>sequence align</b></a>,
+a <i>sequence</i> can be given as:
+  <ul>
+  <li>a <a href="https://www.uniprot.org" target="_blank">UniProt</a>
+name or accession number
+  <li>the <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+of a structure chain already open in ChimeraX
+  <li>plain text of the entire amino acid sequence pasted directly
+into the command line
+  <li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
+in the form:
+&nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
+(<a href="seqspec.html">details...</a>)
+  </ul>
+</ul>
 Associations can also be specified with the 
 <a href="open.html#chains"><b>chains</b></a> option of the 
 <a href="open.html#local"><b>open</b></a> command at the time

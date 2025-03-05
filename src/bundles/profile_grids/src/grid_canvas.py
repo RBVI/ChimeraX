@@ -37,6 +37,7 @@ class GridCanvas:
         from Qt.QtGui import QFont, QFontMetrics, QPalette
         self.font = QFont("Helvetica")
         self.font_metrics = QFontMetrics(self.font)
+        self.font_descent = self.font_metrics.descent()
         self.max_label_width = 0
         for i, text in enumerate(self.row_labels):
             if i in self.empty_rows:
@@ -205,6 +206,7 @@ class GridCanvas:
 
     def hide_header(self, header):
         header_group = self.header_groups[header]
+        bounding_rect = header_group.boundingRect()
         del self.header_groups[header]
         for item in header_group.childItems():
             item.hide()
@@ -214,6 +216,14 @@ class GridCanvas:
         del self.header_label_items[header]
         label_item.hide()
         self.header_label_scene.removeItem(label_item)
+        after_removed = False
+        width, height = self.font_pixels
+        for disp_hdr in self.displayed_headers:
+            if disp_hdr == header:
+                after_removed = True
+            elif after_removed:
+                self.header_groups[disp_hdr].moveBy(0, -height)
+                self.header_label_items[disp_hdr].moveBy(0, -height)
         self.displayed_headers.remove(header)
         self._update_scene_rects()
 
@@ -369,15 +379,17 @@ class GridCanvas:
             if isinstance(val, str):
                 text = self.header_scene.addSimpleText(val, font=self.font)
                 rect = text.sceneBoundingRect()
-                text.setPos(x - rect.width()/2, y+4)
+                text.setPos(x - rect.width()/2, y - (height - self.TEXT_MARGIN + rect.height())/2)
                 text.setBrush(QBrush(color))
                 items.append(text)
             elif val != None and val > 0.0:
-                items.append(self.header_scene.addRect(x - width/2, y+height, width, -val * height,
-                    brush=QBrush(color)))
+                display_height = height - self.TEXT_MARGIN
+                items.append(self.header_scene.addRect(x - width/2, y - self.TEXT_MARGIN/2,
+                    width, -val * display_height, brush=QBrush(color)))
             x += width
 
         self.header_groups[header] = group = self.header_scene.createItemGroup(items);
+        bbox = group.sceneBoundingRect()
         self.header_label_items[header] = label = self.header_label_scene.addSimpleText(header.name,
             font=self.font)
         label_rect = label.sceneBoundingRect()
@@ -516,8 +528,11 @@ class GridCanvas:
         self.main_scene.setSceneRect(mbr.x(), y, mbr.width(), height)
         self.header_scene.setSceneRect(mr.x(), hbr.y(),
             mr.width() + self.main_view.verticalScrollBar().size().width(), hbr.height())
+        hlbr = self.header_label_scene.itemsBoundingRect()
+        self.header_label_scene.setSceneRect(hlbr.x() + hlbr.width() - lbr.width(),
+            hlbr.y() + (hbr.height() - hlbr.height())/2, lbr.width(), hbr.height())
         from math import ceil
-        max_header_height = ceil(max(hbr.height(), self.header_label_scene.itemsBoundingRect().height())) + 7
+        max_header_height = ceil(max(hbr.height(), hlbr.height())) + 7
         self.header_view.setMaximumHeight(max_header_height)
         self.header_label_view.setMaximumHeight(max_header_height)
 

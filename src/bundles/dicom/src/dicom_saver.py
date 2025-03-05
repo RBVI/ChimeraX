@@ -1,13 +1,6 @@
 import datetime
 
-import pydicom.uid
-from pydicom import dcmread
-from pydicom.errors import InvalidDicomError
-
 from pathlib import Path
-
-from pydicom.dataset import FileMetaDataset, Dataset
-from pydicom.sequence import Sequence
 
 from chimerax.core import version as chimerax_version
 
@@ -44,6 +37,11 @@ class DicomSaver(SaverInfo):
 
         # Error out early if standard-required attributes are missing
         # We only care about Volumes and Segmentations; we can derive everything else from those
+        import pydicom.uid
+        from pydicom import dcmread
+        from pydicom.errors import InvalidDicomError
+        from pydicom.dataset import FileMetaDataset, Dataset
+        from pydicom.sequence import Sequence
 
         segmentations = []
         # TODO: UserError
