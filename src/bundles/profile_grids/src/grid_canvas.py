@@ -37,6 +37,7 @@ class GridCanvas:
         from Qt.QtGui import QFont, QFontMetrics, QPalette
         self.font = QFont("Helvetica")
         self.font_metrics = QFontMetrics(self.font)
+        self.font_descent = self.font_metrics.descent()
         self.max_label_width = 0
         for i, text in enumerate(self.row_labels):
             if i in self.empty_rows:
@@ -216,13 +217,13 @@ class GridCanvas:
         label_item.hide()
         self.header_label_scene.removeItem(label_item)
         after_removed = False
+        width, height = self.font_pixels
         for disp_hdr in self.displayed_headers:
             if disp_hdr == header:
                 after_removed = True
             elif after_removed:
-                adjust = bounding_rect.height()
-                self.header_groups[disp_hdr].moveBy(0, -adjust)
-                self.header_label_items[disp_hdr].moveBy(0, -adjust)
+                self.header_groups[disp_hdr].moveBy(0, -height)
+                self.header_label_items[disp_hdr].moveBy(0, -height)
         self.displayed_headers.remove(header)
         self._update_scene_rects()
 
@@ -378,33 +379,24 @@ class GridCanvas:
             if isinstance(val, str):
                 text = self.header_scene.addSimpleText(val, font=self.font)
                 rect = text.sceneBoundingRect()
-                text.setPos(x - rect.width()/2, y)
+                text.setPos(x - rect.width()/2, y - (height - self.TEXT_MARGIN + rect.height())/2)
                 text.setBrush(QBrush(color))
                 items.append(text)
             elif val != None and val > 0.0:
-                items.append(self.header_scene.addRect(x - width/2, y+height, width, -val * height,
-                    brush=QBrush(color)))
+                display_height = height - self.TEXT_MARGIN
+                items.append(self.header_scene.addRect(x - width/2, y - self.TEXT_MARGIN/2,
+                    width, -val * display_height, brush=QBrush(color)))
             x += width
 
         self.header_groups[header] = group = self.header_scene.createItemGroup(items);
-        # center the header vertically
         bbox = group.sceneBoundingRect()
-        import sys
-        print(header.name, "y; bbox.y:", y, bbox.y(), "height, bbox.height:", height, bbox.height(), file=sys.__stderr__)
-        group.moveBy(0, y + height - bbox.y() - (height - bbox.height())/2)
         self.header_label_items[header] = label = self.header_label_scene.addSimpleText(header.name,
             font=self.font)
         label_rect = label.sceneBoundingRect()
         group_rect = group.boundingRect()
         label.setPos(-label_rect.width(), group_rect.y() - label_rect.height())
-        dbg = group.sceneBoundingRect()
-        print(header.name, "before show, y, height:", dbg.y(), dbg.height(), file=sys.__stderr__)
         self.header_view.show()
-        dbg = group.sceneBoundingRect()
-        print(header.name, "after show, y, height:", dbg.y(), dbg.height(), file=sys.__stderr__)
         self._update_scene_rects()
-        dbg = group.sceneBoundingRect()
-        print(header.name, "after update, y, height:", dbg.y(), dbg.height(), file=sys.__stderr__)
 
     def state(self):
         return {
