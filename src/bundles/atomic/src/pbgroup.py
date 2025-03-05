@@ -348,6 +348,14 @@ class PseudobondGroup(PseudobondGroupData, Model):
         grp.set_custom_attrs(data)
         return grp
 
+    def restore_scene(self, scene_data):
+        """
+        Scene interface implementation. Default take_snapshot implementation is sufficient.
+        """
+        Model.restore_scene(self, scene_data['model state'])
+        self.dashes = scene_data['dashes']
+        PseudobondGroupData.restore_scene(self, scene_data['pseudobond data'])
+
 # -----------------------------------------------------------------------------
 #
 def selected_pseudobonds(session):

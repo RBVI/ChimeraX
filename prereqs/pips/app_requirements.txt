@@ -12,9 +12,9 @@ build==1.2.1
 colorama==0.4.6
 Cython==3.0.12
 filelock==3.17.0
-# grako==3.16.5 # See the Makefile; need patched Grako for 3.11
+grako==3.16.5
 html2text==2024.2.26
-ihm==1.3
+ihm==2.2
 imagecodecs==2024.6.1
 ipykernel==6.29.5
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
@@ -34,7 +34,7 @@ networkx==3.3
 numpy==1.26.4
 openvr==1.26.701
 openmm==8.2.0
-packaging==23.2
+packaging==24.2
 # as per Tristan's request in ticket #3055
 ParmEd==4.2.2
 pep517==0.13.1
