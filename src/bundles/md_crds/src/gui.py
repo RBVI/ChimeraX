@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from Qt.QtWidgets import QFrame, QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QPushButton, QMenu, \
-    QSizePolicy, QWidget
+    QSizePolicy, QWidget, QStackedWidget
 from Qt.QtCore import Qt
 
 from chimerax.core.commands import plural_of
@@ -93,6 +93,7 @@ class PlotDialog:
 
         self.tab_info = {}
         self._tables = {}
+        self._plot_stacks = {}
         self._value_columns = {}
 
         tw.manage(None)
@@ -122,7 +123,13 @@ class PlotDialog:
         page_layout.setSpacing(0)
         page_layout.setContentsMargins(0,0,0,0)
         page.setLayout(page_layout)
-        page_layout.addWidget(QLabel("%s plotting goes here" % ui_name.capitalize()), stretch=1)
+        self._plot_stacks[provider_name] = stack = QStackedWidget()
+        stack.addWidget(QLabel("Select %d atoms and click 'Plot' to begin plotting"
+            % self.mgr.num_atoms(provider_name), alignment=Qt.AlignCenter))
+        from matplotlib.backends.backend_qtagg import FigureCanvas
+        from matplotlib.figure import Figure
+        stack.addWidget(FigureCanvas(Figure()))
+        page_layout.addWidget(stack, stretch=1)
         controls_area = QWidget()
         controls_layout = QVBoxLayout()
         controls_area.setLayout(controls_layout)
@@ -200,6 +207,25 @@ class PlotDialog:
                 " %d are currently selected" % (plural_of(ui_name), expected_sel, len(sel_atoms)))
         table = self._tables[provider_name]
         table.data += [TableEntry(self, provider_name, sel_atoms)]
+        stack = self._plot_stacks[provider_name]
+        stack.setCurrentIndex(1)
+        canvas = stack.currentWidget()
+        figure = canvas.figure
+        if figure.axes:
+            axis = figure.axes[0]
+            axis.clear()
+        else:
+            axis = figure.subplots()
+        from matplotlib.ticker import MaxNLocator
+        axis.xaxis.set_major_locator(MaxNLocator(integer=True))
+        cs_ids = self.structure.coordset_ids
+        cs_ids.sort()
+        axis.set_xlim(cs_ids[0], cs_ids[-1])
+
+        import numpy
+        for table_entry in table.data:
+            axis.plot(cs_ids, [table_entry.values[cs_id] for cs_id in cs_ids], color=table_entry.rgba[:3])
+        canvas.draw_idle()
 
 class TableEntry:
     def __init__(self, plot_dialog, provider_name, atoms):
@@ -225,6 +251,13 @@ class TableEntry:
     def value(self):
         return self._values[self.plot_dialog.structure.active_coordset_id]
 
+    @property
+    def values(self):
+        return self._values
+
+#TODO: need better handling of:
+#   slider closure deletes plots
+#   plot closure updates _md_tool_windows
 def _show_plot(provider_name, main_tool_window, structure):
     try:
         tws = main_tool_window._md_tool_windows
