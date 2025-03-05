@@ -149,6 +149,21 @@ class XR:
         sys_name = props.system_name.decode('utf-8')
         return sys_name
 
+    def device_properties(self):
+        '''
+        Sony Spatial Reality SR1 15.6" display vendor id = 195951310.
+        Might need this to distinguish from SR2 27" model.
+        '''
+        import xr
+        props = xr.get_system_properties(instance=self._instance,
+                                         system_id=self._system_id)
+        tprops = props.tracking_properties
+        return {'system_name': props.system_name.decode('utf-8'),
+                'vendor_id': props.vendor_id,
+                'position_tracking': tprops.position_tracking,
+                'orientation_tracking': tprops.orientation_tracking,
+                }
+
     def _recommended_render_size(self):
         '''Width and height of single eye framebuffer.'''
         import xr
@@ -430,11 +445,20 @@ class XR:
             try:
                 self._frame_state = xr.wait_frame(self._session,
                                                   frame_wait_info=xr.FrameWaitInfo())
-                xr.begin_frame(self._session, xr.FrameBeginInfo())
-                return True
             except xr.ResultException:
-                error ('xr.wait_frame() or xr.begin_frame() failed')
+                if not getattr(self, '_last_start_frame_failed', False):
+                    error ('xr.wait_frame() failed')
+                self._last_start_frame_failed = True
                 return False
+            try:
+                xr.begin_frame(self._session, xr.FrameBeginInfo())
+            except xr.ResultException:
+                if not getattr(self, '_last_start_frame_failed', False):
+                    error ('xr.begin_frame() failed')
+                self._last_start_frame_failed = True                    
+                return False
+            self._last_start_frame_failed = False
+            return True
                 
         return False
 
@@ -722,6 +746,11 @@ class XR:
             self._scene_space = None
 
         if self._session is not None:
+            if self.system_name() == 'SonySRD System':
+                # Without these two calls OpenXR crashes in destroy_session()
+                # if a Sony Spatial Reality display disconnects when it is powered off.
+                xr.request_exit_session(self._session)
+                xr.end_session(self._session)
             xr.destroy_session(self._session)
             self._session = None
 
