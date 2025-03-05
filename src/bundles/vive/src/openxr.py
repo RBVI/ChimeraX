@@ -391,7 +391,7 @@ class XR:
         if self._frame_started:
             self._frame_started = False
             self._end_xr_frame()
-        debug('ended xr frame')
+            debug('ended xr frame')
 
     def _poll_xr_events(self):
         import xr
@@ -422,17 +422,25 @@ class XR:
         self._session_state = state = xr.SessionState(event.state)
         debug('Session state', state)
         if state == xr.SessionState.READY:
-            sbinfo = xr.SessionBeginInfo(xr.ViewConfigurationType.PRIMARY_STEREO)
-            xr.begin_session(self._session, sbinfo)
-            self._ready_to_render = True
+            self._begin_session()
         elif state == xr.SessionState.STOPPING:
-            xr.end_session(self._session)
-            self._ready_to_render = False
+            self._end_session()
             # After this it will transition to the IDLE state and from there
             # it will either go back to READY or EXITING.
             # No calls should be made to wait_frame, begin_frame, end_frame until ready.
         elif state == xr.SessionState.EXITING:
             self.shutdown()
+
+    def _begin_session(self):
+        import xr
+        sbinfo = xr.SessionBeginInfo(xr.ViewConfigurationType.PRIMARY_STEREO)
+        xr.begin_session(self._session, sbinfo)
+        self._ready_to_render = True
+
+    def _end_session(self):
+        import xr
+        xr.end_session(self._session)
+        self._ready_to_render = False
             
     def _start_xr_frame(self):
         import xr
@@ -445,17 +453,23 @@ class XR:
             try:
                 self._frame_state = xr.wait_frame(self._session,
                                                   frame_wait_info=xr.FrameWaitInfo())
-            except xr.ResultException:
+            except xr.ResultException as e:
                 if not getattr(self, '_last_start_frame_failed', False):
-                    error ('xr.wait_frame() failed')
+                    error (f'xr.wait_frame() failed: {e}')
                 self._last_start_frame_failed = True
                 return False
             try:
                 xr.begin_frame(self._session, xr.FrameBeginInfo())
-            except xr.ResultException:
+            except xr.ResultException as e:
                 if not getattr(self, '_last_start_frame_failed', False):
-                    error ('xr.begin_frame() failed')
-                self._last_start_frame_failed = True                    
+                    error (f'xr.begin_frame() failed: {e}')
+                    if self.system_name() == 'SonySRD System':
+                        # On the Sony turning off the display power or letting
+                        # it sleep too long will cause begin_frame() to fail
+                        # after which I found no way to revive the OpenXR session.
+                        # ChimeraX ticket #.
+                        error('The Sony Spatial Reality display appears to be turned off or sleeping.  Unfortunately the Sony OpenXR driver is broken and if the Sony display slept you will need to turn OpenXR off and back on in ChimeraX to get it to work again.  If you attempted to start OpenXR when the Sony display is off, you will need to restart ChimeraX to get it to work.')
+                self._last_start_frame_failed = True
                 return False
             self._last_start_frame_failed = False
             return True
