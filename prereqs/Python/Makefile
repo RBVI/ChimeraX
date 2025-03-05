@@ -75,7 +75,7 @@ CONFIG_OPTIONS += --enable-shared
 else
 CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --prefix=$(build_prefix)
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
-REL_PYTHON_FRAMEWORK = ../Library/Frameworks/Python.Framework/Versions/$(PYTHON_VERSION)
+REL_PYTHON_FRAMEWORK = ../Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)
 endif
 endif
 
