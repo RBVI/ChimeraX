@@ -8,7 +8,6 @@
 #
 appdirs==1.4.4
 beautifulsoup4==4.13.3
-build==1.2.1
 colorama==0.4.6
 Cython==3.0.12
 filelock==3.17.0
