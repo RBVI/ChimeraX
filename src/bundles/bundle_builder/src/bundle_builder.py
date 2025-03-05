@@ -1161,6 +1161,12 @@ class _CLibrary(_CompiledCode):
                     pass
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
+                try:
+                    n = compiler.linker_so_cxx.index("-bundle")
+                except ValueError:
+                    pass
+                else:
+                    compiler.linker_so_cxx[n] = "-dynamiclib"
                 lib = compiler.library_filename(lib_name, lib_type="dylib")
                 extra_link_args.extend(
                     ["-Wl,-rpath,@loader_path", "-Wl,-install_name,@rpath/%s" % lib]
