@@ -269,7 +269,6 @@ Sequence::set_name(std::string& name)
 {
     auto old_name = _name;
     _name = name;
-std::cerr << "Change sequence name to " << name << "\n";
     Py_XDECREF(py_call_method("_cpp_rename", "s", old_name.c_str()));
 }
 

@@ -66,6 +66,7 @@ def map_uniprot_ident(ident, *, return_value="identifier"):
     request = Request(mapping_url, bytes(data, 'utf-8'),
         headers={ "User-Agent": "Python chimerax-bugs@cgl.ucsf.edu" })
     from chimerax.core.errors import NonChimeraError
+    print(request)
     try:
         response = urlopen(request)
     except HTTPError as e:

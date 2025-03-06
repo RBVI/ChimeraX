@@ -439,7 +439,7 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
             if res.find_atom(a.name):
                 res_bonder = res.find_atom(a.name)
                 if res_bonder not in res_bud.neighbors:
-                    add_bond(a, res_bonder)
+                    add_bond(res_bud, res_bonder)
                 continue
 
             new_atom = None

@@ -74,7 +74,7 @@ The type of items to label can be indicated with one of the following
 &ndash; <a href="../pseudobonds.html">pseudobond</a> length (&Aring;)
 </ul>
 <p>
-Adding new labels with the <b>label</b> command requires a
+Adding <i>new</i> labels with the <b>label</b> command requires a
 non-blank <a href="atomspec.html"><i>atom-spec</i></a>, although the
 word <b>all</b> can be used to indicate all applicable 3D data.
 For <b>label</b> with a non-blank <a href="atomspec.html"><i>atom-spec</i></a>,
@@ -94,11 +94,13 @@ Model-label examples:
 <b>label all models</b>
 </blockquote>
 <p>
+The <b>label</b> command can be used with a blank
+<a href="atomspec.html"><i>atom-spec</i></a> to modify existing labels.
 For <b>label</b> with a blank <a href="atomspec.html"><i>atom-spec</i></a>,
 or <b>label delete</b> regardless of whether the
 <a href="atomspec.html"><i>atom-spec</i></a> is blank, the default is 
 all types of 3D labels unless explicitly limited to one of the types
-with the corresonding keyword (<b>atoms</b>, <b>residues</b>, <i>etc.</i>).
+with the corresponding keyword (<b>atoms</b>, <b>residues</b>, <i>etc.</i>).
 The command <b>~label</b> is the same as <b>label delete</b>.
 </p><p>
 3D labels can also be added/deleted by clicking in the graphics window
@@ -279,6 +281,15 @@ unless <i>all</i> of the labels displayed for that model have a
 <a href="#bgColor">background</a>.
 </blockquote>
 
+<blockquote>
+<a name="position"></a>
+<b>position</b>&nbsp;&nbsp;<b>centroid</b>&nbsp;|&nbsp;primary atom
+<br>
+Whether to position residue labels relative to the centroid of the residue's
+atoms or to the residue's primary atom
+(<i>e.g.</i>, the CA atom in an amino acid).
+</blockquote>
+
 <a name="listfonts"></a>
 <p class="nav">
 [<a href="#top">back to top: label</a>]
@@ -367,5 +378,5 @@ those with <a href="#height">fixed heights</a> always face the viewer.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2024</address>
+February 2025</address>
 </body></html> 

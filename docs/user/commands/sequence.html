@@ -59,6 +59,8 @@ assign <a href="../attributes.html">attributes</a>
 consistent with a specific alignment
 <li><a href="#refseq"><b>sequence refseq</b></a>
 &ndash; set which sequence to use as the reference for numbering
+<li><a href="#rename"><b>sequence rename</b></a>
+&ndash; change the name of a sequence
 <li><a href="#search"><b>sequence search</b></a>
 &ndash; fast MMSeqs2 search for structures similar in sequence 
 to a structure chain
@@ -243,6 +245,28 @@ with the same column(s) of the specified sequence alignment, or if none
 is specified, all sequence alignments.
 The <i>alignment-ID</i> is shown in the title bar of the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window.
+</p>
+
+<a name="rename"></a>
+<p class="nav">
+[<a href="#top">back to top: sequence</a>]
+</p>
+<h3>Rename a Sequence</h3>
+<blockquote>
+<a href="usageconventions.html">Usage</a>:
+<b>sequence &nbsp;rename</b>
+<span class="nowrap">[&nbsp;<i>alignment-ID</i>:<i>sequence-ID</i>&nbsp;]</span>
+&nbsp;<i>new-name</i>
+</blockquote>
+<p>
+Rename the specified sequence.
+The sequence is specified by its alignment ID, shown in the title bar
+of the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window,
+plus the sequence's name or index number in the alignment, in the form:
+&nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
+(<a href="seqspec.html">details...</a>).
+The <i>new-name</i> cannot include a colon (:) and should be enclosed in 
+quotation marks if it includes any spaces.
 </p>
 
 <a name="header"></a>

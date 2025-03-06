@@ -79,10 +79,5 @@ class RenameSeqDialog:
             (StringArg.unparse(self.sv.alignment.ident + ':' + seq.name), StringArg.unparse(new_name)))
 
     def _error(self, msg):
-        from Qt.QtWidgets import QMessageBox
-        em = QMessageBox(self.tool_window.ui_area)
-        em.setWindowTitle("Rename Dialog Error")
-        em.setText(msg)
-        b = em.addButton("OK", QMessageBox.AcceptRole)
-        em.setDefaultButton(b)
-        em.exec() if hasattr(em, 'exec') else em.exec_()
+        from chimerax.ui import tool_user_error
+        tool_user_error(msg, self.tool_window.ui_area, title="Rename Dialog Error")

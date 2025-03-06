@@ -1,9 +1,13 @@
 name: Rebuild on change
 
 on:
-  push:
+  pull_request:
     branches: [develop, release/*]
-    paths-ignore: [.github/workflows/nightly.yml, .github/workflows/*build.yml]
+
+# See https://stackoverflow.com/a/72408109
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-and-test-rocky8-docker:
@@ -31,7 +35,7 @@ jobs:
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
-        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
+        run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
@@ -60,7 +64,7 @@ jobs:
       - name: Run the legacy test suite
         run: make test
       - name: Install Pytest
-        run: ./ChimeraX.app/Contents/bin/python3.11 -I -m pip install pytest pytest-cov
+        run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
@@ -93,7 +97,7 @@ jobs:
       - name: Run the legacy test suite
         run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test
       - name: Install Pytest
-        run: ./ChimeraX.app/bin/python.exe -I -m pip install pytest pytest-cov
+        run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent

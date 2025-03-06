@@ -326,7 +326,7 @@ UBUNTU_DEPENDENCIES = {
         "libsqlite3-0": "3.31.1",
         "libssl3": "3.0.2",
         "libstdc++6": "10-20200411",
-        "libtheora": None,
+        "libtheora0": None,
         "libtinfo6": "6.2",
         "libuuid1": "2.34",
         "libwayland-client0": "1.18.0",

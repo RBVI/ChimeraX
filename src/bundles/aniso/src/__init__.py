@@ -11,12 +11,10 @@ class _AnisoAPI(BundleAPI):
             from . import mgr
             return getattr(mgr, class_name)
 
-    """
     @staticmethod
     def start_tool(session, tool_name, **kw):
-        from .tool import NucleotidesTool
-        return NucleotidesTool(session, tool_name, **kw)
-    """
+        from .tool import AnisoTool
+        return AnisoTool(session, tool_name, **kw)
 
     @staticmethod
     def register_command(command_name, logger):

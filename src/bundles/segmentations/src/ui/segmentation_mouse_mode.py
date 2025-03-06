@@ -19,13 +19,6 @@ from chimerax.core.settings import Settings
 from chimerax.mouse_modes import MouseMode
 from chimerax.geometry.place import Place
 
-from chimerax.vive.vr import vr_camera as steamvr_camera
-from chimerax.vive.vr import vr_button as steamvr_button
-from chimerax.vive.vr import SteamVRCamera
-from chimerax.vive.xr import vr_camera as openxr_camera
-from chimerax.vive.xr import vr_button as openxr_button
-from chimerax.vive.xr import OpenXRCamera
-
 from chimerax.segmentations.ui import find_segmentation_tool
 from chimerax.segmentations.triggers import activate_trigger, Trigger
 
@@ -157,6 +150,12 @@ def restore_mouse_bindings(session):
 def save_hand_bindings(session, handedness):
     global _saved_hand_bindings
     global _have_saved_hand_bindings
+    from chimerax.vive.vr import SteamVRCamera
+    from chimerax.vive.xr import OpenXRCamera
+    from chimerax.vive.vr import vr_camera as steamvr_camera
+    from chimerax.vive.vr import vr_button as steamvr_button
+    from chimerax.vive.xr import vr_camera as openxr_camera
+    from chimerax.vive.xr import vr_button as openxr_button
     if type(session.main_view.camera) is SteamVRCamera:
         vr_camera = steamvr_camera
         vr_button = steamvr_button
@@ -196,6 +195,8 @@ def save_hand_bindings(session, handedness):
 def restore_hand_bindings(session):
     global _saved_hand_bindings
     global _have_saved_hand_bindings
+    from chimerax.vive.vr import SteamVRCamera
+    from chimerax.vive.xr import OpenXRCamera
     camera = session.main_view.camera
     if isinstance(camera, SteamVRCamera) or isinstance(camera, OpenXRCamera):
         if _have_saved_hand_bindings:
