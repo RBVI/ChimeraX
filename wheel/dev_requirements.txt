@@ -4,7 +4,7 @@ certifi>=2024.7.04
 charset-normalizer==3.0.1
 coverage==7.1.0
 Cython==0.29.33
-exceptiongroup==1.1.0
+exceptiongroup==1.2.2
 grako==3.99.9
 idna==3.7
 ihm==0.36
