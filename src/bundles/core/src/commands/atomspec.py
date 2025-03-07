@@ -100,8 +100,9 @@ def maximum_stack(max_depth=MAX_STACK_DEPTH):
     sys.setrecursionlimit(save_current_limit)
 
 
-class PeglibParseError(SyntaxError):
+class PeglibParseError(ValueError):
     pass
+
 class PeglibSemanticsError(ValueError):
     pass
 

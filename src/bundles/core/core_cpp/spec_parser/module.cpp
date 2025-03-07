@@ -315,14 +315,31 @@ static bool err_valid;
 static void
 set_error_info(PyObject* err_type, std::string msg)
 {
-    PyObject *type, *value, *traceback;
     auto err_val = PyTuple_New(2);
-    if (err_val == nullptr)
+    if (err_val == nullptr) {
+        PyErr_SetString(PyExc_AssertionError, "Could not create error-value tuple");
         throw std::runtime_error("Could not create tuple");
-    PyErr_Fetch(&type, &value, &traceback);
+    }
     PyTuple_SetItem(err_val, 0, PyLong_FromSize_t( err_valid ? err_col-1 : (size_t)0));
-    PyTuple_SetItem(err_val, 1, (msg == use_python_error ? value : PyUnicode_FromString(msg.c_str())));
-    PyErr_Restore(err_type, err_val, traceback);
+    if (PyErr_Occurred() == nullptr) {
+        if (msg == use_python_error) {
+            PyErr_SetString(PyExc_AssertionError, "Trying to use Python error when none set");
+            throw std::runtime_error("No Python error message to use");
+        }
+        PyTuple_SetItem(err_val, 1, PyUnicode_FromString(msg.c_str()));
+        PyErr_SetObject(err_type, err_val);
+    } else {
+        PyObject *type, *value, *traceback;
+        PyErr_Fetch(&type, &value, &traceback);
+        if (msg == use_python_error) {
+            PyTuple_SetItem(err_val, 1, value);
+        } else {
+            PyTuple_SetItem(err_val, 1, PyUnicode_FromString(msg.c_str()));
+            Py_DECREF(value);
+        }
+        PyErr_Restore(err_type, err_val, traceback);
+        Py_DECREF(type);
+    }
 }
 
 //TODO: accept find_match() keywords
@@ -334,6 +351,7 @@ evaluate(PyObject *, PyObject *args)
     PyObject *parse_error_class, *semantics_error_class;
     if (!PyArg_ParseTuple(args, "OOspOOpp", &session, &models, &text, &c_quoted, &parse_error_class,
             &semantics_error_class, &c_add_implied, &c_order_implicit))
+
         return nullptr;
     bool quoted = static_cast<bool>(c_quoted);
     add_implied = static_cast<bool>(c_add_implied);
@@ -354,7 +372,6 @@ evaluate(PyObject *, PyObject *args)
     // runtime_error for basic failures like allocation failures or import failures
     outermost_inversion = false;
     try {
-std::cerr << "Parsing text " << text << "\n";
         err_valid = false;
         spec_parser.parse(text, returned_objects_instance);
         if (returned_objects_instance == nullptr && !quoted) {
@@ -362,7 +379,6 @@ std::cerr << "Parsing text " << text << "\n";
             auto space_pos = trial_text.find_last_of(' ');
             while (space_pos != std::string::npos) {
                 trial_text = trial_text.substr(0, space_pos);
-std::cerr << "Parsing text " << trial_text << "\n";
                 err_valid = false;
                 spec_parser.parse(trial_text.c_str(), returned_objects_instance);
                 if (returned_objects_instance != nullptr)
@@ -387,13 +403,10 @@ std::cerr << "Parsing text " << trial_text << "\n";
         }
         return nullptr;
     } catch (std::logic_error& e) {
-std::cerr << "caught logic_error\n";
         // invalid_argument is a subclass of logic_error, so catch logic_error second
         Py_DECREF(models);
         try {
-std::cerr << "call set_error_info\n";
             set_error_info(semantics_error_class, e.what());
-std::cerr << "called set_error_info\n";
         } catch (std::runtime_error &e) {
             return nullptr;
         }
@@ -943,12 +956,6 @@ PyMODINIT_FUNC PyInit__spec_parser()
 
     // atom_specifier
     spec_parser["atom_specifier"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " atom_specifier semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
-        std::cerr << "choice: " << vs.choice() << "\n";
         PyObject* results;
         auto left_objects = std::any_cast<PyObject*>(vs[0]);
         if (vs.choice() == 2) {
@@ -957,7 +964,6 @@ PyMODINIT_FUNC PyInit__spec_parser()
             outermost_inversion = false;
             PyObject* op = vs.choice() == 0 ? objects_intersect : objects_union;
             auto right_objects = std::any_cast<PyObject*>(vs[1]);
-std::cerr << "right_objects: " << right_objects << "; refcount: " << Py_REFCNT(right_objects) << "\n";
             results = PyObject_CallFunctionObjArgs(op, left_objects, right_objects, nullptr);
             Py_DECREF(left_objects);
             Py_DECREF(right_objects);
@@ -969,12 +975,6 @@ std::cerr << "right_objects: " << right_objects << "; refcount: " << Py_REFCNT(r
 
     // as_term
     spec_parser["as_term"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " as_term semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
-        std::cerr << "choice: " << vs.choice() << "\n";
         auto objects_inst = std::any_cast<PyObject*>(vs[0]);
         if (vs.choice() == 1) {
             // tilde
@@ -994,11 +994,6 @@ std::cerr << "right_objects: " << right_objects << "; refcount: " << Py_REFCNT(r
 
     // model_list
     spec_parser["model_list"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " model_list semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         PyObject* all_model_objects = nullptr;
         auto num_hierarchies = vs.size();
         for (decltype(num_hierarchies) i = 0; i < num_hierarchies; ++i) {
@@ -1018,12 +1013,6 @@ std::cerr << "right_objects: " << right_objects << "; refcount: " << Py_REFCNT(r
             
     // model <- HASH_TYPE model_hierarchy ("##" attribute_list)? model_parts* zone_selector? / "##" attribute_list model_parts* zone_selector? / model_parts zone_selector?
     spec_parser["model"] = [](const SemanticValues &vs) {
-        std::cerr << "model choice: " << vs.choice() << "\n";
-        debug_semantic_values(vs);
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         auto objects_inst = new_objects_instance();
         //TODO: attrs, parts, zone
         int attr_index = -1, parts_index = -1, zone_index = -1;
@@ -1085,7 +1074,6 @@ std::cerr << "right_objects: " << right_objects << "; refcount: " << Py_REFCNT(r
             if (vs.size() > 1)
                 zone_index = 1;
         }
-std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index << "; zone_index: " << zone_index << "\n";
         if (attr_index >= 0)
             objects_inst = process_model_attrs(objects_inst, vs[attr_index]);
         if (parts_index >= 0)
@@ -1097,12 +1085,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             
     // model_hierarchy
     spec_parser["model_hierarchy"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " model_hierarchy semantic values\n";
-        std::cerr << "model_hierarchy choice:" << vs.choice() << "\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         std::vector<std::vector<ModelMatcher>> levels;
         levels.push_back(std::any_cast<std::vector<ModelMatcher>>(vs[0]));
         if (vs.size() == 2) {
@@ -1114,12 +1096,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             
     // model_range_list
     spec_parser["model_range_list"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " model_range_list semantic values\n";
-        std::cerr << "model_range_list choice:" << vs.choice() << "\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         std::vector<ModelMatcher> ranges;
         ranges.push_back(std::any_cast<ModelMatcher>(vs[0]));
         if (vs.size() == 2) {
@@ -1131,12 +1107,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             
     // model_range
     spec_parser["model_range"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " model_range semantic values\n";
-        std::cerr << "model_range choice:" << vs.choice() << "\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         if (vs.choice() == 0)
             return ModelMatcher(std::any_cast<ModelPart>(vs[0]), std::any_cast<ModelPart>(vs[1]));
         return ModelMatcher(std::any_cast<ModelPart>(vs[0]));
@@ -1144,11 +1114,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
 
     // model_parts <- chain+
     spec_parser["model_parts"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " model_parts semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         std::vector<PyObject*> chains;
         for (auto v: vs)
             chains.push_back(std::any_cast<PyObject*>(v));
@@ -1157,12 +1122,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             
     // chain <- "/" part_list ("//" attribute_list)? chain_parts* / "//" attribute_list chain_parts* / chain_parts+
     spec_parser["chain"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " chain semantic values\n";
-        std::cerr << "chain choice: " << vs.choice() << "\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         int parts_index, attr_index, subparts_index;
         find_indices(vs, parts_index, attr_index, subparts_index);
         PyObject *part_list, *attr_list, *subpart_list;
@@ -1211,11 +1170,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             
     // chain_parts <- residue+
     spec_parser["chain_parts"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " chain_parts semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         std::vector<PyObject*> residues;
         for (auto v: vs)
             residues.push_back(std::any_cast<PyObject*>(v));
@@ -1224,12 +1178,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             
     // residue <- ":" part_list ("::" attribute_list)? residue_parts* / "::" attribute_list residue_parts* / residue_parts*
     spec_parser["residue"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " residue semantic values\n";
-        std::cerr << "residue choice: " << vs.choice() << "\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         int parts_index, attr_index, subparts_index;
         find_indices(vs, parts_index, attr_index, subparts_index);
         PyObject *part_list, *attr_list, *subpart_list;
@@ -1278,11 +1226,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             
     // residue_parts <- atom+
     spec_parser["residue_parts"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " residue_parts semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         std::vector<PyObject*> atoms;
         for (auto v: vs)
             atoms.push_back(std::any_cast<PyObject*>(v));
@@ -1291,11 +1234,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
 
     // part_list
     spec_parser["part_list"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " part_list semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         PyObject* part_list;
         auto part = std::any_cast<PyObject*>(vs[0]);
         if (vs.choice() == 0) {
@@ -1317,12 +1255,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
 
     // atom <- "@" atom_list ("@@" attribute_list)? / "@@" attribute_list
     spec_parser["atom"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " atom semantic values\n";
-        std::cerr << "atom choice: " << vs.choice() << "\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         int parts_index = -1, attr_index = -1;
         if (vs.choice() == 0) {
             parts_index = 0;
@@ -1362,11 +1294,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             
     // atom_list <- ATOM_NAME "," atom_list / ATOM_NAME
     spec_parser["atom_list"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " atom_list semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         PyObject* part_list;
         auto part = std::any_cast<PyObject*>(vs[0]);
         if (vs.choice() == 0) {
@@ -1388,11 +1315,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             
     // attribute_list
     spec_parser["attribute_list"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " attribute_list semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         std::vector<AttrTester> attr_tests;
         for (auto val: vs) {
             attr_tests.push_back(std::any_cast<AttrTester>(val));
@@ -1402,12 +1324,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
 
     // attr_test
     spec_parser["attr_test"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " attr_test semantic values\n";
-        std::cerr << "attr_test choice:" << vs.choice() << "\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         // emulates the code in commands.atomspec._AtomSpecSemantics.attr_test
         if (vs.choice() == 0) {
             auto name = std::string(std::any_cast<std::string_view>(vs[0]));
@@ -1467,11 +1383,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
 
     // zone_selector
     spec_parser["zone_selector"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " zone_selector semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         float dist;
         if (vs.choice() == 0)
             dist = std::any_cast<float>(vs[vs.size()-1]);
@@ -1482,11 +1393,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
 
     // ATOM_NAME <- < [^#/:@; \t\n]+ >
     spec_parser["ATOM_NAME"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " ATOM_NAME semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         auto arg1 = PyUnicode_FromString(vs.token_to_string().c_str());
         if (arg1 == nullptr)
             throw std::runtime_error("Could not convert token to string");
@@ -1502,32 +1408,16 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             
     // ATTR_NAME
     spec_parser["ATTR_NAME"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " ATTR_NAME semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         return vs.token();
     };
             
     // ATTR_OPERATOR
     spec_parser["ATTR_OPERATOR"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " ATTR_OPERATOR semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         return vs.token();
     };
             
     // ATTR_VALUE
     spec_parser["ATTR_VALUE"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " ATTR_VALUE semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
-        std::cerr << "choice: " << vs.choice() << "\n";
         // Return pair with unquoted token and boolean indicating whether it was originally quoted;
         // quoted values have two vs.tokens() -- unquoted and quoted, so always return the first
         return std::make_pair(vs.tokens[0], vs.choice() < 2);
@@ -1535,32 +1425,16 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             
     // HASH_TYPE
     spec_parser["HASH_TYPE"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " HASH_TYPE semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         return vs.tokens[0][1] == '!';
     };
             
     // MODEL_SPEC
     spec_parser["MODEL_SPEC"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " MODEL_SPEC semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         return ModelPart(vs.token_to_number<int>());
     };
             
     // MODEL_SPEC_ANY
     spec_parser["MODEL_SPEC_ANY"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " MODEL_SPEC_ANY semantic values\n";
-        std::cerr << "MODEL_SPEC_ANY choice:" << vs.choice() << "\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         if (vs.choice() == 1)
             return ModelPart();
         return std::any_cast<ModelPart>(vs[0]);
@@ -1568,12 +1442,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             
     // MODEL_SPEC_START
     spec_parser["MODEL_SPEC_START"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " MODEL_SPEC_START semantic values\n";
-        std::cerr << "MODEL_SPEC_START choice:" << vs.choice() << "\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         if (vs.choice() > 0)
             return ModelPart();
         return std::any_cast<ModelPart>(vs[0]);
@@ -1581,12 +1449,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             
     // MODEL_SPEC_END
     spec_parser["MODEL_SPEC_END"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " MODEL_SPEC_END semantic values\n";
-        std::cerr << "MODEL_SPEC_END choice:" << vs.choice() << "\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         if (vs.choice() > 0)
             return ModelPart();
         return std::any_cast<ModelPart>(vs[0]);
@@ -1594,31 +1456,16 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
             
     // RANGE_CHAR <- [A-Za-z0-9_'"\[\]\\]
     spec_parser["RANGE_CHAR"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " RANGE_CHAR semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         return vs.token();
     };
             
     // RANGE_PART <- < "-"? RANGE_CHAR+ >
     spec_parser["RANGE_PART"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " RANGE_PART semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         return vs.token_to_string();
     };
 
     // PART_RANGE_LIST <- < RANGE_PART "-" RANGE_PART > / RANGE_PART
     spec_parser["PART_RANGE_LIST"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " PART_RANGE_LIST semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         auto arg1 = PyUnicode_FromString(std::any_cast<std::string>(vs[0]).c_str());
         if (arg1 == nullptr)
             throw std::runtime_error("Could not convert token to string");
@@ -1648,7 +1495,6 @@ std::cerr << "attr_index: " << attr_index << "; parts_index: " << parts_index <<
         auto sel_text = PyUnicode_FromString(vs.token_to_string().c_str());
         if (sel_text == nullptr)
             throw std::runtime_error("Could not convert token to string");
-std::cerr << "selector text: " << vs.token_to_string() << "\n";
         auto selector = PyObject_CallOneArg(get_selector, sel_text);
         if (selector == nullptr) {
             Py_DECREF(sel_text);
@@ -1672,7 +1518,6 @@ std::cerr << "selector text: " << vs.token_to_string() << "\n";
             throw std::runtime_error(use_python_error);
         }
         auto selector_objects = new_objects_instance();
-std::cerr << "selector_objects: " << selector_objects << "; refcount: " << Py_REFCNT(selector_objects) << "\n";
         if (is_inst) {
             if (PyObject_CallMethodOneArg(selector_objects, combine_arg, selector) == nullptr) {
                 Py_DECREF(selector);
@@ -1707,31 +1552,16 @@ std::cerr << "selector_objects: " << selector_objects << "; refcount: " << Py_RE
             
     // ZONE_OPERATOR
     spec_parser["ZONE_OPERATOR"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " ZONE_OPERATOR semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         return vs.token();
     };
 
     // integer
     spec_parser["integer"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " integer semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         return vs.token_to_number<int>();
     };
 
     // real_number
     spec_parser["real_number"] = [](const SemanticValues &vs) {
-        std::cerr << vs.size() << " real_number semantic values\n";
-        std::cerr << "tokens:";
-        for (auto tk: vs.tokens)
-            std::cerr << " " << tk;
-        std::cerr << "\n";
         return vs.token_to_number<float>();
     };
 
