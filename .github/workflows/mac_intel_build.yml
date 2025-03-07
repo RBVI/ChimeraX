@@ -29,7 +29,7 @@ on:
         required: true
 
 env:
-  MACOSX_DEPLOYMENT_TARGET: 11
+  MACOSX_DEPLOYMENT_TARGET: 12
 
 jobs:
   build-intel-macos:
