@@ -1,4 +1,4 @@
-attrs==22.2.0
+attrs==25.1.0
 build==0.10.0
 certifi>=2024.7.04
 charset-normalizer==3.0.1
