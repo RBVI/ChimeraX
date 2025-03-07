@@ -9,7 +9,7 @@ grako==3.99.9
 idna==3.7
 ihm==0.36
 iniconfig==2.0.0
-msgpack==1.0.4
+msgpack==1.0.8
 numpy==1.24.1
 packaging==23.0
 Pillow==10.2.0
