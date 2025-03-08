@@ -1,4 +1,5 @@
 from chimerax.core.toolshed import BundleAPI
+from chimerax.atomic import AtomicStructure
 
 class _MyAPI(BundleAPI):
     api_version = 1
@@ -71,8 +72,16 @@ def open_viewdock_tool(session, structures=None):
         session: the ChimeraX session
         structures: a list of structures to open in the tool
     """
+
     toolshed = session.toolshed
 
     bi = toolshed.find_bundle("ViewDock", session.logger)
-    bi.start_tool(session, "ViewDock")
 
+    if bi is None:
+        session.logger.error("Cannot open ViewDock tool because bundle was not found.")
+        return
+
+    vd_tool = bi.start_tool(session, "ViewDock")
+    vd_tool.setup(structures)
+
+    # TODO update tool with structures
