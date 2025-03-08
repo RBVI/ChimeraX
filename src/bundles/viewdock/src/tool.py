@@ -13,3 +13,6 @@ class ViewDockTool(ToolInstance):
         self.tool_window = MainToolWindow(self)
 
         self.tool_window.manage('side')
+
+    def setup(self, structures):
+        self.sessionlogging.info("ViewDockTool.setup")
