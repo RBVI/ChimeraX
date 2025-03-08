@@ -77,9 +77,6 @@ class ViewState:
             # stored in the View. For the simplicity of Scenes we want to convert all the nested objects into raw data.
             v_camera = v.camera
             data['camera'] = CameraState.take_snapshot(v_camera, session, State.SCENE)
-            c_position = v_camera.position
-            from chimerax.geometry.psession import PlaceState
-            data['camera']['position'] = PlaceState.take_snapshot(c_position, session, State.SCENE)
 
             v_lighting = v.lighting
             data['lighting'] = LightingState.take_snapshot(v_lighting, session, State.SCENE)
@@ -220,6 +217,13 @@ class CameraState:
             session.logger.info('"%s" camera settings not currently saved in sessions' % c.name)
             data = {'position': c.position}
         data['version'] = CameraState.version
+
+        # Scene Implementation
+        from chimerax.core.state import State
+        if flags == State.SCENE:
+            from chimerax.geometry.psession import PlaceState
+            data['position'] = PlaceState.take_snapshot(c.position, session, State.SCENE)
+
         return data
 
     @staticmethod
