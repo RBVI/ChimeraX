@@ -346,6 +346,9 @@ class MaterialState:
     def reset_state(Material, session):
         pass
 
+    @staticmethod
+    def restore_scene(material, session, data):
+        MaterialState.set_state_from_snapshot(material, session, data)
 
 class ClipPlaneState:
     '''This is no longer used for saving sessions but is kept for restoring old sessions.'''
