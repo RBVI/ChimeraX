@@ -305,6 +305,9 @@ class LightingState:
     def reset_state(lighting, session):
         pass
 
+    @staticmethod
+    def restore_scene(lighting, session, data):
+        LightingState.set_state_from_snapshot(lighting, session, data)
 
 class MaterialState:
 
