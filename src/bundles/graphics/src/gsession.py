@@ -421,6 +421,11 @@ class SceneClipPlaneState:
     def reset_state(clip_plane, session):
         pass
 
+    @staticmethod
+    def restore_scene(cp, session, data):
+        cp.name = data['name']
+        cp.normal = data['normal']
+        cp.plane_point = data['plane_point']
 
 class CameraClipPlaneState:
     
@@ -449,6 +454,11 @@ class CameraClipPlaneState:
     def reset_state(clip_plane, session):
         pass
 
+    @staticmethod
+    def restore_scene(cp, session, data):
+        cp.name = data['name']
+        cp._camera_normal = data['_camera_normal']
+        cp._camera_plane_point = data['_camera_plane_point']
 
 class DrawingState:
 
