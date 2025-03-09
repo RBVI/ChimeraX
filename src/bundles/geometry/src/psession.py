@@ -37,6 +37,11 @@ class PlaceState:
         p._is_identity = data['_is_identity']
         return p
 
+    @staticmethod
+    def restore_scene(place, session, data):
+        place.matrix = data['matrix']
+        place._is_identity = data['_is_identity']
+
 class PlacesState:
     version = 1
 
