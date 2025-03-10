@@ -11,7 +11,7 @@ ihm==2.2
 iniconfig==2.0.0
 msgpack==1.0.8
 numpy==1.24.1
-packaging==23.0
+packaging==24.2
 Pillow==10.2.0
 pluggy==1.0.0
 pydicom==2.3.1
