@@ -3,7 +3,7 @@ build==0.10.0
 certifi>=2024.7.04
 charset-normalizer==3.0.1
 coverage==7.6.12
-Cython==0.29.33
+Cython==3.0.12
 exceptiongroup==1.2.2
 grako==3.99.9
 idna==3.7
