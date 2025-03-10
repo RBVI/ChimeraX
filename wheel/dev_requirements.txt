@@ -16,7 +16,7 @@ Pillow==10.2.0
 pluggy==1.0.0
 pydicom==2.3.1
 PyOpenGL==3.1.6
-PyOpenGL-accelerate==3.1.6
+PyOpenGL-accelerate==3.1.7
 pyproject_hooks==1.0.0
 pytest==8.3.5
 pytest-dependency==0.5.1
