@@ -66,6 +66,20 @@ class Scene(State):
     instead of super().take_snapshot(State.SCENE) to ensure you are calling a Scene supported parent class.
 
     - Model positions are saved by the NamedView object and do not need to be saved in Scene interface implementations.
+
+    How to implement Scene support for a static state managing class:
+
+    1) Implement static take_snapshot(obj, session, flags=State.SCENE). obj is the object that the snapshot should be
+    taken from, session is the current session, and flags is the State flag that is passed to take_snapshot. The flags
+    argument will be State.SCENE when taking a scene snapshot. take_snapshot should return a dictionary of data that is
+    needed to capture any scene relevant state data.
+
+    2) Implement static restore_scene(obj, session, data). Obj is the object that the snapshot was taken from, session
+    is the current session, and data is the dictionary that was returned from
+    take_snapshot(obj, session, flags=State.SCENE). This method is expected to return an object that is assumed to have
+    the scene state data applied to it.
+
+    Note: Static state managing classes are not automatically to the scene snapshot system.
     """
 
     version = 0
@@ -143,7 +157,7 @@ class Scene(State):
         main_view = self.session.view
         view_state = self.session.snapshot_methods(main_view)
         if implements_scene(view_state):
-            view_state.restore_scene(self.session, copy.deepcopy(self.main_view_data))
+            view_state.restore_scene(main_view, self.session, copy.deepcopy(self.main_view_data))
         current_models = self.session.models.list()
         for model in current_models:
             # NamedView only handles restoring model positions. Camera and clip plane positions are restored with the
