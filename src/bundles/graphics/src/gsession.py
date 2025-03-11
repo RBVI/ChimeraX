@@ -128,6 +128,8 @@ class ViewState:
         ViewState.set_state_from_snapshot(view, session, scene_data)
         del session.restore_options['restore camera']
 
+        return view
+
     @staticmethod
     def set_state_from_snapshot(view, session, data):
         v = view
