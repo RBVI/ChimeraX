@@ -250,10 +250,11 @@ class CameraState:
         pass
 
     @staticmethod
-    def restore_scene(camera, session, data):
+    def restore_scene(c, session, data):
         from chimerax.geometry.psession import PlaceState
-        PlaceState.restore_scene(camera.position, session, data['position'])
-        CameraState.set_state_from_snapshot(camera, session, data)
+        data['position']= PlaceState.restore_scene(c.position, session, data['position'])
+        CameraState.set_state_from_snapshot(c, session, data)
+        return c
 
 class LightingState:
 
