@@ -40,9 +40,7 @@ class PlaceState:
     @staticmethod
     def restore_scene(place, session, data):
         from . import Place
-        new_place = Place(data['matrix'])
-        new_place._is_identity = data['_is_identity']
-        return new_place
+        return PlaceState.restore_snapshot(session, data)
 
 class PlacesState:
     version = 1
