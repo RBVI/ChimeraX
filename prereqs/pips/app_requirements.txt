@@ -56,7 +56,7 @@ python-dateutil==2.9.0.post0
 #shiboken6==6.8.2.1
 qtconsole==5.5.2
 requests==2.32.3
-scipy==1.14.0
+scipy==1.15.2
 six==1.16.0
 sortedcontainers==2.4.0
 # Used by the DICOM bundle for a double-ended QSlider
