@@ -3,10 +3,13 @@ updates:
   # Enable version updates for npm
   - package-ecosystem: "pip"
     # Look for `package.json` and `lock` files in the `root` directory
-    directory: "/"
+    directories:
+      - "prereqs/pips"
+      - "/"
     # Check the npm registry for updates every day (weekdays)
     schedule:
       interval: "weekly"
+      open-pull-request-limit: 100
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
