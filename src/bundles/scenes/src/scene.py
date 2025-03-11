@@ -143,7 +143,7 @@ class Scene(State):
         main_view = self.session.view
         view_state = self.session.snapshot_methods(main_view)
         if implements_scene(view_state):
-            view_state.restore_scene(self.session, copy.deepcopy(self.main_view_data))
+            view_state.restore_scene(main_view, self.session, copy.deepcopy(self.main_view_data))
         current_models = self.session.models.list()
         for model in current_models:
             # NamedView only handles restoring model positions. Camera and clip plane positions are restored with the
