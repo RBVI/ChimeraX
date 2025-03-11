@@ -15,7 +15,7 @@ packaging==24.2
 Pillow==10.2.0
 pluggy==1.0.0
 pydicom==2.3.1
-PyOpenGL==3.1.6
+PyOpenGL==3.1.7
 PyOpenGL-accelerate==3.1.7
 pyproject_hooks==1.0.0
 pytest==8.3.5
