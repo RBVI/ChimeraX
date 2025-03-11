@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2022 Regents of the University of California. All rights reserved.
+# Copyright 2025 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
 # <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
