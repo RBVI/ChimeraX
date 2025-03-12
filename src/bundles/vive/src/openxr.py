@@ -67,7 +67,7 @@ class XR:
         if self._debug:
             requested_extensions.append(xr.EXT_DEBUG_UTILS_EXTENSION_NAME)
 
-        app_info = xr.ApplicationInfo("chimerax", 0, "pyopenxr", 0, xr.XR_CURRENT_API_VERSION)
+        app_info = xr.ApplicationInfo("chimerax", 0, "pyopenxr", 0, xr.XR_API_VERSION_1_0)
         iinfo = xr.InstanceCreateInfo(application_info = app_info,
                                       enabled_extension_names = requested_extensions)
         if self._debug:
