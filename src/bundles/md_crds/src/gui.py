@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from Qt.QtWidgets import QFrame, QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QPushButton, QMenu, \
-    QSizePolicy, QWidget, QStackedWidget
+    QSizePolicy, QWidget, QStackedWidget, QGridLayout
 from Qt.QtCore import Qt
 
 from chimerax.core.commands import plural_of
@@ -65,9 +65,9 @@ def fill_context_menu(menu, parent_tool_window, structure):
     for provider_name in mgr.provider_names:
         ui_name = mgr.ui_name(provider_name)
         menu_name = plural_of(ui_name)
-        if menu_name.lower() == menu_name:
+        if ui_name.lower() == ui_name:
             # no caps
-            menu_name = ui_name.capitalize()
+            menu_name = menu_name.capitalize()
 
         action = QAction(menu_name, plot_menu)
         action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure, name=provider_name:
@@ -77,6 +77,11 @@ def fill_context_menu(menu, parent_tool_window, structure):
 class PlotDialog:
     def __init__(self, plot_window, structure):
         self.tool_window = tw = plot_window
+        def cleanup(inst=tw.tool_instance):
+            del _md_tool_windows[inst]["plot"]
+            if not _md_tool_windows[inst]:
+                del _md_tool_windows[inst]
+        tw.cleanup = cleanup
         self.session = structure.session
         self.structure = structure
         #TODO: respond to structure deletion
@@ -99,7 +104,7 @@ class PlotDialog:
         tw.manage(None)
 
     def make_tab(self, provider_name):
-        if self.mgr.num_atoms(provider_name) == 0:
+        if self.mgr.num_atoms(provider_name) is None:
             return self._make_scalar_tab(provider_name)
         return self._make_atomic_tab(provider_name)
 
@@ -124,8 +129,10 @@ class PlotDialog:
         page_layout.setContentsMargins(0,0,0,0)
         page.setLayout(page_layout)
         self._plot_stacks[provider_name] = stack = QStackedWidget()
-        stack.addWidget(QLabel("Select %d atoms and click 'Plot' to begin plotting"
-            % self.mgr.num_atoms(provider_name), alignment=Qt.AlignCenter))
+        num_atoms = self.mgr.num_atoms(provider_name)
+        atom_string = "any number of" if num_atoms == 0 else "%d" % num_atoms
+        stack.addWidget(QLabel("Select " + atom_string + " atoms and click 'Plot' to begin plotting",
+            alignment=Qt.AlignCenter))
         from matplotlib.backends.backend_qtagg import FigureCanvas
         from matplotlib.figure import Figure
         stack.addWidget(FigureCanvas(Figure()))
@@ -151,15 +158,22 @@ class PlotDialog:
 
         plot_control_area = QWidget()
         area_layout.addWidget(plot_control_area)
-        pc_layout = QHBoxLayout()
+        pc_layout = QGridLayout()
         pc_layout.setSpacing(0)
         pc_layout.setContentsMargins(0,0,0,0)
         plot_control_area.setLayout(pc_layout)
         plot_button = QPushButton("Plot")
         plot_button.clicked.connect(lambda *args, f=self._plot_atomic, pv=provider_name: f(pv))
-        pc_layout.addWidget(plot_button, alignment=Qt.AlignRight)
-        pc_layout.addWidget(QLabel(" %s from %d selected atoms" % (ui_name,
-            self.mgr.num_atoms(provider_name))), alignment=Qt.AlignLeft)
+        pc_layout.addWidget(plot_button, 0, 0, alignment=Qt.AlignRight)
+        num_atoms = self.mgr.num_atoms(provider_name)
+        atom_string = "any number of" if num_atoms == 0 else "%d" % num_atoms
+        pc_layout.addWidget(QLabel(" %s from %s selected atoms" % (ui_name, atom_string)), 0, 1,
+            alignment=Qt.AlignLeft)
+        if num_atoms == 0:
+            reminder = QLabel("(If no selection, all atoms)")
+            from chimerax.ui import shrink_font
+            shrink_font(reminder)
+            pc_layout.addWidget(reminder, 1, 0, 1, 2, alignment=Qt.AlignCenter)
 
         delete_control_area = QWidget()
         area_layout.addWidget(delete_control_area)
@@ -186,10 +200,11 @@ class PlotDialog:
         from chimerax.ui.widgets import ItemTable
         table = ItemTable(allow_user_sorting=False)
         table.add_column("Color", "rgba8", format=table.COL_FORMAT_OPAQUE_COLOR, title_display=False)
-        table.add_column("Shown", "shown", format=table.COL_FORMAT_BOOLEAN)
+        table.add_column("Shown", "shown", format=table.COL_FORMAT_BOOLEAN, icon="shown")
         self._value_columns[provider_name] = table.add_column(self.mgr.ui_name(provider_name).capitalize(),
             "value", format=self.mgr.text_format(provider_name),
-            justification="decimal", header_justification="center")
+            #justification="decimal"  guessing in most cases better to center; also avoids fixed-width font
+            header_justification="center")
         for i in range(self.mgr.num_atoms(provider_name)):
             table.add_column("Atom %d" % (i+1), lambda x, i=i: x.atoms[i])
         table.data = []
@@ -201,8 +216,11 @@ class PlotDialog:
         s_atoms = self.structure.atoms
         sel_atoms = s_atoms[s_atoms.selecteds == True]
         expected_sel = self.mgr.num_atoms(provider_name)
-        if len(sel_atoms) != expected_sel:
-            ui_name = self.mgr.ui_name(provider_name)
+        ui_name = self.mgr.ui_name(provider_name)
+        if expected_sel == 0:
+            if not sel_atoms:
+                sel_atoms = s_atoms
+        elif len(sel_atoms) != expected_sel:
             return tool_user_error("Plotting %s requires exactly %d selected atoms in the structure;"
                 " %d are currently selected" % (plural_of(ui_name), expected_sel, len(sel_atoms)))
         table = self._tables[provider_name]
@@ -225,6 +243,13 @@ class PlotDialog:
         import numpy
         for table_entry in table.data:
             axis.plot(cs_ids, [table_entry.values[cs_id] for cs_id in cs_ids], color=table_entry.rgba[:3])
+        y_min, y_max = self.mgr.min_val(provider_name), self.mgr.max_val(provider_name)
+        if y_min is not None:
+            axis.set_ylim(ymin=y_min)
+        if y_max is not None:
+            axis.set_ylim(ymax=y_max)
+        axis.set_xlabel("Coord Set")
+        axis.set_ylabel(ui_name.title() if ui_name.islower() else ui_name)
         canvas.draw_idle()
 
 class TableEntry:
@@ -255,19 +280,15 @@ class TableEntry:
     def values(self):
         return self._values
 
-#TODO: need better handling of:
-#   slider closure deletes plots
-#   plot closure updates _md_tool_windows
+_md_tool_windows = {}
 def _show_plot(provider_name, main_tool_window, structure):
+    inst = main_tool_window.tool_instance
+    inst_windows = _md_tool_windows.setdefault(inst, {})
     try:
-        tws = main_tool_window._md_tool_windows
-    except AttributeError:
-        tws = main_tool_window._md_tool_windows = {}
-
-    try:
-        plot_dialog = tws["plot"]
+        plot_dialog = inst_windows["plot"]
     except KeyError:
-        plot_dialog = tws["plot"] = PlotDialog(main_tool_window.create_child_window("MD Plots"), structure)
+        plot_dialog = inst_windows["plot"] = PlotDialog(main_tool_window.create_child_window("MD Plots"),
+            structure)
 
     plot_dialog.show_tab(provider_name)
     plot_dialog.tool_window.shown = True

@@ -31,20 +31,21 @@ class MDPlottingManager(ProviderManager):
         # 'name' is the name used as an arg in the command
         # 'ui_name' is the name used in the tool interface (defaults to 'name')
         # 'num_atoms' indicates how many atoms are needed to compute the quantity (and therefore are
-        #     needed in the command form).  If num_atoms is zero, the quantity is a scalar (e.g. energy).
+        #     needed in the command form).  If num_atoms is zero, any number of atoms is okay.  If
+        #     num_atoms is omitted, then the quantity is a scalar (e.g. energy).
         # 'min_val'/'max_val' are suggested minimum / maximum values to use for the plotting axis;
         #     if omitted, the min/max of the data values (possibly enlarged to the next esthetic value)
         #     will be used.
         # 'text_format' is the formatting operator to convert the numeric plotting value to the text
         #     displayed in the corresponding table.  It can be "distance" or "angle" for values that
         #     are distances or angles, which will get a more specific treatment than a generic format.
-        if num_atoms is None:
-            raise ValueError(f"MD plotting provider {name} did not supply 'num_atoms' in its description")
-        try:
-            num_atoms = int(num_atoms)
-            assert num_atoms >= 0
-        except (ValueError, AssertionError):
-            raise ValueError(f"'num_atoms' for provider {name} is not a non-negative integer ({num_atoms})")
+        if num_atoms is not None:
+            try:
+                num_atoms = int(num_atoms)
+                assert num_atoms >= 0
+            except (ValueError, AssertionError):
+                raise ValueError("'num_atom' must omitted or be a non-negative integer.\n"
+                    f"'num_atoms' for provider {name} is {num_atoms}")
         self._provider_bundles[name] = bundle_info
         self._ui_names[name] = name if ui_name is None else ui_name
         self._num_atoms[name] = num_atoms
