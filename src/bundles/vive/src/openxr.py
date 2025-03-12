@@ -67,7 +67,7 @@ class XR:
         if self._debug:
             requested_extensions.append(xr.EXT_DEBUG_UTILS_EXTENSION_NAME)
 
-        app_info = xr.ApplicationInfo("chimerax", 0, "pyopenxr", 0, xr.XR_CURRENT_API_VERSION)
+        app_info = xr.ApplicationInfo("chimerax", 0, "pyopenxr", 0, xr.XR_API_VERSION_1_0)
         iinfo = xr.InstanceCreateInfo(application_info = app_info,
                                       enabled_extension_names = requested_extensions)
         if self._debug:
@@ -148,6 +148,21 @@ class XR:
                                          system_id=self._system_id)
         sys_name = props.system_name.decode('utf-8')
         return sys_name
+
+    def device_properties(self):
+        '''
+        Sony Spatial Reality SR1 15.6" display vendor id = 195951310.
+        Might need this to distinguish from SR2 27" model.
+        '''
+        import xr
+        props = xr.get_system_properties(instance=self._instance,
+                                         system_id=self._system_id)
+        tprops = props.tracking_properties
+        return {'system_name': props.system_name.decode('utf-8'),
+                'vendor_id': props.vendor_id,
+                'position_tracking': tprops.position_tracking,
+                'orientation_tracking': tprops.orientation_tracking,
+                }
 
     def _recommended_render_size(self):
         '''Width and height of single eye framebuffer.'''
@@ -376,7 +391,7 @@ class XR:
         if self._frame_started:
             self._frame_started = False
             self._end_xr_frame()
-        debug('ended xr frame')
+            debug('ended xr frame')
 
     def _poll_xr_events(self):
         import xr
@@ -407,17 +422,25 @@ class XR:
         self._session_state = state = xr.SessionState(event.state)
         debug('Session state', state)
         if state == xr.SessionState.READY:
-            sbinfo = xr.SessionBeginInfo(xr.ViewConfigurationType.PRIMARY_STEREO)
-            xr.begin_session(self._session, sbinfo)
-            self._ready_to_render = True
+            self._begin_session()
         elif state == xr.SessionState.STOPPING:
-            xr.end_session(self._session)
-            self._ready_to_render = False
+            self._end_session()
             # After this it will transition to the IDLE state and from there
             # it will either go back to READY or EXITING.
             # No calls should be made to wait_frame, begin_frame, end_frame until ready.
         elif state == xr.SessionState.EXITING:
             self.shutdown()
+
+    def _begin_session(self):
+        import xr
+        sbinfo = xr.SessionBeginInfo(xr.ViewConfigurationType.PRIMARY_STEREO)
+        xr.begin_session(self._session, sbinfo)
+        self._ready_to_render = True
+
+    def _end_session(self):
+        import xr
+        xr.end_session(self._session)
+        self._ready_to_render = False
             
     def _start_xr_frame(self):
         import xr
@@ -430,11 +453,26 @@ class XR:
             try:
                 self._frame_state = xr.wait_frame(self._session,
                                                   frame_wait_info=xr.FrameWaitInfo())
-                xr.begin_frame(self._session, xr.FrameBeginInfo())
-                return True
-            except xr.ResultException:
-                error ('xr.wait_frame() or xr.begin_frame() failed')
+            except xr.ResultException as e:
+                if not getattr(self, '_last_start_frame_failed', False):
+                    error (f'xr.wait_frame() failed: {e}')
+                self._last_start_frame_failed = True
                 return False
+            try:
+                xr.begin_frame(self._session, xr.FrameBeginInfo())
+            except xr.ResultException as e:
+                if not getattr(self, '_last_start_frame_failed', False):
+                    error (f'xr.begin_frame() failed: {e}')
+                    if self.system_name() == 'SonySRD System':
+                        # On the Sony turning off the display power or letting
+                        # it sleep too long will cause begin_frame() to fail
+                        # after which I found no way to revive the OpenXR session.
+                        # ChimeraX ticket #.
+                        error('The Sony Spatial Reality display appears to be turned off or sleeping.  Unfortunately the Sony OpenXR driver is broken and if the Sony display slept you will need to turn OpenXR off and back on in ChimeraX to get it to work again.  If you attempted to start OpenXR when the Sony display is off, you will need to restart ChimeraX to get it to work.')
+                self._last_start_frame_failed = True
+                return False
+            self._last_start_frame_failed = False
+            return True
                 
         return False
 
@@ -722,6 +760,11 @@ class XR:
             self._scene_space = None
 
         if self._session is not None:
+            if self.system_name() == 'SonySRD System':
+                # Without these two calls OpenXR crashes in destroy_session()
+                # if a Sony Spatial Reality display disconnects when it is powered off.
+                xr.request_exit_session(self._session)
+                xr.end_session(self._session)
             xr.destroy_session(self._session)
             self._session = None
 

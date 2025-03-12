@@ -44,7 +44,11 @@ WE_WHEEL_PLATFORM = macosx_10_14_universal2
 MISSING_QTWEBENGINE_DICT = PyQt6/Qt6/lib/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents/MacOS/qtwebengine_dictionaries
 else ifeq ($(OS),Linux)
 BIN_PLATFORM = linux
+ifeq ($(OSARCH),LinuxArm64)
+WHEEL_PLATFORM = manylinux_2_39_aarch64
+else
 WHEEL_PLATFORM = manylinux_2_28_x86_64
+endif
 WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
 MISSING_QTWEBENGINE_DICT = PyQt6/Qt6/libexec/qtwebengine_dictionaries
 else ifeq ($(OS),Windows)

@@ -11,6 +11,8 @@ LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib'
 endif
 
 ifdef WIN32
+# use twice the default stack size
+LDFLAGS += -F2097152
 ifeq ($(DESKTOP),1)
 PROG	= $(APP_NAME).exe
 else
