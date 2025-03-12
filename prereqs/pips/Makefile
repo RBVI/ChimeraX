@@ -46,6 +46,7 @@ ifeq ($(OS),Darwin)
 WHEEL_CFLAGS="-Wno-error=int-conversion"
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
 ifeq ($(OSARCH),DarwinArm64)
+SCIPY_WHEEL = $(subst ==,-,$(shell grep scipy app_requirements.txt))-cp311-cp311-macosx_12_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
 endif
@@ -68,11 +69,18 @@ app-list:
 
 upgrade:
 
+ifeq ($(OSARCH),DarwinArm64)
+app-install: $(PLATO_WHEELS) $(QTSHIM_WHEEL) $(SCIPY_WHEEL)
+else
 app-install: $(PLATO_WHEELS) $(QTSHIM_WHEEL)
+endif
 ifeq ($(OS),Darwin)
 	# Install Cython first so PyOpenGL_accelerate builds
 	$(APP_PIP_INSTALL) $(CYTHON_BUILD_ARGS) $(shell grep Cython app_requirements.txt | sed -e 's/#//')
 	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt)
+ifeq ($(OSARCH),DarwinArm64)
+	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
+endif
 endif
 	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifdef USE_PYSIDE6
@@ -141,6 +149,9 @@ app-outdated:
 
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src
+
+$(SCIPY_WHEEL):
+	$(APP_PIP) download --platform=macosx_12_0_arm64 --no-deps $(shell grep scipy app_requirements.txt)
 
 $(TINYARRAY_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/tinyarray/$(TINYARRAY_WHEEL)

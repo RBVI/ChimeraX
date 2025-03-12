@@ -206,6 +206,8 @@ class GeometryColor(State):
 
         s = self.surface
         vertices = s.vertices
+        if vertices is None or len(vertices) == 0:
+            return (None, None)
         sp = s.scene_position
         va = vertices if sp.is_identity() else sp * vertices
         v = self.values(va)
