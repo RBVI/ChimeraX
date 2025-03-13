@@ -7,9 +7,8 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def start_tool(session, bi, ti):
         if ti.name == "ViewDock":
-            from .tool import ViewDockTool
-            tool = ViewDockTool(session, ti.name)
-            return tool
+            # TODO file open dialogue here
+            pass
 
     @staticmethod
     def register_command(bi, ci, logger):
@@ -66,22 +65,12 @@ bundle_api = _MyAPI()
 
 def open_viewdock_tool(session, structures=None):
     """
-    Open the ViewDock tool for the given structures. If no structures are given, the tool will handle finding them.
+    Open the ViewDock tool for the given structures.
 
     Args:
         session: the ChimeraX session
         structures: a list of structures to open in the tool
     """
 
-    toolshed = session.toolshed
-
-    bi = toolshed.find_bundle("ViewDock", session.logger)
-
-    if bi is None:
-        session.logger.error("Cannot open ViewDock tool because bundle was not found.")
-        return
-
-    vd_tool = bi.start_tool(session, "ViewDock")
-    vd_tool.setup(structures)
-
-    # TODO update tool with structures
+    from .tool import ViewDockTool
+    tool = ViewDockTool(session, "ViewDock", structures)
