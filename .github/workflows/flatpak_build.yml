@@ -38,7 +38,7 @@ jobs:
           path: |
             linux-bundles.tar.gz
             linux-include.tar.gz
-          key: linux-bundles-${{ inputs.release_type }}-${{ github.sha }}
+          key: linux-bundles-x86-${{ inputs.release_type }}-${{ github.sha }}
       - name: Install jq
         run: dnf install -y jq
       - uses: Tiryoh/gha-jobid-action@v1

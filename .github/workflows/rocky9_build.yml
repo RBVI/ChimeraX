@@ -57,7 +57,7 @@ jobs:
           path: |
             linux-bundles.tar.gz
             linux-include.tar.gz
-          key: linux-bundles-${{ inputs.release_type }}-${{ github.sha }}
+          key: linux-bundles-x86-${{ inputs.release_type }}-${{ github.sha }}
       - name: Unpack the bundles to build/sync
         run: |
           mkdir wheels
