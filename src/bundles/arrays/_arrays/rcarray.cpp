@@ -322,6 +322,8 @@ int Numeric_Array::size_of_type(Value_Type t)
     case Unsigned_Int:      return sizeof(unsigned int);
     case Long_Int:      return sizeof(long int);
     case Unsigned_Long_Int: return sizeof(unsigned long int);
+    case Long_Long_Int: return sizeof(long long int);
+    case Unsigned_Long_Long_Int: return sizeof(unsigned long long int);
     case Float:         return sizeof(float);
     case Double:        return sizeof(double);
     };
@@ -465,6 +467,8 @@ const char *Numeric_Array::value_type_name(Value_Type type)
     case Unsigned_Int: return "unsigned int";
     case Long_Int: return "long int";
     case Unsigned_Long_Int: return "unsigned long int";
+    case Long_Long_Int: return "long long int";
+    case Unsigned_Long_Long_Int: return "unsigned long long int";
     case Float: return "float";
     case Double: return "double";
     }

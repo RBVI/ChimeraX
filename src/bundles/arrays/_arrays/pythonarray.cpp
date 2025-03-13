@@ -110,6 +110,8 @@ bool array_from_python(PyObject *array, int dim, Numeric_Array *na, bool allow_d
       dtype = (sizeof(int) == sizeof(long) ? Numeric_Array::Int : Numeric_Array::Long_Int); break;
     case NPY_ULONG:
       dtype = (sizeof(int) == sizeof(long) ? Numeric_Array::Unsigned_Int : Numeric_Array::Unsigned_Long_Int);   break;
+    case NPY_LONGLONG: dtype = Numeric_Array::Long_Long_Int; break;
+    case NPY_ULONGLONG: dtype = Numeric_Array::Unsigned_Long_Long_Int; break;
     case NPY_FLOAT: dtype = Numeric_Array::Float;       break;
     case NPY_DOUBLE:    dtype = Numeric_Array::Double;      break;
     default:
@@ -1315,6 +1317,12 @@ static int parse_int_nm(PyObject *arg, int64_t m, void *iarray, bool allow_copy)
       vi.set(Reference_Counted_Array::Array<long int>(v));
       v = Numeric_Array(Numeric_Array::Int, vi);
     }
+  if (v.value_type() == Numeric_Array::Long_Long_Int && allow_copy)
+  {
+      IArray vi = IArray(v.dimension(), v.sizes());
+      vi.set(Reference_Counted_Array::Array<long long int>(v));
+      v = Numeric_Array(Numeric_Array::Int, vi);
+  }
   if (v.value_type() != Numeric_Array::Int)
     {
       PyErr_Format(PyExc_TypeError, "array type must be int or long int, got %s",

@@ -188,7 +188,7 @@ class ARRAYS_IMEX Numeric_Array : public Untyped_Array
  public:
   enum Value_Type { Char, Signed_Char, Unsigned_Char,
             Short_Int, Unsigned_Short_Int, Int, Unsigned_Int,
-            Long_Int, Unsigned_Long_Int, Float, Double };
+            Long_Int, Unsigned_Long_Int, Float, Double, Long_Long_Int, Unsigned_Long_Long_Int };
   static int size_of_type(Value_Type t);
   static const char *value_type_name(Value_Type type);
 
@@ -228,7 +228,9 @@ class ARRAYS_IMEX Numeric_Array : public Untyped_Array
     case RCANA::Int: f<int> args; break; \
     case RCANA::Unsigned_Int: f<unsigned int> args; break; \
     case RCANA::Long_Int: f<long> args; break; \
+    case RCANA::Long_Long_Int: f<long long> args; break; \
     case RCANA::Unsigned_Long_Int: f<unsigned long> args; break; \
+    case RCANA::Unsigned_Long_Long_Int: f<unsigned long long> args; break; \
     case RCANA::Float: f<float> args; break; \
     case RCANA::Double: f<double> args; break; \
     }
