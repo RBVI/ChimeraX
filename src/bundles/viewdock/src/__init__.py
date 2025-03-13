@@ -7,7 +7,7 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def start_tool(session, bi, ti):
         if ti.name == "ViewDock":
-            # TODO file open dialogue here
+            show_docking_file_dialogue(session)
             pass
 
     @staticmethod
@@ -62,6 +62,22 @@ class _MyAPI(BundleAPI):
         return ViewDockOpenerInfo()
 
 bundle_api = _MyAPI()
+
+def show_docking_file_dialogue(session):
+    """
+    Show an open file dialogue specifically for docking results formats.
+    """
+
+    docking_formats_names = []
+    for data_format in session.data_formats.formats:
+        if data_format.category == "Docking results":
+            docking_formats_names.append(data_format.name)
+    if not docking_formats_names:
+        session.logger.warning("No docking results formats found.")
+        return
+    from chimerax.open_command import show_open_file_dialog
+    show_open_file_dialog(session, format_names=docking_formats_names)
+
 
 def open_viewdock_tool(session, structures=None):
     """
