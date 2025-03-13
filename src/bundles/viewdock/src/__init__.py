@@ -79,14 +79,17 @@ def show_docking_file_dialogue(session):
     show_open_file_dialog(session, format_names=docking_formats_names)
 
 
-def open_viewdock_tool(session, structures=None):
+def open_viewdock_tool(session, structures):
     """
     Open the ViewDock tool for the given structures.
 
     Args:
-        session: the ChimeraX session
-        structures: a list of structures to open in the tool
+        session (Session): the ChimeraX session.
+        structures (list): A list of structures to open in the tool.
     """
 
+    if not structures:
+        session.logger.warning("Cannot open ViewDock without providing docking structures.")
+        return
     from .tool import ViewDockTool
-    tool = ViewDockTool(session, "ViewDock", structures)
+    ViewDockTool(session, "ViewDock", structures)
