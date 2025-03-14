@@ -131,7 +131,6 @@ outdated:
 	@echo "  MarkupSafe (pulled in by Jinja2)"
 	@echo "  parso (pulled in by line-profiler via jedi)"
 	@echo "  pip, wheel, setuptools versions are set in ../python/Makefile"
-	@echo "  pyopenxr use 1.0.3401, newer 1.1.3601 is not supported by SteamVR or Meta App, Aug 2024"
 	@echo "  pyzmq (pulled in by ipykernel via jupyter-client)"
 	@echo "  snowballstemmer (pulled in by Sphinx)"
 	@echo "  tornado (pulled in by ipykernel)"
