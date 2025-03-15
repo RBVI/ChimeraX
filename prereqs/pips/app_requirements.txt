@@ -62,7 +62,7 @@ sortedcontainers==2.4.0
 # Used by the DICOM bundle for a double-ended QSlider
 superqt==0.7.1
 tables==3.10.2
-tifffile==2024.7.24
+tifffile==2025.3.13
 #tinyarray==1.2.4
 webcolors==24.11.1
 wheel-filename==1.4.2
