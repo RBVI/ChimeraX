@@ -30,6 +30,7 @@ libcairo2-dev
 libcups2-dev
 libdbus-1-dev
 libegl1-mesa-dev
+libevent-2.1-7t64
 libexpat1-dev
 libffi-dev
 libfftw3-dev
