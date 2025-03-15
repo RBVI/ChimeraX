@@ -52,7 +52,7 @@ jobs:
     secrets: inherit
   build-rocky9-docker-arm:
     name: Build ChimeraX for arm64 Rocky 9
-    needs: [build-rocky8-docker]
+    needs: [build-rocky8-docker-arm]
     strategy:
       matrix:
         include:
