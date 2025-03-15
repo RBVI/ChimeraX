@@ -77,9 +77,9 @@ ifeq ($(OS),Darwin)
 ifeq ($(OSARCH),DarwinArm64)
 	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
 endif
+endif
 	# Install tinyarray with the Py_ssize_t patch
 	$(APP_PIP_INSTALL) ./$(subst ==,-,$(subst #,,$(shell grep tinyarray app_requirements.txt)))
-endif
 	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifdef USE_PYSIDE6
 	$(APP_PIP_INSTALL) $(shell grep PySide6 app_requirements.txt | sed -e 's/#//')
