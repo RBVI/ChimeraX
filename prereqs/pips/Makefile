@@ -152,7 +152,7 @@ $(SCIPY_WHEEL):
 
 patched-tinyarray:
 	$(APP_PIP) download $(subst #,,$(shell grep tinyarray app_requirements.txt))
-	tar -xf $(subst ==,-,$(subst #,,$(shell grep tinyarray app_requirements.txt))).tar.gz
+	tar -xf $(subst ==,-,$(subst #,,$(shell grep tinyarray app_requirements.txt))).tar.gz --no-same-owner
 	cd $(subst ==,-,$(subst #,,$(shell grep tinyarray app_requirements.txt))) && patch -p1 < ../tinyarray-pyssizet-patch.patch
 
 $(CYTHON_WHEEL):
