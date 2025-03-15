@@ -70,13 +70,11 @@ app-install: $(PLATO_WHEELS) $(QTSHIM_WHEEL) $(SCIPY_WHEEL) patched-tinyarray
 else
 app-install: $(PLATO_WHEELS) $(QTSHIM_WHEEL) patched-tinyarray
 endif
-ifeq ($(OS),Darwin)
 	# Install Cython first so PyOpenGL_accelerate builds
 	$(APP_PIP_INSTALL) $(CYTHON_BUILD_ARGS) $(shell grep Cython app_requirements.txt | sed -e 's/#//')
 	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt)
 ifeq ($(OSARCH),DarwinArm64)
 	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
-endif
 endif
 	# Install tinyarray with the Py_ssize_t patch
 	$(APP_PIP_INSTALL) ./$(subst ==,-,$(subst #,,$(shell grep tinyarray app_requirements.txt)))
