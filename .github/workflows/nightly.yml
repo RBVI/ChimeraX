@@ -51,7 +51,7 @@ jobs:
       release_type: ${{ matrix.release_type }}
     secrets: inherit
   build-rocky9-docker-arm:
-    name: Build ChimeraX for Rocky 9
+    name: Build ChimeraX for arm64 Rocky 9
     needs: [build-rocky8-docker]
     strategy:
       matrix:
