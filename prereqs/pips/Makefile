@@ -33,18 +33,14 @@ CYTHON_BUILD_ARGS=
 endif
 
 ifeq ($(OS),Windows)
-TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-win_amd64.whl
 else
 ifeq ($(OS),Linux)
 ifeq ($(OSARCH),LinuxArm64)
-TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-linux_aarch64.whl
 else
-TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 endif
 else
 ifeq ($(OS),Darwin)
 WHEEL_CFLAGS="-Wno-error=int-conversion"
-TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
 ifeq ($(OSARCH),DarwinArm64)
 SCIPY_WHEEL = $(subst ==,-,$(shell grep scipy app_requirements.txt))-cp311-cp311-macosx_12_0_arm64.whl
 else
@@ -55,7 +51,7 @@ endif
 endif
 endif
 
-PLATO_WHEELS = $(GRAKO_WHEEL) $(TINYARRAY_WHEEL) $(CXSERVICES_WHEEL)
+PLATO_WHEELS = $(CXSERVICES_WHEEL)
 
 all:
 
@@ -70,9 +66,9 @@ app-list:
 upgrade:
 
 ifeq ($(OSARCH),DarwinArm64)
-app-install: $(PLATO_WHEELS) $(QTSHIM_WHEEL) $(SCIPY_WHEEL)
+app-install: $(PLATO_WHEELS) $(QTSHIM_WHEEL) $(SCIPY_WHEEL) patched-tinyarray
 else
-app-install: $(PLATO_WHEELS) $(QTSHIM_WHEEL)
+app-install: $(PLATO_WHEELS) $(QTSHIM_WHEEL) patched-tinyarray
 endif
 ifeq ($(OS),Darwin)
 	# Install Cython first so PyOpenGL_accelerate builds
@@ -81,6 +77,8 @@ ifeq ($(OS),Darwin)
 ifeq ($(OSARCH),DarwinArm64)
 	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
 endif
+	# Install tinyarray with the Py_ssize_t patch
+	$(APP_PIP_INSTALL) ./$(subst ==,-,$(subst #,,$(shell grep tinyarray app_requirements.txt)))
 endif
 	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifdef USE_PYSIDE6
@@ -152,8 +150,10 @@ src-outdated:
 $(SCIPY_WHEEL):
 	$(APP_PIP) download --platform=macosx_12_0_arm64 --no-deps $(shell grep scipy app_requirements.txt)
 
-$(TINYARRAY_WHEEL):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/tinyarray/$(TINYARRAY_WHEEL)
+patched-tinyarray:
+	$(APP_PIP) download $(subst #,,$(shell grep tinyarray app_requirements.txt))
+	tar -xf $(subst ==,-,$(subst #,,$(shell grep tinyarray app_requirements.txt))).tar.gz
+	cd $(subst ==,-,$(subst #,,$(shell grep tinyarray app_requirements.txt))) && patch -p1 < ../tinyarray-pyssizet-patch.patch
 
 $(CYTHON_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cython/$(CYTHON_WHEEL)
