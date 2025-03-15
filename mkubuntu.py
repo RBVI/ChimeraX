@@ -19,6 +19,7 @@ Steps:
 """
 
 import os
+import platform
 import subprocess
 import sys
 import tempfile
@@ -526,11 +527,15 @@ def make_control_file(debian_dir, pkg_name, version, dependencies):
         deps = []
     deps.insert(0, 'ffmpeg')
     depends = ', '.join(deps)
+    if platform.machine() == "aarch64":
+        architecture = "aarch64"
+    else:
+        architecture = "amd64"
     with open(f"{debian_dir}/control", 'w') as f:
         print(textwrap.dedent(f"""\
             Package: {pkg_name}
             Version: {version}
-            Architecture: amd64
+            Architecture: {architecture}
             Depends: {depends}
             Maintainer: Chimera Staff <chimera-staff@cgl.ucsf.edu>
             Description: molecular visualization
