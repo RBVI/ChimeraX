@@ -80,19 +80,19 @@ jobs:
       branch: ${{ matrix.branch }}
       release_type: ${{ matrix.release_type }}
     secrets: inherit
-  build-ubuntu-arm:
-    name: Build ChimeraX for Ubuntu
-    needs: [build-rocky8-docker]
-    strategy:
-      matrix:
-        include:
-          - branch: develop
-            release_type: daily
-    uses: ./.github/workflows/ubuntu_arm_build.yml
-    with:
-      branch: ${{ matrix.branch }}
-      release_type: ${{ matrix.release_type }}
-    secrets: inherit
+  #  build-ubuntu-arm:
+  #    name: Build ChimeraX for Ubuntu
+  #    needs: [build-rocky8-docker]
+  #    strategy:
+  #      matrix:
+  #        include:
+  #          - branch: develop
+  #            release_type: daily
+  #    uses: ./.github/workflows/ubuntu_arm_build.yml
+  #    with:
+  #      branch: ${{ matrix.branch }}
+  #      release_type: ${{ matrix.release_type }}
+  #    secrets: inherit
   build-flatpak:
     name: Build ChimeraX FlatPak
     needs: [build-rocky8-docker]
