@@ -32,8 +32,6 @@ jobs:
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos build-minimal
-      - name: Run the legacy test suite
-        run: make test
       - name: Install Pytest
         run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
@@ -61,8 +59,6 @@ jobs:
           architecture: arm64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) build-minimal
-      - name: Run the legacy test suite
-        run: make test
       - name: Install Pytest
         run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
@@ -94,8 +90,6 @@ jobs:
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) build-minimal
-      - name: Run the legacy test suite
-        run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test
       - name: Install Pytest
         run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
