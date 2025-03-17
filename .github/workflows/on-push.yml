@@ -45,8 +45,9 @@ jobs:
       PYOPENGL_PLATFORM: egl
     runs-on: ubuntu-24.04-arm
     steps:
-      - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
+      - run: sudo apt-get update && sudo apt-get upgrade -y
       - uses: actions/checkout@v4
+      - run: ${PWD}/utils/set_up_ubuntu.sh
       - name: Fetch Plato prerequisites
         uses: ./utils/ci/consolidated_cache
         with:
