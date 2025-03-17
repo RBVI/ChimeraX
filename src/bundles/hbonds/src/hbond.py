@@ -567,7 +567,8 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                         don_atoms.append(don_atom)
                         don_data.append(data)
             else:
-                don_atoms, don_data = _find_donors(structure, d_params, limited_donors, generic_don_info)
+                don_atoms, don_data = _find_donors(structure, d_params, limited_donors, generic_don_info,
+                    metal_coord)
                 if cache_da:
                     cache = WeakKeyDictionary()
                     for i in range(len(don_atoms)):
@@ -864,7 +865,7 @@ def _find_acceptors(structure, a_params, limited_acceptors, generic_acc_info):
         acc_data.append([atom, acc_func, tuple([atom] + args)])
     return acc_atoms, acc_data
 
-def _find_donors(structure, d_params, limited_donors, generic_don_info):
+def _find_donors(structure, d_params, limited_donors, generic_don_info, metal_coord):
     don_atoms = []
     don_data = []
     std_donors = {}
@@ -912,6 +913,11 @@ def _find_donors(structure, d_params, limited_donors, generic_don_info):
             donor_atom = group[donorIndex]
             if limited_donors and donor_atom not in limited_donors:
                 continue
+            # planar nitrogens coordinating a metal cannot act as donors
+            if donor_atom in metal_coord and donor_atom.element.name == "N":
+                idatm_info = donor_atom.idatm_info_map.get(donor_atom.idatm_type, None)
+                if idatm_info and idatm_info.geometry == 3:
+                    continue
             if donor_atom in std_donors:
                 if group_key != std_donors[donor_atom] and not (
                 # conflicts of non-ring groups with ring
