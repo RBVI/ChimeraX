@@ -40,6 +40,40 @@ jobs:
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
+  build-and-test-arm-linux:
+    env:
+      PYOPENGL_PLATFORM: egl
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
+      - uses: actions/checkout@v4
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
+        with:
+          platform: linux
+          architecture: arm64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Build ChimeraX
+        run: |
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 make -j$(nproc) -f Makefile.ubuntu build-minimal
+      - name: Install Pytest
+        run: USE_COVERAGE=1 make pytest-install
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        continue-on-error: true
+        id: test-exes
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        continue-on-error: true
+        id: test-wheel
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        continue-on-error: true
+        id: test-distribution
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage
   build-and-test-macos:
     runs-on: macos-latest
     steps:
