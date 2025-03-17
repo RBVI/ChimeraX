@@ -306,10 +306,10 @@ def move_atoms(atoms, to_atoms, tf, move):
 def extend_to_chains(atoms):
     '''Return atoms extended to all atoms in same chains (ie same chain id / structure).'''
     catoms = []
-    from numpy import in1d
+    from numpy import isin
     for s, a in atoms.by_structure:
         satoms = s.atoms
-        catoms.append(satoms.filter(in1d(satoms.chain_ids, a.unique_chain_ids)))
+        catoms.append(satoms.filter(isin(satoms.chain_ids, a.unique_chain_ids)))
     from chimerax.atomic import concatenate, Atoms
     return concatenate(catoms, Atoms)
         

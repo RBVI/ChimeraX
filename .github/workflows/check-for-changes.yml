@@ -1,16 +1,13 @@
 name: Rebuild on change
 
 on:
-  push:
-    branches: [develop, release/*]
-    paths-ignore: [.github/workflows/nightly.yml, .github/workflows/*build.yml]
   pull_request:
     branches: [develop, release/*]
 
 # See https://stackoverflow.com/a/72408109
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-and-test-rocky8-docker:

@@ -877,9 +877,9 @@ class Structure(Model, StructureData):
         else:
             r = atoms.residues
             rids = r.unique_ids
-            from numpy import unique, in1d
+            from numpy import unique, isin
             sel_rids = unique(rids[asel])
-            ares = in1d(rids, sel_rids)
+            ares = isin(rids, sel_rids)
             if ares.sum() > na:
                 # Promote to entire residues
                 level = 1005
@@ -887,7 +887,7 @@ class Structure(Model, StructureData):
             else:
                 ssids = r.secondary_structure_ids
                 sel_ssids = unique(ssids[asel])
-                ass = in1d(ssids, sel_ssids)
+                ass = isin(ssids, sel_ssids)
                 if ass.sum() > na:
                     # Promote to secondary structure
                     level = 1004
@@ -901,7 +901,7 @@ class Structure(Model, StructureData):
                         from numpy import array
                         cids = array(r.chain_ids)
                         sel_cids = unique(cids[asel])
-                        ac = in1d(cids, sel_cids)
+                        ac = isin(cids, sel_cids)
                         if ac.sum() > na:
                             # Promote to entire chains
                             level = 1002
@@ -1050,9 +1050,9 @@ class Structure(Model, StructureData):
         elif target_type == '/':
             # There is no "full_chain" property for atoms so we have
             # to do it the hard way
-            from numpy import in1d, invert
+            from numpy import isin, invert
             matched_chain_ids = atoms.filter(a).unique_chain_ids
-            mask = in1d(atoms.chain_ids, matched_chain_ids)
+            mask = isin(atoms.chain_ids, matched_chain_ids)
             if '<' in operator:
                 expand_by = atoms.filter(mask)
             else:

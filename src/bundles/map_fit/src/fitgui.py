@@ -341,8 +341,8 @@ class FitMapDialog(ToolInstance):
 
     res = self._simulate_resolution.value
     if res is None:
-      self.status('No resolution specified for simulated map.')
-      return None
+      from chimerax.core.errors import UserError
+      raise UserError('No resolution specified for simulated map.')
 
     atoms = self._fit_atoms()
     if atoms is None or len(atoms) == 0:

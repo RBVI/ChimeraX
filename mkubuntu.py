@@ -19,6 +19,7 @@ Steps:
 """
 
 import os
+import platform
 import subprocess
 import sys
 import tempfile
@@ -299,6 +300,7 @@ UBUNTU_DEPENDENCIES = {
         "libdbus-1-3": "1.12.16",
         "libdrm2": "2.4.101",
         "libegl1": "1.3.1",
+        "libevent": "2.1-7t64",
         "libexpat1": "2.2.9",
         "libffi8": "3.3",
         "libfftw3-single3": "3.3.8",
@@ -326,7 +328,7 @@ UBUNTU_DEPENDENCIES = {
         "libsqlite3-0": "3.31.1",
         "libssl3": "3.0.2",
         "libstdc++6": "10-20200411",
-        "libtheora": None,
+        "libtheora0": None,
         "libtinfo6": "6.2",
         "libuuid1": "2.34",
         "libwayland-client0": "1.18.0",
@@ -526,11 +528,15 @@ def make_control_file(debian_dir, pkg_name, version, dependencies):
         deps = []
     deps.insert(0, 'ffmpeg')
     depends = ', '.join(deps)
+    if platform.machine() == "aarch64":
+        architecture = "aarch64"
+    else:
+        architecture = "amd64"
     with open(f"{debian_dir}/control", 'w') as f:
         print(textwrap.dedent(f"""\
             Package: {pkg_name}
             Version: {version}
-            Architecture: amd64
+            Architecture: {architecture}
             Depends: {depends}
             Maintainer: Chimera Staff <chimera-staff@cgl.ucsf.edu>
             Description: molecular visualization

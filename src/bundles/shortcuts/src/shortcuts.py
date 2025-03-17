@@ -255,6 +255,7 @@ def standard_shortcuts(session):
 #        ('lf', leap_focus, 'Check if app has leap focus', gcat, sesarg),
 #        ('lq', leap_quit, 'Quit using leap motion input device', gcat, sesarg),
         ('vr', 'xr on passthrough toggle', 'Enable virtual reality', gcat, noarg, dmenu),
+        ('xr', toggle_openxr, 'Toggle OpenXR mode', gcat, sesarg, dmenu),
 
         # Help
 #        ('mn', show_manual, 'Show manual', gcat, sesarg, hmenu),
@@ -1241,6 +1242,13 @@ def toggle_space_navigator_fly_mode(session):
 def space_navigator_collisions(session):
     from chimerax.core.devices import spacenavigator
     spacenavigator.avoid_collisions(session)
+
+def toggle_openxr(session):
+    c = session.main_view.camera
+    from chimerax.vive.xr import OpenXRCamera
+    onoff = 'off' if isinstance(c, OpenXRCamera) else 'on'
+    from chimerax.core.commands import run
+    run(session, f'xr {onoff}')
 
 def undisplay_half(session):
     for m in session.models_list():

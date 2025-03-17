@@ -750,18 +750,19 @@ class PlaneViewer(QWindow):
         self._redraw()
 
     def on_color_changed(self):
-        colors = self.view.drawing.parent.image_colors
-        levels = self.view.drawing.parent.image_levels
-        rgba_and_labels = []
-        for colors, levels in zip(colors, levels):
-            color = colors[:3]
-            alpha = levels[1]
-            # Interpret low alpha as black
-            color = [c * alpha for c in color]
-            level = "{:0.2f}".format(levels[0])
-            rgba_and_labels.append(((*color, 1), level))
-        rgba_and_labels.sort(key=lambda x: float(x[1]))
-        self.color_key.rgbas_and_labels = rgba_and_labels
+        if self.view.drawing is not self.placeholder_drawing:
+            colors = self.view.drawing.parent.image_colors
+            levels = self.view.drawing.parent.image_levels
+            rgba_and_labels = []
+            for colors, levels in zip(colors, levels):
+                color = colors[:3]
+                alpha = levels[1]
+                # Interpret low alpha as black
+                color = [c * alpha for c in color]
+                level = "{:0.2f}".format(levels[0])
+                rgba_and_labels.append(((*color, 1), level))
+            rgba_and_labels.sort(key=lambda x: float(x[1]))
+            self.color_key.rgbas_and_labels = rgba_and_labels
 
     def _update_position_label_text(self) -> None:
         if hasattr(self.view.drawing.parent.data, "dicom_data"):
@@ -1231,6 +1232,13 @@ class PlaneViewer(QWindow):
         if self.segmentation_tool:
             ww, wh = self.main_view.window_size
             width, height = self.view.window_size
+            if (
+                ww <= 0
+                or wh <= 0
+                or width <= 0
+                or height <= 0
+            ):
+                return
             psize = self.view.pixel_size()
             radius = self.segmentation_cursor_overlay.radius
             rel_size = (radius / width) * psize
