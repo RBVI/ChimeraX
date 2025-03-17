@@ -1,5 +1,4 @@
 from chimerax.core.toolshed import BundleAPI
-from chimerax.atomic import AtomicStructure
 
 class _MyAPI(BundleAPI):
     api_version = 1
@@ -8,7 +7,6 @@ class _MyAPI(BundleAPI):
     def start_tool(session, bi, ti):
         if ti.name == "ViewDock":
             show_docking_file_dialogue(session)
-            pass
 
     @staticmethod
     def register_command(bi, ci, logger):
