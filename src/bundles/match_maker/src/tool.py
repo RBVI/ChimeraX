@@ -154,6 +154,7 @@ class MatchMakerTool(ToolInstance):
         bring_container, bring_options = self.options.add_option_group("Fitting",
             group_alignment=Qt.AlignHCenter|Qt.AlignTop)
         bring_layout = QVBoxLayout()
+        bring_layout.setContentsMargins(0,0,0,0)
         bring_container.setLayout(bring_layout)
         self.bring_label = QLabel("If one model being matched, also move these models along with it:")
         bring_layout.addWidget(self.bring_label)
