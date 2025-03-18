@@ -11,14 +11,15 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.ui.options import Option, BooleanOption, IntOption, \
-    OptionalRGBAOption, OptionalRGBAPairOption
+from chimerax.ui.options import Option, BooleanOption, IntOption, EnumOption
 
 APPEARANCE = "Appearance"
 
 defaults = {
+    "cell_text": (APPEARANCE,
+        "Cell text", 1, EnumOption, { 'values': ["none", "count", "percentage"] }, "percentage"),
     "percent_decimal_places": (APPEARANCE,
-        "Decimal places for percentages", 1, IntOption, {'min': 0, 'max': 3}, 0),
+        "Decimal places for percentages", 2, IntOption, {'min': 0, 'max': 3}, 0),
 }
 
 from  chimerax.core.settings import Settings
