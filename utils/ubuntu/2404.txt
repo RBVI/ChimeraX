@@ -45,6 +45,7 @@ libhdf5-dev
 libicu-dev
 libjpeg-dev
 liblzma-dev
+libminizip1
 libmysqlclient-dev
 libnss3-dev
 libosmesa6-dev
