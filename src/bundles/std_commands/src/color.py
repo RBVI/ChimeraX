@@ -1154,7 +1154,6 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
     attr_vals = None
     if hasattr(attr_objs, attr_names):
         # attribute found in Collection; try to maximize efficiency
-        print("Collection has", attr_names)
         needs_none_processing = False
         if average == 'residues' and class_obj == Atom:
             residues = atoms.unique_residues

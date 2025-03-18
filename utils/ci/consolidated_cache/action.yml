@@ -21,33 +21,6 @@ runs:
         export PREBUILT_CACHE_KEY=${{ inputs.cache_key }}
         echo "::add-mask::$PREBUILT_CACHE_KEY"
 
-    - name: Restore cached plato pips (Linux)
-      id: cache-plato-pips-linux
-      if: ${{ inputs.platform == 'linux' }}
-      uses: actions/cache@v4
-      with:
-        path: |
-          prereqs/pips/tinyarray-1.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-        key: ${{ runner.os }}-${{ inputs.architecture}}-pips
-
-    - name: Restore cached plato pips (Windows)
-      id: cache-plato-pips-windows
-      if: ${{ inputs.platform == 'windows' }}
-      uses: actions/cache@v4
-      with:
-        path: |
-          prereqs/pips/tinyarray-1.2.4-cp311-cp311-win_amd64.whl
-        key: ${{ runner.os }}-${{ inputs.architecture}}-pips
-
-    - name: Restore cached plato pips (macOS)
-      id: cache-plato-pips-macos
-      if: ${{ inputs.platform == 'macos' }}
-      uses: actions/cache@v4
-      with:
-        path: |
-          prereqs/pips/tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
-        key: ${{ runner.os }}-${{ inputs.architecture}}-pips
-
     - name: Restore cached generic pips
       id: cache-plato-pips-generic
       uses: actions/cache@v4
@@ -169,9 +142,9 @@ runs:
           prereqs/ffmpeg/ffmpeg-3.2.4-Darwin.exe
         key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
 
-    - name: Restore cached PyQt6 and PyQt6-WebEngine (Linux)
-      id: cache-pyqt6-linux
-      if: ${{ inputs.platform == 'linux' }}
+    - name: Restore cached PyQt6 and PyQt6-WebEngine (Linux Intel)
+      id: cache-pyqt6-linux-x86_64
+      if: ${{ inputs.platform == 'linux' && inputs.architecture == 'x86_64' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -179,9 +152,19 @@ runs:
           prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-manylinux_2_28_x86_64.whl
         key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
 
+    - name: Restore cached PyQt6 and PyQt6-WebEngine (Linux ARM)
+      id: cache-pyqt6-linux-arm64
+      if: ${{ inputs.platform == 'linux' && inputs.architecture == 'arm64' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/PyQt/PyQt6_commercial-6.8.1-cp39-abi3-manylinux_2_39_aarch64.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-manylinux_2_39_aarch64.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+
     - name: Restore cached PyQt6 and PyQt6-WebEngine (Windows)
-      id: cache-pyqt6-windows
-      if: ${{ inputs.platform == 'windows' }}
+      id: cache-pyqt6-windows-x86_64
+      if: ${{ inputs.platform == 'windows' && inputs.architecture == 'x86_64' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -189,9 +172,19 @@ runs:
           prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-win_amd64.whl
         key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
 
+    - name: Restore cached PyQt6 and PyQt6-WebEngine (macOS Intel)
+      id: cache-pyqt6-macos-x86_64
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'x86_64' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/PyQt/PyQt6_commercial-6.8.1-cp39-abi3-macosx_10_14_universal2.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-macosx_10_14_universal2.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+
     - name: Restore cached PyQt6 and PyQt6-WebEngine (macOS)
-      id: cache-pyqt6-macos
-      if: ${{ inputs.platform == 'macos' }}
+      id: cache-pyqt6-macos-arm64
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'arm64' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -247,7 +240,7 @@ runs:
 
     - name: Fetch PyQt
       shell: bash
-      if: ${{ steps[format('cache-pyqt6-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
+      if: ${{ steps[format('cache-pyqt6-{0}-{1}', inputs.platform, inputs.architecture)].outputs.cache-hit != 'true' }}
       run: |
         export PYQT_VERSION=6.8.1
         export PYQTWE_VERSION=6.8.0
@@ -256,21 +249,6 @@ runs:
         curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${PYQT_URL} -O -J
         curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${PYQTWE_URL} -O -J
         mv PyQt6*.whl prereqs/PyQt/
-
-    - name: Fetch platform specific pips
-      shell: bash
-      if: ${{ steps[format('cache-plato-pips-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
-      run: |
-        if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/tinyarray/tinyarray-1.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-        fi
-        if [ "${{ inputs.platform }}" = "macos" ] ; then
-          curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/tinyarray/tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
-        fi
-        if [ "${{ inputs.platform }}" = "windows" ] ; then
-          curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/tinyarray/tinyarray-1.2.4-cp311-cp311-win_amd64.whl
-        fi
-        mv tinyarray* prereqs/pips/
 
     - name: Fetch ffmpeg
       shell: bash
