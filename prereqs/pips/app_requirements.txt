@@ -39,7 +39,7 @@ ParmEd==4.2.2
 pep517==0.13.1
 # optional package to prevent warning in Python shell [#16571]
 pickleshare==0.7.5
-Pillow==10.4.0
+Pillow==11.1.0
 pkginfo==1.11.1
 psutil==7.0.0
 pycollada==0.8
