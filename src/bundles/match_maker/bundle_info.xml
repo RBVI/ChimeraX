@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-MatchMaker" version="2.1.7"
+<BundleInfo name="ChimeraX-MatchMaker" version="2.2"
 	    package="chimerax.match_maker"
   	    minSessionVersion="1" maxSessionVersion="1">
 

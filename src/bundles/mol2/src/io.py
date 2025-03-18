@@ -359,7 +359,7 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
                     if not gaff_fail_error:
                         raise
                     raise gaff_fail_error("%s has no Amber/GAFF type assigned.\n"
-                        "Use the AddCharge tool to assign Amber/GAFF types." % atom)
+                        "Use the Add Charges tool or 'addcharge' command to assign Amber/GAFF types." % atom)
             elif hasattr(atom, 'mol2_type') and types_valid:
                 atom_type = atom.mol2_type
             elif atom in amide_Ns:
