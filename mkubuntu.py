@@ -316,6 +316,7 @@ UBUNTU_DEPENDENCIES = {
         "libgstreamer1.0-0": "1.16.2",
         "libgtk-3-0": "3.24.18",
         "liblzma5": "5.2.4",
+        "libminizip1": "1.1-8",
         "libncursesw6": "6.2",
         "libnspr4": "4.25",
         "libnss3": "3.49.1",
