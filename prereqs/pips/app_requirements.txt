@@ -42,7 +42,7 @@ pickleshare==0.7.5
 Pillow==10.4.0
 pkginfo==1.11.1
 psutil==7.0.0
-pycollada==0.8
+pycollada==0.9
 pydicom==2.4.4
 pynrrd==1.0.0
 pyopenxr==1.1.4501
