@@ -229,6 +229,7 @@ class GridCanvas:
         y = 0
         # adjust for rectangle outline width / inter-line spacing
         y_adjust = 2
+        self._cell_text_infos = []
         for i in range(rows):
             if i in self.empty_rows:
                 continue
@@ -242,13 +243,11 @@ class GridCanvas:
                 self.main_scene.addRect(x, y, width, height, brush=QBrush(fill_color))
                 if val > 0.0:
                     text_rgb = contrast_with((non_blue/255.0, non_blue/255.0, 1.0))
-                    text_val = str(int(100  * fraction + 0.5))
+                    text_val = self._cell_text(val, fraction)
                     cell_text = self.main_scene.addSimpleText(text_val, self.font)
-                    cell_text.moveBy(x, y)
-                    cell_text.setZValue(1)
-                    bbox = cell_text.boundingRect()
-                    cell_text.moveBy((width - bbox.width())/2, y_adjust + (height - bbox.height())/2)
+                    self._center_cell_text(cell_text, x, y, y_adjust)
                     cell_text.setBrush(QBrush(QColor(*[int(255 * channel + 0.5) for channel in text_rgb])))
+                    self._cell_text_infos.append((cell_text, x, y, y_adjust, val, fraction))
             label_text = self.main_label_scene.addSimpleText(self.row_labels[i], self.font)
             label_width = self.font_metrics.horizontalAdvance(self.row_labels[i] + ' ')
             label_text.moveBy((self.max_label_width - label_width) / 2, y + y_adjust)
@@ -407,6 +406,24 @@ class GridCanvas:
             self.selection_items[(row, col)] = self.main_scene.addRect(
                 col * width, row * height, width, height, pen=pen)
 
+    def _cell_text(self, val, fraction):
+        cell_text_type = self.pg.settings.cell_text
+        if cell_text_type == "percentage":
+            digits = self.pg.settings.percent_decimal_places
+            text_val = str(round(100  * fraction, digits if digits else None))
+        elif cell_text_type == "count":
+            text_val = str(round(val))
+        else:
+            text_val = ""
+        return text_val
+
+    def _center_cell_text(self, cell_text, x, y, y_adjust):
+        width, height = self.font_pixels
+        cell_text.setPos(x, y)
+        cell_text.setZValue(1)
+        bbox = cell_text.boundingRect()
+        cell_text.moveBy((width - bbox.width())/2, y_adjust + (height - bbox.height())/2)
+
     def _check_cells(self):
         from chimerax.core.errors import UserError
         if not self.chosen_cells:
@@ -516,6 +533,11 @@ class GridCanvas:
         if col < 0 or col > grid_columns - 1:
             return None, None, None
         return self._residues_at(row, col), row, col
+
+    def _update_cell_texts(self):
+        for cell_text, *pos_args, val, fraction in self._cell_text_infos:
+            cell_text.setText(self._cell_text(val, fraction))
+            self._center_cell_text(cell_text, *pos_args)
 
     def _update_scene_rects(self):
         # have to play with setViewportMargins to get correct scrolling...
