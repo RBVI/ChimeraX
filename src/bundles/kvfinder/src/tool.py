@@ -403,6 +403,5 @@ class KVFinderResultsDialog(ToolInstance):
         self._process_settings(setting_name)
 
     def _structure_change_cb(self, trig_name, changes):
-        print("changes cb; reasons:", changes[1].structure_reasons())
         if 'display changed' in changes[1].structure_reasons():
             self.table.update_column(self.color_column, data=True)
