@@ -77,13 +77,19 @@ def fill_context_menu(menu, parent_tool_window, structure):
 class PlotDialog:
     def __init__(self, plot_window, structure):
         self.tool_window = tw = plot_window
-        def cleanup(inst=tw.tool_instance):
+        def cleanup(pd=self):
+            inst = pd.tool_window.tool_instance
             del _md_tool_windows[inst]["plot"]
             if not _md_tool_windows[inst]:
                 del _md_tool_windows[inst]
+            for handler in pd.handlers:
+                handler.remove()
+            pd.handlers.clear()
+            delattr(pd, 'cleanup')
         tw.cleanup = cleanup
         self.session = structure.session
         self.structure = structure
+        self.handlers = [structure.triggers.add_handler('changes', self._changes_cb)]
         #TODO: respond to structure deletion
         from .manager import get_plotting_manager
         self.mgr = get_plotting_manager(self.session)
@@ -100,6 +106,7 @@ class PlotDialog:
         self._tables = {}
         self._plot_stacks = {}
         self._value_columns = {}
+        self._frame_indicators = {}
 
         tw.manage(None)
 
@@ -115,6 +122,22 @@ class PlotDialog:
             tab_name, tab_widget = self.tab_info[provider_name] = self.make_tab(provider_name)
 
         self.plot_tabs.setCurrentWidget(tab_widget)
+
+    def _changes_cb(self, trig_name, data):
+        s, changes = data
+        if 'active_coordset changed' in changes.structure_reasons():
+            for provider, table in self._tables.items():
+                table.update_column(self._value_columns[provider], data=True)
+                self._frame_indicators[provider].set_xdata([s.active_coordset_id])
+                self._plot_stacks[provider].widget(1).draw_idle()
+
+    def _delete_table_entries(self, provider_name):
+        #TODO
+        raise NotImplementedError("Deleting table entries not implemented")
+
+    def _make_scalar_tab(self, provider_name):
+        #TODO
+        raise NotImplementedError("Scalar plotting not implemented")
 
     def _make_atomic_tab(self, provider_name):
         ui_name = self.mgr.ui_name(provider_name)
@@ -188,14 +211,6 @@ class PlotDialog:
 
         return buttons_area
 
-    def _delete_table_entries(self, provider_name):
-        #TODO
-        raise NotImplementedError("Deleting table entries not implemented")
-
-    def _make_scalar_tab(self, provider_name):
-        #TODO
-        raise NotImplementedError("Scalar plotting not implemented")
-
     def _make_table(self, provider_name):
         from chimerax.ui.widgets import ItemTable
         table = ItemTable(allow_user_sorting=False)
@@ -250,6 +265,7 @@ class PlotDialog:
             axis.set_ylim(ymax=y_max)
         axis.set_xlabel("Coord Set")
         axis.set_ylabel(ui_name.title() if ui_name.islower() else ui_name)
+        self._frame_indicators[provider_name] = axis.axvline(self.structure.active_coordset_id, color='k')
         canvas.draw_idle()
 
 class TableEntry:
