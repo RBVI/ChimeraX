@@ -455,6 +455,7 @@ from chimerax.core.tools import ToolInstance
 class AlphaFoldPAEPlot(ToolInstance):
 
     name = 'AlphaFold Predicted Aligned Error Plot'
+    default_colormap_name = 'pae'
     help = 'help:user/tools/alphafold.html#pae'
 
     def __init__(self, session, tool_name, pae, colormap = None, divider_lines = True):
@@ -563,7 +564,7 @@ class AlphaFoldPAEPlot(ToolInstance):
     def set_colormap(self, colormap = None):
         if colormap is None:
             from chimerax.core.colors import BuiltinColormaps
-            colormap = BuiltinColormaps[self._default_colormap_name]
+            colormap = BuiltinColormaps[self.default_colormap_name]
         self._pae_view._make_image(self._pae.pae_matrix, colormap)
         
     # ---------------------------------------------------------------------------
