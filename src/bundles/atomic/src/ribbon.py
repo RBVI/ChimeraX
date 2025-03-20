@@ -473,6 +473,10 @@ def _ribbon_geometry(path, ranges, num_res, xs_front, xs_back, geometry,
     centers, tangents, normals = path
     xsf = [xs._xs_pointer for xs in xs_front]
     xsb = [xs._xs_pointer for xs in xs_back]
+    # TODO: This is not a permanent fix. It is only here to un-break ribbons in the
+    # simplest manner until we settle on a permanent solution.
+    from numpy import array, int32
+    ranges = array(ranges, dtype=int32)
     radial_scale_kw = {} if radial_scale is None else {'radial_scale': radial_scale}
     _ribbons.ribbon_extrusions(centers, tangents, normals, ranges,
                                num_res, xsf, xsb, geometry._geom_cpp, **radial_scale_kw)
