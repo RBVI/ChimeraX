@@ -241,6 +241,7 @@ jobs:
           build_certificate: ${{ secrets.WINDOWS_SIGNING_CERT }}
           cert_password: ${{ secrets.WINDOWS_SIGNING_PASS }}
       - name: Put the build date and commit in the environment
+        shell: bash
         run: |
           export BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA)
           export BUILD_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
