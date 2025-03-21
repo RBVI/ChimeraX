@@ -90,8 +90,8 @@ command_defaults = {
     'verbose': False
 }
 def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resolution=None, *, block=None,
-        chain_id=None, phenix_location=None, residue_number=None, verbose=command_defaults['verbose'],
-        option_arg=[], position_arg=[]):
+        chain_id=None, hbonds=False, phenix_location=None, residue_number=None,
+        verbose=command_defaults['verbose'], option_arg=[], position_arg=[]):
 
     # Find the phenix.ligandfit executable
     from .locate import find_phenix_command
@@ -165,8 +165,8 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resoluti
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # the program runs
     callback = lambda placed_ligand, *args, session=session, model=model, chain_id=chain_id, \
-        residue_number=residue_number, d_ref=d: _process_results(
-        session, placed_ligand, model, chain_id, residue_number)
+        hbonds=hbonds, residue_number=residue_number, d_ref=d: _process_results(
+        session, placed_ligand, model, chain_id, residue_number, hbonds)
     FitJob(session, exe_path, option_arg, search_center, resolution, position_arg, temp_dir, verbose,
         callback, block)
 
@@ -232,7 +232,7 @@ def view_box(session, model):
         return (face_intercepts[0] + face_intercepts[1]) / 2
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
-def _process_results(session, placed_ligand, model, chain_id, residue_number):
+def _process_results(session, placed_ligand, model, chain_id, residue_number, hbonds):
     session.logger.status("Fitting job finished")
     if model.deleted:
         placed_ligand.delete()
@@ -250,6 +250,8 @@ def _process_results(session, placed_ligand, model, chain_id, residue_number):
     placed_ligand.ss_assigned = True
     model.combine(placed_ligand, {}, model.scene_position)
     session.logger.info("Ligand added to %s as residue %d in chain %s" % (model,  residue_number, chain_id))
+    from chimerax.core.commands import run
+    run(session, "hbonds %s reveal true" % (model.atomspec + '/' + chain_id + ':' + str(residue_number)))
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
@@ -271,6 +273,7 @@ def _run_fit_subprocess(session, exe_path, optional_args, search_center, resolut
         procs_arg = ["nproc=%d" % min(5, processors)]
     from chimerax.core.commands import StringArg
     args = [exe_path] + optional_args + [
+            "--json",
             "ligand=ligand.pdb",
             "map_in=map.mrc",
             "model=model.pdb",
@@ -301,6 +304,16 @@ def _run_fit_subprocess(session, exe_path, optional_args, search_center, resolut
         msg += '</pre>'
         tsafe(logger.info, msg, is_html=True)
 
+    '''
+    from os import path
+    json_path = path.join(temp_dir,'LigandFit_run_1_', 'ligandfit.json')
+    import json
+    with open(json_path, 'r') as f:
+        print("JSON file contents:\n", f.readlines())
+    with open(json_path, 'r') as f:
+        info = json.load(f)
+    print("ligandfit JSON info:", info)
+    '''
     output_marker = "FULL LIGAND MODEL:"
     for line in p.stdout.decode("utf-8").splitlines():
         if line.startswith(output_marker):
@@ -327,6 +340,7 @@ def register_command(logger):
                    # put the above three first so that they show up in usage before the optional keywords
                    ('block', BoolArg),
                    ('chain_id', StringArg),
+                   ('hbonds', BoolArg),
                    ('phenix_location', OpenFolderNameArg),
                    ('residue_number', IntArg),
                    ('verbose', BoolArg),
