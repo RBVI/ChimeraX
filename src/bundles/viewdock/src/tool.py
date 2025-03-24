@@ -36,6 +36,13 @@ class ViewDockTool(ToolInstance):
         self.main_v_layout.addWidget(self.struct_table)
 
     def set_visibility(self, structure, value):
+        """
+        Callback for when the model display column has changes. Shows or hides the structure based on the value.
+
+        Args:
+            structure: The structure that is being changed.
+            value: The new value for the display column. True/False for show/hide.
+        """
         if value:
             run(self.session, f'show #{structure.id_string}')
         else:
