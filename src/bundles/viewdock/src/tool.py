@@ -24,6 +24,9 @@ class ViewDockTool(ToolInstance):
         self.tool_window.manage('side')
 
     def table_setup(self):
+        """
+        Create the ItemTable for the structures. Creates all columns and links all callbacks.
+        """
         self.struct_table = ItemTable(session=self.session)
         self.struct_table.add_column('Show', lambda s: s.display, data_set=self.set_visibility, format=ItemTable.COL_FORMAT_BOOLEAN)
         self.struct_table.add_column('ID', lambda s: s.id_string)
