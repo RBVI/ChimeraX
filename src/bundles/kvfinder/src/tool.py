@@ -192,7 +192,7 @@ class KVFinderResultsDialog(ToolInstance):
         self.table = ItemTable(session=self.session)
         self.table.add_column("ID", "atomspec", sort_func=lambda cav1, cav2: cav1.id < cav2.id)
         def color_func(s):
-            if s.display:
+            if s.display and s.atoms.displays.any():
                 return s.overall_color
             for srf in s.surfaces():
                 if srf.display:
