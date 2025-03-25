@@ -100,5 +100,3 @@ class ViewDockTool(ToolInstance):
         for handler in self.handlers:
             self.session.triggers.remove_handler(handler)
         super().delete()
-
-"""model display changed"""
