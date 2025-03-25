@@ -44,8 +44,8 @@ class ViewDockTool(ToolInstance):
             value: The new value for the display column. True/False for show/hide.
         """
         if value:
-            run(self.session, f'show #{structure.id_string}')
+            run(self.session, f'show #{structure.id_string} models')
         else:
-            run(self.session, f'hide #{structure.id_string}')
+            run(self.session, f'hide #{structure.id_string} models')
 
 """model display changed"""
