@@ -540,6 +540,7 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
         for atom in struct.atoms:
             atom_type = atom.idatm_type
             idatm_type[atom] = atom_type
+            res_name = atom.residue.name
             if atom_type in type_info:
                 # don't want to ask for idatm_type in middle
                 # of hydrogen-adding loop (since that will
@@ -555,13 +556,19 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 truncated = \
                         atom.is_missing_heavy_template_neighbors(no_template_okay=True) \
                     or \
-                        (atom.residue.name in ["UNK", "N", "DN"] \
+                        (res_name in ["UNK", "N", "DN"] \
                         and atom.residue.polymer_type != Residue.PT_NONE \
                         and unk_atom_truncated(atom)) \
                     or \
                         (atom.residue.polymer_type == Residue.PT_NUCLEIC and atom.name == "P"
                         and atom.num_explicit_bonds < 4)
 
+                # also, if a specially-named residue and the number of available bond partners is
+                # more than the number of expected hydrogen names (/B:15 [NH2] in 8wtw)
+                if not truncated and res_name in naming_exceptions \
+                and atom.name in naming_exceptions[res_name]:
+                    except_names = naming_exceptions[res_name][atom.name]
+                    truncated = type_info[atom_type].substituents - atom.num_explicit_bonds > len(except_names)
                 if truncated:
                     session.logger.warning("Not adding hydrogens to %s because it is missing heavy-atom"
                         " bond partners" % atom)
@@ -580,7 +587,7 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 type_info_for_atom[atom] = unknowns_info[atom]
                 atoms.append(atom)
                 continue
-            remaining_unknowns.setdefault(atom.residue.name, set()).add(atom.name)
+            remaining_unknowns.setdefault(res_name, set()).add(atom.name)
             # leave remaining unknown atoms alone
             type_info_for_atom[atom] = type_info_class(4, atom.num_bonds, atom.name)
 
