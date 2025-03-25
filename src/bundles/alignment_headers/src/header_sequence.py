@@ -70,7 +70,6 @@ class HeaderSequence(list):
             self.reevaluate()
 
     def add_options(self, options_container, *, category=None, verbose_labels=True):
-        print("Add options for", self.name)
         self._add_options(options_container, category, verbose_labels, self.option_data())
 
 
@@ -296,7 +295,6 @@ class HeaderSequence(list):
             option = opt_class(self._final_option_label(base_label, verbose_labels), None,
                 self._setting_option_cb, balloon=balloon, attr_name=attr_name, settings=self.settings,
                 auto_set_attr=False, **opt_kw)
-            print("Add option", option, "for", base_label, "in", self.name)
             if category is not None:
                 options_container.add_option(category, option)
             else:
