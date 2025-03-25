@@ -71,7 +71,6 @@ class SettingsTool:
             layout = QVBoxLayout()
             container.setLayout(layout)
             layout.addWidget(header_panel, alignment=Qt.AlignLeft)
-            print("Calling add_options on", hdr.name)
             hdr.add_options(header_panel, verbose_labels=False)
         from Qt.QtWidgets import QVBoxLayout
         layout = QVBoxLayout()
