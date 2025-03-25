@@ -21,6 +21,7 @@ class ViewDockTool(ToolInstance):
         self.tool_window.ui_area.setLayout(self.main_v_layout)
 
         self.structures = structures
+        self.struct_table = ItemTable(session=self.session)
         self.table_setup()
         self.handlers = []
         self.add_handlers()
@@ -28,14 +29,29 @@ class ViewDockTool(ToolInstance):
 
     def table_setup(self):
         """
-        Create the ItemTable for the structures. Creates all columns and links all callbacks.
+        Create the ItemTable for the structures. Add a column for the display with check boxes, a column for the
+        structure ID, and columns for each key in the viewdockx_data attribute of each structure
+        (ie Name, Description, Energy Score...). If a structure does not have a key from the set, the cell will be empty.
         """
-        self.struct_table = ItemTable(session=self.session)
+
+        # Fixed columns. Generic based on ChimeraX model attributes.
         self.struct_table.add_column('Show', lambda s: s.display, data_set=self.set_visibility, format=ItemTable.COL_FORMAT_BOOLEAN)
         self.struct_table.add_column('ID', lambda s: s.id_string)
-        self.struct_table.add_column('Name', lambda s: s.viewdockx_data.get('Name', ''))
+
+        # Collect all unique keys from viewdockx_data of all structures
+        viewdockx_keys = set()
+        for structure in self.structures:
+            viewdockx_keys.update(structure.viewdockx_data.keys())
+
+        # Dynamically add columns for each unique key in viewdockx_data
+        for key in viewdockx_keys:
+            self.struct_table.add_column(key, lambda s, k=key: s.viewdockx_data.get(k, ''))
+
+        # Set the data for the table and launch it
         self.struct_table.data = self.structures
         self.struct_table.launch()
+
+        # Add the table to the layout
         self.main_v_layout.addWidget(self.struct_table)
 
     def add_handlers(self):
