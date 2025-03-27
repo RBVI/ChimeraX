@@ -86,7 +86,7 @@ class PlotDialog:
                 handler.remove()
             pd.handlers.clear()
             for provider, cids in pd._mouse_handlers.items():
-                canvas = self._plot_stacks[provider].widget(1)
+                canvas = pd._plot_stacks[provider].widget(1)
                 for cid in cids:
                     canvas.mpl_disconnect(cid)
             pd._mouse_handlers.clear()
@@ -95,7 +95,6 @@ class PlotDialog:
         self.session = structure.session
         self.structure = structure
         self.handlers = [structure.triggers.add_handler('changes', self._changes_cb)]
-        #TODO: respond to structure deletion
         from .manager import get_plotting_manager
         self.mgr = get_plotting_manager(self.session)
         from Qt.QtWidgets import QHBoxLayout, QTabWidget
@@ -104,7 +103,7 @@ class PlotDialog:
         tw.ui_area.setLayout(layout)
         self.plot_tabs = QTabWidget()
         self.plot_tabs.setTabsClosable(True)
-        #TODO tabCloseRequested(index) signal
+        self.plot_tabs.tabCloseRequested.connect(self._close_tab)
         layout.addWidget(self.plot_tabs, stretch=1)
 
         self.tab_info = {}
@@ -136,6 +135,28 @@ class PlotDialog:
                 table.update_column(self._value_columns[provider], data=True)
                 self._frame_indicators[provider].set_xdata([s.active_coordset_id])
                 self._plot_stacks[provider].widget(1).draw_idle()
+
+    def _close_tab(self, tab_index):
+        if self.plot_tabs.count() == 1:
+            return self.tool_window.destroy()
+        tab_name = self.plot_tabs.tabText(tab_index)
+        for provider, tab_info in self.tab_info.items():
+            if tab_name == tab_info[0]:
+                break
+        else:
+            raise ValueError("No open tab named '%s'" % tab_name)
+        self.plot_tabs.removeTab(tab_index)
+        del self.tab_info[provider]
+        if provider not in self._tables:
+            return
+        for cid in self._mouse_handlers[provider]:
+            canvas = self._plot_stacks[provider].widget(1)
+            for cid in cids:
+                canvas.mpl_disconnect(cid)
+        for mapping in [self._tables, self._plot_stacks, self._value_columns, self._frame_indicators,
+                self._mouse_handlers]:
+            del mapping[provider]
+
 
     def _delete_table_entries(self, provider_name):
         table = self._tables[provider_name]
