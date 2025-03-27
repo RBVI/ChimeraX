@@ -16,6 +16,7 @@ from Qt.QtWidgets import QFrame, QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QP
 from Qt.QtCore import Qt
 
 from chimerax.core.commands import plural_of
+from chimerax.core.errors import UserError
 
 class SaveOptionsWidget(QFrame):
 
@@ -43,7 +44,6 @@ class SaveOptionsWidget(QFrame):
 
     def options_string(self):
         models = self.structure_list.value
-        from chimerax.core.errors import UserError
         if not models:
             raise UserError("No models chosen for saving")
         from chimerax.atomic import Structure
@@ -138,8 +138,19 @@ class PlotDialog:
                 self._plot_stacks[provider].widget(1).draw_idle()
 
     def _delete_table_entries(self, provider_name):
-        #TODO
-        raise NotImplementedError("Deleting table entries not implemented")
+        table = self._tables[provider_name]
+        entries = table.data
+        ui_name = self.mgr.ui_name(provider_name)
+        if not entries:
+            raise UserError("No %s to delete" % plural_of(ui_name))
+        if len(entries) == 1:
+            death_row = entries
+        else:
+            death_row = table.selected
+            if not death_row:
+                raise UserError("No %s chosen to delete" % plural_of(ui_name))
+        table.data = [x for x in entries if x not in death_row]
+        self._update_plot(provider_name)
 
     def _make_scalar_tab(self, provider_name):
         #TODO
@@ -272,6 +283,9 @@ class PlotDialog:
                 " %d are currently selected" % (plural_of(ui_name), expected_sel, len(sel_atoms)))
         table = self._tables[provider_name]
         table.data += [TableEntry(self, provider_name, sel_atoms)]
+        self._update_plot(provider_name)
+
+    def _update_plot(self, provider_name):
         stack = self._plot_stacks[provider_name]
         stack.setCurrentIndex(1)
         canvas = stack.currentWidget()
@@ -291,7 +305,7 @@ class PlotDialog:
         cs_ids.sort()
         axis.set_xlim(cs_ids[0], cs_ids[-1])
 
-        import numpy
+        table = self._tables[provider_name]
         for table_entry in table.data:
             axis.plot(cs_ids, [table_entry.values[cs_id] for cs_id in cs_ids], color=table_entry.rgba[:3])
         y_min, y_max = self.mgr.min_val(provider_name), self.mgr.max_val(provider_name)
@@ -300,6 +314,7 @@ class PlotDialog:
         if y_max is not None:
             axis.set_ylim(ymax=y_max)
         axis.set_xlabel("Coord Set")
+        ui_name = self.mgr.ui_name(provider_name)
         axis.set_ylabel(ui_name.title() if ui_name.islower() else ui_name)
         self._frame_indicators[provider_name] = axis.axvline(self.structure.active_coordset_id, color='k')
         canvas.draw_idle()
