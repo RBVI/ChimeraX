@@ -311,7 +311,9 @@ class PlotDialog:
         axis.set_xlim(cs_ids[0], cs_ids[-1])
 
         for table_entry in table.data:
-            axis.plot(cs_ids, [table_entry.values[cs_id] for cs_id in cs_ids], color=table_entry.rgba[:3])
+            if table_entry.shown:
+                axis.plot(cs_ids, [table_entry.values[cs_id] for cs_id in cs_ids],
+                    color=table_entry.rgba[:3])
         y_min, y_max = self.mgr.min_val(provider_name), self.mgr.max_val(provider_name)
         if y_min is not None:
             axis.set_ylim(ymin=y_min)
@@ -331,7 +333,7 @@ class TableEntry:
         from chimerax.core.colors import distinguish_from
         self.rgba = distinguish_from([(1.0,1.0,1.0,1.0)]
             + [datum.rgba for datum in plot_dialog._tables[provider_name].data])
-        self.shown = True
+        self._shown = True
         self._values = plot_dialog.mgr.get_values(provider_name,
                             structure=plot_dialog.structure, atoms=atoms)
 
@@ -342,6 +344,16 @@ class TableEntry:
     @rgba8.setter
     def rgba8(self, rgba8):
         self.rgba = [c/255.0 for c in rgba8]
+
+    @property
+    def shown(self):
+        return self._shown
+
+    @shown.setter
+    def shown(self, show):
+        if show != self._shown:
+            self._shown = show
+            self.plot_dialog._update_plot(self.provider_name)
 
     @property
     def value(self):
