@@ -180,6 +180,18 @@ class _MDCrdsBundleAPI(BundleAPI):
             for cs_id in kw['structure'].coordset_ids:
                 values[cs_id] = distance(a1.get_coordset_coord(cs_id), a2.get_coordset_coord(cs_id))
             return values
+        elif name == "angle":
+            from chimerax.geometry import angle
+            values = {}
+            for cs_id in kw['structure'].coordset_ids:
+                values[cs_id] = angle(*[a.get_coordset_coord(cs_id) for a in kw['atoms']])
+            return values
+        elif name == "torsion":
+            from chimerax.geometry import dihedral
+            values = {}
+            for cs_id in kw['structure'].coordset_ids:
+                values[cs_id] = dihedral(*[a.get_coordset_coord(cs_id) for a in kw['atoms']])
+            return values
         raise ValueError("Unknown plotting type: %s" % name)
 
 

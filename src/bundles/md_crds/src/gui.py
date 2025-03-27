@@ -292,13 +292,13 @@ class PlotDialog:
 
     def _plot_atomic(self, provider_name):
         from chimerax.ui import tool_user_error
-        s_atoms = self.structure.atoms
-        sel_atoms = s_atoms[s_atoms.selecteds == True]
+        from chimerax.atomic import selected_atoms # selected_atoms preserves selection order
+        sel_atoms = [a for a in selected_atoms(self.session) if a.structure == self.structure]
         expected_sel = self.mgr.num_atoms(provider_name)
         ui_name = self.mgr.ui_name(provider_name)
         if expected_sel == 0:
             if not sel_atoms:
-                sel_atoms = s_atoms
+                sel_atoms = self.structure.atoms
         elif len(sel_atoms) != expected_sel:
             return tool_user_error("Plotting %s requires exactly %d selected atoms in the structure;"
                 " %d are currently selected" % (plural_of(ui_name), expected_sel, len(sel_atoms)))
