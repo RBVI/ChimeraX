@@ -22,26 +22,12 @@
 
 from chimerax.core.commands import register, CmdDesc, StringArg, FloatArg
 
-
-def register_command(command_name, logger):
-    if command_name == "scenes save":
-        func = save_scene
-        desc = save_scene_desc
-    elif command_name == "scenes delete":
-        func = delete_scene
-        desc = delete_scene_desc
-    elif command_name == "scenes edit":
-        func = edit_scene
-        desc = edit_scene_desc
-    elif command_name == "scenes restore":
-        func = restore_scene
-        desc = restore_scene_desc
-    elif command_name == "scenes list":
-        func = list_scenes
-        desc = list_scenes_desc
-    else:
-        raise ValueError("trying to register unknown command: %s" % command_name)
-    register(command_name, desc, func)
+def register_commands(logger):
+    register("scenes save", save_scene_desc, save_scene)
+    register("scenes delete", delete_scene_desc, delete_scene)
+    register("scenes edit", edit_scene_desc, edit_scene)
+    register("scenes restore", restore_scene_desc, restore_scene)
+    register("scenes list", list_scenes_desc, list_scenes)
 
 
 def save_scene(session, scene_name):
