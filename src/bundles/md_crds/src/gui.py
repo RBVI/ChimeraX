@@ -287,7 +287,12 @@ class PlotDialog:
 
     def _update_plot(self, provider_name):
         stack = self._plot_stacks[provider_name]
-        stack.setCurrentIndex(1)
+        table = self._tables[provider_name]
+        if table.data:
+            stack.setCurrentIndex(1)
+        else:
+            stack.setCurrentIndex(0)
+            return
         canvas = stack.currentWidget()
         figure = canvas.figure
         if figure.axes:
@@ -305,7 +310,6 @@ class PlotDialog:
         cs_ids.sort()
         axis.set_xlim(cs_ids[0], cs_ids[-1])
 
-        table = self._tables[provider_name]
         for table_entry in table.data:
             axis.plot(cs_ids, [table_entry.values[cs_id] for cs_id in cs_ids], color=table_entry.rgba[:3])
         y_min, y_max = self.mgr.min_val(provider_name), self.mgr.max_val(provider_name)
