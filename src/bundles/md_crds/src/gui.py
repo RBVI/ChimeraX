@@ -85,7 +85,12 @@ class PlotDialog:
             for handler in pd.handlers:
                 handler.remove()
             pd.handlers.clear()
-            delattr(pd, 'cleanup')
+            for provider, cids in pd._mouse_handlers.items():
+                canvas = self._plot_stacks[provider].widget(1)
+                for cid in cids:
+                    canvas.mpl_disconnect(cid)
+            pd._mouse_handlers.clear()
+            delattr(pd.tool_window, 'cleanup')
         tw.cleanup = cleanup
         self.session = structure.session
         self.structure = structure
@@ -107,6 +112,7 @@ class PlotDialog:
         self._plot_stacks = {}
         self._value_columns = {}
         self._frame_indicators = {}
+        self._mouse_handlers = {}
 
         tw.manage(None)
 
@@ -221,10 +227,36 @@ class PlotDialog:
             #justification="decimal"  guessing in most cases better to center; also avoids fixed-width font
             header_justification="center")
         for i in range(self.mgr.num_atoms(provider_name)):
-            table.add_column("Atom %d" % (i+1), lambda x, i=i: x.atoms[i])
+            table.add_column("Atom %d" % (i+1), lambda x, i=i: x.atoms[i],
+                format=lambda a: a.string(minimal=True))
         table.data = []
         table.launch()
         return table
+
+    def _mouse_event(self, event):
+        from matplotlib.backend_bases import MouseButton
+        if event.name == "button_press_event":
+            if event.button != MouseButton.LEFT:
+                return
+        elif event.name == "motion_notify_event":
+            if MouseButton.LEFT not in event.buttons:
+                return
+        else:
+            raise ValueError("Unexpected Matplotlib event: %s" % event.name)
+        for provider, stack in self._plot_stacks.items():
+            if event.canvas == stack.widget(1):
+                if not event.inaxes:
+                    break
+                cs_id = round(event.xdata)
+                if cs_id != self.structure.active_coordset_id:
+                    # rather than directly check if the ID is valid (there could be many coord sets)
+                    # just try to set it and catch the error
+                    try:
+                        self.structure.active_coordset_id = cs_id
+                    except IndexError:
+                        # non-exstent
+                        pass
+                break
 
     def _plot_atomic(self, provider_name):
         from chimerax.ui import tool_user_error
@@ -249,6 +281,10 @@ class PlotDialog:
             axis.clear()
         else:
             axis = figure.subplots()
+            self._mouse_handlers[provider_name] = [
+                canvas.mpl_connect('motion_notify_event', self._mouse_event),
+                canvas.mpl_connect('button_press_event', self._mouse_event),
+            ]
         from matplotlib.ticker import MaxNLocator
         axis.xaxis.set_major_locator(MaxNLocator(integer=True))
         cs_ids = self.structure.coordset_ids
