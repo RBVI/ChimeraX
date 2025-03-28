@@ -131,7 +131,7 @@ class ScenesTool(ToolInstance):
         """
         Callback for the SELECTED trigger. Restore the scene with the given name.
         """
-        run(self.session, f"scene restore {scene_name}")
+        run(self.session, f'scene restore "{scene_name}"')
 
     def scene_edited_cb(self, trigger_name, scene_name):
         """
