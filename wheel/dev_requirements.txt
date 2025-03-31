@@ -7,7 +7,7 @@ Cython==3.0.12
 exceptiongroup==1.2.2
 grako==3.99.9
 idna==3.10
-ihm==2.2
+ihm==2.4
 iniconfig==2.1.0
 msgpack==1.0.8
 numpy==1.24.1
