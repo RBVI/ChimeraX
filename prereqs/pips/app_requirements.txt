@@ -60,7 +60,7 @@ scipy==1.14.0
 six==1.16.0
 sortedcontainers==2.4.0
 # Used by the DICOM bundle for a double-ended QSlider
-superqt==0.7.1
+superqt==0.7.3
 tables==3.10.2
 tifffile==2025.3.13
 #tinyarray==1.2.4
