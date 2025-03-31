@@ -1117,6 +1117,9 @@ class OpenXRCamera(Camera, StateManager):
 
     def _set_eye_separation_scene(self, dist):
         sep = self.eye_separation_scene
+        if sep == 0:
+            # No eye poses have been obtained yet.  ChimeraX ticket #17214.
+            return
         f = dist / sep
         center = self.position.origin()
         from chimerax.geometry import translation, scale
