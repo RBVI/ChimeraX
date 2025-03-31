@@ -663,7 +663,7 @@ def volume_gaussian(session, volumes, s_dev = (1.0,1.0,1.0), bfactor = None,
         sd = sqrt(abs(bfactor)/(3*8*pi**2))
         s_dev = (sd,sd,sd)
 
-    if [sd for sd in s_dev if sd <= 0]:
+    if (isinstance(s_dev, float) and s_dev < 0) or [sd for sd in s_dev if sd <= 0]:
         from chimerax.core.errors import UserError
         raise UserError('volume gaussian standard deviation values must be positive.')
     
