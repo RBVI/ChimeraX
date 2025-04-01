@@ -259,6 +259,9 @@ class ItemTable(QTableView):
         ItemTable provides a selection_changed signal that delivers two lists to the connected function:
         newly selected items and newly deselected items.  To find all currently selected items, use the
         tables 'selected' property.
+
+        There is also a convenience method, write_values(), for outputting the contents of the table
+        to a comma-separated or tab-spearated values file.  Further details in that method's doc string.
     """
 
     selection_changed = Signal(list, list)
@@ -730,6 +733,13 @@ class ItemTable(QTableView):
         self._table_model.dataChanged.emit(top_left, bottom_right, changes)
 
     def write_values(self, file=None, *, separator=None):
+        """ Write the table headers and contents to a comma/tab/other-separated value file.
+            With no args, query the user for the file name whether to use commas or tabs as separators.
+            If the 'file' arg is supplied, then the 'separator' arg must also be supplied and the
+            requested file will be written.  You *can* omit 'file' but still specifiy 'separator', in
+            which case the user will be queried for the file ('separator' has to be comma or tab in
+            this usage).
+        """
         all_separators = ['\t', ',']
         if separator is None:
             separators = all_separators
