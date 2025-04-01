@@ -149,10 +149,9 @@ class PlotDialog:
         del self.tab_info[provider]
         if provider not in self._tables:
             return
+        canvas = self._plot_stacks[provider].widget(1)
         for cid in self._mouse_handlers[provider]:
-            canvas = self._plot_stacks[provider].widget(1)
-            for cid in cids:
-                canvas.mpl_disconnect(cid)
+            canvas.mpl_disconnect(cid)
         for mapping in [self._tables, self._plot_stacks, self._value_columns, self._frame_indicators,
                 self._mouse_handlers]:
             del mapping[provider]
@@ -365,6 +364,8 @@ class TableEntry:
     @rgba8.setter
     def rgba8(self, rgba8):
         self.rgba = [c/255.0 for c in rgba8]
+        if self._shown:
+            self.plot_dialog._update_plot(self.provider_name)
 
     @property
     def shown(self):
