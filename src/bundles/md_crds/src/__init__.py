@@ -29,7 +29,7 @@ class _MDCrdsBundleAPI(BundleAPI):
     from chimerax.atomic import StructureArg
 
     @staticmethod
-    def run_provider(session, name, mgr):
+    def run_provider(session, name, mgr, **kw):
         if mgr == session.open_command:
             from chimerax.open_command import OpenerInfo
             if name in ("psf", "data"):
@@ -137,7 +137,8 @@ class _MDCrdsBundleAPI(BundleAPI):
                             'step': PositiveIntArg,
                             'structure_model': StructureArg,
                         }
-        else:
+            return MDInfo()
+        if mgr == session.save_command:
             from chimerax.save_command import SaverInfo
             class MDInfo(SaverInfo):
                 def save(self, session, path, *, models=None, **kw):
@@ -169,6 +170,29 @@ class _MDCrdsBundleAPI(BundleAPI):
                 def save_args_string_from_widget(self, widget):
                     return widget.options_string()
 
-        return MDInfo()
+            return MDInfo()
+
+        # MD plotting manager
+        if name == "distance":
+            a1, a2 = kw['atoms']
+            from chimerax.geometry import distance
+            values = {}
+            for cs_id in kw['structure'].coordset_ids:
+                values[cs_id] = distance(a1.get_coordset_coord(cs_id), a2.get_coordset_coord(cs_id))
+            return values
+        elif name == "angle":
+            from chimerax.geometry import angle
+            values = {}
+            for cs_id in kw['structure'].coordset_ids:
+                values[cs_id] = angle(*[a.get_coordset_coord(cs_id) for a in kw['atoms']])
+            return values
+        elif name == "torsion":
+            from chimerax.geometry import dihedral
+            values = {}
+            for cs_id in kw['structure'].coordset_ids:
+                values[cs_id] = dihedral(*[a.get_coordset_coord(cs_id) for a in kw['atoms']])
+            return values
+        raise ValueError("Unknown plotting type: %s" % name)
+
 
 bundle_api = _MDCrdsBundleAPI()

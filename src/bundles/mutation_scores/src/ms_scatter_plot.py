@@ -27,10 +27,18 @@ def mutation_scores_scatter_plot(session, x_score_name, y_score_name, mutation_s
                                  color_synonymous = True, bounds = True, correlation = False, replace = True):
     
     plot = _find_mutation_scatter_plot(session, mutation_set) if replace else None
-    if plot is None:
+    new_plot = (plot is None)
+    if new_plot:
         plot = MutationScatterPlot(session)
 
-    plot.set_plot_data(x_score_name, y_score_name, mutation_set)
+    from chimerax.core.errors import UserError
+    try:
+        plot.set_plot_data(x_score_name, y_score_name, mutation_set)
+    except UserError:
+        # Mutation set or named scores do not exist.
+        if new_plot:
+            plot.delete()
+        raise
 
     if plot.is_mutation_plot:
         if color_synonymous:
