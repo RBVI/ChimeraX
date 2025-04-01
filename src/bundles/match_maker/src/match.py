@@ -195,6 +195,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
 def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend, *, cutoff_distance=None,
         show_alignment=defaults['show_alignment'], align=align, domain_residues=(None, None), bring=None,
         verbose=defaults['verbose_logging'], always_raise_errors=False, report_matrix=False,
+        log_parameters=defaults['log_parameters'],
         **align_kw):
     """Superimpose structures based on sequence alignment
 
@@ -256,6 +257,8 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
        If 'always_raise_errors' is True, then an iteration that goes to too few
        matched atoms will immediately raise an error instead of noting the
        failure in the log and continuing on to other pairings.
+
+       'log_parameters', if True, logs the parameters used in the matching calculation.
     """
     dssp_cache = {}
     alg = alg.lower()
@@ -436,7 +439,9 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 show_context = session.ui.force_float_tools
     logger = session.logger
     ret_vals = []
-    logged_params = False
+    # logged_params tracks if the parameters have been logged, so if we want them to not be logged at all
+    # (log_parameters == False), start them off as True
+    logged_params = not log_parameters
     for match_mol, pairs in pairings.items():
         ref_atoms = []
         match_atoms = []
@@ -686,6 +691,7 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         cutoff_distance=defaults["iter_cutoff"], gap_extend=defaults["gap_extend"],
         show_alignment=defaults['show_alignment'], compute_s_s=defaults["compute_ss"],
         keep_computed_s_s=defaults['overwrite_ss'], report_matrix=False,
+        log_parameters=defaults['log_parameters'],
         mat_h_h=default_ss_matrix[('H', 'H')],
         mat_s_s=default_ss_matrix[('S', 'S')],
         mat_o_o=default_ss_matrix[('O', 'O')],
@@ -773,7 +779,8 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         cutoff_distance=cutoff_distance, show_alignment=show_alignment, bring=bring,
         domain_residues=(ref_atoms.residues.unique(), match_atoms.residues.unique()),
         gap_open_helix=hgap, gap_open_strand=sgap, gap_open_other=ogap, report_matrix=report_matrix,
-        compute_ss=compute_s_s, keep_computed_ss=keep_computed_s_s, verbose=verbose)
+        compute_ss=compute_s_s, keep_computed_ss=keep_computed_s_s, verbose=verbose,
+        log_parameters=log_parameters)
     return ret_vals
 
 _dm_cleanup = []
@@ -846,7 +853,7 @@ def register_command(logger):
             ('bring', TopModelsArg), ('show_alignment', BoolArg), ('compute_s_s', BoolArg),
             ('mat_h_h', FloatArg), ('mat_s_s', FloatArg), ('mat_o_o', FloatArg), ('mat_h_s', FloatArg),
             ('mat_h_o', FloatArg), ('mat_s_o', FloatArg), ('keep_computed_s_s', BoolArg),
-            ('report_matrix', BoolArg)],
+            ('report_matrix', BoolArg), ('log_parameters', BoolArg)],
         synopsis = 'Align atomic structures using sequence alignment'
     )
     register('matchmaker', desc, cmd_match, logger=logger)

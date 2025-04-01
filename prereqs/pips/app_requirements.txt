@@ -10,7 +10,7 @@ appdirs==1.4.4
 beautifulsoup4==4.13.3
 colorama==0.4.6
 Cython==3.0.12
-filelock==3.17.0
+filelock==3.18.0
 grako==3.16.5
 html2text==2024.2.26
 ihm==2.2
@@ -21,18 +21,18 @@ ipykernel==6.29.5
 ipython==8.26.0
 # the version of jedi that works with ipython
 jedi==0.19.1
-jupyter-client==8.6.2
+jupyter-client==8.6.3
 line_profiler==4.2.0
 lxml==5.3.1
-lz4==4.4.3
-matplotlib==3.9.2
+lz4==4.3.3
+matplotlib==3.10.1
 msgpack==1.1.0
 nibabel == 5.2.0
 netCDF4==1.6.5
 networkx==3.3
 numpy==1.26.4
 openvr==1.26.701
-openmm==8.2.0
+openmm==8.2.0 ; platform_machine != "aarch64"
 packaging==24.2
 # as per Tristan's request in ticket #3055
 ParmEd==4.2.2
@@ -41,11 +41,11 @@ pep517==0.13.1
 pickleshare==0.7.5
 Pillow==10.4.0
 pkginfo==1.11.1
-psutil==6.0.0
+psutil==7.0.0
 pycollada==0.8
 pydicom==2.4.4
 pynrrd==1.0.0
-pyopenxr==1.0.3401
+pyopenxr==1.1.4501
 tcia_utils==1.5.1
 PyOpenGL==3.1.9
 PyOpenGL-accelerate==3.1.9
@@ -62,8 +62,8 @@ sortedcontainers==2.4.0
 # Used by the DICOM bundle for a double-ended QSlider
 superqt==0.7.1
 tables==3.10.2
-tifffile==2024.7.24
-# tinyarray==1.2.4 # 3.11 requires getting this from Plato
+tifffile==2025.3.13
+#tinyarray==1.2.4
 webcolors==24.11.1
 wheel-filename==1.4.2
 #
@@ -71,17 +71,17 @@ wheel-filename==1.4.2
 #
 blockdiag==3.0.0
 docutils==0.21.2
-Jinja2==3.1.5
+Jinja2==3.1.6
 Pygments==2.18.0
-Sphinx==8.1.3
+Sphinx==8.2.3
 sphinxcontrib-blockdiag==3.0.0
-sphinx_autodoc_typehints==3.0.1
+sphinx_autodoc_typehints==3.1.0
 #
 # Windows
 #
-pywin32==306; sys_platform == 'win32'
+pywin32==310; sys_platform == 'win32'
 WMI==1.5.1; sys_platform == 'win32'
-comtypes==1.4.5; sys_platform == 'win32'
+comtypes==1.4.10; sys_platform == 'win32'
 #
 # Linux
 #

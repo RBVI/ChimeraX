@@ -51,7 +51,7 @@ jobs:
           path: |
             linux-bundles.tar.gz
             linux-include.tar.gz
-          key: linux-bundles-${{ inputs.release_type }}-${{ github.sha }}
+          key: linux-bundles-x64-${{ inputs.release_type }}-${{ github.sha }}
       - name: Unpack the bundles tarball to wheels
         run: |
           mkdir wheels
@@ -87,6 +87,19 @@ jobs:
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
+      - name: Put the test outcome in the environment
+        run: |
+          if [ "${{ steps.test-exes.outcome }}" = "failure" ] || [ "${{ steps.test-wheel.outcome }}" = "failure" ] || [ "${{ steps.test-distribution.outcome }}" = "failure" ]; then
+            echo "TEST_OUTCOME=Failing" >> $GITHUB_ENV
+          else
+            echo "TEST_OUTCOME=Passing" >> $GITHUB_ENV
+          fi
+      - name: Report test results to Plato
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 1000
+          timeout_minutes: 60
+          command: curl -v -X POST -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "platform=${{ matrix.os }}" -F "build_type=${{ inputs.release_type }}" -F "outcome=$TEST_OUTCOME" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/confirm_tests.py
       - name: Make the package
         run: make -f Makefile.ubuntu ${{ inputs.release_type }}-package
       - run: mv ${{ matrix.os }}/ucsf-chimerax-*.deb ./chimerax.deb

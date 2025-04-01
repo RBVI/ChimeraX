@@ -176,6 +176,8 @@ class KVFinderResultsDialog(ToolInstance):
             self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
             _results_settings.triggers.add_handler('setting changed', self._setting_changed_cb)
         ]
+        for cav_s in cavity_models:
+            self.handlers.append(cav_s.triggers.add_handler('changes', self._structure_change_cb))
 
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
@@ -189,7 +191,15 @@ class KVFinderResultsDialog(ToolInstance):
         parent.setLayout(layout)
         self.table = ItemTable(session=self.session)
         self.table.add_column("ID", "atomspec", sort_func=lambda cav1, cav2: cav1.id < cav2.id)
-        self.table.add_column("Color", "overall_color", format=self.table.COL_FORMAT_TRANSPARENT_COLOR,
+        def color_func(s):
+            if s.display and s.atoms.displays.any():
+                return s.overall_color
+            for srf in s.surfaces():
+                if srf.display:
+                    return srf.overall_color
+            return s.overall_color
+        self.color_column = self.table.add_column("Color", color_func,
+            format=self.table.COL_FORMAT_TRANSPARENT_COLOR,
             title_display=False, data_set="color {item.atomspec} {value}")
         self.table.add_column("Volume", "kvfinder_volume", format="%g")
         self.table.add_column("Surface Area", "kvfinder_area", format="%g")
@@ -391,3 +401,7 @@ class KVFinderResultsDialog(ToolInstance):
     def _setting_changed_cb(self, trig_name, trig_data):
         setting_name, prev_val, new_val = trig_data
         self._process_settings(setting_name)
+
+    def _structure_change_cb(self, trig_name, changes):
+        if 'display changed' in changes[1].structure_reasons():
+            self.table.update_column(self.color_column, data=True)

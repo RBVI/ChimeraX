@@ -59,7 +59,7 @@ class AvailableBundleCache(list):
         request = Request(url, unverifiable=True, headers=headers)
         # pick short timeout because it limits how quickly ChimeraX can exit
         # when the toolshed can't be contacted
-        with urlopen(request, timeout=3) as f:
+        with urlopen(request, timeout=12) as f:
             import json
             data = json.loads(f.read())
         data.insert(0, ['toolshed_url', toolshed_url])

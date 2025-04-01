@@ -43,14 +43,26 @@ jobs:
     needs: [build-rocky8-docker]
     strategy:
       matrix:
-        include: 
-#          - branch: release/v1.10
-#            release_type: candidate
+        include:
+          #          - branch: release/v1.10
+          #            release_type: candidate
           - branch: develop
             release_type: daily
           - branch: python3.13
             release_type: techpreview
     uses: ./.github/workflows/ubuntu_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit
+  build-ubuntu-arm:
+    name: Build ChimeraX for Ubuntu
+    strategy:
+      matrix:
+        include:
+          - branch: develop
+            release_type: daily
+    uses: ./.github/workflows/ubuntu_arm_build.yml
     with:
       branch: ${{ matrix.branch }}
       release_type: ${{ matrix.release_type }}
@@ -72,6 +84,23 @@ jobs:
       branch: ${{ matrix.branch }}
       release_type: ${{ matrix.release_type }}
     secrets: inherit
+  #  build-flatpak-arm:
+  #    name: Build ChimeraX FlatPak
+  #    needs: [build-rocky8-docker]
+  #    strategy:
+  #      matrix:
+  #        include:
+  #          #          - branch: release/v1.10
+  #          #            release_type: candidate
+  #          - branch: develop
+  #            release_type: daily
+  #          #- branch: python3.13
+  #          #  release_type: techpreview
+  #    uses: ./.github/workflows/flatpak_build.yml
+  #    with:
+  #      branch: ${{ matrix.branch }}
+  #      release_type: ${{ matrix.release_type }}
+  #    secrets: inherit
   build-arm-macos:
     name: Build ChimeraX for arm64 macOS
     strategy:

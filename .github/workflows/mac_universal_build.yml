@@ -28,6 +28,9 @@ on:
       MAC_NOTARIZATION_EMAIL:
         required: true
 
+env:
+  MACOSX_DEPLOYMENT_TARGET: 12
+
 jobs:
   build-mac-universal:
     runs-on: macos-latest

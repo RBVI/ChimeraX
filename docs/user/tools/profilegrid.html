@@ -107,14 +107,14 @@ Either way, cell status can be toggled or the cell added to the existing set
 of highlighted/chosen cells with <b>Shift</b>-click.
 </p>
 
-<!--
 <blockquote><b>
 <a href="#context">Context Menu</a>
+<!--
 <br><a href="#headers">Headers and Residue Attributes</a>
 <br><a href="#association">Sequence-Structure Association</a>
+-->
 <br><a href="#settings">Settings</a>
 </b></blockquote>
--->
 
 <a name="context"></a>
 <p class="nav">
@@ -152,11 +152,211 @@ based on <b>C&alpha;</b> for peptides, <b>C4'</b> for nucleic acids
 Headers are saved to a simple text format that lists the alignment positions
 and values. See also: 
 <a href="../commands/sequence.html#header"><b>sequence header</b></a>
+  <li><b>Settings...</b> show the <a href="#settings"><b>Profile Grid</b>
+preferences</a> to control cell contents
   </ul>
 </ul>
 
+<a name="settings"></a>
+<p class="nav">
+[<a href="#top">back to top: Profile Grid</a>]
+</p>
+<h3>Settings</h3>
+<p>
+Choosing <b>Settings...</b> from the
+<a href="#context"><b>Profile Grid</b> context menu</a>
+with sections:
+</p>
+<ul>
+<li><a href="#settings-appearance"><b>Appearance</b></a>
+<li><a href="#settings-headers"><b>Headers</b></a>
+</ul>
+<p>
+The settings window can be manipulated like other panels in the
+ChimeraX interface (<a href="../window.html#panels">more...</a>).
+</p><p>
+<b>Save</b> saves the current settings as
+<a href="../preferences.html#other">preferences</a>,
+<b>Reset</b> replaces the current settings with
+the initial &ldquo;factory&rdquo; defaults (values shown in <b>bold</b> below),
+and <b>Restore</b> restores values that were saved previously.
+The <b>Buttons below...</b> option indicates
+whether these buttons should apply only
+to the currently shown section (<i>e.g.</i>, <b>Appearance</b>)
+or to all of the <b>Profile Grid</b> preferences.
+Although there can be multiple settings windows with different
+values for multiple <b>Profile Grid</b> windows,
+there can be only one set of saved preference values.
+</p>
+<a name="settings-appearance"></a>
+<p><a href="#settings" class="nounder"><b>&larr;</b></a>
+<b>Appearance</b> &ndash; grid cell contents
+</p>
+<ul class="none">
+<li><b>Cell text</b>
+ <ul>
+ <li><b>none</b> &ndash; no text, use color only to indicate prevalence
+ <li><b>count</b> &ndash; raw counts
+ <li><b>percentage</b> (initial default) 
+ &ndash; counts as a percentage of the number of sequences
+ </ul>
+ <li><b>Decimal places for percentages</b> [<i>N</i>]
+&ndash; for percentage values, the number of digits following the decimal
+(initial default <b>0</b>)
+</ul>
+
+<a name="settings-headers"></a>
+<p><a href="#settings" class="nounder"><b>&larr;</b></a>
+<b>Headers</b> &ndash; rows of information above the grid of residues
+(<a href="#headers">more...</a>)
+</p>
+<ul class="none">
+<li><b>Consensus</b>
+  <ul>
+  <li><b>Show initially</b> (initial default <b>off</b>)
+  <li><a name="low-conservation"></a><b>Hide low-conservation letters</b>
+(initial default <b>off</b>)
+&ndash; whether to leave the consensus sequence blank at positions where
+no type meets the
+<a href="#conservation-threshold"><b>High-conservation threshold</b></a>;
+otherwise, the most prevalent type at each position will be shown,
+even if it appears in fewer than half of the sequences, and if several
+residue types are equally the most common, one will be chosen at random
+  <li><a name="conservation-threshold"></a>
+<b>High-conservation threshold</b> (initial default <b>0.8</b>)
+&ndash; fraction conservation for showing the consensus type as a purple or red
+capital letter, with red indicating that all sequences have the same type
+(a fraction of 1.0); consensus types with a fraction below the threshold
+will be shown as lowercase letters or
+(if <a href="#low-conservation"><b>Hide low-conservation letters</b></a>
+is <b>on</b>) as blanks
+  <li><b>Ignore gap characters</b> (initial default <b>off</b>)
+&ndash; whether to exclude gaps from being considered the most prevalent type
+at a position; regardless of this option, however, gap positions are always
+included in the denominator for calculating the conservation fraction
+  </ul>
+</p>
+<li><b>Conservation</b>
+  <ul>
+  <li><b>Show initially</b> (initial default <b>on</b>)
+  <li><b>Style</b>
+    <ul>
+    <li><b>identity histogram</b> &ndash; what proportion of the sequences
+have the most prevalent nongap character per alignment column.
+Histogram bar heights are proportional to (M-1)/(N-1), where
+M is the number of occurrences of the most prevalent residue type at
+a position in the alignment and N is the number of sequences in the
+alignment. Thus, if every sequence has a different residue at a
+given position, the bar height is zero, not 1/N.
+However, M/N values (not the values used for display purposes) are
+used for the <a href="#headers">seq_conservation attribute</a>.
+    <li><b>Clustal characters</b> &ndash; as in Clustal format,
+     <ul class="none">
+     <li>* (asterisk) for complete identity
+     <li>: (colon) for
+     <a href="../formats/clustgroups.html">strong group conservation</a>
+     <li>. (period) for
+     <a href="../formats/clustgroups.html">weak group conservation</a>
+     <li> blank otherwise
+     </ul>
+    <li><b>AL2CO</b> (<b>AL</b>ignment <b>2</b> <b>CO</b>nservation,
+initial default for alignments with up to 10,000 sequences; for larger
+alignments, the <b>identity histogram</b> style will be used instead)
+&ndash; more sophisticated options for calculating conservation.
+Users should cite:
+  <a name="al2coref"></a>
+    <blockquote>
+    <a href="https://www.ncbi.nlm.nih.gov/pubmed/11524371" target="_blank">
+    AL2CO: calculation of positional conservation in a
+    protein sequence alignment.</a>
+    Pei J, Grishin NV.
+    <i>Bioinformatics.</i> 2001 Aug;17(8):700-12.
+   </blockquote>
+  Conservation values from AL2CO are in standard deviations from the mean
+  (Z-scores) and can range from &ndash;&infin; (least conserved) to
+  +&infin; (most conserved). For purposes of histogram display only,
+  the values are mapped to bar heights 0-1, with conservation values
+  of zero giving a histogram bar height of 0.5.
+</p><p>
+<a name="al2co-parameters"></a>
+<b>AL2CO parameters</b>:
+</p>
+<ul>
+<li><b>Averaging window</b> (initial default <b>1</b>)
+&ndash; window width, or
+how many alignment positions to average in a sliding window.
+The result is assigned to the central column of the window
+when the width is odd, the column left of center when the width is even
+(<i>e.g.</i>, the fourth position in a window of 8),
+with various adjustments at the termini.
+The authors of AL2CO recommend a width of 3 for motif analyses.
+<li><a name="al2comeas"><b>Conservation measure</b></a>
+&ndash; which AL2CO conservation equation to use:
+  <ul>
+  <li><b>entropy-based</b> (initial default)
+  <li><b>variance-based</b>
+  <li><b>sum of pairs</b>
+  </ul>
+<li><b>Frequency estimation method</b>
+&ndash; whether/how to weight the sequences
+  <ul>
+  <li><b>unweighted</b>
+  <li><b>modified Henikoff & Henikoff</b>
+  <li><b>independent counts</b> (initial default)
+  </ul>
+<li><a name="gapfract"><b>Gap fraction</b></a> (initial default <b>0.5</b>)
+ &ndash; maximum fraction of sequences with gaps in a column
+for conservation to still be calculated; for example, if the
+<b>gap fraction</b> is 0.25, conservation values will only be calculated
+for columns in which at least three-fourths of the sequences have residues
+</ul><br>
+Additional settings if the AL2CO
+<a href="#al2comeas"><b>Conservation measure</b></a> is <b>sum of pairs</b>:
+<ul>
+<li><b>Matrix</b> [choices: BLOSUM-30, BLOSUM-35, BLOSUM-40, BLOSUM-45,
+BLOSUM-50, BLOSUM-55, BLOSUM-60, <b>BLOSUM-62</b> (initial default),
+BLOSUM-65, BLOSUM-70, BLOSUM-75, BLOSUM-80, BLOSUM-85, BLOSUM-90,
+BLOSUM-100, BLOSUM-N, Grantham, HSDM, identity, Nucleic, PAM-40, PAM-120,
+PAM-150, PAM-250, SDM] &ndash; which residue similarity matrix to use
+<li><b>Matrix transformation</b>
+&ndash; whether/how to modify the matrix
+   <ul>
+   <li><b>none</b> (initial default)
+   <li><b>normalization</b>
+   &nbsp;&nbsp;&nbsp; <i>S'<sub>ab</sub></i> = <i>S<sub>ab</sub></i> / (<i>S<sub>aa</sub>S<sub>bb</sub></i>)<sup>&frac12;</sup>
+   <li><b>adjustment</b>
+   &nbsp;&nbsp;&nbsp; <i>S''<sub>ab</sub></i> = 2<i>S<sub>ab</sub></i> &ndash; &frac12;(<i>S<sub>aa</sub></i> + <i>S<sub>bb</sub></i>)
+   </ul>
+</ul>
+</ul>
+  </ul>
+<br>
+<li><b>RMSD</b> &ndash; per-column root-mean-square displacement among
+<a href="#association">associated</a> structure residues
+  <ul>
+  <li><b>Show initially</b> (initial default <b>off</b>)
+  <li><b>Atoms used for RMSD</b>
+    <ul>
+    <li><b>C&alpha;/C4'</b> (initial default)
+     &ndash; C&alpha; for peptides, C4' for nucleic acids
+    <li><b>backbone</b> &ndash; peptide N, CA, C, O
+    or nucleic acid phosphoribosyl backbone, not including any hydrogens
+    </ul>
+  </ul>
+<p>
+When more than one chain per model is <a href="#association">associated</a>
+with the same alignment, the RMSD
+calculation uses only the chain that gives the lowest overall RMSD.
+</p>
+<li><b>File Markup [<i>Name</i>]</b> 
+(this option will be listed for each GC header read from Stockholm format
+or a &ldquo;consensus&rdquo; sequence, if any, read from MSF)
+  <ul>
+  <li><b>Show initially</b> (initial default <b>on</b>)
+  </ul>
+</ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2024</address>
+March 2025</address>
 </body></html>

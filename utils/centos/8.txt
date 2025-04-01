@@ -76,6 +76,7 @@ rpmdevtools
 sqlite
 sqlite-devel
 unzip
+wget
 xcb-util-image
 xcb-util-keysyms
 xcb-util-renderutil

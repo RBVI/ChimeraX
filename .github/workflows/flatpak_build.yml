@@ -38,7 +38,7 @@ jobs:
           path: |
             linux-bundles.tar.gz
             linux-include.tar.gz
-          key: linux-bundles-${{ inputs.release_type }}-${{ github.sha }}
+          key: linux-bundles-x64-${{ inputs.release_type }}-${{ github.sha }}
       - name: Install jq
         run: dnf install -y jq
       - uses: Tiryoh/gha-jobid-action@v1
@@ -51,7 +51,7 @@ jobs:
         with:
           # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
           # GitHub Actions couldn't contact Plato.
-          max_attempts: 1000 
+          max_attempts: 1000
           timeout_seconds: 60
           command: ./utils/ci/nightly_logs.sh ${{ secrets.PREBUILT_CACHE_SECRET }} ${{ github.run_id }} ${{ steps.get_job_id.outputs.job_id }} flatpak ${{ inputs.release_type }}
       - run: chown -R $(id -u):$(id -g) $PWD
@@ -72,8 +72,8 @@ jobs:
       # For now, we're skipping tests for the Flatpak
       - name: Put the build date and commit in the environment
         run: |
-          export BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA) 
-          export BUILD_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u) 
+          export BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA)
+          export BUILD_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
           echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
           echo "BUILD_COMMIT=$BUILD_COMMIT" >> $GITHUB_ENV
       - name: Upload ChimeraX
@@ -81,6 +81,6 @@ jobs:
         with:
           # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
           # GitHub Actions couldn't contact Plato.
-          max_attempts: 1000 
+          max_attempts: 1000
           timeout_minutes: 60
           command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=flatpak" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax.flatpak" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py

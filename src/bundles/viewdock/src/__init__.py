@@ -1,3 +1,25 @@
+# === UCSF ChimeraX Copyright ===
+# Copyright 2025 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 from chimerax.core.toolshed import BundleAPI
 
 class _MyAPI(BundleAPI):
@@ -6,9 +28,7 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def start_tool(session, bi, ti):
         if ti.name == "ViewDock":
-            from .tool import ViewDockTool
-            tool = ViewDockTool(session, ti.name)
-            return tool
+            show_docking_file_dialogue(session)
 
     @staticmethod
     def register_command(bi, ci, logger):
@@ -51,10 +71,7 @@ class _MyAPI(BundleAPI):
                         show_dock = False
                     if show_dock:
                         from Qt.QtCore import QTimer
-                        from chimerax.core.commands import run, concise_model_spec
-                        QTimer.singleShot(0,
-                            lambda *args, run=run, ses=session, spec=concise_model_spec, models=models:
-                                run(ses, "viewdock %s" % spec(ses, models)))
+                        QTimer.singleShot(0, lambda s=session, m=models: open_viewdock_tool(s, m))
                 return models, status
 
             @property
@@ -65,3 +82,34 @@ class _MyAPI(BundleAPI):
         return ViewDockOpenerInfo()
 
 bundle_api = _MyAPI()
+
+def show_docking_file_dialogue(session):
+    """
+    Show an open file dialogue specifically for docking results formats.
+    """
+
+    docking_formats_names = []
+    for data_format in session.data_formats.formats:
+        if data_format.category == "Docking results":
+            docking_formats_names.append(data_format.name)
+    if not docking_formats_names:
+        session.logger.warning("No docking results formats found.")
+        return
+    from chimerax.open_command import show_open_file_dialog
+    show_open_file_dialog(session, format_names=docking_formats_names)
+
+
+def open_viewdock_tool(session, structures):
+    """
+    Open the ViewDock tool for the given structures.
+
+    Args:
+        session (Session): the ChimeraX session.
+        structures (list): A list of structures to open in the tool.
+    """
+
+    if not structures:
+        session.logger.warning("Cannot open ViewDock without providing docking structures.")
+        return
+    from .tool import ViewDockTool
+    ViewDockTool(session, "ViewDock", structures)
