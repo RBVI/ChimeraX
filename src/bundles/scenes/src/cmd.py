@@ -20,6 +20,8 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from typing import Optional
+
 from chimerax.core.commands import register, CmdDesc, StringArg, FloatArg
 
 def register_commands(logger):
@@ -30,13 +32,13 @@ def register_commands(logger):
     register("scenes list", list_scenes_desc, list_scenes)
 
 
-def save_scene(session, scene_name):
+def save_scene(session, scene_name: Optional[str] = None) -> None:
     """Save the current scene as 'scene_name'."""
     session.scenes.save_scene(scene_name)
 
 
 save_scene_desc = CmdDesc(
-    required=[("scene_name", StringArg)],
+    optional=[("scene_name", StringArg)],
     synopsis="Save the current scene as 'scene_name'."
 )
 

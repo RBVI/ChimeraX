@@ -178,9 +178,6 @@ class ScenesTool(ToolInstance):
         Save the current scene with the name in the line edit widget.
         """
         scene_name = self.scene_name_entry.text()
-        if not scene_name:
-            self.session.logger.warning("Scene name cannot be empty.")
-            return
         run(self.session, f"scene save {scene_name}")
 
     def edit_button_clicked(self):

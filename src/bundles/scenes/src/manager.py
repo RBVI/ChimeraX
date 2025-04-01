@@ -20,6 +20,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from typing import Optional
 from chimerax.core.state import StateManager
 from .scene import Scene
 from chimerax.core.models import REMOVE_MODELS
@@ -50,6 +51,7 @@ class SceneManager(StateManager):
         """
         self.scenes: [Scene] = []
         self.session = session
+        self.num_saved_scenes = 0
         session.triggers.add_handler(REMOVE_MODELS, self._remove_models_cb)
 
     def scene_exists(self, scene_name: str) -> bool:
@@ -85,16 +87,18 @@ class SceneManager(StateManager):
         for scene in self.scenes:
             self.delete_scene(scene.get_name())
 
-    def save_scene(self, scene_name):
+    def save_scene(self, scene_name: Optional[str] = None) -> None:
         """
         Save the current state as a scene.
         """
+        if not scene_name:
+            scene_name = f"Scene {self.num_saved_scenes + 1}"
         if self.scene_exists(scene_name):
             self.session.logger.warning(f"Scene {scene_name} already exists.")
             return
         self.scenes.append(Scene(self.session, scene_name))
+        self.num_saved_scenes += 1
         activate_trigger(SAVED, scene_name)
-        return
 
     def restore_scene(self, scene_name):
         """
@@ -148,6 +152,8 @@ class SceneManager(StateManager):
         for scene_snapshot in data['scenes']:
             scene = Scene.restore_snapshot(self.session, scene_snapshot)
             self.scenes.append(scene)
+        if 'num_saved_scenes' in data:
+            self.num_saved_scenes = data['num_saved_scenes']
 
     def get_scenes(self):
         return self.scenes
