@@ -1466,9 +1466,11 @@ class TopModelsArg(AtomSpecArg):
     @classmethod
     def parse(cls, text, session):
         if cls.use_peglib_parser:
-            return super().evaluate(session, text)
-        aspec, text, rest = super().parse(text, session)
-        models = aspec.evaluate(session).models
+            objects, text, rest = super().evaluate(session, text)
+            models = objects.models
+        else:
+            aspec, text, rest = super().parse(text, session)
+            models = aspec.evaluate(session).models
         tmodels = _remove_child_models(models)
         return tmodels, text, rest
 
