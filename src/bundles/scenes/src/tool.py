@@ -38,14 +38,14 @@ Classes:
     - SceneScrollArea: Custom scroll area that contains SceneItem widgets in a grid layout.
     - SceneItem: Custom widget that displays a thumbnail image and the name of a scene.
 
-The `ScenesTool` class provides a user interface for managing scenes, including a scroll area for displaying SceneItem 
+The `ScenesTool` class provides a user interface for managing scenes, including a scroll area for displaying SceneItem
 widgets and a disclosure area for scene actions. The tool handles various triggers for scene selection, editing, saving,
  highlighting, and deletion.
 
-The `SceneScrollArea` class manages the layout and display of SceneItem widgets, adjusting the grid layout based on the 
+The `SceneScrollArea` class manages the layout and display of SceneItem widgets, adjusting the grid layout based on the
 scroll area width.
 
-The `SceneItem` class represents an individual scene with a thumbnail and name, handling mouse events for selection and 
+The `SceneItem` class represents an individual scene with a thumbnail and name, handling mouse events for selection and
 activation of relevant triggers.
 """
 
@@ -131,7 +131,7 @@ class ScenesTool(ToolInstance):
         """
         Callback for the SELECTED trigger. Restore the scene with the given name.
         """
-        run(self.session, f"scene restore {scene_name}")
+        run(self.session, f'scene restore "{scene_name}"')
 
     def scene_edited_cb(self, trigger_name, scene_name):
         """
@@ -178,9 +178,6 @@ class ScenesTool(ToolInstance):
         Save the current scene with the name in the line edit widget.
         """
         scene_name = self.scene_name_entry.text()
-        if not scene_name:
-            self.session.logger.warning("Scene name cannot be empty.")
-            return
         run(self.session, f"scene save {scene_name}")
 
     def edit_button_clicked(self):
