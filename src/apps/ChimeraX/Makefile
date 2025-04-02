@@ -135,9 +135,7 @@ pylint:
 $(PROG): $(OBJS)
 	$(PROG_LINK)
 ifeq ($(OS),Linux)
-ifndef FLATPAK_DIST
 	patchelf --force-rpath --set-rpath '$$ORIGIN/../lib' $(PROG)
-endif
 endif
 ifeq ($(OS),Darwin)
 	# Add RPATH so Python ssl module can find libssl.dylib.
