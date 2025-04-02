@@ -105,11 +105,18 @@ class BundleBuilder:
             if self.limited_api:
                 setup_args.extend(["--py-limited-api", self.tag.interpreter])
         dist, built = self._run_setup(setup_args)
-        if not built or not os.path.exists(self.wheel_path):
-            wheel = os.path.basename(self.wheel_path)
+        wheel_dir = os.path.dirname(self.wheel_path)
+        wheel = os.path.basename(self.wheel_path)
+        wheel_lower = wheel.lower()
+        wheel_lower_path = os.path.join(wheel_dir, wheel_lower)
+        if not built or (not os.path.exists(self.wheel_path) and not os.path.exists(wheel_lower_path)):
             raise RuntimeError(f"Building wheel failed: {wheel}")
         else:
-            print("Distribution is in %s" % self.wheel_path)
+            if os.path.exists(self.wheel_path):
+                print("Distribution is in %s" % self.wheel_path)
+            else:
+                print("Distribution is in %s" % wheel_lower_path)
+                self.wheel_path = wheel_lower_path
         return dist
 
     def make_editable_wheel(self, debug=False):
@@ -1154,6 +1161,12 @@ class _CLibrary(_CompiledCode):
                     pass
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
+                try:
+                    n = compiler.linker_so_cxx.index("-bundle")
+                except ValueError:
+                    pass
+                else:
+                    compiler.linker_so_cxx[n] = "-dynamiclib"
                 lib = compiler.library_filename(lib_name, lib_type="dylib")
                 extra_link_args.extend(
                     ["-Wl,-rpath,@loader_path", "-Wl,-install_name,@rpath/%s" % lib]

@@ -268,7 +268,7 @@ class Bundle:
             self.supersedes = chimerax_data.get("supercedes")
         else:
             self.supersedes = []
-        self.custom_init = str(chimerax_data.get("custom-init", ""))
+        self.custom_init = chimerax_data.get("custom-init", False)
         self.categories = chimerax_data.get("categories", [])
         if len(self.categories) == 0:
             category = chimerax_data.get("category", "")
@@ -1152,6 +1152,12 @@ class _CLibrary(_CompiledCode):
                     pass
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
+                try:
+                    n = compiler.linker_so_cxx.index("-bundle")
+                except ValueError:
+                    pass
+                else:
+                    compiler.linker_so_cxx[n] = "-dynamiclib"
                 lib = compiler.library_filename(self.name, lib_type="dylib")
                 extra_link_args.extend(
                     ["-Wl,-rpath,@loader_path", "-Wl,-install_name,@rpath/%s" % lib]

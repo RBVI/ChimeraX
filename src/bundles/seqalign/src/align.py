@@ -72,11 +72,11 @@ def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA):
             super().__init__(session)
             service_name, options, self.reorders_seqs, in_flag, out_flag = {
                 MUSCLE: (
-                    "muscle",
-                    {'maxiters': "1"},
+                    "muscle5",
+                    {},
                     True,
-                    "-in",
-                    "-out",
+                    "-align",
+                    "-output",
                 ),
                 CLUSTAL_OMEGA: (
                     "clustal_omega",

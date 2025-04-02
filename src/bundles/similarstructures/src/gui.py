@@ -98,7 +98,7 @@ class SimilarStructuresPanel(ToolInstance):
     #
     @property
     def hits(self):
-        return self.results.hits
+        return [] if self.results is None else self.results.hits
 
     # ---------------------------------------------------------------------------
     #

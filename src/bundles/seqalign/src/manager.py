@@ -198,14 +198,17 @@ class AlignmentsManager(StateManager, ProviderManager):
         """
         if self.session.ui.is_gui and identify_as is not False:
             viewer_text = viewer
-            if len(seqs) > 1:
-                attr = 'align_viewer'
+            from .settings import settings
+            if len(seqs) >= settings.large_align_threshold:
+                attr = 'large_align_viewer'
+                type_text = "alignment"
+            elif len(seqs) > 1:
+                attr = 'small_align_viewer'
                 type_text = "alignment"
             else:
                 attr = 'seq_viewer'
                 type_text = "sequence"
             if viewer_text is True:
-                from .settings import settings
                 viewer_text = getattr(settings, attr).lower()
             if viewer_text:
                 viewer_text = viewer_text.lower()

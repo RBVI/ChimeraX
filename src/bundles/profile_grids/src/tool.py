@@ -112,6 +112,10 @@ class ProfileGridsTool(ToolInstance):
 
         self.alignment.add_headers_menu_entry(menu)
 
+        settings_action = QAction("Settings...", menu)
+        settings_action.triggered.connect(self.show_settings)
+        menu.addAction(settings_action)
+
         return
         from Qt.QtGui import QAction
         file_menu = menu.addMenu("File")
@@ -269,17 +273,11 @@ class ProfileGridsTool(ToolInstance):
                         show(seq))
                     features_menu.addAction(action)
 
-        settings_action = QAction("Settings...", menu)
-        settings_action.triggered.connect(self.show_settings)
-        menu.addAction(settings_action)
-
-
     def show_settings(self):
-        raise NotImplementedError("show_settings")
         if not hasattr(self, "settings_tool"):
             from .settings_tool import SettingsTool
             self.settings_tool = SettingsTool(self,
-                self.tool_window.create_child_window("Sequence Viewer Settings", close_destroys=False))
+                self.tool_window.create_child_window("Profile Grid Settings", close_destroys=False))
             self.settings_tool.tool_window.manage(None)
         self.settings_tool.tool_window.shown = True
 

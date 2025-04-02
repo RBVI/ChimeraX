@@ -25,7 +25,6 @@ from typing import Optional
 
 from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
 from chimerax.map import Volume
-from chimerax.dicom import Study
 
 from chimerax.segmentations.segmentation import Segmentation
 

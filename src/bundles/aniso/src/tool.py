@@ -18,6 +18,7 @@ from Qt.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QLabel, QButtonG
 from Qt.QtWidgets import QPushButton, QScrollArea, QMenu, QCheckBox
 from Qt.QtCore import Qt
 from chimerax.core.commands import run
+from chimerax.ui import tool_user_error
 import json
 
 class AnisoSettings(Settings):
@@ -25,9 +26,15 @@ class AnisoSettings(Settings):
         "custom_presets": Value({}, json.loads, json.dumps),
     }
 
-builtin_presets = {
-    
-}
+'''
+        "simple ellipsoid": {
+        "principal axes": {
+        "principal ellipses": {
+        "ellipsoid and principal axes": {
+        "octant lines": {
+        "snow globe axes": {
+        "snow globe ellipses": {
+'''
 
 class AnisoTool(ToolInstance):
 
@@ -70,9 +77,11 @@ class AnisoTool(ToolInstance):
         main_layout.addLayout(hide_show_layout)
         hide_show_layout.addStretch(1)
         show_button = QPushButton("Show")
+        show_button.clicked.connect(lambda *args, f=self._show_hide_cb: f("aniso"))
         hide_show_layout.addWidget(show_button)
         hide_show_layout.addWidget(QLabel("/"))
         hide_button = QPushButton("Hide")
+        hide_button.clicked.connect(lambda *args, f=self._show_hide_cb: f("aniso hide"))
         hide_show_layout.addWidget(hide_button)
         hide_show_layout.addWidget(QLabel("depictions"))
         hide_show_layout.addStretch(1)
@@ -90,3 +99,14 @@ class AnisoTool(ToolInstance):
         menu.clear()
         #TODO
 
+    def _show_hide_cb(self, cmd):
+        s = self.structure_button.value
+        if not s:
+            return tool_user_error("No structure chosen")
+
+        spec = s.atomspec
+
+        if self.sel_restrict_check_box.isChecked():
+            spec += " & sel"
+
+        run(self.session, cmd + ' ' + spec)

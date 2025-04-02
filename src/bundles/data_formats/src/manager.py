@@ -22,10 +22,12 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.errors import UserError
+from chimerax.core.toolshed import ProviderManager
+
 class NoFormatError(ValueError):
     pass
 
-from chimerax.core.toolshed import ProviderManager
 class FormatsManager(ProviderManager):
     """
     Manager for data formats.
@@ -128,8 +130,11 @@ class FormatsManager(ProviderManager):
         are remembered between calls, and except in rare circumstances need not be specified.
         """
         from chimerax.open_command import NoOpenerError
-        return self._format_from_suffix(self.session.open_command.provider_info, NoOpenerError, suffix,
-            clear_cache_before, cache_user_responses, clear_cache_after)
+        try:
+            return self._format_from_suffix(self.session.open_command.provider_info, NoOpenerError, suffix,
+                clear_cache_before, cache_user_responses, clear_cache_after)
+        except NoOpenerError:
+            raise UserError("Can only save, not open, %s files" % suffix)
 
     def open_format_from_file_name(self, file_name, *, clear_cache_before=True, cache_user_responses=True,
             clear_cache_after=False):
@@ -163,8 +168,11 @@ class FormatsManager(ProviderManager):
         are remembered between calls, and except in rare circumstances need not be specified.
         """
         from chimerax.save_command import NoSaverError
-        return self._format_from_suffix(self.session.save_command.provider_info, NoSaverError, suffix,
-            clear_cache_before, cache_user_responses, clear_cache_after)
+        try:
+            return self._format_from_suffix(self.session.save_command.provider_info, NoSaverError, suffix,
+                clear_cache_before, cache_user_responses, clear_cache_after)
+        except NoSaverError:
+            raise UserError("Can only open, not save, %s files" % suffix)
 
     def save_format_from_file_name(self, file_name, *, clear_cache_before=True, cache_user_responses=True,
             clear_cache_after=False):
@@ -249,6 +257,8 @@ class FormatsManager(ProviderManager):
 
             if len(relevant_formats) == 1:
                 return relevant_formats[0]
+            if not relevant_formats:
+                raise error_type("No relevant format for suffix")
 
             defaults = [fmt for fmt in relevant_formats if suffix in fmt.default_for]
             if defaults:
@@ -276,7 +286,6 @@ class FormatsManager(ProviderManager):
                     self._user_response_cache[suffix] = fmt
                 return fmt
 
-            from chimerax.core.errors import UserError
             raise UserError("Multiple formats (%s) support %s suffix and none are declared as default; need"
                 " to specify format by using 'format' keyword" %
                 (" ,".join([fmt.nicknames[0] for fmt in relevant_formats]), suffix))

@@ -224,6 +224,51 @@ class _StructureAnisoManager(StateManager):
             self.destroy()
             return
 
+    def report_style_settings(self):
+        from chimerax.core.logger import html_table_params
+        table_lines = [
+            '<table %s>' % html_table_params,
+            '  <thead>',
+            '    <tr>',
+            '      <th colspan="2">Thermal ellipsoid style settings for %s</th>' % self.structure,
+            '    </tr>',
+            '    <tr>',
+            '      <th>Parameter</th>',
+            '      <th>Value</th>',
+            '    </tr>',
+            '  </thead>',
+            '  <tbody>',
+        ]
+        from chimerax.core.commands import camel_case
+        param_names = sorted(list(self.drawing_params.keys()))
+        for param in param_names:
+            value = self.drawing_params[param]
+            if value is None:
+                if param.endswith("_color"):
+                    val_text = "from atom"
+                elif param.endswith("_factor"):
+                    val_text = "off"
+                else:
+                    # transparency
+                    val_text = "none"
+            elif isinstance(value, bool):
+                val_text = repr(value).lower()
+            elif isinstance(value, (int, float)):
+                val_text = "%g" % value
+            else:
+                # color
+                from chimerax.core.colors import color_name
+                val_text = color_name(value)
+            table_lines.extend([
+                '    <tr>',
+                '      <td style="text-align:center">%s</td>' % camel_case(param),
+                '      <td style="text-align:center">%s</td>' % val_text,
+                '    </tr>',
+            ])
+        table_lines.extend(['  </tbody>', '</table>'])
+
+        self.session.logger.info('\n'.join(table_lines), is_html=True)
+
     def reset_state(self, session):
         self.destroy()
 

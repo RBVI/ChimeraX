@@ -286,6 +286,10 @@ def _chain_id_ordinal(chain_id):
 
 def _save_metadata(model, categories, file, metadata):
     tables = mmcif.get_mmcif_tables_from_metadata(model, categories, metadata=metadata)
+    # if model came from PDB, try to generate _cell and _symmetry tables
+    if len(categories) == 2 and 'cell' in categories and 'symmetry' in categories:
+        tables = _translate_PDB_metadata(tables, metadata)
+
     printed = False
     for t in tables:
         if t is None:
@@ -293,6 +297,48 @@ def _save_metadata(model, categories, file, metadata):
         t.print(file, fixed_width=True)
         printed = True
     return printed
+
+
+def _translate_PDB_metadata(tables, metadata):
+    if tables.count(None) != 2 or 'CRYST1' not in metadata or 'HEADER' not in metadata:
+        return tables
+    cell_fields = []
+    symmetry_fields = []
+    field_values = {}
+
+    # HEADER
+    fields = metadata["HEADER"][0].split()
+    if len(fields) < 2:
+        return tables
+    entry = fields[-1].strip()
+    if len(entry) != 4:
+        return tables
+    cell_fields.append(('entry_id', entry))
+    symmetry_fields.append(('entry_id', entry))
+
+    # CRYST1
+    start_index = len("CRYST1")
+    for field_width, verifier, name in zip(
+            [9, 9, 9, 7, 7, 7, 12, 4],
+            [float, float, float, float, float, float, str, int],
+            ['length_a', 'length_b', 'length_c', 'angle_alpha', 'angle_beta', 'angle_gamma',
+                'space_group_name_H-M', 'Z_PDB']):
+        val_str = metadata['CRYST1'][0][start_index:start_index+field_width].strip()
+        try:
+            verifier(val_str)
+        except ValueError:
+                return tables
+        if name.startswith('space_group'):
+            symmetry_fields.append((name, val_str))
+        else:
+            cell_fields.append((name, val_str))
+        start_index += field_width
+
+    new_tables = []
+    for table_name, table_fields in [('cell', cell_fields), ('symmetry', symmetry_fields)]:
+        tags, data = zip(*table_fields)
+        new_tables.append(mmcif.CIFTable(table_name, tags=list(tags), data=list(data)))
+    return new_tables
 
 
 def save_structure(session, file, models, xforms, used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets, computed_sheets):
@@ -984,7 +1030,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     # del sheet_range_data, sheet_range  # not in cython
 
     _save_metadata(best_m, ['entity_src_gen', 'entity_src_nat'], file, best_metadata)
-    _save_metadata(best_m, ['cell', 'symmetry'], file, best_metadata)
+    _save_metadata(best_m, ['cell', 'symmetry'], file, best_metadata) # this is handled specially in _save_metadata
     _save_metadata(best_m, ['pdbx_struct_assembly', 'pdbx_struct_assembly_gen', 'pdbx_struct_oper_list'], file, best_metadata)
 
 

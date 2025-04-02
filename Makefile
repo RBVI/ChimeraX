@@ -185,6 +185,7 @@ else
 endif
 
 distclean: clean
+	-rm -rf build
 	-$(MAKE) -C src clean
 	-$(MAKE) -C docs clean
 	-$(MAKE) -C vdocs clean

@@ -75,7 +75,7 @@ CONFIG_OPTIONS += --enable-shared
 else
 CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --prefix=$(build_prefix)
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
-REL_PYTHON_FRAMEWORK = ../Library/Frameworks/Python.Framework/Versions/$(PYTHON_VERSION)
+REL_PYTHON_FRAMEWORK = ../Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)
 endif
 endif
 
@@ -126,11 +126,9 @@ else
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
 ifeq ($(OS),Linux)
 	# convert to RPATH
-ifndef FLATPAK_DIST
 	patchelf --remove-rpath $(PYTHON_LIBRARY_DIR)/lib-dynload/*.so
 	chmod 755 $(libdir)/libpython*.so; patchelf --remove-rpath $(libdir)/libpython*.so
 	patchelf --force-rpath --set-rpath '$$ORIGIN/../lib' $(PYTHON_BIN)
-endif
 endif
 	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp

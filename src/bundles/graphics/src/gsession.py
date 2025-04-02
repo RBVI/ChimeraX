@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2022 Regents of the University of California. All rights reserved.
+# Copyright 2025 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
 # <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
@@ -69,6 +69,32 @@ class ViewState:
         data['clipping_cap_offset'] = surf_settings.clipping_cap_offset
 
         data['version'] = ViewState.version
+
+        # Scenes interface implementation
+        from chimerax.core.state import State
+        if flags == State.SCENE:
+            # By default, ViewState take_snapshot uses class name references and uids to store data for object attrs
+            # stored in the View. For the simplicity of Scenes we want to convert all the nested objects into raw data.
+            data['camera'] = CameraState.take_snapshot(v.camera, session, State.SCENE)
+
+            data['lighting'] = LightingState.take_snapshot(v.lighting, session, State.SCENE)
+
+            data['material'] = MaterialState.take_snapshot(v.material, session, State.SCENE)
+
+            clip_planes = data['clip_planes']
+            clip_planes_data = []
+            for clip_pane in clip_planes:
+                # Track the type of clip plane state so it can be restored correctly.
+                cp_state_manager = session.snapshot_methods(clip_pane)
+                if cp_state_manager == CameraClipPlaneState:
+                    cp_data = ('camera', cp_state_manager.take_snapshot(clip_pane, session, State.SCENE))
+                else:
+                    cp_data = ('scene', cp_state_manager.take_snapshot(clip_pane, session, State.SCENE))
+                clip_planes_data.append(cp_data)
+            data['clip_planes'] = clip_planes_data
+
+            # End scene implementation. Object references in the snapshot have all been converted to raw data.
+
         return data
 
     @staticmethod
@@ -77,6 +103,32 @@ class ViewState:
         v = session.main_view
         ViewState.set_state_from_snapshot(v, session, data)
         return v
+
+    @staticmethod
+    def restore_scene(view, session, scene_data):
+        """
+        Scenes interface implementation
+        """
+        scene_data['camera'] = CameraState.restore_scene(view.camera, session, scene_data['camera'])
+        scene_data['lighting'] = LightingState.restore_scene(view.lighting, session, scene_data['lighting'])
+        scene_data['material'] = MaterialState.restore_scene(view.material, session, scene_data['material'])
+
+        clip_planes = []    # Restored clip planes objects
+        for cp_data in scene_data['clip_planes']:
+            # cp_data is tuple(state type, state data)
+            cp = CameraClipPlaneState if cp_data[0] == 'camera' else SceneClipPlaneState
+            cp = cp.restore_scene(None, session, cp_data[1])
+            clip_planes.append(cp)
+        scene_data['clip_planes'] = clip_planes
+
+        # The ViewState by default skips resetting the camera because session.restore_options.get('restore camera')
+        # is None. Set it to True, let the camera be restored, and then delete the option, so it reads None again.
+
+        session.restore_options['restore camera'] = True
+        ViewState.set_state_from_snapshot(view, session, scene_data)
+        del session.restore_options['restore camera']
+
+        return view
 
     @staticmethod
     def set_state_from_snapshot(view, session, data):
@@ -154,6 +206,13 @@ class CameraState:
             session.logger.info('"%s" camera settings not currently saved in sessions' % c.name)
             data = {'position': c.position}
         data['version'] = CameraState.version
+
+        # Scene Implementation
+        from chimerax.core.state import State
+        if flags == State.SCENE:
+            from chimerax.geometry.psession import PlaceState
+            data['position'] = PlaceState.take_snapshot(c.position, session, State.SCENE)
+
         return data
 
     @staticmethod
@@ -179,6 +238,12 @@ class CameraState:
     def reset_state(camera, session):
         pass
 
+    @staticmethod
+    def restore_scene(c, session, data):
+        from chimerax.geometry.psession import PlaceState
+        data['position']= PlaceState.restore_scene(c.position, session, data['position'])
+        CameraState.set_state_from_snapshot(c, session, data)
+        return c
 
 class LightingState:
 
@@ -230,6 +295,10 @@ class LightingState:
     def reset_state(lighting, session):
         pass
 
+    @staticmethod
+    def restore_scene(lighting, session, data):
+        LightingState.set_state_from_snapshot(lighting, session, data)
+        return lighting
 
 class MaterialState:
 
@@ -268,6 +337,10 @@ class MaterialState:
     def reset_state(Material, session):
         pass
 
+    @staticmethod
+    def restore_scene(material, session, data):
+        MaterialState.set_state_from_snapshot(material, session, data)
+        return material
 
 class ClipPlaneState:
     '''This is no longer used for saving sessions but is kept for restoring old sessions.'''
@@ -340,6 +413,9 @@ class SceneClipPlaneState:
     def reset_state(clip_plane, session):
         pass
 
+    @staticmethod
+    def restore_scene(cp, session, data):
+        return SceneClipPlaneState.restore_snapshot(session, data)
 
 class CameraClipPlaneState:
     
@@ -368,6 +444,9 @@ class CameraClipPlaneState:
     def reset_state(clip_plane, session):
         pass
 
+    @staticmethod
+    def restore_scene(cp, session, data):
+        return CameraClipPlaneState.restore_snapshot(session, data)
 
 class DrawingState:
 

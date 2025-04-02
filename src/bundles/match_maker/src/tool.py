@@ -149,9 +149,12 @@ class MatchMakerTool(ToolInstance):
             attr_name="verbose_logging", settings=settings))
         self.options.add_option("Fitting", BooleanOption("Log transformation matrix", None, None,
             attr_name="log_transformation_matrix", settings=settings))
+        self.options.add_option("Fitting", BooleanOption("Log parameter values", None, None,
+            attr_name="log_parameters", settings=settings))
         bring_container, bring_options = self.options.add_option_group("Fitting",
             group_alignment=Qt.AlignHCenter|Qt.AlignTop)
         bring_layout = QVBoxLayout()
+        bring_layout.setContentsMargins(0,0,0,0)
         bring_container.setLayout(bring_layout)
         self.bring_label = QLabel("If one model being matched, also move these models along with it:")
         bring_layout.addWidget(self.bring_label)
@@ -227,6 +230,10 @@ class MatchMakerTool(ToolInstance):
         log_xf = settings.log_transformation_matrix
         if log_xf != defaults['log_transformation_matrix']:
             cmd += ' reportMatrix ' + BoolArg.unparse(log_xf)
+
+        log_params = settings.log_parameters
+        if log_params != defaults['log_parameters']:
+            cmd += ' logParameters ' + BoolArg.unparse(log_params)
 
         use_ss = settings.use_ss
         if use_ss:

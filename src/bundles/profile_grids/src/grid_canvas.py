@@ -37,6 +37,7 @@ class GridCanvas:
         from Qt.QtGui import QFont, QFontMetrics, QPalette
         self.font = QFont("Helvetica")
         self.font_metrics = QFontMetrics(self.font)
+        self.font_descent = self.font_metrics.descent()
         self.max_label_width = 0
         for i, text in enumerate(self.row_labels):
             if i in self.empty_rows:
@@ -183,37 +184,36 @@ class GridCanvas:
             else:
                 self.hide_header(hdr)
         elif hdr.shown:
-            #TODO
-            raise NotImplementedError("Updating header label/values not implemented")
             if note_name == self.alignment.NOTE_HDR_VALUES:
                 if bounds is None:
                     bounds = (0, len(hdr)-1)
-                self.lead_block.refresh(hdr, *bounds)
-                self.main_scene.update()
+                self.refresh(hdr, *bounds)
             elif note_name == self.alignment.NOTE_HDR_NAME:
-                if self.label_width == _find_label_width(self.alignment.seqs +
-                        [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
-                        self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
-                    self.lead_block.replace_label(hdr)
-                    self.main_label_scene.update()
-                else:
-                    self._reformat()
+                label = self.header_label_items[hdr]
+                start_label_rect = label.sceneBoundingRect()
+                label.setText(hdr.name)
+                end_label_rect = label.sceneBoundingRect()
+                label.moveBy(start_label_rect.width() - end_label_rect.width(), 0)
+                self._update_scene_rects()
 
     def destroy(self):
         for handler in self.handlers:
             handler.remove()
 
     def hide_header(self, header):
-        header_group = self.header_groups[header]
-        del self.header_groups[header]
-        for item in header_group.childItems():
-            item.hide()
-            self.header_scene.removeItem(item)
-        self.header_scene.destroyItemGroup(header_group)
+        self._clear_header_contents(header)
         label_item = self.header_label_items[header]
         del self.header_label_items[header]
         label_item.hide()
         self.header_label_scene.removeItem(label_item)
+        after_removed = False
+        width, height = self.font_pixels
+        for disp_hdr in self.displayed_headers:
+            if disp_hdr == header:
+                after_removed = True
+            elif after_removed:
+                self.header_groups[disp_hdr].moveBy(0, -height)
+                self.header_label_items[disp_hdr].moveBy(0, -height)
         self.displayed_headers.remove(header)
         self._update_scene_rects()
 
@@ -229,6 +229,7 @@ class GridCanvas:
         y = 0
         # adjust for rectangle outline width / inter-line spacing
         y_adjust = 2
+        self._cell_text_infos = []
         for i in range(rows):
             if i in self.empty_rows:
                 continue
@@ -242,13 +243,11 @@ class GridCanvas:
                 self.main_scene.addRect(x, y, width, height, brush=QBrush(fill_color))
                 if val > 0.0:
                     text_rgb = contrast_with((non_blue/255.0, non_blue/255.0, 1.0))
-                    text_val = str(int(100  * fraction + 0.5))
+                    text_val = self._cell_text(val, fraction)
                     cell_text = self.main_scene.addSimpleText(text_val, self.font)
-                    cell_text.moveBy(x, y)
-                    cell_text.setZValue(1)
-                    bbox = cell_text.boundingRect()
-                    cell_text.moveBy((width - bbox.width())/2, y_adjust + (height - bbox.height())/2)
+                    self._center_cell_text(cell_text, x, y, y_adjust)
                     cell_text.setBrush(QBrush(QColor(*[int(255 * channel + 0.5) for channel in text_rgb])))
+                    self._cell_text_infos.append((cell_text, x, y, y_adjust, val, fraction))
             label_text = self.main_label_scene.addSimpleText(self.row_labels[i], self.font)
             label_width = self.font_metrics.horizontalAdvance(self.row_labels[i] + ' ')
             label_text.moveBy((self.max_label_width - label_width) / 2, y + y_adjust)
@@ -332,14 +331,19 @@ class GridCanvas:
         self.main_view.setToolTip(concise_residue_spec(self.pg.session, residues))
         QToolTip.showText(event.screenPos(), self.main_view.toolTip())
 
-    def refresh(self, seq, left=0, right=None, update_attrs=True):
-        raise NotImplementedError("refresh")
-        if seq in self.alignment.headers and not seq.shown:
+    def refresh(self, seq, left=0, right=None):
+        if seq not in self.alignment.headers:
+            # Since grids typically don't contain StructureSeqs, this won't
+            # happen often, so do the minimum
+            from chimerax.core.errors import UserError
+            raise UserError("Profile Grid does not support updating sequence contents.")
+        if not seq.shown:
             return
         if right is None:
             right = len(self.alignment.seqs[0])-1
-        self.lead_block.refresh(seq, left, right)
-        self.main_scene.update()
+        self._clear_header_contents(seq)
+        self._fill_header_contents(seq)
+        self._update_scene_rects()
 
     def restore_state(self, state):
         for row, col in state['chosen cells']:
@@ -349,35 +353,8 @@ class GridCanvas:
 
     def show_header(self, header):
         self.displayed_headers.append(header)
-        width, height = self.font_pixels
-        x = width / 2
-        #if not self.header_groups:
-        #    y = 0
-        #else:
-        #    y = max([grp.boundingRect().y() for grp in self.header_groups.values()]) + height + 2
-        y = len(self.header_groups) * height
-        items = []
-        if hasattr(header, 'depiction_val'):
-            val_func = lambda i, hdr=header: hdr.depiction_val(i)
-        else:
-            val_func = lambda i, hdr=header: hdr[i]
-        from chimerax.alignment_headers import position_color_to_qcolor as qcolor
-        from Qt.QtGui import QBrush
-        for i in range(len(header)):
-            val = val_func(i)
-            color = qcolor(header.position_color(i))
-            if isinstance(val, str):
-                text = self.header_scene.addSimpleText(val, font=self.font)
-                rect = text.sceneBoundingRect()
-                text.setPos(x - rect.width()/2, y+4)
-                text.setBrush(QBrush(color))
-                items.append(text)
-            elif val != None and val > 0.0:
-                items.append(self.header_scene.addRect(x - width/2, y+height, width, -val * height,
-                    brush=QBrush(color)))
-            x += width
-
-        self.header_groups[header] = group = self.header_scene.createItemGroup(items);
+        group = self._fill_header_contents(header)
+        bbox = group.sceneBoundingRect()
         self.header_label_items[header] = label = self.header_label_scene.addSimpleText(header.name,
             font=self.font)
         label_rect = label.sceneBoundingRect()
@@ -429,6 +406,24 @@ class GridCanvas:
             self.selection_items[(row, col)] = self.main_scene.addRect(
                 col * width, row * height, width, height, pen=pen)
 
+    def _cell_text(self, val, fraction):
+        cell_text_type = self.pg.settings.cell_text
+        if cell_text_type == "percentage":
+            digits = self.pg.settings.percent_decimal_places
+            text_val = str(round(100  * fraction, digits if digits else None))
+        elif cell_text_type == "count":
+            text_val = str(round(val))
+        else:
+            text_val = ""
+        return text_val
+
+    def _center_cell_text(self, cell_text, x, y, y_adjust):
+        width, height = self.font_pixels
+        cell_text.setPos(x, y)
+        cell_text.setZValue(1)
+        bbox = cell_text.boundingRect()
+        cell_text.moveBy((width - bbox.width())/2, y_adjust + (height - bbox.height())/2)
+
     def _check_cells(self):
         from chimerax.core.errors import UserError
         if not self.chosen_cells:
@@ -467,6 +462,47 @@ class GridCanvas:
         self.chosen_cells[(row, col)] = self.main_scene.addPolygon(QPolygonF([QPointF(x, y) for x,y in
             [(left_x, mid_y), (mid_x, top_y), (right_x, mid_y), (mid_x, bottom_y), (left_x, mid_y)]]), pen)
 
+    def _clear_header_contents(self, header):
+        header_group = self.header_groups[header]
+        del self.header_groups[header]
+        for item in header_group.childItems():
+            item.hide()
+            self.header_scene.removeItem(item)
+        self.header_scene.destroyItemGroup(header_group)
+
+    def _fill_header_contents(self, header):
+        width, height = self.font_pixels
+        x = width / 2
+        #if not self.header_groups:
+        #    y = 0
+        #else:
+        #    y = max([grp.boundingRect().y() for grp in self.header_groups.values()]) + height + 2
+        y = len(self.header_groups) * height
+        items = []
+        if hasattr(header, 'depiction_val'):
+            val_func = lambda i, hdr=header: hdr.depiction_val(i)
+        else:
+            val_func = lambda i, hdr=header: hdr[i]
+        from chimerax.alignment_headers import position_color_to_qcolor as qcolor
+        from Qt.QtGui import QBrush
+        for i in range(len(header)):
+            val = val_func(i)
+            color = qcolor(header.position_color(i))
+            if isinstance(val, str):
+                text = self.header_scene.addSimpleText(val, font=self.font)
+                rect = text.sceneBoundingRect()
+                text.setPos(x - rect.width()/2, y - (height - self.TEXT_MARGIN + rect.height())/2)
+                text.setBrush(QBrush(color))
+                items.append(text)
+            elif val != None and val > 0.0:
+                display_height = height - self.TEXT_MARGIN
+                items.append(self.header_scene.addRect(x - width/2, y - self.TEXT_MARGIN/2,
+                    width, -val * display_height, brush=QBrush(color)))
+            x += width
+
+        self.header_groups[header] = group = self.header_scene.createItemGroup(items);
+        return group
+
     def _residues_at(self, grid_row, grid_col):
         residues = []
         for seq in self._sequences_at(grid_row, grid_col):
@@ -498,6 +534,11 @@ class GridCanvas:
             return None, None, None
         return self._residues_at(row, col), row, col
 
+    def _update_cell_texts(self):
+        for cell_text, *pos_args, val, fraction in self._cell_text_infos:
+            cell_text.setText(self._cell_text(val, fraction))
+            self._center_cell_text(cell_text, *pos_args)
+
     def _update_scene_rects(self):
         # have to play with setViewportMargins to get correct scrolling...
         #self.main_view.setViewportMargins(0, 0, 0, -20)
@@ -506,18 +547,21 @@ class GridCanvas:
         # For scrolling to work right, ensure that vertical size of main_label_scene is the same as main_scene
         # and that the horizontal size of the header_scene is the same as the main_scene
         lbr = self.main_label_scene.itemsBoundingRect()
+        hlbr = self.header_label_scene.itemsBoundingRect()
+        label_width = max(lbr.width(), hlbr.width())
         mbr = self.main_scene.itemsBoundingRect()
         y = min(lbr.y(), mbr.y())
         height = max(lbr.y() + lbr.height() - y, mbr.y() + mbr.height() - y)
         mr = self.main_scene.sceneRect()
         hbr = self.header_scene.itemsBoundingRect()
-        self.main_label_scene.setSceneRect(lbr.x(), y,
-            lbr.width(), height)
+        self.main_label_scene.setSceneRect(lbr.x() + lbr.width() - label_width, y, label_width, height)
         self.main_scene.setSceneRect(mbr.x(), y, mbr.width(), height)
         self.header_scene.setSceneRect(mr.x(), hbr.y(),
             mr.width() + self.main_view.verticalScrollBar().size().width(), hbr.height())
+        self.header_label_scene.setSceneRect(hlbr.x() + hlbr.width() - label_width,
+            hlbr.y() + (hbr.height() - hlbr.height())/2, label_width, hbr.height())
         from math import ceil
-        max_header_height = ceil(max(hbr.height(), self.header_label_scene.itemsBoundingRect().height())) + 7
+        max_header_height = ceil(max(hbr.height(), hlbr.height())) + 7
         self.header_view.setMaximumHeight(max_header_height)
         self.header_label_view.setMaximumHeight(max_header_height)
 

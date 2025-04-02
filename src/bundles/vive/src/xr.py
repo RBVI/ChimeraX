@@ -18,7 +18,7 @@ def vr(session, enable = None, room_position = None, mirror = None,
        gui = None, center = None, click_range = None,
        near_clip_distance = None, far_clip_distance = None,
        multishadow_allowed = False, simplify_graphics = True,
-       passthrough = None):
+       max_quality = 'auto', passthrough = None):
     '''
     Enable stereo viewing and head motion tracking with virtual reality headsets using OpenXR.
 
@@ -64,6 +64,10 @@ def vr(session, enable = None, room_position = None, mirror = None,
       Adjust level-of-detail total number of triangles for atoms and bonds to a reduced value
       when VR is enabled, and restore to default value when VR disabled.  This helps maintain
       full rendering speed in VR.  Default true.
+    max_quality : bool or "auto"
+      Whether to use maximum quality graphics.  This overrides simplify_graphics and
+      multishadow_allowed options.  Default auto.  The auto setting acts like true for
+      non-immersive displays such as Sony Spatial Reality and false for VR headsets.
     passthrough : bool or "toggle"
       Whether to enable passthrough video.  This is only supported on Meta Quest headsets
       using the OpenXR XR_FB_passthrough extension.
@@ -77,7 +81,8 @@ def vr(session, enable = None, room_position = None, mirror = None,
 
     if enable is not None:
         if enable:
-            start_vr(session, multishadow_allowed, simplify_graphics)
+            start_vr(session, multishadow_allowed, simplify_graphics,
+                     max_quality = max_quality)
         else:
             stop_vr(session, simplify_graphics)
 
@@ -269,6 +274,7 @@ def register_vr_command(logger):
                               ('far_clip_distance', FloatArg),
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
+                              ('max_quality', Or(EnumOf(['auto']), BoolArg)),
                               ('passthrough', Or(EnumOf(['toggle']), BoolArg)),
                    ],
                    synopsis = 'Start OpenXR virtual reality rendering',
@@ -336,29 +342,11 @@ class VRModeArg(Annotation):
 # -----------------------------------------------------------------------------
 #
 def start_vr(session, multishadow_allowed = False, simplify_graphics = True,
-             label_reorient = 45, zone_label_color = (255,255,0,255), zone_label_background = (0,0,0,255)):
+             label_reorient = 45, zone_label_color = (255,255,0,255),
+             zone_label_background = (0,0,0,255), mouse_zoom_speed = 0.2,
+             max_quality = 'auto'):
 
     v = session.main_view
-    if not multishadow_allowed and v.lighting.multishadow > 0:
-        from chimerax.core.commands import run
-        run(session, 'lighting simple')
-
-    if simplify_graphics:
-        from chimerax.std_commands.graphics import graphics_quality
-        graphics_quality(session, total_atom_triangles=1000000, total_bond_triangles=1000000)
-
-    # Use only 8 shadow directions for faster rendering.
-    from chimerax.std_commands.lighting import lighting_settings
-    lighting_settings(session).lighting_multishadow_directions = 8
-        
-    # Don't continuously reorient labels.
-    from chimerax.label.label3d import label_orient
-    label_orient(session, label_reorient)
-
-    # Make zone mouse mode labels easier to read
-    from chimerax.zone.zone import zone_setting
-    zone_setting(session, label_color = zone_label_color,
-                 label_background_color = zone_label_background, save = False)
     
     c = vr_camera(session)
     if c is session.main_view.camera:
@@ -382,6 +370,35 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True,
 
     session.main_view.camera = c
 
+    if max_quality == 'auto':
+        max_quality = not c.is_vr_headset
+
+    if not max_quality:
+        if not multishadow_allowed and v.lighting.multishadow > 0:
+            from chimerax.core.commands import run
+            run(session, 'lighting simple')
+
+        if simplify_graphics:
+            from chimerax.std_commands.graphics import graphics_quality
+            graphics_quality(session, total_atom_triangles=1000000, total_bond_triangles=1000000)
+
+        # Use only 8 shadow directions for faster rendering.
+        from chimerax.std_commands.lighting import lighting_settings
+        lighting_settings(session).lighting_multishadow_directions = 8
+
+        # Don't continuously reorient labels.
+        from chimerax.label.label3d import label_orient
+        label_orient(session, label_reorient)
+
+    if mouse_zoom_speed:
+        from chimerax.core.commands import run
+        run(session, f'mousemode setting zoom speed {"%.3g" % mouse_zoom_speed}')
+
+    # Make zone mouse mode labels easier to read
+    from chimerax.zone.zone import zone_setting
+    zone_setting(session, label_color = zone_label_color,
+                 label_background_color = zone_label_background, save = False)
+
     # VR gui cannot display a native file dialog.
     from chimerax.open_command import set_use_native_open_file_dialog
     set_use_native_open_file_dialog(False)
@@ -389,7 +406,8 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True,
     # Set redraw timer to redraw as soon as Qt events processsed to minimize dropped frames.
     session.update_loop.set_redraw_interval(0)
 
-    msg = f'started OpenXR rendering {c.openxr_system_name}'
+    w,h = c._xr.render_size
+    msg = f'started OpenXR rendering {c.openxr_system_name}, render size {w} by {h}'
     log = session.logger
     log.status(msg)
     log.info(msg)
@@ -415,20 +433,26 @@ def save_camera_in_session(session, save = True):
             
 # -----------------------------------------------------------------------------
 #
-def stop_vr(session, simplify_graphics = True):
+def stop_vr(session, simplify_graphics = True, mouse_zoom_speed = 1.0):
 
     c = vr_camera(session, create = False)
     if c is None:
         return
 
+    preserve_camera_position = c.keep_position
+    if preserve_camera_position:
+        cpos = c.mono_camera_position()
+
     c.close()
     
     from chimerax.graphics import MonoCamera
     v = session.main_view
-    v.camera = MonoCamera()
+    v.camera = mc = MonoCamera()
+    if preserve_camera_position:
+        mc.position = cpos
 
     session.update_loop.set_redraw_interval(10)
-    
+
     if simplify_graphics:
         from chimerax.std_commands.graphics import graphics_quality
         graphics_quality(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
@@ -440,8 +464,14 @@ def stop_vr(session, simplify_graphics = True):
     # Go back to 64 shadow directions
     from chimerax.std_commands.lighting import lighting_settings
     lighting_settings(session).lighting_multishadow_directions = 64
-    
-    v.view_all()
+
+    if mouse_zoom_speed:
+        from chimerax.core.commands import run
+        run(session, f'mousemode setting zoom speed {"%.3g" % mouse_zoom_speed}')
+
+    if not preserve_camera_position:
+        v.view_all()
+
     wait_for_vsync(session, True)
 
 # -----------------------------------------------------------------------------
@@ -450,6 +480,11 @@ def wait_for_vsync(session, wait):
     r = session.main_view.render
     r.make_current()
     return r.wait_for_vsync(wait)
+    
+# -----------------------------------------------------------------------------
+#
+LEFT_EYE = 0
+RIGHT_EYE = 1
     
 # -----------------------------------------------------------------------------
 #
@@ -484,6 +519,11 @@ class OpenXRCamera(Camera, StateManager):
         from chimerax.geometry import Place
         self.room_position = Place()	# ChimeraX camera coordinates to room coordinates
         self._room_to_scene = None	# Maps room coordinates to scene coordinates
+        self._initial_room_scene_size = 2.0	# meters
+        self._initial_room_center = (0,1,0)	# 1 meter above floor.
+        self._desktop_view_point = None		# Mouse zooms towards this room point.
+        self.keep_position = False	# Whether to preserve camera position when exiting OpenXR.
+
         self._z_near = 0.1		# Meters, near clip plane distance
         self._z_far = 500.0		# Meters, far clip plane distance
         # TODO: Scaling models to be huge causes clipping at far clip plane.
@@ -512,7 +552,9 @@ class OpenXRCamera(Camera, StateManager):
             self._xr = None
             raise
 
-        # Compute projection and eye matrices, units in meters
+        # Set initial model view
+        if self.openxr_system_name == 'SonySRD System':
+            self._sony_spatial_reality_setup()
 
         # Map ChimeraX scene coordinates to OpenVR room coordinates
         if self._room_to_scene is None:
@@ -531,9 +573,49 @@ class OpenXRCamera(Camera, StateManager):
         # Notify other tools that VR has started
         self._session.triggers.activate_trigger('vr started', self)
 
+    def _sony_spatial_reality_setup(self):
+        # Flatpanel Sony Spatial Reality display with eye tracking.
+        #   15.6" screen, 34 x 19 cm, tilted at 45 degree angle.
+        # TODO: Distinguish 27" from 15.6" display.  Might use OpenXR vendorId
+        from math import sqrt
+        s2 = 1/sqrt(2)
+        w,h = 0.34, 0.19	# Screen size meters
+        from numpy import array
+        screen_center = array((0, s2*h/2, -s2*h/2))
+        from chimerax.geometry import rotation
+        screen_orientation = rotation((1,0,0), -45)	# View direction 45 degree down.
+
+        # Room size and center for view_all() positioning.
+        self._initial_room_scene_size = h  # meters
+        self._initial_room_center = screen_center
+
+        # Make mouse zoom always perpendicular at screen center.
+        # Sony rendered camera positions always are perpendicular
+        # to screen but offset based on eye-tracking head position.
+        # That leads to confusing skewed mouse zooming.
+        self._desktop_view_point = screen_center
+
+        # When leaving XR keep the same camera view point in the graphics window.
+        self.keep_position = True
+
+        # Set camera position and room to scene transform preserving
+        # current camera view direction.
+        v = self._session.main_view
+        c = v.camera
+        self.fit_view_to_room(room_width = w,
+                              room_center = screen_center,
+                              room_center_distance = 0.40,
+                              screen_orientation = screen_orientation,
+                              scene_center = v.center_of_rotation,
+                              scene_camera = v.camera)
+
     @property
     def openxr_system_name(self):
         return self._xr.system_name()
+
+    @property
+    def is_vr_headset(self):
+        return self.openxr_system_name != 'SonySRD System'
 
     @property
     def active(self):
@@ -562,6 +644,28 @@ class OpenXRCamera(Camera, StateManager):
         Camera.set_position(self, position)
         self.room_to_scene = move * self.room_to_scene
     position = property(_get_position, _set_position)
+
+    def mono_camera_position(self, eye = RIGHT_EYE):
+        '''
+        Approximate scene camera position for mono camera when leaving OpenXR.
+        This takes account of asymmetric rendering, ie left field of view not
+        the same size as right field of view.  Uses the right eye by default
+        which is the camera view used when mirroring to the desktop.
+        '''
+        pos = self.position
+        xr = self._xr
+        xr_fov = xr.field_of_view[eye]
+        if xr_fov is not None:
+            # Compute angles to mid-point of screen.
+            from math import pi, tan, atan
+            radians_to_degrees = 180 / pi
+            lr_angle = -atan((tan(xr_fov.angle_right) + tan(xr_fov.angle_left))/2)
+            du_angle = atan((tan(xr_fov.angle_down) + tan(xr_fov.angle_up))/2)
+            from chimerax.geometry import rotation
+            pos = (pos
+                   * rotation((0,1,0), lr_angle * radians_to_degrees)
+                   * rotation((1,0,0), du_angle * radians_to_degrees))
+        return pos
     
     def _get_room_to_scene(self):
         return self._room_to_scene
@@ -598,6 +702,32 @@ class OpenXRCamera(Camera, StateManager):
                     return
         self._set_projection_matrices(eye)
 
+    def ray(self, window_x, window_y, window_size, eye = RIGHT_EYE):
+        '''
+        Return origin and direction in scene coordinates of sight line
+        for the specified window pixel position using the specfied eye.
+        The default uses the right eye since this is the view mirrored to the desktop.
+        This allows mouse selection of objects to work. 
+        '''
+        xr = self._xr
+        xr_fov = xr.field_of_view[eye]
+        if xr_fov is None:
+            return None, None
+        fov4 = (xr_fov.angle_left, xr_fov.angle_right, xr_fov.angle_down, xr_fov.angle_up)
+        # Map desktop window position to eye texture position
+        td = self._texture_drawing
+        if td is None:
+            return None, None
+        tex_size = tw, th = td.texture.size
+        tc = td.texture_coordinates
+        (xmin,ymin), (xmax,ymax) = tc[0], tc[2]
+        ww, wh = window_size
+        tx, ty = (xmin + (window_x/ww)*(xmax-xmin))*tw, (ymin + (window_y/wh)*(ymax-ymin))*th
+        cd = perspective_direction4(tx, ty, tex_size, fov4)
+        p = self.view(self.position, eye)
+        ds = p.transform_vector(cd)  # Convert camera to scene coordinates
+        return (p.origin(), ds)
+    
     def _get_near_clip_distance(self):
         return self._z_near
     def _set_near_clip_distance(self, near):
@@ -663,18 +793,18 @@ class OpenXRCamera(Camera, StateManager):
         
     def fit_scene_to_room(self,
                           scene_bounds = None,
-                          room_scene_size = 2, 		# Initial virtual model size in meters
-                          room_center = (0,1,0),
+                          room_scene_size = None, # Initial virtual model size in meters
+                          room_center = None,
                           ):
-        '''Set transform relating scene coordinates and room coordinates.'''
-# Chaperone bounds reported as -2 to 2 in x, -1.2 to 1.2 in z, 0 in y (floor).
-# x is -2 near vive computer, +2 near vizvault door.
-# z is 1.2 near door and vive computer, and -1.2 on opposite wall.
-# y is 0 near floor and 2.5 near ceiling.
-#        chaperone = openvr.VRChaperone()
-#        result, rect = chaperone.getPlayAreaRect()
-#        for c in rect.vCorners:
-#            print('corners', tuple(c.v))
+        '''
+        Set transform relating scene coordinates and room coordinates.
+        This does not preserve the current view point.  Instead the scene
+        and room xyz axes are aligned.
+        '''
+        if room_scene_size is None:
+            room_scene_size = self._initial_room_scene_size
+        if room_center is None:
+            room_center = self._initial_room_center
         b = scene_bounds
         if b is None:
             g = self._vr_model_group
@@ -697,10 +827,37 @@ class OpenXRCamera(Camera, StateManager):
         # First apply scene shift then scene scale to get room coords
         from chimerax.geometry import translation, scale
         from numpy import array, float32
-        self.room_to_scene = (translation(scene_center) *
-                              scale(scene_size/room_scene_size) *
-                              translation(-array(room_center, float32)))
-        
+        self.room_to_scene =  (translation(scene_center) *
+                               scale(scene_size/room_scene_size) *
+                               translation(-array(room_center, float32)))
+
+    def fit_view_to_room(self, room_width, room_center, room_center_distance,
+                         screen_orientation, scene_center, scene_camera):
+        '''
+        Set room to scene transform preserving the specified camera view.
+        The room and scene camera axes are parallel and the camera z axes
+        are coincident but translated to make the scene center appear
+        at the room center distance.
+        '''
+        room_cam_origin = (room_center
+                           + room_center_distance * screen_orientation.z_axis())
+        from chimerax.geometry import translation, scale
+        room_camera_position = translation(room_cam_origin) * screen_orientation
+        scene_camera_position = scene_camera.position
+        scene_center_distance = -(scene_camera_position.inverse() * scene_center)[2]
+        scene_screen_width = scene_camera.view_width(scene_center)
+        if scene_screen_width == 0:
+            return
+        scene_to_room_scale = room_width / scene_screen_width
+        scene_to_room = (
+            room_camera_position
+            * translation((0,0,-room_center_distance))  # Move room camera back to correct distance.
+            * scale(scene_to_room_scale)
+            * translation((0,0,scene_center_distance))  # Move scene center to origin
+            * scene_camera_position.inverse() # Map scene coords to scene camera coords
+        )
+        self.room_to_scene = scene_to_room.inverse()
+
     def move_scene(self, move):
         '''Move is in room coordinates.'''
         self.room_to_scene = self.room_to_scene * move.inverse()
@@ -869,7 +1026,17 @@ class OpenXRCamera(Camera, StateManager):
     def desktop_camera_position(self):
         '''Used for moving view with mouse when desktop camera is indpendent of vr camera.'''
         rc = self._room_camera
-        return rc.camera_position if rc else None
+        if rc:
+            cpos = rc.camera_position
+        elif self._desktop_view_point is not None:
+            rcorigin = self.room_position.origin()
+            view_dir = self._desktop_view_point - rcorigin
+            from chimerax.geometry import orthonormal_frame
+            rcpos = orthonormal_frame(-view_dir, ydir = (0,1,0), origin = rcorigin)
+            cpos = (self.room_to_scene * rcpos).remove_scale()
+        else:
+            cpos = None
+        return cpos
 
     def view(self, camera_position, view_num):
         '''
@@ -913,6 +1080,11 @@ class OpenXRCamera(Camera, StateManager):
 
     def view_all(self, bounds, window_size = None, pad = 0):
         fov = 100	# Effective field of view, degrees
+        # TODO: Ths does not preserve the orientation because
+        #       fit_scene_to_room() ignores the current orientation.
+        #       This also assumes a symmetric field of view when
+        #       computing the orientation so it would not work for the
+        #       Sony 3d display even if it respected the orientation.
         from chimerax.graphics.camera import perspective_view_all
         p = perspective_view_all(bounds, self.position, fov, window_size, pad)
         self._move_camera_in_room(p)
@@ -936,6 +1108,28 @@ class OpenXRCamera(Camera, StateManager):
         pm[:3,:] *= self.scene_scale
         return pm
 
+    def _get_eye_separation_scene(self):
+        vl = self.view(self.position, LEFT_EYE)
+        vr = self.view(self.position, RIGHT_EYE)
+        from chimerax.geometry import distance
+        sep = distance(vr.origin(), vl.origin())
+        return sep
+
+    def _set_eye_separation_scene(self, dist):
+        sep = self.eye_separation_scene
+        if sep == 0:
+            # No eye poses have been obtained yet.  ChimeraX ticket #17214.
+            return
+        f = dist / sep
+        center = self.position.origin()
+        from chimerax.geometry import translation, scale
+        eye_scale = translation(center) * scale(f) * translation(-center)
+        self.room_to_scene = eye_scale * self.room_to_scene
+
+    '''Scene eye separation used by mouse zoom.'''
+    eye_separation_scene = property(_get_eye_separation_scene,
+                                    _set_eye_separation_scene)
+
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
         debug ('setting xr render target for eye', view_num)
@@ -944,9 +1138,9 @@ class OpenXRCamera(Camera, StateManager):
         xr = self._xr
         if view_num == 0:
             self._start_rendering()
-        if view_num == 0:  # VR left-eye
+        if view_num == LEFT_EYE:  # VR left-eye
             xr.set_opengl_render_target(render, 'left')
-        elif view_num == 1:  # VR right-eye
+        elif view_num == RIGHT_EYE:  # VR right-eye
             # Submit left eye texture (view 0) before rendering right eye (view 1)
             xr.release_opengl_render_target(render, 'left')
             xr.set_opengl_render_target(render, 'right')
@@ -1092,6 +1286,24 @@ class OpenXRCamera(Camera, StateManager):
 
     def reset_state(self, session):
         pass
+
+def perspective_direction4(window_x, window_y, window_size, field_of_view):
+    '''
+    Return points in camera coordinates at a given window pixel position.
+    Field of view is left, right, down, up angles in radians and
+    left/down is negative, right/up positive for symmetric view.
+    x = 0 is at left, y = 0 is at top (up).
+    '''
+    angle_left, angle_right, angle_down, angle_up = field_of_view
+    from math import tan
+    tl, tr = tan(angle_left), tan(angle_right)
+    td, tu = tan(angle_down), tan(angle_up)
+    width, height = window_size        # Screen size in pixels
+    wx = tl + window_x/width * (-tl + tr)
+    wy = td + (height-window_y-1)/height * (-td + tu)
+    from chimerax.geometry import normalize_vector
+    d = normalize_vector((wx, wy, -1))
+    return d
     
 class RoomCamera:
     '''Camera fixed in room for mirroring to desktop.'''
@@ -3392,7 +3604,7 @@ def _pinch_zoom(camera, scale_factor, center, max_scale_factor = 10, max_scale =
         s = camera.scene_scale * scale_factor
         if s > max_scale or s < 1/max_scale:
             return
-    from chimerax.geometry import distance, translation, scale
+    from chimerax.geometry import translation, scale
     scale = translation(center) * scale(scale_factor) * translation(-center)
     camera.move_scene(scale)
 

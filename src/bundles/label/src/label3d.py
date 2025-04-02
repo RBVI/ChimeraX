@@ -28,7 +28,7 @@
 def label(session, objects = None, object_type = None, text = None,
           offset = None, color = None, bg_color = None, attribute = None,
           size = None, height = None, default_height = None, default_model_height = None,
-          font = None, on_top = None):
+          font = None, on_top = None, position = None):
     '''Create atom labels. The belong to a child model named "labels" of the structure.
 
     Parameters
@@ -63,6 +63,8 @@ def label(session, objects = None, object_type = None, text = None,
     on_top : bool
       Whether labels always appear on top of other graphics (cannot be occluded).
       This is a per-structure attribute.  Default True.
+    position : "primary atom" or "centroid"
+      Sets the origin for residue labels.  Has no effect for labels that are not on residues.
     '''
     if object_type is None:
         if objects is None:
@@ -134,7 +136,7 @@ def label(session, objects = None, object_type = None, text = None,
         settings['text'] = False
         settings['attribute'] = attribute
 
-    if objects is None and len(settings) == 0 and on_top is None:
+    if objects is None and len(settings) == 0 and on_top is None and position is None:
         return	# Get this when setting default height.
     
     view = session.main_view
@@ -145,9 +147,13 @@ def label(session, objects = None, object_type = None, text = None,
         else:
             mo = objects_by_model(objects, otype)
         object_class = label_object_class(otype)
+        if position is not None and otype == 'residues':
+            osettings = settings | {'position': position}
+        else:
+            osettings = settings
         for m, mobjects in mo:
             lm = labels_model(m, create = True)
-            lm.add_labels(mobjects, object_class, view, settings, on_top)
+            lm.add_labels(mobjects, object_class, view, osettings, on_top)
             lcount += len(mobjects)
     if objects is None and lcount == 0 and default_height is None and default_model_height is None:
         raise UserError('Label command requires an atom specifier to create labels.')
@@ -324,7 +330,8 @@ def register_label_command(logger):
                               ('default_model_height', FloatArg),
                               ('font', StringArg),
                               ('attribute', StringArg),
-                              ('on_top', BoolArg)],
+                              ('on_top', BoolArg),
+                              ('position', EnumOf(['centroid', 'primary atom']))],
                    synopsis = 'Create atom labels')
     register('label', desc, label, logger=logger)
     desc = CmdDesc(optional = [('orient', FloatArg)],
@@ -713,8 +720,8 @@ class ObjectLabels(Model):
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
-        lattrs = ('object', 'text', 'offset', 'color', 'background', 'size', 'height', 'font')
-        lstate = tuple({attr:getattr(l, attr) for attr in lattrs}
+        lattrs = ('object', 'text', 'offset', 'color', 'background', 'size', 'height', 'font', 'position')
+        lstate = tuple({attr:getattr(l, attr) for attr in lattrs if hasattr(l, attr)}
                        for l in self._labels)
         data = {'model state': Model.take_snapshot(self, session, flags),
                 'labels state': lstate,
@@ -740,7 +747,7 @@ class ObjectLabels(Model):
         for ls in data['labels state']:
             o = ls['object']
             kw = {attr:ls[attr] for attr in ('text', 'offset', 'color', 'background',
-                                             'size', 'height', 'font') if attr in ls}
+                                             'size', 'height', 'font', 'position') if attr in ls}
             cls = label_class(o)
             ol[o] = l = cls(o, v, **kw)
             self._labels.append(l)
@@ -948,8 +955,9 @@ class AtomLabel(ObjectLabel):
 class ResidueLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None, attribute = None,
-                 size = 48, height = 'default', font = 'Arial'):
+                 size = 48, height = 'default', font = 'Arial', position = None):
         self.residue = object
+        self.position = position
         ObjectLabel.__init__(self, object, view, offset=offset, text=text,
                  color=color, background=background, attribute=attribute,
                  size=size, height=height, font=font)
@@ -958,7 +966,13 @@ class ResidueLabel(ObjectLabel):
         return '%s %d%s' % (r.name, r.number, r.insertion_code)
     def location(self, scene_position = None):
         r = self.residue
-        return None if r.deleted else r.center
+        if r.deleted:
+            loc = None
+        elif self.position == 'primary atom' and r.principal_atom is not None:
+            loc = r.principal_atom.coord
+        else:
+            loc = r.center
+        return loc
     def visible(self):
         r = self.residue
         return (not r.deleted) and ((r.ribbon_display and r.polymer_type != r.PT_NONE) or r.atoms.displays.any())

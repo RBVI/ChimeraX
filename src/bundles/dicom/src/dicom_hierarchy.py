@@ -16,11 +16,9 @@ import math
 from collections import defaultdict
 from functools import cached_property
 
-import pydicom.uid
 
 from numpy import cross, float32, uint8, int8, uint16, int16
 
-from pydicom import dcmread
 from typing import Optional
 
 from chimerax.core.decorators import requires_gui
@@ -144,6 +142,7 @@ class Study(Model):
     """A set of DICOM files that have the same Study Instance UID"""
 
     def __init__(self, session, uid, patient: Patient):
+        import pydicom.uid
         if type(uid) is str:
             uid = pydicom.uid.UID(uid)
         self.uid = uid
@@ -484,6 +483,7 @@ class DicomData:
         files: list["SeriesFile"],
         mask_number: Optional[int] = None,
     ):
+        import pydicom.uid
         self.session = session
         self.mask_number = mask_number
         self.dicom_series = series
@@ -957,6 +957,7 @@ class DicomData:
 
     def read_plane(self, k, time=None, channel=None, rescale=True):
         # TODO: Don't need to dcmread already read in data...
+        from pydicom import dcmread
         if self._reverse_planes:
             klast = self.data_size[2] - 1
             k = klast - k

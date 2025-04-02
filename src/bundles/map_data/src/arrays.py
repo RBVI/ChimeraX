@@ -245,7 +245,7 @@ def grid_indices(size, data_type):
   # the array contiguous.
   #
   shape = (size[2], size[1], size[0], 3)
-  from numpy import zeros, product, reshape
+  from numpy import zeros, prod, reshape
   indices = zeros(shape, data_type)
   for i in range(size[0]):
     indices[:,:,i,0] = i
@@ -253,7 +253,7 @@ def grid_indices(size, data_type):
     indices[:,j,:,1] = j
   for k in range(size[2]):
     indices[k,:,:,2] = k
-  volume = product(size)
+  volume = prod(size)
   indices = reshape(indices, (volume, 3))
   return indices
 

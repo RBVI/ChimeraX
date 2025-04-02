@@ -1,0 +1,132 @@
+name: Rebuild on change
+
+on:
+  push:
+    branches: [develop, release/*]
+    paths-ignore: [.github/workflows/nightly.yml, .github/workflows/*build.yml]
+
+jobs:
+  build-and-test-rocky8-docker:
+    runs-on: ubuntu-22.04
+    container:
+      image: rockylinux:8
+    env:
+      SHELL: /bin/bash
+      PATH: /usr/bin:/usr/sbin:/bin:/sbin
+    steps:
+      - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+      - run: dnf update -y
+      - run: dnf install -y git-all
+      - uses: actions/checkout@v4
+      # buildinfo.py breaks without this
+      - run: chown -R $(id -u):$(id -g) $PWD
+      - run: ${PWD}/utils/set_up_centos.sh
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
+        with:
+          platform: linux
+          architecture: x86_64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos build-minimal
+      - name: Install Pytest
+        run: USE_COVERAGE=1 make pytest-install
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage
+  build-and-test-arm-linux:
+    env:
+      PYOPENGL_PLATFORM: egl
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - run: sudo apt-get update && sudo apt-get upgrade -y
+      - uses: actions/checkout@v4
+      - run: ${PWD}/utils/set_up_ubuntu.sh
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
+        with:
+          platform: linux
+          architecture: arm64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Build ChimeraX
+        run: |
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 make -j$(nproc) -f Makefile.ubuntu build-minimal
+      - name: Install Pytest
+        run: USE_COVERAGE=1 make pytest-install
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        id: test-exes
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        id: test-wheel
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        id: test-distribution
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage
+  build-and-test-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - uses: actions/checkout@v4
+      - run: ${PWD}/utils/set_up_macos.sh
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
+        with:
+          platform: macos
+          architecture: arm64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) build-minimal
+      - name: Install Pytest
+        run: USE_COVERAGE=1 make pytest-install
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage
+  build-and-test-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
+        with:
+          platform: windows
+          architecture: x86_64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) build-minimal
+      - name: Install Pytest
+        run: USE_COVERAGE=1 make pytest-install
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage

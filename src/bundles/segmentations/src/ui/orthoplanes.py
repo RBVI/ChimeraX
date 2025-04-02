@@ -40,10 +40,9 @@ from chimerax.map.volume_viewer import VolumeViewer, Histogram_Pane
 from chimerax.map.volumecommand import apply_volume_options
 from chimerax.mouse_modes.mousemodes import decode_modifier_bits
 from chimerax.mouse_modes.trackpad import MultitouchEvent, Touch
-from chimerax.ui.widgets import ModelMenu
 
-from ..segmentation import Segmentation, copy_volume_for_auxiliary_display
-from ..segmentation_tracker import get_tracker
+from chimerax.segmentations.segmentation import Segmentation, copy_volume_for_auxiliary_display
+from chimerax.segmentations.segmentation_tracker import get_tracker
 
 from chimerax.segmentations.ui.color_key import ColorKeyModel
 
@@ -55,7 +54,7 @@ from chimerax.segmentations.triggers import (
 )
 from chimerax.segmentations.triggers import Trigger
 
-from ..graphics import (
+from chimerax.segmentations.graphics import (
     OrthoplaneView,
     OrthoCamera,
     SegmentationOverlay,
@@ -63,8 +62,8 @@ from ..graphics import (
     SegmentationCursorOnOtherAxisOverlay,
     OrthoplaneLocationOverlay,
 )
-from ..types import Direction, Axis
-from .label import Label
+from chimerax.segmentations.types import Direction, Axis
+from chimerax.segmentations.ui.label import Label
 
 TRACKPAD_ZOOM_SPEED: int = 7
 TRACKPAD_PAN_SPEED: int = 100
@@ -185,6 +184,7 @@ class PlaneViewerManager:
 
 class PlaneViewer(QWindow):
     def __init__(self, parent, manager, session, axis=Axis.AXIAL):
+        from chimerax.ui.widgets import ModelMenu
         QWindow.__init__(self)
         self.parent = parent
         self.manager = manager
@@ -750,18 +750,19 @@ class PlaneViewer(QWindow):
         self._redraw()
 
     def on_color_changed(self):
-        colors = self.view.drawing.parent.image_colors
-        levels = self.view.drawing.parent.image_levels
-        rgba_and_labels = []
-        for colors, levels in zip(colors, levels):
-            color = colors[:3]
-            alpha = levels[1]
-            # Interpret low alpha as black
-            color = [c * alpha for c in color]
-            level = "{:0.2f}".format(levels[0])
-            rgba_and_labels.append(((*color, 1), level))
-        rgba_and_labels.sort(key=lambda x: float(x[1]))
-        self.color_key.rgbas_and_labels = rgba_and_labels
+        if self.view.drawing is not self.placeholder_drawing:
+            colors = self.view.drawing.parent.image_colors
+            levels = self.view.drawing.parent.image_levels
+            rgba_and_labels = []
+            for colors, levels in zip(colors, levels):
+                color = colors[:3]
+                alpha = levels[1]
+                # Interpret low alpha as black
+                color = [c * alpha for c in color]
+                level = "{:0.2f}".format(levels[0])
+                rgba_and_labels.append(((*color, 1), level))
+            rgba_and_labels.sort(key=lambda x: float(x[1]))
+            self.color_key.rgbas_and_labels = rgba_and_labels
 
     def _update_position_label_text(self) -> None:
         if hasattr(self.view.drawing.parent.data, "dicom_data"):
@@ -1231,6 +1232,13 @@ class PlaneViewer(QWindow):
         if self.segmentation_tool:
             ww, wh = self.main_view.window_size
             width, height = self.view.window_size
+            if (
+                ww <= 0
+                or wh <= 0
+                or width <= 0
+                or height <= 0
+            ):
+                return
             psize = self.view.pixel_size()
             radius = self.segmentation_cursor_overlay.radius
             rel_size = (radius / width) * psize

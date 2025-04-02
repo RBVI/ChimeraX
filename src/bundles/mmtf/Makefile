@@ -14,7 +14,7 @@ MMTF_CPP_DISTRIBUTION = $(MMTF_CPP_SOURCE).zip
 MSGPACK_VERSION = 4.1.2
 MSGPACK_SOURCE	= msgpack-c-cpp-$(MSGPACK_VERSION)
 MSGPACK_DISTRIBUTION = $(MSGPACK_SOURCE).zip
-CLEAN = $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
+CLEAN = $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE) build dist *.egg-info src/__pycache__ src/*/__pycache__
 DISTCLEAN = $(MMTF_CPP_DISTRIBUTION) $(MSGPACK_DISTRIBUTION)
 
 build wheel install install-editable app-install:	$(CSRCS) $(HEADERS)

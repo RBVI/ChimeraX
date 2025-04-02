@@ -11,6 +11,8 @@ LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib'
 endif
 
 ifdef WIN32
+# use twice the default stack size
+LDFLAGS += -F2097152
 ifeq ($(DESKTOP),1)
 PROG	= $(APP_NAME).exe
 else
@@ -133,9 +135,7 @@ pylint:
 $(PROG): $(OBJS)
 	$(PROG_LINK)
 ifeq ($(OS),Linux)
-ifndef FLATPAK_DIST
 	patchelf --force-rpath --set-rpath '$$ORIGIN/../lib' $(PROG)
-endif
 endif
 ifeq ($(OS),Darwin)
 	# Add RPATH so Python ssl module can find libssl.dylib.
