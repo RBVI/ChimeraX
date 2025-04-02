@@ -19,6 +19,7 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+__version__ = 0.1
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -43,15 +44,10 @@ class _ScenesBundleAPI(BundleAPI):
         session.scenes = SceneManager(session)
 
     @staticmethod
-    def finish(session, bundle_info):
-        """De-install scene manager from existing session"""
-        del session.scenes
-
-    @staticmethod
     def register_command(bi, ci, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import cmd
-        cmd.register_command(ci.name, logger)
+        cmd.register_commands(logger)
 
     @staticmethod
     def start_tool(session, bi, ti):

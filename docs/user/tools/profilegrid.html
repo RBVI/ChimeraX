@@ -68,7 +68,8 @@ Roca AI.  <i>BMC Proc.</i> 2014 Aug 28;8(Suppl 2 Proceedings of the
 3rd Annual Symposium on Biologica):S6.
 </blockquote>
 <p>
-The values in the ChimeraX <b>Profile Grid</b> are percentages
+By <a href="#settings-appearance">default</a>,
+the values in the ChimeraX <b>Profile Grid</b> are percentages
 rounded to the nearest integer. A blank cell means that no sequences
 at all have that residue type at that position, whereas a displayed value
 of 0 means that some do, but &lt;0.5%.
@@ -78,10 +79,17 @@ the <b>Profile Grid</b> tool interacts with any
 can include <a href="sequenceviewer.html#headers">headers</a> above 
 the sequence data.
 </p><p>
-Opening a <a href="../commands/open.html#sequence">sequence alignment file</a>
-with the <a href="../commands/open.html"><b>open</b></a> command option 
-<a href="../commands/open.html#viewer"><b>viewer grid</b></a>
-shows it as a <b>Profile Grid</b>.
+Typically one would use <b>Profile Grid</b> instead of the standard
+<a href="sequenceviewer.html"><b>Sequence Viewer</b></a>
+for alignments with very large numbers of sequences. 
+The sequence size threshold for determining the default viewer
+can be adjusted in the
+<a href="../preferences.html#sequences"><b>Sequences</b> preferences</a>,
+although it can be overriden with the
+<a href="../commands/open.html"><b>open</b></a> command
+<a href="../commands/open.html#viewer"><b>viewer</b></a> option
+(<i>e.g.</i>, <a href="../commands/open.html#viewer"><b>viewer grid</b></a>
+indicates using <b>Profile Grid</b> regardless of the alignment size).
 Multiple <b>Profile Grid</b> windows can be shown at the same time, 
 and they can be manipulated like other panels in ChimeraX 
 (<a href="../window.html#panels">more...</a>).
@@ -174,6 +182,8 @@ with sections:
 <p>
 The settings window can be manipulated like other panels in the
 ChimeraX interface (<a href="../window.html#panels">more...</a>).
+See also the <a href="../preferences.html#sequences"><b>Sequences</b></a>
+section of the main ChimeraX settings dialog.
 </p><p>
 <b>Save</b> saves the current settings as
 <a href="../preferences.html#other">preferences</a>,
@@ -358,5 +368,5 @@ or a &ldquo;consensus&rdquo; sequence, if any, read from MSF)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2025</address>
+April 2025</address>
 </body></html>
