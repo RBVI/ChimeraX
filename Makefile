@@ -85,7 +85,11 @@ test src.test: testimports
 testimports:
 	$(APP_EXE) --exit --nogui --silent cxtestimports.py
 
+ifdef FLATPAK_DIST
+SCRIPT_COVERAGE_ARGS := $(if $(USE_COVERAGE),-c -s -f,)
+else
 SCRIPT_COVERAGE_ARGS := $(if $(USE_COVERAGE),-c -s,)
+endif
 COVERAGE_ARGS := $(if $(USE_COVERAGE),--cov=chimerax --cov-append,)
 SILENT_COVERAGE_ARGS := $(if $(USE_COVERAGE),$(COVERAGE_ARGS) --cov-report=,)
 

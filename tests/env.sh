@@ -8,6 +8,7 @@ while getopts cs flag; do
   case "${flag}" in
   c) COVERAGE=true ;;
   s) COV_SILENT=true ;;
+  f) FLATPAK=true ;;
   esac
 done
 
@@ -25,8 +26,13 @@ CHIMERAX_BIN=
 
 case $OSTYPE in
 linux-gnu)
-  CHIMERAX_PYTHON_BIN=$(ls ./ChimeraX.app/bin/python3.1*)
-  CHIMERAX_BIN=./ChimeraX.app/bin/ChimeraX
+  if [ "$FLATPAK" = true ]; then
+    CHIMERAX_PYTHON_BIN=$(ls /app/bin/python3.1*)
+    CHIMERAX_BIN=$(ls /app/bin/ChimeraX)
+  else
+    CHIMERAX_PYTHON_BIN=$(ls ./ChimeraX.app/bin/python3.1*)
+    CHIMERAX_BIN=./ChimeraX.app/bin/ChimeraX
+  fi
   ;;
 msys | cygwin)
   CHIMERAX_PYTHON_BIN=./ChimeraX.app/bin/python.exe
