@@ -66,14 +66,12 @@ modules:
         path: .
     build-commands:
       - mkdir -p /app
-      - NO_PREBUILT=1 FLATPAK_DIST=24.08 FLATPAK_APPNAME=edu.ucsf.rbvi.ChimeraX make install-rbvi
+      - NO_PREBUILT=1 FLATPAK_DIST=24.08 FLATPAK_APPNAME=edu.ucsf.rbvi.ChimeraX MAKEOPTS="-j$(nproc)" make -j$(nproc) install-rbvi
       - /app/bin/ChimeraX --nogui --exit --cmd "linux flatpak-files edu.ucsf.rbvi.ChimeraX"
       - install -Dm644 -t /app/share/metainfo edu.ucsf.rbvi.ChimeraX.metainfo.xml
       - install -Dm644 -t /app/share/applications edu.ucsf.rbvi.ChimeraX.desktop
       - USE_COVERAGE=1 make pytest-install
       - make prepare-coverage
-    run-tests: true
-    test-commands:
       - USE_COVERAGE=1 make pytest-both-exes
       - USE_COVERAGE=1 make pytest-wheel
       - USE_COVERAGE=1 make pytest-app
