@@ -22,11 +22,10 @@
 
 from chimerax.core.tools import ToolInstance
 from chimerax.ui.widgets import ItemTable
-from Qt.QtWidgets import QVBoxLayout
 from chimerax.core.commands import run
 from chimerax.core.models import REMOVE_MODELS
-from Qt.QtWidgets import QStyledItemDelegate, QComboBox
-from Qt.QtWidgets import QAbstractItemView
+from Qt.QtWidgets import QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox
+from Qt.QtCore import Qt, QTimer
 
 class ViewDockTool(ToolInstance):
 
@@ -64,7 +63,7 @@ class ViewDockTool(ToolInstance):
 
         # Custom Rating delegate
         delegate = RatingDelegate(self.struct_table)  # Create the delegate instance
-        self.struct_table.add_column('Rating', lambda s: s.viewdockx_data.get('Rating', "1"),
+        self.struct_table.add_column('Rating', lambda s: s.viewdockx_data.get('Rating', "2"),
                                      data_set = lambda item, value: None,
                                      editable=True)
 
@@ -198,3 +197,20 @@ class RatingDelegate(QStyledItemDelegate):
             index: The index of the item in the model.
         """
         editor.setGeometry(option.rect)
+
+    def paint(self, painter, option, index):
+        """Always display a combo box UI rendering in the table."""
+
+        # Retrieve the latest value, prioritizing the edit role if available, otherwise use the display role.
+        # The edit role means combobox editor is open and display role means only being rendered in the table.
+        value = index.data(Qt.EditRole) or index.data(Qt.DisplayRole)
+
+        # Draw combo box appearance
+        style = option.widget.style()
+        combo_style = QStyleOptionComboBox()
+        combo_style.rect = option.rect
+        combo_style.currentText = str(value) if value else "2"  # Ensure there's always text
+        combo_style.state = QStyle.State_Enabled
+
+        style.drawComplexControl(QStyle.CC_ComboBox, combo_style, painter)
+        style.drawControl(QStyle.CE_ComboBoxLabel, combo_style, painter)
