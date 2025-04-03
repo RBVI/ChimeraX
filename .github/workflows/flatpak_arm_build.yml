@@ -30,7 +30,8 @@ jobs:
           dnf clean all
           flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak remote-add --if-not-exists flathub-beta https://flathub.org/beta-repo/flathub-beta.flatpakrepo
-          flatpak install flathub org.flatpak.Builder -y
+          flatpak install -y flathub org.flatpak.Builder
+          flatpak install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.branch || 'develop' }}
