@@ -4,7 +4,7 @@
 # runs the same whether it's called by running the ChimeraX binary or by
 # running ChimeraX.app/bin/python -I -m chimerax.core
 
-while getopts cs flag; do
+while getopts csf flag; do
   case "${flag}" in
   c) COVERAGE=true ;;
   s) COV_SILENT=true ;;
