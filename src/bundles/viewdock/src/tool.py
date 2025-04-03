@@ -64,7 +64,9 @@ class ViewDockTool(ToolInstance):
 
         # Custom Rating delegate
         delegate = RatingDelegate(self.struct_table)  # Create the delegate instance
-        self.struct_table.add_column('Rating', lambda s: s.viewdockx_data.get('Rating', 1))
+        self.struct_table.add_column('Rating', lambda s: s.viewdockx_data.get('Rating', "1"),
+                                     data_set = lambda item, value: None,
+                                     editable=True)
 
         # Associate the delegate with the "Rating" column
         rating_column_index = self.struct_table.column_names.index('Rating')
