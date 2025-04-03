@@ -96,4 +96,5 @@ modules:
       - cd src/lib && cp libkrb5.so.3 libk5crypto.so.3 libcom_err.so.3 libkrb5support.so.0 libgssapi_krb5.so.2 /app/lib/python3*/site-packages/PyQt6/Qt6/lib/
 
 cleanup:
-  - '/bin/rsync*'
+  - "/bin/rsync*"
+  - "/bin/patchelf*"
