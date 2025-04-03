@@ -1456,7 +1456,7 @@ class LaunchLigandFitTool(ToolInstance):
             if not ligand_value:
                 raise UserError("No ligand model specified")
         else:
-            ligand_value = ligand_widget.text()
+            ligand_value = ligand_widget.text().strip()
             if not ligand_value:
                 raise UserError("No " + ligand_fmt + " text provided")
 

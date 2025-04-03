@@ -250,8 +250,9 @@ def _process_results(session, placed_ligand, model, chain_id, residue_number, hb
     placed_ligand.ss_assigned = True
     model.combine(placed_ligand, {}, model.scene_position)
     session.logger.info("Ligand added to %s as residue %d in chain %s" % (model,  residue_number, chain_id))
-    from chimerax.core.commands import run
-    run(session, "hbonds %s reveal true" % (model.atomspec + '/' + chain_id + ':' + str(residue_number)))
+    if hbonds:
+        from chimerax.core.commands import run
+        run(session, "hbonds %s reveal true" % (model.atomspec + '/' + chain_id + ':' + str(residue_number)))
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
@@ -306,7 +307,7 @@ def _run_fit_subprocess(session, exe_path, optional_args, search_center, resolut
 
     '''
     from os import path
-    json_path = path.join(temp_dir,'LigandFit_run_1_', 'ligandfit.json')
+    json_path = path.join(temp_dir,'LigandFit_run_1_', 'LigandFit_result.json')
     import json
     with open(json_path, 'r') as f:
         print("JSON file contents:\n", f.readlines())
