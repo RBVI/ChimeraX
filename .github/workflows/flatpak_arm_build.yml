@@ -42,7 +42,7 @@ jobs:
           architecture: arm64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Install jq
-        run: sudo apt install -y jq
+        run: dnf install -y jq
       - uses: Tiryoh/gha-jobid-action@v1
         id: get_job_id
         with:
