@@ -1,5 +1,5 @@
 attrs==25.3.0
-build==0.10.0
+build==1.2.2
 certifi>=2024.7.04
 charset-normalizer==3.0.1
 coverage==7.7.1
