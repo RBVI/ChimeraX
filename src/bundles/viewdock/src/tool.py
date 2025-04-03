@@ -25,6 +25,8 @@ from chimerax.ui.widgets import ItemTable
 from Qt.QtWidgets import QVBoxLayout
 from chimerax.core.commands import run
 from chimerax.core.models import REMOVE_MODELS
+from Qt.QtWidgets import QStyledItemDelegate, QComboBox
+from Qt.QtWidgets import QAbstractItemView
 
 class ViewDockTool(ToolInstance):
 
@@ -59,6 +61,17 @@ class ViewDockTool(ToolInstance):
         # Fixed columns. Generic based on ChimeraX model attributes.
         self.struct_table.add_column('Show', lambda s: s.display, data_set=self.set_visibility, format=ItemTable.COL_FORMAT_BOOLEAN)
         self.struct_table.add_column('ID', lambda s: s.id_string)
+
+        # Custom Rating delegate
+        delegate = RatingDelegate(self.struct_table)  # Create the delegate instance
+        self.struct_table.add_column('Rating', lambda s: s.viewdockx_data.get('Rating', 1))
+
+        # Associate the delegate with the "Rating" column
+        rating_column_index = self.struct_table.column_names.index('Rating')
+        self.struct_table.setItemDelegateForColumn(rating_column_index, delegate)
+
+        # Ensure the table's edit triggers are set to allow editing
+        self.struct_table.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked | QAbstractItemView.EditTrigger.SelectedClicked)
 
         # Collect all unique keys from viewdockx_data of all structures
         viewdockx_keys = set()
@@ -122,3 +135,36 @@ class ViewDockTool(ToolInstance):
         for handler in self.handlers:
             self.session.triggers.remove_handler(handler)
         super().delete()
+
+
+class RatingDelegate(QStyledItemDelegate):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.items = ["1", "2", "3"]  # or ["Red", "Yellow", "Green"]
+
+    def createEditor(self, parent, QWidget=None, *args, **kwargs):
+        """
+        Qt header: createEditor(self, parent, option, index)
+        """
+        editor = QComboBox(parent)
+        editor.addItems(self.items)
+        return editor
+
+    def setEditorData(self, editor, QWidget=None, *args, **kwargs):
+        """
+        Qt header: setEditorData(self, editor, index)
+        """
+        value = kwargs['index'].data()
+        editor.setCurrentText(value)
+
+    def setModelData(self, editor, QWidget=None, *args, **kwargs):
+        """
+        Qt header: setModelData(self, editor, model, index)
+        """
+        kwargs['model'].setData(kwargs['index'], editor.currentText())
+
+    def updateEditorGeometry(self, editor, QWidget=None, *args, **kwargs):
+        """
+        Qt header: updateEditorGeometry(self, editor, option, index)
+        """
+        editor.setGeometry(kwargs['option'].rect)
