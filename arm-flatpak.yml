@@ -1,0 +1,93 @@
+# vim:set expandtab shiftwidth=2:
+id: edu.ucsf.rbvi.ChimeraX
+runtime: org.freedesktop.Platform
+runtime-version: "24.08"
+sdk: org.freedesktop.Sdk
+command: ChimeraX
+
+build-options:
+  build_args:
+    # need to fetch files from https://cxtoolshed.rbvi.ucsf.edu/prereqs
+    - --share=network
+  #? FontConfig error while running ChimeraX --nogui
+  #? - --ro-bind /usr/share/fonts /run/host/fonts
+
+finish-args:
+  # X11 + Xshm access
+  - --share=ipc
+  - --socket=x11
+  # fallback-x11 to use X11 if wayland is not found
+  # -- currently, we need X11
+  #- --socket=fallback-x11
+  # Wayland access
+  - --socket=wayland
+  # OpenGL rendering
+  - --device=dri
+  # Network access
+  - --share=network
+  # Share setup with other installations of ChimeraX
+  - --filesystem=xdg-cache/ChimeraX:create
+  - --filesystem=xdg-config/ChimeraX:create
+  - --filesystem=xdg-data/ChimeraX:create
+  - --filesystem=xdg-download/ChimeraX:create
+  # Want "Spin Movie" icon to be able to save to Desktop
+  - --filesystem=xdg-desktop
+  # Want to be able to open files in current directory on command
+  # line (both in shell and within ChimeraX)
+  # --fileystem=home allows for files in the home directory tree
+  # --fileystem=host allows for files in /tmp, /var/tmp, etc.
+  #   This makes the previous filesystem entries redundent
+  #   unless these permissions are turned off (with the
+  #   FlatSeal flatpak application).
+  - --filesystem=home
+  - --filesystem=host
+
+modules:
+  - name: rsync
+    cleanup: /share/man
+    no-autogen: true
+    sources:
+      - type: archive
+        url: https://download.samba.org/pub/rsync/src/rsync-3.4.1.tar.gz
+        sha256: 2924bcb3a1ed8b551fc101f740b9f0fe0a202b115027647cf69850d65fd88c52
+
+  - name: patchelf
+    cleanup: /share/man
+    sources:
+      - type: archive
+        url: https://github.com/NixOS/patchelf/archive/refs/tags/0.18.0.tar.gz
+        sha256: 1451d01ee3a21100340aed867d0b799f46f0b1749680028d38c3f5d0128fb8a7
+
+  - name: chimerax
+    builddir: true
+    buildsystem: simple
+    sources:
+      - type: dir
+        path: .
+    build-commands:
+      - mkdir -p /app
+      - NO_PREBUILT=1 FLATPAK_DIST=24.08 FLATPAK_APPNAME=edu.ucsf.rbvi.ChimeraX make install-rbvi
+      - /app/bin/ChimeraX --nogui --exit --cmd "linux flatpak-files edu.ucsf.rbvi.ChimeraX"
+      - install -Dm644 -t /app/share/metainfo edu.ucsf.rbvi.ChimeraX.metainfo.xml
+      - install -Dm644 -t /app/share/applications edu.ucsf.rbvi.ChimeraX.desktop
+
+  # libQt6Network.so.6 from the Qt Group needs
+  # libgssapi_krb5.so.2, but is not in flatpak runtime environment
+  - name: krb5
+    buildsystem: simple
+    sources:
+      - type: archive
+        url: https://cxtoolshed.rbvi.ucsf.edu/prereqs/krb5/krb5-1.21.2.tar.gz
+        sha256: 9560941a9d843c0243a71b17a7ac6fe31c7cebb5bce3983db79e52ae7e850491
+    build-commands:
+      - cd src && ./configure
+      - make -j -C src/util
+      - make -j -C src/include
+      # need rpath to point to installation directory, not /usr/local/lib
+      - (cd lib; for m in $(find . -name Makefile); do sed -i "s/SHLIB_RDIRS=.*/SHLIB_RDIRS='\$\$ORIGIN'/" $m; done)
+      - make -j -C src/lib
+      - cd src/lib && cp libkrb5.so.3 libk5crypto.so.3 libcom_err.so.3 libkrb5support.so.0 libgssapi_krb5.so.2 /app/lib/python3*/site-packages/PyQt6/Qt6/lib/
+
+cleanup:
+  - "/bin/rsync*"
+  - "/bin/patchelf*"
