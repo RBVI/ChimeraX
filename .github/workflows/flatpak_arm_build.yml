@@ -30,7 +30,7 @@ jobs:
           architecture: arm64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Install jq
-        run: dnf install -y jq
+        run: apt install -y jq
       - uses: Tiryoh/gha-jobid-action@v1
         id: get_job_id
         with:
@@ -70,4 +70,4 @@ jobs:
           # GitHub Actions couldn't contact Plato.
           max_attempts: 1000
           timeout_minutes: 60
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=flatpak" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax.flatpak" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=flatpak-arm" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax.flatpak" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
