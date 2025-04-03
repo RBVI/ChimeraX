@@ -58,7 +58,7 @@ qtconsole==5.5.2
 qtshim==1.1
 requests==2.32.3
 scipy==1.14.0
-six==1.16.0
+six==1.17.0
 sortedcontainers==2.4.0
 # Used by the DICOM bundle for a double-ended QSlider
 superqt==0.7.1
