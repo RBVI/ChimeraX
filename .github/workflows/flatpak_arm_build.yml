@@ -55,7 +55,7 @@ jobs:
         uses: flatpak/flatpak-github-actions/flatpak-builder@master
         with:
           bundle: chimerax.flatpak
-          manifest-path: arm-flatpak.yaml
+          manifest-path: arm-flatpak.yml
           cache-key: flatpak-builder-${{ github.sha }}
           upload-artifact: false
       # For now, we're skipping tests for the Flatpak
