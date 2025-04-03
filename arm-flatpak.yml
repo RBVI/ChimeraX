@@ -70,6 +70,14 @@ modules:
       - /app/bin/ChimeraX --nogui --exit --cmd "linux flatpak-files edu.ucsf.rbvi.ChimeraX"
       - install -Dm644 -t /app/share/metainfo edu.ucsf.rbvi.ChimeraX.metainfo.xml
       - install -Dm644 -t /app/share/applications edu.ucsf.rbvi.ChimeraX.desktop
+    run-tests: true
+    test-commands:
+      - USE_COVERAGE=1 make pytest-install
+      - make prepare-coverage
+      - USE_COVERAGE=1 pytest-both-exes
+      - USE_COVERAGE=1 pytest-wheel
+      - USE_COVERAGE=1 pytest-app
+      - make report-coverage
 
   # libQt6Network.so.6 from the Qt Group needs
   # libgssapi_krb5.so.2, but is not in flatpak runtime environment
