@@ -139,32 +139,60 @@ class ViewDockTool(ToolInstance):
 
 class RatingDelegate(QStyledItemDelegate):
     def __init__(self, parent=None):
+        """
+        Initialize the RatingDelegate with a list of items for the QComboBox.
+
+        Args:
+            parent: The parent widget for the delegate.
+        """
         super().__init__(parent)
         self.items = ["1", "2", "3"]  # or ["Red", "Yellow", "Green"]
 
-    def createEditor(self, parent, QWidget=None, *args, **kwargs):
+    def createEditor(self, parent, option, index):
         """
-        Qt header: createEditor(self, parent, option, index)
+        Create and return a QComboBox editor for the delegate.
+
+        Args:
+            parent: The parent widget for the editor.
+            option: The style options for the item.
+            index: The index of the item in the model.
+
+        Returns:
+            QComboBox: The editor widget (QComboBox).
         """
         editor = QComboBox(parent)
         editor.addItems(self.items)
         return editor
 
-    def setEditorData(self, editor, QWidget=None, *args, **kwargs):
+    def setEditorData(self, editor, index):
         """
-        Qt header: setEditorData(self, editor, index)
+        Set the data from the model into the QComboBox editor.
+
+        Args:
+            editor: The editor widget (QComboBox).
+            index: The index of the item in the model.
         """
-        value = kwargs['index'].data()
+        value = index.data()
         editor.setCurrentText(value)
 
-    def setModelData(self, editor, QWidget=None, *args, **kwargs):
+    def setModelData(self, editor, model, index):
         """
-        Qt header: setModelData(self, editor, model, index)
-        """
-        kwargs['model'].setData(kwargs['index'], editor.currentText())
+        Set the data from the QComboBox editor back into the model.
 
-    def updateEditorGeometry(self, editor, QWidget=None, *args, **kwargs):
+        Args:
+            editor: The editor widget (QComboBox).
+            model: The model to set the data into.
+            index: The index of the item in the model.
         """
-        Qt header: updateEditorGeometry(self, editor, option, index)
+        model.setData(index, editor.currentText())
+
+    def updateEditorGeometry(self, editor, option, index):
         """
-        editor.setGeometry(kwargs['option'].rect)
+        Update the geometry of the QComboBox editor to match the item.
+
+        Args:
+            editor: The editor widget (QComboBox).
+            option: The style options for the item.
+            index: The index of the item in the model.
+        """
+        editor.setGeometry(option.rect)
