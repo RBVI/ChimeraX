@@ -75,8 +75,6 @@ jobs:
           cache-key: flatpak-builder-arm64-${{ github.sha }}
           run-tests: true
           upload-artifact: false
-      - name: Report coverage
-        run: make report-coverage
   build-and-test-macos:
     runs-on: macos-latest
     steps:

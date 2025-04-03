@@ -74,9 +74,9 @@ modules:
       - make prepare-coverage
     run-tests: true
     test-commands:
-      - USE_COVERAGE=1 pytest-both-exes
-      - USE_COVERAGE=1 pytest-wheel
-      - USE_COVERAGE=1 pytest-app
+      - USE_COVERAGE=1 make pytest-both-exes
+      - USE_COVERAGE=1 make pytest-wheel
+      - USE_COVERAGE=1 make pytest-app
       - make report-coverage
 
   # libQt6Network.so.6 from the Qt Group needs
