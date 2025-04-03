@@ -25,30 +25,30 @@ Home = "https://www.rbvi.ucsf.edu/chimerax/"
 [tool.setuptools.dynamic]
 version = { attr = "src.__version__" }
 
-[chimerax]
+[tool.chimerax]
 module-name-override = "alignment_headers"
 min-session-version = 1
 max-session-version = 1
 categories = ["Sequence"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
-[chimerax.executable.al2co]
+[tool.chimerax.executable.al2co]
 sources = ["al2co/al2co.c"]
 
-[chimerax.executable.al2co.platform.linux]
+[tool.chimerax.executable.al2co.platform.linux]
 libraries = ["m"]
 
-[chimerax.executable.al2co.platform.mac]
+[tool.chimerax.executable.al2co.platform.mac]
 extra-compile-args = ["-Wno-logical-op-parentheses", "-Wno-implicit-int"]
 
-[chimerax.provider.Consensus]
+[tool.chimerax.provider.Consensus]
 manager = "alignments"
 type = "header"
 
-[chimerax.provider.Conservation]
+[tool.chimerax.provider.Conservation]
 manager = "alignments"
 type = "header"
 
-[chimerax.provider.RMSD]
+[tool.chimerax.provider.RMSD]
 manager = "alignments"
 type = "header"
