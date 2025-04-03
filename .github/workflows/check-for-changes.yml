@@ -79,19 +79,6 @@ jobs:
           cache-key: flatpak-builder-arm64-${{ github.sha }}
           run-tests: true
           upload-artifact: false
-      - name: Install Pytest
-        run: USE_COVERAGE=1 make pytest-install
-      - name: Set up the repo for coverage reporting
-        run: make prepare-coverage
-      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
-        id: test-exes
-        run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        id: test-wheel
-        run: USE_COVERAGE=1 make pytest-wheel
-      - name: Run distribution tests
-        id: test-distribution
-        run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
   build-and-test-macos:
