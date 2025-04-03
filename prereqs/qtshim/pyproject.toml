@@ -15,7 +15,7 @@ pyqt6 = ["PyQt6", "PyQt6-Qt6", "PyQt6-WebEngine", "PyQt6-sip"]
 pyside6 = ["PySide6", "shiboken6"]
 
 [project.readme]
-content-type = "text"
+content-type = "text/plain"
 text = """Qt shim that handles PyQt5/6 and PySide2/6"""
 
 [project.urls]
