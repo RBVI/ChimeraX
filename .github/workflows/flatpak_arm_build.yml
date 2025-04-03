@@ -49,8 +49,8 @@ jobs:
         run: |
           sudo apt update -y
           sudo apt upgrade -y
-          sudo make -f Makefile.flatpak prereqs-ubuntu
-          RUNTIME_VER=24.08 sudo make -f Makefile.flatpak flatpak-prereq
+          sudo make -f Makefile.flatpak prereqs-ubuntu 
+          sudo flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo
       - name: Build the rest of ChimeraX
         uses: flatpak/flatpak-github-actions/flatpak-builder@master
         with:
