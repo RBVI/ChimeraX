@@ -23,7 +23,6 @@ CXSERVICES_DEPLOYMENT_VER ?= production
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
 PATCHES = tcia_utils.patch tcia_utils_metadata.patch grako.patch
-QTSHIM_WHEEL = qtshim-1.1-py3-none-any.whl
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 
 ifeq ($(OSARCH),DarwinArm64)
@@ -66,9 +65,9 @@ app-list:
 upgrade:
 
 ifeq ($(OSARCH),DarwinArm64)
-app-install: $(PLATO_WHEELS) $(QTSHIM_WHEEL) $(SCIPY_WHEEL) patched-tinyarray
+app-install: $(PLATO_WHEELS) $(SCIPY_WHEEL) patched-tinyarray
 else
-app-install: $(PLATO_WHEELS) $(QTSHIM_WHEEL) patched-tinyarray
+app-install: $(PLATO_WHEELS) patched-tinyarray
 endif
 	# Install Cython first so PyOpenGL_accelerate builds
 	$(APP_PIP_INSTALL) $(CYTHON_BUILD_ARGS) $(shell grep Cython app_requirements.txt | sed -e 's/#//')
@@ -90,7 +89,6 @@ ifdef DEV_DEPENDENCIES
 	$(APP_PIP_INSTALL) --no-build-isolation -r dev_requirements.txt
 endif
 	$(APP_PIP_INSTALL) $(PLATO_WHEELS)
-	$(APP_PIP_INSTALL) $(QTSHIM_WHEEL)
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
@@ -159,7 +157,3 @@ $(CYTHON_WHEEL):
 $(CXSERVICES_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cxservices/cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl
 	mv cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl $(CXSERVICES_WHEEL)
-
-$(QTSHIM_WHEEL):
-	$(MAKE) -C ../qtshim wheel
-	mv ../qtshim/dist/*.whl .
