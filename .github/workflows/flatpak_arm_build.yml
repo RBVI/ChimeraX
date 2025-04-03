@@ -47,6 +47,8 @@ jobs:
       - run: chown -R $(id -u):$(id -g) $PWD
       - name: Install Flatpak prerequisites
         run: |
+          sudo apt update -y
+          sudo apt upgrade -y
           sudo make -f Makefile.flatpak prereqs-ubuntu
           RUNTIME_VER=24.08 sudo make -f Makefile.flatpak flatpak-prereq
       - name: Build the rest of ChimeraX
