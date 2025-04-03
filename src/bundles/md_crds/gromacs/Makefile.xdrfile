@@ -32,7 +32,7 @@ $(XDRFILE_LIB): $(XDRFILE_LIB_SOURCE)
 	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) $(MAKE)
 
 $(XDRFILE_LIB_SOURCE):
-	tar zxf $(XDRFILE_ARCHIVE)
+	tar zxf $(XDRFILE_ARCHIVE) --no-same-owner
 ifneq ($(PATCHES),)
 	for p in $(PATCHES); do \
 		if [ -f $$p ] ; then \
