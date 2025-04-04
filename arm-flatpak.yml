@@ -85,11 +85,7 @@ modules:
         tag: 1.2.2
     build-commands:
       - git submodule update --init
-      - mkdir build
-      - cd build 
-      - cmake ../ 
-      - make
-      - cmake --install .
+      - mkdir build && cd build && cmake ../ && make && cmake --install .
 
   - name: chimerax
     builddir: true
