@@ -199,18 +199,49 @@ class RatingDelegate(QStyledItemDelegate):
         editor.setGeometry(option.rect)
 
     def paint(self, painter, option, index):
-        """Always display a combo box UI rendering in the table."""
+        """Always display a combo box UI rendering in the table, ensuring proper background and selection handling."""
 
-        # Retrieve the latest value, prioritizing the edit role if available, otherwise use the display role.
-        # The edit role means combobox editor is open and display role means only being rendered in the table.
+        # Get the table view widget (the parent of this delegate)
+        view = option.widget
+
+        # Ensure that we do not paint over an actively edited combo box
+        if view and hasattr(view, 'indexWidget'):
+            # If the cell is currently being edited, skip custom painting
+            if view.state() == QAbstractItemView.EditingState and view.currentIndex() == index:
+                return
+
+        # Retrieve the value to be displayed in the combo box
+        # First, check the EditRole (active editing value); if unavailable, fall back to DisplayRole (stored value)
         value = index.data(Qt.EditRole) or index.data(Qt.DisplayRole)
 
-        # Draw combo box appearance
+        # Get the style of the widget to use for drawing
         style = option.widget.style()
-        combo_style = QStyleOptionComboBox()
-        combo_style.rect = option.rect
-        combo_style.currentText = str(value) if value else "2"  # Ensure there's always text
-        combo_style.state = QStyle.State_Enabled
 
+        # Initialize a QStyleOptionComboBox to mimic the appearance of a real combo box
+        combo_style = QStyleOptionComboBox()
+        combo_style.rect = option.rect  # Set the position and size of the combo box
+        combo_style.currentText = str(value) if value else "2"  # Ensure there is always some text displayed
+        combo_style.state = QStyle.State_Enabled  # Enable the combo box appearance by default
+
+        # === Background Handling (Ensures Selection Highlights Work) ===
+
+        if option.state & QStyle.State_Selected:
+            # If the cell is selected, use the highlighted background color
+            painter.fillRect(option.rect, option.palette.highlight())
+            combo_style.state |= QStyle.State_Selected  # Mark the combo box as selected
+            painter.setPen(option.palette.highlightedText().color())  # Set text color to contrast selection
+        else:
+            # If the cell is not selected, use the default background color
+            painter.fillRect(option.rect, option.palette.base())
+            painter.setPen(option.palette.text().color())  # Set text color to default
+
+        # === Drawing the Combo Box Frame and Arrow ===
+        # This renders the full combo box frame (border + drop-down arrow) inside the cell
         style.drawComplexControl(QStyle.CC_ComboBox, combo_style, painter)
-        style.drawControl(QStyle.CE_ComboBoxLabel, combo_style, painter)
+
+        # === Drawing the Text (Prevents Overlapping Artifacts) ===
+        # Get the rectangle where the text should be placed inside the combo box
+        text_rect = style.subControlRect(QStyle.CC_ComboBox, combo_style, QStyle.SC_ComboBoxEditField, None)
+
+        # Draw the text manually to avoid rendering issues (double text, overlapping numbers, etc.)
+        painter.drawText(text_rect, Qt.AlignVCenter | Qt.AlignLeft, combo_style.currentText)
