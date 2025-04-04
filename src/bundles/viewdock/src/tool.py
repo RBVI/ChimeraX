@@ -204,14 +204,23 @@ class RatingDelegate(QStyledItemDelegate):
 
     def setModelData(self, editor, model, index):
         """
-        Set the data from the QComboBox editor back into the model.
+        Set the data from the QComboBox editor back into the ChimeraX Model (not the QAbstractItemModel). The ItemTable
+        will always call the paint method of the delegate using its own data_fetch which accesses attributes from a
+        chimerax model, not a qt table model. We need to set the data on the AtomicStructure and let the ItemTable
+        handle giving this delegates paint the correct data.
 
         Args:
             editor: The editor widget (QComboBox).
             model: The model to set the data into.
             index: The index of the item in the model.
         """
-        model.setData(index, editor.currentText())
+        # Get the structure (chimerax Structure) from the table row.
+        structure = self.parent().data[index.row()]
+        new_rating = editor.currentText()
+        structure.viewdockx_data['Rating'] = new_rating  # Update the rating in the structure's data
+
+        model.setData(index, new_rating)  # Optionally, set the value in the model too. This is for Qt completeness
+
 
     def updateEditorGeometry(self, editor, option, index):
         """
