@@ -139,6 +139,31 @@ class ViewDockTool(ToolInstance):
 
 
 class RatingDelegate(QStyledItemDelegate):
+    """
+    A delegate that provides a QComboBox editor for editing ratings in a table view.
+
+    The RatingDelegate class is responsible for rendering a combo box in the table view and handling the interaction
+    between the editor widget (QComboBox) and the model. It ensures that the combo box is displayed correctly both
+    when the cell is selected and not selected, and that the data is properly committed to the model when editing
+    is finished.
+
+    Methods:
+        createEditor(parent, option, index):
+            Creates and returns a QComboBox editor for the delegate.
+
+        setEditorData(editor, index):
+            Sets the data from the model into the QComboBox editor.
+
+        setModelData(editor, model, index):
+            Sets the data from the QComboBox editor back into the model.
+
+        updateEditorGeometry(editor, option, index):
+            Updates the geometry of the QComboBox editor to match the item.
+
+        paint(painter, option, index):
+            Renders the combo box UI in the table view, ensuring the text is displayed correctly.
+    """
+
     def __init__(self, parent=None):
         """
         Initialize the RatingDelegate with a list of items for the QComboBox.
