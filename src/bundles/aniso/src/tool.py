@@ -13,28 +13,12 @@
 
 from chimerax.core.tools import ToolInstance
 from chimerax.core.settings import Settings
-from chimerax.core.configfile import Value
 from Qt.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QLabel, QButtonGroup, QRadioButton, QWidget
 from Qt.QtWidgets import QPushButton, QScrollArea, QMenu, QCheckBox
 from Qt.QtCore import Qt
 from chimerax.core.commands import run
 from chimerax.ui import tool_user_error
-import json
-
-class AnisoSettings(Settings):
-    AUTO_SAVE = {
-        "custom_presets": Value({}, json.loads, json.dumps),
-    }
-
-'''
-        "simple ellipsoid": {
-        "principal axes": {
-        "principal ellipses": {
-        "ellipsoid and principal axes": {
-        "octant lines": {
-        "snow globe axes": {
-        "snow globe ellipses": {
-'''
+from .cmd import builtin_presets
 
 class AnisoTool(ToolInstance):
 
@@ -44,6 +28,9 @@ class AnisoTool(ToolInstance):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
+
+        from .settings import get_settings
+        self.settings = get_settings(session)
 
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
@@ -61,6 +48,7 @@ class AnisoTool(ToolInstance):
 
         self.preset_menu_button = pmb = QPushButton()
         preset_menu = QMenu(pmb)
+        preset_menu.triggered.connect(self._preset_menu_cb)
         pmb.setMenu(preset_menu)
         pmb.setText(self.NO_PRESET_TEXT)
         self._populate_preset_menu()
@@ -97,7 +85,19 @@ class AnisoTool(ToolInstance):
     def _populate_preset_menu(self):
         menu = self.preset_menu_button.menu()
         menu.clear()
-        #TODO
+        for entry in sorted(list(builtin_presets.keys()) + list(self.settings.custom_presets.keys()),
+                key=lambda x: x.casefold()):
+            menu.addAction(entry)
+
+    def _preset_menu_cb(self, action):
+        s = self.structure_button.value
+        if not s:
+            return tool_user_error("No structure chosen")
+        #TODO: instead of directly setting button, have manager fire triggers on changes and update button
+        # from those (also: initialize button from those)
+        self.preset_menu_button.setText(action.text())
+        #TODO: need an "aniso show" command in order to mimic Chimera tool
+        run(self.session, "aniso preset " + s.atomspec + " " + action.text())
 
     def _show_hide_cb(self, cmd):
         s = self.structure_button.value
