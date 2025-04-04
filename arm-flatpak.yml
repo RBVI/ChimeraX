@@ -77,15 +77,19 @@ modules:
       - "/lib/pkgconfig"
 
   - name: libsnappy
-    buildsystem: simple
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - -DBUILD_SHARED_LIBS=ON
+      - -DSNAPPY_BUILD_TESTS=OFF
+      #- -DCMAKE_INSTALL_PREFIX=/app
     sources:
       - type: git
         url: https://github.com/google/snappy.git
         commit: 6af9287fbdb913f0794d0148c6aa43b58e63c8e3
         tag: 1.2.2
-    build-commands:
-      - git submodule update --init
-      - mkdir build && cd build && cmake ../ && make && sudo cmake --install .
+    post-install:
+      - install -p -D -m 0644 "../COPYING" -t "${FLATPAK_DEST}/share/licenses/snappy/";
 
   - name: chimerax
     builddir: true
