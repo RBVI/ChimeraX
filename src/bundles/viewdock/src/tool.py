@@ -71,8 +71,7 @@ class ViewDockTool(ToolInstance):
         rating_column_index = self.struct_table.column_names.index('Rating')
         self.struct_table.setItemDelegateForColumn(rating_column_index, delegate)
 
-        # Ensure the table's edit triggers are set to allow editing
-        self.struct_table.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked | QAbstractItemView.EditTrigger.SelectedClicked)
+        self.struct_table.setEditTriggers(QAbstractItemView.EditTrigger.CurrentChanged)
 
         # Collect all unique keys from viewdockx_data of all structures
         viewdockx_keys = set()
