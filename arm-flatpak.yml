@@ -65,6 +65,7 @@ modules:
         sha256: 92e6de1be9ec176428fd2367677e61ceffc2ee1cb119035037a27d346b0403bb
 
   - name: libsnappy
+    no-autogen: true
     sources:
       - type: archive
         url: https://github.com/google/snappy/archive/refs/tags/1.2.2.tar.gz
