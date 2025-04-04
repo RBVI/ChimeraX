@@ -88,6 +88,7 @@ class AnisoTool(ToolInstance):
         for entry in sorted(list(builtin_presets.keys()) + list(self.settings.custom_presets.keys()),
                 key=lambda x: x.casefold()):
             menu.addAction(entry)
+        #TODO: entries for saving a preset and deleting a custom preset
 
     def _preset_menu_cb(self, action):
         s = self.structure_button.value
