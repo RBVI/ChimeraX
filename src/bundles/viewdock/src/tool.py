@@ -198,8 +198,10 @@ class RatingDelegate(QStyledItemDelegate):
             editor: The editor widget (QComboBox).
             index: The index of the item in the model.
         """
-        value = index.data()
-        editor.setCurrentText(value)
+        value = index.data(Qt.EditRole) or index.data(Qt.DisplayRole)
+        i = editor.findText(str(value))
+        if i >= 0:
+            editor.setCurrentIndex(i)
 
     def setModelData(self, editor, model, index):
         """
