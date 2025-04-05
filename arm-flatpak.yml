@@ -88,8 +88,6 @@ modules:
         url: https://github.com/google/snappy.git
         commit: 6af9287fbdb913f0794d0148c6aa43b58e63c8e3
         tag: 1.2.2
-    post-install:
-      - install -p -D -m 0644 "../COPYING" -t "${FLATPAK_DEST}/share/licenses/snappy/";
 
   - name: chimerax
     builddir: true
