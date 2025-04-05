@@ -25,7 +25,7 @@ from chimerax.ui.widgets import ItemTable
 from chimerax.core.commands import run
 from chimerax.core.models import REMOVE_MODELS
 from Qt.QtWidgets import QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox
-from Qt.QtCore import Qt, QTimer
+from Qt.QtCore import Qt
 
 class ViewDockTool(ToolInstance):
 
