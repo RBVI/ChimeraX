@@ -143,25 +143,9 @@ class RatingDelegate(QStyledItemDelegate):
     A delegate that provides a QComboBox editor for editing ratings in a table view.
 
     The RatingDelegate class is responsible for rendering a combo box in the table view and handling the interaction
-    between the editor widget (QComboBox) and the model. It ensures that the combo box is displayed correctly both
-    when the cell is selected and not selected, and that the data is properly committed to the model when editing
-    is finished.
-
-    Methods:
-        createEditor(parent, option, index):
-            Creates and returns a QComboBox editor for the delegate.
-
-        setEditorData(editor, index):
-            Sets the data from the model into the QComboBox editor.
-
-        setModelData(editor, model, index):
-            Sets the data from the QComboBox editor back into the model.
-
-        updateEditorGeometry(editor, option, index):
-            Updates the geometry of the QComboBox editor to match the item.
-
-        paint(painter, option, index):
-            Renders the combo box UI in the table view, ensuring the text is displayed correctly.
+    between the editor widget (QComboBox) and the model (QAbstractItemModel). It ensures that the combo box is displayed
+    correctly both when the cell is selected and not selected, and that the data is properly synced to the
+    AtomicStructure when editing is finished.
     """
 
     def __init__(self, parent=None):
@@ -205,14 +189,15 @@ class RatingDelegate(QStyledItemDelegate):
 
     def setModelData(self, editor, model, index):
         """
-        Set the data from the QComboBox editor back into the ChimeraX Model (not the QAbstractItemModel). The ItemTable
-        will always call the paint method of the delegate using its own data_fetch which accesses attributes from a
-        chimerax model, not a qt table model. We need to set the data on the AtomicStructure and let the ItemTable
-        handle giving this delegates paint the correct data.
+        Set the data from the QComboBox editor back into both the ChimeraX Model and the QAbstractItemModel.
+
+        The ItemTable will always call the paint method of the delegate using its own data_fetch which accesses attributes
+        from a ChimeraX model, not a Qt table model. We need to set the data on the AtomicStructure and let the ItemTable
+        handle giving this delegate's paint method the correct data.
 
         Args:
             editor: The editor widget (QComboBox).
-            model: The model to set the data into.
+            model: The QAbstractItemModel to set the data into.
             index: The index of the item in the model.
         """
         # Get the structure (chimerax Structure) from the table row.
@@ -242,7 +227,8 @@ class RatingDelegate(QStyledItemDelegate):
 
         # Ensure that we do not paint over an actively edited combo box
         if view and hasattr(view, 'indexWidget'):
-            # If the cell is currently being edited, skip custom painting
+            # If the cell is currently being edited, skip custom painting. The editor will be open and handle its own
+            # painting.
             if view.state() == QAbstractItemView.EditingState and view.currentIndex() == index:
                 return
 
@@ -259,8 +245,6 @@ class RatingDelegate(QStyledItemDelegate):
         combo_style.currentText = str(value) if value else "2"  # Ensure there is always some text displayed
         combo_style.state = QStyle.State_Enabled  # Enable the combo box appearance by default
 
-        # === Background Handling (Ensures Selection Highlights Work) ===
-
         if option.state & QStyle.State_Selected:
             # If the cell is selected, use the highlighted background color
             painter.fillRect(option.rect, option.palette.highlight())
@@ -271,13 +255,11 @@ class RatingDelegate(QStyledItemDelegate):
             painter.fillRect(option.rect, option.palette.base())
             painter.setPen(option.palette.text().color())  # Set text color to default
 
-        # === Drawing the Combo Box Frame and Arrow ===
         # This renders the full combo box frame (border + drop-down arrow) inside the cell
         style.drawComplexControl(QStyle.CC_ComboBox, combo_style, painter)
 
-        # === Drawing the Text (Prevents Overlapping Artifacts) ===
         # Get the rectangle where the text should be placed inside the combo box
         text_rect = style.subControlRect(QStyle.CC_ComboBox, combo_style, QStyle.SC_ComboBoxEditField, None)
 
-        # Draw the text manually to avoid rendering issues (double text, overlapping numbers, etc.)
+        # Draw the text
         painter.drawText(text_rect, Qt.AlignVCenter | Qt.AlignLeft, combo_style.currentText)
