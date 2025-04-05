@@ -53,8 +53,9 @@ class ViewDockTool(ToolInstance):
     def table_setup(self):
         """
         Create the ItemTable for the structures. Add a column for the display with check boxes, a column for the
-        structure ID, and columns for each key in the viewdockx_data attribute of each structure
-        (ie Name, Description, Energy Score...). If a structure does not have a key from the set, the cell will be empty.
+        structure ID, a column for the Rating with a custom delegate, and columns for each key in the viewdockx_data
+        attribute of each structure (e.g., Name, Description, Energy Score...). If a structure does not have a key from
+        the set, the cell will be empty.
         """
 
         # Fixed columns. Generic based on ChimeraX model attributes.
@@ -71,14 +72,14 @@ class ViewDockTool(ToolInstance):
         rating_column_index = self.struct_table.column_names.index('Rating')
         self.struct_table.setItemDelegateForColumn(rating_column_index, delegate)
 
+        # Set an edit trigger for the table whenever the current selected item changes. Prevents having to click through
+        # multiple selections to edit the rating of a structure.
         self.struct_table.setEditTriggers(QAbstractItemView.EditTrigger.CurrentChanged)
 
-        # Collect all unique keys from viewdockx_data of all structures
+        # Collect all unique keys from viewdockx_data of all structures and add them as columns
         viewdockx_keys = set()
         for structure in self.structures:
             viewdockx_keys.update(structure.viewdockx_data.keys())
-
-        # Dynamically add columns for each unique key in viewdockx_data
         for key in viewdockx_keys:
             self.struct_table.add_column(key, lambda s, k=key: s.viewdockx_data.get(k, ''))
 
