@@ -25,7 +25,7 @@ from chimerax.ui.widgets import ItemTable
 from chimerax.core.commands import run
 from chimerax.core.models import REMOVE_MODELS
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
-                          QHBoxLayout, QPushButton)
+                          QHBoxLayout, QPushButton, QDialog)
 from Qt.QtCore import Qt
 
 class ViewDockTool(ToolInstance):
@@ -69,7 +69,32 @@ class ViewDockTool(ToolInstance):
         """
         Callback function for the HBonds button click.
         """
-        pass
+        from chimerax.core.commands import concise_model_spec, run
+        from chimerax.atomic import AtomicStructure
+        mine = concise_model_spec(self.session, self.structures)
+        all = self.session.models.list(type=AtomicStructure)
+        others = concise_model_spec(self.session,
+                                    set(all) - set(self.structures))
+        from chimerax.hbonds.gui import HBondsGUI
+        """
+            Callback function for the HBonds button click.
+            """
+        # Create the HBondsGUI instance
+        hbonds_gui = HBondsGUI(self.session, restrict=others)
+
+        # Create a QDialog to act as the popup
+        dialog = QDialog(self.tool_window.ui_area)
+        dialog.setWindowTitle("HBonds")
+
+        # Set the layout for the dialog
+        layout = QVBoxLayout(dialog)
+        dialog.setLayout(layout)
+
+        # Add the HBondsGUI widget to the dialog's layout
+        layout.addWidget(hbonds_gui)
+
+        # Show the dialog
+        dialog.exec()
 
     def table_setup(self):
         """
