@@ -777,13 +777,13 @@ class Bundle:
     def _check_output(self, type_="wheel", report_name=True):
         if type_ == "wheel":
             output = glob.glob(os.path.join(self.path, "dist", "*.whl"))
-        elif type == "sdist":
+        elif type_ == "sdist":
             if sys.platform == "win32":
                 output = glob.glob(os.path.join(self.path, "dist", "*.zip"))
             else:
                 output = glob.glob(os.path.join(self.path, "dist", "*.tar.gz"))
         else:
-            raise ValueError("Unknown output type requested: %s" % type)
+            raise ValueError("Unknown output type requested: %s" % type_)
         if not output:
             # TODO: Report the sdist name on failure, too
             raise RuntimeError(f"Building wheel failed: {self._expected_wheel_name}")
