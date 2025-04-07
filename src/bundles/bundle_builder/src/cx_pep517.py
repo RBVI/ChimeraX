@@ -32,21 +32,22 @@ log = logging.getLogger()
 from .bundle_builder_toml import Bundle, read_toml
 
 
-def build_wheel(wheel_directory, config_settings=None, metadata_directory=None) -> None:
+def build_wheel(wheel_directory, config_settings=None, metadata_directory=None) -> str:
     bundle = Bundle(log, read_toml("pyproject.toml"))
-    return bundle.build_wheel()
+    wheel = bundle.build_wheel()
+    return os.path.basename(wheel)
 
 
-def build_sdist(sdist_directory, config_settings=None) -> None:
+def build_sdist(sdist_directory, config_settings=None) -> str:
     bundle = Bundle(log, read_toml("pyproject.toml"))
-    return bundle.build_sdist()
+    return os.path.basename(bundle.build_sdist())
 
 
 def build_editable(
     wheel_directory, config_settings=None, metadata_directory=None
-) -> None:
+) -> str:
     bundle = Bundle(log, read_toml("pyproject.toml"))
-    return bundle.build_editable(config_settings)
+    return os.path.basename(bundle.build_editable(config_settings))
 
 
 def get_requires_for_build_wheel(config_settings=None) -> None:
