@@ -89,6 +89,18 @@ modules:
         commit: 6af9287fbdb913f0794d0148c6aa43b58e63c8e3
         tag: 1.2.2
 
+  - name: libminzip
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DBUILD_SHARED_LIBS=ON
+      - -DMZ_COMPAT=ON
+      - -DMZ_ZLIB=ON
+    sources:
+      - type: git
+        url: https://github.com/nmoinvaz/minizip.git
+        commit: 95ba7abdd24a956bde584db54d1d55e37d511e2f
+        tag: 4.0.9
+
   - name: chimerax
     builddir: true
     buildsystem: simple
