@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ChimeraX-BundleBuilder"
+license = "LicenseRef-Free-for-non-commercial-use"
 description = "Bundle building utilities" # one line synopsis
 authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
 dependencies = [
@@ -22,7 +23,6 @@ classifiers = [
   "Environment :: X11 Applications",
   "Framework :: ChimeraX",
   "Intended Audience :: Science/Research",
-  "License :: Free for non-commercial use",
   "Operating System :: MacOS :: MacOS X",
   "Operating System :: Microsoft :: Windows :: Windows 10",
   "Operating System :: POSIX :: Linux",
