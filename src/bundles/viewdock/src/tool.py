@@ -24,7 +24,8 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui.widgets import ItemTable
 from chimerax.core.commands import run
 from chimerax.core.models import REMOVE_MODELS
-from Qt.QtWidgets import QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox
+from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
+                          QHBoxLayout, QPushButton)
 from Qt.QtCore import Qt
 
 class ViewDockTool(ToolInstance):
@@ -44,11 +45,31 @@ class ViewDockTool(ToolInstance):
         self.tool_window.ui_area.setLayout(self.main_v_layout)
 
         self.structures = structures
+
+        self.top_buttons_layout = QHBoxLayout()
+        self.top_buttons_setup()
+        self.main_v_layout.addLayout(self.top_buttons_layout)
+
+
         self.struct_table = ItemTable(session=self.session)
         self.table_setup()
         self.handlers = []
         self.add_handlers()
         self.tool_window.manage('side')
+
+    def top_buttons_setup(self):
+        """
+        Create the top buttons for the tool (HBonds).
+        """
+        self.hbonds_button = QPushButton("HBonds")
+        self.hbonds_button.clicked.connect(self.hbonds_callback)
+        self.top_buttons_layout.addWidget(self.hbonds_button)
+
+    def hbonds_callback(self):
+        """
+        Callback function for the HBonds button click.
+        """
+        pass
 
     def table_setup(self):
         """
