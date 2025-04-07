@@ -387,12 +387,15 @@ class Bundle:
                 self.initializations.append(Initialization(entry_type, _bundles))
         if "extension" in chimerax_data:
             for name, attrs in chimerax_data["extension"].items():
+                attrs['limited-api'] = self.limited_api
                 self.c_modules.append(_CModule(name, attrs))
         if "library" in chimerax_data:
             for name, attrs in chimerax_data["library"].items():
+                attrs['limited-api'] = self.limited_api
                 self.c_libraries.append(_CLibrary(name, attrs))
         if "executable" in chimerax_data:
             for name, attrs in chimerax_data["executable"].items():
+                attrs['limited-api'] = self.limited_api
                 self.c_executables.append(_CExecutable(name, attrs))
 
         # TODO: Finalize
