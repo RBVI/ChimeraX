@@ -22,9 +22,10 @@
 
 from chimerax.core.tools import ToolInstance
 from chimerax.ui.widgets import ItemTable
-from Qt.QtWidgets import QVBoxLayout
 from chimerax.core.commands import run
 from chimerax.core.models import REMOVE_MODELS
+from Qt.QtWidgets import QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox
+from Qt.QtCore import Qt
 
 class ViewDockTool(ToolInstance):
 
@@ -52,20 +53,33 @@ class ViewDockTool(ToolInstance):
     def table_setup(self):
         """
         Create the ItemTable for the structures. Add a column for the display with check boxes, a column for the
-        structure ID, and columns for each key in the viewdockx_data attribute of each structure
-        (ie Name, Description, Energy Score...). If a structure does not have a key from the set, the cell will be empty.
+        structure ID, a column for the Rating with a custom delegate, and columns for each key in the viewdockx_data
+        attribute of each structure (e.g., Name, Description, Energy Score...). If a structure does not have a key from
+        the set, the cell will be empty.
         """
 
         # Fixed columns. Generic based on ChimeraX model attributes.
         self.struct_table.add_column('Show', lambda s: s.display, data_set=self.set_visibility, format=ItemTable.COL_FORMAT_BOOLEAN)
         self.struct_table.add_column('ID', lambda s: s.id_string)
 
-        # Collect all unique keys from viewdockx_data of all structures
+        # Custom Rating delegate
+        delegate = RatingDelegate(self.struct_table)  # Create the delegate instance
+        self.struct_table.add_column('Rating', lambda s: s.viewdockx_data.get('Rating', 2),
+                                     data_set = lambda item, value: None,
+                                     editable=True)
+
+        # Associate the delegate with the "Rating" column
+        rating_column_index = self.struct_table.column_names.index('Rating')
+        self.struct_table.setItemDelegateForColumn(rating_column_index, delegate)
+
+        # Set an edit trigger for the table whenever the current selected item changes. Prevents having to click through
+        # multiple selections to edit the rating of a structure.
+        self.struct_table.setEditTriggers(QAbstractItemView.EditTrigger.CurrentChanged)
+
+        # Collect all unique keys from viewdockx_data of all structures and add them as columns
         viewdockx_keys = set()
         for structure in self.structures:
             viewdockx_keys.update(structure.viewdockx_data.keys())
-
-        # Dynamically add columns for each unique key in viewdockx_data
         for key in viewdockx_keys:
             self.struct_table.add_column(key, lambda s, k=key: s.viewdockx_data.get(k, ''))
 
@@ -122,3 +136,130 @@ class ViewDockTool(ToolInstance):
         for handler in self.handlers:
             self.session.triggers.remove_handler(handler)
         super().delete()
+
+
+class RatingDelegate(QStyledItemDelegate):
+    """
+    A delegate that provides a QComboBox editor for editing ratings in a table view.
+
+    The RatingDelegate class is responsible for rendering a combo box in the table view and handling the interaction
+    between the editor widget (QComboBox) and the model (QAbstractItemModel). It ensures that the combo box is displayed
+    correctly both when the cell is selected and not selected, and that the data is properly synced to the
+    AtomicStructure when editing is finished.
+    """
+
+    def __init__(self, parent=None):
+        """
+        Initialize the RatingDelegate with a list of items for the QComboBox.
+
+        Args:
+            parent: The parent widget for the delegate.
+        """
+        super().__init__(parent)
+        self.items = ["1", "2", "3"]  # or ["Red", "Yellow", "Green"]
+
+    def createEditor(self, parent, option, index):
+        """
+        Create and return a QComboBox editor for the delegate.
+
+        Args:
+            parent: The parent widget for the editor.
+            option: The style options for the item.
+            index: The index of the item in the model.
+
+        Returns:
+            QComboBox: The editor widget (QComboBox).
+        """
+        editor = QComboBox(parent)
+        editor.addItems(self.items)
+        return editor
+
+    def setEditorData(self, editor, index):
+        """
+        Set the data from the model into the QComboBox editor.
+
+        Args:
+            editor: The editor widget (QComboBox).
+            index: The index of the item in the model.
+        """
+        value = index.data(Qt.EditRole) or index.data(Qt.DisplayRole)
+        i = editor.findText(str(value))
+        if i >= 0:
+            editor.setCurrentIndex(i)
+
+    def setModelData(self, editor, model, index):
+        """
+        Set the data from the QComboBox editor back into both the ChimeraX Model and the QAbstractItemModel.
+
+        The ItemTable will always call the paint method of the delegate using its own data_fetch which accesses attributes
+        from a ChimeraX model, not a Qt table model. We need to set the data on the AtomicStructure and let the ItemTable
+        handle giving this delegate's paint method the correct data.
+
+        Args:
+            editor: The editor widget (QComboBox).
+            model: The QAbstractItemModel to set the data into.
+            index: The index of the item in the model.
+        """
+        # Get the structure (chimerax Structure) from the table row.
+        structure = self.parent().data[index.row()]
+        new_rating = int(editor.currentText())
+        structure.viewdockx_data['Rating'] = new_rating  # Update the rating in the structure's data
+
+        model.setData(index, new_rating)  # Optionally, set the value in the model too. This is for Qt completeness
+
+
+    def updateEditorGeometry(self, editor, option, index):
+        """
+        Update the geometry of the QComboBox editor to match the item.
+
+        Args:
+            editor: The editor widget (QComboBox).
+            option: The style options for the item.
+            index: The index of the item in the model.
+        """
+        editor.setGeometry(option.rect)
+
+    def paint(self, painter, option, index):
+        """Always display a combo box UI rendering in the table, ensuring proper background and selection handling."""
+
+        # Get the table view widget (the parent of this delegate)
+        view = option.widget
+
+        # Ensure that we do not paint over an actively edited combo box
+        if view and hasattr(view, 'indexWidget'):
+            # If the cell is currently being edited, skip custom painting. The editor will be open and handle its own
+            # painting.
+            if view.state() == QAbstractItemView.EditingState and view.currentIndex() == index:
+                return
+
+        # Retrieve the value to be displayed in the combo box
+        # First, check the EditRole (active editing value); if unavailable, fall back to DisplayRole (stored value)
+        value = index.data(Qt.EditRole) or index.data(Qt.DisplayRole)
+
+        # Get the style of the widget to use for drawing
+        style = option.widget.style()
+
+        # Initialize a QStyleOptionComboBox to mimic the appearance of a real combo box
+        combo_style = QStyleOptionComboBox()
+        combo_style.rect = option.rect  # Set the position and size of the combo box
+        combo_style.currentText = str(value) if value else "2"  # Ensure there is always some text displayed
+        combo_style.state = QStyle.State_Enabled  # Enable the combo box appearance by default
+
+        if option.state & QStyle.State_Selected:
+            # If the cell is selected, use the highlighted background color
+            painter.fillRect(option.rect, option.palette.highlight())
+            combo_style.state |= QStyle.State_Selected  # Mark the combo box as selected
+            painter.setPen(option.palette.highlightedText().color())  # Set text color to contrast selection
+        else:
+            # If the cell is not selected, use the default background color
+            painter.fillRect(option.rect, option.palette.base())
+            painter.setPen(option.palette.text().color())  # Set text color to default
+
+        # This renders the full combo box frame (border + drop-down arrow) inside the cell
+        style.drawComplexControl(QStyle.CC_ComboBox, combo_style, painter)
+
+        # Get the rectangle where the text should be placed inside the combo box
+        text_rect = style.subControlRect(QStyle.CC_ComboBox, combo_style, QStyle.SC_ComboBoxEditField, None)
+
+        # Draw the text
+        painter.drawText(text_rect, Qt.AlignVCenter | Qt.AlignLeft, combo_style.currentText)

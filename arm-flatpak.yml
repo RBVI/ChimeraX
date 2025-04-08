@@ -1,14 +1,14 @@
 # vim:set expandtab shiftwidth=2:
 id: edu.ucsf.rbvi.ChimeraX
 runtime: org.freedesktop.Platform
-runtime-version: '24.08'
+runtime-version: "24.08"
 sdk: org.freedesktop.Sdk
 command: ChimeraX
 
 build-options:
   build_args:
-  # need to fetch files from https://cxtoolshed.rbvi.ucsf.edu/prereqs
-  - --share=network
+    # need to fetch files from https://cxtoolshed.rbvi.ucsf.edu/prereqs
+    - --share=network
   #? FontConfig error while running ChimeraX --nogui
   #? - --ro-bind /usr/share/fonts /run/host/fonts
 
@@ -58,6 +58,12 @@ modules:
         url: https://github.com/NixOS/patchelf/archive/refs/tags/0.18.0.tar.gz
         sha256: 1451d01ee3a21100340aed867d0b799f46f0b1749680028d38c3f5d0128fb8a7
 
+  - name: libevent
+    sources:
+      - type: archive
+        url: https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz
+        sha256: 92e6de1be9ec176428fd2367677e61ceffc2ee1cb119035037a27d346b0403bb
+
   - name: glu
     build-system: meson
     sources:
@@ -70,6 +76,31 @@ modules:
       - "/lib/*.la"
       - "/lib/pkgconfig"
 
+  - name: libsnappy
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - -DBUILD_SHARED_LIBS=ON
+      - -DSNAPPY_BUILD_TESTS=OFF
+      #- -DCMAKE_INSTALL_PREFIX=/app
+    sources:
+      - type: git
+        url: https://github.com/google/snappy.git
+        commit: 6af9287fbdb913f0794d0148c6aa43b58e63c8e3
+        tag: 1.2.2
+
+  - name: libminzip
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DBUILD_SHARED_LIBS=ON
+      - -DMZ_COMPAT=ON
+      - -DMZ_ZLIB=ON
+    sources:
+      - type: git
+        url: https://github.com/nmoinvaz/minizip.git
+        commit: 95ba7abdd24a956bde584db54d1d55e37d511e2f
+        tag: 4.0.9
+
   - name: chimerax
     builddir: true
     buildsystem: simple
@@ -78,26 +109,25 @@ modules:
         path: .
     build-commands:
       - mkdir -p /app
-      - NO_PREBUILT=1 FLATPAK_DIST=1 make -C prereqs install
-      - NO_PREBUILT=1 FLATPAK_DIST=1 make -C prereqs app-install
-      # TODO Move FLATPAK_APPNAME to config.mk and define it if FLATPAK_DIST is defined
-      - FLATPAK_DIST=1 FLATPAK_APPNAME=edu.ucsf.rbvi.ChimeraX make -C src/apps/ChimeraX install FLATPAK_DIST=23.08 FLATPAK_APPNAME=edu.ucsf.rbvi.ChimeraX
-      - cp -rp include /app
-      - /app/bin/python3.* -m pip install wheels/*.whl
-      - FLATPAK_DIST=1 make -C src/apps install
-      - make -C docs install
+      - NO_PREBUILT=1 FLATPAK_DIST=24.08 FLATPAK_APPNAME=edu.ucsf.rbvi.ChimeraX MAKEOPTS="-j$(nproc)" make -j$(nproc) install-rbvi
       - /app/bin/ChimeraX --nogui --exit --cmd "linux flatpak-files edu.ucsf.rbvi.ChimeraX"
       - install -Dm644 -t /app/share/metainfo edu.ucsf.rbvi.ChimeraX.metainfo.xml
       - install -Dm644 -t /app/share/applications edu.ucsf.rbvi.ChimeraX.desktop
+      - FLATPAK_DIST=24.08 USE_COVERAGE=1 make pytest-install
+      - FLATPAK_DIST=24.08 make prepare-coverage
+      - FLATPAK_DIST=24.08 USE_COVERAGE=1 make pytest-both-exes
+      - FLATPAK_DIST=24.08 USE_COVERAGE=1 make pytest-wheel
+      - FLATPAK_DIST=24.08 USE_COVERAGE=1 make pytest-app
+      - FLATPAK_DIST=24.08 make report-coverage
 
   # libQt6Network.so.6 from the Qt Group needs
   # libgssapi_krb5.so.2, but is not in flatpak runtime environment
   - name: krb5
     buildsystem: simple
     sources:
-    - type: archive
-      url: https://cxtoolshed.rbvi.ucsf.edu/prereqs/krb5/krb5-1.21.2.tar.gz
-      sha256: 9560941a9d843c0243a71b17a7ac6fe31c7cebb5bce3983db79e52ae7e850491
+      - type: archive
+        url: https://cxtoolshed.rbvi.ucsf.edu/prereqs/krb5/krb5-1.21.2.tar.gz
+        sha256: 9560941a9d843c0243a71b17a7ac6fe31c7cebb5bce3983db79e52ae7e850491
     build-commands:
       - cd src && ./configure
       - make -j -C src/util

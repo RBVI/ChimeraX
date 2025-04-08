@@ -45,7 +45,7 @@ ifndef WIN32
 	# then you can make -C vdocs by hand if you like
 	$(MAKE) -C vdocs install
 endif
-	$(APP_PYTHON_EXE) clean_app.py
+	$(APP_PYTHON_EXE) utils/clean_app.py
 	$(APP_PYTHON_EXE) -m pip check
 ifeq ($(OS),Darwin)
 	# update Info.plist with data formats provided by bundles
@@ -85,7 +85,11 @@ test src.test: testimports
 testimports:
 	$(APP_EXE) --exit --nogui --silent cxtestimports.py
 
+ifdef FLATPAK_DIST
+SCRIPT_COVERAGE_ARGS := $(if $(USE_COVERAGE),-c -s -f,)
+else
 SCRIPT_COVERAGE_ARGS := $(if $(USE_COVERAGE),-c -s,)
+endif
 COVERAGE_ARGS := $(if $(USE_COVERAGE),--cov=chimerax --cov-append,)
 SILENT_COVERAGE_ARGS := $(if $(USE_COVERAGE),$(COVERAGE_ARGS) --cov-report=,)
 

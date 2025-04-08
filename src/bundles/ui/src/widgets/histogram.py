@@ -771,8 +771,12 @@ class MarkedHistogram(QWidget):
             self._active_markers.move_callback('start')
 
     def _set_value_cb(self):
+        val_text = self._value_entry.text()
+        # Qt's double validator allows leading zeroes whereas Python doesn't like that [#17306]
+        while len(val_text) > 0 and val_text[0] == "0" and not val_text.startswith("0x"):
+            val_text = val_text[1:]
         try:
-            v = eval(self._value_entry.text())
+            v = eval(val_text)
         except Exception:
             raise ValueError("Invalid histogram value")
         if type(self._min_val) != type(v):

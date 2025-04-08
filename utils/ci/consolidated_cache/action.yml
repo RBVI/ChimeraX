@@ -100,7 +100,7 @@ runs:
 
     - name: Restore cached ffmpeg (Linux)
       id: cache-ffmpeg-linux-x86_64
-      if: ${{ inputs.platform == 'linux' }}
+      if: ${{ inputs.platform == 'linux' && inputs.architecture != 'arm64'}}
       uses: actions/cache@v4
       with:
         path: |
@@ -252,7 +252,7 @@ runs:
 
     - name: Fetch ffmpeg
       shell: bash
-      if: ${{ steps[format('cache-ffmpeg-{0}-{1}', inputs.platform, inputs.architecture)].outputs.cache-hit != 'true' }}
+      if: ${{ steps[format('cache-ffmpeg-{0}-{1}', inputs.platform, inputs.architecture)].outputs.cache-hit != 'true' && (inputs.platform != 'linux' || inputs.architecture == 'x86_64') }}
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-3.2.4.tar.bz2 -O -J

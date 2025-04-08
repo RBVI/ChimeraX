@@ -7,7 +7,7 @@ LDFLAGS	+= -Wl,-rpath,'$$ORIGIN/../lib'
 endif
 endif
 ifeq ($(OS),Darwin)
-LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib'
+LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib' -Wl,-headerpad_max_install_names
 endif
 
 ifdef WIN32

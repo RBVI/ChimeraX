@@ -24,7 +24,7 @@ jedi==0.19.1
 jupyter-client==8.6.3
 line_profiler==4.2.0
 lxml==5.3.1
-lz4==4.3.3
+lz4==4.4.4
 matplotlib==3.10.1
 msgpack==1.1.0
 nibabel == 5.2.0
@@ -55,6 +55,7 @@ python-dateutil==2.9.0.post0
 #PySide6==6.8.2.1
 #shiboken6==6.8.2.1
 qtconsole==5.5.2
+qtshim==1.1
 requests==2.32.3
 scipy==1.14.0
 six==1.16.0

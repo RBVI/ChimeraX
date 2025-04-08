@@ -23,18 +23,22 @@
 # === UCSF ChimeraX Copyright ===
 
 from  chimerax.core.settings import Settings
-from copy import deepcopy
+from chimerax.core.configfile import Value
+import json
 
 # don't include built-in presets in the settings like I was doing earlier 
 # (with an 'intrinsic' attribute) because then once the user creates a
 # custom setting, the built-in ones will be sitting in the user's settings
 # and cannot be altered or added to by later versions of ChimeraX
-class _AnisoSettings(Settings):
-	EXPLICIT_SAVE = { "custom_presets": {} }
+class AnisoSettings(Settings):
+    AUTO_SAVE = {
+        "custom_presets": Value({}, json.loads, json.dumps),
+    }
+
 
 _settings = None
 def get_settings(session):
     global _settings
     if _settings is None:
-        _settings = _AnisoSettings(session, "Thermal Ellipsoids")
+        _settings = AnisoSettings(session, "Thermal Ellipsoids")
     return _settings
