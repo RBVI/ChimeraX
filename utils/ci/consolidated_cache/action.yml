@@ -77,6 +77,7 @@ runs:
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2
           prereqs/ambertools/ambertools-20-Linux-Freedesktop-23.08.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-arm-Freedesktop-24.08.tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-ambertools
 
     - name: Restore cached ambertools (Windows)
@@ -293,6 +294,7 @@ runs:
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Freedesktop-23.08.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-24-Linux-arm-Freedesktop-24.08.tar.bz2 -O -J
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-flibs-20-Darwin.tar.bz2 -O -J
