@@ -137,6 +137,20 @@ class ViewDockTool(ToolInstance):
             self.session.triggers.remove_handler(handler)
         super().delete()
 
+    def take_snapshot(self, session, flags):
+        return {
+            'version': 1,
+            'structures': self.structures,
+            'tool_name': self.tool_name
+        }
+
+    @classmethod
+    def restore_snapshot(cls, session, snapshot):
+        if snapshot['version'] != 1:
+            session.logger.warning("Incompatible snapshot version for ViewDock tool.")
+            return None
+        tool = cls(session, snapshot['tool_name'], snapshot['structures'])
+        return tool
 
 class RatingDelegate(QStyledItemDelegate):
     """
