@@ -20,12 +20,16 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.atomic import AtomicStructure
 from chimerax.core.tools import ToolInstance
+from chimerax.hbonds.gui import HBondsGUI
 from chimerax.ui.widgets import ItemTable
-from chimerax.core.commands import run
+from chimerax.core.commands import run, concise_model_spec
 from chimerax.core.models import REMOVE_MODELS
-from Qt.QtWidgets import QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox
+from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
+                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox)
 from Qt.QtCore import Qt
+
 
 class ViewDockTool(ToolInstance):
 
@@ -44,11 +48,70 @@ class ViewDockTool(ToolInstance):
         self.tool_window.ui_area.setLayout(self.main_v_layout)
 
         self.structures = structures
+
+        self.top_buttons_layout = QHBoxLayout()
+        self.top_buttons_setup()
+        self.main_v_layout.addLayout(self.top_buttons_layout)
+
+
         self.struct_table = ItemTable(session=self.session)
         self.table_setup()
         self.handlers = []
         self.add_handlers()
         self.tool_window.manage('side')
+
+    def top_buttons_setup(self):
+        """
+        Create the top buttons for the tool (HBonds).
+        """
+        self.hbonds_button = QPushButton("HBonds")
+        self.hbonds_button.clicked.connect(self.hbonds_callback)
+        self.top_buttons_layout.addWidget(self.hbonds_button, alignment=Qt.AlignCenter)
+
+    def hbonds_callback(self):
+        """
+        Callback function for the HBonds button click.
+
+        This method creates a popup dialog containing the HBondsGUI widget for configuring hydrogen bond analysis.
+        The dialog includes "Ok" and "Cancel" buttons. When "Ok" is clicked, the method retrieves the command
+        from the HBondsGUI, constructs a command string to perform hydrogen bond analysis, and executes it.
+
+        The analysis is restricted to the current set of binding analysis structures against any other AtomicStructures.
+        """
+        hbonds_gui = HBondsGUI(self.session, show_model_restrict=False, show_bond_restrict=False)
+
+        # Create a QDialog to act as the popup
+        dialog = QDialog(self.tool_window.ui_area)
+        dialog.setWindowTitle(f"{self.display_name} HBonds")
+        layout = QVBoxLayout(dialog)
+        dialog.setLayout(layout)
+
+        # Add the HBondsGUI widget to the dialog's layout
+        layout.addWidget(hbonds_gui)
+
+        # Add Ok/Cancel buttons
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        layout.addWidget(button_box)
+
+        # Connect the Ok button to call hbonds_gui.get_command()
+        def on_ok():
+            command = hbonds_gui.get_command()
+            # Binding analysis structures
+            mine = concise_model_spec(self.session, self.structures)
+            all_structures = self.session.models.list(type=AtomicStructure)
+            # All structures that are AtomicStructures but not in the binding analysis structures
+            others = concise_model_spec(self.session, set(all_structures) - set(self.structures))
+
+            # command[0] = command name ('hbonds'), command[1] = model selection (omit and force our binding structures),
+            # command[2] = all other keyword arguments from hbonds gui
+            run(self.session, f"{command[0]} {mine} restrict {others} {command[2]}")
+            dialog.accept()
+
+        button_box.accepted.connect(on_ok)
+        button_box.rejected.connect(dialog.reject)
+
+        # Show the dialog
+        dialog.exec()
 
     def table_setup(self):
         """
