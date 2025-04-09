@@ -78,15 +78,11 @@ class ViewDockTool(ToolInstance):
 
         The analysis is restricted to the current set of binding analysis structures against any other AtomicStructures.
         """
-
-        # Create the HBondsGUI instance
         hbonds_gui = HBondsGUI(self.session, show_model_restrict=False, show_bond_restrict=False)
 
         # Create a QDialog to act as the popup
         dialog = QDialog(self.tool_window.ui_area)
         dialog.setWindowTitle(f"{self.display_name} HBonds")
-
-        # Set the layout for the dialog
         layout = QVBoxLayout(dialog)
         dialog.setLayout(layout)
 
