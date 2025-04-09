@@ -952,8 +952,23 @@ t0 = t1;
               bondee_type == "N1+") || (sqlen < p3n1o1 &&
               bondee->element() == Element::O)) {
                 a->set_computed_idatm_type("N1");
-            } else if (sqlen > p3n3c &&
-              (bondee_type == "C2" || bondee_type == "C3")) {
+                continue;
+            } 
+            if (bondee_type == "C1") {
+                // Could still be N1 despite missing criteria above if the other atom bonded
+                // to the C1 has 3+ bonds
+                for (auto gnb: bondee->neighbors()) {
+                    if (gnb == a)
+                        continue;
+                    if (gnb->neighbors().size() > 2) {
+                        a->set_computed_idatm_type("N1");
+                        break;
+                    }
+                }
+                if (a->idatm_type() == "N1")
+                    continue;
+            }
+            if (sqlen > p3n3c && (bondee_type == "C2" || bondee_type == "C3")) {
                 a->set_computed_idatm_type("N3");
             } else if ((sqlen > p3n3n3 && bondee_type == "N3") ||
               (sqlen > p3n3n2 && bondee_type == "Npl")) {
