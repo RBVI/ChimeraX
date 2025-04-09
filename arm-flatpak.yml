@@ -64,6 +64,7 @@ modules:
 
   - name: glu
     build-system: meson
+    no-autogen: true
     sources:
       - type: archive
         url: https://archive.mesa3d.org/glu/glu-9.0.3.tar.xz
