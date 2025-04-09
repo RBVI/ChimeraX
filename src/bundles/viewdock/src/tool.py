@@ -84,7 +84,7 @@ class ViewDockTool(ToolInstance):
 
         # Create a QDialog to act as the popup
         dialog = QDialog(self.tool_window.ui_area)
-        dialog.setWindowTitle("HBonds")
+        dialog.setWindowTitle(f"{self.display_name} HBonds")
 
         # Set the layout for the dialog
         layout = QVBoxLayout(dialog)
