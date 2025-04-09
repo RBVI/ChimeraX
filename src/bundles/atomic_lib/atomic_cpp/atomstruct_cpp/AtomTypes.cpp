@@ -724,7 +724,6 @@ t0 = t1;
         if (neighbors.size() == 4) {
             if (element == Element::C) {
                 a->set_computed_idatm_type("C3");
-if (a->name() == "C1" || a->name() == "C2") std::cerr << a->name() << " C3 1\n";
             } else if (element == Element::N) {
                 a->set_computed_idatm_type("N3+");
             } else if (element == Element::P) {
@@ -786,10 +785,7 @@ if (a->name() == "C1" || a->name() == "C2") std::cerr << a->name() << " C3 1\n";
                         c3 = true;
                 }
                 if (c3)
-{
                     a->set_computed_idatm_type("C3");
-if (a->name() == "C1" || a->name() == "C2") std::cerr << a->name() << " C3 2\n";
-}
                 else
                     a->set_computed_idatm_type(free_oxygens(
                         neighbors, heavys, true) >= 2 ? "Cac" : "C2");
@@ -833,7 +829,6 @@ if (a->name() == "C1" || a->name() == "C2") std::cerr << a->name() << " C3 2\n";
             if (element == Element::C) {
                 if (ang < angle23val1) {
                     a->set_computed_idatm_type("C3");
-if (a->name() == "C1" || a->name() == "C2") std::cerr << a->name() << " C3 3\n";
                     redo[a] = 1;
                     if (ang > angle23val1_tmin)
                         ambiguous_val2Cs.insert(a);
@@ -937,10 +932,7 @@ t0 = t1;
                     if (gtype == "H" || gtype == "C3" || gtype == "D")
                         a->set_computed_idatm_type("C1");
                     else
-{
                         a->set_computed_idatm_type("C3");
-if (a->name() == "C1" || a->name() == "C2") std::cerr << a->name() << " C3 4\n";
-}
                 }
             } else if (sqlen <= p3c2c &&
               bondee->element() == Element::C) {
@@ -954,7 +946,6 @@ if (a->name() == "C1" || a->name() == "C2") std::cerr << a->name() << " C3 4\n";
                 a->set_computed_idatm_type("C1-");
             } else {
                 a->set_computed_idatm_type("C3");
-if (a->name() == "C1" || a->name() == "C2") std::cerr << a->name() << " C3 5\n";
             }
         } else if (a->idatm_type() == "N") {
             if (((sqlen <= p3n1c1 && (bondee_type == "C1" || bondee->element() == Element::N)) ||
@@ -1081,7 +1072,6 @@ t0 = t1;
                 || (sqlen > p4c3n && bondee_element == Element::N)
                 || (sqlen > p4c3o && bondee_element == Element::O)) {
                     a->set_computed_idatm_type("C3");
-if (a->name() == "C1" || a->name() == "C2") std::cerr << a->name() << " C3 6\n";
                 }
             } else if (redo[a] == 2) {
                 if ((sqlen <= p4n2c && bondee_element == Element::C)
@@ -1113,10 +1103,7 @@ if (a->name() == "C1" || a->name() == "C2") std::cerr << a->name() << " C3 6\n";
             }
         }
         if (c3able)
-{
             a->set_computed_idatm_type("C3");
-if (a->name() == "C1" || a->name() == "C2") std::cerr << a->name() << " C3 7\n";
-}
     }
 #ifdef TIME_PASSES
 t1 = clock();
@@ -1815,14 +1802,12 @@ t0 = t1;
             if ((*type_ptr).second.geometry == 4) {
                 // ambiguous atom must be C3
                 nb->set_computed_idatm_type("C3");
-if (nb->name() == "C1" || nb->name() == "C2") std::cerr << nb->name() << " C3 9\n";
                 continue;
             }
             for (auto ggnb: gnb->neighbors()) {
                 if (ggnb->idatm_type() == "O2") {
                     // grand neighbor double-bonded elsewhere, so ambiguous atom is C3
                     nb->set_computed_idatm_type("C3");
-if (nb->name() == "C1" || nb->name() == "C2") std::cerr << nb->name() << " C3 10\n";
                     break;
                 }
             }
@@ -1962,15 +1947,9 @@ t0 = t1;
                 if (best != NULL)
                     best->set_computed_idatm_type(best_sp2_type);
                 else
-{
                     a->set_computed_idatm_type("C3");
-if (a->name() == "C1" || a->name() == "C2") std::cerr << a->name() << " C3 11\n";
-}
             } else
-{
                 a->set_computed_idatm_type("C3");
-if (a->name() == "C1" || a->name() == "C2") std::cerr << a->name() << " C3 12\n";
-}
         }
     }
 #ifdef TIME_PASSES
