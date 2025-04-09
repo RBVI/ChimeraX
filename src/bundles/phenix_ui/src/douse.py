@@ -50,6 +50,10 @@ class DouseJob(Job):
             try:
                 results = _run_douse_subprocess(session, executable_location, optional_args, map_file_name,
                     model_file_name, positional_args, temp_dir, keep_input_water, verbose)
+            except Exception as e:
+                from .util import thread_throw
+                thread_throw(session, e)
+                return
             finally:
                 self._running = False
             self.session.ui.thread_safe(callback, results)

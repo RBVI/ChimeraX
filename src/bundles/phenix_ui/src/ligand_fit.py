@@ -50,6 +50,10 @@ class FitJob(Job):
             try:
                 results = _run_fit_subprocess(session, executable_location, optional_args,
                     search_center, resolution, positional_args, temp_dir, verbose)
+            except Exception as e:
+                from .util import thread_throw
+                thread_throw(session, e)
+                return
             finally:
                 self._running = False
             self.session.ui.thread_safe(callback, *results)
@@ -319,9 +323,12 @@ def _run_fit_subprocess(session, exe_path, optional_args, search_center, resolut
     for line in p.stdout.decode("utf-8").splitlines():
         if line.startswith(output_marker):
             ligand_path = line[len(output_marker):].strip()
+            if ligand_path == "None":
+                raise UserError("phenix.ligandfit failed to find a fit")
             break
     else:
         raise RuntimeError("Could not find ligand file path in ligandFit output")
+    print("Opening %s" % repr(ligand_path))
     return (session.open_command.open_data(ligand_path)[0][0],)
 
 def register_command(logger):
