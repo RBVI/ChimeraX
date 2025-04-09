@@ -28,10 +28,6 @@ ifdef WIN32
 SUBDIRS += win32
 endif
 
-ifdef FLATPAK_DIST
-NEED_LIBGLU=1
-endif
-
 ifdef NEED_FFMPEG
 SUBDIRS += ffmpeg
 else
@@ -39,12 +35,6 @@ ffmpeg.install:
 ffmpeg.app-install:
 endif
 
-ifdef NEED_LIBGLU
-SUBDIRS += libGLU
-else
-libGLU.install:
-libGLU.app-install:
-endif
 
 # Python egg installation has a race condition updating easy-install.pth
 .NOTPARALLEL:
