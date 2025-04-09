@@ -66,7 +66,7 @@ class ViewDockTool(ToolInstance):
         """
         self.hbonds_button = QPushButton("HBonds")
         self.hbonds_button.clicked.connect(self.hbonds_callback)
-        self.top_buttons_layout.addWidget(self.hbonds_button)
+        self.top_buttons_layout.addWidget(self.hbonds_button, alignment=Qt.AlignCenter)
 
     def hbonds_callback(self):
         """
