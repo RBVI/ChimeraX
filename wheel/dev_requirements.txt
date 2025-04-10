@@ -10,7 +10,7 @@ idna==3.10
 ihm==2.2
 iniconfig==2.1.0
 msgpack==1.0.8
-numpy==1.24.1
+numpy==2.0.2
 packaging==24.2
 Pillow==10.2.0
 pluggy==1.0.0
