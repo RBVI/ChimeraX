@@ -60,19 +60,8 @@ def fill_context_menu(menu, parent_tool_window, structure):
     mgr = get_plotting_manager(structure.session)
 
     from Qt.QtGui import QAction
-    plot_menu = menu.addMenu("Plot")
-
-    for provider_name in mgr.provider_names:
-        ui_name = mgr.ui_name(provider_name)
-        menu_name = plural_of(ui_name)
-        if ui_name.lower() == ui_name:
-            # no caps
-            menu_name = menu_name.capitalize()
-
-        action = QAction(menu_name, plot_menu)
-        action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure, name=provider_name:
-            _show_plot(name, tw, s))
-        plot_menu.addAction(action)
+    plot_action = menu.addAction("Plot")
+    plot_action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure: _show_plot_dialog(tw, s))
 
 class PlotDialog:
     def __init__(self, plot_window, structure):
@@ -102,8 +91,6 @@ class PlotDialog:
         layout.setSpacing(0)
         tw.ui_area.setLayout(layout)
         self.plot_tabs = QTabWidget()
-        self.plot_tabs.setTabsClosable(True)
-        self.plot_tabs.tabCloseRequested.connect(self._close_tab)
         layout.addWidget(self.plot_tabs, stretch=1)
 
         self.tab_info = {}
@@ -113,6 +100,9 @@ class PlotDialog:
         self._frame_indicators = {}
         self._mouse_handlers = {}
 
+        for provider_name in self.mgr.provider_names:
+            self.tab_info[provider_name] = self.make_tab(provider_name)
+
         tw.manage(None)
 
     def make_tab(self, provider_name):
@@ -121,41 +111,18 @@ class PlotDialog:
         return self._make_atomic_tab(provider_name)
 
     def show_tab(self, provider_name):
-        try:
-            tab_name, tab_widget = self.tab_info[provider_name]
-        except KeyError:
-            tab_name, tab_widget = self.tab_info[provider_name] = self.make_tab(provider_name)
-
+        tab_name, tab_widget = self.tab_info[provider_name]
         self.plot_tabs.setCurrentWidget(tab_widget)
 
     def _changes_cb(self, trig_name, data):
         s, changes = data
         if 'active_coordset changed' in changes.structure_reasons():
             for provider, table in self._tables.items():
+                if not table.data:
+                    continue
                 table.update_column(self._value_columns[provider], data=True)
                 self._frame_indicators[provider].set_xdata([s.active_coordset_id])
                 self._plot_stacks[provider].widget(1).draw_idle()
-
-    def _close_tab(self, tab_index):
-        if self.plot_tabs.count() == 1:
-            return self.tool_window.destroy()
-        tab_name = self.plot_tabs.tabText(tab_index)
-        for provider, tab_info in self.tab_info.items():
-            if tab_name == tab_info[0]:
-                break
-        else:
-            raise ValueError("No open tab named '%s'" % tab_name)
-        self.plot_tabs.removeTab(tab_index)
-        del self.tab_info[provider]
-        if provider not in self._tables:
-            return
-        canvas = self._plot_stacks[provider].widget(1)
-        for cid in self._mouse_handlers[provider]:
-            canvas.mpl_disconnect(cid)
-        for mapping in [self._tables, self._plot_stacks, self._value_columns, self._frame_indicators,
-                self._mouse_handlers]:
-            del mapping[provider]
-
 
     def _delete_table_entries(self, provider_name):
         table = self._tables[provider_name]
@@ -386,7 +353,7 @@ class TableEntry:
         return self._values
 
 _md_tool_windows = {}
-def _show_plot(provider_name, main_tool_window, structure):
+def _show_plot_dialog(main_tool_window, structure):
     inst = main_tool_window.tool_instance
     inst_windows = _md_tool_windows.setdefault(inst, {})
     try:
@@ -395,6 +362,5 @@ def _show_plot(provider_name, main_tool_window, structure):
         plot_dialog = inst_windows["plot"] = PlotDialog(main_tool_window.create_child_window("MD Plots"),
             structure)
 
-    plot_dialog.show_tab(provider_name)
     plot_dialog.tool_window.shown = True
 
