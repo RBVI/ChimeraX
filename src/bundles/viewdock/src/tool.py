@@ -189,18 +189,23 @@ class ViewDockTool(ToolInstance):
                 self.structures.remove(model)
         self.struct_table.data = self.structures
 
-    def set_visibility(self, structure, value):
+    def set_visibility(self, structs, value):
         """
-        Callback for when the model display column has changes. Shows or hides the structure based on the value.
+        Shows or hides the structure(s) based on the value.
 
         Args:
-            structure: The structure that is being changed.
+            structs: The structure(s) that is/are being changed. Can be a single structure or a list of structures.
             value: The new value for the display column. True/False for show/hide.
         """
+        # Ensure structs is a list
+        if not isinstance(structs, (list, tuple)):
+            structs = [structs]
+
+        model_spec = concise_model_spec(self.session, structs)
         if value:
-            run(self.session, f'show #{structure.id_string} models')
+            run(self.session, f'show {model_spec} models')
         else:
-            run(self.session, f'hide #{structure.id_string} models')
+            run(self.session, f'hide {model_spec} models')
 
     def delete(self):
         """
