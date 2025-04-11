@@ -193,8 +193,9 @@ class PlotDialog:
         plot_button.clicked.connect(lambda *args, f=self._plot_atomic, pv=provider_name: f(pv))
         pc_layout.addWidget(plot_button, 0, 0, alignment=Qt.AlignRight)
         num_atoms = self.mgr.num_atoms(provider_name)
+        preposition = "for" if num_atoms == 0 else "from"
         atom_string = "any number of" if num_atoms == 0 else "%d" % num_atoms
-        pc_layout.addWidget(QLabel(" %s from %s selected atoms" % (ui_name, atom_string)), 0, 1,
+        pc_layout.addWidget(QLabel(" %s %s %s selected atoms" % (ui_name, preposition, atom_string)), 0, 1,
             alignment=Qt.AlignLeft)
         if num_atoms == 0:
             reminder = QLabel("(If no selection, all atoms)")
@@ -220,13 +221,19 @@ class PlotDialog:
         table = ItemTable(allow_user_sorting=False)
         table.add_column("Color", "rgba8", format=table.COL_FORMAT_OPAQUE_COLOR, title_display=False)
         table.add_column("Shown", "shown", format=table.COL_FORMAT_BOOLEAN, icon="shown")
-        self._value_columns[provider_name] = table.add_column(self.mgr.ui_name(provider_name).capitalize(),
-            "value", format=self.mgr.text_format(provider_name),
-            #justification="decimal"  guessing in most cases better to center; also avoids fixed-width font
-            header_justification="center")
-        for i in range(self.mgr.num_atoms(provider_name)):
-            table.add_column("Atom %d" % (i+1), lambda x, i=i: x.atoms[i],
-                format=lambda a: a.string(minimal=True))
+        val_col_name = self.mgr.ui_name(provider_name)
+        if not val_col_name.isupper():
+            val_col_name = val_col_name.capitalize()
+        #justification="decimal"  guessing in most cases better to center; also avoids fixed-width font
+        self._value_columns[provider_name] = table.add_column(val_col_name, "value",
+            format=self.mgr.text_format(provider_name), header_justification="center")
+        num_atoms = self.mgr.num_atoms(provider_name)
+        if num_atoms == 0:
+            table.add_column("# Atoms", "num_atoms")
+        else:
+            for i in range(num_atoms):
+                table.add_column("Atom %d" % (i+1), lambda x, i=i: x.atoms[i],
+                    format=lambda a: a.string(minimal=True))
         table.data = []
         table.launch()
         return table
@@ -323,6 +330,10 @@ class TableEntry:
         self._shown = True
         self._values = plot_dialog.mgr.get_values(provider_name,
                             structure=plot_dialog.structure, atoms=atoms)
+
+    @property
+    def num_atoms(self):
+        return len(self.atoms)
 
     @property
     def rgba8(self):
