@@ -80,7 +80,7 @@
     <Provider name="angle" num_atoms="3" text_format="angle" min_val="0" max_val="180" />
     <Provider name="torsion" num_atoms="4" text_format="angle" min_val="-180" max_val="180"/>
     <!-- <Provider name="RMSD" num_atoms="0" text_format="distance" need_reference_frame="true" /> -->
-    <!-- <Provider name="SASA" num_atoms="0" text_format="%.1f" /> -->
+    <Provider name="surface" ui_name="SASA" num_atoms="0" text_format="%.1f" />
   </Providers>
 
   <Classifiers>
