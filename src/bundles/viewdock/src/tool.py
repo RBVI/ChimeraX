@@ -28,7 +28,7 @@ from chimerax.ui.widgets import ItemTable
 from chimerax.core.commands import run, concise_model_spec
 from chimerax.core.models import REMOVE_MODELS
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
-                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox)
+                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QSizePolicy)
 from Qt.QtCore import Qt
 
 
@@ -71,13 +71,14 @@ class ViewDockTool(ToolInstance):
                 HBondsGUI, "HBonds", show_model_restrict=False, show_bond_restrict=False
             )
         )
-        self.top_buttons_layout.addWidget(self.hbonds_button, alignment=Qt.AlignCenter)
+        self.top_buttons_layout.addWidget(self.hbonds_button)
 
         self.clashes_button = QPushButton("Clashes")
         self.clashes_button.clicked.connect(
             lambda: self.popup_callback(ClashesGUI, "Clashes", has_apply_button=False, show_restrict=False)
         )
-        self.top_buttons_layout.addWidget(self.clashes_button, alignment=Qt.AlignCenter)
+        self.top_buttons_layout.addWidget(self.clashes_button)
+        self.top_buttons_layout.setAlignment(Qt.AlignLeft)
 
     def popup_callback(self, gui_class, popup_name, **kwargs):
         """
