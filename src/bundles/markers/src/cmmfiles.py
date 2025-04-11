@@ -93,6 +93,9 @@ def markersets_as_xml(mslist):
   if len(mslist) > 1:
     lines.append('</marker_sets>')
 
+  if len(mslist) == 0:
+      lines.extend(['<marker_set>', '</marker_set>'])
+
   xml = '\n'.join(lines)
   return xml
   
