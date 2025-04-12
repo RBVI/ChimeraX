@@ -580,6 +580,15 @@ def _extract_selectors(bundle_info) -> list[dict[str, str]]:
                 selectors.append(selector_dict)
     return selectors
 
+def _extract_initializations(bundle_info) -> dict[str, list[str]]:
+    bi = _get_bundle_root(bundle_info)
+    initializations = defaultdict(list)
+    initializations_block = list(bi.iter("Initializations"))
+    if initializations_block:
+        initializations_block = initializations_block[0]
+        for e in list(initializations_block.iter("InitAfter")):
+            initializations[e.get("type")].append(e.get("bundle"))
+    return initializations
 
 def xml_to_toml(
     bundle_info, dynamic_version=False, write: bool = False, quiet: bool = False
@@ -699,6 +708,16 @@ def xml_to_toml(
                 toml += '    "%s",\n' % classifier
             toml += "]\n"
     toml += "\n"
+
+    initializations = _extract_initializations(bundle_info)
+    if initializations:
+        for key, val in initializations.items():
+            toml += "[tool.chimerax.initializations.%s]\n" % key
+            toml += "bundles = [\n"
+            for bundle in val:
+                toml += '  "%s",\n' % bundle
+            toml += "]\n"
+        toml += "\n"
 
     datafiles = _extract_data_files(bundle_info)
     if datafiles:

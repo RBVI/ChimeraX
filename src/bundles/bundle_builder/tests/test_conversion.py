@@ -38,6 +38,7 @@ with open(bb_toml, "r") as f:
         ("pdb_lib.xml", "pdb_lib.toml"),
         ("preset_mgr.xml", "preset_mgr.toml"),
         ("realsense.xml", "realsense.toml"),
+        ("save_command.xml", "save_command.toml"),
         ("segment.xml", "segment.toml"),
         ("shortcuts.xml", "shortcuts.toml"),
         ("struct_measure.xml", "struct_measure.toml"),

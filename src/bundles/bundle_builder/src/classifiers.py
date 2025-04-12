@@ -112,8 +112,7 @@ class Manager(ChimeraXClassifier):
             for key, val in self.default_attrs.items():
                 if key not in attrs:
                     attrs[key] = val
-                if 'gui-only' in attrs:
-                    del attrs['gui-only']
+            attrs['guiOnly'] = attrs.pop('gui-only', False)
         super().__init__(name, attrs)
 
     def __str__(self):
