@@ -39,6 +39,7 @@ with open(bb_toml, "r") as f:
         ("preset_mgr.xml", "preset_mgr.toml"),
         ("realsense.xml", "realsense.toml"),
         ("segment.xml", "segment.toml"),
+        ("shortcuts.xml", "shortcuts.toml"),
         ("stl.xml", "stl.toml"),
         ("surface.xml", "surface.toml"),
         ("webcam.xml", "webcam.toml"),

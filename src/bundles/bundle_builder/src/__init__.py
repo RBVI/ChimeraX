@@ -572,10 +572,11 @@ def _extract_selectors(bundle_info) -> list[dict[str, str]]:
                 if classifier.startswith("ChimeraX :: Selector"):
                     classifier = classifier.replace("ChimeraX :: Selector", "Selector")
                 data = classifier.split("::")
-                _, name, description = data
                 selector_dict = {}
-                selector_dict["name"] = name.strip().rstrip()
-                selector_dict["description"] = description.strip().rstrip()
+                selector_dict["name"] = data[1].strip().rstrip()
+                selector_dict["description"] = data[2].strip().rstrip()
+                if len(data) > 3:
+                    selector_dict["display"] = data[3].strip().rstrip()
                 selectors.append(selector_dict)
     return selectors
 
@@ -833,7 +834,14 @@ def xml_to_toml(
             toml += '[tool.chimerax.selector."%s"]\n' % selector["name"]
         else:
             toml += "[tool.chimerax.selector.%s]\n" % selector["name"]
-        toml += 'description = "%s"\n' % selector["description"]
+        for key, value in selector.items():
+            if key == "name":
+                continue
+            else:
+                if value in ["true", "false"]:
+                    toml += "%s = %s\n" % (key.replace("_", "-"), value)
+                else:
+                    toml += '%s = "%s"\n' % (key.replace("_", "-"), value)
         toml += "\n"
 
     # """

@@ -95,6 +95,10 @@ class Selector(ChimeraXClassifier):
         super().__init__(selector_name, attrs)
 
     def __str__(self):
+        disp = self.attrs.get('display', '')
+        disp = str(disp).lower()
+        if disp:
+            return f"ChimeraX :: Selector :: {self.name} :: {self.description} :: {disp}"
         return f"ChimeraX :: Selector :: {self.name} :: {self.description}"
 
 
