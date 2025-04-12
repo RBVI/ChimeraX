@@ -76,6 +76,7 @@ def make_dependencies(dir_path, output_name):
     with open(os.path.join(dir_path, output_name), "w") as f:
         for dir_name in sorted(dependencies.keys()):
             dep_dirs = []
+            uv_dep_dirs = []
             for dep in dependencies[dir_name]:
                 try:
                     dep_dir = bundle2dirname[dep]
@@ -83,10 +84,12 @@ def make_dependencies(dir_path, output_name):
                     missing.add(dep)
                     continue
                 dep_dirs.append(f"{dep_dir}.build")
+                uv_dep_dirs.append(f"{dep_dir}.uv-build")
                 clean_dirs = clean.setdefault(dep_dir, [])
                 clean_dirs.append(f"{dir_name}.clean")
             if dep_dirs:
                 print(f"{dir_name}.build: {' '.join(dep_dirs)}", file=f)
+                print(f"{dir_name}.uv-build: {' '.join(uv_dep_dirs)}", file=f)
         for dir_name in sorted(clean.keys()):
             clean_dirs = clean[dir_name]
             print(f"{dir_name}.clean: {' '.join(clean_dirs)}", file=f)

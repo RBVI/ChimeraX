@@ -97,6 +97,17 @@ endif
 	# and pandas is optional this line can be removed
 	$(APP_PIP) uninstall -y pandas
 
+uv-install: $(PLATO_WHEELS) $(SCIPY_WHEEL) patched-tinyarray
+	uv pip install -r $(TOP)/pyproject.toml --all-extras
+ifeq ($(OSARCH),DarwinArm64)
+	uv pip install ./$(SCIPY_WHEEL)
+endif
+	uv pip install ./$(subst ==,-,$(subst #,,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/^[ \t]*//;s/[ \t]*$$//')))
+	-for p in $(PATCHES); do \
+		patch --ignore-whitespace -d $(TOP)/.venv/lib/python3.11/site-packages/ -N -p0 < $$p ; \
+	done
+
+
 app-upgrade:
 	$(APP_PIP_INSTALL) -U -r app_requirements.txt
 

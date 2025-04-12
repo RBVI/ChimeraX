@@ -30,6 +30,16 @@ build: install
 	# unlike normal bundles, install as well
 	$(MAKE) sync
 
+uv-wheel: $(PYSRCS)
+	uv build --no-build-isolation --wheel
+
+uv-install uv-app-install: uv-wheel
+	uv pip uninstall ChimeraX-ToolshedUtils
+	uv pip install --no-build-isolation --force-reinstall .
+
+uv-build: uv-install
+	$(MAKE) sync
+
 install-editable:
 	$(PYTHON) -m pip install --no-build-isolation --editable .
 
