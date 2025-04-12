@@ -43,6 +43,7 @@ with open(bb_toml, "r") as f:
         ("struct_measure.xml", "struct_measure.toml"),
         ("stl.xml", "stl.toml"),
         ("surface.xml", "surface.toml"),
+        ("toolbar.xml", "toolbar.toml"),
         ("webcam.xml", "webcam.toml"),
     ],
 )

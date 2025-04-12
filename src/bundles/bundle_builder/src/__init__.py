@@ -755,6 +755,8 @@ def xml_to_toml(
         for key, value in manager.items():
             if key == "manager" or key == "name":
                 continue
+            if key == 'guiOnly':
+                toml += "gui-only = %s\n" % value
             else:
                 if value in ["true", "false"]:
                     toml += "%s = %s\n" % (key.replace("_", "-"), value)

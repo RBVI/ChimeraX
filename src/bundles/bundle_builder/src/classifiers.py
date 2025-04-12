@@ -103,7 +103,7 @@ class Selector(ChimeraXClassifier):
 
 
 class Manager(ChimeraXClassifier):
-    default_attrs = {"gui-only": False, "autostart": True}
+    default_attrs = {"guiOnly": False, "autostart": True}
 
     def __init__(self, name, attrs):
         if not attrs:
@@ -112,6 +112,8 @@ class Manager(ChimeraXClassifier):
             for key, val in self.default_attrs.items():
                 if key not in attrs:
                     attrs[key] = val
+                if 'gui-only' in attrs:
+                    del attrs['gui-only']
         super().__init__(name, attrs)
 
     def __str__(self):
