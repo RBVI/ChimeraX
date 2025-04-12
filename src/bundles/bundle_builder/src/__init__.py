@@ -742,7 +742,10 @@ def xml_to_toml(
             if key == "name":
                 continue
             else:
-                toml += '%s = "%s"\n' % (key, value)
+                if '"' in value:
+                    toml += '%s = \'%s\'\n' % (key, value)
+                else:
+                    toml += '%s = "%s"\n' % (key, value)
         toml += "\n"
 
     managers = _extract_managers(bundle_info)

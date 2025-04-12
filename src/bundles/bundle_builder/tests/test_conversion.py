@@ -36,6 +36,7 @@ with open(bb_toml, "r") as f:
         ("nucleotides.xml", "nucleotides.toml"),
         ("pdb.xml", "pdb.toml"),
         ("pdb_lib.xml", "pdb_lib.toml"),
+        ("preset_mgr.xml", "preset_mgr.toml"),
         ("realsense.xml", "realsense.toml"),
         ("segment.xml", "segment.toml"),
         ("stl.xml", "stl.toml"),
