@@ -722,7 +722,7 @@ def xml_to_toml(
 
     tools = _extract_tools(bundle_info)
     for tool in tools:
-        if len(tool["name"].split(" ")) > 1:
+        if len(tool["name"].split(" ")) > 1 or '/' in tool["name"]:
             toml += '[tool.chimerax.tool."%s"]\n' % tool["name"]
         else:
             toml += "[tool.chimerax.tool.%s]\n" % tool["name"]

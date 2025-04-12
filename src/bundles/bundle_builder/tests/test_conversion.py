@@ -40,6 +40,7 @@ with open(bb_toml, "r") as f:
         ("realsense.xml", "realsense.toml"),
         ("segment.xml", "segment.toml"),
         ("shortcuts.xml", "shortcuts.toml"),
+        ("struct_measure.xml", "struct_measure.toml"),
         ("stl.xml", "stl.toml"),
         ("surface.xml", "surface.toml"),
         ("webcam.xml", "webcam.toml"),
