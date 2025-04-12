@@ -12,7 +12,7 @@ build:
       - git fetch --unshallow
     post_install:
       - curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/grako/grako-3.16.5-py2.py3-none-any.whl --output grako-3.16.5-py2.py3-none-any.whl && python -I -m pip install ./grako-3.16.5-py2.py3-none-any.whl
-      - python -I -m pip install setuptools==65.1.1 Cython
+      - python -I -m pip install setuptools==78.1.1 Cython
       - python -I -m pip install prereqs/qtshim
       - python -I -m pip install PyQt6 PyQt6-WebEngine sphinx sphinx-autodoc-typehints
       - python -I -m pip install sortedcontainers filelock appdirs pkginfo lxml msgpack
