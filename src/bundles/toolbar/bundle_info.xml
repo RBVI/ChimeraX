@@ -221,7 +221,6 @@ Provides a Windows ribbon-style toolbar interface
   <DataFiles>
     <DataDir>icons</DataDir>
     <DataFile>tool.html</DataFile>
-    <DataFile>docs/user/tools/Toolbar.html</DataFile>
   </DataFiles>
 
   <Classifiers>
