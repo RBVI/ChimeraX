@@ -727,7 +727,10 @@ def xml_to_toml(
     if datafiles:
         toml += "[tool.chimerax.package-data]\n"
         for path, files in datafiles.items():
-            toml += '"%s" = [\n' % path
+            if path == "src":
+                toml += '"%s/" = [\n' % path
+            else:
+                toml += '"%s" = [\n' % path
             for file in files:
                 toml += '  "%s",\n' % file
             toml += "]\n"

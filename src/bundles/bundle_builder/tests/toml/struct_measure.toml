@@ -36,7 +36,7 @@ categories = ["Structure Analysis"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
 [tool.chimerax.package-data]
-"src" = [
+"src/" = [
   "distance.png",
 ]
 
