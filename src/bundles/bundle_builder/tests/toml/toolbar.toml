@@ -47,6 +47,10 @@ classifiers = ["Development Status :: 3 - Alpha"]
   "tool.html",
 ]
 
+[tool.chimerax.tool.Toolbar]
+category = "General"
+description = "a Windows ribbon-style toolbar"
+
 [tool.chimerax.manager."toolbar"]
 gui-only = true
 
