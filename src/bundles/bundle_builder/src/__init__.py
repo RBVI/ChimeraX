@@ -768,7 +768,7 @@ def xml_to_toml(
                 if value in ["true", "false"]:
                     toml += "%s = %s\n" % (key.replace("_", "-"), value)
                 else:
-                    toml += '%s = "%s"\n' % (key.replace("_", "-"), value)
+                    toml += '%s = "%s"\n' % (key.replace("_", "-"), value.encode('unicode_escape').decode('ascii'))
         toml += "\n"
 
     c_extensions = _extract_c_extensions(

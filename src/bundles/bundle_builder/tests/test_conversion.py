@@ -33,6 +33,7 @@ with open(bb_toml, "r") as f:
         ("mmcif.xml", "mmcif.toml"),
         ("mmtf.xml", "mmtf.toml"),
         ("morph.xml", "morph.toml"),
+        ("nucleotides.xml", "nucleotides.toml"),
         ("pdb.xml", "pdb.toml"),
         ("pdb_lib.xml", "pdb_lib.toml"),
         ("realsense.xml", "realsense.toml"),
