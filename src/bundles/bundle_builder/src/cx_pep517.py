@@ -35,14 +35,20 @@ from .bundle_builder_toml import Bundle, read_toml
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None) -> str:
     bundle = Bundle(log, read_toml("pyproject.toml"))
     wheel = bundle.build_wheel()
-    shutil.copyfile(wheel, os.path.join(wheel_directory, os.path.basename(wheel)))
+    try:
+        shutil.copyfile(wheel, os.path.join(wheel_directory, os.path.basename(wheel)))
+    except shutil.SameFileError:
+        pass
     return os.path.basename(wheel)
 
 
 def build_sdist(sdist_directory, config_settings=None) -> str:
     bundle = Bundle(log, read_toml("pyproject.toml"))
     sdist = bundle.build_sdist()
-    shutil.copyfile(sdist, os.path.join(sdist_directory, os.path.basename(sdist)))
+    try:
+        shutil.copyfile(sdist, os.path.join(sdist_directory, os.path.basename(sdist)))
+    except shutil.SameFileError:
+        pass
     return os.path.basename(bundle.build_sdist())
 
 
@@ -51,14 +57,16 @@ def build_editable(
 ) -> str:
     bundle = Bundle(log, read_toml("pyproject.toml"))
     wheel = bundle.build_editable(config_settings)
-    shutil.copyfile(wheel, os.path.join(wheel_directory, os.path.basename(wheel)))
+    try:
+        shutil.copyfile(wheel, os.path.join(wheel_directory, os.path.basename(wheel)))
+    except shutil.SameFileError:
+        pass
     return os.path.basename(wheel)
 
 
 def get_requires_for_build_wheel(config_settings=None) -> None:
     toml_file = read_toml("pyproject.toml")
     return toml_file["build-system"]["requires"]
-
 
 get_requires_for_build_sdist = get_requires_for_build_wheel
 get_requires_for_build_editable = get_requires_for_build_wheel
