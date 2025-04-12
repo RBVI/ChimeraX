@@ -384,6 +384,10 @@ def _extract_data_files(bundle_info) -> dict[str, list[str]]:
                         data_files[fixed_path].append(".".join([maybe_file, extension]))
                     else:
                         data_files[fixed_path].append(".".join([file, extension]))
+        for e in list(dfiles_block.iter("DataDir")):
+            source = BundleBuilder._get_element_text(e)
+            fixed_path = _path_to_source_tree_location(source, dir=True)
+            data_files[fixed_path].append("*")
     return data_files
 
 
