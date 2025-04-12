@@ -126,9 +126,14 @@ sync:
 ifdef BUILD_AND_INSTALL
 INSTALL_ARGS = noDeps true
 build: install
-uv-build: uv-install
 else
 build: wheel
+endif
+	$(MAKE) sync
+
+ifdef BUILD_AND_INSTALL
+uv-build: uv-install
+else
 uv-build: uv-wheel
 endif
 	$(MAKE) sync
