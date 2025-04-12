@@ -81,7 +81,7 @@ uv-install:
 	PYTHON=python $(MAKE) -C core uv-build
 	PYTHON=python $(MAKE) -C toolshed_utils uv-build
 	PYTHON=python $(MAKE) uv-build
-	cd $(SYNC_DIR) && uv pip install --upgrade --upgrade-strategy only-if-needed *.whl
+	cd $(SYNC_DIR) && uv pip install *.whl
 	python -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
 
 lint:
