@@ -57,6 +57,12 @@ ifdef FLATPAK_DIST
 endif
 	@echo 'Finished install at' `date`
 
+uv-install:
+	uv pip install -r pyproject.toml --all-extras
+	$(MAKE) -C prereqs/pips uv-install
+	uv pip install PySide6 shiboken6
+	PYTHON=python $(MAKE) -C src/bundles uv-install
+
 install-rbvi:
 	$(MAKE) PYQT_LICENSE=commercial install
 
