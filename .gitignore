@@ -181,3 +181,4 @@ wheel/chimerax
 wheel/pyproject.toml
 prereqs/pips/scipy*.whl
 prereqs/pips/tinyarray-1.2.4*
+prereqs/pips/app_requirements.txt
