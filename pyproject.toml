@@ -66,7 +66,7 @@ wheel = [
   "Cython==3.0.12",
   "filelock==3.18.0",
   "grako==3.16.5",
-  "html2text==2024.2.26",
+  "html2text==2025.4.15",
   "ihm==2.2",
   "imagecodecs==2024.6.1",
   # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
