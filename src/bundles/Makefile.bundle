@@ -100,6 +100,11 @@ install-editable: clean
 		$(RUN_CMD) "devel install . user false editable true exit true $(DEBUG_ARG) $(INSTALL_ARGS)"; \
 	fi
 
+uv-install-editable:
+	python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml
+	uv pip install --no-build-isolation --editable .
+	rm pyproject.toml
+
 venv-install:
 ifndef VIRTUAL_ENV
 	@echo "No virtual env to install to! Skipping venv install."
