@@ -20,7 +20,7 @@ ipykernel==6.29.5
 # try a newer version of jedi
 ipython==8.26.0
 # the version of jedi that works with ipython
-jedi==0.19.1
+jedi==0.19.2
 jupyter-client==8.6.3
 line_profiler==4.2.0
 lxml==5.3.1
