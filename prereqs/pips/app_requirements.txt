@@ -13,7 +13,7 @@ Cython==3.0.12
 filelock==3.18.0
 grako==3.16.5
 html2text==2024.2.26
-ihm==2.2
+ihm==2.4
 imagecodecs==2024.6.1
 ipykernel==6.29.5
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
