@@ -32,7 +32,7 @@ import json
 # and cannot be altered or added to by later versions of ChimeraX
 class AnisoSettings(Settings):
     AUTO_SAVE = {
-        "custom_presets": Value({}, json.loads, json.dumps),
+        "custom_presets": Value({}, eval, repr),
     }
 
 
