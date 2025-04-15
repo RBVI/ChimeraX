@@ -76,7 +76,7 @@ wheel = [
   # the version of jedi that works with ipython
   "jedi==0.19.1",
   "jupyter-client==8.6.3",
-  "lxml==5.3.1",
+  "lxml==5.3.2",
   "lz4==4.4.4",
   "matplotlib==3.10.1",
   "msgpack==1.1.0",
