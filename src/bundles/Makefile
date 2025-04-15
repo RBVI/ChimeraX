@@ -14,6 +14,7 @@ TOP = ../..
 SUBDIR_SYNC = 1
 SUBDIR_BUILD = 1
 include $(TOP)/mk/config.make
+PYTHON ?= $(APP_PYTHON_EXE)
 
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
@@ -75,6 +76,14 @@ install:
 	cd $(SYNC_DIR) && $(APP_BOOTSTRAP_PIP) install --upgrade --upgrade-strategy only-if-needed *.whl
 	$(APP_PYTHON_EXE) -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
 
+uv-install:
+	PYTHON=python $(MAKE) -C bundle_builder uv-build
+	PYTHON=python $(MAKE) -C core uv-build
+	PYTHON=python $(MAKE) -C toolshed_utils uv-build
+	PYTHON=python $(MAKE) uv-build
+	cd $(SYNC_DIR) && uv pip install *.whl
+	python -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
+
 lint:
 ifneq (,$(PYSRCS))
 	$(PYLINT) $(PYSRCS)
@@ -108,7 +117,7 @@ clean:
 
 Makefile.dependencies: */bundle_info.xml* */pyproject.toml* Make_dependencies.py
 ifneq ($(MAKECMDGOALS),clean)
-	$(APP_PYTHON_EXE) Make_dependencies.py
+	$(PYTHON) Make_dependencies.py
 
 # Make sure bundle_builder and toolshed bundles are installed before all others.
 $(REST_SUBDIRS:=.build):

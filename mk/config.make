@@ -180,7 +180,9 @@ endif
 endif
 
 ifeq ($(OS),Darwin)
+ifndef NO_LOCAL_SSL_CERT
 export SSL_CERT_FILE = $(PYSITEDIR)/certifi/cacert.pem
+endif
 endif
 
 PYLINT = $(PYTHON_EXE) -m flake8

@@ -1,0 +1,99 @@
+<!-- vi:set shiftwidth=2 expandtab: -->
+<BundleInfo name="ChimeraX-Nucleotides" version="2.0.3"
+	package="chimerax.nucleotides"
+  	minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Create nucleotide-specific displays</Synopsis>
+  <Description>
+  Create special nucleotide-specific displays of the base and sugar moieties.
+  Such displays are generally combined with various atomic representations
+  and/or cartoons.
+  <p>
+  See also <a href="https://nar.oxfordjournals.org/cgi/content/full/34/4/e29">
+	  Nucleic acid visualization with UCSF Chimera</a>.
+  Couch GS, Hendrix DK, Ferrin TE. Nucleic Acids Res. 2006 Feb 14;34(4):e29.
+  </p>
+  </Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0,>=1.22.2"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Surface" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+  </Dependencies>
+
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+  </DataFiles>
+
+  <Providers manager="toolbar">
+    <Provider tab="Nucleotides"
+      name="tab-nuc" after="Molecule Display" before="Graphics"/>
+    <Provider tab="Nucleotides" section="Styles" 
+      name="nucleotide-plain" display_name="Plain" icon="nuc-atoms.png" 
+      description="Remove nucleotides styling"/>
+    <Provider tab="Nucleotides" section="Styles" 
+      name="nucleotide-filled" display_name="Filled" icon="nuc-fill.png" 
+      description="Show nucleotides with filled rings"/>
+    <Provider tab="Nucleotides" section="Styles" 
+      name="nucleotide-slab" display_name="Slab" icon="nuc-slab.png"
+      description="Show nucleotide bases as slabs and fill sugars"/>
+    <Provider tab="Nucleotides" section="Styles" 
+      name="nucleotide-box" display_name="Tube/&#10;Slab" icon="nuc-box.png"
+      description="Show nucleotide bases as boxes and sugars as tubes"/>
+    <Provider tab="Nucleotides" section="Styles" 
+      name="nucleotide-ellipsoid" display_name="Tube/&#10;Ellipsoid" icon="nuc-elli.png"
+      description="Show nucleotide bases as ellipsoids and sugars as tubes"/>
+    <Provider tab="Nucleotides" section="Styles" 
+      name="nucleotide-muffler" display_name="Tube/&#10;Muffler" icon="nuc-muff.png"
+      description="Show nucleotide bases as mufflers and sugars as tubes"/>
+    <Provider tab="Nucleotides" section="Styles" 
+      name="nucleotide-ladder" display_name="Ladder" icon="nuc-ladder.png"
+      description="Show nucleotides as H-bond ladders"/>
+    <Provider tab="Nucleotides" section="Styles"
+      name="nucleotide-stubs" display_name="Stubs" icon="nuc-stubs.png"
+      description="Show nucleotides as stubs"/>
+    <Provider tab="Nucleotides" section="Coloring" 
+      name="nucleotide-color" display_name="nucleotide" icon="nuc-color.png"
+      description="Color by nucleotide"/>
+
+    <!-- Provider names must be unique, so create duplicates
+         in Molecule Display tab with different names -->
+    <Provider tab="Molecule Display" section="Styles" group="nuc"
+      name="nucleotide-1" link="ChimeraX-Nucleotides:nucleotide-plain"/>
+    <Provider tab="Molecule Display" section="Styles" group="nuc"
+      name="nucleotide-2" link="ChimeraX-Nucleotides:nucleotide-filled"/>
+    <Provider tab="Molecule Display" section="Styles" group="nuc"
+      name="nucleotide-3" link="ChimeraX-Nucleotides:nucleotide-box"/>
+    <Provider tab="Molecule Display" section="Styles" group="nuc"
+      name="nucleotide-4" link="ChimeraX-Nucleotides:nucleotide-ladder"/>
+    <Provider tab="Molecule Display" section="Coloring"
+      name="nucleotide-5" link="ChimeraX-Nucleotides:nucleotide-color"/>
+  </Providers>
+
+  <Classifiers>
+    <!-- Development Status should be compatible with bundle version number -->
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <!--
+    <ChimeraXClassifier>Tool :: Nucleotides Tool :: General :: Manipulate nucleotide representations</ChimeraXClassifier>
+    -->
+    <ChimeraXClassifier>Command :: nucleotides :: General :: Manipulate nucleotide representations</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ~nucleotides :: General :: Undo nucleotide representations</ChimeraXClassifier>
+    <!--
+    <ChimeraXClassifier>Command :: nucleotides style :: General :: Create custom nucleotide style</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: nucleotides style list :: General :: List custom nucleotide styles </ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: nucleotides style delete :: General :: Delete custom nucleotide style </ChimeraXClassifier>
+    -->
+  </Classifiers>
+
+</BundleInfo>

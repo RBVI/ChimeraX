@@ -21,6 +21,7 @@ ignored_gui_dependencies = {
     , "line_profiler"
     , "PyOpenGL"
     , "PyOpenGL-accelerate"
+    , "qtshim"
 }
 ignored_prefixes = ["app_pyopengl", "build", "dev"]
 dependency_files = [

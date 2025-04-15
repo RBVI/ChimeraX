@@ -28,6 +28,11 @@ tarball:
 build: seggerx
 	$(MAKE) -C seggerx/Segger build
 
+uv-build: seggerx
+	cd seggerx/Segger; python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml
+	$(MAKE) -C seggerx/Segger uv-build
+	rm seggerx/Segger/pyproject.toml
+
 sync: seggerx
 	$(MAKE) -C seggerx/Segger sync
 

@@ -1,12 +1,12 @@
 TOP = ..
 TOP := $(shell (cd "$(TOP)"; pwd))
 include $(TOP)/mk/config.make
-PYTHON = ../ChimeraX.app/Contents/bin/python3.9
+PYTHON = ../ChimeraX.app/Contents/bin/python3.11
 
 BUNDLE ?=
 
 wheel: clean chimerax-copy pyproject.toml
-	$(APP_PYTHON_BIN) -I filter_modules.py
+	$(APP_PYTHON_BIN) -I ../utils/wheel/filter_modules.py
 	$(APP_PYTHON_BIN) -I make_init.py
 	python -m build --wheel
 

@@ -20,12 +20,17 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.atomic import AtomicStructure
 from chimerax.core.tools import ToolInstance
+from chimerax.hbonds.gui import HBondsGUI
+from chimerax.clashes.gui import ClashesGUI
 from chimerax.ui.widgets import ItemTable
-from chimerax.core.commands import run
+from chimerax.core.commands import run, concise_model_spec
 from chimerax.core.models import REMOVE_MODELS
-from Qt.QtWidgets import QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox
+from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
+                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QSizePolicy)
 from Qt.QtCore import Qt
+
 
 class ViewDockTool(ToolInstance):
 
@@ -44,11 +49,79 @@ class ViewDockTool(ToolInstance):
         self.tool_window.ui_area.setLayout(self.main_v_layout)
 
         self.structures = structures
+
+        self.top_buttons_layout = QHBoxLayout()
+        self.top_buttons_setup()
+        self.main_v_layout.addLayout(self.top_buttons_layout)
+
+
         self.struct_table = ItemTable(session=self.session)
         self.table_setup()
         self.handlers = []
         self.add_handlers()
         self.tool_window.manage('side')
+
+    def top_buttons_setup(self):
+        """
+        Create the top buttons for the tool (HBonds and Clashes).
+        """
+        self.hbonds_button = QPushButton("HBonds")
+        self.hbonds_button.clicked.connect(
+            lambda: self.popup_callback(
+                HBondsGUI, "HBonds", show_model_restrict=False, show_bond_restrict=False
+            )
+        )
+        self.top_buttons_layout.addWidget(self.hbonds_button)
+
+        self.clashes_button = QPushButton("Clashes")
+        self.clashes_button.clicked.connect(
+            lambda: self.popup_callback(ClashesGUI, "Clashes", has_apply_button=False, show_restrict=False)
+        )
+        self.top_buttons_layout.addWidget(self.clashes_button)
+        self.top_buttons_layout.setAlignment(Qt.AlignLeft)
+
+    def popup_callback(self, gui_class, popup_name, **kwargs):
+        """
+        Generalized callback function for creating a popup dialog with a specified GUI widget.
+
+        Args:
+            gui_class: The GUI class to instantiate (e.g., HBondsGUI, ClashesGUI).
+            popup_name: The command name to execute (e.g., "hbonds", "clashes").
+            **kwargs: Additional keyword arguments to pass to the GUI class constructor.
+        """
+        gui_instance = gui_class(self.session, **kwargs)
+
+        # Create a QDialog to act as the popup
+        dialog = QDialog(self.tool_window.ui_area)
+        dialog.setWindowTitle(f"{self.display_name} {popup_name.capitalize()}")
+        layout = QVBoxLayout(dialog)
+        dialog.setLayout(layout)
+
+        # Add the GUI widget to the dialog's layout
+        layout.addWidget(gui_instance)
+
+        # Add Ok/Cancel buttons
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        layout.addWidget(button_box)
+
+        # Connect the Ok button to call gui_instance.get_command()
+        def on_ok():
+            command = gui_instance.get_command()
+            # Binding analysis structures
+            mine = concise_model_spec(self.session, self.structures)
+            all_structures = self.session.models.list(type=AtomicStructure)
+            # All structures that are AtomicStructures but not in the binding analysis structures
+            others = concise_model_spec(self.session, set(all_structures) - set(self.structures))
+
+            # command[0] = command name, command[1] = model selection, command[2] = other arguments
+            run(self.session, f"{command[0]} {mine} restrict {others} {command[2]}")
+            dialog.accept()
+
+        button_box.accepted.connect(on_ok)
+        button_box.rejected.connect(dialog.reject)
+
+        # Show the dialog
+        dialog.exec()
 
     def table_setup(self):
         """

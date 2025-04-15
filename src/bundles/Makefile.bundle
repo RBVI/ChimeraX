@@ -51,8 +51,9 @@ APP_PYTHON_EXE = $(wildcard $(CHIMERAX_APP)/bin/python3.*)
 CX_BIN = $(CHIMERAX_APP)/bin/chimerax
 PYMOD_EXT = so
 endif
-PYTHON ?= $(APP_PYTHON_EXE) -I
-RUN = PYTHONNOUSERSITE=1 $(PYTHON) -m chimerax.core --nogui --exit
+PYTHON ?= $(APP_PYTHON_EXE)
+PYTHONISO ?= $(PYTHON) -I
+RUN = PYTHONNOUSERSITE=1 $(PYTHONISO) -m chimerax.core --nogui --exit
 RUN_SAFE = $(RUN) --safemode
 RUN_CMD = $(RUN_SAFE) --cmd
 
@@ -71,26 +72,38 @@ PYSRCS = $(wildcard src/*.py)
 .SECONDEXPANSION:
 
 wheel: $$(PYSRCS)
-	if [ -z "$(APP_PYTHON_EXE)" ]; then \
+	if [ $(PYTHON) == $(APP_PYTHON_EXE) && -z "$(APP_PYTHON_EXE)" ]; then \
 		echo "missing ChimeraX application's python"; exit 1; \
 	else \
 		$(RUN_CMD) "devel build . exit true $(RELEASE_ARG) $(DEBUG_ARG) $(BUILD_ARGS)"; \
 	fi
 
+uv-install uv-app-install:
+	uv build --no-build-isolation --wheel
+	uv pip install --no-deps dist/*.whl
+
+uv-wheel: $$(PYSRCS)
+	uv build --no-build-isolation --wheel
+
 # The space means install and app-install are the same
 install app-install: $$(PYSRCS)
-	if [ -z "$(APP_PYTHON_EXE)" ]; then \
+	if [ $(PYTHON) == $(APP_PYTHON_EXE) && -z "$(APP_PYTHON_EXE)" ]; then \
 		echo "missing ChimeraX application's python"; exit 1; \
 	else \
 		$(RUN_CMD) "devel install . user false exit true $(DEBUG_ARG) $(INSTALL_ARGS)"; \
 	fi
 
 install-editable: clean
-	if [ -z "$(APP_PYTHON_EXE)" ]; then \
+	if [ $(PYTHON) == $(APP_PYTHON_EXE) && -z "$(APP_PYTHON_EXE)" ]; then \
 		echo "missing ChimeraX application's python"; exit 1; \
 	else \
 		$(RUN_CMD) "devel install . user false editable true exit true $(DEBUG_ARG) $(INSTALL_ARGS)"; \
 	fi
+
+uv-install-editable:
+	python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml
+	uv pip install --no-build-isolation --editable .
+	rm pyproject.toml
 
 venv-install:
 ifndef VIRTUAL_ENV
@@ -120,6 +133,13 @@ INSTALL_ARGS = noDeps true
 build: install
 else
 build: wheel
+endif
+	$(MAKE) sync
+
+ifdef BUILD_AND_INSTALL
+uv-build: uv-install
+else
+uv-build: uv-wheel
 endif
 	$(MAKE) sync
 

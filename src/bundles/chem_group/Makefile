@@ -12,3 +12,5 @@ src/__init__.py:	src/__init__.py.in make_selectors.py
 install: bundle_info.xml
 
 install-editable: bundle_info.xml
+
+uv-prepare: bundle_info.xml
