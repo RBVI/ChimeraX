@@ -49,10 +49,10 @@ class _StructureAnisoManager(StateManager):
                 'axis_color': None,
                 'axis_factor': None,
                 'axis_thickness': 0.01,
+                'color': None,
                 'ellipse_color': None,
                 'ellipse_factor': None,
                 'ellipse_thickness': 0.02,
-                'ellipsoid_color': None,
                 'scale': 1.0,
                 'show_ellipsoid': True,
                 'smoothing': 3,
@@ -145,7 +145,7 @@ class _StructureAnisoManager(StateManager):
 
         from chimerax.surface import calculate_vertex_normals as calc_normals
         if dp['show_ellipsoid']:
-            color_param = dp['ellipsoid_color']
+            color_param = dp['color']
             transparency = dp['transparency']
             from chimerax.geometry.icosahedron import icosahedron_triangulation
             varray, tarray = icosahedron_triangulation(subdivision_levels=smoothing, sphere_factor=1.0)

@@ -65,11 +65,11 @@ class AnisoTool(ToolInstance):
         main_layout.addLayout(hide_show_layout)
         hide_show_layout.addStretch(1)
         show_button = QPushButton("Show")
-        show_button.clicked.connect(lambda *args, f=self._show_hide_cb: f("aniso"))
+        show_button.clicked.connect(lambda *args, f=self._show_hide_cb: f())
         hide_show_layout.addWidget(show_button)
         hide_show_layout.addWidget(QLabel("/"))
         hide_button = QPushButton("Hide")
-        hide_button.clicked.connect(lambda *args, f=self._show_hide_cb: f("aniso hide"))
+        hide_button.clicked.connect(lambda *args, f=self._show_hide_cb: f("hide"))
         hide_show_layout.addWidget(hide_button)
         hide_show_layout.addWidget(QLabel("depictions"))
         hide_show_layout.addStretch(1)
@@ -97,10 +97,10 @@ class AnisoTool(ToolInstance):
         #TODO: instead of directly setting button, have manager fire triggers on changes and update button
         # from those (also: initialize button from those)
         self.preset_menu_button.setText(action.text())
-        #TODO: need an "aniso show" command in order to mimic Chimera tool
+        self._show_hide_cb()
         run(self.session, "aniso preset " + s.atomspec + " " + action.text())
 
-    def _show_hide_cb(self, cmd):
+    def _show_hide_cb(self, mod=None):
         s = self.structure_button.value
         if not s:
             return tool_user_error("No structure chosen")
@@ -110,4 +110,4 @@ class AnisoTool(ToolInstance):
         if self.sel_restrict_check_box.isChecked():
             spec += " & sel"
 
-        run(self.session, cmd + ' ' + spec)
+        run(self.session, "aniso" + ("" if mod is None else ' ' + mod) + ' ' + spec)
