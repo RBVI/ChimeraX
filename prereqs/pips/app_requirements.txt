@@ -18,7 +18,7 @@ imagecodecs==2024.6.1
 ipykernel==6.29.5
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi
-ipython==8.26.0
+ipython==9.0.2
 # the version of jedi that works with ipython
 jedi==0.19.1
 jupyter-client==8.6.3
