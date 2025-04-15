@@ -74,7 +74,7 @@ wheel = [
   "ipykernel==6.29.5",
   "ipython==8.26.0",
   # the version of jedi that works with ipython
-  "jedi==0.19.1",
+  "jedi==0.19.2",
   "jupyter-client==8.6.3",
   "lxml==5.3.1",
   "lz4==4.4.4",
