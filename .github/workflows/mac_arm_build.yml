@@ -45,7 +45,6 @@ jobs:
           brew install python@3.10
           python3.10 -m pip install lief dmgbuild
           patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
-      - uses: actions/checkout@v4
       - run: ${PWD}/utils/set_up_macos.sh
       - name: Fetch Plato prerequisites
         uses: ./utils/ci/consolidated_cache
