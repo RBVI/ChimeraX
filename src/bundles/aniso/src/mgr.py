@@ -22,6 +22,18 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.triggerset import TriggerSet
+triggers = TriggerSet()
+triggers.add_trigger("style changed")
+
+def manager_for_structure(session, s, *, create=True):
+    for mgr in session.state_managers(_StructureAnisoManager):
+        if mgr.structure == s:
+            return mgr
+    if create:
+        return _StructureAnisoManager(session, s)
+    return None
+
 from numpy import array
 cube_vertices = array([
 	(1.0, 1.0, 1.0), (1.0, 1.0, -1.0),
@@ -94,6 +106,7 @@ class _StructureAnisoManager(StateManager):
 
         if need_rebuild:
             self._create_depictions()
+            triggers.activate_trigger("style changed", self)
 
     def _add_handlers(self):
         from chimerax.core.models import REMOVE_MODELS
