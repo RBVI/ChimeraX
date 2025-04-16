@@ -137,13 +137,10 @@ def aniso_show(session, atoms=None):
 
     atoms = check_atoms(session, atoms)
 
-    from .mgr import _StructureAnisoManager
-    mgr_info = { mgr.structure: mgr for mgr in session.state_managers(_StructureAnisoManager) }
-
+    from .mgr import manager_for_structure
     for s, s_atoms in atoms.by_structure:
-        if s not in mgr_info:
-            mgr_info[s] = _StructureAnisoManager(session, s)
-        mgr_info[s].show(atoms=s_atoms)
+        mgr = manager_for_structure(session, s)
+        mgr.show(atoms=s_atoms)
 
 def aniso_style(session, structures=None, **kw):
     ''' Command to display thermal ellipsoids '''
@@ -155,29 +152,25 @@ def aniso_style(session, structures=None, **kw):
         atoms = structures.atoms
     atoms = check_atoms(session, atoms, error_text="structures")
 
-    from .mgr import _StructureAnisoManager
-    mgr_info = { mgr.structure: mgr for mgr in session.state_managers(_StructureAnisoManager) }
-
+    from .mgr import manager_for_structure
     for s, s_atoms in atoms.by_structure:
-        if s not in mgr_info:
-            mgr_info[s] = _StructureAnisoManager(session, s)
+        mgr = manager_for_structure(session, s)
         if kw:
-            mgr_info[s].style(**kw)
+            mgr.style(**kw)
         else:
-            mgr_info[s].report_style_settings()
+            mgr.report_style_settings()
 
 def aniso_hide(session, atoms=None):
     ''' Command to hide thermal ellipsoids '''
 
     atoms = check_atoms(session, atoms)
 
-    from .mgr import _StructureAnisoManager
-    mgr_info = { mgr.structure: mgr for mgr in session.state_managers(_StructureAnisoManager) }
-
+    from .mgr import manager_for_structure
     for s, s_atoms in atoms.by_structure:
-        if s not in mgr_info:
+        mgr = manager_for_structure(session, s, create=False)
+        if not mgr:
             continue
-        mgr_info[s].hide(atoms=s_atoms)
+        mgr.hide(atoms=s_atoms)
 
 def get_preset_name(presets, name):
     matches = []
