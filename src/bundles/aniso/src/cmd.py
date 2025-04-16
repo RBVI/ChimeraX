@@ -27,10 +27,10 @@ builtin_presets = {
         'axis_color': None,
         'axis_factor': None,
         'axis_thickness': 0.01,
+        'color': None,
         'ellipse_color': None,
         'ellipse_factor': None,
         'ellipse_thickness': 0.02,
-        'ellipsoid_color': None,
         'scale': 1.0,
         'show_ellipsoid': True,
         'smoothing': 3,
@@ -40,10 +40,10 @@ builtin_presets = {
         'axis_color': None,
         'axis_factor': 1.0,
         'axis_thickness': 0.01,
+        'color': None,
         'ellipse_color': None,
         'ellipse_factor': None,
         'ellipse_thickness': 0.02,
-        'ellipsoid_color': None,
         'scale': 1.0,
         'show_ellipsoid': False,
         'smoothing': 3,
@@ -53,10 +53,10 @@ builtin_presets = {
         'axis_color': None,
         'axis_factor': None,
         'axis_thickness': 0.01,
+        'color': None,
         'ellipse_color': None,
         'ellipse_factor': 1.0,
         'ellipse_thickness': 0.02,
-        'ellipsoid_color': None,
         'scale': 1.0,
         'show_ellipsoid': False,
         'smoothing': 3,
@@ -66,10 +66,10 @@ builtin_presets = {
         'axis_color': None,
         'axis_factor': 1.5,
         'axis_thickness': 0.01,
+        'color': None,
         'ellipse_color': None,
         'ellipse_factor': None,
         'ellipse_thickness': 0.02,
-        'ellipsoid_color': None,
         'scale': 1.0,
         'show_ellipsoid': True,
         'smoothing': 3,
@@ -79,10 +79,10 @@ builtin_presets = {
         'axis_color': None,
         'axis_factor': None,
         'axis_thickness': 0.01,
+        'color': None,
         'ellipse_color': (0,0,0,255),
         'ellipse_factor': 1.01,
         'ellipse_thickness': 0.02,
-        'ellipsoid_color': None,
         'scale': 1.0,
         'show_ellipsoid': True,
         'smoothing': 3,
@@ -92,10 +92,10 @@ builtin_presets = {
         'axis_color': None,
         'axis_factor': 0.99,
         'axis_thickness': 0.01,
+        'color': (255,255,255,255),
         'ellipse_color': None,
         'ellipse_factor': None,
         'ellipse_thickness': 0.02,
-        'ellipsoid_color': (255,255,255,255),
         'scale': 1.0,
         'show_ellipsoid': True,
         'smoothing': 3,
@@ -105,10 +105,10 @@ builtin_presets = {
         'axis_color': None,
         'axis_factor': None,
         'axis_thickness': 0.01,
+        'color': (255,255,255,255),
         'ellipse_color': None,
         'ellipse_factor': 0.99,
         'ellipse_thickness': 0.02,
-        'ellipsoid_color': (255,255,255,255),
         'scale': 1.0,
         'show_ellipsoid': True,
         'smoothing': 3,
@@ -137,13 +137,10 @@ def aniso_show(session, atoms=None):
 
     atoms = check_atoms(session, atoms)
 
-    from .mgr import _StructureAnisoManager
-    mgr_info = { mgr.structure: mgr for mgr in session.state_managers(_StructureAnisoManager) }
-
+    from .mgr import manager_for_structure
     for s, s_atoms in atoms.by_structure:
-        if s not in mgr_info:
-            mgr_info[s] = _StructureAnisoManager(session, s)
-        mgr_info[s].show(atoms=s_atoms)
+        mgr = manager_for_structure(session, s)
+        mgr.show(atoms=s_atoms)
 
 def aniso_style(session, structures=None, **kw):
     ''' Command to display thermal ellipsoids '''
@@ -155,29 +152,25 @@ def aniso_style(session, structures=None, **kw):
         atoms = structures.atoms
     atoms = check_atoms(session, atoms, error_text="structures")
 
-    from .mgr import _StructureAnisoManager
-    mgr_info = { mgr.structure: mgr for mgr in session.state_managers(_StructureAnisoManager) }
-
+    from .mgr import manager_for_structure
     for s, s_atoms in atoms.by_structure:
-        if s not in mgr_info:
-            mgr_info[s] = _StructureAnisoManager(session, s)
+        mgr = manager_for_structure(session, s)
         if kw:
-            mgr_info[s].style(**kw)
+            mgr.style(**kw)
         else:
-            mgr_info[s].report_style_settings()
+            mgr.report_style_settings()
 
 def aniso_hide(session, atoms=None):
     ''' Command to hide thermal ellipsoids '''
 
     atoms = check_atoms(session, atoms)
 
-    from .mgr import _StructureAnisoManager
-    mgr_info = { mgr.structure: mgr for mgr in session.state_managers(_StructureAnisoManager) }
-
+    from .mgr import manager_for_structure
     for s, s_atoms in atoms.by_structure:
-        if s not in mgr_info:
+        mgr = manager_for_structure(session, s, create=False)
+        if not mgr:
             continue
-        mgr_info[s].hide(atoms=s_atoms)
+        mgr.hide(atoms=s_atoms)
 
 def get_preset_name(presets, name):
     matches = []
@@ -242,7 +235,7 @@ def aniso_preset_delete(session, name):
 
     from .settings import get_settings
     settings = get_settings(session)
-    # settings doesn't recognize when a dict has changed intermally, so...
+    # settings doesn't recognize when a dict has changed internally, so...
     presets = settings.custom_presets.copy()
     del presets[matching_names[0]]
     settings.custom_presets = presets
@@ -287,7 +280,6 @@ def aniso_preset_save(session, structures=None, name=None):
                     " structure you want to save settings from as the first argument of the command.")
     from .settings import get_settings
     settings = get_settings(session)
-    # settings doesn't recognize when a dict has changed intermally, so...
     presets = settings.custom_presets.copy()
     presets[name] = preset_settings
     settings.custom_presets = presets
@@ -309,10 +301,10 @@ def register_command(logger, name):
                 ('axis_color', Or(Color8TupleArg, NoneArg)),
                 ('axis_factor', Or(PositiveFloatArg, NoneArg)),
                 ('axis_thickness', PositiveFloatArg),
+                ('color', Or(Color8TupleArg, NoneArg)),
                 ('ellipse_color', Or(Color8TupleArg, NoneArg)),
                 ('ellipse_factor', Or(PositiveFloatArg, NoneArg)),
                 ('ellipse_thickness', PositiveFloatArg),
-                ('ellipsoid_color', Or(Color8TupleArg, NoneArg)),
                 ('scale', PositiveFloatArg),
                 ('show_ellipsoid', BoolArg),
                 ('smoothing', PositiveIntArg),

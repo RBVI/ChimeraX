@@ -1,9 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: "pip"
-    directories:
-      - "prereqs/pips"
-      - "/"
+    directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 100
