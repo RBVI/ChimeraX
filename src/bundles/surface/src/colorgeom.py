@@ -234,8 +234,7 @@ class GeometryColor(State):
     def restore_snapshot(cls, session, data):
         surf = data['surface']
         if surf is None:
-            session.logger.warning('Could not restore coloring on surface %s because surface does not exist.'
-                                   % '.'.join('%d' % i for i in id))
+            session.logger.warning('Could not restore coloring on a surface because the surface does not exist.')
             return None
         c = cls(surf, palette = data['colormap'], range = None, transparency = data.get('transparency'),
                 origin = data['origin'], axis = data['axis'])
