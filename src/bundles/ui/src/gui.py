@@ -119,17 +119,21 @@ class UI(QApplication):
         QApplication.__init__(self, [ad.appname])
         import sys
 
+        from Qt.QtCore import Qt
+        if sys.platform == 'win32':
+            self.setStyle('Fusion')
+        self.fixed_color_scheme = color_scheme
         if color_scheme is None:
-            from Qt.QtCore import Qt
             if self.styleHints().colorScheme() == Qt.ColorScheme.Dark:
                 color_scheme = 'dark'
             else:
                 color_scheme = 'light'
-        if color_scheme == 'dark' and sys.platform == 'win32':
-            self.setStyle('Fusion')
+        elif color_scheme == 'dark':
+            self.styleHints().setColorScheme(Qt.ColorScheme.Dark)
+        else:
+            self.styleHints().setColorScheme(Qt.ColorScheme.Light)
         self.color_scheme = color_scheme
         set_default_color_scheme(self.color_scheme)
-        # TODO: hook up Qt signal to monitor color scheme changes
 
         redirect_stdio_to_logger(self.session.logger)
         self.redirect_qt_messages()
@@ -299,6 +303,11 @@ class UI(QApplication):
                 except Exception as e:
                     self.session.logger.warning('Failed opening file %s:\n%s' % (event.file(), str(e)))
             return True
+        if hasattr(self, 'fixed_color_scheme') and self.fixed_color_scheme is None and event.type() == QEvent.ApplicationPaletteChange:
+            from Qt.QtCore import Qt
+            new_scheme = 'dark' if self.styleHints().colorScheme() == Qt.ColorScheme.Dark else 'light'
+            if new_scheme != self.color_scheme:
+                self.color_scheme = new_scheme
         return QApplication.event(self, event)
 
     def open_pending_files(self, ignore_files = ()):
