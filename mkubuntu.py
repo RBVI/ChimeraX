@@ -300,7 +300,6 @@ UBUNTU_DEPENDENCIES = {
         "libdbus-1-3": "1.12.16",
         "libdrm2": "2.4.101",
         "libegl1": "1.3.1",
-        "libevent": "2.1-7t64",
         "libexpat1": "2.2.9",
         "libffi8": "3.3",
         "libfftw3-single3": "3.3.8",
