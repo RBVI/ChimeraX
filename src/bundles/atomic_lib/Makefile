@@ -6,7 +6,7 @@ include ../Makefile.bundle
 CLEAN_ALWAYS =	src/lib src/include src/data atomic_cpp/*/*.$(OBJ_EXT) \
 		atomic_cpp/atomstruct_cpp/tmpl/*.$(OBJ_EXT)
 
-install: atomic_cpp/pyinstance_cpp/imex.map.h atomic_cpp/element_cpp/imex.h atomic_cpp/atomstruct_cpp/imex.h
+install uv-install: atomic_cpp/pyinstance_cpp/imex.map.h atomic_cpp/element_cpp/imex.h atomic_cpp/atomstruct_cpp/imex.h
 
 atomic_cpp/atomstruct_cpp/imex.h:
 	sed -e 's/LIBNAME/ATOMSTRUCT/' < $(TOP)/prereqs/imex/imex.i > $@ || (rm $@ ; exit 1)

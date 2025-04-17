@@ -17,7 +17,7 @@ MSGPACK_DISTRIBUTION = $(MSGPACK_SOURCE).zip
 CLEAN = $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE) build dist *.egg-info src/__pycache__ src/*/__pycache__
 DISTCLEAN = $(MMTF_CPP_DISTRIBUTION) $(MSGPACK_DISTRIBUTION)
 
-build wheel install install-editable app-install:	$(CSRCS) $(HEADERS)
+build wheel install uv-wheel uv-install install-editable app-install:	$(CSRCS) $(HEADERS)
 
 $(MMTF_CPP_SOURCE): $(MMTF_CPP_DISTRIBUTION)
 	# only need the include files

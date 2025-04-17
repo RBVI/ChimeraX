@@ -738,7 +738,7 @@ class BundleBuilder:
         if not self._is_pure_python():
 
             if sys.platform == "darwin":
-                env = ("Environment :: MacOS X :: Aqua",)
+                env = "Environment :: MacOS X :: Aqua"
                 op_sys = "Operating System :: MacOS :: MacOS X"
             elif sys.platform == "win32":
                 env = "Environment :: Win32 (MS Windows)"

@@ -45,7 +45,7 @@ ifndef WIN32
 	# then you can make -C vdocs by hand if you like
 	$(MAKE) -C vdocs install
 endif
-	$(APP_PYTHON_EXE) clean_app.py
+	$(APP_PYTHON_EXE) utils/clean_app.py
 	$(APP_PYTHON_EXE) -m pip check
 ifeq ($(OS),Darwin)
 	# update Info.plist with data formats provided by bundles
@@ -56,6 +56,12 @@ ifdef FLATPAK_DIST
 	${APP_EXE} --exit --nogui --silent --cmd 'linux flatpak-files edu.ucsf.rbvi.ChimeraX'
 endif
 	@echo 'Finished install at' `date`
+
+uv-install:
+	uv pip install -r pyproject.toml --all-extras
+	$(MAKE) -C prereqs/pips uv-install
+	uv pip install PySide6 shiboken6
+	PYTHON=python $(MAKE) -C src/bundles uv-install
 
 install-rbvi:
 	$(MAKE) PYQT_LICENSE=commercial install
@@ -83,9 +89,13 @@ test src.test: testimports
 	$(MAKE) -C src test
 
 testimports:
-	$(APP_EXE) --exit --nogui --silent cxtestimports.py
+	$(APP_EXE) --exit --nogui --silent utils/cxtestimports.py
 
+ifdef FLATPAK_DIST
+SCRIPT_COVERAGE_ARGS := $(if $(USE_COVERAGE),-c -s -f,)
+else
 SCRIPT_COVERAGE_ARGS := $(if $(USE_COVERAGE),-c -s,)
+endif
 COVERAGE_ARGS := $(if $(USE_COVERAGE),--cov=chimerax --cov-append,)
 SILENT_COVERAGE_ARGS := $(if $(USE_COVERAGE),$(COVERAGE_ARGS) --cov-report=,)
 

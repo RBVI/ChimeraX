@@ -7,7 +7,7 @@ LDFLAGS	+= -Wl,-rpath,'$$ORIGIN/../lib'
 endif
 endif
 ifeq ($(OS),Darwin)
-LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib'
+LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib' -Wl,-headerpad_max_install_names
 endif
 
 ifdef WIN32
@@ -135,9 +135,7 @@ pylint:
 $(PROG): $(OBJS)
 	$(PROG_LINK)
 ifeq ($(OS),Linux)
-ifndef FLATPAK_DIST
 	patchelf --force-rpath --set-rpath '$$ORIGIN/../lib' $(PROG)
-endif
 endif
 ifeq ($(OS),Darwin)
 	# Add RPATH so Python ssl module can find libssl.dylib.

@@ -24,137 +24,137 @@ Home = "https://www.rbvi.ucsf.edu/chimerax/"
 [tool.setuptools.dynamic]
 version = { attr = "src.__version__" }
 
-[chimerax]
+[tool.chimerax]
 min-session-version = 1
 max-session-version = 1
 module-name-override = "medical_toolbar"
 categories = ["Toolbar"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
-[chimerax.package-data]
+[tool.chimerax.package-data]
 "src/icons" = ["*.png"]
 
 # ----------------- Toolbars -----------------
-[chimerax.toolbar."Medical Image"]
+[tool.chimerax.toolbar."Medical Image"]
 after = "Map"
 before = "Markers:Right Mouse"
 
-[chimerax.toolbar."Medical Image".sections."File"]
+[tool.chimerax.toolbar."Medical Image".sections."File"]
 
-[[chimerax.toolbar."Medical Image".sections."File".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."File".button]]
 name = "open dicom"
 display-name = "Open DICOM"
 icon = "opendicom.png"
 description = "Open DICOM directories"
 
-[[chimerax.toolbar."Medical Image".sections."File".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."File".button]]
 name = "recent"
 link = "ChimeraX-Toolbar:Recent"
 
-[[chimerax.toolbar."Medical Image".sections."File".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."File".button]]
 name = "snapshot"
 link = "ChimeraX-Shortcuts:sx"
 
-[chimerax.toolbar."Medical Image".sections."Style"]
+[tool.chimerax.toolbar."Medical Image".sections."Style"]
 after = "File"
 
-[[chimerax.toolbar."Medical Image".sections."Style".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Style".button]]
 name="plane style"
 link="ChimeraX-Shortcuts:pl"
 
-[[chimerax.toolbar."Medical Image".sections."Style".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Style".button]]
 name="slab style"
 link="ChimeraX-Shortcuts:is"
 
-[[chimerax.toolbar."Medical Image".sections."Style".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Style".button]]
 name="orthoplanes style"
 link="ChimeraX-Shortcuts:o3"
 
-[[chimerax.toolbar."Medical Image".sections."Style".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Style".button]]
 name="full style"
 link="ChimeraX-Shortcuts:pa"
 
-[[chimerax.toolbar."Medical Image".sections."Style".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Style".button]]
 name="outline box"
 link="ChimeraX-Shortcuts:ob"
 
-[chimerax.toolbar."Medical Image".sections."Color"]
+[tool.chimerax.toolbar."Medical Image".sections."Color"]
 after = "Style"
 
-[[chimerax.toolbar."Medical Image".sections."Color".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Color".button]]
 name="airways"
 link="ChimeraX-Shortcuts:aw"
 
-[[chimerax.toolbar."Medical Image".sections."Color".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Color".button]]
 name="chest"
 link="ChimeraX-Shortcuts:ch"
 
-[[chimerax.toolbar."Medical Image".sections."Color".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Color".button]]
 name="brain"
 link="ChimeraX-Shortcuts:bc"
 
-[[chimerax.toolbar."Medical Image".sections."Color".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Color".button]]
 name="default thresholds"
 link="ChimeraX-Shortcuts:dc"
 
-[chimerax.toolbar."Medical Image".sections."Graphics"]
+[tool.chimerax.toolbar."Medical Image".sections."Graphics"]
 after = "Color"
 
-[[chimerax.toolbar."Medical Image".sections."Graphics".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Graphics".button]]
 name="orient"
 link="ChimeraX-Shortcuts:dv"
 
-[[chimerax.toolbar."Medical Image".sections."Graphics".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Graphics".button]]
 name="step 1"
 link="ChimeraX-Shortcuts:s1"
 
-[[chimerax.toolbar."Medical Image".sections."Graphics".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Graphics".button]]
 name="step 2"
 link="ChimeraX-Shortcuts:s2"
 
-[chimerax.toolbar."Medical Image".sections."Rendering Modes"]
+[tool.chimerax.toolbar."Medical Image".sections."Rendering Modes"]
 after = "Graphics"
 
-[[chimerax.toolbar."Medical Image".sections."Rendering Modes".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Rendering Modes".button]]
 name="xyz slices"
 link="ChimeraX-Shortcuts:zs"
 
-[[chimerax.toolbar."Medical Image".sections."Rendering Modes".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Rendering Modes".button]]
 name="perpendicular slices"
 link="ChimeraX-Shortcuts:ps"
 
-[[chimerax.toolbar."Medical Image".sections."Rendering Modes".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Rendering Modes".button]]
 name="raycasting"
 link="ChimeraX-Shortcuts:rs"
 
-[chimerax.toolbar."Medical Image".sections."Mouse Mode"]
+[tool.chimerax.toolbar."Medical Image".sections."Mouse Mode"]
 after = "Rendering Modes"
 # Mouse modes -- these cannot currently be linked
-[[chimerax.toolbar."Medical Image".sections."Mouse Mode".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Mouse Mode".button]]
 name = "mm1"
 mouse-mode = "crop volume"
 display-name = "Crop"
 description = "Crop volume data dragging any face of box outline"
 
-[[chimerax.toolbar."Medical Image".sections."Mouse Mode".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Mouse Mode".button]]
 name = "mm2"
 mouse-mode = "move planes"
 display-name = "Move planes"
 description = "Move plane or slab along its axis to show a different section"
 
-[[chimerax.toolbar."Medical Image".sections."Mouse Mode".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Mouse Mode".button]]
 name = "mm3"
 mouse-mode = "rotate slab"
 display-name = "Tilt slab"
 description="Tilt image planes, hold shift key to translate"
 
-[[chimerax.toolbar."Medical Image".sections."Mouse Mode".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Mouse Mode".button]]
 name = "mm4"
 mouse-mode = "tape measure"
 display-name = "Tape"
 description = "Measure distance between two points"
 
-[[chimerax.toolbar."Medical Image".sections."Mouse Mode".button]]
+[[tool.chimerax.toolbar."Medical Image".sections."Mouse Mode".button]]
 name = "mm5"
 mouse-mode = "windowing"
 display-name = "Windowing"

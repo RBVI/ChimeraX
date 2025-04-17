@@ -1,0 +1,55 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=1.4.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-StructMeasure"
+version = "1.2.1"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Structure measurement user interface"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-AxesPlanes ~=2.2",
+  "ChimeraX-DistMonitor ~=1.4",
+  "ChimeraX-Geometry ~=1.0",
+  "ChimeraX-MouseModes ~=1.0",
+  "ChimeraX-UI ~=1.34",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """Structure measurement tool, mouse mode, and context-menu entry"""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+module-name-override = "struct_measure"
+custom-init = true
+categories = ["Structure Analysis"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.package-data]
+"src/" = [
+  "distance.png",
+]
+
+[tool.chimerax.tool.Distances]
+category = "Structure Analysis"
+description = "inter-atomic distances"
+
+[tool.chimerax.tool."Angles/Torsions"]
+category = "Structure Analysis"
+description = "report angle/torsion values"
+
+[tool.chimerax.tool."Axes/Planes/Centroids"]
+category = "Structure Analysis"
+description = "create/analyze axes/planes/centroids"
+
+

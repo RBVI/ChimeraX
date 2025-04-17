@@ -8,7 +8,7 @@ const
     // in the Details tab of the Properties dialog.
     // For example: 14.25.28508.3 -> NeededMajor: 14, NeededMinor: 25
     NeededMajor = 14;
-    NeededMinor = 25;
+    NeededMinor = 42;
     RuntimeKey = 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64';
 
 function ShouldInstallVCRuntime: Boolean;
