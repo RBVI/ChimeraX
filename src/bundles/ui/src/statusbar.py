@@ -59,6 +59,13 @@ class _StatusBarOpenGL:
         else:
             self.background_color = (0.85,0.85,0.85,1.0)
             self.text_color = (0,0,0,255)
+        if self._opengl_context is None:
+            return
+        from chimerax.graphics import remember_current_opengl_context, restore_current_opengl_context
+        cc = remember_current_opengl_context()
+        if self._renderer.make_current():
+            self._renderer.set_background_color(self.background_color)  # pick up color scheme changes
+        restore_current_opengl_context(cc)
 
     def show(self, show):
         w = self.widget
@@ -121,7 +128,7 @@ class _StatusBarOpenGL:
             return False
         lw, lh = w.width(), w.height()
         r.initialize_opengl(lw, lh)
-        #r.set_background_color(self.background_color)
+        r.set_background_color(self.background_color)
         return True
 
     # TODO: Handle expose events on status bar windows so resizes show label.
@@ -154,7 +161,6 @@ class _StatusBarOpenGL:
             msg = msg[:253] + '...'
 
         r.update_viewport()	# Need this when window resized.
-        r.set_background_color(self.background_color)  # pick up color scheme changes
         r.draw_background()
         self._draw_text(msg, color, secondary)
         r.swap_buffers()
