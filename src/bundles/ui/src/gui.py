@@ -115,6 +115,9 @@ class UI(QApplication):
         from Qt.QtCore import QLocale
         QLocale.setDefault(QLocale.c())
 
+        redirect_stdio_to_logger(self.session.logger)
+        self.redirect_qt_messages()
+
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
         import sys
@@ -131,13 +134,13 @@ class UI(QApplication):
             self.styleHints().colorSchemeChanged.connect(self._update_color_scheme)
         elif color_scheme == 'dark':
             self.styleHints().setColorScheme(Qt.ColorScheme.Dark)
+            if self.styleHints().colorScheme() != Qt.ColorScheme.Dark:
+                self.session.logger.warning("Unable to set dark mode")
+                color_scheme = 'light'
         else:
             self.styleHints().setColorScheme(Qt.ColorScheme.Light)
         self.color_scheme = color_scheme
         set_default_color_scheme(self.color_scheme)
-
-        redirect_stdio_to_logger(self.session.logger)
-        self.redirect_qt_messages()
 
         self._keystroke_sinks = []
         self._key_callbacks = {}	# Maps Qt key number to callback func(session, key_num).
