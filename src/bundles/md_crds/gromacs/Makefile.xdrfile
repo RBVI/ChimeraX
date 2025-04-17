@@ -47,8 +47,8 @@ ifneq ($(filter $(MSYSTEM),MSYS MINGW64),)
 	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) ./configure --build=x86_64-w64-mingw32 --enable-shared --with-pic
 else
 ifeq ($(OSARCH),LinuxArm64)
-	cd $(XDRFILE_LIB_SOURCE)/config ; rm config.guess ; wget -O config.guess 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD'
-	cd $(XDRFILE_LIB_SOURCE)/config ; rm config.sub ; wget -O config.sub 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=HEAD'
+	cd $(XDRFILE_LIB_SOURCE)/config ; rm config.guess ; cp $(TOP)/utils/build/autotools/config.guess .
+	cd $(XDRFILE_LIB_SOURCE)/config ; rm config.sub ; cp $(TOP)/utils/build/autotools/config.sub .
 endif
 	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) ./configure --enable-shared --with-pic
 endif
