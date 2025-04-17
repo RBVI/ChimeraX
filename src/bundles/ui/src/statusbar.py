@@ -31,12 +31,7 @@ class _StatusBarOpenGL:
         self._window = None
         self._drawing = None
         self._drawing2 = None	# Secondary status
-        if session.ui.dark_mode():
-            self.background_color = (0.125,0.125,0.125,1.0)
-            self.text_color = (255,255,255,255)
-        else:
-            self.background_color = (0.85,0.85,0.85,1.0)
-            self.text_color = (0,0,0,255)
+        self.set_colors()
         self.font = 'Arial'
         self.pad_vert = 0.2 		# Fraction of status bar height
         self.pad_horz = 0.3 		# Fraction of status bar height (not width)
@@ -56,6 +51,14 @@ class _StatusBarOpenGL:
             if v is not None:
                 v.delete()
                 setattr(self, attr, None)
+
+    def set_colors(self):
+        if self.session.ui.dark_mode():
+            self.background_color = (0.125,0.125,0.125,1.0)
+            self.text_color = (255,255,255,255)
+        else:
+            self.background_color = (0.85,0.85,0.85,1.0)
+            self.text_color = (0,0,0,255)
 
     def show(self, show):
         w = self.widget
@@ -118,7 +121,7 @@ class _StatusBarOpenGL:
             return False
         lw, lh = w.width(), w.height()
         r.initialize_opengl(lw, lh)
-        r.set_background_color(self.background_color)
+        #r.set_background_color(self.background_color)
         return True
 
     # TODO: Handle expose events on status bar windows so resizes show label.
@@ -151,6 +154,7 @@ class _StatusBarOpenGL:
             msg = msg[:253] + '...'
 
         r.update_viewport()	# Need this when window resized.
+        r.set_background_color(self.background_color)  # pick up color scheme changes
         r.draw_background()
         self._draw_text(msg, color, secondary)
         r.swap_buffers()

@@ -128,6 +128,7 @@ class UI(QApplication):
                 color_scheme = 'dark'
             else:
                 color_scheme = 'light'
+            self.styleHints().colorSchemeChanged.connect(self._update_color_scheme)
         elif color_scheme == 'dark':
             self.styleHints().setColorScheme(Qt.ColorScheme.Dark)
         else:
@@ -147,12 +148,33 @@ class UI(QApplication):
         self.triggers.add_trigger('ready')
         self.triggers.add_trigger('tool window show')
         self.triggers.add_trigger('tool window hide')
+        self.triggers.add_trigger('color scheme changed')
 
         # Work around Mac crash when adding or removing a screen. ChimeraX ticket #15277.
         from sys import platform
         if platform == 'darwin':
             self.screenAdded.connect(self._screen_added)
             self.screenRemoved.connect(self._screen_removed)
+
+    def _update_color_scheme(self):
+        from Qt.QtCore import Qt
+        from Qt.QtCore import QEvent
+        new_scheme = 'dark' if self.styleHints().colorScheme() == Qt.ColorScheme.Dark else 'light'
+        if new_scheme != self.color_scheme:
+            self.color_scheme = new_scheme
+            set_default_color_scheme(self.color_scheme)
+            sbar = self.main_window._status_bar
+            sbar.set_colors()
+            msg = f"Desktop color scheme is {new_scheme}"
+            self.session.logger.status(msg)
+            print(msg)  # cause log to redraw with new color scheme
+            if hasattr(self.main_window, 'fh'):
+                fh = self.main_window.fh
+                background = scheme_color('new_user_canvas')
+                fh.bg_color = background
+                # HTML widgets need to wait
+                self.thread_safe(fh.update_html, post_event=True)
+            self.thread_safe(self.triggers.activate_trigger, 'color scheme changed', None, post_event=True)
 
     def _screen_added(self):
         self._block_redraw_during_screen_change()
@@ -303,11 +325,6 @@ class UI(QApplication):
                 except Exception as e:
                     self.session.logger.warning('Failed opening file %s:\n%s' % (event.file(), str(e)))
             return True
-        if hasattr(self, 'fixed_color_scheme') and self.fixed_color_scheme is None and event.type() == QEvent.ApplicationPaletteChange:
-            from Qt.QtCore import Qt
-            new_scheme = 'dark' if self.styleHints().colorScheme() == Qt.ColorScheme.Dark else 'light'
-            if new_scheme != self.color_scheme:
-                self.color_scheme = new_scheme
         return QApplication.event(self, event)
 
     def open_pending_files(self, ignore_files = ()):
@@ -448,11 +465,11 @@ class UI(QApplication):
         self.closeAllWindows()
         QApplication.quit()
 
-    def thread_safe(self, func, *args, **kw):
+    def thread_safe(self, func, *args, post_event=False, **kw):
         """Supported API.  Call function 'func' in a thread-safe manner
         """
         import threading
-        if threading.main_thread() == threading.current_thread():
+        if not post_event and threading.main_thread() == threading.current_thread():
             func(*args, **kw)
             return
         from Qt.QtCore import QEvent
@@ -543,8 +560,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         foreground = scheme_color('new_user_canvas_text')
         link = scheme_color('LinkText')
         new_user_text = [
-            "<html>",
-            "<body>",
             "<style>",
             "body {",
             f"    background-color: {background};"
@@ -572,13 +587,11 @@ class MainWindow(QMainWindow, PlainTextLog):
             "</style>",
             '<p class="banner-text">ChimeraX</p>',
             '<p class="help-link"><a href="cxcmd:help help:quickstart">Get started</a><p>',
-            "</body>",
-            "</html>"
         ]
         from Qt import qt_have_web_engine
         if qt_have_web_engine():
             from .file_history import FileHistory
-            fh = FileHistory(session, self.rapid_access, bg_color=background, thumbnail_size=(128,128),
+            self.fh = FileHistory(session, self.rapid_access, bg_color=background, thumbnail_size=(128,128),
                              filename_size=15, no_hist_text="\n".join(new_user_text))
         self._stack.addWidget(self.rapid_access)
         self._stack.setCurrentWidget(g.widget)
