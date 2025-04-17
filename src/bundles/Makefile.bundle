@@ -72,7 +72,7 @@ PYSRCS = $(wildcard src/*.py)
 .SECONDEXPANSION:
 
 wheel: $$(PYSRCS)
-	if [ $(PYTHON) == $(APP_PYTHON_EXE) && -z "$(APP_PYTHON_EXE)" ]; then \
+	if [ -z "$(APP_PYTHON_EXE)" ]; then \
 		echo "missing ChimeraX application's python"; exit 1; \
 	else \
 		$(RUN_CMD) "devel build . exit true $(RELEASE_ARG) $(DEBUG_ARG) $(BUILD_ARGS)"; \
@@ -87,14 +87,14 @@ uv-wheel: $$(PYSRCS)
 
 # The space means install and app-install are the same
 install app-install: $$(PYSRCS)
-	if [ $(PYTHON) == $(APP_PYTHON_EXE) && -z "$(APP_PYTHON_EXE)" ]; then \
+	if [ -z "$(APP_PYTHON_EXE)" ]; then \
 		echo "missing ChimeraX application's python"; exit 1; \
 	else \
 		$(RUN_CMD) "devel install . user false exit true $(DEBUG_ARG) $(INSTALL_ARGS)"; \
 	fi
 
 install-editable: clean
-	if [ $(PYTHON) == $(APP_PYTHON_EXE) && -z "$(APP_PYTHON_EXE)" ]; then \
+	if [ -z "$(APP_PYTHON_EXE)" ]; then \
 		echo "missing ChimeraX application's python"; exit 1; \
 	else \
 		$(RUN_CMD) "devel install . user false editable true exit true $(DEBUG_ARG) $(INSTALL_ARGS)"; \
