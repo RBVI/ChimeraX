@@ -2040,7 +2040,7 @@ ExtractMolecule::parse_struct_conf()
         auto psi = poly.find(entity_id);
         if (psi == poly.end()) {
             logger::warning(_logger, "Invalid residue range for struct_conf \"",
-                            id, "\": invalid entity \"", entity_id,
+                            id, "\": residue in non-polymer entity \"", entity_id,
                             "\", on line ", line_number());
             continue;
         }
@@ -2193,7 +2193,7 @@ ExtractMolecule::parse_struct_sheet_range()
         auto psi = poly.find(entity_id);
         if (psi == poly.end()) {
             logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
-                            sheet_id, ' ', id, "\": invalid entity \"",
+                            sheet_id, ' ', id, "\": residue in non-polymer entity \"",
                             entity_id, "\", on line ", line_number());
             continue;
         }
