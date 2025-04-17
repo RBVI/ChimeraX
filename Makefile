@@ -57,7 +57,7 @@ ifdef FLATPAK_DIST
 endif
 	@echo 'Finished install at' `date`
 
-uv-install:
+uv-install: build-dirs
 	uv pip install -r pyproject.toml --all-extras
 	$(MAKE) -C prereqs/pips uv-install
 	uv pip install PySide6 shiboken6
