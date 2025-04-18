@@ -46,7 +46,7 @@ class InstallBoltz:
         self.finished_callback = None
         self.success = None
 
-        if _create_boltz_virtual_environment(directory):
+        if self._create_boltz_virtual_environment(directory):
             self._pip_install_boltz(directory)
         else:
             success = False
@@ -127,9 +127,9 @@ class InstallBoltz:
     #
     def _download_model_weights_and_ccd_database(self):
         from os.path import join, expanduser, exists
-        venv_python_exe = join(directory, 'bin', 'python')
+        venv_python_exe = join(self._directory, 'bin', 'python')
 
-        self._data_path = expanduser('~/.boltz')
+        self._data_path = data_path = expanduser('~/.boltz')
         if not exists(data_path):
             from os import mkdir
             mkdir(data_path)
@@ -152,11 +152,11 @@ class InstallBoltz:
         logger.info(' '.join(command))
 
         # Echo subprocess output to the ChimeraX Log.
-        log_subprocess_output(session, p, self._finished_download_weights_and_ccd)
+        log_subprocess_output(self._session, p, self._finished_download_weights_and_ccd)
 
     # ------------------------------------------------------------------------------
     #
-    def _finished_download_weights_and_ccd(session, popen, data_path):
+    def _finished_download_weights_and_ccd(self, popen):
         # Report success of failure downloading boltz model parameters and ccd
         popen.wait()  # Set returncode
         logger = self._session.logger
@@ -172,7 +172,7 @@ class InstallBoltz:
     # ------------------------------------------------------------------------------
     #
     def _make_ccd_atom_counts_file(self):
-        from os.path import join
+        from os.path import join, dirname
         venv_python_exe = join(self._directory, 'bin', 'python')
         make_counts_path = join(dirname(__file__), 'make_ccd_atom_counts_file.py')
         command = [venv_python_exe, make_counts_path]
@@ -185,7 +185,7 @@ class InstallBoltz:
             logger.info(f'Successfully created CCD atom counts file.')
         else:
             cmd = ' '.join(command)
-            logger.error('Creating CCD atom counts file failed.')
+            logger.error('Creating CCD atom counts file failed.'
                          f'\nCommand: {cmd}'
                          f'\nstdout: {p.stdout}'
                          f'\nstderr: {p.stderr}')
@@ -226,7 +226,7 @@ class log_subprocess_output:
             line = self._queue.get()
             self._session.logger.info(line.decode('utf-8'))
         if not self._thread.is_alive():
-            self._finished_callback()
+            self._finished_callback(self._popen)
             return 'delete handler'
             
 # ------------------------------------------------------------------------------

@@ -667,7 +667,9 @@ class BoltzPredictionGUI(ToolInstance):
         answer = ask(self.session, message, title = 'Install Boltz', help_url = 'help:user/tools/boltz.html')
         if answer == 'yes':
             self._show_installing_boltz()
-            bi = run(self.session, 'boltz install')
+            from chimerax.core.commands import run, quote_path_if_necessary
+            bdir = quote_path_if_necessary(boltz_dir)
+            bi = run(self.session, f'boltz install {bdir}')
             if bi.success is not None:
                 self._boltz_install_finished(bi.success)
             else:
@@ -680,6 +682,7 @@ class BoltzPredictionGUI(ToolInstance):
         '''Replace "Install Boltz" button with text "Installing Boltz..."'''
         layout = self._button_row.layout()
         layout.removeWidget(self._install_boltz_button)
+        self._install_boltz_button.setVisible(False)
         from Qt.QtWidgets import QLabel
         self._installing_label = QLabel('Installing Boltz...')
         layout.insertWidget(0, self._installing_label)
@@ -689,8 +692,11 @@ class BoltzPredictionGUI(ToolInstance):
     def _boltz_install_finished(self, success):
         layout = self._button_row.layout()
         layout.removeWidget(self._installing_label)
+        self._installing_label.deleteLater()
+        self._installing_label = None
         if not success:
             layout.insertWidget(0, self._install_boltz_button)
+            self._install_boltz_button.setVisible(True)
         self._installing_boltz = False
 
     # ---------------------------------------------------------------------------
