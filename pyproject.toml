@@ -98,7 +98,7 @@ wheel = [
   "pydicom==2.4.4",
   "pynrrd==1.0.0",
   "pyopenxr==1.1.4501",
-  "tcia_utils==1.5.1",
+  "tcia_utils==2.4.20",
   "python-dateutil==2.9.0.post0",
   "requests==2.32.3",
   "scipy==1.14.0",
