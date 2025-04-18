@@ -1040,7 +1040,9 @@ class _CompiledCode:
         if sys.platform == "win32":
             # Link library directory for Python on Windows
             compiler.add_library_dir(os.path.join(sys.exec_prefix, "libs"))
-            compiler.add_library_dir(sysconfig.get_config_var("LIBDIR"))
+            py_libdir = sysconfig.get_config_var("LIBDIR")
+            if py_libdir:
+                compiler.add_library_dir(py_libdir)
         if not static:
             macros.append(("DYNAMIC_LIBRARY", 1))
         # We need to manually separate out C from C++ code here, since clang
