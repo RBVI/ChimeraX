@@ -17,6 +17,11 @@ _arg_map = {
     "CONFINCLUDEDIR": [""],
     "INCLUDEPY": [""],
     "INCLUDEDIR": [""],
+    # Remove the LIBDIR variable from ChimeraX's Python on macOS/Linux since
+    # it's going to point to the system Python framework directory (on Mac)
+    # or the build/lib directory (Linux) and in either case not the
+    # internal Python library directory
+    "LIBDIR": [""]
 }
 
 def clean_make_line(line, build_path):
