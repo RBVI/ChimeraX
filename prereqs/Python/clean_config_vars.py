@@ -1,5 +1,7 @@
+import sys
+
 def clean_makefile():
-    import sys, os, sysconfig
+    import os, sysconfig
     build_path = sys.argv[1]
     makefile = sysconfig.get_makefile_filename()
     save_name = makefile + ".save"
@@ -24,6 +26,12 @@ _arg_map = {
     "LIBDIR": [""]
 }
 
+if sys.platform == "darwin":
+    # Remove the LIBDIR variable from ChimeraX's Python on macOS since
+    # it points to the system Python framework directory and not the
+    # internal lib directory
+    _arg_map["LIBDIR"] = [""]
+
 def clean_make_line(line, build_path):
     key, value = line.split('=', 1)
     try:
@@ -46,7 +54,7 @@ def keep(part, flag_prefixes):
 
 
 def clean_sysconfigdata():
-    import sys, sysconfig, os.path, pprint
+    import sysconfig, os.path, pprint
     build_path = sys.argv[1]
     libdir = os.path.dirname(sysconfig.__file__)
     configdata = sysconfig._get_sysconfigdata_name()
