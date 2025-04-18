@@ -781,7 +781,7 @@ class Bundle:
         if type_ == "wheel":
             output = glob.glob(os.path.join(self.path, "dist", "*.whl"))
         elif type_ == "sdist":
-            if sys.platform == "win32":
+            if sys.platform == "win32" and not os.getenv("MSYSTEM"):
                 output = glob.glob(os.path.join(self.path, "dist", "*.zip"))
             else:
                 output = glob.glob(os.path.join(self.path, "dist", "*.tar.gz"))
