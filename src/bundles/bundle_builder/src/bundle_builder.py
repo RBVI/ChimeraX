@@ -4,6 +4,7 @@
 # setuptools patch distutils, and we want Cython to win
 import setuptools
 import sys
+import sysconfig
 import setuptools._distutils as distutils
 from Cython.Build import cythonize
 from packaging.version import Version
@@ -1038,6 +1039,7 @@ class _CompiledCode:
         if sys.platform == "win32":
             # Link library directory for Python on Windows
             compiler.add_library_dir(os.path.join(sys.exec_prefix, "libs"))
+            compiler.add_library_dir(sysconfig.get_config_var("LIBDIR"))
         if not static:
             macros.append(("DYNAMIC_LIBRARY", 1))
         # We need to manually separate out C from C++ code here, since clang
