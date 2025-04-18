@@ -8,6 +8,9 @@ endif
 endif
 ifeq ($(OS),Darwin)
 LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib' -Wl,-headerpad_max_install_names
+ifdef UV_BUILD
+LDFLAGS += -L$(PYTHON_LIBRARY_DIR) -Wl,-rpath,'$(UV_PYTHON_DIR)/lib'
+endif
 endif
 
 ifdef WIN32
