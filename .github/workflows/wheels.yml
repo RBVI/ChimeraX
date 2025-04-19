@@ -1,0 +1,82 @@
+name: Build Wheels
+on:
+  workflow_call:
+    inputs:
+      release_type:
+        type: string
+        required: true
+      branch:
+        type: string
+        required: false
+    secrets:
+      PREBUILT_CACHE_SECRET:
+        required: true
+      MAC_CERT_BASE64:
+        required: true
+      MAC_CERT_P12_PASSWD:
+        required: true
+      MAC_PROVISION_PROFILE_BASE64:
+        required: true
+      MAC_KEYCHAIN_PASSWORD:
+        required: true
+      MAC_NOTARIZATION_TEAM_ID:
+        required: true
+      MAC_NOTARIZATION_APP_PSWD:
+        required: true
+      MAC_NOTARIZATION_PROVIDER:
+        required: true
+      MAC_NOTARIZATION_EMAIL:
+        required: true
+
+env:
+  MACOSX_DEPLOYMENT_TARGET: 12
+
+jobs:
+  build-arm-macos:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || 'develop' }}
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - run: ${PWD}/utils/set_up_macos.sh
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
+        with:
+          platform: macos
+          architecture: arm64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Install the 3DConnexion Framework
+        run: |
+          hdiutil attach 3DxWareMac_v10-8-7_r3836.dmg -nobrowse -noverify
+          sudo installer -pkg /Volumes/3Dconnexion\ Software/Install\ 3Dconnexion\ software.pkg -target /
+          hdiutil detach /Volumes/3Dconnexion\ Software
+      - name: Set up uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          uv venv -p 3.11.4
+          source .venv/bin/activate
+      - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(sysctl -n hw.logicalcpu) uv-install
+      - name: Install Pytest
+        run: USE_COVERAGE=1 make pytest-install
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        continue-on-error: true
+        id: test-exes
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        continue-on-error: true
+        id: test-wheel
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        continue-on-error: true
+        id: test-distribution
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage
