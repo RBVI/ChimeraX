@@ -76,3 +76,4 @@ jobs:
     with:
       branch: develop
       release_type: production
+    secrets: inherit
