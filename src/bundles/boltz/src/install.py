@@ -58,8 +58,8 @@ class InstallBoltz:
         from chimerax.core.python_utils import chimerax_python_executable
         python_exe = chimerax_python_executable()
         command = [python_exe, '-m', 'venv', directory]
-        from subprocess import run
-        p = run(command, capture_output = True)
+        from subprocess import run, CREATE_NO_WINDOW
+        p = run(command, capture_output = True, creationflags = CREATE_NO_WINDOW)
 
         # Report success or failure of creating virtual environment.
         logger = self._session.logger
@@ -82,17 +82,20 @@ class InstallBoltz:
         logger.info('Now installing Boltz and required packages from PyPi.  This may take tens of of minutes'
                     ' since Boltz uses many other packages totaling about 1 Gbyte of disk'
                     ' space including torch, scipy, rdkit, llvmlite, sympy, pandas, numpy, wandb, numba...')
-        from os.path import join
-        venv_python_exe = join(directory, 'bin', 'python')
-        command = [venv_python_exe, '-m', 'pip', 'install', 'boltz']
-        from subprocess import Popen, PIPE, STDOUT
-        p = Popen(command, stdout = PIPE, stderr = STDOUT)
-
+        command = [self._venv_python_executable(), '-m', 'pip', 'install', 'boltz']
         logger.info(' '.join(command))
+
+        from subprocess import Popen, PIPE, STDOUT, CREATE_NO_WINDOW
+        p = Popen(command, stdout = PIPE, stderr = STDOUT, creationflags = CREATE_NO_WINDOW)
 
         # Echo subprocess output to the ChimeraX Log.
         log_subprocess_output(self._session, p, self._finished_pip_install)
-        
+    
+    # ------------------------------------------------------------------------------
+    #
+    def _venv_python_executable(self):
+        return find_executable(self._directory, 'python')
+    
     # ------------------------------------------------------------------------------
     #
     def _finished_pip_install(self, popen):
@@ -126,28 +129,24 @@ class InstallBoltz:
     # ------------------------------------------------------------------------------
     #
     def _download_model_weights_and_ccd_database(self):
-        from os.path import join, expanduser, exists
-        venv_python_exe = join(self._directory, 'bin', 'python')
-
-        self._data_path = data_path = expanduser('~/.boltz')
-        if not exists(data_path):
-            from os import mkdir
-            mkdir(data_path)
 
         logger = self._session.logger
-        logger.info('Downloading Boltz model parameters (3.3 GB) and chemical component database (330 MB)' +
-                    f' to {data_path}')
+        logger.info('Downloading Boltz model parameters (3.3 GB) and chemical component database (330 MB) to ~/.boltz')
 
-        python_call = f'from boltz.main import download ; from pathlib import Path ; download(Path("{data_path}"))'
-        command = [venv_python_exe, '-c', python_call]
-        env = {}
+        from os.path import join, dirname
+        download_path = join(dirname(__file__), 'download_weights_and_ccd.py')
+        command = [self._venv_python_executable(), download_path]
         from sys import platform
         if platform == 'darwin':
             # On Mac the huggingface.co URLs get SSL certificate errors unless we setup certifi root certificates.
             import certifi
-            env["SSL_CERT_FILE"] = certifi.where()
-        from subprocess import Popen, PIPE, STDOUT
-        p = Popen(command, stdout = PIPE, stderr = STDOUT, env = env)
+            env = {"SSL_CERT_FILE": certifi.where()}
+        else:
+            env = None
+
+        from subprocess import Popen, PIPE, STDOUT, CREATE_NO_WINDOW
+        p = Popen(command, stdout = PIPE, stderr = STDOUT, env = env,
+                  creationflags = CREATE_NO_WINDOW)
 
         logger.info(' '.join(command))
 
@@ -162,10 +161,10 @@ class InstallBoltz:
         logger = self._session.logger
         success = (popen.returncode == 0)
         if success:
-            logger.info(f'Boltz model parameters and CCD database are in {self._data_path}')
+            logger.info('Boltz model parameters and CCD database are in ~/.boltz')
             success = self._make_ccd_atom_counts_file()
         else:
-            logger.error(f'Downloading Boltz model parameters and CCD database to {self._data_path} failed.')
+            logger.error('Downloading Boltz model parameters and CCD database to ~/.boltz failed.')
 
         self._finished(success)
 
@@ -173,11 +172,10 @@ class InstallBoltz:
     #
     def _make_ccd_atom_counts_file(self):
         from os.path import join, dirname
-        venv_python_exe = join(self._directory, 'bin', 'python')
         make_counts_path = join(dirname(__file__), 'make_ccd_atom_counts_file.py')
-        command = [venv_python_exe, make_counts_path]
-        from subprocess import run
-        p = run(command, capture_output = True)
+        command = [self._venv_python_executable(), make_counts_path]
+        from subprocess import run, CREATE_NO_WINDOW
+        p = run(command, capture_output = True, creationflags = CREATE_NO_WINDOW)
 
         # Report success or failure of creating virtual environment.
         logger = self._session.logger
@@ -231,6 +229,17 @@ class log_subprocess_output:
             
 # ------------------------------------------------------------------------------
 #
+def find_executable(venv_directory, exe_name):
+    from os.path import join
+    from sys import platform
+    if platform == 'win32':
+        exe = join(venv_directory, 'Scripts', exe_name + '.exe')
+    else:
+        exe = join(venv_directory, 'bin', exe_name)
+    return exe
+            
+# ------------------------------------------------------------------------------
+#
 def register_boltz_install_command(logger):
     from chimerax.core.commands import CmdDesc, register, SaveFolderNameArg, BoolArg
     desc = CmdDesc(
@@ -239,4 +248,3 @@ def register_boltz_install_command(logger):
         synopsis = 'Install Boltz from PyPi in a virtual environment'
     )
     register('boltz install', desc, boltz_install, logger=logger)
-

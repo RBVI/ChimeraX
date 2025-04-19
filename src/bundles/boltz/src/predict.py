@@ -290,26 +290,20 @@ class BoltzRun:
 
         self._log_prediction_info()
 
-        import sys
-        if sys.platform == 'win32':
-            # Prevent console window from showing.
-            from subprocess import STARTUPINFO, STARTF_USESHOWWINDOW
-            startupinfo = STARTUPINFO()
-            startupinfo.dwFlags |= STARTF_USESHOWWINDOW
-        else:
-            startupinfo = None
-
         boltz_venv = self._settings.boltz_install_location
-        from os.path import join
-        boltz_exe = join(boltz_venv, 'bin', 'boltz')
+        from .install import find_executable
+        boltz_exe = find_executable(boltz_venv, 'boltz')
+
         command = [boltz_exe, 'predict',
                    self._yaml_path,
                    '--write_full_pae',
                    ]
         if self.use_msa_server:
             command.append('--use_msa_server')
+        from sys import platform
+        if platform == 'win32':
+            command.extend(['--accelerator', 'cpu'])  # TODO: Allow Nvidia/CUDA on windows.
 
-        env = {}
         from sys import platform
         if platform == 'darwin':
             # On Mac PyTorch uses MPS (metal performance shaders) but not all functions are implemented
@@ -318,18 +312,21 @@ class BoltzRun:
             # On Mac the huggingface.co URLs get SSL certificate errors unless we setup
             # certifi root certificates.
             import certifi
-            env["SSL_CERT_FILE"] = certifi.where()
+            env = {"SSL_CERT_FILE": certifi.where()}
+        else:
+            env = None
 
         # Save command to a file
+        from os.path import join
         command_file = join(self._results_directory, 'command')
         self._command = cmd = ' '.join(command)
         with open(command_file, 'w') as f:
             f.write(cmd)
 
-        from subprocess import Popen, PIPE
+        from subprocess import Popen, PIPE, CREATE_NO_WINDOW
         # To continue to run even if ChimeraX exits use start_new_session=True
         p = Popen(command, cwd = self._results_directory,
-                  stdout = PIPE, stderr = PIPE, startupinfo=startupinfo, env=env)
+                  stdout = PIPE, stderr = PIPE, creationflags = CREATE_NO_WINDOW, env=env)
         self._process = p
         from time import time
         self._start_time = time()

@@ -447,8 +447,9 @@ class BoltzPredictionGUI(ToolInstance):
         from .settings import _boltz_settings
         settings = _boltz_settings(self.session)
         boltz_dir = settings.boltz_install_location
-        from os.path import join, isdir, isfile
-        boltz_exe = join(boltz_dir, 'bin', 'boltz')
+        from .install import find_executable
+        boltz_exe = find_executable(boltz_dir, 'boltz')
+        from os.path import isdir, isfile
         return not boltz_dir or not isdir(boltz_dir) or not isfile(boltz_exe)
 
     # ---------------------------------------------------------------------------
