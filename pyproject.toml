@@ -102,7 +102,7 @@ wheel = [
   "python-dateutil==2.9.0.post0",
   "requests==2.32.3",
   "scipy==1.14.0",
-  "six==1.16.0",
+  "six==1.17.0",
   "sortedcontainers==2.4.0",
   "tables==3.10.2",
   "tifffile==2025.3.13",
