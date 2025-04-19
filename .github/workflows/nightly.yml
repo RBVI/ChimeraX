@@ -8,6 +8,7 @@ jobs:
   build-rocky8-docker:
     name: Build ChimeraX for Rocky 8
     strategy:
+      fail-fast: false
       matrix:
         include: 
 #          - branch: release/v1.10
@@ -25,6 +26,7 @@ jobs:
     name: Build ChimeraX for Rocky 9
     needs: [build-rocky8-docker]
     strategy:
+      fail-fast: false
       matrix:
         include: 
 #          - branch: release/v1.10
@@ -42,6 +44,7 @@ jobs:
     name: Build ChimeraX for Ubuntu
     needs: [build-rocky8-docker]
     strategy:
+      fail-fast: false
       matrix:
         include:
           #          - branch: release/v1.10
@@ -59,6 +62,7 @@ jobs:
     name: Build ChimeraX FlatPak
     needs: [build-rocky8-docker]
     strategy:
+      fail-fast: false
       matrix:
         include:
           - branch: develop
@@ -73,6 +77,7 @@ jobs:
   build-flatpak-arm:
     name: Build ARM ChimeraX FlatPak
     strategy:
+      fail-fast: false
       matrix:
         include: 
 #          - branch: release/v1.10
@@ -89,6 +94,7 @@ jobs:
   build-arm-macos:
     name: Build ChimeraX for arm64 macOS
     strategy:
+      fail-fast: false
       matrix:
         include: 
 #          - branch: release/v1.10
@@ -105,6 +111,7 @@ jobs:
   build-intel-macos:
     name: Build ChimeraX for Intel macOS
     strategy:
+      fail-fast: false
       matrix:
         include: 
 #          - branch: release/v1.10
@@ -122,6 +129,7 @@ jobs:
     name: Build Universal ChimeraX for macOS
     needs: [build-arm-macos, build-intel-macos]
     strategy:
+      fail-fast: false
       matrix:
         include: 
 #          - branch: release/v1.10
@@ -138,6 +146,7 @@ jobs:
   build-windows:
     name: Build ChimeraX for Windows
     strategy:
+      fail-fast: false
       matrix:
         include: 
 #          - branch: release/v1.10
