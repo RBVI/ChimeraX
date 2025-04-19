@@ -88,7 +88,7 @@ jobs:
       - name: Copy the ChimeraX directory out of the virtual environment
         run: |
           source .venv/bin/activate
-          mkubdir -p build/wheel/
+          mkbdir -p build/wheel/
           cp -r .venv/lib/python3.11/site-packages/chimerax build/wheel/
           cp pyproject.toml build/wheel
           cp utils/build/wheel/make_init.py build/wheel
