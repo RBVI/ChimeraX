@@ -89,7 +89,7 @@ jobs:
           source .venv/bin/activate
           mkdir -p build/wheel/
           mv .venv/lib/python3.11/site-packages/chimerax build/wheel
-          -rm -rf .venv/lib/python3.11/site-packages/chimerax*
+          rm -rf .venv/lib/python3.11/site-packages/chimerax*
           cp pyproject.toml build/wheel
           cp utils/build/wheel/make_init.py build/wheel
           cpub utils/build/wheel/setup.py build/wheel
