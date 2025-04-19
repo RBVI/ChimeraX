@@ -114,7 +114,11 @@ prepare-coverage:
 	cp -r $(APP_PYSITEDIR)/chimerax .
 
 report-coverage:
+ifdef UV_BUILD
+	python -m coverage report -i
+else
 	$(APP_PYTHON_EXE) -m coverage report -i
+endif
 
 pytest-both-exes:
 ifdef UV_BUILD

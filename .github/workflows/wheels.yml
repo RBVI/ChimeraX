@@ -75,7 +75,7 @@ jobs:
         id: test-distribution
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
-        run: make report-coverage
+        run: UV_BUILD=1 make report-coverage
       - name: Copy the ChimeraX directory out of the virtual environment
         run: |
           mkubdir -p build/wheel/
