@@ -62,10 +62,6 @@ jobs:
           uv venv -p 3.11.4
           source .venv/bin/activate
       - run: source .venv/bin/activate && MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(sysctl -n hw.logicalcpu) uv-build
-      - name: Install Pytest
-        run: USE_COVERAGE=1 make pytest-install
-      - name: Set up the repo for coverage reporting
-        run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
         continue-on-error: true
         id: test-exes
