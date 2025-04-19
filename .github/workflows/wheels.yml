@@ -66,15 +66,21 @@ jobs:
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
         continue-on-error: true
         id: test-exes
-        run: USE_COVERAGE=1 make pytest-both-exes
+        run: |
+          source .venv/bin/activate
+          UV_BUILD=1 USE_COVERAGE=1 make pytest-both-exes
       - name: Run wheel tests
         continue-on-error: true
         id: test-wheel
-        run: USE_COVERAGE=1 make pytest-wheel
+        run: |
+          source .venv/bin/activate
+          UV_BUILD=1 USE_COVERAGE=1 make pytest-wheel
       - name: Run distribution tests
         continue-on-error: true
         id: test-distribution
-        run: USE_COVERAGE=1 make pytest-app
+        run: |
+          source .venv/bin/activate
+          UV_BUILD=1 USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: |
           source .venv/bin/activate 
