@@ -122,11 +122,16 @@ endif
 endif
 
 uv-install: $(PROG)
+	cp ChimeraX $(UV_PYTHON_DIR)/bin/
 ifeq ($(OS),Windows)
-	cp ChimeraX $(TOP)/.venv/Scripts/
+	ln -s $(UV_PYTHON_DIR)/bin/ChimeraX $(TOP)/.venv/Scripts/ChimeraX
 else
-	cp ChimeraX $(TOP)/.venv/bin/
+	ln -s $(UV_PYTHON_DIR)/bin/ChimeraX $(TOP)/.venv/bin/ChimeraX
 endif
+
+uv-uninstall:
+	rm $(UV_PYTHON_DIR)/bin/ChimeraX
+	rm $(TOP)/.venv/bin/ChimeraX
 
 clean:
 	rm -f $(PROG) $(OBJS) Info.plist chimerax-icon.icns $(LINUX_ICONS)
