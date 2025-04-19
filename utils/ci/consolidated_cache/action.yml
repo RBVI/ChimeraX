@@ -47,6 +47,7 @@ runs:
           prereqs/Python/python-3.11.4-win-amd64.tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.4
 
+
     - name: Restore cached Python (macOS)
       id: cache-python-macos
       if: ${{ inputs.platform == 'macos' }}
@@ -208,6 +209,21 @@ runs:
         path: |
           src/bundles/looking_glass/holoplaycore-0.1.0.tar.gz
         key: holoplaycore-source-zip-file
+
+    - name: Restore cached spacenavigator
+      id: cache-spacenavigator
+      if: ${{ inputs.platform == 'macos' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          3DxWareMac_v10-8-7_r3836.dmg
+        key: ${{ runner.os }}-spacenavigator
+
+    - name: Fetch spacenavigator
+      shell: bash
+      if: ${{ steps.cache-spacenavigator.outputs.cache-it != 'true' }}
+      run: |
+        curl -O https://download.3dconnexion.com/drivers/mac/10-8-7_81855983/3DxWareMac_v10-8-7_r3836.dmg
 
     - name: Fetch holoplaycore
       shell: bash
