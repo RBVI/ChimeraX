@@ -221,7 +221,7 @@ runs:
 
     - name: Fetch spacenavigator
       shell: bash
-      if: ${{ steps.cache-spacenavigator.outputs.cache-it != 'true' }}
+      if: ${{ steps.cache-spacenavigator.outputs.cache-it != 'true' && inputs.platform == 'macos' }}
       run: |
         curl -O https://download.3dconnexion.com/drivers/mac/10-8-7_81855983/3DxWareMac_v10-8-7_r3836.dmg
 
