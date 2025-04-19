@@ -54,7 +54,7 @@ jobs:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Install the 3DConnexion Framework
         run: |
-          hdiutil attach 3DxWareMac_v10-8-7_r3836.dmg -nobrowse -noverify -quiet
+          hdiutil attach 3DxWareMac_v10-8-7_r3836.dmg -nobrowse -noverify
           sudo installer -pkg /Volumes/3Dconnexion\ Software/Install\ 3Dconnexion\ software.pkg -target /
           hdiutil detach /Volumes/3Dconnexion\ Software
       - uses: Tiryoh/gha-jobid-action@v1
