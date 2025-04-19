@@ -88,8 +88,25 @@ jobs:
         run: |
           source .venv/bin/activate
           mkdir -p build/wheel/
-          cp -r .venv/lib/python3.11/site-packages/chimerax build/wheel/
+          mv .venv/lib/python3.11/site-packages/chimerax build/wheel
+          -rm -rf .venv/lib/python3.11/site-packages/chimerax*
           cp pyproject.toml build/wheel
           cp utils/build/wheel/make_init.py build/wheel
-          cp utils/build/wheel/setup.py build/wheel
-          cd build/wheel && python make_init.py && uv build --wheel
+          cpub utils/build/wheel/setup.py build/wheel
+          cp utils/build/wheel/filter_modules.py build/wheel
+          cp utils/build/wheel/make_init.py build/wheel
+          cd build/wheel
+          python filter_modules.py
+          python make_init.py
+          # TODO: filter_deps.py
+          uv build --wheel
+      - name: Reinstall the wheel we just made
+        continue-on-error: true
+        run: |
+          source .venv/bin/activate
+          uv pip install build/wheel/dist/*.whl
+      - name: Test the wheel again
+        continue-on-error: true
+        run: |
+          source .venv/bin/activate
+          UV_BUILD=1 USE_COVERAGE=1 make pytest-wheel
