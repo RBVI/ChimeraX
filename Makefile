@@ -59,9 +59,11 @@ endif
 
 uv-install: build-dirs
 	uv pip install -r pyproject.toml --all-extras
-	$(MAKE) -C prereqs/pips uv-install
+	UV_BUILD=1 $(MAKE) -C prereqs/pips uv-install
 	uv pip install PySide6 shiboken6
 	PYTHON=python $(MAKE) -C src/bundles uv-install
+	UV_BUILD=1 $(MAKE) -C src/apps/ChimeraX
+	$(MAKE) -C src/apps/ChimeraX uv-install
 
 install-rbvi:
 	$(MAKE) PYQT_LICENSE=commercial install

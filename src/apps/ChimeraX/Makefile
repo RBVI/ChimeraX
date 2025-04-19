@@ -121,6 +121,13 @@ install-plist: mkinfo.py chimerax-icon.icns
 endif
 endif
 
+uv-install: $(PROG)
+ifeq ($(OS),Windows)
+	cp ChimeraX $(TOP)/.venv/Scripts/
+else
+	cp ChimeraX $(TOP)/.venv/bin/
+endif
+
 clean:
 	rm -f $(PROG) $(OBJS) Info.plist chimerax-icon.icns $(LINUX_ICONS)
 ifdef WIN32
