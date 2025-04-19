@@ -32,7 +32,7 @@ env:
   MACOSX_DEPLOYMENT_TARGET: 12
 
 jobs:
-  build-arm-macos:
+  wheels:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -61,7 +61,7 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
           uv venv -p 3.11.4
           source .venv/bin/activate
-      - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(sysctl -n hw.logicalcpu) uv-install
+      - run: source .venv/bin/activate && MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(sysctl -n hw.logicalcpu) uv-install
       - name: Install Pytest
         run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
