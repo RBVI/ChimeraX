@@ -55,6 +55,11 @@ jobs:
           platform: macos
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Install the 3DConnexion Framework
+        run: |
+          hdiutil attach 3DxWareMac_v10-8-7_r3836.dmg -nobrowse -noverify -quiet
+          sudo installer -pkg /Volumes/3Dconnexion\ Software/Install\ 3Dconnexion\ software.pkg -target /
+          hdiutil detach /Volumes/3Dconnexion\ Software
       - uses: Tiryoh/gha-jobid-action@v1
         id: get_job_id
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
