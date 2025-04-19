@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "ChimeraX"
 license = "LGPL-2.1" # WHEEL ONLY
 authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
-version = "0.1.6"
 description = "Analysis and visualization of molecular structures and 3D microscopy"
 classifiers = [
   'Development Status :: 3 - Alpha',
@@ -14,6 +13,7 @@ classifiers = [
   'Programming Language :: Python :: 3.11',
 ]
 requires-python = ">=3.11"
+dynamic = ["version"]
 
 [project.urls]
 Home = "https://www.rbvi.ucsf.edu/chimerax/"
@@ -132,6 +132,50 @@ wheel = [
 ]
 dev = ["line_profiler==4.2.0"]
 test = ["pytest", "pytest-cov", "coverage"]
+
+[tool.setuptools.dynamic]
+version = { attr = "chimerax.core.__version__" }
+
+# TODO: Generate this from bundle TOMLs
+[tool.setuptools.package-data]
+"*" = [
+  "**/lib/**",
+  "**/include/**",
+  "**/*.dylib",
+  "**/*.so",
+  "**/*.lib",
+  "**/*.a",
+  "**/*.png",
+  "**/icons/**",
+  "**/static/**",
+  "**/html/**",
+  "**/dcd/**",
+  "**/bin/**",
+  "**/data/**",
+  "**/fragments/**",
+  "**/nuc-data/**",
+  "**/cluts/**",
+  "**/presets/**",
+  "**/matrices/**",
+]
+"chimerax.add_charge" = ["amber_name.defattr"]
+"chimerax.atom_search" = ["*.pyx"]
+"chimerax.atomic" = ["*.pyx"]
+"chimerax.basic_actions" = ["*.css", "*.html", "*.js"]
+"chimerax.core" = ["colorbrewer.json"]
+"chimerax.dunbrack_rotamer_lib" = ["*.zip"]
+"chimerax.dynameomics_rotamer_lib" = ["*.zip"]
+"chimerax.graphics" = ["*.txt"]
+"chimerax.looking_glass" = ["*.txt"]
+"chimerax.mmcif" = ["*.cpp", "*.cif"]
+"chimerax.registration" = ["registration_form.html"]
+"chimerax.rest_server" = ["server.pem"]
+"chimerax.richardson_rotamer_lib" = ["*.zip"]
+"chimerax.rna_layout" = ["rna_templates_6pj6.cif"]
+"chimerax.swapaa" = ["templates.cif"]
+"chimerax.toolbar" = ["tool.html"]
+"chimerax.ui" = ["about.html", "splash.jpg"]
+"chimerax.viewdockx" = ["*.html", "*.css", "*.js"]
 
 [tool.pyright]
 include = ["src"]

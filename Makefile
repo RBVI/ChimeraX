@@ -57,11 +57,13 @@ ifdef FLATPAK_DIST
 endif
 	@echo 'Finished install at' `date`
 
-uv-install: build-dirs
+uv-build: build-dirs
 	uv pip install -r pyproject.toml --all-extras
 	UV_BUILD=1 $(MAKE) -C prereqs/pips uv-install
 	uv pip install PySide6 shiboken6
 	PYTHON=python $(MAKE) -C src/bundles uv-install
+
+uv-install: build-dirs uv-build
 	UV_BUILD=1 $(MAKE) -e USE_MAC_FRAMEWORKS='' -C src/apps/ChimeraX
 	UV_BUILD=1 $(MAKE) -e USE_MAC_FRAMEWORKS='' -C src/apps/ChimeraX uv-install
 

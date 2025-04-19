@@ -61,7 +61,7 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
           uv venv -p 3.11.4
           source .venv/bin/activate
-      - run: source .venv/bin/activate && MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(sysctl -n hw.logicalcpu) uv-install
+      - run: source .venv/bin/activate && MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(sysctl -n hw.logicalcpu) uv-build
       - name: Install Pytest
         run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
@@ -80,3 +80,11 @@ jobs:
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
+      - name: Copy the ChimeraX directory out of the virtual environment
+        run: |
+          mkubdir -p build/wheel/
+          cp -r .venv/lib/python3.11/site-packages/chimerax build/wheel/
+          cp pyproject.toml build/wheel
+          cp utils/build/wheel/make_init.py build/wheel
+          cp utils/build/wheel/setup.py build/wheel
+          cd build/wheel && python make_init.py && uv build --wheel
