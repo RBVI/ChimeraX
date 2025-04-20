@@ -61,7 +61,7 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
           uv venv -p 3.11.4
           source .venv/bin/activate
-      - run: source .venv/bin/activate && MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(sysctl -n hw.logicalcpu) uv-build
+      - run: source .venv/bin/activate && MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(sysctl -n hw.logicalcpu) uv-install
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
         continue-on-error: true
         id: test-exes
@@ -86,15 +86,19 @@ jobs:
           UV_BUILD=1 make report-coverage
       - name: Copy the ChimeraX directory out of the virtual environment
         run: |
-          source .venv/bin/activate
           mkdir -p build/wheel/
           mv .venv/lib/python3.11/site-packages/chimerax build/wheel
           rm -rf .venv/lib/python3.11/site-packages/chimerax*
+      - name: Copy the wheel build files to build/wheel
+        run: |
           cp pyproject.toml build/wheel
           cp utils/build/wheel/make_init.py build/wheel
           cp utils/build/wheel/setup.py build/wheel
           cp utils/build/wheel/filter_modules.py build/wheel
           cp utils/build/wheel/make_init.py build/wheel
+      - name: Remove UI files and add an __init__.py
+        run: |
+          source .venv/bin/activate
           cd build/wheel
           python filter_modules.py
           python make_init.py
@@ -110,3 +114,4 @@ jobs:
         run: |
           source .venv/bin/activate
           UV_BUILD=1 USE_COVERAGE=1 make pytest-wheel
+      # TODO: - name: Upload the wheel
