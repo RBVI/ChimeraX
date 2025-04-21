@@ -312,13 +312,14 @@ class BoltzRun:
 
         from sys import platform
         if platform == 'darwin':
+            env = {}
             # On Mac PyTorch uses MPS (metal performance shaders) but not all functions are implemented
             # on the GPU (Feb 10, 2025) so PYTORCH_ENABLE_MPS_FALLBACK=1 allows these to run on the CPU.
-            env ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
+            env['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
             # On Mac the huggingface.co URLs get SSL certificate errors unless we setup
             # certifi root certificates.
             import certifi
-            env = {"SSL_CERT_FILE": certifi.where()}
+            env["SSL_CERT_FILE"] = certifi.where()
         else:
             env = None
 
