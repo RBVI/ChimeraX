@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def boltz_install(session, directory, download_model_weights_and_ccd = True):
+def boltz_install(session, directory, download_model_weights_and_ccd = True, wait = None):
     # Check that directory either does not exist or is empty.
     from os.path import exists, isdir
     if exists(directory):
@@ -31,18 +31,22 @@ def boltz_install(session, directory, download_model_weights_and_ccd = True):
             from chimerax.core.errors import UserError
             raise UserError('You must install Boltz into a new or empty directory')
 
-    ib = InstallBoltz(session, directory, download_model_weights_and_ccd)
+    if wait is None:
+        wait = False if session.ui.is_gui else True
+
+    ib = InstallBoltz(session, directory, download_model_weights_and_ccd, wait = wait)
     return ib
             
 # ------------------------------------------------------------------------------
 #
 class InstallBoltz:
 
-    def __init__(self, session, directory, download_model_weights_and_ccd = True):
+    def __init__(self, session, directory, download_model_weights_and_ccd = True, wait = False):
 
         self._session = session
         self._directory = directory
         self._download_model_weights_and_ccd = download_model_weights_and_ccd
+        self._wait = wait
         self.finished_callback = None
         self.success = None
 
@@ -91,7 +95,7 @@ class InstallBoltz:
                   creationflags = _no_subprocess_window())
 
         # Echo subprocess output to the ChimeraX Log.
-        log_subprocess_output(self._session, p, self._finished_pip_install)
+        log_subprocess_output(self._session, p, self._finished_pip_install, wait = self._wait)
     
     # ------------------------------------------------------------------------------
     #
@@ -153,7 +157,8 @@ class InstallBoltz:
         logger.info(' '.join(command))
 
         # Echo subprocess output to the ChimeraX Log.
-        log_subprocess_output(self._session, p, self._finished_download_weights_and_ccd)
+        log_subprocess_output(self._session, p, self._finished_download_weights_and_ccd,
+                              wait = self._wait)
 
     # ------------------------------------------------------------------------------
     #
@@ -215,17 +220,21 @@ def _no_subprocess_window():
 # ------------------------------------------------------------------------------
 #
 class log_subprocess_output:
-    def __init__(self, session, popen, finished_callback):
+    def __init__(self, session, popen, finished_callback, wait = False):
         self._session = session
         self._popen = popen
         self._finished_callback = finished_callback
         from queue import Queue
         self._queue = Queue()
-        session.triggers.add_handler('new frame', self._log_queued_lines)
         from threading import Thread
         # Set daemon true so that ChimeraX exit is not blocked by the thread still running.
         self._thread = t = Thread(target = self._queue_output_in_thread, daemon = True)
         t.start()
+        if wait:
+            while t.is_alive():
+                self._log_queued_lines()
+        else:
+            session.triggers.add_handler('new frame', self._log_queued_lines)
 
     def _queue_output_in_thread(self):
         while True:
@@ -234,7 +243,7 @@ class log_subprocess_output:
                 break
             self._queue.put(line)
 
-    def _log_queued_lines(self, tname, tdata):
+    def _log_queued_lines(self, *trigger_args):
         while not self._queue.empty():
             line = self._queue.get()
             self._session.logger.info(line.decode('utf-8'))

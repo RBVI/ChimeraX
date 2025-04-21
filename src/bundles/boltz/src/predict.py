@@ -26,7 +26,7 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
                   protein = [], dna = [], rna = [], ligand_ccd = [], ligand_smiles = [],
                   name = None, results_directory = None,
                   use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
-                  install_location = None):
+                  install_location = None, wait = None):
 
     if install_location is not None:
         from .settings import _boltz_settings
@@ -36,6 +36,9 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
 
     if not _is_boltz_available(session):
         return
+
+    if wait is None:
+        wait = False if session.ui.is_gui else True
 
     polymer_components, modeled_chains, unmodeled_chains = _polymer_components(sequences, protein, dna, rna)
     align_to = modeled_chains[0].structure if modeled_chains else None
@@ -52,7 +55,8 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
         session.logger.info(f'Predicting covalent ligands not yet supported: {covalent_ligands}')
 
     br = BoltzRun(session, molecular_components, name = name, align_to = align_to,
-                  use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir)
+                  use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
+                  wait = wait)
     br.start(results_directory)
 
     if not hasattr(session, '_cite_boltz'):
@@ -157,7 +161,8 @@ class BoltzMolecule:
 #
 class BoltzRun:
     def __init__(self, session, molecular_components, name = None, align_to = None,
-                 use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA'):
+                 use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
+                 wait = False):
 
         self._session = session
         self._molecular_components = molecular_components  # List of BoltzMolecule
@@ -169,6 +174,7 @@ class BoltzRun:
         self._running = False
         self.success = None
         self._process = None
+        self._wait = wait
         self._start_time = None
         self._monitor_trigger = None
         self._predicted_structure = None	# AtomicStructure that is opened when job completes
@@ -333,7 +339,10 @@ class BoltzRun:
         from time import time
         self._start_time = time()
 
-        self._monitor_trigger = self._session.triggers.add_handler('new frame', self._check_process_completion)
+        if self._wait:
+            self._check_process_completion()
+        else:
+            self._monitor_trigger = self._session.triggers.add_handler('new frame', self._check_process_completion)
 
     def _log_prediction_info(self):
         log = self._session.logger
@@ -370,21 +379,24 @@ class BoltzRun:
         assem_descrip = ', '.join(parts)
         return assem_descrip
         
-    def _check_process_completion(self, tname, tdata):
-        if self._process.poll() is None:
-            # Process still running
-            # Add threaded reading of stdout and stdin to give progress messages.
-            return
+    def _check_process_completion(self, *trigger_args):
+        if self._wait:
+            stdout, stderr = self._process.communicate()
+        else:
+            p = self._process
+            if p.poll() is None:
+                # Process still running
+                # Add threaded reading of stdout and stdin to give progress messages.
+                return
 
-        self._session.triggers.remove_handler(self._monitor_trigger)
-        self._monitor_trigger = None
+            self._session.triggers.remove_handler(self._monitor_trigger)
+            self._monitor_trigger = None
+            stdout = p.stdout.read()
+            stderr = p.stderr.read()
 
-        self._process_completed()
+        self._process_completed(stdout, stderr)
 
-    def _process_completed(self):
-        p = self._process
-        stdout = p.stdout.read()
-        stderr = p.stderr.read()
+    def _process_completed(self, stdout, stderr):
         
         dir = self._results_directory
         from os.path import join
@@ -393,6 +405,7 @@ class BoltzRun:
         with open(join(dir, 'stderr'), 'wb') as f:
             f.write(stderr)
 
+        p = self._process
         success = (p.returncode == 0)
         if success:
             from time import time
@@ -766,7 +779,8 @@ def register_boltz_predict_command(logger):
                    ('name', StringArg),
                    ('results_directory', SaveFolderNameArg),
                    ('use_msa_cache', BoolArg),
-                   ('install_location', SaveFolderNameArg)],
+                   ('install_location', SaveFolderNameArg),
+                   ('wait', BoolArg)],
         synopsis = 'Predict a structure with Boltz'
     )
     register('boltz predict', desc, boltz_predict, logger=logger)
