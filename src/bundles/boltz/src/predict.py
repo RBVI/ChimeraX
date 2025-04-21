@@ -323,10 +323,12 @@ class BoltzRun:
         with open(command_file, 'w') as f:
             f.write(cmd)
 
-        from subprocess import Popen, PIPE, CREATE_NO_WINDOW
+        from subprocess import Popen, PIPE
+        from .install import _no_subprocess_window
         # To continue to run even if ChimeraX exits use start_new_session=True
         p = Popen(command, cwd = self._results_directory,
-                  stdout = PIPE, stderr = PIPE, creationflags = CREATE_NO_WINDOW, env=env)
+                  stdout = PIPE, stderr = PIPE, env=env,
+                  creationflags = _no_subprocess_window())
         self._process = p
         from time import time
         self._start_time = time()

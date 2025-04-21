@@ -58,8 +58,9 @@ class InstallBoltz:
         from chimerax.core.python_utils import chimerax_python_executable
         python_exe = chimerax_python_executable()
         command = [python_exe, '-m', 'venv', directory]
-        from subprocess import run, CREATE_NO_WINDOW
-        p = run(command, capture_output = True, creationflags = CREATE_NO_WINDOW)
+        from subprocess import run
+        p = run(command, capture_output = True,
+                creationflags = _no_subprocess_window())
 
         # Report success or failure of creating virtual environment.
         logger = self._session.logger
@@ -85,8 +86,9 @@ class InstallBoltz:
         command = [self._venv_python_executable(), '-m', 'pip', 'install', 'boltz']
         logger.info(' '.join(command))
 
-        from subprocess import Popen, PIPE, STDOUT, CREATE_NO_WINDOW
-        p = Popen(command, stdout = PIPE, stderr = STDOUT, creationflags = CREATE_NO_WINDOW)
+        from subprocess import Popen, PIPE, STDOUT
+        p = Popen(command, stdout = PIPE, stderr = STDOUT,
+                  creationflags = _no_subprocess_window())
 
         # Echo subprocess output to the ChimeraX Log.
         log_subprocess_output(self._session, p, self._finished_pip_install)
@@ -144,9 +146,9 @@ class InstallBoltz:
         else:
             env = None
 
-        from subprocess import Popen, PIPE, STDOUT, CREATE_NO_WINDOW
+        from subprocess import Popen, PIPE, STDOUT
         p = Popen(command, stdout = PIPE, stderr = STDOUT, env = env,
-                  creationflags = CREATE_NO_WINDOW)
+                  creationflags = _no_subprocess_window())
 
         logger.info(' '.join(command))
 
@@ -174,8 +176,9 @@ class InstallBoltz:
         from os.path import join, dirname
         make_counts_path = join(dirname(__file__), 'make_ccd_atom_counts_file.py')
         command = [self._venv_python_executable(), make_counts_path]
-        from subprocess import run, CREATE_NO_WINDOW
-        p = run(command, capture_output = True, creationflags = CREATE_NO_WINDOW)
+        from subprocess import run
+        p = run(command, capture_output = True,
+                creationflags = _no_subprocess_window())
 
         # Report success or failure of creating virtual environment.
         logger = self._session.logger
@@ -196,6 +199,18 @@ class InstallBoltz:
         self.success = success
         if self.finished_callback:
             self.finished_callback(success)
+
+# ------------------------------------------------------------------------------
+#
+def _no_subprocess_window():
+    '''The Python subprocess module only has the CREATE_NO_WINDOW flag on Windows.'''
+    from sys import platform
+    if platform == 'win32':
+        from subprocess import CREATE_NO_WINDOW
+        flags = CREATE_NO_WINDOW
+    else:
+        flags = 0
+    return flags
 
 # ------------------------------------------------------------------------------
 #
