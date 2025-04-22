@@ -88,9 +88,9 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
             return_values.append((s, num_cavities, cavity_matrix, None))
             continue
         session.logger.status("Find Cavities for %s: determining cavities' surface/volume" % s)
-        surface_grid, k_volume, k_area = pyKVFinder.spatial(cavity_matrix)
+        surface_grid, k_volume, k_area = pyKVFinder.spatial(cavity_matrix, step_size=grid_spacing)
         session.logger.status("Find Cavities for %s: finding cavity depths" % s)
-        depths, max_depth, avg_depth = pyKVFinder.depth(cavity_matrix)
+        depths, max_depth, avg_depth = pyKVFinder.depth(cavity_matrix, step_size=grid_spacing)
         session.logger.status("Find Cavities for %s: creating cavity models" % s)
         from chimerax.core.models import Model
         cavity_group = Model(cavity_group_name, session)
