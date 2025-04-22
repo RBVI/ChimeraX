@@ -146,7 +146,7 @@ class ViewDockTool(ToolInstance):
         """
 
         # Fixed columns. Generic based on ChimeraX model attributes.
-        self.struct_table.add_column('Show', lambda s: s.display, data_set=self.set_visibility, format=ItemTable.COL_FORMAT_BOOLEAN)
+        self.display_col = self.struct_table.add_column('Show', lambda s: s.display, data_set=self.set_visibility, format=ItemTable.COL_FORMAT_BOOLEAN)
         self.struct_table.add_column('ID', lambda s: s.id_string)
 
         # Custom Rating delegate
@@ -220,6 +220,8 @@ class ViewDockTool(ToolInstance):
             run(self.session, f'show {model_spec} models')
         else:
             run(self.session, f'hide {model_spec} models')
+
+        self.struct_table.update_column(self.display_col, data=True)
 
     def delete(self):
         """
