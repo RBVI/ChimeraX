@@ -292,7 +292,7 @@ UBUNTU_DEPENDENCIES = {
         "libasound2": "1.2.6.1",
         "libatk1.0-0": "2.36.0",
         "libbz2-1.0": "1.0.8",
-        "libc6": "2.35",
+        "libc6": "2.39",
         "libcairo-gobject2": "1.16.0",
         "libcairo2": "1.16.0",
         "libcrypt1": "1:4.4.17",
@@ -300,7 +300,6 @@ UBUNTU_DEPENDENCIES = {
         "libdbus-1-3": "1.12.16",
         "libdrm2": "2.4.101",
         "libegl1": "1.3.1",
-        "libevent": "2.1-7t64",
         "libexpat1": "2.2.9",
         "libffi8": "3.3",
         "libfftw3-single3": "3.3.8",
@@ -525,6 +524,10 @@ def make_control_file(debian_dir, pkg_name, version, dependencies):
     # see "man 1 deb-control"
     if dependencies is not None:
         deps = list(dependencies)
+        # actually set libc6 dependency so package won't install on earlier versions of Ubuntu
+        libc6_ver = dependencies["libc6"]
+        libc6 = f"libc6 (>={libc6_ver})"
+        deps[deps.index("libc6")] = libc6
     else:
         deps = []
     deps.insert(0, 'ffmpeg')

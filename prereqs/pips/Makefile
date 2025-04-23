@@ -107,9 +107,9 @@ ifeq ($(OSARCH),DarwinArm64)
 	uv pip install ./$(SCIPY_WHEEL)
 endif
 	uvx pip download $(subst #,,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/^[ \t]*//;s/[ \t]*$$//'))
-	tar -xf $(subst ==,-,$(subst #,,$(shell grep tinyarray app_requirements.txt))).tar.gz --no-same-owner
-	cd $(subst ==,-,$(subst #,,$(shell grep tinyarray app_requirements.txt))) && patch -p1 < ../tinyarray-pyssizet-patch.patch
-	uv pip install ./$(subst ==,-,$(subst #,,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/^[ \t]*//;s/[ \t]*$$//')))
+	tar -xf $(subst ==,-,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #",]//g')).tar.gz --no-same-owner
+	cd ./$(subst ==,-,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #",]//g')) && patch -p1 < ../tinyarray-pyssizet-patch.patch
+	uv pip install ./$(subst ==,-,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #",]//g'))
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(TOP)/.venv/lib/python3.11/site-packages/ -N -p0 < $$p ; \
 	done

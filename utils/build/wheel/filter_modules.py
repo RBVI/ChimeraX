@@ -13,6 +13,8 @@
 import os
 import pkgutil
 import shutil
+import sys
+sys.path.append('.')
 import chimerax
 
 module_blacklist = set(
@@ -22,9 +24,8 @@ module_blacklist = set(
         "chimerax.blastprotein",  # needs webservices
         "chimerax.build_structure",  # needs Qt
         "chimerax.bug_reporter",  # imports a GUI / not needed
-        "chimerax.dicom",  # tries to import its .ui submodule in __init__
-        "chimerax.nifti",  # tries to import dicom
-        "chimerax.nrrd",  # tries to import dicom
+        #"chimerax.nifti",  # tries to import dicom
+        #"chimerax.nrrd",  # tries to import dicom
         "chimerax.structcomp",  # ChimeraX command script
         # Not going in the library, but part of test suite for GUI ChimeraX
         "chimerax.ui",  # tries to import Qt
@@ -74,6 +75,8 @@ fine_blacklist = set(
         "chimerax.std_commands.defattr_gui"  # imports Qt
         # Not going in the library, but part of test suite for GUI ChimeraX
         ,
+        "chimerax.dicom.ui",
+        "chimerax.segmentations.ui",
         "chimerax.ui.core_settings_ui"  # imports settings from core_settings before initialized if imported standalone
         # Held over from cxtestimports.py
         ,

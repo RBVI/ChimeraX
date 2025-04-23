@@ -53,7 +53,7 @@ CENTOS_DEPENDENCIES = {
         "freetype": None,
         "gdk-pixbuf2": None,
         "glib2": None,
-        "glibc": None,
+        "glibc": "2.18",
         "gstreamer1": None,
         "gstreamer1-plugins-base": None,
         "gtk3": None,
@@ -111,7 +111,7 @@ CENTOS_DEPENDENCIES = {
         "freetype": None,
         "gdk-pixbuf2": None,
         "glib2": None,
-        "glibc": None,
+        "glibc": "2.28",
         "gtk3": None,
         "libdrm": None,
         "libffi": None,
@@ -173,7 +173,7 @@ CENTOS_DEPENDENCIES = {
         "freetype": None,
         "gdk-pixbuf2": None,
         "glib2": None,
-        "glibc": None,
+        "glibc": "2.34",
         "gtk3": None,
         "libdrm": None,
         "libffi": None,
@@ -375,6 +375,10 @@ def make_spec_file(
     """Make control file"""
     if dependencies is not None:
         deps = list(dependencies)
+        # actually set glibc dependency so package won't install on earlier versions
+        glibc_ver = dependencies["glibc"]
+        glibc = f"glibc >= {glibc_ver}"
+        deps[deps.index("glibc")] = glibc
     else:
         deps = []
     depends = ", ".join(deps)

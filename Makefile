@@ -57,11 +57,15 @@ ifdef FLATPAK_DIST
 endif
 	@echo 'Finished install at' `date`
 
-uv-install:
+uv-build: build-dirs
 	uv pip install -r pyproject.toml --all-extras
-	$(MAKE) -C prereqs/pips uv-install
+	UV_BUILD=1 $(MAKE) -C prereqs/pips uv-install
 	uv pip install PySide6 shiboken6
 	PYTHON=python $(MAKE) -C src/bundles uv-install
+
+uv-install: build-dirs uv-build
+	UV_BUILD=1 $(MAKE) -e USE_MAC_FRAMEWORKS='' -C src/apps/ChimeraX
+	UV_BUILD=1 $(MAKE) -e USE_MAC_FRAMEWORKS='' -C src/apps/ChimeraX uv-install
 
 install-rbvi:
 	$(MAKE) PYQT_LICENSE=commercial install
@@ -110,18 +114,36 @@ prepare-coverage:
 	cp -r $(APP_PYSITEDIR)/chimerax .
 
 report-coverage:
+ifdef UV_BUILD
+	python -m coverage report -i
+else
 	$(APP_PYTHON_EXE) -m coverage report -i
+endif
 
 pytest-both-exes:
+ifdef UV_BUILD
+	./tests/env.sh $(SCRIPT_COVERAGE_ARGS) -u
+else
 	./tests/env.sh $(SCRIPT_COVERAGE_ARGS)
+endif
 
 pytest-wheel:
+ifdef UV_BUILD
+	python -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS) tests/test_imports_wheel.py
+	python -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS)
+else
 	$(APP_PYTHON_EXE) -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS) tests/test_imports_wheel.py
 	$(APP_PYTHON_EXE) -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS)
+endif
 
 pytest-app:
+ifdef UV_BUILD
+	python -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS) tests/test_imports_wheel.py
+	python -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS)
+else
 	$(APP_PYTHON_EXE) -m pytest -m "not wheel" $(SILENT_COVERAGE_ARGS) tests/test_imports_app.py
 	$(APP_PYTHON_EXE) -m pytest -m "not wheel" $(SILENT_COVERAGE_ARGS)
+endif
 
 ifdef USE_COVERAGE
 pytest: clean-coverage prepare-coverage pytest-both-exes pytest-wheel pytest-app report-coverage
