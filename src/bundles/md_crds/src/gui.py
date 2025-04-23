@@ -195,8 +195,8 @@ class PlotDialog:
         pc_layout.addWidget(plot_button, 0, 0, alignment=Qt.AlignRight)
         num_atoms = self.mgr.num_atoms(provider_name)
         preposition = "for" if num_atoms == 0 else "from"
-        atom_string = "any number of" if num_atoms == 0 else "%d" % num_atoms
-        pc_layout.addWidget(QLabel(" %s %s %s selected atoms" % (ui_name, preposition, atom_string)), 0, 1,
+        atom_string = "" if num_atoms == 0 else "%d " % num_atoms
+        pc_layout.addWidget(QLabel(" %s %s %sselected atoms" % (ui_name, preposition, atom_string)), 0, 1,
             alignment=Qt.AlignLeft)
         if num_atoms == 0:
             reminder = QLabel("(If no selection, all atoms)")
