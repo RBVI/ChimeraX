@@ -26,7 +26,7 @@ from chimerax.hbonds.gui import HBondsGUI
 from chimerax.clashes.gui import ClashesGUI
 from chimerax.ui.widgets import ItemTable
 from chimerax.core.commands import run, concise_model_spec
-from chimerax.core.models import REMOVE_MODELS
+from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
                           QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QSizePolicy)
 from Qt.QtCore import Qt
@@ -65,6 +65,20 @@ class ViewDockTool(ToolInstance):
         """
         Create the top buttons for the tool (HBonds and Clashes).
         """
+        # Add "Show All" button
+        self.show_all_button = QPushButton("Show All")
+        self.show_all_button.clicked.connect(
+            lambda: self.set_visibility(self.structures, True)
+        )
+        self.top_buttons_layout.addWidget(self.show_all_button)
+
+        # Add "Hide All" button
+        self.hide_all_button = QPushButton("Hide All")
+        self.hide_all_button.clicked.connect(
+            lambda: self.set_visibility(self.structures, False)
+        )
+        self.top_buttons_layout.addWidget(self.hide_all_button)
+
         self.hbonds_button = QPushButton("HBonds")
         self.hbonds_button.clicked.connect(
             lambda: self.popup_callback(
@@ -132,7 +146,7 @@ class ViewDockTool(ToolInstance):
         """
 
         # Fixed columns. Generic based on ChimeraX model attributes.
-        self.struct_table.add_column('Show', lambda s: s.display, data_set=self.set_visibility, format=ItemTable.COL_FORMAT_BOOLEAN)
+        self.display_col = self.struct_table.add_column('Show', lambda s: s.display, data_set=self.set_visibility, format=ItemTable.COL_FORMAT_BOOLEAN)
         self.struct_table.add_column('ID', lambda s: s.id_string)
 
         # Custom Rating delegate
@@ -171,6 +185,11 @@ class ViewDockTool(ToolInstance):
             REMOVE_MODELS,
             lambda trigger_name, trigger_data: self.remove_models_cb(trigger_name, trigger_data)
         ))
+        self.handlers.append(self.session.triggers.add_handler(
+            MODEL_DISPLAY_CHANGED,
+            lambda trigger_name, trigger_data: self.struct_table.update_cell(self.display_col, trigger_data)
+            if trigger_data in self.structures else None
+        ))
 
     def remove_models_cb(self, trigger_name, trigger_data):
         """
@@ -189,18 +208,23 @@ class ViewDockTool(ToolInstance):
                 self.structures.remove(model)
         self.struct_table.data = self.structures
 
-    def set_visibility(self, structure, value):
+    def set_visibility(self, structs, value):
         """
-        Callback for when the model display column has changes. Shows or hides the structure based on the value.
+        Shows or hides the structure(s) based on the value.
 
         Args:
-            structure: The structure that is being changed.
+            structs: The structure(s) that is/are being changed. Can be a single structure or a list of structures.
             value: The new value for the display column. True/False for show/hide.
         """
+        # Ensure structs is a list
+        if not isinstance(structs, (list, tuple)):
+            structs = [structs]
+
+        model_spec = concise_model_spec(self.session, structs)
         if value:
-            run(self.session, f'show #{structure.id_string} models')
+            run(self.session, f'show {model_spec} models')
         else:
-            run(self.session, f'hide #{structure.id_string} models')
+            run(self.session, f'hide {model_spec} models')
 
     def delete(self):
         """
