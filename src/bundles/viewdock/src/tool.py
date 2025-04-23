@@ -26,7 +26,7 @@ from chimerax.hbonds.gui import HBondsGUI
 from chimerax.clashes.gui import ClashesGUI
 from chimerax.ui.widgets import ItemTable
 from chimerax.core.commands import run, concise_model_spec
-from chimerax.core.models import REMOVE_MODELS
+from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
                           QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QSizePolicy)
 from Qt.QtCore import Qt
@@ -185,6 +185,11 @@ class ViewDockTool(ToolInstance):
             REMOVE_MODELS,
             lambda trigger_name, trigger_data: self.remove_models_cb(trigger_name, trigger_data)
         ))
+        self.handlers.append(self.session.triggers.add_handler(
+            MODEL_DISPLAY_CHANGED,
+            lambda trigger_name, trigger_data: self.struct_table.update_cell(self.display_col, trigger_data)
+            if trigger_data in self.structures else None
+        ))
 
     def remove_models_cb(self, trigger_name, trigger_data):
         """
@@ -220,8 +225,6 @@ class ViewDockTool(ToolInstance):
             run(self.session, f'show {model_spec} models')
         else:
             run(self.session, f'hide {model_spec} models')
-
-        self.struct_table.update_column(self.display_col, data=True)
 
     def delete(self):
         """
