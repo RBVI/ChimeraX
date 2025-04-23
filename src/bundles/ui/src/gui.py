@@ -466,6 +466,9 @@ class UI(QApplication):
         log.clear()    # clear logging timers
         ses.triggers.activate_trigger('app quit', None)
         self.closeAllWindows()
+        from sys import platform
+        if platform == 'darwin':
+            return	# Avoid Mac Qt 6.8.2 crash on exit.  ChimeraX bug #17265
         QApplication.quit()
 
     def thread_safe(self, func, *args, post_event=False, **kw):
