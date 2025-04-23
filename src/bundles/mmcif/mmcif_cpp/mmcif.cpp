@@ -2540,6 +2540,10 @@ ExtractMolecule::parse_entity()
     }
 
     while (parse_row(pv)) {
+        if (entity_description.find(entity_id) != entity_description.end()) {
+            logger::warning(_logger, "Skipping duplicate entity id ", entity_id);
+            continue;
+        }
         if (type != 'p' && type != 'P')
             non_poly.emplace(entity_id);
         entity_description[entity_id] = description;
@@ -2579,6 +2583,10 @@ ExtractMolecule::parse_entity_poly()
     static const string rna("polyribonucleotide");
 
     while (parse_row(pv)) {
+        if (poly.find(entity_id) != poly.end()) {
+            logger::warning(_logger, "Skipping duplicate entity_poly for id ", entity_id);
+            continue;
+        }
         // convert type to lowercase
         for (auto& c: type)
             c = tolower(c);
@@ -2638,7 +2646,29 @@ ExtractMolecule::parse_entity_poly_seq()
             poly.emplace(entity_id, false);
         }
         has_poly_seq[entity_id] = true;
+#if 0
         poly.at(entity_id).seq.emplace(seq_id, mon_id, hetero);
+#else
+        auto& seq = poly.at(entity_id).seq;
+        PolySeq ps(seq_id, mon_id, hetero);
+        auto psit = seq.lower_bound(ps);
+        if (psit != seq.end() && psit->seq_id == seq_id) {
+            auto psit2 = psit;
+            for (;;) {
+                if (psit2->seq_id == seq_id && psit2->mon_id == mon_id) {
+                    // TODO: limit warnings to once per entity?
+                    logger::warning(_logger, "Duplicate entity_poly_seq entry on line ", line_number());
+                    goto skip;
+                }
+                ++psit2;
+                if (psit2 == seq.end() || psit2->seq_id != seq_id)
+                    break;
+            }
+            psit = psit2;
+        }
+        seq.insert(psit, ps);
+    skip: ;
+#endif
     }
 }
 
