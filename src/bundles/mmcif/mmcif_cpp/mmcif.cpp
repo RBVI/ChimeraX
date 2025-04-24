@@ -882,7 +882,7 @@ ExtractMolecule::_connect_inter_residues(Structure *mol, int model_num, ResidueS
         }
     }
     if (found_missing_poly_seq && !no_polymer && model_num == first_model_num)
-        logger::warning(_logger, "Missing or incomplete <a='https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/entity_poly_seq.html'>sequence information</a>.  Inferred polymer connectivity.", true);
+        logger::warning(_logger, "Missing or incorrect <a='https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/entity_poly_seq.html'>sequence information</a>.  Inferred polymer connectivity.", true);
 }
 
 void
@@ -1507,8 +1507,20 @@ ExtractMolecule::parse_atom_site()
             cur_auth_seq_id = auth_position;
             cur_chain_id = chain_id;
             cur_comp_id = residue_name;
-            if (has_poly_seq.find(entity_id) == has_poly_seq.end()
-            && non_poly.find(entity_id) == non_poly.end()) {
+            bool missing_poly_seq = has_poly_seq.find(entity_id) == has_poly_seq.end();
+            if (!missing_poly_seq) {
+                // protect against bad input
+                auto psi = poly.find(entity_id);
+                auto& entity_poly_seq = psi->second.seq;
+                auto ps_key = PolySeq(position, residue_name, false);
+                auto pi = entity_poly_seq.find(ps_key);
+                if (pi == entity_poly_seq.end() || pi->seq_id != position || pi->mon_id != residue_name) {
+                    logger::warning(_logger, "Ignoring sequence due to wrong residue \"", residue_name, "\" on line ", line_number());
+                    has_poly_seq.erase(entity_id);
+                    missing_poly_seq = true;
+                }
+            }
+            if (missing_poly_seq && non_poly.find(entity_id) == non_poly.end()) {
                 // sequence not given in entity_poly_seq and not in a known non-polymeric entity
                 auto tr = find_template_residue(residue_name);
                 if (tr && tr->polymer_type() != PolymerType::PT_NONE) {
