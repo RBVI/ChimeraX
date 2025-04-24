@@ -22,14 +22,14 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 # -----------------------------------------------------------------------------
 # Panel for searching AlphaFold or ESMFold databases or predicting structure
 # from sequence.
 #
 from chimerax.core.tools import ToolInstance
 class BoltzPredictionGUI(ToolInstance):
-    help = 'help:user/tools/boltz.html'
+#    help = 'help:user/tools/boltz.html'
+    help = 'help:boltz_help.html'
 
     def __init__(self, session, tool_name):
 

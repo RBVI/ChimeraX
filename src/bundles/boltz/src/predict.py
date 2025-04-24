@@ -819,6 +819,7 @@ class RepeatSequencesArg(Annotation):
 def register_boltz_predict_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg, EnumOf, IntArg
     from chimerax.atomic import SequencesArg, ResiduesArg
+
     desc = CmdDesc(
         optional = [('sequences', SequencesArg)],
         keyword = [('ligands', ResiduesArg),
@@ -838,7 +839,8 @@ def register_boltz_predict_command(logger):
                    ('open', BoolArg),
                    ('install_location', SaveFolderNameArg),
                    ('wait', BoolArg)],
-        synopsis = 'Predict a structure with Boltz'
+        synopsis = 'Predict a structure with Boltz',
+        url = 'help:boltz_help.html'
     )
     register('boltz predict', desc, boltz_predict, logger=logger)
 
