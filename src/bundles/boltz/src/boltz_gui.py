@@ -478,6 +478,8 @@ class BoltzPredictionGUI(ToolInstance):
             options.append('useMsaCache false')
         if self._device.value != 'default':
             options.append(f'device {self._device.value}')
+        if self._samples.value != 1:
+            options.append(f'samples {self._samples.value}')
         self._save_install_location()
         self._run_prediction(options = ' '.join(options))
 
@@ -604,6 +606,11 @@ class BoltzPredictionGUI(ToolInstance):
         dir.pixel_width = 250
         dir.value = self.default_results_directory()
 
+        # Number of predicted structures
+        ns = EntriesRow(f, 'Number of predicted structures', 1, ('Set default', self._set_default_samples))
+        self._samples = sam = ns.values[0]
+        sam.value = self.default_samples()
+
         # CPU or GPU device
         cd = EntriesRow(f, 'Compute device', ('default', 'cpu', 'gpu'), ('Save', self._set_default_device))
         self._device = dev = cd.values[0]
@@ -637,6 +644,21 @@ class BoltzPredictionGUI(ToolInstance):
         from .settings import _boltz_settings
         settings = _boltz_settings(self.session)
         settings.device = self._device.value
+        settings.save()
+
+    # ---------------------------------------------------------------------------
+    #
+    def default_samples(self):
+        from .settings import _boltz_settings
+        settings = _boltz_settings(self.session)
+        return settings.samples
+
+    # ---------------------------------------------------------------------------
+    #
+    def _set_default_samples(self):
+        from .settings import _boltz_settings
+        settings = _boltz_settings(self.session)
+        settings.samples = self._samples.value
         settings.save()
 
     # ---------------------------------------------------------------------------

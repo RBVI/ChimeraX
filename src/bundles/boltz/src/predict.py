@@ -25,8 +25,9 @@
 def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
                   protein = [], dna = [], rna = [], ligand_ccd = [], ligand_smiles = [],
                   name = None, results_directory = None, device = None,
+                  samples = 1, recycles = 3, seed = None,
                   use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
-                  install_location = None, wait = None):
+                  open = True, install_location = None, wait = None):
 
     if install_location is not None:
         from .settings import _boltz_settings
@@ -54,9 +55,10 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
     if covalent_ligands:
         session.logger.info(f'Predicting covalent ligands not yet supported: {covalent_ligands}')
 
-    br = BoltzRun(session, molecular_components, name = name, align_to = align_to, device = device,
+    br = BoltzRun(session, molecular_components, name = name, align_to = align_to,
+                  device = device, samples = samples, recycles = recycles, seed = seed,
                   use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
-                  wait = wait)
+                  open = open, wait = wait)
     br.start(results_directory)
 
     if not hasattr(session, '_cite_boltz'):
@@ -160,15 +162,20 @@ class BoltzMolecule:
 # ------------------------------------------------------------------------------
 #
 class BoltzRun:
-    def __init__(self, session, molecular_components, name = None, align_to = None, device = 'default',
+    def __init__(self, session, molecular_components, name = None, align_to = None,
+                 device = 'default', samples = 1, recycles = 3, seed = None,
                  use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
-                 wait = False):
+                 open = True, wait = False):
 
         self._session = session
         self._molecular_components = molecular_components  # List of BoltzMolecule
         self.name = name
         self._align_to = align_to	# AtomicStructure to align prediction to.
         self._device = device		# gpu, cpu or default, or None (uses settings value)
+        self._samples = samples		# Number of predicted structures
+        self._recycles = recycles	# Number of boltz recycling steps
+        self._seed = seed		# Random seed for computation
+        self._open = open		# Whether to open predictions when boltz finishes.
 
         self._results_directory = None
         self._yaml_path = None
@@ -334,6 +341,13 @@ class BoltzRun:
 
         command.extend(['--accelerator', self.device])
 
+        if self._samples != 1:
+            command.extend(['--diffusion_samples', str(self._samples)])
+        if self._recycles != 3:
+            command.extend(['--recycling_steps', str(self._recycles)])
+        if self._seed is not None:
+            command.extend(['--seed', str(self._seed)])
+
         from sys import platform
         if platform == 'darwin':
             env = {}
@@ -436,7 +450,8 @@ class BoltzRun:
             from time import time
             t = time() - self._start_time
             self._session.logger.info(f'Boltz prediction completed in {"%.0f" % t} seconds')
-            self._open_prediction()
+            if self._open:
+                self._open_predictions()
             self._add_to_msa_cache()
         else:
             stdout = stdout.decode("utf8")
@@ -465,12 +480,15 @@ class BoltzRun:
     def running(self):
         return self._running
 
-    def _open_prediction(self):
+    def _open_predictions(self):
         self._copy_predictions()
-        
+        for n in range(self._samples):
+            self._open_prediction(n)
+
+    def _open_prediction(self, n):        
         # Find path to predicted model
         from os.path import join, exists
-        mmcif_path = join(self._results_directory, f'{self.name}_model_0.cif')
+        mmcif_path = join(self._results_directory, f'{self.name}_model_{n}.cif')
         if not exists(mmcif_path):
             self._session.logger.warning('Prediction file not found: %s' % mmcif_path)
             return
@@ -799,7 +817,7 @@ class RepeatSequencesArg(Annotation):
 # ------------------------------------------------------------------------------
 #
 def register_boltz_predict_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg, EnumOf
+    from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg, EnumOf, IntArg
     from chimerax.atomic import SequencesArg, ResiduesArg
     desc = CmdDesc(
         optional = [('sequences', SequencesArg)],
@@ -813,7 +831,11 @@ def register_boltz_predict_command(logger):
                    ('name', StringArg),
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
+                   ('samples', IntArg),
+                   ('recycles', IntArg),
+                   ('seed', IntArg),
                    ('use_msa_cache', BoolArg),
+                   ('open', BoolArg),
                    ('install_location', SaveFolderNameArg),
                    ('wait', BoolArg)],
         synopsis = 'Predict a structure with Boltz'
