@@ -439,14 +439,23 @@ class BoltzRun:
             self._open_prediction()
             self._add_to_msa_cache()
         else:
-            msg = '\n'.join([
-                f'Running boltz prediction failed with exit code {p.returncode}:',
-                'command:',
-                self._command,
-                'stdout:',
-                stdout.decode("utf8"),
-                'stderr:',
-                stderr.decode('utf8')])
+            stdout = stdout.decode("utf8")
+            stderr = stderr.decode('utf8')
+            if 'No supported gpu backend found' in stderr:
+                msg = ('Attempted to run Boltz on the GPU but no supported GPU device could be found.'
+                       ' To avoid this error specify the compute device as "cpu" in the ChimeraX Boltz'
+                       ' options panel, or using the ChimeraX boltz command "device cpu" option.'
+                       ' Boltz supports Nvidia GPUs with CUDA and Mac M series GPUs.  On Windows the Boltz'
+                       ' installation installs torch with no GPU support, so using Nvidia GPUs on'
+                       ' Windows requires reinstalling gpu-enabled torch with Boltz which we plan to'
+                       ' support in the future.')
+            else:
+                msg = '\n'.join([
+                    f'Running boltz prediction failed with exit code {p.returncode}:',
+                    'command:',self._command,
+                    'stdout:', stdout,
+                    'stderr:', stderr,
+                    ])
             self._session.logger.error(msg)
 
         self._running = False
