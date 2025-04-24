@@ -30,6 +30,7 @@ class _BoltzSettings(Settings):
     EXPLICIT_SAVE = {
         'boltz_results_location': '~/Desktop/boltz_[N]',
         'boltz_install_location': '',
+        'device': 'default',	# default, cpu, or gpu
     }
 
 # -----------------------------------------------------------------------------
