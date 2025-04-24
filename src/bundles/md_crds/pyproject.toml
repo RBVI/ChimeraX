@@ -4,7 +4,7 @@ build-backend = "chimerax.bundle_builder.cx_pep517"
 
 [project]
 name = "ChimeraX-MDcrds"
-version = "2.10"
+version = "2.10.1"
 license = { text = "Free for non-commercial use" }
 authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
 description = "Molecular dynamics support"
@@ -171,7 +171,7 @@ name = "surface"
 ui-name = "SASA"
 num-atoms = "0"
 text-format = "%.1f"
-exclude = "ions,solvent"
+exclude = "ions,ligand,solvent"
 
 [tool.chimerax.extension._gromacs]
 sources = ["gromacs/gromacs.cpp"]

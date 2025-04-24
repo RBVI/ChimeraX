@@ -22,14 +22,14 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 # -----------------------------------------------------------------------------
 # Panel for searching AlphaFold or ESMFold databases or predicting structure
 # from sequence.
 #
 from chimerax.core.tools import ToolInstance
 class BoltzPredictionGUI(ToolInstance):
-    help = 'help:user/tools/boltz.html'
+#    help = 'help:user/tools/boltz.html'
+    help = 'help:boltz_help.html'
 
     def __init__(self, session, tool_name):
 
@@ -475,7 +475,11 @@ class BoltzPredictionGUI(ToolInstance):
         if dir != self.default_results_directory():
             options.append(f'directory {dir}')
         if not self._use_msa_cache.value:
-            options.append(f'useMsaCache false')
+            options.append('useMsaCache false')
+        if self._device.value != 'default':
+            options.append(f'device {self._device.value}')
+        if self._samples.value != 1:
+            options.append(f'samples {self._samples.value}')
         self._save_install_location()
         self._run_prediction(options = ' '.join(options))
 
@@ -602,6 +606,16 @@ class BoltzPredictionGUI(ToolInstance):
         dir.pixel_width = 250
         dir.value = self.default_results_directory()
 
+        # Number of predicted structures
+        ns = EntriesRow(f, 'Number of predicted structures', 1, ('Set default', self._set_default_samples))
+        self._samples = sam = ns.values[0]
+        sam.value = self.default_samples()
+
+        # CPU or GPU device
+        cd = EntriesRow(f, 'Compute device', ('default', 'cpu', 'gpu'), ('Save', self._set_default_device))
+        self._device = dev = cd.values[0]
+        dev.value = self.default_device()
+        
         # Use MSA cache
         mc = EntriesRow(f, True, 'Use multiple sequence alignment cache')
         self._use_msa_cache = mc.values[0]
@@ -616,6 +630,36 @@ class BoltzPredictionGUI(ToolInstance):
         dir.value = settings.boltz_install_location
 
         return p
+
+    # ---------------------------------------------------------------------------
+    #
+    def default_device(self):
+        from .settings import _boltz_settings
+        settings = _boltz_settings(self.session)
+        return settings.device
+
+    # ---------------------------------------------------------------------------
+    #
+    def _set_default_device(self):
+        from .settings import _boltz_settings
+        settings = _boltz_settings(self.session)
+        settings.device = self._device.value
+        settings.save()
+
+    # ---------------------------------------------------------------------------
+    #
+    def default_samples(self):
+        from .settings import _boltz_settings
+        settings = _boltz_settings(self.session)
+        return settings.samples
+
+    # ---------------------------------------------------------------------------
+    #
+    def _set_default_samples(self):
+        from .settings import _boltz_settings
+        settings = _boltz_settings(self.session)
+        settings.samples = self._samples.value
+        settings.save()
 
     # ---------------------------------------------------------------------------
     #

@@ -24,9 +24,10 @@
 
 def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
                   protein = [], dna = [], rna = [], ligand_ccd = [], ligand_smiles = [],
-                  name = None, results_directory = None,
+                  name = None, results_directory = None, device = None,
+                  samples = 1, recycles = 3, seed = None,
                   use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
-                  install_location = None, wait = None):
+                  open = True, install_location = None, wait = None):
 
     if install_location is not None:
         from .settings import _boltz_settings
@@ -55,8 +56,9 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
         session.logger.info(f'Predicting covalent ligands not yet supported: {covalent_ligands}')
 
     br = BoltzRun(session, molecular_components, name = name, align_to = align_to,
+                  device = device, samples = samples, recycles = recycles, seed = seed,
                   use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
-                  wait = wait)
+                  open = open, wait = wait)
     br.start(results_directory)
 
     if not hasattr(session, '_cite_boltz'):
@@ -161,13 +163,19 @@ class BoltzMolecule:
 #
 class BoltzRun:
     def __init__(self, session, molecular_components, name = None, align_to = None,
+                 device = 'default', samples = 1, recycles = 3, seed = None,
                  use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
-                 wait = False):
+                 open = True, wait = False):
 
         self._session = session
         self._molecular_components = molecular_components  # List of BoltzMolecule
         self.name = name
         self._align_to = align_to	# AtomicStructure to align prediction to.
+        self._device = device		# gpu, cpu or default, or None (uses settings value)
+        self._samples = samples		# Number of predicted structures
+        self._recycles = recycles	# Number of boltz recycling steps
+        self._seed = seed		# Random seed for computation
+        self._open = open		# Whether to open predictions when boltz finishes.
 
         self._results_directory = None
         self._yaml_path = None
@@ -290,7 +298,31 @@ class BoltzRun:
         from os.path import dirname
         self.cached_msa_dir = dirname(tuple(msa_cache_files.values())[0]) if msa_cache_files else None
         return msa_cache_files
-    
+
+    @property
+    def device(self):
+        if self._device is None:
+            self._device = self._settings.device
+        if self._device == 'default':
+            from sys import platform
+            if platform == 'win32':
+                device = 'cpu'
+                # TODO: Detect Nvidia/CUDA on windows.  Also will need cuda-enabled torch.
+                #       The default PyPi torch 2.6.0 for windows is cpu only.
+            elif platform == 'darwin':
+                from platform import machine
+                device = 'gpu' if machine() == 'arm64' else 'cpu'
+                # PyTorch 2.6 does not support Intel Mac GPU use.
+                #     https://discuss.pytorch.org/t/pytorch-support-for-intel-gpus-on-mac/151996
+            elif platform == 'linux':
+                device = 'gpu' if exists('/usr/bin/nvidia-smi') else 'cpu'
+                # TODO: Run nvidia-smi to see if GPU memory is sufficient to run Boltz.
+            else:
+                device = 'cpu'
+        else:
+            device = self._device
+        return device
+
     def _run_boltz_local(self):
         self._running = True
 
@@ -306,9 +338,15 @@ class BoltzRun:
                    ]
         if self.use_msa_server:
             command.append('--use_msa_server')
-        from sys import platform
-        if platform == 'win32':
-            command.extend(['--accelerator', 'cpu'])  # TODO: Allow Nvidia/CUDA on windows.
+
+        command.extend(['--accelerator', self.device])
+
+        if self._samples != 1:
+            command.extend(['--diffusion_samples', str(self._samples)])
+        if self._recycles != 3:
+            command.extend(['--recycling_steps', str(self._recycles)])
+        if self._seed is not None:
+            command.extend(['--seed', str(self._seed)])
 
         from sys import platform
         if platform == 'darwin':
@@ -412,17 +450,27 @@ class BoltzRun:
             from time import time
             t = time() - self._start_time
             self._session.logger.info(f'Boltz prediction completed in {"%.0f" % t} seconds')
-            self._open_prediction()
+            if self._open:
+                self._open_predictions()
             self._add_to_msa_cache()
         else:
-            msg = '\n'.join([
-                f'Running boltz prediction failed with exit code {p.returncode}:',
-                'command:',
-                self._command,
-                'stdout:',
-                stdout.decode("utf8"),
-                'stderr:',
-                stderr.decode('utf8')])
+            stdout = stdout.decode("utf8")
+            stderr = stderr.decode('utf8')
+            if 'No supported gpu backend found' in stderr:
+                msg = ('Attempted to run Boltz on the GPU but no supported GPU device could be found.'
+                       ' To avoid this error specify the compute device as "cpu" in the ChimeraX Boltz'
+                       ' options panel, or using the ChimeraX boltz command "device cpu" option.'
+                       ' Boltz supports Nvidia GPUs with CUDA and Mac M series GPUs.  On Windows the Boltz'
+                       ' installation installs torch with no GPU support, so using Nvidia GPUs on'
+                       ' Windows requires reinstalling gpu-enabled torch with Boltz which we plan to'
+                       ' support in the future.')
+            else:
+                msg = '\n'.join([
+                    f'Running boltz prediction failed with exit code {p.returncode}:',
+                    'command:',self._command,
+                    'stdout:', stdout,
+                    'stderr:', stderr,
+                    ])
             self._session.logger.error(msg)
 
         self._running = False
@@ -432,12 +480,15 @@ class BoltzRun:
     def running(self):
         return self._running
 
-    def _open_prediction(self):
+    def _open_predictions(self):
         self._copy_predictions()
-        
+        for n in range(self._samples):
+            self._open_prediction(n)
+
+    def _open_prediction(self, n):        
         # Find path to predicted model
         from os.path import join, exists
-        mmcif_path = join(self._results_directory, f'{self.name}_model_0.cif')
+        mmcif_path = join(self._results_directory, f'{self.name}_model_{n}.cif')
         if not exists(mmcif_path):
             self._session.logger.warning('Prediction file not found: %s' % mmcif_path)
             return
@@ -766,8 +817,9 @@ class RepeatSequencesArg(Annotation):
 # ------------------------------------------------------------------------------
 #
 def register_boltz_predict_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg, EnumOf, IntArg
     from chimerax.atomic import SequencesArg, ResiduesArg
+
     desc = CmdDesc(
         optional = [('sequences', SequencesArg)],
         keyword = [('ligands', ResiduesArg),
@@ -779,10 +831,16 @@ def register_boltz_predict_command(logger):
                    ('ligand_smiles', LigandsArg),
                    ('name', StringArg),
                    ('results_directory', SaveFolderNameArg),
+                   ('device', EnumOf(['default', 'cpu', 'gpu'])),
+                   ('samples', IntArg),
+                   ('recycles', IntArg),
+                   ('seed', IntArg),
                    ('use_msa_cache', BoolArg),
+                   ('open', BoolArg),
                    ('install_location', SaveFolderNameArg),
                    ('wait', BoolArg)],
-        synopsis = 'Predict a structure with Boltz'
+        synopsis = 'Predict a structure with Boltz',
+        url = 'help:boltz_help.html'
     )
     register('boltz predict', desc, boltz_predict, logger=logger)
 
