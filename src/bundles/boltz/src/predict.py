@@ -24,7 +24,7 @@
 
 def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
                   protein = [], dna = [], rna = [], ligand_ccd = [], ligand_smiles = [],
-                  name = None, results_directory = None,
+                  name = None, results_directory = None, device = None,
                   use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                   install_location = None, wait = None):
 
@@ -54,7 +54,7 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
     if covalent_ligands:
         session.logger.info(f'Predicting covalent ligands not yet supported: {covalent_ligands}')
 
-    br = BoltzRun(session, molecular_components, name = name, align_to = align_to,
+    br = BoltzRun(session, molecular_components, name = name, align_to = align_to, device = device,
                   use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
                   wait = wait)
     br.start(results_directory)
@@ -160,7 +160,7 @@ class BoltzMolecule:
 # ------------------------------------------------------------------------------
 #
 class BoltzRun:
-    def __init__(self, session, molecular_components, name = None, align_to = None,
+    def __init__(self, session, molecular_components, name = None, align_to = None, device = 'default',
                  use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                  wait = False):
 
@@ -168,6 +168,7 @@ class BoltzRun:
         self._molecular_components = molecular_components  # List of BoltzMolecule
         self.name = name
         self._align_to = align_to	# AtomicStructure to align prediction to.
+        self._device = device		# gpu, cpu or default, or None (uses settings value)
 
         self._results_directory = None
         self._yaml_path = None
@@ -290,7 +291,31 @@ class BoltzRun:
         from os.path import dirname
         self.cached_msa_dir = dirname(tuple(msa_cache_files.values())[0]) if msa_cache_files else None
         return msa_cache_files
-    
+
+    @property
+    def device(self):
+        if self._device is None:
+            self._device = self._settings.device
+        if self._device == 'default':
+            from sys import platform
+            if platform == 'win32':
+                device = 'cpu'
+                # TODO: Detect Nvidia/CUDA on windows.  Also will need cuda-enabled torch.
+                #       The default PyPi torch 2.6.0 for windows is cpu only.
+            elif platform == 'darwin':
+                from platform import machine
+                device = 'gpu' if machine() == 'arm64' else 'cpu'
+                # PyTorch 2.6 does not support Intel Mac GPU use.
+                #     https://discuss.pytorch.org/t/pytorch-support-for-intel-gpus-on-mac/151996
+            elif platform == 'linux':
+                device = 'gpu' if exists('/usr/bin/nvidia-smi') else 'cpu'
+                # TODO: Run nvidia-smi to see if GPU memory is sufficient to run Boltz.
+            else:
+                device = 'cpu'
+        else:
+            device = self._device
+        return device
+
     def _run_boltz_local(self):
         self._running = True
 
@@ -306,9 +331,8 @@ class BoltzRun:
                    ]
         if self.use_msa_server:
             command.append('--use_msa_server')
-        from sys import platform
-        if platform == 'win32':
-            command.extend(['--accelerator', 'cpu'])  # TODO: Allow Nvidia/CUDA on windows.
+
+        command.extend(['--accelerator', self.device])
 
         from sys import platform
         if platform == 'darwin':
@@ -766,7 +790,7 @@ class RepeatSequencesArg(Annotation):
 # ------------------------------------------------------------------------------
 #
 def register_boltz_predict_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg, EnumOf
     from chimerax.atomic import SequencesArg, ResiduesArg
     desc = CmdDesc(
         optional = [('sequences', SequencesArg)],
@@ -779,6 +803,7 @@ def register_boltz_predict_command(logger):
                    ('ligand_smiles', LigandsArg),
                    ('name', StringArg),
                    ('results_directory', SaveFolderNameArg),
+                   ('device', EnumOf(['default', 'cpu', 'gpu'])),
                    ('use_msa_cache', BoolArg),
                    ('install_location', SaveFolderNameArg),
                    ('wait', BoolArg)],
