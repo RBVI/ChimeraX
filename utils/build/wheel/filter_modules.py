@@ -35,7 +35,8 @@ module_blacklist = set(
 )
 fine_blacklist = set(
     [
-        "chimerax.boltz.make_ccd_atom_counts_file" # Not a module, but a script
+        "chimerax.boltz.make_ccd_atom_counts_file", # Not a module, but a script
+        "chimerax.boltz.download_weights_and_ccd", # Not a module, but a script
         "chimerax.amber_info",  # needs app_bin_dir
         "chimerax.alignment_algs.options",  # imports chimerax.ui
         "chimerax.alignment_headers.conservation",  # imports chimerax.ui
