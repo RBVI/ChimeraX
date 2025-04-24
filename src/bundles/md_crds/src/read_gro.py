@@ -101,3 +101,15 @@ def parse_gro(session, file_name, lines, structures, auto_style):
     if s is None:
         raise UserError("'%s' has no non-comment lines!" % file_name)
     s.connect_structure()
+    from chimerax.atomic import next_chain_id
+    cid = singleton_cid = None
+    for group in s.bonded_groups():
+        residues = group.unique_residues
+        if len(residues) == 1:
+            if singleton_cid is None:
+                cid = singleton_cid = next_chain_id(cid)
+                session.logger.info("Singleton residues assigned chain ID %s" % singleton_cid)
+            residues.chain_ids = singleton_cid
+        else:
+            cid = next_chain_id(cid)
+            residues.chain_ids = cid
