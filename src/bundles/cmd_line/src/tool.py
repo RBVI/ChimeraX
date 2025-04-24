@@ -439,6 +439,10 @@ class _HistoryDialog:
             button_layout.addWidget(but)
         button_frame.setLayout(button_layout)
         self.window.manage(placement=None, initially_hidden=True)
+        # For some reason, in the 1.8 release and later managing the window using just the above
+        # manage() call results in a tiny initial size, but not for other similar initially hidden
+        # floating dialogs.  The following kludge results in a full-size window.
+        self.window.floating = True
         from chimerax.core.history import FIFOHistory
         self._history = FIFOHistory(controller.settings.num_remembered, controller.session, "commands")
         self._record_dialog = None
