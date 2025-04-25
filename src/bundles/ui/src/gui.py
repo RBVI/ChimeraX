@@ -2353,7 +2353,7 @@ class ToolWindow(StatusLogger):
         """Supported API. Perform actions when window hidden/shown
 
         Override to perform any actions you want done when the window
-        is hidden (\ `shown` = False) or shown (\ `shown` = True)"""
+        is hidden (`shown` = False) or shown (`shown` = True)"""
         pass
 
     def shrink_to_fit(self):

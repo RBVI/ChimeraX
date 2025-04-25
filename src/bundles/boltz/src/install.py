@@ -269,6 +269,7 @@ def register_boltz_install_command(logger):
     desc = CmdDesc(
         required = [('directory', SaveFolderNameArg)],
         keyword = [('download_model_weights_and_ccd', BoolArg)],
-        synopsis = 'Install Boltz from PyPi in a virtual environment'
+        synopsis = 'Install Boltz from PyPi in a virtual environment',
+        url = 'help:boltz_help.html'
     )
     register('boltz install', desc, boltz_install, logger=logger)
