@@ -28,7 +28,7 @@ from chimerax.ui.widgets import ItemTable
 from chimerax.core.commands import run, concise_model_spec
 from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
-                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QSizePolicy)
+                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox)
 from Qt.QtCore import Qt
 
 
@@ -57,6 +57,10 @@ class ViewDockTool(ToolInstance):
 
         self.struct_table = ItemTable(session=self.session)
         self.table_setup()
+
+        self.description_group = QGroupBox()
+        self.description_box_setup()
+
         self.handlers = []
         self.add_handlers()
         self.tool_window.manage('side')
@@ -176,6 +180,33 @@ class ViewDockTool(ToolInstance):
 
         # Add the table to the layout
         self.main_v_layout.addWidget(self.struct_table)
+
+    def description_box_setup(self):
+        """
+        Build the description box at the bottom of the tool which displays all the docking attribute information
+        for a selected docking model.
+        """
+
+        # Create a group box for the description box
+        description_layout = QVBoxLayout()
+        self.description_group.setLayout(description_layout)
+
+        self.struct_table.selection_changed.connect(
+            lambda newly_selected, newly_deselected: self.update_model_description(newly_selected)
+        )
+
+        # Add the group box to the main layout
+        self.main_v_layout.addWidget(self.description_group)
+
+    def update_model_description(self, newly_selected):
+        """
+        Update the description box with the selected structure's data. If more then one structure is newly selected only
+        the first one will be displayed.
+
+        Args:
+            newly_selected (list): The newly selected structure(s) in the ItemTable.
+        """
+        pass
 
     def add_handlers(self):
         """
