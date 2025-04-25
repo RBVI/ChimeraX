@@ -28,7 +28,7 @@ from chimerax.ui.widgets import ItemTable
 from chimerax.core.commands import run, concise_model_spec
 from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
-                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox)
+                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel,)
 from Qt.QtGui import QFont
 from Qt.QtCore import Qt
 
@@ -189,7 +189,7 @@ class ViewDockTool(ToolInstance):
         """
 
         # Create a group box for the description box
-        description_layout = QVBoxLayout()
+        description_layout = QGridLayout()
         self.description_group.setLayout(description_layout)
 
         # Set the title alignment to center
@@ -209,16 +209,46 @@ class ViewDockTool(ToolInstance):
 
     def update_model_description(self, newly_selected):
         """
-        Update the description box with the selected structure's data. If more then one structure is newly selected only
-        the first one will be displayed.
+        Update the description box with the most recently selected structure's data. If more than one structure is
+        newly selected, only the first one will be displayed.
 
         Args:
             newly_selected (list): The newly selected structure(s) in the ItemTable.
         """
+        # Create a custom font for the labels
+        label_font = QFont()
+        label_font.setPointSize(12)  # Set the font size
+
         if not newly_selected:
             return
         docking_structure = newly_selected[0]
         self.description_group.setTitle(f"ChimeraX Model {docking_structure.atomspec}")
+
+        # Clear the existing layout
+        layout = self.description_group.layout()
+        for i in reversed(range(layout.count())):
+            widget = layout.itemAt(i).widget()
+            if widget:
+                widget.deleteLater()
+
+        # Add attributes in a grid layout
+        attributes = list(docking_structure.viewdockx_data.items())
+        total_attributes = len(attributes)
+        rows_per_column = (total_attributes + 1) // 2  # Divide attributes evenly over two columns
+
+        for index, (key, value) in enumerate(attributes):
+            row = index % rows_per_column
+            col = (index // rows_per_column) * 2  # Multiply by 2 to account for key-value pairs
+
+            # Add key label
+            key_label = QLabel(f"<b>{key}:</b>") # Use HTML to bold the attr name
+            key_label.setFont(label_font)
+            layout.addWidget(key_label, row, col)
+
+            # Add value label
+            value_label = QLabel(str(value))
+            value_label.setFont(label_font)
+            layout.addWidget(value_label, row, col + 1)
 
     def add_handlers(self):
         """
