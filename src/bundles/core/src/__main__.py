@@ -981,6 +981,7 @@ def init(argv, event_loop=True):
     # the rest of the arguments are data files
     from chimerax.core import commands
 
+    from . import errors
     for arg in args:
         if opts.safe_mode:
             # 'open' command unavailable; only open Python files
@@ -1013,6 +1014,8 @@ def init(argv, event_loop=True):
 
             try:
                 commands.run(sess, "open %s" % StringArg.unparse(arg))
+            except errors.NotABug as err:
+                sess.logger.error(str(err))
             except Exception:
                 if not sess.ui.is_gui:
                     import traceback
