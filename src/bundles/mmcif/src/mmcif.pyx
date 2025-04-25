@@ -455,7 +455,7 @@ def fetch_mmcif(
                               cache, ignore_cache=ignore_cache)
         # double check that a mmCIF file was downloaded instead of an
         # HTML error message saying the ID does not exist
-        with open(filename, 'r') as f:
+        with open(filename, 'r', encoding='utf-8', errors='replace') as f:
             line = f.readline()
             if not line.startswith(('data_', '#')):
                 f.close()

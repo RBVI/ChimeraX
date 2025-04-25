@@ -195,7 +195,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             target_strings[i] = target_string
             templates_strings[i] = [template_string]
 
-    from .common import write_modeller_scripts, get_license_key
+    from .common import write_modeller_scripts, get_license_key, save_template
     _license_key = get_license_key(session, license_key)
     script_path, config_path, temp_dir = write_modeller_scripts(_license_key,
                                                                 num_models, het_preserve, water_preserve,
@@ -272,14 +272,14 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             os.mkdir(struct_dir, mode=0o755)
         except FileExistsError:
             pass
-    from chimerax.pdb import save_pdb, standard_polymeric_res_names as std_res_names
+    from chimerax.pdb import standard_polymeric_res_names as std_res_names
     for structure in structures_to_save:
         base_name = structure_save_name(structure) + '.pdb'
         pdb_file_name = os.path.join(struct_dir, base_name)
         input_file_map.append((base_name, "text_file", pdb_file_name))
         ATOM_res_names = structure.in_seq_hets
         ATOM_res_names.update(std_res_names)
-        save_pdb(session, pdb_file_name, models=[structure], polymeric_res_names=ATOM_res_names)
+        save_template(session, pdb_file_name, structure, ATOM_res_names)
         delattr(structure, 'in_seq_hets')
 
     from chimerax.atomic import Chains

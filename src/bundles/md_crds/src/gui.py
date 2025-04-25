@@ -60,19 +60,8 @@ def fill_context_menu(menu, parent_tool_window, structure):
     mgr = get_plotting_manager(structure.session)
 
     from Qt.QtGui import QAction
-    plot_menu = menu.addMenu("Plot")
-
-    for provider_name in mgr.provider_names:
-        ui_name = mgr.ui_name(provider_name)
-        menu_name = plural_of(ui_name)
-        if ui_name.lower() == ui_name:
-            # no caps
-            menu_name = menu_name.capitalize()
-
-        action = QAction(menu_name, plot_menu)
-        action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure, name=provider_name:
-            _show_plot(name, tw, s))
-        plot_menu.addAction(action)
+    plot_action = menu.addAction("Plot")
+    plot_action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure: _show_plot_dialog(tw, s))
 
 class PlotDialog:
     def __init__(self, plot_window, structure):
@@ -102,8 +91,6 @@ class PlotDialog:
         layout.setSpacing(0)
         tw.ui_area.setLayout(layout)
         self.plot_tabs = QTabWidget()
-        self.plot_tabs.setTabsClosable(True)
-        self.plot_tabs.tabCloseRequested.connect(self._close_tab)
         layout.addWidget(self.plot_tabs, stretch=1)
 
         self.tab_info = {}
@@ -112,6 +99,10 @@ class PlotDialog:
         self._value_columns = {}
         self._frame_indicators = {}
         self._mouse_handlers = {}
+        self._provider_widgets = {}
+
+        for provider_name in self.mgr.provider_names:
+            self.tab_info[provider_name] = self.make_tab(provider_name)
 
         tw.manage(None)
 
@@ -121,41 +112,18 @@ class PlotDialog:
         return self._make_atomic_tab(provider_name)
 
     def show_tab(self, provider_name):
-        try:
-            tab_name, tab_widget = self.tab_info[provider_name]
-        except KeyError:
-            tab_name, tab_widget = self.tab_info[provider_name] = self.make_tab(provider_name)
-
+        tab_name, tab_widget = self.tab_info[provider_name]
         self.plot_tabs.setCurrentWidget(tab_widget)
 
     def _changes_cb(self, trig_name, data):
         s, changes = data
         if 'active_coordset changed' in changes.structure_reasons():
             for provider, table in self._tables.items():
+                if not table.data:
+                    continue
                 table.update_column(self._value_columns[provider], data=True)
                 self._frame_indicators[provider].set_xdata([s.active_coordset_id])
                 self._plot_stacks[provider].widget(1).draw_idle()
-
-    def _close_tab(self, tab_index):
-        if self.plot_tabs.count() == 1:
-            return self.tool_window.destroy()
-        tab_name = self.plot_tabs.tabText(tab_index)
-        for provider, tab_info in self.tab_info.items():
-            if tab_name == tab_info[0]:
-                break
-        else:
-            raise ValueError("No open tab named '%s'" % tab_name)
-        self.plot_tabs.removeTab(tab_index)
-        del self.tab_info[provider]
-        if provider not in self._tables:
-            return
-        canvas = self._plot_stacks[provider].widget(1)
-        for cid in self._mouse_handlers[provider]:
-            canvas.mpl_disconnect(cid)
-        for mapping in [self._tables, self._plot_stacks, self._value_columns, self._frame_indicators,
-                self._mouse_handlers]:
-            del mapping[provider]
-
 
     def _delete_table_entries(self, provider_name):
         table = self._tables[provider_name]
@@ -226,14 +194,23 @@ class PlotDialog:
         plot_button.clicked.connect(lambda *args, f=self._plot_atomic, pv=provider_name: f(pv))
         pc_layout.addWidget(plot_button, 0, 0, alignment=Qt.AlignRight)
         num_atoms = self.mgr.num_atoms(provider_name)
-        atom_string = "any number of" if num_atoms == 0 else "%d" % num_atoms
-        pc_layout.addWidget(QLabel(" %s from %s selected atoms" % (ui_name, atom_string)), 0, 1,
+        preposition = "for" if num_atoms == 0 else "from"
+        atom_string = "" if num_atoms == 0 else "%d " % num_atoms
+        pc_layout.addWidget(QLabel(" %s %s %sselected atoms" % (ui_name, preposition, atom_string)), 0, 1,
             alignment=Qt.AlignLeft)
         if num_atoms == 0:
             reminder = QLabel("(If no selection, all atoms)")
             from chimerax.ui import shrink_font
             shrink_font(reminder)
             pc_layout.addWidget(reminder, 1, 0, 1, 2, alignment=Qt.AlignCenter)
+        excludes = self.mgr.excludes(provider_name)
+        if excludes:
+            provider_widget_dict = self._provider_widgets.setdefault(provider_name, {})
+            exclude_dict = provider_widget_dict["excludes"] = {}
+            for i, exclude in enumerate(excludes):
+                exclude_dict[exclude] = chkbut = QCheckBox("Ignore %s" % exclude)
+                chkbut.setChecked(True)
+                pc_layout.addWidget(chkbut, 2+i, 0, 1, 2, alignment=Qt.AlignCenter)
 
         delete_control_area = QWidget()
         area_layout.addWidget(delete_control_area)
@@ -253,13 +230,19 @@ class PlotDialog:
         table = ItemTable(allow_user_sorting=False)
         table.add_column("Color", "rgba8", format=table.COL_FORMAT_OPAQUE_COLOR, title_display=False)
         table.add_column("Shown", "shown", format=table.COL_FORMAT_BOOLEAN, icon="shown")
-        self._value_columns[provider_name] = table.add_column(self.mgr.ui_name(provider_name).capitalize(),
-            "value", format=self.mgr.text_format(provider_name),
-            #justification="decimal"  guessing in most cases better to center; also avoids fixed-width font
-            header_justification="center")
-        for i in range(self.mgr.num_atoms(provider_name)):
-            table.add_column("Atom %d" % (i+1), lambda x, i=i: x.atoms[i],
-                format=lambda a: a.string(minimal=True))
+        val_col_name = self.mgr.ui_name(provider_name)
+        if not val_col_name.isupper():
+            val_col_name = val_col_name.capitalize()
+        #justification="decimal"  guessing in most cases better to center; also avoids fixed-width font
+        self._value_columns[provider_name] = table.add_column(val_col_name, "value",
+            format=self.mgr.text_format(provider_name), header_justification="center")
+        num_atoms = self.mgr.num_atoms(provider_name)
+        if num_atoms == 0:
+            table.add_column("# Atoms", "num_atoms")
+        else:
+            for i in range(num_atoms):
+                table.add_column("Atom %d" % (i+1), lambda x, i=i: x.atoms[i],
+                    format=lambda a: a.string(minimal=True))
         table.data = []
         table.launch()
         return table
@@ -285,24 +268,36 @@ class PlotDialog:
                     try:
                         self.structure.active_coordset_id = cs_id
                     except IndexError:
-                        # non-exstent
+                        # non-existent
                         pass
                 break
 
     def _plot_atomic(self, provider_name):
         from chimerax.ui import tool_user_error
-        from chimerax.atomic import selected_atoms # selected_atoms preserves selection order
-        sel_atoms = [a for a in selected_atoms(self.session) if a.structure == self.structure]
+        from chimerax.atomic import Atoms, selected_atoms # selected_atoms preserves selection order
+        sel_atoms = Atoms([a for a in selected_atoms(self.session) if a.structure == self.structure])
         expected_sel = self.mgr.num_atoms(provider_name)
         ui_name = self.mgr.ui_name(provider_name)
         if expected_sel == 0:
             if not sel_atoms:
                 sel_atoms = self.structure.atoms
+            exclude_widgets = self._provider_widgets.get("excludes", {})
+            for struct_cat, chkbox in exclude_widgets.items():
+                if chkbox.isChecked():
+                    sel_atoms = sel_atoms.filter(sel_atoms.structure_categories != struct_cat)
+            if not sel_atoms:
+                from chimerax.core.commands import commas
+                return tool_user_error("No atoms remain after removing %s" % commas(exclude_widgets.keys(),
+                    conjunction="and"))
         elif len(sel_atoms) != expected_sel:
             return tool_user_error("Plotting %s requires exactly %d selected atoms in the structure;"
                 " %d are currently selected" % (plural_of(ui_name), expected_sel, len(sel_atoms)))
         table = self._tables[provider_name]
-        table.data += [TableEntry(self, provider_name, sel_atoms)]
+        from .manager import PlotValueError
+        try:
+            table.data += [TableEntry(self, provider_name, sel_atoms)]
+        except PlotValueError as e:
+            return tool_user_error("Cannot plot %s for selected atoms: %s" % (ui_name, str(e)))
         self._update_plot(provider_name)
 
     def _update_plot(self, provider_name):
@@ -348,14 +343,18 @@ class PlotDialog:
 class TableEntry:
     def __init__(self, plot_dialog, provider_name, atoms):
         self.plot_dialog = plot_dialog
+        mgr = plot_dialog.mgr
         self.provider_name = provider_name
-        self.atoms = atoms
         from chimerax.core.colors import distinguish_from
         self.rgba = distinguish_from([(1.0,1.0,1.0,1.0)]
             + [datum.rgba for datum in plot_dialog._tables[provider_name].data])
         self._shown = True
-        self._values = plot_dialog.mgr.get_values(provider_name,
-                            structure=plot_dialog.structure, atoms=atoms)
+        self._values = mgr.get_values(provider_name, structure=plot_dialog.structure, atoms=atoms)
+        self.atoms = atoms
+
+    @property
+    def num_atoms(self):
+        return len(self.atoms)
 
     @property
     def rgba8(self):
@@ -386,7 +385,7 @@ class TableEntry:
         return self._values
 
 _md_tool_windows = {}
-def _show_plot(provider_name, main_tool_window, structure):
+def _show_plot_dialog(main_tool_window, structure):
     inst = main_tool_window.tool_instance
     inst_windows = _md_tool_windows.setdefault(inst, {})
     try:
@@ -395,6 +394,5 @@ def _show_plot(provider_name, main_tool_window, structure):
         plot_dialog = inst_windows["plot"] = PlotDialog(main_tool_window.create_child_window("MD Plots"),
             structure)
 
-    plot_dialog.show_tab(provider_name)
     plot_dialog.tool_window.shown = True
 

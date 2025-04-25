@@ -17,6 +17,16 @@ BUNDLE_VERSION := $(shell $(PYTHON) mkbuildinfo -v $(TOP) $(BUNDLE_VERSION) $(BU
 
 .PHONY: src/commands/_atomspec.py wheel src/buildinfo.py
 
+uv-wheel: clean src/buildinfo.py src/commands/_atomspec.py
+	uv build --no-build-isolation --wheel
+
+uv-install uv-reinstall uv-app-install: uv-wheel
+	uv pip uninstall ChimeraX-Core
+	uv pip install dist/*.whl
+
+uv-build: uv-install
+	$(MAKE) sync
+
 install reinstall app-install: wheel
 	# newer versions of pip won't install over the same version number (which depends on the last commit
 	# number), so to install something that hasn't been committed, uninstall first.

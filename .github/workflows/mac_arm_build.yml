@@ -45,7 +45,6 @@ jobs:
           brew install python@3.10
           python3.10 -m pip install lief dmgbuild
           patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
-      - uses: actions/checkout@v4
       - run: ${PWD}/utils/set_up_macos.sh
       - name: Fetch Plato prerequisites
         uses: ./utils/ci/consolidated_cache
@@ -53,6 +52,11 @@ jobs:
           platform: macos
           architecture: arm64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Install the 3DConnexion Framework
+        run: |
+          hdiutil attach 3DxWareMac_v10-8-7_r3836.dmg -nobrowse -noverify
+          sudo installer -pkg /Volumes/3Dconnexion\ Software/Install\ 3Dconnexion\ software.pkg -target /
+          hdiutil detach /Volumes/3Dconnexion\ Software
       - uses: Tiryoh/gha-jobid-action@v1
         id: get_job_id
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}

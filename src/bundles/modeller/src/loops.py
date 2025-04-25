@@ -201,7 +201,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         input_file_map = []
 
         # form the sequences to be written out as a PIR
-        from .common import opal_safe_file_name, structure_save_name
+        from .common import opal_safe_file_name, structure_save_name, save_template
         from chimerax.atomic import Sequence
         pir_target = Sequence(name=opal_safe_file_name(seq.name))
         pir_target.description = "sequence:%s:.:.:.:.::::" % pir_target.name
@@ -250,7 +250,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         input_file_map.append((base_name, "text_file", pdb_file_name))
         ATOM_res_names = s.in_seq_hets
         ATOM_res_names.update(std_res_names)
-        save_pdb(session, pdb_file_name, models=[s], polymeric_res_names=ATOM_res_names)
+        save_template(session, pdb_file_name, s, ATOM_res_names)
         delattr(s, 'in_seq_hets')
 
         from chimerax.atomic import Chains

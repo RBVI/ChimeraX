@@ -1,0 +1,164 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=1.4.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Nucleotides"
+version = "2.0.3"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Create nucleotide-specific displays"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-Atomic ~=1.0,>=1.22.2",
+  "ChimeraX-Geometry ~=1.0",
+  "ChimeraX-Surface ~=1.0",
+  "ChimeraX-UI ~=1.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """Create special nucleotide-specific displays of the base and sugar moieties.
+  Such displays are generally combined with various atomic representations
+  and/or cartoons.
+  
+  See also 
+	  Nucleic acid visualization with UCSF Chimera.
+  Couch GS, Hendrix DK, Ferrin TE. Nucleic Acids Res. 2006 Feb 14;34(4):e29."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["General"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.package-data]
+"src/icons" = [
+  "*.png",
+]
+
+[tool.chimerax.command.nucleotides]
+category = "General"
+description = "Manipulate nucleotide representations"
+
+[tool.chimerax.command."~nucleotides"]
+category = "General"
+description = "Undo nucleotide representations"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Nucleotides"
+name = "tab-nuc"
+after = "Molecule Display"
+before = "Graphics"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Nucleotides"
+section = "Styles"
+name = "nucleotide-plain"
+display-name = "Plain"
+icon = "nuc-atoms.png"
+description = "Remove nucleotides styling"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Nucleotides"
+section = "Styles"
+name = "nucleotide-filled"
+display-name = "Filled"
+icon = "nuc-fill.png"
+description = "Show nucleotides with filled rings"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Nucleotides"
+section = "Styles"
+name = "nucleotide-slab"
+display-name = "Slab"
+icon = "nuc-slab.png"
+description = "Show nucleotide bases as slabs and fill sugars"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Nucleotides"
+section = "Styles"
+name = "nucleotide-box"
+display-name = "Tube/\nSlab"
+icon = "nuc-box.png"
+description = "Show nucleotide bases as boxes and sugars as tubes"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Nucleotides"
+section = "Styles"
+name = "nucleotide-ellipsoid"
+display-name = "Tube/\nEllipsoid"
+icon = "nuc-elli.png"
+description = "Show nucleotide bases as ellipsoids and sugars as tubes"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Nucleotides"
+section = "Styles"
+name = "nucleotide-muffler"
+display-name = "Tube/\nMuffler"
+icon = "nuc-muff.png"
+description = "Show nucleotide bases as mufflers and sugars as tubes"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Nucleotides"
+section = "Styles"
+name = "nucleotide-ladder"
+display-name = "Ladder"
+icon = "nuc-ladder.png"
+description = "Show nucleotides as H-bond ladders"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Nucleotides"
+section = "Styles"
+name = "nucleotide-stubs"
+display-name = "Stubs"
+icon = "nuc-stubs.png"
+description = "Show nucleotides as stubs"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Nucleotides"
+section = "Coloring"
+name = "nucleotide-color"
+display-name = "nucleotide"
+icon = "nuc-color.png"
+description = "Color by nucleotide"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Molecule Display"
+section = "Styles"
+group = "nuc"
+name = "nucleotide-1"
+link = "ChimeraX-Nucleotides:nucleotide-plain"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Molecule Display"
+section = "Styles"
+group = "nuc"
+name = "nucleotide-2"
+link = "ChimeraX-Nucleotides:nucleotide-filled"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Molecule Display"
+section = "Styles"
+group = "nuc"
+name = "nucleotide-3"
+link = "ChimeraX-Nucleotides:nucleotide-box"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Molecule Display"
+section = "Styles"
+group = "nuc"
+name = "nucleotide-4"
+link = "ChimeraX-Nucleotides:nucleotide-ladder"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Molecule Display"
+section = "Coloring"
+name = "nucleotide-5"
+link = "ChimeraX-Nucleotides:nucleotide-color"

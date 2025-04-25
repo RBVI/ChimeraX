@@ -3104,10 +3104,14 @@ class Command:
                 value, text = self._parse_arg(anno, text, session, final)
                 kwn = "%s_" % kw_name if is_python_keyword(kw_name) else kw_name
                 if hasattr(anno, "allow_repeat") and anno.allow_repeat:
+                    expand = anno.allow_repeat == "expand"
                     if kwn in self._kw_args:
-                        self._kw_args[kwn].append(value)
+                        if expand and isinstance(value, list):
+                            self._kw_args[kwn].extend(value)
+                        else:
+                            self._kw_args[kwn].append(value)
                     else:
-                        self._kw_args[kwn] = [value]
+                        self._kw_args[kwn] = list(value) if expand and isinstance(value, list) else [value]
                 else:
                     if kwn in self._kw_args:
                         self._error = 'Repeated keyword argument "%s"' % user_kw(

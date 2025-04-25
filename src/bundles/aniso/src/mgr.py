@@ -22,6 +22,18 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.triggerset import TriggerSet
+triggers = TriggerSet()
+triggers.add_trigger("style changed")
+
+def manager_for_structure(session, s, *, create=True):
+    for mgr in session.state_managers(_StructureAnisoManager):
+        if mgr.structure == s:
+            return mgr
+    if create:
+        return _StructureAnisoManager(session, s)
+    return None
+
 from numpy import array
 cube_vertices = array([
 	(1.0, 1.0, 1.0), (1.0, 1.0, -1.0),
@@ -49,10 +61,10 @@ class _StructureAnisoManager(StateManager):
                 'axis_color': None,
                 'axis_factor': None,
                 'axis_thickness': 0.01,
+                'color': None,
                 'ellipse_color': None,
                 'ellipse_factor': None,
                 'ellipse_thickness': 0.02,
-                'ellipsoid_color': None,
                 'scale': 1.0,
                 'show_ellipsoid': True,
                 'smoothing': 3,
@@ -94,6 +106,7 @@ class _StructureAnisoManager(StateManager):
 
         if need_rebuild:
             self._create_depictions()
+            triggers.activate_trigger("style changed", self)
 
     def _add_handlers(self):
         from chimerax.core.models import REMOVE_MODELS
@@ -145,7 +158,7 @@ class _StructureAnisoManager(StateManager):
 
         from chimerax.surface import calculate_vertex_normals as calc_normals
         if dp['show_ellipsoid']:
-            color_param = dp['ellipsoid_color']
+            color_param = dp['color']
             transparency = dp['transparency']
             from chimerax.geometry.icosahedron import icosahedron_triangulation
             varray, tarray = icosahedron_triangulation(subdivision_levels=smoothing, sphere_factor=1.0)

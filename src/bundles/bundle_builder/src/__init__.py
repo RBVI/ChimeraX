@@ -384,6 +384,10 @@ def _extract_data_files(bundle_info) -> dict[str, list[str]]:
                         data_files[fixed_path].append(".".join([maybe_file, extension]))
                     else:
                         data_files[fixed_path].append(".".join([file, extension]))
+        for e in list(dfiles_block.iter("DataDir")):
+            source = BundleBuilder._get_element_text(e)
+            fixed_path = _path_to_source_tree_location(source, dir=True)
+            data_files[fixed_path].append("*")
     return data_files
 
 
@@ -572,13 +576,23 @@ def _extract_selectors(bundle_info) -> list[dict[str, str]]:
                 if classifier.startswith("ChimeraX :: Selector"):
                     classifier = classifier.replace("ChimeraX :: Selector", "Selector")
                 data = classifier.split("::")
-                _, name, description = data
                 selector_dict = {}
-                selector_dict["name"] = name.strip().rstrip()
-                selector_dict["description"] = description.strip().rstrip()
+                selector_dict["name"] = data[1].strip().rstrip()
+                selector_dict["description"] = data[2].strip().rstrip()
+                if len(data) > 3:
+                    selector_dict["display"] = data[3].strip().rstrip()
                 selectors.append(selector_dict)
     return selectors
 
+def _extract_initializations(bundle_info) -> dict[str, list[str]]:
+    bi = _get_bundle_root(bundle_info)
+    initializations = defaultdict(list)
+    initializations_block = list(bi.iter("Initializations"))
+    if initializations_block:
+        initializations_block = initializations_block[0]
+        for e in list(initializations_block.iter("InitAfter")):
+            initializations[e.get("type")].append(e.get("bundle"))
+    return initializations
 
 def xml_to_toml(
     bundle_info, dynamic_version=False, write: bool = False, quiet: bool = False
@@ -699,11 +713,24 @@ def xml_to_toml(
             toml += "]\n"
     toml += "\n"
 
+    initializations = _extract_initializations(bundle_info)
+    if initializations:
+        for key, val in initializations.items():
+            toml += "[tool.chimerax.initializations.%s]\n" % key
+            toml += "bundles = [\n"
+            for bundle in val:
+                toml += '  "%s",\n' % bundle
+            toml += "]\n"
+        toml += "\n"
+
     datafiles = _extract_data_files(bundle_info)
     if datafiles:
         toml += "[tool.chimerax.package-data]\n"
         for path, files in datafiles.items():
-            toml += '"%s" = [\n' % path
+            if path == "src":
+                toml += '"%s/" = [\n' % path
+            else:
+                toml += '"%s" = [\n' % path
             for file in files:
                 toml += '  "%s",\n' % file
             toml += "]\n"
@@ -721,7 +748,7 @@ def xml_to_toml(
 
     tools = _extract_tools(bundle_info)
     for tool in tools:
-        if len(tool["name"].split(" ")) > 1:
+        if len(tool["name"].split(" ")) > 1 or '/' in tool["name"]:
             toml += '[tool.chimerax.tool."%s"]\n' % tool["name"]
         else:
             toml += "[tool.chimerax.tool.%s]\n" % tool["name"]
@@ -742,7 +769,10 @@ def xml_to_toml(
             if key == "name":
                 continue
             else:
-                toml += '%s = "%s"\n' % (key, value)
+                if '"' in value:
+                    toml += '%s = \'%s\'\n' % (key, value)
+                else:
+                    toml += '%s = "%s"\n' % (key, value)
         toml += "\n"
 
     managers = _extract_managers(bundle_info)
@@ -751,6 +781,8 @@ def xml_to_toml(
         for key, value in manager.items():
             if key == "manager" or key == "name":
                 continue
+            if key == 'guiOnly':
+                toml += "gui-only = %s\n" % value
             else:
                 if value in ["true", "false"]:
                     toml += "%s = %s\n" % (key.replace("_", "-"), value)
@@ -768,7 +800,7 @@ def xml_to_toml(
                 if value in ["true", "false"]:
                     toml += "%s = %s\n" % (key.replace("_", "-"), value)
                 else:
-                    toml += '%s = "%s"\n' % (key.replace("_", "-"), value)
+                    toml += '%s = "%s"\n' % (key.replace("_", "-"), value.encode('unicode_escape').decode('ascii'))
         toml += "\n"
 
     c_extensions = _extract_c_extensions(
@@ -830,7 +862,14 @@ def xml_to_toml(
             toml += '[tool.chimerax.selector."%s"]\n' % selector["name"]
         else:
             toml += "[tool.chimerax.selector.%s]\n" % selector["name"]
-        toml += 'description = "%s"\n' % selector["description"]
+        for key, value in selector.items():
+            if key == "name":
+                continue
+            else:
+                if value in ["true", "false"]:
+                    toml += "%s = %s\n" % (key.replace("_", "-"), value)
+                else:
+                    toml += '%s = "%s"\n' % (key.replace("_", "-"), value)
         toml += "\n"
 
     # """

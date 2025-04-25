@@ -8,6 +8,7 @@ jobs:
   build-rocky8-docker:
     name: Build ChimeraX for Rocky 8
     strategy:
+      fail-fast: false
       matrix:
         include: 
 #          - branch: release/v1.10
@@ -25,6 +26,7 @@ jobs:
     name: Build ChimeraX for Rocky 9
     needs: [build-rocky8-docker]
     strategy:
+      fail-fast: false
       matrix:
         include: 
 #          - branch: release/v1.10
@@ -42,6 +44,7 @@ jobs:
     name: Build ChimeraX for Ubuntu
     needs: [build-rocky8-docker]
     strategy:
+      fail-fast: false
       matrix:
         include:
           #          - branch: release/v1.10
@@ -55,26 +58,13 @@ jobs:
       branch: ${{ matrix.branch }}
       release_type: ${{ matrix.release_type }}
     secrets: inherit
-  build-ubuntu-arm:
-    name: Build ChimeraX for Ubuntu
-    strategy:
-      matrix:
-        include:
-          - branch: develop
-            release_type: daily
-    uses: ./.github/workflows/ubuntu_arm_build.yml
-    with:
-      branch: ${{ matrix.branch }}
-      release_type: ${{ matrix.release_type }}
-    secrets: inherit
   build-flatpak:
     name: Build ChimeraX FlatPak
     needs: [build-rocky8-docker]
     strategy:
+      fail-fast: false
       matrix:
-        include: 
-#          - branch: release/v1.10
-#            release_type: candidate
+        include:
           - branch: develop
             release_type: daily
           #- branch: python3.13
@@ -84,26 +74,27 @@ jobs:
       branch: ${{ matrix.branch }}
       release_type: ${{ matrix.release_type }}
     secrets: inherit
-  #  build-flatpak-arm:
-  #    name: Build ChimeraX FlatPak
-  #    needs: [build-rocky8-docker]
-  #    strategy:
-  #      matrix:
-  #        include:
-  #          #          - branch: release/v1.10
-  #          #            release_type: candidate
-  #          - branch: develop
-  #            release_type: daily
-  #          #- branch: python3.13
-  #          #  release_type: techpreview
-  #    uses: ./.github/workflows/flatpak_build.yml
-  #    with:
-  #      branch: ${{ matrix.branch }}
-  #      release_type: ${{ matrix.release_type }}
-  #    secrets: inherit
+  build-flatpak-arm:
+    name: Build ARM ChimeraX FlatPak
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+#          - branch: release/v1.10
+#            release_type: candidate
+          - branch: develop
+            release_type: daily
+          #- branch: python3.13
+          #  release_type: techpreview
+    uses: ./.github/workflows/flatpak_arm_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit
   build-arm-macos:
     name: Build ChimeraX for arm64 macOS
     strategy:
+      fail-fast: false
       matrix:
         include: 
 #          - branch: release/v1.10
@@ -120,6 +111,7 @@ jobs:
   build-intel-macos:
     name: Build ChimeraX for Intel macOS
     strategy:
+      fail-fast: false
       matrix:
         include: 
 #          - branch: release/v1.10
@@ -137,6 +129,7 @@ jobs:
     name: Build Universal ChimeraX for macOS
     needs: [build-arm-macos, build-intel-macos]
     strategy:
+      fail-fast: false
       matrix:
         include: 
 #          - branch: release/v1.10
@@ -153,6 +146,7 @@ jobs:
   build-windows:
     name: Build ChimeraX for Windows
     strategy:
+      fail-fast: false
       matrix:
         include: 
 #          - branch: release/v1.10

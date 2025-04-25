@@ -1,0 +1,44 @@
+<BundleInfo name="ChimeraX-SaveCommand" version="1.5.1" package="chimerax.save_command"
+            minSessionVersion="1" maxSessionVersion="1">
+
+  <!-- Additional information about bundle source -->
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <!-- Synopsis is a one-line description
+       Description is a full multi-line description -->
+  <Synopsis>Manages 'save' command extensibility</Synopsis>
+  <Description>Handles 'save' command and manages bundles extending its capabilities</Description>
+
+  <!-- Categories is a list where this bundle should appear -->
+  <Categories>
+    <Category name="Commands"/>
+  </Categories>
+
+  <!-- Initializations controls when this bundle is initialized relative to other bundles -->
+  <Initializations>
+    <InitAfter type="manager" bundle="ChimeraX-DataFormats"/>
+  </Initializations>
+
+  <!-- Dependencies on other ChimeraX/Python packages -->
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.2"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-IO" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.10"/>
+  </Dependencies>
+
+  <Managers>
+    <Manager name="save command"/>
+  </Managers>
+
+  <Classifiers>
+    <!-- Development Status should be compatible with bundle version number -->
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: save :: General :: Save data files</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: usage save :: General :: Show 'save' command syntax</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
