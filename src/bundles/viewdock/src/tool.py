@@ -29,6 +29,7 @@ from chimerax.core.commands import run, concise_model_spec
 from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
                           QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox)
+from Qt.QtGui import QFont
 from Qt.QtCore import Qt
 
 
@@ -191,6 +192,14 @@ class ViewDockTool(ToolInstance):
         description_layout = QVBoxLayout()
         self.description_group.setLayout(description_layout)
 
+        # Set the title alignment to center
+        self.description_group.setAlignment(Qt.AlignCenter)
+
+        # Customize the font for the title
+        title_font = QFont()
+        title_font.setPointSize(16)  # Set font size
+        self.description_group.setFont(title_font)
+
         self.struct_table.selection_changed.connect(
             lambda newly_selected, newly_deselected: self.update_model_description(newly_selected)
         )
@@ -206,7 +215,10 @@ class ViewDockTool(ToolInstance):
         Args:
             newly_selected (list): The newly selected structure(s) in the ItemTable.
         """
-        pass
+        if not newly_selected:
+            return
+        docking_structure = newly_selected[0]
+        self.description_group.setTitle(f"ChimeraX Model {docking_structure.atomspec}")
 
     def add_handlers(self):
         """
