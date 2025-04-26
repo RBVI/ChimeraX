@@ -239,6 +239,22 @@ class ViewDockTool(ToolInstance):
         rows_per_column = (total_attributes + 1) // 2  # Divide attributes evenly over two columns
 
         for index, (key, value) in enumerate(attributes):
+            # Use the column's data_fetch to get the value for attributes appearing in the table
+            column = next((col for col in self.struct_table.columns if col.title == key), None)
+            if column and column.data_fetch:
+                # Fetch the value using the column's data_fetch
+                if callable(column.data_fetch):
+                    value = column.data_fetch(docking_structure)
+                else:
+                    # If data_fetch wasn't initialized as a callable, assume data_fetch is a string representing an
+                    # attribute path
+                    value = docking_structure
+                    for attr in column.data_fetch.split('.'):
+                        # Loop through nested attributes
+                        value = getattr(value, attr, None)
+                        if value is None:
+                            break
+
             row = index % rows_per_column
             col = (index // rows_per_column) * 2  # Multiply by 2 to account for key-value pairs
 
