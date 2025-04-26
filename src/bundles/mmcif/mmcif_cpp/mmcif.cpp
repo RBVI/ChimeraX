@@ -1513,11 +1513,26 @@ ExtractMolecule::parse_atom_site()
                 auto psi = poly.find(entity_id);
                 auto& entity_poly_seq = psi->second.seq;
                 auto ps_key = PolySeq(position, residue_name, false);
-                auto pi = entity_poly_seq.find(ps_key);
-                if (pi == entity_poly_seq.end() || pi->seq_id != position || pi->mon_id != residue_name) {
-                    logger::warning(_logger, "Ignoring sequence due to wrong residue \"", residue_name, "\" on line ", line_number());
+                auto pi = entity_poly_seq.lower_bound(ps_key);
+                if (pi == entity_poly_seq.end() || pi->seq_id != position /*|| pi->mon_id != residue_name*/) {
+                    logger::warning(_logger, "Ignoring sequence due to unknown position ", position, " on line ", line_number());
                     has_poly_seq.erase(entity_id);
                     missing_poly_seq = true;
+                } else {
+                    auto pi2 = entity_poly_seq.upper_bound(ps_key);
+                    bool found = false;
+                    for (auto i = pi; i != pi2; ++i) {
+                        if (i->mon_id == residue_name) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        logger::warning(_logger, "Ignoring sequence due to mismatch at position ", position,
+                                    ": expected \"", pi->mon_id, "\" got \"", residue_name, "\" on line ", line_number());
+                        has_poly_seq.erase(entity_id);
+                        missing_poly_seq = true;
+                    }
                 }
             }
             if (missing_poly_seq && non_poly.find(entity_id) == non_poly.end()) {
