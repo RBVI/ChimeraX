@@ -703,6 +703,8 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
     //    connect up like atom in template
     for (auto&& a: atoms) {
         tmpl::Atom *ta = tr->find_atom(a->name());
+        if (ta == nullptr)
+            continue;
         bool found_bond = false;
         bool has_heavy_neighbors = false;
         for (auto&& tmpl_nb: ta->neighbors()) {
