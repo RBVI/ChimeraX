@@ -657,19 +657,22 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
         return;
 
     // Confirm all atoms in residue are in template.  If not, connect by distance.
+    bool all_connected = true;
     for (auto&& a: atoms) {
-        tmpl::Atom *ta = tr->find_atom(a->name());
-        if (ta)
-            continue;
-
         bool connected = false;
         auto bonds = a->bonds();
         for (auto&& b: bonds) {
             if (b->other_atom(a)->residue() == r) {
                 connected = true;
+                break;
             }
         }
         if (connected)
+            continue;
+        all_connected = false;
+
+        tmpl::Atom *ta = tr->find_atom(a->name());
+        if (ta)
             continue;
 
         if (model_num == first_model_num) {
@@ -696,6 +699,10 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
             }
         }
         pdb_connect::connect_residue_by_distance(r);
+        return;
+    }
+    if (all_connected) {
+        //logger::warning(_logger, "Ignored residue template for ", r->str(), ", already connected");
         return;
     }
 
