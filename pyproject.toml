@@ -92,7 +92,7 @@ wheel = [
   # optional package to prevent warning in Python shell [#16571]
   "pickleshare==0.7.5",
   "Pillow==10.4.0",
-  "pkginfo==1.11.1",
+  "pkginfo==1.12.1.2",
   "psutil==7.0.0",
   "pycollada==0.8",
   "pydicom==2.4.4",
