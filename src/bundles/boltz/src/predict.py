@@ -451,7 +451,15 @@ class BoltzRun:
             from time import time
             t = time() - self._start_time
             self._session.logger.info(f'Boltz prediction completed in {"%.0f" % t} seconds')
-            if self._open:
+            stdout = stdout.decode("utf8")
+            if self._prediction_ran_out_of_memory(stdout):
+              msg = ('The Boltz prediction ran out of memory.  The memory use depends on the'
+                     ' number of protein and nucleic acid residues plus the number of ligand'
+                     ' atoms.  You can reduce the size of your molecular assembly to stay'
+                     ' within the memory limits.')
+              self._session.logger.error(msg)
+              success = False
+            elif self._open:
                 self._open_predictions()
             self._add_to_msa_cache()
         else:
@@ -481,6 +489,11 @@ class BoltzRun:
     def running(self):
         return self._running
 
+    def _prediction_ran_out_of_memory(self, stdout):
+        from os.path import join, exists
+        pdir = join(self._results_directory, f'boltz_results_{self.name}', 'predictions', self.name)
+        return not exists(pdir) and 'ran out of memory' in stdout
+            
     def _open_predictions(self):
         self._copy_predictions()
         for n in range(self._samples):
