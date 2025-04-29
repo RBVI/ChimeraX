@@ -156,6 +156,10 @@ class BoltzPredictionGUI(ToolInstance):
         layout.addWidget(dr)
         dr.pressed.connect(self._delete_selected_rows)
 
+        cl = QPushButton('Clear', f)
+        layout.addWidget(cl)
+        cl.pressed.connect(self._clear_table)
+
         layout.addStretch(1)	# Extra space at end
         return f
 
@@ -243,6 +247,9 @@ class BoltzPredictionGUI(ToolInstance):
         for menu_text, data in entries:
             m.addAction(menu_text)
         self._menu_data = dict(entries)
+        menu_text = self._seq_button.text()
+        if menu_text not in self._menu_data:
+            self._seq_button.setText(entries[0][0] if entries else '')
         return entries
 
     # ---------------------------------------------------------------------------
@@ -264,6 +271,8 @@ class BoltzPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _add_molecule(self):
+        self._update_molecule_menu()
+
         comps = self._new_components()
         if len(comps) == 0:
             return
@@ -319,7 +328,7 @@ class BoltzPredictionGUI(ToolInstance):
         else:
             s, c = self._menu_structure_or_chain()
             if s:
-                comps = [MolecularComponent(desc, type = polymer_type, chains = chains,
+                comps = [MolecularComponent(desc, type = polymer_type, chains = chains, count = len(chains),
                                             sequence_string = chains[0].characters)
                          for chains,polymer_type,desc in _unique_chain_descriptions(s.chains)]
                 from .predict import _ccd_ligands_from_residues, _ccd_descriptions
@@ -329,7 +338,7 @@ class BoltzPredictionGUI(ToolInstance):
                     descrip = f'{ccd} - {ccd_descrip[ccd]}' if ccd in ccd_descrip else ccd
                     comps.append(MolecularComponent(descrip, count = count, type = 'ligand', ccd_code = ccd))
             elif c:
-                comps = [MolecularComponent(desc, type = polymer_type, chains = chains,
+                comps = [MolecularComponent(desc, type = polymer_type, chains = chains, count = len(chains),
                                             sequence_string = chains[0].characters)
                          for chains,polymer_type,desc in _unique_chain_descriptions([c])]
         return comps
@@ -382,6 +391,13 @@ class BoltzPredictionGUI(ToolInstance):
             mt.delete_selected_rows()
 
         self._report_number_of_tokens()        
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _clear_table(self):
+        mt = self._molecules_table
+        if mt:
+            mt.clear()
 
     # ---------------------------------------------------------------------------
     #
@@ -799,7 +815,7 @@ def _specifiers_with_descriptions(structure):
 #
 def _chain_description(chain):
     desc = chain.description
-    if desc in ('', '.'):
+    if desc in ('', '.', None):
         return ''
     from chimerax.pdb import process_chem_name
     chain_desc = process_chem_name(desc)
@@ -923,6 +939,9 @@ class MoleculesTable(ItemTable):
         if sel:
             self.data = [d for d in self.data if d not in sel]
 
+    def clear(self):
+        self.data = []
+
 # -----------------------------------------------------------------------------
 #
 class MolecularComponent:
@@ -932,7 +951,7 @@ class MolecularComponent:
         self.description = description
         self.type = type		# protein, dna, rna, ligand
         self.count = count
-        self.chains = chains
+        self.chains = chains		# chains of open models, use chain ids for prediction
         self.sequence_string = sequence_string
         self.uniprot_id = uniprot_id
         self.ccd_code = ccd_code

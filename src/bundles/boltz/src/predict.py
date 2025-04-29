@@ -315,6 +315,7 @@ class BoltzRun:
                 # PyTorch 2.6 does not support Intel Mac GPU use.
                 #     https://discuss.pytorch.org/t/pytorch-support-for-intel-gpus-on-mac/151996
             elif platform == 'linux':
+                from os.path import exists
                 device = 'gpu' if exists('/usr/bin/nvidia-smi') else 'cpu'
                 # TODO: Run nvidia-smi to see if GPU memory is sufficient to run Boltz.
             else:
@@ -402,9 +403,10 @@ class BoltzRun:
         parts = []
         for comps, type in [(pcomps, 'protein'), (ncomps, 'nucleic acid sequence')]:
             if len(comps) == 1:
-                parts.append(f'{type} with {len(comps[0].sequence_string)} residues')
+                nres = len(comps[0].sequence_string) * len(comps[0].chain_ids)
+                parts.append(f'{type} with {nres} residues')
             elif len(comps) > 1:
-                rlen = sum(len(comp.sequence_string) for comp in comps)
+                rlen = sum(len(comp.sequence_string) * len(comp.chain_ids) for comp in comps)
                 parts.append(f'{len(comps)} {type}s with {rlen} residues')
 
         ligands = [(mc.ccd_code or mc.smiles_string, len(mc.chain_ids))
@@ -450,7 +452,15 @@ class BoltzRun:
             from time import time
             t = time() - self._start_time
             self._session.logger.info(f'Boltz prediction completed in {"%.0f" % t} seconds')
-            if self._open:
+            stdout = stdout.decode("utf8")
+            if self._prediction_ran_out_of_memory(stdout):
+              msg = ('The Boltz prediction ran out of memory.  The memory use depends on the'
+                     ' number of protein and nucleic acid residues plus the number of ligand'
+                     ' atoms.  You can reduce the size of your molecular assembly to stay'
+                     ' within the memory limits.')
+              self._session.logger.error(msg)
+              success = False
+            elif self._open:
                 self._open_predictions()
             self._add_to_msa_cache()
         else:
@@ -480,6 +490,11 @@ class BoltzRun:
     def running(self):
         return self._running
 
+    def _prediction_ran_out_of_memory(self, stdout):
+        from os.path import join, exists
+        pdir = join(self._results_directory, f'boltz_results_{self.name}', 'predictions', self.name)
+        return not exists(pdir) and 'ran out of memory' in stdout
+            
     def _open_predictions(self):
         self._copy_predictions()
         for n in range(self._samples):
@@ -679,7 +694,7 @@ def _ccd_ligands_from_residues(residues, exclude_ligands = []):
 
     from chimerax.atomic import concise_residue_spec
     if len(cres) > 0:
-        session = ncres[0].structure.session
+        session = cres[0].structure.session
         covalent_ligands = concise_residue_spec(session, cres)
     else:
         covalent_ligands =  ''

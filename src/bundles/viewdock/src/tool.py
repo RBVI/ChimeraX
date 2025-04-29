@@ -28,7 +28,8 @@ from chimerax.ui.widgets import ItemTable
 from chimerax.core.commands import run, concise_model_spec
 from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
-                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QSizePolicy)
+                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel,)
+from Qt.QtGui import QFont
 from Qt.QtCore import Qt
 
 
@@ -57,6 +58,10 @@ class ViewDockTool(ToolInstance):
 
         self.struct_table = ItemTable(session=self.session)
         self.table_setup()
+
+        self.description_group = QGroupBox()
+        self.description_box_setup()
+
         self.handlers = []
         self.add_handlers()
         self.tool_window.manage('side')
@@ -176,6 +181,92 @@ class ViewDockTool(ToolInstance):
 
         # Add the table to the layout
         self.main_v_layout.addWidget(self.struct_table)
+
+    def description_box_setup(self):
+        """
+        Build the description box at the bottom of the tool which displays all the docking attribute information
+        for a selected docking model.
+        """
+
+        # Create a group box for the description box
+        description_layout = QGridLayout()
+        self.description_group.setLayout(description_layout)
+
+        # Set the title alignment to center
+        self.description_group.setAlignment(Qt.AlignCenter)
+
+        # Customize the font for the title
+        title_font = QFont()
+        title_font.setPointSize(16)  # Set font size
+        self.description_group.setFont(title_font)
+
+        self.struct_table.selection_changed.connect(
+            lambda newly_selected, newly_deselected: self.update_model_description(newly_selected)
+        )
+
+        # Add the group box to the main layout
+        self.main_v_layout.addWidget(self.description_group)
+        # Select the first structure in the table to display its data in the description box
+        self.struct_table.selected = [self.structures[0]]
+
+    def update_model_description(self, newly_selected):
+        """
+        Update the description box with the most recently selected structure's data. If more than one structure is
+        newly selected, only the first one will be displayed.
+
+        Args:
+            newly_selected (list): The newly selected structure(s) in the ItemTable.
+        """
+        # Create a custom font for the labels
+        label_font = QFont()
+        label_font.setPointSize(12)  # Set the font size
+
+        if not newly_selected:
+            return
+        docking_structure = newly_selected[0]
+        self.description_group.setTitle(f"ChimeraX Model {docking_structure.atomspec}")
+
+        # Clear the existing layout
+        layout = self.description_group.layout()
+        for i in reversed(range(layout.count())):
+            widget = layout.itemAt(i).widget()
+            if widget:
+                widget.deleteLater()
+
+        # Add attributes in a grid layout
+        attributes = list(docking_structure.viewdockx_data.items())
+        total_attributes = len(attributes)
+        rows_per_column = (total_attributes + 1) // 2  # Divide attributes evenly over two columns
+
+        for index, (key, value) in enumerate(attributes):
+            # Use the column's data_fetch to get the value for attributes appearing in the table
+            column = next((col for col in self.struct_table.columns if col.title == key), None)
+            if column and column.data_fetch:
+                # Fetch the value using the column's data_fetch
+                if callable(column.data_fetch):
+                    value = column.data_fetch(docking_structure)
+                else:
+                    # If data_fetch wasn't initialized as a callable, assume data_fetch is a string representing an
+                    # attribute path
+                    value = docking_structure
+                    for attr in column.data_fetch.split('.'):
+                        # Loop through nested attributes
+                        value = getattr(value, attr, None)
+                        if value is None:
+                            break
+
+            row = index % rows_per_column
+            col = (index // rows_per_column) * 2  # Multiply by 2 to account for key-value pairs
+
+            # Add key label
+            key_label = QLabel(f"<b>{key}:</b>") # Use HTML to bold the attr name
+            key_label.setFont(label_font)
+            layout.addWidget(key_label, row, col)
+
+            # Add value label
+            value_label = QLabel(str(value))
+            value_label.setFont(label_font)
+            layout.addWidget(value_label, row, col + 1)
 
     def add_handlers(self):
         """
