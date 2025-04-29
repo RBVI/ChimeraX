@@ -402,9 +402,10 @@ class BoltzRun:
         parts = []
         for comps, type in [(pcomps, 'protein'), (ncomps, 'nucleic acid sequence')]:
             if len(comps) == 1:
-                parts.append(f'{type} with {len(comps[0].sequence_string)} residues')
+                nres = len(comps[0].sequence_string) * len(comps[0].chain_ids)
+                parts.append(f'{type} with {nres} residues')
             elif len(comps) > 1:
-                rlen = sum(len(comp.sequence_string) for comp in comps)
+                rlen = sum(len(comp.sequence_string) * len(comp.chain_ids) for comp in comps)
                 parts.append(f'{len(comps)} {type}s with {rlen} residues')
 
         ligands = [(mc.ccd_code or mc.smiles_string, len(mc.chain_ids))

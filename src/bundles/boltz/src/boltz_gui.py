@@ -319,7 +319,7 @@ class BoltzPredictionGUI(ToolInstance):
         else:
             s, c = self._menu_structure_or_chain()
             if s:
-                comps = [MolecularComponent(desc, type = polymer_type, chains = chains,
+                comps = [MolecularComponent(desc, type = polymer_type, chains = chains, count = len(chains),
                                             sequence_string = chains[0].characters)
                          for chains,polymer_type,desc in _unique_chain_descriptions(s.chains)]
                 from .predict import _ccd_ligands_from_residues, _ccd_descriptions
@@ -329,7 +329,7 @@ class BoltzPredictionGUI(ToolInstance):
                     descrip = f'{ccd} - {ccd_descrip[ccd]}' if ccd in ccd_descrip else ccd
                     comps.append(MolecularComponent(descrip, count = count, type = 'ligand', ccd_code = ccd))
             elif c:
-                comps = [MolecularComponent(desc, type = polymer_type, chains = chains,
+                comps = [MolecularComponent(desc, type = polymer_type, chains = chains, count = len(chains),
                                             sequence_string = chains[0].characters)
                          for chains,polymer_type,desc in _unique_chain_descriptions([c])]
         return comps
@@ -932,7 +932,7 @@ class MolecularComponent:
         self.description = description
         self.type = type		# protein, dna, rna, ligand
         self.count = count
-        self.chains = chains
+        self.chains = chains		# chains of open models, use chain ids for prediction
         self.sequence_string = sequence_string
         self.uniprot_id = uniprot_id
         self.ccd_code = ccd_code
