@@ -799,7 +799,7 @@ def _specifiers_with_descriptions(structure):
 #
 def _chain_description(chain):
     desc = chain.description
-    if desc in ('', '.'):
+    if desc in ('', '.', None):
         return ''
     from chimerax.pdb import process_chem_name
     chain_desc = process_chem_name(desc)

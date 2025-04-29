@@ -61,7 +61,7 @@ class InstallBoltz:
         # Create Python virtual environment using ChimeraX Python as base for installing Boltz.
         from chimerax.core.python_utils import chimerax_python_executable
         python_exe = chimerax_python_executable()
-        command = [python_exe, '-m', 'venv', directory]
+        command = [python_exe, '-m', 'venv', '--system-site-packages', directory]
         from subprocess import run
         p = run(command, capture_output = True,
                 creationflags = _no_subprocess_window())
