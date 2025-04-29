@@ -680,7 +680,7 @@ def _ccd_ligands_from_residues(residues, exclude_ligands = []):
 
     from chimerax.atomic import concise_residue_spec
     if len(cres) > 0:
-        session = ncres[0].structure.session
+        session = cres[0].structure.session
         covalent_ligands = concise_residue_spec(session, cres)
     else:
         covalent_ligands =  ''
