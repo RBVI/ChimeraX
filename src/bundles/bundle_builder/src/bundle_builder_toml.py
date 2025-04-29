@@ -168,6 +168,7 @@ class Bundle:
             chimerax_data = bundle_info["tool"]["chimerax"]
         else:
             raise ValueError("No [chimerax] or [tool.chimerax] table in pyproject.toml")
+        print(chimerax_data)
         self.pure_python = not (
             bool(chimerax_data.get("extension", {}))
             or bool(chimerax_data.get("library", {}))

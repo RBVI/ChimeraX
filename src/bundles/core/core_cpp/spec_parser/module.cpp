@@ -35,16 +35,21 @@
 
 using namespace peg;
 
+#if 0
 typedef std::vector<unsigned char> RGBA;
+#endif
 
 static parser spec_parser;
+#if 0
 static PyObject* objects_class;
 static PyObject* objects_intersect;
 static PyObject* objects_union;
 static PyObject* get_selector;
 static PyObject* add_implied_bonds;
 static PyObject* session;
+#ifdef EVALUATE
 static PyObject* models;
+#endif
 static PyObject* combine_arg;
 static PyObject* invert_arg;
 static PyObject* list_arg;
@@ -77,15 +82,17 @@ static PyObject* _PartList_class;
 static PyObject* _add_model_parts;
 static std::string use_python_error("Use Python error");
 static bool add_implied, order_implicit_atoms, outermost_inversion;
+#endif
 
 static const char*
-docstr_evaluate = \
-"evaluate(session, text)\n" \
+docstr_parse = \
+"parse(session, text)\n" \
 "\n" \
-"Evaluate the given text for an initial atom spec and if one is found" \
-" return a tuple containing a chimerax.core.objects.Objects instance," \
+"Parse the given text for an initial atom spec and if one is found" \
+" return an chimera.core.commands.atomspec.AtomSpec instance," \
 " the part of text used for the atom spec, and the remaining text.";
 
+#if 0
 class Value {
 public:
     // Can't put the next four fields in a union because the first two have constructors
@@ -341,25 +348,49 @@ set_error_info(PyObject* err_type, std::string msg)
         Py_DECREF(type);
     }
 }
+#endif
 
 //TODO: accept find_match() keywords
 extern "C" PyObject *
-evaluate(PyObject *, PyObject *args)
+parse(PyObject *, PyObject *args)
 {
     const char* text;
+#define DEBUG
+#ifdef DEBUG
+    if (!PyArg_ParseTuple(args, "s", &text))
+        return nullptr;
+    std::shared_ptr<peg::Ast> ast;
+    if (spec_parser.parse(text, ast)) {
+        std::cout << "Raw AST: " << peg::ast_to_s(ast) << "\n";
+        ast = spec_parser.optimize_ast(ast);
+        std::cout << "Optimized AST: " << peg::ast_to_s(ast) << "\n";
+    } else {
+        std::cout << "parse failure for '" << text << "'\n";
+    }
+    return Py_None;
+#else
+#ifdef EVALUATE
     int c_quoted, c_add_implied, c_order_implicit;
     PyObject *parse_error_class, *semantics_error_class;
     if (!PyArg_ParseTuple(args, "OOspOOpp", &session, &models, &text, &c_quoted, &parse_error_class,
             &semantics_error_class, &c_add_implied, &c_order_implicit))
+#else
+    int c_quoted, c_add_implied;
+    PyObject *parse_error_class, *semantics_error_class;
+    if (!PyArg_ParseTuple(args, "OspOOpp", &session, &text, &c_quoted, &parse_error_class,
+            &semantics_error_class, &c_add_implied))
+#endif
 
         return nullptr;
     bool quoted = static_cast<bool>(c_quoted);
     add_implied = static_cast<bool>(c_add_implied);
+#ifdef EVALUATE
     order_implicit_atoms = static_cast<bool>(c_order_implicit);
-    models = PySequence_Fast(models, "evaluate() arg 'models' is not a sequence");
+    models = PySequence_Fast(models, "parse() arg 'models' is not a sequence");
     if (models == nullptr)
         return nullptr;
     PyObject* returned_objects_instance = nullptr;
+#endif
     std::string trial_text = text;
     spec_parser.set_logger([](size_t line, size_t col, const std::string& msg) {
         err_valid = true;
@@ -441,11 +472,12 @@ evaluate(PyObject *, PyObject *args)
     PyTuple_SetItem(ret_val, 1, PyUnicode_FromString(trial_text.c_str()));
     PyTuple_SetItem(ret_val, 2, PyUnicode_FromString(std::string(text).substr(trial_text.size()).c_str()));
     return ret_val;
+#endif
 }
 
 static struct PyMethodDef spec_parser_functions[] =
 {
-    { "evaluate", (PyCFunction)evaluate, METH_VARARGS, docstr_evaluate },
+    { "parse", (PyCFunction)parse, METH_VARARGS, docstr_parse },
     { nullptr, nullptr, 0, nullptr }
 };
 
@@ -453,7 +485,7 @@ static struct PyModuleDef spec_parser_def =
 {
     PyModuleDef_HEAD_INIT,
     "spec_parser",
-    "Parse/evaluate atom specifiers",
+    "Parse atom specifiers",
     -1,
     spec_parser_functions,
     nullptr,
@@ -507,6 +539,7 @@ static auto grammar = (R"---(
     %whitespace  <-  [ \t\r\n]*
 )---");
 
+#if 0
 static bool py_bool_method(PyObject* py_model, PyObject* method_name)
 {
     auto bool_result = PyObject_CallMethodNoArgs(py_model, method_name);
@@ -837,6 +870,7 @@ debug_semantic_values(const SemanticValues& vs)
     for (std::vector<std::any>::size_type item = 0; item < vs.size(); ++item)
         std::cerr << "semantic value " << item << (vs[item].has_value() ? " contains" : " does not contain") << " a value of type " << vs[item].type().name() << "\n";
 }
+#endif
 
 PyMODINIT_FUNC PyInit__spec_parser()
 {
@@ -846,6 +880,9 @@ PyMODINIT_FUNC PyInit__spec_parser()
         PyErr_SetString(PyExc_SyntaxError, "Atom-specifier grammar is bad");
         return nullptr;
     }
+#ifndef EVALUATE
+    spec_parser.enable_ast();
+#else
     // parsing "/V & protein" fails with packrat parsing on
     //spec_parser.enable_packrat_parsing();
     objects_class = get_module_attribute("chimerax.core.objects", "Objects");
@@ -1564,6 +1601,7 @@ PyMODINIT_FUNC PyInit__spec_parser()
     spec_parser["real_number"] = [](const SemanticValues &vs) {
         return vs.token_to_number<float>();
     };
+#endif
 
     return mod;
 }
