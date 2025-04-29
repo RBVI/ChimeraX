@@ -315,6 +315,7 @@ class BoltzRun:
                 # PyTorch 2.6 does not support Intel Mac GPU use.
                 #     https://discuss.pytorch.org/t/pytorch-support-for-intel-gpus-on-mac/151996
             elif platform == 'linux':
+                from os.path import exists
                 device = 'gpu' if exists('/usr/bin/nvidia-smi') else 'cpu'
                 # TODO: Run nvidia-smi to see if GPU memory is sufficient to run Boltz.
             else:
