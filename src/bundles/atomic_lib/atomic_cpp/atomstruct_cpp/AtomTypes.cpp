@@ -868,16 +868,23 @@ t0 = t1;
                                 if (bondee->idatm_type() == "Cac")
                                     continue;
                                 if (bondee->idatm_type() == "C2") {
-                                    bool grand_O2 = false;
+                                    bool grand_sp2 = false;
                                     for (auto gnb: bondee->neighbors()) {
-                                        if (gnb->element() == Element::O && gnb->bonds().size() == 1) {
+                                        if (gnb->bonds().size() != 1)
+                                            continue;
+                                        if (gnb->element() == Element::O) {
                                             if (bondee->coord().sqdistance(gnb->coord()) <= p3o2c2) {
-                                                grand_O2 = true;
+                                                grand_sp2 = true;
+                                                break;
+                                            }
+                                        } else if (gnb->element() == Element::S) {
+                                            if (bondee->coord().sqdistance(gnb->coord()) <= p3s2c2) {
+                                                grand_sp2 = true;
                                                 break;
                                             }
                                         }
                                     }
-                                    if (grand_O2)
+                                    if (grand_sp2)
                                         continue;
                                 }
                                 if (bondee->idatm_type() == "C")

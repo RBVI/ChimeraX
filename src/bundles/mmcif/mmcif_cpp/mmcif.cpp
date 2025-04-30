@@ -657,19 +657,22 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
         return;
 
     // Confirm all atoms in residue are in template.  If not, connect by distance.
+    bool all_connected = true;
     for (auto&& a: atoms) {
-        tmpl::Atom *ta = tr->find_atom(a->name());
-        if (ta)
-            continue;
-
         bool connected = false;
         auto bonds = a->bonds();
         for (auto&& b: bonds) {
             if (b->other_atom(a)->residue() == r) {
                 connected = true;
+                break;
             }
         }
         if (connected)
+            continue;
+        all_connected = false;
+
+        tmpl::Atom *ta = tr->find_atom(a->name());
+        if (ta)
             continue;
 
         if (model_num == first_model_num) {
@@ -698,11 +701,17 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
         pdb_connect::connect_residue_by_distance(r);
         return;
     }
+    if (all_connected) {
+        //logger::warning(_logger, "Ignored residue template for ", r->str(), ", already connected");
+        return;
+    }
 
     // foreach atom in residue
     //    connect up like atom in template
     for (auto&& a: atoms) {
         tmpl::Atom *ta = tr->find_atom(a->name());
+        if (ta == nullptr)
+            continue;
         bool found_bond = false;
         bool has_heavy_neighbors = false;
         for (auto&& tmpl_nb: ta->neighbors()) {
@@ -1513,11 +1522,26 @@ ExtractMolecule::parse_atom_site()
                 auto psi = poly.find(entity_id);
                 auto& entity_poly_seq = psi->second.seq;
                 auto ps_key = PolySeq(position, residue_name, false);
-                auto pi = entity_poly_seq.find(ps_key);
-                if (pi == entity_poly_seq.end() || pi->seq_id != position || pi->mon_id != residue_name) {
-                    logger::warning(_logger, "Ignoring sequence due to wrong residue \"", residue_name, "\" on line ", line_number());
+                auto pi = entity_poly_seq.lower_bound(ps_key);
+                if (pi == entity_poly_seq.end() || pi->seq_id != position /*|| pi->mon_id != residue_name*/) {
+                    logger::warning(_logger, "Ignoring sequence due to unknown position ", position, " on line ", line_number());
                     has_poly_seq.erase(entity_id);
                     missing_poly_seq = true;
+                } else {
+                    auto pi2 = entity_poly_seq.upper_bound(ps_key);
+                    bool found = false;
+                    for (auto i = pi; i != pi2; ++i) {
+                        if (i->mon_id == residue_name) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        logger::warning(_logger, "Ignoring sequence due to mismatch at position ", position,
+                                    ": expected \"", pi->mon_id, "\" got \"", residue_name, "\" on line ", line_number());
+                        has_poly_seq.erase(entity_id);
+                        missing_poly_seq = true;
+                    }
                 }
             }
             if (missing_poly_seq && non_poly.find(entity_id) == non_poly.end()) {
