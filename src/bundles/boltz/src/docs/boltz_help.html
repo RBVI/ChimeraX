@@ -125,8 +125,8 @@
       <li>MacBook Pro - M1 Max, 32 core GPU, 32 GB
       <li>Mac Studio - M2 Ultra, 60 core GPU, 64 GB, descartes.cgl.ucsf.edu
       <li>Linux - Nvidia RTX 4090 24 GB, cpu i9-13900K (24 cores) 64 GB (DDR5 5200MHz), minsky.cgl.ucsf.edu
-      <li>Windows 11 - Nvidia RTX 3070 8 GB, cpu i7-12900K (12 cores) 64 GB, vizvault.cgl.ucsf.edu
-      <li>Windows 10 - Nvidia RTX 4070 12 GB, cpu i5-6700K (4 cores) 64 GB, vive.cgl.ucsf.edu
+      <li>Windows 11 - Nvidia RTX 3070 8 GB PCIe 4.0, cpu i7-12900K (12 cores) 64 GB DDR5 4000MHz, vizvault.cgl.ucsf.edu
+      <li>Windows 10 - Nvidia RTX 4070 12 GB PCIe 3.0, cpu i5-6700K (4 cores) 64 GB DDR4 2133MHz, vive.cgl.ucsf.edu
     </ul>
 
     <p>Prediction times in minutes</p>
@@ -136,12 +136,29 @@
       <tr><td align=center>1hho<td align=center>382<td align=center>2.1<td align=center>1.4<td align=center>0.8<td align=center>12<td align=center>5<td align=center>4<td>287 amino acids, 95 ligand atoms, 0.4A RMSD 146 residues
       <tr><td align=center>9moj<td align=center>660<td align=center>3.9<td align=center>2.5<td align=center>1.2<td align=center>29<td align=center>7<td align=center>3.2<td>660 amino acids, heterotetramer, 0.8A RMSD 132 residues
       <tr><td align=center>9h1k<td align=center>671<td align=center>4.6<td align=center>2.7<td align=center>1.5<td align=center>32<td align=center>17<td align=center>27<td>560 amino acids, 59 rna bases, 52 ligand atoms, 0.7A RMSD protein, RNA wrong
-      <tr><td align=center>9b3h<td align=center>911<td align=center>17<td align=center>4.7<td align=center>2.7<td align=center>96<td align=center>49<td align=center><td>911 amino acids, heterodimer, 1A RMSD 509 residues
+      <tr><td align=center>9b3h<td align=center>911<td align=center>17<td align=center>4.7<td align=center>2.7<td align=center>96<td align=center>49<td align=center>75<td>911 amino acids, heterodimer, 1A RMSD 509 residues
       <tr><td align=center>9fz5<td align=center>1025<td align=center>15<td align=center>6.6<td align=center>out of memory<br>CPU 78<td align=center><td align=center><td align=center><td>1025 amino acids, heterotrimer, 3.7A RMSD 740 residues
       <tr><td align=center>9mcw<td align=center>1154<td align=center>13<td align=center>6.8<td align=center>4.4<td align=center><td align=center><td align=center><td>1154 rna bases, homodimer, wrong dimer and monomer conformations
       <tr><td align=center>8sao<td align=center>1371<td align=center>out of memory<td align=center>23<td align=center>out of memory<br>CPU 151<td align=center><td align=center><td align=center><td>1274 amino acids, 97 ligand atoms, 3.4A RMSD 1151 residues
     </table>
 
+    <h3>Performance notes</h3>
+    <p>
+      <b>Mac GPU acceleration.</b>
+      The reported Mac performance is for Mac M1/M2/M3/M4 series GPUs.  Boltz uses machine learning package torch which
+      has GPU acceleration called Metal Performance Shaders (MPS) on these Mac M series GPUs which have speed only 2-3x slower than an Nvidia 4090 but with the advantage that the Mac can handle larger molecular systems using the entire computer memory (e.g. 32 or 64 GB).  Older <a href="https://discuss.pytorch.org/t/pytorch-support-for-intel-gpus-on-mac/151996">Mac Intel machines do not have GPU acceleration in Torch</a> and run at speeds similar to Windows Intel CPU-only predictions.
+    </p>
+    
+    <p>
+      <b>Windows Nvidia GPU performance.</b>
+      The above table shows a significant slow-down in predictions beyond about 600 residues on Windows with Nvidia 3070 (8 GB) and 4070 (12 GB) graphics.  This is probably because the GPU memory is insufficient for larger structures and the machine learning toolkit falls back to a mix of CPU and GPU calculation.  Notice that the 4070 GPU took more time than the 3070 GPU for large structures probably because the CPU on the 4070 machine (i5-6700K) is significantly slower than the CPU on the 3070 machine (i7-12900K).
+    </p>
+
+    <p>
+      <b>Linux Nvidia GPU out of memory.</b>
+      On Linux Nvidia 4090 with 24 GB of GPU memory the maximum prediction appears to be about 1000 residues plus ligand atoms before an "out of memory" error occurs.  This contrasts with Windows where Torch appears to fallback to using CPU and not run out of GPU memory.
+    </p>
+    
     <h2>Options</h2>
 
     <img src="images/boltz_options.png" width=450 align=right>
