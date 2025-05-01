@@ -312,7 +312,17 @@ class GridCanvas:
             from chimerax.core.commands import run
             run(self.pg.session, final_cmd)
         else:
-            if not shifted:
+            if shifted:
+                try:
+                    item = self.chosen_cells[(row, col)]
+                except KeyError:
+                    pass # fall through to choosing the cell, below
+                else:
+                    item.hide()
+                    self.main_scene.removeItem(item)
+                    del self.chosen_cells[(row, col)]
+                    return
+            else:
                 for item in self.chosen_cells.values():
                     item.hide()
                     self.main_scene.removeItem(item)
