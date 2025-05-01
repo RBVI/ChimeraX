@@ -211,7 +211,7 @@ def packages_needed_by(packages, pkg_type):
     return needed_by
 
 
-def main(directory, pkg_type):
+def find_dependencies(directory, pkg_type):
     scan_dir(directory, pkg_type)
     # pretend we saw CUDA libraries
     seen.update(['libcuda.so.1', 'libcufft.so.9.0', 'libnvrtc.so.9.0'])
@@ -294,19 +294,32 @@ def main(directory, pkg_type):
     raise SystemExit(0)
 
 
-if __name__ == '__main__':
+def usage(file=sys.stderr):
+    print('usage: %s directory [package-type]' % sys.argv[0], file=file)
+    print('  directory is root of ChimeraX installation', file=file)
+    print('  package-type is one of "deb" or "rpm"', file=file)
+
+
+def main():
     if not sys.platform.startswith('linux'):
         print('only works on Linux', file=sys.stderr)
         raise SystemExit(1)
-    import getopt
     directory = None
     pkg_type = 'deb'
     if len(sys.argv) >= 2:
         directory = sys.argv[1]
     if len(sys.argv) >= 3:
         pkg_type = sys.argv[2]
-    if directory is None or len(sys.argv) > 3:
-        print('usage: %s directory [package-type]' % sys.argv[0], file=sys.stderr)
-        print('  package-type is one of "deb" or "rpm"', file=sys.stderr)
+    if (
+        directory is None
+        or not os.path.isdir(directory)
+        or not os.path.isfile(directory + '/bin/ChimeraX')
+        or pkg_type not in ('deb', 'rpm')
+        or len(sys.argv) > 3
+    ):
+        usage()
         raise SystemExit(2)
-    main(directory, pkg_type)
+    find_dependencies(directory, pkg_type)
+
+if __name__ == '__main__':
+    main()
