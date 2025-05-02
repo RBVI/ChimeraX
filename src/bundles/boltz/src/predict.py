@@ -279,7 +279,7 @@ class BoltzRun:
                 if mc.ccd_code:
                     spec = f'      ccd: {mc.ccd_code}'
                 elif mc.smiles_string:
-                    spec = f'      smiles: {mc.smiles_string}'
+                    spec = f'      smiles: "{mc.smiles_string}"'
                 ligand_entry.append(spec)
                 yaml_lines.extend(ligand_entry)
 
