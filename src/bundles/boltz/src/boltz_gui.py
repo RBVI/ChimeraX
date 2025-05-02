@@ -723,7 +723,7 @@ class BoltzPredictionGUI(ToolInstance):
                    'This will take about 4 Gbytes of disk space and ten minutes or more depending on network speed.'
                    f' Boltz and its required packages will be installed in folder {boltz_dir} (1 GByte)'
                    '  and its model parameters (3.3 GBytes) and chemical component dictionary (0.3 Gbytes)'
-                   f'will be installed in {param_dir}')
+                   f' will be installed in {param_dir}')
         from chimerax.ui.ask import ask
         answer = ask(self.session, message, title = 'Install Boltz', help_url = 'help:user/tools/boltz.html')
         if answer == 'yes':
