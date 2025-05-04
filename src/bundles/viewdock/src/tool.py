@@ -19,16 +19,20 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from PyQt6.QtWidgets import QMenu
 
 from chimerax.atomic import AtomicStructure
+from chimerax.ui import MainToolWindow
 from chimerax.core.tools import ToolInstance
+from chimerax.core.settings import Settings
 from chimerax.hbonds.gui import HBondsGUI
 from chimerax.clashes.gui import ClashesGUI
 from chimerax.ui.widgets import ItemTable
 from chimerax.core.commands import run, concise_model_spec
 from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
-                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel,)
+                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel, QWidget,
+                          QListWidget, QListWidgetItem)
 from Qt.QtGui import QFont
 from Qt.QtCore import Qt
 
@@ -42,7 +46,6 @@ class ViewDockTool(ToolInstance):
         super().__init__(session, tool_name)
         self.display_name = "ViewDock"
 
-        from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
 
         # Create a vertical layout for the tool
@@ -55,8 +58,14 @@ class ViewDockTool(ToolInstance):
         self.top_buttons_setup()
         self.main_v_layout.addLayout(self.top_buttons_layout)
 
+        self.table_menu = QMenu()
+        self.settings = ViewDockSettings(self.session, tool_name)
+        self.tool_window.fill_context_menu = self.fill_context_menu
 
-        self.struct_table = ItemTable(session=self.session)
+        self.col_display_widget = QWidget()
+        self.struct_table = ItemTable(session=self.session, column_control_info=(
+            self.col_display_widget, self.settings, {}, True, None, None, True
+        ))
         self.table_setup()
 
         self.description_group = QGroupBox()
@@ -65,6 +74,12 @@ class ViewDockTool(ToolInstance):
         self.handlers = []
         self.add_handlers()
         self.tool_window.manage('side')
+
+    def fill_context_menu(self, menu, x, y):
+        """
+        Fill the context menu with options to show/hide structures and set ratings.
+        """
+        menu.addMenu(self.table_menu)
 
     def top_buttons_setup(self):
         """
@@ -97,16 +112,27 @@ class ViewDockTool(ToolInstance):
             lambda: self.popup_callback(ClashesGUI, "Clashes", has_apply_button=False, show_restrict=False)
         )
         self.top_buttons_layout.addWidget(self.clashes_button)
+
+        self.settings_button = QPushButton("Settings")
+        self.settings_button.clicked.connect(lambda: self.settings_dialog())
+        self.top_buttons_layout.addWidget(self.settings_button)
+
         self.top_buttons_layout.setAlignment(Qt.AlignLeft)
 
-    def popup_callback(self, gui_class, popup_name, **kwargs):
+    def popup_callback(self, gui_class, popup_name, on_ok=None, **kwargs):
         """
-        Generalized callback function for creating a popup dialog with a specified GUI widget.
+        Generalized callback function for creating a popup dialog using a specified GUI widget class. This callback
+        can be connected to buttons that are supposed to open a dialog for a specific task
+        (e.g., HBonds, Clashes, Settings...).
 
         Args:
-            gui_class: The GUI class to instantiate (e.g., HBondsGUI, ClashesGUI).
+            gui_class: The GUI class to instantiate (e.g., HBondsGUI, ClashesGUI). The class is automatically passed
+                the session in its constructor.
             popup_name: The command name to execute (e.g., "hbonds", "clashes").
-            **kwargs: Additional keyword arguments to pass to the GUI class constructor.
+            on_ok: Optional callback function to execute when the Ok button is clicked. If not provided, a default
+                function will be used that retrieves the command from the GUI using GUI.get_command() and runs it.
+            **kwargs: Additional keyword arguments to pass to the GUI class constructor. Session is passed to all GUI
+                class constructors automatically and should not be specified in this list
         """
         gui_instance = gui_class(self.session, **kwargs)
 
@@ -124,22 +150,48 @@ class ViewDockTool(ToolInstance):
         layout.addWidget(button_box)
 
         # Connect the Ok button to call gui_instance.get_command()
-        def on_ok():
-            command = gui_instance.get_command()
-            # Binding analysis structures
-            mine = concise_model_spec(self.session, self.structures)
-            all_structures = self.session.models.list(type=AtomicStructure)
-            # All structures that are AtomicStructures but not in the binding analysis structures
-            others = concise_model_spec(self.session, set(all_structures) - set(self.structures))
+        def ok_cb():
+            if on_ok and callable(on_ok):
+                on_ok()
+            else:
+                # Default behavior for chimerax.ui.widgets
+                command = gui_instance.get_command()
+                # Binding analysis structures
+                mine = concise_model_spec(self.session, self.structures)
+                all_structures = self.session.models.list(type=AtomicStructure)
+                # All structures that are AtomicStructures but not in the binding analysis structures
+                others = concise_model_spec(self.session, set(all_structures) - set(self.structures))
 
-            # command[0] = command name, command[1] = model selection, command[2] = other arguments
-            run(self.session, f"{command[0]} {mine} restrict {others} {command[2]}")
+                # command[0] = command name, command[1] = model selection, command[2] = other arguments
+                run(self.session, f"{command[0]} {mine} restrict {others} {command[2]}")
             dialog.accept()
 
-        button_box.accepted.connect(on_ok)
+        button_box.accepted.connect(ok_cb)
         button_box.rejected.connect(dialog.reject)
 
         # Show the dialog
+        dialog.exec()
+
+    def settings_dialog(self):
+        # Create a QDialog to act as the popup
+        dialog = QDialog(self.tool_window.ui_area)
+        dialog.setWindowTitle(f"{self.display_name} Settings")
+        layout = QVBoxLayout(dialog)
+        dialog.setLayout(layout)
+
+        settings_widget = ViewDockSettingsWidget(self.session, self.col_display_widget, self.structures, self.struct_table)
+        layout.addWidget(settings_widget)
+
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        layout.addWidget(button_box)
+
+        def ok():
+            self.settings.save()
+            dialog.accept()
+
+        button_box.accepted.connect(ok)
+        button_box.rejected.connect(dialog.reject)
+
         dialog.exec()
 
     def table_setup(self):
@@ -465,3 +517,33 @@ class RatingDelegate(QStyledItemDelegate):
 
         # Draw the text
         painter.drawText(text_rect, Qt.AlignVCenter | Qt.AlignLeft, combo_style.currentText)
+
+
+class ViewDockSettings(Settings):
+
+    EXPLICIT_SAVE = {ItemTable.DEFAULT_SETTINGS_ATTR: {}}
+
+
+class ViewDockSettingsWidget(QWidget):
+    """
+    A settings widget the ViewDock tool.
+    """
+
+    def __init__(self, session, col_display_widget, structures, table):
+        """
+        Initialize the settings widget.
+
+        Args:
+            structures: List of docking structures.
+            table: The ItemTable associated with the ViewDock tool.
+        """
+        super().__init__()
+        self.structures = structures
+        self.table = table
+
+        # Main layout
+        layout = QVBoxLayout(self)
+        layout.addWidget(col_display_widget)
+
+        # Add the layout to the widget
+        self.setLayout(layout)
