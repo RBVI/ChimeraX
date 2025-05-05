@@ -16,70 +16,64 @@ This module provides support for reading LAMMPS grid files produced by the
 'dump grid' command in LAMMPS.
 """
 
-# Register the grid format
-def register_grid_format():
-    from chimerax.map_data import data_formats, FileFormatInfo
-    data_formats['grid'] = FileFormatInfo('grid',
-                                         'LAMMPS grid',
-                                         ['grid'],
-                                         'LAMMPS grid format',
-                                         module_name = 'chimerax.map_data.grid',
-                                         available = True,
-                                         reference_url = 'https://docs.lammps.org/Howto_grid.html')
+from chimerax.core.errors import UserError
 
-def open(stream, session, name=None, array_mode=None):
+def open(path, session, name = None, array_mode = None):
     """
-    Read grid data from a LAMMPS grid format file and return a list of GridData objects.
+    Read LAMMPS grid format files.
     
     Parameters
     ----------
-    stream : io.IOBase
-        File stream containing LAMMPS grid data.
-    session : Session
-        ChimeraX session.
-    name : str, optional
+    path : str
+        Path to file to read.
+    session : Session instance
+        For reporting progress.
+    name : str
         Name to assign to the grid data.
-    array_mode : str, optional
+    array_mode : str
         Specifies whether to return full data arrays.
-        Can be None (return data arrays), 'mmap' (memory map file), or 'header-only' (don't read arrays).
+        Can be None (return data arrays), 'mmap' (memory map file),
+        or 'header-only' (don't read arrays).
     
     Returns
     -------
     list of GridData objects
     """
-    from chimerax.core.errors import UserError
-    from .grid import read_lammps_grid
-
+    from .grid_format import read_lammps_grid
+    
+    if path.endswith('.gz'):
+        import gzip
+        f = gzip.open(path, 'rt')
+    else:
+        f = open(path, 'r')
+    
     try:
-        grids = read_lammps_grid(stream, session, name, array_mode)
-        return grids
+        data = read_lammps_grid(f, session, name)
     except Exception as e:
         raise UserError(f"Error reading LAMMPS grid file: {str(e)}")
+    finally:
+        f.close()
+    
+    return data
 
-def save(grid_data, path, session=None):
+def save(grid_data, path, session = None, options = {}):
     """
-    Write grid data to a LAMMPS grid format file.
+    Write LAMMPS grid format files.
     
     Parameters
     ----------
     grid_data : GridData or sequence of GridData
         Grid data to save.
     path : str
-        Path to the output file.
-    session : Session, optional
-        ChimeraX session.
-        
-    Returns
-    -------
-    None
+        Path to write file to.
+    session : Session instance
+        For reporting progress.
+    options : dict
+        Save options. Not used.
     """
-    from chimerax.core.errors import UserError
-    from .grid import write_lammps_grid
-
+    from .grid_format import write_lammps_grid
+    
     try:
         write_lammps_grid(grid_data, path)
     except Exception as e:
         raise UserError(f"Error writing LAMMPS grid file: {str(e)}")
-
-# Register the format when module is imported
-register_grid_format()
