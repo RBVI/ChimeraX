@@ -142,7 +142,6 @@ class Lammps_Grid_Data:
         """
         # Currently just read the first data section and first column
         timestep, start_pos, num_entries = self.data_sections[0]
-        column_idx = self.columns.index(self.current_column)
         
         # Read the whole file again
         if self.path.endswith('.gz'):
@@ -159,6 +158,7 @@ class Lammps_Grid_Data:
             data = numpy.zeros((nz, ny, nx), dtype=self.element_type)
             
             # Read the data section
+            grid_index = 0
             for i in range(num_entries):
                 if progress and i % 1000 == 0:
                     progress.percent = 100.0 * i / num_entries
@@ -168,23 +168,26 @@ class Lammps_Grid_Data:
                     break
                     
                 line = lines[line_idx].strip()
-                parts = line.split()
-                
-                # LAMMPS format: ix iy iz value1 value2 ...
-                # We expect at least 3 + len(columns) values
-                if len(parts) < 3 + len(self.columns):
+                if not line:  # Skip empty lines
                     continue
-                    
-                ix = int(parts[0])
-                iy = int(parts[1])
-                iz = int(parts[2])
                 
-                # Get the value for the current column
-                value = float(parts[3 + column_idx])
+                # Parse value - each line just contains a single value
+                try:
+                    value = float(line)
+                except ValueError:
+                    continue
+                
+                # Calculate grid coordinates from linear index
+                # Assuming data is ordered with x changing fastest, then y, then z
+                ix = grid_index % nx
+                iy = (grid_index // nx) % ny
+                iz = grid_index // (nx * ny)
                 
                 # Store in data array (in ZYX index order)
                 if 0 <= ix < nx and 0 <= iy < ny and 0 <= iz < nz:
                     data[iz, iy, ix] = value
+                
+                grid_index += 1
             
             # Extract the requested submatrix
             submatrix = self._submatrix(data, ijk_origin, ijk_size, ijk_step)
