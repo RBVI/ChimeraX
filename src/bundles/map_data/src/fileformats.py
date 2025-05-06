@@ -39,9 +39,12 @@ class MapFileFormat:
     self.allow_directory = allow_directory
     self.check_path = check_path
 
+    print(f"*** name {name} suffixes {suffixes}")
+
   @property
   def open_func(self):
     module_name = self.name
+    print(f"*** module_name {module_name}")
     module = __import__(module_name, globals(), level = 1)
     return module.open
 
@@ -146,6 +149,8 @@ def suffix_warning(paths):
 # -----------------------------------------------------------------------------
 #
 def open_file(path, file_type = None, **kw):
+
+  print("*** ok 1")
 
   if file_type is None:
     p = path if isinstance(path, str) else path[0]

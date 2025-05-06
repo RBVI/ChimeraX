@@ -14,7 +14,7 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/chimerax/map_data/lammps
 
-PYSRCS = __init__.py grid3d.py
+PYSRCS = __init__.py lammps_grid.py lammps_format.py
 
 all: $(PYOBJS)
 
