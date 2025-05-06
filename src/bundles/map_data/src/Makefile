@@ -13,7 +13,7 @@ TOP = ../../../..
 include $(TOP)/mk/config.make
 
 SUBDIRS	= amira apbs brix ccp4 cmap delphi deltavision dock dsn6 emanhdf gaussian \
-	  gopenmol grid hdf imagestack imagic imod ims macmolplt mrc priism profec \
+	  gopenmol hdf imagestack imagic imod ims lammps macmolplt mrc priism profec \
 	  pif situs spider tom_em uhbd xplor
 
 PKG_DIR = $(PYSITEDIR)/chimerax/map_data

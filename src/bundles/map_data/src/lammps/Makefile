@@ -12,9 +12,9 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map_data/grid
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/lammps
 
-PYSRCS = __init__.py grid_format.py grid_grid.py
+PYSRCS = __init__.py grid3d.py
 
 all: $(PYOBJS)
 

@@ -12,7 +12,7 @@
 """
 LAMMPS grid format support for ChimeraX.
 
-This module provides support for reading LAMMPS grid files produced by the
+This module provides support for reading LAMMPS grid3d files produced by the
 'dump grid' command in LAMMPS.
 """
 
@@ -20,8 +20,8 @@ from chimerax.core.errors import UserError
 
 def open(path, session, name = None, array_mode = None):
     """
-    Read LAMMPS grid format files.
-    
+    Read LAMMPS grid3d format files.
+
     Parameters
     ----------
     path : str
@@ -39,8 +39,11 @@ def open(path, session, name = None, array_mode = None):
     -------
     list of GridData objects
     """
-    from .grid_format import read_lammps_grid
-    
+
+    print("*** ok 1")
+
+    from .grid3d import read_lammps_grid3d
+
     if path.endswith('.gz'):
         import gzip
         f = gzip.open(path, 'rt')
@@ -48,32 +51,10 @@ def open(path, session, name = None, array_mode = None):
         f = open(path, 'r')
     
     try:
-        data = read_lammps_grid(f, session, name)
+        data = read_lammps_grid3d(f, session, name)
     except Exception as e:
         raise UserError(f"Error reading LAMMPS grid file: {str(e)}")
     finally:
         f.close()
     
     return data
-
-def save(grid_data, path, session = None, options = {}):
-    """
-    Write LAMMPS grid format files.
-    
-    Parameters
-    ----------
-    grid_data : GridData or sequence of GridData
-        Grid data to save.
-    path : str
-        Path to write file to.
-    session : Session instance
-        For reporting progress.
-    options : dict
-        Save options. Not used.
-    """
-    from .grid_format import write_lammps_grid
-    
-    try:
-        write_lammps_grid(grid_data, path)
-    except Exception as e:
-        raise UserError(f"Error writing LAMMPS grid file: {str(e)}")

@@ -10,27 +10,39 @@
 # === UCSF ChimeraX Copyright ===
 
 """
-LAMMPS grid grid data handling.
+LAMMPS grid3d format parsing.
 """
 
+print("*** ok 2")
+
+import os
 import numpy as np
 from chimerax.map_data import ArrayGridData
 
-def parse_lammps_grid(stream, name=None):
+def read_lammps_grid3d(stream, session = None, name = None):
     """
-    Parse a LAMMPS grid format file and return GridData objects.
-    
+    Read a LAMMPS grid3d format file and return GridData objects.
+
     Parameters
     ----------
     stream : file-like object
-        File stream containing LAMMPS grid data.
+        Stream containing the grid data.
+    session : Session instance, optional
+        For reporting progress.
     name : str, optional
         Name to assign to the grid data.
-        
+    
     Returns
     -------
     list of GridData objects
     """
+
+    print("*** ok 3")
+
+    # Get base name if name is not specified
+    if name is None and hasattr(stream, 'name'):
+        name = os.path.basename(stream.name)
+    
     grids = []
     
     # Get base name from name parameter
@@ -142,132 +154,3 @@ def parse_lammps_grid(stream, name=None):
     
     return grids
 
-def _create_grids_from_data(data_dict, grid_size, origin, cell_size, columns, timestep, base_name):
-    """
-    Helper function to create GridData objects from parsed data.
-    
-    Parameters
-    ----------
-    data_dict : dict
-        Dictionary mapping column names to data arrays.
-    grid_size : tuple
-        (nx, ny, nz) grid dimensions.
-    origin : tuple
-        (x0, y0, z0) grid origin.
-    cell_size : tuple
-        (dx, dy, dz) grid spacing.
-    columns : list
-        List of column names.
-    timestep : int
-        Timestep for the data.
-    base_name : str
-        Base name for the grid data.
-        
-    Returns
-    -------
-    list of GridData objects
-    """
-    grids = []
-    
-    for col_name in columns:
-        if col_name not in data_dict:
-            continue
-            
-        # Extract data for this column
-        data = data_dict[col_name]
-        
-        # Create a name for this grid
-        grid_name = f"{base_name}_{col_name}"
-        if timestep is not None:
-            grid_name += f"_timestep_{timestep}"
-            
-        # Create GridData object
-        # Note: ChimeraX expects data in Fortran order (column-major)
-        # but LAMMPS outputs in C order (row-major), so we may need to transpose
-        # Here we assume data is already properly ordered as nx, ny, nz
-        grid = ArrayGridData(data,
-                            origin=origin if origin else (0, 0, 0),
-                            step=cell_size if cell_size else (1, 1, 1),
-                            cell_angles=(90, 90, 90),
-                            name=grid_name)
-                            
-        grids.append(grid)
-    
-    return grids
-
-def write_lammps_grid_file(grid_data, path):
-    """
-    Write grid data to a LAMMPS grid format file.
-    
-    Parameters
-    ----------
-    grid_data : GridData or sequence of GridData
-        Grid data to save.
-    path : str
-        Path to the output file.
-        
-    Returns
-    -------
-    None
-    """
-    from chimerax.map_data import GridData
-    
-    # Handle single or multiple grid data objects
-    if isinstance(grid_data, GridData):
-        grids = [grid_data]
-    else:
-        grids = list(grid_data)
-    
-    if not grids:
-        raise ValueError("No grid data to save")
-    
-    # All grids should have the same dimensions and origin for LAMMPS format
-    ref_grid = grids[0]
-    grid_size = ref_grid.size
-    origin = ref_grid.origin
-    step = ref_grid.step
-    
-    # Check if all grids have the same dimensions
-    for grid in grids[1:]:
-        if grid.size != grid_size or not np.allclose(grid.origin, origin) or not np.allclose(grid.step, step):
-            raise ValueError("All grids must have the same dimensions, origin, and step size for LAMMPS grid format")
-    
-    # Write to file
-    with open(path, 'w') as f:
-        # Only one timestep for now (could be extended to multiple)
-        timestep = 0
-        
-        # Write header
-        f.write("ITEM: TIMESTEP\n")
-        f.write(f"{timestep}\n")
-        
-        # Grid size
-        nx, ny, nz = grid_size
-        f.write("ITEM: GRID SIZE\n")
-        f.write(f"{nx} {ny} {nz}\n")
-        
-        # Grid origin
-        f.write("ITEM: GRID ORIGIN\n")
-        f.write(f"{origin[0]} {origin[1]} {origin[2]}\n")
-        
-        # Grid spacing
-        f.write("ITEM: GRID SPACING\n")
-        f.write(f"{step[0]} {step[1]} {step[2]}\n")
-        
-        # Prepare column names from grid names
-        col_names = [grid.name.split('_')[0] if '_' in grid.name else f"grid{i+1}" 
-                    for i, grid in enumerate(grids)]
-        
-        # Write data header
-        f.write(f"ITEM: GRID CELLS ix iy iz {' '.join(col_names)}\n")
-        
-        # Write grid data
-        for ix in range(nx):
-            for iy in range(ny):
-                for iz in range(nz):
-                    # Collect values from all grids for this cell
-                    values = [grid.matrix()[ix, iy, iz] for grid in grids]
-                    values_str = ' '.join(f"{val}" for val in values)
-                    
-                    # Write cell data
-                    f.write(f"{ix} {iy} {iz} {values_str}\n")
