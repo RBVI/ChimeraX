@@ -192,6 +192,9 @@ class _MDCrdsBundleAPI(BundleAPI):
             for cs_id in kw['structure'].coordset_ids:
                 values[cs_id] = dihedral(*[a.get_coordset_coord(cs_id) for a in kw['atoms']])
             return values
+        elif name == "surface":
+            from .providers import sasa
+            return sasa(session, mgr, **kw)
         raise ValueError("Unknown plotting type: %s" % name)
 
 

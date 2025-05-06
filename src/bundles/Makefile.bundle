@@ -15,6 +15,10 @@ CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 else
 CHIMERAX_APP = $(wildcard /app)
 endif
+ifeq (,$(CHIMERAX_APP))
+NO_CHIMERAX_APP=1
+endif
+
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
 # These can be overridden by bundles for customization
@@ -72,7 +76,7 @@ PYSRCS = $(wildcard src/*.py)
 .SECONDEXPANSION:
 
 wheel: $$(PYSRCS)
-	if [ $(PYTHON) == $(APP_PYTHON_EXE) && -z "$(APP_PYTHON_EXE)" ]; then \
+	if [ -z "$(APP_PYTHON_EXE)" ]; then \
 		echo "missing ChimeraX application's python"; exit 1; \
 	else \
 		$(RUN_CMD) "devel build . exit true $(RELEASE_ARG) $(DEBUG_ARG) $(BUILD_ARGS)"; \
@@ -87,14 +91,14 @@ uv-wheel: $$(PYSRCS)
 
 # The space means install and app-install are the same
 install app-install: $$(PYSRCS)
-	if [ $(PYTHON) == $(APP_PYTHON_EXE) && -z "$(APP_PYTHON_EXE)" ]; then \
+	if [ -z "$(APP_PYTHON_EXE)" ]; then \
 		echo "missing ChimeraX application's python"; exit 1; \
 	else \
 		$(RUN_CMD) "devel install . user false exit true $(DEBUG_ARG) $(INSTALL_ARGS)"; \
 	fi
 
 install-editable: clean
-	if [ $(PYTHON) == $(APP_PYTHON_EXE) && -z "$(APP_PYTHON_EXE)" ]; then \
+	if [ -z "$(APP_PYTHON_EXE)" ]; then \
 		echo "missing ChimeraX application's python"; exit 1; \
 	else \
 		$(RUN_CMD) "devel install . user false editable true exit true $(DEBUG_ARG) $(INSTALL_ARGS)"; \
@@ -152,11 +156,15 @@ debug:
 	$(CX_BIN) --debug
 
 clean:
+ifndef NO_CHIMERAX_APP
 	if [ -x "$(APP_PYTHON_EXE)" -a -e bundle_info.xml ]; then \
 		$(RUN_CMD) "devel clean . exit true" ; \
 	else \
 		rm -rf $(CLEAN) ; \
 	fi
+else
+	rm -rf $(CLEAN)
+endif
 	if [ -n "$(CLEAN_ALWAYS)" ]; then \
 		rm -rf $(CLEAN_ALWAYS); \
 	fi

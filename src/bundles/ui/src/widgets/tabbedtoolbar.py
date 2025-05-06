@@ -493,6 +493,12 @@ class TabbedToolbar(QTabWidget):
         self._buttons[tab_title].clear()
         self._buttons[tab_title]["__toolbar__"] = tab
 
+    def clear_all(self):
+        for tab_title in list(self._buttons):
+            self.clear_tab(tab_title)
+            del self._buttons[tab_title]
+        self.clear()
+
     def _recompute_tab_sizes(self):
         # can't shrink vertically unless the size of all tabs are recomputed
         # (since Qt delays recomputing a tab's size until it is visible)

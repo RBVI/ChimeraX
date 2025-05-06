@@ -657,19 +657,22 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
         return;
 
     // Confirm all atoms in residue are in template.  If not, connect by distance.
+    bool all_connected = true;
     for (auto&& a: atoms) {
-        tmpl::Atom *ta = tr->find_atom(a->name());
-        if (ta)
-            continue;
-
         bool connected = false;
         auto bonds = a->bonds();
         for (auto&& b: bonds) {
             if (b->other_atom(a)->residue() == r) {
                 connected = true;
+                break;
             }
         }
         if (connected)
+            continue;
+        all_connected = false;
+
+        tmpl::Atom *ta = tr->find_atom(a->name());
+        if (ta)
             continue;
 
         if (model_num == first_model_num) {
@@ -698,11 +701,17 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
         pdb_connect::connect_residue_by_distance(r);
         return;
     }
+    if (all_connected) {
+        //logger::warning(_logger, "Ignored residue template for ", r->str(), ", already connected");
+        return;
+    }
 
     // foreach atom in residue
     //    connect up like atom in template
     for (auto&& a: atoms) {
         tmpl::Atom *ta = tr->find_atom(a->name());
+        if (ta == nullptr)
+            continue;
         bool found_bond = false;
         bool has_heavy_neighbors = false;
         for (auto&& tmpl_nb: ta->neighbors()) {
@@ -882,7 +891,7 @@ ExtractMolecule::_connect_inter_residues(Structure *mol, int model_num, ResidueS
         }
     }
     if (found_missing_poly_seq && !no_polymer && model_num == first_model_num)
-        logger::warning(_logger, "Missing or incomplete <a='https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/entity_poly_seq.html'>sequence information</a>.  Inferred polymer connectivity.", true);
+        logger::warning(_logger, "Missing or incorrect <a='https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/entity_poly_seq.html'>sequence information</a>.  Inferred polymer connectivity.", true);
 }
 
 void
@@ -1507,8 +1516,35 @@ ExtractMolecule::parse_atom_site()
             cur_auth_seq_id = auth_position;
             cur_chain_id = chain_id;
             cur_comp_id = residue_name;
-            if (has_poly_seq.find(entity_id) == has_poly_seq.end()
-            && non_poly.find(entity_id) == non_poly.end()) {
+            bool missing_poly_seq = has_poly_seq.find(entity_id) == has_poly_seq.end();
+            if (!missing_poly_seq) {
+                // protect against bad input
+                auto psi = poly.find(entity_id);
+                auto& entity_poly_seq = psi->second.seq;
+                auto ps_key = PolySeq(position, residue_name, false);
+                auto pi = entity_poly_seq.lower_bound(ps_key);
+                if (pi == entity_poly_seq.end() || pi->seq_id != position /*|| pi->mon_id != residue_name*/) {
+                    logger::warning(_logger, "Ignoring sequence due to unknown position ", position, " on line ", line_number());
+                    has_poly_seq.erase(entity_id);
+                    missing_poly_seq = true;
+                } else {
+                    auto pi2 = entity_poly_seq.upper_bound(ps_key);
+                    bool found = false;
+                    for (auto i = pi; i != pi2; ++i) {
+                        if (i->mon_id == residue_name) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        logger::warning(_logger, "Ignoring sequence due to mismatch at position ", position,
+                                    ": expected \"", pi->mon_id, "\" got \"", residue_name, "\" on line ", line_number());
+                        has_poly_seq.erase(entity_id);
+                        missing_poly_seq = true;
+                    }
+                }
+            }
+            if (missing_poly_seq && non_poly.find(entity_id) == non_poly.end()) {
                 // sequence not given in entity_poly_seq and not in a known non-polymeric entity
                 auto tr = find_template_residue(residue_name);
                 if (tr && tr->polymer_type() != PolymerType::PT_NONE) {
@@ -2040,7 +2076,7 @@ ExtractMolecule::parse_struct_conf()
         auto psi = poly.find(entity_id);
         if (psi == poly.end()) {
             logger::warning(_logger, "Invalid residue range for struct_conf \"",
-                            id, "\": invalid entity \"", entity_id,
+                            id, "\": residue in non-polymer entity \"", entity_id,
                             "\", on line ", line_number());
             continue;
         }
@@ -2193,7 +2229,7 @@ ExtractMolecule::parse_struct_sheet_range()
         auto psi = poly.find(entity_id);
         if (psi == poly.end()) {
             logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
-                            sheet_id, ' ', id, "\": invalid entity \"",
+                            sheet_id, ' ', id, "\": residue in non-polymer entity \"",
                             entity_id, "\", on line ", line_number());
             continue;
         }
@@ -2540,6 +2576,10 @@ ExtractMolecule::parse_entity()
     }
 
     while (parse_row(pv)) {
+        if (entity_description.find(entity_id) != entity_description.end()) {
+            logger::warning(_logger, "Skipping duplicate entity id ", entity_id);
+            continue;
+        }
         if (type != 'p' && type != 'P')
             non_poly.emplace(entity_id);
         entity_description[entity_id] = description;
@@ -2579,6 +2619,10 @@ ExtractMolecule::parse_entity_poly()
     static const string rna("polyribonucleotide");
 
     while (parse_row(pv)) {
+        if (poly.find(entity_id) != poly.end()) {
+            logger::warning(_logger, "Skipping duplicate entity_poly for id ", entity_id);
+            continue;
+        }
         // convert type to lowercase
         for (auto& c: type)
             c = tolower(c);
@@ -2638,7 +2682,29 @@ ExtractMolecule::parse_entity_poly_seq()
             poly.emplace(entity_id, false);
         }
         has_poly_seq[entity_id] = true;
+#if 0
         poly.at(entity_id).seq.emplace(seq_id, mon_id, hetero);
+#else
+        auto& seq = poly.at(entity_id).seq;
+        PolySeq ps(seq_id, mon_id, hetero);
+        auto psit = seq.lower_bound(ps);
+        if (psit != seq.end() && psit->seq_id == seq_id) {
+            auto psit2 = psit;
+            for (;;) {
+                if (psit2->seq_id == seq_id && psit2->mon_id == mon_id) {
+                    // TODO: limit warnings to once per entity?
+                    logger::warning(_logger, "Duplicate entity_poly_seq entry on line ", line_number());
+                    goto skip;
+                }
+                ++psit2;
+                if (psit2 == seq.end() || psit2->seq_id != seq_id)
+                    break;
+            }
+            psit = psit2;
+        }
+        seq.insert(psit, ps);
+    skip: ;
+#endif
     }
 }
 

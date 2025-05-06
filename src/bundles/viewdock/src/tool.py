@@ -26,9 +26,10 @@ from chimerax.hbonds.gui import HBondsGUI
 from chimerax.clashes.gui import ClashesGUI
 from chimerax.ui.widgets import ItemTable
 from chimerax.core.commands import run, concise_model_spec
-from chimerax.core.models import REMOVE_MODELS
+from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
-                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QSizePolicy)
+                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel,)
+from Qt.QtGui import QFont
 from Qt.QtCore import Qt
 
 
@@ -57,6 +58,10 @@ class ViewDockTool(ToolInstance):
 
         self.struct_table = ItemTable(session=self.session)
         self.table_setup()
+
+        self.description_group = QGroupBox()
+        self.description_box_setup()
+
         self.handlers = []
         self.add_handlers()
         self.tool_window.manage('side')
@@ -65,6 +70,20 @@ class ViewDockTool(ToolInstance):
         """
         Create the top buttons for the tool (HBonds and Clashes).
         """
+        # Add "Show All" button
+        self.show_all_button = QPushButton("Show All")
+        self.show_all_button.clicked.connect(
+            lambda: self.set_visibility(self.structures, True)
+        )
+        self.top_buttons_layout.addWidget(self.show_all_button)
+
+        # Add "Hide All" button
+        self.hide_all_button = QPushButton("Hide All")
+        self.hide_all_button.clicked.connect(
+            lambda: self.set_visibility(self.structures, False)
+        )
+        self.top_buttons_layout.addWidget(self.hide_all_button)
+
         self.hbonds_button = QPushButton("HBonds")
         self.hbonds_button.clicked.connect(
             lambda: self.popup_callback(
@@ -132,7 +151,7 @@ class ViewDockTool(ToolInstance):
         """
 
         # Fixed columns. Generic based on ChimeraX model attributes.
-        self.struct_table.add_column('Show', lambda s: s.display, data_set=self.set_visibility, format=ItemTable.COL_FORMAT_BOOLEAN)
+        self.display_col = self.struct_table.add_column('Show', lambda s: s.display, data_set=self.set_visibility, format=ItemTable.COL_FORMAT_BOOLEAN)
         self.struct_table.add_column('ID', lambda s: s.id_string)
 
         # Custom Rating delegate
@@ -163,6 +182,92 @@ class ViewDockTool(ToolInstance):
         # Add the table to the layout
         self.main_v_layout.addWidget(self.struct_table)
 
+    def description_box_setup(self):
+        """
+        Build the description box at the bottom of the tool which displays all the docking attribute information
+        for a selected docking model.
+        """
+
+        # Create a group box for the description box
+        description_layout = QGridLayout()
+        self.description_group.setLayout(description_layout)
+
+        # Set the title alignment to center
+        self.description_group.setAlignment(Qt.AlignCenter)
+
+        # Customize the font for the title
+        title_font = QFont()
+        title_font.setPointSize(16)  # Set font size
+        self.description_group.setFont(title_font)
+
+        self.struct_table.selection_changed.connect(
+            lambda newly_selected, newly_deselected: self.update_model_description(newly_selected)
+        )
+
+        # Add the group box to the main layout
+        self.main_v_layout.addWidget(self.description_group)
+        # Select the first structure in the table to display its data in the description box
+        self.struct_table.selected = [self.structures[0]]
+
+    def update_model_description(self, newly_selected):
+        """
+        Update the description box with the most recently selected structure's data. If more than one structure is
+        newly selected, only the first one will be displayed.
+
+        Args:
+            newly_selected (list): The newly selected structure(s) in the ItemTable.
+        """
+        # Create a custom font for the labels
+        label_font = QFont()
+        label_font.setPointSize(12)  # Set the font size
+
+        if not newly_selected:
+            return
+        docking_structure = newly_selected[0]
+        self.description_group.setTitle(f"ChimeraX Model {docking_structure.atomspec}")
+
+        # Clear the existing layout
+        layout = self.description_group.layout()
+        for i in reversed(range(layout.count())):
+            widget = layout.itemAt(i).widget()
+            if widget:
+                widget.deleteLater()
+
+        # Add attributes in a grid layout
+        attributes = list(docking_structure.viewdockx_data.items())
+        total_attributes = len(attributes)
+        rows_per_column = (total_attributes + 1) // 2  # Divide attributes evenly over two columns
+
+        for index, (key, value) in enumerate(attributes):
+            # Use the column's data_fetch to get the value for attributes appearing in the table
+            column = next((col for col in self.struct_table.columns if col.title == key), None)
+            if column and column.data_fetch:
+                # Fetch the value using the column's data_fetch
+                if callable(column.data_fetch):
+                    value = column.data_fetch(docking_structure)
+                else:
+                    # If data_fetch wasn't initialized as a callable, assume data_fetch is a string representing an
+                    # attribute path
+                    value = docking_structure
+                    for attr in column.data_fetch.split('.'):
+                        # Loop through nested attributes
+                        value = getattr(value, attr, None)
+                        if value is None:
+                            break
+
+            row = index % rows_per_column
+            col = (index // rows_per_column) * 2  # Multiply by 2 to account for key-value pairs
+
+            # Add key label
+            key_label = QLabel(f"<b>{key}:</b>") # Use HTML to bold the attr name
+            key_label.setFont(label_font)
+            layout.addWidget(key_label, row, col)
+
+            # Add value label
+            value_label = QLabel(str(value))
+            value_label.setFont(label_font)
+            layout.addWidget(value_label, row, col + 1)
+
     def add_handlers(self):
         """
         Add trigger handlers for updating the structure table.
@@ -170,6 +275,11 @@ class ViewDockTool(ToolInstance):
         self.handlers.append(self.session.triggers.add_handler(
             REMOVE_MODELS,
             lambda trigger_name, trigger_data: self.remove_models_cb(trigger_name, trigger_data)
+        ))
+        self.handlers.append(self.session.triggers.add_handler(
+            MODEL_DISPLAY_CHANGED,
+            lambda trigger_name, trigger_data: self.struct_table.update_cell(self.display_col, trigger_data)
+            if trigger_data in self.structures else None
         ))
 
     def remove_models_cb(self, trigger_name, trigger_data):
@@ -189,18 +299,23 @@ class ViewDockTool(ToolInstance):
                 self.structures.remove(model)
         self.struct_table.data = self.structures
 
-    def set_visibility(self, structure, value):
+    def set_visibility(self, structs, value):
         """
-        Callback for when the model display column has changes. Shows or hides the structure based on the value.
+        Shows or hides the structure(s) based on the value.
 
         Args:
-            structure: The structure that is being changed.
+            structs: The structure(s) that is/are being changed. Can be a single structure or a list of structures.
             value: The new value for the display column. True/False for show/hide.
         """
+        # Ensure structs is a list
+        if not isinstance(structs, (list, tuple)):
+            structs = [structs]
+
+        model_spec = concise_model_spec(self.session, structs)
         if value:
-            run(self.session, f'show #{structure.id_string} models')
+            run(self.session, f'show {model_spec} models')
         else:
-            run(self.session, f'hide #{structure.id_string} models')
+            run(self.session, f'hide {model_spec} models')
 
     def delete(self):
         """

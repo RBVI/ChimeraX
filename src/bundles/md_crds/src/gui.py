@@ -99,6 +99,7 @@ class PlotDialog:
         self._value_columns = {}
         self._frame_indicators = {}
         self._mouse_handlers = {}
+        self._provider_widgets = {}
 
         for provider_name in self.mgr.provider_names:
             self.tab_info[provider_name] = self.make_tab(provider_name)
@@ -193,14 +194,23 @@ class PlotDialog:
         plot_button.clicked.connect(lambda *args, f=self._plot_atomic, pv=provider_name: f(pv))
         pc_layout.addWidget(plot_button, 0, 0, alignment=Qt.AlignRight)
         num_atoms = self.mgr.num_atoms(provider_name)
-        atom_string = "any number of" if num_atoms == 0 else "%d" % num_atoms
-        pc_layout.addWidget(QLabel(" %s from %s selected atoms" % (ui_name, atom_string)), 0, 1,
+        preposition = "for" if num_atoms == 0 else "from"
+        atom_string = "" if num_atoms == 0 else "%d " % num_atoms
+        pc_layout.addWidget(QLabel(" %s %s %sselected atoms" % (ui_name, preposition, atom_string)), 0, 1,
             alignment=Qt.AlignLeft)
         if num_atoms == 0:
             reminder = QLabel("(If no selection, all atoms)")
             from chimerax.ui import shrink_font
             shrink_font(reminder)
             pc_layout.addWidget(reminder, 1, 0, 1, 2, alignment=Qt.AlignCenter)
+        excludes = self.mgr.excludes(provider_name)
+        if excludes:
+            provider_widget_dict = self._provider_widgets.setdefault(provider_name, {})
+            exclude_dict = provider_widget_dict["excludes"] = {}
+            for i, exclude in enumerate(excludes):
+                exclude_dict[exclude] = chkbut = QCheckBox("Ignore %s" % exclude)
+                chkbut.setChecked(True)
+                pc_layout.addWidget(chkbut, 2+i, 0, 1, 2, alignment=Qt.AlignCenter)
 
         delete_control_area = QWidget()
         area_layout.addWidget(delete_control_area)
@@ -220,13 +230,19 @@ class PlotDialog:
         table = ItemTable(allow_user_sorting=False)
         table.add_column("Color", "rgba8", format=table.COL_FORMAT_OPAQUE_COLOR, title_display=False)
         table.add_column("Shown", "shown", format=table.COL_FORMAT_BOOLEAN, icon="shown")
-        self._value_columns[provider_name] = table.add_column(self.mgr.ui_name(provider_name).capitalize(),
-            "value", format=self.mgr.text_format(provider_name),
-            #justification="decimal"  guessing in most cases better to center; also avoids fixed-width font
-            header_justification="center")
-        for i in range(self.mgr.num_atoms(provider_name)):
-            table.add_column("Atom %d" % (i+1), lambda x, i=i: x.atoms[i],
-                format=lambda a: a.string(minimal=True))
+        val_col_name = self.mgr.ui_name(provider_name)
+        if not val_col_name.isupper():
+            val_col_name = val_col_name.capitalize()
+        #justification="decimal"  guessing in most cases better to center; also avoids fixed-width font
+        self._value_columns[provider_name] = table.add_column(val_col_name, "value",
+            format=self.mgr.text_format(provider_name), header_justification="center")
+        num_atoms = self.mgr.num_atoms(provider_name)
+        if num_atoms == 0:
+            table.add_column("# Atoms", "num_atoms")
+        else:
+            for i in range(num_atoms):
+                table.add_column("Atom %d" % (i+1), lambda x, i=i: x.atoms[i],
+                    format=lambda a: a.string(minimal=True))
         table.data = []
         table.launch()
         return table
@@ -252,24 +268,36 @@ class PlotDialog:
                     try:
                         self.structure.active_coordset_id = cs_id
                     except IndexError:
-                        # non-exstent
+                        # non-existent
                         pass
                 break
 
     def _plot_atomic(self, provider_name):
         from chimerax.ui import tool_user_error
-        from chimerax.atomic import selected_atoms # selected_atoms preserves selection order
-        sel_atoms = [a for a in selected_atoms(self.session) if a.structure == self.structure]
+        from chimerax.atomic import Atoms, selected_atoms # selected_atoms preserves selection order
+        sel_atoms = Atoms([a for a in selected_atoms(self.session) if a.structure == self.structure])
         expected_sel = self.mgr.num_atoms(provider_name)
         ui_name = self.mgr.ui_name(provider_name)
         if expected_sel == 0:
             if not sel_atoms:
                 sel_atoms = self.structure.atoms
+            exclude_widgets = self._provider_widgets.get("excludes", {})
+            for struct_cat, chkbox in exclude_widgets.items():
+                if chkbox.isChecked():
+                    sel_atoms = sel_atoms.filter(sel_atoms.structure_categories != struct_cat)
+            if not sel_atoms:
+                from chimerax.core.commands import commas
+                return tool_user_error("No atoms remain after removing %s" % commas(exclude_widgets.keys(),
+                    conjunction="and"))
         elif len(sel_atoms) != expected_sel:
             return tool_user_error("Plotting %s requires exactly %d selected atoms in the structure;"
                 " %d are currently selected" % (plural_of(ui_name), expected_sel, len(sel_atoms)))
         table = self._tables[provider_name]
-        table.data += [TableEntry(self, provider_name, sel_atoms)]
+        from .manager import PlotValueError
+        try:
+            table.data += [TableEntry(self, provider_name, sel_atoms)]
+        except PlotValueError as e:
+            return tool_user_error("Cannot plot %s for selected atoms: %s" % (ui_name, str(e)))
         self._update_plot(provider_name)
 
     def _update_plot(self, provider_name):
@@ -315,14 +343,18 @@ class PlotDialog:
 class TableEntry:
     def __init__(self, plot_dialog, provider_name, atoms):
         self.plot_dialog = plot_dialog
+        mgr = plot_dialog.mgr
         self.provider_name = provider_name
-        self.atoms = atoms
         from chimerax.core.colors import distinguish_from
         self.rgba = distinguish_from([(1.0,1.0,1.0,1.0)]
             + [datum.rgba for datum in plot_dialog._tables[provider_name].data])
         self._shown = True
-        self._values = plot_dialog.mgr.get_values(provider_name,
-                            structure=plot_dialog.structure, atoms=atoms)
+        self._values = mgr.get_values(provider_name, structure=plot_dialog.structure, atoms=atoms)
+        self.atoms = atoms
+
+    @property
+    def num_atoms(self):
+        return len(self.atoms)
 
     @property
     def rgba8(self):

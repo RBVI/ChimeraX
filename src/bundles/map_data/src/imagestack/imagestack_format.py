@@ -32,12 +32,12 @@ class Image_Stack_Data:
 
     if self.is_tiff:
       # For TIFF images use tifffile.py
-      from tifffile import TiffFile, TIFF
+      from tifffile import TiffFile, PHOTOMETRIC
       tif = TiffFile(self.paths[0])
       pages = tif.pages
       page0 = pages[0]
       value_type = page0.dtype
-      is_rgb = (page0.photometric == TIFF.PHOTOMETRIC.RGB)
+      is_rgb = (page0.photometric == PHOTOMETRIC.RGB)
 
       ysize, xsize = page0.shape[:2]
 

@@ -92,6 +92,11 @@ jobs:
           platform: macos
           architecture: arm64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Install the 3DConnexion Framework
+        run: |
+          hdiutil attach 3DxWareMac_v10-8-7_r3836.dmg -nobrowse -noverify -quiet
+          sudo installer -pkg /Volumes/3Dconnexion\ Software/Install\ 3Dconnexion\ software.pkg -target /
+          hdiutil detach /Volumes/3Dconnexion\ Software
       - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) build-minimal
       - name: Install Pytest
         run: USE_COVERAGE=1 make pytest-install

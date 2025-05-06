@@ -30,7 +30,7 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
         replace=True):
     if [box_origin, box_extent].count(None) == 1:
         raise UserError("Must specify both 'boxOrigin' and 'boxExtent' or neither")
-    from chimerax.atomic import all_atomic_structures, Structure, Atom
+    from chimerax.atomic import all_atomic_structures, Structure, Atom, Residues
     for attr_name in ["area", "volume", "max_depth", "average_depth"]:
         Structure.register_attr(session, "kvfinder_" + attr_name, "KVFinder", attr_type=float)
     Atom.register_attr(session, "kvfinder_depth", "KVFinder", attr_type=float)
@@ -56,6 +56,18 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
         num_cavities, cavity_matrix = pyKVFinder.detect(struct_input, vertices, grid_spacing,
             probe_in, probe_out, removal_distance, volume_cutoff, None, 5.0, box_origin is not None,
             surface_type, None, False)
+        for ignore_backbone in [True, False]:
+            contact_res_info = pyKVFinder.grid.constitutional(cavity_matrix, struct_input, vertices,
+                grid_spacing, probe_in, ignore_backbone)
+            processed_res_info = {}
+            for cav_id, res_info in contact_res_info.items():
+                processed_res_info[cav_id] = Residues([s.find_residue(cid, int(pos))
+                    for pos, cid, name in res_info])
+            if ignore_backbone:
+                non_backbone_contacting = processed_res_info
+            else:
+                contacting = processed_res_info
+
         placement = None
         if replace:
             closures = []
@@ -76,9 +88,9 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
             return_values.append((s, num_cavities, cavity_matrix, None))
             continue
         session.logger.status("Find Cavities for %s: determining cavities' surface/volume" % s)
-        surface_grid, k_volume, k_area = pyKVFinder.spatial(cavity_matrix)
+        surface_grid, k_volume, k_area = pyKVFinder.spatial(cavity_matrix, step=grid_spacing)
         session.logger.status("Find Cavities for %s: finding cavity depths" % s)
-        depths, max_depth, avg_depth = pyKVFinder.depth(cavity_matrix)
+        depths, max_depth, avg_depth = pyKVFinder.depth(cavity_matrix, step=grid_spacing)
         session.logger.status("Find Cavities for %s: creating cavity models" % s)
         from chimerax.core.models import Model
         cavity_group = Model(cavity_group_name, session)
@@ -103,6 +115,10 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
             cav_s.kvfinder_volume = k_volume[k_index]
             cav_s.kvfinder_max_depth = max_depth[k_index]
             cav_s.kvfinder_average_depth = avg_depth[k_index]
+            contacting[cav_s] = contacting[k_index]
+            non_backbone_contacting[cav_s] = non_backbone_contacting[k_index]
+            del contacting[k_index]
+            del non_backbone_contacting[k_index]
         origin, *args = vertices
         assert (nx, ny, nz) == cavity_matrix.shape
         # Using the explicit triple loop instead of more numpy-like code, because AFAICT the
@@ -180,7 +196,8 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
         if show_tool:
             from .tool import KVFinderResultsDialog
             KVFinderResultsDialog(session, "%s Cavities" % s.name, s, cavity_group,
-                [ml[0] for ml in model_lookup.values()], probe_in, placement=placement)
+                [ml[0] for ml in model_lookup.values()], probe_in, placement=placement,
+                contacting_info=(contacting, non_backbone_contacting))
         session.logger.status("Find Cavities for %s: done" % s)
 
     return return_values
