@@ -155,14 +155,27 @@ jobs:
           msystem: MINGW64
           update: true
           install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
         with:
           platform: windows
-          architecture: x86
+          architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - uses: ./utils/ci/cache_mmtf/
-      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) install-rbvi
+      - uses: Tiryoh/gha-jobid-action@v1
+        id: get_job_id
+        if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
+        with:
+          job_name: ${{ format('Build ChimeraX for Windows ({0}, {1}) / Candidate', inputs.branch, inputs.release_type) }}
+      - name: Note the run and job IDs on Plato
+        if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
+        uses: nick-fields/retry@v3
+        with:
+          # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
+          # GitHub Actions couldn't contact Plato.
+          max_attempts: 1000
+          timeout_seconds: 60
+          command: ./utils/ci/nightly_logs.sh ${{ secrets.PREBUILT_CACHE_SECRET }} ${{ github.run_id }} ${{ steps.get_job_id.outputs.job_id }} windows ${{ inputs.release_type }}
+      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" BUILD_TYPE=candidate make -j$(nproc) install-rbvi
       - name: Install Pytest
         run: ./ChimeraX.app/bin/python.exe -I -m pip install pytest pytest-cov
       - name: Set up the repo for coverage reporting
@@ -175,6 +188,20 @@ jobs:
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
+      - name: Put the test outcome in the environment
+        run: |
+          if [ "${{ steps.test-exes.outcome }}" = "failure" ] || [ "${{ steps.test-wheel.outcome }}" = "failure" ] || [ "${{ steps.test-distribution.outcome }}" = "failure" ]; then
+            echo "TEST_OUTCOME=Failing" >> $GITHUB_ENV
+          else
+            echo "TEST_OUTCOME=Passing" >> $GITHUB_ENV
+          fi
+      - name: Report test results to Plato
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 1000
+          timeout_minutes: 60
+          shell: bash
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "outcome=$TEST_OUTCOME" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/confirm_tests.py
       - name: Copy scripts into the package
         run: |
           cp utils/build/windows/remove_pycache.py ChimeraX.app/bin/
@@ -183,14 +210,33 @@ jobs:
         with:
           build_certificate: ${{ secrets.WINDOWS_SIGNING_CERT }}
           cert_password: ${{ secrets.WINDOWS_SIGNING_PASS }}
+      - name: Put the build date and commit in the environment
+        shell: bash
+        run: |
+          export BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA)
+          export BUILD_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
+          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
+          echo "BUILD_COMMIT=$BUILD_COMMIT" >> $GITHUB_ENV
       - name: Upload ChimeraX
-        uses: ./utils/ci/upload_artifact
+        if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'techpreview' }}
+        uses: nick-fields/retry@v3
         with:
-          artifact_path: chimerax-installer.exe
-          full_build: true
-          release_type: ${{ inputs.release_type }}
-          platform: windows
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          max_attempts: 1000
+          timeout_minutes: 60
+          shell: bash
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax-installer.exe" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+      - name: Put the build version in the environment
+        shell: bash
+        run: |
+          export BUILD_VERSION=$(echo ${{ inputs.branch }} | sed -e 's/.*v//g')
+          echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
+      - name: Upload ChimeraX
+        if: ${{ inputs.release_type == 'candidate' || inputs.release_type == 'production' }}
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 1000
+          timeout_minutes: 60
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "version=$BUILD_VERSION" -F "date=$BUILD_DATE" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax-installer.exe" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
   build-techpreview:
     name: Preview
     if: ${{ inputs.release_type == 'techpreview' }}
