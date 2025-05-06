@@ -769,7 +769,6 @@ start_t = end_t;
             // this code replicated if chain ID changes w/o TER in ATOM/HETATM case below
             start_connect = true;
             recent_TER = true;
-            atom_het_TER = false;
             break_hets = false;
             if (second_chain_let_okay && chain_residues.size() > 1)
                 correct_chain_ids(chain_residues, second_chain_id_let, two_let_chains);
@@ -798,10 +797,8 @@ start_t = end_t;
                 second_chain_id_let = '\0';
                 chain_residues.clear();
             }
-            if (cur_residue != nullptr && record.type() == PDB::ATOM
-            && standard_polymeric_res_names.find(cur_residue->name())
-            == standard_polymeric_res_names.end())
-                atom_het_TER = true;
+            if (recent_TER)
+                atom_het_TER = record.type() == PDB::HETATM;
                 
             if (islower(record.atom.res.i_code))
                 record.atom.res.i_code = toupper(record.atom.res.i_code);
