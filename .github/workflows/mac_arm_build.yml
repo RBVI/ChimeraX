@@ -256,6 +256,7 @@ jobs:
           export BUILD_VERSION=$(echo ${{ inputs.branch }} | sed -e 's/.*v//g')
           echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
       - name: Upload ChimeraX
+        if: ${{ inputs.release_type == 'candidate' }}
         uses: nick-fields/retry@v3
         with:
           # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
