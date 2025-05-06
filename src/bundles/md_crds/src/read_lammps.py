@@ -45,22 +45,41 @@ def read_data(session, stream, file_name, *, auto_style=True, coords=None, **kw)
         # READ NUMBER OF ATOMS AND BONDS
 
         line = stream.readline()
+        atoms = 0
+        bonds = 0  # Initialize bonds to 0 by default
+        
         while line != '\n':
           tokens = line.split()
-
-          if tokens[1] == 'atoms':
-            atoms = int(tokens[0])
-          elif tokens[1] == 'bonds':
-            bonds = int(tokens[0])
+          
+          if len(tokens) >= 2:
+              if tokens[1] == 'atoms':
+                atoms = int(tokens[0])
+              elif tokens[1] == 'bonds':
+                bonds = int(tokens[0])
 
           line = stream.readline()
 
-        session.logger.info( f"LAMMPS data: {atoms} atoms {bonds} bonds")
+        session.logger.info(f"LAMMPS data: {atoms} atoms {bonds} bonds")
 
         # SKIP UNTIL MASSES SECTION
 
         line = stream.readline()
-        while not line.startswith("Masses"): line = stream.readline()
+        max_lines_to_search = 1000
+        search_count = 0
+        masses_section_found = False
+        
+        while search_count < max_lines_to_search:
+            if not line:  # End of file
+                break
+            if line.startswith("Masses"):
+                masses_section_found = True
+                break
+            line = stream.readline()
+            search_count += 1
+            
+        if not masses_section_found:
+            raise UserError("Masses section not found in DATA file")
+            
         line = stream.readline() # SKIP BLANK LINE
 
         # PARSE MASSES
@@ -75,22 +94,75 @@ def read_data(session, stream, file_name, *, auto_style=True, coords=None, **kw)
         # SKIP UNTIL ATOMS SECTION
 
         line = stream.readline()
-        while not line.startswith("Atoms"): line = stream.readline()
+        max_lines_to_search = 1000
+        search_count = 0
+        atoms_section_found = False
+        
+        while search_count < max_lines_to_search:
+            if not line:  # End of file
+                break
+            if line.startswith("Atoms"):
+                atoms_section_found = True
+                break
+            line = stream.readline()
+            search_count += 1
+            
+        if not atoms_section_found:
+            raise UserError("Atoms section not found in DATA file")
+            
         line = stream.readline() # SKIP BLANK LINE
 
         # PARSE ATOMS
 
         atoms_list = []
-        atoms = {}
-
+        atoms_dict = {}
+        
+        # Determine atom style format based on first line of atoms section
         tokens = stream.readline().split()
+        if not tokens:
+            raise UserError("Empty Atoms section")
+            
+        # Determine the atom style based on the number of columns
+        # Full atom style: id mol type q x y z [tx ty tz]
+        # Charge atom style: id type q x y z
+        num_columns = len(tokens)
+        
+        # Default positions for atom coordinates
+        x_pos, y_pos, z_pos = 4, 5, 6
+        mol_pos, type_pos = 1, 2
+        
+        # Adjust positions for atom_style charge (or other styles with fewer columns)
+        if num_columns <= 7:  # Likely atom_style charge
+            session.logger.info("Detected atom_style charge or similar format")
+            mol_pos = 0  # Not present, will use atom id as molecule id
+            type_pos = 1
+            x_pos, y_pos, z_pos = 3, 4, 5
+            
         while tokens:
           tag = int(tokens[0])
-          mol = int(tokens[1])
-          type = int(tokens[2])
-          xyz = array([float(tokens[4]),float(tokens[5]),float(tokens[6])], dtype=float64)
+          
+          # Handle molecule ID based on format
+          if mol_pos == 0:
+              # For atom_style charge, use atom id as molecule id
+              mol = tag
+          else:
+              mol = int(tokens[mol_pos])
+              
+          type = int(tokens[type_pos])
+          
+          # Make sure we don't go out of bounds
+          if x_pos >= len(tokens) or y_pos >= len(tokens) or z_pos >= len(tokens):
+              raise UserError(f"Atom coordinates not found at expected positions. Atom line: {' '.join(tokens)}")
+              
+          xyz = array([float(tokens[x_pos]), float(tokens[y_pos]), float(tokens[z_pos])], dtype=float64)
+          
           residue = structure.find_residue(" ", mol)
           if residue is None: residue = structure.new_residue(str(mol), " ", mol)
+          
+          # Check if the atom type exists in masses dictionary
+          if type not in masses:
+              raise UserError(f"Atom type {type} not found in Masses section")
+              
           element = determine_element_from_mass(masses[type])
           atoms_list.append([tag, element, residue, xyz])
           tokens = stream.readline().split()
@@ -98,23 +170,43 @@ def read_data(session, stream, file_name, *, auto_style=True, coords=None, **kw)
         atoms_list.sort(key=lambda atom:atom[0])
 
         for atom in atoms_list:
-          atoms[atom[0]] = add_atom(str(atom[0]), atom[1], atom[2], atom[3], serial_number=atom[0])
+          atoms_dict[atom[0]] = add_atom(str(atom[0]), atom[1], atom[2], atom[3], serial_number=atom[0])
 
-        # SKIP UNTIL BONDS SECTION
-
-        line = stream.readline()
-        while not line.startswith("Bonds"): line = stream.readline()
-        line = stream.readline() # SKIP BLANK LINE
-
-        # PARSE BONDS
-
-        tokens = stream.readline().split()
-        while tokens:
-          tag1 = int(tokens[2])
-          tag2 = int(tokens[3])
-          # FIXME: handle tag1 and/or tag2 not found
-          add_bond(atoms[tag1], atoms[tag2])
-          tokens = stream.readline().split()
+        # PROCESS BONDS SECTION IF BONDS EXIST
+        if bonds > 0:
+            # Try to find the Bonds section
+            line = stream.readline()
+            bonds_section_found = False
+            
+            # Limit the number of lines to search to avoid infinite loop
+            max_lines_to_search = 100
+            search_count = 0
+            
+            while search_count < max_lines_to_search:
+                if not line:  # End of file
+                    break
+                if line.startswith("Bonds"):
+                    bonds_section_found = True
+                    break
+                line = stream.readline()
+                search_count += 1
+            
+            if bonds_section_found:
+                line = stream.readline()  # SKIP BLANK LINE
+                
+                # PARSE BONDS
+                tokens = stream.readline().split()
+                while tokens:
+                    tag1 = int(tokens[2])
+                    tag2 = int(tokens[3])
+                    # Check if both atoms exist before adding bond
+                    if tag1 in atoms_dict and tag2 in atoms_dict:
+                        add_bond(atoms_dict[tag1], atoms_dict[tag2])
+                    else:
+                        session.logger.warning(f"Skipping bond: atom {tag1} or {tag2} not found")
+                    tokens = stream.readline().split()
+            else:
+                session.logger.info("No Bonds section found in the file, despite bond count > 0")
 
         stream.close()
 
@@ -128,23 +220,44 @@ def read_data(session, stream, file_name, *, auto_style=True, coords=None, **kw)
 
 def read_dump(session, path, model):
     from numpy import array, float64
+    from chimerax.core.errors import UserError
 
-    stream = open_input(path, encoding='UTF-8')
-    stream.readline()
-    timestep = int(stream.readline().split()[0])
-    stream.readline()
-    num_atoms = int(stream.readline().split()[0])
-    for j in range(4): stream.readline()
+    try:
+        stream = open_input(path, encoding='UTF-8')
+        stream.readline()
+        timestep = int(stream.readline().split()[0])
+        stream.readline()
+        num_atoms = int(stream.readline().split()[0])
+        for j in range(4): stream.readline()
 
-    # eg. ITEM: ATOMS id type mol x y z
-    tokens = stream.readline().split()
-    print("LAMMPS dump format: ", tokens[2:])
-    index_id = tokens.index('id')-2
-    index_type = tokens.index('type')-2
-    index_mol = tokens.index('mol')-2
-    index_x = tokens.index('x')-2
-    index_y = tokens.index('y')-2
-    index_z = tokens.index('z')-2
+        # eg. ITEM: ATOMS id type mol x y z
+        line = stream.readline()
+        tokens = line.split()
+        print("LAMMPS dump format: ", tokens[2:])
+        
+        # Check for required columns and set defaults in case they're missing
+        required_columns = ['id', 'x', 'y', 'z']
+        for col in required_columns:
+            if col not in tokens:
+                raise UserError(f"Required column '{col}' not found in DUMP file. Header: {line}")
+        
+        # Get column indices, set default values for optional columns
+        index_id = tokens.index('id')-2
+        
+        # Handle optional columns with default values
+        if 'type' in tokens:
+            index_type = tokens.index('type')-2
+        else:
+            index_type = -1  # Not found, will use a default value
+            
+        if 'mol' in tokens:
+            index_mol = tokens.index('mol')-2
+        else:
+            index_mol = -1  # Not found, will use atom id as molecule id
+            
+        index_x = tokens.index('x')-2
+        index_y = tokens.index('y')-2
+        index_z = tokens.index('z')-2
 
     coords_list = []
     done = False
@@ -155,21 +268,63 @@ def read_dump(session, path, model):
       coords_list.append([])
 
       for j in range(num_atoms):
-        # FIXME: handle dump format other than id type mol x y z
         tokens = stream.readline().split()
-        id = int(tokens[index_id])
-        type = int(tokens[index_type])
-        mol = int(tokens[index_mol])
-        x,y,z = float(tokens[index_x]),float(tokens[index_y]),float(tokens[index_z])
-        coords_list[i].append([id,x,y,z])
+        
+        # Handle required fields
+        try:
+            id = int(tokens[index_id])
+        except (IndexError, ValueError):
+            raise UserError(f"Could not parse atom ID from line: {' '.join(tokens)}")
+            
+        # Handle optional fields with defaults
+        if index_type >= 0 and index_type < len(tokens):
+            try:
+                type = int(tokens[index_type])
+            except ValueError:
+                type = 1  # Default type
+        else:
+            type = 1  # Default type
+            
+        if index_mol >= 0 and index_mol < len(tokens):
+            try:
+                mol = int(tokens[index_mol])
+            except ValueError:
+                mol = id  # Use atom ID as molecule ID
+        else:
+            mol = id  # Use atom ID as molecule ID
+            
+        # Handle coordinates
+        try:
+            x = float(tokens[index_x])
+            y = float(tokens[index_y])
+            z = float(tokens[index_z])
+        except (IndexError, ValueError):
+            raise UserError(f"Could not parse atom coordinates from line: {' '.join(tokens)}")
+            
+        coords_list[i].append([id, x, y, z])
 
-      coords_list[i].sort(key=lambda atom:atom[0])
+      # Sort by atom ID
+      coords_list[i].sort(key=lambda atom: atom[0])
       i += 1
-      if stream.readline():
-        for j in range(8): stream.readline()
+      
+      # Check for next frame
+      next_line = stream.readline()
+      if next_line:
+        try:
+            # Skip to next frame's atoms
+            for j in range(8): 
+                stream.readline()
+        except Exception:
+            # End of file or format error
+            done = True
       else:
         done = True
 
     coords = array(coords_list, dtype=float64)[:,:,1:]
     stream.close()
     return num_atoms, coords
+except Exception as e:
+    if 'stream' in locals() and stream is not None:
+        stream.close()
+    print(traceback.format_exc())
+    raise UserError(f"Problem reading/processing DUMP file '{path}': {e}")
