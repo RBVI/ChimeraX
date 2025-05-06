@@ -55,6 +55,7 @@ import shutil
 import sys
 import sysconfig
 from typing import Optional
+from pathlib import Path
 
 if sys.version_info < (3, 11, 0):
     import tomli as tomllib
@@ -929,6 +930,20 @@ class _CompiledCode:
         defines = attrs.get("define-macros", [])
         self.source_files = []
         for entry in source_files:
+            files_for_entry = glob.glob(entry)
+            if not files_for_entry:
+                error_text = f"{self.name}: No files matched the pattern: {entry}"
+                if not self.optional:
+                    raise FileNotFoundError(error_text)
+                else:
+                    warnings.warn(error_text)
+            for f in files_for_entry:
+                if not Path(f).is_file():
+                    error_text = f"{self.name}: Source file {f} not found"
+                    if not self.optional:
+                        raise FileNotFoundError(error_text)
+                    else:
+                        warnings.warn(error_text)
             self.source_files.extend(glob.glob(entry))
         for def_ in defines:
             edef = def_.split("=")
