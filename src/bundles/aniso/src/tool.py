@@ -63,7 +63,6 @@ class AnisoTool(ToolInstance):
         self.structure_button.value_changed.connect(self._update_widgets)
         preset_model_layout.addWidget(sb)
         preset_model_layout.addStretch(1)
-        self._set_preset_button_text()
 
         from .cmd import builtin_presets
         defaults = builtin_presets["simple"]
@@ -278,4 +277,3 @@ def _prob_to_scale(target_prob, low_bound=None, high_bound=None, converge=0.0001
         return (high_bound + low_bound) / 2.0
     return _prob_to_scale(target_prob, low_bound, high_bound, converge)
 
->>>>>>> 16a97ab70bd3c594e6a8f5759570b3e31c62c836
