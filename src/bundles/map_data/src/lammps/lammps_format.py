@@ -44,6 +44,7 @@ class Lammps_Grid_Data:
         self.step = None         # (dx, dy, dz)
         self.columns = None      # List of data column names
         self.data_sections = []  # List of (timestep, start_pos, num_entries)
+        self.box_bounds = None   # [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
         
         # Read through file to find all sections
         lines = file.readlines()
@@ -58,6 +59,20 @@ class Lammps_Grid_Data:
                 timestep = int(lines[line_index].strip())
                 self.timesteps.append(timestep)
             
+            # Parse ITEM: BOX BOUNDS
+            elif line.startswith("ITEM: BOX BOUNDS"):
+                self.box_bounds = []
+                for dim in range(3):  # Assume 3D box
+                    line_index += 1
+                    if line_index < len(lines):
+                        parts = lines[line_index].strip().split()
+                        if len(parts) >= 2:
+                            self.box_bounds.append((float(parts[0]), float(parts[1])))
+                
+                # Calculate origin from box bounds
+                if len(self.box_bounds) == 3:
+                    self.origin = (self.box_bounds[0][0], self.box_bounds[1][0], self.box_bounds[2][0])
+            
             # Parse ITEM: GRID SIZE
             elif line.startswith("ITEM: GRID SIZE"):
                 line_index += 1
@@ -65,20 +80,14 @@ class Lammps_Grid_Data:
                 if len(parts) >= 3:
                     # LAMMPS grid dimensions are (nx, ny, nz)
                     self.matrix_size = (int(parts[0]), int(parts[1]), int(parts[2]))
-            
-            # Parse ITEM: GRID ORIGIN
-            elif line.startswith("ITEM: GRID ORIGIN"):
-                line_index += 1
-                parts = lines[line_index].strip().split()
-                if len(parts) >= 3:
-                    self.origin = (float(parts[0]), float(parts[1]), float(parts[2]))
-            
-            # Parse ITEM: GRID SPACING
-            elif line.startswith("ITEM: GRID SPACING"):
-                line_index += 1
-                parts = lines[line_index].strip().split()
-                if len(parts) >= 3:
-                    self.step = (float(parts[0]), float(parts[1]), float(parts[2]))
+                    
+                    # If we have box_bounds and matrix_size but no step, calculate it
+                    if self.box_bounds and self.matrix_size and not self.step:
+                        nx, ny, nz = self.matrix_size
+                        dx = (self.box_bounds[0][1] - self.box_bounds[0][0]) / nx if nx > 1 else 1.0
+                        dy = (self.box_bounds[1][1] - self.box_bounds[1][0]) / ny if ny > 1 else 1.0
+                        dz = (self.box_bounds[2][1] - self.box_bounds[2][0]) / nz if nz > 1 else 1.0
+                        self.step = (dx, dy, dz)
             
             # Parse ITEM: GRID CELLS
             elif line.startswith("ITEM: GRID CELLS"):
