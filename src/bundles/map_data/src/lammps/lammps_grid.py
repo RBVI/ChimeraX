@@ -33,9 +33,6 @@ class LammpsGrid(GridData):
     """
     def __init__(self, path):
 
-        print("*** ok 2")
-
-
         from . import lammps_format
         d = lammps_format.Lammps_Grid_Data(path)
         

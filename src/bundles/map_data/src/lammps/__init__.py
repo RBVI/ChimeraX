@@ -13,12 +13,6 @@
 # LAMMPS grid3d dump file reader.
 #
 
-print("*** ok 1a")
-
 def open(path):
     from .lammps_grid import LammpsGrid
-    print("*** ok 1b")
     return [LammpsGrid(path)]
-
-
-# open /Users/mitch/Dropbox/github/hmx/spice/nitrite/nitrite.grid3d

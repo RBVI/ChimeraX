@@ -39,12 +39,9 @@ class MapFileFormat:
     self.allow_directory = allow_directory
     self.check_path = check_path
 
-    print(f"*** name {name} suffixes {suffixes}")
-
   @property
   def open_func(self):
     module_name = self.name
-    print(f"*** module_name {module_name}")
     module = __import__(module_name, globals(), level = 1)
     return module.open
 
@@ -150,8 +147,6 @@ def suffix_warning(paths):
 #
 def open_file(path, file_type = None, **kw):
 
-  print("*** open_file()")
-
   if file_type is None:
     p = path if isinstance(path, str) else path[0]
     file_type = file_type_from_suffix(p)
@@ -188,8 +183,6 @@ def open_file(path, file_type = None, **kw):
 #
 def file_type_from_suffix(path):
 
-  print("*** file_type_from_suffix()")
-
   for ff in file_formats:
     for suffix in ff.suffixes:
       if has_suffix(path, suffix):
@@ -199,8 +192,6 @@ def file_type_from_suffix(path):
 # -----------------------------------------------------------------------------
 #
 def file_type_from_colon_specifier(path):
-
-  print("*** file_type_from_colon_specifier()")
 
   try:
     colon_position = path.rindex(':')
@@ -219,8 +210,6 @@ def file_type_from_colon_specifier(path):
 # -----------------------------------------------------------------------------
 #
 def file_format_by_name(name):
-
-  print("*** file_format_by_name()")
 
   for ff in file_formats:
     if ff.name == name or name in ff.suffixes or name in ff.prefixes:
