@@ -57,6 +57,8 @@ jobs:
           timeout_seconds: 60
           command: ./utils/ci/nightly_logs.sh ${{ secrets.PREBUILT_CACHE_SECRET }} ${{ github.run_id }} ${{ steps.get_job_id.outputs.job_id }} flatpak-arm ${{ inputs.release_type }}
       - run: chown -R $(id -u):$(id -g) $PWD
+      - name: Insert the build type into the Flatpak YAML file
+        run: sed -i -e 's/\(FLATPAK_APPNAME=[^ ]* \)/\1BUILD_TYPE="${{ inputs.release_type}}" /' arm-flatpak.yml
       - name: Build the rest of ChimeraX
         uses: flatpak/flatpak-github-actions/flatpak-builder@master
         with:
