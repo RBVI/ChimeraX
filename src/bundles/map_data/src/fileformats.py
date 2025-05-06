@@ -93,7 +93,7 @@ file_formats = [
   MapFileFormat('SPIDER volume data', 'spider', ['spider'], ['spi','vol']),
   MapFileFormat('TOM toolbox EM density map', 'tom_em', ['tom_em'], ['em']),
   MapFileFormat('UHBD grid, binary', 'uhbd', ['uhbd'], ['grd']),
-  MapFileFormat('LAMMPS grid3d', 'grid3d', ['grid3d'], ['grid3d']),
+  MapFileFormat('LAMMPS grid3d', 'lammps', ['lammps'], ['grid3d']),
 ]
   
 # -----------------------------------------------------------------------------
@@ -150,7 +150,7 @@ def suffix_warning(paths):
 #
 def open_file(path, file_type = None, **kw):
 
-  print("*** ok 1")
+  print("*** open_file()")
 
   if file_type is None:
     p = path if isinstance(path, str) else path[0]
@@ -187,7 +187,9 @@ def open_file(path, file_type = None, **kw):
 # -----------------------------------------------------------------------------
 #
 def file_type_from_suffix(path):
-    
+
+  print("*** file_type_from_suffix()")
+
   for ff in file_formats:
     for suffix in ff.suffixes:
       if has_suffix(path, suffix):
@@ -197,6 +199,8 @@ def file_type_from_suffix(path):
 # -----------------------------------------------------------------------------
 #
 def file_type_from_colon_specifier(path):
+
+  print("*** file_type_from_colon_specifier()")
 
   try:
     colon_position = path.rindex(':')
@@ -215,6 +219,9 @@ def file_type_from_colon_specifier(path):
 # -----------------------------------------------------------------------------
 #
 def file_format_by_name(name):
+
+  print("*** file_format_by_name()")
+
   for ff in file_formats:
     if ff.name == name or name in ff.suffixes or name in ff.prefixes:
       return ff
