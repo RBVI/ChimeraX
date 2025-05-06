@@ -922,6 +922,7 @@ class _CompiledCode:
         self.include_libraries = attrs.get("library-modules", [])
         self.library_dirs = attrs.get("library-dirs", [])
         self.framework_dirs = attrs.get("framework-dirs", [])
+        self.optional = attrs.get("optional", False)
         self.macros = []
         self.target_lang = attrs.get("target-lang", None)
         self.limited_api = attrs.get("limited-api", None)
@@ -1111,6 +1112,7 @@ class _CModule(_CompiledCode):
                 extra_link_args=extra_link_args,
                 sources=self.source_files,
                 py_limited_api=self.limited_api,
+                optional = self.optional
             )
         else:
             return None
