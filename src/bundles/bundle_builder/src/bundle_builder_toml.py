@@ -55,6 +55,7 @@ import shutil
 import sys
 import sysconfig
 from typing import Optional
+from pathlib import Path
 
 if sys.version_info < (3, 11, 0):
     import tomli as tomllib
@@ -922,12 +923,27 @@ class _CompiledCode:
         self.include_libraries = attrs.get("library-modules", [])
         self.library_dirs = attrs.get("library-dirs", [])
         self.framework_dirs = attrs.get("framework-dirs", [])
+        self.optional = attrs.get("optional", False)
         self.macros = []
         self.target_lang = attrs.get("target-lang", None)
         self.limited_api = attrs.get("limited-api", None)
         defines = attrs.get("define-macros", [])
         self.source_files = []
         for entry in source_files:
+            files_for_entry = glob.glob(entry)
+            if not files_for_entry:
+                error_text = f"{self.name}: No files matched the pattern: {entry}"
+                if not self.optional:
+                    raise FileNotFoundError(error_text)
+                else:
+                    warnings.warn(error_text)
+            for f in files_for_entry:
+                if not Path(f).is_file():
+                    error_text = f"{self.name}: Source file {f} not found"
+                    if not self.optional:
+                        raise FileNotFoundError(error_text)
+                    else:
+                        warnings.warn(error_text)
             self.source_files.extend(glob.glob(entry))
         for def_ in defines:
             edef = def_.split("=")
@@ -1111,6 +1127,7 @@ class _CModule(_CompiledCode):
                 extra_link_args=extra_link_args,
                 sources=self.source_files,
                 py_limited_api=self.limited_api,
+                optional = self.optional
             )
         else:
             return None

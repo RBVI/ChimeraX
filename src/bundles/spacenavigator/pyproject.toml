@@ -1,8 +1,5 @@
 [build-system]
-requires = [
-  "ChimeraX-BundleBuilder>=1.4.0",
-  "ChimeraX-Core ~=1.0",
-]
+requires = ["ChimeraX-BundleBuilder>=1.4.0", "ChimeraX-Core ~=1.0"]
 build-backend = "chimerax.bundle_builder.cx_pep517"
 
 [project]
@@ -11,10 +8,7 @@ version = "1.0"
 license = { text = "Free for non-commercial use" }
 authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
 description = "Space Navigator device support"
-dependencies = [
-  "ChimeraX-Core ~=1.0",
-  "ChimeraX-Geometry ~=1.0",
-]
+dependencies = ["ChimeraX-Core ~=1.0", "ChimeraX-Geometry ~=1.0"]
 dynamic = ["classifiers", "requires-python"]
 
 [project.readme]
@@ -35,24 +29,13 @@ category = "General"
 description = "Control SpaceNavigator device"
 
 [tool.chimerax.extension._spacenavigator.platform.mac]
-sources = [
-  "spacenav.cpp",
-]
+optional = true
+sources = ["spacenav.cpp"]
 include-dirs = [
   "/Library/Frameworks/3DconnexionClient.framework/Versions/Current/Headers",
   "src/include",
 ]
-include-modules = [
-  "chimerax.core",
-]
-library-modules = [
-  "chimerax.core",
-]
-framework-dirs = [
-  "/Library/Frameworks/",
-]
-frameworks = [
-  "3DconnexionClient",
-]
-
-
+include-modules = ["chimerax.core"]
+library-modules = ["chimerax.core"]
+framework-dirs = ["/Library/Frameworks/"]
+frameworks = ["3DconnexionClient"]

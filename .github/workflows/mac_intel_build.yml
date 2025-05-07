@@ -112,8 +112,8 @@ jobs:
         if: ${{ inputs.release_type == 'production' }}
         shell: bash
         run: |
-          export CHIMERAX_VERSION="${$(echo ${{ github.ref }} | cut -d'/' -f 4):1}"
-          echo CHIMERAX_APP_NAME=ChimeraX-$CHIMERAX_VERSION.app >> $GITHUB_ENV
+          export BUILD_VERSION=$(echo ${{ inputs.branch }} | sed -e 's/.*v//g')
+          echo CHIMERAX_APP_NAME=ChimeraX-$BUILD_VERSION.app >> $GITHUB_ENV
 
       - name: Put the app name in GITHUB_ENV (daily)
         if: ${{ inputs.release_type == 'daily' }}
@@ -125,9 +125,9 @@ jobs:
         if: ${{ inputs.release_type == 'candidate' }}
         shell: bash
         run: |
-          export CHIMERAX_VERSION="${$(echo ${{ github.ref }} | cut -d'/' -f 4):1}"
+          export BUILD_VERSION=$(echo ${{ inputs.branch }} | sed -e 's/.*v//g')
           export CHIMERAX_DATE=$(date +'%Y.%m.%d')
-          echo CHIMERAX_APP_NAME=ChimeraX-$CHIMERAX_VERSION-rc$CHIMERAX_DATE.app >> $GITHUB_ENV
+          echo CHIMERAX_APP_NAME=ChimeraX-$BUILD_VERSION-rc$CHIMERAX_DATE.app >> $GITHUB_ENV
 
       - name: Put the app name in GITHUB_ENV (techpreview)
         if: ${{ inputs.release_type == 'techpreview' }}

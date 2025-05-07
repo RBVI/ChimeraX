@@ -306,9 +306,11 @@ class BoltzRun:
         if self._device == 'default':
             from sys import platform
             if platform == 'win32':
-                device = 'cpu'
-                # TODO: Detect Nvidia/CUDA on windows.  Also will need cuda-enabled torch.
-                #       The default PyPi torch 2.6.0 for windows is cpu only.
+                boltz_install = self._settings.boltz_install_location
+                from os.path import join, exists
+                torch_cuda_dll = join(boltz_install, 'Lib/site-packages/torch/lib/torch_cuda.dll')
+                nvidia_smi = 'C:\\Windows\\System32\\nvidia-smi.exe'
+                device = 'gpu' if exists(torch_cuda_dll) and exists(nvidia_smi) else 'cpu'
             elif platform == 'darwin':
                 from platform import machine
                 device = 'gpu' if machine() == 'arm64' else 'cpu'
@@ -387,7 +389,8 @@ class BoltzRun:
     def _log_prediction_info(self):
         log = self._session.logger
         mol_descrip = self._assembly_description()
-        log.info(f'Running Boltz prediction of {mol_descrip}')
+        device = self.device
+        log.info(f'Running Boltz prediction of {mol_descrip} on {device}')
 
         if self.use_msa_server:
             msa_method = 'Using multiple sequence alignment server https://api.colabfold.com'
