@@ -1,0 +1,50 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=1.4.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-SaveCommand"
+version = "1.5.1"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Manages 'save' command extensibility"
+dependencies = [
+  "ChimeraX-Core ~=1.2",
+  "ChimeraX-DataFormats ~=1.0",
+  "ChimeraX-IO ~=1.0",
+  "ChimeraX-UI ~=1.10",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """Handles 'save' command and manages bundles extending its capabilities"""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+module-name-override = "save_command"
+categories = ["Commands"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.initializations.manager]
+bundles = [
+  "ChimeraX-DataFormats",
+]
+
+[tool.chimerax.command.save]
+category = "General"
+description = "Save data files"
+
+[tool.chimerax.command."usage save"]
+category = "General"
+description = "Show 'save' command syntax"
+
+[tool.chimerax.manager."save command"]
+
+

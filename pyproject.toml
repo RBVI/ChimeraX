@@ -1,13 +1,194 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ChimeraX"
+license = "LGPL-2.1" # WHEEL ONLY
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Analysis and visualization of molecular structures and 3D microscopy"
+classifiers = [
+  'Development Status :: 3 - Alpha',
+  'Intended Audience :: Science/Research',
+  'Programming Language :: Python :: 3.11',
+]
+requires-python = ">=3.11"
+dynamic = ["version"]
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[project.readme]
+content-type = "Markdown"
+file = "README.md"
+
+[project.optional-dependencies]
+gui = [
+  "openvr==1.26.701",
+  "PyOpenGL==3.1.9",
+  "PyOpenGL-accelerate==3.1.9",
+  # PyQt handled in prereqs/PyQt"
+  # sip handled in prereqs/PyQt
+  #PySide6==6.9.0
+  #shiboken6==6.9.0
+  "qtconsole==5.5.2",
+  "qtshim==1.1",
+  # Used by the DICOM bundle for a double-ended QSlider"
+  "superqt==0.7.1",
+  #tinyarray==1.2.4
+  "webcolors==24.11.1",
+  "wheel-filename==1.4.2",
+  #
+  # Documentation
+  #
+  "blockdiag==3.0.0",
+  "docutils==0.21.2",
+  "Jinja2==3.1.6",
+  "Pygments==2.18.0",
+  "Sphinx==8.2.3",
+  "sphinxcontrib-blockdiag==3.0.0",
+  "sphinx_autodoc_typehints==3.1.0",
+  #
+  # Windows
+  #
+  "pywin32==310; sys_platform == 'win32'",
+  "WMI==1.5.1; sys_platform == 'win32'",
+  "comtypes==1.4.10; sys_platform == 'win32'",
+  #
+  # Linux
+  #
+  "distro==1.9.0; sys_platform == 'linux'",
+]
+wheel = [
+  "appdirs==1.4.4",
+  "beautifulsoup4==4.13.3",
+  "colorama==0.4.6",
+  "Cython==3.0.12",
+  "filelock==3.18.0",
+  "grako==3.16.5",
+  "html2text==2024.2.26",
+  "ihm==2.2",
+  "imagecodecs==2024.6.1",
+  # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
+  # try a newer version of jedi
+  "ipykernel==6.29.5",
+  "ipython==8.26.0",
+  # the version of jedi that works with ipython
+  "jedi==0.19.1",
+  "jupyter-client==8.6.3",
+  "lxml==5.3.1",
+  "lz4==4.4.4",
+  "matplotlib==3.10.1",
+  "msgpack==1.1.0",
+  "nibabel == 5.2.0",
+  "netCDF4==1.6.5",
+  "networkx==3.3",
+  "numpy==1.26.4",
+  "openmm==8.2.0 ; platform_machine != 'aarch64'",
+  "packaging==24.2",
+  # as per Tristan's request in ticket #3055"
+  "ParmEd==4.2.2",
+  "pep517==0.13.1",
+  # optional package to prevent warning in Python shell [#16571]
+  "pickleshare==0.7.5",
+  "Pillow==10.4.0",
+  "pkginfo==1.11.1",
+  "psutil==7.0.0",
+  "pycollada==0.8",
+  "pydicom==2.4.4",
+  "pynrrd==1.0.0",
+  "pyopenxr==1.1.4501",
+  "tcia_utils==1.5.1",
+  "python-dateutil==2.9.0.post0",
+  "requests==2.32.3",
+  "scipy==1.14.0",
+  "six==1.16.0",
+  "sortedcontainers==2.4.0",
+  "tables==3.10.2",
+  "tifffile==2025.3.13",
+  "webcolors==24.11.1",
+  "wheel-filename==1.4.2",
+  "blockdiag==3.0.0",
+  "docutils==0.21.2",
+  "Jinja2==3.1.6",
+  "Pygments==2.18.0",
+  "Sphinx==8.2.3",
+  "sphinxcontrib-blockdiag==3.0.0",
+  "sphinx_autodoc_typehints==3.1.0",
+  #
+  # Windows
+  #
+  "pywin32==310; sys_platform == 'win32'",
+  "WMI==1.5.1; sys_platform == 'win32'",
+  "comtypes==1.4.10; sys_platform == 'win32'",
+  #
+  # Linux
+  #
+  "distro==1.9.0; sys_platform == 'linux'",
+  #
+  # Indirect dependencies listed here to pin the version number
+  #
+  "traitlets==5.14.3",
+]
+dev = ["line_profiler==4.2.0"]
+test = ["pytest", "pytest-cov", "coverage"]
+
+[tool.setuptools.dynamic]
+version = { attr = "chimerax.core.__version__" }
+
+# TODO: Generate this from bundle TOMLs
+[tool.setuptools.package-data]
+"*" = [
+  "**/lib/**",
+  "**/include/**",
+  "**/*.dylib",
+  "**/*.so",
+  "**/*.lib",
+  "**/*.a",
+  "**/*.png",
+  "**/icons/**",
+  "**/static/**",
+  "**/html/**",
+  "**/dcd/**",
+  "**/bin/**",
+  "**/data/**",
+  "**/fragments/**",
+  "**/nuc-data/**",
+  "**/cluts/**",
+  "**/presets/**",
+  "**/matrices/**",
+]
+"chimerax.add_charge" = ["amber_name.defattr"]
+"chimerax.atom_search" = ["*.pyx"]
+"chimerax.atomic" = ["*.pyx"]
+"chimerax.basic_actions" = ["*.css", "*.html", "*.js"]
+"chimerax.core" = ["colorbrewer.json"]
+"chimerax.dunbrack_rotamer_lib" = ["*.zip"]
+"chimerax.dynameomics_rotamer_lib" = ["*.zip"]
+"chimerax.graphics" = ["*.txt"]
+"chimerax.looking_glass" = ["*.txt"]
+"chimerax.mmcif" = ["*.cpp", "*.cif"]
+"chimerax.registration" = ["registration_form.html"]
+"chimerax.rest_server" = ["server.pem"]
+"chimerax.richardson_rotamer_lib" = ["*.zip"]
+"chimerax.rna_layout" = ["rna_templates_6pj6.cif"]
+"chimerax.swapaa" = ["templates.cif"]
+"chimerax.toolbar" = ["tool.html"]
+"chimerax.ui" = ["about.html", "splash.jpg"]
+"chimerax.viewdockx" = ["*.html", "*.css", "*.js"]
+
 [tool.pyright]
 include = ["src"]
 exclude = ["ChimeraX.app/**"]
 ignore = ["src/bundles/**/build"]
+
 [tool.yapf]
 # All changes must be PEP8 compatible
 blank_line_before_nested_class_or_def = true
 column_limit = 95
 dedent_closing_brackets = true
 space_between_ending_comma_and_closing_bracket = false
+
 [tool.yapfignore]
 ignore_patterns = [
   ".venv",

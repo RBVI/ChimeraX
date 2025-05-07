@@ -1,0 +1,97 @@
+<?xml version="1.0"?>
+<BundleInfo name="ChimeraX-Shortcuts" version="1.2.0" package="chimerax.shortcuts" minSessionVersion="1" maxSessionVersion="1">
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+  <Synopsis>Button and keyboard shortcuts</Synopsis>
+  <Description>Provide button and keyboard shortcuts for common commands.</Description>
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+    <DataFile>icons/*.svg</DataFile>
+  </DataFiles>
+  <Categories>
+    <Category name="Toolbar"/>
+  </Categories>
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
+    <Dependency name="ChimeraX-MapFit" version="~=2.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+  </Dependencies>
+  <Providers manager="toolbar">
+    <Provider tab="Molecule Display" section="Atoms" name="da" display_name="Show" icon="atomshow.png" description="Show atoms"/>
+    <Provider tab="Molecule Display" section="Atoms" name="ha" display_name="Hide" icon="atomhide.png" darkIcon="atomhide-dark.png" description="Hide atoms"/>
+    <Provider tab="Molecule Display" section="Cartoons" name="rb" display_name="Show" icon="ribshow.png" description="Show cartoons"/>
+    <Provider tab="Molecule Display" section="Cartoons" name="hr" display_name="Hide" icon="ribhide.png" darkIcon="ribhide-dark.png" description="Hide cartoons"/>
+    <Provider tab="Molecule Display" section="Surfaces" name="ms" display_name="Show" icon="surfshow.png" description="Show surfaces"/>
+    <Provider tab="Molecule Display" section="Surfaces" name="hs" display_name="Hide" icon="surfhide.png" darkIcon="surfhide-dark.png" description="Hide surfaces"/>
+    <Provider tab="Molecule Display" section="Styles" name="st" display_name="Stick" icon="stick.png" description="Display atoms in stick style"/>
+    <Provider tab="Molecule Display" section="Styles" name="sp" display_name="Sphere" icon="sphere.png" description="Display atoms in sphere style"/>
+    <Provider tab="Molecule Display" section="Styles" name="bs" display_name="Ball &amp; stick" icon="ball.png" description="Display atoms in ball and stick style"/>
+    <Provider tab="Molecule Display" section="Coloring" name="ce" display_name="heteroatom" icon="colorbyelement.png" description="Color non-carbon atoms by element"/>
+    <Provider tab="Molecule Display" section="Coloring" name="cc" display_name="chain" icon="colorbychain.png" description="Color by chain"/>
+    <Provider tab="Molecule Display" section="Coloring" name="cp" display_name="polymer" icon="polymer.png" description="Color by polymer"/>
+    <Provider tab="Molecule Display" section="Coloring" name="rB" display_name="rainbow" icon="rainbow.png" description="Rainbow color N to C-terminus"/>
+    <Provider tab="Molecule Display" section="Coloring" name="ep" display_name="electrostatic" icon="esp.png" description="Color surface by electrostatic potential"/>
+    <Provider tab="Molecule Display" section="Coloring" name="hp" display_name="hydrophobic" icon="hydrophobicity.png" description="Color surface by hydrophobicity"/>
+    <Provider tab="Molecule Display" section="Coloring" name="bf" display_name="b-factor" icon="bfactor.png" description="Color by b-factor"/>
+    <Provider tab="Molecule Display" section="Analysis" name="hb" display_name="H-bonds" icon="hbondsflat.png" description="Show hydrogen bonds"/>
+    <Provider tab="Molecule Display" section="Analysis" name="HB" display_name="Hide H-bonds" icon="hbondsflathide.png" description="Hide hydrogen bonds"/>
+    <Provider tab="Molecule Display" section="Analysis" name="sq" display_name="Sequence" icon="sequence.png" description="Show polymer sequence"/>
+    <Provider tab="Molecule Display" section="Analysis" name="if" display_name="Interfaces" icon="interfaces.png" description="Show chain contacts diagram"/>
+    <Provider tab="Graphics" section="Background" name="wb" display_name="White" icon="whitebg.png" description="White background"/>
+    <Provider tab="Graphics" section="Background" name="gb" display_name="Gray" icon="graybg.png" description="Gray background"/>
+    <Provider tab="Graphics" section="Background" name="bk" display_name="Black" icon="blackbg.png" description="Black background"/>
+    <Provider tab="Graphics" section="Lighting &amp; Effects" name="ls" display_name="Simple" icon="simplelight.png" description="Simple lighting"/>
+    <Provider tab="Graphics" section="Lighting &amp; Effects" name="la" display_name="Soft" icon="softlight.png" description="Ambient lighting"/>
+    <Provider tab="Graphics" section="Lighting &amp; Effects" name="lf" display_name="Full" icon="fulllight.png" description="Full lighting"/>
+    <Provider tab="Graphics" section="Lighting &amp; Effects" name="lF" display_name="Flat" icon="flat.png" description="Flat lighting"/>
+    <Provider tab="Graphics" section="Lighting &amp; Effects" name="sh" display_name="Shadow" icon="shadow.png" description="Toggle shadows"/>
+    <Provider tab="Graphics" section="Lighting &amp; Effects" name="se" display_name="Silhouettes" icon="silhouette.png" darkIcon="silhouette-dark.png" description="Toggle silhouettes"/>
+    <Provider tab="Graphics" section="Camera" after="Side view" name="vs" display_name="View selected" icon="viewsel.png" darkIcon="viewsel-dark.png" description="View selected"/>
+    <Provider tab="Graphics" section="Camera" name="va" display_name="View all" icon="viewall.png" darkIcon="viewall-dark.png" description="View all"/>
+    <Provider tab="Graphics" section="Camera" name="dv" display_name="Orient" icon="orient.png" darkIcon="orient-dark.png" description="Default orientation"/>
+    <!-- Map tab -->
+    <Provider tab="Map" section="Map" name="sM" display_name="Show" icon="showmap.png" description="Show map"/>
+    <Provider tab="Map" section="Map" name="hM" display_name="Hide" icon="hidemap.png" description="Hide map"/>
+    <Provider tab="Map" section="Style" name="fl" display_name="surface" icon="mapsurf.png" description="Show map or surface in filled style"/>
+    <Provider tab="Map" section="Style" name="me" display_name="mesh" icon="mesh.png" description="Show map or surface as mesh"/>
+    <Provider tab="Map" section="Style" name="gs" display_name="image" icon="mapimage.png" description="Show map as grayscale"/>
+    <Provider tab="Map" section="Style" name="tt" display_name="Transparent surface" icon="icecube.png" description="Toggle surface transparency"/>
+    <Provider tab="Map" section="Style" name="ob" display_name="Outline box" icon="outlinebox.png" description="Toggle outline box"/>
+    <Provider tab="Map" section="Steps" name="s1" display_name="Step 1" icon="step1.png" description="Show map at step 1"/>
+    <Provider tab="Map" section="Steps" name="s2" display_name="Step 2" icon="step2.png" description="Show map at step 2"/>
+    <Provider tab="Map" section="Subregions" name="pl" display_name="Z-plane" icon="plane.png" description="Show one plane"/>
+    <Provider tab="Map" section="Subregions" name="is" display_name="Slab" icon="slab.png" description="Show rotatable slab"/>
+    <Provider tab="Map" section="Subregions" name="o3" display_name="Orthoplanes" icon="orthoplanes.png" description="Show 3 orthogonal planes"/>
+    <Provider tab="Map" section="Subregions" name="pa" display_name="Full" icon="fullvolume.png" description="Show all planes"/>
+    <Provider tab="Map" section="Subregions" name="vz" display_name="Zone" icon="volzone.png" description="Show map near atoms"/>
+    <Provider tab="Map" section="Appearance" hidden="true" name="zs" display_name="XYZ slices" icon="xyzslice.png" description="Volume XYZ slices"/>
+    <Provider tab="Map" section="Appearance" hidden="true" name="ps" display_name="Perpendicular slices" icon="perpslice.png" description="Volume perpendicular slices"/>
+    <Provider tab="Map" section="Appearance" hidden="true" name="rs" display_name="Raycasting" icon="raycasting.svg" description="Volume raycasting"/>
+    <Provider tab="Map" section="Appearance" hidden="true" name="aw" display_name="Airways" icon="airways.png" description="Airways CT scan coloring"/>
+    <Provider tab="Map" section="Appearance" hidden="true" name="ch" display_name="Chest CT" icon="chest.png" description="Chest CT scan coloring"/>
+    <Provider tab="Map" section="Appearance" hidden="true" name="bc" display_name="Brain CT" icon="brain.png" description="Brain CT scan coloring"/>
+    <Provider tab="Map" section="Appearance" name="cz" display_name="Color near atoms" icon="colorzone.png" description="Color map to match atoms"/>
+    <Provider tab="Map" section="Appearance" name="hd" display_name="Hide dust" icon="dust.png" description="Hide small surface blobs"/>
+    <Provider tab="Map" section="Appearance" hidden="true" name="dc" display_name="Default thresholds" icon="initialcurve.png" description="Default volume curve"/>
+    <Provider tab="Map" section="Calculations" name="fm" display_name="Fit" icon="fitmap.png" description="Fit atomic model or map in map"/>
+    <Provider tab="Map" section="Calculations" name="sb" display_name="Subtract" icon="diffmap.png" description="Subtract map from map"/>
+    <Provider tab="Map" section="Calculations" name="gf" display_name="Smooth" icon="smooth.png" description="Smooth map"/>
+    <Provider tab="Extras" section="Images" hidden="true" name="sx" display_name="Snapshot" icon="camera.png" description="Save snapshot to desktop"/>
+    <Provider tab="Extras" section="Images" hidden="true" name="vd" display_name="Spin movie" icon="video.png" description="Record spin movie"/>
+    <Provider tab="Extras" section="Viewing" hidden="true" name="vr" display_name="Virtual reality" icon="vr.png" description="Enable virtual reality with OpenXR.  Press to toggle passthrough video."/>
+    <Provider tab="Extras" section="Viewing" hidden="true" name="xr" display_name="OpenXR" icon="xr.png" description="Turn OpenXR on/off for 3D flat panel displays."/>
+  </Providers>
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: ks :: Toolbar :: keyboard shortcuts</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: snapshot :: Toolbar :: Save graphics image</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: selAtoms :: Selected atoms, or if none selected then all atoms.</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: selMaps :: Selected maps, or if none selected then displayed maps. :: false</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: selModels :: Selected models, or if none selected then all models. :: false</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: last-opened :: Last opened top level model including its atoms.</ChimeraXClassifier>
+  </Classifiers>
+</BundleInfo>

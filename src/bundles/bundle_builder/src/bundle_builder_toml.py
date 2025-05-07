@@ -55,6 +55,7 @@ import shutil
 import sys
 import sysconfig
 from typing import Optional
+from pathlib import Path
 
 if sys.version_info < (3, 11, 0):
     import tomli as tomllib
@@ -387,12 +388,15 @@ class Bundle:
                 self.initializations.append(Initialization(entry_type, _bundles))
         if "extension" in chimerax_data:
             for name, attrs in chimerax_data["extension"].items():
+                attrs['limited-api'] = self.limited_api
                 self.c_modules.append(_CModule(name, attrs))
         if "library" in chimerax_data:
             for name, attrs in chimerax_data["library"].items():
+                attrs['limited-api'] = self.limited_api
                 self.c_libraries.append(_CLibrary(name, attrs))
         if "executable" in chimerax_data:
             for name, attrs in chimerax_data["executable"].items():
+                attrs['limited-api'] = self.limited_api
                 self.c_executables.append(_CExecutable(name, attrs))
 
         # TODO: Finalize
@@ -777,13 +781,13 @@ class Bundle:
     def _check_output(self, type_="wheel", report_name=True):
         if type_ == "wheel":
             output = glob.glob(os.path.join(self.path, "dist", "*.whl"))
-        elif type == "sdist":
-            if sys.platform == "win32":
+        elif type_ == "sdist":
+            if sys.platform == "win32" and not os.getenv("MSYSTEM"):
                 output = glob.glob(os.path.join(self.path, "dist", "*.zip"))
             else:
                 output = glob.glob(os.path.join(self.path, "dist", "*.tar.gz"))
         else:
-            raise ValueError("Unknown output type requested: %s" % type)
+            raise ValueError("Unknown output type requested: %s" % type_)
         if not output:
             # TODO: Report the sdist name on failure, too
             raise RuntimeError(f"Building wheel failed: {self._expected_wheel_name}")
@@ -919,12 +923,27 @@ class _CompiledCode:
         self.include_libraries = attrs.get("library-modules", [])
         self.library_dirs = attrs.get("library-dirs", [])
         self.framework_dirs = attrs.get("framework-dirs", [])
+        self.optional = attrs.get("optional", False)
         self.macros = []
         self.target_lang = attrs.get("target-lang", None)
         self.limited_api = attrs.get("limited-api", None)
         defines = attrs.get("define-macros", [])
         self.source_files = []
         for entry in source_files:
+            files_for_entry = glob.glob(entry)
+            if not files_for_entry:
+                error_text = f"{self.name}: No files matched the pattern: {entry}"
+                if not self.optional:
+                    raise FileNotFoundError(error_text)
+                else:
+                    warnings.warn(error_text)
+            for f in files_for_entry:
+                if not Path(f).is_file():
+                    error_text = f"{self.name}: Source file {f} not found"
+                    if not self.optional:
+                        raise FileNotFoundError(error_text)
+                    else:
+                        warnings.warn(error_text)
             self.source_files.extend(glob.glob(entry))
         for def_ in defines:
             edef = def_.split("=")
@@ -1037,6 +1056,9 @@ class _CompiledCode:
         if sys.platform == "win32":
             # Link library directory for Python on Windows
             compiler.add_library_dir(os.path.join(sys.exec_prefix, "libs"))
+            py_libdir = sysconfig.get_config_var("LIBDIR")
+            if py_libdir:
+                compiler.add_library_dir(py_libdir)
         if not static:
             macros.append(("DYNAMIC_LIBRARY", 1))
         # We need to manually separate out C from C++ code here, since clang
@@ -1105,6 +1127,7 @@ class _CModule(_CompiledCode):
                 extra_link_args=extra_link_args,
                 sources=self.source_files,
                 py_limited_api=self.limited_api,
+                optional = self.optional
             )
         else:
             return None

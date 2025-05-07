@@ -13,6 +13,9 @@
 
 from chimerax.core.toolshed import ProviderManager
 
+class PlotValueError(ValueError):
+    pass
+
 class MDPlottingManager(ProviderManager):
 
     def __init__(self, session):
@@ -24,10 +27,11 @@ class MDPlottingManager(ProviderManager):
         self._min_vals = {}
         self._max_vals = {}
         self._text_formats = {}
+        self._excludes = {}
         super().__init__("MD plotting")
 
     def add_provider(self, bundle_info, name, *, ui_name=None, num_atoms=None, min_val=None, max_val=None,
-            text_format="%g"):
+            text_format="%g", exclude=None):
         # 'name' is the name used as an arg in the command
         # 'ui_name' is the name used in the tool interface (defaults to 'name')
         # 'num_atoms' indicates how many atoms are needed to compute the quantity (and therefore are
@@ -39,6 +43,9 @@ class MDPlottingManager(ProviderManager):
         # 'text_format' is the formatting operator to convert the numeric plotting value to the text
         #     displayed in the corresponding table.  It can be "distance" or "angle" for values that
         #     are distances or angles, which will get a more specific treatment than a generic format.
+        # 'exclude' is a list of structure categories that can be optionally excluded by the user
+        #     from consideration when computing the plotting values. Specified as a comma-separated
+        #     string in the Provider tag.
         if num_atoms is not None:
             try:
                 num_atoms = int(num_atoms)
@@ -52,6 +59,10 @@ class MDPlottingManager(ProviderManager):
         self._min_vals[name] = min_val if min_val is None else float(min_val)
         self._max_vals[name] = max_val if max_val is None else float(max_val)
         self._text_formats[name] = text_format
+        self._excludes[name] = [] if exclude is None else exclude.split(',')
+
+    def excludes(self, provider_name):
+        return self._excludes[provider_name]
 
     def get_values(self, provider_name, **kw):
         return self._provider_bundles[provider_name].run_provider(self.session,

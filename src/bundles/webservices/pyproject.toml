@@ -19,7 +19,7 @@ Home = "https://www.rbvi.ucsf.edu/chimerax/"
 [tool.setuptools.dynamic]
 version = { attr = "src.__version__" }
 
-[chimerax]
+[tool.chimerax]
 min-session-version = 1
 max-session-version = 1
 categories = ["General"]

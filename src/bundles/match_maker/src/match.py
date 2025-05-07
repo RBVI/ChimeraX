@@ -836,7 +836,7 @@ def register_command(logger):
         # registration can be called for both main command and alias, so only do once...
         return
     _registered = True
-    from chimerax.core.commands import CmdDesc, register, FloatArg, StringArg, \
+    from chimerax.core.commands import CmdDesc, register, FloatArg, EnumOf, \
         BoolArg, NoneArg, TopModelsArg, create_alias, Or, DynamicEnum
     # use OrderedAtomsArg so that /A-F come out in the expected order even if not ordered that way
     # internally [#7577]
@@ -845,7 +845,9 @@ def register_command(logger):
     desc = CmdDesc(
         required = [('match_atoms', OrderedAtomsArg)],
         required_arguments = ['to'],
-        keyword = [('to', OrderedAtomsArg), ('pairing', StringArg), ('alg', StringArg),
+        keyword = [('to', OrderedAtomsArg),
+            ('pairing', EnumOf([CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST])),
+            ('alg', EnumOf([AA_NEEDLEMAN_WUNSCH, AA_SMITH_WATERMAN])),
             ('verbose', BoolArg), ('ss_fraction', Or(FloatArg, BoolArg)),
             ('matrix', DynamicEnum(lambda logger=logger: sim_matrices.matrices(logger).keys())),
             ('gap_open', FloatArg), ('hgap', FloatArg), ('sgap', FloatArg), ('ogap', FloatArg),

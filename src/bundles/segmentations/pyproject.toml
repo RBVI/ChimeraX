@@ -27,42 +27,42 @@ Home = "https://www.rbvi.ucsf.edu/chimerax/"
 [tool.setuptools.dynamic]
 version = { attr = "src.__version__" }
 
-[chimerax]
+[tool.chimerax]
 custom-init = true
 min-session-version = 1
 max-session-version = 1
 categories = ["Volume Data"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
-[chimerax.extra-files]
+[tool.chimerax.extra-files]
 "src/icons" = ["*.png", "*.svg"]
 
-[chimerax.initializations.manager]
+[tool.chimerax.initializations.manager]
 bundles = ["ChimeraX-MouseModes", "ChimeraX-UI"]
 
-[chimerax.tool."Segmentations"]
+[tool.chimerax.tool."Segmentations"]
 category = "Volume Data"
 description = "Interactively segment volumes"
 
-[chimerax.tool."Orthoplanes"]
+[tool.chimerax.tool."Orthoplanes"]
 category = "Volume Data"
 description = "View planes of volumes in a dedicated tool"
 
-[chimerax.command."ui view"]
+[tool.chimerax.command."ui view"]
 category = "General"
 description = "See medical images in a 4-panel viewer"
 
-[chimerax.command.segmentations]
+[tool.chimerax.command.segmentations]
 category = "Volume Data"
 description = "Create, edit, or destory segmentations"
 
-[chimerax.provider."Segmentation Controls"]
+[tool.chimerax.provider."Segmentation Controls"]
 manager = "toolbar"
 tab = "Medical Image"
 section = "Segmentation Controls"
 after = "Mouse Mode"
 
-[chimerax.provider."toggle mouse modes"]
+[tool.chimerax.provider."toggle mouse modes"]
 manager = "toolbar"
 tab = "Medical Image"
 section = "Segmentation Controls"
@@ -70,7 +70,7 @@ display-name = "Toggle Mouse Modes"
 icon = "mouse_small.svg"
 description = "Toggle mouse modes"
 
-[chimerax.provider."toggle hand modes"]
+[tool.chimerax.provider."toggle hand modes"]
 manager = "toolbar"
 tab = "Medical Image"
 section = "Segmentation Controls"

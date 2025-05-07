@@ -1,3 +1,0 @@
-recursive-include chimerax *
-global-exclude __pycache__
-global-exclude *.py[co]

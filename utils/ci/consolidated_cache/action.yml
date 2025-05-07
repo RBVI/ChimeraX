@@ -47,6 +47,7 @@ runs:
           prereqs/Python/python-3.11.4-win-amd64.tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.4
 
+
     - name: Restore cached Python (macOS)
       id: cache-python-macos
       if: ${{ inputs.platform == 'macos' }}
@@ -77,6 +78,8 @@ runs:
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2
           prereqs/ambertools/ambertools-20-Linux-Freedesktop-23.08.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-arm-Freedesktop-24.08.tar.bz2
+          prereqs/ambertools/ambertools-24-Linux-arm-Freedesktop-24.08.tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-ambertools
 
     - name: Restore cached ambertools (Windows)
@@ -100,7 +103,7 @@ runs:
 
     - name: Restore cached ffmpeg (Linux)
       id: cache-ffmpeg-linux-x86_64
-      if: ${{ inputs.platform == 'linux' }}
+      if: ${{ inputs.platform == 'linux' && inputs.architecture != 'arm64'}}
       uses: actions/cache@v4
       with:
         path: |
@@ -208,21 +211,20 @@ runs:
           src/bundles/looking_glass/holoplaycore-0.1.0.tar.gz
         key: holoplaycore-source-zip-file
 
-    - name: Restore cached LibGLU (Linux)
-      id: cache-libglu-linux
-      if: ${{ inputs.platform == 'linux' }}
+    - name: Restore cached spacenavigator
+      id: cache-spacenavigator
+      if: ${{ inputs.platform == 'macos' }}
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/libGLU/glu-glu-9.0.2.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-libglu
+          3DxWareMac_v10-8-7_r3836.dmg
+        key: ${{ runner.os }}-spacenavigator
 
-    - name: Fetch LibGLU
+    - name: Fetch spacenavigator
       shell: bash
-      if: ${{ steps.cache-libglu-linux.outputs.cache-hit != 'true' && inputs.platform == 'linux' }}
+      if: ${{ steps.cache-spacenavigator.outputs.cache-hit != 'true' && inputs.platform == 'macos' }}
       run: |
-        curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/libGLU/glu-glu-9.0.2.tar.bz2 -O -J
-        mv glu* prereqs/libGLU/
+        curl -O https://download.3dconnexion.com/drivers/mac/10-8-7_81855983/3DxWareMac_v10-8-7_r3836.dmg
 
     - name: Fetch holoplaycore
       shell: bash
@@ -252,7 +254,7 @@ runs:
 
     - name: Fetch ffmpeg
       shell: bash
-      if: ${{ steps[format('cache-ffmpeg-{0}-{1}', inputs.platform, inputs.architecture)].outputs.cache-hit != 'true' }}
+      if: ${{ steps[format('cache-ffmpeg-{0}-{1}', inputs.platform, inputs.architecture)].outputs.cache-hit != 'true' && (inputs.platform != 'linux' || inputs.architecture == 'x86_64') }}
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-3.2.4.tar.bz2 -O -J
@@ -293,6 +295,7 @@ runs:
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Freedesktop-23.08.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-24-Linux-arm-Freedesktop-24.08.tar.bz2 -O -J
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-flibs-20-Darwin.tar.bz2 -O -J
