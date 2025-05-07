@@ -15,10 +15,12 @@ from chimerax.core.tools import ToolInstance
 from chimerax.core.settings import Settings
 from Qt.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QLabel, QButtonGroup, QRadioButton, QWidget
 from Qt.QtWidgets import QPushButton, QScrollArea, QMenu, QCheckBox, QLineEdit, QSpacerItem, QSizePolicy
+from Qt.QtWidgets import QGroupBox
 from Qt.QtGui import QDoubleValidator, QIntValidator
 from Qt.QtCore import Qt
 from chimerax.core.commands import run
 from chimerax.ui import tool_user_error
+from chimerax.ui.widgets import ColorButton
 from .cmd import builtin_presets
 
 style_attrs = list(builtin_presets["simple"].keys())
@@ -99,6 +101,26 @@ class AnisoTool(ToolInstance):
         ss.editingFinished.connect(self._set_scale_cb)
         set_scale_layout.addWidget(ss)
         set_scale_layout.addStretch(1)
+
+        self.show_ellipsoid = QGroupBox("Depict ellipsoids")
+        main_layout.addWidget(self.show_ellipsoid)
+        self.show_ellipsoid.setCheckable(True)
+        eb_layout = QGridLayout()
+        eb_layout.setSpacing(0)
+        eb_layout.setContentsMargins(0,0,0,0)
+        self.show_ellipsoid.setLayout(eb_layout)
+        eb_layout.addWidget(QLabel("Color:"), 0, 0, alignment=Qt.AlignRight)
+        self.color = ColorWidget("use atom color", max_size=(16,16), has_alpha_channel=True)
+        eb_layout.addWidget(self.color, 0, 1, alignment=Qt.AlignLeft)
+        eb_layout.addWidget(QLabel("Transparency:"), 1, 0, alignment=Qt.AlignRight)
+        self.transparency = etb = QPushButton()
+        t_menu = QMenu(etb)
+        t_menu.triggered.connect(lambda act, but=etb: but.setText(act.text()))
+        t_menu.addAction("same as color")
+        for pct in range(0, 101, 10):
+            t_menu.addAction(f"{pct}%")
+        etb.setMenu(t_menu)
+        eb_layout.addWidget(etb, 1, 1, alignment=Qt.AlignLeft)
 
         self._update_widgets()
 
@@ -182,6 +204,7 @@ class AnisoTool(ToolInstance):
 
         if apply_widgets and not hide:
             from chimerax.core.commands import camel_case
+            from chimerax.core.colors import color_name
             from .mgr import manager_for_structure
             mgr = manager_for_structure(self.session, s)
             diffs = []
@@ -201,8 +224,29 @@ class AnisoTool(ToolInstance):
                         val = float(str_val)
                     else:
                         val = int(str_val)
-                    if val != mgr.drawing_params[attr_name]:
-                        diffs.extend([arg_name, str_val])
+                elif isinstance(widget, QGroupBox):
+                    # "the blah_factor attributes, that are composed of a QGroupBox and QLineEdit,
+                    # are represented as a tuple of widgets
+                    val = widget.isChecked()
+                    str_val = str(val).lower()
+                elif isinstance(widget, ColorWidget):
+                    val = widget.value
+                    if val is None:
+                        str_val = "none"
+                    else:
+                        str_val = color_name(val)
+                elif isinstance(widget, QPushButton):
+                    text = widget.text()
+                    if text == "same as color":
+                        val = None
+                        str_val = "none"
+                    else:
+                        str_val = text[:-1]
+                        val = int(str_val)
+                # Since numpy has non-Pythonic equality operators, can't use simple equality test
+                from numpy import array_equal
+                if not array_equal(val, mgr.drawing_params[attr_name]):
+                    diffs.extend([arg_name, str_val])
             if diffs:
                 run(self.session, "aniso style " + " ".join(diffs)),
 
@@ -228,8 +272,60 @@ class AnisoTool(ToolInstance):
             except AttributeError:
                 #TODO: remove try/accept once all attribute widgets implemented
                 continue
+            param_value = mgr.drawing_params[attr_name]
             if isinstance(widget, QLineEdit):
-                widget.setText(str(mgr.drawing_params[attr_name]))
+                widget.setText(str(param_value))
+            elif isinstance(widget, QGroupBox):
+                # "the blah_factor attributes, that are composed of a QGroupBox and QLineEdit,
+                # are represented as a tuple of widgets
+                widget.setChecked(param_value)
+            elif isinstance(widget, ColorWidget):
+                widget.value = param_value
+            elif isinstance(widget, QPushButton):
+                if param_value is None:
+                    text = "same as color"
+                else:
+                    text = f"{round(param_value)}%"
+                widget.setText(text)
+
+class ColorWidget(QWidget):
+    def __init__(self, non_color_text, *, choice_changed_cb=None, color_changed_cb=None, **kw):
+        super().__init__()
+        layout = QGridLayout()
+        layout.setSpacing(0)
+        layout.setContentsMargins(0,0,0,0)
+        self.setLayout(layout)
+        self.non_color_but = QRadioButton('')
+        layout.addWidget(self.non_color_but, 0, 0, alignment=Qt.AlignRight)
+        if choice_changed_cb:
+            self.non_color_but.toggled.connect(choice_changed_cb)
+        layout.addWidget(QLabel(non_color_text), 0, 1, alignment=Qt.AlignLeft)
+        self.color_choice_but = QRadioButton('')
+        layout.addWidget(self.color_choice_but, 1, 0, alignment=Qt.AlignRight)
+        self.color_button = ColorButton(**kw)
+        self.color_button.color = "light gray"
+        if color_changed_cb:
+            self.color_button.color_changed.connect(lambda clr, *args, cb=color_changed_cb:
+                self._editor_change(clr, cb))
+        layout.addWidget(self.color_button, 1, 1, alignment=Qt.AlignLeft)
+
+    @property
+    def value(self):
+        if self.non_color_but.isChecked():
+            return None
+        return self.color_button.color
+
+    @value.setter
+    def value(self, val):
+        if val is None:
+            self.non_color_but.setChecked(True)
+        else:
+            self.color_choice_but.setChecked(True)
+            self.color_button.color = val
+
+    def _editor_change(self, color, cb):
+        if not self.non_color_but.isChecked():
+            cb(color)
 
 def simpson(f, a, b, n=2):
     """Approximate the definite integral of f from a to b
