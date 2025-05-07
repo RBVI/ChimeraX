@@ -209,12 +209,14 @@ def _show_bug_report_dialog(session, traceback, advise_on_common_crashes = True)
     from chimerax.bug_reporter import show_bug_reporter
     from chimerax.core.colors import scheme_color
     color = scheme_color('error')
+    known_crash = False
     advice = '<p>Please describe steps that led to the crash here.</p>'
     if advise_on_common_crashes:
         ccm = _common_crash_message(traceback)
         if ccm is not None:
             advice = f'<p><font color="{color}">{ccm}</font></p>'
-    br = show_bug_reporter(session)
+            known_crash = True
+    br = show_bug_reporter(session, is_known_crash = known_crash)
     msg = (f'<h3><font color="{color}">Last time you used ChimeraX it crashed.</font></h3>'
            f'{advice}'
            f'<pre>\n{traceback}\n</pre>')
