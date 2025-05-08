@@ -235,11 +235,11 @@ class CxServicesJob(Job):
             and self.end_time is None
         ):
             self.end_time = datetime.datetime.now()
-        if self.session.ui.is_gui:
-            self.session.ui.thread_safe(
-                self.session.logger.info,
-                f"Webservices job finished: {self.job_id}"
-            )
+            if self.session.ui.is_gui:
+                self.session.ui.thread_safe(
+                    self.session.logger.info,
+                    f"Webservices job finished: {self.job_id}"
+                )
 
 
     def exited_normally(self) -> bool:
