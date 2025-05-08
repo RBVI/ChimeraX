@@ -29,13 +29,13 @@ class Lammps_Grid_Data:
             f = gzip.open(path, 'rt')
         else:
             f = open(path, 'r')
-        
+
         try:
-            self.parse_header(f)
+            self.parse_grid3d(f)
         finally:
             f.close()
             
-    def parse_header(self, file):
+    def parse_grid3d(self, file):
         """Parse the LAMMPS grid3d file and extract metadata."""
         # LAMMPS grid data variables
         self.timesteps = []
@@ -45,6 +45,7 @@ class Lammps_Grid_Data:
         self.columns = None      # List of data column names
         self.data_sections = []  # List of (timestep, start_pos, num_entries)
         self.box_bounds = None   # [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
+        self.dimension = 3       # Default to 3D
         
         # Read through file to find all sections
         lines = file.readlines()
@@ -73,7 +74,13 @@ class Lammps_Grid_Data:
                 if len(self.box_bounds) == 3:
                     self.origin = (self.box_bounds[0][0], self.box_bounds[1][0], self.box_bounds[2][0])
             
-            # Parse ITEM: GRID SIZE
+            # Parse ITEM: DIMENSION
+            elif line.startswith("ITEM: DIMENSION"):
+                line_index += 1
+                if line_index < len(lines):
+                    self.dimension = int(lines[line_index].strip())
+            
+            # Parse ITEM: GRID SIZE (with nx ny nz tokens)
             elif line.startswith("ITEM: GRID SIZE"):
                 line_index += 1
                 parts = lines[line_index].strip().split()
@@ -91,9 +98,9 @@ class Lammps_Grid_Data:
             
             # Parse ITEM: GRID CELLS
             elif line.startswith("ITEM: GRID CELLS"):
-                header = line.split()
+                parts = line.split()
                 # Skip "ITEM: GRID CELLS" and get column names
-                self.columns = header[3:]
+                self.columns = parts[3:] if len(parts) > 3 else ["data"]
                 
                 if self.matrix_size is None:
                     raise ValueError("Grid size not defined before GRID CELLS section")
@@ -116,7 +123,7 @@ class Lammps_Grid_Data:
             line_index += 1
         
         # Use first column for the initial grid
-        if len(self.columns) > 0:
+        if self.columns and len(self.columns) > 0:
             self.current_column = self.columns[0]
         else:
             raise ValueError("No grid data columns found")
@@ -179,6 +186,7 @@ class Lammps_Grid_Data:
                 
                 # Calculate grid coordinates from linear index
                 # Assuming data is ordered with x changing fastest, then y, then z
+                # As specified in the LAMMPS documentation
                 ix = grid_index % nx
                 iy = (grid_index // nx) % ny
                 iz = grid_index // (nx * ny)
