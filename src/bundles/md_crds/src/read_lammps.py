@@ -43,26 +43,24 @@ def read_data(session, stream, file_name, *, auto_style=True, coords=None, **kw)
         stream.readline()
 
         # READ NUMBER OF ATOMS AND BONDS
-
         line = stream.readline()
         atoms = 0
         bonds = 0  # Initialize bonds to 0 by default
         
         while line != '\n':
-          tokens = line.split()
-          
-          if len(tokens) >= 2:
-              if tokens[1] == 'atoms':
-                atoms = int(tokens[0])
-              elif tokens[1] == 'bonds':
-                bonds = int(tokens[0])
+            tokens = line.split()
+            
+            if len(tokens) >= 2:
+                if tokens[1] == 'atoms':
+                    atoms = int(tokens[0])
+                elif tokens[1] == 'bonds':
+                    bonds = int(tokens[0])
 
-          line = stream.readline()
+            line = stream.readline()
 
         session.logger.info(f"LAMMPS data: {atoms} atoms {bonds} bonds")
 
         # SKIP UNTIL MASSES SECTION
-
         line = stream.readline()
         max_lines_to_search = 1000
         search_count = 0
@@ -83,26 +81,29 @@ def read_data(session, stream, file_name, *, auto_style=True, coords=None, **kw)
         line = stream.readline() # SKIP BLANK LINE
 
         # PARSE MASSES
-
         masses = {}
 
         tokens = stream.readline().split()
         while tokens and tokens[0].isdigit():
-          masses[int(tokens[0])] = float(tokens[1])
-          tokens = stream.readline().split()
+            masses[int(tokens[0])] = float(tokens[1])
+            tokens = stream.readline().split()
 
-        # SKIP UNTIL ATOMS SECTION
-
+        # FIND ATOMS SECTION
         line = stream.readline()
         max_lines_to_search = 1000
         search_count = 0
         atoms_section_found = False
+        atom_style_comment = ""
         
         while search_count < max_lines_to_search:
             if not line:  # End of file
                 break
             if line.startswith("Atoms"):
                 atoms_section_found = True
+                # Extract the atom style from the header comment if present
+                if "#" in line:
+                    atom_style_comment = line.split("#")[1].strip()
+                    session.logger.info(f"Atom style from header: {atom_style_comment}")
                 break
             line = stream.readline()
             search_count += 1
@@ -110,67 +111,198 @@ def read_data(session, stream, file_name, *, auto_style=True, coords=None, **kw)
         if not atoms_section_found:
             raise UserError("Atoms section not found in DATA file")
             
-        line = stream.readline() # SKIP BLANK LINE
+        # Skip blank line after Atoms header
+        line = stream.readline().strip()
+        while not line and line != None:  # Skip any blank lines
+            line = stream.readline().strip()
+            if not line:
+                break
 
-        # PARSE ATOMS
-
-        atoms_list = []
-        atoms_dict = {}
-        
-        # Determine atom style format based on first line of atoms section
-        tokens = stream.readline().split()
-        if not tokens:
+        # Get the first atom line for format detection
+        if not line:
             raise UserError("Empty Atoms section")
             
-        # Determine the atom style based on the number of columns
-        # Full atom style: id mol type q x y z [tx ty tz]
-        # Charge atom style: id type q x y z
-        num_columns = len(tokens)
-        
-        # Default positions for atom coordinates
-        x_pos, y_pos, z_pos = 4, 5, 6
-        mol_pos, type_pos = 1, 2
-        
-        # Adjust positions for atom_style charge (or other styles with fewer columns)
-        if num_columns <= 7:  # Likely atom_style charge
-            session.logger.info("Detected atom_style charge or similar format")
-            mol_pos = 0  # Not present, will use atom id as molecule id
-            type_pos = 1
-            x_pos, y_pos, z_pos = 3, 4, 5
+        first_atom_tokens = line.split()
+        if not first_atom_tokens:
+            raise UserError("Empty atom line")
             
+        num_columns = len(first_atom_tokens)
+        session.logger.info(f"Detected {num_columns} columns in atom data")
+
+        # Format detection based on atom style comment in header or column analysis
+        atom_id_pos = 0  # Always the first column
+        atom_type_pos = 1  # Default to second column
+        mol_id_pos = -1   # May not exist
+        x_pos, y_pos, z_pos = -1, -1, -1
+        
+        # First check if we have an explicit atom style in header
+        if atom_style_comment:
+            if "charge/kk" in atom_style_comment:
+                session.logger.info("Using atom_style charge/kk format from header")
+                atom_type_pos = 1
+                x_pos, y_pos, z_pos = 3, 4, 5
+            elif "charge" in atom_style_comment:
+                session.logger.info("Using atom_style charge format from header")
+                atom_type_pos = 1
+                x_pos, y_pos, z_pos = 3, 4, 5
+            elif "full" in atom_style_comment:
+                session.logger.info("Using atom_style full format from header")
+                mol_id_pos = 1
+                atom_type_pos = 2
+                x_pos, y_pos, z_pos = 4, 5, 6
+            elif "molecular" in atom_style_comment:
+                session.logger.info("Using atom_style molecular format from header")
+                mol_id_pos = 1
+                atom_type_pos = 2
+                x_pos, y_pos, z_pos = 3, 4, 5
+            elif "atomic" in atom_style_comment:
+                session.logger.info("Using atom_style atomic format from header")
+                atom_type_pos = 1
+                x_pos, y_pos, z_pos = 2, 3, 4
+                
+        # If no style comment or unrecognized, determine from data structure
+        if x_pos == -1:  # Only if not already set from comment
+            # Test if columns are numeric or floating point
+            try:
+                # For each typical position, try to convert to float or int
+                # This helps identify which values are coords vs atom types
+                
+                # For atom_style full: id mol type q x y z
+                # If 3rd column is int and columns 4-6 are float, likely full style
+                if (num_columns >= 7 and 
+                    is_int(first_atom_tokens[0]) and 
+                    is_int(first_atom_tokens[1]) and 
+                    is_int(first_atom_tokens[2]) and 
+                    is_float(first_atom_tokens[4]) and 
+                    is_float(first_atom_tokens[5]) and 
+                    is_float(first_atom_tokens[6])):
+                    session.logger.info("Detected atom_style full format")
+                    mol_id_pos = 1
+                    atom_type_pos = 2
+                    x_pos, y_pos, z_pos = 4, 5, 6
+                
+                # For atom_style charge/kk: id type q x y z
+                # If 2nd column is int and 3rd is float (charge) and columns 4-6 are float, likely charge/kk
+                elif (num_columns >= 6 and 
+                     is_int(first_atom_tokens[0]) and 
+                     is_int(first_atom_tokens[1]) and 
+                     is_float(first_atom_tokens[2]) and 
+                     is_float(first_atom_tokens[3]) and 
+                     is_float(first_atom_tokens[4]) and 
+                     is_float(first_atom_tokens[5])):
+                    session.logger.info("Detected atom_style charge or charge/kk format")
+                    atom_type_pos = 1
+                    x_pos, y_pos, z_pos = 3, 4, 5
+                
+                # For atom_style molecular: id mol type x y z
+                # If first 3 columns are int and columns 3-5 are float, likely molecular
+                elif (num_columns >= 6 and 
+                     is_int(first_atom_tokens[0]) and 
+                     is_int(first_atom_tokens[1]) and 
+                     is_int(first_atom_tokens[2]) and 
+                     is_float(first_atom_tokens[3]) and 
+                     is_float(first_atom_tokens[4]) and 
+                     is_float(first_atom_tokens[5])):
+                    session.logger.info("Detected atom_style molecular format")
+                    mol_id_pos = 1
+                    atom_type_pos = 2
+                    x_pos, y_pos, z_pos = 3, 4, 5
+                
+                # For atom_style atomic: id type x y z
+                # If first 2 columns are int and columns 2-4 are float, likely atomic
+                elif (num_columns >= 5 and 
+                     is_int(first_atom_tokens[0]) and 
+                     is_int(first_atom_tokens[1]) and 
+                     is_float(first_atom_tokens[2]) and 
+                     is_float(first_atom_tokens[3]) and 
+                     is_float(first_atom_tokens[4])):
+                    session.logger.info("Detected atom_style atomic format")
+                    atom_type_pos = 1
+                    x_pos, y_pos, z_pos = 2, 3, 4
+                
+                # If we couldn't determine format, fall back to best guess
+                else:
+                    session.logger.warning("Could not definitively determine atom style, making best guess based on column count")
+                    if num_columns >= 7:
+                        # Assume full style with 7+ columns
+                        mol_id_pos = 1
+                        atom_type_pos = 2
+                        x_pos, y_pos, z_pos = 4, 5, 6
+                    elif num_columns >= 6:
+                        # Assume charge style with 6+ columns
+                        atom_type_pos = 1
+                        x_pos, y_pos, z_pos = 3, 4, 5
+                    else:
+                        # Assume atomic style with minimal columns
+                        atom_type_pos = 1
+                        x_pos, y_pos, z_pos = 2, 3, 4
+                        
+            except Exception as e:
+                # If we encounter any error in format detection, use a simple heuristic
+                session.logger.warning(f"Error during format detection: {e}, using fallback format")
+                if num_columns >= 7:
+                    mol_id_pos = 1
+                    atom_type_pos = 2
+                    x_pos, y_pos, z_pos = 4, 5, 6
+                elif num_columns >= 6:
+                    atom_type_pos = 1
+                    x_pos, y_pos, z_pos = 3, 4, 5
+                else:
+                    atom_type_pos = 1
+                    x_pos, y_pos, z_pos = 2, 3, 4
+
+        # Now process atoms with the determined format
+        atoms_list = []
+        atoms_dict = {}
+        tokens = first_atom_tokens  # Start with the first line we already read
+
         while tokens:
-          tag = int(tokens[0])
-          
-          # Handle molecule ID based on format
-          if mol_pos == 0:
-              # For atom_style charge, use atom id as molecule id
-              mol = tag
-          else:
-              mol = int(tokens[mol_pos])
-              
-          type = int(tokens[type_pos])
-          
-          # Make sure we don't go out of bounds
-          if x_pos >= len(tokens) or y_pos >= len(tokens) or z_pos >= len(tokens):
-              raise UserError(f"Atom coordinates not found at expected positions. Atom line: {' '.join(tokens)}")
-              
-          xyz = array([float(tokens[x_pos]), float(tokens[y_pos]), float(tokens[z_pos])], dtype=float64)
-          
-          residue = structure.find_residue(" ", mol)
-          if residue is None: residue = structure.new_residue(str(mol), " ", mol)
-          
-          # Check if the atom type exists in masses dictionary
-          if type not in masses:
-              raise UserError(f"Atom type {type} not found in Masses section")
-              
-          element = determine_element_from_mass(masses[type])
-          atoms_list.append([tag, element, residue, xyz])
-          tokens = stream.readline().split()
+            # Always get atom ID from first column
+            atom_id = safe_int(tokens[atom_id_pos], fallback=len(atoms_list)+1)
+            
+            # Get molecule ID if available, otherwise use atom ID
+            if mol_id_pos >= 0 and mol_id_pos < len(tokens):
+                mol_id = safe_int(tokens[mol_id_pos], fallback=atom_id)
+            else:
+                mol_id = atom_id  # Default to atom ID if no molecule ID
+            
+            # Get atom type - safely parse
+            if atom_type_pos < len(tokens):
+                atom_type = safe_int(tokens[atom_type_pos], fallback=1)
+            else:
+                atom_type = 1  # Default type
+            
+            # Get coordinates - with safe parsing
+            x = safe_float(tokens[x_pos] if x_pos < len(tokens) else "0", fallback=0.0)
+            y = safe_float(tokens[y_pos] if y_pos < len(tokens) else "0", fallback=0.0)
+            z = safe_float(tokens[z_pos] if z_pos < len(tokens) else "0", fallback=0.0)
+            
+            # Create coordinates array
+            xyz = array([x, y, z], dtype=float64)
+            
+            # Get or create residue
+            residue = structure.find_residue(" ", mol_id)
+            if residue is None:
+                residue = structure.new_residue(str(mol_id), " ", mol_id)
+            
+            # Check if atom type exists in masses dictionary
+            if atom_type not in masses:
+                session.logger.warning(f"Atom type {atom_type} not found in Masses section, using default element")
+                element = "X"  # Use unknown element as fallback
+            else:
+                element = determine_element_from_mass(masses[atom_type])
+            
+            # Add atom to the list
+            atoms_list.append([atom_id, element, residue, xyz])
+            
+            # Read next line
+            line = stream.readline()
+            tokens = line.split() if line else []
 
-        atoms_list.sort(key=lambda atom:atom[0])
-
+        # Sort atoms by ID and add to structure
+        atoms_list.sort(key=lambda atom: atom[0])
         for atom in atoms_list:
-          atoms_dict[atom[0]] = add_atom(str(atom[0]), atom[1], atom[2], atom[3], serial_number=atom[0])
+            atoms_dict[atom[0]] = add_atom(str(atom[0]), atom[1], atom[2], atom[3], serial_number=atom[0])
 
         # PROCESS BONDS SECTION IF BONDS EXIST
         if bonds > 0:
@@ -197,13 +329,15 @@ def read_data(session, stream, file_name, *, auto_style=True, coords=None, **kw)
                 # PARSE BONDS
                 tokens = stream.readline().split()
                 while tokens:
-                    tag1 = int(tokens[2])
-                    tag2 = int(tokens[3])
-                    # Check if both atoms exist before adding bond
-                    if tag1 in atoms_dict and tag2 in atoms_dict:
-                        add_bond(atoms_dict[tag1], atoms_dict[tag2])
-                    else:
-                        session.logger.warning(f"Skipping bond: atom {tag1} or {tag2} not found")
+                    if len(tokens) >= 4:  # Ensure we have enough columns
+                        # Most bond formats have: bond_id bond_type atom1 atom2
+                        tag1 = safe_int(tokens[2], fallback=0)
+                        tag2 = safe_int(tokens[3], fallback=0)
+                        # Check if both atoms exist before adding bond
+                        if tag1 in atoms_dict and tag2 in atoms_dict:
+                            add_bond(atoms_dict[tag1], atoms_dict[tag2])
+                        else:
+                            session.logger.warning(f"Skipping bond: atom {tag1} or {tag2} not found")
                     tokens = stream.readline().split()
             else:
                 session.logger.info("No Bonds section found in the file, despite bond count > 0")
@@ -217,6 +351,33 @@ def read_data(session, stream, file_name, *, auto_style=True, coords=None, **kw)
     from .read_coords import read_coords
     read_coords(session, coords, structure, data_fmt.nicknames[0], replace=True, **kw)
     return [structure], ""
+
+# Helper functions for safe parsing
+def is_int(val):
+    try:
+        int(val)
+        return True
+    except ValueError:
+        return False
+
+def is_float(val):
+    try:
+        float(val)
+        return True
+    except ValueError:
+        return False
+
+def safe_int(val, fallback=0):
+    try:
+        return int(val)
+    except ValueError:
+        return fallback
+
+def safe_float(val, fallback=0.0):
+    try:
+        return float(val)
+    except ValueError:
+        return fallback
 
 def read_dump(session, path, model):
     from numpy import array, float64
@@ -259,72 +420,73 @@ def read_dump(session, path, model):
         index_y = tokens.index('y')-2
         index_z = tokens.index('z')-2
 
-    coords_list = []
-    done = False
-    i = 0
+        coords_list = []
+        done = False
+        i = 0
 
-    while not done:
+        while not done:
 
-      coords_list.append([])
+          coords_list.append([])
 
-      for j in range(num_atoms):
-        tokens = stream.readline().split()
-        
-        # Handle required fields
-        try:
-            id = int(tokens[index_id])
-        except (IndexError, ValueError):
-            raise UserError(f"Could not parse atom ID from line: {' '.join(tokens)}")
+          for j in range(num_atoms):
+            tokens = stream.readline().split()
             
-        # Handle optional fields with defaults
-        if index_type >= 0 and index_type < len(tokens):
+            # Handle required fields
             try:
-                type = int(tokens[index_type])
-            except ValueError:
+                id = int(tokens[index_id])
+            except (IndexError, ValueError):
+                raise UserError(f"Could not parse atom ID from line: {' '.join(tokens)}")
+                
+            # Handle optional fields with defaults
+            if index_type >= 0 and index_type < len(tokens):
+                try:
+                    type = int(tokens[index_type])
+                except ValueError:
+                    type = 1  # Default type
+            else:
                 type = 1  # Default type
-        else:
-            type = 1  # Default type
-            
-        if index_mol >= 0 and index_mol < len(tokens):
-            try:
-                mol = int(tokens[index_mol])
-            except ValueError:
+                
+            if index_mol >= 0 and index_mol < len(tokens):
+                try:
+                    mol = int(tokens[index_mol])
+                except ValueError:
+                    mol = id  # Use atom ID as molecule ID
+            else:
                 mol = id  # Use atom ID as molecule ID
-        else:
-            mol = id  # Use atom ID as molecule ID
-            
-        # Handle coordinates
-        try:
-            x = float(tokens[index_x])
-            y = float(tokens[index_y])
-            z = float(tokens[index_z])
-        except (IndexError, ValueError):
-            raise UserError(f"Could not parse atom coordinates from line: {' '.join(tokens)}")
-            
-        coords_list[i].append([id, x, y, z])
+                
+            # Handle coordinates
+            try:
+                x = float(tokens[index_x])
+                y = float(tokens[index_y])
+                z = float(tokens[index_z])
+            except (IndexError, ValueError):
+                raise UserError(f"Could not parse atom coordinates from line: {' '.join(tokens)}")
+                
+            coords_list[i].append([id, x, y, z])
 
-      # Sort by atom ID
-      coords_list[i].sort(key=lambda atom: atom[0])
-      i += 1
-      
-      # Check for next frame
-      next_line = stream.readline()
-      if next_line:
-        try:
-            # Skip to next frame's atoms
-            for j in range(8): 
-                stream.readline()
-        except Exception:
-            # End of file or format error
+          # Sort by atom ID
+          coords_list[i].sort(key=lambda atom: atom[0])
+          i += 1
+          
+          # Check for next frame
+          next_line = stream.readline()
+          if next_line:
+            try:
+                # Skip to next frame's atoms
+                for j in range(8): 
+                    stream.readline()
+            except Exception:
+                # End of file or format error
+                done = True
+          else:
             done = True
-      else:
-        done = True
 
-    coords = array(coords_list, dtype=float64)[:,:,1:]
-    stream.close()
-    return num_atoms, coords
-except Exception as e:
-    if 'stream' in locals() and stream is not None:
+        coords = array(coords_list, dtype=float64)[:,:,1:]
         stream.close()
-    print(traceback.format_exc())
-    raise UserError(f"Problem reading/processing DUMP file '{path}': {e}")
+        return num_atoms, coords
+        
+    except Exception as e:
+        if 'stream' in locals() and stream is not None:
+            stream.close()
+        print(traceback.format_exc())
+        raise UserError(f"Problem reading/processing DUMP file '{path}': {e}")
