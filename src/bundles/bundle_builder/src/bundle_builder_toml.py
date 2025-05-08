@@ -749,7 +749,7 @@ class Bundle:
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)
             return dist, True
-        except Exception:
+        except (SystemExit, Exception):
             traceback.print_exc()
             return None, False
         finally:
