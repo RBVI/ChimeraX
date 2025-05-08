@@ -54,6 +54,10 @@ class FitJob(Job):
                 results = _run_fit_subprocess(session, executable_location, optional_args,
                     map1_file_name, map2_file_name, search_center, model_file_name, prefitted_file_name,
                     positional_args, temp_dir, resolution, verbose)
+            except Exception as e:
+                from .util import thread_throw
+                thread_throw(session, e)
+                return
             finally:
                 self._running = False
             self.session.ui.thread_safe(callback, *results)
