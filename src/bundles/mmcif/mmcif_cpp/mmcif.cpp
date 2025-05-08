@@ -127,7 +127,7 @@ canonicalize_atom_name(AtomName* aname, bool* asterisks_translated)
 
 Atom* closest_atom_by_template(tmpl::Atom* ta, const tmpl::Residue* tr, const Residue* r)
 {
-    // Find closest (in hops) existing (heavy) atom to given atom in template
+    // Find closest (in hops) from existing (heavy) atom to given atom in template
     // Assumes atom cooresponding to ta is not in residue
     const vector<Atom*>& atoms = r->atoms();
     if (atoms.size() == 1) {
@@ -142,8 +142,10 @@ Atom* closest_atom_by_template(tmpl::Atom* ta, const tmpl::Residue* tr, const Re
         if (n->element().number() != 1)
             to_visit.push_back(n);
     }
-    for (auto i = to_visit.begin(); i != to_visit.end(); ++i) {
-        ta = *i;
+    for (auto i = 0; i != to_visit.size(); ++i) {
+        ta = to_visit[i];
+        if (visited.find(ta) != visited.end())
+            continue;
         Atom* a = r->find_atom(ta->name());
         if (a)
             return a;
