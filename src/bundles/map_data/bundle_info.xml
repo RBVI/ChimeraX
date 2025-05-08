@@ -48,7 +48,7 @@
 		suffixes=".hed,.img" />
     <Provider name="Imaris map" nicknames="ims" category="Volume data" suffixes=".ims" />
     <Provider name="IMOD map" nicknames="imodmap" category="Volume data" suffixes=".rec" />
-    <Provider name="LAMMPS grid3d" nicknames="grid3d" category="Volume data" suffixes=".grid3d" />
+    <Provider name="LAMMPS grid3d" nicknames="grid3d" category="Volume data" suffixes=".grid3d,.grid3d.gz" />
     <Provider name="MacMolPlt grid" nicknames="macmolplt" category="Volume data" suffixes=".mmp" />
     <Provider name="MRC density map" nicknames="mrc" category="Volume data" suffixes=".mrc" />
     <Provider name="NetCDF map" nicknames="netcdfmap" category="Volume data"
