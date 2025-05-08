@@ -326,7 +326,6 @@ def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name, map2_f
     import json
     with open(json_path, 'r') as f:
         info = json.load(f)
-    map_paths = [path.join(temp_dir, mf) for mf in info["map_filenames"]]
     from chimerax.core.commands import plural_form
     num_solutions = info["n_solutions"]
     tsafe(logger.info, "%d fitting %s" % (num_solutions, plural_form(num_solutions, "solution")))
@@ -334,6 +333,15 @@ def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name, map2_f
         ', '.join(["%g" % v for v in info["mapLLG"]])))
     tsafe(logger.info, "map CC %s: %s" % (plural_form(num_solutions, "value"),
         ', '.join(["%g" % v for v in info["mapCC"]])))
+    if 'map_filenames' in info:
+        # Phenix 2.0
+        map_paths = [path.join(temp_dir, mf) for mf in info["map_filenames"]]
+    else:
+        # Phenix 1.2
+        map_paths = [path.join(temp_dir, info["map_filename"])]
+        info['RT'] = info['RT'][:1]
+        info['mapLLG'] = info['mapLLG'][:1]
+        info['mapCC'] = info['mapCC'][:1]
 
     from numpy import array
     return [array(rt) for rt in info['RT']], map_paths, info["mapLLG"], info["mapCC"]
