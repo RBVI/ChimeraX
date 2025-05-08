@@ -25,13 +25,15 @@ class PhenixCitation(Citation):
             title = \
                 "Macromolecular structure determination using X-rays,<br>" \
                 "neutrons and electrons: recent developments in Phenix"
-            info = [
-                "Liebschner D, Afonine PV, Baker ML, Bunkóczi G, Chen VB,",
-                "Croll TI, Hintze B, Hung LW, Jain S, McCoy AJ, Moriarty NW,",
-                "Oeffner RD, Poon BK, Prisant MG, Read RJ, Richardson JS,",
-                "Richardson DC, Sammito MD, Sobolev OV, Stockwell DH,",
-                "Terwilliger TC, Urzhumtsev AG, Videau LL, Williams CJ,",
-                "Adams PD",
+            #info = [
+            #    "Liebschner D, Afonine PV, Baker ML, Bunkóczi G, Chen VB,",
+            #    "Croll TI, Hintze B, Hung LW, Jain S, McCoy AJ, Moriarty NW,",
+            #    "Oeffner RD, Poon BK, Prisant MG, Read RJ, Richardson JS,",
+            #    "Richardson DC, Sammito MD, Sobolev OV, Stockwell DH,",
+            #    "Terwilliger TC, Urzhumtsev AG, Videau LL, Williams CJ,",
+            #    "Adams PD",
+            info = ["Liebschner D, Afonine PV, Baker ML, <i>et al.<i>"]
+            info += [
                 "Acta Cryst. D75, 861-877 (2019)"
             ]
             kw['pubmed_id'] = 31588918
