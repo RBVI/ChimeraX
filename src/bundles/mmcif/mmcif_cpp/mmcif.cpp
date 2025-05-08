@@ -946,6 +946,9 @@ ExtractMolecule::_propagate_changes()
     generic_tables["struct_asym"] = { "struct_asym", "id", "entity_id" };
     generic_tables["struct_asym data"] = chain_mapping;
 
+    if (found_missing_poly_seq)
+        generic_tables["_missing_poly_seq"] = { "true" };
+
     // multiple molecules means there were multiple models,
     // so copy per-model information
     for (auto& im: molecules) {
