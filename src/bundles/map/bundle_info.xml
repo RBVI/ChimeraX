@@ -76,7 +76,7 @@
     <Provider name="IMAGIC density map" want_path="true" batch="true" />
     <Provider name="Imaris map" want_path="true" batch="true" />
     <Provider name="IMOD map" want_path="true" batch="true" />
-    <Provider name="LAMMPS grid3d" want_path="true" batch="true" />
+    <Provider name="LAMMPS grid3d" want_path="false" batch="true" compression_okay="true" />
     <Provider name="MacMolPlt grid" want_path="true" batch="true" />
     <Provider name="MRC density map" want_path="true" batch="true" />
     <Provider name="NetCDF map" want_path="true" batch="true" />
