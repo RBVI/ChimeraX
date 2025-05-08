@@ -142,7 +142,7 @@ Atom* closest_atom_by_template(tmpl::Atom* ta, const tmpl::Residue* tr, const Re
         if (n->element().number() != 1)
             to_visit.push_back(n);
     }
-    for (auto i = 0; i != to_visit.size(); ++i) {
+    for (size_t i = 0; i != to_visit.size(); ++i) {
         ta = to_visit[i];
         if (visited.find(ta) != visited.end())
             continue;
@@ -344,8 +344,8 @@ const char* ExtractMolecule::builtin_categories[] = {
 ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets, bool atomic, bool ignore_styling):
     _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
     found_missing_poly_seq(false), coordsets(coordsets), atomic(atomic),
-    guess_fixed_width_categories(false), verbose(false),
-    ignore_styling(ignore_styling), hydrogens_missing_in_template(0)
+    ignore_styling(ignore_styling),guess_fixed_width_categories(false),
+    verbose(false), hydrogens_missing_in_template(0)
 {
     empty_residue_templates.insert("UNL");  // Unknown ligand
     empty_residue_templates.insert("UNX");  // Unknown atom or ion
@@ -755,7 +755,7 @@ ExtractMolecule::_preopt()
     // prefetch residue templates, so we know the one-letter code
     // before set_input_seq_info()
     for (auto rname: residue_names) {
-        auto tr = find_template_residue(rname);
+        (void) find_template_residue(rname);
     }
 }
 
@@ -796,7 +796,7 @@ ExtractMolecule::_connect_inter_residues(Structure *mol, int model_num, ResidueS
             // count might be more than one if there is microheterogenatity 
             // or guessed sequence has duplicate seq_id's.  Only look at
             // one residue with a given seq_id
-            auto count = std::distance(pit.first, pit.second);
+            //auto count = std::distance(pit.first, pit.second);
             ResidueMap::iterator ri = residue_map.end();
             multiset<PolySeq>::iterator pi2;
             for (pi2 = pit.first; pi2 != pit.second; ++pi2) {
