@@ -172,9 +172,11 @@ def phenix_douse(session, map, near_model, *, block=None, phenix_location=None,
     from chimerax.map_data import save_grid_data
     save_grid_data([map.data], path.join(temp_dir,'map.mrc'), session)
 
-    # Douse ignores the MRC file origin so if it is non-zero
-    # shift the atom coordinates so they align with the origin 0 map.
-    map_0, shift = _fix_map_origin(map)
+    # Douse now does handle MRC origin, so below commented out (but kept for reference)
+    ## Douse ignores the MRC file origin so if it is non-zero
+    ## shift the atom coordinates so they align with the origin 0 map.
+    #map_0, shift = _fix_map_origin(map)
+    map_0, shift = map, 0
 
     # Save model to file.
     from chimerax.pdb import save_pdb

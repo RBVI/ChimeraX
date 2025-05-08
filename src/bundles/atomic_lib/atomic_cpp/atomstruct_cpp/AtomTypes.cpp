@@ -2021,11 +2021,12 @@ t0 = t1;
                         my_d2 -= bondee->coord().sqdistance(grand_bondee->coord());
                         break;
                     }
-                    if (my_d2 < 0.0) {
-                        // N2 bond shorter on C2 side -- looks like double bond
+                    if (my_d2 > 0.0) {
+                        // N2 bond longer on C2 side -- looks like single bond
                         Ng_plus_candidates.clear();
                         break;
                     }
+                    Ng_plus_candidates.push_back(bondee);
                 }
             }
 
