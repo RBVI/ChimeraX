@@ -69,6 +69,7 @@ class OpenManager(ProviderManager):
         logger = self.session.logger
         self._ui_names[name.lower()] = ui_name = name
         name = name.lower()
+
         bundle_name = _readable_bundle_name(bundle_info)
         is_default = bool_cvt(is_default, ui_name, bundle_name, "is_default")
         want_path = bool_cvt(want_path, ui_name, bundle_name, "want_path")
