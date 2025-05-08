@@ -90,7 +90,7 @@ file_formats = [
   MapFileFormat('SPIDER volume data', 'spider', ['spider'], ['spi','vol']),
   MapFileFormat('TOM toolbox EM density map', 'tom_em', ['tom_em'], ['em']),
   MapFileFormat('UHBD grid, binary', 'uhbd', ['uhbd'], ['grd']),
-  MapFileFormat('LAMMPS grid3d', 'lammps', ['lammps'], ['grid3d']),
+  MapFileFormat('LAMMPS grid3d', 'lammps', ['lammps'], ['grid3d','grid3d.gz'], check_path = False),
 ]
   
 # -----------------------------------------------------------------------------
@@ -182,7 +182,6 @@ def open_file(path, file_type = None, **kw):
 # -----------------------------------------------------------------------------
 #
 def file_type_from_suffix(path):
-
   for ff in file_formats:
     for suffix in ff.suffixes:
       if has_suffix(path, suffix):
@@ -210,7 +209,6 @@ def file_type_from_colon_specifier(path):
 # -----------------------------------------------------------------------------
 #
 def file_format_by_name(name):
-
   for ff in file_formats:
     if ff.name == name or name in ff.suffixes or name in ff.prefixes:
       return ff
