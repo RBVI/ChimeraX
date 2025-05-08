@@ -87,7 +87,7 @@ class InstallBoltz:
         logger.info('Now installing Boltz and required packages from PyPi.  This may take tens of of minutes'
                     ' since Boltz uses many other packages totaling about 1 Gbyte of disk'
                     ' space including torch, scipy, rdkit, llvmlite, sympy, pandas, numpy, wandb, numba...')
-        command = [self._venv_python_executable(), '-m', 'pip', 'install', 'boltz']
+        command = [self._venv_python_executable(), '-m', 'pip', 'install', 'boltz==0.4.1']
         logger.info(' '.join(command))
 
         from subprocess import Popen, PIPE, STDOUT
