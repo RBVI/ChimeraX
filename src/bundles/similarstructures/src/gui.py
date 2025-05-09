@@ -310,6 +310,15 @@ class SimilarStructuresPanel(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
+    def select_table_rows_by_names(self, names):
+        t = self._results_table
+        nset = set(names)
+        items = [t.data[r] for r,hit in enumerate(self.results.hits) if hit['database_full_id'] in nset]
+        t.selected  = items
+        self.session.logger.info(f'Selected rows for {len(names)} hits {", ".join(names)}')
+
+    # ---------------------------------------------------------------------------
+    #
     def _show_sequences(self):
         from chimerax.core.commands import run
         run(self.session, 'similarstructures sequences' + self._from_set_option())
