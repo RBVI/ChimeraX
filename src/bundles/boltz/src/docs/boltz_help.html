@@ -177,7 +177,7 @@
 
     <ul>
       <li><b>Results directory</b>: You can change where the results are placed.
-	The path contains "[N]" which is replaced with the prediction name.
+	The path contains "[name]" which is replaced with the prediction name.
       <li><b>Number of predictions</b>: The default number of predicted structures is 1, but you can request more to get an ensemble of structures that usually have small variations.
       <li><b>Compute device</b>: The computation can run on Nvidia GPUs with CUDA or Mac M series GPUs and complete faster than CPU-only calculations.  The default setting tries to use the fastest available device.
       <li><b>Multiple sequence alignment cache</b>: Boltz uses deep multiple sequence alignments for proteins
@@ -221,7 +221,7 @@
        <li><b>ligandCcd</b> <i>ccd-codes</i> - Comma-separated list of 3 or 5-letter CCD codes.  This option can be used more than once.
        <li><b>ligandSmiles</b> <i>smiles-string</i> - Comma-separated list of SMILES strings.  This option can be used more than once.
        <li><b>name</b> <i>prediction-name</i> - Name of prediction used in the results folder name.
-       <li><b>resultsDirectory</b> <i>directory</i> - Path to the results directory that will be created.  "[N]" in the path will be replaced by the prediction name.  If the folder already exists an numeric suffix _1, _2, _3... will be appended.
+       <li><b>resultsDirectory</b> <i>directory</i> - Path to the results directory that will be created.  "[name]" in the path will be replaced by the prediction name.  If the folder already exists an numeric suffix _1, _2, _3... will be appended.
        <li><b>device</b> <b>default</b>|cpu|gpu - Whether to run the computation on GPU or CPU.  The default setting chooses based on GPU availability and torch support for the GPU.
        <li><b>samples</b> <i>n</i> - Number of predictions.  Default is 1.  This is what Boltz calls "diffusion samples".  Creating additional structures takes much less time than creating the first structure.
        <li><b>recycles</b> <i>n</i> - Number of passes through the neural net that derives spatial information from which structures will be computed.  Defaults to 3.  Better structures make result from 10 but runtime will be increased.

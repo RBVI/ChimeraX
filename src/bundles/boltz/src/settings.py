@@ -28,7 +28,7 @@ from chimerax.core.settings import Settings
 
 class _BoltzSettings(Settings):
     EXPLICIT_SAVE = {
-        'boltz_results_location': '~/Desktop/boltz_[N]',
+        'boltz_results_location': '~/Desktop/boltz_[name]',
         'boltz_install_location': '',
         'device': 'default',	# default, cpu, or gpu
         'samples': 1,		# Number of predicted structures
