@@ -635,15 +635,16 @@ def _add_to_msa_cache(dir_name, protein_seqs, msa_dir, msa_cache_dir):
     if len(csv_files) != len(protein_seqs):
         return False
 
-    from os import mkdir
     if not exists(msa_cache_dir):
-        mkdir(msa_cache_dir)
+        from os import makedirs
+        makedirs(msa_cache_dir)
 
     new_cache_dir = join(msa_cache_dir, dir_name)
     if exists(new_cache_dir):
         new_cache_dir = _unique_cache_dir(new_cache_dir)
         dir_name = basename(new_cache_dir)
 
+    from os import mkdir
     mkdir(new_cache_dir)
     from shutil import copy2
     for csv_file in csv_files:

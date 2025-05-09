@@ -50,6 +50,10 @@ class FitJob(Job):
             try:
                 results = _run_fit_subprocess(session, executable_location, optional_args,
                     search_center, resolution, positional_args, temp_dir, verbose)
+            except Exception as e:
+                from .util import thread_throw
+                thread_throw(session, e)
+                return
             finally:
                 self._running = False
             self.session.ui.thread_safe(callback, *results)
@@ -250,8 +254,9 @@ def _process_results(session, placed_ligand, model, chain_id, residue_number, hb
     placed_ligand.ss_assigned = True
     model.combine(placed_ligand, {}, model.scene_position)
     session.logger.info("Ligand added to %s as residue %d in chain %s" % (model,  residue_number, chain_id))
-    from chimerax.core.commands import run
-    run(session, "hbonds %s reveal true" % (model.atomspec + '/' + chain_id + ':' + str(residue_number)))
+    if hbonds:
+        from chimerax.core.commands import run
+        run(session, "hbonds %s reveal true" % (model.atomspec + '/' + chain_id + ':' + str(residue_number)))
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
@@ -306,7 +311,7 @@ def _run_fit_subprocess(session, exe_path, optional_args, search_center, resolut
 
     '''
     from os import path
-    json_path = path.join(temp_dir,'LigandFit_run_1_', 'ligandfit.json')
+    json_path = path.join(temp_dir,'LigandFit_run_1_', 'LigandFit_result.json')
     import json
     with open(json_path, 'r') as f:
         print("JSON file contents:\n", f.readlines())
@@ -318,9 +323,12 @@ def _run_fit_subprocess(session, exe_path, optional_args, search_center, resolut
     for line in p.stdout.decode("utf-8").splitlines():
         if line.startswith(output_marker):
             ligand_path = line[len(output_marker):].strip()
+            if ligand_path == "None":
+                raise UserError("phenix.ligandfit failed to find a fit")
             break
     else:
         raise RuntimeError("Could not find ligand file path in ligandFit output")
+    print("Opening %s" % repr(ligand_path))
     return (session.open_command.open_data(ligand_path)[0][0],)
 
 def register_command(logger):
