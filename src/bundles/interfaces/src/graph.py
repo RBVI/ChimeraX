@@ -77,7 +77,18 @@ class Plot(ToolInstance):
         Make both axes use same scaling, pixels per plot unit.
         Without this if the window is not square, the plot squishes one axis.
         '''
+        self._suppress_matplotlib_warnings()
         self.axes.set_aspect('equal', adjustable='datalim')
+
+    def _suppress_matplotlib_warnings(self):
+        # Ignore matplotlib 3.10.1 warning that preserving equal scaling conflicts with fixed limits.
+        from logging import Filter, getLogger
+        class _AspectFilter(Filter):
+            def filter(self, record):
+                return record.msg not in (
+                    'Ignoring fixed x limits to fulfill fixed data aspect with adjustable data limits.',
+                    'Ignoring fixed y limits to fulfill fixed data aspect with adjustable data limits.')
+        getLogger('matplotlib.axes._base').addFilter(_AspectFilter())
 
     def move(self, delta_x, delta_y):
         '''Move plot objects by delta values in window pixels.'''
