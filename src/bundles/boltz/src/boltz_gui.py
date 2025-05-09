@@ -489,7 +489,7 @@ class BoltzPredictionGUI(ToolInstance):
             options.append(f'name {name}')
         dir = self._results_directory.value
         if dir != self.default_results_directory():
-            options.append(f'directory {dir}')
+            options.append(f'resultsDirectory {dir}')
         if not self._use_msa_cache.value:
             options.append('useMsaCache false')
         if self._device.value != 'default':
