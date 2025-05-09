@@ -69,7 +69,7 @@ jobs:
         with:
           bundle: chimerax.flatpak
           manifest-path: github-flatpak.yaml
-          cache-key: flatpak-builder-${{ github.sha }}
+          cache-key: flatpak-builder-x86
           upload-artifact: false
       # For now, we're skipping tests for the Flatpak
       - name: Put the build date and commit in the environment
