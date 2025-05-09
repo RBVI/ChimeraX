@@ -139,6 +139,8 @@ class SimilarStructurePlot(UmapPlot):
             self.add_menu_separator(menu)
             self.add_menu_entry(menu, f'Show table row for {item.name}',
                                 lambda self=self, item=item: self._show_table_row(item))
+            self.add_menu_entry(menu, f'Select rows for cluster {item.name}',
+                                lambda self=self, item=item: self._select_cluster_table_rows(item))
 
         self.add_menu_separator(menu)
         self.add_menu_entry(menu, 'Show reference atoms', self._show_reference_atoms)
@@ -298,6 +300,14 @@ class SimilarStructurePlot(UmapPlot):
             hit_nums = [i for i,hit in enumerate(ssp.results.hits) if hit['database_full_id'] == node.name]
             if hit_nums:
                 ssp.select_table_row(hit_nums[0])
+        ssp.display(True)
+
+    def _select_cluster_table_rows(self, node):
+        from .gui import similar_structures_panel
+        ssp = similar_structures_panel(self.session)
+        if ssp and self.results is ssp.results:
+            cnames = self._cluster_names(node)
+            ssp.select_table_rows_by_names(cnames)
         ssp.display(True)
 
     def _show_reference_atoms(self):
