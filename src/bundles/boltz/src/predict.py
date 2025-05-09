@@ -230,11 +230,12 @@ class BoltzRun:
         return rdir
 
     def _add_directory_suffix(self, dir):
-        if '[N]' not in dir:
+        if '[N]' not in dir and '[name]' not in dir:
             return dir
             
         if self.name:
-            dir = dir.replace('[N]', self.name)
+            dir = dir.replace('[name]', self.name)  # Handle old boltz tool that used [N] for the name.
+            dir = dir.replace('[N]', self.name)  # Handle old boltz tool that used [N] for the name.
             from os.path import exists
             if exists(dir):
                 dir += '_[N]'
