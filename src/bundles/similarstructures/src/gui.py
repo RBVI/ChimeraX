@@ -276,8 +276,9 @@ class SimilarStructuresPanel(ToolInstance):
             self.session.logger.error(msg)
             return
         hit_rows = results_table.selected		# SimilarStructuresRow instances
+        in_file_history = (len(hit_rows) == 1)
         for hit_row in hit_rows:
-            self.open_hit(hit_row.hit)
+            self.open_hit(hit_row.hit, in_file_history = in_file_history)
         if len(hit_rows) == 0:
             msg = 'Click lines in the structure results table and then press Open.'
             self.session.logger.error(msg)
@@ -291,9 +292,10 @@ class SimilarStructuresPanel(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def open_hit(self, hit):
+    def open_hit(self, hit, in_file_history = True):
         self.results.open_hit(self.session, hit, trim = self.trim,
-                              alignment_cutoff_distance = self.alignment_cutoff_distance)
+                              alignment_cutoff_distance = self.alignment_cutoff_distance,
+                              in_file_history = in_file_history)
 
     # ---------------------------------------------------------------------------
     #
