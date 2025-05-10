@@ -496,7 +496,6 @@ class BoltzPredictionGUI(ToolInstance):
             options.append(f'device {self._device.value}')
         if self._samples.value != 1:
             options.append(f'samples {self._samples.value}')
-        self._save_install_location()
         self._run_prediction(options = ' '.join(options))
 
     # ---------------------------------------------------------------------------
@@ -612,70 +611,43 @@ class BoltzPredictionGUI(ToolInstance):
         self._options_panel = p = CollapsiblePanel(parent, title = None)
         f = p.content_area
 
+        from .settings import _boltz_settings
+        settings = _boltz_settings(self.session)
+
         from chimerax.ui.widgets import EntriesRow
 
         # Results directory
         rd = EntriesRow(f, 'Results directory', '',
-                        ('Browse', self._choose_results_directory),
-                        ('Set default', self._set_default_results_directory))
+                        ('Browse', self._choose_results_directory))
         self._results_directory = dir = rd.values[0]
         dir.pixel_width = 250
         dir.value = self.default_results_directory()
 
         # Number of predicted structures
-        ns = EntriesRow(f, 'Number of predicted structures', 1, ('Set default', self._set_default_samples))
+        ns = EntriesRow(f, 'Number of predicted structures', 1)
         self._samples = sam = ns.values[0]
-        sam.value = self.default_samples()
+        sam.value = settings.samples
 
         # CPU or GPU device
-        cd = EntriesRow(f, 'Compute device', ('default', 'cpu', 'gpu'), ('Save', self._set_default_device))
+        cd = EntriesRow(f, 'Compute device', ('default', 'cpu', 'gpu'))
         self._device = dev = cd.values[0]
-        dev.value = self.default_device()
+        dev.value = settings.device
         
         # Use MSA cache
         mc = EntriesRow(f, True, 'Use multiple sequence alignment cache')
-        self._use_msa_cache = mc.values[0]
+        self._use_msa_cache = uc = mc.values[0]
+        uc.value = settings.use_msa_cache
         
         # Boltz install location
         id = EntriesRow(f, 'Boltz install location', '',
                         ('Browse', self._choose_install_directory))
         self._install_directory = dir = id.values[0]
         dir.pixel_width = 350
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
         dir.value = settings.boltz_install_location
 
+        EntriesRow(f, ('Save default options', self._save_default_options))
+
         return p
-
-    # ---------------------------------------------------------------------------
-    #
-    def default_device(self):
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
-        return settings.device
-
-    # ---------------------------------------------------------------------------
-    #
-    def _set_default_device(self):
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
-        settings.device = self._device.value
-        settings.save()
-
-    # ---------------------------------------------------------------------------
-    #
-    def default_samples(self):
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
-        return settings.samples
-
-    # ---------------------------------------------------------------------------
-    #
-    def _set_default_samples(self):
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
-        settings.samples = self._samples.value
-        settings.save()
 
     # ---------------------------------------------------------------------------
     #
@@ -706,12 +678,17 @@ class BoltzPredictionGUI(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _set_default_results_directory(self):
+    def _save_default_options(self, install_dir_only = False):
         from .settings import _boltz_settings
         settings = _boltz_settings(self.session)
-        settings.boltz_results_location = self._results_directory.value
+        if not install_dir_only:
+            settings.boltz_results_location = self._results_directory.value
+            settings.samples = self._samples.value
+            settings.device = self._device.value
+            settings.use_msa_cache = self._use_msa_cache.value
+        settings.boltz_install_location = self._install_directory.value
         settings.save()
-
+        
     # ---------------------------------------------------------------------------
     #
     def _install_boltz(self):
@@ -755,9 +732,12 @@ class BoltzPredictionGUI(ToolInstance):
         layout.removeWidget(self._installing_label)
         self._installing_label.deleteLater()
         self._installing_label = None
-        if not success:
+        if success:
+            self._save_option_defaults(install_dir_only = True)
+        else:
             layout.insertWidget(0, self._install_boltz_button)
             self._install_boltz_button.setVisible(True)
+
         self._installing_boltz = False
 
     # ---------------------------------------------------------------------------
@@ -772,15 +752,6 @@ class BoltzPredictionGUI(ToolInstance):
                                                  options = QFileDialog.Option.ShowDirsOnly)
         if path:
             self._install_directory.value = path
-            self._save_install_location()
-
-    # ---------------------------------------------------------------------------
-    #
-    def _save_install_location(self):
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
-        settings.boltz_install_location = self._install_directory.value
-        settings.save()
             
     # ---------------------------------------------------------------------------
     #
