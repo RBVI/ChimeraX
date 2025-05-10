@@ -25,9 +25,9 @@
 from chimerax.core.errors import LimitationError, UserError
 import pyKVFinder
 
-def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, probe_in=1.4, probe_out=4.0,
-        removal_distance=2.4, show_tool=True, grid_spacing=0.6, surface_type='SES', volume_cutoff=5.0,
-        replace=True):
+def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, grid_spacing=0.6,
+        probe_in=1.4, probe_out=4.0, removal_distance=2.4, show_box=True, show_tool=True, surface_type='SES',
+        replace=True, volume_cutoff=5.0):
     if [box_origin, box_extent].count(None) == 1:
         raise UserError("Must specify both 'boxOrigin' and 'boxExtent' or neither")
     from chimerax.atomic import all_atomic_structures, Structure, Atom, Residues
@@ -48,7 +48,8 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
         if len(insert_codes[insert_codes != '']) > 0:
             session.logger.warning("%s contains residue insertion codes; KVFinder may not work correctly"
                 % s)
-        struct_input, vertices = prep_input(s, box_origin, box_extent, probe_in, probe_out, grid_spacing)
+        struct_input, vertices = prep_input(s, box_origin, box_extent, show_box,
+            probe_in, probe_out, grid_spacing)
         session.logger.status("Find Cavities for %s: getting grid dimensions" % s)
         nx, ny, nz = pyKVFinder.grid._get_dimensions(vertices, grid_spacing)
         sincos = pyKVFinder.grid._get_sincos(vertices)
@@ -214,6 +215,7 @@ def register_command(command_name, logger):
             ('probe_out', FloatArg),
             ('removal_distance', FloatArg),
             ('replace', BoolArg),
+            ('show_box', BoolArg),
             ('show_tool', BoolArg),
             ('grid_spacing', FloatArg),
             ('surface_type', EnumOf(['SAS', 'SES'])),
