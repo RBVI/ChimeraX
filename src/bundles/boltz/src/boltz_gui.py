@@ -517,7 +517,30 @@ class BoltzPredictionGUI(ToolInstance):
         self._boltz_run = br
 
         self._show_prediction_progress()
-        
+
+    # ---------------------------------------------------------------------------
+    #
+    def _show_stop_button(self, show):
+        if show:
+            br = self._button_row
+            from Qt.QtWidgets import QPushButton
+            self._stop_button = sb = QPushButton('Stop', br)
+            br.layout().insertWidget(0, sb)
+            sb.pressed.connect(self._stop_prediction)
+        elif self._stop_button:
+            sb = self._stop_button
+            layout = self._button_row.layout()
+            layout.removeWidget(sb)
+            sb.deleteLater()
+            self._stop_button = None
+
+    # ---------------------------------------------------------------------------
+    #
+    def _stop_prediction(self):
+        p = self._boltz_run
+        if p:
+            p.terminate()
+
     # ---------------------------------------------------------------------------
     #
     def _show_prediction_progress(self):
@@ -527,6 +550,8 @@ class BoltzPredictionGUI(ToolInstance):
         self._max_memory_use = None
         self.session.triggers.add_handler('new frame', self._report_progress)
 
+        self._show_stop_button(True)
+        
     # ---------------------------------------------------------------------------
     #
     def _report_progress(self, tname, tdata):
@@ -540,6 +565,7 @@ class BoltzPredictionGUI(ToolInstance):
             if self._max_memory_use:
                 msg += f', memory use {"%.1f" % self._max_memory_use} Gbytes'
             self._progress_label.setText(msg)
+            self._show_stop_button(False)
             return 'delete handler'
         if t < self._next_progress_time:
             return

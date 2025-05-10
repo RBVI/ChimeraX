@@ -180,6 +180,7 @@ class BoltzRun:
         self._results_directory = None
         self._yaml_path = None
         self._running = False
+        self._user_terminated = False
         self.success = None
         self._process = None
         self._wait = wait
@@ -479,12 +480,16 @@ class BoltzRun:
                        ' Windows requires reinstalling gpu-enabled torch with Boltz which we plan to'
                        ' support in the future.')
             else:
-                msg = '\n'.join([
-                    f'Running boltz prediction failed with exit code {p.returncode}:',
-                    'command:',self._command,
-                    'stdout:', stdout,
-                    'stderr:', stderr,
-                    ])
+                if self._user_terminated:
+                    msg = 'Prediction terminated by user'
+                    self._user_terminated = False
+                else:
+                    msg = '\n'.join([
+                        f'Running boltz prediction failed with exit code {p.returncode}:',
+                        'command:',self._command,
+                        'stdout:', stdout,
+                        'stderr:', stderr,
+                        ])
             self._session.logger.error(msg)
 
         self._running = False
@@ -493,6 +498,11 @@ class BoltzRun:
     @property
     def running(self):
         return self._running
+
+    def terminate(self):
+        if self._running:
+            self._process.kill()
+            self._user_terminated = True
 
     def _prediction_ran_out_of_memory(self, stdout):
         from os.path import join, exists
