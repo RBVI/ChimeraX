@@ -98,6 +98,7 @@ class InstallBoltz:
         from sys import platform
         if platform == 'win32':
             nvidia_smi = 'C:\\Windows\\System32\\nvidia-smi.exe'
+            from os.path import exists
             if exists(nvidia_smi):
                 return True
         return False
