@@ -119,7 +119,7 @@ class ViewDockTool(ToolInstance):
         Generalized callback function for creating a popup dialog using a specified GUI widget class. This callback
         can be connected to buttons that are supposed to open a dialog for a specific task
         (e.g., HBonds, Clashes...). The GUI Widget class must have a .get_command() implementation that returns a cl
-        command that will be ran when the OK button is clicked in the dialog.
+        command that will be run when the OK button is clicked in the dialog.
 
         Args:
             gui_class: The GUI class to instantiate (e.g., HBondsGUI, ClashesGUI). The class is automatically passed
