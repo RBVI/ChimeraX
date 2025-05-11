@@ -163,6 +163,13 @@ class ViewDockTool(ToolInstance):
         the set, the cell will be empty.
         """
 
+        table_group = QGroupBox()
+        table_group_layout = QVBoxLayout()
+
+        table_group_layout.addWidget(self.struct_table)
+        table_group_layout.addWidget(self.col_display_widget)
+        table_group.setLayout(table_group_layout)
+
         # Fixed columns. Generic based on ChimeraX model attributes.
         self.display_col = self.struct_table.add_column('Show', lambda s: s.display, data_set=self.set_visibility, format=ItemTable.COL_FORMAT_BOOLEAN)
         self.struct_table.add_column('ID', lambda s: s.id_string)
@@ -192,11 +199,8 @@ class ViewDockTool(ToolInstance):
         self.struct_table.data = self.structures
         self.struct_table.launch()
 
-        # Add the table to the layout
-        self.main_v_layout.addWidget(self.struct_table)
-
-        # Add the column display settings widget to the layout
-        self.main_v_layout.addWidget(self.col_display_widget)
+        # Add the table group to the layout
+        self.main_v_layout.addWidget(table_group)
 
     def description_box_setup(self):
         """
