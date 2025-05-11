@@ -32,7 +32,7 @@ from chimerax.core.commands import run, concise_model_spec
 from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
                           QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel, QWidget,
-                          QListWidget, QListWidgetItem)
+                          QSizePolicy)
 from Qt.QtGui import QFont
 from Qt.QtCore import Qt
 
@@ -539,7 +539,15 @@ class ViewDockSettingsWidget(QWidget):
 
         # Main layout
         layout = QVBoxLayout(self)
-        layout.addWidget(col_display_widget)
+
+        # Create a group box for the column display widget
+        col_disp_box = QGroupBox("Show Columns:")
+        col_disp_layout = QVBoxLayout()
+        col_disp_box.setLayout(col_disp_layout)
+
+        col_disp_layout.addWidget(col_display_widget)
+
+        layout.addWidget(col_disp_box)
 
         # Add the layout to the widget
         self.setLayout(layout)
