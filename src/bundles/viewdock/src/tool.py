@@ -57,9 +57,7 @@ class ViewDockTool(ToolInstance):
         self.top_buttons_setup()
         self.main_v_layout.addLayout(self.top_buttons_layout)
 
-        self.table_menu = QMenu()
         self.settings = ViewDockSettings(self.session, tool_name)
-        self.tool_window.fill_context_menu = self.fill_context_menu
 
         self.col_display_widget = QWidget()
         self.struct_table = ItemTable(session=self.session, column_control_info=(
@@ -73,12 +71,6 @@ class ViewDockTool(ToolInstance):
         self.handlers = []
         self.add_handlers()
         self.tool_window.manage('side')
-
-    def fill_context_menu(self, menu, x, y):
-        """
-        Fill the context menu with options to show/hide structures and set ratings.
-        """
-        menu.addMenu(self.table_menu)
 
     def top_buttons_setup(self):
         """
