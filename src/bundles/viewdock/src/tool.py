@@ -31,8 +31,7 @@ from chimerax.ui.widgets import ItemTable
 from chimerax.core.commands import run, concise_model_spec
 from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
-                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel, QWidget,
-                          QSizePolicy)
+                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel, QWidget,)
 from Qt.QtGui import QFont
 from Qt.QtCore import Qt
 
@@ -113,10 +112,6 @@ class ViewDockTool(ToolInstance):
         )
         self.top_buttons_layout.addWidget(self.clashes_button)
 
-        self.settings_button = QPushButton("Settings")
-        self.settings_button.clicked.connect(lambda: self.settings_dialog())
-        self.top_buttons_layout.addWidget(self.settings_button)
-
         self.top_buttons_layout.setAlignment(Qt.AlignLeft)
 
     def popup_callback(self, gui_class, popup_name, **kwargs):
@@ -166,32 +161,6 @@ class ViewDockTool(ToolInstance):
         button_box.rejected.connect(dialog.reject)
 
         # Show the dialog
-        dialog.exec()
-
-    def settings_dialog(self):
-        """
-        Create a settings dialog for the ViewDock tool. This dialog allows the user to customize settings related to
-        """
-
-        # Create a QDialog to act as the popup
-        dialog = QDialog(self.tool_window.ui_area)
-        dialog.setWindowTitle(f"{self.display_name} Settings")
-        layout = QVBoxLayout(dialog)
-        dialog.setLayout(layout)
-
-        settings_widget = ViewDockSettingsWidget(self.session, self.col_display_widget, self.structures, self.struct_table)
-        layout.addWidget(settings_widget)
-
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        layout.addWidget(button_box)
-
-        def ok():
-            # self.settings.save()
-            dialog.accept()
-
-        button_box.accepted.connect(dialog.accept)
-        button_box.rejected.connect(dialog.reject)
-
         dialog.exec()
 
     def table_setup(self):
@@ -525,36 +494,3 @@ class RatingDelegate(QStyledItemDelegate):
 class ViewDockSettings(Settings):
 
     EXPLICIT_SAVE = {ItemTable.DEFAULT_SETTINGS_ATTR: {}}
-
-
-class ViewDockSettingsWidget(QWidget):
-    """
-    A settings widget the ViewDock tool.
-    """
-
-    def __init__(self, session, col_display_widget, structures, table):
-        """
-        Initialize the settings widget.
-
-        Args:
-            structures: List of docking structures.
-            table: The ItemTable associated with the ViewDock tool.
-        """
-        super().__init__()
-        self.structures = structures
-        self.table = table
-
-        # Main layout
-        layout = QVBoxLayout(self)
-
-        # Create a group box for the column display widget
-        col_disp_box = QGroupBox("Show Columns:")
-        col_disp_layout = QVBoxLayout()
-        col_disp_box.setLayout(col_disp_layout)
-
-        col_disp_layout.addWidget(col_display_widget)
-
-        layout.addWidget(col_disp_box)
-
-        # Add the layout to the widget
-        self.setLayout(layout)
