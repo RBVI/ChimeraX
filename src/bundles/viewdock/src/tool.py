@@ -119,18 +119,17 @@ class ViewDockTool(ToolInstance):
 
         self.top_buttons_layout.setAlignment(Qt.AlignLeft)
 
-    def popup_callback(self, gui_class, popup_name, on_ok=None, **kwargs):
+    def popup_callback(self, gui_class, popup_name, **kwargs):
         """
         Generalized callback function for creating a popup dialog using a specified GUI widget class. This callback
         can be connected to buttons that are supposed to open a dialog for a specific task
-        (e.g., HBonds, Clashes, Settings...).
+        (e.g., HBonds, Clashes...). The GUI Widget class must have a .get_command() implementation that returns a cl
+        command that will be ran when the OK button is clicked in the dialog.
 
         Args:
             gui_class: The GUI class to instantiate (e.g., HBondsGUI, ClashesGUI). The class is automatically passed
                 the session in its constructor.
             popup_name: The command name to execute (e.g., "hbonds", "clashes").
-            on_ok: Optional callback function to execute when the Ok button is clicked. If not provided, a default
-                function will be used that retrieves the command from the GUI using GUI.get_command() and runs it.
             **kwargs: Additional keyword arguments to pass to the GUI class constructor. Session is passed to all GUI
                 class constructors automatically and should not be specified in this list
         """
@@ -151,19 +150,16 @@ class ViewDockTool(ToolInstance):
 
         # Connect the Ok button to call gui_instance.get_command()
         def ok_cb():
-            if on_ok and callable(on_ok):
-                on_ok()
-            else:
-                # Default behavior for chimerax.ui.widgets
-                command = gui_instance.get_command()
-                # Binding analysis structures
-                mine = concise_model_spec(self.session, self.structures)
-                all_structures = self.session.models.list(type=AtomicStructure)
-                # All structures that are AtomicStructures but not in the binding analysis structures
-                others = concise_model_spec(self.session, set(all_structures) - set(self.structures))
+            # Default behavior for chimerax.ui.widgets
+            command = gui_instance.get_command()
+            # Binding analysis structures
+            mine = concise_model_spec(self.session, self.structures)
+            all_structures = self.session.models.list(type=AtomicStructure)
+            # All structures that are AtomicStructures but not in the binding analysis structures
+            others = concise_model_spec(self.session, set(all_structures) - set(self.structures))
 
-                # command[0] = command name, command[1] = model selection, command[2] = other arguments
-                run(self.session, f"{command[0]} {mine} restrict {others} {command[2]}")
+            # command[0] = command name, command[1] = model selection, command[2] = other arguments
+            run(self.session, f"{command[0]} {mine} restrict {others} {command[2]}")
             dialog.accept()
 
         button_box.accepted.connect(ok_cb)
