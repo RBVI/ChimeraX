@@ -169,6 +169,10 @@ class ViewDockTool(ToolInstance):
         dialog.exec()
 
     def settings_dialog(self):
+        """
+        Create a settings dialog for the ViewDock tool. This dialog allows the user to customize settings related to
+        """
+
         # Create a QDialog to act as the popup
         dialog = QDialog(self.tool_window.ui_area)
         dialog.setWindowTitle(f"{self.display_name} Settings")
@@ -182,10 +186,10 @@ class ViewDockTool(ToolInstance):
         layout.addWidget(button_box)
 
         def ok():
-            self.settings.save()
+            # self.settings.save()
             dialog.accept()
 
-        button_box.accepted.connect(ok)
+        button_box.accepted.connect(dialog.accept)
         button_box.rejected.connect(dialog.reject)
 
         dialog.exec()
@@ -229,6 +233,9 @@ class ViewDockTool(ToolInstance):
 
         # Add the table to the layout
         self.main_v_layout.addWidget(self.struct_table)
+
+        # Add the column display settings widget to the layout
+        self.main_v_layout.addWidget(self.col_display_widget)
 
     def description_box_setup(self):
         """
