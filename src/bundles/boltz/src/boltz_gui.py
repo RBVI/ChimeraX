@@ -494,6 +494,8 @@ class BoltzPredictionGUI(ToolInstance):
             options.append('useMsaCache false')
         if self._device.value != 'default':
             options.append(f'device {self._device.value}')
+        if self._use_cuda_bfloat16 and self._use_cuda_bfloat16.value:
+            options.append('float16 true')
         if self._samples.value != 1:
             options.append(f'samples {self._samples.value}')
         self._run_prediction(options = ' '.join(options))
@@ -658,7 +660,17 @@ class BoltzPredictionGUI(ToolInstance):
         cd = EntriesRow(f, 'Compute device', ('default', 'cpu', 'gpu'))
         self._device = dev = cd.values[0]
         dev.value = settings.device
-        
+
+        # Use 16-bit float with Nvidia CUDA, only shown if Nvidia gpu available
+        self._use_cuda_bfloat16 = None
+        from sys import platform
+        if platform in ('win32', 'linux') and False:  # TODO: Enable once Boltz github has bfloat16 option
+            from .predict import boltz_default_device
+            if boltz_default_device(self.session) == 'gpu':
+                bf = EntriesRow(f, True, 'Predict larger structures with Nvidia 16-bit floating point')
+                self._use_cuda_bfloat16 = cbf = bf.values[0]
+                cbf.value = settings.use_cuda_bfloat16
+
         # Use MSA cache
         mc = EntriesRow(f, True, 'Use multiple sequence alignment cache')
         self._use_msa_cache = uc = mc.values[0]
@@ -711,6 +723,8 @@ class BoltzPredictionGUI(ToolInstance):
             settings.boltz_results_location = self._results_directory.value
             settings.samples = self._samples.value
             settings.device = self._device.value
+            if self._use_cuda_bfloat16 is not None:
+                settings.use_cuda_bfloat16 = self._use_cuda_bfloat16.value
             settings.use_msa_cache = self._use_msa_cache.value
         settings.boltz_install_location = self._install_directory.value
         settings.save()

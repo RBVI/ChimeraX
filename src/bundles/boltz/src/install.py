@@ -136,7 +136,10 @@ class InstallBoltz:
         logger.info('Now installing Boltz and required packages from PyPi.  This may take tens of of minutes'
                     ' since Boltz uses many other packages totaling about 1 Gbyte of disk'
                     ' space including torch, scipy, rdkit, llvmlite, sympy, pandas, numpy, wandb, numba...')
-        command = [self._venv_python_executable(), '-m', 'pip', 'install', 'boltz==0.4.1']
+
+        boltz_ver = 'boltz==0.4.1'
+#        boltz_ver = 'git+https://github.com/jwohlwend/boltz@a9b3abc2c1f90f26b373dd1bcb7afb5a3cb40293'  # Install from Github source
+        command = [self._venv_python_executable(), '-m', 'pip', 'install', boltz_ver]
         logger.info(' '.join(command))
 
         # Echo subprocess output to the ChimeraX Log.
