@@ -144,9 +144,11 @@ class ViewDockTool(ToolInstance):
             all_structures = self.session.models.list(type=AtomicStructure)
             # All structures that are AtomicStructures but not in the binding analysis structures
             others = concise_model_spec(self.session, set(all_structures) - set(self.structures))
-
-            # command[0] = command name, command[1] = model selection, command[2] = other arguments
-            run(self.session, f"{command[0]} {mine} restrict {others} {command[2]}")
+            if others == "#":
+                self.session.logger.warning(f"First open a model for {popup_name.capitalize()}.")
+            else:
+                # command[0] = command name, command[1] = model selection, command[2] = other arguments
+                run(self.session, f"{command[0]} {mine} restrict {others} {command[2]}")
             dialog.accept()
 
         button_box.accepted.connect(ok_cb)
