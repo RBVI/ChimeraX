@@ -140,7 +140,7 @@ class AtomicShapeDrawing(Drawing, State):
     def update_selection(self):
         # called by Structure._update_if_needed when atom selection has changed
         # in a child model/drawing
-        self._selected_shapes = set(s for s in self._shapes if s.atoms and all(s.atoms.selected))
+        self._selected_shapes = set(s for s in self._shapes if s.atoms and all_selected(s.atoms))
         tmask = self.highlighted_triangles_mask
         if tmask is None:
             tris = self.triangles
@@ -241,7 +241,7 @@ class AtomicShapeDrawing(Drawing, State):
             self.vertex_colors = colors
             s = _AtomicShape(range(0, self.triangles.shape[0]), description, atoms)
             self._shapes.append(s)
-            if atoms is not None and all(atoms.selected):
+            if atoms is not None and all_selected(atoms):
                 self._add_selected_shape.add(s)
             return
         offset = self.vertices.shape[0]
@@ -253,7 +253,7 @@ class AtomicShapeDrawing(Drawing, State):
         self.vertex_colors = new_vertex_colors
         s = _AtomicShape(range(start, self.triangles.shape[0]), description, atoms)
         self._shapes.append(s)
-        if atoms is not None and all(atoms.selected):
+        if atoms is not None and all_selected(atoms):
             self._add_selected_shape.add(s)
 
     def add_shapes(self, shape_info):
@@ -294,7 +294,7 @@ class AtomicShapeDrawing(Drawing, State):
             all_shapes[i] = _AtomicShape(range(num_triangles, new_num_triangles), description, atoms)
             num_vertices += len(vertices)
             num_triangles = new_num_triangles
-            if atoms is not None and all(atoms.selected):
+            if atoms is not None and all_selected(atoms):
                 selected_shapes.append(all_shapes[i])
         if has_atoms:
             self._add_handler_if_needed()
@@ -448,6 +448,12 @@ class PickedAtomicShapes(Pick):
             if adding:
                 drawing._add_selected_shapes(adding)
 
+
+def all_selected(atoms):
+    from . import Atoms
+    if not isinstance(atoms, Atoms):
+        atoms = Atoms(atoms)
+    return numpy.all(atoms.selecteds)
 
 def _search(shapes, tri):
     # Binary search a list of shapes whose triangle_ranges are
