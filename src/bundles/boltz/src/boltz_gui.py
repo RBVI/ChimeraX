@@ -759,7 +759,7 @@ class BoltzPredictionGUI(ToolInstance):
         self._installing_label.deleteLater()
         self._installing_label = None
         if success:
-            self._save_option_defaults(install_dir_only = True)
+            self._save_default_options(install_dir_only = True)
         else:
             layout.insertWidget(0, self._install_boltz_button)
             self._install_boltz_button.setVisible(True)
