@@ -25,7 +25,7 @@
 def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
                   protein = [], dna = [], rna = [], ligand_ccd = [], ligand_smiles = [],
                   name = None, results_directory = None, device = None,
-                  samples = 1, recycles = 3, seed = None,
+                  samples = 1, recycles = 3, seed = None, float16 = False,
                   use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                   open = True, install_location = None, wait = None):
 
@@ -56,7 +56,7 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
         session.logger.info(f'Predicting covalent ligands not yet supported: {covalent_ligands}')
 
     br = BoltzRun(session, molecular_components, name = name, align_to = align_to,
-                  device = device, samples = samples, recycles = recycles, seed = seed,
+                  device = device, samples = samples, recycles = recycles, seed = seed, cuda_bfloat16 = float16,
                   use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
                   open = open, wait = wait)
     br.start(results_directory)
@@ -164,6 +164,7 @@ class BoltzMolecule:
 class BoltzRun:
     def __init__(self, session, molecular_components, name = None, align_to = None,
                  device = 'default', samples = 1, recycles = 3, seed = None,
+                 cuda_bfloat16 = False,
                  use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                  open = True, wait = False):
 
@@ -174,12 +175,14 @@ class BoltzRun:
         self._device = device		# gpu, cpu or default, or None (uses settings value)
         self._samples = samples		# Number of predicted structures
         self._recycles = recycles	# Number of boltz recycling steps
+        self._cuda_bfloat16 = cuda_bfloat16	# Save memory using 16-bit instead of 32-bit float
         self._seed = seed		# Random seed for computation
         self._open = open		# Whether to open predictions when boltz finishes.
 
         self._results_directory = None
         self._yaml_path = None
         self._running = False
+        self._user_terminated = False
         self.success = None
         self._process = None
         self._wait = wait
@@ -305,24 +308,7 @@ class BoltzRun:
         if self._device is None:
             self._device = self._settings.device
         if self._device == 'default':
-            from sys import platform
-            if platform == 'win32':
-                boltz_install = self._settings.boltz_install_location
-                from os.path import join, exists
-                torch_cuda_dll = join(boltz_install, 'Lib/site-packages/torch/lib/torch_cuda.dll')
-                nvidia_smi = 'C:\\Windows\\System32\\nvidia-smi.exe'
-                device = 'gpu' if exists(torch_cuda_dll) and exists(nvidia_smi) else 'cpu'
-            elif platform == 'darwin':
-                from platform import machine
-                device = 'gpu' if machine() == 'arm64' else 'cpu'
-                # PyTorch 2.6 does not support Intel Mac GPU use.
-                #     https://discuss.pytorch.org/t/pytorch-support-for-intel-gpus-on-mac/151996
-            elif platform == 'linux':
-                from os.path import exists
-                device = 'gpu' if exists('/usr/bin/nvidia-smi') else 'cpu'
-                # TODO: Run nvidia-smi to see if GPU memory is sufficient to run Boltz.
-            else:
-                device = 'cpu'
+            device = boltz_default_device(self._session)
         else:
             device = self._device
         return device
@@ -344,6 +330,8 @@ class BoltzRun:
             command.append('--use_msa_server')
 
         command.extend(['--accelerator', self.device])
+        if self._cuda_bfloat16:
+            command.append('--use_cuda_bfloat16')
 
         if self._samples != 1:
             command.extend(['--diffusion_samples', str(self._samples)])
@@ -479,12 +467,16 @@ class BoltzRun:
                        ' Windows requires reinstalling gpu-enabled torch with Boltz which we plan to'
                        ' support in the future.')
             else:
-                msg = '\n'.join([
-                    f'Running boltz prediction failed with exit code {p.returncode}:',
-                    'command:',self._command,
-                    'stdout:', stdout,
-                    'stderr:', stderr,
-                    ])
+                if self._user_terminated:
+                    msg = 'Prediction terminated by user'
+                    self._user_terminated = False
+                else:
+                    msg = '\n'.join([
+                        f'Running boltz prediction failed with exit code {p.returncode}:',
+                        'command:',self._command,
+                        'stdout:', stdout,
+                        'stderr:', stderr,
+                        ])
             self._session.logger.error(msg)
 
         self._running = False
@@ -493,6 +485,11 @@ class BoltzRun:
     @property
     def running(self):
         return self._running
+
+    def terminate(self):
+        if self._running:
+            self._process.kill()
+            self._user_terminated = True
 
     def _prediction_ran_out_of_memory(self, stdout):
         from os.path import join, exists
@@ -596,6 +593,34 @@ def _is_boltz_available(session):
         session.logger.error(msg)
         return False
     return True
+
+# ------------------------------------------------------------------------------
+#
+def boltz_default_device(session):
+    from sys import platform
+    if platform == 'win32':
+        nvidia_smi = 'C:\\Windows\\System32\\nvidia-smi.exe'
+        if not exists(nvidia_smi):
+            device = 'cpu'
+        else:
+            from .settings import _boltz_settings
+            settings = _boltz_settings(session)
+            boltz_install = settings.boltz_install_location
+            from os.path import join, exists
+            torch_cuda_dll = join(boltz_install, 'Lib/site-packages/torch/lib/torch_cuda.dll')
+            device = 'gpu' if exists(torch_cuda_dll) else 'cpu'
+    elif platform == 'darwin':
+        from platform import machine
+        device = 'gpu' if machine() == 'arm64' else 'cpu'
+        # PyTorch 2.6 does not support Intel Mac GPU use.
+        #     https://discuss.pytorch.org/t/pytorch-support-for-intel-gpus-on-mac/151996
+    elif platform == 'linux':
+        from os.path import exists
+        device = 'gpu' if exists('/usr/bin/nvidia-smi') else 'cpu'
+        # TODO: Run nvidia-smi to see if GPU memory is sufficient to run Boltz.
+    else:
+        device = 'cpu'
+    return device
 
 # ------------------------------------------------------------------------------
 #
@@ -852,6 +877,7 @@ def register_boltz_predict_command(logger):
                    ('name', StringArg),
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
+#                   ('float16', BoolArg),
                    ('samples', IntArg),
                    ('recycles', IntArg),
                    ('seed', IntArg),

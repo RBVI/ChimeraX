@@ -31,7 +31,9 @@ class _BoltzSettings(Settings):
         'boltz_results_location': '~/Desktop/boltz_[name]',
         'boltz_install_location': '',
         'device': 'default',	# default, cpu, or gpu
+        'use_cuda_bfloat16': False,  # Use 16-bit float for predictions with CUDA
         'samples': 1,		# Number of predicted structures
+        'use_msa_cache': True,
     }
 
 # -----------------------------------------------------------------------------

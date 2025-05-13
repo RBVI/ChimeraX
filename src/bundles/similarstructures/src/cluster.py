@@ -257,7 +257,7 @@ class SimilarStructurePlot(UmapPlot):
                 if cluster_colors:
                     from chimerax.core.colors import rgba_to_rgba8
                     cluster_colors[n.name] = rgba_to_rgba8(color)
-        self.draw_graph()  # Redraw nodes.
+        self.draw_graph(preserve_zoom = True)  # Redraw nodes.
 
     def _color_by_cluster(self, no_cluster_color = (178,178,178,255)):
         cluster_colors = self._cluster_colors
@@ -266,7 +266,7 @@ class SimilarStructurePlot(UmapPlot):
         from chimerax.core.colors import rgba8_to_rgba
         for node in self.nodes:
             node.color = rgba8_to_rgba(cluster_colors.get(node.name, no_cluster_color))
-        self.draw_graph()  # Redraw nodes.
+        self.draw_graph(preserve_zoom = True)  # Redraw nodes.
 
     def _color_by_species(self):
         node_names = set(node.name for node in self.nodes)
@@ -276,7 +276,7 @@ class SimilarStructurePlot(UmapPlot):
         for node in self.nodes:
             if node.name in species:
                 node.color = species_colors[species[node.name]]
-        self.draw_graph()  # Redraw nodes.
+        self.draw_graph(preserve_zoom = True)  # Redraw nodes.
 
     def _species_colors(self, species):
         species_colors = self._species_to_color

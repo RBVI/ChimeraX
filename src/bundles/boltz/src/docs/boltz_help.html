@@ -77,6 +77,8 @@
     <p>
       Components can be added multiple times to have more instances of that molecule in the assembly.
       Press the <b>Predict</b> button after the assembly is completed by adding each component to start the prediction.
+      A <b>Stop</b> button will be shown while the prediction runs to terminate the prediction,
+      discarding the partial computation so you can start another prediction.
     </p>
 
     <table align=right>
@@ -179,7 +181,7 @@
       <li><b>Results directory</b>: You can change where the results are placed.
 	The path contains "[name]" which is replaced with the prediction name.
       <li><b>Number of predictions</b>: The default number of predicted structures is 1, but you can request more to get an ensemble of structures that usually have small variations.
-      <li><b>Compute device</b>: The computation can run on Nvidia GPUs with CUDA or Mac M series GPUs and complete faster than CPU-only calculations.  The default setting tries to use the fastest available device.
+      <li><b>Compute device</b>: The computation can run on Nvidia GPUs or Mac M series GPUs and complete faster than CPU-only calculations.  The default setting tries to uses the GPU if available.
       <li><b>Multiple sequence alignment cache</b>: Boltz uses deep multiple sequence alignments for proteins
 	that are computed using the Colabfold server.  To avoid recomputing the alignments when you run predictions
 	with the same proteins but different ligands ChimeraX caches those alignments in ~/Downloads/ChimeraX/BoltzMSA
@@ -279,16 +281,31 @@
       <li><b>Run time</b>.  The computation time increase quadratically with the number of tokens.  So
 	a prediction with 3 times the number of residue and ligand atoms will take approximately
 	9 times longer to run.
-      <li><b>Nvidia GPU support on Windows</b>.  Currently the torch 2.6.0 from PyPi used with the standard
-	Boltz installation does not include Nvidia GPU support on Windows.  If you wish to use the Nvidia GPU
-	with CUDA version 12.6 on a Windows machine run the following commands in a Windows Command Prompt.
-	For other CUDA version refer to the
+      <li><b>Nvidia GPU support on Windows</b>.
+	Installing Boltz will get a CUDA-enabled version of the torch machine learning package
+	if it detects Nvidia graphics.  It decides if you have Nvidia graphics by seeing if the file
+	C:/Windows/System32/nvidia-smi.exe exists.  Otherwise it gets a cpu-only version of torch.
+	If you install an Nvidia graphics driver after installing Boltz you will have to reinstall
+	Boltz to get the CUDA version.  The installed torch is for CUDA 12.6 or newer.
+	If your computer has a version of CUDA older than 12.6 but newer than 11.8 you can run the
+	following commands in a Windows Command Prompt to install a CUDA 11.8 version of torch.
+	For other CUDA versions refer to the
 	<a href="https://pytorch.org/get-started/locally/">Torch installation page</a>
-	for the correct install command.
+	for the correct pip install command.
 	<pre>
 	  > cd C:\Users\username\boltz\Scripts
 	  > pip.exe uninstall torch
-	  > pip.exe install torch --index-url https://download.pytorch.org/whl/cu126</pre>
+	  > pip.exe install torch --index-url https://download.pytorch.org/whl/cu118</pre>
+      <li><b>Nvidia GPU support on Linux</b>.
+	On Linux the installed Boltz will work with CUDA 12.6 or newer if you have Nvidia graphics.
+	If you have an older system CUDA version it may still work, or you can refer to the
+	<a href="https://pytorch.org/get-started/locally/">Torch installation page</a>
+	for the correct pip install command and replace torch with the following shell commands.
+	<pre>
+	  $ cd ~/boltz/bin
+	  $ ./pip uninstall torch
+	  $ ./pip install torch --index-url https://download.pytorch.org/whl/cu118</pre>
+
       <li><b>No covalently linked ligands</b>.  Although Boltz can predict covalently linked ligands I have
 	not yet included that capability in the ChimeraX interface or command.
       <li><b>No assigning chain identifiers</b>.  It can be helpful to assign chain identifiers (A,B,C...) to
