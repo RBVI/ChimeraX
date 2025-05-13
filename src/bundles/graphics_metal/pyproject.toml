@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=42", "wheel", "cython>=0.29.24", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ChimeraX-GraphicsMetal"
+version = "0.1.0"
+description = "Metal-accelerated multi-GPU graphics for ChimeraX"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "Free for non-commercial use"}
+authors = [
+    {name = "Alpha Tau Biosciences", email = "support@alphataubio.com"}
+]
+classifiers = [
+    "Framework :: ChimeraX",
+    "Development Status :: 4 - Beta",
+    "License :: Free for non-commercial use",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: C++"
+]
+dependencies = [
+    "numpy"
+]
+
+[project.urls]
+"Homepage" = "https://www.alphataubio.com/"
+"Source" = "https://github.com/alphataubio/ChimeraX-GraphicsMetal"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Graphics"]
+providers.graphics = [
+    {name = "metal", synopsis = "Metal-based multi-GPU accelerated rendering", 
+     service = "chimerax.graphics_metal:MetalGraphics"}
+]
+custom-init = "chimerax.graphics_metal.custom_init"
+data-files = ["metal_shaders"]
