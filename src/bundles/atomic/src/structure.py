@@ -1321,17 +1321,23 @@ class AtomicStructure(Structure):
         color = self.initial_color(self.session.main_view.background_color)
         self.set_color(color)
 
+        from .molobject import Atom, Bond, Residue
+        def ligand_like_atoms(atoms):
+            from numpy import logical_or, logical_and
+            # include polysaccharide chains (9dff; #17519)
+            return atoms.filter(logical_or(atoms.structure_categories == "ligand",
+                logical_and(atoms.structure_categories == "main",
+                atoms.residues.polymer_types == Residue.PT_NONE)))
+
         atoms = self.atoms
         if style == "non-polymer":
             lighting = {'preset': 'default'}
-            from .molobject import Atom, Bond
             atoms.draw_modes = Atom.STICK_STYLE
             from .colors import element_colors
             het_atoms = atoms.filter(atoms.element_numbers != 6)
             het_atoms.colors = element_colors(het_atoms.element_numbers)
         elif style == "small polymer":
             lighting = {'preset': 'default'}
-            from .molobject import Atom, Bond, Residue
             atoms.draw_modes = Atom.STICK_STYLE
             from .colors import element_colors
             het_atoms = atoms.filter(atoms.element_numbers != 6)
@@ -1340,7 +1346,7 @@ class AtomicStructure(Structure):
             # 10 residues or less is basically a trivial depiction if ribboned
             if explicit_style or MIN_RIBBON_THRESHOLD < len(ribbonable):
                 atoms.displays = False
-                ligand = atoms.filter(atoms.structure_categories == "ligand").residues
+                ligand = ligand_like_atoms(atoms).residues
                 ribbonable -= ligand
                 metal_atoms = atoms.filter(atoms.elements.is_metal)
                 metal_atoms.draw_modes = Atom.SPHERE_STYLE
@@ -1388,8 +1394,7 @@ class AtomicStructure(Structure):
                 acolors = polymer_colors(atoms.residues)[0]
             residues.ribbon_colors = residues.ring_colors = rcolors
             atoms.colors = acolors
-            from .molobject import Atom
-            ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
+            ligand_atoms = ligand_like_atoms(atoms)
             ligand_atoms.draw_modes = Atom.STICK_STYLE
             ligand_atoms.colors = element_colors(ligand_atoms.element_numbers)
             solvent_atoms = atoms.filter(atoms.structure_categories == "solvent")

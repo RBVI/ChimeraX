@@ -315,7 +315,7 @@ SmallMolecule::parse_atom_site()
     molecule = new AtomicStructure(_logger);
     residue = molecule->new_residue("UNL", "A", 1);
     std::vector<Atom*> alt_atoms;
-    int alt_count = 0;
+    size_t alt_count = 0;
     bool alt_warned = false;
     bool too_many = false;
     bool skip_group = false;

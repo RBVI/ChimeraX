@@ -77,6 +77,8 @@
     <p>
       Components can be added multiple times to have more instances of that molecule in the assembly.
       Press the <b>Predict</b> button after the assembly is completed by adding each component to start the prediction.
+      A <b>Stop</b> button will be shown while the prediction runs to terminate the prediction,
+      discarding the partial computation so you can start another prediction.
     </p>
 
     <table align=right>
@@ -128,7 +130,7 @@
       <li>MacBook Pro - M1 Max, 32 core GPU, 32 GB
       <li>Mac Studio - M2 Ultra, 60 core GPU, 64 GB, descartes.cgl.ucsf.edu
       <li>Linux - Nvidia RTX 4090 24 GB, cpu i9-13900K (24 cores) 64 GB (DDR5 5200MHz), minsky.cgl.ucsf.edu
-      <li>Windows 11 - Nvidia RTX 3070 8 GB PCIe 4.0, cpu i7-12900K (12 cores) 64 GB DDR5 4000MHz, vizvault.cgl.ucsf.edu
+      <li>Windows 11 - Nvidia RTX 3070 8 GB PCIe 4.0, cpu i7-12700K (12 cores) 64 GB DDR5 4000MHz, vizvault.cgl.ucsf.edu
       <li>Windows 10 - Nvidia RTX 4070 12 GB PCIe 3.0, cpu i5-6700K (4 cores) 64 GB DDR4 2133MHz, vive.cgl.ucsf.edu
     </ul>
 
@@ -177,9 +179,9 @@
 
     <ul>
       <li><b>Results directory</b>: You can change where the results are placed.
-	The path contains "[N]" which is replaced with the prediction name.
+	The path contains "[name]" which is replaced with the prediction name.
       <li><b>Number of predictions</b>: The default number of predicted structures is 1, but you can request more to get an ensemble of structures that usually have small variations.
-      <li><b>Compute device</b>: The computation can run on Nvidia GPUs with CUDA or Mac M series GPUs and complete faster than CPU-only calculations.  The default setting tries to use the fastest available device.
+      <li><b>Compute device</b>: The computation can run on Nvidia GPUs or Mac M series GPUs and complete faster than CPU-only calculations.  The default setting tries to uses the GPU if available.
       <li><b>Multiple sequence alignment cache</b>: Boltz uses deep multiple sequence alignments for proteins
 	that are computed using the Colabfold server.  To avoid recomputing the alignments when you run predictions
 	with the same proteins but different ligands ChimeraX caches those alignments in ~/Downloads/ChimeraX/BoltzMSA
@@ -221,7 +223,7 @@
        <li><b>ligandCcd</b> <i>ccd-codes</i> - Comma-separated list of 3 or 5-letter CCD codes.  This option can be used more than once.
        <li><b>ligandSmiles</b> <i>smiles-string</i> - Comma-separated list of SMILES strings.  This option can be used more than once.
        <li><b>name</b> <i>prediction-name</i> - Name of prediction used in the results folder name.
-       <li><b>resultsDirectory</b> <i>directory</i> - Path to the results directory that will be created.  "[N]" in the path will be replaced by the prediction name.  If the folder already exists an numeric suffix _1, _2, _3... will be appended.
+       <li><b>resultsDirectory</b> <i>directory</i> - Path to the results directory that will be created.  "[name]" in the path will be replaced by the prediction name.  If the folder already exists an numeric suffix _1, _2, _3... will be appended.
        <li><b>device</b> <b>default</b>|cpu|gpu - Whether to run the computation on GPU or CPU.  The default setting chooses based on GPU availability and torch support for the GPU.
        <li><b>samples</b> <i>n</i> - Number of predictions.  Default is 1.  This is what Boltz calls "diffusion samples".  Creating additional structures takes much less time than creating the first structure.
        <li><b>recycles</b> <i>n</i> - Number of passes through the neural net that derives spatial information from which structures will be computed.  Defaults to 3.  Better structures make result from 10 but runtime will be increased.
@@ -279,16 +281,31 @@
       <li><b>Run time</b>.  The computation time increase quadratically with the number of tokens.  So
 	a prediction with 3 times the number of residue and ligand atoms will take approximately
 	9 times longer to run.
-      <li><b>Nvidia GPU support on Windows</b>.  Currently the torch 2.6.0 from PyPi used with the standard
-	Boltz installation does not include Nvidia GPU support on Windows.  If you wish to use the Nvidia GPU
-	with CUDA version 12.6 on a Windows machine run the following commands in a Windows Command Prompt.
-	For other CUDA version refer to the
+      <li><b>Nvidia GPU support on Windows</b>.
+	Installing Boltz will get a CUDA-enabled version of the torch machine learning package
+	if it detects Nvidia graphics.  It decides if you have Nvidia graphics by seeing if the file
+	C:/Windows/System32/nvidia-smi.exe exists.  Otherwise it gets a cpu-only version of torch.
+	If you install an Nvidia graphics driver after installing Boltz you will have to reinstall
+	Boltz to get the CUDA version.  The installed torch is for CUDA 12.6 or newer.
+	If your computer has a version of CUDA older than 12.6 but newer than 11.8 you can run the
+	following commands in a Windows Command Prompt to install a CUDA 11.8 version of torch.
+	For other CUDA versions refer to the
 	<a href="https://pytorch.org/get-started/locally/">Torch installation page</a>
-	for the correct install command.
+	for the correct pip install command.
 	<pre>
 	  > cd C:\Users\username\boltz\Scripts
 	  > pip.exe uninstall torch
-	  > pip.exe install torch --index-url https://download.pytorch.org/whl/cu126</pre>
+	  > pip.exe install torch --index-url https://download.pytorch.org/whl/cu118</pre>
+      <li><b>Nvidia GPU support on Linux</b>.
+	On Linux the installed Boltz will work with CUDA 12.6 or newer if you have Nvidia graphics.
+	If you have an older system CUDA version it may still work, or you can refer to the
+	<a href="https://pytorch.org/get-started/locally/">Torch installation page</a>
+	for the correct pip install command and replace torch with the following shell commands.
+	<pre>
+	  $ cd ~/boltz/bin
+	  $ ./pip uninstall torch
+	  $ ./pip install torch --index-url https://download.pytorch.org/whl/cu118</pre>
+
       <li><b>No covalently linked ligands</b>.  Although Boltz can predict covalently linked ligands I have
 	not yet included that capability in the ChimeraX interface or command.
       <li><b>No assigning chain identifiers</b>.  It can be helpful to assign chain identifiers (A,B,C...) to
