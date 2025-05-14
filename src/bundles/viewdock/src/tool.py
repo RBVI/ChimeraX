@@ -253,6 +253,10 @@ class ViewDockTool(ToolInstance):
         for i in reversed(range(layout.count())):
             widget = layout.itemAt(i).widget()
             if widget:
+                if isinstance(widget, QLabel):
+                    # Clear the text of QLabel widgets. This prevents layering of old/new widgets if the QT event loop
+                    # doesn't delete the old widgets before an event loop pause like opening the context menu.
+                    widget.clear()
                 widget.deleteLater()
 
         # Add attributes in a grid layout
