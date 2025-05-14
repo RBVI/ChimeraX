@@ -892,7 +892,8 @@ def _ligands_with_counts(ligand_specs):
             spec_counts[spec] += count
         else:
             spec_counts[spec] = count
-    lc = ','.join(f'{spec}({count})' for spec, count in spec_counts.items())
+    lc = ','.join((spec if count == 1 else f'{spec}({count})')
+                  for spec, count in spec_counts.items())
     return lc
 
 # -----------------------------------------------------------------------------
