@@ -877,12 +877,17 @@ class Session:
                                     % cls.__name__
                                 )
                     mgr.add_reference(name, obj)
-        except Exception:
+        except Exception as err:
             import traceback
 
-            self.logger.bug(
-                "Unable to restore session, resetting.\n\n%s" % traceback.format_exc()
-            )
+            if isinstance(err, RuntimeError) and "ERROR_decompressionFailed" in str(err):
+                self.logger.info(
+                    "Unable to restore session, resetting: corrupt session file"
+                )
+            else:
+                self.logger.bug(
+                    "Unable to restore session, resetting.\n\n%s" % traceback.format_exc()
+                )
             self.reset()
             self.restore_options["error encountered"] = True
         finally:

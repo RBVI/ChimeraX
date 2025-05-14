@@ -19,16 +19,19 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from PyQt6.QtWidgets import QMenu
 
 from chimerax.atomic import AtomicStructure
+from chimerax.ui import MainToolWindow
 from chimerax.core.tools import ToolInstance
+from chimerax.core.settings import Settings
 from chimerax.hbonds.gui import HBondsGUI
 from chimerax.clashes.gui import ClashesGUI
 from chimerax.ui.widgets import ItemTable
 from chimerax.core.commands import run, concise_model_spec
 from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
-                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel,)
+                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel, QWidget,)
 from Qt.QtGui import QFont
 from Qt.QtCore import Qt
 
@@ -42,7 +45,6 @@ class ViewDockTool(ToolInstance):
         super().__init__(session, tool_name)
         self.display_name = "ViewDock"
 
-        from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
 
         # Create a vertical layout for the tool
@@ -55,8 +57,12 @@ class ViewDockTool(ToolInstance):
         self.top_buttons_setup()
         self.main_v_layout.addLayout(self.top_buttons_layout)
 
+        self.settings = ViewDockSettings(self.session, tool_name)
 
-        self.struct_table = ItemTable(session=self.session)
+        self.col_display_widget = QWidget()
+        self.struct_table = ItemTable(session=self.session, column_control_info=(
+            self.col_display_widget, self.settings, {}, True, None, None, True
+        ))
         self.table_setup()
 
         self.description_group = QGroupBox()
@@ -97,16 +103,22 @@ class ViewDockTool(ToolInstance):
             lambda: self.popup_callback(ClashesGUI, "Clashes", has_apply_button=False, show_restrict=False)
         )
         self.top_buttons_layout.addWidget(self.clashes_button)
+
         self.top_buttons_layout.setAlignment(Qt.AlignLeft)
 
     def popup_callback(self, gui_class, popup_name, **kwargs):
         """
-        Generalized callback function for creating a popup dialog with a specified GUI widget.
+        Generalized callback function for creating a popup dialog using a specified GUI widget class. This callback
+        can be connected to buttons that are supposed to open a dialog for a specific task
+        (e.g., HBonds, Clashes...). The GUI Widget class must have a .get_command() implementation that returns a cl
+        command that will be run when the OK button is clicked in the dialog.
 
         Args:
-            gui_class: The GUI class to instantiate (e.g., HBondsGUI, ClashesGUI).
+            gui_class: The GUI class to instantiate (e.g., HBondsGUI, ClashesGUI). The class is automatically passed
+                the session in its constructor.
             popup_name: The command name to execute (e.g., "hbonds", "clashes").
-            **kwargs: Additional keyword arguments to pass to the GUI class constructor.
+            **kwargs: Additional keyword arguments to pass to the GUI class constructor. Session is passed to all GUI
+                class constructors automatically and should not be specified in this list
         """
         gui_instance = gui_class(self.session, **kwargs)
 
@@ -124,19 +136,22 @@ class ViewDockTool(ToolInstance):
         layout.addWidget(button_box)
 
         # Connect the Ok button to call gui_instance.get_command()
-        def on_ok():
+        def ok_cb():
+            # Default behavior for chimerax.ui.widgets
             command = gui_instance.get_command()
             # Binding analysis structures
             mine = concise_model_spec(self.session, self.structures)
             all_structures = self.session.models.list(type=AtomicStructure)
             # All structures that are AtomicStructures but not in the binding analysis structures
             others = concise_model_spec(self.session, set(all_structures) - set(self.structures))
-
-            # command[0] = command name, command[1] = model selection, command[2] = other arguments
-            run(self.session, f"{command[0]} {mine} restrict {others} {command[2]}")
+            if others == "#":
+                self.session.logger.warning(f"First open a model for {popup_name.capitalize()}.")
+            else:
+                # command[0] = command name, command[1] = model selection, command[2] = other arguments
+                run(self.session, f"{command[0]} {mine} restrict {others} {command[2]}")
             dialog.accept()
 
-        button_box.accepted.connect(on_ok)
+        button_box.accepted.connect(ok_cb)
         button_box.rejected.connect(dialog.reject)
 
         # Show the dialog
@@ -149,6 +164,13 @@ class ViewDockTool(ToolInstance):
         attribute of each structure (e.g., Name, Description, Energy Score...). If a structure does not have a key from
         the set, the cell will be empty.
         """
+
+        table_group = QGroupBox()
+        table_group_layout = QVBoxLayout()
+
+        table_group_layout.addWidget(self.struct_table)
+        table_group_layout.addWidget(self.col_display_widget)
+        table_group.setLayout(table_group_layout)
 
         # Fixed columns. Generic based on ChimeraX model attributes.
         self.display_col = self.struct_table.add_column('Show', lambda s: s.display, data_set=self.set_visibility, format=ItemTable.COL_FORMAT_BOOLEAN)
@@ -179,8 +201,8 @@ class ViewDockTool(ToolInstance):
         self.struct_table.data = self.structures
         self.struct_table.launch()
 
-        # Add the table to the layout
-        self.main_v_layout.addWidget(self.struct_table)
+        # Add the table group to the layout
+        self.main_v_layout.addWidget(table_group)
 
     def description_box_setup(self):
         """
@@ -231,6 +253,10 @@ class ViewDockTool(ToolInstance):
         for i in reversed(range(layout.count())):
             widget = layout.itemAt(i).widget()
             if widget:
+                if isinstance(widget, QLabel):
+                    # Clear the text of QLabel widgets. This prevents layering of old/new widgets if the QT event loop
+                    # doesn't delete the old widgets before an event loop pause like opening the context menu.
+                    widget.clear()
                 widget.deleteLater()
 
         # Add attributes in a grid layout
@@ -448,12 +474,18 @@ class RatingDelegate(QStyledItemDelegate):
         combo_style.state = QStyle.State_Enabled  # Enable the combo box appearance by default
 
         if option.state & QStyle.State_Selected:
-            # If the cell is selected, use the highlighted background color
-            painter.fillRect(option.rect, option.palette.highlight())
-            combo_style.state |= QStyle.State_Selected  # Mark the combo box as selected
-            painter.setPen(option.palette.highlightedText().color())  # Set text color to contrast selection
+            # If the cell is selected as part of the row being higlighted, use the highlighted background color
+            if option.state & QStyle.State_HasFocus:
+                # If the cell is selected, use the highlighted background color
+                painter.fillRect(option.rect, option.palette.highlight())
+                combo_style.state |= QStyle.State_Selected  # Mark the combo box as selected
+                painter.setPen(option.palette.highlightedText().color())  # Set text color to contrast selection
+            else:
+                # Table is not focused, use the alternate highlight background color
+                painter.fillRect(option.rect, option.palette.alternateBase())
+                painter.setPen(option.palette.text().color())
         else:
-            # If the cell is not selected, use the default background color
+            # If the cell/row is not selected, use the default background color
             painter.fillRect(option.rect, option.palette.base())
             painter.setPen(option.palette.text().color())  # Set text color to default
 
@@ -465,3 +497,8 @@ class RatingDelegate(QStyledItemDelegate):
 
         # Draw the text
         painter.drawText(text_rect, Qt.AlignVCenter | Qt.AlignLeft, combo_style.currentText)
+
+
+class ViewDockSettings(Settings):
+
+    EXPLICIT_SAVE = {ItemTable.DEFAULT_SETTINGS_ATTR: {}}

@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2022 Regents of the University of California. All rights reserved.
@@ -22,25 +22,8 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# -----------------------------------------------------------------------------
-#
-from chimerax.core.settings import Settings
-
-class _BoltzSettings(Settings):
-    EXPLICIT_SAVE = {
-        'boltz_results_location': '~/Desktop/boltz_[name]',
-        'boltz_install_location': '',
-        'device': 'default',	# default, cpu, or gpu
-        'use_cuda_bfloat16': False,  # Use 16-bit float for predictions with CUDA
-        'samples': 1,		# Number of predicted structures
-        'use_msa_cache': True,
-    }
-
-# -----------------------------------------------------------------------------
-#
-def _boltz_settings(session):
-    settings = getattr(session, '_boltz_settings', None)
-    if settings is None:
-        settings = _BoltzSettings(session, "boltz_database")
-        session._boltz_settings = settings
-    return settings
+def thread_throw(session, error):
+    # only works for the kinds of error that take a string arg
+    def rethrow(error):
+        raise error.__class__(str(error))
+    session.ui.thread_safe(rethrow, error)
