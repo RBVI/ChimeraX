@@ -40,7 +40,7 @@ class BoltzPredictionGUI(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
 
         from chimerax.ui import MainToolWindow
-        tw = MainToolWindow(self)
+        tw = MainToolWindow(self, close_destroys = False)
         tw.title = 'Boltz Structure Predicton'
         self.tool_window = tw
         parent = tw.ui_area
@@ -559,6 +559,9 @@ class BoltzPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _report_progress(self, tname, tdata):
+        if not self.tool_window.shown:
+            return
+
         from time import time
         t = time()
         elapsed = t - self._prediction_start_time
