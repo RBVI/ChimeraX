@@ -516,6 +516,8 @@ class BoltzPredictionGUI(ToolInstance):
 
         from chimerax.core.commands import run
         br = run(self.session, cmd)
+        if br is None:
+            return  # Boltz not yet installed or other startup error.
         self._boltz_run = br
 
         self._show_prediction_progress()
@@ -662,14 +664,14 @@ class BoltzPredictionGUI(ToolInstance):
         dev.value = settings.device
 
         # Use 16-bit float with Nvidia CUDA, only shown if Nvidia gpu available
-        self._use_cuda_bfloat16 = None
-        from sys import platform
-        if platform in ('win32', 'linux') and False:  # TODO: Enable once Boltz github has bfloat16 option
-            from .predict import boltz_default_device
-            if boltz_default_device(self.session) == 'gpu':
-                bf = EntriesRow(f, True, 'Predict larger structures with Nvidia 16-bit floating point')
-                self._use_cuda_bfloat16 = cbf = bf.values[0]
-                cbf.value = settings.use_cuda_bfloat16
+        from .install import have_nvidia_driver
+        if have_nvidia_driver():
+            bf = EntriesRow(f, True, 'Predict larger structures with Nvidia 16-bit floating point')
+            self._use_cuda_bfloat16 = cbf = bf.values[0]
+            cbf.value = settings.use_cuda_bfloat16
+        else:
+            self._use_cuda_bfloat16 = None
+
 
         # Use MSA cache
         mc = EntriesRow(f, True, 'Use multiple sequence alignment cache')
