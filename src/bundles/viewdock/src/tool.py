@@ -470,12 +470,18 @@ class RatingDelegate(QStyledItemDelegate):
         combo_style.state = QStyle.State_Enabled  # Enable the combo box appearance by default
 
         if option.state & QStyle.State_Selected:
-            # If the cell is selected, use the highlighted background color
-            painter.fillRect(option.rect, option.palette.highlight())
-            combo_style.state |= QStyle.State_Selected  # Mark the combo box as selected
-            painter.setPen(option.palette.highlightedText().color())  # Set text color to contrast selection
+            # If the cell is selected as part of the row being higlighted, use the highlighted background color
+            if option.state & QStyle.State_HasFocus:
+                # If the cell is selected, use the highlighted background color
+                painter.fillRect(option.rect, option.palette.highlight())
+                combo_style.state |= QStyle.State_Selected  # Mark the combo box as selected
+                painter.setPen(option.palette.highlightedText().color())  # Set text color to contrast selection
+            else:
+                # Table is not focused, use the alternate highlight background color
+                painter.fillRect(option.rect, option.palette.alternateBase())
+                painter.setPen(option.palette.text().color())
         else:
-            # If the cell is not selected, use the default background color
+            # If the cell/row is not selected, use the default background color
             painter.fillRect(option.rect, option.palette.base())
             painter.setPen(option.palette.text().color())  # Set text color to default
 
