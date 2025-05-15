@@ -22,14 +22,18 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def boltz_install(session, directory, download_model_weights_and_ccd = True, wait = None):
+def boltz_install(session, directory = None, download_model_weights_and_ccd = True, wait = None):
+    if directory is None:
+        from os.path import expanduser
+        directory = expanduser('~/boltz')
+
     # Check that directory either does not exist or is empty.
     from os.path import exists, isdir
     if exists(directory):
         from os import listdir
         if not isdir(directory) or len(listdir(directory)):
             from chimerax.core.errors import UserError
-            raise UserError('You must install Boltz into a new or empty directory')
+            raise UserError(f'You must install Boltz into a new or empty directory.  The directory {directory} already exists and is not empty.')
 
     if wait is None:
         wait = False if session.ui.is_gui else True
@@ -300,7 +304,7 @@ def find_executable(venv_directory, exe_name):
 def register_boltz_install_command(logger):
     from chimerax.core.commands import CmdDesc, register, SaveFolderNameArg, BoolArg
     desc = CmdDesc(
-        required = [('directory', SaveFolderNameArg)],
+        optional = [('directory', SaveFolderNameArg)],
         keyword = [('download_model_weights_and_ccd', BoolArg)],
         synopsis = 'Install Boltz from PyPi in a virtual environment',
         url = 'help:boltz_help.html'
