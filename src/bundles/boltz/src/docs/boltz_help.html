@@ -36,25 +36,38 @@
     <h2>Structure size and prediction speed limitations</h2>
 
     <p>
-      Structure sizes up to about 1000 residues and ligand atoms can be predicted in about 10 minutes with
-      high performance Mac M1,M2,M3,M4 laptops or desktops or with Nvidia GPUs on Windows and Linux.
-    </p>
-    <p>
-      See the <a href="#runtimes">run times section</a> below for example run times and size limits.
       Boltz structure predictions use a lot of memory and compute resources on your computer that limits the
-      size of the structure that can be predicted.   It works well on Mac M-series (M1,M2,M3,M4) laptop and desktop
+      size of the structure that can be predicted. 
+      See the <a href="#runtimes">run times section</a> below for example run times and size limits.
+    </p>
+
+    <p>
+      <b>Mac</b>.
+      It works well on Mac M-series (M1,M2,M3,M4) laptop and desktop
       computers predicting small 100 residue structures in 1 minute and up to 1200 residues in about 15 minutes
-      with 32 GB of memory.  Nvidia GPUs on Windows and Linux computers also provide good performance.
+      with 32 GB of memory.  With 16 GB of memory it can only predict about 350 amino acids taking about 5 minutes,
+      with larger predictions running out of memory.
+    </p>
+
+    <p>
+      <b>Nvidia GPUs on Windows and Linux</b>.
+      Nvidia GPUs on Windows and Linux computers also provide good performance.
       On Linux with an Nvidia GPU with 24 GB of graphics memory (e.g. Nvidia RTX 3090 or 4090) it can predict about 1000
       residues in about 4 minutes, larger sizes run out of memory, although using the 16-bit floating point
       option can extend the range to 1400 residues in about 10 minutes but with possible reduction in accuracy.
-      With less GPU memory, 12 GB (e.g. Nvidia RTX 4070)
-      can predict up to 700 residues or 1000 with 16-bit floating point, and 8 GB (e.g Nvidia RTX 3070) about 500 residues or 700 with 16-bit floating point.
-      Nvidia GPUs with the Windows operating system have the same size limits and speeds, and instead of
-      running out of memory will use CPU memory for larger structures taking immensely longer run times (10-30
-      times longer).
+      Testing on Windows with less GPU memory, 12 GB (e.g. Nvidia RTX 4070) predicts up to 700 residues or
+      1000 with 16-bit floating point.  On Windows with 8 GB of GPU memory (e.g Nvidia RTX 3070)
+      predictions of 500 residues or 700 with 16-bit floating point are relatively fast.
+      Large predictions on Nvidia GPUs on Linux run out of memory and fail.  On Windows the prediction
+      will fallback to using CPU memory allowing larger structure predictions but taking immensely longer
+      run times (10-30 times longer).
     </p>
-    
+
+    <p><b>Intel CPU</b>.
+      Predictions only utilizing an Intel CPU are very slow, for example 1.5 hours for 900 residues.
+      Expected size limits are about 350 residues with 16 GB, 1000 residues with 32 GB, and about 1600 residues
+      with 64 GB.  Run time is expected to increase as the square of the number of residues.
+    </p>
       
     <h2>Boltz installation</h2>
 
@@ -97,13 +110,6 @@
       <li>Small molecules can be specified by SMILES strings.
     </ul>
 
-    <p>
-      Components can be added multiple times to have more instances of that molecule in the assembly.
-      Press the <b>Predict</b> button after the assembly is completed by adding each component to start the prediction.
-      A <b>Stop</b> button will be shown while the prediction runs to terminate the prediction,
-      discarding the partial computation so you can start another prediction.
-    </p>
-
     <table align=right>
       <tr><td width=250 align=center><img src="images/hemoglobin.png" width=250>
 	  <br>Hemoglobin dimer prediction (blue) aligned to experimental structure PDB 1hho
@@ -111,6 +117,12 @@
 	      <br>Predicted aligned error
     </table>
     
+    <p>
+      Components can be added multiple times to have more instances of that molecule in the assembly.
+      Press the <b>Predict</b> button after the assembly is completed by adding each component to start the prediction.
+      A <b>Stop</b> button will be shown while the prediction runs to terminate the prediction,
+      discarding the partial computation so you can start another prediction.
+    </p>
 
     <h2>Results</h2>
 
@@ -149,32 +161,33 @@
       Here are run times for several desktop and laptop computers for various size molecular assemblies from the Protein Databank predicting a single structure.
     </p>
 
+    <p>Prediction times in minutes</p>
+    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
+      <tr><th>PDB code<th>Tokens<th>Mac<br>M1 Max<br>32 GB<th>Mac<br>M2&nbsp;Ultra<br>64 GB<th>Mac<br>M1<br>16 GB<th>Linux<br>Nvidia 4090<th>Windows<br>i7 CPU<th>Windows<br>Nvidia 3070<th>Windows<br>Nvidia 4070<th>Number of residues and atoms and prediction error
+      <tr><td align=center>8rf4<td align=center>129<td align=center>0.9<td align=center>0.8<td align=center>1.7<td align=center>0.5<td align=center>2.2<td align=center>1<td align=center>1.6<td>118 amino acids, 11 ligand atoms, 0.8A RMSD 108 residues
+      <tr><td align=center>1hho<td align=center>382<td align=center>2.1<td align=center>1.4<td align=center>7<br>(1 heme)<td align=center>0.8<td align=center>12<td align=center>5<td align=center>4<td>287 amino acids, 95 ligand atoms, 0.4A RMSD 146 residues
+      <tr><td align=center>9moj<td align=center>660<td align=center>3.9<td align=center>2.5<td align=center>out of memory<td align=center>1.2<td align=center>29<td align=center>7<td align=center>3.2<td>660 amino acids, heterotetramer, 0.8A RMSD 132 residues
+      <tr><td align=center>9h1k<td align=center>671<td align=center>4.6<td align=center>2.7<td align=center><td align=center>1.5<td align=center>32<td align=center>17<td align=center>27<td>560 amino acids, 59 rna bases, 52 ligand atoms, 0.7A RMSD protein, RNA wrong
+      <tr><td align=center>9b3h<td align=center>911<td align=center>17<td align=center>4.7<td align=center><td align=center>2.7<td align=center>96<td align=center>49<td align=center>75<td>911 amino acids, heterodimer, 1A RMSD 509 residues
+      <tr><td align=center>9fz5<td align=center>1025<td align=center>15<td align=center>6.6<td align=center><td align=center>cpu 78<br>gpu out of memory<td align=center><td align=center><td align=center><td>1025 amino acids, heterotrimer, 3.7A RMSD 740 residues
+      <tr><td align=center>9mcw<td align=center>1154<td align=center>13<td align=center>6.8<td align=center><td align=center>4.4<td align=center><td align=center><td align=center><td>1154 rna bases, homodimer, wrong dimer and monomer conformations
+      <tr><td align=center>8sao<td align=center>1371<td align=center>out of memory<td align=center>23<td align=center><td align=center>cpu 151<br>gpu out of memory<td align=center><td align=center><td align=center><td>1274 amino acids, 97 ligand atoms, 3.4A RMSD 1151 residues
+    </table>
+
     <ul>
       <li>MacBook Pro - M1 Max, 32 core GPU, 32 GB
       <li>Mac Studio - M2 Ultra, 60 core GPU, 64 GB, descartes.cgl.ucsf.edu
+      <li>Mac Mini - M1, 8 core GPU, 16 GB, euclid.cgl.ucsf.edu
       <li>Linux - Nvidia RTX 4090 24 GB, cpu i9-13900K (24 cores) 64 GB (DDR5 5200MHz), minsky.cgl.ucsf.edu
       <li>Windows 11 - Nvidia RTX 3070 8 GB PCIe 4.0, cpu i7-12700K (12 cores) 64 GB DDR5 4000MHz, vizvault.cgl.ucsf.edu
       <li>Windows 10 - Nvidia RTX 4070 12 GB PCIe 3.0, cpu i5-6700K (4 cores) 64 GB DDR4 2133MHz, vive.cgl.ucsf.edu
     </ul>
 
-    <p>Prediction times in minutes</p>
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr><th>PDB code<th>Tokens<th>MacBook Pro<th>Mac Studio<th>Linux<br>Nvidia 4090<th>Windows<br>i7 CPU<th>Windows<br>Nvidia 3070<th>Windows<br>Nvidia 4070<th>residues and atoms and prediction error
-      <tr><td align=center>8rf4<td align=center>129<td align=center>0.9<td align=center>0.8<td align=center>0.5<td align=center>2.2<td align=center>1<td align=center>1.6<td>118 amino acids, 11 ligand atoms, 0.8A RMSD 108 residues
-      <tr><td align=center>1hho<td align=center>382<td align=center>2.1<td align=center>1.4<td align=center>0.8<td align=center>12<td align=center>5<td align=center>4<td>287 amino acids, 95 ligand atoms, 0.4A RMSD 146 residues
-      <tr><td align=center>9moj<td align=center>660<td align=center>3.9<td align=center>2.5<td align=center>1.2<td align=center>29<td align=center>7<td align=center>3.2<td>660 amino acids, heterotetramer, 0.8A RMSD 132 residues
-      <tr><td align=center>9h1k<td align=center>671<td align=center>4.6<td align=center>2.7<td align=center>1.5<td align=center>32<td align=center>17<td align=center>27<td>560 amino acids, 59 rna bases, 52 ligand atoms, 0.7A RMSD protein, RNA wrong
-      <tr><td align=center>9b3h<td align=center>911<td align=center>17<td align=center>4.7<td align=center>2.7<td align=center>96<td align=center>49<td align=center>75<td>911 amino acids, heterodimer, 1A RMSD 509 residues
-      <tr><td align=center>9fz5<td align=center>1025<td align=center>15<td align=center>6.6<td align=center>cpu 78<br>gpu out of memory<td align=center><td align=center><td align=center><td>1025 amino acids, heterotrimer, 3.7A RMSD 740 residues
-      <tr><td align=center>9mcw<td align=center>1154<td align=center>13<td align=center>6.8<td align=center>4.4<td align=center><td align=center><td align=center><td>1154 rna bases, homodimer, wrong dimer and monomer conformations
-      <tr><td align=center>8sao<td align=center>1371<td align=center>out of memory<td align=center>23<td align=center>cpu 151<br>gpu out of memory<td align=center><td align=center><td align=center><td>1274 amino acids, 97 ligand atoms, 3.4A RMSD 1151 residues
-    </table>
-
     <h3>Performance notes</h3>
     <p>
       <b>Mac GPU acceleration.</b>
       The reported Mac performance is for Mac M1/M2/M3/M4 series GPUs.  Boltz uses machine learning package torch which
-      has GPU acceleration called Metal Performance Shaders (MPS) on these Mac M series GPUs which have speed only 2-3x slower than an Nvidia 4090 but with the advantage that the Mac can handle larger molecular systems using the entire computer memory (e.g. 32 or 64 GB).  Older <a href="https://discuss.pytorch.org/t/pytorch-support-for-intel-gpus-on-mac/151996">Mac Intel machines do not have GPU acceleration in Torch</a> and run at speeds similar to Windows Intel CPU-only predictions.
+      has GPU acceleration called Metal Performance Shaders (MPS) on these Mac M series GPUs which have speed up to 2-3x slower than an Nvidia 4090 but with the advantage that the Mac can handle larger molecular systems using the unified computer memory (e.g. 32 or 64 GB).  With 16 GB prediction size is limited to 350 residues. Older <a href="https://discuss.pytorch.org/t/pytorch-support-for-intel-gpus-on-mac/151996">Mac Intel machines do not have GPU acceleration in Torch</a> and run at speeds similar to Windows Intel CPU-only predictions.
     </p>
     
     <p>
@@ -188,8 +201,9 @@
     </p>
 
     <p>
-      <b>Optimizing for larger structures.</b>
-      It looks like structure predictions that are twice as large will be possible by using bfloat16 instead of float32 for boltz weights and activations, and this will also give faster predictions.  I tested this on Nvidia 4090 on Linux and it was able to predict 9fz5 (1025 tokens) in 3 minutes and 8sa0 (1371 tokens) in 5 minutes.  Details in ChimeraX ticket <a href="https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/17555">#17555</a>.  I hope to enable this option after more testing.
+      <b>Optimizing for larger structures with Nvidia GPU.</b>
+      Structure predictions 40% larger are possible by using 16-bit floating point (bfloat16) on Nvidia GPUs instead of float32 for boltz weights and activations.  Prediction speed is about the same.  I tested this on Nvidia 4090 on Linux and it was able to predict 9fz5 (1025 tokens) in 3 minutes and 8sa0 (1371 tokens) in 5 minutes.  I have not seen a reduction in accuracy.  Details in ChimeraX ticket <a href="https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/17555">#17555</a>.
+      This is available as the 16-bit floating point option in the ChimeraX Boltz Options panel or the float16 option of the ChimeraX boltz predict command.
     </p>
 
     <h2>Options</h2>
@@ -205,15 +219,17 @@
 	The path contains "[name]" which is replaced with the prediction name.
       <li><b>Number of predictions</b>: The default number of predicted structures is 1, but you can request more to get an ensemble of structures that usually have small variations.
       <li><b>Compute device</b>: The computation can run on Nvidia GPUs or Mac M series GPUs and complete faster than CPU-only calculations.  The default setting tries to uses the GPU if available.
-      <li><b>Multiple sequence alignment cache</b>: Boltz uses deep multiple sequence alignments for proteins
+      <li><b>Predict larger structures with Nvidia 16-bit floating point</b>: Use 16-bit floating point calculations (bfloat16) instead of 32-bit to save memory and prediction structures up to 40% larger on Nvidia GPUs.
+      <li><b>Use multiple sequence alignment cache</b>: Boltz uses deep multiple sequence alignments for proteins
 	that are computed using the Colabfold server.  To avoid recomputing the alignments when you run predictions
 	with the same proteins but different ligands ChimeraX caches those alignments in ~/Downloads/ChimeraX/BoltzMSA
 	and the cached alignments will be used if available as long as this option enables using the cache.
       <li><b>Boltz install location</b>: Boltz is installed in a virtual Python environment contained in this folder.
+      <li><b>Save default options</b>: Save the currently shown option settings as the defaults for future ChimeraX sessions.
     </ul>
 
     <p>
-      Additional advanced options are avaiable by using the ChimeraX boltz command.
+      Additional advanced options are available by using the <a href="#command">ChimeraX boltz command</a>.
     </p>
 
     <a name="command">
@@ -309,16 +325,20 @@
       <li><b>Structure size</b>.  Boltz uses a lot of memory and the amount of available memory
 	limits the size of structures that can be predicted.  For a computer with 32 Gbytes the size limit
 	is roughly 1000 residues plus ligand atoms (called "tokens").  Consumer Nvidia GPUs with 8 or 12 GB of
-	memory (e.g. RTX 3070) may only be capable of much smaller predictions.  Consumer Nvidia GPUs with
-	24 GB (RTX 3090 and RTX 4090) appear able to predict 1000 tokens.  This is perhaps the most important
+	memory (e.g. RTX 3070) only handle 300-500 residues before using CPU memory on Windows that slows
+	the prediction speed by 10-20 fold.  On Linux it will not use CPU memory.  Consumer Nvidia GPUs with
+	24 GB (RTX 3090 and RTX 4090) are able to predict 1000 tokens, or about 1400 with 16-bit floating point.
+	Prediction size limits are perhaps the most important
 	shortcoming of Boltz compared to AlphaFold 3 which handles memory more efficiently and is able to
 	predict 5000 tokens with 80GB of GPU memory, about twice the size that Boltz can predict.
 	A drawback of AlphaFold 3 is that it requires Linux and an Nvidia GPU in addition to various
 	licensing restrictions.  We hope in the future Boltz will optimize memory use to predict larger
 	structures.
-      <li><b>Run time</b>.  The computation time increase quadratically with the number of tokens.  So
+
+      <li><b>Run time</b>.  The computation time increases as the square with the number of tokens.  So
 	a prediction with 3 times the number of residue and ligand atoms will take approximately
 	9 times longer to run.
+
       <li><b>Nvidia GPU support on Windows</b>.
 	Installing Boltz will get a CUDA-enabled version of the torch machine learning package
 	if it detects Nvidia graphics.  It decides if you have Nvidia graphics by seeing if the file
@@ -334,6 +354,7 @@
 	  > cd C:\Users\username\boltz\Scripts
 	  > pip.exe uninstall torch
 	  > pip.exe install torch --index-url https://download.pytorch.org/whl/cu118</pre>
+
       <li><b>Nvidia GPU support on Linux</b>.
 	On Linux the installed Boltz will work with CUDA 12.6 or newer if you have Nvidia graphics.
 	If you have an older system CUDA version it may still work, or you can refer to the
@@ -345,13 +366,18 @@
 	  $ ./pip install torch --index-url https://download.pytorch.org/whl/cu118</pre>
 
       <li><b>No covalently linked ligands</b>.  Although Boltz can predict covalently linked ligands I have
-	not yet included that capability in the ChimeraX interface or command.
+	not yet included that capability in the ChimeraX interface or command.  Similarly post-translational
+	modifications such as phosphorylation are not yet supported.
+
       <li><b>No assigning chain identifiers</b>.  It can be helpful to assign chain identifiers (A,B,C...) to
 	the different molecular components to match existing structures.  Boltz is capable of this but the
 	ChimeraX user interface does not currently allow it.
+
       <li><b>MSA sequence alignments</b>. Boltz uses the Colabfold MSA server (https://api.colabfold.com)
 	for computing deep sequence alignments.  This requires internet connectivity and is subject to
-	outages it that server (located in Korea currently) is down.
+	outages it that server (located in Korea currently) is down.  The sequence alignments are cached
+	in ~/Downloads/ChimeraX/BoltzMSA so subsequent predictions with the same set of polymers can
+	reuse the sequence alignment.
     </ul>
     
   </body>
