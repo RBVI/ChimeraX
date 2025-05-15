@@ -200,7 +200,8 @@ class CommandLine(ToolInstance):
         self._handlers.append(session.triggers.add_handler("command failed", self._command_ended_cb))
         self._handlers.append(session.triggers.add_handler("command finished", self._command_ended_cb))
         side = getattr(self.settings, "default_side", "bottom")
-        self.tool_window.manage(placement=side)
+        from Qt.QtCore import Qt
+        self.tool_window.manage(placement=side, allowed_areas=Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.BottomDockWidgetArea)
         self._in_init = False
         self._processing_command = False
         if self.settings.startup_commands:
