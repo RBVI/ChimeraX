@@ -110,14 +110,15 @@ jobs:
         with:
           max_attempts: 1000
           timeout_minutes: 60
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "version=$BUILD_VERSION" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=centos-8" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax.rpm" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "version=$BUILD_VERSION" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=centos-8" -F "file=@$GITHUB_WORKSPACE/chimerax.rpm" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_production_build.py
       - name: Tar the docs directory
+        if: ${{ inputs.release_type == 'daily' }}
         run: |
           rsync --delete -az --exclude user ChimeraX.app/share/docs/ chimerax-docs
           rsync --delete -az --copy-links vdocs/user chimerax-docs
           tar -cvzf chimerax-docs.tar.gz -C chimerax-docs/ .
       - name: Upload the documentation
-        if: ${{ inputs.release_type == 'daily' }} # || inputs.release_type == 'candidate' }}
+        if: ${{ inputs.release_type == 'daily' }}
         uses: nick-fields/retry@v3
         with:
           max_attempts: 1000
