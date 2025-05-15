@@ -8,7 +8,7 @@
     <h1>Making Boltz Structure Predictions in ChimeraX</h1>
     <p>
       Tom Goddard<br>
-      April 23, 2025
+      April 23, 2025, updated May 14, 2025
     </p>
 
     <p>
@@ -32,7 +32,30 @@
       are provide to make predictions.
       The <a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html">latest version of this documentation</a> is available online.
     </p>
+
+    <h2>Structure size and prediction speed limitations</h2>
+
+    <p>
+      Structure sizes up to about 1000 residues and ligand atoms can be predicted in about 10 minutes with
+      high performance Mac M1,M2,M3,M4 laptops or desktops or with Nvidia GPUs on Windows and Linux.
+    </p>
+    <p>
+      See the <a href="#runtimes">run times section</a> below for example run times and size limits.
+      Boltz structure predictions use a lot of memory and compute resources on your computer that limits the
+      size of the structure that can be predicted.   It works well on Mac M-series (M1,M2,M3,M4) laptop and desktop
+      computers predicting small 100 residue structures in 1 minute and up to 1200 residues in about 15 minutes
+      with 32 GB of memory.  Nvidia GPUs on Windows and Linux computers also provide good performance.
+      On Linux with an Nvidia GPU with 24 GB of graphics memory (e.g. Nvidia RTX 3090 or 4090) it can predict about 1000
+      residues in about 4 minutes, larger sizes run out of memory, although using the 16-bit floating point
+      option can extend the range to 1400 residues in about 10 minutes but with possible reduction in accuracy.
+      With less GPU memory, 12 GB (e.g. Nvidia RTX 4070)
+      can predict up to 700 residues or 1000 with 16-bit floating point, and 8 GB (e.g Nvidia RTX 3070) about 500 residues or 700 with 16-bit floating point.
+      Nvidia GPUs with the Windows operating system have the same size limits and speeds, and instead of
+      running out of memory will use CPU memory for larger structures taking immensely longer run times (10-30
+      times longer).
+    </p>
     
+      
     <h2>Boltz installation</h2>
 
     <img src="images/boltz_gui.png" width=400 align=right>
@@ -225,6 +248,7 @@
        <li><b>name</b> <i>prediction-name</i> - Name of prediction used in the results folder name.
        <li><b>resultsDirectory</b> <i>directory</i> - Path to the results directory that will be created.  "[name]" in the path will be replaced by the prediction name.  If the folder already exists an numeric suffix _1, _2, _3... will be appended.
        <li><b>device</b> <b>default</b>|cpu|gpu - Whether to run the computation on GPU or CPU.  The default setting chooses based on GPU availability and torch support for the GPU.
+       <li><b>float16</b> true|<b>false</b> - Whether to use 16-bit floating point (bfloat16) on Nvidia GPUs to allow prediction of larger structures (approximately 40% more residues).  This may reduce prediction accuracy.
        <li><b>samples</b> <i>n</i> - Number of predictions.  Default is 1.  This is what Boltz calls "diffusion samples".  Creating additional structures takes much less time than creating the first structure.
        <li><b>recycles</b> <i>n</i> - Number of passes through the neural net that derives spatial information from which structures will be computed.  Defaults to 3.  Better structures make result from 10 but runtime will be increased.
        <li><b>seed</b> <i>n</i> - Random numbers seed (integer) to initialize calculation.  Runs with different seeds will give different results.
