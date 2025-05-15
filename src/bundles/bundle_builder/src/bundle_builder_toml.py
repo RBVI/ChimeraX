@@ -1061,11 +1061,33 @@ class _CompiledCode:
                 extra_link_args.extend(["-framework", fw])
         elif sys.platform == "win32":
             libraries = []
+            # Try to find the actual library file in library_dirs
+            # Check for both "Foo.lib" and "libFoo.lib" patterns
             for lib in self.libraries:
+                found = False
                 if lib.lower().endswith(".lib"):
                     # Strip the .lib since suffixes are handled automatically
-                    libraries.append(lib[:-4])
+                    tentative_name = lib[:-4]
                 else:
+                    tentative_name = lib
+                for lib_dir in self.library_dirs:
+                    if os.path.exists(lib_dir):
+                        # First try without "lib" prefix (e.g., OpenMM.lib)
+                        if os.path.exists(
+                            os.path.join(lib_dir, f"{tentative_name}.lib")
+                        ):
+                            libraries.append(lib)
+                            found = True
+                            break
+                        # Then try with "lib" prefix (e.g., libOpenMM.lib)
+                        if os.path.exists(
+                            os.path.join(lib_dir, f"lib{tentative_name}.lib")
+                        ):
+                            libraries.append(f"lib{lib}")
+                            found = True
+                            break
+                if not found:
+                    # Fall back to old behavior: prepend "lib"
                     libraries.append("lib" + lib)
             cpp_flags = []
             if not any([flag.startswith("/std:") for flag in self.compile_arguments]):
