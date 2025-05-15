@@ -40,7 +40,7 @@ class BoltzPredictionGUI(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
 
         from chimerax.ui import MainToolWindow
-        tw = MainToolWindow(self)
+        tw = MainToolWindow(self, close_destroys = False)
         tw.title = 'Boltz Structure Predicton'
         self.tool_window = tw
         parent = tw.ui_area
@@ -117,7 +117,7 @@ class BoltzPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _prediction_name_edited(self, text):
-        self._auto_set_prediction_name = False
+        self._auto_set_prediction_name = (len(text) == 0)
 
     # ---------------------------------------------------------------------------
     #
@@ -149,7 +149,6 @@ class BoltzPredictionGUI(ToolInstance):
         from Qt.QtWidgets import QLineEdit
         self._molecule_identifier_entry = ue = QLineEdit(f)
         ue.setMaximumWidth(200)
-        ue.textEdited.connect(lambda text, self=self: self._set_prediction_name())
         layout.addWidget(ue)
 
         dr = QPushButton('Delete selected rows', f)
@@ -184,8 +183,6 @@ class BoltzPredictionGUI(ToolInstance):
         self._molecule_identifier_entry.setText('')
         self._sequence_entry.setVisible(show_seq)
         self._molecule_identifier_entry.setVisible(show_uniprot)
-
-        self._set_prediction_name()
 
     # ---------------------------------------------------------------------------
     #
@@ -283,8 +280,13 @@ class BoltzPredictionGUI(ToolInstance):
             self._molecules_table = mt = MoleculesTable(parent, comps)
             layout = parent.layout()
             layout.insertWidget(self._molecules_table_position, mt)
+            first_addition = True
         else:
+            first_addition = (len(mt.data) == 0)
             mt.add_rows(comps)
+
+        if first_addition:
+            self._set_prediction_name()
 
         self._report_number_of_tokens()
         
@@ -516,6 +518,8 @@ class BoltzPredictionGUI(ToolInstance):
 
         from chimerax.core.commands import run
         br = run(self.session, cmd)
+        if br is None:
+            return  # Boltz not yet installed or other startup error.
         self._boltz_run = br
 
         self._show_prediction_progress()
@@ -557,6 +561,9 @@ class BoltzPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _report_progress(self, tname, tdata):
+        if not self.tool_window.shown:
+            return
+
         from time import time
         t = time()
         elapsed = t - self._prediction_start_time
@@ -662,14 +669,14 @@ class BoltzPredictionGUI(ToolInstance):
         dev.value = settings.device
 
         # Use 16-bit float with Nvidia CUDA, only shown if Nvidia gpu available
-        self._use_cuda_bfloat16 = None
-        from sys import platform
-        if platform in ('win32', 'linux') and False:  # TODO: Enable once Boltz github has bfloat16 option
-            from .predict import boltz_default_device
-            if boltz_default_device(self.session) == 'gpu':
-                bf = EntriesRow(f, True, 'Predict larger structures with Nvidia 16-bit floating point')
-                self._use_cuda_bfloat16 = cbf = bf.values[0]
-                cbf.value = settings.use_cuda_bfloat16
+        from .install import have_nvidia_driver
+        if have_nvidia_driver():
+            bf = EntriesRow(f, True, 'Predict larger structures with Nvidia 16-bit floating point')
+            self._use_cuda_bfloat16 = cbf = bf.values[0]
+            cbf.value = settings.use_cuda_bfloat16
+        else:
+            self._use_cuda_bfloat16 = None
+
 
         # Use MSA cache
         mc = EntriesRow(f, True, 'Use multiple sequence alignment cache')
@@ -887,7 +894,8 @@ def _ligands_with_counts(ligand_specs):
             spec_counts[spec] += count
         else:
             spec_counts[spec] = count
-    lc = ','.join(f'{spec}({count})' for spec, count in spec_counts.items())
+    lc = ','.join((spec if count == 1 else f'{spec}({count})')
+                  for spec, count in spec_counts.items())
     return lc
 
 # -----------------------------------------------------------------------------

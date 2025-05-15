@@ -22,14 +22,18 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def boltz_install(session, directory, download_model_weights_and_ccd = True, wait = None):
+def boltz_install(session, directory = None, download_model_weights_and_ccd = True, wait = None):
+    if directory is None:
+        from os.path import expanduser
+        directory = expanduser('~/boltz')
+
     # Check that directory either does not exist or is empty.
     from os.path import exists, isdir
     if exists(directory):
         from os import listdir
         if not isdir(directory) or len(listdir(directory)):
             from chimerax.core.errors import UserError
-            raise UserError('You must install Boltz into a new or empty directory')
+            raise UserError(f'You must install Boltz into a new or empty directory.  The directory {directory} already exists and is not empty.')
 
     if wait is None:
         wait = False if session.ui.is_gui else True
@@ -95,13 +99,7 @@ class InstallBoltz:
     # ------------------------------------------------------------------------------
     #
     def _need_cuda_torch_on_windows(self):
-        from sys import platform
-        if platform == 'win32':
-            nvidia_smi = 'C:\\Windows\\System32\\nvidia-smi.exe'
-            from os.path import exists
-            if exists(nvidia_smi):
-                return True
-        return False
+        return have_nvidia_driver()
 
     # ------------------------------------------------------------------------------
     #
@@ -137,8 +135,9 @@ class InstallBoltz:
                     ' since Boltz uses many other packages totaling about 1 Gbyte of disk'
                     ' space including torch, scipy, rdkit, llvmlite, sympy, pandas, numpy, wandb, numba...')
 
-        boltz_ver = 'boltz==0.4.1'
+#        boltz_ver = 'boltz==0.4.1'
 #        boltz_ver = 'git+https://github.com/jwohlwend/boltz@a9b3abc2c1f90f26b373dd1bcb7afb5a3cb40293'  # Install from Github source
+        boltz_ver = 'git+https://github.com/RBVI/boltz@chimerax'  # Install from RBVI fork of Boltz
         command = [self._venv_python_executable(), '-m', 'pip', 'install', boltz_ver]
         logger.info(' '.join(command))
 
@@ -266,6 +265,19 @@ class log_subprocess_output:
 
 # ------------------------------------------------------------------------------
 #
+def have_nvidia_driver():
+    from sys import platform
+    if platform == 'win32':
+        nvidia_smi_path = 'C:\\Windows\\System32\\nvidia-smi.exe'
+    elif platform == 'linux':
+        nvidia_smi_path = '/usr/bin/nvidia-smi'
+    else:
+        return False
+    from os.path import exists
+    return exists(nvidia_smi_path)
+
+# ------------------------------------------------------------------------------
+#
 def _no_subprocess_window():
     '''The Python subprocess module only has the CREATE_NO_WINDOW flag on Windows.'''
     from sys import platform
@@ -292,7 +304,7 @@ def find_executable(venv_directory, exe_name):
 def register_boltz_install_command(logger):
     from chimerax.core.commands import CmdDesc, register, SaveFolderNameArg, BoolArg
     desc = CmdDesc(
-        required = [('directory', SaveFolderNameArg)],
+        optional = [('directory', SaveFolderNameArg)],
         keyword = [('download_model_weights_and_ccd', BoolArg)],
         synopsis = 'Install Boltz from PyPi in a virtual environment',
         url = 'help:boltz_help.html'
