@@ -596,7 +596,7 @@ def _is_boltz_available(session):
     settings = _boltz_settings(session)
     from os.path import isdir
     if not isdir(settings.boltz_install_location):
-        msg = 'You need to set the Boltz installation location.  Enter it in the Boltz Options panel, or using the boltz command installLocation option.'
+        msg = 'You need to install Boltz by pressing the "Install Boltz" button on the ChimeraX Boltz user interface, or using the ChimeraX command "boltz install".  If you already have Boltz installed, you can set the Boltz installation location in the user interface under Options, or use the installLocation option of the ChimeraX boltz command "boltz predict ... installLocation /path/to/boltz"'
         session.logger.error(msg)
         return False
     return True
