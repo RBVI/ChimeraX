@@ -1021,7 +1021,7 @@ class _CompiledCode:
                     tentative_name = lib
                 lib_name = None
                 for path in lib_dirs:
-                    maybe_lib = glob.glob(f"*{tentative_name}*")
+                    maybe_lib = glob.glob(f"*{tentative_name}*", root_dir = path)
                     if not maybe_lib:
                         continue
                     else:
