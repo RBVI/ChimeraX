@@ -73,10 +73,7 @@ class AnisoTool(ToolInstance):
         main_layout.addLayout(scale_smoothing_layout)
         scale_smoothing_layout.addStretch(1)
         scale_smoothing_layout.addWidget(QLabel("Scale factor:"))
-        self.scale = sf = QLineEdit(str(defaults["scale"]))
-        sf.setAlignment(Qt.AlignCenter)
-        sf.setMaximumWidth(7 * sf.fontMetrics().averageCharWidth())
-        sf.setValidator(QDoubleValidator(0.0001, 1000000, -1))
+        self.scale = sf = DoubleEntry(str(defaults["scale"]))
         scale_smoothing_layout.addWidget(sf)
         spacer = QSpacerItem(10, 0, QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
         scale_smoothing_layout.addSpacerItem(spacer)
@@ -94,10 +91,7 @@ class AnisoTool(ToolInstance):
         main_layout.addLayout(set_scale_layout)
         set_scale_layout.addStretch(1)
         set_scale_layout.addWidget(QLabel("Set scale factor for probability (%):"))
-        self.set_scale = ss = QLineEdit("")
-        ss.setAlignment(Qt.AlignCenter)
-        ss.setMaximumWidth(5 * ss.fontMetrics().averageCharWidth())
-        ss.setValidator(QDoubleValidator(0.0001, 100, -1))
+        self.set_scale = ss = DoubleEntry("")
         ss.editingFinished.connect(self._set_scale_cb)
         set_scale_layout.addWidget(ss)
         set_scale_layout.addStretch(1)
@@ -121,6 +115,37 @@ class AnisoTool(ToolInstance):
             t_menu.addAction(f"{pct}%")
         etb.setMenu(t_menu)
         eb_layout.addWidget(etb, 1, 1, alignment=Qt.AlignLeft)
+
+        from .cmd import builtin_presets
+        defaults = builtin_presets["simple"]
+        for label, factor_prefix, attr_prefix in [
+                ("principal axes", "Length", "axis"),
+                ("principal ellipses", "Size", "ellipse")
+        ]:
+            gbox = QGroupBox("Depict " + label)
+            main_layout.addWidget(gbox)
+            gbox.setCheckable(True)
+            box_layout = QGridLayout()
+            box_layout.setSpacing(0)
+            box_layout.setContentsMargins(0,0,0,0)
+            gbox.setLayout(box_layout)
+
+            box_layout.addWidget(QLabel("Color:"), 0, 0, alignment=Qt.AlignRight)
+            cw = ColorWidget("use atom color", max_size=(16,16), has_alpha_channel=True)
+            box_layout.addWidget(cw, 0, 1, alignment=Qt.AlignLeft)
+            setattr(self, attr_prefix + '_color', cw)
+
+            box_layout.addWidget(QLabel(factor_prefix + " factor:"), 1, 0, alignment=Qt.AlignRight)
+            factor = DoubleEntry("1.0")
+            box_layout.addWidget(factor, 1, 1, alignment=Qt.AlignLeft)
+            factor.setAlignment(Qt.AlignCenter)
+            setattr(self, attr_prefix + "_factor", (gbox, factor))
+
+            box_layout.addWidget(QLabel("Thickness:"), 2, 0, alignment=Qt.AlignRight)
+            attr_name = attr_prefix + "_thickness"
+            thickness = DoubleEntry(str(defaults[attr_name]))
+            box_layout.addWidget(thickness, 2, 1, alignment=Qt.AlignLeft)
+            setattr(self, attr_name, thickness)
 
         self._update_widgets()
 
@@ -209,11 +234,7 @@ class AnisoTool(ToolInstance):
             mgr = manager_for_structure(self.session, s)
             diffs = []
             for attr_name in style_attrs:
-                try:
-                    widget = getattr(self, attr_name)
-                except AttributeError:
-                    #TODO: remove try/accept once all attribute widgets implemented
-                    continue
+                widget = getattr(self, attr_name)
                 arg_name = camel_case(attr_name)
                 if isinstance(widget, QLineEdit):
                     str_val = widget.text()
@@ -243,6 +264,22 @@ class AnisoTool(ToolInstance):
                     else:
                         str_val = text[:-1]
                         val = int(str_val)
+                elif isinstance(widget, tuple):
+                    gbox, factor = widget
+                    if gbox.isChecked():
+                        str_val = factor.text()
+                        if not factor.hasAcceptableInput():
+                            return tool_user_error("Unacceptable value (%s) for '%s' argument"
+                                % (str_val, arg_name))
+                        if isinstance(factor.validator(), QDoubleValidator):
+                            val = float(str_val)
+                        else:
+                            val = int(str_val)
+                    else:
+                        str_val = "none"
+                        val = None
+                else:
+                    raise AssertionError("Unhandled type of input widget")
                 # Since numpy has non-Pythonic equality operators, can't use simple equality test
                 from numpy import array_equal
                 if not array_equal(val, mgr.drawing_params[attr_name]):
@@ -267,11 +304,7 @@ class AnisoTool(ToolInstance):
             return
 
         for attr_name in style_attrs:
-            try:
-                widget = getattr(self, attr_name)
-            except AttributeError:
-                #TODO: remove try/accept once all attribute widgets implemented
-                continue
+            widget = getattr(self, attr_name)
             param_value = mgr.drawing_params[attr_name]
             if isinstance(widget, QLineEdit):
                 widget.setText(str(param_value))
@@ -287,6 +320,15 @@ class AnisoTool(ToolInstance):
                 else:
                     text = f"{round(param_value)}%"
                 widget.setText(text)
+            elif isinstance(widget, tuple):
+                gbox, factor = widget
+                if param_value is None:
+                    gbox.setChecked(False)
+                else:
+                    gbox.setChecked(True)
+                    factor.setText(str(param_value))
+            else:
+                raise AssertionError("Unhandled type of input widget")
 
 class ColorWidget(QWidget):
     def __init__(self, non_color_text, *, choice_changed_cb=None, color_changed_cb=None, **kw):
@@ -326,6 +368,13 @@ class ColorWidget(QWidget):
     def _editor_change(self, color, cb):
         if not self.non_color_but.isChecked():
             cb(color)
+
+class DoubleEntry(QLineEdit):
+    def __init__(self, init_text, **kw):
+        super().__init__(init_text)
+        self.setAlignment(Qt.AlignCenter)
+        self.setMaximumWidth(7 * self.fontMetrics().averageCharWidth())
+        self.setValidator(QDoubleValidator(0.0001, 1000000, -1))
 
 def simpson(f, a, b, n=2):
     """Approximate the definite integral of f from a to b
