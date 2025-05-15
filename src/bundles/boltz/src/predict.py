@@ -36,7 +36,7 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
         settings.save()
 
     if not _is_boltz_available(session):
-        return
+        return None
 
     if wait is None:
         wait = False if session.ui.is_gui else True
@@ -240,11 +240,14 @@ class BoltzRun:
             dir = dir.replace('[name]', self.name)  # Handle old boltz tool that used [N] for the name.
             dir = dir.replace('[N]', self.name)  # Handle old boltz tool that used [N] for the name.
             from os.path import exists
-            if exists(dir):
-                dir += '_[N]'
-            else:            
+            if not exists(dir):
                 return dir
+        else:
+            dir = dir.replace('[name]', '[N]')  # No name given so just use numeric suffix
 
+        if '[N]' not in dir:
+            dir += '_[N]'
+            
         for i in range(1,1000000):
             path = dir.replace('[N]', str(i))
             from os.path import exists
@@ -330,7 +333,7 @@ class BoltzRun:
             command.append('--use_msa_server')
 
         command.extend(['--accelerator', self.device])
-        if self._cuda_bfloat16:
+        if self._cuda_bfloat16 and self.device == 'gpu':
             command.append('--use_cuda_bfloat16')
 
         if self._samples != 1:
@@ -466,6 +469,10 @@ class BoltzRun:
                        ' installation installs torch with no GPU support, so using Nvidia GPUs on'
                        ' Windows requires reinstalling gpu-enabled torch with Boltz which we plan to'
                        ' support in the future.')
+            elif 'No such option: --use_cuda_bfloat16' in stderr:
+                msg = ('The installed Boltz does not have the --use_cuda_bfloat16 option.'
+                       ' You need to install a newer Boltz to get this option.'
+                       ' Use the ChimeraX command "boltz install ~/boltz_new" to install it.')
             else:
                 if self._user_terminated:
                     msg = 'Prediction terminated by user'
@@ -598,29 +605,36 @@ def _is_boltz_available(session):
 #
 def boltz_default_device(session):
     from sys import platform
-    if platform == 'win32':
-        nvidia_smi = 'C:\\Windows\\System32\\nvidia-smi.exe'
-        if not exists(nvidia_smi):
-            device = 'cpu'
-        else:
-            from .settings import _boltz_settings
-            settings = _boltz_settings(session)
-            boltz_install = settings.boltz_install_location
-            from os.path import join, exists
-            torch_cuda_dll = join(boltz_install, 'Lib/site-packages/torch/lib/torch_cuda.dll')
-            device = 'gpu' if exists(torch_cuda_dll) else 'cpu'
+    if platform in ('win32', 'linux'):
+        from .install import have_nvidia_driver
+        device = 'gpu' if have_nvidia_driver() and _torch_has_cuda(session) else 'cpu'
+        # TODO: On Linux run nvidia-smi to see if GPU memory is sufficient to run Boltz.
     elif platform == 'darwin':
         from platform import machine
         device = 'gpu' if machine() == 'arm64' else 'cpu'
-        # PyTorch 2.6 does not support Intel Mac GPU use.
+        # PyTorch 2.6 does not support Intel Mac GPU.
         #     https://discuss.pytorch.org/t/pytorch-support-for-intel-gpus-on-mac/151996
-    elif platform == 'linux':
-        from os.path import exists
-        device = 'gpu' if exists('/usr/bin/nvidia-smi') else 'cpu'
-        # TODO: Run nvidia-smi to see if GPU memory is sufficient to run Boltz.
     else:
         device = 'cpu'
     return device
+
+# ------------------------------------------------------------------------------
+#
+def _torch_has_cuda(session):
+    from sys import platform
+    if platform == 'darwin':
+        return False
+    if platform == 'win32':
+        lib_path = 'Lib/site-packages/torch/lib/torch_cuda.dll'
+    elif platform == 'linux':
+        from sys import version_info as v
+        lib_path = f'lib/python{v.major}.{v.minor}/site-packages/torch/lib/libtorch_cuda.so'
+    from .settings import _boltz_settings
+    settings = _boltz_settings(session)
+    boltz_install = settings.boltz_install_location
+    from os.path import join, exists
+    torch_cuda_lib = join(boltz_install, lib_path)
+    return exists(torch_cuda_lib)
 
 # ------------------------------------------------------------------------------
 #
@@ -877,7 +891,7 @@ def register_boltz_predict_command(logger):
                    ('name', StringArg),
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
-#                   ('float16', BoolArg),
+                   ('float16', BoolArg),
                    ('samples', IntArg),
                    ('recycles', IntArg),
                    ('seed', IntArg),

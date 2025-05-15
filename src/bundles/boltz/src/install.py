@@ -95,13 +95,7 @@ class InstallBoltz:
     # ------------------------------------------------------------------------------
     #
     def _need_cuda_torch_on_windows(self):
-        from sys import platform
-        if platform == 'win32':
-            nvidia_smi = 'C:\\Windows\\System32\\nvidia-smi.exe'
-            from os.path import exists
-            if exists(nvidia_smi):
-                return True
-        return False
+        return have_nvidia_driver()
 
     # ------------------------------------------------------------------------------
     #
@@ -137,8 +131,9 @@ class InstallBoltz:
                     ' since Boltz uses many other packages totaling about 1 Gbyte of disk'
                     ' space including torch, scipy, rdkit, llvmlite, sympy, pandas, numpy, wandb, numba...')
 
-        boltz_ver = 'boltz==0.4.1'
+#        boltz_ver = 'boltz==0.4.1'
 #        boltz_ver = 'git+https://github.com/jwohlwend/boltz@a9b3abc2c1f90f26b373dd1bcb7afb5a3cb40293'  # Install from Github source
+        boltz_ver = 'git+https://github.com/RBVI/boltz@chimerax'  # Install from RBVI fork of Boltz
         command = [self._venv_python_executable(), '-m', 'pip', 'install', boltz_ver]
         logger.info(' '.join(command))
 
@@ -263,6 +258,19 @@ class log_subprocess_output:
         self._popen.wait()  # Set returncode
         success = (self._popen.returncode == 0)
         self._finished_callback(success)
+
+# ------------------------------------------------------------------------------
+#
+def have_nvidia_driver():
+    from sys import platform
+    if platform == 'win32':
+        nvidia_smi_path = 'C:\\Windows\\System32\\nvidia-smi.exe'
+    elif platform == 'linux':
+        nvidia_smi_path = '/usr/bin/nvidia-smi'
+    else:
+        return False
+    from os.path import exists
+    return exists(nvidia_smi_path)
 
 # ------------------------------------------------------------------------------
 #
