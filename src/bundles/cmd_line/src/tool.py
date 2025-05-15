@@ -558,9 +558,9 @@ class _HistoryDialog:
             if was_searching:
                 match_against = prev_search
             else:
-                words = orig_text.strip().split()
-                if words:
-                    match_against = words[0]
+                text = orig_text.strip()
+                if text:
+                    match_against = text
                     self._search_cache = (True, match_against)
                 else:
                     self._search_cache = (False, None)
@@ -642,9 +642,9 @@ class _HistoryDialog:
             if was_searching:
                 match_against = prev_search
             else:
-                words = orig_text.strip().split()
-                if words:
-                    match_against = words[0]
+                text = orig_text.strip()
+                if text:
+                    match_against = text
                     self._search_cache = (True, match_against)
                 else:
                     self._search_cache = (False, None)
