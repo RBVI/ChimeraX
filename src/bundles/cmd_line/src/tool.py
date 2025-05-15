@@ -199,7 +199,8 @@ class CommandLine(ToolInstance):
         self._handlers.append(session.triggers.add_handler("command started", self._command_started_cb))
         self._handlers.append(session.triggers.add_handler("command failed", self._command_ended_cb))
         self._handlers.append(session.triggers.add_handler("command finished", self._command_ended_cb))
-        self.tool_window.manage(placement="bottom")
+        side = getattr(self.settings, "default_side", "bottom")
+        self.tool_window.manage(placement=side)
         self._in_init = False
         self._processing_command = False
         if self.settings.startup_commands:
