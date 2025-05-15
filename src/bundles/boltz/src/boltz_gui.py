@@ -117,7 +117,7 @@ class BoltzPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _prediction_name_edited(self, text):
-        self._auto_set_prediction_name = False
+        self._auto_set_prediction_name = (len(text) == 0)
 
     # ---------------------------------------------------------------------------
     #
@@ -149,7 +149,6 @@ class BoltzPredictionGUI(ToolInstance):
         from Qt.QtWidgets import QLineEdit
         self._molecule_identifier_entry = ue = QLineEdit(f)
         ue.setMaximumWidth(200)
-        ue.textEdited.connect(lambda text, self=self: self._set_prediction_name())
         layout.addWidget(ue)
 
         dr = QPushButton('Delete selected rows', f)
@@ -184,8 +183,6 @@ class BoltzPredictionGUI(ToolInstance):
         self._molecule_identifier_entry.setText('')
         self._sequence_entry.setVisible(show_seq)
         self._molecule_identifier_entry.setVisible(show_uniprot)
-
-        self._set_prediction_name()
 
     # ---------------------------------------------------------------------------
     #
@@ -283,8 +280,13 @@ class BoltzPredictionGUI(ToolInstance):
             self._molecules_table = mt = MoleculesTable(parent, comps)
             layout = parent.layout()
             layout.insertWidget(self._molecules_table_position, mt)
+            first_addition = True
         else:
+            first_addition = (len(mt.data) == 0)
             mt.add_rows(comps)
+
+        if first_addition:
+            self._set_prediction_name()
 
         self._report_number_of_tokens()
         
