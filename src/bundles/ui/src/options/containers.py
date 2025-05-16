@@ -20,7 +20,7 @@ The Categorized classes organize the presented options into categories, which th
 switch between.
 """
 
-from Qt.QtWidgets import QWidget, QFormLayout, QTabWidget, QVBoxLayout, QGridLayout, \
+from Qt.QtWidgets import QTreeWidget, QTreeWidgetItem, QWidget, QFormLayout, QTabWidget, QVBoxLayout, QGridLayout, \
     QPushButton, QCheckBox, QScrollArea, QGroupBox, QHBoxLayout, QMenu, QStackedWidget
 from Qt.QtCore import Qt, QSize
 
@@ -152,7 +152,7 @@ class CategorizedOptionsPanel(QWidget):
     """Supported API. CategorizedOptionsPanel is a container for single-use (not savable) Options sorted by category"""
 
     def __init__(self, parent=None, *, category_sorting=True, option_sorting=True,
-            category_scrolled={}, tabs_as_menu=False, **kw):
+            category_scrolled={}, tabs_as_menu=False, tabs_as_side_menu=False, **kw):
         """sorting:
             False: categories/options shown in order added
             True: categories/options sorted alphabetically by name
@@ -162,8 +162,12 @@ class CategorizedOptionsPanel(QWidget):
         """
         self._contents_margins = kw.pop('contents_margins', None)
         self._tabs_as_menu = tabs_as_menu
+        self._tabs_as_side_menu = tabs_as_side_menu
         QWidget.__init__(self, parent)
-        layout = QVBoxLayout()
+        if self._tabs_as_side_menu:
+            layout = QHBoxLayout()
+        else:
+            layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         self.setLayout(layout)
         if tabs_as_menu:
@@ -176,15 +180,23 @@ class CategorizedOptionsPanel(QWidget):
                 container = QWidget()
                 menu_layout = QHBoxLayout()
                 menu_layout.setContentsMargins(0,0,0,0)
-                menu_layout.addWidget(QLabel(menu_label), alignment=Qt.AlignRight)
-                menu_layout.addWidget(self._tabs_menu_button, alignment=Qt.AlignLeft)
+                menu_layout.addWidget(QLabel(menu_label), alignment=Qt.AlignmentFlag.AlignRight)
+                menu_layout.addWidget(self._tabs_menu_button, alignment=Qt.AlignmentFlag.AlignLeft)
                 container.setLayout(menu_layout)
-                layout.addWidget(container, alignment=Qt.AlignCenter)
+                layout.addWidget(container, alignment=Qt.AlignmentFlag.AlignCenter)
             else:
-                layout.addWidget(self._tabs_menu_button, alignment=Qt.AlignCenter)
+                layout.addWidget(self._tabs_menu_button, alignment=Qt.AlignmentFlag.AlignCenter)
             self._category_areas = QStackedWidget()
             #layout.addWidget(self._category_areas, alignment=Qt.AlignTop | Qt.AlignHCenter, stretch=1)
             layout.addWidget(self._category_areas, stretch=1)
+        elif self._tabs_as_side_menu:
+            self._category_list = QTreeWidget()
+            self._category_list.setHeaderHidden(True)
+            #self._category_list.itemClicked.connect(self.show_category)
+            self._category_list.currentItemChanged.connect(self.show_category)
+            self._category_areas = QStackedWidget()
+            layout.addWidget(self._category_list, alignment=Qt.AlignmentFlag.AlignLeft)
+            layout.addWidget(self._category_areas, stretch=2)
         else:
             self._tabs_widget = QTabWidget(parent, **kw)
             layout.addWidget(self._tabs_widget)
@@ -222,6 +234,13 @@ class CategorizedOptionsPanel(QWidget):
                 self._category_areas.addWidget(panel)
                 if len(self._category_to_panel) == 1:
                     self._tabs_menu_button.setText(category)
+            elif self._tabs_as_side_menu:
+                new_item = QTreeWidgetItem([category])
+                new_item.setChildIndicatorPolicy(QTreeWidgetItem.ChildIndicatorPolicy.DontShowIndicatorWhenChildless)
+                self._category_list.addTopLevelItem(new_item)
+                self._category_areas.addWidget(panel)
+                #if len(self._category_to_panel) == 1:
+                #    self._category_list.setCurrentItem(new_item)
             else:
                 self._tabs_widget.addTab(panel, category)
         else:
@@ -239,6 +258,14 @@ class CategorizedOptionsPanel(QWidget):
                 self._category_areas.insertWidget(index, panel)
                 if index == 0:
                     self._tabs_menu_button.setText(category)
+            elif self._tabs_as_side_menu:
+                new_item = QTreeWidgetItem([category])
+                new_item.setChildIndicatorPolicy(QTreeWidgetItem.ChildIndicatorPolicy.DontShowIndicatorWhenChildless)
+                self._category_list.addTopLevelItem(new_item)
+                self._category_list.sortItems(0, Qt.SortOrder.AscendingOrder)
+                self._category_areas.insertWidget(index, panel)
+                #if index == 0:
+                #    self._category_list.setCurrentItem(self._category_list.itemFromIndex(0))
             else:
                 self._tabs_widget.insertTab(index, panel, category)
 
@@ -248,6 +275,8 @@ class CategorizedOptionsPanel(QWidget):
     def current_category(self):
         if self._tabs_as_menu:
             return self._tabs_menu_button.text()
+        elif self._tabs_as_side_menu:
+            return self._category_list.currentItem().text(0)
         return self._tabs_widget.tabText(self.currentIndex())
 
     def hide_option(self, option):
@@ -289,6 +318,8 @@ class CategorizedOptionsPanel(QWidget):
         return self.set_option_shown(option, True)
 
     def show_tab(self, category):
+        if type(category) is QTreeWidgetItem:
+            category = category.text(0)
         self._show_tab(category, True)
     show_category = show_tab
 
@@ -302,6 +333,10 @@ class CategorizedOptionsPanel(QWidget):
                 if act.text().casefold() == comp_text:
                     self._tabs_menu_button.setText(act.text())
                     self._category_areas.setCurrentIndex(index)
+        elif self._tabs_as_side_menu:
+            item = self._category_list.findItems(comp_text, Qt.MatchFlag.MatchFixedString, 0)[0]
+            self._category_list.setCurrentItem(item)
+            self._category_areas.setCurrentIndex(self._category_list.indexFromItem(item).row())
         else:
             for index in range(self._tabs_widget.count()):
                 if comp_text == self.tabText(index).casefold():
