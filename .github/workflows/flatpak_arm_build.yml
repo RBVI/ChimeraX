@@ -65,7 +65,7 @@ jobs:
           bundle: chimerax.flatpak
           manifest-path: arm-flatpak.yml
           arch: aarch64
-          cache-key: flatpak-builder-arm64-${{ github.sha }}
+          cache-key: flatpak-builder-arm64
           upload-artifact: false
       # For now, we're skipping tests for the Flatpak
       - name: Put the build date and commit in the environment
@@ -96,4 +96,4 @@ jobs:
           # GitHub Actions couldn't contact Plato.
           max_attempts: 1000
           timeout_minutes: 60
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "version=$BUILD_VERSION" -F "date=$BUILD_DATE" -F "platform=flatpak-arm" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax.flatpak" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "version=$BUILD_VERSION" -F "date=$BUILD_DATE" -F "platform=flatpak-arm" -F "file=@$GITHUB_WORKSPACE/chimerax.flatpak" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_production_build.py

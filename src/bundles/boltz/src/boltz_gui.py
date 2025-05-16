@@ -40,7 +40,7 @@ class BoltzPredictionGUI(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
 
         from chimerax.ui import MainToolWindow
-        tw = MainToolWindow(self)
+        tw = MainToolWindow(self, close_destroys = False)
         tw.title = 'Boltz Structure Predicton'
         self.tool_window = tw
         parent = tw.ui_area
@@ -117,7 +117,7 @@ class BoltzPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _prediction_name_edited(self, text):
-        self._auto_set_prediction_name = False
+        self._auto_set_prediction_name = (len(text) == 0)
 
     # ---------------------------------------------------------------------------
     #
@@ -149,7 +149,6 @@ class BoltzPredictionGUI(ToolInstance):
         from Qt.QtWidgets import QLineEdit
         self._molecule_identifier_entry = ue = QLineEdit(f)
         ue.setMaximumWidth(200)
-        ue.textEdited.connect(lambda text, self=self: self._set_prediction_name())
         layout.addWidget(ue)
 
         dr = QPushButton('Delete selected rows', f)
@@ -184,8 +183,6 @@ class BoltzPredictionGUI(ToolInstance):
         self._molecule_identifier_entry.setText('')
         self._sequence_entry.setVisible(show_seq)
         self._molecule_identifier_entry.setVisible(show_uniprot)
-
-        self._set_prediction_name()
 
     # ---------------------------------------------------------------------------
     #
@@ -283,8 +280,13 @@ class BoltzPredictionGUI(ToolInstance):
             self._molecules_table = mt = MoleculesTable(parent, comps)
             layout = parent.layout()
             layout.insertWidget(self._molecules_table_position, mt)
+            first_addition = True
         else:
+            first_addition = (len(mt.data) == 0)
             mt.add_rows(comps)
+
+        if first_addition:
+            self._set_prediction_name()
 
         self._report_number_of_tokens()
         
@@ -489,14 +491,15 @@ class BoltzPredictionGUI(ToolInstance):
             options.append(f'name {name}')
         dir = self._results_directory.value
         if dir != self.default_results_directory():
-            options.append(f'directory {dir}')
+            options.append(f'resultsDirectory {dir}')
         if not self._use_msa_cache.value:
             options.append('useMsaCache false')
         if self._device.value != 'default':
             options.append(f'device {self._device.value}')
+        if self._use_cuda_bfloat16 and self._use_cuda_bfloat16.value:
+            options.append('float16 true')
         if self._samples.value != 1:
             options.append(f'samples {self._samples.value}')
-        self._save_install_location()
         self._run_prediction(options = ' '.join(options))
 
     # ---------------------------------------------------------------------------
@@ -515,10 +518,35 @@ class BoltzPredictionGUI(ToolInstance):
 
         from chimerax.core.commands import run
         br = run(self.session, cmd)
+        if br is None:
+            return  # Boltz not yet installed or other startup error.
         self._boltz_run = br
 
         self._show_prediction_progress()
-        
+
+    # ---------------------------------------------------------------------------
+    #
+    def _show_stop_button(self, show):
+        if show:
+            br = self._button_row
+            from Qt.QtWidgets import QPushButton
+            self._stop_button = sb = QPushButton('Stop', br)
+            br.layout().insertWidget(0, sb)
+            sb.pressed.connect(self._stop_prediction)
+        elif self._stop_button:
+            sb = self._stop_button
+            layout = self._button_row.layout()
+            layout.removeWidget(sb)
+            sb.deleteLater()
+            self._stop_button = None
+
+    # ---------------------------------------------------------------------------
+    #
+    def _stop_prediction(self):
+        p = self._boltz_run
+        if p:
+            p.terminate()
+
     # ---------------------------------------------------------------------------
     #
     def _show_prediction_progress(self):
@@ -528,9 +556,14 @@ class BoltzPredictionGUI(ToolInstance):
         self._max_memory_use = None
         self.session.triggers.add_handler('new frame', self._report_progress)
 
+        self._show_stop_button(True)
+        
     # ---------------------------------------------------------------------------
     #
     def _report_progress(self, tname, tdata):
+        if not self.tool_window.shown:
+            return
+
         from time import time
         t = time()
         elapsed = t - self._prediction_start_time
@@ -541,6 +574,7 @@ class BoltzPredictionGUI(ToolInstance):
             if self._max_memory_use:
                 msg += f', memory use {"%.1f" % self._max_memory_use} Gbytes'
             self._progress_label.setText(msg)
+            self._show_stop_button(False)
             return 'delete handler'
         if t < self._next_progress_time:
             return
@@ -612,70 +646,53 @@ class BoltzPredictionGUI(ToolInstance):
         self._options_panel = p = CollapsiblePanel(parent, title = None)
         f = p.content_area
 
+        from .settings import _boltz_settings
+        settings = _boltz_settings(self.session)
+
         from chimerax.ui.widgets import EntriesRow
 
         # Results directory
         rd = EntriesRow(f, 'Results directory', '',
-                        ('Browse', self._choose_results_directory),
-                        ('Set default', self._set_default_results_directory))
+                        ('Browse', self._choose_results_directory))
         self._results_directory = dir = rd.values[0]
         dir.pixel_width = 250
         dir.value = self.default_results_directory()
 
         # Number of predicted structures
-        ns = EntriesRow(f, 'Number of predicted structures', 1, ('Set default', self._set_default_samples))
+        ns = EntriesRow(f, 'Number of predicted structures', 1)
         self._samples = sam = ns.values[0]
-        sam.value = self.default_samples()
+        sam.value = settings.samples
 
         # CPU or GPU device
-        cd = EntriesRow(f, 'Compute device', ('default', 'cpu', 'gpu'), ('Save', self._set_default_device))
+        cd = EntriesRow(f, 'Compute device', ('default', 'cpu', 'gpu'))
         self._device = dev = cd.values[0]
-        dev.value = self.default_device()
-        
+        dev.value = settings.device
+
+        # Use 16-bit float with Nvidia CUDA, only shown if Nvidia gpu available
+        from .install import have_nvidia_driver
+        if have_nvidia_driver():
+            bf = EntriesRow(f, True, 'Predict larger structures with Nvidia 16-bit floating point')
+            self._use_cuda_bfloat16 = cbf = bf.values[0]
+            cbf.value = settings.use_cuda_bfloat16
+        else:
+            self._use_cuda_bfloat16 = None
+
+
         # Use MSA cache
         mc = EntriesRow(f, True, 'Use multiple sequence alignment cache')
-        self._use_msa_cache = mc.values[0]
+        self._use_msa_cache = uc = mc.values[0]
+        uc.value = settings.use_msa_cache
         
         # Boltz install location
         id = EntriesRow(f, 'Boltz install location', '',
                         ('Browse', self._choose_install_directory))
         self._install_directory = dir = id.values[0]
         dir.pixel_width = 350
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
         dir.value = settings.boltz_install_location
 
+        EntriesRow(f, ('Save default options', self._save_default_options))
+
         return p
-
-    # ---------------------------------------------------------------------------
-    #
-    def default_device(self):
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
-        return settings.device
-
-    # ---------------------------------------------------------------------------
-    #
-    def _set_default_device(self):
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
-        settings.device = self._device.value
-        settings.save()
-
-    # ---------------------------------------------------------------------------
-    #
-    def default_samples(self):
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
-        return settings.samples
-
-    # ---------------------------------------------------------------------------
-    #
-    def _set_default_samples(self):
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
-        settings.samples = self._samples.value
-        settings.save()
 
     # ---------------------------------------------------------------------------
     #
@@ -706,12 +723,19 @@ class BoltzPredictionGUI(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _set_default_results_directory(self):
+    def _save_default_options(self, install_dir_only = False):
         from .settings import _boltz_settings
         settings = _boltz_settings(self.session)
-        settings.boltz_results_location = self._results_directory.value
+        if not install_dir_only:
+            settings.boltz_results_location = self._results_directory.value
+            settings.samples = self._samples.value
+            settings.device = self._device.value
+            if self._use_cuda_bfloat16 is not None:
+                settings.use_cuda_bfloat16 = self._use_cuda_bfloat16.value
+            settings.use_msa_cache = self._use_msa_cache.value
+        settings.boltz_install_location = self._install_directory.value
         settings.save()
-
+        
     # ---------------------------------------------------------------------------
     #
     def _install_boltz(self):
@@ -755,9 +779,12 @@ class BoltzPredictionGUI(ToolInstance):
         layout.removeWidget(self._installing_label)
         self._installing_label.deleteLater()
         self._installing_label = None
-        if not success:
+        if success:
+            self._save_default_options(install_dir_only = True)
+        else:
             layout.insertWidget(0, self._install_boltz_button)
             self._install_boltz_button.setVisible(True)
+
         self._installing_boltz = False
 
     # ---------------------------------------------------------------------------
@@ -772,15 +799,6 @@ class BoltzPredictionGUI(ToolInstance):
                                                  options = QFileDialog.Option.ShowDirsOnly)
         if path:
             self._install_directory.value = path
-            self._save_install_location()
-
-    # ---------------------------------------------------------------------------
-    #
-    def _save_install_location(self):
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
-        settings.boltz_install_location = self._install_directory.value
-        settings.save()
             
     # ---------------------------------------------------------------------------
     #
@@ -876,7 +894,8 @@ def _ligands_with_counts(ligand_specs):
             spec_counts[spec] += count
         else:
             spec_counts[spec] = count
-    lc = ','.join(f'{spec}({count})' for spec, count in spec_counts.items())
+    lc = ','.join((spec if count == 1 else f'{spec}({count})')
+                  for spec, count in spec_counts.items())
     return lc
 
 # -----------------------------------------------------------------------------

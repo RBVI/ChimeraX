@@ -52,7 +52,7 @@ PYMOD_EXT = so
 endif
 ifeq ($(OS),Linux)
 APP_PYTHON_EXE = $(wildcard $(CHIMERAX_APP)/bin/python3.*)
-CX_BIN = $(CHIMERAX_APP)/bin/chimerax
+CX_BIN = $(CHIMERAX_APP)/bin/ChimeraX
 PYMOD_EXT = so
 endif
 PYTHON ?= $(APP_PYTHON_EXE)

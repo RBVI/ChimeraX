@@ -199,7 +199,9 @@ class CommandLine(ToolInstance):
         self._handlers.append(session.triggers.add_handler("command started", self._command_started_cb))
         self._handlers.append(session.triggers.add_handler("command failed", self._command_ended_cb))
         self._handlers.append(session.triggers.add_handler("command finished", self._command_ended_cb))
-        self.tool_window.manage(placement="bottom")
+        side = getattr(self.settings, "default_side", "bottom")
+        from Qt.QtCore import Qt
+        self.tool_window.manage(placement=side, allowed_areas=Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.BottomDockWidgetArea)
         self._in_init = False
         self._processing_command = False
         if self.settings.startup_commands:
@@ -556,9 +558,9 @@ class _HistoryDialog:
             if was_searching:
                 match_against = prev_search
             else:
-                words = orig_text.strip().split()
-                if words:
-                    match_against = words[0]
+                text = orig_text.strip()
+                if text:
+                    match_against = text
                     self._search_cache = (True, match_against)
                 else:
                     self._search_cache = (False, None)
@@ -640,9 +642,9 @@ class _HistoryDialog:
             if was_searching:
                 match_against = prev_search
             else:
-                words = orig_text.strip().split()
-                if words:
-                    match_against = words[0]
+                text = orig_text.strip()
+                if text:
+                    match_against = text
                     self._search_cache = (True, match_against)
                 else:
                     self._search_cache = (False, None)
