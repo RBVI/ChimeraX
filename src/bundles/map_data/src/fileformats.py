@@ -90,7 +90,7 @@ file_formats = [
   MapFileFormat('SPIDER volume data', 'spider', ['spider'], ['spi','vol']),
   MapFileFormat('TOM toolbox EM density map', 'tom_em', ['tom_em'], ['em']),
   MapFileFormat('UHBD grid, binary', 'uhbd', ['uhbd'], ['grd']),
-  MapFileFormat('LAMMPS grid3d', 'lammps', ['lammps'], ['grid3d','grid3d.gz'], check_path = False),
+  MapFileFormat('LAMMPS grid3d', 'lammps', ['lammps'], ['grid3d']),
 ]
   
 # -----------------------------------------------------------------------------
