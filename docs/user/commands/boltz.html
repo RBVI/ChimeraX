@@ -41,10 +41,12 @@ Wohlwend J, Corso G, Passaro S, Reveiz M, Leidal K, Swiderski W, Portnoi T, Chin
 <p>
 Boltz-predicted structures vary in confidence levels (see
 <a href="../tools/boltz.html#confidence">coloring</a>)
-and should be interpreted with caution.
-See the <a href="../tools/boltz.html"><b>Boltz</b></a>
-graphical interface for residue-residue error plots and other features.
-See also the
+and should be interpreted with caution. Boltz residue-residue 
+predicted aligned error (PAE) values can be plotted with
+<a href="alphafold.html#pae"><b>alphafold pae</b></a>.
+The <b>boltz</b> command is also implemented as the
+<a href="../tools/boltz.html"><b>Boltz</b></a> tool.
+See the
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html"
 target="_blank">ChimeraX Boltz example</a> and
 video <a href="https://www.youtube.com/watch?v=377V9A_0ECc" target="_blank">
@@ -111,8 +113,7 @@ with CUDA 12.6 support is installed before boltz.
 [&nbsp;<b>protein</b>&nbsp;&nbsp;<a href="#sequence-spec"><i>sequences</i></a>&nbsp;]
 [&nbsp;<b>dna</b>&nbsp;&nbsp;<a href="#sequence-spec"><i>sequences</i></a>&nbsp;]
 [&nbsp;<b>rna</b>&nbsp;&nbsp;<a href="#sequence-spec"><i>sequences</i></a>&nbsp;]
-[&nbsp;<b>ligands</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>residue-spec</i></a>&nbsp;]
-[&nbsp;<b>excludeLigands</b>&nbsp;&nbsp;<i>CCD-names</i>&nbsp;]
+[&nbsp;<b>ligands</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>residue-spec</i></a>&nbsp;&nbsp;[&nbsp;<b>excludeLigands</b>&nbsp;&nbsp;<i>CCD-names</i>&nbsp;]]
 [&nbsp;<b>ligandCcd</b>&nbsp;&nbsp;<i>CCD-names</i>&nbsp;]
 [&nbsp;<b>ligandSmiles</b>&nbsp;&nbsp;<i>SMILES-string</i>&nbsp;]
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>prediction-name</i>&nbsp;]
@@ -192,9 +193,9 @@ If the folder already exists, a numeric suffix _1, _2, _3... will be appended.
 The <b>default</b> setting chooses based on the availability of an Nvidia
 or Mac M series GPU and Torch support for the GPU.
 <li><b>float16</b>&nbsp;&nbsp;true&nbsp;&nbsp;|&nbsp;&nbsp;<b>false</b>
-&ndash; Whether to use 16-bit floating point (bfloat16) on Nvidia GPUs to allow 
-predicting larger structures (approximately 40% more residues).
-The default is <b>false</b>; 
+&ndash; Whether to use 16-bit floating point (bfloat16) instead of 32-bit
+on Nvidia GPUs to allow predicting larger structures
+(approximately 40% more residues). The default is <b>false</b>; 
 using <b>float16 true</b> may reduce prediction accuracy.
 <li><b>samples</b>&nbsp;&nbsp;<i>N</i>
 &ndash; Number of predictions (default <b>1</b>). This is what Boltz calls 
