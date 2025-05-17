@@ -25,7 +25,7 @@
 def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
                   protein = [], dna = [], rna = [], ligand_ccd = [], ligand_smiles = [],
                   name = None, results_directory = None, device = None,
-                  samples = 1, recycles = 3, seed = None,
+                  samples = 1, recycles = 3, seed = None, float16 = False,
                   use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                   open = True, install_location = None, wait = None):
 
@@ -36,7 +36,7 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
         settings.save()
 
     if not _is_boltz_available(session):
-        return
+        return None
 
     if wait is None:
         wait = False if session.ui.is_gui else True
@@ -56,7 +56,7 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
         session.logger.info(f'Predicting covalent ligands not yet supported: {covalent_ligands}')
 
     br = BoltzRun(session, molecular_components, name = name, align_to = align_to,
-                  device = device, samples = samples, recycles = recycles, seed = seed,
+                  device = device, samples = samples, recycles = recycles, seed = seed, cuda_bfloat16 = float16,
                   use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
                   open = open, wait = wait)
     br.start(results_directory)
@@ -164,6 +164,7 @@ class BoltzMolecule:
 class BoltzRun:
     def __init__(self, session, molecular_components, name = None, align_to = None,
                  device = 'default', samples = 1, recycles = 3, seed = None,
+                 cuda_bfloat16 = False,
                  use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                  open = True, wait = False):
 
@@ -174,6 +175,7 @@ class BoltzRun:
         self._device = device		# gpu, cpu or default, or None (uses settings value)
         self._samples = samples		# Number of predicted structures
         self._recycles = recycles	# Number of boltz recycling steps
+        self._cuda_bfloat16 = cuda_bfloat16	# Save memory using 16-bit instead of 32-bit float
         self._seed = seed		# Random seed for computation
         self._open = open		# Whether to open predictions when boltz finishes.
 
@@ -238,11 +240,14 @@ class BoltzRun:
             dir = dir.replace('[name]', self.name)  # Handle old boltz tool that used [N] for the name.
             dir = dir.replace('[N]', self.name)  # Handle old boltz tool that used [N] for the name.
             from os.path import exists
-            if exists(dir):
-                dir += '_[N]'
-            else:            
+            if not exists(dir):
                 return dir
+        else:
+            dir = dir.replace('[name]', '[N]')  # No name given so just use numeric suffix
 
+        if '[N]' not in dir:
+            dir += '_[N]'
+            
         for i in range(1,1000000):
             path = dir.replace('[N]', str(i))
             from os.path import exists
@@ -306,24 +311,7 @@ class BoltzRun:
         if self._device is None:
             self._device = self._settings.device
         if self._device == 'default':
-            from sys import platform
-            if platform == 'win32':
-                boltz_install = self._settings.boltz_install_location
-                from os.path import join, exists
-                torch_cuda_dll = join(boltz_install, 'Lib/site-packages/torch/lib/torch_cuda.dll')
-                nvidia_smi = 'C:\\Windows\\System32\\nvidia-smi.exe'
-                device = 'gpu' if exists(torch_cuda_dll) and exists(nvidia_smi) else 'cpu'
-            elif platform == 'darwin':
-                from platform import machine
-                device = 'gpu' if machine() == 'arm64' else 'cpu'
-                # PyTorch 2.6 does not support Intel Mac GPU use.
-                #     https://discuss.pytorch.org/t/pytorch-support-for-intel-gpus-on-mac/151996
-            elif platform == 'linux':
-                from os.path import exists
-                device = 'gpu' if exists('/usr/bin/nvidia-smi') else 'cpu'
-                # TODO: Run nvidia-smi to see if GPU memory is sufficient to run Boltz.
-            else:
-                device = 'cpu'
+            device = boltz_default_device(self._session)
         else:
             device = self._device
         return device
@@ -345,6 +333,8 @@ class BoltzRun:
             command.append('--use_msa_server')
 
         command.extend(['--accelerator', self.device])
+        if self._cuda_bfloat16 and self.device == 'gpu':
+            command.append('--use_cuda_bfloat16')
 
         if self._samples != 1:
             command.extend(['--diffusion_samples', str(self._samples)])
@@ -479,6 +469,10 @@ class BoltzRun:
                        ' installation installs torch with no GPU support, so using Nvidia GPUs on'
                        ' Windows requires reinstalling gpu-enabled torch with Boltz which we plan to'
                        ' support in the future.')
+            elif 'No such option: --use_cuda_bfloat16' in stderr:
+                msg = ('The installed Boltz does not have the --use_cuda_bfloat16 option.'
+                       ' You need to install a newer Boltz to get this option.'
+                       ' Use the ChimeraX command "boltz install ~/boltz_new" to install it.')
             else:
                 if self._user_terminated:
                     msg = 'Prediction terminated by user'
@@ -602,10 +596,45 @@ def _is_boltz_available(session):
     settings = _boltz_settings(session)
     from os.path import isdir
     if not isdir(settings.boltz_install_location):
-        msg = 'You need to set the Boltz installation location.  Enter it in the Boltz Options panel, or using the boltz command installLocation option.'
+        msg = 'You need to install Boltz by pressing the "Install Boltz" button on the ChimeraX Boltz user interface, or using the ChimeraX command "boltz install".  If you already have Boltz installed, you can set the Boltz installation location in the user interface under Options, or use the installLocation option of the ChimeraX boltz command "boltz predict ... installLocation /path/to/boltz"'
         session.logger.error(msg)
         return False
     return True
+
+# ------------------------------------------------------------------------------
+#
+def boltz_default_device(session):
+    from sys import platform
+    if platform in ('win32', 'linux'):
+        from .install import have_nvidia_driver
+        device = 'gpu' if have_nvidia_driver() and _torch_has_cuda(session) else 'cpu'
+        # TODO: On Linux run nvidia-smi to see if GPU memory is sufficient to run Boltz.
+    elif platform == 'darwin':
+        from platform import machine
+        device = 'gpu' if machine() == 'arm64' else 'cpu'
+        # PyTorch 2.6 does not support Intel Mac GPU.
+        #     https://discuss.pytorch.org/t/pytorch-support-for-intel-gpus-on-mac/151996
+    else:
+        device = 'cpu'
+    return device
+
+# ------------------------------------------------------------------------------
+#
+def _torch_has_cuda(session):
+    from sys import platform
+    if platform == 'darwin':
+        return False
+    if platform == 'win32':
+        lib_path = 'Lib/site-packages/torch/lib/torch_cuda.dll'
+    elif platform == 'linux':
+        from sys import version_info as v
+        lib_path = f'lib/python{v.major}.{v.minor}/site-packages/torch/lib/libtorch_cuda.so'
+    from .settings import _boltz_settings
+    settings = _boltz_settings(session)
+    boltz_install = settings.boltz_install_location
+    from os.path import join, exists
+    torch_cuda_lib = join(boltz_install, lib_path)
+    return exists(torch_cuda_lib)
 
 # ------------------------------------------------------------------------------
 #
@@ -862,6 +891,7 @@ def register_boltz_predict_command(logger):
                    ('name', StringArg),
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
+                   ('float16', BoolArg),
                    ('samples', IntArg),
                    ('recycles', IntArg),
                    ('seed', IntArg),

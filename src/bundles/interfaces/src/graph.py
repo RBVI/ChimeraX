@@ -243,7 +243,7 @@ class Graph(Plot):
                 G.add_edge(e.nodes[0], e.nodes[1], weight = e.weight/max_weight, edge_object=e)
         return G
 
-    def draw_graph(self):
+    def draw_graph(self, preserve_zoom = False):
         # Draw nodes
         node_pos = self._draw_nodes()
     
@@ -253,8 +253,10 @@ class Graph(Plot):
         # Draw node labels
         self._draw_labels(node_pos)
 
-        self.tight_layout()
-        self.equal_aspect()	# Don't squish plot if window is not square.
+        if not preserve_zoom:
+            self.tight_layout()
+            self.equal_aspect()	# Don't squish plot if window is not square.
+
         self.canvas.draw()
 
         self.show()	# Show graph panel

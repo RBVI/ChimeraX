@@ -37,6 +37,7 @@ class SimilarStructuresPanel(ToolInstance):
 
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
+        tw.fill_context_menu = self.fill_context_menu
         self.tool_window = tw
         parent = tw.ui_area
 
@@ -398,6 +399,15 @@ class SimilarStructuresPanel(ToolInstance):
         else:
             hits_option = ''
         return hits_option
+
+    # ---------------------------------------------------------------------------
+    #
+    def fill_context_menu(self, menu, x, y):
+        if self._results_table:
+            from Qt.QtGui import QAction
+            act = QAction("Save CSV or TSV File...", parent=menu)
+            act.triggered.connect(lambda *args, tab=self._results_table: tab.write_values())
+            menu.addAction(act)
 
     # ---------------------------------------------------------------------------
     #
