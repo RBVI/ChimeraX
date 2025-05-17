@@ -181,11 +181,11 @@ class Mol2Parser:
             # Create structure
             s = SC(self.session, auto_style=self.auto_style)
             s.name = self._molecule.mol_name
-            SC.register_attr(self.session, "viewdockx_data", "ViewDockX")
+            SC.register_attr(self.session, "viewdock_data", "ViewDock")
             from chimerax.atomic import Atom
-            Atom.register_attr(self.session, "charge", "ViewDockX", attr_type=float)
-            Atom.register_attr(self.session, "mol2_type", "ViewDockX", attr_type=str)
-            s.viewdockx_data = self._data
+            Atom.register_attr(self.session, "charge", "ViewDock", attr_type=float)
+            Atom.register_attr(self.session, "mol2_type", "ViewDock", attr_type=str)
+            s.viewdock_data = self._data
             if self._molecule.charge_type:
                 s.charge_model = self._molecule.charge_type
             if self._molecule.mol_type:
@@ -496,7 +496,7 @@ def open_swissdock(session, stream, file_name, auto_style, atomic):
     is_ligands = True
     used_chains = set()
     cur_in_chain = cur_out_chain = cur_res_num = None
-    viewdockx_data = {}
+    viewdock_data = {}
     models = []
     status = ""
     from chimerax.pdb import open_pdb
@@ -530,23 +530,23 @@ def open_swissdock(session, stream, file_name, auto_style, atomic):
                 ligs, status = open_pdb(session, out_f.name, file_name=file_name, auto_style=auto_style,
                         atomic=atomic)
                 for lig in ligs:
-                    lig.viewdockx_data = viewdockx_data
+                    lig.viewdock_data = viewdock_data
                     models.append(lig)
                 os.unlink(out_f.name)
                 out_f = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', suffix=".pdb", delete=False)
-                viewdockx_data = {}
+                viewdock_data = {}
         elif line.startswith("REMARK"):
             if line.count(': ') != 1:
                 is_ligands = False
             else:
                 k,v = line[7:].strip().split(': ')
-                viewdockx_data[_wordize(k)] = _value(v)
+                viewdock_data[_wordize(k)] = _value(v)
             # these "REMARK"s are all badly formatted, prevent ChimeraX from complaining
             line = None
         if line is not None:
             print(line, file=out_f)
     if is_ligands and models:
-        models[0].__class__.register_attr(session, "viewdockx_data", "ViewDockX")
+        models[0].__class__.register_attr(session, "viewdock_data", "ViewDock")
     out_f.close()
     if not is_ligands:
         models, status = open_pdb(session, out_f.name,

@@ -80,7 +80,7 @@ def _extract_metadata(session, f, structures):
         elif record_type == "ENDMDL":
             if vina_values:
                 from chimerax.atomic import Structure as SC
-                SC.register_attr(session, "viewdockx_data", "ViewDockX")
-                structures[model_index].viewdockx_data = vina_values
+                SC.register_attr(session, "viewdock_data", "ViewDock")
+                structures[model_index].viewdock_data = vina_values
                 vina_values = {}
             in_model = False
