@@ -119,10 +119,11 @@ class CommandLine(ToolInstance):
                 import sys
                 control_key = Qt.KeyboardModifier.MetaModifier if sys.platform == "darwin" else Qt.KeyboardModifier.ControlModifier
                 shifted = event.modifiers() & Qt.KeyboardModifier.ShiftModifier
+                alt_key_pressed = event.modifiers() & Qt.KeyboardModifier.AltModifier
                 if event.key() == Qt.Key.Key_Up:  # up arrow
-                    self.tool.history_dialog.up(shifted)
+                    self.tool.history_dialog.up(shifted, alt_key_pressed)
                 elif event.key() == Qt.Key.Key_Down:  # down arrow
-                    self.tool.history_dialog.down(shifted)
+                    self.tool.history_dialog.down(shifted, alt_key_pressed)
                 elif event.matches(QKeySequence.StandardKey.Undo):
                     want_focus = False
                     session.undo.undo()
@@ -131,9 +132,9 @@ class CommandLine(ToolInstance):
                     session.undo.redo()
                 elif event.modifiers() & control_key:
                     if event.key() == Qt.Key.Key_N:
-                        self.tool.history_dialog.down(shifted)
+                        self.tool.history_dialog.down(shifted, alt_key_pressed)
                     elif event.key() == Qt.Key.Key_P:
-                        self.tool.history_dialog.up(shifted)
+                        self.tool.history_dialog.up(shifted, alt_key_pressed)
                     elif event.key() == Qt.Key.Key_U:
                         self.tool.cmd_clear()
                         self.tool.history_dialog.search_reset()
@@ -545,7 +546,7 @@ class _HistoryDialog:
             run(session, 'help help:user/tools/cli.html#history')
             return
 
-    def down(self, shifted):
+    def down(self, shifted, search_mode=False):
         sels = self.listbox.selectedIndexes()
         if len(sels) != 1:
             self._search_cache = (False, None)
@@ -569,8 +570,12 @@ class _HistoryDialog:
         if match_against:
             last = self.listbox.count() - 1
             while sel < last:
-                if self.listbox.item(sel + 1).text().startswith(match_against):
-                    break
+                if search_mode:
+                    if match_against in self.listbox.item(sel + 1).text():
+                        break
+                else:
+                    if self.listbox.item(sel + 1).text().startswith(match_against):
+                        break
                 sel += 1
         if sel == self.listbox.count() - 1:
             return
@@ -579,7 +584,7 @@ class _HistoryDialog:
         new_text = self.listbox.item(sel + 1).text()
         self.controller.cmd_replace(new_text)
         if orig_text == new_text:
-            self.down(shifted)
+            self.down(shifted, search_mode)
 
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
@@ -629,7 +634,7 @@ class _HistoryDialog:
             return
         self.controller.cmd_replace(sels[0].text())
 
-    def up(self, shifted):
+    def up(self, shifted, search_mode=False):
         sels = self.listbox.selectedIndexes()
         if len(sels) != 1:
             self._search_cache = (False, None)
@@ -652,8 +657,12 @@ class _HistoryDialog:
             self._search_cache = (False, None)
         if match_against:
             while sel > 0:
-                if self.listbox.item(sel - 1).text().startswith(match_against):
-                    break
+                if search_mode:
+                    if match_against in self.listbox.item(sel - 1).text():
+                        break
+                else:
+                    if self.listbox.item(sel - 1).text().startswith(match_against):
+                        break
                 sel -= 1
         if sel == 0:
             return
@@ -662,7 +671,7 @@ class _HistoryDialog:
         new_text = self.listbox.item(sel - 1).text()
         self.controller.cmd_replace(new_text)
         if orig_text == new_text:
-            self.up(shifted)
+            self.up(shifted, search_mode)
 
     def update_list(self):
         c = self.controller
