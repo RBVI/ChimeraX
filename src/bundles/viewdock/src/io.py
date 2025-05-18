@@ -170,7 +170,22 @@ class Mol2Parser:
         self._comments = []
 
     def _make_structure(self):
-        """Build ChimeraX structure and reset structure data cache"""
+        """
+        Build ChimeraX structure and reset structure data cache
+
+        Note:
+            Old ViewDockX (this bundl's predecessor) sessions have already registered a docking data attribute to structures
+            called "viewdockx_data". When this function is called with an old ViewDockX session, it will still register a
+            new docking data attribute called "viewdock_data". This bundle will NOT support reference to the old
+            "viewdockx_data" attribute.
+
+            Old ViewDockX sessions also registered the "charge" and "mol2_type" attributes to atoms. This function will
+            not re-register these attributes due to the workings of chimerax.core.attributes.register_attr. However,
+            since these attrs are registered with the same name and data types in ViewDock (this bundle), they can still
+            be accessed normally. In this scenario, the only difference is the attributes will still appear to be
+            registered by ViewDockX (this bundl's predecessor).
+        """
+
         try:
             if self._molecule is None:
                 return
@@ -486,6 +501,13 @@ def _value(s):
             return s
 
 def open_swissdock(session, stream, file_name, auto_style, atomic):
+    """
+    Note:
+        Old ViewDockX (Previous tool version) sessions have already registered a docking data attribute to structures
+        called "viewdockx_data". When this function is called with an old ViewDockX session, it will still register a
+        new docking data attribute called "viewdock_data". This bundle will NOT support reference to the old
+        "viewdockx_data" attribute.
+    """
     from chimerax.atomic import next_chain_id
     import tempfile
     import os

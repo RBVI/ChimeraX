@@ -62,6 +62,13 @@ def _open_pdbqt(session, path, file_name, auto_style, atomic, encoding):
 
 
 def _extract_metadata(session, f, structures):
+    """
+    Note:
+        Old ViewDockX (this bundl's predecessor) sessions have already registered a docking data attribute to structures
+        called "viewdockx_data". When this function is called with an old ViewDockX session, it will still register a
+        new docking data attribute called "viewdock_data". This bundle will NOT support reference to the old
+        "viewdockx_data" attribute.
+    """
     in_model = False
     model_index = -1
     vina_values = {}
