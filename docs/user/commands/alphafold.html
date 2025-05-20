@@ -1153,7 +1153,11 @@ For each predicted dimer:
 chain-chain interface with any atoms &le; <b>distance</b> <i>d</i> apart
 (default <b>4.0</b> &Aring;) are considered
 <li>of these, residue pairs with PAE &le; <b>maxPae</b>
-<i>max-error</i> (default <b>5.0</b> &Aring;) are counted
+<i>max-error</i> (default <b>5.0</b> &Aring;) are counted. 
+Both of the PAE values for a given pair of residues are considered
+(the PAE matrix is not symmetrical, meaning that res1-res2 and res2-res1 
+values are different), and the lower one is compared to the <b>maxPae</b> 
+setting.
 <li>if at least <b>minConfPairs</b> <i>N</i> (default <b>10</b>)
 of the interface residue pairs meet both the distance and PAE criteria,
 the dimer is included in the list of possible binders
