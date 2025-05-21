@@ -128,6 +128,12 @@ With the focus in the command line or graphics window:
 (initial set of characters)
 <li><b>Shift-Ctrl-n</b> &ndash; next use of same command
 (initial set of characters)
+<li><b>Alt-Ctrl-p</b>
+&ndash; previous use of the same set of characters in a command
+(not necessarily at the beginning of the line)
+<li><b>Alt-Ctrl-n</b>
+&ndash; next use of the same set of characters in a command
+(not necessarily at the beginning of the line)
 <li><b>Ctrl-u</b> &ndash; erase command-line contents
 <li><b>Ctrl-k</b> &ndash; erase from the cursor position to the end of line
 </ul>
@@ -135,9 +141,11 @@ With the focus in the command line or graphics window:
 Navigation skips commands for which the entire line is identical.
 When the mouse focus is in the command line (not the graphics window),
 another way to navigate the history is with
-the keyboard <b>up arrow</b> and <b>down arrow</b>,
-alone or in combination with <b>Shift</b> (meaning previous/next use of
-the same command, as described above for <b>Ctrl-p/n</b>).
+the keyboard <b>up arrow</b> and <b>down arrow</b>, alone or 
+in combination with <b>Shift</b> (meaning previous/next use of the same 
+initial set of characters, as described above for <b>Shift-Ctrl-p/n</b>),
+or in combination with <b>Alt</b> (meaning previous/next use of the same set 
+of characters anywhere in the line, as described above for <b>Alt-Ctrl-p/n</b>).
 The arrow keys also work to navigate the command history when
 the mouse focus is in the graphics window but
 nothing is <a href="../selection.html">selected</a>.
@@ -152,5 +160,5 @@ The location can be reported with command:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+May 2025</address>
 </body></html>
