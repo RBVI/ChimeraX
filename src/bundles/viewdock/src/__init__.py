@@ -64,7 +64,7 @@ class _MyAPI(BundleAPI):
                 all_models = sum([m.all_models() for m in models], start=[])
                 if show_tool and session.ui.is_gui and len(all_models) > 1:
                     for m in all_models:
-                        if hasattr(m, 'viewdockx_data'):
+                        if hasattr(m, 'viewdock_data'):
                             show_dock = True
                             break
                     else:

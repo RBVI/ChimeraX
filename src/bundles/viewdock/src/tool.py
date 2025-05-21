@@ -160,7 +160,7 @@ class ViewDockTool(ToolInstance):
     def table_setup(self):
         """
         Create the ItemTable for the structures. Add a column for the display with check boxes, a column for the
-        structure ID, a column for the Rating with a custom delegate, and columns for each key in the viewdockx_data
+        structure ID, a column for the Rating with a custom delegate, and columns for each key in the viewdock_data
         attribute of each structure (e.g., Name, Description, Energy Score...). If a structure does not have a key from
         the set, the cell will be empty.
         """
@@ -178,7 +178,7 @@ class ViewDockTool(ToolInstance):
 
         # Custom Rating delegate
         delegate = RatingDelegate(self.struct_table)  # Create the delegate instance
-        self.struct_table.add_column('Rating', lambda s: s.viewdockx_data.get('Rating', 2),
+        self.struct_table.add_column('Rating', lambda s: s.viewdock_data.get('Rating', 2),
                                      data_set = lambda item, value: None,
                                      editable=True)
 
@@ -190,12 +190,12 @@ class ViewDockTool(ToolInstance):
         # multiple selections to edit the rating of a structure.
         self.struct_table.setEditTriggers(QAbstractItemView.EditTrigger.CurrentChanged)
 
-        # Collect all unique keys from viewdockx_data of all structures and add them as columns
+        # Collect all unique keys from viewdock_data of all structures and add them as columns
         viewdockx_keys = set()
         for structure in self.structures:
-            viewdockx_keys.update(structure.viewdockx_data.keys())
+            viewdockx_keys.update(structure.viewdock_data.keys())
         for key in viewdockx_keys:
-            self.struct_table.add_column(key, lambda s, k=key: s.viewdockx_data.get(k, ''))
+            self.struct_table.add_column(key, lambda s, k=key: s.viewdock_data.get(k, ''))
 
         # Set the data for the table and launch it
         self.struct_table.data = self.structures
@@ -260,7 +260,7 @@ class ViewDockTool(ToolInstance):
                 widget.deleteLater()
 
         # Add attributes in a grid layout
-        attributes = list(docking_structure.viewdockx_data.items())
+        attributes = list(docking_structure.viewdock_data.items())
         total_attributes = len(attributes)
         rows_per_column = (total_attributes + 1) // 2  # Divide attributes evenly over two columns
 
@@ -431,7 +431,7 @@ class RatingDelegate(QStyledItemDelegate):
         # Get the structure (chimerax Structure) from the table row.
         structure = self.parent().data[index.row()]
         new_rating = int(editor.currentText())
-        structure.viewdockx_data['Rating'] = new_rating  # Update the rating in the structure's data
+        structure.viewdock_data['Rating'] = new_rating  # Update the rating in the structure's data
 
         model.setData(index, new_rating)  # Optionally, set the value in the model too. This is for Qt completeness
 
