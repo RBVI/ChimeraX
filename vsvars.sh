@@ -19,14 +19,14 @@ if [ ! -z "$AUTOMATIC_DISCOVERY" ]; then
 			export PATH="$PATH:$VSWHEREPATH"
 		fi
 
-		VCTBinDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/bin/Hostx64/x64")"
-		VCTRedistDirCRLF="$(vswhere.exe -find "VC/Redist/MSVC/*/x64")"
-		VCTLibDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/lib/x64")"
-		VCTATLMFCLibDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/atlmfc/lib/x64")"
-		VCTATLMFCIncDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/atlmfc/include")"
-		VCTIncludeDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/include")"
-		VCTRefDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/lib/x86/store/references")"
-		CRTPathCRLF="$(vswhere.exe -find "VC/Redist/MSVC/*/x64/Microsoft*CRT")"
+		VCTBinDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/bin/Hostx64/x64" | tail -n 1)"
+		VCTRedistDirCRLF="$(vswhere.exe -find "VC/Redist/MSVC/*/x64" | tail -n 1)"
+		VCTLibDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/lib/x64" | tail -n 1)"
+		VCTATLMFCLibDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/atlmfc/lib/x64" | tail -n 1)"
+		VCTATLMFCIncDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/atlmfc/include" | tail -n 1)"
+		VCTIncludeDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/include" | tail -n 1)"
+		VCTRefDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/lib/x86/store/references" | tail -n 1)"
+		CRTPathCRLF="$(vswhere.exe -find "VC/Redist/MSVC/*/x64/Microsoft*CRT" | tail -n 1)"
 		WindowsSDKDirCRLF="$(regtool -W get '/HKLM/SOFTWARE/Microsoft/Microsoft SDKs/Windows/v10.0/InstallationFolder')"
 		WindowsSDKVerCRLF="$(regtool -W get '/HKLM/SOFTWARE/Microsoft/Microsoft SDKs/Windows/v10.0/ProductVersion')"
 		WindowsSDKVer="${WindowsSDKVerCRLF%$'\r'}.0"
@@ -61,6 +61,9 @@ if [ ! -z "$AUTOMATIC_DISCOVERY" ]; then
 		export INCLUDE="${VCTIncludeDir};${VCTATLMFCIncDir};${WindowsSDKUmIncDir};${WindowsSDKUCRTIncDir};${WindowsSDKSharedIncDir};${WindowsSDKWinRTIncDir};${WindowsSDKCPPWinRTIncDir};$INCLUDE"
 		export LIB="${VCTLibDir};${VCTATLMFCLibDir};${WindowsSDKUCRTDir};${WindowsSDKUmDir};$LIB"
 		export LIBPATH="${VCTLibDir};${VCTATLMFCLibDir};${VCTRefDir};${WindowsSDKLibRefDir};${WindowsSDKLibUMDir};$LIBPATH"
+		VCToolsVersion=$(echo "${VCTIncludeDir}" | cut -d'\' -f 9)
+		echo "VC Tools Version: ${VCToolsVersion}"
+		echo "Windows SDK Version: ${WindowsSDKVer}"
 
 		return 0
 	else

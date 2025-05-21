@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -439,7 +439,7 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
             if res.find_atom(a.name):
                 res_bonder = res.find_atom(a.name)
                 if res_bonder not in res_bud.neighbors:
-                    add_bond(a, res_bonder)
+                    add_bond(res_bud, res_bonder)
                 continue
 
             new_atom = None

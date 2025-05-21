@@ -4,7 +4,7 @@
 #
 # These lattices are described at
 #
-#       http://viperdb.scripps.edu/icos_server.php?icspage=paradigm
+#       https://viperdb.scripps.edu/icos_server.php?icspage=paradigm
 
 
 def show_hk_lattice(session, h, k, radius, orientation='222',

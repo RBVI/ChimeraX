@@ -41,7 +41,7 @@ more productive to use our own shim code.
 """
 
 # Choose between PyQt5 and PySide2
-using_pyqt6 = using_pyqt5 = using_pyside2 = False
+using_pyqt6 = using_pyqt5 = using_pyside2 = using_pyside6 = False
 using_qt5 = using_qt6 = False
 try:
     import PyQt6
@@ -49,13 +49,18 @@ try:
     using_qt6 = True
 except ImportError:
     try:
-        import PyQt5
-        using_pyqt5 = True
-        using_qt5 = True
+        import PySide6
+        using_pyside6 = True
+        using_qt6 = True
     except ImportError:
-        import PySide2
-        using_pyside2 = True
-        using_qt5 = True
+        try:
+            import PyQt5
+            using_pyqt5 = True
+            using_qt5 = True
+        except ImportError:
+            import PySide2
+            using_pyside2 = True
+            using_qt5 = True
 
 import enum
 qt_enum_as_int = lambda val: val if isinstance(val, int) else val.value
@@ -107,6 +112,21 @@ if using_pyside2:
     # PySide2 wants ints, not enums
     qt_enum_from_int = lambda enum_class, val: val.value if isinstance(val, enum.Enum) else val
 
+if using_pyside6:
+    from PySide6 import __version__ as PYSIDE6_VERSION
+    from PySide6.QtCore import __version__ as QT_VERSION
+    version = 'PySide6 %s, Qt %s' % (PYSIDE6_VERSION, QT_VERSION)
+
+    def qt_object_is_deleted(object):
+        '''Return whether a C++ Qt QObject has been deleted.'''
+        import shiboken6
+        return not shiboken6.isValid(object)
+
+    def qt_image_bytes(qimage):
+        return qimage.bits().tobytes()
+
+    qt_enum_from_int = lambda enum_class, val: val.value if isinstance(val, enum.Enum) else val
+
 def qt_have_web_engine():
     try:
         from . import QtWebEngineWidgets
@@ -114,3 +134,10 @@ def qt_have_web_engine():
         return False
     return True
 
+def qt_delete(object):
+    if using_pyqt6:
+        import PyQt6.sip
+        PyQt6.sip.delete(object)
+    elif using_pyside6:
+        import shiboken6
+        shiboken6.delete(object)

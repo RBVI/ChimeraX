@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -32,54 +32,41 @@ log = logging.getLogger()
 from .bundle_builder_toml import Bundle, read_toml
 
 
-def build_wheel(wheel_directory, config_settings=None, metadata_directory=None) -> None:
+def build_wheel(wheel_directory, config_settings=None, metadata_directory=None) -> str:
     bundle = Bundle(log, read_toml("pyproject.toml"))
-    return bundle.build_wheel()
+    wheel = bundle.build_wheel()
+    try:
+        shutil.copyfile(wheel, os.path.join(wheel_directory, os.path.basename(wheel)))
+    except shutil.SameFileError:
+        pass
+    return os.path.basename(wheel)
 
 
-def build_sdist(sdist_directory, config_settings=None) -> None:
+def build_sdist(sdist_directory, config_settings=None) -> str:
     bundle = Bundle(log, read_toml("pyproject.toml"))
-    return bundle.build_sdist()
+    sdist = bundle.build_sdist()
+    try:
+        shutil.copyfile(sdist, os.path.join(sdist_directory, os.path.basename(sdist)))
+    except shutil.SameFileError:
+        pass
+    return os.path.basename(bundle.build_sdist())
 
 
 def build_editable(
     wheel_directory, config_settings=None, metadata_directory=None
-) -> None:
+) -> str:
     bundle = Bundle(log, read_toml("pyproject.toml"))
-    return bundle.build_editable(config_settings)
+    wheel = bundle.build_editable(config_settings)
+    try:
+        shutil.copyfile(wheel, os.path.join(wheel_directory, os.path.basename(wheel)))
+    except shutil.SameFileError:
+        pass
+    return os.path.basename(wheel)
 
 
 def get_requires_for_build_wheel(config_settings=None) -> None:
     toml_file = read_toml("pyproject.toml")
     return toml_file["build-system"]["requires"]
 
-
 get_requires_for_build_sdist = get_requires_for_build_wheel
 get_requires_for_build_editable = get_requires_for_build_wheel
-
-
-# A bug in pip requires that we specify prepare_metadata_for_build_editable, even
-# though it should take the dist-info directory of build_editable if it's not present.
-#
-# So because we don't want to teach bundle builder to make a dist info dir, since setuptools
-# will do it for us just fine, we'll just build the wheel and return its dist info directory
-# until pip is smart enough to do it on its own.
-#
-# This process is negligibly slower than building the wheel, because we discard the original
-# wheel for setuptools's new two-file editable wheel.
-def prepare_metadata_for_build_editable(
-    metadata_directory, config_settings=None
-) -> None:
-    bundle = Bundle(log, read_toml("pyproject.toml"))
-    path_to_wheel = bundle.build_wheel_for_build_editable()
-    dist_dir = os.path.dirname(path_to_wheel)
-    with zipfile.ZipFile(path_to_wheel, "r") as f:
-        f.extractall(dist_dir)
-    # Remove the old wheel and the chimerax folder, leaving only the dist-info directory.
-    os.remove(path_to_wheel)
-    shutil.rmtree(os.path.join(dist_dir, "chimerax"))
-    try:
-        dist_info_filename = glob.glob(os.path.join(dist_dir, "*.dist-info"))[0]
-    except IndexError:
-        raise ValueError("No dist info dir found")
-    return os.path.join(dist_dir, dist_info_filename)

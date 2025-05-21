@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -598,10 +598,10 @@ class Label:
         self.outline_width = outline_width
         self.scalebar_width = scalebar_width  # Angstroms
         self.scalebar_height = scalebar_height  # Pixels
-        self.drawing = d = LabelModel(session, self)
-        d.display = visibility
-        self.lb = Labels(session, view)
-        self.lb.add_label(self)
+        self.drawing = LabelModel(session, self)
+        self.drawing.display = visibility
+        self.labels = Labels(session, view)
+        self.labels.add_label(self)
 
     def update_drawing(self):
         d = self.drawing
@@ -792,7 +792,7 @@ class LabelModel(Model):
         label.update_drawing()
 
     def x3d_needs(self, x3d_scene):
-        from .. import x3d
+        from chimerax.core import x3d
 
         x3d_scene.need(x3d.Components.Text, 1)  # Text
 

@@ -4,7 +4,7 @@
 # All rights reserved. This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use. For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -91,7 +91,7 @@ class DICOMDatabases(ToolInstance):
 
     def _construct_ui(self):
         # Construct the GUI
-        self.tool_window = MainToolWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys=False)
         self.parent = self.tool_window.ui_area
         self.main_layout = QVBoxLayout()
 
@@ -347,6 +347,8 @@ class DICOMDatabases(ToolInstance):
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.thread.finished.connect(self.thread.deleteLater)
+        self.thread.finished.connect(self._on_thread_finished)
+        self.worker.finished.connect(self._on_worker_finished)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
 
@@ -379,16 +381,13 @@ class DICOMDatabases(ToolInstance):
         self.refine_dataset_button.setEnabled(True)
 
     def delete(self):
-        try:
-            self.worker.blockSignals(True)
-        except RuntimeError:
-            pass  # The underlying C++ object has already been deleted by DeleteLater
-        try:
-            if self.thread is not None and self.thread.isRunning():
-                self.thread.exit()
-        except RuntimeError:
-            pass  # The underlying C++ object has already been deleted by DeleteLater
         super().delete()
+
+    def _on_thread_finished(self):
+        self.thread = None
+
+    def _on_worker_finished(self):
+        self.worker = None
 
     def _on_main_table_double_clicked(self, items):
         if self.refine_dataset_button.isEnabled():

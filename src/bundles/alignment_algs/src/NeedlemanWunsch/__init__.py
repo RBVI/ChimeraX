@@ -94,7 +94,7 @@ def matches_to_gapped_seqs(matches, s1, s2, gap_char=".", reverse_sorts=True):
 def clone_seq(seq):
     from copy import copy
     clone = copy(seq)
-    if hasattr(clone, "structure"):
+    if getattr(clone, "structure", None) is not None:
         clone.name = clone.structure.name + ", " + clone.name
     clone[:] = ""
     return clone

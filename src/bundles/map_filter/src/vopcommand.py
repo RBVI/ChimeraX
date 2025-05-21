@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -663,6 +663,10 @@ def volume_gaussian(session, volumes, s_dev = (1.0,1.0,1.0), bfactor = None,
         sd = sqrt(abs(bfactor)/(3*8*pi**2))
         s_dev = (sd,sd,sd)
 
+    if (isinstance(s_dev, float) and s_dev < 0) or [sd for sd in s_dev if sd <= 0]:
+        from chimerax.core.errors import UserError
+        raise UserError('volume gaussian standard deviation values must be positive.')
+    
     from .gaussian import gaussian_convolve
     gv = [gaussian_convolve(v, s_dev, step, subregion, value_type, invert, model_id, session = session)
           for v in volumes]

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -48,6 +48,49 @@ def structure_save_name(s):
 
 def chain_save_name(chain):
     return structure_save_name(chain.structure) + '/' + chain.chain_id.replace(' ', '_')
+
+def save_template(session, pdb_file_name, template, ATOM_res_names):
+    # Modeller has a bug such that if the non-polymeric residue following the end of a chain
+    # has an 'N' atom, it will connect that residue to the chain despite the presence of a TER
+    # card [#16987].  Try to work around the problem by reordering the non-polymeric residues
+    # that follow a chain so that the first one does not have an 'N' atom if possible.
+    initial_order = template.residues
+    do_reordering = False
+    order = []
+    non_poly = []
+    last_poly = True
+    for r in initial_order:
+        if r.polymer_type == r.PT_NONE:
+            if last_poly:
+                if r.find_atom('N'):
+                    non_poly.append(r)
+                else:
+                    order.append(r)
+            else:
+                if non_poly:
+                    if r.find_atom('N'):
+                        non_poly.append(r)
+                    else:
+                        do_reordering = True
+                        order.append(r)
+                        order.extend(non_poly)
+                        non_poly.clear()
+                else:
+                    order.append(r)
+            last_poly = False
+        else:
+            if non_poly:
+                order.extend(non_poly)
+                non_poly.clear()
+            order.append(r)
+            last_poly = True
+    if do_reordering:
+        order.extend(non_poly)
+        template.reorder_residues(order)
+    from chimerax.pdb import save_pdb
+    save_pdb(session, pdb_file_name, models=[template], polymeric_res_names=ATOM_res_names)
+    if do_reordering:
+        template.reorder_residues(initial_order)
 
 def regularized_seq(aseq, chain):
     mmap = aseq.match_maps[chain]

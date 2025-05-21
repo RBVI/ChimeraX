@@ -1,5 +1,4 @@
 # vim: set expandtab shiftwidth=4:
-
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -10,25 +9,26 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+"""
+User interface for bug reporter.
+"""
+from chimerax.core.tools import ToolInstance
 
 BUG_HOST = "www.rbvi.ucsf.edu"
 BUG_SELECTOR = "/chimerax/cgi-bin/chimerax_bug_report.py"
 BUG_URL = "https://" + BUG_HOST + BUG_SELECTOR
 
-# -----------------------------------------------------------------------------
-# User interface for bug reporter.
-#
-from chimerax.core.tools import ToolInstance
 
 # ------------------------------------------------------------------------------
 #
 class BugReporter(ToolInstance):
 
-    def __init__(self, session, tool_name):
+    def __init__(self, session, tool_name, is_known_crash = False):
         import locale
 
         self._ses = session
-        
+        self.is_known_crash = is_known_crash
+
         ToolInstance.__init__(self, session, tool_name)
 
         from .settings import BugReporterSettings
@@ -43,15 +43,15 @@ class BugReporter(ToolInstance):
         from Qt.QtWidgets import QGridLayout, QLabel, QPushButton, QLineEdit, QTextEdit
         from Qt.QtWidgets import QWidget, QHBoxLayout, QCheckBox
         from Qt.QtCore import Qt
-        
+
         layout = QGridLayout(parent)
-        layout.setContentsMargins(3,3,3,3)
+        layout.setContentsMargins(3, 3, 3, 3)
         layout.setHorizontalSpacing(3)
         layout.setVerticalSpacing(3)
         parent.setLayout(layout)
 
         row = 1
-        
+
         intro = '''
         <center><h1>Report a Bug</h1></center>
         <p>Thank you for using our feedback system.
@@ -68,9 +68,9 @@ class BugReporter(ToolInstance):
         il.setWordWrap(True)
         layout.addWidget(il, row, 1, 1, 2)
         row += 1
-        
+
         cnl = QLabel('Contact Name:')
-        align_right = Qt.AlignRight|Qt.AlignVCenter
+        align_right = Qt.AlignRight | Qt.AlignVCenter
         cnl.setAlignment(align_right)
         layout.addWidget(cnl, row, 1)
         self.contact_name = cn = QLineEdit(self.settings.contact_name)
@@ -88,15 +88,17 @@ class BugReporter(ToolInstance):
             def __init__(self, text, initial_line_height):
                 self._lines = initial_line_height
                 QTextEdit.__init__(self, text)
+
             def sizeHint(self):
                 from Qt.QtCore import QSize
                 fm = self.fontMetrics()
                 h = self._lines * fm.lineSpacing() + fm.ascent()
                 size = QSize(-1, h)
                 return size
+
             def minimumSizeHint(self):
                 from Qt.QtCore import QSize
-                return QSize(1,1)
+                return QSize(1, 1)
 
         dl = QLabel('Description:')
         dl.setAlignment(align_right)
@@ -130,15 +132,15 @@ class BugReporter(ToolInstance):
         layout.addWidget(fb, row, 2)
         fbl = QHBoxLayout(fb)
         fbl.setSpacing(3)
-        fbl.setContentsMargins(0,0,0,0)
+        fbl.setContentsMargins(0, 0, 0, 0)
         self.attachment = fa = QLineEdit('')
         fbl.addWidget(fa)
         fab = QPushButton('Browse')
         fab.clicked.connect(lambda e: self.file_browse())
         fbl.addWidget(fab)
-        
+
         row += 1
-        
+
         pl = QLabel('Platform:')
         pl.setAlignment(align_right)
         layout.addWidget(pl, row, 1)
@@ -147,7 +149,7 @@ class BugReporter(ToolInstance):
         p.setReadOnly(True)
         layout.addWidget(p, row, 2)
         row += 1
-        
+
         vl = QLabel('ChimeraX Version:')
         vl.setAlignment(align_right)
         layout.addWidget(vl, row, 1)
@@ -155,16 +157,16 @@ class BugReporter(ToolInstance):
         v.setReadOnly(True)
         layout.addWidget(v, row, 2)
         row += 1
-        
+
         il = QWidget()
         layout.addWidget(il, row, 2)
         ilayout = QHBoxLayout(il)
-        ilayout.setContentsMargins(0,0,0,0)
+        ilayout.setContentsMargins(0, 0, 0, 0)
         self.include_log = ilc = QCheckBox()
         ilc.setChecked(True)
         ilayout.addWidget(ilc)
         ill = QLabel('Include log contents in bug report')
-        align_left = Qt.AlignLeft|Qt.AlignVCenter
+        align_left = Qt.AlignLeft | Qt.AlignVCenter
         ill.setAlignment(align_left)
         ilayout.addWidget(ill)
         ilayout.addStretch(1)
@@ -178,18 +180,18 @@ class BugReporter(ToolInstance):
         # Button row
         brow = QWidget()
         blayout = QHBoxLayout()
-        blayout.setContentsMargins(0,0,0,0)
+        blayout.setContentsMargins(0, 0, 0, 0)
         blayout.setSpacing(2)
         brow.setLayout(blayout)
         layout.addWidget(brow, row, 1, 1, 2)
         row += 1
 
         blayout.addStretch(1)    # Extra space at start of button row.
-        
+
         self.submit_button = sb = QPushButton('Submit', brow)
         sb.clicked.connect(lambda e: self.submit())
         blayout.addWidget(sb)
-        
+
         self.cancel_button = cb = QPushButton('Cancel', brow)
         cb.clicked.connect(lambda e: self.cancel())
         blayout.addWidget(cb)
@@ -202,13 +204,17 @@ class BugReporter(ToolInstance):
     def hide(self):
         self.tool_window.shown = False
 
-    def set_description(self, text):
+    def set_description(self, text, minimum_height = None):
         self.description.setText(text)
-        self.description.selectAll()
+        if minimum_height is not None:
+            self.description.setMinimumHeight(minimum_height)
 
     def submit(self):
 
         entry_values = self.entry_values()
+        if self.is_known_crash and not entry_values.get('email'):
+            self.report_email_required_for_known_crashes()
+            return
 
         # Include log contents in description
         if self.include_log.isChecked():
@@ -235,8 +241,8 @@ class BugReporter(ToolInstance):
         # Add attachment to form data.
         file_list = self.read_attachment(entry_values['filename'])
         if file_list is None:
-            return	# Attachment file not found.
-        fields = [(k, None, v) for k,v in my_attrs.items()]
+            return  # Attachment file not found.
+        fields = [(k, None, v) for k, v in my_attrs.items()]
         fields.extend(file_list)
 
         # Post form data.
@@ -260,7 +266,7 @@ class BugReporter(ToolInstance):
         except Exception:
             self._ses.logger.warning('Failed to send bug report. Error while sending follows:')
             import traceback
-            traceback.print_exc()	# Log detailed exception info
+            traceback.print_exc()  # Log detailed exception info
             self.report_failure()
             return
 
@@ -268,7 +274,7 @@ class BugReporter(ToolInstance):
         if int(errcode) == 200:
             self.report_success()
             self.cancel_button.setText("Close")
-            self.submit_button.deleteLater()	# Prevent second submission
+            self.submit_button.deleteLater()  # Prevent second submission
             s = self.settings
             s.contact_name = self.contact_name.text()
             s.email_address = self.email_address.text()
@@ -277,7 +283,7 @@ class BugReporter(ToolInstance):
 
     def read_attachment(self, file_path):
         if file_path:
-            import os, os.path
+            import os
             if not os.path.isfile(file_path):
                 self.status("Couldn't locate file '%s'."
                             "  Please choose a valid file."
@@ -303,42 +309,53 @@ class BugReporter(ToolInstance):
         if color is not None:
             text = "<font color='{color}'>{text}</font>"
         self.result.setText(text)
-        
+
     def report_success(self):
         from chimerax.core.colors import scheme_color
         color = scheme_color('status')
-        thanks = (f"<h3><font color='{color}'>Thank you for your report</font></h3>"
-                "<p>Your report will be evaluated by a Chimera developer"
-                " and if you provided an e-mail address,"
-                " then you will be contacted with a report status.")
+        thanks = (
+            f"<h3><font color='{color}'>Thank you for your report</font></h3>"
+            "<p>Your report will be evaluated by a Chimera developer"
+            " and if you provided an e-mail address,"
+            " then you will be contacted with a report status.")
         self.result.setText(thanks)
 
-    def report_failure(self, reason = None):
+    def report_failure(self, reason=None):
         from chimerax.core.colors import scheme_color
         color = scheme_color("error")
         link = scheme_color("LinkText", expand=True)
         detail = ('<p>%s</p>' % reason) if reason else ''
-        
+
         # QLabel doesn't support <a> nor LinkText color
-        oops = (f"<h3><font color='{color}'>Error while submitting feedback</font></h3>"
-                + detail +
-                "<p>An error occurred when trying to submit your feedback."
-                "  No information was received by the Computer Graphics Lab."
-                "  This could be due to network problems, but more likely,"
-                " there is a problem with Computer Graphics Lab's server."
-                "  Please report this problem by sending email to"
-                " <font color='{link}'>chimerax-bugs@cgl.ucsf.edu</font>"
-                " and paste a copy of the ChimeraX log into the email.</p>"
-                "<p>We apologize for any inconvenience, and do appreciate"
-                " you taking the time to provide us with valuable feedback.")
+        oops = (
+            f"<h3><font color='{color}'>Error while submitting feedback</font></h3>"
+            + detail +
+            "<p>An error occurred when trying to submit your feedback."
+            "  No information was received by the Computer Graphics Lab."
+            "  This could be due to network problems, but more likely,"
+            " there is a problem with Computer Graphics Lab's server."
+            "  Please report this problem by sending email to"
+            f" <font color='{link}'>chimerax-bugs@cgl.ucsf.edu</font>"
+            " and paste a copy of the ChimeraX log into the email.</p>"
+            "<p>We apologize for any inconvenience, and do appreciate"
+            " you taking the time to provide us with valuable feedback.")
         self.result.setText(oops)
 
+    def report_email_required_for_known_crashes(self):
+        from chimerax.core.colors import scheme_color
+        color = scheme_color('status')
+        thanks = (
+            f"<h3><font color='{color}'<h3>Not submitted: This crash was already reported</font></h3>"
+            "<p>What we know about this crash is described in the Description panel in red."
+            " If you wish to discuss this crash with us you have to provide an email address.")
+        self.result.setText(thanks)
+        
     def cancel(self):
         self.delete()
 
     def file_browse(self):
         from Qt.QtWidgets import QFileDialog
-        path,type = QFileDialog.getOpenFileName()
+        path, type = QFileDialog.getOpenFileName()
         if path:
             self.attachment.setText(path)
 
@@ -358,24 +375,28 @@ class BugReporter(ToolInstance):
         }
         return values
 
-def show_bug_reporter(session):
+
+def show_bug_reporter(session, is_known_crash = False):
     from Qt.QtCore import QTimer
     tool_name = 'Bug Reporter'
-    tool = BugReporter(session, tool_name)
+    tool = BugReporter(session, tool_name, is_known_crash = is_known_crash)
     # make sure bug report is active and description has focus
-    QTimer.singleShot(0, lambda *args, tool=tool:
-          (tool.tool_window.ui_area.activateWindow(), tool.description.setFocus()))
+    QTimer.singleShot(
+        0, lambda *args, tool=tool:
+        (tool.tool_window.ui_area.activateWindow(), tool.description.setFocus()))
     return tool
+
 
 def add_help_menu_entry(session):
     ui = session.ui
     if ui.is_gui:
         def main_window_created(tname, tdata):
             mw = ui.main_window
-            mw.add_menu_entry(['Help'], 'Report a Bug', lambda: show_bug_reporter(session),
-                insertion_point = "Contact Us")
+            mw.add_menu_entry(
+                ['Help'], 'Report a Bug', lambda: show_bug_reporter(session),
+                insertion_point="Contact Us")
             return "delete handler"
-    
+
         ui.triggers.add_handler('ready', main_window_created)
 
 
@@ -606,6 +627,7 @@ OS_LANGUAGES = {
     58380: "fr-015",
 }
 
+
 def opengl_info(session):
     r = session.main_view.render
     try:
@@ -619,6 +641,7 @@ def opengl_info(session):
                  'Could not make opengl context current']
     return '\n'.join(lines)
 
+
 def system_summary():
     from sys import platform
     if platform == 'win32':
@@ -630,6 +653,7 @@ def system_summary():
     else:
         info = ''
     return info
+
 
 def _win32_info():
     try:
@@ -677,7 +701,7 @@ def _linux_info():
         # ignore return code
         virtual_machine = p.stdout.split('\n', 1)[0]
     except Exception:
-        # TODO: find other non-root methods to try 
+        # TODO: find other non-root methods to try
         virtual_machine = "detection failed"
     try:
         with open("/proc/cpuinfo", encoding='utf-8') as f:
@@ -737,7 +761,7 @@ def _linux_info():
             if "VGA compatible" in line:
                 break
         graphics_info = '\t\n'.join([line, next(lines), next(lines)])
-    except Exception as e:
+    except Exception:
         graphics_info = "unknown"
 
     dmi_prefix = "/sys/devices/virtual/dmi/id/"

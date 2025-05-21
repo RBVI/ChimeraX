@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ProfileGrids" version="1.0"
+<BundleInfo name="ChimeraX-ProfileGrids" version="1.1.2"
 	    package="chimerax.profile_grids"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -30,7 +30,8 @@
 
   <Providers manager="alignments">
 	<!-- subcommand_name also defined in __init__.py and used in various other .py files -->
-    <Provider name="profile-grids" synonyms="pg,grid" subcommand_name="grid" type="viewer"/>
+    <Provider name="profile grid" synonyms="pg,grid,profile" subcommand_name="grid" type="viewer"
+		sequence_viewer="false" />
   </Providers>
 
 

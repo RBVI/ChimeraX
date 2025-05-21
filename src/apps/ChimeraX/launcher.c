@@ -43,7 +43,7 @@ static const int debug_ec = sizeof(debug_extra) / sizeof (debug_extra[0]);
 
 /*
  * Make Nvidia Optimus GPU switching choose high performance graphics.
- * http://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
+ * https://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
  */
 #ifdef _WIN32
 _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;

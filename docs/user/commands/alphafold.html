@@ -96,6 +96,7 @@ target="_blank">presentations</a> and
 <a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
 target="_blank">videos</a> show modeling with AlphaFold and related analyses.
 See also:
+<a href="boltz.html"><b>boltz</b></a>,
 <a href="esmfold.html"><b>esmfold</b></a>,
 <a href="blastprotein.html"><b>blastprotein</b></a>,
 <a href="modeller.html"><b>modeller</b></a>,
@@ -652,6 +653,9 @@ the <a href="../tools/alphafold.html#pae"><b>AlphaFold Error Plot</b></a>
 tool, <a href="#fetch"><b>alphafold fetch</b></a> or 
 <a href="#fetch"><b>alphafold match</b></a> with the option <b>pae true</b>,
 or the <a href="open.html#pae"><b>open</b></a> command.
+PAE and other pairwise metrics associated with 
+<a href="https://modelarchive.org/" target="_blank">ModelArchive</a> entries
+can also be plotted (see <a href="modelcif.html#pae"><b>modelcif pae</b></a>).
 See also the
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/pae-apr2022/pae.html"
 target="_blank">AlphaFold Error Estimates example</a> and
@@ -681,9 +685,12 @@ With <b>alphafold pae</b>, the matrix of PAE values can be:
 target="_blank">AlphaFold Database</a> with the <b>uniprotId</b> option,
 where <i>uniprot</i> is the the UniProt name or accession number of an entry 
 in the database
-<br>&ndash; or &ndash;
-<li>a json or pkl file from AlphaFold specified with the <b>file</b> option.
-The <i>filename</i> is generally a pathname to a local file, 
+<li>read from a json, pkl, npy (from 
+<a href="https://www.chaidiscovery.com/blog/introducing-chai-1" 
+target="_blank">Chai-1</a>), or npz (from 
+<a href="https://jclinic.mit.edu/boltz-1/" target="_blank">Boltz-1</a>)
+file specified with the <b>file</b> option, where
+<i>filename</i> is generally a pathname to a local file, 
 either absolute or relative to the current working directory as reported by 
 <a href="pwd.html"><b>pwd</b></a>. Substituting the word 
 <a href="usageconventions.html#browse"><b>browse</b></a>
@@ -875,8 +882,9 @@ gives those whose error values are reported, except that using
 <b>flip true</b> swaps the meaning of 
 <a href="atomspec.html"><i>atom-spec1</i></a> and
 <a href="atomspec.html"><i>atom-spec2</i></a>.
-If one set of entities is higher-confidence (lower in 
-<a href="https://alphafold.ebi.ac.uk/faq#faq-12" target="_blank">pLDDT</a>)
+If one set of entities is higher-confidence (higher in 
+<a href="https://alphafold.ebi.ac.uk/faq#faq-12" target="_blank">pLDDT</a>,
+lower in PAE)
 than the other, it is usually best to specify them as the aligned set
 so that the coloring will show the error values of the lower-confidence set.
 </p><p>
@@ -1145,7 +1153,11 @@ For each predicted dimer:
 chain-chain interface with any atoms &le; <b>distance</b> <i>d</i> apart
 (default <b>4.0</b> &Aring;) are considered
 <li>of these, residue pairs with PAE &le; <b>maxPae</b>
-<i>max-error</i> (default <b>5.0</b> &Aring;) are counted
+<i>max-error</i> (default <b>5.0</b> &Aring;) are counted. 
+Both of the PAE values for a given pair of residues are considered
+(the PAE matrix is not symmetrical, meaning that res1-res2 and res2-res1 
+values are different), and the lower one is compared to the <b>maxPae</b> 
+setting.
 <li>if at least <b>minConfPairs</b> <i>N</i> (default <b>10</b>)
 of the interface residue pairs meet both the distance and PAE criteria,
 the dimer is included in the list of possible binders
@@ -1202,5 +1214,5 @@ the hundreds of files that ColabFold produces.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2024</address>
+May 2025</address>
 </body></html>

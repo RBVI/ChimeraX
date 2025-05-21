@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -50,6 +50,9 @@ class RMSD(DynamicStructureHeaderSequence):
     def alignment_notification(self, note_name, note_data):
         if note_name == self.alignment.NOTE_RMSD_UPDATE:
             self.reevaluate()
+        elif note_name == self.alignment.NOTE_REALIGNMENT:
+            with self.alignment_notifications_suppressed():
+                self.reevaluate()
 
     @property
     def atoms(self):

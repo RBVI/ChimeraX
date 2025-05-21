@@ -1,0 +1,64 @@
+<BundleInfo name="ChimeraX-PDB" version="2.7.6"
+	    package="chimerax.pdb" purePython="false"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>PDB format read/write</Synopsis>
+  <Description>This bundle provides the abiility to fetch and read PDB files.</Description>
+
+  <Categories>
+    <Category name="Molecular structure"/>
+  </Categories>
+
+  <CModule name="_pdbio">
+    <SourceFile>pdbio_cpp/PDBio.cpp</SourceFile>
+    <IncludeDir>pdb_cpp/include</IncludeDir>
+    <LibraryDir>pdb_cpp/lib</LibraryDir>
+    <Library>atomstruct</Library>
+    <Library>element</Library>
+    <Library>pyinstance</Library>
+    <Library>logger</Library>
+    <Library>pdb</Library>
+    <Library>pdbconnect</Library>
+    <Library>arrays</Library>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=14.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-IO" version="~=1.0.1"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+    <Dependency name="ChimeraX-PDBLibrary" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="PDB" category="Molecular structure" suffixes=".pdb,.pdb1,.ent,.pqr" default_for=".pdb"
+        mime_types="chemical/x-pdb,chemical/x-spdbv" encoding="utf-8"
+		reference_url="http://www.wwpdb.org/documentation/file-format" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="PDB" />
+    <Provider name="pdb" type="fetch" format_name="pdb" is_default="false" />
+    <Provider name="pdbe" type="fetch" format_name="pdb" is_default="false" />
+    <Provider name="pdbj" type="fetch" format_name="pdb" is_default="false" />
+    <Provider name="redo" type="fetch" format_name="pdb" is_default="false" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="PDB" compression_okay="false" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

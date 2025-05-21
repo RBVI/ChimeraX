@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -129,9 +129,9 @@ def measure_map_values(session, map, atoms, attribute = 'mapvalue'):
                (map.name_with_id(), len(atoms), values.min(), values.max(),
                 values.mean(), values.std()))
     elif len(outside) < len(atoms):
-        from numpy import ones, uint8
-        inside = ones((len(atoms),), uint8)
-        inside[outside] = 0
+        from numpy import ones
+        inside = ones((len(atoms),), bool)
+        inside[outside] = False
         v = values[inside]
         msg = ('Interpolated map %s values at %d atom positions (%d outside map bounds),'
                ' min %.4g, max %.4g, mean %.4g, SD %.4g' %

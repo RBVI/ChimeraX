@@ -461,7 +461,7 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> &nbsp;<b>byattribute</b>
-&nbsp;[<b>a:</b>][<b>r:</b>][<b>m:</b>]<a href="../attributes.html#attrnames"><i>attribute-name</i></a>&nbsp;
+&nbsp;[<b>a:</b>][<b>r:</b>][<b>c:</b>][<b>m:</b>]<a href="../attributes.html#attrnames"><i>attribute-name</i></a>&nbsp;
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<i>what</i>&nbsp;|&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -501,9 +501,10 @@ https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/thre
 the less common case, monomers in the same cplx: https://youtu.be/usSDWOGjwhU
 -->
 </p><p>
-An <b>a:</b>, <b>r:</b>, or <b>m:</b> immediately preceding the
+An <b>a:</b>, <b>r:</b>, <b>c:</b>, or <b>m:</b> immediately preceding the
 <a href="../attributes.html#attrnames">attribute name</a>
-can be used to indicate the attribute level as atom, residue, or (atomic) model,
+can be used to indicate the attribute level as atom, residue, chain,
+or (atomic) model,
 but this is only needed when the name exists at multiple levels. 
 The color-to-value mapping is specified
 with <a href="#palette-options">palette options</a>
@@ -607,6 +608,7 @@ to make the cap match the nearby atoms.
 [&nbsp;<a href="#palette"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
 [&nbsp;<b>range</b>&nbsp;&nbsp;<i>low</i>,<i>high</i>&nbsp;|&nbsp;full&nbsp;]
 [&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<b>outsideColor</b>&nbsp&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 </blockquote>
 <p>
 The <b>sample</b>, <b>electrostatic</b>, and <b>gradient</b> coloring options
@@ -626,7 +628,12 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=white width="10px" title="white"></td>
 <td bgcolor=blue width="10px" title="blue"></td>
 </tr></table> and the <a href="#range"><b>range</b></a> default depends on the 
-specific type of map coloring, explained below.
+specific type of map coloring, explained below;
+the <b>outsideColor</b> is used for surface vertices 
+that fall outside the volume data grid box
+(default <b>#808080</b> <table border cellpadding="4" cellspacing="0"
+style="display:inline-block"><tr>
+<td bgcolor="#808080" width="10px" title="#808080"></td></tr></table>).
 </p><p>
 When the coloring command is run interactively (in gui mode and not via a
 <a href="usageconventions.html#cxc-files">script</a>),
@@ -1310,5 +1317,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2024</address>
+January 2025</address>
 </body></html>

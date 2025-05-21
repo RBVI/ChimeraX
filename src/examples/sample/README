@@ -2,7 +2,7 @@ This directory contains code for generating a sample ChimeraX bundle
 using only an installed ChimeraX application rather than the entire
 ChimeraX source tree.
 
-See http://www.cgl.ucsf.edu/chimerax/docs/devel/writing_bundles.html
+See https://www.cgl.ucsf.edu/chimerax/docs/devel/writing_bundles.html
 for more details on how to build and distribute bundles.
 
 NOTE:

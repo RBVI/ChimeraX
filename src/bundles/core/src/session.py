@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -501,7 +501,7 @@ class Session:
 
     def __init__(
         self,
-        app_name,
+        app_name = "ChimeraX",
         *,
         debug=False,
         silent=False,
@@ -877,18 +877,25 @@ class Session:
                                     % cls.__name__
                                 )
                     mgr.add_reference(name, obj)
-        except Exception:
+        except Exception as err:
             import traceback
 
-            self.logger.bug(
-                "Unable to restore session, resetting.\n\n%s" % traceback.format_exc()
-            )
+            if isinstance(err, RuntimeError) and "ERROR_decompressionFailed" in str(err):
+                self.logger.info(
+                    "Unable to restore session, resetting: corrupt session file"
+                )
+            else:
+                self.logger.bug(
+                    "Unable to restore session, resetting.\n\n%s" % traceback.format_exc()
+                )
             self.reset()
             self.restore_options["error encountered"] = True
         finally:
             self.triggers.activate_trigger("end restore session", self)
             self.restore_options.clear()
             mgr.cleanup()
+        from chimerax.core.commands import run
+        run(self, "view name session-start")
 
 
 class InScriptFlag:
@@ -933,7 +940,7 @@ def standard_metadata(previous_metadata={}):
     is previous metadata with different values.
 
     Dates are in ISO 8601 UTC time.  Also see
-    <http://www.w3.org/TR/NOTE-datetime>.
+    <https://www.w3.org/TR/NOTE-datetime>.
 
     Metadata names are inspired by the HTML5 metadata,
     https://www.w3.org/TR/html5/document-metadata.html.
@@ -958,7 +965,7 @@ def standard_metadata(previous_metadata={}):
     if previous_metadata:
         metadata.update(previous_metadata)
     generator = unescape(html_user_agent(app_dirs)) if app_dirs else app_name
-    generator += ", http://www.rbvi.ucsf.edu/chimerax/"
+    generator += ", https://www.rbvi.ucsf.edu/chimerax/"
     metadata["generator"] = generator
     now = datetime.datetime.now(tz=datetime.timezone.utc)
     iso_date = now.isoformat() + "Z"
@@ -1215,7 +1222,7 @@ def save_x3d(session, path, transparent_background=False):
             # TODO? Skip units since it confuses X3D viewers and requires version 3.3
             units={"length": ("ångström", 1e-10)},
             # not using any of Chimera's extensions yet
-            # namespaces={"chimera": "http://www.cgl.ucsf.edu/chimera/"}
+            # namespaces={"chimera": "https://www.cgl.ucsf.edu/chimera/"}
         )
         cofr = session.main_view.center_of_rotation
         r, a = camera.position.rotation_axis_and_angle()

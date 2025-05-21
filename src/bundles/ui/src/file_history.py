@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -24,7 +24,7 @@ class FileHistory:
         if no_hist_text:
             self.no_hist_text = no_hist_text
         else:
-            self.no_hist_text = f'<html><style>{session.ui.dark_css()}</style><body>No files in history</body></html>'
+            self.no_hist_text = 'No files in history'
 
         self.file_history_window = fhw = HistoryWindow(session, parent, **kw)
 
@@ -45,10 +45,9 @@ class FileHistory:
         if len(files) == 0:
             html = self.no_hist_text
         else:
-            lines = ['<html>', '<body>', '<style>', 'table { float:left; }']
+            lines = ['<style>', 'table { float:left; }']
             if self.bg_color:
                 lines.extend(['body {', '    background-color: %s;' % self.bg_color, '}'])
-            lines.append(self.session.ui.dark_css())
             lines.append('</style>')
             w,h = self.thumbnail_size
             # TODO: Qt 5.6.0 bug in QT-53414 makes web content > 2 Mbytes not display.
@@ -68,7 +67,6 @@ class FileHistory:
                         % (cmd, img, cmd, descrip, name))
                 lines.append(line)
                 hbytes += len(line)
-            lines.extend(['</body>', '</html>'])
             html = '\n'.join(lines)
         return html
 
@@ -87,7 +85,7 @@ class FileHistory:
         return self._default_image
         
     def update_html(self):
-        html = self.history_html()
+        html= f'<html><style>{self.session.ui.dark_css()}</style><body>' + self.history_html() + '</body></html>'
         fhw = self.file_history_window
         fhw.setHtml(html)
 #        fhw.setUrl(QUrl('file:///Users/goddard/Desktop/test.html'))  # Works with > 2Mb history html

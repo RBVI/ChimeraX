@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -70,7 +70,7 @@ PSEUDO_PYRIMIDINE = 'pseudo-pyrimidine'
 # From "A Standard Reference Frame for the Description of Nucleic Acid
 # Base-pair Geometry", Olsen et. al., J. Mol. Biol. (2001) V. 313, pp.
 # 229-237.  A preliminary version is available for free at
-# <http://ndbserver.rutgers.edu/ndbmodule/archives/reports/tsukuba/tsukuba.pdf>.
+# <https://ndbserver.rutgers.edu/ndbmodule/archives/reports/tsukuba/tsukuba.pdf>.
 # DOI: 10.1006/jmbi.2001.4987
 _purine_C2_index = _full_purine.index("C2")
 _pyrimidine_C2_index = _pyrimidine.index("C2")
@@ -341,6 +341,30 @@ _BaseAnchors = {
     PYRIMIDINE: 'N1',
     PSEUDO_PYRIMIDINE: 'C5'
 }
+
+
+class Plane:
+    """Override chimerax.geometry.Plane to preserve chirality"""
+
+    def __init__(self, pts):
+        # Newell's algorithm
+        normal = numpy.array((0.0, 0.0, 0.0))
+        accum = numpy.array((0.0, 0.0, 0.0))
+        for i, pt1 in enumerate(pts):
+            pt2 = pts[(i + 1) % len(pts)]
+            normal[0] += (pt1[1] - pt2[1]) * (pt1[2] + pt2[2])
+            normal[1] += (pt1[2] - pt2[2]) * (pt1[0] + pt2[0])
+            normal[2] += (pt1[0] - pt2[0]) * (pt1[1] + pt2[1])
+            accum += pt1
+        n = self.normal = normalize_vector(normal)
+        o = self.origin = accum / len(pts)
+        self.offset = -(n[0] * o[0] + n[1] * o[1] + n[2] * o[2])
+
+    def nearest(self, pt):
+        return pt - self.normal * self.distance(pt)
+
+    def distance(self, pt):
+        return numpy.sum(self.normal * pt) + self.offset
 
 
 def anchor(ribose_or_base, tag):
@@ -681,7 +705,7 @@ def _rebuild_molecule(trigger_name, mol):
     residues = sides['orient']
     if residues:
         for r in residues:
-            shapes = draw_orientation(nd, r)
+            shapes = draw_orientation(nd, r, nuc_info[r].get('name'))
             all_shapes.extend(shapes)
     hide_riboses = Residues(hide_riboses)
     hide_bases = Residues(hide_bases)
@@ -689,7 +713,7 @@ def _rebuild_molecule(trigger_name, mol):
         nd.add_shapes(all_shapes)
 
     if hide_bases:
-        # Until we have equivalent of ribbon_coord for atoms
+        # Until we have equivalent of effective_coord for atoms
         # hidden by nucleotide representations, we hide the
         # hydrogen bonds to atoms hidden by nucleotides.
         hide_hydrogen_bonds(hide_bases)
@@ -876,7 +900,7 @@ def bonds_between(atoms):
     return bonds
 
 
-def orient_planar_ring(nd, atoms, ring_indices):
+def orient_planar_ring(nd, atoms, ring_indices, description):
     shapes = []
     r = atoms[0].residue
     # TODO:
@@ -901,20 +925,27 @@ def orient_planar_ring(nd, atoms, ring_indices):
     for r in ring_indices:
         center = numpy.average([pts[i] for i in r], axis=0) + offset
         va, na, ta = get_sphere(radius, center)
-        shapes.append(AtomicShapeInfo(va, na, ta, color, str(atoms)))
+        shapes.append(AtomicShapeInfo(va, na, ta, color, atoms, description))
     return shapes
 
 
-def draw_orientation(nd, residue):
+def draw_orientation(nd, residue, name):
+    if name is None:
+        description = None
+    else:
+        standard = standard_bases[name]
+        tag = standard['tag']
+        description = '%s %s' % (residue, tag)
     shapes = []
     ring = get_ring(residue, _full_purine)
     if ring:
         indices = [_full_purine_1, _full_purine_2]
-        shapes.extend(orient_planar_ring(nd, ring, indices))
+        shapes.extend(orient_planar_ring(nd, ring, indices, description))
+        return shapes
     ring = get_ring(residue, _pyrimidine)
     if ring:
         indices = [_pyrimidine_1]
-        shapes.extend(orient_planar_ring(nd, ring, indices))
+        shapes.extend(orient_planar_ring(nd, ring, indices, description))
     return shapes
 
 
@@ -949,6 +980,11 @@ def draw_tube(nd, residue, name, params):
     c4p = residue.find_atom("C4'")
     if not c4p:
         return shapes
+    if residue.ribbon_display and residue.ribbon_hide_backbone:
+        # Make sure effective_coord is on the ribbon
+        # since the tube will later hide the C2' and O4'.
+        # See C++ atom_update_ribbon_backbone_atom_visibility() code.
+        Atoms([c3p, c4p]).set_hide_bits(Atoms.HIDE_RIBBON)
     c3p_coord = c3p.effective_coord
     c4p_coord = c4p.effective_coord
     ep1 = (c3p_coord + c4p_coord) / 2

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -54,6 +54,8 @@ import re
 import shutil
 import sys
 import sysconfig
+from typing import Optional
+from pathlib import Path
 
 if sys.version_info < (3, 11, 0):
     import tomli as tomllib
@@ -134,6 +136,7 @@ from .classifiers import (
 
 # Python version was 3.7 in ChimeraX 1.0
 CHIMERAX1_0_PYTHON_VERSION = "3.7"
+CHIMERAX_LCD_LINUX_TAG = "manylinux_2_28"
 
 _platforms = {
     "linux": ["linux"],
@@ -223,13 +226,13 @@ class Bundle:
                 "Bundle renamed to %r after replacing "
                 "underscores with hyphens." % self.name
             )
-
-        self.bundle_base_name = self.name.replace("ChimeraX-", "")
         if "module-name-override" in chimerax_data:
-            self.module_name = f'chimerax.{chimerax_data.get("module-name-override")}'
+            override = chimerax_data.get("module-name-override")
         else:
-            self.module_name = self.name.replace("-", ".").lower()
-        self.dist_info_name = self.name.replace("-", "_")
+            override = None
+        self.bundle_base_name, self.module_name, self.dist_info_name = (
+            self.format_module_name(self.name, override)
+        )
 
         # If version is dynamic then we'll attempt to build the wheel and use the version number
         # that setuptools found to check the built wheel
@@ -266,7 +269,7 @@ class Bundle:
             self.supersedes = chimerax_data.get("supercedes")
         else:
             self.supersedes = []
-        self.custom_init = str(chimerax_data.get("custom-init", ""))
+        self.custom_init = chimerax_data.get("custom-init", False)
         self.categories = chimerax_data.get("categories", [])
         if len(self.categories) == 0:
             category = chimerax_data.get("category", "")
@@ -385,12 +388,15 @@ class Bundle:
                 self.initializations.append(Initialization(entry_type, _bundles))
         if "extension" in chimerax_data:
             for name, attrs in chimerax_data["extension"].items():
+                attrs['limited-api'] = self.limited_api
                 self.c_modules.append(_CModule(name, attrs))
         if "library" in chimerax_data:
             for name, attrs in chimerax_data["library"].items():
+                attrs['limited-api'] = self.limited_api
                 self.c_libraries.append(_CLibrary(name, attrs))
         if "executable" in chimerax_data:
             for name, attrs in chimerax_data["executable"].items():
+                attrs['limited-api'] = self.limited_api
                 self.c_executables.append(_CExecutable(name, attrs))
 
         # TODO: Finalize
@@ -498,6 +504,16 @@ class Bundle:
         tag = "-".join(bdist_wheel_cmd.get_tag())
         self._expected_wheel_name = f"{distname}-{tag}.whl"
 
+    @staticmethod
+    def format_module_name(name: str, override: Optional[str] = None):
+        bundle_base_name = name.replace("ChimeraX-", "")
+        if override:
+            module_name = f"chimerax.{override}"
+        else:
+            module_name = name.replace("-", ".").lower()
+        dist_info_name = name.replace("-", "_")
+        return bundle_base_name, module_name, dist_info_name
+
     @classmethod
     def from_toml_file(cls, logger, toml_file):
         return cls(logger, read_toml(toml_file))
@@ -507,8 +523,8 @@ class Bundle:
         toml_file = os.path.join(os.path.abspath(bundle_path), "pyproject.toml")
         return cls(logger, read_toml(toml_file))
 
-    def make_wheel(self, debug=False):
-        self.build_wheel()
+    def make_wheel(self, debug=False, release=False):
+        self.build_wheel(debug=debug, release=release)
 
     def make_install(
         self, session, debug=False, user=None, no_deps=None, editable=False
@@ -660,16 +676,30 @@ class Bundle:
         for lib in self.c_libraries:
             if lib.static:
                 if sys.platform == "win32":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".lib"])))
+                    try:
+                        os.remove(os.path.join("src/lib/", "".join([lib.name, ".lib"])))
+                    except FileNotFoundError:
+                        pass
                 else:
-                    os.remove(
-                        os.path.join("src/lib/", "".join(["lib", lib.name, ".a"]))
-                    )
+                    try:
+                        os.remove(
+                            os.path.join("src/lib/", "".join(["lib", lib.name, ".a"]))
+                        )
+                    except FileNotFoundError:
+                        pass
             else:
                 if sys.platform == "darwin":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".dylib"])))
+                    try:
+                        os.remove(
+                            os.path.join("src/lib/", "".join([lib.name, ".dylib"]))
+                        )
+                    except FileNotFoundError:
+                        pass
                 elif sys.platform == "linux":
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".so"])))
+                    try:
+                        os.remove(os.path.join("src/lib/", "".join([lib.name, ".so"])))
+                    except FileNotFoundError:
+                        pass
 
     def _clean_extrafiles(self):
         for pkg_name, items in self.extra_files.items():
@@ -711,11 +741,15 @@ class Bundle:
             os.chdir(self.path)
             kw = self.setup_arguments.copy()
             kw["package_dir"], kw["packages"] = self._make_package_arguments()
+            # So far as I can tell this instructs setuptools to stop sticking its
+            # nose where it doesn't belong and trust that we've set up our packages
+            # and package data correctly.
+            kw["include_package_data"] = False
             sys.argv = ["setup.py"] + cmd
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)
             return dist, True
-        except Exception:
+        except (SystemExit, Exception):
             traceback.print_exc()
             return None, False
         finally:
@@ -744,33 +778,70 @@ class Bundle:
             for executable in self.c_executables:
                 executable.compile(self.logger, self.dependencies)
 
-    def _check_output(self, type_="wheel"):
+    def _check_output(self, type_="wheel", report_name=True):
         if type_ == "wheel":
             output = glob.glob(os.path.join(self.path, "dist", "*.whl"))
-        elif type == "sdist":
-            if sys.platform == "win32":
+        elif type_ == "sdist":
+            if sys.platform == "win32" and not os.getenv("MSYSTEM"):
                 output = glob.glob(os.path.join(self.path, "dist", "*.zip"))
             else:
                 output = glob.glob(os.path.join(self.path, "dist", "*.tar.gz"))
         else:
-            raise ValueError("Unknown output type requested: %s" % type)
+            raise ValueError("Unknown output type requested: %s" % type_)
         if not output:
             # TODO: Report the sdist name on failure, too
             raise RuntimeError(f"Building wheel failed: {self._expected_wheel_name}")
         else:
             name = output[0]
-            if type_ == "wheel":
+            if type_ == "wheel" and report_name:
                 print("Distribution is in %s" % os.path.join("./dist", name))
         return name
 
-    def build_wheel(self):
+    def _repair_wheel(self, wheel):
+        if platform.machine() == "x86_64":
+            tag = "_".join([CHIMERAX_LCD_LINUX_TAG, "x86_64"])
+        else:
+            tag = "_".join([CHIMERAX_LCD_LINUX_TAG, "aarch64"])
+        library_dirs = []
+        for extension in self.c_modules:
+            library_dirs.extend(set(extension.library_dirs))
+        for library in self.c_libraries:
+            library_dirs.extend(set(library.library_dirs))
+        ld_path = ":".join(library_dirs)
+        old_ldpath = os.environ.get("LD_LIBRARY_PATH", "")
+        os.environ["LD_LIBRARY_PATH"] = f"{ld_path}:$LD_LIBRARY_PATH"
+        output = subprocess.check_output([sys.executable, "-m", "auditwheel", "repair", "--plat", tag, "--only-plat", wheel], stderr=subprocess.STDOUT)
+        wheel_name = output.decode().split('\n')[-2].replace("Fixed up wheel written to ", "")
+        if not os.path.exists(wheel_name):
+            pass
+        os.environ["LD_LIBRARY_PATH"] = old_ldpath
+        return wheel_name.split("/")[-1]
+
+    def build_wheel(self, debug=False, release=False):
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         setup_args = ["--no-user-cfg", "build"]
         setup_args.extend(["bdist_wheel"])
         dist, built = self._run_setup(setup_args)
         if not self.version:
             self.version = dist.get_version()
-        wheel = self._check_output(type_="wheel")
+
+        print_wheel_name = True
+        if sys.platform == "linux" and release:
+            print_wheel_name = False
+        wheel = self._check_output(type_="wheel", report_name=print_wheel_name)
+        if sys.platform == "linux" and release:
+            try:
+                old_wheel = wheel
+                wheel = self._repair_wheel(wheel)
+                os.remove(old_wheel)
+                shutil.copy("./wheelhouse/" + wheel, "./dist")
+                print("Distribution is in %s" % os.path.join("./dist", wheel))
+            except subprocess.CalledProcessError:
+                warnings.warn(
+                    "Could not repair wheel to ChimeraX common glibc tag (manylinux_2_28); this wheel is ineligible for release on the toolshed. Use a CentOS 8 container to build the wheel."
+                )
+            finally:
+                shutil.rmtree("./wheelhouse")
         return wheel
 
     def build_sdist(self):
@@ -852,12 +923,27 @@ class _CompiledCode:
         self.include_libraries = attrs.get("library-modules", [])
         self.library_dirs = attrs.get("library-dirs", [])
         self.framework_dirs = attrs.get("framework-dirs", [])
+        self.optional = attrs.get("optional", False)
         self.macros = []
         self.target_lang = attrs.get("target-lang", None)
         self.limited_api = attrs.get("limited-api", None)
         defines = attrs.get("define-macros", [])
         self.source_files = []
         for entry in source_files:
+            files_for_entry = glob.glob(entry)
+            if not files_for_entry:
+                error_text = f"{self.name}: No files matched the pattern: {entry}"
+                if not self.optional:
+                    raise FileNotFoundError(error_text)
+                else:
+                    warnings.warn(error_text)
+            for f in files_for_entry:
+                if not Path(f).is_file():
+                    error_text = f"{self.name}: Source file {f} not found"
+                    if not self.optional:
+                        raise FileNotFoundError(error_text)
+                    else:
+                        warnings.warn(error_text)
             self.source_files.extend(glob.glob(entry))
         for def_ in defines:
             edef = def_.split("=")
@@ -960,14 +1046,19 @@ class _CompiledCode:
         distutils.sysconfig.customize_compiler(compiler)
         if inc_dirs:
             compiler.set_include_dirs(inc_dirs)
+            self.include_dirs = lib_dirs
         if lib_dirs:
             compiler.set_library_dirs(lib_dirs)
+            self.library_dirs = lib_dirs
         if libraries:
             compiler.set_libraries(libraries)
         compiler.add_include_dir(distutils.sysconfig.get_python_inc())
         if sys.platform == "win32":
             # Link library directory for Python on Windows
             compiler.add_library_dir(os.path.join(sys.exec_prefix, "libs"))
+            py_libdir = sysconfig.get_config_var("LIBDIR")
+            if py_libdir:
+                compiler.add_library_dir(py_libdir)
         if not static:
             macros.append(("DYNAMIC_LIBRARY", 1))
         # We need to manually separate out C from C++ code here, since clang
@@ -1036,6 +1127,7 @@ class _CModule(_CompiledCode):
                 extra_link_args=extra_link_args,
                 sources=self.source_files,
                 py_limited_api=self.limited_api,
+                optional = self.optional
             )
         else:
             return None
@@ -1083,6 +1175,12 @@ class _CLibrary(_CompiledCode):
                     pass
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
+                try:
+                    n = compiler.linker_so_cxx.index("-bundle")
+                except ValueError:
+                    pass
+                else:
+                    compiler.linker_so_cxx[n] = "-dynamiclib"
                 lib = compiler.library_filename(self.name, lib_type="dylib")
                 extra_link_args.extend(
                     ["-Wl,-rpath,@loader_path", "-Wl,-install_name,@rpath/%s" % lib]

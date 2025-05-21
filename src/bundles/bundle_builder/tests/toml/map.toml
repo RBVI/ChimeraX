@@ -1,0 +1,343 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Core ~=1.3dev2021",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Map"
+version = "1.3"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Density maps"
+dependencies = [
+  "ChimeraX-Core ~=1.3dev2021",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Geometry ~=1.0",
+  "ChimeraX-Graphics ~=1.0",
+  "ChimeraX-MapData ~=2.0",
+  "ChimeraX-MapFilter ~=2.0",
+  "ChimeraX-MapSeries ~=2.0",
+  "ChimeraX-MouseModes ~=1.0",
+  "ChimeraX-UI ~=1.0",
+  "ChimeraX-OpenCommand ~=1.0",
+  "ChimeraX-SaveCommand ~=1.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """Display and analyze 3d image data"""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+custom-init = true
+categories = ["Volume Data"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.package-data]
+"src/icons" = [
+  "*.png",
+]
+"src/colortables/presets" = [
+  "*.plist",
+]
+"src/colortables/cluts" = [
+  "*.plist",
+  "*.clut",
+]
+
+[tool.chimerax.tool."Volume Viewer"]
+category = "Volume Data"
+description = "Show density maps info"
+
+[tool.chimerax.tool."Map Coordinates"]
+category = "Volume Data"
+description = "Adjust density map coordinates"
+
+[tool.chimerax.tool."Map Statistics"]
+category = "Volume Data"
+description = "Report map minimum, maximum, mean, standard deviation, and root mean square"
+
+[tool.chimerax.command.volume]
+category = "Volume data"
+description = "control volume data display"
+
+[tool.chimerax.command.molmap]
+category = "Volume data"
+description = "create density map for molecule"
+
+[tool.chimerax.command."measure mapstats"]
+category = "Volume data"
+description = "report map statistics"
+
+[tool.chimerax.command."measure mapvalues"]
+category = "Volume data"
+description = "Intepolate map at atom positions"
+
+[[tool.chimerax.provider."open command"]]
+name = "Amira mesh"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "APBS potential"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "BRIX density map"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "CCP4 density map"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "Chimera map"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "CNS or XPLOR density map"
+want-path = true
+
+[[tool.chimerax.provider."open command"]]
+name = "DelPhi or GRASP potential"
+want-path = true
+
+[[tool.chimerax.provider."open command"]]
+name = "DeltaVision map"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "DSN6 density map"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "DOCK scoring grid"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "EMAN HDF map"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "Gaussian cube grid"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "gOpenMol grid"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "HDF map"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "Image stack"
+want-path = true
+batch = true
+check-path = false
+
+[[tool.chimerax.provider."open command"]]
+name = "IMAGIC density map"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "Imaris map"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "IMOD map"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "MacMolPlt grid"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "MRC density map"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "NetCDF map"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "Priism microscope image"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "PROFEC free energy grid"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "Purdue image format"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "SITUS map file"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "SPIDER volume data"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "TOM toolbox EM density map"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "UHBD grid, binary"
+want-path = true
+batch = true
+
+[[tool.chimerax.provider."open command"]]
+name = "eds"
+type = "fetch"
+format-name = "CCP4 density map"
+synopsis = "EDS (2Fo-Fc)"
+example-ids = "1a0m"
+
+[[tool.chimerax.provider."open command"]]
+name = "edsdiff"
+type = "fetch"
+format-name = "CCP4 density map"
+synopsis = "EDS (Fo-Fc)"
+example-ids = "1a0m"
+
+[[tool.chimerax.provider."open command"]]
+name = "emdb"
+type = "fetch"
+format-name = "CCP4 density map"
+group-multiple-models = false
+synopsis = "EMDB"
+example-ids = "5625"
+
+[[tool.chimerax.provider."open command"]]
+name = "emdb_europe"
+type = "fetch"
+format-name = "CCP4 density map"
+group-multiple-models = false
+
+[[tool.chimerax.provider."open command"]]
+name = "emdb_us"
+type = "fetch"
+format-name = "CCP4 density map"
+group-multiple-models = false
+
+[[tool.chimerax.provider."open command"]]
+name = "emdb_japan"
+type = "fetch"
+format-name = "CCP4 density map"
+group-multiple-models = false
+
+[[tool.chimerax.provider."open command"]]
+name = "emdb_china"
+type = "fetch"
+format-name = "CCP4 density map"
+group-multiple-models = false
+
+[[tool.chimerax.provider."open command"]]
+name = "emdb_fits"
+type = "fetch"
+format-name = "CCP4 density map"
+group-multiple-models = false
+synopsis = "EMDB & fit PDBs"
+example-ids = "1048"
+
+[[tool.chimerax.provider."open command"]]
+name = "redo"
+type = "fetch"
+format-name = "MTZ"
+is-default = false
+synopsis = "PDB-REDO (map)"
+example-ids = "1cbs"
+
+[[tool.chimerax.provider."save command"]]
+name = "BRIX density map"
+
+[[tool.chimerax.provider."save command"]]
+name = "CCP4 density map"
+
+[[tool.chimerax.provider."save command"]]
+name = "Chimera map"
+
+[[tool.chimerax.provider."save command"]]
+name = "ImageJ TIFF map"
+
+[[tool.chimerax.provider."save command"]]
+name = "IMAGIC density map"
+
+[[tool.chimerax.provider."save command"]]
+name = "MRC density map"
+
+[tool.chimerax.extension._map]
+sources = [
+  "_map/boxcut.cpp",
+  "_map/colors.cpp",
+  "_map/contourpy.cpp",
+  "_map/fittingpy.cpp",
+  "_map/interpolatepy.cpp",
+  "_map/occupancy.cpp",
+  "_map/combine.cpp",
+  "_map/distgrid.cpp",
+  "_map/gaussian.cpp",
+  "_map/localcorr.cpp",
+  "_map/squaremesh.cpp",
+  "_map/extendmap.cpp",
+  "_map/histogram.cpp",
+  "_map/module.cpp",
+  "_map/transfer.cpp",
+  "_map/contourdata.cpp",
+  "_map/fitting.cpp",
+  "_map/interpolate.cpp",
+  "_map/moments.cpp",
+]
+libraries = [
+  "arrays",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]
+
+

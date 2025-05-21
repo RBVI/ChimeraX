@@ -1,0 +1,246 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Core ~=1.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Surface"
+version = "1.0.1"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Surface calculations"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Geometry ~=1.0",
+  "ChimeraX-Graphics ~=1.0",
+  "ChimeraX-Map ~=1.0",
+  "ChimeraX-MapData ~=2.0",
+  "ChimeraX-StdCommands ~=1.0",
+  "ChimeraX-DataFormats ~=1.0",
+  "ChimeraX-OpenCommand ~=1.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """Routines to calculate and manipulate triangulated surfaces."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+custom-init = true
+categories = ["Generic 3D objects"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.tool."Hide Dust"]
+category = "Volume Data"
+description = "hide small surface blobs"
+
+[tool.chimerax.tool."Surface Zone"]
+category = "Volume Data"
+description = "show surface near atoms"
+
+[tool.chimerax.tool."Color Zone"]
+category = "Volume Data"
+description = "color surface to match nearby atoms"
+
+[tool.chimerax.tool."Measure Volume and Area"]
+category = "Volume Data"
+description = "measure surface area and enclosed volume"
+
+[tool.chimerax.tool."Surface Color"]
+category = "Volume Data, Depiction"
+description = "Color surface by geometry or map value"
+
+[tool.chimerax.command."color electrostatic"]
+category = "Surfaces"
+description = "color surface by electrostatic potential map"
+
+[tool.chimerax.command."color sample"]
+category = "Surfaces"
+description = "color surface by map value"
+
+[tool.chimerax.command."color gradient"]
+category = "Surfaces"
+description = "color surface by map gradient norm"
+
+[tool.chimerax.command."color radial"]
+category = "Surfaces"
+description = "color surface by distance from a point"
+
+[tool.chimerax.command."color cylindrical"]
+category = "Surfaces"
+description = "color surface by distance from an axis"
+
+[tool.chimerax.command."color height"]
+category = "Surfaces"
+description = "color surface by distance from a plane"
+
+[tool.chimerax.command."color image"]
+category = "Surfaces"
+description = "color surface using an image file"
+
+[tool.chimerax.command.surface]
+category = "Surfaces"
+description = "create/modify surfaces"
+
+[tool.chimerax.command."~surface"]
+category = "Surfaces"
+description = "delete surface"
+
+[tool.chimerax.command."surface showPatches"]
+category = "Surfaces"
+description = "show atom surface patches for existing surfaces"
+
+[tool.chimerax.command."surface hidePatches"]
+category = "Surfaces"
+description = "hide patches of existing surfaces for specified atoms"
+
+[tool.chimerax.command."surface close"]
+category = "Surfaces"
+description = "close surfaces for specified atoms"
+
+[tool.chimerax.command."surface style"]
+category = "Surfaces"
+description = "set surface mesh, solid, or dot display style"
+
+[tool.chimerax.command."surface squaremesh"]
+category = "Surfaces"
+description = "mask mesh lines that are not parallel x, y or z"
+
+[tool.chimerax.command."surface showall"]
+category = "Surfaces"
+description = "turn of maskig of triangles and edges"
+
+[tool.chimerax.command."surface cap"]
+category = "Surfaces"
+description = "control surface caps when clipping"
+
+[tool.chimerax.command."surface dust"]
+category = "Surfaces"
+description = "hide small pieces of surfaces"
+
+[tool.chimerax.command."surface undust"]
+category = "Surfaces"
+description = "show small pieces of surfaces"
+
+[tool.chimerax.command."surface hidefarblobs"]
+category = "Surfaces"
+description = "hide connected pieces of a surface that are far from another surface"
+
+[tool.chimerax.command."surface invertShown"]
+category = "Surfaces"
+description = "Show hidden part of surface and hide shown part"
+
+[tool.chimerax.command."surface transform"]
+category = "Surfaces"
+description = "Scale, rotate or move surfaces"
+
+[tool.chimerax.command."surface zone"]
+category = "Surfaces"
+description = "show surface near atoms"
+
+[tool.chimerax.command."surface unzone"]
+category = "Surfaces"
+description = "show all of surface"
+
+[tool.chimerax.command."surface check"]
+category = "Surfaces"
+description = "check surface topology"
+
+[tool.chimerax.command."surface splitbycolor"]
+category = "Surfaces"
+description = "Split surface by color"
+
+[tool.chimerax.command.sop]
+category = "Surfaces"
+description = "alias for surface commands"
+
+[tool.chimerax.command."volume splitbyzone"]
+category = "Volume Data"
+description = "split volume by color zone"
+
+[tool.chimerax.command."measure sasa"]
+category = "Surfaces"
+description = "measure solvent-accessible surface area"
+
+[tool.chimerax.command."measure volume"]
+category = "Surfaces"
+description = "measure enclosed surface volume"
+
+[tool.chimerax.command."measure area"]
+category = "Surfaces"
+description = "measure surface area"
+
+[tool.chimerax.command."measure contactArea"]
+category = "Surfaces"
+description = "measure and contact area between two surfaces"
+
+[[tool.chimerax.provider."data formats"]]
+name = "COLLADA"
+category = "Generic 3D objects"
+reference-url = "https://www.khronos.org/collada"
+suffixes = ".dae"
+
+[[tool.chimerax.provider."open command"]]
+name = "collada"
+
+[tool.chimerax.extension._surface]
+sources = [
+  "_surface/border.cpp",
+  "_surface/capper.cpp",
+  "_surface/connected.cpp",
+  "_surface/convexity.cpp",
+  "_surface/measure.cpp",
+  "_surface/normals.cpp",
+  "_surface/patches.cpp",
+  "_surface/refinemesh.cpp",
+  "_surface/sasa.cpp",
+  "_surface/smooth.cpp",
+  "_surface/subdivide.cpp",
+  "_surface/surface.cpp",
+  "_surface/surfdist.cpp",
+  "_surface/triangulate.cpp",
+  "_surface/tube.cpp",
+]
+libraries = [
+  "arrays",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]
+
+[tool.chimerax.extension._surface.win32]
+libraries = [
+  "glu32.lib",
+  "opengl32.lib",
+]
+
+[tool.chimerax.extension._surface.mac]
+frameworks = [
+  "OpenGL",
+]
+
+[tool.chimerax.extension._surface.linux]
+libraries = [
+  "GLU",
+  "GL",
+]

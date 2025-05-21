@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -373,12 +373,40 @@ def seqalign_identity(session, src1, src2=None, *, denominator=IdentityDenominat
         session.logger.info("%s vs. %s: %.2f%% identity" % (seq1.name, src2.name, identity))
     return identity
 
+def seqalign_match(session, alignment, match_chains, to=None, *,
+        cutoff_distance=-1, conservation=None, columns=None):
+    if alignment is None:
+        alignment = get_alignment_by_id(session, None)
+    if columns is None:
+        indices = None
+    else:
+        length = len(alignment.seqs[0])
+        indices = []
+        for col in columns:
+            if col > length:
+                raise UserError("match column (%d) greater than alignment length (%d)" % (col, length))
+            indices.append(col-1)
+    return alignment.match(to, match_chains, iterate=cutoff_distance, conservation=conservation, restriction=indices)
+
+def seqalign_refresh_attrs(session, alignment):
+    alignment._set_residue_attributes()
+
 def seqalign_refseq(session, ref_seq_info):
     if isinstance(ref_seq_info, tuple):
         aln, ref_seq = ref_seq_info
     else:
         aln, ref_seq = ref_seq_info, None
     aln.reference_seq = ref_seq
+
+def seqalign_rename(session, sequence, name):
+    if sequence is None:
+        alignments = session.alignments.alignments
+        if len(alignments) != 1 or len(alignments[0].seqs) != 1:
+            raise UserError("Must specify sequence to rename")
+        sequence = alignments[0].seqs[0]
+    if ':' in name:
+        raise UserError("New sequence name cannot contain ':' character.")
+    sequence.name = name
 
 def seqalign_update(session, chains, *, alignment=None):
     if alignment is None:
@@ -414,6 +442,43 @@ def seqalign_update(session, chains, *, alignment=None):
             session.logger.warning("%s not associated with %s"
                 % (chain, " any alignment" if alignment is None else "alignment %s" % alignment.ident))
 
+def ensure_unique_seq_names(seqs, *, structure_name_limit=0):
+    if len(set([seq.name for seq in seqs])) == len(seqs):
+        return seqs
+    by_name = {}
+    for seq in seqs:
+        by_name.setdefault(seq.name, []).append(seq)
+
+    include_struct_name = True
+    for named_seqs in by_name.values():
+        if len(named_seqs) < 2:
+            continue
+        for seq in named_seqs:
+            struct = getattr(seq, 'structure', None)
+            if struct is not None:
+                if len(struct.name) > structure_name_limit:
+                    include_struct_name = False
+                    break
+        if not include_struct_name:
+            break
+
+    from chimerax.atomic import StructureSeq
+    renamed_seqs = []
+    for seq in seqs:
+        if len(by_name[seq.name]) == 1:
+            renamed_seqs.append(seq)
+            continue
+        struct = getattr(seq, 'structure', None)
+        if struct is None:
+            renamed_seqs.append(seq)
+            continue
+        renamed_seq = StructureSeq(chain_id=seq.chain_id, structure=struct, polymer_type=seq.polymer_type)
+        renamed_seq.name = f"{struct} {seq.name}" if include_struct_name else f"{seq.atomspec}"
+        renamed_seq.bulk_set(seq.residues, seq.characters, fire_triggers=False)
+        renamed_seqs.append(renamed_seq)
+
+    return renamed_seqs
+
 MUSCLE = "MUSCLE"
 CLUSTAL_OMEGA = "Clustal Omega"
 alignment_program_name_args = { 'muscle': MUSCLE, 'omega': CLUSTAL_OMEGA, 'clustalOmega': CLUSTAL_OMEGA }
@@ -430,6 +495,9 @@ def seqalign_align(session, seq_source, *, program=CLUSTAL_OMEGA, replace=False)
         if getattr(s, 'polymer_type', Residue.PT_PROTEIN) == Residue.PT_PROTEIN]
     if len(input_sequences) < 2:
         raise UserError("Must specify 2 or more protein sequences")
+    if not replace:
+        # have to do this before realignment, because the realignment returns Sequences
+        input_sequences = ensure_unique_seq_names(input_sequences, structure_name_limit=10)
     from .align import realign_sequences
     realigned = realign_sequences(session, input_sequences, program=program)
     if replace:
@@ -440,8 +508,8 @@ def seqalign_align(session, seq_source, *, program=CLUSTAL_OMEGA, replace=False)
 def register_seqalign_command(logger):
     # REMINDER: update manager._builtin_subcommands as additional subcommands are added
     from chimerax.core.commands import CmdDesc, register, create_alias, Or, EmptyArg, RestOfLine, ListOf, \
-        EnumOf, BoolArg
-    from chimerax.atomic import UniqueChainsArg, SequencesArg
+        EnumOf, BoolArg, NoneArg, PositiveIntArg, PercentFloatArg, NonNegativeFloatArg
+    from chimerax.atomic import UniqueChainsArg, SequencesArg, ChainArg
 
     apns = list(alignment_program_name_args.keys())
     desc = CmdDesc(
@@ -476,6 +544,12 @@ def register_seqalign_command(logger):
             url="help:user/commands/sequence.html#disassociate")
 
     desc = CmdDesc(
+        required = [('alignments', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg))],
+        synopsis = "expand selection by columns"
+    )
+    register('sequence expandsel', desc, seqalign_expandsel, logger=logger)
+
+    desc = CmdDesc(
         required = [('alignments', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg)),
             ('subcommand_text', RestOfLine)],
         synopsis = "send subcommand to header"
@@ -492,16 +566,32 @@ def register_seqalign_command(logger):
     register('sequence identity', desc, seqalign_identity, logger=logger)
 
     desc = CmdDesc(
+        required = [('alignment', Or(AlignmentArg, EmptyArg)), ('match_chains', UniqueChainsArg)],
+        required_arguments = ['to'],
+        keyword = [('to', ChainArg), ('cutoff_distance', Or(NoneArg, NonNegativeFloatArg)),
+            ('conservation', PercentFloatArg),
+            ('columns', ListOf(PositiveIntArg))],
+        synopsis = "superimpose chains associated with sequence alignment"
+    )
+    register('sequence match', desc, seqalign_match, logger=logger)
+
+    desc = CmdDesc(
         required = [('ref_seq_info', Or(AlignSeqPairArg, AlignmentArg))],
         synopsis = "set alignment reference sequence"
     )
     register('sequence refseq', desc, seqalign_refseq, logger=logger)
 
     desc = CmdDesc(
-        required = [('alignments', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg))],
-        synopsis = "expand selection by columns"
+        required = [('alignment', AlignmentArg)],
+        synopsis = "refresh residue attributes using this alignment"
     )
-    register('sequence expandsel', desc, seqalign_expandsel, logger=logger)
+    register('sequence refreshAttrs', desc, seqalign_refresh_attrs, logger=logger)
+
+    desc = CmdDesc(
+        required = [('sequence', Or(SeqArg, EmptyArg)), ('name', StringArg)],
+        synopsis = "change sequence rename"
+    )
+    register('sequence rename', desc, seqalign_rename, logger=logger)
 
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],

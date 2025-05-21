@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -169,7 +169,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                   arrow_scale=None, xsection=None, sides=None,
                   bar_scale=None, bar_sides=None, ss_ends=None,
                   mode_helix=None, mode_strand=None, radius=None,
-                  divisions=None, spline_normals=None, undo_state=None):
+                  divisions=None, spline_normals=None, undo_state=None, worm=None):
     '''Set cartoon style options for secondary structures in specified structures.
 
     Parameters
@@ -563,6 +563,10 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
         for m in structures:
             undo_state.add(m, "spline_normals", m.spline_normals, spline_normals)
             m.spline_normals = spline_normals
+    if worm is not None:
+        for m in structures:
+            undo_state.add(m, "worm_ribbon", m.worm_ribbon, worm)
+            m.worm_ribbon = worm
     session.undo.register(undo_state)
 
 

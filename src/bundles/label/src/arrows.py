@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -286,6 +286,7 @@ def register_arrow_command(logger):
 
 from chimerax.core.models import Model
 class Arrows(Model):
+    has_scene_bounds = False
     def __init__(self, session):
         Model.__init__(self, '2D arrows', session)
         self._arrows = []
@@ -690,7 +691,7 @@ class ArrowModel(Model):
         rgba_drawing(self, rgba, (x, y), (uw, uh), opaque = False)
 
     def x3d_needs(self, x3d_scene):
-        from .. import x3d
+        from chimerax.core import x3d
         x3d_scene.need(x3d.Components.Text, 1)  # Text
 
     def custom_x3d(self, stream, x3d_scene, indent, place):

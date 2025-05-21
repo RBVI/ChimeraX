@@ -1,0 +1,81 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Core ~=1.3dev2021",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Graphics"
+version = "1.4.1"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "OpenGL graphics rendering"
+dependencies = [
+  "ChimeraX-Core ~=1.3dev2021",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Geometry ~=1.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """Render scenes using a camera, view and hierarchy of drawings."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Graphics"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.package-data]
+"src/" = [
+  "vertexShader.txt",
+  "fragmentShader.txt",
+]
+
+[tool.chimerax.extension._graphics]
+sources = [
+  "_graphics/blend_rgba.cpp",
+  "_graphics/count.cpp",
+  "_graphics/graphics.cpp",
+  "_graphics/linux_swap_interval.cpp",
+  "_graphics/mac_swap_interval.cpp",
+  "_graphics/mesh_edges.cpp",
+]
+libraries = [
+  "arrays",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]
+
+[tool.chimerax.extension._graphics.win32]
+libraries = [
+  "opengl32.lib",
+]
+
+[tool.chimerax.extension._graphics.mac]
+frameworks = [
+  "OpenGL",
+]
+
+[tool.chimerax.extension._graphics.linux]
+libraries = [
+  "GL",
+]

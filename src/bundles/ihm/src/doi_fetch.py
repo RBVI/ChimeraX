@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -25,7 +25,7 @@
 # -----------------------------------------------------------------------------
 # Fetch zip archive at a DOI.
 #
-#       http://doi.org/10.5281/zenodo.46266
+#       https://doi.org/10.5281/zenodo.46266
 #
 # scrape web page for a zip file and return path local copy.
 #
@@ -74,7 +74,7 @@ def fetch_doi(session, doi, url, ignore_cache = False):
 #
 def find_doi_zip_archive_url(session, doi):
     from chimerax.core.fetch import fetch_file
-    doi_url = 'http://doi.org/%s' % doi
+    doi_url = 'https://doi.org/%s' % doi
     filename = fetch_file(session, doi_url, 'doi %s' % doi,
                           save_name = 'temp.html', save_dir = None,
                           uncompress = True, ignore_cache=True)

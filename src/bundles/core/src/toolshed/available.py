@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -59,7 +59,7 @@ class AvailableBundleCache(list):
         request = Request(url, unverifiable=True, headers=headers)
         # pick short timeout because it limits how quickly ChimeraX can exit
         # when the toolshed can't be contacted
-        with urlopen(request, timeout=3) as f:
+        with urlopen(request, timeout=12) as f:
             import json
             data = json.loads(f.read())
         data.insert(0, ['toolshed_url', toolshed_url])

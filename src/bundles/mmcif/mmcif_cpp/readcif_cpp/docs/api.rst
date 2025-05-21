@@ -9,8 +9,8 @@ readcif -- a C++11 CIF and mmCIF parser
     :Copyright: © Copyright 2014-2017 by the Regents of the University of California.  All Rights reserved.
     :Last modified: 2017-3-9
 
-.. _RBVI: http://www.rbvi.ucsf.edu/
-.. _University of California at San Francisco: http://www.ucsf.edu/
+.. _RBVI: https://www.rbvi.ucsf.edu/
+.. _University of California at San Francisco: https://www.ucsf.edu/
 
 **readcif** is a `C++11`_ library for quickly extracting data
 from mmCIF_ and CIF_ files.
@@ -19,9 +19,9 @@ and can be easily extended to handle CIF dictionaries.
 In addition, it supports stylized PDBx/mmCIF files for even
 quicker parsing.
 
-.. _C++11: http://isocpp.org/wiki/faq/cpp11
-.. _CIF: http://www.iucr.org/resources/cif
-.. _mmCIF: http://mmcif.wwpdb.org/
+.. _C++11: https://isocpp.org/wiki/faq/cpp11
+.. _CIF: https://www.iucr.org/resources/cif
+.. _mmCIF: https://mmcif.wwpdb.org/
 
 License
 -------

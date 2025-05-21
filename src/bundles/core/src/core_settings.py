@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -40,8 +40,8 @@ class _CoreSettings(Settings):
     # chimerax.ui.core_settings_ui.py
     EXPLICIT_SAVE = {
         'background_color': configfile.Value(Color('#000'), commands.ColorArg, Color.hex_with_alpha),
-        'http_proxy': ("", 80),
-        'https_proxy': ("", 443),
+        'http_proxy': ("http", "", 80),
+        'https_proxy': ("https", "", 443),
         'resize_window_on_session_restore': False,
     }
     AUTO_SAVE = {
@@ -61,10 +61,15 @@ def init(session):
 def set_proxies(*, initializing=False):
     import os
     for proxy_type in ("http", "https"):
-        host, port = getattr(settings, proxy_type + "_proxy")
+        proxy_info = getattr(settings, proxy_type + "_proxy")
+        try: # protocol added starting with 1.10 [#16505]
+            protocol, host, port = proxy_info
+        except ValueError:
+            host, port = proxy_info
+            protocol = proxy_type
         environ_var = proxy_type + "_proxy"
         if host:
-            os.environ[environ_var] = "%s://%s:%d" % (proxy_type, host, port)
+            os.environ[environ_var] = "%s://%s:%d" % (protocol, host, port)
         elif environ_var in os.environ and not initializing:
             del os.environ[environ_var]
 

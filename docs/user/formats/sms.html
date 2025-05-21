@@ -1,0 +1,90 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>ChimeraX Similar Structures Format</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3>ChimeraX Similar Structures Format</h3>
+<p>
+A ChimeraX <b><i>similar structures file</i></b> (filename suffix .sms)
+stores the results of searching protein structure databases using any
+of the following:
+</p>
+<ul>
+<li><a href="../commands/foldseek.html"><b>foldseek</b></a>
+&ndash; Foldseek structure search
+<li><a href="../commands/sequence.html#search"><b>sequence search</b></a>
+&ndash; MMseqs2 sequence search
+<li><a href="../commands/similarstructures.html#blast"><b>similarstructures
+blast</b></a> &ndash; BLAST sequence search
+<li><a href="../tools/foldseek.html"><b>Foldseek</b>
+(<b>Similar Structures</b>)</a>
+&ndash; graphical interface to all three of the above search types
+</ul>
+<p>
+Running a search automatically creates a similar structures file
+with filename based on the query name, database searched, and search method,
+ending in the suffix .sms. The file is listed in the
+<a href="../tools/filehistory.html"><b>File History</b></a> for easy access.
+The default save location is in ~/Downloads/ChimeraX
+under subdirectories Foldseek, MMseqs2, or BLAST, but a different location
+can be specified with the <b>saveDirectory</b> option of the above commands.
+In addition, results from using
+<a href="../tools/blastprotein.html"><b>Blast Protein</b></a> or the
+<a href="../commands/blastprotein.html"><b>blastprotein</b></a> command
+with a structure chain as the query can be saved to a similar structures file
+with <a href="../commands/similarstructures.html#fromblast"><b>similarstructures
+fromblast</b></a>.
+</p><p>
+The ChimeraX-only .sms format is a JSON text file that contains the path 
+to the query structure file, the database identifiers of the
+similar structures, their sequence alignments to the query, and in some cases,
+their &alpha;-carbon coordinates.
+The &alpha;-carbon coordinates allow showing backbone traces and 
+clustering by backbone conformations with the 
+<a href="../tools/foldseek.html"><b>Similar Structures</b></a> tool.
+Only structure-based searches with the Foldseek method automatically
+include these coordinates, but they can be added to the .sms files from
+sequence-based searches (MMseqs2 and BLAST) with the command
+<a href="../commands/similarstructures.html#fetchcoords"><b>similarstructures
+fetchcoords</b></a>. 
+</p><p>
+Opening a similar structures (.sms) file from the
+<a href="../tools/filehistory.html"><b>File History</b></a> 
+or with the the <a href="../menu.html#file"><b>File</b> menu</a>
+or <a href="../commands/open.html"><b>open</b></a> command
+shows the search results in the
+<a href="../tools/foldseek.html#results"><b>Similar Structures</b></a> tool.
+If the corresponding query structure is already open, it will be associated 
+with these results; if it is not open, ChimeraX will try to load the 
+original query structure from the file path in the .sms file. 
+Choosing <b>Save CSV or TSV File...</b> from the tool's
+<a href="../window.html#context-menu">context menu</a> opens
+a separate dialog for exporting the data (all rows and columns) to a
+comma-separated or tab-separated values file, retaining the current sort order.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+May 2025</address>
+</body></html>

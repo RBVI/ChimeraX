@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -43,20 +43,20 @@ def read(session, f):
 import re
 class MSF:
 
-    _Hdr = re.compile('\s*(\S*)\s*'            # name
+    _Hdr = re.compile(r'\s*(\S*)\s*'            # name
                 'MSF:\s*(\S*)\s*'    # length?
                 'Type:\s*(\S*)\s*'    # type
                 '(.*)\s*'        # date/time
                 'Check:\s*(\S*)\s*'    # checksum
                 '\.\.')            # signature
-    _MultalinHdr = re.compile('\s*(\S.*)\s*'    # name
+    _MultalinHdr = re.compile(r'\s*(\S.*)\s*'    # name
                 'MSF:\s*(\S*)\s*'    # length?
                             # missing type
                             # missing date/time
                 'Check:\s*(\S*)\s*'    # checksum
                 '\.\.')            # signature
 
-    _Sum = re.compile('\s*Name:\s*(\S*)\s*o*\s*'    # name
+    _Sum = re.compile(r'\s*Name:\s*(\S*)\s*o*\s*'    # name
                 'Len:\s*(\S*)\s*'    # length
                 'Check:\s*(\S*)\s*'    # checksum
                 'Weight:\s*(\S*)\s*')    # weight

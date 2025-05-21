@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-SeqView" version="2.13"
+<BundleInfo name="ChimeraX-SeqView" version="2.17.1"
 	    package="chimerax.seq_view"
 	    supercedes="ChimeraX-SEQ-VIEW"
   	    minSessionVersion="1" maxSessionVersion="1">
@@ -16,16 +16,16 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>
-    <Dependency name="ChimeraX-Alignments" version="~=2.13"/>
+    <Dependency name="ChimeraX-Alignments" version="~=2.15"/>
     <Dependency name="ChimeraX-AlignmentHdrs" version="~=3.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.48"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.32"/>
+    <Dependency name="ChimeraX-UI" version="~=1.44"/>
   </Dependencies>
 
   <Providers manager="alignments">
 	<!-- subcommand_name also defined in __init__.py and used in various other .py files -->
-    <Provider name="seqview" synonyms="sv,view" subcommand_name="viewer" type="viewer"/>
+    <Provider name="sequence viewer" synonyms="sv,seqview,view" subcommand_name="viewer" type="viewer"/>
   </Providers>
 
 

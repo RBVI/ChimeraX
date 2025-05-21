@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -28,6 +28,16 @@ install app-install: wheel
 
 build: install
 	# unlike normal bundles, install as well
+	$(MAKE) sync
+
+uv-wheel: $(PYSRCS)
+	uv build --no-build-isolation --wheel
+
+uv-install uv-app-install: uv-wheel
+	uv pip uninstall ChimeraX-ToolshedUtils
+	uv pip install --no-build-isolation --force-reinstall .
+
+uv-build: uv-install
 	$(MAKE) sync
 
 install-editable:

@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -182,7 +182,11 @@ class NumberEntry:
         le.setMaximumWidth(pixel_width)
         self.return_pressed = le.returnPressed
     def _get_value(self):
-        return self.string_to_value(self._line_edit.text())
+        try:
+            v = self.string_to_value(self._line_edit.text())
+        except ValueError:
+            v = None
+        return v
     def _set_value(self, value):
         v = self.format % value if value is not None else ''
         self._line_edit.setText(v)

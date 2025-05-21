@@ -59,7 +59,7 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <Provider name="ZDOCK" nicknames="zdock" category="Molecular structure"
 		suffixes=".pdb" encoding="utf-8" reference_url="https://zdock.umassmed.edu" />
     <Provider name="SwissDock" nicknames="swissdock" category="Molecular structure"
-		suffixes=".pdb" encoding="utf-8" reference_url="http://swissdock.ch" />
+		suffixes=".pdb" encoding="utf-8" reference_url="https://swissdock.ch" />
   </Providers>
 
   <Providers manager="open command">

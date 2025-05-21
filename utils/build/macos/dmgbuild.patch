@@ -1,0 +1,20 @@
+*** core.py.orig	2024-10-22 17:02:05
+--- core.py	2024-10-22 17:05:33
+*************** def build_dmg(  # noqa; C901
+*** 429,435 ****
+          # size of the background image, volume icon, and .DS_Store file (and
+          # 128 MB should be well sufficient for even the most outlandish image
+          # sizes, like an uncompressed 5K multi-resolution TIFF)
+!         total_size = 128 * 1024 * 1024
+  
+          def roundup(x, n):
+              return x if x % n == 0 else x + n - x % n
+--- 429,435 ----
+          # size of the background image, volume icon, and .DS_Store file (and
+          # 128 MB should be well sufficient for even the most outlandish image
+          # sizes, like an uncompressed 5K multi-resolution TIFF)
+!         total_size = 5 * 1024 * 1024 * 1024
+  
+          def roundup(x, n):
+              return x if x % n == 0 else x + n - x % n
+

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -26,7 +26,7 @@ clustal_strong_groups = ["STA", "NEQK", "NHQK", "NDEQ", "QHRK", "MILV", "MILF", 
 clustal_weak_groups = ["CSA", "ATV", "SAG", "STNK", "STPA", "SGND", "SNDEQK", "NDEQHK",
     "NEQHRK", "FVLIM", "HFY"]
 
-from chimerax.core.errors import NotABug
+from chimerax.core.errors import NotABug, UserError
 from chimerax.core.state import State
 class Alignment(State):
     """A sequence alignment,
@@ -49,6 +49,7 @@ class Alignment(State):
     NOTE_COMMAND       = "command"
     NOTE_REF_SEQ       = "reference seq changed"
     NOTE_SEQ_CONTENTS  = "seq contents changed"  # Not fired if NOTE_REALIGNMENT applicable
+    NOTE_SEQ_NAME      = "sequence name changed"
     NOTE_REALIGNMENT   = "sequences realigned"  # preempts NOTE_SEQ_CONTENTS
     NOTE_RMSD_UPDATE   = "rmsd change"  # RMSD value changed, or chains relevant to RMSD may have changed
 
@@ -68,6 +69,7 @@ class Alignment(State):
     #   NOTE_COMMAND: the observer subcommand text
     #   NOTE_REF_SEQ: the new reference sequence (which could be None)
     #   NOTE_SEQ_CONTENTS: the sequence whose characters changed
+    #   NOTE_SEQ_NAME: the sequence whose name changed
     #   NOTE_REALIGNMENT: a list of copies of the previous sequences
     #   not yet implemented:  NOTE_ADD_SEQS, NOTE_PRE_DEL_SEQS, NOTE_DEL_SEQS, NOTE_ADD_DEL_SEQS,
 
@@ -83,15 +85,25 @@ class Alignment(State):
     class NoSelectionError(NotABug): pass
     class NoSelectionExpansionError(NotABug): pass
 
+    COL_IDENTITY_ATTR = "seq_identity"
+
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
-            description, intrinsic, *, create_headers=True, session_restore=False):
+            description, intrinsic, *, create_headers=True, session_restore=False, copy_seqs=None):
         if not seqs:
             raise ValueError("Cannot create alignment of zero sequences")
         self.session = session
         self._session_restore = session_restore
         if isinstance(seqs, tuple):
             seqs = list(seqs)
-        self._seqs = seqs[:] # prevent later accidental modification
+        # prevent later accidental modification; also different alignments may contain the same sequence
+        # (so prevent Alignment._destroy from messing up other alignments)
+        if copy_seqs is None:
+            copy_seqs = False if ident is False else True
+        if session_restore or not copy_seqs:
+            self._seqs = seqs
+        else:
+            from copy import copy
+            self._seqs = [copy(seq) for seq in seqs]
         self.ident = ident
         self.file_attrs = file_attrs
         self.file_markups = file_markups
@@ -101,6 +113,7 @@ class Alignment(State):
         self.viewers = []
         self.viewers_by_subcommand = {}
         self.viewer_to_subcommand = {}
+        self._column_counts_cache = None
         self._observer_notification_suspended = 0
         self._ob_note_suspended_data = []
         self._modified_mmaps = []
@@ -120,6 +133,8 @@ class Alignment(State):
                 from copy import copy
                 self._seqs[i] = copy(seq)
             self._seqs[i].match_maps = {}
+            self._seq_handlers.append(
+                self._seqs[i].triggers.add_handler("rename", self._seq_name_changed_cb))
             if isinstance(self._seqs[i], StructureSeq):
                 self._seq_handlers.append(self._seqs[i].triggers.add_handler("characters changed",
                     self._seq_characters_changed_cb))
@@ -135,7 +150,9 @@ class Alignment(State):
             # will do that), but allow future auto-association
             if auto_associate != "session":
                 from chimerax.atomic import AtomicStructure
-                self.associate([s for s in session.models if isinstance(s, AtomicStructure)], force=False)
+                structures = [s for s in session.models if isinstance(s, AtomicStructure)]
+                if structures:
+                    self.associate(structures, force=False)
             # get the auto-association working...
             self._auto_associate = False
             self.auto_associate = True
@@ -159,7 +176,12 @@ class Alignment(State):
             attr_headers = []
             for header in self._headers:
                 header.shown = header.settings.initially_shown and header.relevant
-            self._set_residue_attributes()
+            if len(seqs) > 1:
+                from chimerax.atomic import Residue
+                Residue.register_attr(self.session, self.COL_IDENTITY_ATTR, "sequence alignment",
+                    attr_type=float, can_return_none=False)
+            if not session_restore:
+                self._set_residue_attributes()
 
     def add_fixed_header(self, name, contents, *, shown=True, identifier=None, base_class=None):
         if len(contents) != len(self._seqs[0]):
@@ -413,7 +435,7 @@ class Alignment(State):
             # since StructureSeq demotion notifications may be delayed until the 'changes done'
             # trigger, we need to do a hacky check here and possibly also delay this notification
             for seq in self.associations:
-                if not hasattr(seq, 'structure'):
+                if getattr(seq, 'structure', None) is None:
                     # it's been demoted
                     def _delay_assoc(_, __, *, name=note_name, data=note_data):
                         self._notify_observers(name, data)
@@ -424,6 +446,15 @@ class Alignment(State):
                     break
             else:
                 self._notify_observers(note_name, note_data)
+
+    def associated_residues(self, aseqs=None):
+        if aseqs is None:
+            aseqs = self.seqs
+        residues = []
+        for aseq in aseqs:
+            for match_map in aseq.match_maps.values():
+                residues.extend(match_map.res_to_pos.keys())
+        return residues
 
     def attach_viewer(self, viewer, *, subcommand_name=None):
         """Called by the viewer (with the viewer instance as the arg) to receive notifications
@@ -466,6 +497,19 @@ class Alignment(State):
     def being_destroyed(self):
         return self._in_destroy
 
+    def column_counts(self):
+        """Returns a dictionary keyed on column index, with values that are 2-tuples of numpy
+           arrays; the first member is the array of unique characters in that column, and the
+           second array is the corresponding counts for those characters.
+        """
+        if self._column_counts_cache is None:
+            import numpy
+            data = numpy.array([list(seq.characters) for seq in self._seqs])
+            cache = self._column_counts_cache = {}
+            for i in range(len(data[0])):
+                cache[i] = numpy.unique(data[:,i], return_counts=True)
+        return self._column_counts_cache.copy()
+
     def detach_viewer(self, viewer):
         """Called when a viewer is done with the alignment (see attach_viewer)"""
         self.viewers.remove(viewer)
@@ -503,11 +547,12 @@ class Alignment(State):
         num_unknown = 0
         structures = set()
         for sseq in self.associations:
-            try:
-                structures.add(sseq.structure)
-            except AttributeError:
+            structure = getattr(sseq, 'structure', None)
+            if structure is None:
                 # demoted
                 num_unknown += 1
+            else:
+                structures.add(structure)
         data = {
             'match map': match_map,
             'num remaining associations': len(self.associations),
@@ -565,7 +610,7 @@ class Alignment(State):
     def headers(self):
         return self._headers[:]
 
-    def match(self, ref_chain, match_chains, *, iterate=-1, restriction=None):
+    def match(self, ref_chain, match_chains, *, iterate=-1, conservation=None, restriction=None):
         """Match the match_chains onto the ref_chain.  All chains must already be associated
            with the alignment.
 
@@ -573,8 +618,11 @@ class Alignment(State):
            If 'iterate' is None, then no iteration occurs.  Otherwise, it is the cutoff value
            where iteration stops.
 
+           'conservation', if provided, is the percent identity that a column has to have to
+           be included in the matching.
+
            'restriction', if provided, is a list of gapped column positions that the matching
-           should be limited to.
+           should be (further) limited to.
 
            This returns a series of tuples, one per match chain, describing the resulting
            match.  The values in the 5-tuple are:
@@ -589,28 +637,43 @@ class Alignment(State):
             These values can all be None, if the matching failed (usually too few atoms to match).
         """
         if ref_chain not in self.associations:
-            raise ValueError("%s not associated with any sequence" % ref_chain.full_name)
+            raise UserError("%s not associated with any sequence" % ref_chain.full_name)
 
         match_structures = set([mc.structure for mc in match_chains])
         if len(match_structures) != len(match_chains):
-            raise ValueError("Match chains must all come from different structures")
+            raise UserError("Match chains must all come from different structures")
         if ref_chain.structure in match_structures:
-            raise ValueError("Match chains and reference chain must come from different structures")
+            raise UserError("Match chains and reference chain must come from different structures")
 
         if iterate == -1:
             from .settings import settings
             iterate = settings.iterate
 
+        if restriction is None:
+            if conservation is None:
+                final_restriction = None
+            else:
+                threshold = len(self._seqs) * conservation / 100.0
+                final_restriction = set([col for col in range(len(self._seqs[0]))
+                    if self.most_common(col)[-1] >= threshold])
+        else:
+            if conservation is None:
+                final_restriction = set(restriction)
+            else:
+                threshold = len(self._seqs) * conservation / 100.0
+                final_restriction = set([col for col in restriction
+                    if self.most_common(col)[-1] >= threshold])
+
         return_vals = []
         ref_seq = self.associations[ref_chain]
-        if restriction is not None:
-            ref_ungapped_positions = [ref_seq.gapped_to_ungapped(i) for i in restriction]
+        if final_restriction is not None:
+            ref_ungapped_positions = [ref_seq.gapped_to_ungapped(i) for i in final_restriction]
         for match_chain in match_chains:
             if match_chain not in self.associations:
-                raise ValueError("%s not associated with any sequence" % match_chain.full_name)
+                raise UserError("%s not associated with any sequence" % match_chain.full_name)
             match_seq = self.associations[match_chain]
-            if restriction is not None:
-                match_ungapped_positions = [match_seq.gapped_to_ungapped(i) for i in restriction]
+            if final_restriction is not None:
+                match_ungapped_positions = [match_seq.gapped_to_ungapped(i) for i in final_restriction]
                 restriction_set = set()
                 for ur, um in zip(ref_ungapped_positions, match_ungapped_positions):
                     if ur is not None and um is not None:
@@ -620,19 +683,20 @@ class Alignment(State):
             ref_res_to_pos = ref_seq.match_maps[ref_chain].res_to_pos
             match_pos_to_res = match_seq.match_maps[match_chain].pos_to_res
             for rres, rpos in ref_res_to_pos.items():
-                if restriction is not None and rpos not in restriction_set:
+                if final_restriction is not None and rpos not in restriction_set:
                     continue
                 gpd = ref_seq.ungapped_to_gapped(rpos)
                 mug = match_seq.gapped_to_ungapped(gpd)
                 mpos = match_seq.gapped_to_ungapped(ref_seq.ungapped_to_gapped(rpos))
                 if mpos is None:
                     continue
-                mres = match_pos_to_res[mpos]
-                if mres is None:
+                try:
+                    mres = match_pos_to_res[mpos]
+                except KeyError:
                     continue
                 ref_atoms.append(rres.principal_atom)
                 match_atoms.append(mres.principal_atom)
-            from chimerax.core.commands import align
+            from chimerax.std_commands import align
             from chimerax.atomic import Atoms
             try:
                 return_vals.append(align.align(self.session, Atoms(match_atoms), Atoms(ref_atoms),
@@ -640,6 +704,27 @@ class Alignment(State):
             except align.IterationError:
                 return_vals.append((None, None, None, None, None))
         return return_vals
+
+    def most_common(self, col_index, *, non_gap=True):
+        """Returns most common character in the column given by 'col_index' and the count for that character.
+           For ties, one of the most common characters, chosen arbitrarily, will be returned.  If 'non_gap'
+           is True, gap characters will be ignored.
+        """
+        chars, counts = self.column_counts()[col_index]
+        if non_gap:
+            max_count = 0
+            for char, count in zip(chars, counts):
+                if not char.isalpha():
+                    continue
+                if count > max_count:
+                    max_count = count
+                    max_char = char
+            if max_count == 0:
+                return ' ', 0
+            return max_char, max_count
+        import numpy
+        max_index = numpy.argmax(counts)
+        return chars[max_index], counts[max_index]
 
     def notify(self, note_name, note_data):
         """Used by headers to issue notifications, but theoretically could be used by anyone"""
@@ -807,14 +892,12 @@ class Alignment(State):
             handler.remove()
 
     def _dispatch_header_command(self, subcommand_text):
-        from chimerax.core.errors import UserError
         from chimerax.core.commands import EnumOf
         enum = EnumOf(self.headers, ids=[header.ident for header in self._headers])
         header, ident_text, remainder = enum.parse(subcommand_text, self.session)
         header.process_command(remainder)
 
     def _dispatch_viewer_command(self, viewer_keyword, subcommand_text):
-        from chimerax.core.errors import UserError
         viewers = self.viewers_by_subcommand.get(viewer_keyword, [])
         if not viewers:
             raise UserError("No '%s' viewers attached to alignment '%s'"
@@ -948,7 +1031,7 @@ class Alignment(State):
             return
         from chimerax.atomic import StructureSeq
         for chain in self.associations:
-            if chain.deleted or not isinstance(chain, StructureSeq):
+            if chain.deleted or getattr(chain, 'structure', None) is None:
                 # the ensuing disassociation/demotion will update the RMSD
                 return
         for chain in self.associations:
@@ -957,8 +1040,12 @@ class Alignment(State):
                 break
 
     def _seq_characters_changed_cb(self, trig_name, seq):
+        self._column_counts_cache = None
         if not getattr(self, '_realigning', False):
             self._notify_observers(self.NOTE_SEQ_CONTENTS, seq)
+
+    def _seq_name_changed_cb(self, trig_name, seq):
+        self._notify_observers(self.NOTE_SEQ_NAME, seq)
 
     def _set_realigned(self, realigned_seqs):
         # realigned sequences need to be in the same order as the current sequences
@@ -972,19 +1059,15 @@ class Alignment(State):
         self._notify_observers(self.NOTE_REALIGNMENT, prev_seqs)
 
     def _set_residue_attributes(self, *, headers=None, match_maps=None):
-        if headers is None:
-            headers = [hdr for hdr in self._headers if hdr.shown or hdr.eval_while_hidden]
         if match_maps is None:
             match_maps = [mm for aseq in self.associations.values() for mm in aseq.match_maps.values()]
-        from chimerax.atomic import Residue
-        for header in headers:
-            attr_name = header.residue_attr_name
-            Residue.register_attr(self.session, attr_name, "sequence alignment",
-                attr_type=header.value_type, can_return_none=header.value_none_okay)
+        if not match_maps:
+            return
+        def process_attr(attr_name, col_vals):
             assigned = set()
             for match_map in match_maps:
                 aseq = match_map.align_seq
-                for i, val in enumerate(header):
+                for i, val in enumerate(col_vals):
                     ui = aseq.gapped_to_ungapped(i)
                     if ui is None:
                         continue
@@ -992,10 +1075,22 @@ class Alignment(State):
                         r = match_map[ui]
                     except KeyError:
                         continue
-                    setattr(r, attr_name, val)
-                    assigned.add(r)
+                    if not hasattr(r, attr_name) or getattr(r, attr_name) != val:
+                        setattr(r, attr_name, val)
+                        assigned.add(r)
             if assigned:
                 self.session.change_tracker.add_modified(assigned, attr_name + " changed")
+        if headers is None:
+            headers = [hdr for hdr in self._headers if hdr.shown or hdr.eval_while_hidden]
+            if len(self.seqs) > 1:
+                values = [100.0 * self.most_common(col)[1] for col in range(len(self._seqs[0]))]
+                process_attr(self.COL_IDENTITY_ATTR, values)
+        from chimerax.atomic import Residue
+        for header in headers:
+            attr_name = header.residue_attr_name
+            Residue.register_attr(self.session, attr_name, "sequence alignment",
+                attr_type=header.value_type, can_return_none=header.value_none_okay)
+            process_attr(attr_name, header)
 
     def __str__(self):
         return self.ident

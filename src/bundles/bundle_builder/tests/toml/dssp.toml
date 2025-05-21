@@ -1,0 +1,62 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-AtomicLibrary ~=14.0",
+  "ChimeraX-Core ~=1.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Dssp"
+version = "2.0"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Compute/assign secondary structure"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-AtomicLibrary ~=14.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """Use Kabsch and Sander 'Define Secondary Structure of Proteins' algorithm to compute and assign secondary structure. See https://en.wikipedia.org/wiki/DSSP_(hydrogen_bond_estimation_algorithm)"""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Structure Analysis"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.extension._dssp]
+sources = [
+  "dssp_cpp/dssp.cpp",
+]
+libraries = [
+  "atomstruct",
+  "element",
+  "pyinstance",
+  "arrays",
+  "logger",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.atomic_lib",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.atomic_lib",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]

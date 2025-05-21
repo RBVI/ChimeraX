@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -15,8 +15,7 @@ from chimerax.core.tools import ToolInstance
 class ProfileGridsTool(ToolInstance):
     """ Viewer displays a multiple sequence alignment as a grid/table """
 
-    #help = "help:user/tools/sequenceviewer.html"
-    help = None
+    help = "help:user/tools/profilegrid.html"
 
     def __init__(self, session, tool_name, alignment=None):
         """ if 'alignment' is None, then we are being restored from a session and
@@ -64,29 +63,16 @@ class ProfileGridsTool(ToolInstance):
         #    self._seq_rename_handlers[seq] = seq.triggers.add_handler("rename",
         #        self.region_browser._seq_renamed_cb)
 
-        self.tool_window.manage('side')
+        from Qt.QtCore import Qt
+        self.tool_window.manage(None, allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas)
 
     def alignment_notification(self, note_name, note_data):
-        import sys
-        print("tool notification", note_name, file=sys.__stderr__)
         alignment = self.alignment
         if note_name == alignment.NOTE_DESTROYED:
             self.delete()
+            return
         '''
         if note_name == alignment.NOTE_MOD_ASSOC:
-            assoc_aseqs = set()
-            if note_data[0] != alignment.NOTE_DEL_ASSOC:
-                match_maps = note_data[1]
-            else:
-                match_maps = [note_data[1]['match map']]
-            for match_map in match_maps:
-                aseq = match_map.align_seq
-                assoc_aseqs.add(aseq)
-            for aseq in assoc_aseqs:
-                self.grid_canvas.assoc_mod(aseq)
-                self._update_errors_gaps(aseq)
-            if self.alignment.intrinsic:
-                self.show_ss(True)
             if hasattr(self, 'associations_tool'):
                 self.associations_tool._assoc_mod(note_data)
         elif note_name == alignment.NOTE_PRE_DEL_SEQS:
@@ -110,7 +96,26 @@ class ProfileGridsTool(ToolInstance):
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        cell_menu = menu.addMenu("Chosen Cells")
+        action = QAction("List Sequence Names", cell_menu)
+        action.triggered.connect(lambda *args, f=self.grid_canvas.list_from_cells: f())
+        cell_menu.addAction(action)
+        cell_menu.setEnabled(bool(self.grid_canvas.chosen_cells))
+        alignment_menu = cell_menu.addMenu("New Alignment")
+        viewers = self.session.alignments.registered_viewers("alignment")
+        viewers.sort()
+        for viewer in viewers:
+            alignment_menu.addAction(viewer.title())
+        alignment_menu.triggered.connect(
+            lambda action, f=self.grid_canvas.alignment_from_cells: f(action.text().lower()))
+
         self.alignment.add_headers_menu_entry(menu)
+
+        settings_action = QAction("Settings...", menu)
+        settings_action.triggered.connect(self.show_settings)
+        menu.addAction(settings_action)
+
         return
         from Qt.QtGui import QAction
         file_menu = menu.addMenu("File")
@@ -268,44 +273,29 @@ class ProfileGridsTool(ToolInstance):
                         show(seq))
                     features_menu.addAction(action)
 
-        settings_action = QAction("Settings...", menu)
-        settings_action.triggered.connect(self.show_settings)
-        menu.addAction(settings_action)
-
-
     def show_settings(self):
-        raise NotImplementedError("show_settings")
         if not hasattr(self, "settings_tool"):
             from .settings_tool import SettingsTool
             self.settings_tool = SettingsTool(self,
-                self.tool_window.create_child_window("Sequence Viewer Settings", close_destroys=False))
+                self.tool_window.create_child_window("Profile Grid Settings", close_destroys=False))
             self.settings_tool.tool_window.manage(None)
         self.settings_tool.tool_window.shown = True
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        raise NotImplementedError("restore_snaphot")
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        inst._finalize_init(data['alignment'])
-        inst.region_browser.restore_state(data['region browser'])
-        if 'seq canvas' in data:
-            inst.grid_canvas.restore_state(session, data['seq canvas'])
-        # feature browsers depend on regions (and therefore the region browser) being restored first
-        if 'feature browsers' in data:
-            from .feature_browser import FeatureBrowser
-            for seq, fb_data in data['feature browsers'].items():
-                inst.show_feature_browser(seq, state=fb_data)
+        inst._finalize_init(data['alignment'], session_data=(data['grid data'], data['weights']))
+        inst.grid_canvas.restore_state(data['grid canvas'])
         return inst
 
     SESSION_SAVE = True
 
     def take_snapshot(self, session, flags):
-        raise NotImplementedError("take_snaphot")
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'alignment': self.alignment,
-            'feature browsers': {seq: fb.state() for seq, fb in self._feature_browsers.items()},
-            'region browser': self.region_browser.state(),
+            'grid data': self.grid_canvas.grid_data,
+            'weights': self.grid_canvas.weights,
             'grid canvas': self.grid_canvas.state()
         }
         return data

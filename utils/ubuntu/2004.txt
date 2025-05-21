@@ -1,3 +1,4 @@
+jq
 libasound2
 libatk1.0-0
 libbz2-1.0

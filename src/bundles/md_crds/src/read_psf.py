@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -22,64 +22,13 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.atomic import AtomicStructure, Element
-
-def determine_element_from_mass(mass, *, consider_hydrogens=True):
-    H = Element.get_element('H')
-    nearest = None
-    for high in range(1, Element.NUM_SUPPORTED_ELEMENTS+1):
-        if Element.get_element(high).mass > mass:
-            break
-    else:
-        high = Element.NUM_SUPPORTED_ELEMENTS
-
-    if high == 1:
-        return H
-
-    if consider_hydrogens:
-        max_hyds = 6
-    else:
-        max_hyds = 0
-
-    for num_hyds in range(max_hyds+1):
-        adj_mass = mass - num_hyds * H.mass
-        low_mass = Element.get_element(high-1).mass
-        while low_mass > adj_mass and high > 1:
-            high -= 1
-            low_mass = Element.get_element(high-1).mass
-        high_mass = Element.get_element(high).mass
-        low_diff = abs(adj_mass - low_mass)
-        high_diff = abs(adj_mass - high_mass)
-        if low_diff < high_diff:
-            diff = low_diff
-            element = high-1
-        else:
-            diff = high_diff
-            element = high
-        if nearest is None or diff < nearest[1]:
-            nearest = (element, diff)
-    return Element.get_element(nearest[0])
+from chimerax.atomic import AtomicStructure
+from .util import determine_element_from_mass, prep_coords
 
 def read_psf(session, path, file_name, *, auto_style=True, coords=None, **kw):
-    from chimerax.core.errors import UserError, CancelOperation
+    from chimerax.core.errors import UserError
     import os
-    if coords is None:
-        if session.ui.is_gui and not session.in_script:
-            from Qt.QtWidgets import QFileDialog
-            # Don't use a native dialog so that the caption is actually shown;
-            # otherwise the dialog is totally mystifying
-            coords, types = QFileDialog.getOpenFileName(caption="Specify coordinates file for PSF",
-                directory=os.path.dirname(path), options=QFileDialog.DontUseNativeDialog)
-            if not coords:
-                raise CancelOperation("No coordinates file specified for PSF")
-            session.logger.info("Coordinates file: %s" % coords)
-        else:
-            raise UserError("'coords' keyword with coordinate-file argument must be supplied")
-    from chimerax.data_formats import NoFormatError
-    try:
-        data_fmt = session.data_formats.open_format_from_file_name(coords)
-    except NoFormatError as e:
-        raise UserError("Cannot determine format of coordinates file '%s' from suffix" % coords)
+    coords, data_fmt = prep_coords(session, coords, path, "PSF")
 
     from .dcd.MDToolsMarch97 import md
     try:

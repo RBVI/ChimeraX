@@ -195,7 +195,7 @@ Methods:
    d.addtime() - add a 'TIME' field based on timestep
    d.plot([args]) - same as Data but eliminates 'TS' if 'TIME' present
 
-See also: http://www.ks.uiuc.edu/Research/namd/
+See also: https://www.ks.uiuc.edu/Research/namd/
 """
 	def __init__(self,namdfile,fields=('TS','TEMP')):
 		Data.__init__(self,fields)

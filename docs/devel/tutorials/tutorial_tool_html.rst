@@ -6,7 +6,7 @@
     All rights reserved.  This software provided pursuant to a
     license agreement containing restrictions on its disclosure,
     duplication and use.  For details see:
-    http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+    https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
     This notice must be embedded in or attached to all copies,
     including partial copies, of the software or any revisions
     or derivations thereof.
@@ -28,8 +28,8 @@ that defines a graphical interface to the two commands,
 ``tutorial cofm`` and ``tutorial highlight``, defined
 in the :doc:`tutorial_command` example.
 
-The ChimeraX user interface is built using `PyQt5`_,
-which has a significant learning curve.  However, PyQt5
+The ChimeraX user interface is built using `PyQt6`_,
+which has a significant learning curve.  However, PyQt6
 has very good support for displaying `HTML 5`_ with
 `JavaScript`_ in a window, which provides a simpler
 avenue for implementing graphical interfaces.  This example
@@ -55,7 +55,7 @@ Source Code Organization
 
 The source code for this example may be downloaded
 as a `zip-format file
-<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial.zip?name=tut_tool_html>`_
+<https://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial.zip?name=tut_tool_html>`_
 containing a folder named `tut_tool_html`.
 Alternatively, one can start with an empty folder
 and create source files based on the samples below.
@@ -212,7 +212,7 @@ displays it in the widget using
 
 The :py:class:`~chimerax.ui.htmltool.HtmlToolInstance`
 class also helps manage threading
-issues that arise from the way HTML is displayed using `PyQt5`_.
+issues that arise from the way HTML is displayed using `PyQt6`_.
 The underlying `Qt WebEngine`_ machinery uses a separate thread
 for rendering HTML, so developers need to make sure that code
 is run in the proper thread.  In particular, access to shared
@@ -237,7 +237,7 @@ In this example, the custom scheme is ``tutorial``
 :py:meth:`~chimerax.ui.htmltool.HtmlToolInstance.handle_scheme`.
 is called with the clicked URL as its lone argument.
 Currently, the argument is an instance
-of :py:class:`PyQt5.QtCore.QUrl` but that may change later to remove
+of :py:class:`PyQt6.QtCore.QUrl` but that may change later to remove
 explicit dependency on PyQt.
 :py:meth:`~chimerax.ui.htmltool.HtmlToolInstance.handle_scheme`.
 is expected to parse the URL and take appropriate action depending on

@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-PDB" version="2.7.6"
+<BundleInfo name="ChimeraX-PDB" version="2.7.10"
 	    package="chimerax.pdb" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -13,10 +13,23 @@
     <Category name="Molecular structure"/>
   </Categories>
 
+  <CLibrary name="pdb" static="true">
+    <SourceFile>pdb_cpp/pdb.cpp</SourceFile>
+    <SourceFile>pdb_cpp/pdb_chars.cpp</SourceFile>
+    <SourceFile>pdb_cpp/pdb_read.cpp</SourceFile>
+    <SourceFile>pdb_cpp/pdb_sprntf.cpp</SourceFile>
+    <SourceFile>pdb_cpp/pdb_sscanf.cpp</SourceFile>
+    <SourceFile>pdb_cpp/pdb_type.cpp</SourceFile>
+    <SourceFile>pdb_cpp/pdbinput.cpp</SourceFile>
+    <IncludeDir>pdb_cpp/pdb_cpp</IncludeDir>
+  </CLibrary>
+
   <CModule name="_pdbio">
     <SourceFile>pdbio_cpp/PDBio.cpp</SourceFile>
-    <IncludeDir>pdb_cpp/include</IncludeDir>
+    <IncludeDir>pdb_cpp/</IncludeDir>
     <LibraryDir>pdb_cpp/lib</LibraryDir>
+    <LibraryDir>pdb_cpp/</LibraryDir>
+    <LibraryDir>src/</LibraryDir>
     <Library>atomstruct</Library>
     <Library>element</Library>
     <Library>pyinstance</Library>
@@ -41,7 +54,7 @@
   <Providers manager="data formats">
     <Provider name="PDB" category="Molecular structure" suffixes=".pdb,.pdb1,.ent,.pqr" default_for=".pdb"
         mime_types="chemical/x-pdb,chemical/x-spdbv" encoding="utf-8"
-		reference_url="http://www.wwpdb.org/documentation/file-format" />
+		reference_url="https://www.wwpdb.org/documentation/file-format" />
   </Providers>
 
   <Providers manager="open command">

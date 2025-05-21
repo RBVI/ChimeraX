@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -15,21 +15,28 @@ include $(TOP)/mk/config.make
 
 include Makefile.common
 
-QUOTE_CC := $(subst ','\'',$(CC) $(TARGET_ARCH))
-QUOTE_CXX := $(subst ','\'',$(CXX) $(TARGET_ARCH))
+# The configure script checks for the compiler banner message, so..
+VERBOSE_CC := $(subst -nologo,,$(CC))
+VERBOSE_CXX := $(subst -nologo,,$(CXX))
+QUOTE_CC := $(subst ','\'',$(VERBOSE_CC) $(TARGET_ARCH))
+QUOTE_CXX := $(subst ','\'',$(VERBOSE_CXX) $(TARGET_ARCH))
 
 # Make xdrfile use our compiler options
-ENV_CONFIGURE = env CC='$(QUOTE_CC)' CXX='$(QUOTE_CXX)' LDFLAGS="$(TARGET_ARCH) $(LDFLAGS)"
+ifeq ($(OS),Darwin)
+ENV_CONFIGURE = MSYS2_ARG_CONV_EXCL=/OUT CC='$(QUOTE_CC)' CXX='$(QUOTE_CXX)' LDFLAGS="$(TARGET_ARCH) $(LDFLAGS) -Wl,-install_name,@rpath/libxdrfile.4.dylib" CFLAGS=
+else
+ENV_CONFIGURE = MSYS2_ARG_CONV_EXCL=/OUT CC='$(QUOTE_CC)' CXX='$(QUOTE_CXX)' LDFLAGS="$(TARGET_ARCH) $(LDFLAGS)" CFLAGS=
+endif
 
-PATCHES = patch
+PATCHES =
 
 all: $(XDRFILE_LIB)
 
 $(XDRFILE_LIB): $(XDRFILE_LIB_SOURCE)
-	cd $(XDRFILE_LIB_SOURCE) ; $(MAKE)
+	cd $(XDRFILE_LIB_SOURCE) ; $(ENV_CONFIGURE) $(MAKE)
 
 $(XDRFILE_LIB_SOURCE):
-	tar zxf $(XDRFILE_ARCHIVE)
+	tar zxf $(XDRFILE_ARCHIVE) --no-same-owner
 ifneq ($(PATCHES),)
 	for p in $(PATCHES); do \
 		if [ -f $$p ] ; then \
@@ -37,11 +44,17 @@ ifneq ($(PATCHES),)
 		fi ; \
 	done
 endif
+	cp configure.ac $(XDRFILE_LIB_SOURCE)/configure.ac
+	cd $(XDRFILE_LIB_SOURCE) ; autoconf
 ifneq ($(filter $(MSYSTEM),MSYS MINGW64),)
 	# Though it says 'mingw32' inspection of the generated static library shows x86_64
-	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) ./configure --build=x86_64-w64-mingw32 --enable-shared --with-pic
+	cd $(XDRFILE_LIB_SOURCE) ; $(ENV_CONFIGURE) ./configure --build=x86_64-w64-mingw32 --enable-shared --with-pic
 else
-	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) ./configure --enable-shared --with-pic
+ifeq ($(OSARCH),LinuxArm64)
+	cd $(XDRFILE_LIB_SOURCE)/config ; rm config.guess ; cp $(TOP)/utils/build/autotools/config.guess .
+	cd $(XDRFILE_LIB_SOURCE)/config ; rm config.sub ; cp $(TOP)/utils/build/autotools/config.sub .
+endif
+	cd $(XDRFILE_LIB_SOURCE) ; $(ENV_CONFIGURE) ./configure --enable-shared --with-pic
 endif
 
 clean:

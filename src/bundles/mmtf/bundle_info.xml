@@ -41,7 +41,7 @@
 
   <Providers manager="data formats">
     <Provider name="Macromolecular Transmission" category="Molecular structure"
-		nicknames="mmtf" suffixes=".mmtf" reference_url="http://mmtf.rcsb.org/" />
+		nicknames="mmtf" suffixes=".mmtf" reference_url="https://mmtf.rcsb.org/" />
   </Providers>
 
   <Providers manager="open command">

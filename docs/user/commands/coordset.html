@@ -26,40 +26,56 @@ class="clRighticon" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: coordset</h3>
 
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>coordset</b>
-&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-&nbsp;<i>frame</i>
-[&nbsp;<b>computeSs</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>holdSteady</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>coordset</b>
-&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
-[<i>start</i>,][<i>end</i>][,<i>step</i>]
-[&nbsp;<b>computeSs</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>holdSteady</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
-[&nbsp;<b>pauseFrames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
-[&nbsp;<b>loop</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>bounce</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>coordset stop</b>
-&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-</h3>
 <p>
-The <b>coordset</b> command displays the <a href="#framesdef">frames</a> 
+The main <b>coordset</b> command displays the <a href="#framesdef">frames</a> 
 (coordinate sets) of a <a href="../trajectories.html">trajectory</a>,
-and the <a href="#slider"><b>coordset slider</b></a> subcommand
+whereas <a href="#slider"><b>coordset slider</b></a>
 shows a graphical interface for interactive playback.
-Trajectory playback in progress can be halted with <b>coordset stop</b>.
 The number of coordinate sets in a trajectory
 can be reported with the command <a href="info.html"><b>info</b></a>.
 See also: 
 <a href="morph.html"><b>morph</b></a>,
 <a href="mseries.html"><b>mseries</b></a>,
 <a href="../movies.html">making movies</a>
-</p><p>
+</p>
+<blockquote><b>
+<a href="#playback">Playback via Command</a>
+<br>
+<a href="#slider">Coordset Slider and Plotting</a>
+<br>
+<a href="#ssnote">Recomputing Secondary Structure</a>
+<br>
+<a href="#framesdef">Meaning of &ldquo;Frames&rdquo;</a>
+</b></blockquote>
+
+<a name="playback"></a>
+<p class="nav">
+[<a href="#top">back to top: coordset</a>]
+</p>
+<h3>Playback via Command </h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>coordset</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+&nbsp;<i>frame</i>
+[&nbsp;<b>computeSs</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>holdSteady</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>: <b>coordset</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[<i>start</i>,][<i>end</i>][,<i>step</i>]
+[&nbsp;<b>computeSs</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>holdSteady</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>pauseFrames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>loop</b>&nbsp;&nbsp;<i>N</i>&nbsp;
+[&nbsp;<b>bounce</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>: <b>coordset stop</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+</blockquote>
+<p>
+The <b>coordset</b> command displays the <a href="#framesdef">frames</a> 
+(coordinate sets) of a <a href="../trajectories.html">trajectory</a>,
+whereas playback in progress can be halted with <b>coordset stop</b>.
 The <i>model-spec</i> is the model number of the trajectory, preceded by #.
 A comma-separated list or range of model numbers can be used
 to specify multiple trajectories at once.
@@ -89,9 +105,9 @@ Examples:
 </p>
 <blockquote>
 <b>coordset #1 10</b><br>
-&nbsp;&nbsp; - go to frame 10 of trajectory model #1<br>
+&nbsp;&nbsp; &ndash; go to frame 10 of trajectory model #1<br>
 <b>coordset #1 -10</b><br>
-&nbsp;&nbsp; - go to the 10th-to-last frame
+&nbsp;&nbsp; &ndash; go to the 10th-to-last frame
 </blockquote>
 <p>
 Supplying comma-separated frame numbers indicates playing from <i>start</i>
@@ -108,18 +124,19 @@ actual frame numbers. Examples:
 <blockquote>
 <b>coordset #1 1,21 holdSteady @ca</b><br>
 &nbsp;&nbsp;
-- play from frame 1 to 21 of trajectory model #1, holding CA atoms steady<br>
+&ndash; play from frame 1 to 21 of trajectory model #1, 
+holding CA atoms steady<br>
 <b>coordset #1 .,15</b><br>
-&nbsp;&nbsp; - play from the current frame to frame 15<br>
+&nbsp;&nbsp; &ndash; play from the current frame to frame 15<br>
 <b>coordset #1 5,</b><br>
-&nbsp;&nbsp; - play from frame 5 to the end<br>
+&nbsp;&nbsp; &ndash; play from frame 5 to the end<br>
 <b>coordset #1</b><br>
-&nbsp;&nbsp; - play from frame 1 to the end<br>
+&nbsp;&nbsp; &ndash; play from frame 1 to the end<br>
 <b>coordset #1 21,1</b><br>
-&nbsp;&nbsp; - play from frame 21 to 1, backwards<br>
+&nbsp;&nbsp; &ndash; play from frame 21 to 1, backwards<br>
 <b>coordset #1 -1,1,-10</b><br>
 &nbsp;&nbsp;
-- play from the last frame to the first, every 10th frame, backwards
+&ndash; play from the last frame to the first, every 10th frame, backwards
 </blockquote>
 <p>
 The <b>loop</b> option indicates repeating playback
@@ -134,7 +151,7 @@ instead of abruptly wrapping.
 <p class="nav">
 [<a href="#top">back to top: coordset</a>]
 </p>
-<h3>Coordset Slider</h3>
+<h3>Coordset Slider and Plotting</h3>
 <blockquote><a href="usageconventions.html"><b>Usage</b></a>:
 <b>coordset slider</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
@@ -155,9 +172,10 @@ src="../tools/ui-icons/snail.png">&nbsp; value to increase for slower playback
 (<b>pauseFrames</b> as described <a href="#top">above</a>),
 and a button for recording a movie
 (<img class="iconbar" src="../tools/ui-icons/record.png">).
-Sequential integers are added to the movie filename (movie1.mp4, movie2.mp4, ...)
-so that repeated recordings will not overwrite the previous ones, and the save
-location can be set with the <a href="snapshot.html"><b>snapshot</b></a> command.
+Sequential integers are added to the movie filename (movie1.mp4, movie2.mp4, 
+...) so that repeated recordings will not overwrite the previous ones, 
+and the save location can be set with the 
+<a href="snapshot.html"><b>snapshot</b></a> command.
 The movie will start at the current slider position, so
 to include the whole trajectory, place the slider at the far left
 before clicking the record button.
@@ -168,35 +186,63 @@ A separate slider is shown for each specified trajectory model.
 By default, <a href="open.html#traj-options">opening a trajectory</a>
 automatically shows a slider.
 The slider is saved in <a href="save.html#session">sessions</a>.
-The <b>Loop Playback</b> setting in the slider
-<a href="../window.html#context-menu">context menu</a> controls whether
-interactive playback should automatically wrap around from the end
-to the beginning (initially on).
-See also: 
-<a href="movie.html"><b>movie</b></a>,
-<a href="vseries.html#slider"><b>vseries slider</b></a>
-</p>
-
-<a name="framesdef"></a>
-<p class="nav">
-[<a href="#top">back to top: coordset</a>]
-</p>
-<h3>Frames Terminology</h3>
-<p>
-Note that &ldquo;frames&rdquo; is commonly used for two disparate concepts:
+</p><p>
+The slider <a href="../window.html#context-menu">context menu</a> includes:
 </p>
 <ul>
-<li>coordinate sets from successive time points in a 
-<a href="../trajectories.html">trajectory</a>; 
-changes in conformation and configuration
-<li>graphics image updates,
-nominally 60 fps in ChimeraX (<a href="set.html#maxFrameRate">default</a>),
-showing any graphical changes
+<a name="plotting"></a>
+<li><b>Plot</b> &ndash; plot various measurables across the whole trajectory,
+with frame number on the horizontal (X) axis. 
+<p>
+In general, each measurement is defined by 
+<a href="../selection.html">selecting</a> the desired atoms 
+(two for <b>Distances</b>, three for <b>Angles</b>, four for <b>Torsions</b>,
+any number for <b>SASAs</b>) and clicking <b>Plot</b>. 
+For SASA (area of the atoms'
+<a href="surface.html#surfdefs">solvent-accessible surface</a>),
+there are also checkbox options to omit residues 
+<a href="atomspec.html#surfcats">classified</a> as ions, ligand, and/or
+solvent from the calculation.
+<!-- 
+SASA details: the entire surfcats of all specified atoms are lumped as the 
+first arg of "measure sasa" and the specified atoms are used as the "sum" arg,
+with probe radius default = 1.4 Angstroms 
+-->
+Several different measurements of the same type 
+(for example, several distances) can be shown on the same plot. 
+Each measurement is listed in a table on the right along with a
+&nbsp;<img class="iconbar" src="../tools/ui-icons/shown.png"
+title="eye icon" alt="eye icon">&nbsp; show/hide checkbox and
+a color well that can be clicked to change the line color interactively.
+Choosing one or more rows in the table and clicking <b>Delete</b>
+removes the associated measurement(s).
+</p><p>
+Each plot is effectively a timeline with a &ldquo;scrubber,&rdquo;
+in that clicking a specific frame shows the corresponding coordinate set
+in the graphics window, and dragging the vertical line left or right
+plays through the corresponding part of the trajectory.
+It is important to avoid closing the plot window, as the measurement
+definitions will be lost if that occurs. If the plot window is left open
+but gets lost behind other windows, it can be resurrected using the slider
+context menu.
+</p>
+<li><b>Loop Playback</b> (initially on) &ndash; whether interactive playback 
+should continue until explicitly paused 
+<li><b>Bounce Playback</b> (only available when <b>Loop Playback</b> is on)
+&ndash; whether looping wraps from end to beginning so that playback is only 
+in the forward direction (initial setting, <b>Bounce Playback</b> off) 
+or alternates between forward and backward (<b>Bounce Playback</b> on).
+These loop/bounce settings apply only to interactive viewing, not recording 
+a movie with the button mentioned above.
 </ul>
 <p>
-Because of such broad usage, the documentation also uses &ldquo;frames&rdquo;
-in both senses, but context and wording should indicate which meaning 
-applies in a particular situation.
+See also: 
+<a href="distance.html"><b>distance</b></a>,
+<a href="angle.html"><b>angle</b></a>,
+<a href="torsion.html"><b>torsion</b></a>,
+<a href="measure.html#sasa"><b>measure sasa</b></a>,
+<a href="movie.html"><b>movie</b></a>,
+<a href="vseries.html#slider"><b>vseries slider</b></a>
 </p>
 
 <a name="ssnote"></a>
@@ -220,7 +266,29 @@ For example, to reassign secondary structure at every fifth frame:
 <b><a href="perframe.html">perframe</a> dssp interval 5; coord #1 1,200; <a href="wait.html">wait</a> 200; <a href="perframe.html">~perframe</a></b>
 </blockquote>
 
+<a name="framesdef"></a>
+<p class="nav">
+[<a href="#top">back to top: coordset</a>]
+</p>
+<h3>Meaning of &ldquo;Frames&rdquo;</h3>
+<p>
+Note that &ldquo;frames&rdquo; is commonly used for two disparate concepts:
+</p>
+<ul>
+<li>coordinate sets from successive time points in a 
+<a href="../trajectories.html">trajectory</a>; 
+changes in conformation and configuration
+<li>graphics image updates,
+nominally 60 fps in ChimeraX (<a href="set.html#maxFrameRate">default</a>),
+showing any graphical changes
+</ul>
+<p>
+Because of such broad usage, the documentation also uses &ldquo;frames&rdquo;
+in both senses, but context and wording should indicate which meaning 
+applies in a particular situation.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2024</address>
+April 2025</address>
 </body></html>

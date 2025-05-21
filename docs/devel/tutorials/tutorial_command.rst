@@ -6,7 +6,7 @@
     All rights reserved.  This software provided pursuant to a
     license agreement containing restrictions on its disclosure,
     duplication and use.  For details see:
-    http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+    https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
     This notice must be embedded in or attached to all copies,
     including partial copies, of the software or any revisions
     or derivations thereof.
@@ -47,7 +47,7 @@ Source Code Organization
 
 The source code for this example may be downloaded
 as a `zip-format file
-<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial.zip?name=tut_cmd>`_
+<https://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial.zip?name=tut_cmd>`_
 containing a folder named `tut_cmd`.
 Alternatively, one can start with an empty folder
 and create source files based on the samples below.
@@ -209,14 +209,14 @@ the array of atoms, their coordinates, and their center of mass by
 calling :py:func:`_get_cofm`.  It then
 
 #. computes the distances from each atom to the center of mass
-   using Numpy (line 88),
+   using Numpy (line 104),
 #. sorts the atom indices by distances so that indices of atoms that
    are closer to the center of mass are towards the front of the
    sort result (:code:`argsort(distances)`), and select the first
-   :code:`count` indices (line 94),
-#. turn the array of indices into an array of atoms (line 97),
+   :code:`count` indices (line 110),
+#. turn the array of indices into an array of atoms (line 113),
    and
-#. finally, set the color of the selected atoms (line 101).
+#. finally, set the color of the selected atoms (line 117).
    The :py:attr:`colors` attribute of the atomic array is an
    Nx4 array of integers, where N is the number of atoms and
    the rows (of 4 elements) are the RGBA values for each atom.
@@ -242,21 +242,19 @@ calling :py:func:`_get_cofm`.  It then
 
 If the user did not choose specific atoms (when :code:`atoms`
 is :code:`None`), the usual ChimeraX interpretation is that all
-atoms should be used (lines 123-125).
-:py:func:`chimerax.core.commands.atomspec.all_objects` returns
-an instance of `chimerax.core.objects.Object` that contains
-all open models in the current ChimeraX session, and whose
-:py:attr:`atoms` attribute is an array of atoms in the included
+atoms should be used (lines 139-141).
+:py:func:`chimerax.atomic.structure.all_atoms` returns
+an array of atoms from all open
 models.  Transformed and untransformed coordinates are accessed
 using the :py:attr:`scene_coords` and :py:attr:`coords` attributes
-of the atom array, respectively (lines 132-135).  If atomic mass
+of the atom array, respectively (lines 148-151).  If atomic mass
 need not be included, the "center of mass" is simply the average
-of the coordinates (line 141); if a weighted calculation is required,
+of the coordinates (line 157); if a weighted calculation is required,
 (a) the atomic masses are retrieved by :code:`atoms.elements.masses`
-(line 143),
+(line 159),
 (b) the coordinates are scaled by the corresponding atomic masses
-(line 144), and
-(c) the weighted average is computed (line 145).
+(line 160), and
+(c) the weighted average is computed (line 161).
 
 For performance, ChimeraX makes use of `NumPy`_ arrays in many contexts.
 The container for atoms is typically a
@@ -264,7 +262,7 @@ The container for atoms is typically a
 instance, as are those for bonds, residues, and atomic structures.
 Fetching the same attribute, e.g., coordinates, from a collection
 of molecular data, e.g., atoms, usually results in a NumPy array.
-Although code involving NumPy arrays are sometimes opaque, they are
+Although code involving NumPy arrays is sometimes opaque, they are
 typically much more efficient than using Python loops.
 
 .. _command help:

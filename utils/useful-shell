@@ -1,0 +1,27 @@
+# vim: set ft=sh:
+# Cat this into your .bashrc or .zshrc to get some useful shortcuts
+function groot {
+	git rev-parse --show-toplevel
+}
+
+alias svenv="source $(groot)/.venv/bin/activate"
+
+function install-editable-bundle {
+	make -C $(groot)/src/bundles/$1 install-editable
+}
+
+function install-bundle {
+	make -C $(groot)/src/bundles/$1 install
+}
+
+function cbundle {
+	cd $(groot)/src/bundles/$1
+}
+
+function git-blame {
+	if [ -e $(groot)/.git-blame-ignore-revs ]; then
+		git blame --ignore-revs-file $(groot)/.git-blame-ignore-revs $@
+	else
+		git blame $@
+	fi
+}

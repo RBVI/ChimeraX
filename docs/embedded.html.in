@@ -42,7 +42,7 @@ or as a binary package written in C or C++.
 <dd>
 <p>
 <ul>
-<li><a href="http://dunbrack.fccc.edu/bbdep2010/"
+<li><a href="https://dunbrack.fccc.edu/bbdep2010/"
 target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>,
 described in:
   <blockquote>
@@ -53,7 +53,7 @@ Shapovalov MV, Dunbrack RL Jr.
 <i>Structure.</i> 2011 Jun 8;19(6):844-58.
   </blockquote>
 </li>
-<li><a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx"
+<li><a href="https://www.dynameomics.org/rotamer/indexRotamer.aspx"
 target="_blank">Dynameomics rotamer library</a>, described in:
    <blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/21280126" target="_blank">
@@ -122,7 +122,7 @@ License type: <a href="licenses/basictypes-license.txt" target="_blank">BSD lice
 <dt><a href="https://ambermd.org" target="_blank">AmberTools</a>
 	<dd> Certain executables from the AmberTools package are included with ChimeraX in order to compute partial charges.  These executables are unmodified relative to their AmberTools versions, and are communicated with via their normal inputs and outputs.
 <br>
-License: Most of AmberTools is covered under the <a href="http://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU Public License v3</a>.
+License: Most of AmberTools is covered under the <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU Public License v3</a>.
 
 </dl>
 

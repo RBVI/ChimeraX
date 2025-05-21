@@ -4,11 +4,12 @@ from packaging.requirements import Requirement
 from xml.dom import minidom
 import tomllib
 
+
 def make_dependencies(dir_path, output_name):
     # remove when toml is part of the standard Python library
 
     if not dir_path:
-        dir_path = '.'
+        dir_path = "."
 
     # Construct mappings from directory name to bundle dependencies
     # and bundle name to directory name
@@ -32,8 +33,10 @@ def make_dependencies(dir_path, output_name):
             doc = minidom.parse(p)
             bundle_tags = doc.getElementsByTagName("BundleInfo")
             if len(bundle_tags) != 1:
-                print("%s: found %d BundleInfo tags instead of 1" %
-                      (dir_name, len(bundle_tags)))
+                print(
+                    "%s: found %d BundleInfo tags instead of 1"
+                    % (dir_name, len(bundle_tags))
+                )
                 continue
             bundle_name = bundle_tags[0].getAttribute("name")
             bundle2dirname[bundle_name] = dir_name
@@ -56,7 +59,14 @@ def make_dependencies(dir_path, output_name):
             bundle2dirname[bundle_name] = dir_name
             dependencies[dir_name] = deps = []
             for dep in build_dependencies:
-                if dep.startswith('ChimeraX') and dep != "ChimeraX-BundleBuilder":
+                # Toss the dependency on core because we build it first in all cases
+                if (
+                    dep.startswith("ChimeraX")
+                    # TODO: These should not really be necessary; all bundles should be made the same way
+                    # but we special case bundle builder and core
+                    and not dep.startswith("ChimeraX-BundleBuilder")
+                    and not dep.startswith("ChimeraX-Core")
+                ):
                     # Strip the version because we don't need it for our internal system
                     dep_as_req = Requirement(dep)
                     deps.append(dep_as_req.name)
@@ -66,6 +76,7 @@ def make_dependencies(dir_path, output_name):
     with open(os.path.join(dir_path, output_name), "w") as f:
         for dir_name in sorted(dependencies.keys()):
             dep_dirs = []
+            uv_dep_dirs = []
             for dep in dependencies[dir_name]:
                 try:
                     dep_dir = bundle2dirname[dep]
@@ -73,10 +84,12 @@ def make_dependencies(dir_path, output_name):
                     missing.add(dep)
                     continue
                 dep_dirs.append(f"{dep_dir}.build")
+                uv_dep_dirs.append(f"{dep_dir}.uv-build")
                 clean_dirs = clean.setdefault(dep_dir, [])
                 clean_dirs.append(f"{dir_name}.clean")
             if dep_dirs:
                 print(f"{dir_name}.build: {' '.join(dep_dirs)}", file=f)
+                print(f"{dir_name}.uv-build: {' '.join(uv_dep_dirs)}", file=f)
         for dir_name in sorted(clean.keys()):
             clean_dirs = clean[dir_name]
             print(f"{dir_name}.clean: {' '.join(clean_dirs)}", file=f)
@@ -92,6 +105,7 @@ def make_dependencies(dir_path, output_name):
         print("Missing bundles:")
         for dep in sorted(missing):
             print(" ", dep)
+
 
 if __name__ == "__main__":
     make_dependencies(os.path.dirname(__file__), "Makefile.dependencies")

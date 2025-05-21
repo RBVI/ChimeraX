@@ -29,6 +29,9 @@ daily-package: ubuntu
 techpreview-package: ubuntu
 	$(APP_PYTHON_EXE) mkubuntu.py $(UBUNTU) techpreview
 
+github-techpreview-package: ubuntu
+	$(APP_PYTHON_EXE) mkubuntu.py $(UBUNTU) github-techpreview
+
 candidate-package: ubuntu
 	$(APP_PYTHON_EXE) mkubuntu.py $(UBUNTU) candidate
 

@@ -406,7 +406,8 @@ labels (<a href="2dlabels.html">2D</a> and <a href="label.html">3D</a>)
 <li><a href="../selection.html">selections</a>,
 selection highlighting <a href="graphics.html#selections">color and width</a>
 <li><a href="name.html">defined targets</a> (<i>e.g.</i>, named selections)
-<li><a href="view.html#name">named views</a>
+<li><a href="view.html#name">named views</a>, and a view named 
+<b>session-start</b> is created immediately upon restoring a session 
 <li><a href="alias.html">aliases</a>
 <li><a href="../attributes.html">attributes</a>
 <li><a href="color.html#name">custom colors</a>
@@ -962,7 +963,14 @@ substructure names of the form ALA85 instead of ALA (default <b>false</b>).
 <b>gaffType</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to write GAFF atom types instead of Sybyl atom types.
-GAFF types are not yet computed, so this should be kept <b>false</b>.
+GAFF types are only assigned when
+<a href="addcharge.html"><b>addcharge</b></a> 
+or <a href="../tools/addcharges.html"><b>Add Charges</b></a>
+is run on the structure
+(which could be done as part of <a href="../tools/dockprep.html"><b>Dock
+Prep</b></a>).
+If charges have not been assigned to the structure, however, the
+GAFF types are not available and this option should be kept <b>false</b>.
 </blockquote>
 
 <a name="attributes"></a>
@@ -1080,6 +1088,7 @@ will include the entire models regardless of which parts
 [&nbsp;<b>format</b>&nbsp;&nbsp;gltf&nbsp;]
 [&nbsp;<a href="#models"><b>models</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<a href="#center"><b>center</b></a>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#centerEachNode"><b>centerEachNode</b></a>&nbsp;&nbsp<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>shortVertexIndices</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>floatColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -1112,6 +1121,17 @@ at a specific position in the output file coordinates:
 <li><b>center true</b> (default) &ndash; at 0,0,0 (same as <b>center 0,0,0</b>)
 <li><b>center false</b> &ndash; unchanged from the current scene
 <li><b>center <i>x,y,z</i></b> (allowed for GLTF only) &ndash; at <i>x,y,z</i>
+</blockquote>
+<blockquote>
+<a name="centerEachNode"></a>
+<b>centerEachNode</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+The <b>centerEachNode</b> option indicates whether to adjust the transform
+of each node to place its geometric center (average of vertex positions) at
+(0,0,0) in its local coordinate system (default <b>true</b>).
+This does not affect the positions of the objects in the scene, only how their 
+coordinates are expressed. Centering objects in their local coordinate 
+systems makes them easier to edit in other applications such as Blender.
 </blockquote>
 <blockquote>
 <b>size</b>&nbsp;&nbsp;<i>s</i>
@@ -1236,5 +1256,5 @@ that the scene is opaque.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2024</address>
+March 2025</address>
 </body></html>

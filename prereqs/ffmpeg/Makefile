@@ -150,7 +150,7 @@ $(FFMPEG_EXE): $(FFMPEG_SOURCE) video_codecs
 	cd $(FFMPEG_SOURCE); ./configure $(FFMPEG_OPTS) ; $(MAKE)
 
 $(FFMPEG_SOURCE): $(FFMPEG_DISTRIB)
-	tar -xf $(FFMPEG_DISTRIB) -C $(tmpdir)
+	tar -xf $(FFMPEG_DISTRIB) -C $(tmpdir) --no-same-owner
 
 $(FFMPEG_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(FFMPEG_DISTRIB)
@@ -161,7 +161,7 @@ yasm $(YASM_EXE): $(YASM_SOURCE)
 	cd $(YASM_SOURCE) ; ./configure --prefix=$(build_prefix); $(MAKE) install
 
 $(YASM_SOURCE): $(YASM_DISTRIB)
-	tar -xf $(YASM_DISTRIB) -C $(tmpdir)
+	tar -xf $(YASM_DISTRIB) -C $(tmpdir) --no-same-owner
 
 $(YASM_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(YASM_DISTRIB)
@@ -172,7 +172,7 @@ libx264 $(LIBX264): $(LIBX264_SOURCE) $(YASM_EXE)
 	env PATH=$(bindir):$(PATH) $(MAKE) lib-static install install-lib-static install-lib-dev
 
 $(LIBX264_SOURCE): $(LIBX264_DISTRIB)
-	tar -xf $(LIBX264_DISTRIB) -C $(tmpdir)
+	tar -xf $(LIBX264_DISTRIB) -C $(tmpdir) --no-same-owner
 
 $(LIBX264_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBX264_DISTRIB)
@@ -183,7 +183,7 @@ libogg $(LIBOGG): $(LIBOGG_SOURCE)
 	env PATH=$(bindir):$(PATH) $(MAKE) install
 
 $(LIBOGG_SOURCE): $(LIBOGG_DISTRIB)
-	tar -xf $(LIBOGG_DISTRIB) -C $(tmpdir)
+	tar -xf $(LIBOGG_DISTRIB) -C $(tmpdir) --no-same-owner
 
 $(LIBOGG_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBOGG_DISTRIB)
@@ -192,6 +192,10 @@ libtheora $(LIBTHEORA): $(LIBTHEORA_SOURCE) $(LIBOGG)
 ifeq ($(OS),Darwin)
 	ln -sfF $(datadir)/libtool/build-aux/ltmain.sh $(LIBTHEORA_SOURCE)/ltmain.sh
 else ifneq (,$(wildcard /usr/share/libtool/build-aux/ltmain.sh))
+ifeq ($(OSARCH),LinuxArm64)
+	cd $(LIBTHEORA_SOURCE) ; rm config.guess ; cp $(TOP)/utils/build/autotools/config.guess .
+	cd $(LIBTHEORA_SOURCE) ; rm config.sub ; cp $(TOP)/utils/build/autotools/config.sub .
+endif
 	-cd $(LIBTHEORA_SOURCE) ; ./autogen.sh
 endif
 	cd $(LIBTHEORA_SOURCE) ; \
@@ -206,7 +210,7 @@ ifeq ($(OS),Darwin)
 endif
 
 $(LIBTHEORA_SOURCE): $(LIBTHEORA_DISTRIB)
-	tar -xf $(LIBTHEORA_DISTRIB) -C $(tmpdir)
+	tar -xf $(LIBTHEORA_DISTRIB) -C $(tmpdir) --no-same-owner
 
 $(LIBTHEORA_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBTHEORA_DISTRIB)
@@ -217,7 +221,7 @@ libvpx $(LIBVPX): $(LIBVPX_SOURCE) $(YASM_EXE)
 	env PATH=$(bindir):$(PATH) $(MAKE) install
 
 $(LIBVPX_SOURCE): $(LIBVPX_DISTRIB)
-	tar -xf $(LIBVPX_DISTRIB) -C $(tmpdir)
+	tar -xf $(LIBVPX_DISTRIB) -C $(tmpdir) --no-same-owner
 
 $(LIBVPX_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBVPX_DISTRIB)

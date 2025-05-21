@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -155,6 +155,7 @@ class CheckWaterViewer(ToolInstance):
                 compare_spheres.draw_modes = compare_atoms.STICK_STYLE
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        tw.title += f" for {check_model}"
         parent = tw.ui_area
 
         from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
@@ -195,7 +196,7 @@ class CheckWaterViewer(ToolInstance):
         layout.addLayout(table_hbonds_layout, stretch=1)
         from chimerax.ui.widgets import ItemTable
         self.res_table = ItemTable()
-        self.res_table.add_column("Water", str)
+        self.res_table.add_column("Water", lambda r: r.string(omit_structure=True))
         self.hbonds_column = self.res_table.add_column("H-bonds", self.HB_COUNT_ATTR)
         if self.compare_map:
             self._compute_densities()

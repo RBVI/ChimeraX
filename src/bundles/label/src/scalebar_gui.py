@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -87,10 +87,15 @@ class Scalebar(ToolInstance):
     def _changed_options(self):
         cur_length, cur_color, cur_xpos, cur_ypos, cur_thickness =  self._scalebar_settings()
 
-        length = self._length.value
+        try:
+            length = self._length.value
+            xpos, ypos = self._xpos.value, self._ypos.value
+            thickness = self._thickness.value
+        except ValueError:
+            self.session.logger.error('Bad number format in Scale Bar panel length, x, y, or thickness')
+            return
+
         color = self._color.color	# rgba8
-        xpos, ypos = self._xpos.value, self._ypos.value
-        thickness = self._thickness.value
 
         options = []
         if length != cur_length:
@@ -113,4 +118,4 @@ class Scalebar(ToolInstance):
         s = _scalebar_label(self.session)
         if s:
             return s.scalebar_width, s.color, s.xpos, s.ypos, s.scalebar_height
-        return 100, None, 0.1, 0.1, 10
+        return 100.0, None, 0.1, 0.1, 10.0

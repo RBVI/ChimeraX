@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -227,10 +227,10 @@ def allocate_array(size, value_type = float32, step = None, progress = None,
 #
 def report_memory_error(size, value_type, progress):
 
-    from numpy import dtype, product, float64
+    from numpy import dtype, prod, float64
     vtype = dtype(value_type)
     tsize = vtype.itemsize
-    bytes = product(size, dtype=float64)*float(tsize)
+    bytes = prod(size, dtype=float64)*float(tsize)
     mbytes = bytes / 2**20
     sz = ','.join(['%d' % s for s in size])
     e = ('Could not allocate %.0f Mbyte array of size %s and type %s.\n'

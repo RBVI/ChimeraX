@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -95,11 +95,15 @@ class Selector(ChimeraXClassifier):
         super().__init__(selector_name, attrs)
 
     def __str__(self):
+        disp = self.attrs.get('display', '')
+        disp = str(disp).lower()
+        if disp:
+            return f"ChimeraX :: Selector :: {self.name} :: {self.description} :: {disp}"
         return f"ChimeraX :: Selector :: {self.name} :: {self.description}"
 
 
 class Manager(ChimeraXClassifier):
-    default_attrs = {"gui-only": False, "autostart": True}
+    default_attrs = {"guiOnly": False, "autostart": True}
 
     def __init__(self, name, attrs):
         if not attrs:
@@ -108,6 +112,7 @@ class Manager(ChimeraXClassifier):
             for key, val in self.default_attrs.items():
                 if key not in attrs:
                     attrs[key] = val
+            attrs['guiOnly'] = attrs.pop('gui-only', False)
         super().__init__(name, attrs)
 
     def __str__(self):
@@ -122,7 +127,9 @@ class Provider(ChimeraXClassifier):
 
     def __str__(self):
         attrs = self.misc_attrs_to_list()
-        return f"ChimeraX :: Provider :: {self.name} :: {self.manager} :: {self.classifier_separator.join(attrs)}"
+        if attrs:
+            return f"ChimeraX :: Provider :: {self.name} :: {self.manager} :: {self.classifier_separator.join(attrs)}"
+        return f"ChimeraX :: Provider :: {self.name} :: {self.manager}"
 
 
 class DataFormat(Provider):

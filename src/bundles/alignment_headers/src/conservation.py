@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -37,6 +37,8 @@ class Conservation(DynamicHeaderSequence):
     STYLE_AL2CO = "AL2CO"
     styles = (STYLE_PERCENT, STYLE_CLUSTAL_CHARS, STYLE_AL2CO)
 
+    MAX_AL2CO_SEQS = 10000
+
     AL2CO_cite = ["Pei, J. and Grishin, N.V. (2001)",
             "AL2CO: calculation of positional conservation in a protein sequence alignment",
             "Bioinformatics, 17, 700-712."]
@@ -48,6 +50,10 @@ class Conservation(DynamicHeaderSequence):
         self.alignment = alignment
         if not hasattr(self.__class__, 'settings'):
             self.__class__.settings = self.make_settings(alignment.session)
+        if self.settings.style == self.STYLE_AL2CO and len(alignment.seqs) > self.MAX_AL2CO_SEQS:
+            alignment.session.logger.warning("%s performs poorly for more than %d sequences; switching to"
+                " %s conservation" % (self.STYLE_AL2CO, self.MAX_AL2CO_SEQS, self.STYLE_PERCENT))
+            self.settings.style = self.STYLE_PERCENT
         self._set_update_vars(self.settings.style)
         self.handler_ID = self.settings.triggers.add_handler('setting changed', self._setting_changed_cb)
         super().__init__(alignment, *args, eval_while_hidden=True, **kw)
@@ -165,24 +171,12 @@ class Conservation(DynamicHeaderSequence):
 
     def percent_identity(self, pos, for_histogram=False):
         """actually returns a fraction"""
-        occur = {}
-        for seq in self.alignment.seqs:
-            let = seq[pos]
-            try:
-                occur[let] += 1
-            except KeyError:
-                occur[let] = 1
-        best = 0
-        for let, num in occur.items():
-            if not let.isalpha():
-                continue
-            if num > best:
-                best = num
-        if best == 0:
+        char, count = self.alignment.most_common(pos)
+        if count == 0:
             return 0.0
         if for_histogram:
-            return (best - 1) / (len(self.alignment.seqs) - 1)
-        return best / len(self.alignment.seqs)
+            return (count - 1) / (len(self.alignment.seqs) - 1)
+        return count / len(self.alignment.seqs)
 
     def reevaluate(self, pos1=0, pos2=None, *, evaluation_func=None):
         if self.style == self.STYLE_AL2CO:

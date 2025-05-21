@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -128,7 +128,7 @@ def find_clashes(session, test_atoms,
                     if r:
                         chain_pos[r] = i
     from chimerax.atom_search import AtomSearchTree
-    tree = AtomSearchTree(search_atoms, scene_coords=inter_model)
+    tree = AtomSearchTree(search_atoms, scene_coords=use_scene_coords)
     clashes = {}
     from chimerax.geometry import distance
     intra_mol_map = {}

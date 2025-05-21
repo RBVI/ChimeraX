@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -636,6 +636,12 @@ class MarkedHistogram(QWidget):
             hist_size.width() - 2*dx, hist_size.height()
         self._min_val, self._max_val, self._bins = ds
         filled_range = self._max_val - self._min_val
+        temp_abs_markers = False
+        if self._draw_min != None or self._draw_max != None:
+            if self._active_markers is not None and self._active_markers.coord_type == "relative":
+                # keep markers at their same absolute positions as the range expands
+                temp_abs_markers = True
+                self._active_markers.coord_type = "absolute"
         empty_ranges = [0, 0]
         if self._draw_min != None:
             empty_ranges[0] = self._min_val - self._draw_min
@@ -643,6 +649,8 @@ class MarkedHistogram(QWidget):
         if self._draw_max != None:
             empty_ranges[1] = self._draw_max - self._max_val
             self._max_val = self._draw_max
+        if temp_abs_markers:
+            self._active_markers.coord_type = "relative"
         def handle_list(left, bins, right):
             # can't '+' a list to a numpy array (#9328)...
             bins = list(bins)
@@ -713,7 +721,8 @@ class MarkedHistogram(QWidget):
                 rect.setZValue(-1) # keep bars below markers
         self._markable = True
         if self._active_markers is not None:
-            self._active_markers._update_plot()
+            if not temp_abs_markers:
+                self._active_markers._update_plot()
             marker = self._active_markers._sel_marker
             if marker:
                 self._set_value_entry(self._marker2abs(marker)[0])
@@ -762,8 +771,12 @@ class MarkedHistogram(QWidget):
             self._active_markers.move_callback('start')
 
     def _set_value_cb(self):
+        val_text = self._value_entry.text()
+        # Qt's double validator allows leading zeroes whereas Python doesn't like that [#17306]
+        while len(val_text) > 0 and val_text[0] == "0" and not val_text.startswith("0x"):
+            val_text = val_text[1:]
         try:
-            v = eval(self._value_entry.text())
+            v = eval(val_text)
         except Exception:
             raise ValueError("Invalid histogram value")
         if type(self._min_val) != type(v):

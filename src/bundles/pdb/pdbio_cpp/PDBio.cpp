@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -47,7 +47,7 @@
 #include <atomstruct/tmpl/residues.h>
 #include <logger/logger.h>
 #include "pdb/connect.h"
-#include <pdb/PDB.h>
+#include <PDB.h>
 
 using atomstruct::Atom;
 using atomstruct::AtomicStructure;
@@ -583,6 +583,7 @@ read_one_structure(std::pair<const char *, PyObject *> (*read_func)(void *),
     bool        is_SCOP = false;
     bool        is_babel = false; // have we seen Babel-style atom names?
     bool        recent_TER = false;
+    bool        atom_het_TER = false;
     bool        break_hets = false;
     bool        redo_elements = false;
     unsigned char  let, second_chain_id_let = '\0';
@@ -765,6 +766,7 @@ start_t = end_t;
             goto finished;
 
         case PDB::TER:
+            // this code replicated if chain ID changes w/o TER in ATOM/HETATM case below
             start_connect = true;
             recent_TER = true;
             break_hets = false;
@@ -784,13 +786,26 @@ start_t = end_t;
             ResName rname;
             auto cid = segid_chains ? ChainID(record.atom.seg_id[0] == '\0' ? " " : record.atom.seg_id)
                 : ChainID({record.atom.res.chain_id});
+            if (cur_residue != nullptr && cur_residue->chain_id() != cid) {
+                // Chain ID changed w/o TER card; nonetheless treat like the TER is there [#6977]
+                start_connect = true;
+                recent_TER = true;
+                break_hets = false;
+                if (second_chain_let_okay && chain_residues.size() > 1)
+                    correct_chain_ids(chain_residues, second_chain_id_let, two_let_chains);
+                second_chain_let_okay = true;
+                second_chain_id_let = '\0';
+                chain_residues.clear();
+            }
+            if (recent_TER)
+                atom_het_TER = record.type() == PDB::HETATM;
+                
             if (islower(record.atom.res.i_code))
                 record.atom.res.i_code = toupper(record.atom.res.i_code);
             int seq_num = record.atom.res.seq_num;
             char i_code = record.atom.res.i_code;
             if (isdigit(i_code)) {
-                // presumably an overflow due to a large
-                // number of residues
+                // presumably an overflow due to a large number of residues
                 seq_num = 10 * seq_num + (i_code - '0');
                 i_code = ' ';
             }
@@ -857,6 +872,10 @@ start_t = end_t;
                     // permutations; only break chain
                     // if previous residue has OXT in it
                     start_connect = true;
+                } else if (record.type() == PDB::ATOM && atom_het_TER) {
+                    // Prevent the HETATM->ATOM chain break repair code below
+                    // from crossing an actual TER card {related to #16987)
+                    start_connect = true;
                 }
 
                 // Some PDB files don't properly mark their
@@ -915,6 +934,8 @@ start_t = end_t;
                 if (start_connect)
                     start_residues->push_back(cur_residue);
                 start_connect = false;
+                if (record.type() == PDB::ATOM)
+                    atom_het_TER = false;
             }
             aname = record.atom.name;
             canonicalize_atom_name(aname, &as->asterisks_translated);
@@ -2286,7 +2307,7 @@ docstr_write_pdb_file =
 " 5 digits (maximum supported by PDB standard).  If False, then the sixth"
 " column of ATOM records will be stolen for an additional digit (AMBER style), so up to"
 " 999,999 atoms.  If True, then hybrid-36 encoding will be used (see"
-" http://cci.lbl.gov/hybrid_36), so up to 87,440,031 atoms."
+" https://cci.lbl.gov/hybrid_36), so up to 87,440,031 atoms."
 " 'polymeric_res_names' is a sequence of residue names that"
 " should be output using ATOM records rather than HETATM records."
 "\n";

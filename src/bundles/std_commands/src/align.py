@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -306,10 +306,10 @@ def move_atoms(atoms, to_atoms, tf, move):
 def extend_to_chains(atoms):
     '''Return atoms extended to all atoms in same chains (ie same chain id / structure).'''
     catoms = []
-    from numpy import in1d
+    from numpy import isin
     for s, a in atoms.by_structure:
         satoms = s.atoms
-        catoms.append(satoms.filter(in1d(satoms.chain_ids, a.unique_chain_ids)))
+        catoms.append(satoms.filter(isin(satoms.chain_ids, a.unique_chain_ids)))
     from chimerax.atomic import concatenate, Atoms
     return concatenate(catoms, Atoms)
         

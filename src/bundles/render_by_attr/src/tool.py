@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -14,6 +14,7 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
 from chimerax.atomic import Atom
+import weakref
 
 from Qt.QtCore import Qt
 
@@ -32,6 +33,7 @@ class RenderByAttrTool(ToolInstance):
         self.display_name = "Render/Select by Attribute"
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, statusbar=True)
+        tw.fill_context_menu = self.fill_context_menu
         parent = tw.ui_area
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QDialogButtonBox, QPushButton, QMenu, QLabel
         from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox, QLineEdit, QStackedWidget, QListWidget
@@ -67,8 +69,8 @@ class RenderByAttrTool(ToolInstance):
                 sh.setHeight(sh.height() // 2)
                 sh.setWidth(sh.width() * 2 // 3)
                 return sh
+        self._prev_model_value = None
         self.model_list = SmallerModelListWidget(session, filter_func=self._filter_model)
-        self.model_list.value_changed.connect(self._models_changed)
         model_list_layout.addWidget(self.model_list, alignment=Qt.AlignTop)
         target_layout.addLayout(model_list_layout)
 
@@ -99,18 +101,22 @@ class RenderByAttrTool(ToolInstance):
         self.render_histogram = rh = MarkedHistogram(min_label=True, max_label=True, status_line=tw.status,
             select_callback=self._render_sel_marker_cb)
         render_tab_layout.addWidget(rh)
-        self.render_markers = {}
+        self.render_marker_attrs = {}
         self.render_type_widgets = {}
         self.render_type_widget = QTabWidget()
         self.render_type_widget.setTabBarAutoHide(True)
         render_tab_layout.addWidget(self.render_type_widget)
 
-        self.render_color_markers = rh.add_markers(activate=True, coord_type='relative',
+        self._render_markers = {}
+        rc_markers = rh.add_markers(activate=True, coord_type='relative',
             move_callback=self._render_marker_moved,
             color_change_callback=lambda mrk, cb=self._update_palettes: cb())
-        self.render_color_markers.extend([((0.0, 0.0), "red"), ((0.5, 0.0), "white"), ((1.0, 0.0), "blue")])
-        self.render_color_markers.add_del_callback = lambda mrk=None, cb=self._update_palettes: cb()
-        self.render_markers[self.RENDER_COLORS] = self.render_color_markers
+        rc_markers.extend([((0.0, 0.0), "blue"), ((0.5, 0.0), "white"), ((1.0, 0.0), "red")])
+        rc_markers.add_del_callback = lambda mrk=None, cb=self._update_palettes: cb()
+        # need to delay the assignment until after the markers are added
+        # because the marker set will be cloned
+        self.render_color_markers = rc_markers
+        self.render_marker_attrs[self.RENDER_COLORS] = "render_color_markers"
         color_render_tab = QWidget()
         color_render_tab_layout = crt_layout = QVBoxLayout()
         crt_layout.setSpacing(1)
@@ -165,11 +171,14 @@ class RenderByAttrTool(ToolInstance):
         self.render_type_widgets[self.RENDER_COLORS] = []
         self.render_type_widget.addTab(color_render_tab, self.RENDER_COLORS)
 
-        self.render_radius_markers = rh.add_markers(new_color='slate gray', activate=False,
+        rr_markers = rh.add_markers(new_color='slate gray', activate=False,
             coord_type='relative', add_del_callback=self._radius_marker_add_del)
         for pos, radius in [(0.0, 1.0), (1.0, 4.0)]:
-            self.render_radius_markers.append(((pos, 0.0), None)).radius = radius
-        self.render_markers[self.RENDER_RADII] = self.render_radius_markers
+            rr_markers.append(((pos, 0.0), None)).radius = radius
+        # need to delay the assignment until after the markers are added
+        # because the marker set will be cloned
+        self.render_radius_markers = rr_markers
+        self.render_marker_attrs[self.RENDER_RADII] = "render_radius_markers"
         from chimerax.ui.options import OptionsPanel, EnumOption, BooleanOption, FloatOption
         radii_render_tab = self.radii_options = OptionsPanel(sorting=False, scrolled=False,
             contents_margins=(0,0,0,0))
@@ -194,11 +203,14 @@ class RenderByAttrTool(ToolInstance):
         self.render_type_widgets[self.RENDER_RADII] = rv_widgets
         self.render_type_widget.addTab(radii_render_tab, self.RENDER_RADII)
 
-        self.render_worm_markers = rh.add_markers(new_color='slate gray', activate=False,
+        rw_markers = rh.add_markers(new_color='slate gray', activate=False,
             coord_type='relative', add_del_callback=self._worms_marker_add_del)
         for pos, radius in [(0.0, 0.25), (1.0, 2.0)]:
-            self.render_worm_markers.append(((pos, 0.0), None)).radius = radius
-        self.render_markers[self.RENDER_WORMS] = self.render_worm_markers
+            rw_markers.append(((pos, 0.0), None)).radius = radius
+        # need to delay the assignment until after the markers are added
+        # because the marker set will be cloned
+        self.render_worm_markers = rw_markers
+        self.render_marker_attrs[self.RENDER_WORMS] = "render_worm_markers"
         worms_render_tab = QWidget()
         worms_render_tab_layout = wrt_layout = QVBoxLayout()
         worms_render_tab.setLayout(wrt_layout)
@@ -235,7 +247,8 @@ class RenderByAttrTool(ToolInstance):
         self._render_mode_changed(self.render_type_widget.currentIndex())
         self.mode_widget.addTab(render_tab, "Render")
 
-        # wait until tab contents are completely filled before connecting this
+        # wait until tab contents are completely filled before connecting these
+        self.model_list.value_changed.connect(self._models_changed)
         self.render_type_widget.currentChanged.connect(self._render_mode_changed)
 
         # Select tab
@@ -329,6 +342,8 @@ class RenderByAttrTool(ToolInstance):
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        self.save_file_button = bbox.addButton("Save File...", qbbox.ActionRole)
+        bbox.clicked.connect(self._button_clicked)
         bbox.accepted.connect(self._dispatch)
         bbox.button(qbbox.Apply).clicked.connect(lambda: self._dispatch(apply=True))
         bbox.rejected.connect(self.delete)
@@ -340,6 +355,57 @@ class RenderByAttrTool(ToolInstance):
         overall_layout.addWidget(bbox)
 
         tw.manage(placement=None)
+
+    @property
+    def default_render_color_markers(self):
+        return self._clone_markers(self._default_render_color_markers)
+
+    @default_render_color_markers.setter
+    def default_render_color_markers(self, markers):
+        self._default_render_color_markers = self._clone_markers(markers)
+
+    @property
+    def default_render_radius_markers(self):
+        return self._clone_markers(self._default_render_radius_markers)
+
+    @default_render_radius_markers.setter
+    def default_render_radius_markers(self, markers):
+        self._default_render_radius_markers = self._clone_markers(markers)
+
+    @property
+    def default_render_worm_markers(self):
+        return self._clone_markers(self._default_render_worm_markers)
+
+    @default_render_worm_markers.setter
+    def default_render_worm_markers(self, markers):
+        self._default_render_worm_markers = self._clone_markers(markers)
+
+    def delete(self):
+        for index in [0,1]:
+            for attr_info, attr_monitorings in list(self._attr_monitorings.items()):
+                for attr_name, mode_monitoring in list(attr_monitorings.items()):
+                    if mode_monitoring[index]:
+                        attr_info.attr_change_notify(attr_name, None)
+        self._attr_monitorings.clear()
+        super().delete()
+
+    def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        scaling_menu = menu.addMenu("Histogram Scaling")
+        def set_histograms(linear):
+            for h in [self.render_histogram, self.select_histogram]:
+                h.scaling = "linear" if linear else "logarithmic"
+        linear = self.select_histogram.scaling == "linear"
+        action = QAction("Linear", scaling_menu)
+        action.setCheckable(True)
+        action.setChecked(linear)
+        action.triggered.connect(lambda *args, action=action: set_histograms(action.isChecked()))
+        scaling_menu.addAction(action)
+        action = QAction("Logarithmic", scaling_menu)
+        action.setCheckable(True)
+        action.setChecked(not linear)
+        action.triggered.connect(lambda *args, action=action: set_histograms(not action.isChecked()))
+        scaling_menu.addAction(action)
 
     def render(self, *, apply=False):
         models = self.model_list.value
@@ -394,6 +460,42 @@ class RenderByAttrTool(ToolInstance):
         elif method == "worm":
             self._update_deworm_button()
 
+    @property
+    def render_color_markers(self):
+        return self._render_color_markers
+
+    @render_color_markers.setter
+    def render_color_markers(self, markers):
+        if 'render_color_markers' not in self._render_markers:
+            self._render_markers['render_color_markers'] = weakref.WeakKeyDictionary()
+            self.default_render_color_markers = markers
+        self._render_color_markers = markers
+        markers.histogram.activate(markers)
+
+    @property
+    def render_radius_markers(self):
+        return self._render_radius_markers
+
+    @render_radius_markers.setter
+    def render_radius_markers(self, markers):
+        if 'render_radius_markers' not in self._render_markers:
+            self._render_markers['render_radius_markers'] = weakref.WeakKeyDictionary()
+            self.default_render_radius_markers = markers
+        self._render_radius_markers = markers
+        markers.histogram.activate(markers)
+
+    @property
+    def render_worm_markers(self):
+        return self._render_worm_markers
+
+    @render_worm_markers.setter
+    def render_worm_markers(self, markers):
+        if 'render_worm_markers' not in self._render_markers:
+            self._render_markers['render_worm_markers'] = weakref.WeakKeyDictionary()
+            self.default_render_worm_markers = markers
+        self._render_worm_markers = markers
+        markers.histogram.activate(markers)
+
     def select(self, *, apply=False):
         models = self.model_list.value
         if not models:
@@ -401,8 +503,6 @@ class RenderByAttrTool(ToolInstance):
         attr_name = self.select_attr_menu_button.text()
         if attr_name == self.NO_ATTR_TEXT:
             raise UserError("No attribute chosen for selection")
-        if isinstance(self.select_histogram.data_source, str):
-            raise UserError(self.select_histogram.data_source)
         cur_widget = self.select_widgets.currentWidget()
         if cur_widget == self.select_message_widget:
             raise UserError("Can't select using attribute '%s'" % attr_name)
@@ -413,6 +513,8 @@ class RenderByAttrTool(ToolInstance):
                 raise UserError("No values chosen for selection")
             params = [self.sel_text_to_value.get(txt, txt) for txt in texts]
         elif cur_widget == self.select_histogram_area:
+            if isinstance(self.select_histogram.data_source, str):
+                raise UserError(self.select_histogram.data_source)
             discrete = False
             checked_id = self.select_histogram_buttons.checkedId()
             if checked_id == 2:
@@ -444,6 +546,23 @@ class RenderByAttrTool(ToolInstance):
         return [attr_name for attr_name in attr_mgr.attributes_returning(
             attr_info.class_object, types, none_okay=True) if not attr_info.hide_attr(
             attr_name, self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render")]
+
+    def _button_clicked(self, button):
+        if button == self.save_file_button:
+            fmt = self.session.data_formats.save_format_from_suffix(".defattr")
+            from chimerax.save_command import show_save_file_dialog as show_dialog
+            show_dialog(self.session, format=fmt.name)
+
+    def _clone_markers(self, markers):
+        cloned = markers.histogram.add_markers(activate=False, coord_type=markers.coord_type,
+            move_callback=markers.move_callback, color_change_callback=markers.color_change_callback,
+            new_color=markers.new_color)
+        for marker in markers:
+            cmarker = cloned.append((marker.xy, marker.rgba))
+            if hasattr(marker, 'radius'):
+                cmarker.radius = marker.radius
+        cloned.add_del_callback = markers.add_del_callback
+        return cloned
 
     def _create_key(self):
         from chimerax.core.colors import Colormap, Color
@@ -477,20 +596,31 @@ class RenderByAttrTool(ToolInstance):
             return False
 
     def _models_changed(self):
-        if self.model_list.value:
+        render_type = self.render_type_widget.tabText(self.render_type_widget.currentIndex())
+        markers_attr = self.render_marker_attrs[render_type]
+        model_val = self.model_list.value
+        if model_val:
             if self.render_attr_menu_button.isEnabled():
-                attr_info = self.render_attr_menu_button.text()
-                if attr_info != self.NO_ATTR_TEXT:
-                    self._update_render_histogram(attr_info)
+                attr_name = self.render_attr_menu_button.text()
+                if len(model_val) == 1:
+                    model = model_val[0]
+                    self._update_markers(None, markers_attr, self._prev_model_value, model, None, attr_name)
+                    self._prev_model_value = model
+                else:
+                    self._prev_model_value = None
+                if attr_name != self.NO_ATTR_TEXT:
+                    self._update_render_histogram(attr_name)
             else:
                 self._new_render_attr()
             if self.select_attr_menu_button.isEnabled():
-                attr_info = self.select_attr_menu_button.text()
-                if attr_info != self.NO_ATTR_TEXT:
-                    self._update_select_widget(attr_info)
+                attr_name = self.select_attr_menu_button.text()
+                if attr_name != self.NO_ATTR_TEXT:
+                    self._update_select_widget(attr_name)
             else:
                 self._new_select_attr()
         else:
+            setattr(self, markers_attr, getattr(self, 'default_' + markers_attr))
+            self._prev_model_value = None
             self._new_render_attr()
             self._new_select_attr()
         self._update_deworm_button()
@@ -511,6 +641,15 @@ class RenderByAttrTool(ToolInstance):
                 attr_name = attr_name_info.text()
             monitored_attr = attr_name
         if attr_name != self.render_attr_menu_button.text():
+            render_type = self.render_type_widget.tabText(self.render_type_widget.currentIndex())
+            markers_attr = self.render_marker_attrs[render_type]
+            if monitored_attr is None:
+                setattr(self, markers_attr, getattr(self, 'default_' + markers_attr))
+                self._prev_attr_name = None
+            else:
+                self._update_markers(None, markers_attr, None, self._prev_model_value,
+                    self._prev_attr_name, monitored_attr)
+                self._prev_attr_name = monitored_attr
             self.render_attr_menu_button.setText(attr_name)
             if attr_name_info is None:
                 self.render_histogram.data_source = "Choose attribute to show histogram"
@@ -573,7 +712,8 @@ class RenderByAttrTool(ToolInstance):
 
     def _render_mode_changed(self, tab_index):
         render_type = self.render_type_widget.tabText(tab_index)
-        self.render_histogram.activate(self.render_markers[render_type])
+        markers_attr = self.render_marker_attrs[render_type]
+        self.render_histogram.activate(getattr(self, markers_attr))
         self.render_histogram.color_button = render_type == self.RENDER_COLORS
         self.sel_restrict.setText("Restrict to selection"
             if render_type != self.RENDER_WORMS else "Restrict to selected models")
@@ -725,6 +865,30 @@ class RenderByAttrTool(ToolInstance):
                 histogram.data_source = (min_val, max_val, lambda num_bins:
                     numpy.histogram(values, bins=num_bins, range=(min_val, max_val), density=False)[0])
         return any_None
+
+    def _update_markers(self, prev_markers_attr, markers_attr, prev_model, model, prev_attr_name, attr_name):
+        if prev_markers_attr is not None:
+            # render type changing...
+            prev_markers = self._clone_markers(getattr(self, prev_markers_attr))
+            if model is not None:
+                self._render_markers[prev_markers_attr].setdefault(model, {})[attr_name] = prev_markers
+        if prev_model is not None:
+            # model changing...
+            prev_markers = self._clone_markers(getattr(self, markers_attr))
+            self._render_markers[markers_attr].setdefault(prev_model, {})[attr_name] = prev_markers
+        if prev_attr_name is not None:
+            # attr changing...
+            prev_markers = self._clone_markers(getattr(self, markers_attr))
+            if model is not None:
+                self._render_markers[markers_attr].setdefault(model, {})[prev_attr_name] = prev_markers
+        try:
+            if model is None or attr_name is None:
+                # weak-key dicts don't like referencing None
+                raise KeyError("key is None")
+            new_markers = self._render_markers[markers_attr][model][attr_name]
+        except KeyError:
+            new_markers = getattr(self, 'default_' + markers_attr)
+        setattr(self, markers_attr, new_markers)
 
     def _update_palettes(self):
         if type(self.render_histogram.data_source) == str:

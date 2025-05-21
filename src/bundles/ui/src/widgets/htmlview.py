@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -121,11 +121,7 @@ def delete_profile(profile):
         del profile._handlers
         del profile._scheme_handler
         del profile._schemes
-    from Qt.QtCore import QT_VERSION
-    if QT_VERSION < 0x050d00:
-        profile.setRequestInterceptor(None)
-    else:
-        profile.setUrlRequestInterceptor(None)
+    profile.setUrlRequestInterceptor(None)
 
 
 class HtmlView(QWebEngineView):
@@ -451,7 +447,11 @@ def chimerax_intercept(request_info, *args, session=None, view=None):
                 if prev_dir:
                     os.chdir(prev_dir)
         from Qt.QtCore import QUrl
-        no_formatting = QUrl.UrlFormattingOption.None_
+        from Qt import using_pyqt6, using_pyside6
+        if using_pyqt6:
+            no_formatting = QUrl.UrlFormattingOption.None_
+        elif using_pyside6:
+            no_formatting = QUrl.ComponentFormattingOption.FullyEncoded
         session.ui.thread_safe(defer, session, qurl.url(no_formatting), from_dir)
         return
 

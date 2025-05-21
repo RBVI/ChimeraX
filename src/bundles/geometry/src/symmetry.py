@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -94,7 +94,7 @@ def octahedral_symmetry_matrices(center = (0,0,0)):
 def helical_symmetry_matrices(rise, angle, axis = (0,0,1), center = (0,0,0),
                               n = 1):
     
-    zlist = [(i if i <= n/2 else n/2 - i) for i in range(n)]
+    zlist = [(i if i <= n//2 else n//2 - i) for i in range(n)]
     from . import Places
     syms = Places([helical_symmetry_matrix(rise, angle, axis, center, z)
                    for z in zlist])

@@ -1,6 +1,7 @@
 alsa-lib
 atk
 bzip2
+bzip2-devel
 cairo
 cairo-gobject
 cups-libs
@@ -22,6 +23,7 @@ glibc
 gtk3
 ImageMagick
 ImageMagick-devel
+jq
 libatomic
 libdrm
 libffi
@@ -70,9 +72,11 @@ patchelf
 pulseaudio-libs
 pulseaudio-libs-glib2
 rsync
+rpmdevtools
 sqlite
 sqlite-devel
 unzip
+wget
 xcb-util-image
 xcb-util-keysyms
 xcb-util-renderutil
@@ -81,3 +85,4 @@ xdg-utils
 xz
 xz-libs
 zlib
+zlib-devel

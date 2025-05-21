@@ -1,0 +1,88 @@
+<BundleInfo name="ChimeraX-ChemGroup" version="2.0.1"
+	    package="chimerax.chem_group" customInit="true"
+		purePython="false"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Detect chemically functional groups</Synopsis>
+  <Description>This bundle provides the ability for detection of functional groups in a structure.</Description>
+
+  <Categories>
+    <Category name="Structure Analysis"/>
+  </Categories>
+
+  <CModule name="_chem_group">
+    <SourceFile>_cg/cg.cpp</SourceFile>
+    <Library>atomstruct</Library>
+    <Library>element</Library>
+    <Library>pyinstance</Library>
+    <Library>arrays</Library>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=14.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Selector :: acyl-halide :: R(C=O)X</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: adenine :: 6-aminopurine</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: aldehyde :: R(C=O)H</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: amide :: R(C=O)NR2</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: amine :: RxNHy</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: aliphatic-amine :: RxNHy</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: aliphatic-primary-amine :: RNH2</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: aliphatic-secondary-amine :: R2NH</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: aliphatic-tertiary-amine :: R3N</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: aliphatic-quaternary-amine :: R4N+</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: aromatic-amine :: RxNHy</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: aromatic-primary-amine :: RNH2</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: aromatic-secondary-amine :: R2NH</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: aromatic-tertiary-amine :: R3N</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: aromatic-ring :: aromatic</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: carbonyl :: R2C=O</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: carboxylate :: RCOO-</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: cytosine :: 2-oxy-4-aminopyrimidine</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: disulfide :: RSSR</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: ester :: R(C=O)OR</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: ether-O :: ROR</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: guanine :: 2-amino-6-oxypurine</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: halide :: RX</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: hydroxyl :: COH or NOH</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: imine :: R2C=NR</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: ketone :: R2C=O</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: methyl :: RCH3</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: nitrile :: RC*N</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: nitro :: RNO2</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: phosphate :: PO4</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: phosphinyl :: R2PO2-</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: phosphonate :: RPO3-</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: purines :: purine-like rings</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: pyrimidines :: pyrimidine-like rings</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: sulfate :: SO4</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: sulfonamide :: RSO2NR2</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: sulfonate :: RSO3-</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: sulfone :: R2SO2</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: sulfonyl :: R2SO2</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: thiocarbonyl :: C=S</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: thioether :: RSR</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: thiol :: RSH</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: thymine :: 5-methyl-2,4-dioxypyrimidine</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: uracil :: 2,4-dioxypyrimidine</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: sulphate :: SO4</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: sulphonamide :: RSO2NR2</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: sulphonate :: RSO3-</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: sulphone :: R2SO2</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: sulphonyl :: R2SO2</ChimeraXClassifier>
+<ChimeraXClassifier>Selector :: aromatic :: aromatic</ChimeraXClassifier>
+
+  </Classifiers>
+
+</BundleInfo>

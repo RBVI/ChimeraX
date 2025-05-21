@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -91,7 +91,7 @@ devel_unalias_desc = CmdDesc(required=[("name", StringArg)],
                              synopsis='Remove alias for bundle path')
 
 
-def devel_build(session, path, test=None, debug=False, exit=False):
+def devel_build(session, path, debug=False, exit=False, release=False):
     '''Build a wheel in for the source code in bundle path.
 
     Parameters
@@ -103,23 +103,21 @@ def devel_build(session, path, test=None, debug=False, exit=False):
     exit : bool
         Exit after finishing build.
     '''
-    if test is not None:
-        session.logger.warning("The test option has been removed")
     if _has_bundle_xml(path):
         from chimerax.bundle_builder import BundleBuilder
     else:
         from chimerax.bundle_builder import BundleBuilderTOML as BundleBuilder
-    _run(path, session.logger, exit, BundleBuilder.make_wheel, debug=debug)
+    _run(path, session.logger, exit, BundleBuilder.make_wheel, debug=debug, release=release)
 
 
 devel_build_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
-                           keyword=[("test", BoolArg),
-                                    ("debug", BoolArg),
-                                    ("exit", BoolArg)],
+                           keyword=[("debug", BoolArg),
+                                    ("exit", BoolArg),
+                                    ("release", BoolArg)],
                            synopsis='Build a wheel for bundle')
 
 
-def devel_install(session, path, test=None, user=None, debug=False, exit=False, no_deps=None, editable=False):
+def devel_install(session, path, user=None, debug=False, exit=False, no_deps=None, editable=False):
     '''Build and install a wheel in for the source code in bundle path.
 
     Parameters
@@ -133,8 +131,6 @@ def devel_install(session, path, test=None, user=None, debug=False, exit=False, 
     exit : bool
         Exit after finishing install.
     '''
-    if test is not None:
-        session.logger.warning("The test option has been removed")
     if _has_bundle_xml(path):
         from chimerax.bundle_builder import BundleBuilder
         if editable:
@@ -146,8 +142,7 @@ def devel_install(session, path, test=None, user=None, debug=False, exit=False, 
 
 
 devel_install_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
-                             keyword=[("test", BoolArg),
-                                      ("debug", BoolArg),
+                             keyword=[("debug", BoolArg),
                                       ("no_deps", BoolArg),
                                       ("user", BoolArg),
                                       ("exit", BoolArg),
@@ -204,7 +199,7 @@ def devel_dump(session, path):
     path : string
       Path to folder containing bundle source code or bundle alias.
     '''
-    bb = _get_builder(path, session.logger)
+    bb = _get_builder(session.logger, path)
     if bb is not None:
         bb.dump()
 

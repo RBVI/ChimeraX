@@ -3,29 +3,33 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name="ChimeraX-BundleBuilder"
-description="Bundle building utilities"  # one line synopsis
-authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+name = "ChimeraX-BundleBuilder"
+license = "LicenseRef-Free-for-non-commercial-use"
+description = "Bundle building utilities" # one line synopsis
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
 dependencies = [
-	'tomli; python_version < "3.11"'
+  'tomli; python_version < "3.11"',
+  'numpy==1.26.4',
+  'setuptools==78.1.0',
+  'lxml==5.3.1',
+  'auditwheel>=6.1.0',
 ]
-classifiers=[
-    # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
-    # and our own ChimeraX classifiers.
-    "Development Status :: 5 - Stable",
-    "Environment :: MacOS X :: Aqua",
-    "Environment :: Win32 (MS Windows)",
-    "Environment :: X11 Applications",
-    "Framework :: ChimeraX",
-    "Intended Audience :: Science/Research",
-    "License :: Free for non-commercial use",
-    "Operating System :: MacOS :: MacOS X",
-    "Operating System :: Microsoft :: Windows :: Windows 10",
-    "Operating System :: POSIX :: Linux",
-    "Programming Language :: Python :: 3",
-    "Topic :: Scientific/Engineering :: Visualization",
-    "Topic :: Scientific/Engineering :: Chemistry",
-    "Topic :: Scientific/Engineering :: Bio-Informatics",
+classifiers = [
+  # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
+  # and our own ChimeraX classifiers.
+  "Development Status :: 5 - Stable",
+  "Environment :: MacOS X :: Aqua",
+  "Environment :: Win32 (MS Windows)",
+  "Environment :: X11 Applications",
+  "Framework :: ChimeraX",
+  "Intended Audience :: Science/Research",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: Microsoft :: Windows :: Windows 10",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Visualization",
+  "Topic :: Scientific/Engineering :: Chemistry",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 requires-python = ">=3.7"
 dynamic = ["version"]
@@ -39,13 +43,13 @@ text = "Utilities for building ChimeraX bundles."
 "screenshot.png" = "chimerax.bundle_builder:copy_distinfo_binary_file"
 
 [project.urls]
-Home="https://www.rbvi.ucsf.edu/chimerax/"
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
 
 [tool.setuptools]
-packages=["chimerax.bundle_builder"]
+packages = ["chimerax.bundle_builder"]
 
 [tool.setuptools.package-dir]
-"chimerax.bundle_builder" = "src" 
+"chimerax.bundle_builder" = "src"
 
 [tool.setuptools.dynamic]
 version = { attr = "src.__version__" }

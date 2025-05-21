@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -221,7 +221,7 @@ def _clip_plane_info(plane, center):
     offset = -plane.offset(center) if plane.name in ('far', 'back') else plane.offset(center)
     axis = '%.3f,%.3f,%.3f' % tuple(plane.normal)
     point = '%.4g,%.4g,%.4g' % tuple(plane.plane_point)
-    info = '%s offset %.5g, axis %s, point %s)' % (plane.name,  offset, axis, point)
+    info = '%s offset %.5g, axis %s, point on plane %s)' % (plane.name,  offset, axis, point)
     return info
 
 def warn_on_zero_spacing(session, near, far, front, back):

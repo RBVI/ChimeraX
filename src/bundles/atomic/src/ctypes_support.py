@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -46,6 +46,9 @@ def chain(p):
 def coordset(p):
     from . import CoordSet
     return CoordSet.c_ptr_to_py_inst(p)
+def coordsets(p):
+    from . import CoordSets
+    return CoordSets(p)
 def element(p):
     from . import Element
     return Element.c_ptr_to_py_inst(p)

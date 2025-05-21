@@ -5,7 +5,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -28,7 +28,7 @@ import os
 new_license_text = """{comment} Copyright 2022 Regents of the University of California. All rights reserved.
 {comment} The ChimeraX application is provided pursuant to the ChimeraX license
 {comment} agreement, which covers academic and commercial uses. For more details, see
-{comment} <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+{comment} <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 {comment}
 {comment} This particular file is part of the ChimeraX library. You can also
 {comment} redistribute and/or modify it under the terms of the GNU Lesser General

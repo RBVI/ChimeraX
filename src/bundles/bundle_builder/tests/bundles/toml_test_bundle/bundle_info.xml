@@ -1,0 +1,33 @@
+<BundleInfo name="ChimeraX-Test" version="1.0"
+	    package="chimerax.test"
+	    installedExecutableDir="bin"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>simple regression test</Synopsis>
+  <Description>Execute a series of commands to test for regressions.</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <CExecutable name="exectest.exe">
+    <SourceFile>exectest/exectest.cpp</SourceFile>
+  </CExecutable>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: debug test :: General :: Run through test sequence of commands to check for errors</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: debug exectest :: General :: Test running executable from bundle</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: debug expectfail :: General :: Expect command to fail</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

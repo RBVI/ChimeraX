@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -437,7 +437,7 @@ class ModelPanel(ToolInstance):
                     self.session.logger.status("Showing %s" % m)
                     break
             else:
-                self.session.logger.warn("No models in display sequence")
+                self.session.logger.warning("No models in display sequence")
             return
         m = cur_shown[0]
         index = self.models.index(m)

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -141,6 +141,7 @@ class SeqCanvas:
         self.mainCanvas.bind('<Configure>', self._configureCB)
 
         """
+
         self.sv = sv
         self.alignment = alignment
         """TODO
@@ -1057,6 +1058,8 @@ class SeqCanvas:
                 self.lead_block.rerule()
             elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
                 self.refresh(note_data)
+            elif note_name == self.alignment.NOTE_SEQ_NAME:
+                self._update_label(note_data[0])
             elif note_name == self.alignment.NOTE_REALIGNMENT:
                 # headers are notified before us, so they should be "ready to go"
                 self.sv.region_manager.clear_regions()
@@ -1080,13 +1083,7 @@ class SeqCanvas:
                     self.lead_block.refresh(hdr, *bounds)
                     self.main_scene.update()
                 elif note_name == self.alignment.NOTE_HDR_NAME:
-                    if self.label_width == _find_label_width(self.alignment.seqs +
-                            [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
-                            self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
-                        self.lead_block.replace_label(hdr)
-                        self.label_scene.update()
-                    else:
-                        self._reformat()
+                    self._update_label(hdr)
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
         if seq in self.alignment.headers and not seq.shown:
@@ -1527,6 +1524,15 @@ class SeqCanvas:
             seq[:] = chkSeq
         self._editRefresh(self.alignment.seqs, left, right)
         """
+
+    def _update_label(self, line):
+        if self.label_width == _find_label_width(self.alignment.seqs +
+                [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
+                self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
+            self.lead_block.replace_label(line)
+            self.label_scene.update()
+        else:
+            self._reformat()
 
     def _update_scene_rects(self):
         self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
@@ -2713,7 +2719,20 @@ class SeqBlock:
         return min(rawY - self.top_y, self.bottom_y - self.top_y)
 
     def replace_label(self, line):
+        text = self.label_texts[line]
+        old_rect = text.sceneBoundingRect()
         self.label_texts[line].setText(line.name)
+        # maintain right justification
+        new_rect = text.sceneBoundingRect()
+        width_diff = old_rect.width() - new_rect.width()
+        text.moveBy(width_diff, 0)
+        # update size of "colorization" rectangle
+        if line in self.label_rects:
+            rect_item = self.label_rects[line]
+            rect = rect_item.rect()
+            rect.setX(rect.x() + width_diff)
+            rect_item.setRect(rect)
+
         if self.next_block:
             self.next_block.replace_label(line)
 

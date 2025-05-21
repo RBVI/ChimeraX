@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -27,6 +27,7 @@ from chimerax.core.settings import Settings
 label_missing_attr = 'label_missing_structure_threshold'
 class _AtomicSettings(Settings):
     EXPLICIT_SAVE = {
+        'always_label_structure': False,
         'atomspec_contents': 'simple', # choices: simple, command (-line specifier), serial (number)
         label_missing_attr: 4,
     }
@@ -34,12 +35,17 @@ class _AtomicSettings(Settings):
 # 'settings' module attribute will be set by the initialization of the bundle API
 
 def register_settings_options(session):
-    from chimerax.ui.options import SymbolicEnumOption, IntOption
+    from chimerax.ui.options import SymbolicEnumOption, IntOption, BooleanOption
     class AtomSpecOption(SymbolicEnumOption):
         values = ("command", "serial", "simple")
         labels = ("command line", "serial number", "simple")
 
     settings_info = {
+        'always_label_structure': (
+            "Balloon-help specifiers always show atomic model number",
+            BooleanOption,
+            "Always show structure model number in balloons and other output"
+        ),
         'atomspec_contents': (
             "Balloon-help specifier style",
             AtomSpecOption,

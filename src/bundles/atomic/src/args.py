@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -184,8 +184,13 @@ class SequencesArg(Annotation):
         return seqs, used, rest
 
 def _parse_sequence(seq_text, session):
+    if is_uniprot_id(seq_text):
+        seq, sused, srest = UniProtSequenceArg.parse(seq_text, session)
+        if len(srest) == 0:
+            return seq
+            
     from chimerax.seqalign import SeqArg
-    for arg_type in (ChainArg, UniProtSequenceArg, SeqArg, RawSequenceArg):
+    for arg_type in (ChainArg, SeqArg, RawSequenceArg):
         try:
             seq, sused, srest = arg_type.parse(seq_text, session)
             if len(srest) == 0:
@@ -225,8 +230,8 @@ class UniProtSequenceArg(Annotation):
             from chimerax.uniprot import map_uniprot_ident
             try:
                 uid = map_uniprot_ident(uid, return_value = 'entry')
-            except Exception:
-                raise AnnotationError('UniProt name "%s" must be 1-5 characters followed by an underscore followed by 1-5 characters' % uid)
+            except Exception as e:
+                raise AnnotationError(f'Could not look up UniProt accession code for "{uid}". {e}')
         else:
             uname = None
         if len(uid) not in (6, 10):
@@ -234,8 +239,8 @@ class UniProtSequenceArg(Annotation):
         from chimerax.uniprot.fetch_uniprot import fetch_uniprot_accession_info
         try:
             seq_string, full_name, features = fetch_uniprot_accession_info(session, uid)
-        except Exception:
-            raise AnnotationError('Failed getting sequence for UniProt id "%s"' % uid)
+        except Exception as e:
+            raise AnnotationError(f'Could not fetch sequence for UniProt id "{uid}". {e}')
         from . import Sequence
         seq = Sequence(name = (uname or uid), characters = seq_string)
         seq.uniprot_accession = uid
@@ -487,6 +492,7 @@ def group_symmetries(session, group, molecule):
 
     g0 = group[:1].lower()
     gfields = group.split(',')
+    g = gfields[0].lower()
     nf = len(gfields)
     recenter = True
     if g0 in ('c', 'd'):
@@ -501,7 +507,7 @@ def group_symmetries(session, group, molecule):
             tflist = geometry.cyclic_symmetry_matrices(n)
         else:
             tflist = geometry.dihedral_symmetry_matrices(n)
-    elif g0 == 'i':
+    elif g == 'i':
         # Icosahedral symmetry: i[,<orientation>]
         if nf == 1:
             orientation = '222'
@@ -513,7 +519,7 @@ def group_symmetries(session, group, molecule):
         else:
             raise UserError('Invalid symmetry group syntax "%s"' % group)
         tflist = geometry.icosahedral_symmetry_matrices(orientation)
-    elif g0 == 't' and nf <= 2:
+    elif g == 't' and nf <= 2:
         # Tetrahedral symmetry t[,<orientation]
         if nf == 1:
             orientation = '222'
@@ -526,13 +532,13 @@ def group_symmetries(session, group, molecule):
         else:
             raise UserError('Invalid symmetry group syntax "%s"' % group)
         tflist = geometry.tetrahedral_symmetry_matrices(orientation)
-    elif g0 == 'o':
+    elif g == 'o':
         # Octahedral symmetry
         if nf == 1:
             tflist = geometry.octahedral_symmetry_matrices()
         else:
             raise UserError('Invalid symmetry group syntax "%s"' % group)
-    elif g0 == 'h':
+    elif g == 'h':
         # Helical symmetry: h,<rise>,<angle>,<n>[,<offset>]
         if nf < 4 or nf > 5:
             raise UserError('Invalid symmetry group syntax "%s"' % group)
@@ -710,3 +716,17 @@ def concise_residue_spec(session, residues):
                 full_spec += '/' + _form_range(chain_ids, chain_id_index_map, str) + spec
 
     return full_spec
+
+def concise_chain_spec(chains):
+    schains = {}
+    for c in chains:
+        s = c.structure
+        if s not in schains:
+            schains[s] = set()
+        schains[s].add(c)
+    specs = []
+    for structure, cset in schains.items():
+        cids = sorted([c.chain_id for c in cset])
+        specs.append(structure.string(style = 'command') + '/' + ','.join(cids))
+    spec = ''.join(specs)
+    return spec

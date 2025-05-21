@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -284,9 +284,9 @@ static void tridiagonal(int n, double *a, double *b, const double *c, double *d)
 {
   /*
     TDMA solver, a b c d can be NumPy array type or Python list type.
-    refer to http://en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm
+    refer to https://en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm
     Hacked source from
-    http://ofan666.blogspot.com/2012/02/tridiagonal-matrix-algorithm-solver-in.html
+    https://ofan666.blogspot.com/2012/02/tridiagonal-matrix-algorithm-solver-in.html
   */
 
   for (int i = 1 ; i < n ; ++i)
@@ -323,7 +323,7 @@ static void cubic_spline(const float *coords, int num_pts, double *coef)
   double *a = temp + 3*ne, *b = temp + 4*ne, *c = temp + 5*ne, *d = temp + 6*ne;
   for (int axis = 0 ; axis < 3 ; ++axis)
     {
-      // 1D cubic spline from http://mathworld.wolfram.com/CubicSpline.html
+      // 1D cubic spline from https://mathworld.wolfram.com/CubicSpline.html
       // Set b[0] and b[-1] to 1 to match TomG code in VolumePath
       double *values = xyz[axis];
       for (int i = 0 ; i < ne ; ++i)

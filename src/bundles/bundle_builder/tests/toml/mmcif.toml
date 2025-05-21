@@ -1,0 +1,231 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-AtomicLibrary ~=14.0",
+  "ChimeraX-PDBLibrary ~=1.0",
+  "ChimeraX-Core ~=1.0",
+  "numpy==CURRENT_NUMPY_VERSION",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-mmCIF"
+version = "2.14.2"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "mmCIF format read/write"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Atomic ~=1.34",
+  "ChimeraX-AtomicLibrary ~=14.0",
+  "ChimeraX-PDB ~=2.0",
+  "ChimeraX-PDBLibrary ~=1.0",
+  "ChimeraX-DataFormats ~=1.0",
+  "ChimeraX-OpenCommand ~=1.0",
+  "ChimeraX-SaveCommand ~=1.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """This bundle provides the abiility to fetch and read Macromolecular CIF files."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Molecular structure"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.package-data]
+"src/" = [
+  "stdresidues.cif",
+]
+
+[[tool.chimerax.provider."data formats"]]
+name = "mmCIF"
+category = "Molecular structure"
+suffixes = ".cif,.mmcif"
+default-for = ".mmcif,.cif"
+encoding = "utf-8"
+mime-types = "chemical/x-mmcif"
+reference-url = "http://mmcif.wwpdb.org/"
+
+[[tool.chimerax.provider."data formats"]]
+name = "Chemical Component Dictionary"
+category = "Molecular structure"
+nicknames = "ccd"
+suffixes = ".cif"
+encoding = "utf-8"
+reference-url = "http://www.wwpdb.org/data/ccd"
+
+[[tool.chimerax.provider."data formats"]]
+name = "Small Molecule CIF"
+category = "Molecular structure"
+nicknames = "corecif,smallcif"
+suffixes = ".cif"
+encoding = "utf-8"
+reference-url = "https://www.iucr.org/resources/cif"
+
+[[tool.chimerax.provider."data formats"]]
+name = "Crystallography Open Database"
+category = "Molecular structure"
+nicknames = "cod"
+suffixes = ".cif"
+encoding = "utf-8"
+reference-url = "https://www.crystallography.net/"
+
+[[tool.chimerax.provider."data formats"]]
+name = "Predicted Crystallography Open Database"
+category = "Molecular structure"
+nicknames = "pcod"
+suffixes = ".cif"
+encoding = "utf-8"
+reference-url = "https://www.crystallography.net/pcod/"
+
+[[tool.chimerax.provider."open command"]]
+name = "mmCIF"
+want-path = true
+
+[[tool.chimerax.provider."open command"]]
+name = "pdb"
+type = "fetch"
+format-name = "mmcif"
+synopsis = "PDB"
+example-ids = "2gbp"
+
+[[tool.chimerax.provider."open command"]]
+name = "pdbe"
+type = "fetch"
+format-name = "mmcif"
+
+[[tool.chimerax.provider."open command"]]
+name = "pdbj"
+type = "fetch"
+format-name = "mmcif"
+
+[[tool.chimerax.provider."open command"]]
+name = "ccd"
+type = "fetch"
+format-name = "Chemical Component Dictionary"
+synopsis = "PDB chemical component"
+example-ids = "FMN"
+
+[[tool.chimerax.provider."open command"]]
+name = "Small Molecule CIF"
+want-path = true
+
+[[tool.chimerax.provider."open command"]]
+name = "cod"
+type = "fetch"
+format-name = "Crystallography Open Database"
+
+[[tool.chimerax.provider."open command"]]
+name = "pcod"
+type = "fetch"
+format-name = "Predicted Crystallography Open Database"
+
+[[tool.chimerax.provider."open command"]]
+name = "redo"
+type = "fetch"
+format-name = "mmcif"
+synopsis = "PDB-REDO (structure)"
+example-ids = "1cbs"
+
+[[tool.chimerax.provider."save command"]]
+name = "mmCIF"
+compression-okay = false
+
+[[tool.chimerax.provider."start structure"]]
+name = "ccd"
+ui-name = "CCD ID"
+new-model-only = true
+
+[tool.chimerax.extension._mmcif]
+sources = [
+  "mmcif_cpp/_mmcif.cpp",
+  "mmcif_cpp/mmcif.cpp",
+  "mmcif_cpp/template.cpp",
+  "mmcif_cpp/corecif.cpp",
+]
+include-dirs = [
+  "mmcif_cpp/include",
+  "src/include",
+]
+library-dirs = [
+  "mmcif_cpp/lib",
+  "src/lib",
+]
+libraries = [
+  "atomstruct",
+  "element",
+  "pyinstance",
+  "pdbconnect",
+  "readcif",
+  "logger",
+  "arrays",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.core",
+  "numpy",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.core",
+]
+
+[tool.chimerax.extension.mmcif]
+sources = [
+  "src/mmcif.pyx",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]
+
+[tool.chimerax.extension.mmcif_write]
+sources = [
+  "src/mmcif_write.pyx",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.atomic_lib",
+  "chimerax.pdb_lib",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]
+

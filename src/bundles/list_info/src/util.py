@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -218,7 +218,7 @@ def report_distmat(logger, atoms, distmat, *, save_file=None):
         for j in range(i+1,num_atoms):
             # distmat is a scipy condensed distance matrix
             # Index calculation from answer by HongboZhu in
-            # http://stackoverflow.com/questions/13079563/how-does-condensed-distance-matrix-work-pdist
+            # https://stackoverflow.com/questions/13079563/how-does-condensed-distance-matrix-work-pdist
             dmi = num_atoms*i - i*(i+1)//2 + j - 1 - i
             msgs.append("distmat %s %s %s" % (spec(atoms[i]), spec(atoms[j]),
                                               distmat[dmi]))

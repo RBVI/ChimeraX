@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -64,6 +64,8 @@ class AlignmentsManager(StateManager, ProviderManager):
         ----------
         name : str
             Header or viewer name.
+            For viewers, this is the name that will be used in the user interface when listing possible
+            viewers (probably after being "title-ized").  It should be lower case.
         type : str
             "header" or "viewer"
 
@@ -105,9 +107,9 @@ class AlignmentsManager(StateManager, ProviderManager):
             if synonyms:
                 # comma-separated text -> list
                 synonyms = [x.strip() for x in synonyms.split(',')]
-            if sequence_viewer:
+            if sequence_viewer and sequence_viewer != "false":
                 self.viewer_info['sequence'][name] = synonyms
-            if alignment_viewer:
+            if alignment_viewer and alignment_viewer != "false":
                 self.viewer_info['alignment'][name] = synonyms
             self._viewers[name] = bundle_info
         elif type is None:
@@ -187,19 +189,26 @@ class AlignmentsManager(StateManager, ProviderManager):
         intrinsic : boolean
             If True, then the alignment is treated as "coupled" to the structures associated with
             it in that if all associations are removed then the alignment is destroyed.
+        copy_seqs: boolean
+            If True, copy the sequences so that attributes set on them (such as 'match_maps') don't
+            conflict with other alignments.  The default depends on the value of identify_as.  If
+            identify_as is False, then False, otherwise True.
 
         Returns the created Alignment
         """
         if self.session.ui.is_gui and identify_as is not False:
             viewer_text = viewer
-            if len(seqs) > 1:
-                attr = 'align_viewer'
+            from .settings import settings
+            if len(seqs) >= settings.large_align_threshold:
+                attr = 'large_align_viewer'
+                type_text = "alignment"
+            elif len(seqs) > 1:
+                attr = 'small_align_viewer'
                 type_text = "alignment"
             else:
                 attr = 'seq_viewer'
                 type_text = "sequence"
             if viewer_text is True:
-                from .settings import settings
                 viewer_text = getattr(settings, attr).lower()
             if viewer_text:
                 viewer_text = viewer_text.lower()
@@ -260,7 +269,6 @@ class AlignmentsManager(StateManager, ProviderManager):
             self.triggers.activate_trigger("new alignment", alignment)
         return alignment
 
-    @property
     def registered_viewers(self, seq_or_align):
         """Return the registered viewers of type 'seq_or_align'
             (which must be "sequence"  or "alignent")

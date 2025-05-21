@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -1092,8 +1092,8 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
     '''
     Color atoms by attribute value using a color palette.
 
-    attr_name : string (actual Python attribute name optionally prefixed by 'a:'/'r:'/'m:'
-      for atom/residue/model attribute. If no prefix, then the Atom/Residue/Structure classes
+    attr_name : string (actual Python attribute name optionally prefixed by 'a:'/'r:'/'c:'/'m:'
+      for atom/residue/chain/model attribute. If no prefix, then the Atom/Residue/Chain/Structure classes
       will be searched for the attribute (in that order).
     atoms : Atoms
     what : list of 'atoms', 'cartoons', 'ribbons', 'surface'
@@ -1117,7 +1117,7 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
     '''
 
     from chimerax.core.errors import UserError
-    from chimerax.atomic import Atom, Residue, Structure
+    from chimerax.atomic import Atom, Residue, Chain, Structure
     from .defattr import parse_attribute_name
     attr_name, class_obj = parse_attribute_name(session, attr_name, allowable_types=[int, float])
 
@@ -1142,6 +1142,10 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
         attr_objs = atoms
     elif class_obj == Residue:
         attr_objs = atoms.residues
+    elif class_obj == Chain:
+        attr_objs = atoms.residues.chains
+        if len(attr_objs) < len(atoms):
+            attr_objs = [a.residue.chain for a in atoms]
     else:
         attr_objs = atoms.structures
     from chimerax.core.commands import plural_of
@@ -1218,6 +1222,8 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
                     residues = atoms.unique_residues
                     if class_obj == Residue:
                         res_attr_vals = [getattr(r, attr_name, None) for r in residues]
+                    elif class_obj == Chain:
+                        res_attr_vals = [getattr(r.chain, attr_name, None) for r in residues]
                     else:
                         res_attr_vals = [getattr(r.structure, attr_name, None) for r in residues]
                 non_none_res_attr_vals = [v for v in res_attr_vals if v is not None]
@@ -1249,6 +1255,8 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
                     residues = atoms.unique_residues
                     if class_obj == Residue:
                         res_attr_vals = [getattr(r, attr_name, None) for r in residues]
+                    elif class_obj == Chain:
+                        res_attr_vals = [getattr(r.chain, attr_name) for r in residues]
                     else:
                         res_attr_vals = [getattr(r.structure, attr_name) for r in residues]
                 rib_colors = ring_colors = _value_colors(palette, range, res_attr_vals)

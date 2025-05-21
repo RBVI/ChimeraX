@@ -6,7 +6,7 @@ Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  For details see:
-http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
@@ -37,7 +37,11 @@ See also:
 <a href="fitmap.html"><b>Fit in Map</b></a>,
 <a href="waterplacement.html"><b>Water Placement</b></a>,
 <a href="fitloops.html"><b>Fit Loops</b></a>,
-<a href="#symmetry">adding symmetry copies after fitting</a>
+<a href="#symmetry">adding symmetry copies after fitting</a>,
+videos: <a href="https://www.youtube.com/watch?v=DlVgrQTZ5t8"
+target="_blank">Phenix/ChimeraX setup</a> and
+<a href="https://www.youtube.com/watch?v=nRiumhKA6BM"
+target="_blank">Phenix/ChimeraX Local EM Fitting</a>
 </p><p>
 Limiting the search space to a local region of the map (subvolume)
 can improve the signal-to-noise ratio and lead to success in cases 
@@ -50,6 +54,20 @@ target="_blank">
 Likelihood-based interactive local docking into cryo-EM maps in ChimeraX.</a>
 <authors>Read RJ, Pettersen EF, McCoy AJ, Croll TI, Terwilliger TC, Poon BK, Meng EC, Liebschner D, Adams PD.</authors>
 <i>Acta Crystallogr D Struct Biol.</i> 2024 Aug 1;80(Pt 8):588-598.
+<!--
+<br>
+<a href="https://journals.iucr.org/d/issues/2023/04/00/vo5012/index.html"
+target="_blank">
+Likelihood-based docking of models into cryo-EM maps.</a>
+Millán C, McCoy AJ, Terwilliger TC, Read RJ.
+<i>Acta Crystallogr D Struct Biol.</i> 2023 Apr 1;79(Pt 4):281-289.
+<br>
+<a href="https://journals.iucr.org/d/issues/2023/04/00/vo5011/index.html"
+target="_blank">
+Likelihood-based signal and noise analysis for docking of models into cryo-EM maps.</a>
+Read RJ, Millán C, McCoy AJ, Terwilliger TC.
+<i>Acta Crystallogr D Struct Biol.</i> 2023 Apr 1;79(Pt 4):271-280.
+-->
 </blockquote>
 <p>
 <a href="https://phenix-online.org" target="_blank">Phenix</a>
@@ -83,6 +101,9 @@ Although the local resolution is initially set to <b>0.0</b> &Aring;,
 a positive value is required and must be supplied if a full map is used.
 If half maps are used but no positive value is supplied,
 the local resolution will be estimated from the half maps.
+<li><b>Pre-fitted structures (if any)</b> 
+&ndash; specify atomic models, if any,
+that are already in place within parts of the map
 <li><b>Center search at</b>
   <ul>
   <li><b>center of model...</b> center of the bounding box of the chosen model
@@ -110,8 +131,9 @@ relative to the origin of the map and in the coordinate system of the map
 (initial default <b>on</b>)
 &ndash; whether to generate a transparent orange
 <a href="../markers.html">marker</a> to show the search space size and location.
-Positions with any part of the atomic structure inside the marker sphere 
-will be searched. The size of the search volume is based on the size of the 
+Successful searches will require at least a substantial fraction of the model
+to be covered by the sphere.
+The size of the search volume is based on the size of the 
 structure and cannot be adjusted, but the search center can be moved by 
 moving the marker, using any ChimeraX method for moving markers or models
 (<i>e.g.</i>, clicking the <b>move markers</b>
@@ -183,7 +205,47 @@ whereas <b>Help</b> shows this page
 in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 </p>
 
+<a name="multiple"></a>
+<p class="nav">
+[<a href="#top">back to top: Local EM Fitting</a>]
+</p>
+<h3>Multiple Solutions</h3>
+<p>
+Occasionally a single search may produce multiple solutions (fits);
+when that happens, another dialog containing a list of the fits will appear,
+with metrics:
+</p>
+<ul>
+<li><b>Correlation Coefficient</b> &ndash; 
+correlation between the locally sharpened target map and a map 
+computed from the atomic structure
+<li><b>Log-Likelihood Gain</b> &ndash;
+gain in log-likelihood score compared with an uninformative model
+(for details, see 
+<a href="https://journals.iucr.org/d/issues/2023/04/00/vo5011/index.html" 
+target="_blank">Read <i>et al.</i></a>, 
+<i>Acta Crystallogr D Struct Biol.</i> <b>79</b>:271 (2023)).
+Log-likelihood-gain scores &gsim; 60 generally indicate
+significant solutions that are either correct or correspond to density for
+a related molecule.
+Solutions with lower scores should be interpreted with caution.
+</ul>
+<p>
+<a name="chosen"></a>
+Clicking a row in the list <b><i>chooses</i></b> the corresponding fit
+and moves the structure to regenerate it. 
+<b>Show sharpened map</b> indicates whether to display the
+sharpened map computed from the atomic structure in the chosen fit.
+If the option in the initial dialog to 
+<a href="#symmetry">add symmetry copies</a>
+was chosen and symmetry was indeed detected, there will also be an option
+to <b>Show symmetry copies</b> for the chosen fit.
+</p><p>
+Clicking <b>OK</b> retains the displayed models for the chosen fit
+and dismisses the fit-list dialog.
+<p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2024</address>
+January 2025</address>
 </body></html>

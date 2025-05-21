@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -424,8 +424,10 @@ class SurfaceColorGUI(ToolInstance):
             if map is None:
                 self.warn('No map chosen for coloring')
                 return
-            cmd = ('color %s %s map #%s palette %s'
-                   % (subcmd, surf_spec, map.id_string, palette))
+            from chimerax.core.colors import hex_color
+            ocolor = hex_color(self._color_outside.color)
+            cmd = ('color %s %s map #%s palette %s outside %s'
+                   % (subcmd, surf_spec, map.id_string, palette, ocolor))
             if method in self._offset_methods:
                 o = self._offset
                 if o != 1.4:

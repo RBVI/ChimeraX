@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -209,7 +209,7 @@ def color_vertices(session, surface, offset, charged_atoms, dist_dep, dielectric
     if undo_info:
         undo_new_vals.append(rgba8)
     surface.auto_recolor_vertices = arv
-    if log:
+    if log and len(vertex_values):
         session.logger.info("Coulombic values for %s: minimum, %.2f, mean %.2f, maximum %.2f"
             % (surface, amin(vertex_values), mean(vertex_values), amax(vertex_values)))
 

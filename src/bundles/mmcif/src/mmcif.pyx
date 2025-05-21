@@ -6,7 +6,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -140,6 +140,14 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         models = models[:max_models]
 
     for m in models:
+        if "_missing_poly_seq" in m.metadata:
+            m.set_metadata_entry("_missing_poly_seq", None)
+            m.connect_structure()
+            from collections import Counter
+            counts = Counter(m.chains.chain_ids)
+            if any(cnt > 1 for cnt in counts.values()):
+                if log is not None:
+                    log.info("Use changechains command to assign unique chain ids")
         m.filename = path
         if combine_sym_atoms:
             m.combine_sym_atoms()
@@ -455,7 +463,7 @@ def fetch_mmcif(
                               cache, ignore_cache=ignore_cache)
         # double check that a mmCIF file was downloaded instead of an
         # HTML error message saying the ID does not exist
-        with open(filename, 'r') as f:
+        with open(filename, 'r', encoding='utf-8', errors='replace') as f:
             line = f.readline()
             if not line.startswith(('data_', '#')):
                 f.close()
@@ -543,7 +551,6 @@ def _get_template(session, name):
     else:
         url_path = url_quote(f"pub/pdb/refdata/chem_comp/{name[-1]}/{name}/{name}.cif")
         url = f"https://files.wwpdb.org/{url_path}"
-    print(url)  # DEBUG
     try:
         return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD')
     except (UserError, OSError):
@@ -692,7 +699,7 @@ def citations(model, only=None, metadata=None):
             if c[-1] != '.':
                 c += '.'
             d = escape(doi)
-            c += ' DOI: <a href="http://dx.doi.org/%s">%s</a>' % (d, d)
+            c += ' DOI: <a href="https://dx.doi.org/%s">%s</a>' % (d, d)
         citations.append(c)
     return citations
 
@@ -719,7 +726,7 @@ def add_citation(model, citation_id, info, authors=(), editors=(), *, metadata=N
     citation table, then nothing is done.
 
     The `info` dictionary is for the relevant data items from the mmCIF citation category,
-    http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/citation.html
+    https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/citation.html
     except for the citation `id` which is given as an argument to this function.
     The capitalization should match that in the mmCIF dictionary.
     In particular, the following data items are supported:
@@ -835,7 +842,7 @@ def add_software(model, name, info, *, metadata=None):
     already present in the software table, then nothing is done.
 
     The `info` dictionary is for the relevant data items from the mmCIF softare category,
-    http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/software.html
+    https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/software.html
     except for the `name`, which is given as an argument to the function, and `pdbx_ordinal`,
     which is computed.  The capitalization should match that in the mmCIF dictionary.
     In particular, the following data items are supported:
@@ -916,11 +923,11 @@ def get_cif_tables(filename, table_names, *, all_data_blocks=False):
 
     Returns
     -------
-        list or dictionary
+        list
             If all_data_blocks is false, return list of CIF tables found and
             all of the data values in a :py:class:`CIFTable`.
-            If all_data_blocks is true, return an ordered dictionary of tables
-            per data block.
+            If all_data_blocks is true, return a list of (dat-block-name,
+            list of CIP-tables) tuples.
     """
     from os import path
     if path.exists(filename):
@@ -931,6 +938,8 @@ def get_cif_tables(filename, table_names, *, all_data_blocks=False):
 
     def convert_tables(data, table_names):
         tlist = []
+        if not data:
+            return tlist
         for name in table_names:
             if name not in data:
                 tlist.append(CIFTable(name))
@@ -962,8 +971,11 @@ def get_mmcif_tables_from_metadata(obj, table_names, *, metadata=None):
     metadata : optional metadata dictonary
         Allow reuse of existing metadata dictionary.
 
-    Returns a list of :py:class:`CIFTable`s or :external+python:ref:`None`,
-    one for each table name.
+    Returns
+    -------
+        list 
+            A list of :py:class:`CIFTable`s or :external+python:ref:`None`,
+            one for each table name.
     """
     if metadata is None:
         try:

@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -151,7 +151,9 @@ class AddHTool(ToolInstance):
         from chimerax.core.errors import UserError
         self.tool_window.shown = False
         self.session.ui.processEvents()
-        if not self.structures:
+        # fetch not only for convenience, but so that we don't fetch from a deleted widget below [#16668]
+        my_structures = self.structures
+        if not my_structures:
             if self.process_info is None or self.process_info['structures'] is None:
                 self.tool_window.shown = True
                 raise UserError("No structures chosen for hydrogen addition.")
@@ -159,7 +161,7 @@ class AddHTool(ToolInstance):
             return
         settings = {}
         from chimerax.core.commands import run, concise_model_spec
-        cmd = "addh %s" % concise_model_spec(self.session, self.structures)
+        cmd = "addh %s" % concise_model_spec(self.session, my_structures)
         if not self.isolation.isChecked():
             cmd += " inIsolation false"
             settings["in_isolation"] = False
@@ -192,7 +194,7 @@ class AddHTool(ToolInstance):
                 args = []
                 kw = {}
                 from chimerax.atomic import AtomicStructures
-                for name, value in [('structures', AtomicStructures(self.structures)),
+                for name, value in [('structures', AtomicStructures(my_structures)),
                         ('tool_settings', settings)]:
                     try:
                         param = sig.parameters[name]

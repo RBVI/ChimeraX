@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -492,6 +492,12 @@ class TabbedToolbar(QTabWidget):
         tab.clear()
         self._buttons[tab_title].clear()
         self._buttons[tab_title]["__toolbar__"] = tab
+
+    def clear_all(self):
+        for tab_title in list(self._buttons):
+            self.clear_tab(tab_title)
+            del self._buttons[tab_title]
+        self.clear()
 
     def _recompute_tab_sizes(self):
         # can't shrink vertically unless the size of all tabs are recomputed

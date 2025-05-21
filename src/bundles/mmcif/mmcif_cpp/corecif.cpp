@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -315,7 +315,7 @@ SmallMolecule::parse_atom_site()
     molecule = new AtomicStructure(_logger);
     residue = molecule->new_residue("UNL", "A", 1);
     std::vector<Atom*> alt_atoms;
-    int alt_count = 0;
+    size_t alt_count = 0;
     bool alt_warned = false;
     bool too_many = false;
     bool skip_group = false;

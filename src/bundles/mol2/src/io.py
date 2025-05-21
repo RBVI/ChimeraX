@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -359,7 +359,7 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
                     if not gaff_fail_error:
                         raise
                     raise gaff_fail_error("%s has no Amber/GAFF type assigned.\n"
-                        "Use the AddCharge tool to assign Amber/GAFF types." % atom)
+                        "Use the Add Charges tool or 'addcharge' command to assign Amber/GAFF types." % atom)
             elif hasattr(atom, 'mol2_type') and types_valid:
                 atom_type = atom.mol2_type
             elif atom in amide_Ns:

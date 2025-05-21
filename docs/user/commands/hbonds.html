@@ -66,7 +66,9 @@ See also:
 <img class="icon" border=1 
 src="../tools/shortcut-icons/hbondsflathide.png"></a>, 
 <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
-tutorial</a>
+tutorial</a>,
+the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#hbond-histogram"
+target="_blank">ChimeraX H-bond histogram highlight</a>
 </p><p>
 The <a href="#saltOnly"><b>saltOnly</b></a> option allows finding just 
 the salt bridges, and the <a href="#restrict"><b>restrict</b></a>
@@ -428,7 +430,7 @@ will not be replaced if the new pseudobond model is given a different
 <blockquote>
   <a name="saveFile"><b>saveFile</b> &nbsp;<i>file</i></a>
 <br>Save H-bond information to a file.
-The information includes donor and acceptor atom specifications
+The atomic information includes donor and acceptor atom specifications
 (see <a href="#namingStyle"><b>namingStyle</b></a>),
 donor-acceptor distances, and when hydrogens are present,
 hydrogen atom specifications and hydrogen-acceptor distances.
@@ -444,9 +446,11 @@ to specify it interactively in a file browser window.
 <a href="../tools/log.html"><b>Log</b></a>.
 </blockquote>
 <blockquote>
-  <a name="namingStyle"><b>namingStyle</b> &nbsp;simple&nbsp;|&nbsp;command&nbsp;|&nbsp;serial</a>
-<br>How to describe atoms in H-bond information
-written to a <a href="#saveFile">file</a> or the <a href="#log">log</a>:
+<a name="namingStyle"></a>
+<b>namingStyle</b> &nbsp;simple&nbsp;|&nbsp;command&nbsp;|&nbsp;serial&nbsp;|&nbsp;residue
+<br>
+How to describe atoms/residues in H-bond information written
+to a <a href="#saveFile">file</a> or the <a href="#log">log</a>:
 <ul>
 <li><b>simple</b> &ndash; chain ID (preceded by slash), 
 residue name, residue number, atom name (for example, /B ASN 21 OD1)
@@ -455,6 +459,9 @@ residue name, residue number, atom name (for example, /B ASN 21 OD1)
 (for example, /B:21@OD1)
 <li><b>serial</b> &ndash; atom serial number
 (for example, 126)
+<li><b>residue</b> &ndash; condense all results to the residue level,
+omitting atom names and reporting only the total number of H-bonds 
+per unique pair of residues
 </ul>
 Model number will be included when multiple models are present.
 The <a href="../preferences.html#labels"><b>Labels</b> preference</a>
@@ -525,5 +532,5 @@ all of its possible positions.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2023</address>
+March 2025</address>
 </body></html>

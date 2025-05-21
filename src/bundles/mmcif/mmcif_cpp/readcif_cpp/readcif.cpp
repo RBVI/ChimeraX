@@ -1348,7 +1348,7 @@ CIFFile::parse_row(ParseValues& pv)
 	for (int i = 0, e = current_colnames.size(); i < e; ++i) {
 		if (current_token != T_VALUE) {
 			std::ostringstream err_msg;
-			err_msg << "not enough data values, found"
+			err_msg << "not enough data values, found "
 				<< token_names[current_token];
 			throw error(err_msg.str());
 		}

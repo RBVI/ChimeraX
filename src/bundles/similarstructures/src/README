@@ -1,0 +1,15 @@
+Adapting the foldseek search and visualization code to handle mmseqs2 and blast searches requires
+changes in many places.  The trouble is that foldseek uses indexing based on just the structure residues
+that have coordinates.  The first structure residue with coordinates is index 1.  The mmseqs2 and blast
+sequence searches use indexing based on the full residue sequence including many residues without
+coordinates.  So the code needs to handle these two types of indexing differently when interpreting
+alignments and finding corresponding structure residues, for instance, for showing backbone traces,
+clustering structures based on C-alpha positions, computing LDDT score.  Maybe I should call the
+two types of indices, coordinate indices and sequence indices.  With foldseek the alignment uses
+coordinate indices while with mmseqs2/blast it uses sequence indices.  Routines that use the residue
+indices need two versions to handle these two cases.
+
+The sequence plot is currently using the alignment indexing so it includes residues without coordinates for mmseqs2.
+But the code that sets query residue attributes coverage, conservation, entropy and lddt currently won't work
+correctly since it assumes the columns of the alignment match the query residues with coordinates.
+I could fix that by mapping the residue coordinate index to the alignment index.

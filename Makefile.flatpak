@@ -1,6 +1,6 @@
 APPNAME = edu.ucsf.rbvi.ChimeraX
 BUILD_DIR = fp-build.tmp
-RUNTIME_VER = 23.08
+RUNTIME_VER = 24.08
 BRANCH = $(shell \
     branch=$$(awk '$$1 == "branch:" { print $$2; exit } { exit }' last-commit 2> /dev/null) ; \
     if [ -z "$$branch" ]; then branch=$$(git branch --show-current); fi ; \
@@ -25,14 +25,12 @@ preqreqs-rhel:
 prereqs-ubuntu:
 	apt install flatpak flatpak-builder gnome-software-plugin-flatpak
 
-prereqs-flatpak:
-	flatpak install -y org.freedesktop.Sdk//${RUNTIME_VER} org.freedesktop.Platform//${RUNTIME_VER}
-
 build-flatpak: ${APPNAME}.yaml
 	flatpak-builder --force-clean ${BUILD_DIR} ${APPNAME}.yaml
 
 flatpak-prereq:
-	flatpak install flathub org.freedesktop.Platform//${RUNTIME_VER} org.freedesktop.Sdk//${RUNTIME_VER}
+	flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+	flatpak install -y --user flathub org.freedesktop.Platform//${RUNTIME_VER} org.freedesktop.Sdk//${RUNTIME_VER}
 
 prereqs:
 	# normally the wheels and include directories are created by the build_tools process
@@ -76,7 +74,7 @@ system-install: ${APPNAME}.yaml
 	flatpak-builder --export-only --system --install ${BUILD_DIR} ${APPNAME}.yaml
 
 export-flatpak:
-	# Create a single file, ChimeraX.flatpak, that can be installed 
+	# Create a single file, ChimeraX.flatpak, that can be installed
 	flatpak build-export export ${BUILD_DIR}
 	flatpak build-bundle export ChimeraX.flatpak ${APPNAME}
 

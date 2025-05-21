@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -33,12 +33,10 @@ class _BugReporterAPI(BundleAPI):
         and the log recording temporary file to record if the
         current session crashes.
         '''
-        from sys import platform
-        if platform != 'win32':
-            from . import crash_report
-            crash_report.check_for_crash(session)
-            crash_report.register_signal_handler(session)
-            crash_report.register_log_recorder(session)
+        from . import crash_report
+        crash_report.check_for_crash(session)
+        crash_report.register_signal_handler(session)
+        crash_report.register_log_recorder(session)
 
         # Add Report a Bug to Help menu
         from . import tool

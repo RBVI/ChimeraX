@@ -4,7 +4,7 @@
 # All rights reserved. This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use. For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -16,8 +16,16 @@ import numpy as np
 
 from Qt import qt_object_is_deleted
 from Qt.QtCore import Qt, QEvent, QSize
-from Qt.QtGui import QContextMenuEvent, QWindow, QSurface, QInputDevice
-from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QSlider, QLabel
+from Qt.QtGui import QContextMenuEvent, QWindow, QSurface, QInputDevice, QImage
+from Qt.QtWidgets import (
+    QComboBox,
+    QVBoxLayout,
+    QHBoxLayout,
+    QWidget,
+    QSlider,
+    QLabel,
+    QFrame,
+)
 from Qt.QtCore import QTimer, QPoint
 
 from chimerax.core.commands import log_equivalent_command
@@ -32,23 +40,21 @@ from chimerax.map.volume_viewer import VolumeViewer, Histogram_Pane
 from chimerax.map.volumecommand import apply_volume_options
 from chimerax.mouse_modes.mousemodes import decode_modifier_bits
 from chimerax.mouse_modes.trackpad import MultitouchEvent, Touch
-from chimerax.ui.widgets import ModelMenu
 
-from ..segmentation import Segmentation, copy_volume_for_auxiliary_display
-from ..segmentation_tracker import get_tracker
+from chimerax.segmentations.segmentation import Segmentation, copy_volume_for_auxiliary_display
+from chimerax.segmentations.segmentation_tracker import get_tracker
+
+from chimerax.segmentations.ui.color_key import ColorKeyModel
 
 import chimerax.segmentations.triggers
 from chimerax.segmentations.triggers import (
-    ACTIVE_SEGMENTATION_CHANGED,
     SEGMENTATION_REMOVED,
     SEGMENTATION_ADDED,
     SEGMENTATION_MODIFIED,
-    ENTER_EVENTS,
-    LEAVE_EVENTS,
-    GUIDELINES_VISIBILITY_CHANGED,
 )
+from chimerax.segmentations.triggers import Trigger
 
-from ..graphics import (
+from chimerax.segmentations.graphics import (
     OrthoplaneView,
     OrthoCamera,
     SegmentationOverlay,
@@ -56,8 +62,8 @@ from ..graphics import (
     SegmentationCursorOnOtherAxisOverlay,
     OrthoplaneLocationOverlay,
 )
-from ..types import Direction, Axis
-from .label import Label
+from chimerax.segmentations.types import Direction, Axis
+from chimerax.segmentations.ui.label import Label
 
 TRACKPAD_ZOOM_SPEED: int = 7
 TRACKPAD_PAN_SPEED: int = 100
@@ -95,9 +101,6 @@ class PlaneViewerManager:
         self.have_seg_tool = False
         self.axes = {}
         self.segmentation_tracker = get_tracker()
-        self._active_seg_changed_handler = chimerax.segmentations.triggers.add_handler(
-            ACTIVE_SEGMENTATION_CHANGED, self._active_segmentation_changed_cb
-        )
         self._segmentation_added_handler = chimerax.segmentations.triggers.add_handler(
             SEGMENTATION_ADDED, self._on_segmentation_added
         )
@@ -130,14 +133,10 @@ class PlaneViewerManager:
                 self.axes[Axis.CORONAL].sagittal_index = viewer.sagittal_index
 
     def deregister_triggers(self):
-        chimerax.segmentations.triggers.remove_handler(self._active_seg_changed_handler)
         chimerax.segmentations.triggers.remove_handler(self._segmentation_added_handler)
         chimerax.segmentations.triggers.remove_handler(
             self._segmentation_removed_handler
         )
-
-    def _active_segmentation_changed_cb(self, _, segmentation):
-        pass
 
     def update_dimensions(self, dimensions):
         for axis in self.axes.values():
@@ -158,9 +157,6 @@ class PlaneViewerManager:
             return None
         return self.axes[Axis.AXIAL].segmentation_tool
 
-    def update_displayed_model(self, model):
-        for viewer in self.axes.values():
-            viewer.model_menu._menu.set_value(model)
 
     def _on_segmentation_added(self, _, segmentation):
         self.add_segmentation(segmentation)
@@ -188,6 +184,7 @@ class PlaneViewerManager:
 
 class PlaneViewer(QWindow):
     def __init__(self, parent, manager, session, axis=Axis.AXIAL):
+        from chimerax.ui.widgets import ModelMenu
         QWindow.__init__(self)
         self.parent = parent
         self.manager = manager
@@ -252,9 +249,31 @@ class PlaneViewer(QWindow):
         self.drawings = []
         self.current_segmentation_cursor_overlays = []
 
+        self.axis_dropdown = QComboBox(self.parent)
+        self.axis_dropdown.addItems(str(axis).capitalize() for axis in Axis)
+        if axis == Axis.AXIAL:
+            self.axis_dropdown.setCurrentIndex(0)
+        elif axis == Axis.CORONAL:
+            self.axis_dropdown.setCurrentIndex(1)
+        elif axis == Axis.SAGITTAL:
+            self.axis_dropdown.setCurrentIndex(2)
+        self.axis_dropdown.currentTextChanged.connect(self._on_axis_changed)
+
         self.label = Label(
             self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0
         )
+
+        self.color_key = ColorKeyModel(self.session, self.view)
+        self.color_key.ticks = True
+        self.color_key.tick_length = 30
+        self.color_key.font_size = 16
+        self.color_key.label_side = ColorKeyModel.LS_LEFT_TOP
+        self.color_key.size = (0.04, 0.6)
+        self.color_key.pos = (0.95, 0.2)
+        self.color_key.display = False
+        # TODO: Set rgbas and labels, e.g. self.color_key.rgbas_and_labels=[(rgba,label)] based on
+        # colormap. Get it from the histogram
+        self.view.add_overlay(self.color_key)
 
         def _not_volume_surface_or_segmentation(m):
             ok_to_list = not isinstance(m, VolumeSurface)
@@ -346,18 +365,37 @@ class PlaneViewer(QWindow):
 
         self.slider.sliderMoved.connect(self._onSliderMoved)
         self.slider_moved = False
+        self.color_changed = False
         self.scale = 1  # set this to a temporary valid value before the draw
+        self.position_label = QLabel(parent)
+        self.position_label.setMinimumWidth(96)
+        self.position_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.position_label.setText("0mm")
         # loop otherwise we get a traceback
 
         self.widget.setMinimumSize(QSize(20, 20))
+        self.widget.grab = self._grab_viewport
 
         self.button_container = QWidget()
         button_layout = QHBoxLayout()
         button_layout.setContentsMargins(0, 0, 0, 0)
         button_layout.setSpacing(0)
+        button_layout.addWidget(self.axis_dropdown)
         button_layout.addStretch(1)
         button_layout.addWidget(self.model_menu.frame)
         self.button_container.setLayout(button_layout)
+
+        self.slider_container = QWidget()
+        slider_layout = QHBoxLayout()
+        slider_layout.setContentsMargins(0, 0, 0, 0)
+        slider_layout.setSpacing(0)
+        slider_layout.addWidget(self.slider)
+        self.separator = QFrame(self.parent)
+        self.separator.setFrameShape(QFrame.Shape.VLine)
+        slider_layout.addSpacing(8)
+        slider_layout.addWidget(self.separator)
+        slider_layout.addWidget(self.position_label)
+        self.slider_container.setLayout(slider_layout)
 
         self.container = QWidget(parent)
         container_layout = QVBoxLayout()
@@ -365,7 +403,7 @@ class PlaneViewer(QWindow):
         container_layout.setSpacing(0)
         container_layout.addWidget(self.button_container)
         container_layout.addWidget(self.widget, stretch=1)
-        container_layout.addWidget(self.slider)
+        container_layout.addWidget(self.slider_container)
         self.container.setLayout(container_layout)
 
         self.context_menu = None
@@ -376,13 +414,115 @@ class PlaneViewer(QWindow):
             ADD_TOOL_INSTANCE, self._tool_instance_added_cb
         )
         self.guideline_visibility_handler = chimerax.segmentations.triggers.add_handler(
-            GUIDELINES_VISIBILITY_CHANGED, self._on_guideline_visibility_changed
+            Trigger.GuidelinesVisibilityChanged, self._on_guideline_visibility_changed
+        )
+        self.color_key_visibility_changed_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.ColorKeysVisibilityChanged, self._on_color_key_visibility_changed
         )
         self.segmentation_modified_handler = (
             chimerax.segmentations.triggers.add_handler(
                 SEGMENTATION_MODIFIED, self._on_segmentation_modified
             )
         )
+        self.reference_model_changed_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.ReferenceModelChanged, self._on_reference_model_changed
+        )
+        self.active_segmentation_changed_handler = (
+            chimerax.segmentations.triggers.add_handler(
+                Trigger.ActiveSegmentationChanged, self._on_active_segmentation_changed
+            )
+        )
+
+    def _on_active_segmentation_changed(self, _, data):
+        self._redraw()
+    def _on_reference_model_changed(self, _, model):
+        self.model_menu._menu.set_value(model)
+
+    def _grab_viewport(self):
+        image = self.view.image_rgba()
+        height, width, channels = image.shape
+        return QImage(
+            image.data, width, height, width * channels, QImage.Format_RGBA8888
+        ).mirrored(False, True)
+
+    def _on_axis_changed(self, axis):
+        self.axis = Axis.from_string(axis.lower())
+        self.axes = self.axis.transform
+        self.view.camera.position = Place(origin=(0, 0, 0), axes=self.axes)
+        volume_viewer = self.session.tools.find_by_class(VolumeViewer)
+        v = self.view.drawing
+        if self.view.drawing is not self.placeholder_drawing:
+            if volume_viewer:
+                self._remove_axis_from_volume_viewer(volume_viewer[0], v.parent)
+            v.delete()
+            del v
+        if self.model_menu.value is None:
+            self.view.drawing = self.placeholder_drawing
+            self.slider.setMinimum(0)
+            self.slider.setMaximum(2)
+            self.slider.setValue(1)
+            self.pos = 1
+        v = copy_volume_for_auxiliary_display(self.model_menu.value)
+        self.model_menu.value.expand_single_plane()
+        self.model_menu.value.set_display_style("surface")
+        self.model_menu.value._drawings_need_update()
+        max_x, max_y, max_z = self.model_menu.value.region[1]
+        middle = tuple(
+            (imin + imax) // 2
+            for imin, imax in zip(
+                self.model_menu.value.region[0], self.model_menu.value.region[1]
+            )
+        )
+        new_drawing = None
+        apply_volume_options(
+            v,
+            doptions={
+                "region": (v.region[0], v.region[1]),
+                "planes": self.axis.cartesian,
+            },
+            roptions={},
+            image_mode_off=False,
+            session=self.session,
+        )
+        v.set_display_style("image")
+        v.name = str(self.axis) + " orthoplane " + str(self.model_menu.value.name)
+        v.update_drawings()
+        v.allow_style_changes = False
+        # Add our new volume to the volume menu with our custom widget
+        self._add_axis_to_volume_viewer(volume_viewer[0], v)
+
+        self.main_view.camera.redraw_needed = True
+        for d in v._child_drawings:
+            if type(d) == VolumeImage:
+                new_drawing = d
+        # self.manager.update_drawing(self.model_menu.value)
+        if new_drawing is not None:
+            # Set the view's root drawing, and our ground truth drawing, to the new one
+            self.view.drawing = new_drawing
+            for drawing in self.drawings:
+                self.removeDrawing(drawing)
+            if new_drawing not in self.drawings:
+                self.addDrawing(new_drawing)
+                new_drawing.display = True
+            self.set_label_text(new_drawing.parent.name)
+            self.manager.update_dimensions([max_x, max_y, max_z])
+            orthoplane_positions = max_x // 2, max_y // 2, max_z // 2
+            self._plane_indices = list(orthoplane_positions)
+            if self.axis == Axis.AXIAL:
+                self.slider.setRange(0, max_z)
+            if self.axis == Axis.CORONAL:
+                self.slider.setRange(-max_y, 0)
+            if self.axis == Axis.SAGITTAL:
+                self.slider.setRange(0, max_x)
+            self.slider.setValue(
+                orthoplane_positions[self.axis] * self.axis.positive_direction
+            )
+            self.slider_moved = True
+            self.pos = orthoplane_positions[self.axis]
+            self._plane_indices[self.axis] = self.pos
+            self.manager.update_location(self)
+            self._update_position_label_text()
+        self.render()
 
     def _on_segmentation_modified(self, _, segmentation):
         active_seg = self.segmentation_tracker.active_segmentation
@@ -391,18 +531,16 @@ class PlaneViewer(QWindow):
             self._redraw()
 
     def _tool_instance_added_cb(self, _, tools):
-        for tool in tools:
-            if type(tool) is VolumeViewer:
-                self.volume_viewer_opened_timer.start()
+        volume_viewer = self.session.tools.find_by_class(VolumeViewer)
+        if not volume_viewer:
+            return
+        self.volume_viewer_opened_timer.start()
 
     def _on_volume_viewer_opened(self):
-        volume_viewer = None
-        for tool in self.session.tools:
-            if type(tool) == VolumeViewer:
-                volume_viewer = tool
-                break
-        if volume_viewer:
-            self._add_axis_to_volume_viewer(volume_viewer, self.view.drawing.parent)
+        volume_viewer = self.session.tools.find_by_class(VolumeViewer)
+        if not volume_viewer:
+            return
+        self._add_axis_to_volume_viewer(volume_viewer[0], self.view.drawing.parent)
 
     def _collapse_touch_events(self):
         # Taken from the Mouse Modes code. It's unknown at this point whether there is a
@@ -557,9 +695,9 @@ class PlaneViewer(QWindow):
                 or self.view.drawing is self.placeholder_drawing
             ):
                 self.model_menu.value = self._segmentation_tool.model_menu.value
-            self._segmentation_tool.segmentation_cursors[self.axis].radius = (
-                self.segmentation_cursor_overlay.radius
-            )
+            self._segmentation_tool.segmentation_cursors[
+                self.axis
+            ].radius = self.segmentation_cursor_overlay.radius
             # TODO:
             # Set the segmentation pucks' locations based on the current slice location
             # self._segmentation_tool.segmentation_cursors[self.axis].
@@ -604,33 +742,84 @@ class PlaneViewer(QWindow):
             for segmentation in self.segmentation_overlays.values():
                 segmentation.slice = self.pos
         self.manager.update_location(self)
+        self._update_position_label_text()
         if self.guidelines_visible or self.segmentation_tool:
             self.manager.redraw_all()
         else:
             self.render()
         self._redraw()
 
+    def on_color_changed(self):
+        if self.view.drawing is not self.placeholder_drawing:
+            colors = self.view.drawing.parent.image_colors
+            levels = self.view.drawing.parent.image_levels
+            rgba_and_labels = []
+            for colors, levels in zip(colors, levels):
+                color = colors[:3]
+                alpha = levels[1]
+                # Interpret low alpha as black
+                color = [c * alpha for c in color]
+                level = "{:0.2f}".format(levels[0])
+                rgba_and_labels.append(((*color, 1), level))
+            rgba_and_labels.sort(key=lambda x: float(x[1]))
+            self.color_key.rgbas_and_labels = rgba_and_labels
+
+    def _update_position_label_text(self) -> None:
+        if hasattr(self.view.drawing.parent.data, "dicom_data"):
+            dicom_data = self.view.drawing.parent.data.dicom_data
+            x_spacing, y_spacing = dicom_data.sample_file.PixelSpacing
+            z_spacing = dicom_data.affine[3][3]
+            minimum_value = dicom_data.sample_file.ImagePositionPatient[self.axis]
+            # TODO: Re-do the camera so we don't have to do this +/- conversion anymore
+            # it's starting to get a little ridiculous
+            spacing = 0
+            factor = 1
+            if self.axis == Axis.AXIAL:
+                spacing = z_spacing
+            if self.axis == Axis.CORONAL:
+                spacing = x_spacing
+                factor = -1
+            if self.axis == Axis.SAGITTAL:
+                spacing = y_spacing
+            position = round(factor * (minimum_value + self.pos * spacing), 4)
+            label_text = f"{position:.4f}mm"
+        else:
+            pos = self.pos
+            max = self.dimensions[self.axis]
+            label_text = f"Slice {pos}/{max}"
+        self._set_position_label_text(label_text)
+
+    def _set_position_label_text(self, text: str) -> None:
+        self.position_label.setText(text)
+
     def close(self):
         # TODO: why does this call make it crash?
         # self.setParent(None)
+        # TODO: Clean up the Label(s) interface
+        self.label.labels.delete()
         self.label.delete()
         chimerax.segmentations.triggers.remove_handler(
             self.guideline_visibility_handler
         )
         chimerax.segmentations.triggers.remove_handler(
+            self.color_key_visibility_changed_handler
+        )
+        chimerax.segmentations.triggers.remove_handler(
             self.segmentation_modified_handler
+        )
+        chimerax.segmentations.triggers.remove_handler(
+            self.active_segmentation_changed_handler
         )
 
         del self.label
-        volume_viewer = None
-        for tool in self.session.tools:
-            if type(tool) == VolumeViewer:
-                volume_viewer = tool
-                break
+
+        volume_viewer = self.session.tools.find_by_class(VolumeViewer)
         v = self.view.drawing.parent
-        if self.view.drawing is not self.placeholder_drawing:
-            self._remove_axis_from_volume_viewer(volume_viewer, v)
+        if volume_viewer:
+            self._remove_axis_from_volume_viewer(volume_viewer[0], v)
         self.view.drawing.delete()
+        self.view.remove_overlays([self.color_key], delete=False)
+        self.color_key.delete()
         self.view.delete()
         self.mouse_move_timer.stop()
         self.volume_viewer_opened_timer.stop()
@@ -711,7 +900,7 @@ class PlaneViewer(QWindow):
                     )  # self.pos * self.view.drawing.parent.data.step[self.axis]
                 # TODO: If the user selects 'surface' then 'orthoplanes' in the volume viewer we should
                 # override the default plane locations somehow
-                if self.slider_moved:
+                if self.slider_moved or self.color_changed:
                     for d in self.drawings:
                         show_planes(
                             self.drawingParentVolume(d),
@@ -720,6 +909,7 @@ class PlaneViewer(QWindow):
                         )
                         self.drawingParentVolume(d).update_drawings()
                     self.slider_moved = False
+                    self.color_changed = False
                 model_center_offsets = self.drawingBounds().center()
                 model_sizes = self.drawingBounds().size()
                 initial_needed_fov = model_sizes[self.axis.vertical] / height * width
@@ -762,7 +952,24 @@ class PlaneViewer(QWindow):
 
         settings = get_settings(self.session)
         settings.display_guidelines = not settings.display_guidelines
-        chimerax.segmentations.triggers.activate_trigger(GUIDELINES_VISIBILITY_CHANGED)
+        chimerax.segmentations.triggers.activate_trigger(
+            Trigger.GuidelinesVisibilityChanged
+        )
+
+    def toggle_color_keys(self):
+        from chimerax.segmentations.settings import get_settings
+        settings = get_settings(self.session)
+        settings.display_color_keys = not settings.display_color_keys
+
+        chimerax.segmentations.triggers.activate_trigger(
+            Trigger.ColorKeysVisibilityChanged
+        )
+
+    def _on_color_key_visibility_changed(self, _, __):
+        from chimerax.segmentations.settings import get_settings
+
+        settings = get_settings(self.session)
+        self.setColorKeyVisibility(settings.display_color_keys)
 
     def _on_guideline_visibility_changed(self, _, __):
         from chimerax.segmentations.settings import get_settings
@@ -906,6 +1113,10 @@ class PlaneViewer(QWindow):
         self.vertical_slice_overlay.display = visibility
         self.render()
 
+    def setColorKeyVisibility(self, visibility: bool):
+        self.color_key.display = visibility
+        self.render()
+
     def enableSegmentationOverlays(self):
         self.segmentation_cursor_overlay.display = True
 
@@ -913,16 +1124,15 @@ class PlaneViewer(QWindow):
         self.segmentation_cursor_overlay.display = False
 
     def enterEvent(self):
-        chimerax.segmentations.triggers.activate_trigger(ENTER_EVENTS[self.axis])
+        chimerax.segmentations.triggers.activate_trigger(Trigger.PlaneViewerEnter, self.axis)
         if self.segmentation_tool:
             self.enableSegmentationOverlays()
             self.resize3DSegmentationCursor()
         self.render()
 
     def leaveEvent(self):
-        chimerax.segmentations.triggers.activate_trigger(LEAVE_EVENTS[self.axis])
-        if self.segmentation_tool:
-            self.disableSegmentationOverlays()
+        chimerax.segmentations.triggers.activate_trigger(Trigger.PlaneViewerLeave, self.axis)
+        self.disableSegmentationOverlays()
         self.level_label.hide()
         self.mouse_move_timer.stop()
         self.render()
@@ -934,73 +1144,86 @@ class PlaneViewer(QWindow):
         )
 
     def mousePressEvent(self, event):  # noqa
-        b = event.button() | event.buttons()
-        modifier = event.modifiers()
-        if self.context_menu:
-            if not qt_object_is_deleted(self.context_menu):
-                self.context_menu.close()
-                self.context_menu = None
-        if b & Qt.MouseButton.RightButton:
-            self.context_menu_coords = self.widget.mapToGlobal(event.pos())
-            if self.segmentation_tool and self.segmentation_cursor_overlay.display:
-                self.segmentation_cursor_overlay.display = False
-        if b & Qt.MouseButton.MiddleButton:
-            if self.segmentation_tool and self.segmentation_cursor_overlay.display:
-                self.segmentation_cursor_overlay.display = False
-        if b & Qt.MouseButton.LeftButton:
-            if modifier & Qt.KeyboardModifier.AltModifier or modifier & SYSTEM_KEY:
-                if self.segmentation_tool:
+        if self.view.drawing is not self.placeholder_drawing:
+            b = event.button() | event.buttons()
+            modifier = event.modifiers()
+            if self.context_menu:
+                if not qt_object_is_deleted(self.context_menu):
+                    self.context_menu.close()
+                    self.context_menu = None
+            if b & Qt.MouseButton.RightButton:
+                self.context_menu_coords = self.widget.mapToGlobal(event.pos())
+                if self.segmentation_tool and self.segmentation_cursor_overlay.display:
                     self.segmentation_cursor_overlay.display = False
-            else:
-                if self.segmentation_tool:
-                    x, y = event.position().x(), event.position().y()
-                    self.moveSegmentationPuck(x, y, record_seg=True)
+            if b & Qt.MouseButton.MiddleButton:
+                if self.segmentation_tool and self.segmentation_cursor_overlay.display:
+                    self.segmentation_cursor_overlay.display = False
+            if b & Qt.MouseButton.LeftButton:
+                if modifier & Qt.KeyboardModifier.AltModifier or modifier & SYSTEM_KEY:
+                    if self.segmentation_tool:
+                        self.segmentation_cursor_overlay.display = False
+                else:
+                    if self.segmentation_tool:
+                        x, y = event.position().x(), event.position().y()
+                        self.moveSegmentationPuck(x, y, record_seg=True)
         self._redraw()
 
     def mouseReleaseEvent(self, event):  # noqa
-        b = event.button() | event.buttons()
-        modifier = event.modifiers()
-        self.segmentation_cursor_overlay.center = (
-            self.scale * event.position().x(),
-            self.scale * (self.view.window_size[1] - event.position().y()),
-            0,
-        )
-        self.segmentation_cursor_overlay.update()
-        if b & Qt.MouseButton.RightButton:
-            if self.shouldOpenContextMenu():
-                from Qt.QtWidgets import QMenu, QAction
+        if self.view.drawing is not self.placeholder_drawing:
+            b = event.button() | event.buttons()
+            modifier = event.modifiers()
+            self.segmentation_cursor_overlay.center = (
+                self.scale * event.position().x(),
+                self.scale * (self.view.window_size[1] - event.position().y()),
+                0,
+            )
+            self.segmentation_cursor_overlay.update()
+            if b & Qt.MouseButton.RightButton:
+                if self.shouldOpenContextMenu():
+                    from Qt.QtWidgets import QMenu, QAction
 
-                if not self.context_menu:
-                    self.context_menu = QMenu(parent=self.parent)
-                    toggle_guidelines_action = QAction("Toggle Guidelines")
-                    self.context_menu.addAction(toggle_guidelines_action)
-                    toggle_guidelines_action.triggered.connect(
-                        lambda: self.toggle_guidelines()
-                    )
-                    self.context_menu.aboutToHide.connect(self.enterEvent)
-                self.context_menu.exec(self.context_menu_coords)
+                    if not self.context_menu:
+                        self.context_menu = QMenu(parent=self.parent)
+                        toggle_guidelines_action = QAction("Toggle Guidelines")
+                        toggle_color_key_action = QAction("Toggle Color Keys")
+                        self.context_menu.addAction(toggle_guidelines_action)
+                        self.context_menu.addAction(toggle_color_key_action)
+                        toggle_guidelines_action.triggered.connect(
+                            lambda: self.toggle_guidelines()
+                        )
+                        toggle_color_key_action.triggered.connect(
+                            lambda: self.toggle_color_keys()
+                        )
+                        self.context_menu.aboutToHide.connect(self.enterEvent)
+                    self.context_menu.exec(self.context_menu_coords)
+                    self.mouse_moved_during_right_click = False
                 self.mouse_moved_during_right_click = False
-            self.mouse_moved_during_right_click = False
-        if b & Qt.MouseButton.LeftButton:
+            if b & Qt.MouseButton.LeftButton:
+                if self.segmentation_tool:
+                    if modifier == Qt.KeyboardModifier.ShiftModifier:
+                        self.segmentation_tool.removeMarkersFromSegment(
+                            self.axis,
+                            self.pos,
+                            self.current_segmentation_cursor_overlays,
+                        )
+                    else:
+                        self.segmentation_tool.addMarkersToSegment(
+                            self.axis,
+                            self.pos,
+                            self.current_segmentation_cursor_overlays,
+                        )
+                    self.view.remove_cursor_overlays(
+                        self.current_segmentation_cursor_overlays
+                    )
+                    self.current_segmentation_cursor_overlays = []
+                    active_seg = self.segmentation_tracker.active_segmentation
+                    self.manager.update_segmentation_overlay_for_segmentation(
+                        active_seg
+                    )
+                self.view.camera.redraw_needed = True
+            self.last_mouse_position = None
             if self.segmentation_tool:
-                if modifier == Qt.KeyboardModifier.ShiftModifier:
-                    self.segmentation_tool.removeMarkersFromSegment(
-                        self.axis, self.pos, self.current_segmentation_cursor_overlays
-                    )
-                else:
-                    self.segmentation_tool.addMarkersToSegment(
-                        self.axis, self.pos, self.current_segmentation_cursor_overlays
-                    )
-                self.view.remove_cursor_overlays(
-                    self.current_segmentation_cursor_overlays
-                )
-                self.current_segmentation_cursor_overlays = []
-                active_seg = self.segmentation_tracker.active_segmentation
-                self.manager.update_segmentation_overlay_for_segmentation(active_seg)
-            self.view.camera.redraw_needed = True
-        self.last_mouse_position = None
-        if self.segmentation_tool:
-            self.segmentation_cursor_overlay.display = True
+                self.segmentation_cursor_overlay.display = True
         self._redraw()
 
     def resize3DSegmentationCursor(self):
@@ -1009,6 +1232,13 @@ class PlaneViewer(QWindow):
         if self.segmentation_tool:
             ww, wh = self.main_view.window_size
             width, height = self.view.window_size
+            if (
+                ww <= 0
+                or wh <= 0
+                or width <= 0
+                or height <= 0
+            ):
+                return
             psize = self.view.pixel_size()
             radius = self.segmentation_cursor_overlay.radius
             rel_size = (radius / width) * psize
@@ -1145,31 +1375,81 @@ class PlaneViewer(QWindow):
         self.level_label.show_text("Level: " + str(level), self.mouse_x, self.mouse_y)
 
     def mouseMoveEvent(self, event):  # noqa
-        self.level_label.hide()
-        b = event.button() | event.buttons()
-        modifiers = event.modifiers()
-        # Level or segment
-        pos = event.position()
-        x, y = pos.x(), pos.y()
-        self.mouse_x = x
-        self.mouse_y = y
-        if b == Qt.MouseButton.NoButton:
-            self.segmentation_cursor_overlay.center = (
-                self.scale * x,
-                self.scale * (self.view.window_size[1] - y),
-                0,
-            )
-            self.segmentation_cursor_overlay.update()
-            if (
-                self.segmentation_tool
-                and self.view.drawing is not self.placeholder_drawing
-            ):
-                self.moveSegmentationPuck(x, y, record_seg=False)
+        if self.view.drawing is not self.placeholder_drawing:
+            self.level_label.hide()
+            b = event.button() | event.buttons()
+            modifiers = event.modifiers()
+            # Level or segment
+            pos = event.position()
+            x, y = pos.x(), pos.y()
+            self.mouse_x = x
+            self.mouse_y = y
+            if b == Qt.MouseButton.NoButton:
+                self.segmentation_cursor_overlay.center = (
+                    self.scale * x,
+                    self.scale * (self.view.window_size[1] - y),
+                    0,
+                )
+                self.segmentation_cursor_overlay.update()
+                if (
+                    self.segmentation_tool
+                    and self.view.drawing is not self.placeholder_drawing
+                ):
+                    self.moveSegmentationPuck(x, y, record_seg=False)
 
-            self.mouse_move_timer.start()
-        if b == Qt.MouseButton.LeftButton:
-            if modifiers & Qt.KeyboardModifier.AltModifier:
-                # Move as if the middle button were pressed
+                self.mouse_move_timer.start()
+            if b == Qt.MouseButton.LeftButton:
+                if modifiers & Qt.KeyboardModifier.AltModifier:
+                    # Move as if the middle button were pressed
+                    p_size = self.view.pixel_size()
+                    if not self.last_mouse_position:
+                        dx = 0
+                        dy = 0
+                    else:
+                        dx = (x - self.last_mouse_position[0]) * p_size
+                        dy = (y - self.last_mouse_position[1]) * p_size
+                    self.last_mouse_position = [x, y]
+                    x, y, z = self.camera_offsets
+                    if self.axis == Axis.AXIAL:
+                        self.camera_offsets = [x - dx, y + dy, z]
+                    if self.axis == Axis.CORONAL:
+                        self.camera_offsets = [x + dx, y, z - dy]
+                    if self.axis == Axis.SAGITTAL:
+                        self.camera_offsets = [x, y + dx, z - dy]
+                elif modifiers & SYSTEM_KEY:
+                    self.mouse_moved_during_right_click = True
+                    if not self.last_mouse_position:
+                        dy = 0
+                    else:
+                        dy = y - self.last_mouse_position[1]
+                    self.last_mouse_position = [x, y]
+                    self.field_width_offset += (
+                        RIGHT_CLICK_ZOOM_SPEED * np.sign(dy)
+                    )  # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
+                    self.resize3DSegmentationCursor()
+                else:
+                    self.segmentation_cursor_overlay.center = (
+                        self.scale * x,
+                        self.scale * (self.view.window_size[1] - y),
+                        0,
+                    )
+                    self.segmentation_cursor_overlay.update()
+                    if self.segmentation_tool:
+                        self.moveSegmentationPuck(x, y, record_seg=True)
+            # Zoom / Dolly
+            if b & Qt.MouseButton.RightButton:
+                self.mouse_moved_during_right_click = True
+                if not self.last_mouse_position:
+                    dy = 0
+                else:
+                    dy = y - self.last_mouse_position[1]
+                self.last_mouse_position = [x, y]
+                self.field_width_offset += (
+                    RIGHT_CLICK_ZOOM_SPEED * np.sign(dy)
+                )  # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
+                self.resize3DSegmentationCursor()
+            # Truck & Pedestal
+            if b & Qt.MouseButton.MiddleButton:
                 p_size = self.view.pixel_size()
                 if not self.last_mouse_position:
                     dx = 0
@@ -1185,55 +1465,6 @@ class PlaneViewer(QWindow):
                     self.camera_offsets = [x + dx, y, z - dy]
                 if self.axis == Axis.SAGITTAL:
                     self.camera_offsets = [x, y + dx, z - dy]
-            elif modifiers & SYSTEM_KEY:
-                self.mouse_moved_during_right_click = True
-                if not self.last_mouse_position:
-                    dy = 0
-                else:
-                    dy = y - self.last_mouse_position[1]
-                self.last_mouse_position = [x, y]
-                self.field_width_offset += RIGHT_CLICK_ZOOM_SPEED * np.sign(
-                    dy
-                )  # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
-                self.resize3DSegmentationCursor()
-            else:
-                self.segmentation_cursor_overlay.center = (
-                    self.scale * x,
-                    self.scale * (self.view.window_size[1] - y),
-                    0,
-                )
-                self.segmentation_cursor_overlay.update()
-                if self.segmentation_tool:
-                    self.moveSegmentationPuck(x, y, record_seg=True)
-        # Zoom / Dolly
-        if b & Qt.MouseButton.RightButton:
-            self.mouse_moved_during_right_click = True
-            if not self.last_mouse_position:
-                dy = 0
-            else:
-                dy = y - self.last_mouse_position[1]
-            self.last_mouse_position = [x, y]
-            self.field_width_offset += RIGHT_CLICK_ZOOM_SPEED * np.sign(
-                dy
-            )  # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
-            self.resize3DSegmentationCursor()
-        # Truck & Pedestal
-        if b & Qt.MouseButton.MiddleButton:
-            p_size = self.view.pixel_size()
-            if not self.last_mouse_position:
-                dx = 0
-                dy = 0
-            else:
-                dx = (x - self.last_mouse_position[0]) * p_size
-                dy = (y - self.last_mouse_position[1]) * p_size
-            self.last_mouse_position = [x, y]
-            x, y, z = self.camera_offsets
-            if self.axis == Axis.AXIAL:
-                self.camera_offsets = [x - dx, y + dy, z]
-            if self.axis == Axis.CORONAL:
-                self.camera_offsets = [x + dx, y, z - dy]
-            if self.axis == Axis.SAGITTAL:
-                self.camera_offsets = [x, y + dx, z - dy]
         self._redraw()
 
     def keyPressEvent(self, event):  # noqa
@@ -1311,13 +1542,11 @@ class PlaneViewer(QWindow):
         # Would need to create a copy of each segmentation created, too, one for the orthoplane
         # windows and one for the
         # then modify the segmentation tool to
-        volume_viewer = None
-        for tool in self.session.tools:
-            if type(tool) == VolumeViewer:
-                volume_viewer = tool
+        volume_viewer = self.session.tools.find_by_class(VolumeViewer)
         v = self.view.drawing
         if self.view.drawing is not self.placeholder_drawing:
-            self._remove_axis_from_volume_viewer(volume_viewer, v.parent)
+            if volume_viewer:
+                self._remove_axis_from_volume_viewer(volume_viewer[0], v.parent)
             v.delete()
             del v
         if self.model_menu.value is None:
@@ -1345,7 +1574,9 @@ class PlaneViewer(QWindow):
                     "region": (v.region[0], v.region[1]),
                     "planes": self.axis.cartesian,
                 },
-                roptions={},
+                roptions={
+                    "projection_mode": "3d"
+                },
                 image_mode_off=False,
                 session=self.session,
             )
@@ -1354,7 +1585,8 @@ class PlaneViewer(QWindow):
             v.update_drawings()
             v.allow_style_changes = False
             # Add our new volume to the volume menu with our custom widget
-            self._add_axis_to_volume_viewer(volume_viewer, v)
+            if volume_viewer:
+                self._add_axis_to_volume_viewer(volume_viewer[0], v)
 
             self.main_view.camera.redraw_needed = True
             for d in v._child_drawings:
@@ -1374,11 +1606,11 @@ class PlaneViewer(QWindow):
                 orthoplane_positions = max_x // 2, max_y // 2, max_z // 2
                 self._plane_indices = list(orthoplane_positions)
                 if self.axis == Axis.AXIAL:
-                    self.slider.setMaximum(max_z)
+                    self.slider.setRange(0, max_z)
                 if self.axis == Axis.CORONAL:
                     self.slider.setRange(-max_y, 0)
                 if self.axis == Axis.SAGITTAL:
-                    self.slider.setMaximum(max_x)
+                    self.slider.setRange(0, max_x)
                 self.slider.setValue(
                     orthoplane_positions[self.axis] * self.axis.positive_direction
                 )
@@ -1386,6 +1618,8 @@ class PlaneViewer(QWindow):
                 self.pos = orthoplane_positions[self.axis]
                 self._plane_indices[self.axis] = self.pos
                 self.manager.update_location(self)
+                self.on_color_changed()
+                self._update_position_label_text()
         self.render()
 
     def set_label_text(self, text):
@@ -1512,7 +1746,6 @@ class SegmentationVolumePanel(Histogram_Pane):
         cl = ColorButton(df, max_size=(16, 16), has_alpha_channel=True, pause_delay=1.0)
         self._color_button = cl
         cl.color_changed.connect(self._color_chosen)
-        cl.color_pause.connect(self._log_color_command)
         layout.addWidget(cl)
 
         self.data_id = did = QLabel(df)
@@ -1685,3 +1918,15 @@ class SegmentationVolumePanel(Histogram_Pane):
 
         if show and v.shown():
             v.show()
+
+    def _color_chosen(self, color):
+        super()._color_chosen(color)
+        self.plane_viewer.color_changed = True
+        self.plane_viewer.on_color_changed()
+        self.plane_viewer._redraw()
+
+    def moved_marker_cb(self, marker):
+        super().moved_marker_cb(marker)
+        self.plane_viewer.color_changed = True
+        self.plane_viewer.on_color_changed()
+        self.plane_viewer._redraw()

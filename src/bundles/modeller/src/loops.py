@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -201,7 +201,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         input_file_map = []
 
         # form the sequences to be written out as a PIR
-        from .common import opal_safe_file_name, structure_save_name
+        from .common import opal_safe_file_name, structure_save_name, save_template
         from chimerax.atomic import Sequence
         pir_target = Sequence(name=opal_safe_file_name(seq.name))
         pir_target.description = "sequence:%s:.:.:.:.::::" % pir_target.name
@@ -209,8 +209,14 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         pir_seqs = [pir_target]
 
         pir_template = Sequence(name=structure_save_name(s))
+        index = len(residues)
+        while index > 0:
+            index -= 1
+            last_chain = residues[index].chain
+            if last_chain is not None:
+                break
         pir_template.description = "structure:%s:FIRST:%s:LAST:%s::::" % (
-            pir_template.name, residues[0].chain_id, residues[-1].chain_id)
+            pir_template.name, residues[0].chain_id, last_chain.chain_id)
         pir_template.characters = ''.join(template_chars)
         pir_seqs.append(pir_template)
 
@@ -244,7 +250,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         input_file_map.append((base_name, "text_file", pdb_file_name))
         ATOM_res_names = s.in_seq_hets
         ATOM_res_names.update(std_res_names)
-        save_pdb(session, pdb_file_name, models=[s], polymeric_res_names=ATOM_res_names)
+        save_template(session, pdb_file_name, s, ATOM_res_names)
         delattr(s, 'in_seq_hets')
 
         from chimerax.atomic import Chains

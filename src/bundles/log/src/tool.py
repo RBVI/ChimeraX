@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -528,6 +528,8 @@ class Log(ToolInstance, HtmlLog):
             date = "unknown"
         from lxml import html
         contents = log_data['contents']
+        if not contents:
+            contents = '<html></html>'
         tmp = html.fromstring(contents)
         script_elements = tmp.findall(".//script")
         if script_elements:

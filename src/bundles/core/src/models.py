@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -355,6 +355,14 @@ class Model(State, Drawing):
         return m is None
 
     def take_snapshot(self, session, flags):
+        # Scene interface implementation
+        if flags == State.SCENE:
+            scene_data = {'version': MODEL_STATE_VERSION}
+            scene_attrs = ['selected', 'overall_color', 'model_color', 'display']
+            for attr in scene_attrs:
+                scene_data[attr] = getattr(self, attr)
+            return scene_data
+
         p = self.parent
         if p is session.models.scene_root_model:
             p = None    # Don't include root as a parent since root is not saved.
@@ -422,11 +430,18 @@ class Model(State, Drawing):
 
     def restore_scene(self, scene_data):
         '''
+        Scene interface implementation
+
         Restore model to state from scene_data
         (obtained from take_snapshot() with State.SCENE flag)
         '''
-        #TODO: restore base Model state here
-        raise NotImplementedError("restore_scene not implemented")
+        if scene_data['version'] != MODEL_STATE_VERSION:
+            raise ValueError(f'Model version mismatch in restore_scene. '
+                             f'Expected {MODEL_STATE_VERSION}, got {scene_data["version"]}')
+        for attr, val in scene_data.items():
+            if hasattr(self, attr):
+                setattr(self, attr, val)
+        return
 
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
         '''
@@ -789,7 +804,8 @@ class Models(StateManager):
                 session.triggers.activate_trigger(MODEL_ID_CHANGED, id_changed_model)
 
         # Initialize view if first model added
-        if self._initialize_camera and _notify and not _from_session:
+        if self._initialize_camera and _notify and not _from_session \
+        and not session.triggers.is_trigger_blocked(ADD_MODELS):
             v = session.main_view
             if v.drawing_bounds():
                 self._initialize_camera = False

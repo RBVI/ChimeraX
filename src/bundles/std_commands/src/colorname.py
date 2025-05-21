@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -126,7 +126,7 @@ def list_colors(session, which='all'):
     if which == 'all' or which == 'builtin':
         from chimerax.core import colors
         _list_colors(session, colors.BuiltinColors, 'builtin',
-                     "http://rbvi.ucsf.edu/chimerax/docs/user/commands/"
+                     "https://rbvi.ucsf.edu/chimerax/docs/user/commands/"
                      "colornames.html#builtin")
 
 

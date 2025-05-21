@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -73,9 +73,16 @@ def camera(session, type=None, field_of_view=None,
             w = view.camera.view_width(view.center_of_rotation)
             camera = graphics.OrthographicCamera(w)
         elif type == 'crosseye':
-            camera = graphics.SplitStereoCamera(swap_eyes = True, convergence = 10, eye_separation_scene = 50)
+            camera_position, eye_separation, convergence, field_of_view = _default_crosseye_parameters(session)
+            camera = graphics.SplitStereoCamera(swap_eyes = True, eye_separation_scene = eye_separation,
+                                                convergence = convergence)
+            camera.field_of_view = field_of_view
+            view.camera.position = camera_position
         elif type == 'walleye':
-            camera = graphics.SplitStereoCamera(convergence = -5)
+            camera_position, eye_separation, convergence, field_of_view = _default_walleye_parameters(session)
+            camera = graphics.SplitStereoCamera(eye_separation_scene = eye_separation, convergence = convergence)
+            camera.field_of_view = field_of_view
+            view.camera.position = camera_position
         elif type == '360':
             camera = graphics.Mono360Camera(cube_face_size = cube_pixels)
         elif type == 'dome':
@@ -148,6 +155,39 @@ def camera(session, type=None, field_of_view=None,
             fields.append('%.5g degree field of view' % cam.field_of_view)
         session.logger.status(', '.join(fields))
 
+def _default_crosseye_parameters(session):
+    # Determine optimal parameters for showing full scene 3 cm wide, 30 cm in front of eyes that are 6 cm apart.
+    # Screen is at 60 cm in front of eyes.
+    view = session.main_view
+    bounds = view.drawing_bounds()
+    current_camera_position = view.camera.position
+    if bounds is None:
+        return current_camera_position, 50, 6, 6
+    model_center, model_diameter = bounds.center(), 2*bounds.radius()
+    camera_origin = model_center - view.camera.view_direction() * (10 * model_diameter)
+    from chimerax.geometry import translation
+    camera_position = translation(camera_origin - current_camera_position.origin()) * current_camera_position
+    eye_separation = 2 * model_diameter
+    field_of_view = 6	# degrees
+    convergence = 6	# degrees
+    return camera_position, eye_separation, convergence, field_of_view
+
+def _default_walleye_parameters(session):
+    # Determine optimal parameters for showing full scene 6 cm wide, 60 cm in front of eyes that are 6 cm apart.
+    # Screen is at 30 cm in front of eyes.
+    view = session.main_view
+    bounds = view.drawing_bounds()
+    current_camera_position = view.camera.position
+    if bounds is None:
+        return current_camera_position, 10, 3, 6
+    model_center, model_diameter = bounds.center(), 2*bounds.radius()
+    camera_origin = model_center - view.camera.view_direction() * (10 * model_diameter)
+    from chimerax.geometry import translation
+    camera_position = translation(camera_origin - current_camera_position.origin()) * current_camera_position
+    eye_separation = model_diameter
+    field_of_view = 6	# degrees
+    convergence = 3	# degrees
+    return camera_position, eye_separation, convergence, field_of_view
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, EnumOf, IntArg

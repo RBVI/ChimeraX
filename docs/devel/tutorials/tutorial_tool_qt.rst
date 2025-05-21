@@ -6,7 +6,7 @@
     All rights reserved.  This software provided pursuant to a
     license agreement containing restrictions on its disclosure,
     duplication and use.  For details see:
-    http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+    https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
     This notice must be embedded in or attached to all copies,
     including partial copies, of the software or any revisions
     or derivations thereof.
@@ -26,14 +26,14 @@ that defines a graphical interface showing a text-input
 field that logs text typed by the user via the appropriate
 `log command <../../user/commands/log.html>`_.
 
-The ChimeraX user interface is built using `PyQt5`_,
-which is a Python wrapping of the `Qt5`_ C++ windowing toolkit.
-Bundle writers can themselves use `PyQt5`_ to provide
+The ChimeraX user interface is built using `PyQt6`_,
+which is a Python wrapping of the `Qt6`_ C++ windowing toolkit.
+Bundle writers can themselves use `PyQt6`_ to provide
 a graphical interface to their bundle functionality.
 This example shows how to build a simple graphical interface,
 and is not meant to cover all the capabilities of `Qt`_
 in detail (and there are many!).  To learn more you should
-explore `PyQt5 tutorials`_
+explore `PyQt6 tutorials`_
 and/or look at the code of other tools that do things
 similar to what you want your tool to do.
 
@@ -55,7 +55,7 @@ Source Code Organization
 
 The source code for this example may be downloaded
 as a `zip-format file
-<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial.zip?name=tut_tool_qt>`_
+<https://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial.zip?name=tut_tool_qt>`_
 containing a folder named ``tut_tool_qt``.
 Alternatively, one can start with an empty folder
 and create source files based on the samples below.
@@ -266,38 +266,43 @@ Interface Construction
     :end-before: def fill_context_menu
 
 The :py:meth:`_build_ui` method adds our user interface widgets to the tool window
-and causes the tool window to be shown.  `PyQt5`_ is the windowing toolkit used by ChimeraX.
-It is a Python wrapping of the (C++) `Qt5`_ toolkit. This tutorial is in no way meant
-to also be a `PyQt5`_/`Qt5`_ tutorial (since those toolkits are *very* extensive) but
+and causes the tool window to be shown.  `PyQt6`_ is the windowing toolkit used by ChimeraX.
+It is a Python wrapping of the (C++) `Qt6`_ toolkit. This tutorial is in no way meant
+to also be a `PyQt6`_/`Qt6`_ tutorial (since those toolkits are *very* extensive) but
 merely shows how to use those toolkits in the context of ChimeraX.
 To gain additional familarity with those toolkits, there are
-`PyQt5 tutorials`_ and
-`Qt5 tutorials <http://zetcode.com/gui/qt5/>`_ available on the web.
+`PyQt6 tutorials`_ and
+`Qt6 tutorials <https://zetcode.com/gui/qt6/>`_ available on the web.
+Note that in ChimeraX, Qt functionality is imported from "Qt" rather than directly from PyQt6.
+"Qt" is a shim module that in turn imports from whatever module is actually providing
+the Python Qt wrapping.  This insulates your code from changes in the major Qt version
+number (such as when we went from 5 to 6) and from ChimeraX using an alternate wrapping,
+such as `PySide <https://wiki.qt.io/Qt_for_Python>`_.
 
-On line 69 we import the widgets will need for our interface from the `PyQt5`_ toolkit:
+On line 69 we import the widgets will need for our interface from the `PyQt6`_ toolkit:
 
-* A text-label widget (`QLabel <http://doc.qt.io/qt-5/qlabel.html>`_)
-* An editable single-line text entry field (`QLineEdit <http://doc.qt.io/qt-5/qlineedit.html>`_)
-* A "metawidget" for laying out the above two widgets side by side (`QHBoxLayout <http://doc.qt.io/qt-5/qhboxlayout.html>`_; "HBox" == "horizontal box")
+* A text-label widget (`QLabel <https://doc.qt.io/qt-6/qlabel.html>`_)
+* An editable single-line text entry field (`QLineEdit <https://doc.qt.io/qt-6/qlineedit.html>`_)
+* A "metawidget" for laying out the above two widgets side by side (`QHBoxLayout <https://doc.qt.io/qt-6/qhboxlayout.html>`_; "HBox" == "horizontal box")
 
 Line 70 creates our horizontal layout metawidget, and line 71 creates and adds
 the label we want next to our entry field to it.  Note that by default widgets
-added to an `QHBoxLayout <http://doc.qt.io/qt-5/qhboxlayout.html>`_ will be ordered left to right.
+added to an `QHBoxLayout <https://doc.qt.io/qt-6/qhboxlayout.html>`_ will be ordered left to right.
 Line 72 creates our text-entry field and line 77 adds it to out layout.
 
 Changes in widgets that the containing interface may care about cause the widget to
 emit what `Qt`_ refers to as a "signal".
-`returnPressed <http://doc.qt.io/qt-5/qlineedit.html#returnPressed>`_ is the signal that
-`QLineEdit <http://doc.qt.io/qt-5/qlineedit.html>`_ emits when the users presses the Return key.
+`returnPressed <https://doc.qt.io/qt-6/qlineedit.html#returnPressed>`_ is the signal that
+`QLineEdit <https://doc.qt.io/qt-6/qlineedit.html>`_ emits when the users presses the Return key.
 A signal's :py:meth:`connect` method is the way to get a particular routine to be called when
 the signal is emitted, which we have done on line 76 to get our :py:meth:`return_pressed`
-method called when the `returnPressed <http://doc.qt.io/qt-5/qlineedit.html#returnPressed>`_
+method called when the `returnPressed <https://doc.qt.io/qt-6/qlineedit.html#returnPressed>`_
 signal is emitted.
 
-Lines 86-90 is our handler for the `returnPressed <http://doc.qt.io/qt-5/qlineedit.html#returnPressed>`_
+Lines 86-90 is our handler for the `returnPressed <https://doc.qt.io/qt-6/qlineedit.html#returnPressed>`_
 signal.  Some signals also have
 arguments (detailed in each widget's signal documentation), but the
-`returnPressed <http://doc.qt.io/qt-5/qlineedit.html#returnPressed>`_
+`returnPressed <https://doc.qt.io/qt-6/qlineedit.html#returnPressed>`_
 signal has no arguments, so therefore our handler has no non-``self`` arguments.
 The handler imports the :py:func:`~chimerax.core.commands.run` utility command that
 runs a text string as a ChimeraX command, and then calls that routine with the session
@@ -306,7 +311,7 @@ current text in the line editor (*i.e.* :py:meth:`self.line_edit.text`).
 
 We have created both our widgets and added them to the layout.  Line 80 installs
 our layout as the layout for the user-interface area of our tool window (the
-user-interface area is in fact an instance of `QWidget <http://doc.qt.io/qt-5/qwidget.html>`_).
+user-interface area is in fact an instance of `QWidget <https://doc.qt.io/qt-6/qwidget.html>`_).
 
 Line 84 calls our tool window's :py:meth:`manage` method to cause the tool window to be displayed.
 The argument to :py:meth:`manage` specifies the general position of the tool window, with
@@ -384,7 +389,7 @@ Our overriding routine is shown on lines 92-103.  The routine is invoked with
 three arguments:
 
 ``menu``
-  A `QMenu <http://doc.qt.io/qt-5/qmenu.html>`_ instance that we will add our
+  A `QMenu <https://doc.qt.io/qt-6/qmenu.html>`_ instance that we will add our
   custom menu items to.  It is not yet populated with the generic menu items.
 ``x`` and ``y``
   The x and y position of the click that is bringing up the context menu,
@@ -392,33 +397,33 @@ three arguments:
   These arguments are only used in the rare case where the contents of the
   context menu depend on exactly where in the tool the user clicked.  These
   values are the :py:meth:`x` and :py:meth:`y` methods of the
-  `QContextMenuEvent <http://doc.qt.io/qt-5/qcontextmenuevent.html>`_ that
+  `QContextMenuEvent <https://doc.qt.io/qt-6/qcontextmenuevent.html>`_ that
   is bringing up this menu.
 
 `Qt`_ abstracts actions on widgets (such as button clicks and menu selections)
-with its `QAction <http://doc.qt.io/qt-5/qaction.html>`_ class.  In order to
+with its `QAction <https://doc.qt.io/qt-6/qaction.html>`_ class.  In order to
 add a **Clear** item to the menu which will clear the text in the input field,
-we import the `QAction <http://doc.qt.io/qt-5/qaction.html>`_ class on line 100
+we import the `QAction <https://doc.qt.io/qt-6/qaction.html>`_ class on line 100
 and create an instance of it with the text "Clear", and associated with the 
 context menu, on line 101.
 
-When the action encapsulated by a `QAction <http://doc.qt.io/qt-5/qaction.html>`_
-occurs, its `triggered <http://doc.qt.io/qt-5/qaction.html#triggered>`_ signal is emitted
-(in a similar fashion to the `returnPressed <http://doc.qt.io/qt-5/qlineedit.html#returnPressed>`_
+When the action encapsulated by a `QAction <https://doc.qt.io/qt-6/qaction.html>`_
+occurs, its `triggered <https://doc.qt.io/qt-6/qaction.html#triggered>`_ signal is emitted
+(in a similar fashion to the `returnPressed <https://doc.qt.io/qt-6/qlineedit.html#returnPressed>`_
 signal in the :ref:`interface` section above).
 We arrange for our text-input field to be cleared by connecting an anonymous lambda
-function (that calls `self.line_edit.clear() <https://doc.qt.io/qt-5/qlineedit.html#clear>`_) to the
-`triggered <http://doc.qt.io/qt-5/qaction.html#triggered>`_ signal, 
+function (that calls `self.line_edit.clear() <https://doc.qt.io/qt-6/qlineedit.html#clear>`_) to the
+`triggered <https://doc.qt.io/qt-6/qaction.html#triggered>`_ signal, 
 shown on line 102.
-The `triggered <http://doc.qt.io/qt-5/qaction.html#triggered>`_
+The `triggered <https://doc.qt.io/qt-6/qaction.html#triggered>`_
 signal does provide an argument (which the lambda uses
 `*args` to ignore) indicating whether the item is checked on or off.  That
 isn't relevant in our case because we haven't made our menu item "checkable".
 But you may want to add "checkable" menu items in some cases.  To do so,
-use `QAction <http://doc.qt.io/qt-5/qaction.html>`_'s
-`setCheckable <http://doc.qt.io/qt-5/qaction.html#checkable-prop>`_
+use `QAction <https://doc.qt.io/qt-6/qaction.html>`_'s
+`setCheckable <https://doc.qt.io/qt-6/qaction.html#checkable-prop>`_
 method with a value of `True` to make it checkable and then set its initial
-checked/unchecked state with the `setChecked <http://doc.qt.io/qt-5/qaction.html#checked-prop>`_
+checked/unchecked state with the `setChecked <https://doc.qt.io/qt-6/qaction.html#checked-prop>`_
 method, with the appropriate boolean argument.
 
 We actually add the action/item to the menu on line 103.
@@ -445,7 +450,7 @@ that it creates.  We did do this on line 28:
 
 The string we set the :py:attr:`help` attribute to is an URL.
 The "help:" prefix tells ChimeraX to use its built-in help
-system to locate the help page.  It could instead have been "http:"
+system to locate the help page.  It could instead have been "https:"
 to have the help page found on web, but this is typically not
 recommended since it is best to have the help documentation
 match the actual installed version of the tool, and also to

@@ -27,6 +27,13 @@ SUPPORTED_DISTROS := Ubuntu CentOS Debian Rocky Freedesktop
 LINUX_FLAVOR = $(shell egrep '^NAME=' /etc/os-release | awk -F= '{ print $$2 }' | awk '{ print $$1 }' | tr -d '"')
 LINUX_RELEASE = $(shell egrep '^VERSION_ID=' /etc/os-release | awk -F= '{ print $$2 }' | tr -d '"')
 AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS)-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
+ifdef FLATPAK_DIST
+ifeq ($(OSARCH),LinuxArm64)
+AMBERTOOLS_PREBUILT = ambertools-24-$(OS)-arm-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
+else
+AMBERTOOLS_PREBUILT = ambertools-24-$(OS)-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
+endif
+endif
 ifneq ($(filter $(LINUX_FLAVOR),$(SUPPORTED_DISTROS)),)
 else
 USE_PREBUILT=false
@@ -105,7 +112,7 @@ ifeq ($(OS),Windows)
 	# Antechamber complains bitterly about a missing tmp directory otherwise
 	-mkdir -p $(AMBERBIN_DST_HOME)/tmp
 endif
-	 tar xf $(AMBERTOOLS_PREBUILT) -C $(AMBERBIN_DST_HOME)
+	 tar xf $(AMBERTOOLS_PREBUILT) -C $(AMBERBIN_DST_HOME) --no-same-owner
 ifeq ($(OS),Darwin)
 	tar xf $(AMBERTOOLS_FLIBS_PREBUILT) -C $(app_libdir)
 endif
@@ -138,7 +145,11 @@ app-install: install
 	$(RSYNC) $(AMBERDAT_PARM_SRC)/gaff2.dat $(AMBERDAT_PARM_DST)
 	$(RSYNC) $(AMBERLIB_SRC)/*.$(SHLIB_EXT) $(app_libdir)
 ifneq ($(LIBGCCDIR),)
-	$(RSYNC) $(LIBGCCDIR)/libgcc*.$(SHLIB_EXT) $(app_libdir)
+	for gcclib in $(LIBGCCDIR)/libgcc*.$(SHLIB_EXT) ; do \
+		$(RSYNC) $$gcclib $(app_libdir); \
+		filename=`basename $$gcclib`; \
+		install_name_tool -id @executable_path/$$filename $(app_libdir)/$$filename; \
+	done;
 endif
 ifeq ($(OS),Windows)
 	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /usr/bin/cygreadline*.dll /usr/bin/cygintl*.dll /usr/bin/cygncursesw*.dll /usr/bin/cygiconv*.dll /bin/sh.exe $(AMBERBIN_DST)
@@ -183,7 +194,7 @@ endif
 
 $(SOURCE): $(DISTRIBUTION)
 	-mkdir $(SOURCE)
-	tar xf $(DISTRIBUTION) -C $(SOURCE)
+	tar xf $(DISTRIBUTION) -C $(SOURCE) --no-same-owner
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(AMBERHOME) && patch -f -p0) < $$p ; \

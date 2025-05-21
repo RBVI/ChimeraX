@@ -1,4 +1,4 @@
-from . import using_pyqt6, using_pyqt5, using_pyside2
+from . import using_pyqt6, using_pyqt5, using_pyside2, using_pyside6
 
 if using_pyqt6:
     from PyQt6.QtGui import *
@@ -18,3 +18,6 @@ elif using_pyside2:
     from PySide2.QtGui import *
     # Add QAction, QShortcut to match the location in Qt 6.
     from PySide2.QtWidgets import QAction, QShortcut
+
+elif using_pyside6:
+    from PySide6.QtGui import *

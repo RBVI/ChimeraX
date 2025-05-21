@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -38,7 +38,10 @@ class FlipGrid(GridData):
         origin = self.flipped_origin(ijk_origin, ijk_size)
         m = self.data.matrix(origin, ijk_size, ijk_step, progress=progress,
                              from_cache_only=from_cache_only)
-        mf = flip_matrix(m, self.axes)
+        if m is None:
+            mf = None
+        else:
+            mf = flip_matrix(m, self.axes)
         return mf
         
     # -------------------------------------------------------------------------

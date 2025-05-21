@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -2136,6 +2136,8 @@ NonNegativeIntArg = Bounded(IntArg, min=0, name="an integer >= 0")
 PositiveIntArg = Bounded(IntArg, min=1, name="an integer >= 1")
 NonNegativeFloatArg = Bounded(FloatArg, min=0, name="a number >= 0")
 PositiveFloatArg = Bounded(FloatArg, min=0, inclusive=False, name="a number > 0")
+PercentFloatArg = Bounded(FloatArg, min=0, max=100, name="a percentage between 0 and 100")
+PercentIntArg = Bounded(IntArg, min=0, max=100, name="a percentage between 0 and 100")
 ModelIdArg = DottedTupleOf(PositiveIntArg, name="a model id", prefix="#")
 
 
@@ -3088,10 +3090,14 @@ class Command:
                 value, text = self._parse_arg(anno, text, session, final)
                 kwn = "%s_" % kw_name if is_python_keyword(kw_name) else kw_name
                 if hasattr(anno, "allow_repeat") and anno.allow_repeat:
+                    expand = anno.allow_repeat == "expand"
                     if kwn in self._kw_args:
-                        self._kw_args[kwn].append(value)
+                        if expand and isinstance(value, list):
+                            self._kw_args[kwn].extend(value)
+                        else:
+                            self._kw_args[kwn].append(value)
                     else:
-                        self._kw_args[kwn] = [value]
+                        self._kw_args[kwn] = list(value) if expand and isinstance(value, list) else [value]
                 else:
                     if kwn in self._kw_args:
                         self._error = 'Repeated keyword argument "%s"' % user_kw(

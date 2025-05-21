@@ -114,7 +114,7 @@ is specified with the <i>identifier</i> mentioned above.
 [&nbsp;<a href="#coordinateSystem"><b>coordinateSystem</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<a href="#contact"><b>contact</b></a>&nbsp;&nbsp;<i>contact-dist</i>&nbsp;]
 [&nbsp;<a href="#range"><b>range</b></a>&nbsp;&nbsp;<i>range-dist</i>&nbsp;]
-[&nbsp;<a href="#addMmcifAssembly"><b>addMmcifAssembly</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#addMmcifAssembly"><b>addMmcifAssembly</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;|&nbsp;replace&nbsp;]
 &nbsp;<a href="#copies"><i>copy-options</i></a>
 </blockquote>
 <p>
@@ -262,8 +262,10 @@ The <b>addMmcifAssembly</b> option (default <b>false</b>)
 specifies whether to add the 
 user-defined assembly to the structure metadata so that it will be included
 when the structure is <a href="save.html#mmcif">saved as mmCIF</a>.
-The new assembly will be named <b>author defined assembly</b> and will be added
-without removing any previously existing assemblies for that structure.
+The new assembly will be named <b>author defined assembly</b>.
+If the option is set to <b>true</b>, the new assembly will be added without 
+removing any previously existing assemblies for that structure, or if it is 
+set to <b>replace</b>, the previously existing assemblies will be removed.
 Subsequently opening the saved mmCIF file will allow recreating the assembly
 as described <a href="#assembly">above</a>. The information is added to the
 model on which the <b>sym</b> command was run, and to a new model
@@ -363,5 +365,5 @@ but uses more memory.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2022</address>
+October 2024</address>
 </body></html>

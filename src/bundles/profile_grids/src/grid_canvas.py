@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -20,7 +20,8 @@ class GridCanvas:
     TEXT_MARGIN = 2
 
     def __init__(self, parent, pg, alignment, grid_data, weights):
-        from Qt.QtWidgets import QGraphicsView, QGraphicsScene, QGridLayout, QShortcut
+        from Qt.QtWidgets import QGraphicsView, QGraphicsScene, QGridLayout, QShortcut, QHBoxLayout, QLabel
+        from Qt.QtWidgets import QRadioButton
         from Qt.QtCore import Qt, QSize
 
         self.pg = pg
@@ -36,6 +37,7 @@ class GridCanvas:
         from Qt.QtGui import QFont, QFontMetrics, QPalette
         self.font = QFont("Helvetica")
         self.font_metrics = QFontMetrics(self.font)
+        self.font_descent = self.font_metrics.descent()
         self.max_label_width = 0
         for i, text in enumerate(self.row_labels):
             if i in self.empty_rows:
@@ -78,6 +80,8 @@ class GridCanvas:
         self.main_scene = QGraphicsScene()
         self.main_scene.setBackgroundBrush(Qt.white)
         self.main_scene.mouseReleaseEvent = self.mouse_click
+        self.main_scene.helpEvent = self.mouse_hover
+        from Qt.QtWidgets import QToolTip
         """if gray background desired...
         ms_brush = self.main_scene.backgroundBrush()
         from Qt.QtGui import QColor
@@ -120,19 +124,40 @@ class GridCanvas:
         layout.setColumnStretch(1, 1)
         layout.setRowStretch(0, 0)
         layout.setRowStretch(1, 1)
+        layout.setRowStretch(2, 0)
+        mouse_control_layout = QHBoxLayout()
+        mouse_control_layout.setContentsMargins(0,0,0,0)
+        mouse_control_layout.addWidget(QLabel("Mouse click:  "), alignment=Qt.AlignRight)
+        self.mouse_selects = QRadioButton("selects residues / ")
+        mouse_control_layout.addWidget(self.mouse_selects)
+        self._choose_cell_text = "chooses cell"
+        self.mouse_chooses = QRadioButton(self._choose_cell_text)
+        mouse_control_layout.addWidget(self.mouse_chooses)
+        mouse_control_layout.addWidget(QLabel(" (shift-click toggles)"), alignment=Qt.AlignLeft)
+        self.mouse_selects.setChecked(True)
+        layout.addLayout(mouse_control_layout, 2, 0, 1, 2, alignment=Qt.AlignHCenter|Qt.AlignTop)
         parent.setLayout(layout)
         #self.header_view.show()
         self.main_label_view.show()
         self.main_view.show()
         self.layout_alignment()
+        self.chosen_cells = {}
         self.selection_items = {}
         self.update_selection()
         from chimerax.core.selection import SELECTION_CHANGED
         self.handlers = [ self.pg.session.triggers.add_handler(SELECTION_CHANGED, self.update_selection) ]
 
+    def alignment_from_cells(self, viewer):
+        seqs = self._check_cells()
+        if len(seqs) == 1:
+            seq_viewers = self.pg.session.alignments.registered_viewers("sequence")
+            if viewer not in seq_viewers:
+                self.pg.session.logger.warning(
+                    "Cells only select a single sequence, showing in sequence viewer instead")
+                viewer = True
+        self.pg.session.alignments.new_alignment(seqs, None, name="grid subalignment", viewer=viewer)
+
     def alignment_notification(self, note_name, note_data):
-        import sys
-        print("canvas notification", note_name, file=sys.__stderr__)
         alignment = self.alignment
         if note_name == alignment.NOTE_MOD_ASSOC:
             self.update_selection()
@@ -159,29 +184,37 @@ class GridCanvas:
             else:
                 self.hide_header(hdr)
         elif hdr.shown:
-            #TODO
             if note_name == self.alignment.NOTE_HDR_VALUES:
                 if bounds is None:
                     bounds = (0, len(hdr)-1)
-                self.lead_block.refresh(hdr, *bounds)
-                self.main_scene.update()
+                self.refresh(hdr, *bounds)
             elif note_name == self.alignment.NOTE_HDR_NAME:
-                if self.label_width == _find_label_width(self.alignment.seqs +
-                        [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
-                        self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
-                    self.lead_block.replace_label(hdr)
-                    self.main_label_scene.update()
-                else:
-                    self._reformat()
+                label = self.header_label_items[hdr]
+                start_label_rect = label.sceneBoundingRect()
+                label.setText(hdr.name)
+                end_label_rect = label.sceneBoundingRect()
+                label.moveBy(start_label_rect.width() - end_label_rect.width(), 0)
+                self._update_scene_rects()
 
     def destroy(self):
         for handler in self.handlers:
             handler.remove()
 
     def hide_header(self, header):
-        raise NotImplementedError("hide_header")
-        self.lead_block.hide_header(header)
-        self.sv.region_browser.redraw_regions()
+        self._clear_header_contents(header)
+        label_item = self.header_label_items[header]
+        del self.header_label_items[header]
+        label_item.hide()
+        self.header_label_scene.removeItem(label_item)
+        after_removed = False
+        width, height = self.font_pixels
+        for disp_hdr in self.displayed_headers:
+            if disp_hdr == header:
+                after_removed = True
+            elif after_removed:
+                self.header_groups[disp_hdr].moveBy(0, -height)
+                self.header_label_items[disp_hdr].moveBy(0, -height)
+        self.displayed_headers.remove(header)
         self._update_scene_rects()
 
     def layout_alignment(self):
@@ -196,6 +229,7 @@ class GridCanvas:
         y = 0
         # adjust for rectangle outline width / inter-line spacing
         y_adjust = 2
+        self._cell_text_infos = []
         for i in range(rows):
             if i in self.empty_rows:
                 continue
@@ -203,23 +237,24 @@ class GridCanvas:
                 x = j * width
                 val = self.grid_data[i,j]
                 fraction = val / divisor
+                # The "cell chosen" contrast color has to change if this color changes
                 non_blue = int(255 * (1.0 - fraction) + 0.5)
                 fill_color = QColor(non_blue, non_blue, 255)
                 self.main_scene.addRect(x, y, width, height, brush=QBrush(fill_color))
                 if val > 0.0:
                     text_rgb = contrast_with((non_blue/255.0, non_blue/255.0, 1.0))
-                    text_val = str(int(100  * fraction + 0.5))
+                    text_val = self._cell_text(val, fraction)
                     cell_text = self.main_scene.addSimpleText(text_val, self.font)
-                    cell_text.moveBy(x, y)
-                    bbox = cell_text.boundingRect()
-                    cell_text.moveBy((width - bbox.width())/2, y_adjust + (height - bbox.height())/2)
+                    self._center_cell_text(cell_text, x, y, y_adjust)
                     cell_text.setBrush(QBrush(QColor(*[int(255 * channel + 0.5) for channel in text_rgb])))
+                    self._cell_text_infos.append((cell_text, x, y, y_adjust, val, fraction))
             label_text = self.main_label_scene.addSimpleText(self.row_labels[i], self.font)
             label_width = self.font_metrics.horizontalAdvance(self.row_labels[i] + ' ')
             label_text.moveBy((self.max_label_width - label_width) / 2, y + y_adjust)
             y += height
         self.header_groups = {}
         self.header_label_items = {}
+        self.displayed_headers = []
         for hdr in self.alignment.headers:
             if hdr.shown:
                 self.show_header(hdr)
@@ -246,78 +281,90 @@ class GridCanvas:
             self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps())
         self._update_scene_rects()
 
+    def list_from_cells(self):
+        seqs = self._check_cells()
+        _SeqList(self.pg.session, seqs).show()
+
     def mouse_click(self, event):
         from Qt.QtCore import Qt
-        width, height = self.font_pixels
-        raw_rows, grid_columns = self.grid_data.shape
-        grid_rows = raw_rows - len(self.empty_rows)
-        pos = event.scenePos()
-        row = int(pos.y() / height)
-        if row < 0 or row > grid_rows - 1:
-            return
-        col = int(pos.x() / width)
-        if col < 0 or col > grid_columns - 1:
-            return
-        residues = self._residues_at(row, col)
-        final_cmd = None
-        if event.modifiers() & Qt.ShiftModifier:
+        shifted = event.modifiers() & Qt.ShiftModifier
+
+        residues, row, col = self._residues_for_event(event)
+        if self.mouse_selects.isChecked():
             if not residues:
                 return
-            if (row, col) in self.selection_items:
-                cmd = "sel subtract"
+            final_cmd = None
+            if shifted:
+                if not residues:
+                    return
+                if (row, col) in self.selection_items:
+                    cmd = "sel subtract"
+                else:
+                    cmd = "sel add"
             else:
-                cmd = "sel add"
+                if residues:
+                    cmd = "sel"
+                else:
+                    final_cmd = "sel clear"
+            if final_cmd is None:
+                from chimerax.atomic import concise_residue_spec
+                final_cmd = cmd + ' ' + concise_residue_spec(self.pg.session, residues)
+            from chimerax.core.commands import run
+            run(self.pg.session, final_cmd)
         else:
-            if residues:
-                cmd = "sel"
+            if shifted:
+                try:
+                    item = self.chosen_cells[(row, col)]
+                except KeyError:
+                    pass # fall through to choosing the cell, below
+                else:
+                    item.hide()
+                    self.main_scene.removeItem(item)
+                    del self.chosen_cells[(row, col)]
+                    return
             else:
-                final_cmd = "sel clear"
-        if final_cmd is None:
-            from chimerax.atomic import concise_residue_spec
-            final_cmd = cmd + ' ' + concise_residue_spec(self.pg.session, residues)
-        from chimerax.core.commands import run
-        run(self.pg.session, final_cmd)
+                for item in self.chosen_cells.values():
+                    item.hide()
+                    self.main_scene.removeItem(item)
+                self.chosen_cells.clear()
+            self._choose_cell(row, col)
 
-    def refresh(self, seq, left=0, right=None, update_attrs=True):
-        raise NotImplementedError("refresh")
-        if seq in self.alignment.headers and not seq.shown:
+    def mouse_hover(self, event):
+        if event.type() != event.GraphicsSceneHelp:
+            return
+        from Qt.QtWidgets import QToolTip
+        residues, row, col = self._residues_for_event(event)
+        if not residues:
+            QToolTip.hideText()
+            return
+        from chimerax.atomic import concise_residue_spec
+        self.main_view.setToolTip(concise_residue_spec(self.pg.session, residues))
+        QToolTip.showText(event.screenPos(), self.main_view.toolTip())
+
+    def refresh(self, seq, left=0, right=None):
+        if seq not in self.alignment.headers:
+            # Since grids typically don't contain StructureSeqs, this won't
+            # happen often, so do the minimum
+            from chimerax.core.errors import UserError
+            raise UserError("Profile Grid does not support updating sequence contents.")
+        if not seq.shown:
             return
         if right is None:
             right = len(self.alignment.seqs[0])-1
-        self.lead_block.refresh(seq, left, right)
-        self.main_scene.update()
+        self._clear_header_contents(seq)
+        self._fill_header_contents(seq)
+        self._update_scene_rects()
+
+    def restore_state(self, state):
+        for row, col in state['chosen cells']:
+            self._choose_cell(row, col)
+        check_box = self.mouse_selects if state['mouse selects'] else self.mouse_chooses
+        check_box.setChecked(True)
 
     def show_header(self, header):
-        width, height = self.font_pixels
-        if not self.header_groups:
-            y = 0
-        else:
-            y = max([grp.boundingRect().y() for grp in self.header_groups.values()]) + height
-        import sys
-        print("show header", header.name, "at", y, file=sys.__stderr__)
-        x = width / 2
-        items = []
-        if hasattr(header, 'depiction_val'):
-            val_func = lambda i, hdr=header: hdr.depiction_val(i)
-        else:
-            val_func = lambda i, hdr=header: hdr[i]
-        from chimerax.alignment_headers import position_color_to_qcolor as qcolor
-        from Qt.QtGui import QBrush
-        for i in range(len(header)):
-            val = val_func(i)
-            color = qcolor(header.position_color(i))
-            if isinstance(val, str):
-                text = self.header_scene.addSimpleText(val, font=self.font)
-                rect = text.sceneBoundingRect()
-                text.setPos(x - rect.width()/2, y - rect.height())
-                text.setBrush(QBrush(color))
-                items.append(text)
-            elif val != None and val > 0.0:
-                items.append(self.header_scene.addRect(x - width/2, y - height, width, -val * height,
-                    brush=QBrush(color)))
-            x += width
-
-        self.header_groups[header] = group = self.header_scene.createItemGroup(items);
+        self.displayed_headers.append(header)
+        group = self._fill_header_contents(header)
+        bbox = group.sceneBoundingRect()
         self.header_label_items[header] = label = self.header_label_scene.addSimpleText(header.name,
             font=self.font)
         label_rect = label.sceneBoundingRect()
@@ -325,6 +372,12 @@ class GridCanvas:
         label.setPos(-label_rect.width(), group_rect.y() - label_rect.height())
         self.header_view.show()
         self._update_scene_rects()
+
+    def state(self):
+        return {
+            'chosen cells': list(self.chosen_cells.keys()),
+            'mouse selects': self.mouse_selects.isChecked(),
+        }
 
     def update_selection(self, *args):
         for item in self.selection_items.values():
@@ -363,18 +416,138 @@ class GridCanvas:
             self.selection_items[(row, col)] = self.main_scene.addRect(
                 col * width, row * height, width, height, pen=pen)
 
+    def _cell_text(self, val, fraction):
+        cell_text_type = self.pg.settings.cell_text
+        if cell_text_type == "percentage":
+            digits = self.pg.settings.percent_decimal_places
+            text_val = str(round(100  * fraction, digits if digits else None))
+        elif cell_text_type == "count":
+            text_val = str(round(val))
+        else:
+            text_val = ""
+        return text_val
+
+    def _center_cell_text(self, cell_text, x, y, y_adjust):
+        width, height = self.font_pixels
+        cell_text.setPos(x, y)
+        cell_text.setZValue(1)
+        bbox = cell_text.boundingRect()
+        cell_text.moveBy((width - bbox.width())/2, y_adjust + (height - bbox.height())/2)
+
+    def _check_cells(self):
+        from chimerax.core.errors import UserError
+        if not self.chosen_cells:
+            raise UserError("No grid cells are chosen.\n"
+                "Choose cells by changing mouse-click mode at bottom of window to '%s'\n"
+                " and then clicking on desired cell(s)" % self._choose_cell_text)
+
+        # since cells in the same column 'union' together, but columns intersect, organize by column...
+        by_col = {}
+        for row, col in self.chosen_cells.keys():
+            by_col.setdefault(col, []).append(row)
+        seqs = set(self.alignment.seqs)
+        for col, rows in by_col.items():
+            col_seqs = set()
+            for row in rows:
+                col_seqs.update(self._sequences_at(row, col))
+            seqs &= col_seqs
+        # in same order though
+        aln_seqs = [seq for seq in self.alignment.seqs if seq in seqs]
+        if not aln_seqs:
+            raise UserError("No sequences match the chosen cells")
+        return aln_seqs
+
+    def _choose_cell(self, row, col):
+        from Qt.QtGui import QPen, QColor, QPolygonF
+        from Qt.QtCore import QPointF
+        pen = QPen(QColor(255, 147, 0))
+        pen.setWidth(3)
+        width, height = self.font_pixels
+        left_x = col * width
+        mid_x = left_x + width/2
+        right_x = left_x + width
+        top_y = row * height
+        mid_y = top_y + height/2
+        bottom_y = top_y + height
+        self.chosen_cells[(row, col)] = self.main_scene.addPolygon(QPolygonF([QPointF(x, y) for x,y in
+            [(left_x, mid_y), (mid_x, top_y), (right_x, mid_y), (mid_x, bottom_y), (left_x, mid_y)]]), pen)
+
+    def _clear_header_contents(self, header):
+        header_group = self.header_groups[header]
+        del self.header_groups[header]
+        for item in header_group.childItems():
+            item.hide()
+            self.header_scene.removeItem(item)
+        self.header_scene.destroyItemGroup(header_group)
+
+    def _fill_header_contents(self, header):
+        width, height = self.font_pixels
+        x = width / 2
+        #if not self.header_groups:
+        #    y = 0
+        #else:
+        #    y = max([grp.boundingRect().y() for grp in self.header_groups.values()]) + height + 2
+        y = len(self.header_groups) * height
+        items = []
+        if hasattr(header, 'depiction_val'):
+            val_func = lambda i, hdr=header: hdr.depiction_val(i)
+        else:
+            val_func = lambda i, hdr=header: hdr[i]
+        from chimerax.alignment_headers import position_color_to_qcolor as qcolor
+        from Qt.QtGui import QBrush
+        for i in range(len(header)):
+            val = val_func(i)
+            color = qcolor(header.position_color(i))
+            if isinstance(val, str):
+                text = self.header_scene.addSimpleText(val, font=self.font)
+                rect = text.sceneBoundingRect()
+                text.setPos(x - rect.width()/2, y - (height - self.TEXT_MARGIN + rect.height())/2)
+                text.setBrush(QBrush(color))
+                items.append(text)
+            elif val != None and val > 0.0:
+                display_height = height - self.TEXT_MARGIN
+                items.append(self.header_scene.addRect(x - width/2, y - self.TEXT_MARGIN/2,
+                    width, -val * display_height, brush=QBrush(color)))
+            x += width
+
+        self.header_groups[header] = group = self.header_scene.createItemGroup(items);
+        return group
+
     def _residues_at(self, grid_row, grid_col):
         residues = []
-        row_label = self.existing_row_labels[grid_row]
-        for seq in self.alignment.seqs:
-            if seq.characters[grid_col].upper() != row_label:
-                continue
+        for seq in self._sequences_at(grid_row, grid_col):
             for match_map in seq.match_maps.values():
                 try:
                     residues.append(match_map[seq.gapped_to_ungapped(grid_col)])
                 except KeyError:
                     continue
         return residues
+
+    def _sequences_at(self, grid_row, grid_col):
+        seqs = []
+        row_label = self.existing_row_labels[grid_row]
+        for seq in self.alignment.seqs:
+            if seq.characters[grid_col].upper() == row_label:
+                seqs.append(seq)
+        return seqs
+
+    def _residues_for_event(self, event):
+        width, height = self.font_pixels
+        raw_rows, grid_columns = self.grid_data.shape
+        grid_rows = raw_rows - len(self.empty_rows)
+        pos = event.scenePos()
+        row = int(pos.y() / height)
+        if row < 0 or row > grid_rows - 1:
+            return None, None, None
+        col = int(pos.x() / width)
+        if col < 0 or col > grid_columns - 1:
+            return None, None, None
+        return self._residues_at(row, col), row, col
+
+    def _update_cell_texts(self):
+        for cell_text, *pos_args, val, fraction in self._cell_text_infos:
+            cell_text.setText(self._cell_text(val, fraction))
+            self._center_cell_text(cell_text, *pos_args)
 
     def _update_scene_rects(self):
         # have to play with setViewportMargins to get correct scrolling...
@@ -384,15 +557,101 @@ class GridCanvas:
         # For scrolling to work right, ensure that vertical size of main_label_scene is the same as main_scene
         # and that the horizontal size of the header_scene is the same as the main_scene
         lbr = self.main_label_scene.itemsBoundingRect()
+        hlbr = self.header_label_scene.itemsBoundingRect()
+        label_width = max(lbr.width(), hlbr.width())
         mbr = self.main_scene.itemsBoundingRect()
         y = min(lbr.y(), mbr.y())
         height = max(lbr.y() + lbr.height() - y, mbr.y() + mbr.height() - y)
         mr = self.main_scene.sceneRect()
         hbr = self.header_scene.itemsBoundingRect()
-        self.main_label_scene.setSceneRect(lbr.x(), y, lbr.width(), height)
+        self.main_label_scene.setSceneRect(lbr.x() + lbr.width() - label_width, y, label_width, height)
         self.main_scene.setSceneRect(mbr.x(), y, mbr.width(), height)
-        self.header_scene.setSceneRect(mr.x(), hbr.y(), mr.width(), hbr.height())
+        self.header_scene.setSceneRect(mr.x(), hbr.y(),
+            mr.width() + self.main_view.verticalScrollBar().size().width(), hbr.height())
+        self.header_label_scene.setSceneRect(hlbr.x() + hlbr.width() - label_width,
+            hlbr.y() + (hbr.height() - hlbr.height())/2, label_width, hbr.height())
         from math import ceil
-        max_header_height = ceil(max(hbr.height(), self.header_label_scene.itemsBoundingRect().height())) + 7
+        max_header_height = ceil(max(hbr.height(), hlbr.height())) + 7
         self.header_view.setMaximumHeight(max_header_height)
         self.header_label_view.setMaximumHeight(max_header_height)
+
+        # Apparently the height of the horizontal scrollbar gets added to main view at some point,
+        # need to compensate
+        def adjust_scrollbars(sb1=self.main_label_view.verticalScrollBar(), sb2=self.main_view.verticalScrollBar()):
+            min_val = min(sb1.minimum(), sb2.minimum())
+            max_val = max(sb1.maximum(), sb2.maximum())
+            sb1.setRange(min_val, max_val)
+            sb2.setRange(min_val, max_val)
+        from Qt.QtCore import QTimer
+        QTimer.singleShot(100, adjust_scrollbars)
+
+_seq_lists = [] # hold references so the lists aren't immediately destroyed
+from Qt.QtWidgets import QDialog
+class _SeqList(QDialog):
+    help = None
+
+    def __init__(self, session, seqs):
+        super().__init__()
+        _seq_lists.append(self)
+        self.session = session
+        self.setWindowTitle("Cell-Chosen Sequence List")
+        self.setSizeGripEnabled(True)
+        from Qt.QtWidgets import QVBoxLayout, QTextEdit, QHBoxLayout, QPushButton, QLabel, QWidget
+        from Qt.QtCore import Qt
+        layout = QVBoxLayout()
+        list_widget = QTextEdit('<br>'.join([seq.name for seq in seqs]))
+        list_widget.setReadOnly(True)
+        layout.addWidget(list_widget, stretch=1)
+
+        centering_widget = QWidget()
+        button_layout = QVBoxLayout()
+        button_layout.setSpacing(0)
+        button_layout.setContentsMargins(0,0,0,0)
+        centering_widget.setLayout(button_layout)
+        layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
+
+        centering_widget = QWidget()
+        log_layout = QHBoxLayout()
+        log_layout.setSpacing(0)
+        log_layout.setContentsMargins(0,0,0,0)
+        centering_widget.setLayout(log_layout)
+        log_button = QPushButton("Copy")
+        log_button.clicked.connect(lambda *args, seqs=seqs, f=self._log_sequences: f(seqs))
+        log_layout.addWidget(log_button, alignment=Qt.AlignRight)
+        log_layout.addWidget(QLabel(" sequence names to log"), alignment=Qt.AlignLeft)
+        button_layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
+
+        centering_widget = QWidget()
+        file_layout = QHBoxLayout()
+        file_layout.setSpacing(0)
+        file_layout.setContentsMargins(0,0,0,0)
+        centering_widget.setLayout(file_layout)
+        file_button = QPushButton("Save")
+        file_button.clicked.connect(lambda *args, seqs=seqs, f=self._save_sequences: f(seqs))
+        file_layout.addWidget(file_button, alignment=Qt.AlignRight)
+        file_layout.addWidget(QLabel(" sequence names to file"), alignment=Qt.AlignLeft)
+        button_layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Close)
+        bbox.rejected.connect(self.close)
+        layout.addWidget(bbox)
+
+        self.setLayout(layout)
+
+    def closeEvent(self, event):
+        _seq_lists.remove(self)
+        return super().closeEvent(event)
+
+    def _log_sequences(self, seqs):
+        self.session.logger.info('<br>'.join(["<br><b>Chosen Profile Grid Sequences</b>"]
+            + [seq.name for seq in seqs]) + '<br>', is_html=True)
+
+    def _save_sequences(self, seqs):
+        from Qt.QtWidgets import QFileDialog
+        file_name, file_type = QFileDialog.getSaveFileName(caption="Choose Sequence-Name Save File")
+        if file_name:
+            with open(file_name, 'w') as f:
+                for seq in seqs:
+                    print(seq.name, file=f)
+

@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -16,17 +16,6 @@ import warnings
 from collections import defaultdict
 from typing import Any, Dict, TypeVar, Union
 
-try:
-    import gdcm  # noqa import used elsewhere
-except ModuleNotFoundError:
-    _has_gdcm = False
-else:
-    _has_gdcm = True
-
-import pydicom.uid
-
-from pydicom import dcmread
-from pydicom.errors import InvalidDicomError
 
 from chimerax.core.session import Session
 from chimerax.map_data import MapFileFormat
@@ -92,6 +81,7 @@ class DICOM:
         directory.  If the same study and series is found in two directories, they
         are treated as two different series.
         """
+        from pydicom import dcmread
         dfiles = []
         for path in paths:
             if os.path.isfile(path):
@@ -104,6 +94,14 @@ class DICOM:
             self.patients_by_id[patient.pid].append(patient)
 
     def filter_unreadable(self, files):
+        import pydicom.uid
+        try:
+            import gdcm  # noqa import used elsewhere
+        except ModuleNotFoundError:
+            _has_gdcm = False
+        else:
+            _has_gdcm = True
+
         if _has_gdcm:
             return files  # PyDicom will use gdcm to read 16-bit lossless jpeg
 
@@ -124,6 +122,8 @@ class DICOM:
         return keep
 
     def _find_dicom_files_in_directory_recursively(self, path):
+        from pydicom import dcmread
+        from pydicom.errors import InvalidDicomError
         dfiles = []
         for root, dirs, files in os.walk(path):
             for f in files:

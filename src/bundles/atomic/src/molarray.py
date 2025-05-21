@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -281,8 +281,12 @@ class Collection(State):
         return [self._object_class.c_ptr_to_existing_py_inst(p) for p in self._pointers]
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):
-        return {'version': self.STATE_VERSION,
-                'pointers': self.session_save_pointers(session)}
+        if flags == State.SCENE:
+            # Scene implementation
+            return {'version': self.STATE_VERSION}
+        else:
+            return {'version': self.STATE_VERSION,
+                    'pointers': self.session_save_pointers(session)}
     @classmethod
     def restore_snapshot(cls, session, data):
         if data['version'] > cls.STATE_VERSION:
@@ -291,6 +295,14 @@ class Collection(State):
                              " update your ChimeraX".format(data['version'], self.STATE_VERSION))
         c_pointers = cls.session_restore_pointers(session, data['pointers'])
         return cls(c_pointers)
+
+    def restore_scene(self, scene_data):
+        """
+        Implement Scene interface.  Restore the collection from the scene data.
+        """
+        if scene_data['version'] != self.STATE_VERSION:
+            raise ValueError(f"Don't know how to restore Collections from scene version {self.STATE_VERSION}")
+
     @classmethod
     def session_restore_pointers(cls, session, data):
         raise NotImplementedError(
@@ -891,6 +903,28 @@ class Atoms(Collection):
         atom_ids = [s.session_atom_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
         return [structures, array(atom_ids)]
 
+    def take_snapshot(self, session, flags):
+        # Scene implementation
+        if flags == State.SCENE:
+            scene_data = {}
+            scene_data['collection state'] = Collection.take_snapshot(self, session, flags)
+            scene_attrs = ['colors', 'coords', 'displays', 'selected']
+            for attr in scene_attrs:
+                if hasattr(self, attr):
+                    scene_data[attr] = getattr(self, attr)
+            return scene_data
+        else:
+            return super().take_snapshot(session, flags)
+
+    def restore_scene(self, scene_data):
+        """
+        Implementaiton of Scene interface
+        """
+        Collection.restore_scene(self, scene_data['collection state'])
+        for attr, value in scene_data.items():
+            if hasattr(self, attr):
+                setattr(self, attr, value)
+
 # -----------------------------------------------------------------------------
 #
 class Bonds(Collection):
@@ -1018,6 +1052,27 @@ class Bonds(Collection):
         bond_ids = [s.session_bond_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
         return [structures, array(bond_ids)]
 
+    def take_snapshot(self, session, flags):
+        # Implementation of Scene interface
+        if flags == State.SCENE:
+            scene_data = {}
+            scene_data['collection state'] = Collection.take_snapshot(self, session, flags)
+            save_attrs = ['colors', 'displays', 'halfbonds', 'selected']
+            for attr in save_attrs:
+                scene_data[attr] = getattr(self, attr)
+            return scene_data
+        else:
+            return super().take_snapshot(session, flags)
+
+    def restore_scene(self, scene_data):
+        """
+        Implementation of Scene interface
+        """
+        Collection.restore_scene(self, scene_data['collection state'])
+        for attr, value in scene_data.items():
+            if hasattr(self, attr):
+                setattr(self, attr, value)
+
 # -----------------------------------------------------------------------------
 #
 class Elements(Collection):
@@ -1034,7 +1089,7 @@ class Elements(Collection):
     '''Returns a :mod:`numpy` array of atomic numbers (integers). Read only.'''
     masses = cvec_property('element_mass', float32, read_only = True)
     '''Returns a :mod:`numpy` array of atomic masses,
-    taken from http://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.
+    taken from https://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.
     Read only.'''
     is_alkali_metal = cvec_property('element_is_alkali_metal', npy_bool, read_only = True)
     '''Returns a :mod:`numpy` array of booleans, where True indicates the
@@ -1184,7 +1239,6 @@ class Pseudobonds(Collection):
         return ptrs
     def session_save_pointers(self, session):
         return [self.groups, self._ses_ids]
-
 # -----------------------------------------------------------------------------
 #
 class Residues(Collection):
@@ -1446,6 +1500,26 @@ class Residues(Collection):
         residue_ids = [s.session_residue_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
         return [structures, array(residue_ids)]
 
+    def take_snapshot(self, session, flags):
+        # Implementation of Scene interface
+        if flags == State.SCENE:
+            scene_data = {}
+            scene_data['collection state'] = Collection.take_snapshot(self, session, flags)
+            save_attrs = ['ribbon_colors', 'ribbon_displays', 'ring_colors', 'ring_displays']
+            for attr in save_attrs:
+                scene_data[attr] = getattr(self, attr)
+            return scene_data
+        else:
+            return super().take_snapshot(session, flags)
+
+    def restore_scene(self, scene_data):
+        """
+        Implementation of Scene interface
+        """
+        Collection.restore_scene(self, scene_data['collection state'])
+        for attr, value in scene_data.items():
+            if hasattr(self, attr):
+                setattr(self, attr, value)
 
 # -----------------------------------------------------------------------------
 #

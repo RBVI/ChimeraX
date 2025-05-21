@@ -38,6 +38,7 @@ standard platform-dependent location in the <a href="menu.html">menu</a>
 <br><a href="#distances">Distances</a>
 <br><a href="#labels">Labels</a>
 <br><a href="#log">Log</a>
+<br><a href="#sequences">Sequences</a>
 <br><a href="#startup">Startup</a>
 <br><a href="#toolshed">Toolshed</a>
 <br><a href="#trackpad">Trackpad</a>
@@ -61,17 +62,26 @@ Several <a href="#other">other preferences</a> do not appear in this
 dialog, but in separate interfaces. 
 </p><p>
 ChimeraX preferences are stored as multiple files
-in a standard platform-dependent location (for example, under
-<span class="nowrap"><b>~/Library/Application Support/ChimeraX/</b></span>
-on a Mac).
+in a standard platform-dependent location:
 <!--
 see <a href="https://pypi.python.org/pypi/appdirs/1.4.3"
 target="_blank">python appdirs</a>
 -->
+<ul class="none">
+<li><span class="nowrap"><b>~/Library/Application Support/ChimeraX/</b></span>
+&nbsp;on Mac
+<li><span class="nowrap"><b>~/.local/share/ChimeraX/</b></span>
+&nbsp;on Linux
+<li><span class="nowrap"><b>C:\Users\</b>&lt;<i>user-name</i>&gt;<b>\AppData\Local\UCSF\ChimeraX\</b></span>
+&nbsp;on Windows
+</ul>
+<p>
 The location can be reported with command: 
+</p>
 <blockquote>
 <b><a href="commands/info.html#path">info path</a> user unversioned config</b>
 </blockquote>
+<p>
 Preferences files are named according to the modules to which they apply,
 and are not created until nondefault settings are saved.
 </p>
@@ -189,12 +199,16 @@ an object in the <a href="window.html">main window</a> (see the
   <li><b>simple</b> (initial default) &ndash; chain ID (preceded by slash),
   residue name, residue number, atom name (for example, /B ASN 21 OD1)
   </ul>
-Model number will be included when multiple models are present.
 This setting is also the default style for atom logging by
 the <a href="tools/hbonds.html"><b>H-Bonds</b></a> tool and
 the <a href="commands/hbonds.html"><b>hbonds</b></a> and
 <a href="commands/clashes.html"><b>clashes/contacts</b></a> commands
 (see their <b>namingStyle</b> options).
+<li><b>Balloon-help specifiers always show atomic model number</b>
+(initial default <b>off</b>)
+&ndash; whether balloon-help specifiers on atomic models should include the
+model number regardless of how many atomic models are open, instead of only
+when multiple atomic models are present
 <li><b>Label missing-structure segments in models with &le; N chains</b> 
 (initial default <b>4</b>) &ndash; label missing-structure 
 <a href="pseudobonds.html">pseudobonds</a> with the number of biopolymer
@@ -238,13 +252,45 @@ before populating it with the contents from a
 <a href="commands/save.html#session">session</a> that is being restored
 </ul>
 
+<a name="sequences"></a>
+<p class="nav">
+[<a href="#top">back to top: ChimeraX Settings</a>]
+</p>
+<h3>Sequences</h3>
+<ul>
+<li><b>Large alignment has &ge; this many sequences [<i>N</i>]</b>
+&ndash; size threshold for deciding which viewer to use for sequence alignments 
+(initial default <b>300</b> sequences); can be overridden with the
+<a href="commands/open.html"><b>open</b></a> command
+<a href="commands/open.html#viewer"><b>viewer</b></a> option 
+<li><b>Large alignment viewer</b>
+  <ul>
+  <li><a href="tools/profilegrid.html"><b>Profile Grid</b></a>
+(initial default) &ndash; condensed view in which each row is a residue type
+and the values are prevalences
+  <li><a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+&ndash; standard view in which each row is an individual sequence
+and the values are residue types
+  </ul>
+<li><b>Single sequence viewer</b>
+  <ul>
+  <li><a href="tools/profilegrid.html"><b>Profile Grid</b></a>
+  <li><a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+(initial default)
+  </ul>
+<li><b>Small alignment viewer</b>
+  <ul>
+  <li><a href="tools/profilegrid.html"><b>Profile Grid</b></a>
+  <li><a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+(initial default)
+  </ul>
+</ul>
+
 <a name="startup"></a>
 <p class="nav">
 [<a href="#top">back to top: ChimeraX Settings</a>]
 </p>
 <h3>Startup</h3>
-<p>
-</p>
 <ul> 
 <li><b>Custom presets folder</b> 
 &ndash; where to look for user-defined <a href="menu.html#presets">presets</a>
@@ -377,12 +423,20 @@ is 3 times that of three-finger drag (XY translation)
 Proxy settings are needed to allow users at certain sites to 
 <a href="commands/open.html#fetch">fetch data</a> over the web; 
 these settings should be the same as for web browsers.
+The <i>protocol-type</i> can be <b>http</b> or <b>https</b>.
 </p>
 <ul>
-<li><b>HTTP proxy host</b> [&nbsp;<i>hostname</i>&nbsp;] <b>port</b> [&nbsp;<i>number</i>&nbsp;]
-(initial default <b>80</b>)
-<li><b>HTTPS proxy host</b> [&nbsp;<i>hostname</i>&nbsp;] <b>port</b> [&nbsp;<i>number</i>&nbsp;]
-(initial default <b>443</b>)
+<li><b>HTTP proxy &nbsp;protocol</b> [&nbsp;<i>protocol-type</i>&nbsp;] 
+<b>host</b> [&nbsp;<i>hostname</i>&nbsp;]
+<b>port</b> [&nbsp;<i>number</i>&nbsp;]
+<br>
+(initial default protocol <b>http</b> and port number <b>80</b>)
+<br><br>
+<li><b>HTTPS proxy &nbsp;protocol</b> [&nbsp;<i>protocol-type</i>&nbsp;] 
+<b>host</b> [&nbsp;<i>hostname</i>&nbsp;] 
+<b>port</b> [&nbsp;<i>number</i>&nbsp;]
+<br>
+(initial default protocol <b>https</b> and port number <b>443</b>)
 </ul>
 
 <a name="window"></a>
@@ -442,6 +496,8 @@ autostart, panel dockability, <i>etc.</i>
 (see also <a href="commands/ui.html"><b>ui</b></a>)
 <li>Tool-specific preferences:
   <ul>
+  <li><a href="tools/findcavities.html"><b>Find Cavities</b></a>
+  &ndash; cavity detection settings
   <li><a href="tools/cli.html#history"><b>Command History</b></a>
   &ndash; whether to list typed commands only; number of commands to remember
   <li><a href="tools/log.html"><b>Log</b></a>
@@ -456,11 +512,13 @@ autostart, panel dockability, <i>etc.</i>
 <p>
 Some tools have settings that are &ldquo;sticky,&rdquo; automatically saved 
 in the preferences and presented to the user upon later uses of that tool.
-Examples: 
-<a href="tools/hbonds.html"><b>H-Bonds</b></a>,
-<a href="tools/modeller.html"><b>Modeller Comparative</b></a>
+Examples include:
 </p>
+<ul>
+<li><a href="tools/hbonds.html"><b>H-Bonds</b></a>
+<li><a href="tools/modeller.html"><b>Modeller Comparative</b></a>
+</ul>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2024</address>
+April 2025</address>
 </body></html> 

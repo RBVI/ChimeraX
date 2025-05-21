@@ -5,20 +5,21 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.ui.options import Option, BooleanOption, IntOption, \
-    OptionalRGBAOption, OptionalRGBAPairOption
+from chimerax.ui.options import Option, BooleanOption, IntOption, EnumOption
 
 APPEARANCE = "Appearance"
 
 defaults = {
+    "cell_text": (APPEARANCE,
+        "Cell text", 1, EnumOption, { 'values': ["none", "count", "percentage"] }, "percentage"),
     "percent_decimal_places": (APPEARANCE,
-        "Decimal places for percentages", 1, IntOption, {'min': 0, 'max': 3}, 0),
+        "Decimal places for percentages", 2, IntOption, {'min': 0, 'max': 3}, 0),
 }
 
 from  chimerax.core.settings import Settings

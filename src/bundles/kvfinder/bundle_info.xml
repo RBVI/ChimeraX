@@ -1,0 +1,36 @@
+<BundleInfo name="ChimeraX-KVFinder" version="1.7"
+	    package="chimerax.kvfinder"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Find cavities/pockets</Synopsis>
+  <Description>Find cavities/pockets with KVFinder</Description>
+
+  <!--
+  <DataFiles>
+    <DataDir>docs</DataDir>
+  </DataFiles>
+  -->
+
+  <Categories>
+    <Category name="Binding Analysis"/>
+    <Category name="Structure Analysis"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.8"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.57"/>
+    <Dependency name="ChimeraX-UI" version="~=1.39"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: kvfinder :: Binding Analysis :: Find pockets</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Find Cavities :: Binding Analysis, Structure Analysis :: Find potential binding pockets</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -177,6 +177,9 @@ def drawing_geometry(drawing):
     vc = drawing.vertex_colors
     t = drawing.masked_triangles
 
+    if len(t) < len(drawing.triangles):
+        v, vc, t = remove_unused_vertices(v, vc, t)
+    
     # Expand instancing and create vertex colors if needed.
     positions = drawing.get_scene_positions(displayed_only = True)
     if len(positions) == 1:
@@ -197,6 +200,19 @@ def drawing_geometry(drawing):
         else:
             v, vc, t = combine_instance_geometry(v, vc, t, ppositions, None)
     return v, t, vc
+
+# -----------------------------------------------------------------------------
+#
+def remove_unused_vertices(va, vc, ta):
+    import numpy
+    vshown = numpy.unique(ta)
+    va_trim = va[vshown,:]
+    vc_trim = None if vc is None else vc[vshown,:]
+    from numpy import zeros, int32, arange
+    vmap = zeros(len(va), int32)
+    vmap[vshown] = arange(len(vshown), dtype = int32)
+    ta_trim = vmap.take(ta.ravel()).reshape((len(ta),3))
+    return va_trim, vc_trim, ta_trim
 
 # -----------------------------------------------------------------------------
 #

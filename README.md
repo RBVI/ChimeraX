@@ -1,5 +1,8 @@
 <h1 align="center">UCSF ChimeraX Molecular Visualization</h1>
 <div align="center">
+  <a href='https://github.com/RBVI/ChimeraX/actions/workflows/nightly.yml'>
+    <img src='https://github.com/RBVI/ChimeraX/actions/workflows/nightly.yml/badge.svg?branch=develop' alt='Nightly Build Status'/>
+  </a>
   <a href='https://chimerax.readthedocs.io/en/latest/?badge=latest'>
     <img src='https://readthedocs.org/projects/chimerax/badge/?version=latest' alt='Documentation Status' />
   </a>
@@ -29,4 +32,4 @@ ChimeraX plugins are called bundles and can include reading new file formats, ad
 
 ## Building ChimeraX
 
-[Building ChimeraX](https://www.cgl.ucsf.edu/chimerax/docs/devel/building.html) can be challenging because it depends on more than 50 [third party libraries and packages](https://www.rbvi.ucsf.edu/chimerax/docs/devel/dependencies.html). We recommend using a prebuilt ChimeraX from the [downloads page](https://www.rbvi.ucsf.edu/chimerax/download.html) instead.  If you develop your own ChimeraX plugins they can be used with a prebuilt ChimeraX using the [toolshed install](http://www.rbvi.ucsf.edu/chimerax/docs/user/commands/toolshed.html#install) command.
+[Building ChimeraX](https://www.cgl.ucsf.edu/chimerax/docs/devel/building.html) can be challenging because it depends on more than 50 [third party libraries and packages](https://www.rbvi.ucsf.edu/chimerax/docs/devel/dependencies.html). We recommend using a prebuilt ChimeraX from the [downloads page](https://www.rbvi.ucsf.edu/chimerax/download.html) instead.  If you develop your own ChimeraX plugins they can be used with a prebuilt ChimeraX using the [toolshed install](https://www.rbvi.ucsf.edu/chimerax/docs/user/commands/toolshed.html#install) command.

@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -45,7 +45,7 @@ ifndef WIN32
 	# then you can make -C vdocs by hand if you like
 	$(MAKE) -C vdocs install
 endif
-	$(APP_PYTHON_EXE) clean_app.py
+	$(APP_PYTHON_EXE) utils/clean_app.py
 	$(APP_PYTHON_EXE) -m pip check
 ifeq ($(OS),Darwin)
 	# update Info.plist with data formats provided by bundles
@@ -56,6 +56,16 @@ ifdef FLATPAK_DIST
 	${APP_EXE} --exit --nogui --silent --cmd 'linux flatpak-files edu.ucsf.rbvi.ChimeraX'
 endif
 	@echo 'Finished install at' `date`
+
+uv-build: build-dirs
+	uv pip install -r pyproject.toml --all-extras
+	UV_BUILD=1 $(MAKE) -C prereqs/pips uv-install
+	uv pip install PySide6 shiboken6
+	PYTHON=python $(MAKE) -C src/bundles uv-install
+
+uv-install: build-dirs uv-build
+	UV_BUILD=1 $(MAKE) -e USE_MAC_FRAMEWORKS='' -C src/apps/ChimeraX
+	UV_BUILD=1 $(MAKE) -e USE_MAC_FRAMEWORKS='' -C src/apps/ChimeraX uv-install
 
 install-rbvi:
 	$(MAKE) PYQT_LICENSE=commercial install
@@ -75,9 +85,7 @@ endif
 	$(MAKE) -C prereqs/Python app-install
 	$(MAKE) -C prereqs/pips app-install
 	$(MAKE) -C prereqs/PyQt app-install
-	$(MAKE) -C prereqs/qtshim app-install
 	$(MAKE) -C prereqs/ambertools app-install
-	$(MAKE) -C prereqs/cxservices app-install
 	$(MAKE) -C src/bundles install
 	$(MAKE) -C src/apps/ChimeraX install
 
@@ -85,24 +93,66 @@ test src.test: testimports
 	$(MAKE) -C src test
 
 testimports:
-	$(APP_EXE) --exit --nogui --silent cxtestimports.py
+	$(APP_EXE) --exit --nogui --silent utils/cxtestimports.py
 
-pytest:
-	./tests/env.sh
-	$(APP_PYTHON_EXE) -m pytest tests/test_imports.py
-	$(APP_PYTHON_EXE) -m pytest
+ifdef FLATPAK_DIST
+SCRIPT_COVERAGE_ARGS := $(if $(USE_COVERAGE),-c -s -f,)
+else
+SCRIPT_COVERAGE_ARGS := $(if $(USE_COVERAGE),-c -s,)
+endif
+COVERAGE_ARGS := $(if $(USE_COVERAGE),--cov=chimerax --cov-append,)
+SILENT_COVERAGE_ARGS := $(if $(USE_COVERAGE),$(COVERAGE_ARGS) --cov-report=,)
 
-pytest-with-coverage:
-	# Copy the chimerax package to the repo root so that it comes first in 
-	# python's path. This will cause the coverage report to be generated 
-	# with paths like 'chimerax/addh/foo.py' instead of with paths deep in
-	# the ChimeraX.app folder
+pytest-install:
+	$(APP_PYTHON_EXE) -I -m pip install pytest $(if $(USE_COVERAGE),pytest-cov,)
+
+clean-coverage:
 	-rm .coverage
 	-rm -rf chimerax
+
+prepare-coverage:
 	cp -r $(APP_PYSITEDIR)/chimerax .
-	./tests/env.sh
-	$(APP_PYTHON_EXE) -m pytest tests/test_imports.py
-	$(APP_PYTHON_EXE) -m pytest --cov=chimerax
+
+report-coverage:
+ifdef UV_BUILD
+	python -m coverage report -i
+else
+	$(APP_PYTHON_EXE) -m coverage report -i
+endif
+
+pytest-both-exes:
+ifdef UV_BUILD
+	./tests/env.sh $(SCRIPT_COVERAGE_ARGS) -u
+else
+	./tests/env.sh $(SCRIPT_COVERAGE_ARGS)
+endif
+
+pytest-wheel:
+ifdef UV_BUILD
+	python -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS) tests/test_imports_wheel.py
+	python -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS)
+else
+	$(APP_PYTHON_EXE) -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS) tests/test_imports_wheel.py
+	$(APP_PYTHON_EXE) -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS)
+endif
+
+pytest-app:
+ifdef UV_BUILD
+	python -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS) tests/test_imports_wheel.py
+	python -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS)
+else
+	$(APP_PYTHON_EXE) -m pytest -m "not wheel" $(SILENT_COVERAGE_ARGS) tests/test_imports_app.py
+	$(APP_PYTHON_EXE) -m pytest -m "not wheel" $(SILENT_COVERAGE_ARGS)
+endif
+
+ifdef USE_COVERAGE
+pytest: clean-coverage prepare-coverage pytest-both-exes pytest-wheel pytest-app report-coverage
+else
+pytest: pytest-both-exes pytest-wheel pytest-app
+endif
+
+install-common-wheels:
+	$(APP_PYTHON_EXE) -m pip install wheels/*.whl
 
 sync:
 	mkdir -p $(build_prefix)/sync/
@@ -167,11 +217,11 @@ else
 endif
 
 distclean: clean
+	-rm -rf build
 	-$(MAKE) -C src clean
 	-$(MAKE) -C docs clean
 	-$(MAKE) -C vdocs clean
 	-rm -rf prereqs/prebuilt-*.tar.bz2
-	-$(MAKE) -C prereqs/cxservices clean
 
 reallyclean:
 	rm -rf $$(git status --short --ignored --porcelain=v1 | sed -e '/^!!/!d' -e 's/^!! //')
@@ -209,5 +259,3 @@ endif
 	echo "branch: $(SNAPSHOT_TAG)" > $(SNAPSHOT_DIR)/last-commit
 	git show --summary --date=iso --pretty=fuller $(SNAPSHOT_TAG) >> $(SNAPSHOT_DIR)/last-commit
 	git archive $(SNAPSHOT_TAG) | tar -C $(SNAPSHOT_DIR) -xf -
-
-include $(TOP)/Makefile.tests

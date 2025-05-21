@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -245,7 +245,7 @@ def grid_indices(size, data_type):
   # the array contiguous.
   #
   shape = (size[2], size[1], size[0], 3)
-  from numpy import zeros, product, reshape
+  from numpy import zeros, prod, reshape
   indices = zeros(shape, data_type)
   for i in range(size[0]):
     indices[:,:,i,0] = i
@@ -253,7 +253,7 @@ def grid_indices(size, data_type):
     indices[:,j,:,1] = j
   for k in range(size[2]):
     indices[k,:,:,2] = k
-  volume = product(size)
+  volume = prod(size)
   indices = reshape(indices, (volume, 3))
   return indices
 

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -46,7 +46,7 @@ def fetch_uniprot(session, ident, ignore_cache=False, *, associate=None):
     seq.accession_id["UniProt"] = accession
     seq.set_features("UniProt", expand_features(features))
     session.logger.status("Opening UniProt %s" % ident)
-    aln = session.alignments.new_alignment([seq], ident, auto_associate=(associate is None))
+    aln = session.alignments.new_alignment([seq], ident, auto_associate=(associate is None), copy_seqs=False)
     if associate is not None:
         for chain in associate:
             aln.associate(chain, min_length=2)
@@ -61,8 +61,9 @@ def map_uniprot_ident(ident, *, return_value="identifier"):
     }
     data = urlencode(params)
     from urllib.request import Request, urlopen
-    from urllib.error import HTTPError
-    request = Request("https://rest.uniprot.org/idmapping/run", bytes(data, 'utf-8'),
+    from urllib.error import HTTPError, URLError
+    mapping_url = "https://rest.uniprot.org/idmapping/run"
+    request = Request(mapping_url, bytes(data, 'utf-8'),
         headers={ "User-Agent": "Python chimerax-bugs@cgl.ucsf.edu" })
     from chimerax.core.errors import NonChimeraError
     try:
@@ -72,6 +73,8 @@ def map_uniprot_ident(ident, *, return_value="identifier"):
             "Try again later.  If you then still get the error, you could use"
             " Help->Report a Bug to report the error to the ChimeraX team."
             " They may be able to help you work around the problem." % e)
+    except URLError as e:
+        raise NonChimeraError(f"Request url {mapping_url} failed: {e}")
     job_page = response.read().decode('utf-8')
     if not job_page:
         raise InvalidAccessionError("Invalid UniProt entry name / accession number: %s" % ident)

@@ -7,6 +7,7 @@
 # software or any revisions or derivations thereof.
 import logging
 import os
+import platform
 import sys
 
 __version__ = "0.2.0a0"  # version of this file -- PEP 440 compatible
@@ -64,7 +65,7 @@ if sys.platform.startswith("win"):
     os.EX_NOPERM = 77  # permission denied
     os.EX_CONFIG = 78  # configuration error
 
-    if "LANG" in os.environ and sys.stdout is not None:
+    if "LANG" in os.environ and sys.stdout is not None and platform.system().startswith("CYGWIN_NT"):
         # Double check that stdout matches what LANG asks for.
         # This is a problem when running in nogui mode from inside a cygwin
         # shell -- the console is supposed to use UTF-8 encoding in Python
@@ -980,6 +981,7 @@ def init(argv, event_loop=True):
     # the rest of the arguments are data files
     from chimerax.core import commands
 
+    from . import errors
     for arg in args:
         if opts.safe_mode:
             # 'open' command unavailable; only open Python files
@@ -1012,6 +1014,8 @@ def init(argv, event_loop=True):
 
             try:
                 commands.run(sess, "open %s" % StringArg.unparse(arg))
+            except errors.NotABug as err:
+                sess.logger.error(str(err))
             except Exception:
                 if not sess.ui.is_gui:
                     import traceback

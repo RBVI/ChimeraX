@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -404,6 +404,7 @@ def register_label_command(logger):
 #
 from chimerax.core.models import Model
 class Labels(Model):
+    has_scene_bounds = False
     def __init__(self, session):
         Model.__init__(self, '2D labels', session)
         self._labels = []	   
@@ -573,7 +574,8 @@ class LabelModel(Model):
 
     pickable = False
     casts_shadows = False
-    
+    has_scene_bounds = False
+
     def __init__(self, session, label):
         name = label.name if label.name else label.text
         Model.__init__(self, name, session)
@@ -721,7 +723,7 @@ class LabelModel(Model):
     overall_color = property(_get_overall_color, _set_overall_color)
 
     def x3d_needs(self, x3d_scene):
-        from .. import x3d
+        from chimerax.core import x3d
         x3d_scene.need(x3d.Components.Text, 1)  # Text
 
     def custom_x3d(self, stream, x3d_scene, indent, place):

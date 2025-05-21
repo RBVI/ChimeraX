@@ -75,6 +75,8 @@ values at atom positions and assign them as an atom
 &ndash; check map for certain symmetries in standard orientations
 <li><a href="#volume"><b>volume</b></a> 
 &ndash; report the volume enclosed by an existing surface
+<li><a href="#weight"><b>weight</b></a> 
+&ndash; report the sum of atomic weights in daltons
 </ul>
 <p>
 See also: 
@@ -196,7 +198,8 @@ buried between <a href="atomspec.html#builtin"><b>ligand</b></a> and
 <p>
 For surfaces without associated atomic coordinates, see
 <a href="#contactarea"><b>measure contactarea</b></a>.
-See also: <a href="interfaces.html"><b>interfaces</b></a>
+See also: <a href="interfaces.html"><b>interfaces</b></a>,
+<a href="coordset.html#slider"><b>coordset slider</b></a>
 </p>
 </blockquote>
 
@@ -446,6 +449,7 @@ representation of an atomic structure is with
 <a href="molmap.html"><b>molmap</b></a>.
 See also:
 <a href="define.html"><b>define</b></a>,
+<a href="aniso.html"><b>aniso</b></a>,
 <a href="shape.html#ellipsoid"><b>shape ellipsoid</b></a>,
 <a href="open.html#object">3D object formats</a>,
 <a href="https://rbvi.github.io/chimerax-recipes/convex_hull/convex_hull.html"
@@ -768,6 +772,15 @@ See also:
 <a href="../tools/measurevolume.html"><b>Measure Volume and Area</b></a>
 </blockquote>
 
+<a href="#top" class="nounder">&bull;</a>
+<a name="weight"><b>measure weight</b></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<blockquote>
+Report the total mass in daltons of the specified atoms.
+Atoms missing from the structure (<i>e.g.</i> hydrogens, truncated sidechains,
+missing segments) will not be included.
+</blockquote>
+
 <a name="notes"></a>
 <p class="nav">
 [<a href="#top">back to top: surface</a>]
@@ -810,5 +823,5 @@ has the same axes and moments as the measured surface.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2024</address>
+April 2025</address>
 </body></html>

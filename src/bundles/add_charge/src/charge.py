@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -569,7 +569,7 @@ def nonstd_charge(session, residues, net_charge, method, *, status=None, temp_di
         else:
             raise ValueError("Unknown charge method: %s" % method)
 
-        # Using the -ek is significantly fasrer but slightly more likely to result in a convergence failure
+        # Using the -ek is significantly faster but slightly more likely to result in a convergence failure
         # so try using the flag first and fall back to not using it if convergence fails.  This only
         # applies to the AM1-BCC method.  See ticket #5729
         for use_ek_flag in use_ek_flags:

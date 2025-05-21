@@ -5,7 +5,7 @@
  * Copyright 2022 Regents of the University of California. All rights reserved.
  * The ChimeraX application is provided pursuant to the ChimeraX license
  * agreement, which covers academic and commercial uses. For more details, see
- * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ * <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
  *
  * This particular file is part of the ChimeraX library. You can also
  * redistribute and/or modify it under the terms of the GNU Lesser General
@@ -884,7 +884,7 @@ AtomicStructure::compute_secondary_structure(float energy_cutoff,
     int min_helix_length, int min_strand_length, bool report, CompSSInfo* ss_info)
 {
 	auto instance = py_instance(false);
-	if (instance != Py_None) {
+	if (instance != Py_None && !ss_assigned()) {
 		auto id_attr = PyObject_GetAttrString(instance, "id");
 		if (id_attr != nullptr) {
 			if (id_attr != Py_None)

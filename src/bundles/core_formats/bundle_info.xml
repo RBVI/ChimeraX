@@ -29,12 +29,12 @@
 		reference_url="help:user/commands/usageconventions.html" />
     <Provider name="Python" category="Command script" suffixes=".py"
 		synopsis="Python code" mime_types="text/x-python"
-		reference_url="http://www.python.org" />
+		reference_url="https://www.python.org" />
     <Provider name="Compiled Python" category="Command script" suffixes=".pyc,.pyo"
 		synopsis="Compiled Python code" mime_types="application/x-python-code"
-		reference_url="http://www.python.org" />
+		reference_url="https://www.python.org" />
     <Provider name="X3D" category="Generic 3D objects" suffixes=".x3d"
-		mime_types="model/x3d+xml" reference_url="http://www.web3d.org/standards" />
+		mime_types="model/x3d+xml" reference_url="https://www.web3d.org/standards" />
     <Provider name="web fetch" category="I/O" />
   </Providers>
 

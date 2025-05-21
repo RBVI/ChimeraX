@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -23,7 +23,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import CmdDesc, register, Command, OpenFileNamesArg, RestOfLine, next_token, \
-    FileNameArg, BoolArg, StringArg, DynamicEnum, ModelIdArg
+    FileNameArg, BoolArg, StringArg, DynamicEnum, ModelIdArg, CenterArg
 from chimerax.core.commands.cli import RegisteredCommandInfo, log_command
 from chimerax.core.errors import UserError, LimitationError
 
@@ -107,6 +107,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
             return mgr.database_names
 
         keywords = {
+            'center': CenterArg,
             'format': DynamicEnum(lambda ses=session:format_names(ses)),
             'from_database': DynamicEnum(database_names),
             'id': ModelIdArg,
@@ -136,8 +137,9 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
         return JSONResult(JSONEncoder().encode(open_data), models)
     return models
 
-def provider_open(session, names, format=None, from_database=None, ignore_cache=False, name=None, id=None,
-        _return_status=False, _add_models=True, _request_file_history=False, log_errors=True, **provider_kw):
+def provider_open(session, names, center=None, format=None, from_database=None,  id=None, ignore_cache=False,
+        name=None, _return_status=False, _add_models=True, _request_file_history=False, log_errors=True,
+        **provider_kw):
     mgr = session.open_command
     # since the "file names" may be globs, need to preprocess them...
     fetches, file_names = fetches_vs_files(mgr, names, format, from_database)
@@ -189,7 +191,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 paths = [_get_path(mgr, fi.file_name, provider_info.check_path)
                     for fi in file_infos]
                 models, status = collated_open(session, None, paths, data_format, _add_models, log_errors,
-                opener_info.open, (session, paths, name), provider_kw)
+                    opener_info.open, (session, paths, name), provider_kw)
                 if status:
                     statuses.append(status)
                 if models:
@@ -295,6 +297,17 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
         if id is not None:
             from chimerax.std_commands.rename import rename
             rename(session, opened_models, id=id)
+    if center is not None:
+        from chimerax.geometry import translation
+        for m in ungrouped_models:
+            bounds = m.bounds()
+            if bounds is None and hasattr(m, 'update_graphics_if_needed'):
+                m.update_graphics_if_needed()
+                bounds = m.bounds()
+            if bounds is None:
+                session.logger.warning("%s has no bounding box, skipping centering" % m)
+                continue
+            m.position = m.position * translation(center.scene_coordinates() - bounds.center())
     if (_add_models or _request_file_history) and len(names) == 1 and in_file_history:
         # TODO: Handle lists of file names in history
         from chimerax.core.filehistory import remember_file
@@ -558,7 +571,7 @@ def cmd_usage_open(session):
     arg_syntax.append("%s: %s" % (arg_fmt % "names", get_name(OpenFileNamesArg)))
     for kw_name, arg in [('format', DynamicEnum(lambda ses=session: format_names(ses))),
             ('fromDatabase', DynamicEnum(lambda ses=session: ses.open_command.database_names)),
-            ('name', StringArg), ('id', ModelIdArg)]:
+            ('name', StringArg), ('id', ModelIdArg), ('center', CenterArg)]:
         if isinstance(arg, type):
             # class, not instance
             syntax += kw_fmt % (kw_name, get_name(arg))

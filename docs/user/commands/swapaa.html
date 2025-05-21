@@ -274,11 +274,14 @@ Atoms in the same model that are unwanted for such calculations
 (for example, <a href="atomspec.html#builtin">solvent</a>)
 should be deleted beforehand.
 </p><p>
-Alternatively, an integer <i>N</i> can be given instead of the <i>method</i>.
+Alternatively, an integer <i>N</i> (or comma-separated list of integers)
+can be given instead of the <i>method</i>.
 This indicates ignoring all criteria other than prevalence and
-choosing the rotamer with the Nth highest prevalence.
+choosing the rotamer(s) with the Nth highest prevalence.
 Specifying <i>N</i> as <b>0</b> (zero) indicates the rotamer 
 with the lowest prevalence.
+If a comma-separated list of integers is given, the new sidechains
+will be assigned different alternative location identifiers.
 </p>
 </blockquote>
 <blockquote>
@@ -397,5 +400,5 @@ The <i>tolerance</i> is how much to relax the angle criteria if
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2024</address>
+September 2024</address>
 </body></html>

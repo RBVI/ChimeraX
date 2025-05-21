@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -96,7 +96,7 @@ class ImageJGrid(GridData):
 #
 def imagej_pixels(path):
 
-    from tifffile import TiffFile, TIFF
+    from tifffile import TiffFile, PHOTOMETRIC
     tif = TiffFile(path)
     pages = tif.pages
     page0 = pages[0]
@@ -147,7 +147,7 @@ def imagej_pixels(path):
     nc = int(h['channels']) if 'channels' in h else 1
     nt = int(h['frames']) if 'frames' in h else 1
     value_type = page0.dtype
-    ncolors = 3 if page0.photometric == TIFF.PHOTOMETRIC.RGB else 1
+    ncolors = 3 if page0.photometric == PHOTOMETRIC.RGB else 1
     multiframe = (zsize > 1 or nc > 1)
 
     # Check for ImageJ hyperstack format for > 4 GB data where TIFF has only one page.

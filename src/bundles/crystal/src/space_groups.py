@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -122,7 +122,7 @@ alternate_names = (
 # -----------------------------------------------------------------------------
 # This table of the 230 space groups comes from the EBI PDB deposition web site
 #
-#       http://autodep.ebi.ac.uk/sgtable.html
+#       https://autodep.ebi.ac.uk/sgtable.html
 #
 # Each space group was in a separate file so I wrote the fetch_symop.py script
 # to download them all from the web.  That script made the file version

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -206,6 +206,8 @@ class GeometryColor(State):
 
         s = self.surface
         vertices = s.vertices
+        if vertices is None or len(vertices) == 0:
+            return (None, None)
         sp = s.scene_position
         va = vertices if sp.is_identity() else sp * vertices
         v = self.values(va)
@@ -232,8 +234,7 @@ class GeometryColor(State):
     def restore_snapshot(cls, session, data):
         surf = data['surface']
         if surf is None:
-            session.logger.warning('Could not restore coloring on surface %s because surface does not exist.'
-                                   % '.'.join('%d' % i for i in id))
+            session.logger.warning('Could not restore coloring on a surface because the surface does not exist.')
             return None
         c = cls(surf, palette = data['colormap'], range = None, transparency = data.get('transparency'),
                 origin = data['origin'], axis = data['axis'])

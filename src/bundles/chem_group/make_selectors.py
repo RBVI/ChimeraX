@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -92,7 +92,7 @@ with open("src/__init__.py.in") as f:
     content = f.read()
 amine_endings = ['', ' primary', ' secondary', ' tertiary', ' quaternary']
 amines = ["all"] + ['aliphatic' + ending for ending in amine_endings] + ['aromatic' + ending
-    for ending in amine_endings]
+    for ending in amine_endings[:-1]]
 bases = []
 base_names = set(['adenine', 'cytosine', 'guanine', 'thymine', 'uracil'])
 # ribose is from atomic, but is more natural in this menu

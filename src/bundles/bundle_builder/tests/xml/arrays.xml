@@ -1,0 +1,42 @@
+<BundleInfo name="ChimeraX-Arrays" version="1.1"
+            package="chimerax.arrays" purePython="false"
+            installedIncludeDir="include" installedLibraryDir="lib"
+            minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>C++ library for parsing numpy arrays</Synopsis>
+  <Description>C++ library for parsing numpy arrays passed from Python to C++ modules.</Description>
+
+  <Categories>
+    <Category name="Utility"/>
+  </Categories>
+
+  <CLibrary name="arrays" usesNumpy="true">
+    <SourceFile>_arrays/pythonarray.cpp</SourceFile>
+    <SourceFile>_arrays/rcarray.cpp</SourceFile>
+    <SourceFile>_arrays/refcount.cpp</SourceFile>
+  </CLibrary>
+
+  <ExtraFiles>
+    <ExtraFile source="_arrays/pythonarray.h">include/arrays/pythonarray.h</ExtraFile>
+    <ExtraFile source="_arrays/rcarray.h">include/arrays/rcarray.h</ExtraFile>
+    <ExtraFile source="_arrays/refcount.h">include/arrays/refcount.h</ExtraFile>
+    <ExtraFile source="_arrays/imex.h">include/arrays/imex.h</ExtraFile>
+  </ExtraFiles>
+
+  <CModule name="_arrays">
+    <SourceFile>_arrays/load_arrays.cpp</SourceFile>
+    <LibraryDir>src/lib</LibraryDir>
+    <IncludeDir>src/include</IncludeDir>
+    <Library>arrays</Library>
+  </CModule>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

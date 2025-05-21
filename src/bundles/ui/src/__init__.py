@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -18,7 +18,7 @@ ui: ChimeraX user interface
 
 from .htmltool import HtmlToolInstance
 from .font import shrink_font, set_line_edit_width
-from .gui import MainToolWindow, initialize_qt, menu_capitalize
+from .gui import MainToolWindow, initialize_qt, menu_capitalize, tool_user_error
 
 from chimerax.core.toolshed import BundleAPI
 

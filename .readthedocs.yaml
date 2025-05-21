@@ -12,8 +12,7 @@ build:
       - git fetch --unshallow
     post_install:
       - curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/grako/grako-3.16.5-py2.py3-none-any.whl --output grako-3.16.5-py2.py3-none-any.whl && python -I -m pip install ./grako-3.16.5-py2.py3-none-any.whl
-      - python -I -m pip install setuptools==65.1.1
-      - python -I -m pip install -r prereqs/pips/build_requirements.txt
+      - python -I -m pip install setuptools==78.1.0 Cython
       - python -I -m pip install prereqs/qtshim
       - python -I -m pip install PyQt6 PyQt6-WebEngine sphinx sphinx-autodoc-typehints
       - python -I -m pip install sortedcontainers filelock appdirs pkginfo lxml msgpack
@@ -21,33 +20,33 @@ build:
       - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/bundle_builder install-editable
       - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/toolshed_utils install-editable
       - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/core install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/arrays install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/segment install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/sim_matrices install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/alignment_algs install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/atomic_lib install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/coulombic install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/geometry install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/graphics install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/map install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/mask install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/mlp install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/morph install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/realsense install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/stl install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/surface install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/webcam install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/atom_search install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/chem_group install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/connect_structure install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/dssp install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/pdb_lib install-editable
+      - cd src/bundles/arrays && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/segment && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/sim_matrices && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/alignment_algs && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/atomic_lib && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/coulombic && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/geometry && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/graphics && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/map && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/mask && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/mlp && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/morph && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/realsense && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/stl && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/surface && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/webcam && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/atom_search && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/chem_group && python make_selectors.py && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/connect_structure && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/dssp && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/pdb_lib && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
       # No idea why we need to toolshed reload installed here.
       - python -I -m chimerax.core --nogui --exit --safemode --cmd "toolshed reload installed"
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/mmcif install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/mmtf install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/pdb install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/atomic install-editable
+      - cd src/bundles/mmcif && make lib && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/mmtf && make mmtf-cpp-1.1.0 && make msgpack-c-cpp-4.1.2 && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/pdb && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
+      - cd src/bundles/atomic && python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml && rm bundle_info.xml && python -m pip install --no-deps --no-build-isolation --editable . && cd -
       - make -C docs/devel conf.py
       - make -C docs/devel index.rst
       - make -C docs/devel _static/cxlinks.js
@@ -55,7 +54,7 @@ build:
       - mv docs/devel .
       - rm -rf docs
       - mv devel docs
-      - DEV_DOCS_IN_ROOT=1 ./utils/doc_symlinks.sh
+      - DEV_DOCS_IN_ROOT=1 ./utils/build/doc_symlinks.sh
 
 sphinx:
   builder: "html"

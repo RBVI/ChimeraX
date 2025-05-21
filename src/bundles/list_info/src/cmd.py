@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -417,7 +417,7 @@ def info_distmat(session, atoms, *, return_json=False, save_file=None):
 
         :atoms:  a list of the specifiers for the atoms used when computing the distance matrix
         :distance matrix:  the "flattened" upper-right triangle of the distance matrix, as per
-                           http://stackoverflow.com/questions/13079563/how-does-condensed-distance-matrix-work-pdist
+                           https://stackoverflow.com/questions/13079563/how-does-condensed-distance-matrix-work-pdist
     '''
     from scipy.spatial.distance import pdist
     if atoms is None:

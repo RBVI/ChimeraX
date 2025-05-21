@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -14,38 +14,40 @@ TOP = ../..
 SUBDIR_SYNC = 1
 SUBDIR_BUILD = 1
 include $(TOP)/mk/config.make
+PYTHON ?= $(APP_PYTHON_EXE)
 
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
 REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
-	  alphafold altloc_explorer amber_info arrays atom_search \
+	  alphafold altloc_explorer amber_info aniso arrays atom_search \
 	  atomic atomic_lib axes_planes basic_actions bild \
-	  blastprotein bond_rot bug_reporter build_structure \
+	  blastprotein boltz bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
 	  cellpack centroids change_chains check_waters chem_group \
 	  clashes cmd_line color_actions \
 	  color_globe color_key connect_structure core_formats \
 	  coulombic crosslinks crystal crystal_contacts data_formats \
-	  deep_mutational_scan dicom diffplot dist_monitor dock_prep dssp \
-	  emdb_sff esmfold file_history foldseek function_key \
+	  dicom dist_monitor dock_prep dssp \
+	  emdb_sff esmfold file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
 	  interfaces items_inspection io label iupac \
-	  list_info log looking_glass maestro \
+	  kvfinder list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker mcopy md_crds \
 	  medical_toolbar meeting mlp model_series \
-	  mmcif mmtf model_panel modeller mol2 mole morph mouse_modes movie nmrstar \
+	  mmcif mmtf model_archive model_panel modeller \
+	  mol2 mole morph mouse_modes movie mutation_scores nmrstar \
 	  neuron nifti nrrd nucleotides open_command orthopick pdb pdb_bio pdb_lib pdb_matrices \
-	  pick_blobs positions preset_mgr pubchem read_pbonds registration \
+	  pick_blobs positions preset_mgr profile_grids pubchem read_pbonds registration \
 	  remote_control render_by_attr renumber_residues rest_server \
 	  residue_fit rna_layout rotamers rotamer_libs \
 	  save_command scheme_mgr \
 	  sdf sel_inspector segger segment segmentations seqalign seq_view shape \
-	  shell shortcuts show_sequences sideview sim_matrices smiles \
+	  shell shortcuts show_sequences sideview sim_matrices similarstructures smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \
-	  tape_measure task_manager test toolbar topography to_quest tug ui uniprot \
+	  tape_measure task_manager test toolbar topography to_quest tug ui umap uniprot \
 	  unit_cell viewdockx viperdb vive volume_menu vrml vtk wavefront_obj \
 	  webcam webservices zone
 
@@ -73,6 +75,14 @@ install:
 	$(MAKE) build
 	cd $(SYNC_DIR) && $(APP_BOOTSTRAP_PIP) install --upgrade --upgrade-strategy only-if-needed *.whl
 	$(APP_PYTHON_EXE) -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
+
+uv-install:
+	PYTHON=python $(MAKE) -C bundle_builder uv-build
+	PYTHON=python $(MAKE) -C core uv-build
+	PYTHON=python $(MAKE) -C toolshed_utils uv-build
+	PYTHON=python $(MAKE) uv-build
+	cd $(SYNC_DIR) && uv pip install *.whl
+	python -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
 
 lint:
 ifneq (,$(PYSRCS))
@@ -107,7 +117,7 @@ clean:
 
 Makefile.dependencies: */bundle_info.xml* */pyproject.toml* Make_dependencies.py
 ifneq ($(MAKECMDGOALS),clean)
-	$(APP_PYTHON_EXE) Make_dependencies.py
+	$(PYTHON) Make_dependencies.py
 
 # Make sure bundle_builder and toolshed bundles are installed before all others.
 $(REST_SUBDIRS:=.build):

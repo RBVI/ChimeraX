@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -81,7 +81,7 @@ class GenericSeqFeature(State):
             return line
         self.evidence_codes.update(codes)
         new_line = "Evidence code%s: " % ("s" if len(codes) > 1 else "")
-        new_line += " ".join(['<a href="https://evidenceontology.org/browse/#ECO_%07d">%d</a>'
+        new_line += " ".join(['<a href="http://purl.obolibrary.org/obo/ECO_%07d">%d</a>'
             % (code, code) for code in codes])
         return new_line
 

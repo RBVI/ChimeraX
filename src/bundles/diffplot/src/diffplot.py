@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -29,8 +29,9 @@ def diffplot(session, embedding_path = None, alignment = None, residues = None, 
     if embedding_path is not None:
         pdb_names, umap_xy = _read_embedding(embedding_path)
         if cluster:
-            cluster_numbers = _k_means_clusters(umap_xy, cluster)
-            colors = _color_by_cluster(cluster_numbers)
+            from chimerax.umap import k_means_clusters, color_by_cluster
+            cluster_numbers = k_means_clusters(umap_xy, cluster)
+            colors = color_by_cluster(cluster_numbers)
             _report_clusters(pdb_names, cluster_numbers, session.logger)
         else:
             colors = None
@@ -82,11 +83,12 @@ def diffplot(session, embedding_path = None, alignment = None, residues = None, 
             lines = [c.structure.name + ',' + ','.join('%.3f'%x for x in xyz.flat) for c,xyz in diffs]
             f.write('\n'.join(lines))
 
-    _install_umap(session)
+    from chimerax.umap import install_umap, umap_embed
+    install_umap(session)
 
     coord_diffs = [diff_xyz for chain, diff_xyz in diffs]
     xyz_diffs = _flatten_xyz_lists(coord_diffs)
-    umap_xy = _umap_embed(xyz_diffs.copy())
+    umap_xy = umap_embed(xyz_diffs.copy())
 
     diff_chains = [chain for chain, diff_xyz in diffs]
     pdb_names = [chain.structure.name for chain in diff_chains]
@@ -95,9 +97,10 @@ def diffplot(session, embedding_path = None, alignment = None, residues = None, 
 
     if plot:
         if cluster:
-            cluster_numbers = _k_means_clusters(umap_xy, cluster)
-#            cluster_numbers = _k_means_clusters(xyz_diffs, cluster)  # Test if UMAP gives same clusters as k-means. Yes!
-            colors = _color_by_cluster(cluster_numbers)
+            from chimerax.umap import k_means_clusters, color_by_cluster
+            cluster_numbers = k_means_clusters(umap_xy, cluster)
+#            cluster_numbers = k_means_clusters(xyz_diffs, cluster)  # Test if UMAP gives same clusters as k-means. Yes!
+            colors = color_by_cluster(cluster_numbers)
             _report_clusters(diff_chains, pdb_names, cluster_numbers, session.logger)
         else:
             colors = None
@@ -293,25 +296,11 @@ def _concise_columns(column_numbers):
         ranges.append(f'{start}-{c}' if c > start else f'{start}')
     return ' '.join(ranges)
 
-def _install_umap(session):
-    try:
-        import umap
-    except ModuleNotFoundError:
-        session.logger.info('Installing umap-learn package from PyPi')
-        from chimerax.core.commands import run
-        run(session, 'pip install umap-learn')
-
 def _flatten_xyz_lists(xyz_lists):
     from numpy import array, float64
     nstruct, nxyz = len(xyz_lists), len(xyz_lists[0])
     coords = array(xyz_lists, float64).reshape((nstruct, 3*nxyz))
     return coords
-
-def _umap_embed(data, random_seed = 0):
-    import umap
-    reducer = umap.UMAP(random_state = random_seed, n_jobs = 1)
-    mapper = reducer.fit(data)
-    return reducer.embedding_
 
 def _write_embedding(pdb_names, umap_xy, embedding_path):
     lines = [f'{pdb_name},{xy[0]},{xy[1]}' for pdb_name, xy in zip(pdb_names, umap_xy)]
@@ -329,18 +318,6 @@ def _read_embedding(embedding_path):
     from numpy import array, float64
     umap_xy = array(xy, float64)
     return pdb_names, umap_xy
-
-def _k_means_clusters(data, k):
-    from scipy.cluster.vq import kmeans, vq
-    codebook, distortion = kmeans(data, k)
-    labels, dist = vq(data, codebook)
-    return labels
-
-def _color_by_cluster(cluster_numbers):
-    from chimerax.core.colors import random_colors
-    ccolors = random_colors(max(cluster_numbers)+1)
-    colors = ccolors[cluster_numbers]
-    return colors
 
 def _report_clusters(chains, pdb_names, cluster_num, logger):
     n = max(cluster_num) + 1
@@ -375,41 +352,14 @@ def _plot_embedding(session, pdb_names, umap_xy, colors = None, replace = False)
         _color_models(session, pdb_names, colors)
     if replace and hasattr(session, '_last_diffplot') and session._last_diffplot.tool_window.ui_area is not None:
         plot = session._last_diffplot
-        plot.set_nodes(pdb_names, umap_xy, colors)
     else:
-        plot = StructurePlot(session, pdb_names, umap_xy, colors)
+        plot = StructurePlot(session, title = 'Structure UMAP Plot', tool_name = 'DiffPlot')
         session._last_diffplot = plot
+    plot.set_nodes(pdb_names, umap_xy, colors)
     return plot
 
-from chimerax.interfaces.graph import Graph
-class StructurePlot(Graph):
-    def __init__(self, session, pdb_names, umap_xy, colors = None):
-        self._have_colors = (colors is not None)
-        self._node_area = 500	# Area in pixels
-        nodes = edges = []
-        Graph.__init__(self, session, nodes, edges, tool_name = 'DiffPlot', title = 'Structure UMAP Plot')
-        self.font_size = 5	# Override graph default value of 12 points
-        self.set_nodes(pdb_names, umap_xy, colors)
-    def set_nodes(self, pdb_names, umap_xy, colors = None):
-        self._have_colors = (colors is not None)
-        self.nodes = self._make_nodes(pdb_names, umap_xy, colors)
-        self.graph = self._make_graph()
-        self.draw_graph()
-    def _make_nodes(self, pdb_names, umap_xy, colors = None):
-        from chimerax.interfaces.graph import Node
-        nodes = []
-        for i, (pdb_name, xy) in enumerate(zip(pdb_names, umap_xy)):
-            n = Node()
-            n.name = pdb_name
-            n.position = (xy[0], xy[1], 0)
-            n.size = self._node_area
-            if colors is not None:
-                n.color = tuple(r/255 for r in colors[i])
-            nodes.append(n)
-        return nodes
-    def layout_projection(self):
-        from chimerax.geometry import identity
-        return identity()
+from chimerax.umap import UmapPlot
+class StructurePlot(UmapPlot):
     def mouse_click(self, node, event):
         '''Control click handler.'''
         if node is None:

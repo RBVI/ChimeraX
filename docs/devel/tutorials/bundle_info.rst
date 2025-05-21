@@ -8,7 +8,7 @@
     All rights reserved.  This software provided pursuant to a
     license agreement containing restrictions on its disclosure,
     duplication and use.  For details see:
-    http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+    https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
     This notice must be embedded in or attached to all copies,
     including partial copies, of the software or any revisions
     or derivations thereof.
@@ -307,7 +307,7 @@ of ``mac``.
     - Directory name (no wildcard characters) relative to package
       source.  For example, because current package source is expected
       to be in folder **src**, a directory **extradir** in the
-      same folder is referenced as ``extradir``, not ``src/extrafile``.
+      same folder is referenced as ``extradir``, not ``src/extradir``.
       All files and subdirectories in the specified directory are
       included in the bundle.
 
@@ -963,7 +963,7 @@ The doc strings of that class discuss its methods in detail, but briefly:
   options in the ChimeraX Save dialog, you must override the
   :py:meth:`~chimerax.save_command.SaverInfo.save_args_widget` method and return a widget
   containing your interface (typically a subclass of
-  `QFrame <https://doc.qt.io/qt-5/qframe.html>`_).
+  `QFrame <https://doc.qt.io/qt-6/qframe.html>`_).
   Conversely, you must also override
   :py:meth:`~chimerax.save_command.SaverInfo.save_args_string_from_widget`
   that takes your widget and returns a string containing the corresponding options and

@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -437,7 +437,8 @@ class SequenceViewer(ToolInstance):
             # opened along with MAV a chance to load
             parent.after_idle(lambda: self._loadStructures(auto=1))
         """
-        self.tool_window.manage('side')
+        from Qt.QtCore import Qt
+        self.tool_window.manage('side', allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas)
 
     @property
     def active_region(self):
@@ -561,6 +562,9 @@ class SequenceViewer(ToolInstance):
                 prog_menu.addAction(realign_action)
             if single_seq:
                 prog_menu.setEnabled(False)
+        rename_action = QAction("Rename Sequence...", edit_menu)
+        rename_action.triggered.connect(self.show_rename_sequence_dialog)
+        edit_menu.addAction(rename_action)
 
         structure_menu = menu.addMenu("Structure")
         assoc_action = QAction("Associations...", structure_menu)
@@ -575,9 +579,20 @@ class SequenceViewer(ToolInstance):
         if len(self.alignment.seqs) > 1:
             expand_action = QAction("Expand Selection to Columns", structure_menu)
             expand_action.triggered.connect(self.expand_selection_to_columns)
-            from chimerax.atomic import AtomicStructure
             expand_action.setEnabled(bool(self.alignment.associations))
             structure_menu.addAction(expand_action)
+            cons_sel_menu = structure_menu.addMenu("Select by Column Identity")
+            cons_sel_menu.setEnabled(bool(self.alignment.associations))
+            for entry_text, value in [("100%", 100.0), ("<100%", -100.0), (">=50%", 50.0), ("<50%", -50.0)]:
+                action = QAction(entry_text, cons_sel_menu)
+                action.triggered.connect(lambda act, *args, func=self.select_by_column_identity, val=value:
+                    func(val))
+                cons_sel_menu.addAction(action)
+        match_action = QAction("Match...", structure_menu)
+        match_action.triggered.connect(self.show_match_dialog)
+        match_action.setEnabled(
+            len(set([chain.structure for chain in self.alignment.associations.keys()])) > 1)
+        structure_menu.addAction(match_action)
         xfer_action = QAction("Update Chain Sequence...", structure_menu)
         xfer_action.triggered.connect(self.show_transfer_seq_dialog)
         xfer_action.setEnabled(bool(self.alignment.associations))
@@ -762,6 +777,21 @@ class SequenceViewer(ToolInstance):
             rt_window.manage(None)
         self._regions_tool.shown = shown
 
+    def select_by_column_identity(self, col_percent):
+        """Select residues associated with columns that match the criteria, which is a percentage value.
+           Positive values mean greater than or equal to, and negative values mean less than.
+        """
+        from chimerax.core.commands import StringArg, run
+        log = len(self.session.alignments) > 1
+        run(self.session, "seq refreshAttrs " + StringArg.unparse(self.alignment.ident), log=log)
+        if col_percent < 0.0:
+            criteria = "<%g" % -col_percent
+        else:
+            criteria = ">=%g" % col_percent
+        from chimerax.atomic import concise_residue_spec
+        spec = concise_residue_spec(self.session, self.alignment.associated_residues())
+        run(self.session, "select ::%s%s & %s" % (self.alignment.COL_IDENTITY_ATTR, criteria, spec))
+
     def show_associations(self):
         if not hasattr(self, "associations_tool"):
             from .associations_tool import AssociationsTool
@@ -786,6 +816,14 @@ class SequenceViewer(ToolInstance):
             self._feature_browsers[seq].tool_window.manage(None)
         self._feature_browsers[seq].tool_window.shown = True
 
+    def show_match_dialog(self):
+        if not hasattr(self, "match_dialog"):
+            from .match import MatchDialog
+            self.match_dialog = MatchDialog(self,
+                self.tool_window.create_child_window("Match", close_destroys=False))
+            self.match_dialog.tool_window.manage(None)
+        self.match_dialog.tool_window.shown = True
+
     def show_percent_identity_dialog(self):
         if not hasattr(self, "percent_identity_dialog"):
             from .identity import PercentIdentityDialog
@@ -793,6 +831,14 @@ class SequenceViewer(ToolInstance):
                 self.tool_window.create_child_window("Percent Identity", close_destroys=False))
             self.percent_identity_dialog.tool_window.manage(None)
         self.percent_identity_dialog.tool_window.shown = True
+
+    def show_rename_sequence_dialog(self):
+        if not hasattr(self, "rename_sequence_dialog"):
+            from .rename_seq import RenameSeqDialog
+            self.rename_sequence_dialog = RenameSeqDialog(self,
+                self.tool_window.create_child_window("Rename Sequence", close_destroys=False))
+            self.rename_sequence_dialog.tool_window.manage(None)
+        self.rename_sequence_dialog.tool_window.shown = True
 
     def show_transfer_seq_dialog(self):
         if not hasattr(self, "transfer_seq_dialog"):
@@ -831,9 +877,9 @@ class SequenceViewer(ToolInstance):
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
         inst._finalize_init(data['alignment'])
-        inst.region_manager.restore_state(data['region browser'])
         if 'seq canvas' in data:
             inst.seq_canvas.restore_state(session, data['seq canvas'])
+        inst.region_manager.restore_state(data['region browser'])
         # feature browsers depend on regions (and therefore the region browser) being restored first
         if 'feature browsers' in data:
             from .feature_browser import FeatureBrowser

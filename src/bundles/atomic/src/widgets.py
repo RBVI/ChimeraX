@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -31,6 +31,8 @@ class StructureListWidget(ModelListWidget):
 
 class StructureMenuButton(ModelMenuButton):
     def __init__(self, session, **kw):
+        if 'no_value_button_text' not in kw:
+            kw['no_value_button_text'] = "No structure chosen"
         super().__init__(session, class_filter=Structure, **kw)
 
 class AtomicStructureListWidget(ModelListWidget):
@@ -39,6 +41,8 @@ class AtomicStructureListWidget(ModelListWidget):
 
 class AtomicStructureMenuButton(ModelMenuButton):
     def __init__(self, session, **kw):
+        if 'no_value_button_text' not in kw:
+            kw['no_value_button_text'] = "No structure chosen"
         super().__init__(session, class_filter=AtomicStructure, **kw)
 
 class ChainListWidget(ItemListWidget):
@@ -136,8 +140,8 @@ class ChainListWidget(ItemListWidget):
         return specs
 
 class ChainMenuButton(ItemMenuButton):
-    def __init__(self, session, **kw):
-        super().__init__(**_process_chain_kw(session, **kw))
+    def __init__(self, session, no_value_button_text="No chain chosen", **kw):
+        super().__init__(no_value_button_text=no_value_button_text,  **_process_chain_kw(session, **kw))
 
 def _process_chain_kw(session, list_func=None, trigger_info=None, **kw):
     if list_func is None:
@@ -163,8 +167,8 @@ class ResidueListWidget(ItemListWidget):
         super().__init__(**_process_residue_kw(session, **kw))
 
 class ResidueMenuButton(ItemMenuButton):
-    def __init__(self, session, **kw):
-        super().__init__(**_process_residue_kw(session, **kw))
+    def __init__(self, session, no_value_button_text="No residue chosen", **kw):
+        super().__init__(no_value_button_text=no_value_button_text, **_process_residue_kw(session, **kw))
 
 def _process_residue_kw(session, list_func=None, trigger_info=None, **kw):
     if list_func is None:

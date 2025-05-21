@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -123,7 +123,7 @@ def parse_v2000(session, file_name, lines, structures, auto_style):
                     % (file_name, line))
             a1 = atoms[a1_index-1]
             a2 = atoms[a2_index-1]
-            if not a1 or not a2:
+            if not a1 or not a2 or a1 in a2.neighbors:
                 continue
             s.new_bond(a1, a2).order = order
         elif state == "properties":

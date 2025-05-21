@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -83,7 +83,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
             gap_open_strand=-gap_open_strand,
             gap_open_other=-gap_open_other)
         gapped_ref, gapped_match = seqs
-    elif algorithm =="sw":
+    elif algorithm == "sw":
         def ss_let(r):
             if not r:
                 return ' '
@@ -195,6 +195,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
 def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend, *, cutoff_distance=None,
         show_alignment=defaults['show_alignment'], align=align, domain_residues=(None, None), bring=None,
         verbose=defaults['verbose_logging'], always_raise_errors=False, report_matrix=False,
+        log_parameters=defaults['log_parameters'],
         **align_kw):
     """Superimpose structures based on sequence alignment
 
@@ -256,6 +257,8 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
        If 'always_raise_errors' is True, then an iteration that goes to too few
        matched atoms will immediately raise an error instead of noting the
        failure in the log and continuing on to other pairings.
+
+       'log_parameters', if True, logs the parameters used in the matching calculation.
     """
     dssp_cache = {}
     alg = alg.lower()
@@ -436,7 +439,9 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 show_context = session.ui.force_float_tools
     logger = session.logger
     ret_vals = []
-    logged_params = False
+    # logged_params tracks if the parameters have been logged, so if we want them to not be logged at all
+    # (log_parameters == False), start them off as True
+    logged_params = not log_parameters
     for match_mol, pairs in pairings.items():
         ref_atoms = []
         match_atoms = []
@@ -686,6 +691,7 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         cutoff_distance=defaults["iter_cutoff"], gap_extend=defaults["gap_extend"],
         show_alignment=defaults['show_alignment'], compute_s_s=defaults["compute_ss"],
         keep_computed_s_s=defaults['overwrite_ss'], report_matrix=False,
+        log_parameters=defaults['log_parameters'],
         mat_h_h=default_ss_matrix[('H', 'H')],
         mat_s_s=default_ss_matrix[('S', 'S')],
         mat_o_o=default_ss_matrix[('O', 'O')],
@@ -696,6 +702,10 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
 
     # 'to' only needed to sidestep problem with adjacent atom specs...
     ref_atoms = to
+
+    # Ignore child structures (e.g. altlocs, rotamers) of parent structures
+    match_atoms = _remove_child_models(match_atoms)
+    ref_atoms = _remove_child_models(ref_atoms)
 
     from chimerax import sim_matrices
     if matrix not in sim_matrices.matrices(session.logger):
@@ -769,7 +779,8 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         cutoff_distance=cutoff_distance, show_alignment=show_alignment, bring=bring,
         domain_residues=(ref_atoms.residues.unique(), match_atoms.residues.unique()),
         gap_open_helix=hgap, gap_open_strand=sgap, gap_open_other=ogap, report_matrix=report_matrix,
-        compute_ss=compute_s_s, keep_computed_ss=keep_computed_s_s, verbose=verbose)
+        compute_ss=compute_s_s, keep_computed_ss=keep_computed_s_s, verbose=verbose,
+        log_parameters=log_parameters)
     return ret_vals
 
 _dm_cleanup = []
@@ -809,6 +820,15 @@ def check_domain_matching(chains, sel_residues):
         chains = new_chains
     return chains
 
+def _remove_child_models(atoms):
+    structures = atoms.structures.unique()
+    main_structures = set(structures)
+    for s in structures:
+        for c in s.all_models():
+            if c is not s:
+                main_structures.discard(c)
+    return atoms.filter([s in main_structures for s in atoms.structures])
+
 _registered = False
 def register_command(logger):
     global _registered
@@ -816,7 +836,7 @@ def register_command(logger):
         # registration can be called for both main command and alias, so only do once...
         return
     _registered = True
-    from chimerax.core.commands import CmdDesc, register, FloatArg, StringArg, \
+    from chimerax.core.commands import CmdDesc, register, FloatArg, EnumOf, \
         BoolArg, NoneArg, TopModelsArg, create_alias, Or, DynamicEnum
     # use OrderedAtomsArg so that /A-F come out in the expected order even if not ordered that way
     # internally [#7577]
@@ -825,7 +845,9 @@ def register_command(logger):
     desc = CmdDesc(
         required = [('match_atoms', OrderedAtomsArg)],
         required_arguments = ['to'],
-        keyword = [('to', OrderedAtomsArg), ('pairing', StringArg), ('alg', StringArg),
+        keyword = [('to', OrderedAtomsArg),
+            ('pairing', EnumOf([CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST])),
+            ('alg', EnumOf([AA_NEEDLEMAN_WUNSCH, AA_SMITH_WATERMAN])),
             ('verbose', BoolArg), ('ss_fraction', Or(FloatArg, BoolArg)),
             ('matrix', DynamicEnum(lambda logger=logger: sim_matrices.matrices(logger).keys())),
             ('gap_open', FloatArg), ('hgap', FloatArg), ('sgap', FloatArg), ('ogap', FloatArg),
@@ -833,7 +855,7 @@ def register_command(logger):
             ('bring', TopModelsArg), ('show_alignment', BoolArg), ('compute_s_s', BoolArg),
             ('mat_h_h', FloatArg), ('mat_s_s', FloatArg), ('mat_o_o', FloatArg), ('mat_h_s', FloatArg),
             ('mat_h_o', FloatArg), ('mat_s_o', FloatArg), ('keep_computed_s_s', BoolArg),
-            ('report_matrix', BoolArg)],
+            ('report_matrix', BoolArg), ('log_parameters', BoolArg)],
         synopsis = 'Align atomic structures using sequence alignment'
     )
     register('matchmaker', desc, cmd_match, logger=logger)

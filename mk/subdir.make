@@ -4,7 +4,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -58,10 +58,20 @@ endif
 
 ifdef SUBDIR_BUILD
 SUBDIR_BUILD = $(SUBDIRS:=.build)
-.PHONY: $(SUBDIR_BUILD)
+UV_SUBDIR_BUILD = $(SUBDIRS:=.uv-build)
+.PHONY: $(SUBDIR_BUILD) $(UV_SUBDIR_BUILD)
+
 build: $(SUBDIR_BUILD)
 $(SUBDIR_BUILD):
 	$(MAKE) -C $(subst .build,,$@) build
+
+uv-build: $(UV_SUBDIR_BUILD)
+$(UV_SUBDIR_BUILD):
+	-PYTHON=python $(MAKE) -C $(subst .uv-build,,$@) uv-prepare
+	cd $(subst .uv-build,,$@) && if [ -e bundle_info.xml ]; then python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml; fi
+	PYTHON=python $(MAKE) -C $(subst .uv-build,,$@) uv-build
+	cd $(subst .uv-build,,$@) && if [ -e bundle_info.xml ]; then rm pyproject.toml; fi
 else
 build:
+uv-build:
 endif

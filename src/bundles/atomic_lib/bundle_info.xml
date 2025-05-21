@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-AtomicLibrary" version="14.1.5"
+<BundleInfo name="ChimeraX-AtomicLibrary" version="14.1.18"
             package="chimerax.atomic_lib"
             purePython="false"
             installedDataDir="data"
@@ -14,12 +14,12 @@
   <Description>C++ support for handling atomic structures</Description>
 
   <DataFiles>
-    <DataFile>data/*/*/*</DataFile>
-    <DataFile>include/*/*</DataFile>
-    <DataFile>include/*/*/*</DataFile>
-    <DataFile>lib/*</DataFile>
-    <DataFile>*.so</DataFile>
-    <DataFile>*.pyd</DataFile>
+    <DataFile>data/idatm/templates/*</DataFile>
+    <DataDir>include/atomstruct</DataDir>
+    <DataDir>include/atomstruct/tmpl</DataDir>
+    <DataDir>include/element</DataDir>
+    <DataDir>include/pyinstance</DataDir>
+    <DataDir>lib</DataDir>
   </DataFiles>
 
   <CLibrary name="pyinstance">

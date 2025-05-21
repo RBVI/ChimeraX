@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -33,7 +33,12 @@ class CFunctions:
     '''Access C functions from a shared library and create Python properties using these functions.'''
 
     def __init__(self, library_path):
-        self._c_lib = ctypes_open(library_path)
+        try:
+            self._c_lib = ctypes_open(library_path)
+        except:
+            # If this bundle is compiled with TOML bundle builder, the lib goes in /lib
+            # instead of the root directory.
+            self._c_lib = ctypes_open("lib/" + library_path)
         
     # -----------------------------------------------------------------------------
     #

@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -101,3 +101,15 @@ def parse_gro(session, file_name, lines, structures, auto_style):
     if s is None:
         raise UserError("'%s' has no non-comment lines!" % file_name)
     s.connect_structure()
+    from chimerax.atomic import next_chain_id
+    cid = singleton_cid = None
+    for group in s.bonded_groups():
+        residues = group.unique_residues
+        if len(residues) == 1:
+            if singleton_cid is None:
+                cid = singleton_cid = next_chain_id(cid)
+                session.logger.info("Singleton residues assigned chain ID %s" % singleton_cid)
+            residues.chain_ids = singleton_cid
+        else:
+            cid = next_chain_id(cid)
+            residues.chain_ids = cid

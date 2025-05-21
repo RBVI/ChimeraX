@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -21,6 +21,7 @@ TODO
 from Qt.QtWidgets import QFileDialog, QSizePolicy
 from Qt.QtCore import Qt
 class SaveDialog(QFileDialog):
+    use_native = False
     def __init__(self, session, parent = None, *args, data_formats=None, installed_only=True, **kw):
         if data_formats is None:
             data_formats = [fmt for fmt in session.save_command.save_data_formats if fmt.suffixes]
@@ -39,7 +40,8 @@ class SaveDialog(QFileDialog):
         super().__init__(parent, *args, **kw)
         self.setFileMode(QFileDialog.AnyFile)
         self.setAcceptMode(QFileDialog.AcceptSave)
-        self.setOption(QFileDialog.DontUseNativeDialog)
+        if not self.use_native:
+            self.setOption(QFileDialog.DontUseNativeDialog)
         if self.name_filters:
             self.setNameFilters(self.name_filters)
             if name_filter:
@@ -51,13 +53,14 @@ class SaveDialog(QFileDialog):
     @property
     def custom_area(self):
         if self._custom_area is None:
-            layout = self.layout()
-            row = layout.rowCount()
             from Qt.QtWidgets import QFrame
             self._custom_area = QFrame(self)
             self._custom_area.setFrameStyle(QFrame.Panel | QFrame.Raised)
             self._custom_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-            layout.addWidget(self._custom_area, row, 0, 1, -1)
+            if not self.use_native:
+                layout = self.layout()
+                row = layout.rowCount()
+                layout.addWidget(self._custom_area, row, 0, 1, -1)
         return self._custom_area
 
     def get_path(self):

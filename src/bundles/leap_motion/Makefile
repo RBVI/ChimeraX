@@ -10,4 +10,4 @@ wheel install app-install: $(LEAP_LIBRARY)
 
 $(LEAP_LIBRARY):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/leapmotion/$(LEAP_LIBRARY)
-	tar xf $(LEAP_LIBRARY)
+	tar xf $(LEAP_LIBRARY) --no-same-owner

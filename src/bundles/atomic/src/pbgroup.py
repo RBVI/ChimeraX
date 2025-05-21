@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -348,6 +348,14 @@ class PseudobondGroup(PseudobondGroupData, Model):
         grp.set_custom_attrs(data)
         return grp
 
+    def restore_scene(self, scene_data):
+        """
+        Scene interface implementation. Default take_snapshot implementation is sufficient.
+        """
+        Model.restore_scene(self, scene_data['model state'])
+        self.dashes = scene_data['dashes']
+        PseudobondGroupData.restore_scene(self, scene_data['pseudobond data'])
+
 # -----------------------------------------------------------------------------
 #
 def selected_pseudobonds(session):
@@ -372,9 +380,13 @@ class PromotePseudobondSelection(SelectionPromotion):
         self._pbgroup = pbgroup
         self._prev_pbond_sel_mask = prev_pbond_sel_mask
     def promote(self):
+        if self._pbgroup.deleted:
+            return
         pbonds = self._pbgroup.pseudobonds
         pbonds.selected = True
     def demote(self):
+        if self._pbgroup.deleted:
+            return
         pbonds = self._pbgroup.pseudobonds
         pbonds.selected = self._prev_pbond_sel_mask
 

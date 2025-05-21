@@ -1,0 +1,140 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: modelcif</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: modelcif</h3>
+<a name="pae"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>modelcif pae</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;<b>metricName</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
+[&nbsp;<b>defaultScore</b></a>&nbsp;&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>jsonOutputPath</b></a>&nbsp;&nbsp;<i>filename</i>&nbsp;]
+[&nbsp;<a href="color.html#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
+[&nbsp;<a href="color.html#palette-options"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
+</h3>
+<p>
+The <b>modelcif pae</b> command reads and plots pairwise (residue-residue)
+scoring metrics for theoretical structures from the
+<a href="https://modelarchive.org/" target="_blank">ModelArchive</a>
+database using the
+<a href="../tools/alphafold.html#pae"><b>AlphaFold Error Plot</b></a> tool.
+Many thanks to Gerardo Tauriello for contributing the file-reading code.
+See <a href="../tools/alphafold.html#pae"><b>AlphaFold Error Plot</b></a>
+for details of interacting with the plot.
+See also: <a href="alphafold.html#pae"><b>alphafold pae</b></a>
+</p><p>
+Currently, plotting does not work for
+<a href="https://modelarchive.org/" target="_blank">ModelArchive</a>
+structures that contain any residues other than standard amino acids
+and nucleic acids.
+<p><p>
+Some of the entries in the 
+<a href="https://modelarchive.org/" target="_blank">ModelArchive</a>
+have associated pairwise
+reliability scores such as predicted aligned error (PAE),
+and multiple different metrics may be available for a given structure.
+In ChimeraX, the workflow to plot such a score is to:
+</p>
+<ol>
+<li><a href="open.html#fetch">fetch</a> the
+<a href="https://modelarchive.org/" target="_blank">ModelArchive</a>
+structure of interest by its identifier in that database, for example:
+<blockquote>
+<b><a href="open.html#fetch">open</a> ma-bak-cepc-0944 from modelarchive</b>
+</blockquote>
+<li>use the <b>modelcif pae</b> command to plot pairwise scores for the
+already opened model, for example:
+<blockquote>
+<b>modelcif pae #1 metricName "contact probability" defaultScore 0 palette rainbow range 0,1</b>
+</blockquote>
+</ol>
+<p>
+The <b>metricName</b> option specifies the name of the pairwise metric,
+as given in the mmCIF ma_qa_metric table.
+If no name is supplied, ChimeraX looks for "PAE," and if that is not found,
+uses the first metric in the file.
+</p><p>
+The <b>defaultScore</b> <i>s</i> is the value to assign to any residue-residue
+pairs without a value for the metric in the file (default <b>100</b>).
+</p><p>
+By default, the pairwise scores are written to a temporary .json file
+and passed to the <a href="alphafold.html#pae"><b>alphafold pae</b></a> 
+command for plotting.
+The <b>jsonOutputPath</b> option allows saving the json file
+to a specified location, where <i>filename</i> is the desired pathname 
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+</p><p>
+The default <a href="color.html#palette-options"><b>palette</b></a> 
+for coloring the PAE plot is <b>pae</b>, with colors assigned to values
+as follows:
+</p>
+<table border="" cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<td bgcolor="blue" width="30px" title="blue" align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue" align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow" align="center"><font size="-1" color="black">10</font></td>
+<td bgcolor="orange" width="30px" title="orange" align="center"><font size="-1">15</font></td>
+<td bgcolor="gray" width="30px" title="gray" align="center"><font size="-1" color="white">20</font></td>
+<td bgcolor="lightgray" width="30px" title="lightgray" align="center"><font size="-1" color="black">25</font></td>
+<td bgcolor="white" width="30px" title="white" align="center"><font size="-1" color="black">30</font></td>
+</tr></tbody></table>
+<p>
+Another <a href="color.html#palette-options"><b>palette</b></a> 
+with value range suitable for PAE plots is <b>paegreen</b>:
+</p>
+<table border="" cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35" align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="#245a922c245a" width="30px" title="#245a922c245a" align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="#374cb168374c" width="30px" title="#374cb168374c" align="center"><font size="-1" color="white">10</font></td>
+<td bgcolor="#5687c9ba5687" width="30px" title="#5687c9ba5687" align="center"><font size="-1">15</font></td>
+<td bgcolor="#828fddf3828f" width="30px" title="#828fddf3828f" align="center"><font size="-1" color="black">20</font></td>
+<td bgcolor="#bae1efdebae1" width="30px" title="#bae1efdebae1" align="center"><font size="-1" color="black">25</font></td>
+<td bgcolor="white" width="30px" title="white" align="center"><font size="-1" color="black">30</font></td>
+</tr></tbody></table>
+<p>
+Although these palettes include value-color pairs, it may be helpful
+to give a value <a href="color.html#range"><b>range</b></a>
+if a colors-only palette is used instead (default <b>0,30</b>).
+A range can also be used to override the values in a value-color palette,
+instead spacing the colors evenly across the specified range.
+</p><p>
+Although opening a 
+<a href="https://modelarchive.org/" target="_blank">ModelArchive</a>
+structure and plotting its scores can be done with a single command,
+</p>
+<blockquote>
+<b><a href="open.html#fetch">open</a> ma-bak-cepc-0944 from modelarchive
+pae true</b>
+</blockquote>
+<p>
+...the <b>modelcif pae</b> command allows more control over which score
+of multiple available is plotted and how the plot is initially colored.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2024</address>
+</body></html>

@@ -72,6 +72,18 @@ ChimeraX can be started from the system command line:
 </pre>
 ... using the symbolic link to the executable created by the installer. 
 (The executable is in the bin subdirectory of the ChimeraX installation.)
+<p>
+Note that ARM CPUs may not support OpenGL, which ChimeraX uses for graphics.
+On an ARM machine, <i>e.g.</i> Raspberry Pi, Snapdragon laptop, it may be
+necessary to prepend <small><b>MESA_GL_VERSION_OVERRIDE=3.3</b></small>
+to the startup command:
+<br><pre>
+&dollar; <b>MESA_GL_VERSION_OVERRIDE=3.3 chimerax [<a href="options.html"><i>options</i></a>] [<a href="#inputfiles"><i>input1</i> <i>input2</i></a> ...]</b>
+</pre>
+Alternatively, the override could be placed in the shell's startup script:
+<br><pre>
+<b>MESA_GL_VERSION_OVERRIDE=3.3</b>
+</pre>
 </blockquote>
 
 On <b>Mac OS X</b>,
@@ -131,5 +143,5 @@ using the ChimeraX menu to <b>Quit</b>, or by entering
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2018</address>
+October 2024</address>
 </body></html>

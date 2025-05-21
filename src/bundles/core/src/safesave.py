@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -46,7 +46,7 @@ or::
         f.close(e)
 
 """
-import os
+import os, psutil
 
 
 class SaveFile:
@@ -81,7 +81,10 @@ class SaveFile:
         self.name = filename
         self._critical = critical
         # prevent conflicts between ChimeraX's running/starting at the same time
-        self._tmp_filename = filename + "." + str(os.getpid()) + ".tmp"
+        # Flatpak processes may have the same PID (typically 2), so also embed
+        # process start time
+        pid = os.getpid()
+        self._tmp_filename = filename + "." + str(pid) + "." + str(psutil.Process(pid).create_time()) + ".tmp"
         self._f = open(self._tmp_filename)
         assert(self._f.writable())
 
@@ -120,6 +123,7 @@ class SaveFile:
                         except PermissionError:
                             if i == 2:
                                 raise
+                            continue
                         break
                 else:
                     raise

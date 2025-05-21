@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -67,7 +67,7 @@ class SettingsTool:
         for hdr in self.sv.alignment.headers:
             container, header_panel = settings_panel.add_option_group("Headers",
                 group_label=hdr.ident.replace('_', ' ').title(), group_alignment=Qt.AlignLeft,
-                contents_margins=(0,0,0,0), sorting=hdr.option_sorting)
+                contents_margins=(0,2,10,0), sorting=hdr.option_sorting)
             layout = QVBoxLayout()
             container.setLayout(layout)
             layout.addWidget(header_panel, alignment=Qt.AlignLeft)

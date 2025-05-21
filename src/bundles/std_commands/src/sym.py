@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -76,8 +76,8 @@ def sym(session, structures,
       Resolution for computing surfaces when surface_only is true.
     grid_spacing : float
       Grid spacing for computing surfaces when surface_only is true.
-    add_mmcif_assembly : bool
-      Whether to add mmCIF metadata defining this assembly
+    add_mmcif_assembly : bool or "replace"
+      Whether to add mmCIF metadata defining this assembly.  If "replace" then replace current assemblies.
     '''
     if len(structures) == 0:
         from chimerax.core.errors import UserError
@@ -110,11 +110,12 @@ def sym(session, structures,
         mnames = ', '.join(m.name for m in structures)
         session.logger.info(f'Made {len(transforms)} {copy_descrip} for {mnames} symmetry {symmetry.group}')
         if add_mmcif_assembly:
+            replace = (add_mmcif_assembly == 'replace')
             for structure in structures:
-                add_mmcif_assembly_to_metadata(structure, transforms)
+                add_mmcif_assembly_to_metadata(structure, transforms, replace=replace)
             if not copies:
                 for structure in new_mols:
-                    add_mmcif_assembly_to_metadata(structure, transforms)
+                    add_mmcif_assembly_to_metadata(structure, transforms, replace=replace)
         return
             
     for m in structures:
@@ -162,7 +163,7 @@ def sym_clear(session, structures = None):
             s.positions = Places([s.position])
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, FloatArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, FloatArg, EnumOf, Or
     from chimerax.core.commands import CenterArg, AxisArg, CoordSysArg, BoolArg
     from chimerax.atomic import SymmetryArg, AtomicStructuresArg
     desc = CmdDesc(
@@ -179,7 +180,7 @@ def register_command(logger):
                    ('surface_only', BoolArg),
                    ('resolution', FloatArg),
                    ('grid_spacing', FloatArg),
-                   ('add_mmcif_assembly', BoolArg)],
+                   ('add_mmcif_assembly', Or(EnumOf(['replace']), BoolArg))],
         synopsis = 'create model copies')
     register('sym', desc, sym, logger=logger)
     desc = CmdDesc(
@@ -281,7 +282,7 @@ def mmcif_assemblies(model):
     alist = [Assembly(id, name[id], chain_ops[id], ops, True) for id in ids]
     return alist
 
-def add_mmcif_assembly_to_metadata(model, positions):
+def add_mmcif_assembly_to_metadata(model, positions, replace = False):
     table_names = ('pdbx_struct_assembly',
                    'pdbx_struct_assembly_gen',
                    'pdbx_struct_oper_list')
@@ -289,13 +290,13 @@ def add_mmcif_assembly_to_metadata(model, positions):
     assem, assem_gen, oper = mmcif.get_mmcif_tables_from_metadata(model, table_names)
 
     nsym = len(positions)
-    assem_id = _next_cif_id(assem)
+    assem_id = 1 if replace else _next_cif_id(assem)
     assem_tags = ['id', 'details', 'oligomeric_details', 'oligomeric_count']
     assem_data = [f'{assem_id}', 'author defined symmetry', f'{nsym}-meric', f'{nsym}']
     from chimerax.mmcif import CIFTable
     assem_add = CIFTable('pdbx_struct_assembly', assem_tags, assem_data)
 
-    oper_id0 = _next_cif_id(oper)
+    oper_id0 = 1 if replace else _next_cif_id(oper)
     oper_id1 = oper_id0 + nsym - 1
     from numpy import unique
     asym_ids = ','.join(unique(model.residues.mmcif_chain_ids))
@@ -315,7 +316,7 @@ def add_mmcif_assembly_to_metadata(model, positions):
     oper_add = CIFTable('pdbx_struct_oper_list', oper_tags, oper_data)
 
     for current,add in ((assem, assem_add), (assem_gen, assem_gen_add), (oper, oper_add)):
-        if current:
+        if current and not replace:
             current.extend(add)
         else:
             current = add
@@ -442,8 +443,8 @@ class Assembly:
 
     def _partition_atoms(self, atoms, chain_ids):
         mmcif_cids = mmcif_chain_ids(atoms, self.from_mmcif)
-        from numpy import in1d, logical_not
-        mask = in1d(mmcif_cids, chain_ids)
+        from numpy import isin, logical_not
+        mask = isin(mmcif_cids, chain_ids)
         included_atoms = atoms.filter(mask)
         logical_not(mask,mask)
         excluded_atoms = atoms.filter(mask)

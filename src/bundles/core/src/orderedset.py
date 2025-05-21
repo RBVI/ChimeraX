@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -27,10 +27,10 @@ orderedset: An ordered set
 ==========================
 Inspiration and code expanded from
 Raymond Hettinger's `indexable weak ordered set
-<http://stackoverflow.com/questions/7828444/indexable-weak-ordered-set-in-python>`_
+<https://stackoverflow.com/questions/7828444/indexable-weak-ordered-set-in-python>`_
 and Stephan Schroevers' `does python have an ordered set
-<http://stackoverflow.com/questions/1653970/does-python-have-an-ordered-set>`_
-`stackoverflow.com <http://stackoverflow.com/>`_ postings.
+<https://stackoverflow.com/questions/1653970/does-python-have-an-ordered-set>`_
+`stackoverflow.com <https://stackoverflow.com/>`_ postings.
 """
 
 import collections, collections.abc, weakref

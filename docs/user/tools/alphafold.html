@@ -99,6 +99,7 @@ target="_blank">presentations</a> and
 <a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
 target="_blank">videos</a> show modeling with AlphaFold and related analyses.
 See also: 
+<a href="boltz.html"><b>Boltz</b></a>,
 <a href="esmfold.html"><b>ESMFold</b></a>,
 <a href="blastprotein.html"><b>Blast Protein</b></a>,
 <a href="modeller.html"><b>Modeller Comparative</b></a>,
@@ -569,6 +570,10 @@ can be shown with <b>AlphaFold Error Plot</b>, which can be
 opened from the <b>Structure Prediction</b>
 section of the <b>Tools</b> menu and manipulated like other panels
 (<a href="../window.html#panels">more...</a>).
+PAE and other pairwise metrics associated with
+<a href="https://modelarchive.org/" target="_blank">ModelArchive</a> entries
+can also be plotted
+(see <a href="../commands/modelcif.html#pae"><b>modelcif pae</b></a>).
 See also:
 the <a href="https://www.rbvi.ucsf.edu/chimerax/data/pae-apr2022/pae.html"
 target="_blank">AlphaFold Error Estimates example</a> and
@@ -580,14 +585,17 @@ atomic models associates it with the plot. This association allows
 coloring the structure as described below, and for selections
 on the plot to highlight the corresponding parts of the structure.
 </p><p>
-The PAE values can be either:
+The PAE values can be:
 </p>
 <ul>
 <li>fetched from the <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a>
 by giving the UniProt name or accession number of an entry in that database
-<br>&ndash; or &ndash;
-<li>read from a json or pkl file previously output by AlphaFold
+<li>read from a file in one of the following formats:
+json, pkl, npy (from 
+<a href="https://www.chaidiscovery.com/blog/introducing-chai-1"
+target="_blank">Chai-1</a>), or npz (from
+<a href="https://jclinic.mit.edu/boltz-1/" target="_blank">Boltz-1</a>)
 </ul>
 <p>
 The PAE plot can also be shown by clicking the <b>Error plot</b> button
@@ -693,5 +701,5 @@ Error (&Aring;)</b>&rdquo;) would need to be created separately with
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2024</address>
+May 2025</address>
 </body></html>

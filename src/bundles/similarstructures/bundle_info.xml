@@ -1,0 +1,56 @@
+<BundleInfo name="ChimeraX-SimilarStructures" version="1.0.1"
+	    package="chimerax.similarstructures"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Visualize similar structures found using Foldseek, MMseqs2 or BLAST</Synopsis>
+  <Description>Visualize similar structures found using Foldseek, MMseqs2 or BLAST</Description>
+
+  <Categories>
+    <Category name="Structure Comparison"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="Similar Structures" synopsis="Similar structures from database searches"
+	      category="Structure Analysis" suffixes=".sms" nicknames="sms"
+	      reference_url="https://www.rbvi.ucsf.edu/chimerax/data/simstruct-doc-oct2024/simstruct.html#smsfile" />
+    <!-- Provider name="Foldseek" synopsis="Foldseek structure similarity hits" category="Structure Analysis"
+		suffixes=".m8" nicknames="foldseek"
+		reference_url="https://github.com/steineggerlab/foldseek?tab=readme-ov-file#output-search" -->
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="Similar Structures" want_path="true" />
+    <!-- Provider name="Foldseek" want_path="true" -->
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: foldseek :: Structure Comparison :: Search PDB or AlphaFold databases for protein structures matching the fold of a specified structure</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: similarstructures open :: Structure Comparison :: Open and align a hit from a similar structure search</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: similarstructures close :: Structure Comparison :: Close a table of similar structures</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: similarstructures list :: Structure Comparison :: List the names of open sets of similar structures</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: similarstructures sequences :: Structure Comparison :: Show an image of all aligned sequences from a similar structure search, one sequence per image row</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: similarstructures traces :: Structure Comparison :: Show backbone traces of similar structure hits aligned to query structure</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: similarstructures cluster :: Structure Comparison :: Show plot of similar structure backbone conformation clusters</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: similarstructures ligands :: Structure Comparison :: Create model of similar structure ligands aligned to query structure</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: similarstructures scrollto :: Structure Comparison :: Show table row for a similar structure hit</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: similarstructures pairing :: Structure Comparison :: Show pseudobonds between paired similar structure hit and query residues</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: similarstructures seqalign :: Structure Comparison :: Show sequence alignement for one similar structure hit</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: similarstructures fetchcoords :: Structure Comparison :: Fetch C-alpha coordinates of similar structure hits for clustering and showing backbone traces</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: sequence search :: Sequence :: Search for similar sequences using MMseqs2 at PDB</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: similarstructures blast :: Sequence :: Search for similar sequences using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: similarstructures fromblast :: Structure Comparison :: Convert blast results to a similar structures table</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Similar Structures :: Structure Analysis :: Search PDB or AlphaFold databases for protein structures with similar fold or sequence to a specified structure</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Foldseek :: Structure Analysis :: Search PDB or AlphaFold databases for protein structures matching the fold of a specified structure</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

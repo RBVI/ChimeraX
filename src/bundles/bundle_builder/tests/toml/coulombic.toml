@@ -1,0 +1,61 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Core ~=1.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-coulombic"
+version = "1.4.4"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Compute/show electrostatic potential"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-AddCharge ~=1.1",
+  "ChimeraX-Arrays ~=1.0",
+  "ChimeraX-Atomic ~=1.14",
+  "ChimeraX-ColorKey ~=1.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """Compute and electrostatic potential according to Coulomb's law and either create a corresponding volume (three-dimensional grid) or color a surface."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Surface/Binding Analysis"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.command.coulombic]
+category = "Surface/Binding Analysis"
+description = "Color surface based on electrostatics"
+
+[tool.chimerax.extension._esp]
+sources = [
+  "esp_cpp/esp.cpp",
+]
+libraries = [
+  "arrays",
+]
+include-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.arrays",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]

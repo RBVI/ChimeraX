@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -95,6 +95,7 @@ class ToolbarTool(ToolInstance):
         self._build_ui()
         self.tool_window.fill_context_menu = self.fill_context_menu
         session.triggers.add_handler('set mouse mode', self._set_right_mouse_button)
+        session.ui.triggers.add_handler('color scheme changed', self._color_scheme_changed)
 
     def _build_ui(self):
         from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
@@ -111,6 +112,20 @@ class ToolbarTool(ToolInstance):
         self._build_tabs()
         self.tool_window.ui_area.setLayout(layout)
         self.tool_window.manage(self.PLACEMENT)
+
+    def _color_scheme_changed(self, *_):
+        from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
+        self.ttb.clear_all()
+        if 1:
+            # don't know why, but need to use new toolbar
+            layout = self.tool_window.ui_area.layout()
+            layout.removeWidget(self.ttb)
+            self.ttb.setParent(None)
+            self.ttb = TabbedToolbar(
+                self.tool_window.ui_area, show_section_titles=_settings.show_section_labels,
+                show_button_titles=_settings.show_button_labels)
+            layout.addWidget(self.ttb)
+        self._build_tabs()
 
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
@@ -172,7 +187,7 @@ class ToolbarTool(ToolInstance):
                     "Home", section, display_name, callback,
                     icon, description, **kw)
 
-    def _build_tabs(self):
+    def _build_tabs(self, *_):
         # add buttons from toolbar manager
         from Qt.QtGui import QIcon
         from .manager import fake_mouse_mode_bundle_info

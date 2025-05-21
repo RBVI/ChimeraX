@@ -52,6 +52,7 @@ a specified sequence or sequence pattern, use
 <a href="../menu.html#selectseq"><b>Select... Sequence</b></a> in the menu
 or the <a href="../commands/select.html#new"><b>select</b></a> command.
 See also:
+<a href="profilegrid.html"><b>Profile Grid</b></a>,
 <a href="modeller.html"><b>Modeller Comparative</b></a>,
 <a href="modelloops.html"><b>Model Loops</b></a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
@@ -84,6 +85,16 @@ Other tools or commands may generate new sequence alignments
 results</a>, <a href="matchmaker.html"><b>Matchmaker</b></a>,
 <a href="../commands/sequence.html#align">sequence realignment</a>).
 </p><p>
+For alignments with very large numbers of sequences,
+it may be preferable to use <a href="profilegrid.html"><b>Profile Grid</b></a>
+instead of the <b>Sequence Viewer</b>.
+The size threshold for deciding which viewer to use can be adjusted in the
+<a href="../preferences.html#sequences"><b>Sequences</b> preferences</a>,
+although it can be overriden with the
+<a href="../commands/open.html"><b>open</b></a> command
+<a href="../commands/open.html#viewer"><b>viewer</b></a> option
+(<i>e.g.</i>, <a href="../commands/open.html#viewer"><b>viewer grid</b></a>
+indicates using <b>Profile Grid</b> regardless of the alignment size).
 Multiple <b>Sequence Viewer</b> windows can be shown at the same time, 
 and they can be manipulated like other panels in ChimeraX 
 (<a href="../window.html#panels">more...</a>).
@@ -91,11 +102,12 @@ and they can be manipulated like other panels in ChimeraX
 
 <blockquote><b>
 <a href="#context">Context Menu</a>
-<br><a href="#headers">Headers</a>
+<br><a href="#headers">Headers and Residue Attributes</a>
 <br><a href="#regions">Regions</a>
 <br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#regionbrowser">Region Browser</a>
 <br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#uniprot">UniProt Sequence Features</a>
 <br><a href="#association">Sequence-Structure Association</a>
+<br><a href="#superposition">Structure Superposition</a>
 <br><a href="#settings">Settings</a>
 </b></blockquote>
 
@@ -148,6 +160,7 @@ even if they form disjoint segments
     <li><b>in new window</b>
     <li><b>in this window</b> &ndash; replace existing alignment
     </ul>
+  <li><b>Rename Sequence...</b> change the name of a sequence
   </ul>
 <li><b>Structure</b>
   <ul>
@@ -159,6 +172,15 @@ even if they form disjoint segments
 to all residues <a href="#association">associated</a> 
 with the same column(s) of the sequence alignment. See also:
 <a href="../commands/sequence.html#expandsel"><b>sequence expandsel</b></a>
+  <li><b>Select by Column Identity</b> 
+&ndash; <a href="../selection.html">select</a> residues associated
+with alignment columns that have the specified percentage 
+(100%, <100%, &ge;50%, or <50%)
+of the most prevalent nongap character in that column;
+see also <a href="#headers">residue attributes</a>
+  <li><b>Match...</b> superimpose structures based on the alignment 
+of their <a href="#association">associated</a> sequences
+(<a href="#superposition">details...</a>)
   <li><b>Update Chain Sequence...</b> show dialog for updating structure
 metadata with the <a href="#association">associated</a> sequence(s);
 this is useful for adding full sequence information to structures
@@ -184,7 +206,10 @@ information. See also:
   <a href="#settings-headers"><b>Headers</b> settings</a>
   <li><b>Save</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
   [choice of available headers]
-  &ndash; save header information to file
+  &ndash; save header information to file.
+Headers are saved to a simple text format that lists the alignment positions
+and values. See also:
+<a href="../commands/sequence.html#header"><b>sequence header</b></a>
   </ul>
 <li><b>Numberings</b>
 &ndash; which sequence numberings to display, if any
@@ -246,7 +271,7 @@ preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
 <p class="nav">
 [<a href="#top">back to top: Sequence Viewer</a>]
 </p>
-<h3>Headers</h3>
+<h3>Headers and Residue Attributes</h3>
 <p>
 Sequence <b><i>headers</i></b> are rows of information above the sequences,
 such as a <b>Consensus</b> sequence, <b>Conservation</b> histogram, 
@@ -277,6 +302,15 @@ target="_blank">Coloring by Sequence Conservation</a>.
 See also the video
 <a href="https://youtu.be/XaTpB-UIxnU" target="_blank">Coloring Aligned
 Proteins by C&alpha; RMSD</a>.
+</p><p>
+A <a href="../attributes.html#residue">seq_identity</a> residue attribute is
+also created automatically (regardless of headers) when a structure is 
+<a href="#association">associated</a> with an alignment of at least two
+sequences. It is the percentage of a column that contains the most common
+nongap character in that column, and it does not depend on the type
+of the <a href="#association">associated</a> residue(s).
+See also: <a href="../commands/sequence.html#refreshAttrs"><b>sequence 
+refreshAttrs</b></a>
 </p>
 
 <a name="regions"></a>
@@ -320,8 +354,8 @@ only the highest is responsive to clicks.
 </p>
 
 <table class="clRight">
-<tr><td><img class="outline" src="regionbrowser.png"
-alt="apoe_human regions" width="350px"></td></tr>
+<tr><td><a href="regionbrowser.png"><img class="outline" src="regionbrowser.png"
+alt="apoe_human regions" width="350px" title="click to enlarge..."></td></tr>
 </table>
 <a name="regionbrowser"></a>
 <p><a href="#regions" class="nounder"><b>&larr;</b></a>
@@ -372,6 +406,9 @@ structure residues).
 &ndash; position in alignment numbering of the first residue in the region 
 <li><b>End</b> (individual-sequence regions only)
 &ndash; position in alignment numbering of the last residue in the region 
+<li><b>Details</b> (individual-sequence regions only)
+&ndash; additional information about the region from
+<a href="#uniprot">UniProt sequence features</a>
 </ul>
 <a name="chosenregions">
 Clicking a row in the <b>Region Browser</b> highlights the line
@@ -550,7 +587,70 @@ are shown as the <a href="#regions">region</a> named
 <font style="color:black; background:lightgreen;padding:1px 3px">
 <b>ChimeraX&nbsp;selection</b></font>
 (default, see <a href="#settings-regions"><b>Regions</b> settings</a>)
+<li>various <a href="../attributes.html">attributes</a> may be assigned
+to the structure residues as described under
+<a href="#headers"><b>Headers and Residue Attributes</b></a>
 </ul>
+
+<a name="superposition"></a>
+<p class="nav">
+[<a href="#top">back to top: Sequence Viewer</a>]
+</p>
+<h3>Structure Superposition</h3>
+<p>
+<b>Structure... Match</b></a> in the 
+<a href="#context"><b>Sequence Viewer</b> context menu</a> 
+allows structures to be superimposed based on
+the alignment of their <a href="#association">associated</a> sequences.
+The <b>Reference chain</b> should be chosen from the menu on the left,
+and one or more <b>Match chain(s)</b> chosen from the list on the right.
+Residues in each match chain are paired with
+the aligned (in the sequence alignment) residues of the reference chain.
+If both chains are <a href="#association">associated</a>
+with the same sequence, the correspondence is even more obvious.
+<a name="onepoint"></a>
+Fitting uses one point per residue:  CA in
+amino acid residues and C4' in nucleic acid residues.
+If a nucleic acid residue lacks a C4' atom
+(some lower-resolution structures are P traces),
+its P atom will be paired with the P atom of the aligned residue.
+The number of atom pairs fitted and the resulting RMSD are reported in the
+<a href="log.html"><b>Log</b></a> and the status line at the bottom of the 
+<a href="../window.html">ChimeraX window</a>.
+</p><p>
+<b>Only match residues in columns with at least [<i>N</i>]% identity</b>
+&ndash; whether the least-squares fit should use only the alignment columns
+with at least the specified percent identity (default <b>80</b>%)
+</p><p>
+<b>Iterate by pruning long atom pairs until no pair exceeds [<i>x</i>]
+angstroms</b>
+refers to an iterative fitting procedure: in each cycle,
+atom pairs are removed from the match list and the remaining
+pairs are fitted, until no matched pair is
+more than <i>x</i> apart (default <b>2.0</b> &Aring;).
+The atom pairs removed are either the 10% farthest apart of all pairs
+or the 50% farthest apart of all pairs exceeding the cutoff, whichever
+is the lesser number of pairs.
+The result is that the best-matching &ldquo;core&rdquo; regions are maximally
+superimposed; conformationally dissimilar regions such as flexible
+loops are not included in the final fit, even though they may be aligned
+in the sequence alignment.
+</p><p>
+<b>Match active region only</b> &ndash; whether the fit should only use
+columns in the <a href="#active">active region</a> of the alignment
+</p><p>
+<b>Create region showing matched residues</b>
+&ndash; whether to create a <a href="#regions">region</a>
+named <b>matched residues</b> containing only the residues
+paired in the final fit
+</p><p>
+<b>Apply</b> superimposes the structures without dismissing the dialog,
+whereas <b>OK</b> also dismisses the dialog.
+<b>Help</b> opens this page in a browser window.
+See also: 
+<a href="../commands/sequence.html#match"><b>sequence match</b></a>,
+<a href="matchmaker.html"><b>Matchmaker</b></a>
+</p>
 
 <a name="settings"></a>
 <p class="nav">
@@ -759,6 +859,12 @@ When more than one chain per model is <a href="#association">associated</a>
 with the same alignment, the RMSD
 calculation uses only the chain that gives the lowest overall RMSD.
 </p>
+<li><b>File Markup [<i>Name</i>]</b>
+(this option will be listed for each GC header read from Stockholm format
+or a &ldquo;consensus&rdquo; sequence, if any, read from MSF)
+  <ul>
+  <li><b>Show initially</b> (initial default <b>on</b>)
+  </ul>
 </ul>
 
 <a name="settings-regions"></a>
@@ -852,5 +958,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2024</address>
+April 2025</address>
 </body></html>

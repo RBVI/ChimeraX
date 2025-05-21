@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -43,6 +43,8 @@ class RegistrationUI(HtmlToolInstance):
                        "through %s.</p>" % expiration.strftime("%x"))
         else:
             exp_msg = "<p>Your copy of ChimeraX is unregistered.</p>"
+        dark_css = self.session.ui.dark_css()
+        html = html.replace("DARK_CSS", dark_css)
         html = html.replace("EXPIRATION_PLACEHOLDER", exp_msg)
         html = html.replace("RESEARCH_PLACEHOLDER",
                             self._check_list("research", ResearchAreas, True))

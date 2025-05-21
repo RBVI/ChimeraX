@@ -4,7 +4,7 @@
 # Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
-# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
 # This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
@@ -3199,7 +3199,13 @@ class Texture:
         '''
         # PyOpenGL 3.1.5 leaks memory if data not contiguous, PyOpenGL github issue #47.
         d = data if data.flags['C_CONTIGUOUS'] else data.copy()
-        self.data = d
+        # OpenGL doesn't support float64 textures so if for some reason that's the data type
+        # we end up with truncate it to float32
+        from numpy import float64, float32 
+        if d.dtype == float64:
+            self.data = d.astype(float32)
+        else:
+            self.data = d
         if now:
             self.fill_opengl_texture()
 

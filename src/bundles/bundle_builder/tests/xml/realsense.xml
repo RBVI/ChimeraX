@@ -1,0 +1,38 @@
+<BundleInfo name="ChimeraX-RealSense" version="1.9"
+	    package="chimerax.realsense"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Combine Intel RealSense camera with graphics</Synopsis>
+  <Description>Produce mixed reality videos combining Intel RealSense
+  depth sensing camera video with rendered graphics.</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <CModule name="_depthvideo">
+    <SourceFile>_depthvideo/denoise.cpp</SourceFile>
+    <Library>arrays</Library>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
+    <Dependency name="ChimeraX-Vive" version="~=1.1"/>
+    <Dependency name="pyrealsense2" version=">=2"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: realsense :: General :: Show Intel RealSense camera video</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: device realsense :: General :: Show Intel RealSense camera video</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

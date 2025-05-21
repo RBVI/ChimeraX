@@ -1,0 +1,60 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=CURRENT_BUNDLE_BUILDER_VERSION",
+  "ChimeraX-AtomicLibrary ~=14.0",
+  "ChimeraX-Core ~=1.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-AtomSearch"
+version = "2.0.1"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "3D atom search"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-AtomicLibrary ~=14.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """Quickly search 3D space for atom within a certain distance of another atom or a xyz point."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+module-name-override = "atom_search"
+categories = ["Structure Analysis"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.extra-files]
+"src/" = [
+  "search_cpp/ast.pyx",
+]
+
+[tool.chimerax.extension.ast]
+sources = [
+  "search_cpp/ast.pyx",
+]
+libraries = [
+  "atomstruct",
+]
+include-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.core",
+]
+library-modules = [
+  "chimerax.atomic_lib",
+  "chimerax.core",
+]
+include-dirs = [
+  "src/include",
+]
+library-dirs = [
+  "src/lib",
+]
