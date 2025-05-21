@@ -27,7 +27,7 @@ style_attrs = list(builtin_presets["simple"].keys())
 
 class AnisoTool(ToolInstance):
 
-    #help = "help:user/tools/thermalellipsoids.html"
+    help = "help:user/tools/thermalellipsoids.html"
 
     NO_PRESET_TEXT = "no preset"
 
