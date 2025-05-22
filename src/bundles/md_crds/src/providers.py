@@ -14,6 +14,7 @@
 def sasa(session, mgr, **kw):
     s = kw['structure']
     atoms = kw['atoms']
+    print("Computing SASAs for %d atoms" % len(atoms))
     categories = set(atoms.structure_categories)
     from chimerax.atomic import Atoms
     full_atom_set = Atoms([a for a in s.atoms if a.structure_category in categories])
