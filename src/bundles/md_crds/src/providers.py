@@ -14,11 +14,12 @@
 def sasa(session, mgr, **kw):
     s = kw['structure']
     atoms = kw['atoms']
+    print("Computing SASAs for %d atoms" % len(atoms))
     categories = set(atoms.structure_categories)
     from chimerax.atomic import Atoms
     full_atom_set = Atoms([a for a in s.atoms if a.structure_category in categories])
     from math import log2
-    status_frequency = min(1, 1000 / int(min(1, log2(len(full_atom_set)))))
+    status_frequency = max(1, 250000 // len(full_atom_set))
     cur_cs_id = s.active_coordset_id
     values = {}
     # Emulate the behavior of chimerax.surface.measure_sasacmd.measure_sasa, but without the logging
