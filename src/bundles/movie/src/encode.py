@@ -46,8 +46,7 @@ class ffmpeg_encoder:
                 ffmpeg_cmd = 'ffmpeg'
         if not os.path.isabs(ffmpeg_cmd):
             import subprocess
-            import sys
-            if sys.platform == "win32" or subprocess.run(["which", "ffmpeg"]).returncode:
+            if subprocess.run(["which", "ffmpeg"]).returncode:
                 from chimerax import app_bin_dir
                 path_dirs = os.environ.get('PATH', None)
                 if path_dirs is None:
@@ -149,7 +148,7 @@ class ffmpeg_encoder:
             if os.path.exists(pto):
                 os.remove(pto)
             copy(pat % (n-1-f), pto)
-
+            
     def remove_backwards_frames(self):
 
         if hasattr(self, 'loop'):
@@ -157,7 +156,7 @@ class ffmpeg_encoder:
             pat, n = self.loop
             for f in range(n):
                 os.remove(pat % (n+f))
-
+            
     def _parseOutput(self, out_line):
         ## frame=   36 q=2.0 Lsize=      28kB time=1.4 bitrate= 163.8kbits/s
         if out_line[0:6] == "frame=":
