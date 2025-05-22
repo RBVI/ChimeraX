@@ -129,7 +129,7 @@ jobs:
           export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g')
           echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
       - name: Upload ChimeraX (Candidate)
-        if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'techpreview' }}
+        if: ${{ inputs.release_type == 'candidate' }}
         uses: nick-fields/retry@v3
         with:
           # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
