@@ -64,8 +64,14 @@ def fill_context_menu(menu, parent_tool_window, structure):
     plot_action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure: _show_plot_dialog(tw, s))
 
 class PlotDialog:
+    exclude_interface_text = {
+        "solution": "solvent and non-metal ions",
+        "metals": "metal ions"
+    }
+
     def __init__(self, plot_window, structure):
         self.tool_window = tw = plot_window
+        tw.help = "help:user/commands/coordset.html#slider"
         def cleanup(pd=self):
             inst = pd.tool_window.tool_instance
             del _md_tool_windows[inst]["plot"]
@@ -207,10 +213,11 @@ class PlotDialog:
         if excludes:
             provider_widget_dict = self._provider_widgets.setdefault(provider_name, {})
             exclude_dict = provider_widget_dict["excludes"] = {}
-            for i, exclude in enumerate(excludes):
-                exclude_dict[exclude] = chkbut = QCheckBox("Ignore %s" % exclude)
-                chkbut.setChecked(True)
-                pc_layout.addWidget(chkbut, 2+i, 0, 1, 2, alignment=Qt.AlignCenter)
+            for i, exclude_info in enumerate(excludes.items()):
+                exclude, default = exclude_info
+                layout_widget, value_widget = self._make_exclude_widget(exclude, default)
+                exclude_dict[exclude] = value_widget
+                pc_layout.addWidget(layout_widget, 2+i, 0, 1, 2, alignment=Qt.AlignCenter)
 
         delete_control_area = QWidget()
         area_layout.addWidget(delete_control_area)
@@ -224,6 +231,31 @@ class PlotDialog:
         dc_layout.addWidget(QLabel(" chosen %s" % plural_of(ui_name)), alignment=Qt.AlignLeft)
 
         return buttons_area
+
+    def _make_exclude_widget(self, kind, default):
+        kind_text = self.exclude_interface_text.get(kind, kind)
+        possible = self.mgr.exclude_info[kind]
+        if possible == self.mgr.bools:
+            # check button
+            layout_widget = value_widget = QCheckBox("Ignore " + kind_text)
+            value_widget.setChecked(eval(default.capitalize()))
+        else:
+            # popup menu
+            layout_widget = QWidget()
+            layout = QHBoxLayout()
+            layout.setSpacing(0)
+            layout.setContentsMargins(0,0,0,0)
+            layout_widget.setLayout(layout)
+            layout.addWidget(QLabel("Ignore " + kind_text +": "))
+            value_widget = QPushButton(default)
+            menu = QMenu(value_widget)
+            for value in self.mgr.exclude_info[kind]:
+                menu.addAction(value)
+            menu.triggered.connect(lambda act, but=value_widget: but.setText(act.text()))
+            value_widget.setMenu(menu)
+            layout.addWidget(value_widget)
+
+        return layout_widget, value_widget
 
     def _make_table(self, provider_name):
         from chimerax.ui.widgets import ItemTable
@@ -281,14 +313,13 @@ class PlotDialog:
         if expected_sel == 0:
             if not sel_atoms:
                 sel_atoms = self.structure.atoms
-            exclude_widgets = self._provider_widgets.get("excludes", {})
-            for struct_cat, chkbox in exclude_widgets.items():
-                if chkbox.isChecked():
-                    sel_atoms = sel_atoms.filter(sel_atoms.structure_categories != struct_cat)
+            exclude_widgets = self._provider_widgets[provider_name].get("excludes", {})
+            sel_atoms = self._process_exclude_widgets(sel_atoms, exclude_widgets)
             if not sel_atoms:
                 from chimerax.core.commands import commas
-                return tool_user_error("No atoms remain after removing %s" % commas(exclude_widgets.keys(),
-                    conjunction="and"))
+                return tool_user_error("No atoms remain after removing %s" %
+                    commas([self.exclude_interface.get(kind, kind) for kind in self.mgr.exclude_info.keys()],
+                        conjunction="and"))
         elif len(sel_atoms) != expected_sel:
             return tool_user_error("Plotting %s requires exactly %d selected atoms in the structure;"
                 " %d are currently selected" % (plural_of(ui_name), expected_sel, len(sel_atoms)))
@@ -299,6 +330,39 @@ class PlotDialog:
         except PlotValueError as e:
             return tool_user_error("Cannot plot %s for selected atoms: %s" % (ui_name, str(e)))
         self._update_plot(provider_name)
+
+    def _process_exclude_widgets(self, sel_atoms, exclude_widgets):
+        for kind, value_widget in exclude_widgets.items():
+            if self.mgr.exclude_info[kind] == self.mgr.bools:
+                val = value_widget.isChecked()
+            else:
+                val_text = value_widget.text()
+                if val_text in self.mgr.bools:
+                    val = eval(val_text.capitalize())
+                else:
+                    val = val_text
+            if val is False:
+                continue
+            from numpy import logical_not, logical_and
+            if kind == "solution":
+                sel_atoms = sel_atoms.filter(sel_atoms.structure_categories != "solvent")
+                ions = sel_atoms.structure_categories == "ions"
+                metals = sel_atoms.elements.is_metal
+                non_metal_ions = logical_and(ions, logical_not(metals))
+                sel_atom = sel_atoms.filter(logical_not(non_metal_ions))
+            elif kind == "hydrogens":
+                sel_atoms = sel_atoms.filter(sel_atoms.elements.numbers > 1)
+            elif kind == "ligands":
+                sel_atoms = sel_atoms.filter(sel_atoms.structure_categories != "ligand")
+            elif kind == "metals":
+                if val == "alkali":
+                    metals = sel_atoms.elements.is_alkali_metal
+                else:
+                    metals = sel_atoms.elements.is_metal
+                sel_atoms = sel_atoms.filter(logical_not(metals))
+            else:
+                raise ValueError("Unknown kind of atom for 'exclude': %s" % kind)
+        return sel_atoms
 
     def _update_plot(self, provider_name):
         stack = self._plot_stacks[provider_name]
