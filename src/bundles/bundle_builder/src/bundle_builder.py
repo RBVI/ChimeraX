@@ -2,6 +2,7 @@
 
 # Force import in a particular order since both Cython and
 # setuptools patch distutils, and we want Cython to win
+import re
 import setuptools
 import sys
 import sysconfig
@@ -427,16 +428,27 @@ class BundleBuilder:
             # ChimeraXCore *should* always be present
             return
         from packaging.requirements import Requirement
+        from packaging.version import parse
+        from importlib.metadata import version
 
         for e in self._get_elements(deps, "Dependency"):
             pkg = e.get("name", "")
             ver = e.get("version", "")
-            req = "%s %s" % (pkg, ver)
+            req_str = "%s %s" % (pkg, ver)
             try:
-                Requirement(req)
+                req = Requirement(req_str)
             except ValueError:
-                raise ValueError("Bad version specifier (see PEP 440): %r" % req)
-            self.dependencies.append(req)
+                raise ValueError("Bad version specifier (see PEP 440): %r" % req_str)
+
+            installed_version = parse(version(req.name))
+            if re.match(r"[Cc]himera[Xx]-[Cc]ore", req.name):
+                # Always accept prereleases for the core for developers building
+                # bundles
+                req.specifier.prereleases = True
+            if installed_version in req.specifier:
+                self.dependencies.append(req_str)
+            else:
+                raise ValueError("Incompatible version for %s: %s (installed: %s)" % (pkg, req_str, str(installed_version)))
 
     def _get_initializations(self, bi):
         self.initializations = {}

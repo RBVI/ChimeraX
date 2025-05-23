@@ -67,9 +67,11 @@ import warnings
 
 from Cython.Build import cythonize
 
-from packaging.version import Version
+from packaging.version import Version, parse
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
+from importlib.metadata import version
+
 
 from setuptools import Extension, find_packages
 
@@ -254,9 +256,20 @@ class Bundle:
         self.dependencies = []
         for req in dependencies:
             try:
-                self.dependencies.append(str(Requirement(req)))
+                req_ = Requirement(req)
+                self.dependencies.append(req_)
             except ValueError:
                 raise ValueError("Bad version specifier (see PEP 440): %r" % req)
+
+            installed_version = parse(version(req_.name))
+            if re.match(r"[Cc]himera[Xx]-[Cc]ore", req_.name):
+                # Always accept prereleases for the core for developers building
+                # bundles
+                req_.specifier.prereleases = True
+            if installed_version in req_.specifier:
+                self.dependencies.append(req)
+            else:
+                raise ValueError("Incompatible version for %s (needed: %s, installed: %s)" % (req_.name, req_.specifier, str(installed_version)))
 
         self.requires_python = project_data.get("requires-python", ">=3.7")
 
