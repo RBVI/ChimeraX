@@ -94,6 +94,7 @@ def get_openmm_lib():
 
 
 openmm.get_lib = get_openmm_lib
+openmm.get_include = get_openmm_lib
 
 # TODO Fact check
 # The compile process is initiated by setuptools and handled
