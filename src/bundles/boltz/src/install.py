@@ -253,7 +253,9 @@ class log_subprocess_output:
     def _log_queued_lines(self, *trigger_args):
         while not self._queue.empty():
             line = self._queue.get()
-            self._session.logger.info(line.decode('utf-8'))
+            import locale
+            stdout_encoding = locale.getpreferredencoding()
+            self._session.logger.info(line.decode(stdout_encoding, errors = 'ignore'))
         if not self._thread.is_alive():
             self._finished()
             return 'delete handler'
