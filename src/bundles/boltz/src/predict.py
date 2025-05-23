@@ -443,11 +443,13 @@ class BoltzRun:
 
         p = self._process
         success = (p.returncode == 0)
+        import locale
+        stdout_encoding = locale.getpreferredencoding()
         if success:
             from time import time
             t = time() - self._start_time
             self._session.logger.info(f'Boltz prediction completed in {"%.0f" % t} seconds')
-            stdout = stdout.decode("utf8")
+            stdout = stdout.decode(stdout_encoding, errors = 'ignore')
             if self._prediction_ran_out_of_memory(stdout):
               msg = ('The Boltz prediction ran out of memory.  The memory use depends on the'
                      ' number of protein and nucleic acid residues plus the number of ligand'
@@ -459,8 +461,8 @@ class BoltzRun:
                 self._open_predictions()
             self._add_to_msa_cache()
         else:
-            stdout = stdout.decode("utf8")
-            stderr = stderr.decode('utf8')
+            stdout = stdout.decode(stdout_encoding, errors = 'ignore')
+            stderr = stderr.decode(stdout_encoding, errors = 'ignore')
             if 'No supported gpu backend found' in stderr:
                 msg = ('Attempted to run Boltz on the GPU but no supported GPU device could be found.'
                        ' To avoid this error specify the compute device as "cpu" in the ChimeraX Boltz'
