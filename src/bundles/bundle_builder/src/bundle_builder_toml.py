@@ -67,9 +67,11 @@ import warnings
 
 from Cython.Build import cythonize
 
-from packaging.version import Version
+from packaging.version import Version, parse
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
+from importlib.metadata import version
+
 
 from setuptools import Extension, find_packages
 
@@ -85,6 +87,16 @@ from setuptools.build_meta import (
 # TODO: Verify
 # Always import this because it changes the behavior of setuptools
 from numpy import get_include as get_numpy_include_dirs
+
+import openmm
+
+
+def get_openmm_lib():
+    return openmm.version.openmm_library_path
+
+
+openmm.get_lib = get_openmm_lib
+openmm.get_include = get_openmm_lib
 
 # TODO Fact check
 # The compile process is initiated by setuptools and handled
@@ -155,7 +167,6 @@ def read_toml(file):
 
 
 class Bundle:
-
     def __init__(self, logger, bundle_info):
         self.logger = logger
         self.bundle_info = bundle_info
@@ -193,7 +204,7 @@ class Bundle:
             else:
                 # Binary files are tied to the current version of Python
                 self.python_requirement = SpecifierSet(
-                    f'=={".".join(str(num) for num in sys.version_info[:2])}.*'
+                    f"=={'.'.join(str(num) for num in sys.version_info[:2])}.*"
                 )
         else:
             self.python_requirement = project_data.get("requires-python", None)
@@ -254,9 +265,20 @@ class Bundle:
         self.dependencies = []
         for req in dependencies:
             try:
-                self.dependencies.append(str(Requirement(req)))
+                req_ = Requirement(req)
+                self.dependencies.append(req_)
             except ValueError:
                 raise ValueError("Bad version specifier (see PEP 440): %r" % req)
+
+            installed_version = parse(version(req_.name))
+            if re.match(r"[Cc]himera[Xx]-[Cc]ore", req_.name):
+                # Always accept prereleases for the core for developers building
+                # bundles
+                req_.specifier.prereleases = True
+            if installed_version in req_.specifier:
+                self.dependencies.append(req)
+            else:
+                raise ValueError("Incompatible version for %s (needed: %s, installed: %s)" % (req_.name, req_.specifier, str(installed_version)))
 
         self.requires_python = project_data.get("requires-python", ">=3.7")
 
@@ -388,15 +410,15 @@ class Bundle:
                 self.initializations.append(Initialization(entry_type, _bundles))
         if "extension" in chimerax_data:
             for name, attrs in chimerax_data["extension"].items():
-                attrs['limited-api'] = self.limited_api
+                attrs["limited-api"] = self.limited_api
                 self.c_modules.append(_CModule(name, attrs))
         if "library" in chimerax_data:
             for name, attrs in chimerax_data["library"].items():
-                attrs['limited-api'] = self.limited_api
+                attrs["limited-api"] = self.limited_api
                 self.c_libraries.append(_CLibrary(name, attrs))
         if "executable" in chimerax_data:
             for name, attrs in chimerax_data["executable"].items():
-                attrs['limited-api'] = self.limited_api
+                attrs["limited-api"] = self.limited_api
                 self.c_executables.append(_CExecutable(name, attrs))
 
         # TODO: Finalize
@@ -756,9 +778,7 @@ class Bundle:
             sys.argv = save
             os.chdir(cwd)
             if MySTARTUPINFO:
-                subprocess.STARTUPINFO = (
-                    MySTARTUPINFO._original
-                )  # noqa we don't care this is protected
+                subprocess.STARTUPINFO = MySTARTUPINFO._original  # noqa we don't care this is protected
 
     def _clear_distutils_dir_and_prep_srcdir(self, build_exts=False):
         # HACK: distutils uses a cache to track created directories
@@ -810,8 +830,22 @@ class Bundle:
         ld_path = ":".join(library_dirs)
         old_ldpath = os.environ.get("LD_LIBRARY_PATH", "")
         os.environ["LD_LIBRARY_PATH"] = f"{ld_path}:$LD_LIBRARY_PATH"
-        output = subprocess.check_output([sys.executable, "-m", "auditwheel", "repair", "--plat", tag, "--only-plat", wheel], stderr=subprocess.STDOUT)
-        wheel_name = output.decode().split('\n')[-2].replace("Fixed up wheel written to ", "")
+        output = subprocess.check_output(
+            [
+                sys.executable,
+                "-m",
+                "auditwheel",
+                "repair",
+                "--plat",
+                tag,
+                "--only-plat",
+                wheel,
+            ],
+            stderr=subprocess.STDOUT,
+        )
+        wheel_name = (
+            output.decode().split("\n")[-2].replace("Fixed up wheel written to ", "")
+        )
         if not os.path.exists(wheel_name):
             pass
         os.environ["LD_LIBRARY_PATH"] = old_ldpath
@@ -948,7 +982,7 @@ class _CompiledCode:
         for def_ in defines:
             edef = def_.split("=")
             if len(edef) > 2:
-                raise TypeError("Too many arguments for macro " "definition: %s" % edef)
+                raise TypeError("Too many arguments for macro definition: %s" % edef)
             elif len(edef) == 1:
                 edef.append(None)
             self.add_macro_define(*edef)
@@ -1093,7 +1127,6 @@ class _CompiledCode:
 
 
 class _CModule(_CompiledCode):
-
     def __init__(self, name, attrs):
         self.name = name
         super().__init__(name, attrs)
@@ -1127,7 +1160,7 @@ class _CModule(_CompiledCode):
                 extra_link_args=extra_link_args,
                 sources=self.source_files,
                 py_limited_api=self.limited_api,
-                optional = self.optional
+                optional=self.optional,
             )
         else:
             return None
