@@ -193,13 +193,9 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, gap_only=False, p
             from chimerax.map_data import save_grid_data
             save_grid_data([in_map.data], path.join(temp_dir,'map.mrc'), session)
 
-            # Guessing that like douse, fit_loops ignores the MRC file origin so if it is non-zero
-            # shift the atom coordinates so they align with the origin 0 map.
-            map_0, shift = _fix_map_origin(in_map)
-
             # Save structure to file.
             from chimerax.pdb import save_pdb
-            save_pdb(session, path.join(temp_dir,'model.pdb'), models=[structure], rel_model=map_0)
+            save_pdb(session, path.join(temp_dir,'model.pdb'), models=[structure], rel_model=map)
 
             seqf_path = path.join(temp_dir, "sequences")
             if sequence_file is None:
@@ -218,7 +214,7 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, gap_only=False, p
             # Run phenix.fit_loops
             # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
             # fit_loops runs
-            callback = lambda fit_loops_model, info, *args, session=session, shift=shift, \
+            callback = lambda fit_loops_model, info, *args, session=session, shift=0, \
                 structure=structure, map=in_map, start_res_number=start_res_number, \
                 end_res_number=end_res_number, replace=replace, chain_id=chain_id, d_ref=d: \
                 _process_results(session, fit_loops_model, map, shift, structure, start_res_number, \
@@ -417,23 +413,6 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
         FitLoopsResultsViewer(session, structure if replace else fit_loops_model, info, map)
     else:
         print("Fit loops JSON output:", info)
-
-def _fix_map_origin(map):
-    '''
-    Douse ignores the MRC file origin so if it is non-zero take the
-    atom coordinates relative to the map assuming zero origin.
-    '''
-    if tuple(map.data.origin) != (0,0,0):
-        from chimerax.geometry import translation
-        shift = map.data.origin
-        from chimerax.core.models import Model
-        map_0 = Model('douse shift coords', map.session)
-        map_0.position = map.scene_position * translation(shift)
-    else:
-        shift = None
-        map_0 = map
-    return map_0, shift
-
 
 def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, model_filename, seq_filename,
         positional_args, temp_dir, start_res_number, end_res_number, chain_id, processors, verbose):

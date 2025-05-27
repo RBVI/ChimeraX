@@ -37,6 +37,7 @@ class SimilarStructuresPanel(ToolInstance):
 
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
+        tw.fill_context_menu = self.fill_context_menu
         self.tool_window = tw
         parent = tw.ui_area
 
@@ -276,8 +277,9 @@ class SimilarStructuresPanel(ToolInstance):
             self.session.logger.error(msg)
             return
         hit_rows = results_table.selected		# SimilarStructuresRow instances
+        in_file_history = (len(hit_rows) == 1)
         for hit_row in hit_rows:
-            self.open_hit(hit_row.hit)
+            self.open_hit(hit_row.hit, in_file_history = in_file_history)
         if len(hit_rows) == 0:
             msg = 'Click lines in the structure results table and then press Open.'
             self.session.logger.error(msg)
@@ -291,9 +293,10 @@ class SimilarStructuresPanel(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def open_hit(self, hit):
+    def open_hit(self, hit, in_file_history = True):
         self.results.open_hit(self.session, hit, trim = self.trim,
-                              alignment_cutoff_distance = self.alignment_cutoff_distance)
+                              alignment_cutoff_distance = self.alignment_cutoff_distance,
+                              in_file_history = in_file_history)
 
     # ---------------------------------------------------------------------------
     #
@@ -307,6 +310,15 @@ class SimilarStructuresPanel(ToolInstance):
         item = t.data[row]
         t.selected = [item]
         t.scroll_to(item)
+
+    # ---------------------------------------------------------------------------
+    #
+    def select_table_rows_by_names(self, names):
+        t = self._results_table
+        nset = set(names)
+        items = [t.data[r] for r,hit in enumerate(self.results.hits) if hit['database_full_id'] in nset]
+        t.selected  = items
+        self.session.logger.info(f'Selected rows for {len(names)} hits {", ".join(names)}')
 
     # ---------------------------------------------------------------------------
     #
@@ -387,6 +399,15 @@ class SimilarStructuresPanel(ToolInstance):
         else:
             hits_option = ''
         return hits_option
+
+    # ---------------------------------------------------------------------------
+    #
+    def fill_context_menu(self, menu, x, y):
+        if self._results_table:
+            from Qt.QtGui import QAction
+            act = QAction("Save CSV or TSV File...", parent=menu)
+            act.triggered.connect(lambda *args, tab=self._results_table: tab.write_values())
+            menu.addAction(act)
 
     # ---------------------------------------------------------------------------
     #

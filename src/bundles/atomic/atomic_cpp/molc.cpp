@@ -5453,6 +5453,22 @@ extern "C" EXPORT void set_metadata_entry(void* mols, size_t n, PyObject* key, P
         PyErr_Format(PyExc_ValueError, "Expected key to be a string");
         return;
     }
+    if (values == Py_None) {
+        // remove key from metadata
+        try {
+            std::string cpp_key = string_from_unicode(key);
+            Structure **m = static_cast<Structure **>(mols);
+            for (size_t i = 0; i < n; ++i) {
+                if (m == nullptr)
+                    continue;
+                auto& metadata = m[i]->metadata;
+                metadata.erase(cpp_key);
+            }
+        } catch (...) {
+            molc_error();
+        }
+        return;
+    }
     PyObject* fast_values = PySequence_Fast(values, "Expected values to be a sequence");
     if (fast_values == NULL)
         return;

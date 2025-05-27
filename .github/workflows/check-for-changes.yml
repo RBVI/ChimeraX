@@ -76,7 +76,7 @@ jobs:
           bundle: chimerax.flatpak
           manifest-path: arm-flatpak.yml
           arch: aarch64
-          cache-key: flatpak-builder-arm64-${{ github.sha }}
+          cache-key: flatpak-builder-arm64
           upload-artifact: false
   build-and-test-macos:
     runs-on: macos-latest
