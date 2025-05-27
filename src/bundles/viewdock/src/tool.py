@@ -225,7 +225,24 @@ class ViewDockTool(ToolInstance):
             newly_selected (list): The newly selected structure(s) in the ItemTable.
             newly_deselected (list): The previously selected structure(s) in the ItemTable.
         """
+        self.update_structure_displays(newly_selected)
         self.update_model_description(newly_selected)
+
+    def update_structure_displays(self, newly_selected):
+        """
+        Update the display of the docking structures. The newly selected structures will be shown and all other docking
+        structures will be hidden.
+
+        Args:
+            newly_selected (list): The newly selected structure(s) in the ItemTable.
+        """
+        # Generate arrays for newly selected and the difference
+        newly_selected_array = newly_selected
+        others_array = [s for s in self.structures if s not in newly_selected_array]
+
+        # Call set_visibility to show newly selected and hide others
+        self.set_visibility(newly_selected_array, True)
+        self.set_visibility(others_array, False)
 
     def update_model_description(self, newly_selected):
         """
