@@ -887,14 +887,6 @@ class Bundle:
         sdist = self._check_output(type_="sdist")
         return sdist
 
-    # TODO: Remove when pip can glean metadata from build_editable alone
-    def build_wheel_for_build_editable(self):
-        wheel_name = self.build_wheel()
-        wheel_location = os.path.join(self.path, "dist", wheel_name)
-        # Clean everything that was placed in the source directory as a side effect
-        self._clean_extrafiles()
-        return wheel_location
-
     def build_editable(self, config_settings=None):
         self._remove_libraries()
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
