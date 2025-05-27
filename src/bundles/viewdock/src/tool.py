@@ -208,13 +208,24 @@ class ViewDockTool(ToolInstance):
         self.description_group.setFont(title_font)
 
         self.struct_table.selection_changed.connect(
-            lambda newly_selected, newly_deselected: self.update_model_description(newly_selected)
+            lambda newly_selected, newly_deselected: self.table_selection_changed(newly_selected, newly_deselected)
         )
 
         # Add the group box to the main layout
         self.main_v_layout.addWidget(self.description_group)
         # Select the first structure in the table to display its data in the description box
         self.struct_table.selected = [self.structures[0]]
+
+    def table_selection_changed(self, newly_selected, newly_deselected):
+        """
+        Callback for when the selection in the ItemTable changes. Updates what docking structure is visibla and the
+        description box with the newly selected structure's data.
+
+        Args:
+            newly_selected (list): The newly selected structure(s) in the ItemTable.
+            newly_deselected (list): The previously selected structure(s) in the ItemTable.
+        """
+        self.update_model_description(newly_selected)
 
     def update_model_description(self, newly_selected):
         """
