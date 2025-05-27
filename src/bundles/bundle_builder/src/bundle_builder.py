@@ -435,20 +435,22 @@ class BundleBuilder:
             pkg = e.get("name", "")
             ver = e.get("version", "")
             req_str = "%s %s" % (pkg, ver)
+
             try:
                 req = Requirement(req_str)
             except ValueError:
                 raise ValueError("Bad version specifier (see PEP 440): %r" % req_str)
 
-            installed_version = parse(version(req.name))
-            if re.match(r"[Cc]himera[Xx]-[Cc]ore", req.name):
-                # Always accept prereleases for the core for developers building
-                # bundles
-                req.specifier.prereleases = True
-            if installed_version in req.specifier:
-                self.dependencies.append(req_str)
-            else:
-                raise ValueError("Incompatible version for %s: %s (installed: %s)" % (pkg, req_str, str(installed_version)))
+            if e.get("build", False):
+                installed_version = parse(version(req.name))
+                if re.match(r"[Cc]himera[Xx]-[Cc]ore", req.name):
+                    # Always accept prereleases for the core for developers building
+                    # bundles
+                    req.specifier.prereleases = True
+                if installed_version not in req.specifier:
+                    raise ValueError("Incompatible version for build dependency %s: %s (installed: %s)" % (pkg, req_str, str(installed_version)))
+
+            self.dependencies.append(req_str)
 
     def _get_initializations(self, bi):
         self.initializations = {}
