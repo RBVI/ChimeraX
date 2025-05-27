@@ -500,6 +500,11 @@ class BoltzPredictionGUI(ToolInstance):
             options.append('float16 true')
         if self._samples.value != 1:
             options.append(f'samples {self._samples.value}')
+        from .settings import _boltz_settings
+        settings = _boltz_settings(self.session)
+        if self._install_directory.value != settings.boltz_install_location:
+            from chimerax.core.commands import quote_path_if_necessary
+            options.append(f'installLocation {quote_path_if_necessary(self._install_directory.value)}')
         self._run_prediction(options = ' '.join(options))
 
     # ---------------------------------------------------------------------------
