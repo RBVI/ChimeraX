@@ -76,20 +76,6 @@ class ViewDockTool(ToolInstance):
         """
         Create the top buttons for the tool (HBonds and Clashes).
         """
-        # Add "Show All" button
-        self.show_all_button = QPushButton("Show All")
-        self.show_all_button.clicked.connect(
-            lambda: self.set_visibility(self.structures, True)
-        )
-        self.top_buttons_layout.addWidget(self.show_all_button)
-
-        # Add "Hide All" button
-        self.hide_all_button = QPushButton("Hide All")
-        self.hide_all_button.clicked.connect(
-            lambda: self.set_visibility(self.structures, False)
-        )
-        self.top_buttons_layout.addWidget(self.hide_all_button)
-
         self.hbonds_button = QPushButton("HBonds")
         self.hbonds_button.clicked.connect(
             lambda: self.popup_callback(
