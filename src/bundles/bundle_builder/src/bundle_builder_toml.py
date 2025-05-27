@@ -88,15 +88,16 @@ from setuptools.build_meta import (
 # Always import this because it changes the behavior of setuptools
 from numpy import get_include as get_numpy_include_dirs
 
-import openmm
+try:
+    import openmm
 
+    def get_openmm_lib():
+        return openmm.version.openmm_library_path
 
-def get_openmm_lib():
-    return openmm.version.openmm_library_path
-
-
-openmm.get_lib = get_openmm_lib
-openmm.get_include = get_openmm_lib
+    openmm.get_lib = get_openmm_lib
+    openmm.get_include = get_openmm_lib
+except:
+    pass
 
 # TODO Fact check
 # The compile process is initiated by setuptools and handled
