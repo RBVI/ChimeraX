@@ -145,7 +145,7 @@ class ViewDockTool(ToolInstance):
 
     def table_setup(self):
         """
-        Create the ItemTable for the structures. Add a column for the display with check boxes, a column for the
+        Create the ItemTable for the structures. Add a for the
         structure ID, a column for the Rating with a custom delegate, and columns for each key in the viewdock_data
         attribute of each structure (e.g., Name, Description, Energy Score...). If a structure does not have a key from
         the set, the cell will be empty.
@@ -158,8 +158,7 @@ class ViewDockTool(ToolInstance):
         table_group_layout.addWidget(self.col_display_widget)
         table_group.setLayout(table_group_layout)
 
-        # Fixed columns. Generic based on ChimeraX model attributes.
-        self.display_col = self.struct_table.add_column('Show', lambda s: s.display, data_set=self.set_visibility, format=ItemTable.COL_FORMAT_BOOLEAN)
+        # Fixed columns. Generic based on ChimeraX model attribute(s).
         self.struct_table.add_column('ID', lambda s: s.id_string)
 
         # Custom Rating delegate
@@ -287,11 +286,6 @@ class ViewDockTool(ToolInstance):
         self.handlers.append(self.session.triggers.add_handler(
             REMOVE_MODELS,
             lambda trigger_name, trigger_data: self.remove_models_cb(trigger_name, trigger_data)
-        ))
-        self.handlers.append(self.session.triggers.add_handler(
-            MODEL_DISPLAY_CHANGED,
-            lambda trigger_name, trigger_data: self.struct_table.update_cell(self.display_col, trigger_data)
-            if trigger_data in self.structures else None
         ))
 
     def remove_models_cb(self, trigger_name, trigger_data):
