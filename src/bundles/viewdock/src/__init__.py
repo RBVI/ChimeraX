@@ -96,7 +96,7 @@ def show_docking_file_dialogue(session):
         session.logger.warning("No docking results formats found.")
         return
     from chimerax.open_command import show_open_file_dialog
-    show_open_file_dialog(session, format_names=docking_formats_names)
+    show_open_file_dialog(session, format_names=docking_formats_names, caption="Choose Docking Results File")
 
 
 def open_viewdock_tool(session, structures):
