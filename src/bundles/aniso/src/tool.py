@@ -15,7 +15,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.core.settings import Settings
 from Qt.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QLabel, QButtonGroup, QRadioButton, QWidget
 from Qt.QtWidgets import QPushButton, QScrollArea, QMenu, QCheckBox, QLineEdit, QSpacerItem, QSizePolicy
-from Qt.QtWidgets import QGroupBox
+from Qt.QtWidgets import QGroupBox, QInputDialog
 from Qt.QtGui import QDoubleValidator, QIntValidator
 from Qt.QtCore import Qt
 from chimerax.core.commands import run
@@ -53,9 +53,8 @@ class AnisoTool(ToolInstance):
 
         self.preset_menu_button = pmb = QPushButton()
         preset_menu = QMenu(pmb)
-        preset_menu.triggered.connect(self._preset_menu_cb)
+        preset_menu.aboutToShow.connect(self._populate_preset_menu)
         pmb.setMenu(preset_menu)
-        self._populate_preset_menu()
         preset_model_layout.addWidget(pmb, alignment=Qt.AlignLeft)
         preset_model_layout.addStretch(1)
 
@@ -180,13 +179,44 @@ class AnisoTool(ToolInstance):
         self.structure_button.destroy()
         super().delete()
 
+    def _delete_preset(self):
+        preset_name, okayed = QInputDialog.getItem(self.preset_menu_button,
+            "Delete User Preset", "Preset:", sorted(list(self.settings.custom_presets.keys())), 0, False)
+        if not okayed:
+            return
+        run(self.session, "aniso preset delete " + preset_name)
+        if self.preset_menu_button.text() == preset_name:
+            self.preset_menu_button.setText(self.NO_PRESET_TEXT)
+
     def _populate_preset_menu(self):
         menu = self.preset_menu_button.menu()
         menu.clear()
         for entry in sorted(list(builtin_presets.keys()) + list(self.settings.custom_presets.keys()),
                 key=lambda x: x.casefold()):
-            menu.addAction(entry)
-        #TODO: entries for saving a preset and deleting a custom preset
+            act = menu.addAction(entry)
+            act.triggered.connect(lambda *args, act=act: self._preset_menu_cb(act))
+        menu.addSeparator()
+        act = menu.addAction("Preset from current settings...")
+        act.triggered.connect(lambda *args: self._preset_from_current())
+        act = menu.addAction("Delete user preset...")
+        act.triggered.connect(lambda *args: self._delete_preset())
+        act.setEnabled(bool(self.settings.custom_presets))
+
+    def _preset_from_current(self):
+        s = self.structure_button.value
+        if not s:
+            return tool_user_error("No structure chosen")
+        preset_name, okayed = QInputDialog.getText(self.preset_menu_button,
+            "Save Preset", "Name:", QLineEdit.Normal, "")
+        if not okayed:
+            return
+        preset_name = preset_name.strip()
+        if not preset_name:
+            return tool_user_error("Preset name must not be blank")
+        if preset_name in builtin_presets.keys():
+            return tool_user_error("Cannot use built-in preset name")
+        run(self.session, "aniso preset save " + s.atomspec + " " + preset_name)
+        self.preset_menu_button.setText(preset_name)
 
     def _preset_menu_cb(self, action):
         s = self.structure_button.value
