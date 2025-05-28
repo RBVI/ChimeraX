@@ -1304,6 +1304,7 @@ class AtomicStructure(Structure):
             self._report_assemblies(session)
             self._report_model_info(session)
             self._report_altloc_info(session)
+            self._report_aniso_info(session)
 
     def apply_auto_styling(self, set_lighting = False, style=None):
         explicit_style = style is not None
@@ -1791,6 +1792,13 @@ class AtomicStructure(Structure):
         if num_al_atoms == 0:
             return
         session.logger.info('%d atoms have alternate locations.  Control/examine alternate locations with <b><a href="cxcmd:help help:user/tools/altlocexplorer.html">Altloc Explorer</a></b> [<a href="cxcmd:ui tool show \'Altloc Explorer\'">start&nbsp;tool...</a>] or the <b><a href="cxcmd:help altlocs">altlocs</a></b> command.' % num_al_atoms, is_html=True)
+
+    def _report_aniso_info(self, session):
+        atoms = self.atoms
+        num_aniso_atoms = len(atoms.filter(atoms.has_aniso_u))
+        if num_aniso_atoms == 0:
+            return
+        session.logger.info('%d atoms have anisotropic B-factors.  Depict anisotropic information with <b><a href="cxcmd:help help:user/tools/thermalellipsoids.html">Thermal Ellipsoids</a></b> [<a href="cxcmd:ui tool show \'Thermal Ellipsoids\'">start&nbsp;tool...</a>] or the <b><a href="cxcmd:help aniso">aniso</a></b> command.' % num_aniso_atoms, is_html=True)
 
     def show_info(self):
         from chimerax.core.commands import run, concise_model_spec
