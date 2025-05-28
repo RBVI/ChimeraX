@@ -32,6 +32,7 @@ class _BoltzSettings(Settings):
         'boltz_install_location': '',
         'device': 'default',	# default, cpu, or gpu
         'use_cuda_bfloat16': False,  # Use 16-bit float for predictions with CUDA
+        'use_steering_potentials': False,	# Improves accuracy in boltz-1x and later.
         'samples': 1,		# Number of predicted structures
         'use_msa_cache': True,
     }

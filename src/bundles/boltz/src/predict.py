@@ -25,7 +25,7 @@
 def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
                   protein = [], dna = [], rna = [], ligand_ccd = [], ligand_smiles = [],
                   name = None, results_directory = None, device = None,
-                  samples = 1, recycles = 3, seed = None, float16 = False,
+                  samples = 1, recycles = 3, seed = None, float16 = False, steering = False,
                   use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                   open = True, install_location = None, wait = None):
 
@@ -56,7 +56,8 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
         session.logger.info(f'Predicting covalent ligands not yet supported: {covalent_ligands}')
 
     br = BoltzRun(session, molecular_components, name = name, align_to = align_to,
-                  device = device, samples = samples, recycles = recycles, seed = seed, cuda_bfloat16 = float16,
+                  device = device, samples = samples, recycles = recycles, seed = seed,
+                  cuda_bfloat16 = float16, use_steering_potentials = steering,
                   use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
                   open = open, wait = wait)
     br.start(results_directory)
@@ -164,7 +165,7 @@ class BoltzMolecule:
 class BoltzRun:
     def __init__(self, session, molecular_components, name = None, align_to = None,
                  device = 'default', samples = 1, recycles = 3, seed = None,
-                 cuda_bfloat16 = False,
+                 cuda_bfloat16 = False, use_steering_potentials = False,
                  use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                  open = True, wait = False):
 
@@ -176,6 +177,7 @@ class BoltzRun:
         self._samples = samples		# Number of predicted structures
         self._recycles = recycles	# Number of boltz recycling steps
         self._cuda_bfloat16 = cuda_bfloat16	# Save memory using 16-bit instead of 32-bit float
+        self._use_steering_potentials = use_steering_potentials
         self._seed = seed		# Random seed for computation
         self._open = open		# Whether to open predictions when boltz finishes.
 
@@ -335,6 +337,8 @@ class BoltzRun:
         command.extend(['--accelerator', self.device])
         if self._cuda_bfloat16 and self.device == 'gpu':
             command.append('--use_cuda_bfloat16')
+        if not self._use_steering_potentials:
+            command.append('--no_potentials')
 
         if self._samples != 1:
             command.extend(['--diffusion_samples', str(self._samples)])
@@ -473,6 +477,10 @@ class BoltzRun:
                        ' support in the future.')
             elif 'No such option: --use_cuda_bfloat16' in stderr:
                 msg = ('The installed Boltz does not have the --use_cuda_bfloat16 option.'
+                       ' You need to install a newer Boltz to get this option.'
+                       ' Use the ChimeraX command "boltz install ~/boltz_new" to install it.')
+            elif 'No such option: --no_potentials' in stderr:
+                msg = ('The installed Boltz does not have the --no_potentials option.'
                        ' You need to install a newer Boltz to get this option.'
                        ' Use the ChimeraX command "boltz install ~/boltz_new" to install it.')
             else:
@@ -894,6 +902,7 @@ def register_boltz_predict_command(logger):
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
                    ('float16', BoolArg),
+                   ('steering', BoolArg),
                    ('samples', IntArg),
                    ('recycles', IntArg),
                    ('seed', IntArg),
