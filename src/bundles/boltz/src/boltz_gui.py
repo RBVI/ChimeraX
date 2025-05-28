@@ -498,6 +498,8 @@ class BoltzPredictionGUI(ToolInstance):
             options.append(f'device {self._device.value}')
         if self._use_cuda_bfloat16 and self._use_cuda_bfloat16.value:
             options.append('float16 true')
+        if self._use_steering_potentials.value:
+            options.append('steering true')
         if self._samples.value != 1:
             options.append(f'samples {self._samples.value}')
         from .settings import _boltz_settings
@@ -682,6 +684,11 @@ class BoltzPredictionGUI(ToolInstance):
         else:
             self._use_cuda_bfloat16 = None
 
+        # Steering potentials
+        sp = EntriesRow(f, False, 'Use steering potentials.  May be more accurate, but slower.')
+        self._use_steering_potentials = usp = sp.values[0]
+        usp.value = settings.use_steering_potentials
+
 
         # Use MSA cache
         mc = EntriesRow(f, True, 'Use multiple sequence alignment cache')
@@ -737,6 +744,7 @@ class BoltzPredictionGUI(ToolInstance):
             settings.device = self._device.value
             if self._use_cuda_bfloat16 is not None:
                 settings.use_cuda_bfloat16 = self._use_cuda_bfloat16.value
+            settings.use_steering_potentials = self._use_steering_potentials.value                
             settings.use_msa_cache = self._use_msa_cache.value
         settings.boltz_install_location = self._install_directory.value
         settings.save()
