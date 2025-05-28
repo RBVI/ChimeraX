@@ -11,8 +11,30 @@
       April 23, 2025, updated May 28, 2025
     </p>
 
+    <table>
+      <tr>
+	<td width=20>
+	<td>
+      <a href="#boltz">Boltz in ChimeraX</a>
+      <br><a href="#size">Structure size and prediction speed limitations</a>
+      <br><a href="#install">Boltz installation</a>
+      <br><a href="#predict">Predicting a structure with Boltz</a>
+      <br><a href="#results">Results, coloring and predicted aligned error</a>
+      	<td width=40>
+    <td>
+      <a href="#runtimes">Run times and size limits</a>
+      <br><a href="#options">Options</a>
+      <br><a href="#command">ChimeraX boltz command</a>
+      <br><a href="#limitations">Limitations</a>
+      <br><a href="#changelog">Change log</a>
+    </table>
+    
+    <a name="boltz">
+    <h2>Boltz in ChimeraX</h2>
+    </a>
+    
     <p>
-      ChimeraX can run the <a href="https://github.com/jwohlwend/boltz/">Boltz-1</a> structure prediction method
+      <a href="https://www.rbvi.ucsf.edu/chimerax/">ChimeraX</a> can run the <a href="https://github.com/jwohlwend/boltz/">Boltz-1</a> structure prediction method
       to compute atomic structures of proteins and nucleic acids, including modified residues, ligands, ions and
       solvent on your laptop or desktop computer.
       See the <a href="https://youtu.be/377V9A_0ECc">demonstration video</a>.
@@ -29,11 +51,13 @@
 
     <p>
       A ChimeraX graphical user interface (menu Tools / Structure Prediction / Boltz) and ChimeraX command (boltz)
-      are provide to make predictions.
+      are provided to make predictions.
       The <a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html">latest version of this documentation</a> is available online.
     </p>
 
+    <a name="size">
     <h2>Structure size and prediction speed limitations</h2>
+    </a>
 
     <p>
       Boltz structure predictions use a lot of memory and compute resources on your computer that limits the
@@ -69,7 +93,9 @@
       with 64 GB.  Run time is expected to increase as the square of the number of residues.
     </p>
       
+    <a name="install">
     <h2>Boltz installation</h2>
+    </a>
 
     <img src="images/boltz_gui.png" width=400 align=right>
 
@@ -86,7 +112,9 @@
       The ChimeraX <a href="#installcommand">boltz install</a> command can also be used to do this one time installation.
     </p>
     
+    <a name="predict">
     <h2>Predicting a structure with Boltz</h2>
+    </a>
 
     <table align=right>
       <tr><td><img src="images/boltz_assembly.png" width=400>
@@ -124,7 +152,9 @@
       discarding the partial computation so you can start another prediction.
     </p>
 
+    <a name="results">
     <h2>Results</h2>
+    </a>
 
     <p>
       The results are put in a new folder on your desktop named by default <b>boltz_</b><i>assembly_name</i>
@@ -206,7 +236,9 @@
       This is available as the 16-bit floating point option in the ChimeraX Boltz Options panel or the float16 option of the ChimeraX boltz predict command.
     </p>
 
+    <a name="options">
     <h2>Options</h2>
+    </a>
 
     <img src="images/boltz_options.png" width=450 align=right>
 
@@ -327,7 +359,9 @@
       <i>directory</i>/bin/python <i>chimerax/site-packages/boltz/</i>download_weights_and_ccd.py
     </pre>
     
+    <a name="limitations">
     <h2>Limitations</h2>
+    </a>
 
     <ul>
       <li><b>Structure size</b>.  Boltz uses a lot of memory and the amount of available memory
@@ -387,7 +421,56 @@
 	in ~/Downloads/ChimeraX/BoltzMSA so subsequent predictions with the same set of polymers can
 	reuse the sequence alignment.
     </ul>
-    
+
+    <a name="changelog">
+    <h2>Change log</h2>
+    </a>
+
+    <ul>
+      <li><b>May 28, 2025</b>.  Updated to Boltz-1x (1.0.0) with new trifast CUDA attention and new diffusion steering potentials.  Added steering option (default false).  Using <a href="https://github.com/RBVI/boltz/tree/chimerax">RBVI Boltz 1.0.0 fork</a> with bfloat16 option and trifast fix.
+      <li><b>May 12, 2025</b>.  Added 16-bit floating point option to predict larger structures.
+	Using <a href="https://github.com/RBVI/boltz/tree/chimerax">RBVI Boltz 0.4.1 fork</a>.
+      <li><b>April 23, 2025</b>.  Initial Boltz prediction tool using Boltz 0.4.1 from PyPi.
+    </ul>
+
+    <pre>
+
+
+
+      
+
+
+
+      
+
+
+
+      
+
+
+
+      
+
+
+
+      
+
+
+
+      
+
+
+
+      
+
+
+
+      
+
+
+
+    </pre>
+
   </body>
   
 </html>
