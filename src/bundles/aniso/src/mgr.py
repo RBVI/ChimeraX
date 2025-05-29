@@ -95,7 +95,7 @@ class _StructureAnisoManager(StateManager):
         self.shown_atoms = self.shown_atoms.merge(atoms)
         if len(self.shown_atoms) == cur_shown:
             return
-        self._create_depictions(atoms)
+        self._create_depictions()
 
     def style(self, **kw):
         need_rebuild = False
@@ -129,17 +129,14 @@ class _StructureAnisoManager(StateManager):
         elif changes.num_deleted_atoms() > 0:
             self._create_depictions()
 
-    def _create_depictions(self, added_atoms=None):
-        # added_atoms and self.shown_atoms already filtered for having aniso info
+    def _create_depictions(self):
+        # atoms already filtered for having aniso info
         from chimerax.atomic.shapedrawing import AtomicShapeDrawing
-        if not added_atoms:
-            if self.atom_depictions is not None:
-                self.structure.remove_drawing(self.atom_depictions)
-            self.atom_depictions = self.structure.new_drawing('thermal ellipsoid',
-                subclass=AtomicShapeDrawing)
-            added_atoms = self.shown_atoms
+        if self.atom_depictions is not None:
+            self.structure.remove_drawing(self.atom_depictions)
+        self.atom_depictions = self.structure.new_drawing('thermal ellipsoid', subclass=AtomicShapeDrawing)
 
-        displayed_atoms = added_atoms.filter(added_atoms.displays)
+        displayed_atoms = self.shown_atoms.filter(self.shown_atoms.displays)
         explicitly_depicted = set(displayed_atoms.filter(displayed_atoms.hides == 0))
         shapes = []
 
