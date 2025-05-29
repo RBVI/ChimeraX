@@ -88,15 +88,16 @@ from setuptools.build_meta import (
 # Always import this because it changes the behavior of setuptools
 from numpy import get_include as get_numpy_include_dirs
 
-import openmm
+try:
+    import openmm
 
+    def get_openmm_lib():
+        return openmm.version.openmm_library_path
 
-def get_openmm_lib():
-    return openmm.version.openmm_library_path
-
-
-openmm.get_lib = get_openmm_lib
-openmm.get_include = get_openmm_lib
+    openmm.get_lib = get_openmm_lib
+    openmm.get_include = get_openmm_lib
+except:
+    pass
 
 # TODO Fact check
 # The compile process is initiated by setuptools and handled
@@ -270,15 +271,6 @@ class Bundle:
             except ValueError:
                 raise ValueError("Bad version specifier (see PEP 440): %r" % req)
 
-            installed_version = parse(version(req_.name))
-            if re.match(r"[Cc]himera[Xx]-[Cc]ore", req_.name):
-                # Always accept prereleases for the core for developers building
-                # bundles
-                req_.specifier.prereleases = True
-            if installed_version in req_.specifier:
-                self.dependencies.append(req)
-            else:
-                raise ValueError("Incompatible version for %s (needed: %s, installed: %s)" % (req_.name, req_.specifier, str(installed_version)))
 
         self.requires_python = project_data.get("requires-python", ">=3.7")
 
@@ -525,6 +517,20 @@ class Bundle:
         distname = bdist_wheel_cmd.wheel_dist_name
         tag = "-".join(bdist_wheel_cmd.get_tag())
         self._expected_wheel_name = f"{distname}-{tag}.whl"
+
+    def _check_build_requires(self) -> None:
+        # Check the build dependencies in case we are called from ChimeraX, which
+        # means that no Python tooling is checking [build-system] for us.
+        build_dependencies = self.bundle_info["build-system"]["requires"]
+        for dependency in build_dependencies:
+            req = Requirement(dependency)
+            installed_version = parse(version(req.name))
+            if re.match(r"[Cc]himera[Xx]-[Cc]ore", req.name):
+                # Always accept prereleases for the core for developers building
+                # bundles
+                req.specifier.prereleases = True
+            if installed_version not in req.specifier:
+                raise ValueError("Incompatible version for build dependency %s (needed: %s, installed: %s)" % (req.name, req.specifier, str(installed_version)))
 
     @staticmethod
     def format_module_name(name: str, override: Optional[str] = None):
@@ -853,6 +859,7 @@ class Bundle:
 
     def build_wheel(self, debug=False, release=False):
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
+        self._check_build_requires()
         setup_args = ["--no-user-cfg", "build"]
         setup_args.extend(["bdist_wheel"])
         dist, built = self._run_setup(setup_args)
@@ -887,17 +894,10 @@ class Bundle:
         sdist = self._check_output(type_="sdist")
         return sdist
 
-    # TODO: Remove when pip can glean metadata from build_editable alone
-    def build_wheel_for_build_editable(self):
-        wheel_name = self.build_wheel()
-        wheel_location = os.path.join(self.path, "dist", wheel_name)
-        # Clean everything that was placed in the source directory as a side effect
-        self._clean_extrafiles()
-        return wheel_location
-
     def build_editable(self, config_settings=None):
         self._remove_libraries()
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
+        self._check_build_requires()
         setup_args = ["build_ext", "--inplace", "editable_wheel"]
         if config_settings:
             if "editable_mode" in config_settings:

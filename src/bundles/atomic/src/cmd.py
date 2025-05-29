@@ -253,6 +253,7 @@ def pbond_cmd(session, atoms, *, color=BuiltinColors["slate gray"], current_coor
     else:
         if pbg in dist_monitor.monitored_groups:
             dist_monitor.remove_group(pbg)
+    return pb
 
 def xpbond_cmd(session, atoms, *, global_=False, name="custom"):
     if len(atoms) != 2:

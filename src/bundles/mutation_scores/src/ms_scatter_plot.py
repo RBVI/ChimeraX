@@ -501,7 +501,8 @@ class MutationScatterPlot(Graph):
             self._bounds_artists = [self.axes.add_artist(line) for line in lines]
         else:
             for ba in self._bounds_artists:
-                ba.remove()
+                if ba.axes is not None:
+                    ba.remove()
             self._bounds_artists = []
         self.canvas.draw()
     @property

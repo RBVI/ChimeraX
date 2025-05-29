@@ -273,7 +273,7 @@ class Graph(Plot):
                                     node_size=node_sizes, node_color=node_colors, ax=self.axes,
                                     hide_ticks = self.hide_ticks)
         na.set_picker(True)	# Generate mouse pick events for clicks on nodes
-        if self._node_artist:
+        if self._node_artist and self._node_artist.axes is not None:
             self._node_artist.remove()
         self._node_artist = na	# matplotlib PathCollection object
         self._node_objects = nodes
@@ -336,7 +336,7 @@ class Graph(Plot):
         ea = nx.draw_networkx_edges(G, node_pos, edgelist=edges, width=widths,
                                     style=styles, ax=self.axes, hide_ticks = self.hide_ticks)
         ea.set_picker(True)
-        if self._edge_artist:
+        if self._edge_artist and self._edge_artist.axes is not None:
             self._edge_artist.remove()
         self._edge_artist = ea
 
@@ -361,7 +361,8 @@ class Graph(Plot):
         if self._labels:
             # Remove existing labels.
             for t in self._labels.values():
-                t.remove()
+                if t.axes is not None:
+                    t.remove()
         self._labels = labels	# Dictionary mapping node to matplotlib Text objects.
             
     def _mouse_press(self, event):
