@@ -134,7 +134,13 @@ and generates new ones for the currently displayed atoms.
 <h3>Thermal Ellipsoid Presets</h3>
 <p>
 The <b>Presets</b> menu in <b>Thermal Ellipsoids</b> includes several
-predefined combinations of <a href="#settings2">style settings</a>:
+predefined combinations of <a href="#settings2">style settings</a>.
+Those listed below are built-in, and more can be defined by the user.
+Presets do not include <a href="#settings1">scaling and smoothing
+settings</a>, which are specified independently.
+Choosing a preset from the menu applies its settings immediately.
+See also: <a href="../commands/aniso.html#preset"><b>aniso preset</b></a>
+</p>
 <ul>
 <li><b>axes</b>
 &ndash; axes only (length factor 1.0)
@@ -171,18 +177,11 @@ showEllipsoid true, color white, transparency 0.5, axisFactor 0.99
 <!--
 showEllipsoid true, color white, transparency 0.5, ellipseFactor 0.99
 -->
+<li><b>Preset from current settings...</b>
+save a custom preset with the current <a href="#settings2">style settings</a>
+<li><b>Delete user preset...</b>
+remove a previously user-defined preset
 </ul>
-<p>
-Presets do not include <a href="#settings1">scaling and smoothing
-settings</a>, which are specified independently.
-Choosing a preset from the menu applies its settings immediately.
-</p><p>
-Users can create their own custom presets by saving the current settings
-with the command
-<a href="../commands/aniso.html#preset"><b>aniso preset save</b></a>,
-and such user-defined (not built-in) presets can be removed with
-<a href="../commands/aniso.html#preset"><b>aniso preset delete</b></a>.
-</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
