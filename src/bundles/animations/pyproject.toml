@@ -40,6 +40,10 @@ max-session-version = 1
 categories = ["General"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
+[tool.chimerax.command.animations]
+category = "General"
+description = "Create, play back, edit, and save animation timelines."
+
 [tool.chimerax.tool."Animations"]
 category = "General"
 description = "Create, play back, edit, and save animation timelines."
