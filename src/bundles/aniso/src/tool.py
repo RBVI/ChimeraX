@@ -151,7 +151,7 @@ class AnisoTool(ToolInstance):
         hide_show_layout = QHBoxLayout()
         main_layout.addLayout(hide_show_layout)
         hide_show_layout.addStretch(1)
-        show_button = QPushButton("Apply")
+        show_button = QPushButton("Show")
         show_button.clicked.connect(lambda *args, f=self._show_hide_cb: f())
         hide_show_layout.addWidget(show_button)
         hide_show_layout.addWidget(QLabel("/"))
@@ -163,7 +163,7 @@ class AnisoTool(ToolInstance):
         sel_restrict_layout = QHBoxLayout()
         main_layout.addLayout(sel_restrict_layout)
         sel_restrict_layout.addStretch(1)
-        self.sel_restrict_check_box = QCheckBox("Restrict Apply/Hide to current selection, if any")
+        self.sel_restrict_check_box = QCheckBox("Restrict Show/Hide to current selection, if any")
         sel_restrict_layout.addWidget(self.sel_restrict_check_box)
         sel_restrict_layout.addStretch(1)
 
@@ -324,7 +324,7 @@ class AnisoTool(ToolInstance):
             if diffs:
                 run(self.session, "aniso style " + " ".join(diffs)),
 
-        if self.sel_restrict_check_box.isChecked():
+        if self.sel_restrict_check_box.isChecked() and s.atoms.selecteds.any():
             spec += " & sel"
 
         run(self.session, "aniso" + (" hide" if hide else '') + ' ' + spec)
