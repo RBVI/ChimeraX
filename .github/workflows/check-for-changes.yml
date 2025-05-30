@@ -141,3 +141,58 @@ jobs:
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
+  build-and-test-wheels:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - run: ${PWD}/utils/set_up_macos.sh
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
+        with:
+          platform: macos
+          architecture: arm64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Install the 3DConnexion Framework
+        run: |
+          hdiutil attach 3DxWareMac_v10-8-7_r3836.dmg -nobrowse -noverify
+          sudo installer -pkg /Volumes/3Dconnexion\ Software/Install\ 3Dconnexion\ software.pkg -target /
+          hdiutil detach /Volumes/3Dconnexion\ Software
+      - name: Set up uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          uv venv -p 3.11.4
+          source .venv/bin/activate
+      - run: source .venv/bin/activate && MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(sysctl -n hw.logicalcpu) uv-install
+      - name: Copy the ChimeraX directory out of the virtual environment
+        run: |
+          mkdir -p build/wheel/
+          mv .venv/lib/python3.11/site-packages/chimerax build/wheel
+          rm -rf .venv/lib/python3.11/site-packages/chimerax*
+      - name: Copy the wheel build files to build/wheel
+        run: |
+          cp pyproject.toml build/wheel
+          cp utils/build/wheel/make_init.py build/wheel
+          cp utils/build/wheel/setup.py build/wheel
+          cp utils/build/wheel/filter_modules.py build/wheel
+          cp utils/build/wheel/make_init.py build/wheel
+      - name: Remove UI files and add an __init__.py
+        run: |
+          source .venv/bin/activate
+          cd build/wheel
+          python filter_modules.py
+          python make_init.py
+          # TODO: filter_deps.py
+          uv build --wheel
+      - name: Reinstall the wheel we just made
+        continue-on-error: true
+        run: |
+          source .venv/bin/activate
+          uv pip install build/wheel/dist/*.whl
+      - name: Test the wheel again
+        continue-on-error: true
+        run: |
+          source .venv/bin/activate
+          UV_BUILD=1 USE_COVERAGE=1 make pytest-wheel
