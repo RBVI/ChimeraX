@@ -54,6 +54,10 @@ class FitJob(Job):
                 results = _run_fit_subprocess(session, executable_location, optional_args,
                     map1_file_name, map2_file_name, search_center, model_file_name, prefitted_file_name,
                     positional_args, temp_dir, resolution, verbose)
+            except Exception as e:
+                from .util import thread_throw
+                thread_throw(session, e)
+                return
             finally:
                 self._running = False
             self.session.ui.thread_safe(callback, *results)
@@ -215,11 +219,15 @@ def view_box(session, model):
         return (face_intercepts[0] + face_intercepts[1]) / 2
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
-def _process_results(session, transforms, sharpened_maps, llgs, ccs, orig_model, maps, show_sharpened_map,
+def _process_results(session, transforms, map_paths, llgs, ccs, orig_model, maps, show_sharpened_map,
         apply_symmetry, show_tool):
     session.logger.status("Fitting job finished")
     if orig_model.deleted:
         raise UserError("Structure being fitting was deleted during fitting")
+    sharpened_maps = []
+    for map_path in map_paths:
+        sharpened_map, status = session.open_command.open_data(map_path)
+        sharpened_maps.extend(sharpened_map)
     if len(transforms) > 1:
         for i, sharpened_map in enumerate(sharpened_maps):
             sharpened_map.name = "map %d" % (i+1)
@@ -322,11 +330,6 @@ def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name, map2_f
     import json
     with open(json_path, 'r') as f:
         info = json.load(f)
-    map_paths = [path.join(temp_dir, mf) for mf in info["map_filenames"]]
-    sharpened_maps = []
-    for map_path in map_paths:
-        sharpened_map, status = session.open_command.open_data(map_path)
-        sharpened_maps.extend(sharpened_map)
     from chimerax.core.commands import plural_form
     num_solutions = info["n_solutions"]
     tsafe(logger.info, "%d fitting %s" % (num_solutions, plural_form(num_solutions, "solution")))
@@ -334,9 +337,18 @@ def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name, map2_f
         ', '.join(["%g" % v for v in info["mapLLG"]])))
     tsafe(logger.info, "map CC %s: %s" % (plural_form(num_solutions, "value"),
         ', '.join(["%g" % v for v in info["mapCC"]])))
+    if 'map_filenames' in info:
+        # Phenix 2.0
+        map_paths = [path.join(temp_dir, mf) for mf in info["map_filenames"]]
+    else:
+        # Phenix 1.2
+        map_paths = [path.join(temp_dir, info["map_filename"])]
+        info['RT'] = info['RT'][:1]
+        info['mapLLG'] = info['mapLLG'][:1]
+        info['mapCC'] = info['mapCC'][:1]
 
     from numpy import array
-    return [array(rt) for rt in info['RT']], sharpened_maps, info["mapLLG"], info["mapCC"]
+    return [array(rt) for rt in info['RT']], map_paths, info["mapLLG"], info["mapCC"]
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register

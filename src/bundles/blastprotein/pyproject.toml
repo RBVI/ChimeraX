@@ -36,24 +36,24 @@ Home = "https://www.rbvi.ucsf.edu/chimerax/"
 [tool.setuptools.dynamic]
 version = { attr = "src.__version__" }
 
-[chimerax]
+[tool.chimerax]
 min-session-version = 1
 max-session-version = 1
 categories = ["Sequence"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
-[chimerax.tool."Blast Protein"]
+[tool.chimerax.tool."Blast Protein"]
 category = "Sequence"
 description = "Search PDB/NR/AlphaFold using BLAST"
 
-[chimerax.command.blastprotein]
+[tool.chimerax.command.blastprotein]
 category = "Sequence"
 description = "Search PDB/NR/AlphaFold using BLAST"
 
-[chimerax.command.blastpdb]
+[tool.chimerax.command.blastpdb]
 category = "Sequence"
 description = "Search PDB/NR/AlphaFold using BLAST"
 
-[chimerax.command."blastprotein pull"]
+[tool.chimerax.command."blastprotein pull"]
 category = "Sequence" 
 description = "Get results for a finished BlastProtein job"

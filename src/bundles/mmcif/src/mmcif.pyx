@@ -140,6 +140,14 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         models = models[:max_models]
 
     for m in models:
+        if "_missing_poly_seq" in m.metadata:
+            m.set_metadata_entry("_missing_poly_seq", None)
+            m.connect_structure()
+            from collections import Counter
+            counts = Counter(m.chains.chain_ids)
+            if any(cnt > 1 for cnt in counts.values()):
+                if log is not None:
+                    log.info("Use changechains command to assign unique chain ids")
         m.filename = path
         if combine_sym_atoms:
             m.combine_sym_atoms()
@@ -455,7 +463,7 @@ def fetch_mmcif(
                               cache, ignore_cache=ignore_cache)
         # double check that a mmCIF file was downloaded instead of an
         # HTML error message saying the ID does not exist
-        with open(filename, 'r') as f:
+        with open(filename, 'r', encoding='utf-8', errors='replace') as f:
             line = f.readline()
             if not line.startswith(('data_', '#')):
                 f.close()

@@ -4,10 +4,12 @@
 # runs the same whether it's called by running the ChimeraX binary or by
 # running ChimeraX.app/bin/python -I -m chimerax.core
 
-while getopts cs flag; do
+while getopts csfu flag; do
   case "${flag}" in
   c) COVERAGE=true ;;
   s) COV_SILENT=true ;;
+  f) FLATPAK=true ;;
+  u) UV_BUILD=true ;;
   esac
 done
 
@@ -25,16 +27,36 @@ CHIMERAX_BIN=
 
 case $OSTYPE in
 linux-gnu)
-  CHIMERAX_PYTHON_BIN=$(ls ./ChimeraX.app/bin/python3.1*)
-  CHIMERAX_BIN=./ChimeraX.app/bin/ChimeraX
+  if [ "$FLATPAK" = true ]; then
+    CHIMERAX_PYTHON_BIN=$(ls /app/bin/python3.1*)
+    CHIMERAX_BIN=$(ls /app/bin/ChimeraX)
+  else
+    if [ "$UV_BUILD" = true ]; then
+      CHIMERAX_PYTHON_BIN=$(ls ./.venv/bin/python3.1*)
+      CHIMERAX_BIN=./.venv/bin/ChimeraX
+    else
+      CHIMERAX_PYTHON_BIN=$(ls ./ChimeraX.app/bin/python3.1*)
+      CHIMERAX_BIN=./ChimeraX.app/bin/ChimeraX
+    fi
+  fi
   ;;
 msys | cygwin)
-  CHIMERAX_PYTHON_BIN=./ChimeraX.app/bin/python.exe
-  CHIMERAX_BIN=./ChimeraX.app/bin/ChimeraX-console.exe
+  if [ "$UV_BUILD" = true ]; then
+    CHIMERAX_PYTHON_BIN=./.venv/Scripts/python.exe
+    CHIMERAX_BIN=./.venv/Scripts/ChimeraX-console.exe
+  else
+    CHIMERAX_PYTHON_BIN=./ChimeraX.app/bin/python.exe
+    CHIMERAX_BIN=./ChimeraX.app/bin/ChimeraX-console.exe
+  fi
   ;;
 darwin*)
-  CHIMERAX_PYTHON_BIN=$(ls ./ChimeraX.app/Contents/bin/python3.1*)
-  CHIMERAX_BIN=./ChimeraX.app/Contents/bin/ChimeraX
+  if [ "$UV_BUILD" = true ]; then
+    CHIMERAX_PYTHON_BIN=$(ls ./.venv/bin/python3.1*)
+    CHIMERAX_BIN=./.venv/bin/ChimeraX
+  else
+    CHIMERAX_PYTHON_BIN=$(ls ./ChimeraX.app/Contents/bin/python3.1*)
+    CHIMERAX_BIN=./ChimeraX.app/Contents/bin/ChimeraX
+  fi
   ;;
 esac
 

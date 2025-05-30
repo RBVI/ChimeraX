@@ -1,0 +1,81 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=1.4.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-PresetMgr"
+version = "1.1.2"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Preset management"
+dependencies = ["ChimeraX-Core ~=1.2"]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """Manager for preset information"""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+module-name-override = "preset_mgr"
+categories = ["Depiction"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.command.preset]
+category = "Depiction"
+description = 'apply "preset" depiction to models'
+
+[tool.chimerax.manager."presets"]
+
+[[tool.chimerax.provider."presets"]]
+category = "Cartoons/Nucleotides"
+name = "ribbons/slabs"
+order = "1"
+
+[[tool.chimerax.provider."presets"]]
+category = "Cartoons/Nucleotides"
+name = "cylinders/stubs"
+order = "2"
+
+[[tool.chimerax.provider."presets"]]
+category = "Cartoons/Nucleotides"
+name = "licorice/ovals"
+order = "3"
+
+[[tool.chimerax.provider."presets"]]
+category = "Molecular Surfaces"
+name = "ghostly white"
+order = "1"
+
+[[tool.chimerax.provider."presets"]]
+category = "Molecular Surfaces"
+name = "atomic coloring (transparent)"
+order = "2"
+
+[[tool.chimerax.provider."presets"]]
+category = "Molecular Surfaces"
+name = "chain ID coloring (opaque)"
+order = "3"
+
+[[tool.chimerax.provider."presets"]]
+category = "Overall Look"
+name = "publication 1 (silhouettes)"
+order = "1"
+
+[[tool.chimerax.provider."presets"]]
+category = "Overall Look"
+name = "publication 2 (depth-cued)"
+order = "2"
+
+[[tool.chimerax.provider."presets"]]
+category = "Overall Look"
+name = "interactive"
+order = "3"
+
+

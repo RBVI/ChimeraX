@@ -68,9 +68,12 @@ def measure_center(session, objects, level = None, mark = False, color = None,
             place_marker(session, xyz, rgba, r, mname, model_id)
 
     for surf in surfs:
-        from chimerax.surface import vertex_areas
-        areas = vertex_areas(surf.vertices, surf.triangles)
-        area = areas.sum()
+        if surf.vertices is None or surf.triangles is None:
+            area = 0
+        else:
+            from chimerax.surface import vertex_areas
+            areas = vertex_areas(surf.vertices, surf.triangles)
+            area = areas.sum()
         if area == 0:
             msg = 'Surface %s has zero area' % surf
             log.status(msg, log = True)

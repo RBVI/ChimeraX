@@ -23,10 +23,11 @@ BUG_URL = "https://" + BUG_HOST + BUG_SELECTOR
 #
 class BugReporter(ToolInstance):
 
-    def __init__(self, session, tool_name):
+    def __init__(self, session, tool_name, is_known_crash = False):
         import locale
 
         self._ses = session
+        self.is_known_crash = is_known_crash
 
         ToolInstance.__init__(self, session, tool_name)
 
@@ -211,6 +212,9 @@ class BugReporter(ToolInstance):
     def submit(self):
 
         entry_values = self.entry_values()
+        if self.is_known_crash and not entry_values.get('email'):
+            self.report_email_required_for_known_crashes()
+            return
 
         # Include log contents in description
         if self.include_log.isChecked():
@@ -337,6 +341,15 @@ class BugReporter(ToolInstance):
             " you taking the time to provide us with valuable feedback.")
         self.result.setText(oops)
 
+    def report_email_required_for_known_crashes(self):
+        from chimerax.core.colors import scheme_color
+        color = scheme_color('status')
+        thanks = (
+            f"<h3><font color='{color}'<h3>Not submitted: This crash was already reported</font></h3>"
+            "<p>What we know about this crash is described in the Description panel in red."
+            " If you wish to discuss this crash with us you have to provide an email address.")
+        self.result.setText(thanks)
+        
     def cancel(self):
         self.delete()
 
@@ -363,10 +376,10 @@ class BugReporter(ToolInstance):
         return values
 
 
-def show_bug_reporter(session):
+def show_bug_reporter(session, is_known_crash = False):
     from Qt.QtCore import QTimer
     tool_name = 'Bug Reporter'
-    tool = BugReporter(session, tool_name)
+    tool = BugReporter(session, tool_name, is_known_crash = is_known_crash)
     # make sure bug report is active and description has focus
     QTimer.singleShot(
         0, lambda *args, tool=tool:

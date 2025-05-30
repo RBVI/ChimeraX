@@ -1,4 +1,24 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# === UCSF ChimeraX Copyright ===
+# Copyright 2025 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
+# === UCSF ChimeraX Copyright ===
 
 def open_mol2(session, path, file_name, auto_style, atomic):
     from chimerax.io import open_input
@@ -150,7 +170,22 @@ class Mol2Parser:
         self._comments = []
 
     def _make_structure(self):
-        """Build ChimeraX structure and reset structure data cache"""
+        """
+        Build ChimeraX structure and reset structure data cache
+
+        Note:
+            Old ViewDockX (this bundl's predecessor) sessions have already registered a docking data attribute to structures
+            called "viewdockx_data". When this function is called with an old ViewDockX session, it will still register a
+            new docking data attribute called "viewdock_data". This bundle will NOT support reference to the old
+            "viewdockx_data" attribute.
+
+            Old ViewDockX sessions also registered the "charge" and "mol2_type" attributes to atoms. This function will
+            not re-register these attributes due to the workings of chimerax.core.attributes.register_attr. However,
+            since these attrs are registered with the same name and data types in ViewDock (this bundle), they can still
+            be accessed normally. In this scenario, the only difference is the attributes will still appear to be
+            registered by ViewDockX (this bundl's predecessor).
+        """
+
         try:
             if self._molecule is None:
                 return
@@ -161,11 +196,11 @@ class Mol2Parser:
             # Create structure
             s = SC(self.session, auto_style=self.auto_style)
             s.name = self._molecule.mol_name
-            SC.register_attr(self.session, "viewdockx_data", "ViewDockX")
+            SC.register_attr(self.session, "viewdock_data", "ViewDock")
             from chimerax.atomic import Atom
-            Atom.register_attr(self.session, "charge", "ViewDockX", attr_type=float)
-            Atom.register_attr(self.session, "mol2_type", "ViewDockX", attr_type=str)
-            s.viewdockx_data = self._data
+            Atom.register_attr(self.session, "charge", "ViewDock", attr_type=float)
+            Atom.register_attr(self.session, "mol2_type", "ViewDock", attr_type=str)
+            s.viewdock_data = self._data
             if self._molecule.charge_type:
                 s.charge_model = self._molecule.charge_type
             if self._molecule.mol_type:
@@ -466,6 +501,13 @@ def _value(s):
             return s
 
 def open_swissdock(session, stream, file_name, auto_style, atomic):
+    """
+    Note:
+        Old ViewDockX (Previous tool version) sessions have already registered a docking data attribute to structures
+        called "viewdockx_data". When this function is called with an old ViewDockX session, it will still register a
+        new docking data attribute called "viewdock_data". This bundle will NOT support reference to the old
+        "viewdockx_data" attribute.
+    """
     from chimerax.atomic import next_chain_id
     import tempfile
     import os
@@ -476,7 +518,7 @@ def open_swissdock(session, stream, file_name, auto_style, atomic):
     is_ligands = True
     used_chains = set()
     cur_in_chain = cur_out_chain = cur_res_num = None
-    viewdockx_data = {}
+    viewdock_data = {}
     models = []
     status = ""
     from chimerax.pdb import open_pdb
@@ -510,23 +552,23 @@ def open_swissdock(session, stream, file_name, auto_style, atomic):
                 ligs, status = open_pdb(session, out_f.name, file_name=file_name, auto_style=auto_style,
                         atomic=atomic)
                 for lig in ligs:
-                    lig.viewdockx_data = viewdockx_data
+                    lig.viewdock_data = viewdock_data
                     models.append(lig)
                 os.unlink(out_f.name)
                 out_f = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', suffix=".pdb", delete=False)
-                viewdockx_data = {}
+                viewdock_data = {}
         elif line.startswith("REMARK"):
             if line.count(': ') != 1:
                 is_ligands = False
             else:
                 k,v = line[7:].strip().split(': ')
-                viewdockx_data[_wordize(k)] = _value(v)
+                viewdock_data[_wordize(k)] = _value(v)
             # these "REMARK"s are all badly formatted, prevent ChimeraX from complaining
             line = None
         if line is not None:
             print(line, file=out_f)
     if is_ligands and models:
-        models[0].__class__.register_attr(session, "viewdockx_data", "ViewDockX")
+        models[0].__class__.register_attr(session, "viewdock_data", "ViewDock")
     out_f.close()
     if not is_ligands:
         models, status = open_pdb(session, out_f.name,

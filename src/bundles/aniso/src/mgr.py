@@ -22,6 +22,18 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.triggerset import TriggerSet
+triggers = TriggerSet()
+triggers.add_trigger("style changed")
+
+def manager_for_structure(session, s, *, create=True):
+    for mgr in session.state_managers(_StructureAnisoManager):
+        if mgr.structure == s:
+            return mgr
+    if create:
+        return _StructureAnisoManager(session, s)
+    return None
+
 from numpy import array
 cube_vertices = array([
 	(1.0, 1.0, 1.0), (1.0, 1.0, -1.0),
@@ -49,10 +61,10 @@ class _StructureAnisoManager(StateManager):
                 'axis_color': None,
                 'axis_factor': None,
                 'axis_thickness': 0.01,
+                'color': None,
                 'ellipse_color': None,
                 'ellipse_factor': None,
                 'ellipse_thickness': 0.02,
-                'ellipsoid_color': None,
                 'scale': 1.0,
                 'show_ellipsoid': True,
                 'smoothing': 3,
@@ -83,7 +95,7 @@ class _StructureAnisoManager(StateManager):
         self.shown_atoms = self.shown_atoms.merge(atoms)
         if len(self.shown_atoms) == cur_shown:
             return
-        self._create_depictions(atoms)
+        self._create_depictions()
 
     def style(self, **kw):
         need_rebuild = False
@@ -94,6 +106,7 @@ class _StructureAnisoManager(StateManager):
 
         if need_rebuild:
             self._create_depictions()
+            triggers.activate_trigger("style changed", self)
 
     def _add_handlers(self):
         from chimerax.core.models import REMOVE_MODELS
@@ -116,17 +129,14 @@ class _StructureAnisoManager(StateManager):
         elif changes.num_deleted_atoms() > 0:
             self._create_depictions()
 
-    def _create_depictions(self, added_atoms=None):
-        # added_atoms and self.shown_atoms already filtered for having aniso info
+    def _create_depictions(self):
+        # atoms already filtered for having aniso info
         from chimerax.atomic.shapedrawing import AtomicShapeDrawing
-        if not added_atoms:
-            if self.atom_depictions is not None:
-                self.structure.remove_drawing(self.atom_depictions)
-            self.atom_depictions = self.structure.new_drawing('thermal ellipsoid',
-                subclass=AtomicShapeDrawing)
-            added_atoms = self.shown_atoms
+        if self.atom_depictions is not None:
+            self.structure.remove_drawing(self.atom_depictions)
+        self.atom_depictions = self.structure.new_drawing('thermal ellipsoid', subclass=AtomicShapeDrawing)
 
-        displayed_atoms = added_atoms.filter(added_atoms.displays)
+        displayed_atoms = self.shown_atoms.filter(self.shown_atoms.displays)
         explicitly_depicted = set(displayed_atoms.filter(displayed_atoms.hides == 0))
         shapes = []
 
@@ -145,7 +155,7 @@ class _StructureAnisoManager(StateManager):
 
         from chimerax.surface import calculate_vertex_normals as calc_normals
         if dp['show_ellipsoid']:
-            color_param = dp['ellipsoid_color']
+            color_param = dp['color']
             transparency = dp['transparency']
             from chimerax.geometry.icosahedron import icosahedron_triangulation
             varray, tarray = icosahedron_triangulation(subdivision_levels=smoothing, sphere_factor=1.0)

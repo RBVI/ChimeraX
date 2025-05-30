@@ -41,13 +41,25 @@ jobs:
       - name: Report coverage
         run: make report-coverage
   build-and-test-arm-linux:
-    env:
-      PYOPENGL_PLATFORM: egl
     runs-on: ubuntu-24.04-arm
+    env:
+      SHELL: /bin/bash
+      PATH: /usr/bin:/usr/sbin:/bin:/sbin
+      PYOPENGL_PLATFORM: egl
+    container:
+      image: fedora:latest
+      options: --privileged
     steps:
-      - run: sudo apt-get update && sudo apt-get upgrade -y
+      - name: Update system packages
+        run: |
+          dnf update -y
+          dnf install -y dbus-daemon flatpak flatpak-builder git-lfs python3-aiohttp python3-tenacity python3-gobject xorg-x11-server-Xvfb ccache zstd libappstream-glib
+          dnf clean all
+          flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak remote-add --if-not-exists flathub-beta https://flathub.org/beta-repo/flathub-beta.flatpakrepo
+          flatpak install -y flathub org.flatpak.Builder
+          flatpak install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
       - uses: actions/checkout@v4
-      - run: ${PWD}/utils/set_up_ubuntu.sh
       - name: Fetch Plato prerequisites
         uses: ./utils/ci/consolidated_cache
         with:
@@ -55,23 +67,13 @@ jobs:
           architecture: arm64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Build ChimeraX
-        run: |
-          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 make -j$(nproc) -f Makefile.ubuntu build-minimal
-      - name: Install Pytest
-        run: USE_COVERAGE=1 make pytest-install
-      - name: Set up the repo for coverage reporting
-        run: make prepare-coverage
-      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
-        id: test-exes
-        run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        id: test-wheel
-        run: USE_COVERAGE=1 make pytest-wheel
-      - name: Run distribution tests
-        id: test-distribution
-        run: USE_COVERAGE=1 make pytest-app
-      - name: Report coverage
-        run: make report-coverage
+        uses: flatpak/flatpak-github-actions/flatpak-builder@master
+        with:
+          bundle: chimerax.flatpak
+          manifest-path: arm-flatpak.yml
+          arch: aarch64
+          cache-key: flatpak-builder-arm64
+          upload-artifact: false
   build-and-test-macos:
     runs-on: macos-latest
     steps:
@@ -86,6 +88,11 @@ jobs:
           platform: macos
           architecture: arm64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Install the 3DConnexion Framework
+        run: |
+          hdiutil attach 3DxWareMac_v10-8-7_r3836.dmg -nobrowse -noverify -quiet
+          sudo installer -pkg /Volumes/3Dconnexion\ Software/Install\ 3Dconnexion\ software.pkg -target /
+          hdiutil detach /Volumes/3Dconnexion\ Software
       - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) build-minimal
       - name: Install Pytest
         run: USE_COVERAGE=1 make pytest-install
@@ -130,3 +137,58 @@ jobs:
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
+  build-and-test-wheels:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - run: ${PWD}/utils/set_up_macos.sh
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
+        with:
+          platform: macos
+          architecture: arm64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Install the 3DConnexion Framework
+        run: |
+          hdiutil attach 3DxWareMac_v10-8-7_r3836.dmg -nobrowse -noverify
+          sudo installer -pkg /Volumes/3Dconnexion\ Software/Install\ 3Dconnexion\ software.pkg -target /
+          hdiutil detach /Volumes/3Dconnexion\ Software
+      - name: Set up uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          uv venv -p 3.11.4
+          source .venv/bin/activate
+      - run: source .venv/bin/activate && MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(sysctl -n hw.logicalcpu) uv-install
+      - name: Copy the ChimeraX directory out of the virtual environment
+        run: |
+          mkdir -p build/wheel/
+          mv .venv/lib/python3.11/site-packages/chimerax build/wheel
+          rm -rf .venv/lib/python3.11/site-packages/chimerax*
+      - name: Copy the wheel build files to build/wheel
+        run: |
+          cp pyproject.toml build/wheel
+          cp utils/build/wheel/make_init.py build/wheel
+          cp utils/build/wheel/setup.py build/wheel
+          cp utils/build/wheel/filter_modules.py build/wheel
+          cp utils/build/wheel/make_init.py build/wheel
+      - name: Remove UI files and add an __init__.py
+        run: |
+          source .venv/bin/activate
+          cd build/wheel
+          python filter_modules.py
+          python make_init.py
+          # TODO: filter_deps.py
+          uv build --wheel
+      - name: Reinstall the wheel we just made
+        continue-on-error: true
+        run: |
+          source .venv/bin/activate
+          uv pip install build/wheel/dist/*.whl
+      - name: Test the wheel again
+        continue-on-error: true
+        run: |
+          source .venv/bin/activate
+          UV_BUILD=1 USE_COVERAGE=1 make pytest-wheel

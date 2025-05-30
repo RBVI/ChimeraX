@@ -95,6 +95,9 @@ def ones_volume(surfaces, pad, spacing, border, default_size = 100,
 
     # Figure out array size
     bounds = scene_bounds(surfaces)
+    if bounds is None:
+        from chimerax.core.errors import UserError
+        raise UserError('No displayed bounding surface specified to create ones mask')
     bsize = [s + 2*pad + 2*border for s in bounds.size()]
     if spacing is None:
         s = max(bsize)/default_size

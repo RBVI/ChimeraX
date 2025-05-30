@@ -25,13 +25,15 @@ class PhenixCitation(Citation):
             title = \
                 "Macromolecular structure determination using X-rays,<br>" \
                 "neutrons and electrons: recent developments in Phenix"
-            info = [
-                "Liebschner D, Afonine PV, Baker ML, Bunkóczi G, Chen VB,",
-                "Croll TI, Hintze B, Hung LW, Jain S, McCoy AJ, Moriarty NW,",
-                "Oeffner RD, Poon BK, Prisant MG, Read RJ, Richardson JS,",
-                "Richardson DC, Sammito MD, Sobolev OV, Stockwell DH,",
-                "Terwilliger TC, Urzhumtsev AG, Videau LL, Williams CJ,",
-                "Adams PD",
+            #info = [
+            #    "Liebschner D, Afonine PV, Baker ML, Bunkóczi G, Chen VB,",
+            #    "Croll TI, Hintze B, Hung LW, Jain S, McCoy AJ, Moriarty NW,",
+            #    "Oeffner RD, Poon BK, Prisant MG, Read RJ, Richardson JS,",
+            #    "Richardson DC, Sammito MD, Sobolev OV, Stockwell DH,",
+            #    "Terwilliger TC, Urzhumtsev AG, Videau LL, Williams CJ,",
+            #    "Adams PD",
+            info = ["Liebschner D, Afonine PV, Baker ML, <i>et al.<i>"]
+            info += [
                 "Acta Cryst. D75, 861-877 (2019)"
             ]
             kw['pubmed_id'] = 31588918
@@ -244,7 +246,7 @@ class EmplaceLocalResultsViewer(ToolInstance):
 
         from chimerax.ui import shrink_font
         instructions = QLabel("Click OK to retain the chosen fit and remove others")
-        shrink_font(instructions)
+        shrink_font(instructions, 0.85)
         layout.addWidget(instructions, alignment=Qt.AlignCenter)
 
         if sym_map:
@@ -477,11 +479,20 @@ class LaunchEmplaceLocalTool(ToolInstance):
         prefitted_layout = QHBoxLayout()
         prefitted_layout.setSpacing(1)
         prefitted_widget.setLayout(prefitted_layout)
+        label_container = QWidget()
+        prefitted_layout.addWidget(label_container, alignment=Qt.AlignRight)
+        label_layout = QVBoxLayout()
+        label_layout.setSpacing(0)
+        label_layout.setContentsMargins(0,0,0,0)
+        label_container.setLayout(label_layout)
         prefitted_tip = '''If any structures have already been fit into
 other parts of the map, specify those here.'''
         prefitted_label = QLabel("Pre-fitted structures (if any):")
         prefitted_label.setToolTip(prefitted_tip)
-        prefitted_layout.addWidget(prefitted_label, alignment=Qt.AlignRight)
+        label_layout.addWidget(prefitted_label, alignment=Qt.AlignBottom|Qt.AlignHCenter)
+        warning_label = QLabel("Requires Phenix 2.0 or later")
+        shrink_font(warning_label)
+        label_layout.addWidget(warning_label, alignment=Qt.AlignTop|Qt.AlignHCenter)
         class ShortASLWidget(AtomicStructureListWidget):
             def sizeHint(self):
                 hint = super().sizeHint()
@@ -1195,7 +1206,7 @@ class VerifyELCenterDialog(VerifyCenterDialog):
 
 class VerifyLFCenterDialog(VerifyCenterDialog):
     def __init__(self, session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution,
-            initial_center, opaque_maps):
+            initial_center, opaque_maps, hbonds):
         self._search_radius = None
         self.ligand_fmt = ligand_fmt
         self.ligand_value = ligand_value
@@ -1204,6 +1215,7 @@ class VerifyLFCenterDialog(VerifyCenterDialog):
         self.chain_id = chain_id
         self.res_num = res_num
         self.resolution = resolution
+        self.hbonds = hbonds
         super().__init__(session, initial_center, opaque_maps)
 
     @property
@@ -1235,7 +1247,7 @@ class VerifyLFCenterDialog(VerifyCenterDialog):
                     m.rgba = tuple(rgba)
         center = self.marker.scene_coord
         _run_ligand_fit_command(self.session, self.ligand_fmt, self.ligand_value, self.receptor, self.map,
-            self.chain_id, self.res_num, self.resolution, center)
+            self.chain_id, self.res_num, self.resolution, center, self.hbonds)
 
     @property
     def search_button_label(self):
@@ -1425,15 +1437,13 @@ class LaunchLigandFitTool(ToolInstance):
         self.verify_center_checkbox.clicked.connect(lambda checked, b=self.opaque_maps_checkbox:
             b.setHidden(not checked))
         checkbox_layout.addWidget(self.opaque_maps_checkbox, alignment=Qt.AlignLeft)
-        """
+        self.show_hbonds_checkbox = QCheckBox("Show H-bonds formed by fit ligand")
+        self.show_hbonds_checkbox.setChecked(True)
+        checkbox_layout.addWidget(self.show_hbonds_checkbox, alignment=Qt.AlignLeft)
+
         layout.addSpacing(10)
 
-        layout.addWidget(PhenixCitation(session, tool_name, "emplace_local",
-            title="Likelihood-based interactive local docking into cryo-EM maps in ChimeraX",
-            info=["Read RJ, Pettersen EF, McCoy AJ, Croll TI, Terwilliger TC, Poon BK, Meng EC",
-                "Liebschner D, Adams PD", "Acta Cryst. D80, 588-598 (2024)"],
-            pubmed_id=39058381), alignment=Qt.AlignCenter)
-        """
+        layout.addWidget(PhenixCitation(session, tool_name, "ligandfit"), alignment=Qt.AlignCenter)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -1457,7 +1467,7 @@ class LaunchLigandFitTool(ToolInstance):
             if not ligand_value:
                 raise UserError("No ligand model specified")
         else:
-            ligand_value = ligand_widget.text()
+            ligand_value = ligand_widget.text().strip()
             if not ligand_value:
                 raise UserError("No " + ligand_fmt + " text provided")
 
@@ -1535,10 +1545,10 @@ class LaunchLigandFitTool(ToolInstance):
         if self.verify_center_checkbox.isChecked():
             self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
             VerifyLFCenterDialog(self.session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-                resolution, center, self.settings.opaque_maps)
+                resolution, center, self.settings.opaque_maps, self.show_hbonds_checkbox.isChecked())
         else:
             _run_ligand_fit_command(self.session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-                resolution, center)
+                resolution, center, self.show_hbonds_checkbox.isChecked())
         if not apply:
             self.display(False)
 
@@ -1612,15 +1622,16 @@ def _run_emplace_local_command(session, structure, maps, resolution, prefitted, 
     run(session, cmd)
 
 def _run_ligand_fit_command(session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution,
-        center):
-    from chimerax.core.commands import run, StringArg
+        center, hbonds):
+    from chimerax.core.commands import run, StringArg, BoolArg
     from chimerax.map import Volume
     LLFT = LaunchLigandFitTool
     lig_arg = "%s:%s" % ({LLFT.LIGAND_FMT_CCD: "ccd", LLFT.LIGAND_FMT_MODEL: "file",
         LLFT.LIGAND_FMT_PUBCHEM: "pubchem", LLFT.LIGAND_FMT_SMILES: "smiles"}[ligand_fmt],
         (ligand_value.atomspec if ligand_fmt == LLFT.LIGAND_FMT_MODEL else ligand_value))
-    cmd = "phenix ligandFit %s %s center %g,%g,%g inMap %s resolution %g" % (
-        receptor.atomspec, StringArg.unparse(lig_arg), *center, map.atomspec, resolution)
+    cmd = "phenix ligandFit %s %s center %g,%g,%g inMap %s resolution %g hbonds %s" % (
+        receptor.atomspec, StringArg.unparse(lig_arg), *center, map.atomspec, resolution,
+        BoolArg.unparse(hbonds))
     if chain_id:
         cmd += " chain " + chain_id
     if res_num is not None:

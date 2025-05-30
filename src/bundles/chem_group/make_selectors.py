@@ -92,7 +92,7 @@ with open("src/__init__.py.in") as f:
     content = f.read()
 amine_endings = ['', ' primary', ' secondary', ' tertiary', ' quaternary']
 amines = ["all"] + ['aliphatic' + ending for ending in amine_endings] + ['aromatic' + ending
-    for ending in amine_endings]
+    for ending in amine_endings[:-1]]
 bases = []
 base_names = set(['adenine', 'cytosine', 'guanine', 'thymine', 'uracil'])
 # ribose is from atomic, but is more natural in this menu

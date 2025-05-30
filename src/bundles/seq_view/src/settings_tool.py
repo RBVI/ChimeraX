@@ -67,7 +67,7 @@ class SettingsTool:
         for hdr in self.sv.alignment.headers:
             container, header_panel = settings_panel.add_option_group("Headers",
                 group_label=hdr.ident.replace('_', ' ').title(), group_alignment=Qt.AlignLeft,
-                contents_margins=(0,0,0,0), sorting=hdr.option_sorting)
+                contents_margins=(0,2,10,0), sorting=hdr.option_sorting)
             layout = QVBoxLayout()
             container.setLayout(layout)
             layout.addWidget(header_panel, alignment=Qt.AlignLeft)

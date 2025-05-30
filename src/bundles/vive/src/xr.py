@@ -436,7 +436,7 @@ def save_camera_in_session(session, save = True):
 def stop_vr(session, simplify_graphics = True, mouse_zoom_speed = 1.0):
 
     c = vr_camera(session, create = False)
-    if c is None:
+    if c is None or not c.active:
         return
 
     preserve_camera_position = c.keep_position
@@ -1117,6 +1117,9 @@ class OpenXRCamera(Camera, StateManager):
 
     def _set_eye_separation_scene(self, dist):
         sep = self.eye_separation_scene
+        if sep == 0:
+            # No eye poses have been obtained yet.  ChimeraX ticket #17214.
+            return
         f = dist / sep
         center = self.position.origin()
         from chimerax.geometry import translation, scale

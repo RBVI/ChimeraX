@@ -2,8 +2,10 @@
 
 # Force import in a particular order since both Cython and
 # setuptools patch distutils, and we want Cython to win
+import re
 import setuptools
 import sys
+import sysconfig
 import setuptools._distutils as distutils
 from Cython.Build import cythonize
 from packaging.version import Version
@@ -426,16 +428,29 @@ class BundleBuilder:
             # ChimeraXCore *should* always be present
             return
         from packaging.requirements import Requirement
+        from packaging.version import parse
+        from importlib.metadata import version
 
         for e in self._get_elements(deps, "Dependency"):
             pkg = e.get("name", "")
             ver = e.get("version", "")
-            req = "%s %s" % (pkg, ver)
+            req_str = "%s %s" % (pkg, ver)
+
             try:
-                Requirement(req)
+                req = Requirement(req_str)
             except ValueError:
-                raise ValueError("Bad version specifier (see PEP 440): %r" % req)
-            self.dependencies.append(req)
+                raise ValueError("Bad version specifier (see PEP 440): %r" % req_str)
+
+            if e.get("build", False):
+                installed_version = parse(version(req.name))
+                if re.match(r"[Cc]himera[Xx]-[Cc]ore", req.name):
+                    # Always accept prereleases for the core for developers building
+                    # bundles
+                    req.specifier.prereleases = True
+                if installed_version not in req.specifier:
+                    raise ValueError("Incompatible version for build dependency %s: %s (installed: %s)" % (pkg, req_str, str(installed_version)))
+
+            self.dependencies.append(req_str)
 
     def _get_initializations(self, bi):
         self.initializations = {}
@@ -738,7 +753,7 @@ class BundleBuilder:
         if not self._is_pure_python():
 
             if sys.platform == "darwin":
-                env = ("Environment :: MacOS X :: Aqua",)
+                env = "Environment :: MacOS X :: Aqua"
                 op_sys = "Operating System :: MacOS :: MacOS X"
             elif sys.platform == "win32":
                 env = "Environment :: Win32 (MS Windows)"
@@ -815,7 +830,7 @@ class BundleBuilder:
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)
             return dist, True
-        except Exception:
+        except (SystemExit, Exception):
             import traceback
 
             traceback.print_exc()
@@ -1038,6 +1053,9 @@ class _CompiledCode:
         if sys.platform == "win32":
             # Link library directory for Python on Windows
             compiler.add_library_dir(os.path.join(sys.exec_prefix, "libs"))
+            py_libdir = sysconfig.get_config_var("LIBDIR")
+            if py_libdir:
+                compiler.add_library_dir(py_libdir)
         if not static:
             macros.append(("DYNAMIC_LIBRARY", 1))
         # We need to manually separate out C from C++ code here, since clang

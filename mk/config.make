@@ -140,6 +140,11 @@ endif
 ifdef WIN32
 PYTHON_INCLUDE_DIRS = -I'$(shell cygpath -m '$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)')'
 PYTHON_LIBRARY_DIR = $(bindir)/Lib
+ifdef UV_BUILD
+UV_PYTHON_DIR = $(shell cygpath -m "$(grep home .venv/pyvenv.cfg | cut -d'=' -f2 | sed -e 's/ //g' -e 's/\/bin$$//g')")
+PYTHON_INCLUDE_DIRS = -I$(UV_PYTHON_DIR)/include/python$(PYTHON_VERSION)
+PYTHON_LIBRARY_DIR = $(UV_PYTHON_DIR)/lib
+endif
 APP_PYTHON_LIBRARY_DIR = $(app_bindir)/Lib
 PYTHON_BIN = $(bindir)/python.exe
 APP_PYTHON_BIN = $(app_bindir)/python.exe
@@ -159,6 +164,11 @@ CYTHON_EXE = $(bindir)/cython
 else
 PYTHON_INCLUDE_DIRS = -I$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 PYTHON_LIBRARY_DIR = $(libdir)/python$(PYTHON_VERSION)
+ifdef UV_BUILD
+UV_PYTHON_DIR = $(shell grep home .venv/pyvenv.cfg | cut -d'=' -f2 | sed -e 's/ //g' -e 's/\/bin$$//g')
+PYTHON_INCLUDE_DIRS = -I$(UV_PYTHON_DIR)/include/python$(PYTHON_VERSION)
+PYTHON_LIBRARY_DIR = $(UV_PYTHON_DIR)/lib
+endif
 APP_PYTHON_LIBRARY_DIR = $(app_libdir)/python$(PYTHON_VERSION)
 PYTHON_BIN = $(bindir)/python$(PYTHON_VERSION)
 APP_PYTHON_BIN = $(app_bindir)/python$(PYTHON_VERSION)
@@ -180,7 +190,9 @@ endif
 endif
 
 ifeq ($(OS),Darwin)
+ifndef NO_LOCAL_SSL_CERT
 export SSL_CERT_FILE = $(PYSITEDIR)/certifi/cacert.pem
+endif
 endif
 
 PYLINT = $(PYTHON_EXE) -m flake8
