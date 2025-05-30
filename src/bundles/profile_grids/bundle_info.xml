@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-<BundleInfo name="ChimeraX-ProfileGrids" version="1.1"
-=======
 <BundleInfo name="ChimeraX-ProfileGrids" version="1.1.2"
->>>>>>> 96040adc9b1c62d1a4ed47bc4fc3fc74b3b52b6d
 	    package="chimerax.profile_grids"
   	    minSessionVersion="1" maxSessionVersion="1">
 
