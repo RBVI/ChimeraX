@@ -347,9 +347,9 @@ class ViewDockTool(ToolInstance):
 
         model_spec = concise_model_spec(self.session, structs)
         if value:
-            run(self.session, f'show {model_spec} models')
+            run(self.session, f'show {model_spec} models', log=False)
         else:
-            run(self.session, f'hide {model_spec} models')
+            run(self.session, f'hide {model_spec} models', log=False)
 
     def delete(self):
         """
