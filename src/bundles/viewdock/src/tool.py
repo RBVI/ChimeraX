@@ -218,7 +218,7 @@ class ViewDockTool(ToolInstance):
 
     def table_selection_changed(self, newly_selected, newly_deselected):
         """
-        Callback for when the selection in the ItemTable changes. Updates what docking structure is visibla and the
+        Callback for when the selection in the ItemTable changes. Updates what docking structure is visible and the
         description box with the newly selected structure's data.
 
         Args:
@@ -230,7 +230,7 @@ class ViewDockTool(ToolInstance):
 
     def update_structure_displays(self, newly_selected):
         """
-        Update the display of the docking structures. The newly selected structures will be shown and all other docking
+        Update the display of the docking structures. The newly selected structures will be shown, and all other docking
         structures will be hidden.
 
         Args:
