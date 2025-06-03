@@ -79,6 +79,7 @@ fine_blacklist = set(
         ,
         "chimerax.dicom.ui",
         "chimerax.segmentations.ui",
+        "chimerax.segmentations.view", # inports UI elements
         "chimerax.ui.core_settings_ui"  # imports settings from core_settings before initialized if imported standalone
         # Held over from cxtestimports.py
         ,
