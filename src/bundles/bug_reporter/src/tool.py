@@ -362,11 +362,11 @@ class BugReporter(ToolInstance):
         color = scheme_color('status')
         thanks = (
             f"<h3><font color='{color}'<h3>Not submitted: Email address required</font></h3>"
-            "<p>Linux crash reports include little diagnostic information so we are rarely able to identify "
+            "<p><font color='red'>Linux crash reports include little diagnostic information so we are rarely able to identify "
             "the cause without discussing with the reporter.  Therefore we require an email address "
             "to report ChimeraX crashes on Linux.  The most common cause of ChimeraX crashes on Linux "
             "is failed remote display.  Remote display techologies with 3D OpenGL graphics often don't work, "
-            "and we are not able to advise on how to fix remote display.")
+            "and we are not able to advise on how to fix remote display.</font>")
         self.result.setText(thanks)
         
     def cancel(self):
