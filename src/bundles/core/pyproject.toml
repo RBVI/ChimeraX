@@ -87,10 +87,6 @@ extra-compile-args = [
 extra-link-args = ["-framework", "AppKit"]
 include-dirs = ["core_cpp/mac_util/"]
 
-[tool.chimerax.extension.pysupport]
-sources = ["core_cpp/pysupport/*.cpp"]
-include-dirs = ["core_cpp/pysupport/"]
-
 [tool.chimerax.extension._spec_parser]
 sources = ["core_cpp/spec_parser/*.cpp"]
 extra-compile-args = ["-std=c++17"]

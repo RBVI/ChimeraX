@@ -25,7 +25,7 @@
 def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
                   protein = [], dna = [], rna = [], ligand_ccd = [], ligand_smiles = [],
                   name = None, results_directory = None, device = None,
-                  samples = 1, recycles = 3, seed = None,
+                  samples = 1, recycles = 3, seed = None, float16 = False, steering = False,
                   use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                   open = True, install_location = None, wait = None):
 
@@ -36,7 +36,7 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
         settings.save()
 
     if not _is_boltz_available(session):
-        return
+        return None
 
     if wait is None:
         wait = False if session.ui.is_gui else True
@@ -57,6 +57,7 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
 
     br = BoltzRun(session, molecular_components, name = name, align_to = align_to,
                   device = device, samples = samples, recycles = recycles, seed = seed,
+                  cuda_bfloat16 = float16, use_steering_potentials = steering,
                   use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
                   open = open, wait = wait)
     br.start(results_directory)
@@ -164,6 +165,7 @@ class BoltzMolecule:
 class BoltzRun:
     def __init__(self, session, molecular_components, name = None, align_to = None,
                  device = 'default', samples = 1, recycles = 3, seed = None,
+                 cuda_bfloat16 = False, use_steering_potentials = False,
                  use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                  open = True, wait = False):
 
@@ -174,12 +176,15 @@ class BoltzRun:
         self._device = device		# gpu, cpu or default, or None (uses settings value)
         self._samples = samples		# Number of predicted structures
         self._recycles = recycles	# Number of boltz recycling steps
+        self._cuda_bfloat16 = cuda_bfloat16	# Save memory using 16-bit instead of 32-bit float
+        self._use_steering_potentials = use_steering_potentials
         self._seed = seed		# Random seed for computation
         self._open = open		# Whether to open predictions when boltz finishes.
 
         self._results_directory = None
         self._yaml_path = None
         self._running = False
+        self._user_terminated = False
         self.success = None
         self._process = None
         self._wait = wait
@@ -230,17 +235,21 @@ class BoltzRun:
         return rdir
 
     def _add_directory_suffix(self, dir):
-        if '[N]' not in dir:
+        if '[N]' not in dir and '[name]' not in dir:
             return dir
             
         if self.name:
-            dir = dir.replace('[N]', self.name)
+            dir = dir.replace('[name]', self.name)  # Handle old boltz tool that used [N] for the name.
+            dir = dir.replace('[N]', self.name)  # Handle old boltz tool that used [N] for the name.
             from os.path import exists
-            if exists(dir):
-                dir += '_[N]'
-            else:            
+            if not exists(dir):
                 return dir
+        else:
+            dir = dir.replace('[name]', '[N]')  # No name given so just use numeric suffix
 
+        if '[N]' not in dir:
+            dir += '_[N]'
+            
         for i in range(1,1000000):
             path = dir.replace('[N]', str(i))
             from os.path import exists
@@ -279,7 +288,7 @@ class BoltzRun:
                 if mc.ccd_code:
                     spec = f'      ccd: {mc.ccd_code}'
                 elif mc.smiles_string:
-                    spec = f'      smiles: {mc.smiles_string}'
+                    spec = f'      smiles: "{mc.smiles_string}"'
                 ligand_entry.append(spec)
                 yaml_lines.extend(ligand_entry)
 
@@ -304,21 +313,7 @@ class BoltzRun:
         if self._device is None:
             self._device = self._settings.device
         if self._device == 'default':
-            from sys import platform
-            if platform == 'win32':
-                device = 'cpu'
-                # TODO: Detect Nvidia/CUDA on windows.  Also will need cuda-enabled torch.
-                #       The default PyPi torch 2.6.0 for windows is cpu only.
-            elif platform == 'darwin':
-                from platform import machine
-                device = 'gpu' if machine() == 'arm64' else 'cpu'
-                # PyTorch 2.6 does not support Intel Mac GPU use.
-                #     https://discuss.pytorch.org/t/pytorch-support-for-intel-gpus-on-mac/151996
-            elif platform == 'linux':
-                device = 'gpu' if exists('/usr/bin/nvidia-smi') else 'cpu'
-                # TODO: Run nvidia-smi to see if GPU memory is sufficient to run Boltz.
-            else:
-                device = 'cpu'
+            device = boltz_default_device(self._session)
         else:
             device = self._device
         return device
@@ -340,6 +335,10 @@ class BoltzRun:
             command.append('--use_msa_server')
 
         command.extend(['--accelerator', self.device])
+        if self._cuda_bfloat16 and self.device == 'gpu':
+            command.append('--use_cuda_bfloat16')
+        if not self._use_steering_potentials:
+            command.append('--no_potentials')
 
         if self._samples != 1:
             command.extend(['--diffusion_samples', str(self._samples)])
@@ -386,7 +385,8 @@ class BoltzRun:
     def _log_prediction_info(self):
         log = self._session.logger
         mol_descrip = self._assembly_description()
-        log.info(f'Running Boltz prediction of {mol_descrip}')
+        device = self.device
+        log.info(f'Running Boltz prediction of {mol_descrip} on {device}')
 
         if self.use_msa_server:
             msa_method = 'Using multiple sequence alignment server https://api.colabfold.com'
@@ -402,9 +402,10 @@ class BoltzRun:
         parts = []
         for comps, type in [(pcomps, 'protein'), (ncomps, 'nucleic acid sequence')]:
             if len(comps) == 1:
-                parts.append(f'{type} with {len(comps[0].sequence_string)} residues')
+                nres = len(comps[0].sequence_string) * len(comps[0].chain_ids)
+                parts.append(f'{type} with {nres} residues')
             elif len(comps) > 1:
-                rlen = sum(len(comp.sequence_string) for comp in comps)
+                rlen = sum(len(comp.sequence_string) * len(comp.chain_ids) for comp in comps)
                 parts.append(f'{len(comps)} {type}s with {rlen} residues')
 
         ligands = [(mc.ccd_code or mc.smiles_string, len(mc.chain_ids))
@@ -446,16 +447,26 @@ class BoltzRun:
 
         p = self._process
         success = (p.returncode == 0)
+        import locale
+        stdout_encoding = locale.getpreferredencoding()
         if success:
             from time import time
             t = time() - self._start_time
             self._session.logger.info(f'Boltz prediction completed in {"%.0f" % t} seconds')
-            if self._open:
+            stdout = stdout.decode(stdout_encoding, errors = 'ignore')
+            if self._prediction_ran_out_of_memory(stdout):
+              msg = ('The Boltz prediction ran out of memory.  The memory use depends on the'
+                     ' number of protein and nucleic acid residues plus the number of ligand'
+                     ' atoms.  You can reduce the size of your molecular assembly to stay'
+                     ' within the memory limits.')
+              self._session.logger.error(msg)
+              success = False
+            elif self._open:
                 self._open_predictions()
             self._add_to_msa_cache()
         else:
-            stdout = stdout.decode("utf8")
-            stderr = stderr.decode('utf8')
+            stdout = stdout.decode(stdout_encoding, errors = 'ignore')
+            stderr = stderr.decode(stdout_encoding, errors = 'ignore')
             if 'No supported gpu backend found' in stderr:
                 msg = ('Attempted to run Boltz on the GPU but no supported GPU device could be found.'
                        ' To avoid this error specify the compute device as "cpu" in the ChimeraX Boltz'
@@ -464,13 +475,25 @@ class BoltzRun:
                        ' installation installs torch with no GPU support, so using Nvidia GPUs on'
                        ' Windows requires reinstalling gpu-enabled torch with Boltz which we plan to'
                        ' support in the future.')
+            elif 'No such option: --use_cuda_bfloat16' in stderr:
+                msg = ('The installed Boltz does not have the --use_cuda_bfloat16 option.'
+                       ' You need to install a newer Boltz to get this option.'
+                       ' Use the ChimeraX command "boltz install ~/boltz_new" to install it.')
+            elif 'No such option: --no_potentials' in stderr:
+                msg = ('The installed Boltz does not have the --no_potentials option.'
+                       ' You need to install a newer Boltz to get this option.'
+                       ' Use the ChimeraX command "boltz install ~/boltz_new" to install it.')
             else:
-                msg = '\n'.join([
-                    f'Running boltz prediction failed with exit code {p.returncode}:',
-                    'command:',self._command,
-                    'stdout:', stdout,
-                    'stderr:', stderr,
-                    ])
+                if self._user_terminated:
+                    msg = 'Prediction terminated by user'
+                    self._user_terminated = False
+                else:
+                    msg = '\n'.join([
+                        f'Running boltz prediction failed with exit code {p.returncode}:',
+                        'command:',self._command,
+                        'stdout:', stdout,
+                        'stderr:', stderr,
+                        ])
             self._session.logger.error(msg)
 
         self._running = False
@@ -480,6 +503,16 @@ class BoltzRun:
     def running(self):
         return self._running
 
+    def terminate(self):
+        if self._running:
+            self._process.kill()
+            self._user_terminated = True
+
+    def _prediction_ran_out_of_memory(self, stdout):
+        from os.path import join, exists
+        pdir = join(self._results_directory, f'boltz_results_{self.name}', 'predictions', self.name)
+        return not exists(pdir) and 'ran out of memory' in stdout
+            
     def _open_predictions(self):
         self._copy_predictions()
         for n in range(self._samples):
@@ -573,10 +606,45 @@ def _is_boltz_available(session):
     settings = _boltz_settings(session)
     from os.path import isdir
     if not isdir(settings.boltz_install_location):
-        msg = 'You need to set the Boltz installation location.  Enter it in the Boltz Options panel, or using the boltz command installLocation option.'
+        msg = 'You need to install Boltz by pressing the "Install Boltz" button on the ChimeraX Boltz user interface, or using the ChimeraX command "boltz install".  If you already have Boltz installed, you can set the Boltz installation location in the user interface under Options, or use the installLocation option of the ChimeraX boltz command "boltz predict ... installLocation /path/to/boltz"'
         session.logger.error(msg)
         return False
     return True
+
+# ------------------------------------------------------------------------------
+#
+def boltz_default_device(session):
+    from sys import platform
+    if platform in ('win32', 'linux'):
+        from .install import have_nvidia_driver
+        device = 'gpu' if have_nvidia_driver() and _torch_has_cuda(session) else 'cpu'
+        # TODO: On Linux run nvidia-smi to see if GPU memory is sufficient to run Boltz.
+    elif platform == 'darwin':
+        from platform import machine
+        device = 'gpu' if machine() == 'arm64' else 'cpu'
+        # PyTorch 2.6 does not support Intel Mac GPU.
+        #     https://discuss.pytorch.org/t/pytorch-support-for-intel-gpus-on-mac/151996
+    else:
+        device = 'cpu'
+    return device
+
+# ------------------------------------------------------------------------------
+#
+def _torch_has_cuda(session):
+    from sys import platform
+    if platform == 'darwin':
+        return False
+    if platform == 'win32':
+        lib_path = 'Lib/site-packages/torch/lib/torch_cuda.dll'
+    elif platform == 'linux':
+        from sys import version_info as v
+        lib_path = f'lib/python{v.major}.{v.minor}/site-packages/torch/lib/libtorch_cuda.so'
+    from .settings import _boltz_settings
+    settings = _boltz_settings(session)
+    boltz_install = settings.boltz_install_location
+    from os.path import join, exists
+    torch_cuda_lib = join(boltz_install, lib_path)
+    return exists(torch_cuda_lib)
 
 # ------------------------------------------------------------------------------
 #
@@ -617,15 +685,16 @@ def _add_to_msa_cache(dir_name, protein_seqs, msa_dir, msa_cache_dir):
     if len(csv_files) != len(protein_seqs):
         return False
 
-    from os import mkdir
     if not exists(msa_cache_dir):
-        mkdir(msa_cache_dir)
+        from os import makedirs
+        makedirs(msa_cache_dir)
 
     new_cache_dir = join(msa_cache_dir, dir_name)
     if exists(new_cache_dir):
         new_cache_dir = _unique_cache_dir(new_cache_dir)
         dir_name = basename(new_cache_dir)
 
+    from os import mkdir
     mkdir(new_cache_dir)
     from shutil import copy2
     for csv_file in csv_files:
@@ -679,7 +748,7 @@ def _ccd_ligands_from_residues(residues, exclude_ligands = []):
 
     from chimerax.atomic import concise_residue_spec
     if len(cres) > 0:
-        session = ncres[0].structure.session
+        session = cres[0].structure.session
         covalent_ligands = concise_residue_spec(session, cres)
     else:
         covalent_ligands =  ''
@@ -832,6 +901,8 @@ def register_boltz_predict_command(logger):
                    ('name', StringArg),
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
+                   ('float16', BoolArg),
+                   ('steering', BoolArg),
                    ('samples', IntArg),
                    ('recycles', IntArg),
                    ('seed', IntArg),

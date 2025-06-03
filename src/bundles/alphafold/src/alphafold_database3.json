@@ -3,5 +3,4 @@
     "database_version": "3",
     "update_interval": 86400.0,
     "update_url": "https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold_database3.json"
-    "comment": "This file fetched by ChimeraX to determine the current version of the AlphaFold database.  It is used by ChimeraX builds newer than August 29, 2022.  Older builds such as ChimeraX 1.4 use a different file alphafold_database.json because they are only compatible with database version 2 because EBI changed the format of the predicted aligned error files in version 3."
 }

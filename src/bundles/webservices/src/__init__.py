@@ -8,7 +8,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "1.1.4"
+__version__ = "1.1.5"
 
 from chimerax.core.toolshed import BundleAPI
 from .cxservices_job import CxServicesJob

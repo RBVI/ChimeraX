@@ -691,7 +691,7 @@ class ArrowModel(Model):
         rgba_drawing(self, rgba, (x, y), (uw, uh), opaque = False)
 
     def x3d_needs(self, x3d_scene):
-        from .. import x3d
+        from chimerax.core import x3d
         x3d_scene.need(x3d.Components.Text, 1)  # Text
 
     def custom_x3d(self, stream, x3d_scene, indent, place):

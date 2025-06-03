@@ -64,7 +64,7 @@ class _MyAPI(BundleAPI):
                 all_models = sum([m.all_models() for m in models], start=[])
                 if show_tool and session.ui.is_gui and len(all_models) > 1:
                     for m in all_models:
-                        if hasattr(m, 'viewdockx_data'):
+                        if hasattr(m, 'viewdock_data'):
                             show_dock = True
                             break
                     else:
@@ -96,7 +96,7 @@ def show_docking_file_dialogue(session):
         session.logger.warning("No docking results formats found.")
         return
     from chimerax.open_command import show_open_file_dialog
-    show_open_file_dialog(session, format_names=docking_formats_names)
+    show_open_file_dialog(session, format_names=docking_formats_names, caption="Choose Docking Results File")
 
 
 def open_viewdock_tool(session, structures):

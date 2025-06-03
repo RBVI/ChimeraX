@@ -295,7 +295,7 @@ def show_fetch_by_id_dialog(session, database_name=None, *, debug=False):
     _fetch_by_id_dialog.show()
     _fetch_by_id_dialog.raise_()
 
-def show_open_file_dialog(session, initial_directory=None, format_names=None):
+def show_open_file_dialog(session, initial_directory=None, format_names=None, *, caption=None):
     if initial_directory is None:
         initial_directory = ''
     file_filters, openable_formats, no_filter = make_qt_name_filters(session, format_names=format_names)
@@ -307,7 +307,8 @@ def show_open_file_dialog(session, initial_directory=None, format_names=None):
         filter2fmt = dict(zip(file_filters, openable_formats))
     from Qt.QtWidgets import QFileDialog
     qt_filter = ";;".join(file_filters)
-    if _use_native_open_file_dialog:
+    # native Mac open dialogs (and possibly others) don't show captions...
+    if _use_native_open_file_dialog and caption is None:
         from Qt.QtWidgets import QFileDialog
         paths, file_filter = QFileDialog.getOpenFileNames(filter=qt_filter,
                                                        directory=initial_directory)
@@ -320,7 +321,7 @@ def show_open_file_dialog(session, initial_directory=None, format_names=None):
             crash_report.clear_fault_handler_file(session)
     else:
         dlg = OpenDialog(parent=session.ui.main_window, starting_directory=initial_directory,
-                       filter=qt_filter)
+                       filter=qt_filter, caption=caption)
         dlg.setNameFilters(file_filters)
         paths = dlg.get_paths()
         file_filter = dlg.selectedNameFilter()

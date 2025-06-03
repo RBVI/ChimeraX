@@ -40,7 +40,7 @@ class BoltzPredictionGUI(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
 
         from chimerax.ui import MainToolWindow
-        tw = MainToolWindow(self)
+        tw = MainToolWindow(self, close_destroys = False)
         tw.title = 'Boltz Structure Predicton'
         self.tool_window = tw
         parent = tw.ui_area
@@ -117,7 +117,7 @@ class BoltzPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _prediction_name_edited(self, text):
-        self._auto_set_prediction_name = False
+        self._auto_set_prediction_name = (len(text) == 0)
 
     # ---------------------------------------------------------------------------
     #
@@ -149,12 +149,15 @@ class BoltzPredictionGUI(ToolInstance):
         from Qt.QtWidgets import QLineEdit
         self._molecule_identifier_entry = ue = QLineEdit(f)
         ue.setMaximumWidth(200)
-        ue.textEdited.connect(lambda text, self=self: self._set_prediction_name())
         layout.addWidget(ue)
 
         dr = QPushButton('Delete selected rows', f)
         layout.addWidget(dr)
         dr.pressed.connect(self._delete_selected_rows)
+
+        cl = QPushButton('Clear', f)
+        layout.addWidget(cl)
+        cl.pressed.connect(self._clear_table)
 
         layout.addStretch(1)	# Extra space at end
         return f
@@ -180,8 +183,6 @@ class BoltzPredictionGUI(ToolInstance):
         self._molecule_identifier_entry.setText('')
         self._sequence_entry.setVisible(show_seq)
         self._molecule_identifier_entry.setVisible(show_uniprot)
-
-        self._set_prediction_name()
 
     # ---------------------------------------------------------------------------
     #
@@ -243,6 +244,9 @@ class BoltzPredictionGUI(ToolInstance):
         for menu_text, data in entries:
             m.addAction(menu_text)
         self._menu_data = dict(entries)
+        menu_text = self._seq_button.text()
+        if menu_text not in self._menu_data:
+            self._seq_button.setText(entries[0][0] if entries else '')
         return entries
 
     # ---------------------------------------------------------------------------
@@ -264,6 +268,8 @@ class BoltzPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _add_molecule(self):
+        self._update_molecule_menu()
+
         comps = self._new_components()
         if len(comps) == 0:
             return
@@ -274,8 +280,13 @@ class BoltzPredictionGUI(ToolInstance):
             self._molecules_table = mt = MoleculesTable(parent, comps)
             layout = parent.layout()
             layout.insertWidget(self._molecules_table_position, mt)
+            first_addition = True
         else:
+            first_addition = (len(mt.data) == 0)
             mt.add_rows(comps)
+
+        if first_addition:
+            self._set_prediction_name()
 
         self._report_number_of_tokens()
         
@@ -319,7 +330,7 @@ class BoltzPredictionGUI(ToolInstance):
         else:
             s, c = self._menu_structure_or_chain()
             if s:
-                comps = [MolecularComponent(desc, type = polymer_type, chains = chains,
+                comps = [MolecularComponent(desc, type = polymer_type, chains = chains, count = len(chains),
                                             sequence_string = chains[0].characters)
                          for chains,polymer_type,desc in _unique_chain_descriptions(s.chains)]
                 from .predict import _ccd_ligands_from_residues, _ccd_descriptions
@@ -329,7 +340,7 @@ class BoltzPredictionGUI(ToolInstance):
                     descrip = f'{ccd} - {ccd_descrip[ccd]}' if ccd in ccd_descrip else ccd
                     comps.append(MolecularComponent(descrip, count = count, type = 'ligand', ccd_code = ccd))
             elif c:
-                comps = [MolecularComponent(desc, type = polymer_type, chains = chains,
+                comps = [MolecularComponent(desc, type = polymer_type, chains = chains, count = len(chains),
                                             sequence_string = chains[0].characters)
                          for chains,polymer_type,desc in _unique_chain_descriptions([c])]
         return comps
@@ -382,6 +393,13 @@ class BoltzPredictionGUI(ToolInstance):
             mt.delete_selected_rows()
 
         self._report_number_of_tokens()        
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _clear_table(self):
+        mt = self._molecules_table
+        if mt:
+            mt.clear()
 
     # ---------------------------------------------------------------------------
     #
@@ -473,14 +491,22 @@ class BoltzPredictionGUI(ToolInstance):
             options.append(f'name {name}')
         dir = self._results_directory.value
         if dir != self.default_results_directory():
-            options.append(f'directory {dir}')
+            options.append(f'resultsDirectory {dir}')
         if not self._use_msa_cache.value:
             options.append('useMsaCache false')
         if self._device.value != 'default':
             options.append(f'device {self._device.value}')
+        if self._use_cuda_bfloat16 and self._use_cuda_bfloat16.value:
+            options.append('float16 true')
+        if self._use_steering_potentials.value:
+            options.append('steering true')
         if self._samples.value != 1:
             options.append(f'samples {self._samples.value}')
-        self._save_install_location()
+        from .settings import _boltz_settings
+        settings = _boltz_settings(self.session)
+        if self._install_directory.value != settings.boltz_install_location:
+            from chimerax.core.commands import quote_path_if_necessary
+            options.append(f'installLocation {quote_path_if_necessary(self._install_directory.value)}')
         self._run_prediction(options = ' '.join(options))
 
     # ---------------------------------------------------------------------------
@@ -499,10 +525,35 @@ class BoltzPredictionGUI(ToolInstance):
 
         from chimerax.core.commands import run
         br = run(self.session, cmd)
+        if br is None:
+            return  # Boltz not yet installed or other startup error.
         self._boltz_run = br
 
         self._show_prediction_progress()
-        
+
+    # ---------------------------------------------------------------------------
+    #
+    def _show_stop_button(self, show):
+        if show:
+            br = self._button_row
+            from Qt.QtWidgets import QPushButton
+            self._stop_button = sb = QPushButton('Stop', br)
+            br.layout().insertWidget(0, sb)
+            sb.pressed.connect(self._stop_prediction)
+        elif self._stop_button:
+            sb = self._stop_button
+            layout = self._button_row.layout()
+            layout.removeWidget(sb)
+            sb.deleteLater()
+            self._stop_button = None
+
+    # ---------------------------------------------------------------------------
+    #
+    def _stop_prediction(self):
+        p = self._boltz_run
+        if p:
+            p.terminate()
+
     # ---------------------------------------------------------------------------
     #
     def _show_prediction_progress(self):
@@ -512,9 +563,14 @@ class BoltzPredictionGUI(ToolInstance):
         self._max_memory_use = None
         self.session.triggers.add_handler('new frame', self._report_progress)
 
+        self._show_stop_button(True)
+        
     # ---------------------------------------------------------------------------
     #
     def _report_progress(self, tname, tdata):
+        if not self.tool_window.shown:
+            return
+
         from time import time
         t = time()
         elapsed = t - self._prediction_start_time
@@ -525,6 +581,7 @@ class BoltzPredictionGUI(ToolInstance):
             if self._max_memory_use:
                 msg += f', memory use {"%.1f" % self._max_memory_use} Gbytes'
             self._progress_label.setText(msg)
+            self._show_stop_button(False)
             return 'delete handler'
         if t < self._next_progress_time:
             return
@@ -596,70 +653,58 @@ class BoltzPredictionGUI(ToolInstance):
         self._options_panel = p = CollapsiblePanel(parent, title = None)
         f = p.content_area
 
+        from .settings import _boltz_settings
+        settings = _boltz_settings(self.session)
+
         from chimerax.ui.widgets import EntriesRow
 
         # Results directory
         rd = EntriesRow(f, 'Results directory', '',
-                        ('Browse', self._choose_results_directory),
-                        ('Set default', self._set_default_results_directory))
+                        ('Browse', self._choose_results_directory))
         self._results_directory = dir = rd.values[0]
         dir.pixel_width = 250
         dir.value = self.default_results_directory()
 
         # Number of predicted structures
-        ns = EntriesRow(f, 'Number of predicted structures', 1, ('Set default', self._set_default_samples))
+        ns = EntriesRow(f, 'Number of predicted structures', 1)
         self._samples = sam = ns.values[0]
-        sam.value = self.default_samples()
+        sam.value = settings.samples
 
         # CPU or GPU device
-        cd = EntriesRow(f, 'Compute device', ('default', 'cpu', 'gpu'), ('Save', self._set_default_device))
+        cd = EntriesRow(f, 'Compute device', ('default', 'cpu', 'gpu'))
         self._device = dev = cd.values[0]
-        dev.value = self.default_device()
-        
+        dev.value = settings.device
+
+        # Use 16-bit float with Nvidia CUDA, only shown if Nvidia gpu available
+        from .install import have_nvidia_driver
+        if have_nvidia_driver():
+            bf = EntriesRow(f, True, 'Predict larger structures with Nvidia 16-bit floating point')
+            self._use_cuda_bfloat16 = cbf = bf.values[0]
+            cbf.value = settings.use_cuda_bfloat16
+        else:
+            self._use_cuda_bfloat16 = None
+
+        # Steering potentials
+        sp = EntriesRow(f, False, 'Use steering potentials.  May be more accurate, but slower.')
+        self._use_steering_potentials = usp = sp.values[0]
+        usp.value = settings.use_steering_potentials
+
+
         # Use MSA cache
         mc = EntriesRow(f, True, 'Use multiple sequence alignment cache')
-        self._use_msa_cache = mc.values[0]
+        self._use_msa_cache = uc = mc.values[0]
+        uc.value = settings.use_msa_cache
         
         # Boltz install location
         id = EntriesRow(f, 'Boltz install location', '',
                         ('Browse', self._choose_install_directory))
         self._install_directory = dir = id.values[0]
         dir.pixel_width = 350
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
         dir.value = settings.boltz_install_location
 
+        EntriesRow(f, ('Save default options', self._save_default_options))
+
         return p
-
-    # ---------------------------------------------------------------------------
-    #
-    def default_device(self):
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
-        return settings.device
-
-    # ---------------------------------------------------------------------------
-    #
-    def _set_default_device(self):
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
-        settings.device = self._device.value
-        settings.save()
-
-    # ---------------------------------------------------------------------------
-    #
-    def default_samples(self):
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
-        return settings.samples
-
-    # ---------------------------------------------------------------------------
-    #
-    def _set_default_samples(self):
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
-        settings.samples = self._samples.value
-        settings.save()
 
     # ---------------------------------------------------------------------------
     #
@@ -690,12 +735,20 @@ class BoltzPredictionGUI(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _set_default_results_directory(self):
+    def _save_default_options(self, install_dir_only = False):
         from .settings import _boltz_settings
         settings = _boltz_settings(self.session)
-        settings.boltz_results_location = self._results_directory.value
+        if not install_dir_only:
+            settings.boltz_results_location = self._results_directory.value
+            settings.samples = self._samples.value
+            settings.device = self._device.value
+            if self._use_cuda_bfloat16 is not None:
+                settings.use_cuda_bfloat16 = self._use_cuda_bfloat16.value
+            settings.use_steering_potentials = self._use_steering_potentials.value                
+            settings.use_msa_cache = self._use_msa_cache.value
+        settings.boltz_install_location = self._install_directory.value
         settings.save()
-
+        
     # ---------------------------------------------------------------------------
     #
     def _install_boltz(self):
@@ -707,7 +760,7 @@ class BoltzPredictionGUI(ToolInstance):
                    'This will take about 4 Gbytes of disk space and ten minutes or more depending on network speed.'
                    f' Boltz and its required packages will be installed in folder {boltz_dir} (1 GByte)'
                    '  and its model parameters (3.3 GBytes) and chemical component dictionary (0.3 Gbytes)'
-                   f'will be installed in {param_dir}')
+                   f' will be installed in {param_dir}')
         from chimerax.ui.ask import ask
         answer = ask(self.session, message, title = 'Install Boltz', help_url = 'help:user/tools/boltz.html')
         if answer == 'yes':
@@ -739,9 +792,12 @@ class BoltzPredictionGUI(ToolInstance):
         layout.removeWidget(self._installing_label)
         self._installing_label.deleteLater()
         self._installing_label = None
-        if not success:
+        if success:
+            self._save_default_options(install_dir_only = True)
+        else:
             layout.insertWidget(0, self._install_boltz_button)
             self._install_boltz_button.setVisible(True)
+
         self._installing_boltz = False
 
     # ---------------------------------------------------------------------------
@@ -756,15 +812,6 @@ class BoltzPredictionGUI(ToolInstance):
                                                  options = QFileDialog.Option.ShowDirsOnly)
         if path:
             self._install_directory.value = path
-            self._save_install_location()
-
-    # ---------------------------------------------------------------------------
-    #
-    def _save_install_location(self):
-        from .settings import _boltz_settings
-        settings = _boltz_settings(self.session)
-        settings.boltz_install_location = self._install_directory.value
-        settings.save()
             
     # ---------------------------------------------------------------------------
     #
@@ -860,7 +907,8 @@ def _ligands_with_counts(ligand_specs):
             spec_counts[spec] += count
         else:
             spec_counts[spec] = count
-    lc = ','.join(f'{spec}({count})' for spec, count in spec_counts.items())
+    lc = ','.join((spec if count == 1 else f'{spec}({count})')
+                  for spec, count in spec_counts.items())
     return lc
 
 # -----------------------------------------------------------------------------
@@ -923,6 +971,9 @@ class MoleculesTable(ItemTable):
         if sel:
             self.data = [d for d in self.data if d not in sel]
 
+    def clear(self):
+        self.data = []
+
 # -----------------------------------------------------------------------------
 #
 class MolecularComponent:
@@ -932,7 +983,7 @@ class MolecularComponent:
         self.description = description
         self.type = type		# protein, dna, rna, ligand
         self.count = count
-        self.chains = chains
+        self.chains = chains		# chains of open models, use chain ids for prediction
         self.sequence_string = sequence_string
         self.uniprot_id = uniprot_id
         self.ccd_code = ccd_code

@@ -36,7 +36,7 @@ builtin_presets = {
         'smoothing': 3,
         'transparency': None,
     },
-    "simple-axes": {
+    "axes": {
         'axis_color': None,
         'axis_factor': 1.0,
         'axis_thickness': 0.01,
@@ -62,7 +62,7 @@ builtin_presets = {
         'smoothing': 3,
         'transparency': None,
     },
-    "axes": {
+    "simple-axes": {
         'axis_color': None,
         'axis_factor': 1.5,
         'axis_thickness': 0.01,

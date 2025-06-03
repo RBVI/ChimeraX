@@ -1,26 +1,19 @@
-<BundleInfo name="ChimeraX-Movie" version="1.0"
-	    package="chimerax.movie"
-  	    minSessionVersion="1" maxSessionVersion="1">
-
+<?xml version="1.0"?>
+<BundleInfo name="ChimeraX-Movie" version="1.0.1" package="chimerax.movie" minSessionVersion="1" maxSessionVersion="1">
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
-
   <Synopsis>Commands to record movies</Synopsis>
   <Description>Provide commands for capturing images and assembling them into movies.</Description>
-
   <Categories>
     <Category name="General"/>
   </Categories>
-
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
   </Dependencies>
-
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: movie :: General :: record movies</ChimeraXClassifier>
   </Classifiers>
-
 </BundleInfo>
