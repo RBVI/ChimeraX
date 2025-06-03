@@ -165,6 +165,8 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
           uv venv -p 3.11.4
           source .venv/bin/activate
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - run: source .venv/bin/activate && MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(sysctl -n hw.logicalcpu) uv-install
       - name: Copy the ChimeraX directory out of the virtual environment
         run: |
