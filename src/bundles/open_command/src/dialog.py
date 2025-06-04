@@ -32,6 +32,11 @@ except ImportError:
     # nogui
     pass
 else:
+    import sys
+    if sys.platform == 'win32':
+        from chimerax.core.utils import no_garbage_collection as gc_context
+    else:
+        from contextlib import nullcontext as gc_context
     class OpenDialog(QFileDialog):
         def __init__(self, parent=None, caption='Open File', starting_directory=None,
                      widget_alignment=Qt.AlignCenter, filter=''):
@@ -52,7 +57,8 @@ else:
         def get_path(self):
             if not self.exec():
                 return None
-            paths = self.selectedFiles()
+            with gc_context():
+                paths = self.selectedFiles()
             if not paths:
                 return None
             path = paths[0]
@@ -61,7 +67,8 @@ else:
         def get_paths(self):
             if not self.exec():
                 return None
-            paths = self.selectedFiles()
+            with gc_context():
+                paths = self.selectedFiles()
             if not paths:
                 return None
             return paths
@@ -97,8 +104,9 @@ else:
                 from os.path import dirname
                 initial_dir = dirname(hfiles[-1].path)
                 self.setDirectory(initial_dir)
-            if not self.exec():
-                return
+            with gc_context():
+                if not self.exec():
+                    return
             dirs = self.selectedFiles()
             dir = dirs[0] if len(dirs) > 0 else self.directory().path()
             fmt_synopsis = self._format_selector.currentText()
@@ -310,7 +318,8 @@ def show_open_file_dialog(session, initial_directory=None, format_names=None, *,
     # native Mac open dialogs (and possibly others) don't show captions...
     if _use_native_open_file_dialog and caption is None:
         from Qt.QtWidgets import QFileDialog
-        paths, file_filter = QFileDialog.getOpenFileNames(filter=qt_filter,
+        with gc_context():
+            paths, file_filter = QFileDialog.getOpenFileNames(filter=qt_filter,
                                                        directory=initial_directory)
         from sys import platform
         if platform == 'win32':
