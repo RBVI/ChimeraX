@@ -46,7 +46,9 @@ static PyObject* objects_intersect;
 static PyObject* objects_union;
 static PyObject* get_selector;
 static PyObject* add_implied_bonds;
+#endif
 static PyObject* session;
+#if 0
 #ifdef EVALUATE
 static PyObject* models;
 #endif
@@ -80,9 +82,9 @@ static PyObject* _Atom_class;
 static PyObject* _Part_class;
 static PyObject* _PartList_class;
 static PyObject* _add_model_parts;
+#endif
 static std::string use_python_error("Use Python error");
 static bool add_implied, order_implicit_atoms, outermost_inversion;
-#endif
 
 static const char*
 docstr_parse = \
@@ -314,6 +316,7 @@ new_objects_instance()
         throw std::runtime_error("Cannot create Objects instance");
     return objects_inst;
 }
+#endif
 
 static size_t err_line, err_col;
 static std::string err_msg;
@@ -348,14 +351,12 @@ set_error_info(PyObject* err_type, std::string msg)
         Py_DECREF(type);
     }
 }
-#endif
 
 //TODO: accept find_match() keywords
 extern "C" PyObject *
 parse(PyObject *, PyObject *args)
 {
     const char* text;
-#define DEBUG
 #ifdef DEBUG
     if (!PyArg_ParseTuple(args, "s", &text))
         return nullptr;
@@ -374,23 +375,54 @@ parse(PyObject *, PyObject *args)
     PyObject *parse_error_class, *semantics_error_class;
     if (!PyArg_ParseTuple(args, "OOspOOpp", &session, &models, &text, &c_quoted, &parse_error_class,
             &semantics_error_class, &c_add_implied, &c_order_implicit))
-#else
+        return nullptr;
+#endif
     int c_quoted, c_add_implied;
     PyObject *parse_error_class, *semantics_error_class;
-    if (!PyArg_ParseTuple(args, "OspOOpp", &session, &text, &c_quoted, &parse_error_class,
+    if (!PyArg_ParseTuple(args, "OspOOp", &session, &text, &c_quoted, &parse_error_class,
             &semantics_error_class, &c_add_implied))
-#endif
-
         return nullptr;
+
     bool quoted = static_cast<bool>(c_quoted);
     add_implied = static_cast<bool>(c_add_implied);
+    spec_parser.set_logger([](size_t line, size_t col, const std::string& msg) {
+        err_valid = true;
+        err_line = line;
+        err_col = col;
+        err_msg = msg;
+    });
+    //TODO: eval() is going to wind up being a big function (possibly calling subfunctions), so
+    // change to static non-lambda
+    std::function<PyObject*(const Ast&)> eval = [&](const Ast &ast) {
+        std::cerr << ast.name << " '" << ast.token_to_string() << "'; choice " << ast.choice << "  " << ast.nodes.size() << " subnodes\n";
+        for (auto node: ast.nodes) {
+            eval(*node);
+        }
+        return Py_None;
+    };
+    std::shared_ptr<peg::Ast> ast;
+    if (spec_parser.parse(text, ast)) {
+        //TODO: Check if optimized AST is usable.  I suspect that ::name=="CYS" produces an unusable AST
+        // because it skips levels
+        eval(*ast);
+        return Py_None;
+    } else {
+        if (quoted) {
+            set_error_info(parse_error_class, err_msg);
+            return nullptr;
+        }
+        //TODO: possibly try again
+        set_error_info(parse_error_class, err_msg);
+        return nullptr;
+    }
 #ifdef EVALUATE
+    bool quoted = static_cast<bool>(c_quoted);
+    add_implied = static_cast<bool>(c_add_implied);
     order_implicit_atoms = static_cast<bool>(c_order_implicit);
     models = PySequence_Fast(models, "parse() arg 'models' is not a sequence");
     if (models == nullptr)
         return nullptr;
     PyObject* returned_objects_instance = nullptr;
-#endif
     std::string trial_text = text;
     spec_parser.set_logger([](size_t line, size_t col, const std::string& msg) {
         err_valid = true;
@@ -472,6 +504,7 @@ parse(PyObject *, PyObject *args)
     PyTuple_SetItem(ret_val, 1, PyUnicode_FromString(trial_text.c_str()));
     PyTuple_SetItem(ret_val, 2, PyUnicode_FromString(std::string(text).substr(trial_text.size()).c_str()));
     return ret_val;
+#endif
 #endif
 }
 
