@@ -1220,6 +1220,12 @@ class FileNameArg(Annotation):
 _BROWSE_STRING = "browse"
 
 
+import sys
+if sys.platform == 'win32':
+    from chimerax.core.utils import no_garbage_collection as gc_context
+else:
+    from contextlib import nullcontext as gc_context
+
 def _browse_parse(
     text,
     session,
@@ -1249,14 +1255,14 @@ def _browse_parse(
 
             dlg.setNameFilters(make_qt_name_filters(session)[0])
         dlg.setFileMode(dialog_mode)
-        if dlg.exec():
-            paths = dlg.selectedFiles()
-            if not paths:
-                raise AnnotationError("No %s selected by browsing" % item_kind)
-        else:
-            from chimerax.core.errors import CancelOperation
-
-            raise CancelOperation("%s browsing cancelled" % item_kind.capitalize())
+        with gc_context():
+            if dlg.exec():
+                paths = dlg.selectedFiles()
+                if not paths:
+                    raise AnnotationError("No %s selected by browsing" % item_kind)
+            else:
+                from chimerax.core.errors import CancelOperation
+                raise CancelOperation("%s browsing cancelled" % item_kind.capitalize())
     else:
         paths = [path]
     if check_existence:
