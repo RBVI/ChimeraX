@@ -604,11 +604,45 @@ def _is_boltz_available(session):
     '''Check if Boltz is locally installed with paths properly setup.'''
     from .settings import _boltz_settings
     settings = _boltz_settings(session)
+    install_location = settings.boltz_install_location
     from os.path import isdir
-    if not isdir(settings.boltz_install_location):
+    if not isdir(install_location):
         msg = 'You need to install Boltz by pressing the "Install Boltz" button on the ChimeraX Boltz user interface, or using the ChimeraX command "boltz install".  If you already have Boltz installed, you can set the Boltz installation location in the user interface under Options, or use the installLocation option of the ChimeraX boltz command "boltz predict ... installLocation /path/to/boltz"'
         session.logger.error(msg)
         return False
+
+    if not _check_venv_valid(session, install_location):
+        return False
+
+    return True
+
+# ------------------------------------------------------------------------------
+#
+def _check_venv_valid(session, install_location):
+    '''
+    Warn if the ChimeraX python that was used for boltz venv does not exist.
+    '''
+    from os.path import join, exists
+    venv_config_path = join(install_location, 'pyvenv.cfg')
+    if not exists(venv_config_path):
+        # Maybe the user installed Boltz themselves.  Don't complain in that case.
+        return True
+
+    with open(venv_config_path, 'r') as f:
+        # Prepend section name since configparser requires a section.
+        config = '[params]\n' + f.read()
+    import configparser
+    p = configparser.ConfigParser()
+    p.read_string(config)
+
+    home = p.get('params', 'home', fallback = None)  # Python bin directory
+    if home and not exists(home):
+        from chimerax.core.commands import quote_path_if_necessary
+        install_loc = quote_path_if_necessary(install_location)
+        msg = f'The ChimeraX version you used to install Boltz no longer exists and Boltz uses the Python from that ChimeraX.  You need to reinstall Boltz with your current ChimeraX.  First remove the directory containing the old Boltz installation\n\n{install_location}\n\nThen restart ChimeraX and press the "Install Boltz" button on the ChimeraX Boltz panel or use the ChimeraX command\n\nboltz install {install_loc}'
+        session.logger.error(msg)
+        return False
+
     return True
 
 # ------------------------------------------------------------------------------
