@@ -484,12 +484,19 @@ CLUSTAL_OMEGA = "Clustal Omega"
 alignment_program_name_args = { 'muscle': MUSCLE, 'omega': CLUSTAL_OMEGA, 'clustalOmega': CLUSTAL_OMEGA }
 def seqalign_align(session, seq_source, *, program=CLUSTAL_OMEGA, replace=False):
     from .alignment import Alignment
+    auto_associate = True
     if isinstance(seq_source, Alignment):
         raw_input_sequences = seq_source.seqs
         title = "%s realignment of %s" % (program, seq_source.description)
     else:
         raw_input_sequences = seq_source
         title = "%s alignment" % program
+        for seq in raw_input_sequences:
+            if getattr(seq, 'structure', None) is None:
+                break
+        else:
+            # all the sequences are StructureSeqs, associate them
+            auto_associate = None
     from chimerax.atomic import Residue
     input_sequences = [s for s in raw_input_sequences
         if getattr(s, 'polymer_type', Residue.PT_PROTEIN) == Residue.PT_PROTEIN]
@@ -499,11 +506,11 @@ def seqalign_align(session, seq_source, *, program=CLUSTAL_OMEGA, replace=False)
         # have to do this before realignment, because the realignment returns Sequences
         input_sequences = ensure_unique_seq_names(input_sequences, structure_name_limit=10)
     from .align import realign_sequences
-    realigned = realign_sequences(session, input_sequences, program=program)
+    realigned = realign_sequences(session, input_sequences, program=program, replacing=replace)
     if replace:
         seq_source._set_realigned(realigned)
         return seq_source
-    return session.alignments.new_alignment(realigned, None, name=title)
+    return session.alignments.new_alignment(realigned, None, name=title, auto_associate=auto_associate)
 
 def register_seqalign_command(logger):
     # REMINDER: update manager._builtin_subcommands as additional subcommands are added

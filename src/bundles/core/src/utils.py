@@ -251,3 +251,14 @@ def chimerax_bin_dir_first_in_path():
     os.environ['PATH'] = ":".join([chimerax_binary_directory(), oldpath])
     yield
     os.environ['PATH'] = oldpath or ''
+
+@contextmanager
+def no_garbage_collection():
+    import gc
+    was_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        yield
+    finally:
+        if was_enabled:
+            gc.enable()
