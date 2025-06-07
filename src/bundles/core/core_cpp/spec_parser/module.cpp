@@ -37,6 +37,12 @@ using namespace peg;
 
 static parser spec_parser;
 static PyObject* session;
+static PyObject *parse_error_class, *semantics_error_class;
+static PyObject* AtomSpec_class;
+static PyObject* _Term_class;
+static PyObject* _ModelList_class;
+static PyObject* _Model_class;
+static PyObject* append_arg;
 static std::string use_python_error("Use Python error");
 static bool add_implied, order_implicit_atoms, outermost_inversion;
 
@@ -82,6 +88,157 @@ set_error_info(PyObject* err_type, std::string msg)
     }
 }
 
+// Fixed text strings that need to be handed off to the Python layer
+enum Symbols { OP_UNION, OP_INTERSECT, NUM_SYMBOLS };
+static std::vector<std::string> symbols = { "|", "&" };
+static std::vector<PyObject*> py_symbols;
+
+void
+print_ast(const Ast & ast)
+{
+    std::cerr << ast.name << " '" << ast.token_to_string() << "'; choice " << ast.choice << "  " << ast.nodes.size() << " subnodes\n";
+    for (auto node: ast.nodes) {
+        print_ast(*node);
+    }
+}
+    
+// NOTE: to figure out how things work in the Python layer you have to not only look at the
+// corresponding parsing class, but also the corresponding method of _AtomSpecSemantics
+
+static PyObject*
+eval_zone_selector(const Ast &ast) {
+    // zone_selector <- Space* ZONE_OPERATOR real_number / Space* ZONE_OPERATOR integer
+    return Py_None;
+}
+
+static PyObject*
+eval_model_parts(const Ast &ast) {
+    // model_parts <- chain+
+    return Py_None;
+}
+
+static PyObject*
+eval_attribute_list(const Ast &ast) {
+    // attribute_list <- attr_test ("," attr_test)*
+    return Py_None;
+}
+
+static PyObject*
+eval_model_hierarchy(const Ast &ast) {
+    // model_hierarchy <- < model_range_list (!Space "." !Space model_hierarchy)* >
+    return Py_None;
+}
+
+static PyObject*
+eval_model(const Ast &ast) {
+    // model <- HASH_TYPE model_hierarchy ("##" attribute_list)? model_parts* zone_selector? / "##" attribute_list model_parts* zone_selector? / model_parts zone_selector?
+    bool exact_match = false;
+    PyObject* hierarchy = Py_None;
+    PyObject* attrs = Py_None;
+    PyObject* parts = Py_None;
+    PyObject* zone = Py_None;
+    for (auto node: ast.nodes) {
+        if (node->name == "HASH_TYPE") {
+            // HASH_TYPE <- "#!" / "#"
+            exact_match = node->choice == 0;
+        } else if (node->name == "model_hierarchy") {
+            hierarchy = eval_model_hierarchy(*node);
+        } else if (node->name == "attribute_list") {
+            attrs = eval_attribute_list(*node);
+        } else if (node->name == "model_parts") {
+            parts = eval_model_parts(*node);
+        } else if (node->name == "zone_selector") {
+            zone = eval_zone_selector(*node);
+        }
+    }
+    auto model = PyObject_CallFunctionObjArgs(_Model_class, (exact_match ? Py_True : Py_False),
+        hierarchy, attrs, nullptr);
+    if (model == nullptr) {
+        set_error_info(semantics_error_class, use_python_error);
+        return nullptr;
+    }
+    if (parts != Py_None) {
+        //TODO
+    }
+    if (zone == Py_None)
+        return model;
+    
+    if (PyObject_SetAttrString(zone, "model", model) < 0) {
+        Py_DECREF(model);
+        set_error_info(semantics_error_class, use_python_error);
+        return nullptr;
+    }
+    return zone;
+}
+
+static PyObject*
+eval_model_list(const Ast &ast) {
+    // model_list <- model+
+    auto py_ml = PyObject_CallNoArgs(_ModelList_class);
+    for (auto node: ast.nodes)
+        if (PyObject_CallMethodOneArg(py_ml, append_arg, eval_model(*node)) == nullptr) {
+            Py_DECREF(py_ml);
+            throw std::logic_error(use_python_error);
+        }
+    return py_ml;
+}
+
+static PyObject*
+eval_as_term(const Ast &ast) {
+    // as_term <- "(" atom_specifier ")" zone_selector? / "~" as_term zone_selector? / SELECTOR_NAME zone_selector? / model_list
+    switch (ast.choice) {
+        case 0:
+        case 1:
+        case 2:
+            //TODO
+            return Py_None;
+    }
+    return PyObject_CallOneArg(_Term_class, eval_model_list(*ast.nodes[0]));
+}
+    
+static PyObject*
+eval_atom_spec(const Ast &ast) {
+    print_ast(ast);
+    // atom_specifier <- as_term "&" atom_specifier / as_term "|" atom_specifier / as_term
+    PyObject* left_spec;
+    PyObject* right_spec;
+    PyObject* op;
+    left_spec = eval_as_term(*ast.nodes[0]);
+    switch (ast.choice) {
+        case 0:
+            op = py_symbols[OP_UNION];
+            right_spec = eval_atom_spec(*ast.nodes[1]);
+            break;
+        case 1:
+            op = py_symbols[OP_INTERSECT];
+            right_spec = eval_atom_spec(*ast.nodes[1]);
+            break;
+        case 2:
+            op = right_spec = Py_None;
+            break;
+    }
+        
+    auto args = PyTuple_New(3);
+    if (args == nullptr) {
+        throw std::runtime_error("Could not create tuple");
+    }
+    PyTuple_SET_ITEM(args, 0, op);
+    PyTuple_SET_ITEM(args, 1, left_spec);
+    PyTuple_SET_ITEM(args, 2, right_spec);
+
+    auto kw_args = PyDict_New();
+    if (kw_args == nullptr) {
+        Py_DECREF(args);
+        throw std::runtime_error("Cannot create keyword dictionary");
+    }
+    if (PyDict_SetItemString(kw_args, "add_implied", add_implied ? Py_True : Py_False) < 0) {
+        Py_DECREF(args);
+        Py_DECREF(kw_args);
+        throw std::logic_error(use_python_error);
+    }
+    return PyObject_Call(AtomSpec_class, args, kw_args);
+}
+
 //TODO: accept find_match() keywords
 extern "C" PyObject *
 parse(PyObject *, PyObject *args)
@@ -101,7 +258,6 @@ parse(PyObject *, PyObject *args)
     return Py_None;
 #else
     int c_quoted, c_add_implied;
-    PyObject *parse_error_class, *semantics_error_class;
     if (!PyArg_ParseTuple(args, "OspOOp", &session, &text, &c_quoted, &parse_error_class,
             &semantics_error_class, &c_add_implied))
         return nullptr;
@@ -114,21 +270,11 @@ parse(PyObject *, PyObject *args)
         err_col = col;
         err_msg = msg;
     });
-    //TODO: eval() is going to wind up being a big function (possibly calling subfunctions), so
-    // change to static non-lambda
-    std::function<PyObject*(const Ast&)> eval = [&](const Ast &ast) {
-        std::cerr << ast.name << " '" << ast.token_to_string() << "'; choice " << ast.choice << "  " << ast.nodes.size() << " subnodes\n";
-        for (auto node: ast.nodes) {
-            eval(*node);
-        }
-        return Py_None;
-    };
     std::shared_ptr<peg::Ast> ast;
     if (spec_parser.parse(text, ast)) {
         //TODO: Check if optimized AST is usable.  I suspect that ::name=="CYS" produces an unusable AST
         // because it skips levels
-        eval(*ast);
-        return Py_None;
+        return eval_atom_spec(*ast);
     } else {
         if (quoted) {
             set_error_info(parse_error_class, err_msg);
@@ -205,6 +351,18 @@ static auto grammar = (R"---(
     %whitespace  <-  [ \t\r\n]*
 )---");
 
+static PyObject* get_module_attribute(const char* mod_name, const char* attr_name)
+{
+    auto mod = PyImport_ImportModule(mod_name);
+    if (mod == nullptr)
+        return nullptr;
+    auto attr = PyObject_GetAttrString(mod, attr_name);
+    Py_DECREF(mod);
+    if (attr == nullptr)
+        return nullptr;
+    return attr;
+}
+
 PyMODINIT_FUNC PyInit__spec_parser()
 {
     auto mod = PyModule_Create(&spec_parser_def);
@@ -214,6 +372,26 @@ PyMODINIT_FUNC PyInit__spec_parser()
         return nullptr;
     }
     spec_parser.enable_ast();
+
+    for (auto& sym: symbols)
+        py_symbols.push_back(PyUnicode_FromString(sym.c_str()));
+
+    AtomSpec_class = get_module_attribute("chimerax.core.commands.atomspec", "AtomSpec");
+    if (AtomSpec_class == nullptr)
+        return nullptr;
+    _Term_class = get_module_attribute("chimerax.core.commands.atomspec", "_Term");
+    if (_Term_class == nullptr)
+        return nullptr;
+    _ModelList_class = get_module_attribute("chimerax.core.commands.atomspec", "_ModelList");
+    if (_ModelList_class == nullptr)
+        return nullptr;
+    _Model_class = get_module_attribute("chimerax.core.commands.atomspec", "_Model");
+    if (_Model_class == nullptr)
+        return nullptr;
+
+    append_arg = PyUnicode_FromString("append");
+    if (append_arg == nullptr)
+        return nullptr;
 
     return mod;
 }
