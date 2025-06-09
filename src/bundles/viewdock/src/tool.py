@@ -368,11 +368,28 @@ class ViewDockTool(ToolInstance):
 
     @classmethod
     def restore_snapshot(cls, session, snapshot):
+        """
+        Restore snapshots for the ViewDock tool and the old ViewDockX tool.
+        """
+        # ViewDockX snapshots
+        if 'vdxtable' in snapshot['_html_state']['name']:
+            if snapshot['version'] != 2:
+                session.logger.warning(
+                    f"Incompatible ViewDockX snapshot version {snapshot['version']}. "
+                    "Can only convert ViewDockX version 2 tool instances for ViewDock."
+                )
+                return None
+            return cls(session, "ViewDock", [])
+
+        # ViewDock snapshots
         if snapshot['version'] != 1:
-            session.logger.warning("Incompatible snapshot version for ViewDock tool.")
+            session.logger.warning(
+                f"Incompatible snapshot version {snapshot['version']} for ViewDock tool. "
+                "Expected version 1."
+            )
             return None
-        tool = cls(session, snapshot['tool_name'], snapshot['structures'])
-        return tool
+
+        return cls(session, snapshot['tool_name'], snapshot['structures'])
 
 class RatingDelegate(QStyledItemDelegate):
     """
