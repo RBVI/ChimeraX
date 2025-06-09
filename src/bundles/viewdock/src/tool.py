@@ -213,8 +213,10 @@ class ViewDockTool(ToolInstance):
 
         # Add the group box to the main layout
         self.main_v_layout.addWidget(self.description_group)
-        # Select the first structure in the table to display its data in the description box
-        self.struct_table.selected = [self.structures[0]]
+
+        if len(self.structures) > 0:
+            # Select the first structure in the table to display its data in the description box
+            self.struct_table.selected = [self.structures[0]]
 
     def table_selection_changed(self, newly_selected, newly_deselected):
         """
