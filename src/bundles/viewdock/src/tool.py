@@ -390,23 +390,21 @@ class ViewDockTool(ToolInstance):
         Restore snapshots for the ViewDock tool and the old ViewDockX tool.
         """
         # ViewDockX snapshots
-        try:
-            if 'vdxtable' in snapshot['_html_state']['name']:
-                if snapshot['version'] != 2:
-                    session.logger.warning(
-                        f"Incompatible ViewDockX snapshot version {snapshot['version']}. "
-                        "Can only convert ViewDockX version 2 tool instances for ViewDock."
-                    )
-                    return None
-                return cls(session, "ViewDock", snapshot['structures'])
-        except:
-            # ViewDock snapshots
-            if snapshot['version'] != 1:
+        if '_html_state' in snapshot and 'vdxtable' in snapshot['_html_state']['name']:
+            if snapshot['version'] != 2:
                 session.logger.warning(
-                    f"Incompatible snapshot version {snapshot['version']} for ViewDock tool. "
-                    "Expected version 1."
+                    f"Incompatible ViewDockX snapshot version {snapshot['version']}. "
+                    "Can only convert ViewDockX version 2 tool instances for ViewDock."
                 )
                 return None
+            return cls(session, "ViewDock", snapshot['structures'])
+        # ViewDock snapshots
+        if snapshot['version'] != 1:
+            session.logger.warning(
+                f"Incompatible snapshot version {snapshot['version']} for ViewDock tool. "
+                "Expected version 1."
+            )
+            return None
 
         return cls(session, snapshot['tool_name'], snapshot['structures'])
 
