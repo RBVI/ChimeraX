@@ -51,7 +51,7 @@ class ViewDockTool(ToolInstance):
         self.main_v_layout = QVBoxLayout()
         self.tool_window.ui_area.setLayout(self.main_v_layout)
 
-        self.structures = structures
+        self.structures = self.filter_structures(structures)
 
         self.top_buttons_layout = QHBoxLayout()
         self.top_buttons_setup()
@@ -71,6 +71,22 @@ class ViewDockTool(ToolInstance):
         self.handlers = []
         self.add_handlers()
         self.tool_window.manage('side')
+
+    def filter_structures(self, structures):
+        """
+        Ensure that ViewDockX structures have the viewdock_data attribute that the ViewDock tool expects.
+
+        Args:
+            structures (list): A list of structures.
+
+        Returns:
+            list: Only structures that have the viewdock_data attribute.
+        """
+        for structure in structures:
+            if hasattr(structure, 'viewdockx_data'):
+                structure.register_attr(self.session, "viewdock_data", "ViewDock")
+                structure.viewdock_data = structure.viewdockx_data.copy()
+        return [structure for structure in structures if hasattr(structure, 'viewdock_data')]
 
     def top_buttons_setup(self):
         """
@@ -381,7 +397,7 @@ class ViewDockTool(ToolInstance):
                     "Can only convert ViewDockX version 2 tool instances for ViewDock."
                 )
                 return None
-            return cls(session, "ViewDock", [])
+            return cls(session, "ViewDock", snapshot['structures'])
 
         # ViewDock snapshots
         if snapshot['version'] != 1:
