@@ -105,7 +105,6 @@ class Scene(State):
             self.main_view_data = scene_data['main_view_data']
             self.named_view = NamedView.restore_snapshot(session, scene_data['named_view'])
             self.scene_models = scene_data['scene_models']
-        return
 
     def init_from_session(self):
         """
@@ -181,7 +180,6 @@ class Scene(State):
                 del self.scene_models[model]
             if model in self.named_view.positions:
                 del self.named_view.positions[model]
-        return
 
     def get_name(self):
         return self.name

@@ -27,6 +27,13 @@ SUPPORTED_DISTROS := Ubuntu CentOS Debian Rocky Freedesktop
 LINUX_FLAVOR = $(shell egrep '^NAME=' /etc/os-release | awk -F= '{ print $$2 }' | awk '{ print $$1 }' | tr -d '"')
 LINUX_RELEASE = $(shell egrep '^VERSION_ID=' /etc/os-release | awk -F= '{ print $$2 }' | tr -d '"')
 AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS)-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
+ifdef FLATPAK_DIST
+ifeq ($(OSARCH),LinuxArm64)
+AMBERTOOLS_PREBUILT = ambertools-24-$(OS)-arm-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
+else
+AMBERTOOLS_PREBUILT = ambertools-24-$(OS)-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
+endif
+endif
 ifneq ($(filter $(LINUX_FLAVOR),$(SUPPORTED_DISTROS)),)
 else
 USE_PREBUILT=false

@@ -7,7 +7,10 @@ LDFLAGS	+= -Wl,-rpath,'$$ORIGIN/../lib'
 endif
 endif
 ifeq ($(OS),Darwin)
-LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib'
+LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib' -Wl,-headerpad_max_install_names
+ifdef UV_BUILD
+LDFLAGS += -L$(PYTHON_LIBRARY_DIR) -Wl,-rpath,'$(UV_PYTHON_DIR)/lib'
+endif
 endif
 
 ifdef WIN32
@@ -118,6 +121,18 @@ install-plist: mkinfo.py chimerax-icon.icns
 endif
 endif
 
+uv-install: $(PROG)
+	cp ChimeraX $(UV_PYTHON_DIR)/bin/
+ifeq ($(OS),Windows)
+	ln -s $(UV_PYTHON_DIR)/bin/ChimeraX $(TOP)/.venv/Scripts/ChimeraX
+else
+	ln -s $(UV_PYTHON_DIR)/bin/ChimeraX $(TOP)/.venv/bin/ChimeraX
+endif
+
+uv-uninstall:
+	rm $(UV_PYTHON_DIR)/bin/ChimeraX
+	rm $(TOP)/.venv/bin/ChimeraX
+
 clean:
 	rm -f $(PROG) $(OBJS) Info.plist chimerax-icon.icns $(LINUX_ICONS)
 ifdef WIN32
@@ -135,9 +150,7 @@ pylint:
 $(PROG): $(OBJS)
 	$(PROG_LINK)
 ifeq ($(OS),Linux)
-ifndef FLATPAK_DIST
 	patchelf --force-rpath --set-rpath '$$ORIGIN/../lib' $(PROG)
-endif
 endif
 ifeq ($(OS),Darwin)
 	# Add RPATH so Python ssl module can find libssl.dylib.

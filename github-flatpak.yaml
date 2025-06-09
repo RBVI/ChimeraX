@@ -1,7 +1,7 @@
 # vim:set expandtab shiftwidth=2:
 id: edu.ucsf.rbvi.ChimeraX
 runtime: org.freedesktop.Platform
-runtime-version: '23.08'
+runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
 command: ChimeraX
 
@@ -51,6 +51,20 @@ modules:
         url: https://download.samba.org/pub/rsync/src/rsync-3.4.1.tar.gz
         sha256: 2924bcb3a1ed8b551fc101f740b9f0fe0a202b115027647cf69850d65fd88c52
 
+  - name: patchelf
+    cleanup: /share/man
+    sources:
+      - type: archive
+        url: https://github.com/NixOS/patchelf/archive/refs/tags/0.18.0.tar.gz
+        sha256: 1451d01ee3a21100340aed867d0b799f46f0b1749680028d38c3f5d0128fb8a7
+
+  - name: glu
+    buildsystem: meson
+    sources:
+      - type: archive
+        url: https://archive.mesa3d.org/glu/glu-9.0.3.tar.xz
+        sha256: bd43fe12f374b1192eb15fe20e45ff456b9bc26ab57f0eee919f96ca0f8a330f
+
   - name: chimerax
     builddir: true
     buildsystem: simple
@@ -77,7 +91,7 @@ modules:
     buildsystem: simple
     sources:
     - type: archive
-      url: https://cxtoolshed.rbvi.ucsf.edu/prereqs/krb5/krb5-1.21.2.tar.gz
+      url: https://kerberos.org/dist/krb5/1.21/krb5-1.21.2.tar.gz
       sha256: 9560941a9d843c0243a71b17a7ac6fe31c7cebb5bce3983db79e52ae7e850491
     build-commands:
       - cd src && ./configure
@@ -89,4 +103,5 @@ modules:
       - cd src/lib && cp libkrb5.so.3 libk5crypto.so.3 libcom_err.so.3 libkrb5support.so.0 libgssapi_krb5.so.2 /app/lib/python3*/site-packages/PyQt6/Qt6/lib/
 
 cleanup:
-  - '/bin/rsync*'
+  - "/bin/rsync*"
+  - "/bin/patchelf*"

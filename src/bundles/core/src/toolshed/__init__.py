@@ -1673,8 +1673,8 @@ class NewerVersionQuery(Task):
         self.start(self.SERVICE_NAME, params, blocking=False)
 
     def run(self, service_name, params, blocking=False):
-        self.result = self.api.check_for_updates(**params, async_req=not blocking)
         try:
+            self.result = self.api.check_for_updates(**params, async_req=not blocking)
             self.versions = self.result.get()
         except Exception:
             # Ignore problems getting results.  Might be a network error or

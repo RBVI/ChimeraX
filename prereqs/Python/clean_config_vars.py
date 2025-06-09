@@ -1,5 +1,9 @@
+import sys
+
+
 def clean_makefile():
-    import sys, os, sysconfig
+    import os, sysconfig
+
     build_path = sys.argv[1]
     makefile = sysconfig.get_makefile_filename()
     save_name = makefile + ".save"
@@ -19,18 +23,25 @@ _arg_map = {
     "INCLUDEDIR": [""],
 }
 
+if sys.platform == "darwin":
+    # Remove the LIBDIR variable from ChimeraX's Python on macOS since
+    # it points to the system Python framework directory and not the
+    # internal lib directory
+    _arg_map["LIBDIR"] = [""]
+
+
 def clean_make_line(line, build_path):
-    key, value = line.split('=', 1)
+    key, value = line.split("=", 1)
     try:
         flag_prefixes = _arg_map[key]
     except KeyError:
         return line
     else:
-        return key + '=' + clean(value.strip(), flag_prefixes) + '\n'
+        return key + "=" + clean(value.strip(), flag_prefixes) + "\n"
 
 
 def clean(value, flag_prefixes):
-    return ' '.join([p for p in value.split() if keep(p, flag_prefixes)])
+    return " ".join([p for p in value.split() if keep(p, flag_prefixes)])
 
 
 def keep(part, flag_prefixes):
@@ -41,7 +52,8 @@ def keep(part, flag_prefixes):
 
 
 def clean_sysconfigdata():
-    import sys, sysconfig, os.path, pprint
+    import sysconfig, os.path, pprint
+
     build_path = sys.argv[1]
     libdir = os.path.dirname(sysconfig.__file__)
     configdata = sysconfig._get_sysconfigdata_name()
@@ -53,10 +65,12 @@ def clean_sysconfigdata():
         clean_vars[key] = clean_data_value(key, value, build_path)
     print("path", configpath)
     with open(configpath, "w") as output:
-        print("# system configuration generated and used by"
-              " the sysconfig module", file=output)
+        print(
+            "# system configuration generated and used by the sysconfig module",
+            file=output,
+        )
         print("# cleaned as part of ChimeraX build", file=output)
-        print("build_time_vars = ", file=output, end='')
+        print("build_time_vars = ", file=output, end="")
         pprint.pprint(clean_vars, stream=output)
 
 

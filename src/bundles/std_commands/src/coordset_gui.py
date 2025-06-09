@@ -14,6 +14,8 @@
 from chimerax.ui.widgets.slider import Slider
 class CoordinateSetSlider(Slider):
 
+    help = "help:user/commands/coordset.html#slider"
+
     def __init__(self, session, structure, pause_frames = 1, movie_framerate = 25,
                  steady_atoms = None, compute_ss = False):
 
@@ -41,6 +43,11 @@ class CoordinateSetSlider(Slider):
         if not hasattr(session, '_coord_set_sliders'):
             session._coord_set_sliders = set()
         session._coord_set_sliders.add(self)
+        session.logger.status(
+            "Use coordset-slider context menu to access plotting",
+            # When there are additional analysis features...
+            #"Use coordset-slider context menu to access plotting and other analysis features",
+            color="forest green", blank_after=10)
 
     def change_value(self, i, playing = False):
       self._player.change_coordset(i)
@@ -63,7 +70,13 @@ class CoordinateSetSlider(Slider):
             return
         if 'active_coordset changed' in changes.structure_reasons():
             self.set_slider(s.active_coordset_id)
-            
+
+    def fill_context_menu(self, menu, x, y):
+        from chimerax.md_crds.gui import fill_context_menu
+        fill_context_menu(menu, self.tool_window, self.structure)
+        menu.addSeparator()
+        super().fill_context_menu(menu, x, y)
+
     def models_closed_cb(self, name, models):
       if self.structure in models:
         self.delete()

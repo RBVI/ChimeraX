@@ -1284,7 +1284,11 @@ def read_numpy_pae_matrix(path):
     import numpy
     pae = numpy.load(path)
     if path.endswith('.npz'):
-        pae = pae['pae']
+        if 'pae' in pae:
+            pae = pae['pae']
+        else:
+            from chimerax.core.errors import UserError
+            raise UserError(f'This file does not include PAE data.\n\n{path}\n\nBoltz structure prediction run outside ChimeraX may not output a PAE .npz file unless you request it.  For example, when running the boltz executable you need to include the --write_full_pae option.')
     return pae
 
 # -----------------------------------------------------------------------------

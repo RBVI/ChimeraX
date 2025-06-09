@@ -792,7 +792,7 @@ class LabelModel(Model):
         label.update_drawing()
 
     def x3d_needs(self, x3d_scene):
-        from .. import x3d
+        from chimerax.core import x3d
 
         x3d_scene.need(x3d.Components.Text, 1)  # Text
 

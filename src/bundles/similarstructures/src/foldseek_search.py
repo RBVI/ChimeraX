@@ -358,6 +358,7 @@ def parse_search_result(line, database):
         db = 'afdb'
     values['database'] = db
     values['coordinate_indexing'] = True	# Alignment indexing includes only residues with coordinates
+    values['foldseek release'] = 10		# Handle changed output for different foldseek version
     return values
 
 def parse_pdb100_theader(theader):

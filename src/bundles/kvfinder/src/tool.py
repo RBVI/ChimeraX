@@ -150,11 +150,15 @@ class KVFinderResultsDialog(ToolInstance):
             self.finalize_init(*args, False, **kw)
 
     def finalize_init(self, structure, cavity_group, cavity_models, probe_radius, surface_made,
-            *, table_state=None, placement=None):
+            *, table_state=None, placement=None, contacting_info=None):
         self.structure = structure
         self.cavity_group = cavity_group
         self.probe_radius = probe_radius
         self._surface_made = surface_made
+        if contacting_info is None:
+            self.contacting = self.non_backbone_contacting = None
+        else:
+            self.contacting, self.non_backbone_contacting = contacting_info
 
         from chimerax.ui.widgets import ItemTable
         global _results_settings
@@ -167,6 +171,8 @@ class KVFinderResultsDialog(ToolInstance):
                     'select_atoms': False,
                     'select_cavity': False,
                     'show': True,
+                    'show_contacting': True,
+                    'backbone_contacting': True,
                     'surface': True,
                 }
             _results_settings = _KVFinderResultsSettings(self.session, "KVFinder results")
@@ -176,6 +182,8 @@ class KVFinderResultsDialog(ToolInstance):
             self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
             _results_settings.triggers.add_handler('setting changed', self._setting_changed_cb)
         ]
+        for cav_s in cavity_models:
+            self.handlers.append(cav_s.triggers.add_handler('changes', self._structure_change_cb))
 
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
@@ -189,7 +197,15 @@ class KVFinderResultsDialog(ToolInstance):
         parent.setLayout(layout)
         self.table = ItemTable(session=self.session)
         self.table.add_column("ID", "atomspec", sort_func=lambda cav1, cav2: cav1.id < cav2.id)
-        self.table.add_column("Color", "overall_color", format=self.table.COL_FORMAT_TRANSPARENT_COLOR,
+        def color_func(s):
+            if s.display and s.atoms.displays.any():
+                return s.overall_color
+            for srf in s.surfaces():
+                if srf.display:
+                    return srf.overall_color
+            return s.overall_color
+        self.color_column = self.table.add_column("Color", color_func,
+            format=self.table.COL_FORMAT_TRANSPARENT_COLOR,
             title_display=False, data_set="color {item.atomspec} {value}")
         self.table.add_column("Volume", "kvfinder_volume", format="%g")
         self.table.add_column("Surface Area", "kvfinder_area", format="%g")
@@ -218,13 +234,20 @@ class KVFinderResultsDialog(ToolInstance):
         from chimerax.ui import shrink_font
         self.suboptions = {}
         prev_checked = None
-        for attr_name, text, is_sub_option in [
-                ("focus", "Focus view on cavity", False),
-                ("surface", "Show cavity surface", False),
-                ("select_cavity", "Select cavity points", False),
-                ("select_atoms", "Select nearby atoms", False),
-                ("show", "Show nearby residues", False),
-                ]:
+        option_info = [
+            ("focus", "Focus view on cavity", False),
+            ("surface", "Show cavity surface", False),
+            ("select_cavity", "Select cavity points", False),
+            ("select_atoms", "Select nearby atoms", False)
+        ]
+        if self.contacting is None:
+            option_info.append(("show", "Show nearby residues", False))
+        else:
+            option_info.extend([
+                ("show_contacting", "Show contacting residues", False),
+                ("backbone_contacting", "Include backbone contacts", True)
+            ])
+        for attr_name, text, is_sub_option in option_info:
             ckbox = QCheckBox(text)
             checked = getattr(_results_settings, attr_name)
             ckbox.setChecked(getattr(_results_settings, attr_name))
@@ -243,7 +266,8 @@ class KVFinderResultsDialog(ToolInstance):
         nearby_layout.setSpacing(0)
         nearby_layout.setContentsMargins(1,1,1,1)
         nearby_widget.setLayout(nearby_layout)
-        nearby_layout.addWidget(QLabel('"Nearby" atoms/residues are within '))
+        nearby_layout.addWidget(
+            QLabel('"Nearby" atoms%s are within ' % ("/residues" if self.contacting is None else "")))
         self.nearby_entry = QLineEdit()
         self.nearby_entry.setMaximumWidth(5 * self.nearby_entry.fontMetrics().averageCharWidth())
         self.nearby_entry.setAlignment(Qt.AlignCenter)
@@ -286,7 +310,8 @@ class KVFinderResultsDialog(ToolInstance):
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
         inst.finalize_init(data['structure'], data['cavity_group'], data['cavity_models'],
-            data['probe_radius'], data.get('surface_made', False), table_state=data['table state'])
+            data['probe_radius'], data.get('surface_made', False), table_state=data['table state'],
+            contacting_info=data.get('contacting_info', None))
         return inst
 
     def color_by_depth(self):
@@ -307,7 +332,8 @@ class KVFinderResultsDialog(ToolInstance):
             'cavity_models': self.table.data,
             'probe_radius': self.probe_radius,
             'surface_made': self._surface_made,
-            'table state': self.table.session_info()
+            'table state': self.table.session_info(),
+            'contacting_info': (self.contacting, self.non_backbone_contacting)
         }
         return data
 
@@ -378,12 +404,38 @@ class KVFinderResultsDialog(ToolInstance):
                 run(self.session, "select " + model_spec)
             elif setting_name is not None:
                 run(self.session, "~select " + model_spec)
-        if setting_name is None or setting_name == "show":
-            spec = f"#!{self.structure.id_string} & ({model_spec} :< {_results_settings.nearby})"
-            if _results_settings.show:
-                run(self.session, "show " + spec)
-            elif setting_name is not None:
-                run(self.session, "hide " + spec)
+        if self.contacting is None:
+            if setting_name is None or setting_name == "show":
+                spec = f"#!{self.structure.id_string} & ({model_spec} :< {_results_settings.nearby})"
+                if _results_settings.show:
+                    run(self.session, "show " + spec)
+                elif setting_name is not None:
+                    run(self.session, "hide " + spec)
+        else:
+            from chimerax.atomic import concise_residue_spec, concatenate
+            if setting_name is None or setting_name == "show_contacting":
+                if _results_settings.backbone_contacting:
+                    residues = self.contacting
+                else:
+                    residues = self.non_backbone_contacting
+                spec = concise_residue_spec(self.session, concatenate([residues[cav] for cav in selected]))
+                if _results_settings.show_contacting:
+                    run(self.session, "show " + spec)
+                elif setting_name is not None:
+                    run(self.session, "hide " + spec)
+            if setting_name == "backbone_contacting":
+                if _results_settings.show_contacting:
+                    all_contacts = concatenate([self.contacting[cav] for cav in selected],
+                        remove_duplicates=True)
+                    non_bb_contacts = concatenate([self.non_backbone_contacting[cav] for cav in selected],
+                        remove_duplicates=True)
+                    bb_contacts = all_contacts - non_bb_contacts
+                    if bb_contacts:
+                        spec = concise_residue_spec(self.session, bb_contacts)
+                        if _results_settings.backbone_contacting:
+                            run(self.session, "show " + spec)
+                        else:
+                            run(self.session, "hide " + spec)
 
     def _selection_change(self, *args):
         self._process_settings()
@@ -391,3 +443,7 @@ class KVFinderResultsDialog(ToolInstance):
     def _setting_changed_cb(self, trig_name, trig_data):
         setting_name, prev_val, new_val = trig_data
         self._process_settings(setting_name)
+
+    def _structure_change_cb(self, trig_name, changes):
+        if 'display changed' in changes[1].structure_reasons():
+            self.table.update_column(self.color_column, data=True)

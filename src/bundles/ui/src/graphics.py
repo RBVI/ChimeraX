@@ -97,7 +97,7 @@ class GraphicsWindow(QWindow):
                 build = int(ver.split('.')[-1])
             except Exception:
                 return
-            if 6708 < build < 8280:
+            if 'Build 26.20.100.' in ver and 6708 < build < 8280:
                 # This is to work around ChimeraX bug #2537 where the entire
                 # GUI becomes blank with some 2019 Intel graphics drivers.
 

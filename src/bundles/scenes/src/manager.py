@@ -20,6 +20,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from typing import Optional
 from chimerax.core.state import StateManager
 from .scene import Scene
 from chimerax.core.models import REMOVE_MODELS
@@ -50,6 +51,7 @@ class SceneManager(StateManager):
         """
         self.scenes: [Scene] = []
         self.session = session
+        self.num_saved_scenes = 0
         session.triggers.add_handler(REMOVE_MODELS, self._remove_models_cb)
 
     def scene_exists(self, scene_name: str) -> bool:
@@ -85,16 +87,18 @@ class SceneManager(StateManager):
         for scene in self.scenes:
             self.delete_scene(scene.get_name())
 
-    def save_scene(self, scene_name):
+    def save_scene(self, scene_name: Optional[str] = None) -> None:
         """
         Save the current state as a scene.
         """
+        if not scene_name:
+            scene_name = f"Scene {self.num_saved_scenes + 1}"
         if self.scene_exists(scene_name):
             self.session.logger.warning(f"Scene {scene_name} already exists.")
             return
         self.scenes.append(Scene(self.session, scene_name))
+        self.num_saved_scenes += 1
         activate_trigger(SAVED, scene_name)
-        return
 
     def restore_scene(self, scene_name):
         """
@@ -104,50 +108,12 @@ class SceneManager(StateManager):
             self.get_scene(scene_name).restore_scene()
         return
 
-    def _remove_models_cb(self, trig_name, models):
-        """
-        Callback for removing models from scenes.
-
-        Args:
-            trig_name (str): The name of the trigger.
-            models: The models to remove.
-        """
-        for scene in self.scenes:
-            scene.models_removed(models)
-
     # session methods
     def reset_state(self, session):
         """
         Reset the state of the SceneManager by removing all the scenes.
         """
         self.clear()
-
-    @staticmethod
-    def restore_snapshot(session, data):
-        if data['version'] != SceneManager.version:
-            raise ValueError("scenes restore_snapshot: unknown version in data: %d" % data['version'])
-        mgr = session.scenes
-        mgr._ses_restore(data)
-        return mgr
-
-    def take_snapshot(self, session, flags):
-        # viewer_info is "session independent"
-        return {
-            'version': self.version,
-            'scenes': [scene.take_snapshot(session, flags) for scene in self.scenes]
-        }
-
-    def _ses_restore(self, data):
-        """
-        Restore the SceneManager scenes attribute from session data.
-
-        Args:
-            data (dict): The session data.
-        """
-        self.clear()
-        for scene_snapshot in data['scenes']:
-            scene = Scene.restore_snapshot(self.session, scene_snapshot)
-            self.scenes.append(scene)
 
     def get_scenes(self):
         return self.scenes
@@ -167,3 +133,45 @@ class SceneManager(StateManager):
             list[str]: Array of scene names.
         """
         return [scene.get_name() for scene in self.scenes]
+
+    def _remove_models_cb(self, trig_name, models):
+        """
+        Callback for removing models from scenes.
+
+        Args:
+            trig_name (str): The name of the trigger.
+            models: The models to remove.
+        """
+        for scene in self.scenes:
+            scene.models_removed(models)
+
+    def take_snapshot(self, session, flags):
+        # viewer_info is "session independent"
+        return {
+            'version': self.version,
+            'scenes': [scene.take_snapshot(session, flags) for scene in self.scenes],
+            'num_saved_scenes': self.num_saved_scenes
+        }
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        if data['version'] != SceneManager.version:
+            raise ValueError("scenes restore_snapshot: unknown version in data: %d" % data['version'])
+        mgr = session.scenes
+        mgr._restore_snapshot(data)
+        return mgr
+
+    def _restore_snapshot(self, data):
+        """
+        Restore the SceneManager scenes attribute from session data.
+
+        Args:
+            data (dict): The session data.
+        """
+        self.clear()
+        for scene_snapshot in data['scenes']:
+            scene = Scene.restore_snapshot(self.session, scene_snapshot)
+            self.scenes.append(scene)
+        if 'num_saved_scenes' in data:
+            self.num_saved_scenes = data['num_saved_scenes']
+

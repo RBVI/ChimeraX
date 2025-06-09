@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Scenes"
+license = { text = "Free for non-commercial use" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+description = "Scene management"
+dependencies = [
+	"ChimeraX-Core ~=1.10dev"
+	, "ChimeraX-UI ~=1.42"
+	, "ChimeraX-StdCommands ~=1.19"
+]
+
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = """The Scenes bundle provides functionality for saving, editing,
+deleting, and restoring Scenes. It allows users to capture the state of the
+session at various points and restore between these states. This bundle
+provides commands and a visual tool to manage Scenes."""
+
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+custom-init = true
+categories = ["Depiction"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.tool."Scenes"]
+category = "General"
+description = "Graphical interface for session scenes."
+
+
+[tool.chimerax.command."scenes save"]
+category = "General"
+description = "Save a scene to the sessions scene manager."
+
+[tool.chimerax.command."scenes delete"]
+category = "General"
+description = "Delete a scene from the sessions scene manager."
+
+[tool.chimerax.command."scenes edit"]
+category = "General"
+description = "Edit a scene from the sessions scene manager."
+
+[tool.chimerax.command."scenes restore"]
+category = "General"
+description = "Restore a scene from the saved scenes."
+
+[tool.chimerax.command."scenes list"]
+category = "General"
+description = "List current scenes in the log."

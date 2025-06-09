@@ -222,7 +222,6 @@ class StructureTugger:
         from chimerax.atomic import Atoms
         self.atoms = Atoms(satoms)
 
-        initialize_openmm()
         
         # OpenMM objects
         self._topology = None
@@ -655,19 +654,6 @@ def openmm_topology(atoms, bonds):
     for i1, i2 in zip(a.indices(a1), a.indices(a2)):
         top.addBond(atoms[i1], atoms[i2])
     return top
-
-_openmm_initialized = False
-def initialize_openmm():
-    # On linux need to set environment variable to find plugins.
-    # Without this it gives an error saying there is no "CPU" platform.
-    global _openmm_initialized
-    if not _openmm_initialized:
-        _openmm_initialized = True
-        from sys import platform
-        if platform == 'linux' or platform == 'darwin':
-            from os import environ, path
-            from chimerax import app_lib_dir
-            environ['OPENMM_PLUGIN_DIR'] = path.join(app_lib_dir, 'plugins')
         
 def dump_topology(t):
     for a in t.atoms():

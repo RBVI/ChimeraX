@@ -55,7 +55,9 @@ tutorial</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
 target="_blank">MOLE Channel Coloring tutorial</a>,
 <a href="https://rbvi.github.io/chimerax-recipes/castp/castp.html" 
-target="_blank">recipe for reading CASTp pockets</a>
+target="_blank">recipe for reading CASTp pockets</a>,
+the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#kvfinder"
+target="_blank">ChimeraX Find Cavities highlight</a>
 </p><p>
 Conceptually, the method rolls two spherical probes
 over the VDW spheres of the macromolecule to identify cavities. 
@@ -171,14 +173,22 @@ the grid points (pseudoatoms) defining the cavity
 <li><b>Select nearby atoms</b> &ndash; <a href="../selection.html">select</a>
 atoms within the specified <a href="#nearby">nearby distance</a>
 of any cavity point
+<!-- may be shown if from previously saved session
 <li><b>Show nearby residues</b> &ndash; show all atoms of residues with 
 any nearby atoms; although other atoms (not nearby) are not hidden, 
 unchecking the option will hide the nearby residues of the currently 
 chosen cavities
+-->
+<li><b>Show contacting residues</b> &ndash; show atoms of the cavity-contacting
+residues determined by <b><i>KVFinder</i></b>
+  <ul>
+  <li><b>Include backbone contacts</b> 
+&ndash; whether to include residues with backbone-only contacts in the above
+  </ul>
 </ul>
 <p>
 <a name="nearby"></a>
-<b>"Nearby" atoms/residues are within</b> [<i>distance</i>] <b>angstroms
+<b>"Nearby" atoms are within</b> [<i>distance</i>] <b>angstroms
 of cavity points</b>
 &ndash; distance criterion for the <b>nearby</b> checkbox options above
 </p><p>
@@ -241,5 +251,5 @@ These types of coloring can be combined with surface transparency, for example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2024</address>
+April 2025</address>
 </body></html>

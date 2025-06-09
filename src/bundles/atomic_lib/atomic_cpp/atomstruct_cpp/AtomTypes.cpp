@@ -868,16 +868,23 @@ t0 = t1;
                                 if (bondee->idatm_type() == "Cac")
                                     continue;
                                 if (bondee->idatm_type() == "C2") {
-                                    bool grand_O2 = false;
+                                    bool grand_sp2 = false;
                                     for (auto gnb: bondee->neighbors()) {
-                                        if (gnb->element() == Element::O && gnb->bonds().size() == 1) {
+                                        if (gnb->bonds().size() != 1)
+                                            continue;
+                                        if (gnb->element() == Element::O) {
                                             if (bondee->coord().sqdistance(gnb->coord()) <= p3o2c2) {
-                                                grand_O2 = true;
+                                                grand_sp2 = true;
+                                                break;
+                                            }
+                                        } else if (gnb->element() == Element::S) {
+                                            if (bondee->coord().sqdistance(gnb->coord()) <= p3s2c2) {
+                                                grand_sp2 = true;
                                                 break;
                                             }
                                         }
                                     }
-                                    if (grand_O2)
+                                    if (grand_sp2)
                                         continue;
                                 }
                                 if (bondee->idatm_type() == "C")
@@ -952,8 +959,23 @@ t0 = t1;
               bondee_type == "N1+") || (sqlen < p3n1o1 &&
               bondee->element() == Element::O)) {
                 a->set_computed_idatm_type("N1");
-            } else if (sqlen > p3n3c &&
-              (bondee_type == "C2" || bondee_type == "C3")) {
+                continue;
+            } 
+            if (bondee_type == "C1") {
+                // Could still be N1 despite missing criteria above if the other atom bonded
+                // to the C1 has 3+ bonds
+                for (auto gnb: bondee->neighbors()) {
+                    if (gnb == a)
+                        continue;
+                    if (gnb->neighbors().size() > 2) {
+                        a->set_computed_idatm_type("N1");
+                        break;
+                    }
+                }
+                if (a->idatm_type() == "N1")
+                    continue;
+            }
+            if (sqlen > p3n3c && (bondee_type == "C2" || bondee_type == "C3")) {
                 a->set_computed_idatm_type("N3");
             } else if ((sqlen > p3n3n3 && bondee_type == "N3") ||
               (sqlen > p3n3n2 && bondee_type == "Npl")) {
@@ -1224,13 +1246,6 @@ t0 = t1;
     // screen out rings with definite non-planar types
     std::set<const Ring*> planar_rings;
     for (auto& r: rs) {
-        if (r.atoms().size() == 3) {
-            for (auto a: r.atoms()) {
-                if (a->element() == Element::C)
-                    a->set_computed_idatm_type("C3");
-            }
-            continue;
-        }
         bool planar_types = true;
         bool all_planar = true;
         int num_oxygens = 0;
@@ -2006,11 +2021,12 @@ t0 = t1;
                         my_d2 -= bondee->coord().sqdistance(grand_bondee->coord());
                         break;
                     }
-                    if (my_d2 < 0.0) {
-                        // N2 bond shorter on C2 side -- looks like double bond
+                    if (my_d2 > 0.0) {
+                        // N2 bond longer on C2 side -- looks like single bond
                         Ng_plus_candidates.clear();
                         break;
                     }
+                    Ng_plus_candidates.push_back(bondee);
                 }
             }
 

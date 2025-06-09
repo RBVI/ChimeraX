@@ -248,7 +248,8 @@ class MutationHistogram(Graph):
             self._bounds_artists = [a.add_artist(line) for line in lines]
         elif not show and self._bounds_artists:
             for ba in self._bounds_artists:
-                ba.remove()
+                if ba.axes is not None:
+                    ba.remove()
             self._bounds_artists.clear()
         self._synonymous_bounds = show
         self.canvas.draw()

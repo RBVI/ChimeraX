@@ -229,6 +229,7 @@ class GridCanvas:
         y = 0
         # adjust for rectangle outline width / inter-line spacing
         y_adjust = 2
+        self._cell_text_infos = []
         for i in range(rows):
             if i in self.empty_rows:
                 continue
@@ -242,13 +243,11 @@ class GridCanvas:
                 self.main_scene.addRect(x, y, width, height, brush=QBrush(fill_color))
                 if val > 0.0:
                     text_rgb = contrast_with((non_blue/255.0, non_blue/255.0, 1.0))
-                    text_val = str(int(100  * fraction + 0.5))
+                    text_val = self._cell_text(val, fraction)
                     cell_text = self.main_scene.addSimpleText(text_val, self.font)
-                    cell_text.moveBy(x, y)
-                    cell_text.setZValue(1)
-                    bbox = cell_text.boundingRect()
-                    cell_text.moveBy((width - bbox.width())/2, y_adjust + (height - bbox.height())/2)
+                    self._center_cell_text(cell_text, x, y, y_adjust)
                     cell_text.setBrush(QBrush(QColor(*[int(255 * channel + 0.5) for channel in text_rgb])))
+                    self._cell_text_infos.append((cell_text, x, y, y_adjust, val, fraction))
             label_text = self.main_label_scene.addSimpleText(self.row_labels[i], self.font)
             label_width = self.font_metrics.horizontalAdvance(self.row_labels[i] + ' ')
             label_text.moveBy((self.max_label_width - label_width) / 2, y + y_adjust)
@@ -313,7 +312,17 @@ class GridCanvas:
             from chimerax.core.commands import run
             run(self.pg.session, final_cmd)
         else:
-            if not shifted:
+            if shifted:
+                try:
+                    item = self.chosen_cells[(row, col)]
+                except KeyError:
+                    pass # fall through to choosing the cell, below
+                else:
+                    item.hide()
+                    self.main_scene.removeItem(item)
+                    del self.chosen_cells[(row, col)]
+                    return
+            else:
                 for item in self.chosen_cells.values():
                     item.hide()
                     self.main_scene.removeItem(item)
@@ -406,6 +415,24 @@ class GridCanvas:
         for row, col in needs_highlight:
             self.selection_items[(row, col)] = self.main_scene.addRect(
                 col * width, row * height, width, height, pen=pen)
+
+    def _cell_text(self, val, fraction):
+        cell_text_type = self.pg.settings.cell_text
+        if cell_text_type == "percentage":
+            digits = self.pg.settings.percent_decimal_places
+            text_val = str(round(100  * fraction, digits if digits else None))
+        elif cell_text_type == "count":
+            text_val = str(round(val))
+        else:
+            text_val = ""
+        return text_val
+
+    def _center_cell_text(self, cell_text, x, y, y_adjust):
+        width, height = self.font_pixels
+        cell_text.setPos(x, y)
+        cell_text.setZValue(1)
+        bbox = cell_text.boundingRect()
+        cell_text.moveBy((width - bbox.width())/2, y_adjust + (height - bbox.height())/2)
 
     def _check_cells(self):
         from chimerax.core.errors import UserError
@@ -517,6 +544,11 @@ class GridCanvas:
             return None, None, None
         return self._residues_at(row, col), row, col
 
+    def _update_cell_texts(self):
+        for cell_text, *pos_args, val, fraction in self._cell_text_infos:
+            cell_text.setText(self._cell_text(val, fraction))
+            self._center_cell_text(cell_text, *pos_args)
+
     def _update_scene_rects(self):
         # have to play with setViewportMargins to get correct scrolling...
         #self.main_view.setViewportMargins(0, 0, 0, -20)
@@ -545,12 +577,25 @@ class GridCanvas:
 
         # Apparently the height of the horizontal scrollbar gets added to main view at some point,
         # need to compensate
-        def adjust_scrollbars(sb1=self.main_label_view.verticalScrollBar(), sb2=self.main_view.verticalScrollBar()):
+        from Qt.QtCore import QTimer, Qt
+        def adjust_scrollbars(mlv=self.main_label_view, mv=self.main_view):
+            sb1 = mlv.verticalScrollBar()
+            sb2 = mv.verticalScrollBar()
             min_val = min(sb1.minimum(), sb2.minimum())
             max_val = max(sb1.maximum(), sb2.maximum())
             sb1.setRange(min_val, max_val)
             sb2.setRange(min_val, max_val)
-        from Qt.QtCore import QTimer
+            # on Mac, if the user has their scrollbar policy as "always on", there might be a horizontal
+            # scrollbar on the main canvas and not on the label canvas, which makes the viewports heights
+            # different, so they don't scroll in sync; compensate by adding horizontal scroller to labels
+            lvr = mlv.viewport().rect()
+            mvr = mv.viewport().rect()
+            if lvr.height() > mvr.height():
+                mlv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+                def right_scroll(mlv=mlv):
+                    hsb = mlv.horizontalScrollBar()
+                    hsb.setValue(hsb.maximum())
+                QTimer.singleShot(100, right_scroll)
         QTimer.singleShot(100, adjust_scrollbars)
 
 _seq_lists = [] # hold references so the lists aren't immediately destroyed

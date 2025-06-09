@@ -10,7 +10,7 @@ install app-install: seggerx
 	$(MAKE) -C seggerx/Segger install
 
 seggerx: $(SEGGER_SRC)
-	tar xf $(SEGGER_SRC)
+	tar xf $(SEGGER_SRC) --no-same-owner
 	touch seggerx
 
 $(SEGGER_SRC):
@@ -21,12 +21,17 @@ upload_new_version:
 
 tarball:
 	make -C seggerx/Segger clean
-	tar -cHf  seggerx.tar --exclude=".*" --exclude=tutorials seggerx
+	tar -cHf  seggerx.tar --exclude=".*" --exclude=tutorials seggerx --no-same-owner
 	gzip seggerx.tar
 	mv seggerx.tar.gz seggerx_$(shell date +"%Y_%m_%d").tar.gz
 
 build: seggerx
 	$(MAKE) -C seggerx/Segger build
+
+uv-build: seggerx
+	cd seggerx/Segger; python -m chimerax.bundle_builder -c bundle_info.xml > pyproject.toml
+	$(MAKE) -C seggerx/Segger uv-build
+	rm seggerx/Segger/pyproject.toml
 
 sync: seggerx
 	$(MAKE) -C seggerx/Segger sync

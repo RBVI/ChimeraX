@@ -50,6 +50,9 @@ class RMSD(DynamicStructureHeaderSequence):
     def alignment_notification(self, note_name, note_data):
         if note_name == self.alignment.NOTE_RMSD_UPDATE:
             self.reevaluate()
+        elif note_name == self.alignment.NOTE_REALIGNMENT:
+            with self.alignment_notifications_suppressed():
+                self.reevaluate()
 
     @property
     def atoms(self):

@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-UI" version="1.44"
+<BundleInfo name="ChimeraX-UI" version="1.46.1"
 	    package="chimerax.ui"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -13,7 +13,6 @@
     <DataFile>about.html</DataFile>
     <DataFile>splash.jpg</DataFile>
     <DataFile>icons/*.png</DataFile>
-    <DataFile>widgets/icons/*.png</DataFile>
     <DataDir>html</DataDir>
   </DataFiles>
 

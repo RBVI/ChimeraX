@@ -95,11 +95,15 @@ class Selector(ChimeraXClassifier):
         super().__init__(selector_name, attrs)
 
     def __str__(self):
+        disp = self.attrs.get('display', '')
+        disp = str(disp).lower()
+        if disp:
+            return f"ChimeraX :: Selector :: {self.name} :: {self.description} :: {disp}"
         return f"ChimeraX :: Selector :: {self.name} :: {self.description}"
 
 
 class Manager(ChimeraXClassifier):
-    default_attrs = {"gui-only": False, "autostart": True}
+    default_attrs = {"guiOnly": False, "autostart": True}
 
     def __init__(self, name, attrs):
         if not attrs:
@@ -108,6 +112,7 @@ class Manager(ChimeraXClassifier):
             for key, val in self.default_attrs.items():
                 if key not in attrs:
                     attrs[key] = val
+            attrs['guiOnly'] = attrs.pop('gui-only', False)
         super().__init__(name, attrs)
 
     def __str__(self):

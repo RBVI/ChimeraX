@@ -1391,6 +1391,7 @@ find_aro_amines(PyObject *, PyObject *args)
 	// Compute the set of Npls in aromatic rings, which will be needed for elimination
 	// purposes in the aromatic amine code
 	std::set<const Atom*> aro_ring_npls;
+	s->ready_idatm_types(); // ring.aromatic() can cause IDATM check, which can recompute rings...
 	for (auto& ring: s->rings()) {
 		if (!ring.aromatic())
 			continue;
@@ -1470,6 +1471,8 @@ find_ring_planar_NHR2(PyObject *, PyObject *args)
 	}
 	auto s = static_cast<AtomicStructure*>(PyLong_AsVoidPtr(py_struct_ptr));
 
+	if (aromatic_only)
+		s->ready_idatm_types(); // ring.aromatic() can cause IDATM check, which can recompute rings...
 	// ensure the rings are computed (once) here, rather than possibly multiple
 	// times in the threads (besides, computation is not thread safe)
 	(void)s->rings();
