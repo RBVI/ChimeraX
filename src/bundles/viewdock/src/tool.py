@@ -51,7 +51,7 @@ class ViewDockTool(ToolInstance):
         self.main_v_layout = QVBoxLayout()
         self.tool_window.ui_area.setLayout(self.main_v_layout)
 
-        self.structures = structures
+        self.structures = self.filter_structures(structures)
 
         self.top_buttons_layout = QHBoxLayout()
         self.top_buttons_setup()
@@ -71,6 +71,22 @@ class ViewDockTool(ToolInstance):
         self.handlers = []
         self.add_handlers()
         self.tool_window.manage('side')
+
+    def filter_structures(self, structures):
+        """
+        Ensure that ViewDockX structures have the viewdock_data attribute that the ViewDock tool expects.
+
+        Args:
+            structures (list): A list of structures.
+
+        Returns:
+            list: Only structures that have the viewdock_data attribute.
+        """
+        for structure in structures:
+            if hasattr(structure, 'viewdockx_data'):
+                structure.register_attr(self.session, "viewdock_data", "ViewDock")
+                structure.viewdock_data = structure.viewdockx_data.copy()
+        return [structure for structure in structures if hasattr(structure, 'viewdock_data')]
 
     def top_buttons_setup(self):
         """
@@ -213,8 +229,10 @@ class ViewDockTool(ToolInstance):
 
         # Add the group box to the main layout
         self.main_v_layout.addWidget(self.description_group)
-        # Select the first structure in the table to display its data in the description box
-        self.struct_table.selected = [self.structures[0]]
+
+        if len(self.structures) > 0:
+            # Select the first structure in the table to display its data in the description box
+            self.struct_table.selected = [self.structures[0]]
 
     def table_selection_changed(self, newly_selected, newly_deselected):
         """
@@ -368,11 +386,27 @@ class ViewDockTool(ToolInstance):
 
     @classmethod
     def restore_snapshot(cls, session, snapshot):
+        """
+        Restore snapshots for the ViewDock tool and the old ViewDockX tool.
+        """
+        # ViewDockX snapshots
+        if '_html_state' in snapshot and 'vdxtable' in snapshot['_html_state']['name']:
+            if snapshot['version'] != 2:
+                session.logger.warning(
+                    f"Incompatible ViewDockX snapshot version {snapshot['version']}. "
+                    "Can only convert ViewDockX version 2 tool instances for ViewDock."
+                )
+                return None
+            return cls(session, "ViewDock", snapshot['structures'])
+        # ViewDock snapshots
         if snapshot['version'] != 1:
-            session.logger.warning("Incompatible snapshot version for ViewDock tool.")
+            session.logger.warning(
+                f"Incompatible snapshot version {snapshot['version']} for ViewDock tool. "
+                "Expected version 1."
+            )
             return None
-        tool = cls(session, snapshot['tool_name'], snapshot['structures'])
-        return tool
+
+        return cls(session, snapshot['tool_name'], snapshot['structures'])
 
 class RatingDelegate(QStyledItemDelegate):
     """

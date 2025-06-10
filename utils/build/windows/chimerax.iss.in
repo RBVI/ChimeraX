@@ -109,7 +109,7 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Explorer\MenuOrde
 
 [Icons]
 Name: "{group}\ChimeraX $(VERSION)"; Filename: "{app}\bin\ChimeraX.exe"; WorkingDir: "{commonappdata}\ChimeraX"
-Name: "{group}\ChimeraX - Debug"; Filename: "{app}\bin\ChimeraX.exe"; Parameters: "--debug"; WorkingDir: "{commonappdata}\ChimeraX"
+Name: "{group}\ChimeraX - Debug"; Filename: "{app}\bin\ChimeraX-console.exe"; Parameters: "--debug"; WorkingDir: "{commonappdata}\ChimeraX"
 Name: "{group}\ChimeraX Home Page"; Filename: "{app}\chimerax.url"
 Name: "{group}\Uninstall ChimeraX"; Filename: "{uninstallexe}"
 Name: "{commondesktop}\ChimeraX $(VERSION)"; Filename: "{app}\bin\ChimeraX.exe"; Tasks: chimeraxicon; WorkingDir: "{commondesktop}"

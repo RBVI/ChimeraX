@@ -37,7 +37,7 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def get_class(name):
-        if name == "ViewDockTool":
+        if name == "ViewDockTool" or name == "TableTool":
             from .tool import ViewDockTool
             return ViewDockTool
         return None
