@@ -51,7 +51,7 @@ class ViewDockTool(ToolInstance):
         self.main_v_layout = QVBoxLayout()
         self.tool_window.ui_area.setLayout(self.main_v_layout)
 
-        self.structures = structures
+        self.structures = self.filter_structures(structures)
 
         self.top_buttons_layout = QHBoxLayout()
         self.top_buttons_setup()
@@ -72,24 +72,26 @@ class ViewDockTool(ToolInstance):
         self.add_handlers()
         self.tool_window.manage('side')
 
+    def filter_structures(self, structures):
+        """
+        Ensure that ViewDockX structures have the viewdock_data attribute that the ViewDock tool expects.
+
+        Args:
+            structures (list): A list of structures.
+
+        Returns:
+            list: Only structures that have the viewdock_data attribute.
+        """
+        for structure in structures:
+            if hasattr(structure, 'viewdockx_data'):
+                structure.register_attr(self.session, "viewdock_data", "ViewDock")
+                structure.viewdock_data = structure.viewdockx_data.copy()
+        return [structure for structure in structures if hasattr(structure, 'viewdock_data')]
+
     def top_buttons_setup(self):
         """
         Create the top buttons for the tool (HBonds and Clashes).
         """
-        # Add "Show All" button
-        self.show_all_button = QPushButton("Show All")
-        self.show_all_button.clicked.connect(
-            lambda: self.set_visibility(self.structures, True)
-        )
-        self.top_buttons_layout.addWidget(self.show_all_button)
-
-        # Add "Hide All" button
-        self.hide_all_button = QPushButton("Hide All")
-        self.hide_all_button.clicked.connect(
-            lambda: self.set_visibility(self.structures, False)
-        )
-        self.top_buttons_layout.addWidget(self.hide_all_button)
-
         self.hbonds_button = QPushButton("HBonds")
         self.hbonds_button.clicked.connect(
             lambda: self.popup_callback(
@@ -159,7 +161,7 @@ class ViewDockTool(ToolInstance):
 
     def table_setup(self):
         """
-        Create the ItemTable for the structures. Add a column for the display with check boxes, a column for the
+        Create the ItemTable for the structures. Add a for the
         structure ID, a column for the Rating with a custom delegate, and columns for each key in the viewdock_data
         attribute of each structure (e.g., Name, Description, Energy Score...). If a structure does not have a key from
         the set, the cell will be empty.
@@ -172,8 +174,7 @@ class ViewDockTool(ToolInstance):
         table_group_layout.addWidget(self.col_display_widget)
         table_group.setLayout(table_group_layout)
 
-        # Fixed columns. Generic based on ChimeraX model attributes.
-        self.display_col = self.struct_table.add_column('Show', lambda s: s.display, data_set=self.set_visibility, format=ItemTable.COL_FORMAT_BOOLEAN)
+        # Fixed columns. Generic based on ChimeraX model attribute(s).
         self.struct_table.add_column('ID', lambda s: s.id_string)
 
         # Custom Rating delegate
@@ -223,13 +224,43 @@ class ViewDockTool(ToolInstance):
         self.description_group.setFont(title_font)
 
         self.struct_table.selection_changed.connect(
-            lambda newly_selected, newly_deselected: self.update_model_description(newly_selected)
+            lambda newly_selected, newly_deselected: self.table_selection_changed(newly_selected, newly_deselected)
         )
 
         # Add the group box to the main layout
         self.main_v_layout.addWidget(self.description_group)
-        # Select the first structure in the table to display its data in the description box
-        self.struct_table.selected = [self.structures[0]]
+
+        if len(self.structures) > 0:
+            # Select the first structure in the table to display its data in the description box
+            self.struct_table.selected = [self.structures[0]]
+
+    def table_selection_changed(self, newly_selected, newly_deselected):
+        """
+        Callback for when the selection in the ItemTable changes. Updates what docking structure is visible and the
+        description box with the newly selected structure's data.
+
+        Args:
+            newly_selected (list): The newly selected structure(s) in the ItemTable.
+            newly_deselected (list): The previously selected structure(s) in the ItemTable.
+        """
+        self.update_structure_displays(newly_selected)
+        self.update_model_description(newly_selected)
+
+    def update_structure_displays(self, newly_selected):
+        """
+        Update the display of the docking structures. The newly selected structures will be shown, and all other docking
+        structures will be hidden.
+
+        Args:
+            newly_selected (list): The newly selected structure(s) in the ItemTable.
+        """
+        # Generate arrays for newly selected and the difference
+        newly_selected_array = newly_selected
+        others_array = [s for s in self.structures if s not in newly_selected_array]
+
+        # Call set_visibility to show newly selected and hide others
+        self.set_visibility(newly_selected_array, True)
+        self.set_visibility(others_array, False)
 
     def update_model_description(self, newly_selected):
         """
@@ -302,11 +333,6 @@ class ViewDockTool(ToolInstance):
             REMOVE_MODELS,
             lambda trigger_name, trigger_data: self.remove_models_cb(trigger_name, trigger_data)
         ))
-        self.handlers.append(self.session.triggers.add_handler(
-            MODEL_DISPLAY_CHANGED,
-            lambda trigger_name, trigger_data: self.struct_table.update_cell(self.display_col, trigger_data)
-            if trigger_data in self.structures else None
-        ))
 
     def remove_models_cb(self, trigger_name, trigger_data):
         """
@@ -339,9 +365,9 @@ class ViewDockTool(ToolInstance):
 
         model_spec = concise_model_spec(self.session, structs)
         if value:
-            run(self.session, f'show {model_spec} models')
+            run(self.session, f'show {model_spec} models', log=False)
         else:
-            run(self.session, f'hide {model_spec} models')
+            run(self.session, f'hide {model_spec} models', log=False)
 
     def delete(self):
         """
@@ -360,11 +386,27 @@ class ViewDockTool(ToolInstance):
 
     @classmethod
     def restore_snapshot(cls, session, snapshot):
+        """
+        Restore snapshots for the ViewDock tool and the old ViewDockX tool.
+        """
+        # ViewDockX snapshots
+        if '_html_state' in snapshot and 'vdxtable' in snapshot['_html_state']['name']:
+            if snapshot['version'] != 2:
+                session.logger.warning(
+                    f"Incompatible ViewDockX snapshot version {snapshot['version']}. "
+                    "Can only convert ViewDockX version 2 tool instances for ViewDock."
+                )
+                return None
+            return cls(session, "ViewDock", snapshot['structures'])
+        # ViewDock snapshots
         if snapshot['version'] != 1:
-            session.logger.warning("Incompatible snapshot version for ViewDock tool.")
+            session.logger.warning(
+                f"Incompatible snapshot version {snapshot['version']} for ViewDock tool. "
+                "Expected version 1."
+            )
             return None
-        tool = cls(session, snapshot['tool_name'], snapshot['structures'])
-        return tool
+
+        return cls(session, snapshot['tool_name'], snapshot['structures'])
 
 class RatingDelegate(QStyledItemDelegate):
     """
