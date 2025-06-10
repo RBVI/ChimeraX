@@ -47,13 +47,13 @@ class _MyAPI(BundleAPI):
         from chimerax.open_command import OpenerInfo
         class ViewDockOpenerInfo(OpenerInfo):
             def open(self, session, data, file_name, *, _name=name, show_tool=True, **kw):
-                if _name == "vd_AutoDock PDBQT":
+                if _name == "AutoDock PDBQT":
                     from .pdbqt import open_pdbqt
                     opener = open_pdbqt
                 elif "Mol2" in name:
                     from .io import open_mol2
                     opener = open_mol2
-                elif _name == "vd_SwissDock":
+                elif _name == "SwissDock":
                     from .io import open_swissdock
                     opener = open_swissdock
                 else: # ZDOCK
