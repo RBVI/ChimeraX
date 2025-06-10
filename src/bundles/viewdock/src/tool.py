@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2025 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
@@ -349,7 +351,10 @@ class ViewDockTool(ToolInstance):
         for model in trigger_data:
             if model in self.structures:
                 self.structures.remove(model)
-        self.struct_table.data = self.structures
+        if not self.structures:
+            self.delete()
+        else:
+            self.struct_table.data = self.structures
 
     def set_visibility(self, structs, value):
         """
