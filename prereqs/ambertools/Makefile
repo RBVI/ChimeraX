@@ -5,11 +5,13 @@ include $(TOP)/mk/config.make
 # Using AmberTools distribution from https://ambermd.org
 
 ifeq ($(OS),Darwin)
-VERSION = 24
-SRC_VERSION = 24
+VERSION = 25
+SRC_VERSION = 25
+SRC_NAME = ambertools
 else
 VERSION = 20
 SRC_VERSION = 20
+SRC_NAME = amber
 endif
 
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
@@ -50,9 +52,9 @@ CMAKE = cmake
 
 DISTRIBUTION = AmberTools$(VERSION).tar.bz2
 SOURCE = $(tmpdir)/AmberTools$(VERSION)
-AMBERHOME = $(SOURCE)/amber$(SRC_VERSION)_src
-CMAKE_BUILD_DIR = $(SOURCE)/amber$(SRC_VERSION)_build
-CMAKE_INSTALL_DIR = $(SOURCE)/amber$(SRC_VERSION)_install
+AMBERHOME = $(SOURCE)/$(SRC_NAME)$(SRC_VERSION)_src
+CMAKE_BUILD_DIR = $(SOURCE)/$(SRC_NAME)$(SRC_VERSION)_build
+CMAKE_INSTALL_DIR = $(SOURCE)/$(SRC_NAME)$(SRC_VERSION)_install
 CMAKE_TOOL_SRC = $(CMAKE_BUILD_DIR)/AmberTools/src
 TOOL_SRC = $(AMBERHOME)/AmberTools/src
 AMBERBIN_SRC = $(CMAKE_INSTALL_DIR)/bin
@@ -126,7 +128,7 @@ endif
 else
 install: $(SOURCE)
 	-mkdir $(CMAKE_BUILD_DIR) $(CMAKE_INSTALL_DIR)
-	cd $(CMAKE_BUILD_DIR) && env PATH=$(PATH):/opt/homebrew/bin:/usr/local/bin $(CMAKE) $(AMBERHOME) -DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_DIR) -DCOMPILER=CLANG -DDOWNLOAD_MINICONDA=FALSE -DBUILD_PYTHON=FALSE -DFORCE_INTERNAL_LIBS=netcdf
+	cd $(CMAKE_BUILD_DIR) && env PATH=$(PATH):/opt/homebrew/bin:/usr/local/bin $(CMAKE) $(AMBERHOME) -DCMAKE_POLICY_VERSION_MINIMUM=3.12 -DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_DIR) -DCOMPILER=CLANG -DDOWNLOAD_MINICONDA=FALSE -DBUILD_PYTHON=FALSE -DFORCE_INTERNAL_LIBS=netcdf
 	for i in netcdf-4.6.1 netcdf-fortran-4.4.4 arpack sff cifparse ; do \
 		if [ -e $(CMAKE_TOOL_SRC)/$$i ] ; then \
 			cd $(CMAKE_TOOL_SRC)/$$i && $(MAKE) install ; \
@@ -146,6 +148,10 @@ app-install: install
 	$(RSYNC) $(AMBERDAT_ANTECHAMBER_SRC)/* $(AMBERDAT_ANTECHAMBER_DST)
 	$(RSYNC) $(AMBERDAT_PARM_SRC)/gaff2.dat $(AMBERDAT_PARM_DST)
 	$(RSYNC) $(AMBERLIB_SRC)/*.$(SHLIB_EXT) $(app_libdir)
+ifeq ($(VERSION),25)
+	# AmberTools25 doesn't seem to install libsff_fortran
+	$(RSYNC) $(CMAKE_TOOL_SRC)/sff/*.$(SHLIB_EXT) $(app_libdir)
+endif
 ifneq ($(LIBGCCDIR),)
 	for gcclib in $(LIBGCCDIR)/libgcc*.$(SHLIB_EXT) ; do \
 		$(RSYNC) $$gcclib $(app_libdir); \
@@ -166,6 +172,7 @@ ifeq ($(OS),Darwin)
 		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
 			cp $$j $(app_libdir); \
 			filename=`basename $$j`; \
+			chmod u+w $(app_libdir)/$$filename; \
 			echo "$$filename " >> $(FLIB_NAMES_FILE); \
 			install_filename=$(app_libdir)/$$filename; \
 			install_name_tool -id @executable_path/$$filename $$install_filename; \
