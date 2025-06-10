@@ -170,6 +170,7 @@ class SequenceViewer(ToolInstance):
             for aseq in self.alignment.seqs:
                 if aseq.match_maps:
                     self.seq_canvas.assoc_mod(aseq)
+        self._feature_browsers = {}
         self._regions_tool = None
         from .region_browser import RegionManager
         self.region_manager = RegionManager(self.seq_canvas)
@@ -182,7 +183,6 @@ class SequenceViewer(ToolInstance):
         if self.alignment.intrinsic and not from_session:
             self.show_ss(True)
             self.status("Helices/strands depicted in gold/green")
-        self._feature_browsers = {}
         if not from_session:
             if len(self.alignment.seqs) == 1:
                 seq = self.alignment.seqs[0]
@@ -908,6 +908,12 @@ class SequenceViewer(ToolInstance):
     def _regions_tool_notification(self, category, region):
         if self._regions_tool:
             self._regions_tool.region_notification(category, region)
+        try:
+            fb = self._feature_browsers[region.sequence]
+        except KeyError:
+            pass
+        else:
+            fb.region_notification(category, region)
 
     def _update_errors_gaps(self, aseq):
         if not self.settings.error_region_shown and not self.settings.gap_region_shown:
