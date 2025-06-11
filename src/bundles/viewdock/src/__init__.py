@@ -90,7 +90,7 @@ def show_docking_file_dialogue(session):
 
     docking_formats_names = []
     for data_format in session.data_formats.formats:
-        if data_format.category == "Docking results":
+        if data_format.category == "Docking results" or data_format.name == "Sybyl Mol2":
             docking_formats_names.append(data_format.name)
     if not docking_formats_names:
         session.logger.warning("No docking results formats found.")
