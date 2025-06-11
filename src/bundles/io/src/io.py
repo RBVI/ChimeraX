@@ -80,8 +80,8 @@ def open_output(output, encoding=None, *, append=False, compression=None):
     fs_output = file_system_file_name(output)
     from os.path import dirname, exists
     folder = dirname(fs_output)
+    from chimerax.core.errors import UserError
     if folder and not exists(folder):
-        from chimerax.core.errors import UserError
         raise UserError("Folder %s does not exist; you need to create it" % folder)
     compression_type = get_compression_type(fs_output, compression)
     base_mode = 'a' if append else 'w'
@@ -89,8 +89,11 @@ def open_output(output, encoding=None, *, append=False, compression=None):
     if compression_type:
         return handle_compression(compression_type, fs_output,
             mode=mode, encoding=encoding)
-    return open(fs_output, mode, encoding=encoding)
-        
+    try:
+        return open(fs_output, mode, encoding=encoding)
+    except (PermissionError, OSError) as e:
+        from os.path import abspath
+        raise UserError("You do not have permission to write to %s (%s)" % (abspath(fs_output), str(e)))
 
 def file_system_file_name(file_name):
     import os.path

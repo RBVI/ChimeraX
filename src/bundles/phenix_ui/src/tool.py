@@ -479,11 +479,20 @@ class LaunchEmplaceLocalTool(ToolInstance):
         prefitted_layout = QHBoxLayout()
         prefitted_layout.setSpacing(1)
         prefitted_widget.setLayout(prefitted_layout)
+        label_container = QWidget()
+        prefitted_layout.addWidget(label_container, alignment=Qt.AlignRight)
+        label_layout = QVBoxLayout()
+        label_layout.setSpacing(0)
+        label_layout.setContentsMargins(0,0,0,0)
+        label_container.setLayout(label_layout)
         prefitted_tip = '''If any structures have already been fit into
 other parts of the map, specify those here.'''
         prefitted_label = QLabel("Pre-fitted structures (if any):")
         prefitted_label.setToolTip(prefitted_tip)
-        prefitted_layout.addWidget(prefitted_label, alignment=Qt.AlignRight)
+        label_layout.addWidget(prefitted_label, alignment=Qt.AlignBottom|Qt.AlignHCenter)
+        warning_label = QLabel("Requires Phenix 2.0 or later")
+        shrink_font(warning_label)
+        label_layout.addWidget(warning_label, alignment=Qt.AlignTop|Qt.AlignHCenter)
         class ShortASLWidget(AtomicStructureListWidget):
             def sizeHint(self):
                 hint = super().sizeHint()

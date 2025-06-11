@@ -18,6 +18,15 @@ class PlotValueError(ValueError):
 
 class MDPlottingManager(ProviderManager):
 
+    bools = ["true", "false"]
+    exclude_info = {
+        'solution': bools,
+        'hydrogens': bools,
+        'ligands': bools,
+        # order here controls order in the popup menu
+        'metals': ["true", "alkali", "false"],
+    }
+
     def __init__(self, session):
         self.session = session
         self.providers = {}
@@ -43,9 +52,15 @@ class MDPlottingManager(ProviderManager):
         # 'text_format' is the formatting operator to convert the numeric plotting value to the text
         #     displayed in the corresponding table.  It can be "distance" or "angle" for values that
         #     are distances or angles, which will get a more specific treatment than a generic format.
-        # 'exclude' is a list of structure categories that can be optionally excluded by the user
+        # 'exclude' is a list of types of atoms that can be optionally excluded by the user
         #     from consideration when computing the plotting values. Specified as a comma-separated
-        #     string in the Provider tag.
+        #     string of "kind=default" entries in the Provider tag.  The default specifies what value
+        #     the chooser widget should initally have for that kind of atom in the interface.  The
+        #     possible kinds and their values are:
+        #         solution (solvent and non-metal ions): true/false
+        #         hydrogens: true/false
+        #         ligands: true/false
+        #         metals (metal ions): true/alkali/false
         if num_atoms is not None:
             try:
                 num_atoms = int(num_atoms)
@@ -59,7 +74,22 @@ class MDPlottingManager(ProviderManager):
         self._min_vals[name] = min_val if min_val is None else float(min_val)
         self._max_vals[name] = max_val if max_val is None else float(max_val)
         self._text_formats[name] = text_format
-        self._excludes[name] = [] if exclude is None else exclude.split(',')
+        self._excludes[name] = excludes = {}
+        if exclude is not None:
+            for kind_value in exclude.split(','):
+                try:
+                    kind, value = kind_value.split('=')
+                except ValueError:
+                    raise ValueError("'exclude' must be a comma-separated list of 'kind=default' entries.\n"
+                        f"The entry {kind_value} has the wrong number of equal signs.")
+                if kind not in self.exclude_info.keys():
+                    raise ValueError("Unrecognized 'exclude' kind; supported kinds are: %s" %
+                        ", ".join(list(self.exclude_info.keys())))
+                if value not in self.exclude_info[kind]:
+                    raise ValueError("Unrecognized 'exclude' value (%s) for kind '%s';"
+                        " supported values are: %s" % (value, kind,
+                        ", ".join(list(self.exclude_info[kind]))))
+                excludes[kind] = value
 
     def excludes(self, provider_name):
         return self._excludes[provider_name]

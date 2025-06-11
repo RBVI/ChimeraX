@@ -27,25 +27,25 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <Dependency name="ChimeraX-Mol2" version="~=2.0"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
-    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.15"/>
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="vd_AutoDock PDBQT" nicknames="vd_pdbqt" category="Docking results"
+    <Provider name="AutoDock PDBQT" nicknames="pdbqt" category="Docking results"
 		suffixes=".pdbqt" encoding="utf-8" />
-    <Provider name="vd_Sybyl Mol2" synopsis="Mol2" nicknames="mol2" category="Docking results"
-		suffixes=".mol2" encoding="utf-8" />
-    <Provider name="vd_ZDOCK" nicknames="vd_zdock" category="Docking results"
+    <Provider name="Mol2 docking output" synopsis="Mol2 docking" nicknames="mol2-docking"
+		category="Docking results" suffixes=".mol2" encoding="utf-8" />
+    <Provider name="ZDOCK" nicknames="zdock" category="Docking results"
 		suffixes=".pdb" encoding="utf-8" reference_url="https://zdock.umassmed.edu" />
-    <Provider name="vd_SwissDock" nicknames="vd_swissdock" category="Docking results"
+    <Provider name="SwissDock" nicknames="swissdock" category="Docking results"
 		suffixes=".pdb" encoding="utf-8" reference_url="https://swissdock.ch" />
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="vd_AutoDock PDBQT" want_path="true" />
-    <Provider name="vd_Sybyl Mol2" want_path="true" />
-    <Provider name="vd_ZDOCK" />
-    <Provider name="vd_SwissDock" />
+    <Provider name="AutoDock PDBQT" want_path="true" />
+    <Provider name="Mol2 docking output" want_path="true" />
+    <Provider name="ZDOCK" />
+    <Provider name="SwissDock" />
   </Providers>
 
   <Classifiers>

@@ -37,7 +37,7 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def get_class(name):
-        if name == "ViewDockTool":
+        if name == "ViewDockTool" or name == "TableTool":
             from .tool import ViewDockTool
             return ViewDockTool
         return None
@@ -47,13 +47,13 @@ class _MyAPI(BundleAPI):
         from chimerax.open_command import OpenerInfo
         class ViewDockOpenerInfo(OpenerInfo):
             def open(self, session, data, file_name, *, _name=name, show_tool=True, **kw):
-                if _name == "vd_AutoDock PDBQT":
+                if _name == "AutoDock PDBQT":
                     from .pdbqt import open_pdbqt
                     opener = open_pdbqt
                 elif "Mol2" in name:
                     from .io import open_mol2
                     opener = open_mol2
-                elif _name == "vd_SwissDock":
+                elif _name == "SwissDock":
                     from .io import open_swissdock
                     opener = open_swissdock
                 else: # ZDOCK
@@ -64,7 +64,7 @@ class _MyAPI(BundleAPI):
                 all_models = sum([m.all_models() for m in models], start=[])
                 if show_tool and session.ui.is_gui and len(all_models) > 1:
                     for m in all_models:
-                        if hasattr(m, 'viewdockx_data'):
+                        if hasattr(m, 'viewdock_data'):
                             show_dock = True
                             break
                     else:
@@ -96,7 +96,7 @@ def show_docking_file_dialogue(session):
         session.logger.warning("No docking results formats found.")
         return
     from chimerax.open_command import show_open_file_dialog
-    show_open_file_dialog(session, format_names=docking_formats_names)
+    show_open_file_dialog(session, format_names=docking_formats_names, caption="Choose Docking Results File")
 
 
 def open_viewdock_tool(session, structures):

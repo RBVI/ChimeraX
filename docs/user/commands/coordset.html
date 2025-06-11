@@ -198,16 +198,29 @@ In general, each measurement is defined by
 <a href="../selection.html">selecting</a> the desired atoms 
 (two for <b>Distances</b>, three for <b>Angles</b>, four for <b>Torsions</b>,
 any number for <b>SASAs</b>) and clicking <b>Plot</b>. 
-For SASA (area of the atoms'
-<a href="surface.html#surfdefs">solvent-accessible surface</a>),
-there are also checkbox options to omit residues 
-<a href="atomspec.html#surfcats">classified</a> as ions, ligand, and/or
-solvent from the calculation.
+</p><p>
+Additional options for SASA (area of the atoms'
+<a href="surface.html#surfdefs">solvent-accessible surface</a>):
+</p>
 <!-- 
 SASA details: the entire surfcats of all specified atoms are lumped as the 
 first arg of "measure sasa" and the specified atoms are used as the "sum" arg,
 with probe radius default = 1.4 Angstroms 
 -->
+<ul>
+<li><b>Ignore solvent and non-metal ions</b> (default <b>on</b>)
+&ndash; whether to omit <a href="atomspec.html#surfcats">solvent</a> residues
+and non-metal monatomic ions 
+(Cl<sup>&ndash;</sup>, Br<sup>&dash;</sup>, <i>etc.</i>) 
+<li><b>Ignore ligands</b> (default <b>on</b>)
+&ndash; whether to omit <a href="atomspec.html#surfcats">ligand</a> residues
+<!-- <li><b>Ignore hydrogens</b> (default <b>on</b>)  [for RMSD plots only] -->
+<li><b>Ignore metal ions</b>
+&ndash; whether to omit <b>alkali</b> metal ions (Li<sup>+</sup>, Na<sup>+</sup>,
+K<sup>+</sup>, <i>etc.</i>), or all metal ions (if <b>true</b>), or none 
+(if <b>false</b>, thus including them all)
+</ul>
+<p>
 Several different measurements of the same type 
 (for example, several distances) can be shown on the same plot. 
 Each measurement is listed in a table on the right along with a
@@ -290,5 +303,5 @@ applies in a particular situation.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2025</address>
+May 2025</address>
 </body></html>

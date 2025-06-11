@@ -154,10 +154,10 @@ class AddChargeTool(ToolInstance):
                 self.dock_prep_info['structures'] = AtomicStructures(self.structures)
             AddNonstandardChargesTool(self.session, "Add Non-Standard Charges", non_std,
                 dock_prep_info=self.dock_prep_info, main_params=params)
-        self.delete()
         if (not non_std) and self.dock_prep_info is not None:
             from chimerax.atomic import AtomicStructures
             self.dock_prep_info['callback'](AtomicStructures(self.structures), tool_settings=params)
+        self.delete()
 
 class AddNonstandardChargesTool(ToolInstance):
 

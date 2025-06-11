@@ -436,7 +436,7 @@ def save_camera_in_session(session, save = True):
 def stop_vr(session, simplify_graphics = True, mouse_zoom_speed = 1.0):
 
     c = vr_camera(session, create = False)
-    if c is None:
+    if c is None or not c.active:
         return
 
     preserve_camera_position = c.keep_position
