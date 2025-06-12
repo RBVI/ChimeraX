@@ -14,7 +14,8 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
 
-from .match import CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST
+from .match import CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST, \
+    AA_NEEDLEMAN_WUNSCH, AA_SMITH_WATERMAN
 from Qt.QtCore import Qt, Signal
 
 class MatchMakerTool(ToolInstance):
@@ -221,7 +222,8 @@ class MatchMakerTool(ToolInstance):
 
         alg = settings.alignment_algorithm
         if alg != defaults['alignment_algorithm']:
-            cmd += ' alg ' + StringArg.unparse(alg)
+            aa_arg = "nw" if alg == AA_NEEDLEMAN_WUNSCH else "sw"
+            cmd += ' alg ' + aa_arg
 
         verbose = settings.verbose_logging
         if verbose != defaults['verbose_logging']:
