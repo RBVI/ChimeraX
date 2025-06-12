@@ -122,7 +122,8 @@ def run_pip(command):
     pip_cmd = [prog] + ["-m", "pip"]
     # pip_cmd = [sys.executable, "-m", "pip"]
     with chimerax_environment():
-        cp = subprocess.run(pip_cmd + command, capture_output=True)
+        creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else None
+        cp = subprocess.run(pip_cmd + command, capture_output=True, creationflags=creationflags)
     return cp
 
 
