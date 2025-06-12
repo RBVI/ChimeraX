@@ -50,7 +50,6 @@ class Alignment(State):
     NOTE_REF_SEQ       = "reference seq changed"
     NOTE_SEQ_CONTENTS  = "seq contents changed"  # Not fired if NOTE_REALIGNMENT applicable
     NOTE_SEQ_NAME      = "sequence name changed"
-    NOTE_SEQ_RESIDUES  = "sequence residues changed"
     NOTE_REALIGNMENT   = "sequences realigned"  # preempts NOTE_SEQ_CONTENTS
     NOTE_RMSD_UPDATE   = "rmsd change"  # RMSD value changed, or chains relevant to RMSD may have changed
 
@@ -71,7 +70,6 @@ class Alignment(State):
     #   NOTE_REF_SEQ: the new reference sequence (which could be None)
     #   NOTE_SEQ_CONTENTS: the sequence whose characters changed
     #   NOTE_SEQ_NAME: the sequence whose name changed
-    #   NOTE_SEQ_RESIDUES: the sequence whose residues changed
     #   NOTE_REALIGNMENT: a list of copies of the previous sequences
     #   not yet implemented:  NOTE_ADD_SEQS, NOTE_PRE_DEL_SEQS, NOTE_DEL_SEQS, NOTE_ADD_DEL_SEQS,
 
@@ -127,9 +125,6 @@ class Alignment(State):
             self.match_maps[seq] = {}
             self._seq_handlers.append(
                 self._seqs[i].triggers.add_handler("rename", self._seq_name_changed_cb))
-            if isinstance(seq, StructureSeq):
-                self._seq_handlers.append(
-                    self._seqs[i].triggers.add_handler("residues changed", self._seq_residues_changed_cb))
             if isinstance(self._seqs[i], StructureSeq):
                 self._seq_handlers.append(self._seqs[i].triggers.add_handler("characters changed",
                     self._seq_characters_changed_cb))
@@ -991,7 +986,7 @@ class Alignment(State):
             session_restore=True)
         aln.associations = data['associations']
         for s, mm in zip(aln.seqs, data['match maps']):
-            self.match_maps[s] = mm
+            aln.match_maps[s] = mm
             for chain, match_map in mm.items():
                 match_map.mod_handler = match_map.triggers.add_handler('modified', aln._mmap_mod_cb)
         if 'sseq to chain' in data:
@@ -1041,10 +1036,6 @@ class Alignment(State):
 
     def _seq_name_changed_cb(self, trig_name, seq):
         self._notify_observers(self.NOTE_SEQ_NAME, seq)
-
-    def _seq_residues_changed_cb(self, trig_name, seq):
-        self._set_residue_attributes(match_maps=list(self.match_maps[seq].values()))
-        self._notify_observers(self.NOTE_SEQ_RESIDUES, seq)
 
     def _set_realigned(self, realigned_seqs):
         # realigned sequences need to be in the same order as the current sequences

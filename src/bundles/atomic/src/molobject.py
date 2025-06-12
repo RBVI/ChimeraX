@@ -2351,7 +2351,9 @@ class SeqMatchMap(State):
         self._align_seq = align_seq
         self._struct_seq = struct_seq
         from . import get_triggers
-        self._handler = get_triggers().add_handler("changes", self._atomic_changes)
+        self._handlers = [get_triggers().add_handler("changes", self._atomic_changes)]
+        if align_seq.ungapped() == struct_seq.ungapped():
+            self._handlers.append(struct_seq.triggers.add_handler("residues changed", self._res_change_cb))
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('modified')
@@ -2425,11 +2427,20 @@ class SeqMatchMap(State):
             if modified:
                 self.triggers.activate_trigger('modified', self)
 
+    def _res_change_cb(self, trig_name, sseq):
+        # only called if alignment and structure seqs are the same
+        self._res_to_pos.clear()
+        self._pos_to_res.clear()
+        for r, i in sseq.res_map.items():
+            self._res_to_pos[r] = i
+            self._pos_to_res[i] = r
+        self.triggers.activate_trigger('modified', self)
+
     def __del__(self):
         self._pos_to_res.clear()
         self._res_to_pos.clear()
-        from . import get_triggers
-        get_triggers().remove_handler(self._handler)
+        for handler in self._handlers:
+            handler.remove()
 
 # -----------------------------------------------------------------------------
 #
