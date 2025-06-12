@@ -46,6 +46,16 @@ class ViewDockTool(ToolInstance):
     registered_mousemode = False
 
     def __init__(self, session, tool_name, structures):
+        """
+        Initialize the ViewDock tool with, table, table controls, and model descriptions.
+
+        Args:
+            session: The ChimeraX session.
+            tool_name (str): The name of the tool. Used for saving settings.
+            structures: A list of structures to display in the tool. Structures must have the .viewdock_data attribute
+            with at minimum a rating key. ex {'rating': 2, 'name': 'Docked Structure 1', 'energy_score': -5.0, ...}
+        """
+
         super().__init__(session, tool_name)
         self.display_name = "ViewDock"
 
