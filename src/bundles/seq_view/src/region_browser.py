@@ -145,6 +145,7 @@ class Region:
         self._border_rgba = rgba
         # kind of complicated due to highlighting; just redraw
         self.redraw()
+        self._notify_tool("border color")
 
     border_rgba = property(get_border_rgba, set_border_rgba)
 
@@ -252,6 +253,7 @@ class Region:
         for item in self._items:
             item.setBrush(brush)
         self.redraw()
+        self._notify_tool("interior color")
 
     interior_rgba = property(get_interior_rgba, set_interior_rgba)
 
@@ -1948,6 +1950,10 @@ class RegionsTool:
             self.region_table.data = [r for r in all_regions if r in table_regions]
         elif category == "select":
             self.region_table.selected = [r for r in self.region_table.data if r == region]
+        elif category == "border color" or category == "interior color":
+            col_type = "edge" if category == "border color" else "fill"
+            for col_suffix in ["", " color"]:
+                self.region_table.update_cell(self.columns[col_type + col_suffix], region)
         elif region in self.region_table.data:
             col = self.columns[category]
             self.region_table.update_cell(col, region)

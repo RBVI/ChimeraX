@@ -42,6 +42,7 @@ class ViewDockTool(ToolInstance):
 
     SESSION_ENDURING = False
     SESSION_SAVE = True
+    registered_mousemode = False
 
     def __init__(self, session, tool_name, structures):
         super().__init__(session, tool_name)
@@ -67,8 +68,16 @@ class ViewDockTool(ToolInstance):
         ))
         self.table_setup()
 
+        from .mousemode import register_mousemode, NextDockingMouseMode
+        if not self.__class__.registered_mousemode:
+            register_mousemode(session)
+            self.__class__.registered_mousemode = True
+        NextDockingMouseMode.vd_instance = self
+
         self.description_group = QGroupBox()
         self.description_box_setup()
+
+
 
         self.handlers = []
         self.add_handlers()
@@ -380,6 +389,8 @@ class ViewDockTool(ToolInstance):
         """
         for handler in self.handlers:
             self.session.triggers.remove_handler(handler)
+        from .mousemode import NextDockingMouseMode
+        NextDockingMouseMode.vd_instance = None
         super().delete()
 
     def take_snapshot(self, session, flags):
@@ -549,3 +560,4 @@ class RatingDelegate(QStyledItemDelegate):
 class ViewDockSettings(Settings):
 
     EXPLICIT_SAVE = {ItemTable.DEFAULT_SETTINGS_ATTR: {}}
+
