@@ -83,8 +83,9 @@ Alternatively, one or more such files can be opened with
 and subsequently the <b>ViewDock</b> tool can be started
 from the <b>Binding Analysis</b> section of the <b>Tools</b> menu
 </p><p>
-The docking results and scores (if any) are listed in a table.
-The table can be manipulated like other panels in ChimeraX 
+The docking results and scores (if any) are listed in a 
+<a href="#table">table</a>
+that can be manipulated like other panels in ChimeraX 
 (<a href="../window.html#panels">more...</a>).
 </p>
 
@@ -93,7 +94,6 @@ The table can be manipulated like other panels in ChimeraX
 [<a href="#top">back to top: ViewDock</a>]
 </p>
 <h3>ViewDock Table</h3>
-<center><font size="+1"><b>*under construction (may be temporarily inaccurate)*</b></font></center>
 <p>
 In the table of docking results, the rows are different compounds or
 different positions of a compound, and the columns show additional data
@@ -112,7 +112,7 @@ The first two columns in the table are generated automatically:
 </p>
 <ul>
 <li><b>ID</b> &ndash; model number
-<li><b>RATING</b> &ndash; rating on a scale of 1 to 3 (click to change)
+<li><b>Rating</b> &ndash; rating on a scale of 1 to 3 (click to change)
 </ul>
 <p>
 Any additional columns that appear when <b>ViewDock</b> is first started
@@ -153,14 +153,14 @@ Buttons above the table:
 <li><b>HBonds</b> 
 &ndash; calculate and add a column for
 the number of H-bonds between each compound and all other atoms
-(excluding the other docked compounds), using the
-<a href="../commands/hbonds.html"><b>hbonds</b></a> command
+(excluding the other docked compounds) using the
+<a href="hbonds.html"><b>H-Bonds</b></a> tool
 <!-- hbonds [dock-models] restrict [other-models] reveal true interSub true -->
 <li><b>Clashes</b> 
 &ndash; calculate and add a column for
 the number of clashes between each compound and all other atoms
-(excluding the other docked compounds), using the
-<a href="../commands/clashes.html"><b>clashes</b></a> command
+(excluding the other docked compounds) using the
+<a href="clashes.html"><b>Clashes</b></a> tool
 <!-- clashes [dock-models] test others reveal true -->
 <blockquote>
 <table cellpadding="8px" cellspacing="0px" border=1><tr><td class="shaded">
@@ -172,11 +172,13 @@ In addition, any models other than the receptor and its docked compounds
 should be spatially separated from them or closed.
 </td></tr></table>
 </blockquote>
+<!--
 <li><b>Save...</b> save all compound structures and descriptors 
 (including current ratings) to a Mol2 file; the file can be
 reopened later for further analysis with <b>ViewDock</b>
 <li><b>Close</b> &ndash; close any structures with ratings no greater 
 than the specified number and remove their rows from the table
+-->
 </ul>
 
 <hr>
