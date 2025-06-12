@@ -36,6 +36,7 @@ from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVB
                           QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel, QWidget,)
 from Qt.QtGui import QFont
 from Qt.QtCore import Qt
+from chimerax.viewdock import RATING_KEY, DEFAULT_RATING
 
 
 class ViewDockTool(ToolInstance):
@@ -190,7 +191,7 @@ class ViewDockTool(ToolInstance):
 
         # Custom Rating delegate
         delegate = RatingDelegate(self.struct_table)  # Create the delegate instance
-        self.struct_table.add_column('Rating', lambda s: s.viewdock_data.get('Rating', 2),
+        self.struct_table.add_column('Rating', lambda s: s.viewdock_data.get(RATING_KEY),
                                      data_set = lambda item, value: None,
                                      editable=True)
 
@@ -489,7 +490,7 @@ class RatingDelegate(QStyledItemDelegate):
         # Get the structure (chimerax Structure) from the table row.
         structure = self.parent().data[index.row()]
         new_rating = int(editor.currentText())
-        structure.viewdock_data['Rating'] = new_rating  # Update the rating in the structure's data
+        structure.viewdock_data[RATING_KEY] = new_rating  # Update the rating in the structure's data
 
         model.setData(index, new_rating)  # Optionally, set the value in the model too. This is for Qt completeness
 
