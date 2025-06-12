@@ -3364,7 +3364,7 @@ def command_url(name, no_aliases=False, *, registry=None):
     return _get_help_url(cmd.command_name.split())
 
 
-def command_set_synopsis(name, synopsis, user_alias=True, *, registry=None):
+def command_set_synopsis(name, synopsis=None, user_alias=True, *, registry=None):
     cmd = Command(None, registry=registry)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=False)
@@ -3373,6 +3373,10 @@ def command_set_synopsis(name, synopsis, user_alias=True, *, registry=None):
     if user_alias and (not isinstance(cmd._ci.function, Alias)
             or not cmd._ci.function.user_generated):
         raise ValueError("can only set synopsis for user aliases")
+    if synopsis is None:
+        if not isinstance(cmd._ci.function, Alias):
+            raise ValueError("can not reset non-alias synopsis")
+        synopsis = f'alias of "{cmd._ci.function.original_text}"'
     cmd._ci.synopsis = synopsis
 
 

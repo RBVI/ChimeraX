@@ -46,7 +46,7 @@ def alias(session, name, text=''):
     cli.create_alias(name, text, user=True, logger=logger)
 
 
-def alias_synopsis(session, name, text):
+def alias_synopsis(session, name, text=None):
     try:
         cli.command_set_synopsis(name, text)
     except ValueError as e:
@@ -89,10 +89,8 @@ def register_command(logger):
     cli.register('alias', desc, alias, logger=logger)
 
     desc = cli.CmdDesc(
-        required=[
-            ('name', cli.StringArg),
-            ('text', cli.WholeRestOfLine)
-        ],
+        required=[('name', cli.StringArg)],
+        optional=[('text', cli.WholeRestOfLine)],
         non_keyword=['text'],
         synopsis="set alias' synopsis")
     cli.register('alias synopsis', desc, alias_synopsis, logger=logger)
