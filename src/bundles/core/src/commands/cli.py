@@ -340,6 +340,8 @@ def dq_repr(obj):
 
 def user_kw(kw_name):
     """Return user version of a keyword argument name."""
+    if isinstance(kw_name, int):
+        return f'${kw_name}'
     words = kw_name.split("_")
     return words[0] + "".join([x.capitalize() for x in words[1:]])
 
