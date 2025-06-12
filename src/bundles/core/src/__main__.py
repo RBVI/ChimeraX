@@ -1200,12 +1200,12 @@ def restart_action(line, inst_dir, msgs):
             command.append(os.path.join(inst_dir, bundle))
         else:
             command.append(bundle)
-    creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else None
+    kwargs = {'creationflags': subprocess.CREATE_NO_WINDOW} if sys.platform == 'win32' else {}
     cp = subprocess.run(
         [sys.executable, "-m", "pip"] + command,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        creationflags=creationflags
+        **kwargs
     )
     if cp.returncode == 0:
         msgs.append(("stdout", "Successfully installed %r" % bundle))
