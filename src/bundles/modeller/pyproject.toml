@@ -10,7 +10,7 @@ authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
 description = "Interface to Modeller"
 dependencies = [
 	"ChimeraX-Core ~= 1.0"
-	, "ChimeraX-Alignments ~= 2.0"
+	, "ChimeraX-Alignments ~= 3.0"
 	, "ChimeraX-PDB ~= 2.0"
 	, "ChimeraX-UI ~= 1.15"
 ]

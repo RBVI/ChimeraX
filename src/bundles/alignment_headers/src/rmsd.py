@@ -146,7 +146,7 @@ class RMSD(DynamicStructureHeaderSequence):
             ungapped = seq.gapped_to_ungapped(pos)
             if ungapped is None:
                 continue
-            match_map = seq.match_maps[chain]
+            match_map = self.alignment.match_maps[seq][chain]
             try:
                 r = match_map[ungapped]
             except KeyError:
