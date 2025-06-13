@@ -340,6 +340,8 @@ def dq_repr(obj):
 
 def user_kw(kw_name):
     """Return user version of a keyword argument name."""
+    if isinstance(kw_name, int):
+        return f'${kw_name}'
     words = kw_name.split("_")
     return words[0] + "".join([x.capitalize() for x in words[1:]])
 
@@ -527,7 +529,7 @@ class Aggregate(Annotation):
         result = self.constructor()
         used = ""
         if self.prefix and text.startswith(self.prefix):
-            text = text[len(self.prefix) :]
+            text = text[len(self.prefix):]
             used += self.prefix
         while True:
             # find next list-separator character while honoring quoting
@@ -578,7 +580,7 @@ class Aggregate(Annotation):
                     rest += text[i:]
                     break
             used += self.separator
-            text = text[i + 1 :]
+            text = text[i + 1:]
             m = _whitespace.match(text)
             i = m.end()
             if i:
@@ -1220,11 +1222,11 @@ class FileNameArg(Annotation):
 _BROWSE_STRING = "browse"
 
 
-import sys
 if sys.platform == 'win32':
     from chimerax.core.utils import no_garbage_collection as gc_context
 else:
     from contextlib import nullcontext as gc_context
+
 
 def _browse_parse(
     text,
@@ -1972,9 +1974,9 @@ def unescape_with_index_map(text):
             break
         escaped = text[index + 1]
         if escaped in _escape_table:
-            text = text[:index] + _escape_table[escaped] + text[index + 2 :]
+            text = text[:index] + _escape_table[escaped] + text[index + 2:]
             # Assumes that replacement is a single character
-            index_map = index_map[:index] + index_map[index + 1 :]
+            index_map = index_map[:index] + index_map[index + 1:]
             start = index + 1
         elif escaped in "01234567":
             # up to 3 octal digits
@@ -1982,36 +1984,36 @@ def unescape_with_index_map(text):
                 if text[index + count] not in "01234567":
                     break
             try:
-                char = chr(int(text[index + 1 : index + count], 8))
-                text = text[:index] + char + text[index + count :]
-                index_map = index_map[:index] + index_map[index + count - 1 :]
+                char = chr(int(text[index + 1:index + count], 8))
+                text = text[:index] + char + text[index + count:]
+                index_map = index_map[:index] + index_map[index + count - 1:]
             except ValueError:
                 pass
             start = index + 1
         elif escaped == "x":
             # 2 hex digits
             try:
-                char = chr(int(text[index + 2 : index + 4], 16))
-                text = text[:index] + char + text[index + 4 :]
-                index_map = index_map[:index] + index_map[index + 3 :]
+                char = chr(int(text[index + 2:index + 4], 16))
+                text = text[:index] + char + text[index + 4:]
+                index_map = index_map[:index] + index_map[index + 3:]
             except ValueError:
                 pass
             start = index + 1
         elif escaped == "u":
             # 4 hex digits
             try:
-                char = chr(int(text[index + 2 : index + 6], 16))
-                text = text[:index] + char + text[index + 6 :]
-                index_map = index_map[:index] + index_map[index + 5 :]
+                char = chr(int(text[index + 2:index + 6], 16))
+                text = text[:index] + char + text[index + 6:]
+                index_map = index_map[:index] + index_map[index + 5:]
             except ValueError:
                 pass
             start = index + 1
         elif escaped == "U":
             # 8 hex digits
             try:
-                char = chr(int(text[index + 2 : index + 10], 16))
-                text = text[:index] + char + text[index + 10 :]
-                index_map = index_map[:index] + index_map[index + 9 :]
+                char = chr(int(text[index + 2:index + 10], 16))
+                text = text[:index] + char + text[index + 10:]
+                index_map = index_map[:index] + index_map[index + 9:]
             except ValueError:
                 pass
             start = index + 1
@@ -2024,10 +2026,10 @@ def unescape_with_index_map(text):
             if end > 0:
                 import unicodedata
 
-                char_name = text[index + 3 : end]
+                char_name = text[index + 3:end]
                 try:
                     char = unicodedata.lookup(char_name)
-                    text = text[:index] + char + text[end + 1 :]
+                    text = text[:index] + char + text[end + 1:]
                     index_map = index_map[:index] + index_map[end:]
                 except KeyError:
                     pass
@@ -2059,13 +2061,13 @@ def next_token(text, convert=False):
         if not m:
             raise AnnotationError("incomplete quoted text")
         end = m.end("string")
-        token = text[1 : end - 1]
+        token = text[1:end - 1]
     elif text[0] == "'":
         m = _single_quote.match(text)
         if not m:
             raise AnnotationError("incomplete quoted text")
         end = m.end("string")
-        token = text[1 : end - 1]
+        token = text[1:end - 1]
     elif text[0] == ";":
         return ";", ";", text[1:]
     else:
@@ -2790,7 +2792,7 @@ class Command:
         i = len(chars)
         j = self.amount_parsed
         t = self.current_text
-        self.current_text = t[0:j] + replacement + t[i + j :]
+        self.current_text = t[0:j] + replacement + t[i + j:]
         return len(replacement)
 
     def _parse_arg(self, annotation, text, session, final):
@@ -2867,11 +2869,11 @@ class Command:
                     self.amount_parsed = cur_end
                     c = self.completions[0]
                     self._replace(chars, c)
-                    text = self.current_text[self.amount_parsed :]
+                    text = self.current_text[self.amount_parsed:]
                     continue
                 if word and self._ci is None:
                     self._error = (
-                        "Unknown command: %s" % self.current_text[self.start :]
+                        "Unknown command: %s" % self.current_text[self.start:]
                     )
                 return
             self.amount_parsed = cur_end
@@ -2879,7 +2881,7 @@ class Command:
             self.word_info = what
             self.command_name = None
             self.amount_parsed += len(chars)
-            cmd_name = self.current_text[self.start : self.amount_parsed]
+            cmd_name = self.current_text[self.start:self.amount_parsed]
             cmd_name = " ".join(cmd_name.split())  # canonicalize
             if what.is_deferred():
                 what.lazy_register(cmd_name)
@@ -2914,7 +2916,7 @@ class Command:
                 return
             # word might be part of multiword command name
             if parent_info.cmd_desc is None:
-                self.command_name = self.current_text[self.start : self.amount_parsed]
+                self.command_name = self.current_text[self.start:self.amount_parsed]
                 self._error = "Incomplete command: %s" % self.command_name
 
     def _process_positional_arguments(self):
@@ -2925,7 +2927,7 @@ class Command:
         # for better error messages return:
         #   (last successful annotation, failed optional annotation)
         session = self._session()  # resolve back reference
-        text = self.current_text[self.amount_parsed :]
+        text = self.current_text[self.amount_parsed:]
         positional = self._ci._required.copy()
         positional.update(self._ci._optional)
         self.completion_prefix = ""
@@ -3029,7 +3031,7 @@ class Command:
         session = self._session()  # resolve back reference
         m = _whitespace.match(self.current_text, self.amount_parsed)
         self.amount_parsed = m.end()
-        text = self.current_text[self.amount_parsed :]
+        text = self.current_text[self.amount_parsed:]
         if not text:
             return
         while 1:
@@ -3071,7 +3073,7 @@ class Command:
                     if unambiguous:
                         c = completions[0][1]
                         self._replace(chars, c)
-                        text = self.current_text[self.amount_parsed :]
+                        text = self.current_text[self.amount_parsed:]
                         self.completions = []
                         continue
                     self.completions = list(c[1] for c in completions)
@@ -3225,7 +3227,7 @@ class Command:
             really_log = log and _used_aliases is None and not self._ci.self_logging
             if really_log or log_only:
                 self.log()
-            cmd_text = self.current_text[self.start : self.amount_parsed]
+            cmd_text = self.current_text[self.start:self.amount_parsed]
             with command_trigger(session, really_log, cmd_text):
                 from chimerax.core.errors import CancelOperation
 
@@ -3281,26 +3283,26 @@ class Command:
 
     def log(self):
         session = self._session()  # resolve back reference
-        cmd_text = self.current_text[self.start : self.amount_parsed]
+        cmd_text = self.current_text[self.start:self.amount_parsed]
         url = self._ci.url if self._ci is not None else None
         log_command(session, self.command_name, cmd_text, url=url)
 
     def log_parse_error(self):
         session = self._session()  # resolve back reference
-        rest = self.current_text[self.amount_parsed :]
+        rest = self.current_text[self.amount_parsed:]
         spaces = len(rest) - len(rest.lstrip())
         error_at = self.amount_parsed + spaces
         syntax_error = error_at < len(self.current_text)
         if session is None:
             # for testing purposes
-            print(self.current_text[self.start :])
+            print(self.current_text[self.start:])
             if syntax_error:
                 error_at -= self.start
                 if error_at:
                     print("%s^" % ("." * error_at))
             print(self._error)
         elif not session.ui.is_gui:
-            session.logger.error(self.current_text[self.start :])
+            session.logger.error(self.current_text[self.start:])
             if syntax_error:
                 error_at -= self.start
                 if error_at:
@@ -3319,11 +3321,11 @@ class Command:
                 msg += '<a href="%s">%s</a>' % (ci.url, escape(self.command_name))
             if not syntax_error:
                 msg += escape(
-                    self.current_text[self.start + offset : self.amount_parsed]
+                    self.current_text[self.start + offset:self.amount_parsed]
                 )
             else:
                 msg += '%s<span style="background-color:%s;">%s</span>' % (
-                    escape(self.current_text[self.start + offset : error_at]),
+                    escape(self.current_text[self.start + offset:error_at]),
                     err_color, escape(self.current_text[error_at:]),
                 )
             msg += "</div>"
@@ -3374,6 +3376,22 @@ def command_url(name, no_aliases=False, *, registry=None):
     if cmd._ci:
         return cmd._ci.url
     return _get_help_url(cmd.command_name.split())
+
+
+def command_set_synopsis(name, synopsis=None, user_alias=True, *, registry=None):
+    cmd = Command(None, registry=registry)
+    cmd.current_text = name
+    cmd._find_command_name(no_aliases=False)
+    if cmd.amount_parsed == 0 or not cmd._ci:
+        raise ValueError('"%s" is not a command name' % name)
+    if user_alias and (not isinstance(cmd._ci.function, Alias)
+            or not cmd._ci.function.user_generated):
+        raise ValueError("can only set synopsis for user aliases")
+    if synopsis is None:
+        if not isinstance(cmd._ci.function, Alias):
+            raise ValueError("can not reset non-alias synopsis")
+        synopsis = f'alias of "{cmd._ci.function.original_text}"'
+    cmd._ci.synopsis = synopsis
 
 
 def usage(
@@ -3495,7 +3513,7 @@ def _usage(
         _shown_cmds.add(cmd.command_name)
         if expand_alias and ci.is_alias():
             alias = ci.function
-            arg_text = cmd.current_text[cmd.amount_parsed :]
+            arg_text = cmd.current_text[cmd.amount_parsed:]
             args = arg_text.split(maxsplit=alias.num_args)
             if len(args) > alias.num_args:
                 optional = args[-1]
@@ -3682,7 +3700,7 @@ def _html_usage(
         _shown_cmds.add(cmd.command_name)
         if expand_alias and ci.is_alias():
             alias = ci.function
-            arg_text = cmd.current_text[cmd.amount_parsed :]
+            arg_text = cmd.current_text[cmd.amount_parsed:]
             args = arg_text.split(maxsplit=alias.num_args)
             if len(args) > alias.num_args:
                 optional = args[-1]
@@ -3755,7 +3773,7 @@ def registered_commands(multiword=False, _start=None):
 
     if not multiword:
         words = list(parent_info.subcommands.keys())
-        words.sort(key=lambda x: x[x[0] == "~" :])
+        words.sort(key=lambda x: x[x[0] == "~":])
         return words
 
     def cmds(parent_cmd, parent_info):
@@ -3772,7 +3790,7 @@ def registered_commands(multiword=False, _start=None):
         words = [
             word for word in parent_info.subcommands.keys() if word not in skip_list
         ]
-        words.sort(key=lambda x: x[x[0] == "~" :].lower())
+        words.sort(key=lambda x: x[x[0] == "~":].lower())
         for word in words:
             word_info = parent_info.subcommands[word]
             if word_info.is_deferred():
@@ -3944,7 +3962,7 @@ def expand_alias(name, *, registry=None):
     return cmd.word_info.alias().original_text
 
 
-def create_alias(name, text, *, user=False, logger=None, url=None, registry=None):
+def create_alias(name, text, *, user=False, logger=None, url=None, registry=None, synopsis=None):
     """Create command alias
 
     :param name: name of the alias
@@ -3954,10 +3972,12 @@ def create_alias(name, text, *, user=False, logger=None, url=None, registry=None
     """
     name = " ".join(name.split())  # canonicalize
     alias = Alias(text, user=user, registry=registry)
+    if synopsis is None:
+        synopsis = f'alias of "{text}"'
     try:
         register(
             name,
-            alias.cmd_desc(synopsis='alias of "%s"' % text, url=url),
+            alias.cmd_desc(synopsis=synopsis, url=url),
             alias,
             logger=logger,
             registry=registry,
@@ -4017,7 +4037,7 @@ if __name__ == "__main__":
                 names = [n for n in ColorArg.Builtin_Colors if n.startswith(color_name)]
                 if len(names) == 0:
                     raise ValueError('Invalid color name: "%s"' % color_name)
-                suffix = names[0][len(color_name) :]
+                suffix = names[0][len(color_name):]
                 if " " not in suffix:
                     color_name = names[0]
                     continue
@@ -4025,7 +4045,7 @@ if __name__ == "__main__":
                     color_name += suffix.split(None, 1)[0]
 
                 m = _whitespace.match(rest)
-                rest = rest[m.end() :]
+                rest = rest[m.end():]
                 color_name += " "
 
                 token, chars, rest = next_token(rest)
@@ -4175,7 +4195,7 @@ if __name__ == "__main__":
                 raise SystemExit(0)
             except UserError as err:
                 print(cmd.current_text)
-                rest = cmd.current_text[cmd.amount_parsed :]
+                rest = cmd.current_text[cmd.amount_parsed:]
                 spaces = len(rest) - len(rest.lstrip())
                 error_at = cmd.amount_parsed + spaces
                 print("%s^" % ("." * error_at))
@@ -4294,7 +4314,7 @@ def log_command(session, command_name, command_text, *, url=None):
         if url is None:
             msg += escape(command_text)
         else:
-            cargs = command_text[len(command_name) :]
+            cargs = command_text[len(command_name):]
             msg += '<a href="%s">%s</a>%s' % (url, escape(command_name), escape(cargs))
         text = escape(command_text)
         msg += (

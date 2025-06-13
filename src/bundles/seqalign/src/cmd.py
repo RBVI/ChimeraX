@@ -420,7 +420,7 @@ def seqalign_update(session, chains, *, alignment=None):
             if chain in aln.associations:
                 did_xfer = True
                 aseq = aln.associations[chain]
-                match_map = aseq.match_maps[chain]
+                match_map = aln.match_maps[aseq][chain]
                 residues = set()
                 seq_residues = []
                 ungapped = aseq.ungapped()

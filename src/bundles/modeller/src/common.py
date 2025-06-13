@@ -92,8 +92,7 @@ def save_template(session, pdb_file_name, template, ATOM_res_names):
     if do_reordering:
         template.reorder_residues(initial_order)
 
-def regularized_seq(aseq, chain):
-    mmap = aseq.match_maps[chain]
+def regularized_seq(aseq, chain, mmap):
     rseq = modeller_copy(aseq)
     rseq.description = "structure:" + chain_save_name(chain)
     seq_chars = list(rseq.characters)

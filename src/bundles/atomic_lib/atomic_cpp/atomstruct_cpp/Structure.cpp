@@ -386,12 +386,12 @@ Structure::_combine_chains(Residue* left, Residue* right)
                 } else {
                     complete_r = right;
                     incomplete_r = left;
-                    seq_offset = 0 - seq_dist;
+                    seq_offset = 1 - seq_dist;
                 }
                 auto complete_chain = complete_r->chain();
                 auto incomplete_chain = incomplete_r->chain();
                 int i2c_offset = complete_chain->res_map().at(complete_r)
-                    - incomplete_chain->res_map().at(incomplete_r) + seq_offset + 1;
+                    - incomplete_chain->res_map().at(incomplete_r) + seq_offset;
                 auto incomplete_size = incomplete_chain->size();
                 auto& incomplete_residues = incomplete_chain->residues();
                 auto& incomplete_chars = incomplete_chain->characters();
@@ -433,6 +433,7 @@ Structure::_combine_chains(Residue* left, Residue* right)
                         complete_chain->_res_map[ir] = ci;
                         ir->set_chain(complete_chain);
                     }
+                    Py_XDECREF(complete_chain->py_call_method("_cpp_modified"));
                     combined = complete_chain;
                 }
             }
@@ -440,7 +441,7 @@ Structure::_combine_chains(Residue* left, Residue* right)
     }
     if (combined != nullptr) {
         change_tracker()->add_modified(this, combined, ChangeTracker::REASON_RESIDUES);
-        combined->set_from_seqres(combined->from_seqres() || combined->from_seqres());
+        combined->set_from_seqres(left_chain->from_seqres() || right_chain->from_seqres());
         auto non_combined = combined == left_chain ? right_chain : left_chain;
         remove_chain(non_combined);
         non_combined->demote_to_structure_sequence();

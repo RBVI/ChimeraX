@@ -393,7 +393,7 @@ class GridCanvas:
         for chain, aseq in self.alignment.associations.items():
             if chain not in sel_chains:
                 continue
-            match_map = aseq.match_maps[chain]
+            match_map = self.alignments.match_maps[aseq][chain]
             for r in chain.existing_residues:
                 if r not in sel_residues:
                     continue
@@ -516,7 +516,7 @@ class GridCanvas:
     def _residues_at(self, grid_row, grid_col):
         residues = []
         for seq in self._sequences_at(grid_row, grid_col):
-            for match_map in seq.match_maps.values():
+            for match_map in self.alignment.match_maps[seq].values():
                 try:
                     residues.append(match_map[seq.gapped_to_ungapped(grid_col)])
                 except KeyError:

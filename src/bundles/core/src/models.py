@@ -45,6 +45,15 @@ BEGIN_DELETE_MODELS = "begin delete models"
 END_DELETE_MODELS = "end delete models"
 # TODO: register Model as data event type
 
+class BadIDError(ValueError):
+    pass
+class NoParentError(BadIDError):
+    pass
+class BadParentError(BadIDError):
+    pass
+class DuplicateIDError(BadIDError):
+    pass
+
 # If any of the *STATE_VERSIONs change, then increase the (maximum) core session
 # number in setup.py.in
 MODEL_STATE_VERSION = 1
@@ -851,13 +860,13 @@ class Models(StateManager):
             par_id = model.id[:-1]
             p = self._models.get(par_id) if par_id else self.scene_root_model
             if p is None:
-                raise ValueError('Tried to add model %s but parent #%s does not exist'
+                raise NoParentError('Tried to add model %s but parent #%s does not exist'
                                  % (model, '.'.join('%d'% i for i in par_id)))
             if parent is not None and parent is not p:
-                raise ValueError('Tried to add model %s to parent %s with incompatible id'
+                raise BadParentError('Tried to add model %s to parent %s with incompatible id'
                                  % (model, parent))
             if model.id in self._models:
-                raise ValueError('Tried to add model %s with the same id as another model %s'
+                raise DuplicateIDError('Tried to add model %s with the same id as another model %s'
                                  % (model, self._models[model.id]))
         return p
 
