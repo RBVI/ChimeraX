@@ -306,6 +306,7 @@ static struct PyModuleDef spec_parser_def =
     nullptr
 };
 
+#if PERCENT_WHITESPACE
     //RANGE_CHAR <- [^-#/:@,;()&| \t\n]
     //ATOM_NAME <- < [^#/:@; \t\n]+ >
 static auto grammar = (R"---(
@@ -350,6 +351,50 @@ static auto grammar = (R"---(
     real_number <- < [0-9]* '.' [0-9]+ >
     %whitespace  <-  [ \t\r\n]*
 )---");
+#else
+// had to not use %whitespace because using the tokenizing operator (<>) to enforce no spaces around '.'
+// characters in a model hierarchy stopped the AST from descending below that level
+static auto grammar = (R"---(
+    atom_specifier <- as_term _ "&" _ atom_specifier / as_term _ "|" _ atom_specifier / as_term
+    as_term <- "(" _ atom_specifier _ ")" _ zone_selector? / "~" _ as_term _ zone_selector? / SELECTOR_NAME _ zone_selector? / model_list
+    model_list <- model+
+    model <- HASH_TYPE _ model_hierarchy (_ "##" _ attribute_list)? _ model_parts* _ zone_selector? / "##" _ attribute_list _ model_parts* _ zone_selector? / model_parts _ zone_selector?
+    model_hierarchy <- model_range_list ("." model_hierarchy)*
+    model_range_list <- model_range ("," _ model_range_list)*
+    model_range <- MODEL_SPEC_START _ "-" _ MODEL_SPEC_END / MODEL_SPEC_ANY
+    model_parts <- chain+
+    chain <- "/" _ part_list (_ "//" _ attribute_list)? _ chain_parts* / "//" _ attribute_list _ chain_parts* / chain_parts+
+    chain_parts <- residue+
+    residue <- ":" _ part_list ("::" _ attribute_list)? _ residue_parts* / "::" _ attribute_list _ residue_parts* / residue_parts+
+    part_list <- PART_RANGE_LIST "," _ part_list / PART_RANGE_LIST
+    residue_parts <- atom+
+    # atom ranges are not allowed
+    atom <- "@" _ atom_list (_ "@@" _ attribute_list)? / "@@" _ attribute_list
+    atom_list <- ATOM_NAME "," _ atom_list / ATOM_NAME
+    attribute_list <- attr_test ("," _ attr_test)*
+    attr_test <- ATTR_NAME _ ATTR_OPERATOR _ ATTR_VALUE / "^" _ ATTR_NAME / ATTR_NAME
+    zone_selector <- ZONE_OPERATOR _ real_number / ZONE_OPERATOR _ integer
+    ATOM_NAME <- < [-+a-zA-Z0-9_'"*?\[\]\\]+ >
+    ATTR_NAME <- < [a-zA-Z_] [a-zA-Z0-9_]* >
+    ATTR_OPERATOR <- ">=" | ">" | "<=" | "<" | "==" | "=" | "!==" | "!=" | "<>"
+    ATTR_VALUE <- '"' < [^"]+ > '"' / "'" < [^']+ > "'" / [^#/:@,;"' ]+
+    HASH_TYPE <- "#!" / "#"
+    # limit model numbers to 5 digits to avoid conflicts with hex colors
+    MODEL_SPEC <- < [0-9]{1,5} > ![0-9A-Fa-f]
+    MODEL_SPEC_ANY <- MODEL_SPEC / "*"
+    MODEL_SPEC_END <- MODEL_SPEC / "end" / "*"
+    MODEL_SPEC_START <- MODEL_SPEC / "start" / "*"
+    RANGE_CHAR <- [A-Za-z0-9_'"*?\[\]\\]
+    RANGE_PART <- < "-"? RANGE_CHAR+ >
+    PART_RANGE_LIST <- < RANGE_PART _ "-" _ RANGE_PART > / RANGE_PART
+    SELECTOR_NAME <- < [a-zA-Z_][-+a-zA-Z0-9_]* >
+    ZONE_OPERATOR <- "@>" | "@<" | ":>" | ":<" | "/>" | "/<" | "#>" | "#<"
+    EndOfLine <- "\r\n" / "\n" / "\r"
+    ~_ <- (' ' / '\t' / EndOfLine)*
+    integer <- < [1-9][0-9]* >
+    real_number <- < [0-9]* '.' [0-9]+ >
+)---");
+#endif
 
 static PyObject* get_module_attribute(const char* mod_name, const char* attr_name)
 {
