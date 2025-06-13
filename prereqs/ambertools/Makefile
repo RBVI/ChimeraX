@@ -17,6 +17,7 @@ endif
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
 ifeq ($(OS),Darwin)
+# needs build tools as outlined here: https://ambermd.org/InstMacOS.php
 USE_PREBUILT=false
 UPLOAD_PREBUILT=false
 else
@@ -131,7 +132,7 @@ install: $(SOURCE)
 	cd $(CMAKE_BUILD_DIR) && env PATH=$(PATH):/opt/homebrew/bin:/usr/local/bin $(CMAKE) $(AMBERHOME) -DCMAKE_POLICY_VERSION_MINIMUM=3.12 -DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_DIR) -DCOMPILER=CLANG -DDOWNLOAD_MINICONDA=FALSE -DBUILD_PYTHON=FALSE -DFORCE_INTERNAL_LIBS=netcdf
 	for i in netcdf-4.6.1 netcdf-fortran-4.4.4 arpack sff cifparse ; do \
 		if [ -e $(CMAKE_TOOL_SRC)/$$i ] ; then \
-			cd $(CMAKE_TOOL_SRC)/$$i && $(MAKE) install ; \
+			cd $(CMAKE_TOOL_SRC)/$$i && echo installing $$i && $(MAKE) install && echo installed $$i ; \
 		fi ; \
 	done
 	cd $(CMAKE_TOOL_SRC)/sqm && $(MAKE) install
@@ -148,10 +149,6 @@ app-install: install
 	$(RSYNC) $(AMBERDAT_ANTECHAMBER_SRC)/* $(AMBERDAT_ANTECHAMBER_DST)
 	$(RSYNC) $(AMBERDAT_PARM_SRC)/gaff2.dat $(AMBERDAT_PARM_DST)
 	$(RSYNC) $(AMBERLIB_SRC)/*.$(SHLIB_EXT) $(app_libdir)
-ifeq ($(VERSION),25)
-	# AmberTools25 doesn't seem to install libsff_fortran
-	$(RSYNC) $(CMAKE_TOOL_SRC)/sff/*.$(SHLIB_EXT) $(app_libdir)
-endif
 ifneq ($(LIBGCCDIR),)
 	for gcclib in $(LIBGCCDIR)/libgcc*.$(SHLIB_EXT) ; do \
 		$(RSYNC) $$gcclib $(app_libdir); \
