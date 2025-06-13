@@ -433,6 +433,7 @@ Structure::_combine_chains(Residue* left, Residue* right)
                         complete_chain->_res_map[ir] = ci;
                         ir->set_chain(complete_chain);
                     }
+                    Py_XDECREF(complete_chain->py_call_method("_cpp_modified"));
                     combined = complete_chain;
                 }
             }
