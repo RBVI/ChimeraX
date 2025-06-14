@@ -218,6 +218,9 @@ class ViewDockTool(ToolInstance):
         for structure in self.structures:
             viewdockx_keys.update(structure.viewdock_data.keys())
         for key in viewdockx_keys:
+            if key == RATING_KEY:
+                # Rating is already added as a column with a custom delegate, skip it here
+                continue
             self.struct_table.add_column(key, lambda s, k=key: s.viewdock_data.get(k, ''))
 
         # Set the data for the table and launch it
