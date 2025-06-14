@@ -39,9 +39,12 @@ static parser spec_parser;
 static PyObject* session;
 static PyObject *parse_error_class, *semantics_error_class;
 static PyObject* AtomSpec_class;
-static PyObject* _Term_class;
-static PyObject* _ModelList_class;
 static PyObject* _Model_class;
+static PyObject* _ModelHierarchy_class;
+static PyObject* _ModelList_class;
+static PyObject* _ModelRange_class;
+static PyObject* _ModelRangeList_class;
+static PyObject* _Term_class;
 static PyObject* append_arg;
 static std::string use_python_error("Use Python error");
 static bool add_implied, order_implicit_atoms, outermost_inversion;
@@ -107,31 +110,140 @@ print_ast(const Ast & ast)
 
 static PyObject*
 eval_zone_selector(const Ast &ast) {
-    // zone_selector <- Space* ZONE_OPERATOR real_number / Space* ZONE_OPERATOR integer
+std::cerr << "eval_zone_selector\n";
+    // zone_selector <- ZONE_OPERATOR _ real_number / ZONE_OPERATOR _ integer
+    //TODO
     return Py_None;
 }
 
 static PyObject*
 eval_model_parts(const Ast &ast) {
+std::cerr << "eval_model_parts\n";
     // model_parts <- chain+
+    //TODO
     return Py_None;
 }
 
 static PyObject*
 eval_attribute_list(const Ast &ast) {
-    // attribute_list <- attr_test ("," attr_test)*
+std::cerr << "eval_attribute_list\n";
+    // attribute_list <- attr_test ("," _ attr_test)*
+    //TODO
     return Py_None;
+}
+
+static PyObject*
+eval_MODEL_SPEC(const Ast &ast) {
+std::cerr << "eval_MODEL_SPEC\n";
+    // MODEL_SPEC <- < [0-9]{1,5} > ![0-9A-Fa-f]
+    return PyLong_FromLong(ast.token_to_number<long>());
+}
+
+static PyObject*
+eval_MODEL_SPEC_START(const Ast &ast) {
+std::cerr << "eval_MODEL_SPEC_START\n";
+    // MODEL_SPEC_START <- MODEL_SPEC / "start" / "*"
+    //TODO
+    return Py_None;
+}
+
+static PyObject*
+eval_MODEL_SPEC_END(const Ast &ast) {
+std::cerr << "eval_MODEL_SPEC_END\n";
+    // MODEL_SPEC_END <- MODEL_SPEC / "end" / "*"
+    //TODO
+    return Py_None;
+}
+
+static PyObject*
+eval_MODEL_SPEC_ANY(const Ast &ast) {
+std::cerr << "eval_MODEL_SPEC_ANY\n";
+    // MODEL_SPEC_ANY <- MODEL_SPEC / "*"
+    if (ast.choice == 0)
+        return eval_MODEL_SPEC(*ast.nodes[0]);
+    auto text = PyUnicode_FromString(ast.token_to_string().c_str());
+    if (text == nullptr)
+        return nullptr;
+    return text;
+}
+
+static PyObject*
+eval_model_range(const Ast &ast) {
+std::cerr << "eval_model_range\n";
+    // model_range <- MODEL_SPEC_START _ "-" _ MODEL_SPEC_END / MODEL_SPEC_ANY
+    PyObject* left;
+    PyObject* right;
+    if (ast.choice == 0) {
+        left = eval_MODEL_SPEC_START(*ast.nodes[0]);
+        right = eval_MODEL_SPEC_START(*ast.nodes[1]);
+    } else {
+        left = eval_MODEL_SPEC_ANY(*ast.nodes[0]);
+        right = Py_None;
+    }
+    auto mr = PyObject_CallFunctionObjArgs(_ModelRange_class, left, right, nullptr);
+    if (mr == nullptr) {
+        set_error_info(semantics_error_class, use_python_error);
+        return nullptr;
+    }
+    return mr;
+}
+
+static PyObject*
+eval_model_range_list(const Ast &ast) {
+std::cerr << "eval_model_range_list\n";
+    // model_range_list <- model_range ("," _ model_range)*
+    auto range = eval_model_range(*ast.nodes[0]);
+    if (range == nullptr)
+        return nullptr;
+    auto mrl = PyObject_CallFunctionObjArgs(_ModelRangeList_class, range, nullptr);
+    if (mrl == nullptr) {
+        set_error_info(semantics_error_class, use_python_error);
+        return nullptr;
+    }
+    for (auto i = 1u; i < ast.nodes.size(); ++i) {
+        range = eval_model_range(*ast.nodes[i]);
+        if (range == nullptr) {
+            set_error_info(semantics_error_class, use_python_error);
+            return nullptr;
+        }
+        if (PyObject_CallMethodOneArg(mrl, append_arg, range) == nullptr) {
+            Py_DECREF(mrl);
+            throw std::logic_error(use_python_error);
+        }
+    }
+    return mrl;
 }
 
 static PyObject*
 eval_model_hierarchy(const Ast &ast) {
-    // model_hierarchy <- < model_range_list (!Space "." !Space model_hierarchy)* >
-    return Py_None;
+std::cerr << "eval_model_hierarchy\n";
+    // model_hierarchy <- model_range_list ("." model_range_list)*
+    auto rl = eval_model_range_list(*ast.nodes[0]);
+    if (rl == nullptr)
+        return nullptr;
+    auto hierarchy = PyObject_CallFunctionObjArgs(_ModelHierarchy_class, rl, nullptr);
+    if (hierarchy == nullptr) {
+        set_error_info(semantics_error_class, use_python_error);
+        return nullptr;
+    }
+    for (auto i = 1u; i < ast.nodes.size(); ++i) {
+        rl = eval_model_range_list(*ast.nodes[i]);
+        if (rl == nullptr) {
+            set_error_info(semantics_error_class, use_python_error);
+            return nullptr;
+        }
+        if (PyObject_CallMethodOneArg(hierarchy, append_arg, rl) == nullptr) {
+            Py_DECREF(hierarchy);
+            throw std::logic_error(use_python_error);
+        }
+    }
+    return hierarchy;
 }
 
 static PyObject*
 eval_model(const Ast &ast) {
-    // model <- HASH_TYPE model_hierarchy ("##" attribute_list)? model_parts* zone_selector? / "##" attribute_list model_parts* zone_selector? / model_parts zone_selector?
+std::cerr << "eval_model\n";
+    // model <- HASH_TYPE _ model_hierarchy (_ "##" _ attribute_list)? _ model_parts* _ zone_selector? / "##" _ attribute_list _ model_parts* _ zone_selector? / model_parts _ zone_selector?
     bool exact_match = false;
     PyObject* hierarchy = Py_None;
     PyObject* attrs = Py_None;
@@ -173,19 +285,27 @@ eval_model(const Ast &ast) {
 
 static PyObject*
 eval_model_list(const Ast &ast) {
+std::cerr << "eval_model_list\n";
     // model_list <- model+
     auto py_ml = PyObject_CallNoArgs(_ModelList_class);
-    for (auto node: ast.nodes)
-        if (PyObject_CallMethodOneArg(py_ml, append_arg, eval_model(*node)) == nullptr) {
+    for (auto node: ast.nodes) {
+        auto model = eval_model(*node);
+        if (model == nullptr) {
+            set_error_info(semantics_error_class, use_python_error);
+            return nullptr;
+        }
+        if (PyObject_CallMethodOneArg(py_ml, append_arg, model) == nullptr) {
             Py_DECREF(py_ml);
             throw std::logic_error(use_python_error);
         }
+    }
     return py_ml;
 }
 
 static PyObject*
 eval_as_term(const Ast &ast) {
-    // as_term <- "(" atom_specifier ")" zone_selector? / "~" as_term zone_selector? / SELECTOR_NAME zone_selector? / model_list
+std::cerr << "eval_as_term\n";
+    // as_term <- "(" _ atom_specifier _ ")" _ zone_selector? / "~" _ as_term _ zone_selector? / SELECTOR_NAME _ zone_selector? / model_list
     switch (ast.choice) {
         case 0:
         case 1:
@@ -198,8 +318,9 @@ eval_as_term(const Ast &ast) {
     
 static PyObject*
 eval_atom_spec(const Ast &ast) {
+std::cerr << "eval_atom_spec\n";
     print_ast(ast);
-    // atom_specifier <- as_term "&" atom_specifier / as_term "|" atom_specifier / as_term
+    // atom_specifier <- as_term _ "&" _ atom_specifier / as_term _ "|" _ atom_specifier / as_term
     PyObject* left_spec;
     PyObject* right_spec;
     PyObject* op;
@@ -359,8 +480,8 @@ static auto grammar = (R"---(
     as_term <- "(" _ atom_specifier _ ")" _ zone_selector? / "~" _ as_term _ zone_selector? / SELECTOR_NAME _ zone_selector? / model_list
     model_list <- model+
     model <- HASH_TYPE _ model_hierarchy (_ "##" _ attribute_list)? _ model_parts* _ zone_selector? / "##" _ attribute_list _ model_parts* _ zone_selector? / model_parts _ zone_selector?
-    model_hierarchy <- model_range_list ("." model_hierarchy)*
-    model_range_list <- model_range ("," _ model_range_list)*
+    model_hierarchy <- model_range_list ("." model_range_list)*
+    model_range_list <- model_range ("," _ model_range)*
     model_range <- MODEL_SPEC_START _ "-" _ MODEL_SPEC_END / MODEL_SPEC_ANY
     model_parts <- chain+
     chain <- "/" _ part_list (_ "//" _ attribute_list)? _ chain_parts* / "//" _ attribute_list _ chain_parts* / chain_parts+
@@ -424,14 +545,23 @@ PyMODINIT_FUNC PyInit__spec_parser()
     AtomSpec_class = get_module_attribute("chimerax.core.commands.atomspec", "AtomSpec");
     if (AtomSpec_class == nullptr)
         return nullptr;
-    _Term_class = get_module_attribute("chimerax.core.commands.atomspec", "_Term");
-    if (_Term_class == nullptr)
+    _Model_class = get_module_attribute("chimerax.core.commands.atomspec", "_Model");
+    if (_Model_class == nullptr)
+        return nullptr;
+    _ModelHierarchy_class = get_module_attribute("chimerax.core.commands.atomspec", "_ModelHierarchy");
+    if (_ModelHierarchy_class == nullptr)
         return nullptr;
     _ModelList_class = get_module_attribute("chimerax.core.commands.atomspec", "_ModelList");
     if (_ModelList_class == nullptr)
         return nullptr;
-    _Model_class = get_module_attribute("chimerax.core.commands.atomspec", "_Model");
-    if (_Model_class == nullptr)
+    _ModelRange_class = get_module_attribute("chimerax.core.commands.atomspec", "_ModelRange");
+    if (_ModelRange_class == nullptr)
+        return nullptr;
+    _ModelRangeList_class = get_module_attribute("chimerax.core.commands.atomspec", "_ModelRangeList");
+    if (_ModelRangeList_class == nullptr)
+        return nullptr;
+    _Term_class = get_module_attribute("chimerax.core.commands.atomspec", "_Term");
+    if (_Term_class == nullptr)
         return nullptr;
 
     append_arg = PyUnicode_FromString("append");
