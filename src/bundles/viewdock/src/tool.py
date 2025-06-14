@@ -214,10 +214,10 @@ class ViewDockTool(ToolInstance):
         self.struct_table.setEditTriggers(QAbstractItemView.EditTrigger.CurrentChanged)
 
         # Collect all unique keys from viewdock_data of all structures and add them as columns
-        viewdockx_keys = set()
+        viewdock_keys = set()
         for structure in self.structures:
-            viewdockx_keys.update(structure.viewdock_data.keys())
-        for key in viewdockx_keys:
+            viewdock_keys.update(structure.viewdock_data.keys())
+        for key in viewdock_keys:
             if key == RATING_KEY:
                 # Rating is already added as a column with a custom delegate, skip it here
                 continue
