@@ -197,8 +197,7 @@ class ViewDockTool(ToolInstance):
         table_group.setLayout(table_group_layout)
 
         # Fixed columns. Generic based on ChimeraX model attribute(s).
-        self.struct_table.add_column('ID', lambda s: s.id_string)
-
+        self.struct_table.add_column('ID', lambda s: s.id_string, sort_func=self.id_lt)
         # Custom Rating delegate
         delegate = RatingDelegate(self.struct_table)  # Create the delegate instance
         self.struct_table.add_column('Rating', lambda s: s.viewdock_data.get(RATING_KEY),
@@ -229,6 +228,34 @@ class ViewDockTool(ToolInstance):
 
         # Add the table group to the layout
         self.main_v_layout.addWidget(table_group)
+
+    def id_lt(self, s1, s2):
+        """
+        Compare two structures' id_strings based on their components, which are expected to be in a dot-separated
+        format (e.g., "1.1.1").
+
+        The method splits the ID strings into parts, converts them to integers, and compares each part sequentially.
+        If all parts are equal, the IDs are compared by their length to ensure that shorter IDs (e.g., "1.1") are considered
+        greater than longer IDs (e.g., "1.1.1").
+
+        Args:
+            s1: The first object, which must have an `id_string` attribute containing the ID in dot-separated format.
+            s2: The second object, which must have an `id_string` attribute containing the ID in dot-separated format.
+
+        Returns:
+            bool: True if `s1` should be sorted before `s2`, False otherwise.
+        """
+        # Split the ID strings into parts
+        id1_parts = list(map(int, s1.id_string.split('.')))
+        id2_parts = list(map(int, s2.id_string.split('.')))
+
+        # Compare each part sequentially
+        for part1, part2 in zip(id1_parts, id2_parts):
+            if part1 != part2:
+                return part1 < part2
+
+        # If all compared parts are equal, compare by length (e.g., "1.1" > "1.1.1").
+        return len(id1_parts) > len(id2_parts)
 
     def description_box_setup(self):
         """
