@@ -1,0 +1,642 @@
+[build-system]
+requires = [
+  "ChimeraX-BundleBuilder>=1.4.0",
+]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Toolbar"
+version = "1.2.3"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Toolbar"
+dependencies = [
+  "ChimeraX-Core ~=1.2",
+  "ChimeraX-UI ~=1.0,>=1.18.2",
+  "ChimeraX-Shortcuts ~=1.0",
+  "ChimeraX-SelInspector ~=1.0",
+  "ChimeraX-MouseModes ~=1.1",
+  "ChimeraX-BondRot ~=2.0",
+  "ChimeraX-StructMeasure ~=1.0",
+  "ChimeraX-Label ~=1.0",
+  "ChimeraX-Map ~=1.0",
+  "ChimeraX-Markers ~=1.0",
+  "ChimeraX-Label ~=1.0",
+  "ChimeraX-Tug ~=1.0",
+  "ChimeraX-Zone ~=1.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """Tabbed Toolbar
+
+Provides a Windows ribbon-style toolbar interface"""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["General"]
+classifiers = ["Development Status :: 3 - Alpha"]
+
+[tool.chimerax.package-data]
+"src/" = [
+  "tool.html",
+]
+"src/icons" = [
+  "*",
+]
+
+[tool.chimerax.tool.Toolbar]
+category = "General"
+description = "a Windows ribbon-style toolbar"
+
+[tool.chimerax.manager."toolbar"]
+gui-only = true
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Extras"
+section = "File"
+hidden = true
+name = "Open"
+icon = "open-in-app.png"
+description = "Open data file"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Extras"
+section = "File"
+hidden = true
+name = "Recent"
+icon = "recentfiles.png"
+darkIcon = "recentfiles-dark.png"
+description = "Open recent files"
+after = "Open"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Extras"
+section = "File"
+hidden = true
+name = "Save"
+icon = "content-save.png"
+description = "Save session file"
+after = "Recent"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Extras"
+section = "File"
+hidden = true
+name = "Close"
+icon = "close-box.png"
+description = "Close current session"
+after = "Save"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Extras"
+section = "File"
+hidden = true
+name = "Exit"
+icon = "exit.png"
+description = "Exit application"
+after = "Save"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Extras"
+section = "Undo"
+hidden = true
+name = "Undo"
+icon = "undo-variant.png"
+description = "Undo last action"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Extras"
+section = "Undo"
+hidden = true
+name = "Redo"
+icon = "redo-variant.png"
+description = "Redo last action"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Molecule Display"
+name = "tab-md"
+help = "help:user/tools/moldisplay.html"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Molecule Display"
+section = "Atoms"
+name = "layout-atoms"
+compact = true
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Molecule Display"
+section = "Cartoons"
+name = "layout-cartoons"
+compact = true
+after = "Atoms"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Molecule Display"
+section = "Surfaces"
+name = "layout-surfaces"
+compact = true
+after = "Cartoons"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Molecule Display"
+section = "Styles"
+name = "layout-styles"
+after = "Surfaces"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Molecule Display"
+section = "Coloring"
+name = "layout-coloring"
+after = "Styles"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Molecule Display"
+section = "Analysis"
+name = "layout-analysis"
+after = "Coloring"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Graphics"
+after = "Molecule Display"
+name = "tab-g"
+help = "help:user/tools/graphics.html"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Graphics"
+section = "Background"
+name = "layout-bg"
+compact = true
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Graphics"
+section = "Lighting & Effects"
+name = "layout-lighting"
+after = "Background"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Graphics"
+section = "Camera"
+name = "layout-cam"
+after = "Lighting & Effects"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Graphics"
+section = "Camera"
+name = "Side view"
+icon = "sideview.png"
+description = "Show side view tool"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Map"
+after = "Graphics"
+name = "tab-map"
+help = "help:user/tools/densitymaps.html"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Map"
+section = "Style"
+name = "layout-map-style"
+after = "Map"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Map"
+section = "Steps"
+name = "layout-map-steps"
+after = "Style"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Map"
+section = "Subregions"
+name = "layout-map-subregions"
+after = "Steps"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Map"
+section = "Appearance"
+name = "layout-map-image-display"
+after = "Subregions"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Map"
+section = "Calculations"
+name = "layout-map-calculations"
+after = "Appearance"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Markers"
+after = "Map"
+name = "tab-markers"
+help = "help:user/tools/markerplacement.html"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Markers"
+section = "Place markers"
+name = "layout-markers-place"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Markers"
+section = "Place markers"
+name = "pm1"
+mouse-mode = "mark maximum"
+display-name = "Maximum"
+description = "Mark maximum"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Markers"
+section = "Place markers"
+name = "pm2"
+mouse-mode = "mark plane"
+display-name = "Plane"
+description = "Mark volume plane"
+after = "Maximum"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Markers"
+section = "Place markers"
+name = "pm3"
+mouse-mode = "mark surface"
+display-name = "Surface"
+description = "Mark surface"
+after = "Plane"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Markers"
+section = "Place markers"
+name = "pm4"
+mouse-mode = "mark center"
+display-name = "Center"
+description = "Mark center of connected surface"
+after = "Surface"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Markers"
+section = "Place markers"
+name = "pm5"
+mouse-mode = "mark point"
+display-name = "Point"
+description = "Mark 3d point"
+after = "Center"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Markers"
+section = "Adjust markers"
+name = "layout-markers-adjust"
+after = "Place markers"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Markers"
+section = "Adjust markers"
+name = "am1"
+mouse-mode = "link markers"
+display-name = "Link"
+description = "Link consecutively clicked markers"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Markers"
+section = "Adjust markers"
+name = "am2"
+mouse-mode = "move markers"
+display-name = "Move"
+description = "Move markers"
+after = "Link"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Markers"
+section = "Adjust markers"
+name = "am3"
+mouse-mode = "resize markers"
+display-name = "Resize"
+description = "Resize markers or links"
+after = "Move"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Markers"
+section = "Adjust markers"
+name = "am4"
+mouse-mode = "delete markers"
+display-name = "Delete"
+description = "Delete markers or links"
+after = "Resize"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+after = "Markers"
+name = "tab-right-mouse"
+help = "help:user/tools/mousemodes.html"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Movement"
+name = "layout-mouse-movement"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Movement"
+name = "mm1"
+mouse-mode = "select"
+display-name = "Select"
+description = "Select models"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Movement"
+name = "mm2"
+mouse-mode = "rotate"
+display-name = "Rotate"
+description = "Rotate models"
+after = "Select"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Movement"
+name = "mm3"
+mouse-mode = "translate"
+display-name = "Translate"
+description = "Translate models"
+after = "Rotate"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Movement"
+name = "mm4"
+mouse-mode = "zoom"
+display-name = "Zoom"
+description = "Zoom view"
+after = "Translate"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Movement"
+name = "mm5"
+mouse-mode = "translate selected models"
+display-name = "Move model"
+description = "Translate selected models, hold shift key to rotate"
+after = "Zoom"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Movement"
+name = "mm6"
+mouse-mode = "rotate selected models"
+display-name = "Rotate model"
+description = "Rotate selected models, hold shift key to translate"
+after = "Move model"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Movement"
+name = "mm6a"
+mouse-mode = "move picked models"
+display-name = "Drag model"
+description = "Move clicked-on models, hold shift key to rotate"
+after = "Rotate model"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Movement"
+name = "mm7"
+mouse-mode = "translate selected atoms"
+display-name = "Move atoms"
+description = "Translate selected atoms, hold shift key to rotate"
+after = "Drag model"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Movement"
+name = "mm8"
+hidden = true
+mouse-mode = "rotate selected atoms"
+display-name = "Rotate atoms"
+description = "Rotate selected atoms, hold shift key to translate"
+after = "Move atoms"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Movement"
+name = "mm9"
+mouse-mode = "pivot"
+display-name = "Pivot"
+description = "Set center of rotation at atom"
+after = "Rotate atoms"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Annotation"
+name = "layout-mouse-annotation"
+after = "Movement"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Annotation"
+name = "ma1"
+mouse-mode = "distance"
+display-name = "Distance"
+description = "Toggle distance monitor between two atoms"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Annotation"
+name = "ma2"
+mouse-mode = "label"
+display-name = "Label"
+description = "Toggle atom or cartoon label"
+after = "Distance"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Annotation"
+name = "ma3"
+mouse-mode = "move label"
+display-name = "Move label"
+description = "Reposition 2D label"
+after = "Label"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Clipping"
+name = "layout-mouse-clipping"
+after = "Annotation"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Clipping"
+name = "mc1"
+mouse-mode = "clip"
+display-name = "Clip"
+description = "Activate clipping"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Clipping"
+name = "mc2"
+mouse-mode = "clip rotate"
+display-name = "Clip rotate"
+description = "Rotate clipping planes"
+after = "Clip"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Clipping"
+name = "mc3"
+mouse-mode = "zone"
+display-name = "Zone"
+description = "Limit display to zone around clicked residues"
+after = "Clip rotate"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Map"
+name = "layout-mouse-map"
+after = "Clipping"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Map"
+name = "mM1"
+mouse-mode = "contour level"
+display-name = "Contour level"
+description = "Adjust volume data threshold level"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Map"
+name = "mM2"
+mouse-mode = "move planes"
+display-name = "Move planes"
+description = "Move plane or slab along its axis to show a different section"
+after = "Contour level"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Map"
+name = "mM3"
+mouse-mode = "rotate slab"
+display-name = "Rotate slab"
+description = "Tilt volume planes, hold shift key to translate"
+after = "Move planes"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Map"
+name = "mM4"
+mouse-mode = "crop volume"
+display-name = "Crop"
+description = "Crop volume data dragging any face of box outline"
+after = "Rotate slab"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Map"
+name = "mM5"
+mouse-mode = "tape measure"
+display-name = "Tape"
+description = "Measure distance between two map points"
+after = "Crop"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Map"
+name = "mM6"
+mouse-mode = "pick blobs"
+display-name = "Blob"
+description = "Measure and color connected parts of surface"
+after = "Tape"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Map"
+name = "mM7"
+mouse-mode = "map eraser"
+display-name = "Erase"
+description = "Erase parts of a density map setting values in a sphere to zero"
+after = "Blob"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Map"
+name = "mM8"
+mouse-mode = "play map series"
+display-name = "Play series"
+description = "Play map series"
+after = "Erase"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Map"
+name = "mM9"
+mouse-mode = "windowing"
+display-name = "Windowing"
+description = "Adjust volume data thresholds collectively"
+after = "Play series"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Structure Modification"
+name = "layout-mouse-structure"
+after = "Map"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Structure Modification"
+name = "ms1"
+mouse-mode = "bond rotation"
+display-name = "Bond rotation"
+description = "Adjust torsion angle"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Structure Modification"
+name = "ms2"
+mouse-mode = "swapaa"
+display-name = "Swapaa"
+description = "Mutate and label residue"
+after = "Bond rotation"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Structure Modification"
+name = "ms3"
+mouse-mode = "play coordinates"
+display-name = "Play coords"
+description = "Play trajectory"
+after = "Swapaa"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Structure Modification"
+name = "ms4"
+mouse-mode = "tug"
+display-name = "Tug"
+description = "Drag atom while applying dynamics"
+after = "Play coords"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Structure Modification"
+name = "ms5"
+mouse-mode = "minimize"
+display-name = "Minimize"
+description = "Jiggle residue and its neighbors"
+after = "Tug"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Other"
+name = "layout-mouse-other"
+after = "Structure Modification"
+
+[[tool.chimerax.provider."toolbar"]]
+tab = "Right Mouse"
+section = "Other"
+name = "mO1"
+mouse-mode = "next docked"
+display-name = "Next docked"
+description = "Show next docked ligand"
+
+

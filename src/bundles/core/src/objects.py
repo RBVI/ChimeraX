@@ -60,32 +60,10 @@ class Objects:
         self._cached_atoms = None	# Atoms collection containing all atoms.
         self._bonds = [] if bonds is None else [bonds]
         self._pseudobonds = [] if pseudobonds is None else [pseudobonds]
-        # Using a strong ref dict;  weak vs. strong only matters for models that are never opened.
-        # Opened models will always call delete() when closed.  Unopened models will have to explicitly
-        # call delete() to clean up.
-        self._handlers = { m:m.triggers.add_handler("deleted", self._model_deleted_cb) for m in self._models }
-
-    def __del__(self):
-        for handler in self._handlers.values():
-            handler.remove()
-        self._handlers.clear()
-        self._model_instances.clear()
-        self._models.clear()
 
     def add_model(self, m):
         """Add model to collection."""
         self._models.add(m)
-        # model might not previously be in self._models but be in self._handlers because of instances
-        if m not in self._handlers:
-            self._handlers[m] = m.triggers.add_handler("deleted", self._model_deleted_cb)
-
-    def _model_deleted_cb(self, _trig_name, model):
-        self._models.discard(model)
-        if model in self._model_instances:
-            del self._model_instances[model]
-        del self._handlers[model]
-        from .triggerset import DEREGISTER
-        return DEREGISTER
 
     def add_model_instances(self, m, imask):
         """Add model instances to collection."""
@@ -96,8 +74,6 @@ class Objects:
             logical_or(i, imask, i)
         else:
             mi[m] = imask.copy()
-            if m not in self._handlers:
-                self._handlers[m] = m.triggers.add_handler("deleted", self._model_deleted_cb)
 
     def add_atoms(self, atoms, bonds=False):
         """Add atoms to collection.  If bonds is true also add bonds between specified atoms."""
@@ -162,18 +138,17 @@ class Objects:
         from numpy import logical_not
         self._model_instances = {m:logical_not(minst) for m, minst in self._model_instances.items()}
 
-        for handler in self._handlers.values():
-            handler.remove()
-        self._handlers.clear()
-        for m in self._models:
-            self._handlers[m] = m.triggers.add_handler("deleted", self._model_deleted_cb)
-        for m in self._model_instances:
-            if m not in self._handlers:
-                self._handlers[m] = m.triggers.add_handler("deleted", self._model_deleted_cb)
-
     @property
     def models(self):
+        self._remove_deleted_models()
         return self._models
+
+    def _remove_deleted_models(self):
+        mset = self._models
+        mdel = [m for m in mset if m.deleted]
+        if mdel:
+            for m in mdel:
+                mset.remove(m)
 
     @property
     def model_instances(self):
@@ -182,13 +157,10 @@ class Objects:
 
     def _remove_deleted_model_instances(self):
         minst = self._model_instances
-        mdel = [m for m,mask in minst.items() if len(mask) != len(m.positions)]
+        mdel = [m for m,mask in minst.items() if m.deleted or len(mask) != len(m.positions)]
         if mdel:
             for m in mdel:
                 del minst[m]
-                if m not in self._models:
-                    self._handlers[m].remove()
-                    del self._handlers[m]
 
     @property
     def atoms(self):
@@ -267,6 +239,7 @@ class Objects:
         return u
 
     def empty(self):
+        self._remove_deleted_models()
         self._remove_deleted_model_instances()
         return (self.num_atoms == 0 and self.num_bonds == 0 and self.num_pseudobonds == 0
                 and len(self._models) == 0 and len(self._model_instances) == 0)

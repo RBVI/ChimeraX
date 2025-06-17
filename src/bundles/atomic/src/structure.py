@@ -215,6 +215,14 @@ class Structure(Model, StructureData):
             lighting(self.session, preset = 'full', **kw)
 
     def take_snapshot(self, session, flags):
+        # Scene interface implementation.
+        if flags == State.SCENE:
+            scene_data = {
+                'model state': Model.take_snapshot(self, session, flags),
+                'version': STRUCTURE_STATE_VERSION
+            }
+            return scene_data
+
         data = {'model state': Model.take_snapshot(self, session, flags),
                 'structure state': StructureData.save_state(self, session, flags),
                 'custom attrs': self.custom_attrs }
@@ -228,6 +236,15 @@ class Structure(Model, StructureData):
         s = Structure(session, auto_style = False, log_info = False)
         s.set_state_from_snapshot(session, data)
         return s
+
+    def restore_scene(self, scene_data):
+        """
+        Scene interface implementation.
+        """
+        Model.restore_scene(self, scene_data['model state'])
+        if scene_data['version'] != STRUCTURE_STATE_VERSION:
+            raise TypeError(f"Can't restore incompatible version "
+                            f"{scene_data['version']}; expected {STRUCTURE_STATE_VERSION}")
 
     def set_state_from_snapshot(self, session, data):
         StructureData.set_state_from_snapshot(self, session, data['structure state'])
@@ -860,9 +877,9 @@ class Structure(Model, StructureData):
         else:
             r = atoms.residues
             rids = r.unique_ids
-            from numpy import unique, in1d
+            from numpy import unique, isin
             sel_rids = unique(rids[asel])
-            ares = in1d(rids, sel_rids)
+            ares = isin(rids, sel_rids)
             if ares.sum() > na:
                 # Promote to entire residues
                 level = 1005
@@ -870,7 +887,7 @@ class Structure(Model, StructureData):
             else:
                 ssids = r.secondary_structure_ids
                 sel_ssids = unique(ssids[asel])
-                ass = in1d(ssids, sel_ssids)
+                ass = isin(ssids, sel_ssids)
                 if ass.sum() > na:
                     # Promote to secondary structure
                     level = 1004
@@ -884,7 +901,7 @@ class Structure(Model, StructureData):
                         from numpy import array
                         cids = array(r.chain_ids)
                         sel_cids = unique(cids[asel])
-                        ac = in1d(cids, sel_cids)
+                        ac = isin(cids, sel_cids)
                         if ac.sum() > na:
                             # Promote to entire chains
                             level = 1002
@@ -1033,9 +1050,9 @@ class Structure(Model, StructureData):
         elif target_type == '/':
             # There is no "full_chain" property for atoms so we have
             # to do it the hard way
-            from numpy import in1d, invert
+            from numpy import isin, invert
             matched_chain_ids = atoms.filter(a).unique_chain_ids
-            mask = in1d(atoms.chain_ids, matched_chain_ids)
+            mask = isin(atoms.chain_ids, matched_chain_ids)
             if '<' in operator:
                 expand_by = atoms.filter(mask)
             else:
@@ -1048,7 +1065,6 @@ class Structure(Model, StructureData):
         if expand_by:
             results.add_atoms(expand_by)
             results.add_model(self)
-
 class AtomsDrawing(Drawing):
     # can't have any child drawings
     # requires self.parent._atom_display_radii()
@@ -1288,6 +1304,7 @@ class AtomicStructure(Structure):
             self._report_assemblies(session)
             self._report_model_info(session)
             self._report_altloc_info(session)
+            self._report_aniso_info(session)
 
     def apply_auto_styling(self, set_lighting = False, style=None):
         explicit_style = style is not None
@@ -1305,17 +1322,23 @@ class AtomicStructure(Structure):
         color = self.initial_color(self.session.main_view.background_color)
         self.set_color(color)
 
+        from .molobject import Atom, Bond, Residue
+        def ligand_like_atoms(atoms):
+            from numpy import logical_or, logical_and
+            # include polysaccharide chains (9dff; #17519)
+            return atoms.filter(logical_or(atoms.structure_categories == "ligand",
+                logical_and(atoms.structure_categories == "main",
+                atoms.residues.polymer_types == Residue.PT_NONE)))
+
         atoms = self.atoms
         if style == "non-polymer":
             lighting = {'preset': 'default'}
-            from .molobject import Atom, Bond
             atoms.draw_modes = Atom.STICK_STYLE
             from .colors import element_colors
             het_atoms = atoms.filter(atoms.element_numbers != 6)
             het_atoms.colors = element_colors(het_atoms.element_numbers)
         elif style == "small polymer":
             lighting = {'preset': 'default'}
-            from .molobject import Atom, Bond, Residue
             atoms.draw_modes = Atom.STICK_STYLE
             from .colors import element_colors
             het_atoms = atoms.filter(atoms.element_numbers != 6)
@@ -1324,7 +1347,7 @@ class AtomicStructure(Structure):
             # 10 residues or less is basically a trivial depiction if ribboned
             if explicit_style or MIN_RIBBON_THRESHOLD < len(ribbonable):
                 atoms.displays = False
-                ligand = atoms.filter(atoms.structure_categories == "ligand").residues
+                ligand = ligand_like_atoms(atoms).residues
                 ribbonable -= ligand
                 metal_atoms = atoms.filter(atoms.elements.is_metal)
                 metal_atoms.draw_modes = Atom.SPHERE_STYLE
@@ -1372,8 +1395,7 @@ class AtomicStructure(Structure):
                 acolors = polymer_colors(atoms.residues)[0]
             residues.ribbon_colors = residues.ring_colors = rcolors
             atoms.colors = acolors
-            from .molobject import Atom
-            ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
+            ligand_atoms = ligand_like_atoms(atoms)
             ligand_atoms.draw_modes = Atom.STICK_STYLE
             ligand_atoms.colors = element_colors(ligand_atoms.element_numbers)
             solvent_atoms = atoms.filter(atoms.structure_categories == "solvent")
@@ -1423,6 +1445,13 @@ class AtomicStructure(Structure):
             'AtomicStructure version': 3,
             'structure state': Structure.take_snapshot(self, session, flags),
         }
+
+        # Scene interface implementation
+        if flags == State.SCENE:
+            data['atoms'] = self.atoms.take_snapshot(session, flags)
+            data['bonds'] = self.bonds.take_snapshot(session, flags)
+            data['residues'] = self.residues.take_snapshot(session, flags)
+
         return data
 
     @staticmethod
@@ -1430,6 +1459,17 @@ class AtomicStructure(Structure):
         s = AtomicStructure(session, auto_style = False, log_info = False)
         s.set_state_from_snapshot(session, data)
         return s
+
+    def restore_scene(self, scene_data) -> None:
+        """
+        Scene interface implementation.
+        """
+        Structure.restore_scene(self, scene_data['structure state'])
+        if scene_data['AtomicStructure version'] != 3:
+            raise ValueError("AtomicStructure version mismatch on scene restore")
+        self.atoms.restore_scene(scene_data['atoms'])
+        self.bonds.restore_scene(scene_data['bonds'])
+        self.residues.restore_scene(scene_data['residues'])
 
     def set_state_from_snapshot(self, session, data):
         version = data.get('AtomicStructure version', 1)
@@ -1752,6 +1792,13 @@ class AtomicStructure(Structure):
         if num_al_atoms == 0:
             return
         session.logger.info('%d atoms have alternate locations.  Control/examine alternate locations with <b><a href="cxcmd:help help:user/tools/altlocexplorer.html">Altloc Explorer</a></b> [<a href="cxcmd:ui tool show \'Altloc Explorer\'">start&nbsp;tool...</a>] or the <b><a href="cxcmd:help altlocs">altlocs</a></b> command.' % num_al_atoms, is_html=True)
+
+    def _report_aniso_info(self, session):
+        atoms = self.atoms
+        num_aniso_atoms = len(atoms.filter(atoms.has_aniso_u))
+        if num_aniso_atoms == 0:
+            return
+        session.logger.info('%d atoms have anisotropic B-factors.  Depict anisotropic information with <b><a href="cxcmd:help help:user/tools/thermalellipsoids.html">Thermal Ellipsoids</a></b> [<a href="cxcmd:ui tool show \'Thermal Ellipsoids\'">start&nbsp;tool...</a>] or the <b><a href="cxcmd:help aniso">aniso</a></b> command.' % num_aniso_atoms, is_html=True)
 
     def show_info(self):
         from chimerax.core.commands import run, concise_model_spec
@@ -2641,10 +2688,10 @@ def _register_hover_trigger(session):
 
 # custom Chain attrs should be registered in the StructureSeq base class
 from chimerax.core.attributes import register_class
-from .molobject import python_instances_of_class, Atom, Bond, CoordSet, Pseudobond, PseudobondManager, \
-    Residue, Sequence, StructureSeq
+from .molobject import python_instances_of_class, Atom, Bond, CoordSet, Pseudobond, \
+    PseudobondManager, Residue, Sequence, StructureSeq, Chain
 from .pbgroup import PseudobondGroup
 for reg_class in [ Atom, Structure, Bond, CoordSet, Pseudobond, PseudobondGroup, PseudobondManager,
-        Residue, Sequence, StructureSeq ]:
+        Residue, Sequence, StructureSeq, Chain ]:
     register_class(reg_class, lambda *args, cls=reg_class: python_instances_of_class(cls),
         {attr_name: types for attr_name, types in getattr(reg_class, '_attr_reg_info', [])})

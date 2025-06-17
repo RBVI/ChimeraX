@@ -33,7 +33,12 @@ class CFunctions:
     '''Access C functions from a shared library and create Python properties using these functions.'''
 
     def __init__(self, library_path):
-        self._c_lib = ctypes_open(library_path)
+        try:
+            self._c_lib = ctypes_open(library_path)
+        except:
+            # If this bundle is compiled with TOML bundle builder, the lib goes in /lib
+            # instead of the root directory.
+            self._c_lib = ctypes_open("lib/" + library_path)
         
     # -----------------------------------------------------------------------------
     #

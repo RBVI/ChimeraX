@@ -373,6 +373,21 @@ def seqalign_identity(session, src1, src2=None, *, denominator=IdentityDenominat
         session.logger.info("%s vs. %s: %.2f%% identity" % (seq1.name, src2.name, identity))
     return identity
 
+def seqalign_match(session, alignment, match_chains, to=None, *,
+        cutoff_distance=-1, conservation=None, columns=None):
+    if alignment is None:
+        alignment = get_alignment_by_id(session, None)
+    if columns is None:
+        indices = None
+    else:
+        length = len(alignment.seqs[0])
+        indices = []
+        for col in columns:
+            if col > length:
+                raise UserError("match column (%d) greater than alignment length (%d)" % (col, length))
+            indices.append(col-1)
+    return alignment.match(to, match_chains, iterate=cutoff_distance, conservation=conservation, restriction=indices)
+
 def seqalign_refresh_attrs(session, alignment):
     alignment._set_residue_attributes()
 
@@ -382,6 +397,16 @@ def seqalign_refseq(session, ref_seq_info):
     else:
         aln, ref_seq = ref_seq_info, None
     aln.reference_seq = ref_seq
+
+def seqalign_rename(session, sequence, name):
+    if sequence is None:
+        alignments = session.alignments.alignments
+        if len(alignments) != 1 or len(alignments[0].seqs) != 1:
+            raise UserError("Must specify sequence to rename")
+        sequence = alignments[0].seqs[0]
+    if ':' in name:
+        raise UserError("New sequence name cannot contain ':' character.")
+    sequence.name = name
 
 def seqalign_update(session, chains, *, alignment=None):
     if alignment is None:
@@ -395,7 +420,7 @@ def seqalign_update(session, chains, *, alignment=None):
             if chain in aln.associations:
                 did_xfer = True
                 aseq = aln.associations[chain]
-                match_map = aseq.match_maps[chain]
+                match_map = aln.match_maps[aseq][chain]
                 residues = set()
                 seq_residues = []
                 ungapped = aseq.ungapped()
@@ -459,12 +484,19 @@ CLUSTAL_OMEGA = "Clustal Omega"
 alignment_program_name_args = { 'muscle': MUSCLE, 'omega': CLUSTAL_OMEGA, 'clustalOmega': CLUSTAL_OMEGA }
 def seqalign_align(session, seq_source, *, program=CLUSTAL_OMEGA, replace=False):
     from .alignment import Alignment
+    auto_associate = True
     if isinstance(seq_source, Alignment):
         raw_input_sequences = seq_source.seqs
         title = "%s realignment of %s" % (program, seq_source.description)
     else:
         raw_input_sequences = seq_source
         title = "%s alignment" % program
+        for seq in raw_input_sequences:
+            if getattr(seq, 'structure', None) is None:
+                break
+        else:
+            # all the sequences are StructureSeqs, associate them
+            auto_associate = None
     from chimerax.atomic import Residue
     input_sequences = [s for s in raw_input_sequences
         if getattr(s, 'polymer_type', Residue.PT_PROTEIN) == Residue.PT_PROTEIN]
@@ -474,17 +506,17 @@ def seqalign_align(session, seq_source, *, program=CLUSTAL_OMEGA, replace=False)
         # have to do this before realignment, because the realignment returns Sequences
         input_sequences = ensure_unique_seq_names(input_sequences, structure_name_limit=10)
     from .align import realign_sequences
-    realigned = realign_sequences(session, input_sequences, program=program)
+    realigned = realign_sequences(session, input_sequences, program=program, replacing=replace)
     if replace:
         seq_source._set_realigned(realigned)
         return seq_source
-    return session.alignments.new_alignment(realigned, None, name=title)
+    return session.alignments.new_alignment(realigned, None, name=title, auto_associate=auto_associate)
 
 def register_seqalign_command(logger):
     # REMINDER: update manager._builtin_subcommands as additional subcommands are added
     from chimerax.core.commands import CmdDesc, register, create_alias, Or, EmptyArg, RestOfLine, ListOf, \
-        EnumOf, BoolArg
-    from chimerax.atomic import UniqueChainsArg, SequencesArg
+        EnumOf, BoolArg, NoneArg, PositiveIntArg, PercentFloatArg, NonNegativeFloatArg
+    from chimerax.atomic import UniqueChainsArg, SequencesArg, ChainArg
 
     apns = list(alignment_program_name_args.keys())
     desc = CmdDesc(
@@ -519,6 +551,12 @@ def register_seqalign_command(logger):
             url="help:user/commands/sequence.html#disassociate")
 
     desc = CmdDesc(
+        required = [('alignments', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg))],
+        synopsis = "expand selection by columns"
+    )
+    register('sequence expandsel', desc, seqalign_expandsel, logger=logger)
+
+    desc = CmdDesc(
         required = [('alignments', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg)),
             ('subcommand_text', RestOfLine)],
         synopsis = "send subcommand to header"
@@ -535,6 +573,16 @@ def register_seqalign_command(logger):
     register('sequence identity', desc, seqalign_identity, logger=logger)
 
     desc = CmdDesc(
+        required = [('alignment', Or(AlignmentArg, EmptyArg)), ('match_chains', UniqueChainsArg)],
+        required_arguments = ['to'],
+        keyword = [('to', ChainArg), ('cutoff_distance', Or(NoneArg, NonNegativeFloatArg)),
+            ('conservation', PercentFloatArg),
+            ('columns', ListOf(PositiveIntArg))],
+        synopsis = "superimpose chains associated with sequence alignment"
+    )
+    register('sequence match', desc, seqalign_match, logger=logger)
+
+    desc = CmdDesc(
         required = [('ref_seq_info', Or(AlignSeqPairArg, AlignmentArg))],
         synopsis = "set alignment reference sequence"
     )
@@ -547,10 +595,10 @@ def register_seqalign_command(logger):
     register('sequence refreshAttrs', desc, seqalign_refresh_attrs, logger=logger)
 
     desc = CmdDesc(
-        required = [('alignments', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg))],
-        synopsis = "expand selection by columns"
+        required = [('sequence', Or(SeqArg, EmptyArg)), ('name', StringArg)],
+        synopsis = "change sequence rename"
     )
-    register('sequence expandsel', desc, seqalign_expandsel, logger=logger)
+    register('sequence rename', desc, seqalign_rename, logger=logger)
 
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],

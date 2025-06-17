@@ -28,6 +28,8 @@ class="clRighticon" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
  <br><b>surface</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>transparency</b>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 [&nbsp;<b>enclose</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
 [&nbsp;<b>probeRadius</b>&nbsp;<i>rad</i>&nbsp;]
@@ -53,10 +55,13 @@ class="clRighticon" title="User Guide Index"/></a>
 The <b>surface</b> command creates and displays
 <b><i>molecular surfaces</i></b>,
 either atomically detailed solvent-excluded surfaces (default) or
-lower-resolution Gaussian surfaces.
-Each surface is initially colored to match the average cartoon color of the 
-residues it encloses, even if the cartoons are not displayed.
+lower-resolution Gaussian surfaces. 
+Unless a <b>color</b> is specified,
+each surface is initially colored to match the average cartoon color of the 
+residues it encloses, regardless of whether cartoons are displayed.
 See also:
+<a href="color.html"><b>color</b></a>,
+<a href="transparency.html"><b>transparency</b></a>,
 <a href="shape.html"><b>shape</b></a>,
 <a href="topography.html"><b>topography</b></a>,
 <a href="#sop"><b>surface</b> operations</a>,
@@ -172,6 +177,8 @@ Surface display style (solid, mesh, or dot) can be adjusted with
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>surface</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>transparency</b>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 [&nbsp;<b>enclose</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
 [&nbsp;<b>include</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec3</i></a>&nbsp;]
 [&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
@@ -183,7 +190,13 @@ Surface display style (solid, mesh, or dot) can be adjusted with
 [&nbsp;<b>visiblePatches</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </blockquote>
 <p>
-Options for surface creation can be categorized as:
+Unless a <b>color</b> is specified,
+each surface is initially colored to match the average cartoon color of the 
+residues it encloses, regardless of whether cartoons are displayed.
+The <b>transparency</b> option overrides any transparency
+included in the color definition.
+</p><p>
+The remaining options for surface creation can be categorized as:
 </p>
 <ul>
 <li><a href="#grouping">Grouping Atoms into Surfaces</a>
@@ -719,5 +732,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2024</address>
+November 2024</address>
 </body></html>

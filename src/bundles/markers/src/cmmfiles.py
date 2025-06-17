@@ -17,6 +17,9 @@ def write_cmm(session, path, models = None):
         mlist = session.models.list(type = MarkerSet)
     else:
         mlist = [m for m in models if isinstance(m, MarkerSet)]
+    if len(mlist) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('No marker models to save.')
     f = open(path, 'w')
     f.write(markersets_as_xml(mlist))
     f.close()
@@ -92,6 +95,9 @@ def markersets_as_xml(mslist):
 
   if len(mslist) > 1:
     lines.append('</marker_sets>')
+
+  if len(mslist) == 0:
+      lines.extend(['<marker_set>', '</marker_set>'])
 
   xml = '\n'.join(lines)
   return xml

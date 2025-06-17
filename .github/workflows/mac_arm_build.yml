@@ -28,6 +28,9 @@ on:
       MAC_NOTARIZATION_EMAIL:
         required: true
 
+env:
+  MACOSX_DEPLOYMENT_TARGET: 12
+
 jobs:
   build-arm-macos:
     runs-on: macos-latest
@@ -40,9 +43,8 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@master
       - run: |
           brew install python@3.10
-          python3.10 -m pip install lief==0.12.2 dmgbuild
+          python3.10 -m pip install lief dmgbuild
           patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
-      - uses: actions/checkout@v4
       - run: ${PWD}/utils/set_up_macos.sh
       - name: Fetch Plato prerequisites
         uses: ./utils/ci/consolidated_cache
@@ -50,38 +52,222 @@ jobs:
           platform: macos
           architecture: arm64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) install-rbvi
-      - name: Run the legacy test suite
-        run: make test
+      - name: Install the 3DConnexion Framework
+        run: |
+          hdiutil attach 3DxWareMac_v10-8-7_r3836.dmg -nobrowse -noverify
+          sudo installer -pkg /Volumes/3Dconnexion\ Software/Install\ 3Dconnexion\ software.pkg -target /
+          hdiutil detach /Volumes/3Dconnexion\ Software
+      - uses: Tiryoh/gha-jobid-action@v1
+        id: get_job_id
+        if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
+        with:
+          job_name: ${{ format('Build ChimeraX for arm64 macOS ({0}, {1}) / build-arm-macos', inputs.branch, inputs.release_type) }}
+      - name: Note the run and job IDs on Plato
+        if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
+        uses: nick-fields/retry@v3
+        with:
+          # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
+          # GitHub Actions couldn't contact Plato.
+          max_attempts: 1000
+          timeout_seconds: 60
+          command: ./utils/ci/nightly_logs.sh ${{ secrets.PREBUILT_CACHE_SECRET }} ${{ github.run_id }} ${{ steps.get_job_id.outputs.job_id }} mac_arm64 ${{ inputs.release_type }}
+      - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(sysctl -n hw.logicalcpu) install-rbvi
       - name: Install Pytest
-        run: ./ChimeraX.app/Contents/bin/python3.11 -I -m pip install pytest pytest-cov
+        run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        continue-on-error: true
+        id: test-exes
         run: USE_COVERAGE=1 make pytest-both-exes
       - name: Run wheel tests
+        continue-on-error: true
+        id: test-wheel
         run: USE_COVERAGE=1 make pytest-wheel
       - name: Run distribution tests
+        continue-on-error: true
+        id: test-distribution
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
-      - name: Sign the macOS package
-        uses: ./utils/ci/sign_macos/
+
+      - name: Put the test outcome in the environment
+        run: |
+          if [ "${{ steps.test-exes.outcome }}" = "failure" ] || [ "${{ steps.test-wheel.outcome }}" = "failure" ] || [ "${{ steps.test-distribution.outcome }}" = "failure" ]; then
+            echo "TEST_OUTCOME=Failing" >> $GITHUB_ENV
+          else
+            echo "TEST_OUTCOME=Passing" >> $GITHUB_ENV
+          fi
+      - name: Report test results to Plato
+        uses: nick-fields/retry@v3
         with:
-          build_certificate: ${{ secrets.MAC_CERT_BASE64 }}
-          p12_pw: ${{ secrets.MAC_CERT_P12_PASSWD }}
-          build_profile: ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }}
-          kc_pw: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
-          team_id: ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
-          app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
-          provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
-          email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
-          release_type: ${{ inputs.release_type }}
-      - name: Upload ChimeraX
-        uses: ./utils/ci/upload_artifact
+          max_attempts: 1000
+          timeout_minutes: 60
+          command: curl -v -X POST -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "platform=mac_arm64" -F "build_type=${{ inputs.release_type }}" -F "outcome=$TEST_OUTCOME" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/confirm_tests.py
+
+      - name: Put the app name in GITHUB_ENV (production)
+        if: ${{ inputs.release_type == 'production' }}
+        shell: bash
+        run: |
+          export BUILD_VERSION=$(echo ${{ inputs.branch }} | sed -e 's/.*v//g')
+          echo CHIMERAX_APP_NAME=ChimeraX-$BUILD_VERSION.app >> $GITHUB_ENV
+
+      - name: Put the app name in GITHUB_ENV (daily)
+        if: ${{ inputs.release_type == 'daily' }}
+        shell: bash
+        run: |
+          echo CHIMERAX_APP_NAME=ChimeraX_Daily.app >> $GITHUB_ENV
+
+      - name: Put the app name in GITHUB_ENV (candidate)
+        if: ${{ inputs.release_type == 'candidate' }}
+        shell: bash
+        run: |
+          export BUILD_VERSION=$(echo ${{ inputs.branch }} | sed -e 's/.*v//g')
+          export CHIMERAX_DATE=$(date +'%Y.%m.%d')
+          echo CHIMERAX_APP_NAME=ChimeraX-$BUILD_VERSION-rc$CHIMERAX_DATE.app >> $GITHUB_ENV
+
+      - name: Put the app name in GITHUB_ENV (techpreview)
+        if: ${{ inputs.release_type == 'techpreview' }}
+        shell: bash
+        run: |
+          echo CHIMERAX_APP_NAME=ChimeraX_Techpreview.app >> $GITHUB_ENV
+
+      - name: Put the app name in GITHUB_ENV (canary)
+        if: ${{ inputs.release_type == 'canary' }}
+        shell: bash
+        run: |
+          echo CHIMERAX_APP_NAME=ChimeraX_Canary.app >> $GITHUB_ENV
+
+      - name: Rename the generic ChimeraX.app to the build name and patch dmgbuildsettings
+        shell: bash
+        run: |
+          mv ChimeraX.app $CHIMERAX_APP_NAME
+          sed "s/ChimeraX.app/$CHIMERAX_APP_NAME/" utils/build/macos/dmgbuildsettings.json > dmgbuildsettings.json
+          mv dmgbuildsettings.json utils/build/macos/dmgbuildsettings.json
+
+      # This is held over from when this was a composite action, it's just simpler and faster
+      # to tweak this block than it would be to change the rest of the steps.
+      - name: Mask input parameters
+        shell: bash
+        run: |
+          export MAC_SIGNING_TEAM_ID=${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
+          export MAC_SIGNING_APP_PW=${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
+          export MAC_SIGNING_PROVIDER=${{ secrets.MAC_NOTARIZATION_PROVIDER }}
+          export MAC_SIGNING_EMAIL=${{ secrets.MAC_NOTARIZATION_EMAIL }}
+          export MAC_SIGNING_KEYCHAIN_PW=${{ secrets.MAC_KEYCHAIN_PASSWORD }}
+          export MAC_SIGNING_BUILD_CERTIFICATE=${{ secrets.MAC_CERT_BASE64 }}
+          export MAC_SIGNING_P12_PW=${{ secrets.MAC_CERT_P12_PASSWD }}
+          export MAC_SIGNING_PROVISIONING_PROFILE=${{ secrets.MAC_PROVISION_PROFILE_BASE64 }}
+          echo "::add-mask::$MAC_SIGNING_TEAM_ID"
+          echo "::add-mask::$MAC_SIGNING_APP_PW"
+          echo "::add-mask::$MAC_SIGNING_PROVIDER"
+          echo "::add-mask::$MAC_SIGNING_EMAIL"
+          echo "::add-mask::$MAC_SIGNING_KEYCHAIN_PW"
+          echo "::add-mask::$MAC_SIGNING_BUILD_CERTIFICATE"
+          echo "::add-mask::$MAC_SIGNING_P12_PW"
+          echo "::add-mask::$MAC_SIGNING_PROVISIONING_PROFILE"
+          echo MAC_SIGNING_TEAM_ID=$MAC_SIGNING_TEAM_ID >> $GITHUB_ENV
+          echo MAC_SIGNING_APP_PW=$MAC_SIGNING_APP_PW >> $GITHUB_ENV
+          echo MAC_SIGNING_PROVIDER=$MAC_SIGNING_PROVIDER >> $GITHUB_ENV
+          echo MAC_SIGNING_EMAIL=$MAC_SIGNING_EMAIL >> $GITHUB_ENV
+          echo MAC_SIGNING_KEYCHAIN_PW=$MAC_SIGNING_KEYCHAIN_PW >> $GITHUB_ENV
+          echo MAC_SIGNING_BUILD_CERTIFICATE=$MAC_SIGNING_BUILD_CERTIFICATE >> $GITHUB_ENV
+          echo MAC_SIGNING_P12_PW=$MAC_SIGNING_P12_PW >> $GITHUB_ENV
+          echo MAC_SIGNING_PROVISIONING_PROFILE=$MAC_SIGNING_PROVISIONING_PROFILE >> $GITHUB_ENV
+
+      - name: Install the Apple certificate and provisioning profile
+        shell: bash
+        run: |
+          # create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          # import certificate and provisioning profile from secrets
+          echo -n "$MAC_SIGNING_BUILD_CERTIFICATE" | base64 --decode -o $CERTIFICATE_PATH
+          echo -n "$MAC_SIGNING_PROVISIONING_PROFILE" | base64 --decode -o $PP_PATH
+
+          # create temporary keychain
+          security create-keychain -p "$MAC_SIGNING_KEYCHAIN_PW" $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          security unlock-keychain -p "$MAC_SIGNING_KEYCHAIN_PW" $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+
+          # import certificate to keychain
+          security import $CERTIFICATE_PATH -P "$MAC_SIGNING_P12_PW" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          security set-key-partition-list -S apple-tool:,apple: -k "$MAC_SIGNING_KEYCHAIN_PW" $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+          security list-keychain -d user -s $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
+
+          # apply provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+
+      - name: Sign the macOS Package
+        shell: bash
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          python3.10 utils/build/macos/notarize.py sign \
+          -a $CHIMERAX_APP_NAME \
+          -d ChimeraX.dmg \
+          -T $MAC_SIGNING_TEAM_ID \
+          -s $MAC_SIGNING_TEAM_ID \
+          -p $MAC_SIGNING_APP_PW \
+          -P $MAC_SIGNING_PROVIDER \
+          -i $MAC_SIGNING_EMAIL \
+          -k $RUNNER_TEMP/app-signing.keychain-db \
+          -K $MAC_SIGNING_KEYCHAIN_PW \
+          -v -v -v
+
+      - name: Verify that ChimeraX will pass macOS Gatekeeper
+        shell: bash
+        run: |
+          spctl --assess --type execute $CHIMERAX_APP_NAME
+
+      - name: Make the DMG
+        shell: bash
+        run: |
+          python3.10 -m dmgbuild -s ./utils/build/macos/dmgbuildsettings.json "ChimeraX Installer" ChimeraX.dmg
+
+      - name: Notarize the DMG
+        uses: nick-fields/retry@v3
         with:
-          artifact_path: ChimeraX.dmg
-          full_build: true
-          release_type: ${{ inputs.release_type }}
-          platform: mac_arm64
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+          max_attempts: 1000
+          timeout_minutes: 60
+          command: python3.10 utils/build/macos/notarize.py notarize -a $CHIMERAX_APP_NAME -d ChimeraX.dmg -T $MAC_SIGNING_TEAM_ID -s $MAC_SIGNING_TEAM_ID -p $MAC_SIGNING_APP_PW -P $MAC_SIGNING_PROVIDER -i $MAC_SIGNING_EMAIL -k $RUNNER_TEMP/app-signing.keychain-db -K $MAC_SIGNING_KEYCHAIN_PW -v -v -v
+
+      - name: Put the build date and commit in the environment
+        run: |
+          export BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA)
+          export BUILD_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
+          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
+          echo "BUILD_COMMIT=$BUILD_COMMIT" >> $GITHUB_ENV
+
+      - name: Upload ChimeraX (Daily or Tech Preview)
+        if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'techpreview' }}
+        uses: nick-fields/retry@v3
+        with:
+          # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
+          # GitHub Actions couldn't contact Plato.
+          max_attempts: 1000
+          timeout_minutes: 60
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=mac_arm64" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/ChimeraX.dmg" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+      - name: Put release version in the environment
+        if: ${{ inputs.release_type == 'candidate' }}
+        run: |
+          export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g')
+          echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
+      - name: Upload ChimeraX (Candidate)
+        if: ${{ inputs.release_type == 'candidate' }}
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 1000
+          timeout_minutes: 60
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "version=$BUILD_VERSION" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=mac_arm64" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/ChimeraX.dmg" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+      - name: Upload ChimeraX (Production)
+        if: ${{ inputs.release_type == 'production' }}
+        uses: nick-fields/retry@v3
+        with:
+          # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
+          # GitHub Actions couldn't contact Plato.
+          max_attempts: 1000
+          timeout_minutes: 60
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "version=$BUILD_VERSION" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=mac_arm64" -F "file=@$GITHUB_WORKSPACE/ChimeraX.dmg" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_production_build.py

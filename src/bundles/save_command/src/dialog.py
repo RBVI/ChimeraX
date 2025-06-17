@@ -22,6 +22,11 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+import sys
+if sys.platform == 'win32':
+    from chimerax.core.utils import no_garbage_collection as gc_context
+else:
+    from contextlib import nullcontext as gc_context
 class MainSaveDialog:
     def __init__(self, settings=None):
         self._settings = settings
@@ -47,8 +52,9 @@ class MainSaveDialog:
             dialog.setDirectory(initial_directory)
         if initial_file is not None:
             dialog.selectFile(initial_file)
-        if not dialog.exec():
-            return
+        with gc_context():
+            if not dialog.exec():
+                return
         fmt = self._filter2fmt[dialog.selectedNameFilter()]
         save_mgr = session.save_command
         provider_info = save_mgr.provider_info(fmt)

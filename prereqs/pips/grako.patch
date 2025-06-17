@@ -1,0 +1,27 @@
+Common subdirectories: grako.orig/codegen and grako/codegen
+diff --color -u grako.orig/grammars.py grako/grammars.py
+--- grako.orig/grammars.py	2016-11-04 13:30:40
++++ grako/grammars.py	2023-02-09 15:54:46
+@@ -13,7 +13,8 @@
+ 
+ import os
+ import functools
+-from collections import defaultdict, Mapping
++from collections import defaultdict
++from collections.abc import Mapping
+ from copy import copy
+ 
+ from grako.util import indent, trim, ustr, urepr, strtype, compress_seq, chunks
+Common subdirectories: grako.orig/test and grako/test
+diff --color -u grako.orig/util.py grako/util.py
+--- grako.orig/util.py	2016-10-06 13:14:18
++++ grako/util.py	2023-02-09 15:51:21
+@@ -170,7 +170,7 @@
+ 
+ def isiter(value):
+     return (
+-        isinstance(value, collections.Iterable) and
++        isinstance(value, collections.abc.Iterable) and
+         not isinstance(value, strtype)
+     )
+ 

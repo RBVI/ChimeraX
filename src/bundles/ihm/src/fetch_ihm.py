@@ -13,13 +13,13 @@
 #
 def fetch_ihm(session, id, ignore_cache=False, **kw):
   '''
-  Fetch IHM models from PDB-Dev.
+  Fetch IHM models from PDB-IHM.
 
-  https://pdb-dev.wwpdb.org/cif/8zzi.cif
-  https://pdb-dev.wwpdb.org/cif/PDBDEV_00000012.cif
+  https://pdb-ihm.org/cif/8zzi.cif
+  https://pdb-ihm.org/cif/PDBDEV_00000012.cif
   '''
 
-  url_pattern = 'https://pdb-dev.wwpdb.org/cif/%s'
+  url_pattern = 'https://pdb-ihm.org/cif/%s'
 
   if len(id) == 4 and [c for c in id if c.isalpha()]:
     full_id = id
@@ -33,13 +33,13 @@ def fetch_ihm(session, id, ignore_cache=False, **kw):
     prefix = 'PDBDEV_'
       
   log = session.logger
-  log.status('Fetching %s from PDB-Dev...' % (full_id,))
+  log.status('Fetching %s from PDB-IHM...' % (full_id,))
 
   name = f'{prefix}{full_id}.cif'
   url = url_pattern % name
 
   from chimerax.core.fetch import fetch_file
-  filename = fetch_file(session, url, 'IHM %s' % full_id, name, 'PDBDev',
+  filename = fetch_file(session, url, 'IHM %s' % full_id, name, 'PDB-IHM',
                         ignore_cache=ignore_cache)
 
   log.status('Opening %s' % name)

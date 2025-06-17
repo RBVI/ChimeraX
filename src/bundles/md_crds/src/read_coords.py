@@ -63,6 +63,11 @@ def read_coords(session, file_name, model, format_name, *, replace=True, start=1
         except KeyError:
             raise UserError("File is not an Amber netCDF coordinates file (no coordinates found)")
         num_atoms = len(coords[0])
+    elif format_name == "dump":
+        from .read_lammps import read_dump
+        session.logger.status("Reading LAMMPS coordinates", blank_after=0)
+        num_atoms, coords = read_dump(session, file_name, model)
+        session.logger.status("Finished reading LAMMPS coordinates")
     else:
         raise ValueError("Unknown MD coordinate format: %s" % format_name)
     if model.num_atoms != num_atoms:

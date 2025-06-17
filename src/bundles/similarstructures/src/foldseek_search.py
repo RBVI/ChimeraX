@@ -153,12 +153,12 @@ class FoldseekWebQuery:
         results = requests.get(result_url, stream = True, headers = self._user_agent)
         if report_progress:
             total_bytes = results.headers.get('Content-length')
-            of_total = '' if total_bytes is None else f'of {"%.1f" % (total_bytes / (1024 * 1024))}'
+            of_total = '' if total_bytes is None else f'of {"%.1f" % (int(total_bytes) / (1024 * 1024))}'
             from time import time
             start_time = time()
         # Result is a tar gzip file containing a .m8 tab-separated value file.
         import tempfile
-        rfile = tempfile.NamedTemporaryFile(prefix = 'foldseek_results_', suffix = '.tar.gz')
+        rfile = tempfile.NamedTemporaryFile(prefix = 'foldseek_results_', suffix = '.tar.gz', delete = False)
         size = 0
         with rfile as f:
             for chunk in results.iter_content(chunk_size=self._download_chunk_size):
@@ -168,7 +168,7 @@ class FoldseekWebQuery:
                     size_mb = size / (1024 * 1024)
                     elapsed = time() - start_time
                     report_progress(f'Reading Foldseek results {"%.1f" % size_mb}{of_total} Mbytes downloaded in {"%.0f" % elapsed} seconds')
-            f.flush()
+            f.close()  # Cannot open twice to read tar file below on Windows
 
             # Extract tar file making a dictionary of results for each database searched
             m8_results = {}
@@ -178,7 +178,10 @@ class FoldseekWebQuery:
                 mfile = tfile.extractfile(filename)
                 dbname = filename.replace('alis_', '').replace('.m8', '')
                 m8_results[dbname] = [line.decode('utf-8') for line in mfile.readlines()]
-
+            tfile.close()
+            import os
+            os.remove(f.name)
+            
         '''
         # Save results to a file
         for dbname, hit_lines in m8_results.items():
@@ -279,10 +282,15 @@ def _mmcif_as_string(chain):
     extra_residues = structure.residues - cchain.existing_residues
     extra_residues.delete()
     import tempfile
-    with tempfile.NamedTemporaryFile(prefix = 'foldseek_mmcif_', suffix = '.cif', mode = 'w+') as f:
+    with tempfile.NamedTemporaryFile(prefix = 'foldseek_mmcif_', suffix = '.cif', mode = 'w+', delete = False) as f:
+        f.close()  # On Windows can't open file twice and write, ChimeraX bug #16592
         from chimerax.mmcif.mmcif_write import write_mmcif
         write_mmcif(chain.structure.session, f.name, models = [structure])
+        f = open(f.name, 'r')
         mmcif_string = f.read()
+        f.close()
+        import os
+        os.remove(f.name)
     return mmcif_string
 
 '''
@@ -350,6 +358,7 @@ def parse_search_result(line, database):
         db = 'afdb'
     values['database'] = db
     values['coordinate_indexing'] = True	# Alignment indexing includes only residues with coordinates
+    values['foldseek release'] = 10		# Handle changed output for different foldseek version
     return values
 
 def parse_pdb100_theader(theader):

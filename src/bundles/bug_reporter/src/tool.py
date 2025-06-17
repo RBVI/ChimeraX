@@ -23,10 +23,11 @@ BUG_URL = "https://" + BUG_HOST + BUG_SELECTOR
 #
 class BugReporter(ToolInstance):
 
-    def __init__(self, session, tool_name):
+    def __init__(self, session, tool_name, is_known_crash = False):
         import locale
 
         self._ses = session
+        self.is_known_crash = is_known_crash
 
         ToolInstance.__init__(self, session, tool_name)
 
@@ -203,13 +204,24 @@ class BugReporter(ToolInstance):
     def hide(self):
         self.tool_window.shown = False
 
-    def set_description(self, text):
+    def set_description(self, text, minimum_height = None):
         self.description.setText(text)
-        self.description.selectAll()
+        if minimum_height is not None:
+            self.description.setMinimumHeight(minimum_height)
 
     def submit(self):
 
         entry_values = self.entry_values()
+        if self.is_known_crash and not entry_values.get('email'):
+            self.report_email_required_for_known_crashes()
+            return
+
+        is_crash_report = ('Last time you used ChimeraX it crashed' in entry_values['description'])
+        if is_crash_report:
+            from sys import platform
+            if platform == 'linux' and not entry_values.get('email'):
+                self.report_email_required_for_linux_crashes()
+                return
 
         # Include log contents in description
         if self.include_log.isChecked():
@@ -336,6 +348,27 @@ class BugReporter(ToolInstance):
             " you taking the time to provide us with valuable feedback.")
         self.result.setText(oops)
 
+    def report_email_required_for_known_crashes(self):
+        from chimerax.core.colors import scheme_color
+        color = scheme_color('status')
+        thanks = (
+            f"<h3><font color='{color}'<h3>Not submitted: This crash was already reported</font></h3>"
+            "<p>What we know about this crash is described in the Description panel in red."
+            " If you wish to discuss this crash with us you have to provide an email address.")
+        self.result.setText(thanks)
+
+    def report_email_required_for_linux_crashes(self):
+        from chimerax.core.colors import scheme_color
+        color = scheme_color('status')
+        thanks = (
+            f"<h3><font color='{color}'<h3>Not submitted: Email address required</font></h3>"
+            "<p><font color='red'>Linux crash reports include little diagnostic information so we are rarely able to identify "
+            "the cause without discussing with the reporter.  Therefore we require an email address "
+            "to report ChimeraX crashes on Linux.  The most common cause of ChimeraX crashes on Linux "
+            "is failed remote display.  Remote display techologies with 3D OpenGL graphics often don't work, "
+            "and we are not able to advise on how to fix remote display.</font>")
+        self.result.setText(thanks)
+        
     def cancel(self):
         self.delete()
 
@@ -362,10 +395,10 @@ class BugReporter(ToolInstance):
         return values
 
 
-def show_bug_reporter(session):
+def show_bug_reporter(session, is_known_crash = False):
     from Qt.QtCore import QTimer
     tool_name = 'Bug Reporter'
-    tool = BugReporter(session, tool_name)
+    tool = BugReporter(session, tool_name, is_known_crash = is_known_crash)
     # make sure bug report is active and description has focus
     QTimer.singleShot(
         0, lambda *args, tool=tool:

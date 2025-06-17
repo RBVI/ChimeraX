@@ -56,8 +56,10 @@ class _MutationScoresAPI(BundleAPI):
                         return [], message
                     @property
                     def open_args(self):
-                        from chimerax.atomic import ChainArg
-                        return {'chain': ChainArg}
+                        from chimerax.core.commands import BoolArg
+                        from chimerax.atomic import UniqueChainsArg
+                        return {'chains': UniqueChainsArg,
+                                'allow_mismatches': BoolArg}
                 return MutationScoresInfo()
 
             elif name == 'UniProt Variants':
@@ -69,9 +71,10 @@ class _MutationScoresAPI(BundleAPI):
                         return [], message
                     @property
                     def open_args(self):
-                        from chimerax.core.commands import StringArg
-                        from chimerax.atomic import ChainArg
-                        return {'chain': ChainArg,
+                        from chimerax.core.commands import StringArg, BoolArg
+                        from chimerax.atomic import UniqueChainsArg
+                        return {'chains': UniqueChainsArg,
+                                'allow_mismatches': BoolArg,
                                 'identifier': StringArg}
                 return MutationScoresInfo()
 
@@ -81,12 +84,18 @@ class _MutationScoresAPI(BundleAPI):
                     def fetch(self, session, uniprot_id, format_name, ignore_cache, **kw):
                         from . import uniprot_variants
                         mset, msg = uniprot_variants.fetch_uniprot_variants(session, uniprot_id, ignore_cache = ignore_cache, **kw)
+                        if session.ui.is_gui and len(mset.score_names()) >= 2:
+                            x_score_name, y_score_name = mset.score_names()[:2]
+                            from .ms_scatter_plot import mutation_scores_scatter_plot
+                            mutation_scores_scatter_plot(session, x_score_name, y_score_name, mset.name,
+                                                         color_synonymous = False, bounds = False, replace = False)
                         return [], msg
                     @property
                     def fetch_args(self):
-                        from chimerax.core.commands import StringArg
-                        from chimerax.atomic import ChainArg
-                        return {'chain': ChainArg,
+                        from chimerax.core.commands import StringArg, BoolArg
+                        from chimerax.atomic import UniqueChainsArg
+                        return {'chains': UniqueChainsArg,
+                                'allow_mismatches': BoolArg,
                                 'identifier': StringArg}
                 return UniProtVariantsInfo()
 
@@ -99,9 +108,10 @@ class _MutationScoresAPI(BundleAPI):
                         return [], message
                     @property
                     def open_args(self):
-                        from chimerax.core.commands import StringArg
-                        from chimerax.atomic import ChainArg
-                        return {'chain': ChainArg,
+                        from chimerax.core.commands import StringArg, BoolArg
+                        from chimerax.atomic import UniqueChainsArg
+                        return {'chains': UniqueChainsArg,
+                                'allow_mismatches': BoolArg,
                                 'identifier': StringArg}
                 return AlphaMissenseScoresInfo()
 
@@ -111,12 +121,17 @@ class _MutationScoresAPI(BundleAPI):
                     def fetch(self, session, uniprot_id, format_name, ignore_cache, **kw):
                         from .alpha_missense import fetch_alpha_missense_scores
                         mset, msg = fetch_alpha_missense_scores(session, uniprot_id, ignore_cache = ignore_cache, **kw)
+                        if session.ui.is_gui:
+                            from .ms_histogram import mutation_scores_histogram
+                            mutation_scores_histogram(session, 'amiss', mset.name, scale = 'linear', bins = 50,
+                                                      curve = False, synonymous = False, bounds = False, replace = False)
                         return [], msg
                     @property
                     def fetch_args(self):
-                        from chimerax.core.commands import StringArg
-                        from chimerax.atomic import ChainArg
-                        return {'chain': ChainArg,
+                        from chimerax.core.commands import StringArg, BoolArg
+                        from chimerax.atomic import UniqueChainsArg
+                        return {'chains': UniqueChainsArg,
+                                'allow_mismatches': BoolArg,
                                 'identifier': StringArg}
                 return AlphaMissenseInfo()
 

@@ -45,6 +45,15 @@ BEGIN_DELETE_MODELS = "begin delete models"
 END_DELETE_MODELS = "end delete models"
 # TODO: register Model as data event type
 
+class BadIDError(ValueError):
+    pass
+class NoParentError(BadIDError):
+    pass
+class BadParentError(BadIDError):
+    pass
+class DuplicateIDError(BadIDError):
+    pass
+
 # If any of the *STATE_VERSIONs change, then increase the (maximum) core session
 # number in setup.py.in
 MODEL_STATE_VERSION = 1
@@ -355,6 +364,14 @@ class Model(State, Drawing):
         return m is None
 
     def take_snapshot(self, session, flags):
+        # Scene interface implementation
+        if flags == State.SCENE:
+            scene_data = {'version': MODEL_STATE_VERSION}
+            scene_attrs = ['selected', 'overall_color', 'model_color', 'display']
+            for attr in scene_attrs:
+                scene_data[attr] = getattr(self, attr)
+            return scene_data
+
         p = self.parent
         if p is session.models.scene_root_model:
             p = None    # Don't include root as a parent since root is not saved.
@@ -422,11 +439,18 @@ class Model(State, Drawing):
 
     def restore_scene(self, scene_data):
         '''
+        Scene interface implementation
+
         Restore model to state from scene_data
         (obtained from take_snapshot() with State.SCENE flag)
         '''
-        #TODO: restore base Model state here
-        raise NotImplementedError("restore_scene not implemented")
+        if scene_data['version'] != MODEL_STATE_VERSION:
+            raise ValueError(f'Model version mismatch in restore_scene. '
+                             f'Expected {MODEL_STATE_VERSION}, got {scene_data["version"]}')
+        for attr, val in scene_data.items():
+            if hasattr(self, attr):
+                setattr(self, attr, val)
+        return
 
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
         '''
@@ -819,13 +843,13 @@ class Models(StateManager):
             par_id = model.id[:-1]
             p = self._models.get(par_id) if par_id else self.scene_root_model
             if p is None:
-                raise ValueError('Tried to add model %s but parent #%s does not exist'
+                raise NoParentError('Tried to add model %s but parent #%s does not exist'
                                  % (model, '.'.join('%d'% i for i in par_id)))
             if parent is not None and parent is not p:
-                raise ValueError('Tried to add model %s to parent %s with incompatible id'
+                raise BadParentError('Tried to add model %s to parent %s with incompatible id'
                                  % (model, parent))
             if model.id in self._models:
-                raise ValueError('Tried to add model %s with the same id as another model %s'
+                raise DuplicateIDError('Tried to add model %s with the same id as another model %s'
                                  % (model, self._models[model.id]))
         return p
 

@@ -71,8 +71,10 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
 
     by_structure = {}
     chain_indices = {}
+    seq_to_alignment = {}
     for alignment, seq, region_info in targets:
-        model_chains = set(seq.match_maps.keys())
+        seq_to_alignment[seq] = alignment
+        model_chains = set(alignment.match_maps[seq].keys())
         if not model_chains:
             raise UserError("No chains/structures associated with sequence %s" % seq.name)
         if chains:
@@ -84,9 +86,9 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
 
         for chain in model_chains:
             if region_info == ALL_MISSING:
-                chain_indices[chain] = find_missing(chain, seq, False)
+                chain_indices[chain] = find_missing(alignment.match_maps[seq][chain], seq, False)
             elif region_info == INTERNAL_MISSING:
-                chain_indices[chain] = find_missing(chain, seq, True)
+                chain_indices[chain] = find_missing(alignment.match_maps[seq][chain], seq, True)
             else:
                 chain_indices[chain] = region_info
     # MAV: loop_data = (protocol, chain_indices[chain], seq, template_models)
@@ -135,8 +137,11 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     target_chars.append('-' * len(existing))
                     offset_i += len(existing)
                 else:
-                    prefix, suffix = [ret[0] for ret in find_affixes([r.chain], {r.chain: (seq, None)})]
-                    chain_template_chars = prefix + regularized_seq(seq, r.chain).characters + suffix
+                    match_map = seq_to_alignment[seq].match_maps[seq]
+                    prefix, suffix = [ret[0] for ret in
+                        find_affixes(r.chain, {r.chain: (seq, None, match_map)})]
+                    chain_template_chars = prefix + regularized_seq(seq,
+                        r.chain, match_map).characters + suffix
                     template_chars.append(chain_template_chars)
                     # prevent Modeller from filling in unmodelled missing structure by using '-'
                     chain_target_chars = []
@@ -165,7 +170,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         # ensure that the bounding residues actually exist
         loop_data = []
         for chain, seq in chain_map.items():
-            mmap = seq.match_maps[chain]
+            mmap = seq_to_alignment[seq].match_maps[seq][chain]
             for start, end in chain_indices[chain]:
                 start = max(start - adjacent_flexible, 0)
                 while start > 0 and start-1 not in mmap:
@@ -201,7 +206,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         input_file_map = []
 
         # form the sequences to be written out as a PIR
-        from .common import opal_safe_file_name, structure_save_name
+        from .common import opal_safe_file_name, structure_save_name, save_template
         from chimerax.atomic import Sequence
         pir_target = Sequence(name=opal_safe_file_name(seq.name))
         pir_target.description = "sequence:%s:.:.:.:.::::" % pir_target.name
@@ -209,8 +214,14 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         pir_seqs = [pir_target]
 
         pir_template = Sequence(name=structure_save_name(s))
+        index = len(residues)
+        while index > 0:
+            index -= 1
+            last_chain = residues[index].chain
+            if last_chain is not None:
+                break
         pir_template.description = "structure:%s:FIRST:%s:LAST:%s::::" % (
-            pir_template.name, residues[0].chain_id, residues[-1].chain_id)
+            pir_template.name, residues[0].chain_id, last_chain.chain_id)
         pir_template.characters = ''.join(template_chars)
         pir_seqs.append(pir_template)
 
@@ -244,7 +255,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         input_file_map.append((base_name, "text_file", pdb_file_name))
         ATOM_res_names = s.in_seq_hets
         ATOM_res_names.update(std_res_names)
-        save_pdb(session, pdb_file_name, models=[s], polymeric_res_names=ATOM_res_names)
+        save_template(session, pdb_file_name, s, ATOM_res_names)
         delattr(s, 'in_seq_hets')
 
         from chimerax.atomic import Chains
@@ -264,8 +275,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         job_runner.run(block=block)
     return
 
-def find_missing(chain, seq, internal_only):
-    match_map = seq.match_maps[chain]
+def find_missing(match_map, seq, internal_only):
     missing = []
     start_missing = None
     for i in range(len(seq)):
@@ -281,19 +291,18 @@ def find_missing(chain, seq, internal_only):
         missing.append((start_missing, len(seq) - 1))
     return missing
 
-def find_affixes(chains, chain_info):
+def find_affixes(chain, chain_info):
     from chimerax.pdb import standard_polymeric_res_names as std_res_names
     in_seq_hets = []
     prefixes = []
     suffixes = []
     from chimerax.atomic import Sequence
-    for chain in chains:
-        try:
-            aseq, target = chain_info[chain]
-        except KeyError:
-            prefixes.append('')
-            suffixes.append('')
-            continue
+    try:
+        aseq, target, match_map = chain_info[chain]
+    except KeyError:
+        prefixes.append('')
+        suffixes.append('')
+    else:
         match_map = aseq.match_maps[chain]
         prefix = ''
         for r in chain.existing_residues:

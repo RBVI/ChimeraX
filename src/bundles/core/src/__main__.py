@@ -159,7 +159,7 @@ def _parse_python_args(argv, usage):
                     if opt == "m" or opt == "c":
                         # special case, eats rest of arguments
                         yield f"-{opt}", argv[cur_index]
-                        yield None, argv[cur_index + 1 :]
+                        yield None, argv[cur_index + 1:]
                         return
                     arg = argv[cur_index]
                     cur_index += 1
@@ -432,6 +432,7 @@ def dedup_sys_path():
         dups += paths[1:]
     for dup in dups:
         sys.path.remove(dup)
+
 
 def _set_app_dirs(version):
     # Windows:
@@ -981,6 +982,7 @@ def init(argv, event_loop=True):
     # the rest of the arguments are data files
     from chimerax.core import commands
 
+    from . import errors
     for arg in args:
         if opts.safe_mode:
             # 'open' command unavailable; only open Python files
@@ -1013,6 +1015,8 @@ def init(argv, event_loop=True):
 
             try:
                 commands.run(sess, "open %s" % StringArg.unparse(arg))
+            except errors.NotABug as err:
+                sess.logger.error(str(err))
             except Exception:
                 if not sess.ui.is_gui:
                     import traceback
@@ -1196,10 +1200,12 @@ def restart_action(line, inst_dir, msgs):
             command.append(os.path.join(inst_dir, bundle))
         else:
             command.append(bundle)
+    kwargs = {'creationflags': subprocess.CREATE_NO_WINDOW} if sys.platform == 'win32' else {}
     cp = subprocess.run(
         [sys.executable, "-m", "pip"] + command,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        **kwargs
     )
     if cp.returncode == 0:
         msgs.append(("stdout", "Successfully installed %r" % bundle))

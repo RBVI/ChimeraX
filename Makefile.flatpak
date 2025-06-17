@@ -1,6 +1,6 @@
 APPNAME = edu.ucsf.rbvi.ChimeraX
 BUILD_DIR = fp-build.tmp
-RUNTIME_VER = 23.08
+RUNTIME_VER = 24.08
 BRANCH = $(shell \
     branch=$$(awk '$$1 == "branch:" { print $$2; exit } { exit }' last-commit 2> /dev/null) ; \
     if [ -z "$$branch" ]; then branch=$$(git branch --show-current); fi ; \
@@ -74,7 +74,7 @@ system-install: ${APPNAME}.yaml
 	flatpak-builder --export-only --system --install ${BUILD_DIR} ${APPNAME}.yaml
 
 export-flatpak:
-	# Create a single file, ChimeraX.flatpak, that can be installed 
+	# Create a single file, ChimeraX.flatpak, that can be installed
 	flatpak build-export export ${BUILD_DIR}
 	flatpak build-bundle export ChimeraX.flatpak ${APPNAME}
 

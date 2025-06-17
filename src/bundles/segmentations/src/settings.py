@@ -1,4 +1,5 @@
 from chimerax.core.settings import Settings
+
 from chimerax.segmentations.actions import (
     MouseAction,
     HandAction,
@@ -14,6 +15,8 @@ class _SegmentationSettings(Settings):
         "set_mouse_modes_automatically": False,
         "set_hand_modes_automatically": False,
         "display_guidelines": False,
+        "display_color_keys": False,
+        "automatically_switch_models_on_menu_changes": False,
         "default_view": 0,  # 4 x 4
         "default_segmentation_opacity": 80,  # %
         "mouse_3d_right_click": MouseAction.ADD_TO_SEGMENTATION,

@@ -64,6 +64,8 @@ class AlignmentsManager(StateManager, ProviderManager):
         ----------
         name : str
             Header or viewer name.
+            For viewers, this is the name that will be used in the user interface when listing possible
+            viewers (probably after being "title-ized").  It should be lower case.
         type : str
             "header" or "viewer"
 
@@ -105,9 +107,9 @@ class AlignmentsManager(StateManager, ProviderManager):
             if synonyms:
                 # comma-separated text -> list
                 synonyms = [x.strip() for x in synonyms.split(',')]
-            if sequence_viewer:
+            if sequence_viewer and sequence_viewer != "false":
                 self.viewer_info['sequence'][name] = synonyms
-            if alignment_viewer:
+            if alignment_viewer and alignment_viewer != "false":
                 self.viewer_info['alignment'][name] = synonyms
             self._viewers[name] = bundle_info
         elif type is None:
@@ -192,14 +194,17 @@ class AlignmentsManager(StateManager, ProviderManager):
         """
         if self.session.ui.is_gui and identify_as is not False:
             viewer_text = viewer
-            if len(seqs) > 1:
-                attr = 'align_viewer'
+            from .settings import settings
+            if len(seqs) >= settings.large_align_threshold:
+                attr = 'large_align_viewer'
+                type_text = "alignment"
+            elif len(seqs) > 1:
+                attr = 'small_align_viewer'
                 type_text = "alignment"
             else:
                 attr = 'seq_viewer'
                 type_text = "sequence"
             if viewer_text is True:
-                from .settings import settings
                 viewer_text = getattr(settings, attr).lower()
             if viewer_text:
                 viewer_text = viewer_text.lower()
@@ -260,7 +265,6 @@ class AlignmentsManager(StateManager, ProviderManager):
             self.triggers.activate_trigger("new alignment", alignment)
         return alignment
 
-    @property
     def registered_viewers(self, seq_or_align):
         """Return the registered viewers of type 'seq_or_align'
             (which must be "sequence"  or "alignent")

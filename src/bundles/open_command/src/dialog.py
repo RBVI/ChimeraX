@@ -32,6 +32,11 @@ except ImportError:
     # nogui
     pass
 else:
+    import sys
+    if sys.platform == 'win32':
+        from chimerax.core.utils import no_garbage_collection as gc_context
+    else:
+        from contextlib import nullcontext as gc_context
     class OpenDialog(QFileDialog):
         def __init__(self, parent=None, caption='Open File', starting_directory=None,
                      widget_alignment=Qt.AlignCenter, filter=''):
@@ -52,7 +57,8 @@ else:
         def get_path(self):
             if not self.exec():
                 return None
-            paths = self.selectedFiles()
+            with gc_context():
+                paths = self.selectedFiles()
             if not paths:
                 return None
             path = paths[0]
@@ -61,7 +67,8 @@ else:
         def get_paths(self):
             if not self.exec():
                 return None
-            paths = self.selectedFiles()
+            with gc_context():
+                paths = self.selectedFiles()
             if not paths:
                 return None
             return paths
@@ -97,8 +104,9 @@ else:
                 from os.path import dirname
                 initial_dir = dirname(hfiles[-1].path)
                 self.setDirectory(initial_dir)
-            if not self.exec():
-                return
+            with gc_context():
+                if not self.exec():
+                    return
             dirs = self.selectedFiles()
             dir = dirs[0] if len(dirs) > 0 else self.directory().path()
             fmt_synopsis = self._format_selector.currentText()
@@ -273,12 +281,14 @@ def set_use_native_open_file_dialog(use):
     global _use_native_open_file_dialog
     _use_native_open_file_dialog = use
 
-def make_qt_name_filters(session, *, no_filter="All files (*)"):
+def make_qt_name_filters(session, *, no_filter="All files (*)", format_names=None):
     openable_formats = [fmt for fmt in session.open_command.open_data_formats if fmt.suffixes]
+    if format_names is not None:
+        openable_formats = [fmt for fmt in openable_formats if fmt.name in format_names]
     openable_formats.sort(key=lambda fmt: fmt.synopsis.casefold())
     file_filters = ["%s (%s)" % (fmt.synopsis, "*" + " *".join(fmt.suffixes))
         for fmt in openable_formats]
-    if no_filter is not None:
+    if no_filter is not None and format_names is None:
         file_filters = [no_filter] + file_filters
     return file_filters, openable_formats, no_filter
 
@@ -293,18 +303,23 @@ def show_fetch_by_id_dialog(session, database_name=None, *, debug=False):
     _fetch_by_id_dialog.show()
     _fetch_by_id_dialog.raise_()
 
-def show_open_file_dialog(session, initial_directory=None, format_name=None):
+def show_open_file_dialog(session, initial_directory=None, format_names=None, *, caption=None):
     if initial_directory is None:
         initial_directory = ''
-    file_filters, openable_formats, no_filter = make_qt_name_filters(session)
+    file_filters, openable_formats, no_filter = make_qt_name_filters(session, format_names=format_names)
     fmt_name2filter = dict(zip([fmt.name for fmt in openable_formats], file_filters[1:]))
-    filter2fmt = dict(zip(file_filters[1:], openable_formats))
-    filter2fmt[no_filter] = None
+    if format_names is None:
+        filter2fmt = dict(zip(file_filters[1:], openable_formats))
+        filter2fmt[no_filter] = None
+    else:
+        filter2fmt = dict(zip(file_filters, openable_formats))
     from Qt.QtWidgets import QFileDialog
     qt_filter = ";;".join(file_filters)
-    if _use_native_open_file_dialog:
+    # native Mac open dialogs (and possibly others) don't show captions...
+    if _use_native_open_file_dialog and caption is None:
         from Qt.QtWidgets import QFileDialog
-        paths, file_filter = QFileDialog.getOpenFileNames(filter=qt_filter,
+        with gc_context():
+            paths, file_filter = QFileDialog.getOpenFileNames(filter=qt_filter,
                                                        directory=initial_directory)
         from sys import platform
         if platform == 'win32':
@@ -315,7 +330,7 @@ def show_open_file_dialog(session, initial_directory=None, format_name=None):
             crash_report.clear_fault_handler_file(session)
     else:
         dlg = OpenDialog(parent=session.ui.main_window, starting_directory=initial_directory,
-                       filter=qt_filter)
+                       filter=qt_filter, caption=caption)
         dlg.setNameFilters(file_filters)
         paths = dlg.get_paths()
         file_filter = dlg.selectedNameFilter()

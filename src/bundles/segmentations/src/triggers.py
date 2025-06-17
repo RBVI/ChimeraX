@@ -38,6 +38,15 @@ SEGMENTATION_REMOVED: Activated when this bundle's segmentation tracker
                       emitted at the end of this bundle's REMOVE_MODEL trigger
                       handler.
 
+SEGMENTATION_STARTED: Activated by a hand mode when either the create or erase
+                      segmentation button is pressed
+
+SEGMENTATION_ENDED: Activated by a hand mode when either the create or erase segmentation
+                    button is release
+
+SEGMENTATION_MOUSE_MODE_MOVE_EVENT: Activated when the spherical (3D) segmentation cursor
+                                   is moved on desktop
+
 SEGMENTATION_MODIFIED: Should be activated any time a segmentation is modified,
                        i.e. regions are added to or subtracted from the
                        segmentation.
@@ -67,24 +76,6 @@ SPHERE_CURSOR_RESIZED: Activated whenever the user resizes the spherical
                        segmentation cursor using the corresponding mouse or hand
                        mode.
 
-AXIAL_PLANE_VIEWER_ENTER: Activated when the mouse enters a PlaneViewer
-                          displaying an axial slice
-
-CORONAL_PLANE_VIEWER_ENTER: Activated when the mouse enters a PlaneViewer
-                            displaying a coronal slice
-
-SAGITTAL_PLANE_VIEWER_ENTER: Activated when the mouse enters a PlaneViewer
-                             displaying a sagittal slice
-
-AXIAL_PLANE_VIEWER_LEAVE: Activated when the mouse leaves a PlaneViewer
-                          displaying an axial slice
-
-CORONAL_PLANE_VIEWER_LEAVE: Activated when the mouse leaves a PlaneViewer
-                            displaying a coronal slice
-
-SAGITTAL_PLANE_VIEWER_LEAVE: Activated when the mouse leaves a PlaneViewer
-                             displaying a sagittal slice
-
 VIEW_LAYOUT_CHANGED: (EXPERIMENTAL) Activated when the view layout changes. May
                      be moved to chimerax.ui
 
@@ -97,94 +88,130 @@ GUIDELINES_VISIBILITY_CHANGED: Activated when a UI or command changes the
                                and react accordingly to the new value.
                                If you are both a caller and a listener, take care
                                to block your own handler when activating.
+
+HAND_MODES_CHANGED: Activated whenever the hand modes preset is toggled on or off.
+
+MOUSE_MODES_CHANGED: Activated whenever the mouse modes preset is toggled on or off.
 """
 
 # from collections import defaultdict
-from typing import Any, Callable, Optional
+from typing import Any, Optional
+from enum import StrEnum
 
 from chimerax.core.triggerset import TriggerSet
 
 from chimerax.segmentations.types import Axis
 
-SEGMENTATION_ADDED = "segmentation added"
-SEGMENTATION_REMOVED = "segmentation removed"
-SEGMENTATION_MODIFIED = "segmentation modified"
+class Trigger(StrEnum):
+    SegmentationAdded = "segmentation added"
+    SegmentationRemoved = "segmentation removed"
+    SegmentationModified = "segmentation modified"
 
-REFERENCE_MODEL_CHANGED = "reference model changed"
-ACTIVE_SEGMENTATION_CHANGED = "active segmentation changed"
+    SegmentationStarted = "segmentation add started"
+    SegmentationEnded = "segmentation add ended"
 
-AXIAL_CURSOR_MOVED = "axial cursor moved"
-CORONAL_CURSOR_MOVED = "coronal cursor moved"
-SAGITTAL_CURSOR_MOVED = "sagittal cursor moved"
-SPHERE_CURSOR_MOVED = "sphere cursor moved"
+    SegmentationMouseModeMoveEvent = "segmentation mouse mode move event"
+    SegmentationMouseModeVRMoveEvent = "segmentation mouse mode vr move event"
+    SegmentationMouseModeWheelEvent = "segmentation mouse mode wheel event"
+    SegmentationMouseModeVRWheelEvent = "segmentation mouse mode vr wheel event"
 
-AXIAL_CURSOR_RESIZED = "axial cursor resized"
-CORONAL_CURSOR_RESIZED = "coronal cursor resized"
-SAGITTAL_CURSOR_RESIZED = "sagittal cursor resized"
-SPHERE_CURSOR_RESIZED = "sphere cursor resized"
+    SegmentationVisibilityChanged = "segmentation visibility changed"
 
-AXIAL_PLANE_VIEWER_ENTER = "axial plane viewer enter"
-CORONAL_PLANE_VIEWER_ENTER = "coronal plane viewer enter"
-SAGITTAL_PLANE_VIEWER_ENTER = "sagittal plane viewer enter"
+    ReferenceModelChanged = "reference model changed"
+    ActiveSegmentationChanged = "active segmentation changed"
 
-AXIAL_PLANE_VIEWER_LEAVE = "axial plane viewer leave"
-CORONAL_PLANE_VIEWER_LEAVE = "coronal plane viewer leave"
-SAGITTAL_PLANE_VIEWER_LEAVE = "sagittal plane viewer leave"
+    PlaneViewerEnter = "plane viewer enter"
+    PlaneViewerLeave = "plane viewer leave"
 
-VIEW_LAYOUT_CHANGED = "view layout changed"
-GUIDELINES_VISIBILITY_CHANGED = "guidelines visibility changed"
+    AxialCursorMoved = "axial cursor moved"
+    CoronalCursorMoved = "coronal cursor moved"
+    SagittalCursorMoved = "sagittal cursor moved"
+    SphereCursorMoved = "sphere cursor moved"
 
-
-ENTER_EVENTS = {
-    Axis.AXIAL: AXIAL_PLANE_VIEWER_ENTER,
-    Axis.CORONAL: CORONAL_PLANE_VIEWER_ENTER,
-    Axis.SAGITTAL: SAGITTAL_PLANE_VIEWER_ENTER,
-}
-
-LEAVE_EVENTS = {
-    Axis.AXIAL: AXIAL_PLANE_VIEWER_LEAVE,
-    Axis.CORONAL: CORONAL_PLANE_VIEWER_LEAVE,
-    Axis.SAGITTAL: SAGITTAL_PLANE_VIEWER_LEAVE,
-}
-
-_triggers = TriggerSet()
-
-_triggers.add_trigger(SEGMENTATION_REMOVED)
-_triggers.add_trigger(SEGMENTATION_ADDED)
-_triggers.add_trigger(SEGMENTATION_MODIFIED)
-
-_triggers.add_trigger(ACTIVE_SEGMENTATION_CHANGED)
-_triggers.add_trigger(REFERENCE_MODEL_CHANGED)
-
-_triggers.add_trigger(AXIAL_CURSOR_MOVED)
-_triggers.add_trigger(CORONAL_CURSOR_MOVED)
-_triggers.add_trigger(SAGITTAL_CURSOR_MOVED)
-_triggers.add_trigger(SPHERE_CURSOR_MOVED)
-
-_triggers.add_trigger(AXIAL_CURSOR_RESIZED)
-_triggers.add_trigger(CORONAL_CURSOR_RESIZED)
-_triggers.add_trigger(SAGITTAL_CURSOR_RESIZED)
-_triggers.add_trigger(SPHERE_CURSOR_RESIZED)
-
-_triggers.add_trigger(AXIAL_PLANE_VIEWER_ENTER)
-_triggers.add_trigger(CORONAL_PLANE_VIEWER_ENTER)
-_triggers.add_trigger(SAGITTAL_PLANE_VIEWER_ENTER)
-
-_triggers.add_trigger(AXIAL_PLANE_VIEWER_LEAVE)
-_triggers.add_trigger(CORONAL_PLANE_VIEWER_LEAVE)
-_triggers.add_trigger(SAGITTAL_PLANE_VIEWER_LEAVE)
+    AxialCursorResized = "axial cursor resized"
+    CoronalCursorResized = "coronal cursor resized"
+    SagittalCursorResized = "sagittal cursor resized"
+    SphereCursorResized = "sphere cursor resized"
 
 
-_triggers.add_trigger(VIEW_LAYOUT_CHANGED)
-_triggers.add_trigger(GUIDELINES_VISIBILITY_CHANGED)
+    ViewLayoutChanged = "view layout changed"
+    GuidelinesVisibilityChanged = "guidelines visibility changed"
+    ColorKeysVisibilityChanged = "color keys visibility changed"
+
+    HandModesChanged = "hand modes changed"
+    MouseModesChanged = "mouse modes changed"
+
+SEGMENTATION_ADDED = Trigger.SegmentationAdded
+SEGMENTATION_REMOVED = Trigger.SegmentationRemoved
+SEGMENTATION_MODIFIED = Trigger.SegmentationModified
+
+SEGMENTATION_STARTED = Trigger.SegmentationStarted
+SEGMENTATION_ENDED = Trigger.SegmentationEnded
+
+REFERENCE_MODEL_CHANGED = Trigger.ReferenceModelChanged
+ACTIVE_SEGMENTATION_CHANGED = Trigger.ActiveSegmentationChanged
+
+AXIAL_CURSOR_MOVED = Trigger.AxialCursorMoved
+CORONAL_CURSOR_MOVED = Trigger.CoronalCursorMoved
+SAGITTAL_CURSOR_MOVED = Trigger.SagittalCursorMoved
+SPHERE_CURSOR_MOVED = Trigger.SphereCursorMoved
+
+AXIAL_CURSOR_RESIZED = Trigger.AxialCursorResized
+CORONAL_CURSOR_RESIZED = Trigger.CoronalCursorResized
+SAGITTAL_CURSOR_RESIZED = Trigger.SagittalCursorResized
+SPHERE_CURSOR_RESIZED = Trigger.SphereCursorResized
+
+VIEW_LAYOUT_CHANGED = Trigger.ViewLayoutChanged
+
+HAND_MODES_CHANGED = Trigger.HandModesChanged
+MOUSE_MODES_CHANGED = Trigger.MouseModesChanged
+
+class SegmentationTriggerSet(TriggerSet):
+    def __init__(self):
+        super().__init__()
+        self.add_trigger(Trigger.SegmentationAdded)
+        self.add_trigger(Trigger.SegmentationRemoved)
+        self.add_trigger(Trigger.SegmentationModified)
+        self.add_trigger(Trigger.SegmentationVisibilityChanged)
+
+        self.add_trigger(Trigger.SegmentationStarted)
+        self.add_trigger(Trigger.SegmentationEnded)
+
+        self.add_trigger(Trigger.SegmentationMouseModeMoveEvent)
+        self.add_trigger(Trigger.SegmentationMouseModeVRMoveEvent)
+        self.add_trigger(Trigger.SegmentationMouseModeWheelEvent)
+        self.add_trigger(Trigger.SegmentationMouseModeVRWheelEvent)
+
+        self.add_trigger(Trigger.ActiveSegmentationChanged)
+        self.add_trigger(Trigger.ReferenceModelChanged)
+
+        self.add_trigger(Trigger.PlaneViewerEnter)
+        self.add_trigger(Trigger.PlaneViewerLeave)
+
+        self.add_trigger(Trigger.AxialCursorMoved)
+        self.add_trigger(Trigger.CoronalCursorMoved)
+        self.add_trigger(Trigger.SagittalCursorMoved)
+        self.add_trigger(Trigger.SphereCursorMoved)
+
+        self.add_trigger(Trigger.AxialCursorResized)
+        self.add_trigger(Trigger.CoronalCursorResized)
+        self.add_trigger(Trigger.SagittalCursorResized)
+        self.add_trigger(Trigger.SphereCursorResized)
+
+
+        self.add_trigger(Trigger.ViewLayoutChanged)
+        self.add_trigger(Trigger.GuidelinesVisibilityChanged)
+        self.add_trigger(Trigger.ColorKeysVisibilityChanged)
+        self.add_trigger(Trigger.HandModesChanged)
+        self.add_trigger(Trigger.MouseModesChanged)
+
+
+_triggers = SegmentationTriggerSet()
 
 # TODO:
 # _handlers_by_object = defaultdict(defaultdict(set).copy)
 
-
-def activate_trigger(
-    trigger_name: str, data: Optional[Any] = None, absent_okay: bool = False
-) -> None:
+def activate_trigger(trigger: str, data: Optional[Any] = None) -> None:
     """
     Expected data by trigger:
 
@@ -198,15 +225,14 @@ def activate_trigger(
     *_CURSOR_MOVED: the new coordinates of the axial cursor
     *_CURSOR_RESIZED: tuple(type of change[grow,shrink], resize step size(px))
 
-    *_PLANE_VIEWER_ENTER: None
-    *_PLANE_VIEWER_LEAVE: None
+    PLANE_VIEWER_ENTER: The axis of the entered viewer
+    PLANE_VIEWER_LEAVE: The axis of the left viewer
 
     VIEW_LAYOUT_CHANGED: the name of the new view layout
     GUIDELINES_TOGGLED: bool representing whether guidelines are on or off
     """
     global _triggers
-    _triggers.activate_trigger(trigger_name, data)
-
+    _triggers.activate_trigger(trigger, data)
 
 add_dependency = _triggers.add_dependency
 add_handler = _triggers.add_handler

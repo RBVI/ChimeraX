@@ -53,7 +53,7 @@ class OpenPredictedAlignedError(ToolInstance):
         self._structure_menu = m
         layout.addWidget(m.frame)
 
-        self._source_file = 'file (.json or .pkl)'
+        self._source_file = 'file (.json or .npy or .npz or .pkl)'
         self._source_database = f'{self.method} database ({self.database_key} id)'
         from chimerax.ui.widgets import EntriesRow
         ft = EntriesRow(parent, 'Predicted aligned error (PAE) from',
@@ -167,7 +167,7 @@ class OpenPredictedAlignedError(ToolInstance):
         from Qt.QtWidgets import QFileDialog
         path, ftype  = QFileDialog.getOpenFileName(parent, caption = 'Predicted aligned error',
                                                    directory = dir,
-                                                   filter = 'PAE file (*.json *.pkl)')
+                                                   filter = 'PAE file (*.json *.npy *.npz *.pkl)')
         if path:
             self._pae_file.setText(path)
             self._open_pae()
@@ -202,8 +202,10 @@ class OpenPredictedAlignedError(ToolInstance):
         if not isfile(path):
             raise UserError(f'File "{path}" does not exist.')
 
-        if not path.endswith('.json') and not path.endswith('.pkl'):
-            raise UserError(f'PAE file suffix must be ".json" or ".pkl".')
+        suffixes = ('.json', '.npy', '.npz', '.pkl')
+        if len([path for suffix in suffixes if path.endswith(suffix)]) == 0:
+            suf = ' or '.join(f'"{suffix}"' for suffix in suffixes)
+            raise UserError(f'PAE file suffix must be {suf}.')
 
         from chimerax.core.commands import run, quote_if_necessary
         cmd = '%s pae #%s file %s' % (self.command, structure.id_string, quote_if_necessary(path))
@@ -281,10 +283,27 @@ class OpenPredictedAlignedError(ToolInstance):
 #	fold_2024_05_08_15_09_model_0.cif
 #	fold_2024_05_08_15_09_full_data_0.json
 #
+# AlphaFold 3 local run
+#
+#	abcg2_human_model.cif
+#	abcg2_human_confidences.json
+#	  not abcg2_human_data.json which is the input specification including MSA
+#
 # AlphaFold database files
 #
 #	AF-P01445-F1-model_v2.cif
 #	AF-P01445-F1-predicted_aligned_error_v2.json
+#
+# Chai-1 AlphaFold 3 clone
+#
+#	pred.model_idx_2.rank_0.cif
+#	pae.model_idx_2.rank_0.npy
+#	  not scores.model_idx_2.rank_0.json which contains summary scores
+#
+# Boltz-1 local run
+#
+#	nipah_zmr_model_0.cif
+#	pae_nipah_zmr_model_0.npz
 #
 # Finding json/pkl with matching prefix works except for full alphafold which
 # wants matching suffix.
@@ -299,19 +318,30 @@ def _matching_pae_file(structure_path):
     dfiles = listdir(dir)
     pkl_files = [f for f in dfiles if f.endswith('.pkl')]
     json_files = [f for f in dfiles if f.endswith('.json') and not f.startswith('confidence_')]
+    npy_files = [f for f in dfiles if f.endswith('.npy') or f.endswith('.npz')]
 
-    if len(pkl_files) == 0 and len(json_files) == 0:
+    if len(pkl_files) == 0 and len(json_files) == 0 and len(npy_files) == 0:
         return None
 
-    if len(json_files) == 1 and len(pkl_files) == 0:
-        return join(dir, json_files[0])
-    if len(json_files) == 0 and len(pkl_files) == 1:
-        return join(dir, pkl_files[0])
+    all_files = json_files + npy_files + pkl_files
+    if len(all_files) == 1:
+        return join(dir, all_files[0])
 
+    
     # Prefer json files over pkl files since they are much smaller.
     from os.path import splitext
     min_length = min(6, len(splitext(filename)[0]))
-    if len(json_files) > 0:
+    mfile = None
+    
+    # Check for precise name match of Chai-1 or Boltz-1 numpy files
+    if len(npy_files) > 0:
+        mfile = _longest_matching_suffix(filename, npy_files, min_length = min_length)
+        if mfile is None:
+            mfile = _longest_matching_suffix('pae_' + filename, npy_files, min_length = min_length)  # Boltz-1
+        if mfile is None:
+            mfile = _longest_matching_prefix(filename, npy_files, min_length = min_length)
+        
+    if len(json_files) > 0 and mfile is None:
         mfile = _longest_matching_prefix(filename, json_files, min_length = min_length)
         if mfile is None:
             fname = filename
@@ -319,12 +349,14 @@ def _matching_pae_file(structure_path):
                 fname = filename.replace('_unrelaxed_', '_scores_')
             elif '_model_' in filename:
                 fname = filename.replace('_model_', '_full_data_')
+            elif filename.endswith('model.cif'):
+                fname = filename.replace('model', 'confidences')
             mfile = _longest_matching_prefix(fname, json_files, min_length = min_length)
         if mfile is None:
             mfile = _longest_matching_suffix(filename, json_files, min_length = min_length)
-    if len(pkl_files) > 0:
-        if mfile is None:
-            mfile = _longest_matching_prefix(filename, pkl_files, min_length = min_length)
+
+    if len(pkl_files) > 0 and mfile is None:
+        mfile = _longest_matching_prefix(filename, pkl_files, min_length = min_length)
         if mfile is None:
             mfile = _longest_matching_suffix(filename, pkl_files, min_length = min_length)
     
@@ -423,6 +455,7 @@ from chimerax.core.tools import ToolInstance
 class AlphaFoldPAEPlot(ToolInstance):
 
     name = 'AlphaFold Predicted Aligned Error Plot'
+    default_colormap_name = 'pae'
     help = 'help:user/tools/alphafold.html#pae'
 
     def __init__(self, session, tool_name, pae, colormap = None, divider_lines = True):
@@ -531,7 +564,7 @@ class AlphaFoldPAEPlot(ToolInstance):
     def set_colormap(self, colormap = None):
         if colormap is None:
             from chimerax.core.colors import BuiltinColormaps
-            colormap = BuiltinColormaps[self._default_colormap_name]
+            colormap = BuiltinColormaps[self.default_colormap_name]
         self._pae_view._make_image(self._pae.pae_matrix, colormap)
         
     # ---------------------------------------------------------------------------
@@ -1189,11 +1222,13 @@ def _include_deleted_residues(res):
 def read_pae_matrix(path):
     if path.endswith('.json'):
         return read_json_pae_matrix(path)
+    elif path.endswith('.npy') or path.endswith('.npz'):
+        return read_numpy_pae_matrix(path)
     elif path.endswith('.pkl'):
         return read_pickle_pae_matrix(path)
     else:
         from chimerax.core.errors import UserError
-        raise UserError(f'AlphaFold predicted aligned error (PAE) files must be in JSON (*.json) or pickle (*.pkl) format, {path} unrecognized format')
+        raise UserError(f'AlphaFold predicted aligned error (PAE) files must be in JSON (*.json) or numpy (*.npy, *.npz) or pickle (*.pkl) format, {path} unrecognized format')
 
 # -----------------------------------------------------------------------------
 #
@@ -1242,6 +1277,19 @@ def read_json_pae_matrix(path):
     keys = ', '.join(str(k) for k in d.keys())
     from chimerax.core.errors import UserError
     raise UserError(f'JSON file "{path}" is not AlphaFold predicted aligned error data, expected a dictionary with keys "predicted_aligned_error" or "residue1", "residue2" and "distance", got keys {keys}')
+
+# -----------------------------------------------------------------------------
+#
+def read_numpy_pae_matrix(path):
+    import numpy
+    pae = numpy.load(path)
+    if path.endswith('.npz'):
+        if 'pae' in pae:
+            pae = pae['pae']
+        else:
+            from chimerax.core.errors import UserError
+            raise UserError(f'This file does not include PAE data.\n\n{path}\n\nBoltz structure prediction run outside ChimeraX may not output a PAE .npz file unless you request it.  For example, when running the boltz executable you need to include the --write_full_pae option.')
+    return pae
 
 # -----------------------------------------------------------------------------
 #

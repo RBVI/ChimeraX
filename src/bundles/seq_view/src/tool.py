@@ -168,8 +168,9 @@ class SequenceViewer(ToolInstance):
         if self.alignment.associations:
             # There are pre-existing associations, show them
             for aseq in self.alignment.seqs:
-                if aseq.match_maps:
+                if self.alignment.match_maps[aseq]:
                     self.seq_canvas.assoc_mod(aseq)
+        self._feature_browsers = {}
         self._regions_tool = None
         from .region_browser import RegionManager
         self.region_manager = RegionManager(self.seq_canvas)
@@ -177,12 +178,11 @@ class SequenceViewer(ToolInstance):
         for seq in self.alignment.seqs:
             self._seq_rename_handlers[seq] = seq.triggers.add_handler("rename",
                 self.region_manager._seq_renamed_cb)
-            if seq.match_maps:
+            if self.alignment.match_maps[seq]:
                self._update_errors_gaps(seq)
         if self.alignment.intrinsic and not from_session:
             self.show_ss(True)
             self.status("Helices/strands depicted in gold/green")
-        self._feature_browsers = {}
         if not from_session:
             if len(self.alignment.seqs) == 1:
                 seq = self.alignment.seqs[0]
@@ -562,6 +562,9 @@ class SequenceViewer(ToolInstance):
                 prog_menu.addAction(realign_action)
             if single_seq:
                 prog_menu.setEnabled(False)
+        rename_action = QAction("Rename Sequence...", edit_menu)
+        rename_action.triggered.connect(self.show_rename_sequence_dialog)
+        edit_menu.addAction(rename_action)
 
         structure_menu = menu.addMenu("Structure")
         assoc_action = QAction("Associations...", structure_menu)
@@ -585,6 +588,11 @@ class SequenceViewer(ToolInstance):
                 action.triggered.connect(lambda act, *args, func=self.select_by_column_identity, val=value:
                     func(val))
                 cons_sel_menu.addAction(action)
+        match_action = QAction("Match...", structure_menu)
+        match_action.triggered.connect(self.show_match_dialog)
+        match_action.setEnabled(
+            len(set([chain.structure for chain in self.alignment.associations.keys()])) > 1)
+        structure_menu.addAction(match_action)
         xfer_action = QAction("Update Chain Sequence...", structure_menu)
         xfer_action.triggered.connect(self.show_transfer_seq_dialog)
         xfer_action.setEnabled(bool(self.alignment.associations))
@@ -599,7 +607,7 @@ class SequenceViewer(ToolInstance):
 
         seq, seq, index, index = self.seq_canvas.bounded_by(x, y, x, y, exclude_headers=True)
         if seq is not None and seq in self.alignment.seqs:
-            for chain, mm in seq.match_maps.items():
+            for chain, mm in self.alignment.match_maps[seq].items():
                 try:
                     view_targets.append(mm[seq.gapped_to_ungapped(index)])
                 except KeyError:
@@ -808,6 +816,14 @@ class SequenceViewer(ToolInstance):
             self._feature_browsers[seq].tool_window.manage(None)
         self._feature_browsers[seq].tool_window.shown = True
 
+    def show_match_dialog(self):
+        if not hasattr(self, "match_dialog"):
+            from .match import MatchDialog
+            self.match_dialog = MatchDialog(self,
+                self.tool_window.create_child_window("Match", close_destroys=False))
+            self.match_dialog.tool_window.manage(None)
+        self.match_dialog.tool_window.shown = True
+
     def show_percent_identity_dialog(self):
         if not hasattr(self, "percent_identity_dialog"):
             from .identity import PercentIdentityDialog
@@ -815,6 +831,14 @@ class SequenceViewer(ToolInstance):
                 self.tool_window.create_child_window("Percent Identity", close_destroys=False))
             self.percent_identity_dialog.tool_window.manage(None)
         self.percent_identity_dialog.tool_window.shown = True
+
+    def show_rename_sequence_dialog(self):
+        if not hasattr(self, "rename_sequence_dialog"):
+            from .rename_seq import RenameSeqDialog
+            self.rename_sequence_dialog = RenameSeqDialog(self,
+                self.tool_window.create_child_window("Rename Sequence", close_destroys=False))
+            self.rename_sequence_dialog.tool_window.manage(None)
+        self.rename_sequence_dialog.tool_window.shown = True
 
     def show_transfer_seq_dialog(self):
         if not hasattr(self, "transfer_seq_dialog"):
@@ -853,9 +877,9 @@ class SequenceViewer(ToolInstance):
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
         inst._finalize_init(data['alignment'])
-        inst.region_manager.restore_state(data['region browser'])
         if 'seq canvas' in data:
             inst.seq_canvas.restore_state(session, data['seq canvas'])
+        inst.region_manager.restore_state(data['region browser'])
         # feature browsers depend on regions (and therefore the region browser) being restored first
         if 'feature browsers' in data:
             from .feature_browser import FeatureBrowser
@@ -884,6 +908,12 @@ class SequenceViewer(ToolInstance):
     def _regions_tool_notification(self, category, region):
         if self._regions_tool:
             self._regions_tool.region_notification(category, region)
+        try:
+            fb = self._feature_browsers[region.sequence]
+        except KeyError:
+            pass
+        else:
+            fb.region_notification(category, region)
 
     def _update_errors_gaps(self, aseq):
         if not self.settings.error_region_shown and not self.settings.gap_region_shown:
@@ -892,7 +922,7 @@ class SequenceViewer(ToolInstance):
         errors = [0] * len(a_ref_seq)
         gaps = [0] * len(a_ref_seq)
         from chimerax.atomic import Sequence
-        for chain, match_map in aseq.match_maps.items():
+        for chain, match_map in self.alignment.match_maps[aseq].items():
             for i, char in enumerate(a_ref_seq):
                 try:
                     res = match_map[i]
@@ -903,7 +933,7 @@ class SequenceViewer(ToolInstance):
                         errors[i] += 1
         partial_error_blocks, full_error_blocks = [], []
         partial_gap_blocks, full_gap_blocks = [], []
-        num_assocs = len(aseq.match_maps)
+        num_assocs = len(self.alignment.match_maps[aseq])
         if num_assocs > 0:
             for partial, full, check in [(partial_error_blocks, full_error_blocks, errors),
                     (partial_gap_blocks, full_gap_blocks, gaps)]:

@@ -22,9 +22,10 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def fetch_alpha_missense_scores(session, uniprot_id, chain = None, identifier = None, ignore_cache = False):
+def fetch_alpha_missense_scores(session, uniprot_id, chains = None, allow_mismatches = False,
+                                identifier = None, ignore_cache = False):
     '''
-    Fetch AlphaMissense scores for a UniProt entry specified by its accession code.
+    Fetch AlphaMissense scores for a UniProt entry specified by its UniProt name or accession code.
     Data is in tab separated value format.
     Create a mutation scores instance. Example URL
 
@@ -33,18 +34,28 @@ def fetch_alpha_missense_scores(session, uniprot_id, chain = None, identifier = 
     It seems DeepMind didn't make the data fetchable on a per-protein basis. We can get it from the EBI alphafold
     database only it is per-fragment.  Zenodo has the original data but in a gbyte size file.
     '''
+    if '_' in uniprot_id:
+        # Convert uniprot name to accession code.
+        from chimerax.uniprot import map_uniprot_ident
+        uid = map_uniprot_ident(uniprot_id, return_value = 'entry')
+    else:
+        uid = uniprot_id
+
     url_pattern = 'https://alphafold.ebi.ac.uk/files/AF-%s-F1-aa-substitutions.csv'
-    url = url_pattern % uniprot_id
+    url = url_pattern % uid
     file_name = url.split('/')[-1]
     save_dir = 'AlphaMissense'
     from chimerax.core.fetch import fetch_file
     path = fetch_file(session, url, f'AlphaMissense {uniprot_id}',
                           file_name, save_dir, ignore_cache = ignore_cache)
 
-    mset, msg = open_alpha_missense_scores(session, path, chain = chain, identifier = identifier)
+    if identifier is None:
+        identifier = uniprot_id
+    mset, msg = open_alpha_missense_scores(session, path, identifier = identifier,
+                                           chains = chains, allow_mismatches = allow_mismatches)
     return mset, msg
 
-def open_alpha_missense_scores(session, path, chain = None, identifier = None):
+def open_alpha_missense_scores(session, path, identifier = None, chains = None, allow_mismatches = False):
     with open(path, 'r') as f:
         lines = f.readlines()
 
@@ -69,10 +80,14 @@ def open_alpha_missense_scores(session, path, chain = None, identifier = None):
     mset = msm.mutation_set(mset_name)
     if mset is None:
         from .ms_data import MutationSet
-        mset = MutationSet(mset_name, mutation_scores, chain = chain, path = path)
+        mset = MutationSet(mset_name, mutation_scores,
+                           chains = chains, allow_mismatches = allow_mismatches,
+                           path = path)
         msm.add_scores(mset)
     else:
         mset.add_scores(mutation_scores)
+        if chains:
+            mset.set_associated_chains(chains, allow_mismatches)
 
     nres = len(set(ms.residue_number for ms in mutation_scores))
     msg = f'Fetched AlphaMissense scores {identifier} for {nres} residues'

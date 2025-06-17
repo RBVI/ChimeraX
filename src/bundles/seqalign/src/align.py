@@ -30,7 +30,7 @@ from .cmd import MUSCLE, CLUSTAL_OMEGA
 
 # Implement only as blocking for now; can add non-blocking later if any need for it.
 # Also, no options for now, can add later if any demand.
-def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA):
+def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA, replacing=False):
     realigned_sequences = []
     # create temp file in main line of function, so that it is not closed/garbage collected prematurely
     input_file = tempfile.NamedTemporaryFile(mode='w', suffix='.fa', delete=False)
@@ -72,11 +72,11 @@ def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA):
             super().__init__(session)
             service_name, options, self.reorders_seqs, in_flag, out_flag = {
                 MUSCLE: (
-                    "muscle",
-                    {'maxiters': "1"},
+                    "muscle5",
+                    {},
                     True,
-                    "-in",
-                    "-out",
+                    "-align",
+                    "-output",
                 ),
                 CLUSTAL_OMEGA: (
                     "clustal_omega",
@@ -121,6 +121,7 @@ def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA):
                     % (program, program))
             mod = importlib.import_module(".io.readFASTA", "chimerax.seqalign")
             out_seqs, *args = mod.read(session, io.StringIO(fasta_output))
+            sequences_matched = True
             if self.reorders_seqs:
                 # put result in the same order as the original sequences
                 orig_names = set([s.name for s in sequences])
@@ -138,6 +139,23 @@ def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA):
                             order[(s.name, s.ungapped())] = i
                         key_func = lambda s: order[(s.name, s.ungapped())]
                     out_seqs.sort(key=key_func)
+                else:
+                    sequences_matched = False
+            # if original sequence was a StructureSeq, make the output one as well because
+            # in some cases the automatic association may not be complete otherwise [#17742]
+            if sequences_matched and not replacing:
+                corrected_output = []
+                for out_seq, orig_seq in zip(out_seqs, sequences):
+                    if getattr(orig_seq, 'structure', None) is None:
+                        corrected_output.append(out_seq)
+                    else:
+                        from copy import copy
+                        cor_seq = copy(orig_seq)
+                        cor_seq.bulk_set(orig_seq.residues, out_seq.characters, fire_triggers=False)
+                        corrected_output.append(cor_seq)
+
+                out_seqs = corrected_output
+
             realigned_sequences.extend(out_seqs)
     job = RealignJob()
     return realigned_sequences

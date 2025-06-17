@@ -91,7 +91,7 @@ devel_unalias_desc = CmdDesc(required=[("name", StringArg)],
                              synopsis='Remove alias for bundle path')
 
 
-def devel_build(session, path, test=None, debug=False, exit=False, release=False):
+def devel_build(session, path, debug=False, exit=False, release=False):
     '''Build a wheel in for the source code in bundle path.
 
     Parameters
@@ -103,8 +103,6 @@ def devel_build(session, path, test=None, debug=False, exit=False, release=False
     exit : bool
         Exit after finishing build.
     '''
-    if test is not None:
-        session.logger.warning("The test option has been removed")
     if _has_bundle_xml(path):
         from chimerax.bundle_builder import BundleBuilder
     else:
@@ -113,14 +111,13 @@ def devel_build(session, path, test=None, debug=False, exit=False, release=False
 
 
 devel_build_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
-                           keyword=[("test", BoolArg),
-                                    ("debug", BoolArg),
+                           keyword=[("debug", BoolArg),
                                     ("exit", BoolArg),
                                     ("release", BoolArg)],
                            synopsis='Build a wheel for bundle')
 
 
-def devel_install(session, path, test=None, user=None, debug=False, exit=False, no_deps=None, editable=False):
+def devel_install(session, path, user=None, debug=False, exit=False, no_deps=None, editable=False):
     '''Build and install a wheel in for the source code in bundle path.
 
     Parameters
@@ -134,8 +131,6 @@ def devel_install(session, path, test=None, user=None, debug=False, exit=False, 
     exit : bool
         Exit after finishing install.
     '''
-    if test is not None:
-        session.logger.warning("The test option has been removed")
     if _has_bundle_xml(path):
         from chimerax.bundle_builder import BundleBuilder
         if editable:
@@ -147,8 +142,7 @@ def devel_install(session, path, test=None, user=None, debug=False, exit=False, 
 
 
 devel_install_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
-                             keyword=[("test", BoolArg),
-                                      ("debug", BoolArg),
+                             keyword=[("debug", BoolArg),
                                       ("no_deps", BoolArg),
                                       ("user", BoolArg),
                                       ("exit", BoolArg),
@@ -205,7 +199,7 @@ def devel_dump(session, path):
     path : string
       Path to folder containing bundle source code or bundle alias.
     '''
-    bb = _get_builder(path, session.logger)
+    bb = _get_builder(session.logger, path)
     if bb is not None:
         bb.dump()
 

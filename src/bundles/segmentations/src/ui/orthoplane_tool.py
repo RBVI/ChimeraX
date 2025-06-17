@@ -28,7 +28,9 @@ from chimerax.segmentations.types import Direction, Axis
 from chimerax.segmentations.ui.orthoplanes import PlaneViewer, PlaneViewerManager
 from chimerax.ui import MainToolWindow
 
-from Qt.QtWidgets import QVBoxLayout
+from Qt.QtWidgets import QVBoxLayout, QWidget
+from Qt.QtGui import QImage, QPainter
+from Qt.QtCore import Qt
 
 class OrthoplaneTool(ToolInstance):
     help = "help:user/tools/orthoplanetool.html"
@@ -44,7 +46,20 @@ class OrthoplaneTool(ToolInstance):
         self.parent.setLayout(QVBoxLayout())
         self.viewer = PlaneViewer(self.parent, self._orthoplane_manager, self.session, Axis.AXIAL)
         self.parent.layout().addWidget(self.viewer.container)
+        self.parent.grab = self._grab_window
         self.tool_window.manage("side")
+
+    def _grab_window(self):
+        rest_of_window = QWidget.grab(self.viewer.parent)
+        graphics_area = self.viewer.widget.grab()
+        total_size = self.viewer.parent.size()
+        widget_size = self.viewer.widget.size()
+        painter = QPainter(rest_of_window)
+        resized_opengl_image = graphics_area.scaled(widget_size.width(), widget_size.height(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        painter.drawImage(self.viewer.widget.x() + self.viewer.container.x(), self.viewer.widget.y() + self.viewer.container.y(), resized_opengl_image)
+        painter.end()
+        return rest_of_window
+
 
     def delete(self):
         self.viewer.close()

@@ -192,6 +192,10 @@ libtheora $(LIBTHEORA): $(LIBTHEORA_SOURCE) $(LIBOGG)
 ifeq ($(OS),Darwin)
 	ln -sfF $(datadir)/libtool/build-aux/ltmain.sh $(LIBTHEORA_SOURCE)/ltmain.sh
 else ifneq (,$(wildcard /usr/share/libtool/build-aux/ltmain.sh))
+ifeq ($(OSARCH),LinuxArm64)
+	cd $(LIBTHEORA_SOURCE) ; rm config.guess ; cp $(TOP)/utils/build/autotools/config.guess .
+	cd $(LIBTHEORA_SOURCE) ; rm config.sub ; cp $(TOP)/utils/build/autotools/config.sub .
+endif
 	-cd $(LIBTHEORA_SOURCE) ; ./autogen.sh
 endif
 	cd $(LIBTHEORA_SOURCE) ; \

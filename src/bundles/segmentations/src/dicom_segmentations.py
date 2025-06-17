@@ -2,7 +2,7 @@ from typing import Optional
 
 import numpy as np
 
-from .segmentation import SegmentationStrategy
+from chimerax.segmentations.segmentation import SegmentationStrategy
 
 from chimerax.dicom.types import Axis
 
@@ -59,32 +59,38 @@ class PlanePuckSegmentation(SegmentationStrategy):
         #  grid.data.segment_array[slice][left_offset][bottom_offset] = 1
         x_max, y_max, z_max = grid.size
         x_step, y_step, z_step = grid.step
-        if not min_threshold:
-            min_threshold = float("-inf")
-        if not max_threshold:
-            max_threshold = float("inf")
+        min_threshold = min_threshold if min_threshold is not None else float("-inf")
+        max_threshold = max_threshold if max_threshold is not None else float("inf")
         if axis == Axis.AXIAL:
             slice = grid.array[slice_number]
             reference_slice = reference_grid.matrix()[slice_number]
-            vertical_max = y_max - 1
-            vertical_step = y_step
-            horizontal_max = x_max - 1
-            horizontal_step = x_step
+            horizontal_max, vertical_max = x_max - 1, y_max - 1
+            horizontal_step, vertical_step = x_step, y_step
         elif axis == Axis.CORONAL:
             slice = grid.array[:, slice_number, :]
             reference_slice = reference_grid.matrix()[:, slice_number, :]
-            vertical_max = z_max - 1
-            vertical_step = z_step
-            horizontal_max = x_max - 1
-            horizontal_step = x_step
+            horizontal_max, vertical_max = x_max - 1, z_max - 1
+            horizontal_step, vertical_step = x_step, z_step
         else:
             slice = grid.array[:, :, slice_number]
             reference_slice = reference_grid.matrix()[:, :, slice_number]
-            vertical_max = z_max - 1
-            vertical_step = z_step
-            horizontal_max = y_max - 1
-            horizontal_step = y_step
+            horizontal_max, vertical_max = y_max - 1, z_max - 1
+            horizontal_step, vertical_step = y_step, z_step
+
         scaled_radius = round(radius / horizontal_step)
+
+        def apply_mask(x_start, x_end, y_start, y_end):
+            """
+            Apply the mask within bounds, checking thresholds.
+            """
+            # Apply thresholds and modify the slice
+            for y_row in range(y_start, y_end + 1):
+                mask = np.logical_and(
+                    reference_slice[y_row, x_start:x_end + 1] >= min_threshold,
+                    reference_slice[y_row, x_start:x_end + 1] <= max_threshold,
+                )
+                slice[y_row, x_start:x_end + 1][mask] = value
+
         x = 0
         y = round(radius)
         d = 1 - y
@@ -99,118 +105,18 @@ class PlanePuckSegmentation(SegmentationStrategy):
             scaled_vert_x = round(x / vertical_step)
             scaled_horiz_y = round(y / horizontal_step)
             scaled_vert_y = round(y / vertical_step)
+
             x_start = round(max(left_offset - scaled_horiz_x, 0))
             x_end = round(min(left_offset + scaled_horiz_x, horizontal_max - 1))
             y_start = round(max(bottom_offset - scaled_vert_y, 0))
             y_end = round(min(bottom_offset + scaled_vert_y, vertical_max))
-            mask = np.where(
-                reference_slice[y_start, x_start:x_end] <= max_threshold, 1, 0
-            )
-            mask &= np.where(
-                reference_slice[y_start, x_start:x_end] >= min_threshold, 1, 0
-            )
-            slice[y_start][x_start:x_end][np.where(mask == 1)] = value
-            mask = np.where(
-                reference_slice[y_start + 1, x_start:x_end] <= max_threshold, 1, 0
-            )
-            mask &= np.where(
-                reference_slice[y_start + 1, x_start:x_end] >= min_threshold, 1, 0
-            )
-            slice[y_start + 1][x_start:x_end][np.where(mask == 1)] = value
-            mask = np.where(
-                reference_slice[y_end, x_start:x_end] <= max_threshold, 1, 0
-            )
-            mask &= np.where(
-                reference_slice[y_end, x_start:x_end] >= min_threshold, 1, 0
-            )
-            slice[y_end][x_start:x_end][np.where(mask == 1)] = value
-            mask = np.where(
-                reference_slice[y_end - 1, x_start:x_end] <= max_threshold, 1, 0
-            )
-            mask &= np.where(
-                reference_slice[y_end - 1, x_start:x_end] >= min_threshold, 1, 0
-            )
-            slice[y_end - 1][x_start:x_end][np.where(mask == 1)] = value
-            # slice[y_end][x_start:x_end][np.where(min_threshold <= reference_slice <= max_threshold)] = value
-            # for i in range(x_start, x_end):
-            ##    if min_threshold <= reference_slice[y_start][i] <= max_threshold:
-            ##        slice[y_start][i] = value
-            #    if min_threshold <= reference_slice[y_end][i] <= max_threshold:
-            #        slice[y_end][i] = value
-            #    # Try to account for the fact that with spacings < 1 some lines get skipped, even if it
-            #    # causes redundant writes
-            #    if min_threshold <= reference_slice[y_start+1][i] <= max_threshold:
-            #        slice[y_start+1][i] = value
-            #    if min_threshold <= reference_slice[y_end-1][i] <= max_threshold:
-            #        slice[y_end-1][i] = value
+            apply_mask(x_start, x_end, y_start, y_end)
+
             x_start = round(max(left_offset - scaled_horiz_y, 0))
             x_end = round(min(left_offset + scaled_horiz_y, horizontal_max))
             y_start = round(max(bottom_offset - scaled_vert_x, 0))
             y_end = round(min(bottom_offset + scaled_vert_x, vertical_max))
-            mask = np.where(
-                reference_slice[y_start, x_start:x_end] <= max_threshold, 1, 0
-            )
-            mask &= np.where(
-                reference_slice[y_start, x_start:x_end] >= min_threshold, 1, 0
-            )
-            slice[y_start][x_start:x_end][np.where(mask == 1)] = value
-            mask = np.where(
-                reference_slice[y_start + 1, x_start:x_end] <= max_threshold, 1, 0
-            )
-            mask &= np.where(
-                reference_slice[y_start + 1, x_start:x_end] >= min_threshold, 1, 0
-            )
-            slice[y_start + 1][x_start:x_end][np.where(mask == 1)] = value
-            mask = np.where(
-                reference_slice[y_end, x_start:x_end] <= max_threshold, 1, 0
-            )
-            mask &= np.where(
-                reference_slice[y_end, x_start:x_end] >= min_threshold, 1, 0
-            )
-            slice[y_end][x_start:x_end][np.where(mask == 1)] = value
-            mask = np.where(
-                reference_slice[y_end - 1, x_start:x_end] <= max_threshold, 1, 0
-            )
-            mask &= np.where(
-                reference_slice[y_end - 1, x_start:x_end] >= min_threshold, 1, 0
-            )
-            slice[y_end - 1][x_start:x_end][np.where(mask == 1)] = value
-
-            # for i in range(x_start, x_end):
-            #    if min_threshold <= reference_slice[y_start][i] <= max_threshold:
-            #        slice[y_start][i] = value
-            #    if min_threshold <= reference_slice[y_end][i] <= max_threshold:
-            #        slice[y_end][i] = value
-            #    # Try to account for the fact that with spacings < 1 some lines get skipped, even if it
-            #    # causes redundant writes
-            #    if min_threshold <= reference_slice[y_start+1][i] <= max_threshold:
-            #        slice[y_start+1][i] = value
-            #    if min_threshold <= reference_slice[y_end-1][i] <= max_threshold:
-            #        slice[y_end-1][i] = value
-            # slice[y_start + 1][x_start:x_end] = value
-            # slice[y_end - 1][x_start:x_end] = value
-        mask = np.where(
-            reference_slice[
-                bottom_offset, left_offset - scaled_radius : left_offset + scaled_radius
-            ]
-            <= max_threshold,
-            1,
-            0,
-        )
-        mask &= np.where(
-            reference_slice[
-                bottom_offset, left_offset - scaled_radius : left_offset + scaled_radius
-            ]
-            >= min_threshold,
-            1,
-            0,
-        )
-        # for i in range(left_offset - scaled_radius, left_offset + scaled_radius):
-        #    if min_threshold <= reference_slice[bottom_offset][i] <= max_threshold:
-        #        slice[bottom_offset][i] = value
-        slice[bottom_offset][left_offset - scaled_radius : left_offset + scaled_radius][
-            np.where(mask == 1)
-        ] = value
+            apply_mask(x_start, x_end, y_start, y_end)
 
 
 class SphericalSegmentation(SegmentationStrategy):

@@ -55,10 +55,13 @@ tutorial</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
 target="_blank">MOLE Channel Coloring tutorial</a>,
 <a href="https://rbvi.github.io/chimerax-recipes/castp/castp.html" 
-target="_blank">recipe for reading CASTp pockets</a>
+target="_blank">recipe for reading CASTp pockets</a>,
+the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#kvfinder"
+target="_blank">ChimeraX Find Cavities highlight</a>
 </p><p>
 Conceptually, the method rolls two spherical probes
 over the VDW spheres of the macromolecule to identify cavities. 
+PDB HET residues (solvent, ligands, and ions) are ignored.
 The smaller &ldquo;inner&rdquo; probe defines the
 molecular surface, and the larger &ldquo;outer&rdquo; probe
 gives an initial estimate of the outer limits of the cavities. 
@@ -96,17 +99,28 @@ without changing any preferences
 <li><b>Restore</b> populates the dialog with the last saved preferences
 </ul>
 <p>
-Clicking <b>OK</b> runs the calculation, and tabulates the results for 
-each atomic model in a separate <a href="#cavitylist">cavity list</a> window.
-These results are also reported in the <a href="log.html"><b>Log</b></a>.
-PDB HET residues (solvent, ligands, and ions) are ignored, and
-default parameters are used.
-For more details on the method and/or to adjust additional parameters,
-see the <a href="../commands/kvfinder.html"><b>kvfinder</b></a> command.
+Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
+runs the calculation. The first time the tool is used,
+it may take a little longer to run as
+<a href="https://lbc-lnbio.github.io/pyKVFinder/"
+target="_blank"><i>pyKVFinder</i></a> is installed locally.
 </p><p>
+The results for each atomic model are tabulated
+in a separate <a href="#cavitylist">cavity list</a> window
+and reported in the <a href="log.html"><b>Log</b></a>.
 In the graphics window, the cavities are shown as clouds of points 
 on a grid. These collections of dots are opened as (pseudo)atomic models
 in ChimeraX, each cavity as a separate submodel assigned a unique color.
+</p><p>
+<b>Replace existing results, if any</b> (default <b>on</b>) 
+indicates whether to overwrite the cavity dots and
+<a href="#cavitylist">cavity list</a> when the calculation is
+re-run on the same atomic model. Otherwise, a new
+<a href="#cavitylist">cavity list</a> and additional
+cavity models will be created without closing the existing ones.
+<p><p>
+For more details on the method and/or to adjust additional parameters,
+see the <a href="../commands/kvfinder.html"><b>kvfinder</b></a> command.
 </p>
 
 <a name="cavitylist"></a>
@@ -129,6 +143,14 @@ in the <a href="modelpanel.html"><b>Model Panel</b></a>)
 as determined by <b><i>KVFinder</i></b>
 <li><b>Points</b> &ndash; number of grid points in the cavity,
 displayed as (pseudo)atoms in ChimeraX
+<li><b>Average Depth</b> 
+&ndash; average depth of pocket points, 
+<a name="depth"></a>
+where the <b><i>depth</i></b> of a point is its approximate distance
+in &Aring; from the pocket opening. 
+Points in completely enclosed pockets are assigned a zero depth.
+<li><b>Maximum Depth</b> 
+&ndash; how far from the opening the pocket extends
 </ul>
 <p>
 If a cavity list is closed but the corresponding cavity models still exist,
@@ -151,34 +173,38 @@ the grid points (pseudoatoms) defining the cavity
 <li><b>Select nearby atoms</b> &ndash; <a href="../selection.html">select</a>
 atoms within the specified <a href="#nearby">nearby distance</a>
 of any cavity point
+<!-- may be shown if from previously saved session
 <li><b>Show nearby residues</b> &ndash; show all atoms of residues with 
 any nearby atoms; although other atoms (not nearby) are not hidden, 
 unchecking the option will hide the nearby residues of the currently 
 chosen cavities
-<!--
-<li><b>Surface nearby atoms</b> &ndash; show the molecular surface of nearby 
-atoms. The surface area calculated by <b><i>KVFinder</i></b> for the cavity
-is <i>not</i> based on this patch of molecular surface.
-  <ul>
-  <li><b>Color surface by lipophilicity</b> &ndash; color the molecular surface
-by <a href="../commands/mlp.html">molecular lipophilicity potential</a> (MLP)
-using <table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=darkcyan width="10px" title="darkcyan"></td>
-<td bgcolor=white width="10px" title="white"></td>
-<td bgcolor=darkgoldenrod width="10px" title="darkgoldenrod"></td>
-</tr></table> over the range -20 (hydrophilic) to 20 (hydrophobic).
-Note that once this coloring has been applied to a given molecular surface, 
-it persists even if this option is turned off. The surface would need to be 
-removed and recreated or manually recolored to get rid of the coloring by MLP.
-  </ul>
 -->
+<li><b>Show contacting residues</b> &ndash; show atoms of the cavity-contacting
+residues determined by <b><i>KVFinder</i></b>
+  <ul>
+  <li><b>Include backbone contacts</b> 
+&ndash; whether to include residues with backbone-only contacts in the above
+  </ul>
 </ul>
 <p>
 <a name="nearby"></a>
-<b>"Nearby" atoms/residues are within</b> [<i>distance</i>] <b>angstroms
+<b>"Nearby" atoms are within</b> [<i>distance</i>] <b>angstroms
 of cavity points</b>
 &ndash; distance criterion for the <b>nearby</b> checkbox options above
+</p><p>
+<b>Color open cavities by depth from outside</b> 
+&ndash; color cavity points by <a href="#depth">depth</a>
+(assigned as atom <a href="../attributes.html">attribute</a>
+<b>kvfinder_depth</b>) using
+<a href="../commands/color.html#byattribute"><b>color byattribute</b></a>
+with palette <b>bluered</b> <table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=blue width="10px" title="blue"></td>
+<td bgcolor=white width="10px" title="white"></td>
+<td bgcolor=red width="10px" title="red"></td>
+</tr></table> over the full range of values;
+different colorings can be obtained by reissuing the command with
+different <a href="../commands/color.html#palette-options">palette options</a>
 </p>
 
 <a name="coloring"></a>
@@ -195,7 +221,8 @@ from the surrounding protein. However, since only the cavity points
 the coloring command must specify using the protein atoms to calculate 
 the properties for coloring these surfaces.
 </p><p>
-For example, if the option to show cavity surfaces is turned on, and
+For example, if the option to show cavity surfaces is turned on, 
+at least one cavity surface has been shown, and
 the protein structure is model #1 and the computed cavity models are 
 #1.2.1, #1.2.2, (<i>etc.</i>), the following commands could be 
 used to color the surfaces by 
@@ -224,5 +251,5 @@ These types of coloring can be combined with surface transparency, for example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2024</address>
+April 2025</address>
 </body></html>

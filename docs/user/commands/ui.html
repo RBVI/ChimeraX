@@ -655,6 +655,14 @@ see <a href="../tools/mousemodes.html#multiwindowing">details</a>
 </td>
 <td align="center"><img src="../tools/mouse-icons/windowing.png" width="35px"></td>
 </tr><tr>
+<td align="center"><a name="orthopick"></a><b>orthopick</b></td>
+<td align="center" class="text">in
+<a href="../tools/volumeviewer.html">volume data</a>,
+show three orthogonal slices centered at the clicked point 
+as well as laid out in a plane for easy viewing without rotation
+(<a href="https://www.rbvi.ucsf.edu/chimerax/data/membrane-jun2024/membrane_pick.html" target="_blank">details...</a>)</td>
+<td align="center"><img src="../tools/mouse-icons/orthopick.png" width="35px"></td>
+</tr><tr>
 <td align="center"><b>bond rotation</b></td>
 <td align="center" class="text">adjust torsion angle (original position 
 not retained) by clicking a bond and dragging vertically, <b>+Shift</b> to
@@ -699,7 +707,7 @@ original coordinates not retained</td>
 <td align="center"><b>next docked</b></td>
 <td align="center" class="text">
 click-drag to show the next/previous docked ligand when docking results
-are open in <a href="../tools/viewdockx.html"><b>ViewDockX</b></a></td>
+are open in <a href="../tools/viewdock.html"><b>ViewDock</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/nextdocking.png" 
 width="35px"></td>
 </tr><tr>
@@ -886,7 +894,10 @@ by using the <a href="#mousemode"><b>mousemode</b></a> command.
 <a href="#top" class="nounder">&bull;</a>
 <b>ui &nbsp;view</b>
 (&nbsp;<b>default</b>&nbsp;|&nbsp;fourup&nbsp;|&nbsp;overunder&nbsp;|&nbsp;sidebyside&nbsp;)
-[&nbsp;<b>guidelines</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#slice-guidelines"><b>guidelines</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+<!--
+[&nbsp;<a href="#slice-colorkey"><b>colorkey</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+-->
 <p>
 The <b>ui view</b> command allows showing medical images and other
 <a href="../tools/volumeviewer.html">volume data</a>
@@ -916,13 +927,19 @@ views arranged horizontally across the bottom
 views arranged vertically on the right
 </ul>
 <p>
-The <b>guidelines</b> option controls whether each slice view should
+<a name="slice-guidelines"></a>
+The <b>guidelines</b> option of <b>ui view</b>
+controls whether each slice view should
 contain crosshairs showing the positions of the other slice views.
 </p><p>
-The <a href="../tools/volumeviewer.html#threshold">thresholds</a> of each view
-(how values map to intensities) can be adjusted interactively in the
+<a name="slice-colorkey"></a>
+Color keys showing how the values map to colors/intensities can be displayed
+in each slice view. This mapping can be adjusted interactively in the
 <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> tool.
-</p>
+</p><p>
+The <a href="#slice-context">slice view context menu</a> allows toggling
+the display of color keys and guidelines.
+<p>
 
 <a name="navigation"></a>
 <h3>Slice Navigation and Manipulation</h3>
@@ -936,13 +953,24 @@ optionally + Shift for faster movement:
 <li>left and right arrow keys
 </ul>
 <p>
+The depth of the current plane is reported to the right of the slider.
+</p><p>
 The three slice views do not rotate,
 but their zooming and translation follow the default
 <a href="ui.html#mousemode">mousemode assignments</a>.
 <!-- #9147 #9303 honor nondefault zoom/trans mousemodes -->
+</p><p>
+<a name="slice-context"></a>
+The slice views contain a context menu (shown with right-click or Ctrl-click)
+that allows turning the <a href="#slice-guidelines">guidelines</a>
+and <a href="#slice-colorkey">color keys</a> on or off:
 </p>
+<ul>
+<li><b>Toggle Guidelines</b>
+<li><b>Toggle Color Keys</b>
+</ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2024</address>
+May 2025</address>
 </body></html>

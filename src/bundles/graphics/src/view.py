@@ -338,6 +338,8 @@ class View:
     @property
     def shape_changed(self):
         return self._drawing_manager.shape_changed
+    def clear_shape_change(self):
+        self._drawing_manager.shape_changed = False
 
     @property
     def recalculate_clip_caps(self):

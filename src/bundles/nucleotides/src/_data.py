@@ -713,7 +713,7 @@ def _rebuild_molecule(trigger_name, mol):
         nd.add_shapes(all_shapes)
 
     if hide_bases:
-        # Until we have equivalent of ribbon_coord for atoms
+        # Until we have equivalent of effective_coord for atoms
         # hidden by nucleotide representations, we hide the
         # hydrogen bonds to atoms hidden by nucleotides.
         hide_hydrogen_bonds(hide_bases)
@@ -980,6 +980,11 @@ def draw_tube(nd, residue, name, params):
     c4p = residue.find_atom("C4'")
     if not c4p:
         return shapes
+    if residue.ribbon_display and residue.ribbon_hide_backbone:
+        # Make sure effective_coord is on the ribbon
+        # since the tube will later hide the C2' and O4'.
+        # See C++ atom_update_ribbon_backbone_atom_visibility() code.
+        Atoms([c3p, c4p]).set_hide_bits(Atoms.HIDE_RIBBON)
     c3p_coord = c3p.effective_coord
     c4p_coord = c4p.effective_coord
     ep1 = (c3p_coord + c4p_coord) / 2

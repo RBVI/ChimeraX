@@ -51,6 +51,9 @@ class _AlignmentsBundleAPI(BundleAPI):
         if not hasattr(session, 'alignments'):
             from .manager import AlignmentsManager
             session.alignments = AlignmentsManager(session, name, bundle_info)
+            if session.ui.is_gui:
+                session.ui.triggers.add_handler('ready',
+                    lambda *args, ses=session: settings.register_settings_options(ses))
 
     @staticmethod
     def finish(session, bundle_info):

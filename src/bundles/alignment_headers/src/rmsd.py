@@ -50,6 +50,9 @@ class RMSD(DynamicStructureHeaderSequence):
     def alignment_notification(self, note_name, note_data):
         if note_name == self.alignment.NOTE_RMSD_UPDATE:
             self.reevaluate()
+        elif note_name == self.alignment.NOTE_REALIGNMENT:
+            with self.alignment_notifications_suppressed():
+                self.reevaluate()
 
     @property
     def atoms(self):
@@ -143,7 +146,7 @@ class RMSD(DynamicStructureHeaderSequence):
             ungapped = seq.gapped_to_ungapped(pos)
             if ungapped is None:
                 continue
-            match_map = seq.match_maps[chain]
+            match_map = self.alignment.match_maps[seq][chain]
             try:
                 r = match_map[ungapped]
             except KeyError:

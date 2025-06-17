@@ -22,25 +22,34 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def fetch_uniprot_variants(session, uniprot_id, chain = None, identifier = None, ignore_cache = False):
+def fetch_uniprot_variants(session, uniprot_id, identifier = None,
+                           chains = None, allow_mismatches = False, ignore_cache = False):
     '''
-    Fetch UniProt variants for a UniProt entry specified by its accession code.  Data is in JSON format.
+    Fetch UniProt variants for a UniProt entry specified by its name or accession code.  Data is in JSON format.
     Create a mutation scores instance. Example URL
 
        https://www.ebi.ac.uk/proteins/api/variation/Q9UNQ0
     '''
+    if '_' in uniprot_id:
+        # Convert uniprot name to accession code.
+        from chimerax.uniprot import map_uniprot_ident
+        uid = map_uniprot_ident(uniprot_id, return_value = 'entry')
+    else:
+        uid = uniprot_id
+
     url_pattern = 'https://www.ebi.ac.uk/proteins/api/variation/%s'
-    url = url_pattern % uniprot_id
+    url = url_pattern % uid
     file_name = f'{uniprot_id}_variants.json'
     save_dir = 'UniProtVariants'
     from chimerax.core.fetch import fetch_file
     path = fetch_file(session, url, f'UniProt variants {uniprot_id}',
                           file_name, save_dir, ignore_cache = ignore_cache)
 
-    mset, msg = open_uniprot_variant_scores(session, path, chain = chain, identifier = identifier)
+    mset, msg = open_uniprot_variant_scores(session, path, identifier = identifier,
+                                            chains = chains, allow_mismatches = allow_mismatches)
     return mset, msg
 
-def open_uniprot_variant_scores(session, path, chain = None, identifier = None):
+def open_uniprot_variant_scores(session, path, identifier = None, chains = None, allow_mismatches = False):
     with open(path, 'r') as f:
         import json
         variant_info = json.load(f)
@@ -59,10 +68,13 @@ def open_uniprot_variant_scores(session, path, chain = None, identifier = None):
     mset = msm.mutation_set(mset_name)
     if mset is None:
         from .ms_data import MutationSet
-        mset = MutationSet(mset_name, mutation_scores, chain = chain, path = path)
+        mset = MutationSet(mset_name, mutation_scores,
+                           chains = chains, allow_mismatches = allow_mismatches, path = path)
         msm.add_scores(mset)
     else:
         mset.add_scores(mutation_scores)
+        if chains:
+            mset.set_associated_chains(chains, allow_mismatches)
 
     sinfo = []
     score_names = set()

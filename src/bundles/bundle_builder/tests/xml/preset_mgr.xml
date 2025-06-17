@@ -1,0 +1,56 @@
+<BundleInfo name="ChimeraX-PresetMgr" version="1.1.2" package="chimerax.preset_mgr"
+            minSessionVersion="1" maxSessionVersion="1">
+
+  <!-- Additional information about bundle source -->
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <!-- Synopsis is a one-line description
+       Description is a full multi-line description -->
+  <Synopsis>Preset management</Synopsis>
+  <Description>Manager for preset information</Description>
+
+  <!-- Categories is a list where this bundle should appear -->
+  <Categories>
+    <Category name="Depiction"/>
+  </Categories>
+
+  <!-- Dependencies on other ChimeraX/Python packages -->
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.2"/>
+  </Dependencies>
+
+  <Managers>
+    <Manager name="presets"/>
+  </Managers>
+
+  <Providers manager="presets">
+    <Provider category="Cartoons/Nucleotides" name="ribbons/slabs"
+              order="1"/>
+    <Provider category="Cartoons/Nucleotides" name="cylinders/stubs"
+              order="2"/>
+    <Provider category="Cartoons/Nucleotides" name="licorice/ovals"
+              order="3"/>
+    <Provider category="Molecular Surfaces" name="ghostly white"
+              order="1"/>
+    <Provider category="Molecular Surfaces" name="atomic coloring (transparent)"
+              order="2"/>
+    <Provider category="Molecular Surfaces" name="chain ID coloring (opaque)"
+              order="3"/>
+    <Provider category="Overall Look" name="publication 1 (silhouettes)"
+              order="1"/>
+    <Provider category="Overall Look" name="publication 2 (depth-cued)"
+              order="2"/>
+    <Provider category="Overall Look" name="interactive"
+              order="3"/>
+  </Providers>
+
+  <Classifiers>
+    <!-- Development Status should be compatible with bundle version number -->
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: preset :: Depiction :: apply "preset" depiction to models</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

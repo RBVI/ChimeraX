@@ -5,14 +5,15 @@ include $(TOP)/mk/config.make
 # PYTHON_VERSION is in config.make
 PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 
-PIP_VERSION = 24.2
-WHEEL_VERSION = 0.43
-SETUPTOOLS_VERSION = 72.1.0
+PIP_VERSION = 25.0.1
+WHEEL_VERSION = 0.45.1
+SETUPTOOLS_VERSION = 78.1.1
+BUILD_VERSION = 1.2.2.post1
 
 ifeq ($(OS),Windows)
 DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-win-amd64.tar.bz2
 DISTDIR = $(tmpdir)/python-$(PYTHON_PATCH_LEVEL)-win-amd64
-SOURCE = 
+SOURCE =
 DYNLOAD_DIR = $(bindir)/DLLs
 endif
 ifeq ($(OS),Linux)
@@ -24,7 +25,7 @@ endif
 ifeq ($(OS),Darwin)
 DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-mac.tar.bz2
 DISTDIR =
-SOURCE = 
+SOURCE =
 DYNLOAD_DIR = $(libdir)/python$(PYTHON_VERSION)/lib-dynload
 endif
 
@@ -74,7 +75,7 @@ CONFIG_OPTIONS += --enable-shared
 else
 CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --prefix=$(build_prefix)
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
-REL_PYTHON_FRAMEWORK = ../Library/Frameworks/Python.Framework/Versions/$(PYTHON_VERSION)
+REL_PYTHON_FRAMEWORK = ../Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)
 endif
 endif
 
@@ -111,9 +112,9 @@ ifeq ($(OS),Windows)
 
 else ifdef USE_MAC_FRAMEWORKS
 	rm -rf $(frameworkdir)/Python.framework
-	# essex2 complains about pax headers having a newer format, so 
+	# essex2 complains about pax headers having a newer format, so
 	# force this line's error to go away
-	tar xf $(DISTRIBUTION) -C $(frameworkdir) || true 
+	tar xf $(DISTRIBUTION) -C $(frameworkdir) || true
 
 	# Link framework bin, lib, and include files to app directories
 	-cd $(bindir) ; ln -s $(REL_PYTHON_FRAMEWORK)/bin/python* $(REL_PYTHON_FRAMEWORK)/bin/pip* .
@@ -125,11 +126,9 @@ else
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
 ifeq ($(OS),Linux)
 	# convert to RPATH
-ifndef FLATPAK_DIST
 	patchelf --remove-rpath $(PYTHON_LIBRARY_DIR)/lib-dynload/*.so
 	chmod 755 $(libdir)/libpython*.so; patchelf --remove-rpath $(libdir)/libpython*.so
 	patchelf --force-rpath --set-rpath '$$ORIGIN/../lib' $(PYTHON_BIN)
-endif
 endif
 	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp
@@ -143,6 +142,7 @@ endif
 	$(PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
 	$(PYTHON_EXE) -m pip install --upgrade setuptools==$(SETUPTOOLS_VERSION)
 	$(PYTHON_EXE) -m pip install --upgrade wheel==$(WHEEL_VERSION)
+	$(PYTHON_EXE) -m pip install --upgrade build==$(BUILD_VERSION)
 
 	# double check that _ssl was successfully made
 	test -f $(DYNLOAD_DIR)/_ssl.*$(PYMOD_EXT)
@@ -163,8 +163,8 @@ ifeq ($(OS),Windows)
 else ifdef USE_MAC_FRAMEWORKS
 	$(RSYNC) $(frameworkdir)/Python.framework $(app_frameworkdir)
 	ln -s -f $(REL_PYTHON_FRAMEWORK)/bin/pip $(app_bindir)
-	ln -s -f -F $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(app_libdir)
-	ln -s -f -F $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(app_includedir)
+	ln -s -f -n $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(app_libdir)
+	ln -s -f -n $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(app_includedir)
 else
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(libdir)/libpython*.$(SHLIB_EXT)* \
@@ -182,7 +182,8 @@ endif
 	$(APP_PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
 	$(APP_PYTHON_EXE) -m pip install --upgrade \
 		wheel==$(WHEEL_VERSION) \
-		setuptools==$(SETUPTOOLS_VERSION)
+		setuptools==$(SETUPTOOLS_VERSION) \
+		build==$(BUILD_VERSION)
 
 ifeq ($(OS),Windows)
 

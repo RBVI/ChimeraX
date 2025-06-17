@@ -141,6 +141,7 @@ class SeqCanvas:
         self.mainCanvas.bind('<Configure>', self._configureCB)
 
         """
+
         self.sv = sv
         self.alignment = alignment
         """TODO
@@ -494,12 +495,12 @@ class SeqCanvas:
             structures = set(modified.unique_structures)
             for aseq in self.alignment.seqs:
                 needs_update = False
-                for chain in aseq.match_maps.keys():
+                for chain in self.alignment.match_maps[aseq].keys():
                     if chain.structure in structures:
                         needs_update = True
                         break
                 if needs_update:
-                    starts = set([chain.numbering_start for chain in aseq.match_maps.keys()])
+                    starts = set([chain.numbering_start for chain in self.alignment.match_maps[aseq].keys()])
                     starts.discard(None)
                     if len(starts) == 1:
                         aseq.numbering_start = starts.pop()
@@ -1057,6 +1058,8 @@ class SeqCanvas:
                 self.lead_block.rerule()
             elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
                 self.refresh(note_data)
+            elif note_name == self.alignment.NOTE_SEQ_NAME:
+                self._update_label(note_data[0])
             elif note_name == self.alignment.NOTE_REALIGNMENT:
                 # headers are notified before us, so they should be "ready to go"
                 self.sv.region_manager.clear_regions()
@@ -1080,13 +1083,7 @@ class SeqCanvas:
                     self.lead_block.refresh(hdr, *bounds)
                     self.main_scene.update()
                 elif note_name == self.alignment.NOTE_HDR_NAME:
-                    if self.label_width == _find_label_width(self.alignment.seqs +
-                            [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
-                            self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
-                        self.lead_block.replace_label(hdr)
-                        self.label_scene.update()
-                    else:
-                        self._reformat()
+                    self._update_label(hdr)
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
         if seq in self.alignment.headers and not seq.shown:
@@ -1528,6 +1525,15 @@ class SeqCanvas:
         self._editRefresh(self.alignment.seqs, left, right)
         """
 
+    def _update_label(self, line):
+        if self.label_width == _find_label_width(self.alignment.seqs +
+                [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
+                self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
+            self.lead_block.replace_label(line)
+            self.label_scene.update()
+        else:
+            self._reformat()
+
     def _update_scene_rects(self):
         self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
         if self.label_scene != self.main_scene:
@@ -1886,7 +1892,7 @@ class SeqBlock:
             # for performance reasons, changes.modified_atoms() returns nothing for color changes,
             # so just redo all label colors
             for aseq in self.alignment.seqs:
-                assoc_structures = set([chain.structure for chain in aseq.match_maps.keys()])
+                assoc_structures = set([chain.structure for chain in self.alignment.match_maps[aseq].keys()])
                 if not assoc_structures or len(assoc_structures) > 1:
                     continue
                 block = self
@@ -1928,7 +1934,7 @@ class SeqBlock:
             label_rect = self.label_scene.addRect(label_text.mapRectToScene(bbox))
             label_rect.setZValue(-1)
             self.label_rects[aseq] = label_rect
-        structures = set([chain.structure for chain in aseq.match_maps.keys()])
+        structures = set([chain.structure for chain in self.alignment.match_maps[aseq].keys()])
         from Qt.QtGui import QColor
         if len(structures) > 1:
             brush = self.multi_assoc_brush
@@ -1936,8 +1942,8 @@ class SeqBlock:
             contrast = (0.0, 0.0, 0.0)
         else:
             import numpy
-            if len(aseq.match_maps) == 1:
-                chain = list(aseq.match_maps.keys())[0]
+            if len(self.alignment.match_maps[aseq]) == 1:
+                chain = list(self.alignment.match_maps[aseq].keys())[0]
                 colors = chain.existing_residues.existing_principal_atoms.colors
                 if len(colors) == 0:
                     colors = chain.existing_residues.atoms.colors
@@ -2140,8 +2146,8 @@ class SeqBlock:
         return xs
 
     def has_associated_structures(self, line):
-        if getattr(line, 'match_maps', None) \
-        and [chain for chain in line.match_maps.keys() if not chain.structure.deleted]:
+        mmaps = self.alignment.match_maps.get(line, None)
+        if mmaps and [chain for chain in mmaps.keys() if not chain.structure.deleted]:
             return True
         return False
 
@@ -2206,11 +2212,12 @@ class SeqBlock:
             return ""
         basic_text = "%s (#%d of %d; %d non-gap residues)" % (line.name,
             self.alignment.seqs.index(line)+1, len(self.alignment.seqs), len(line.ungapped()))
-        if not line.match_maps:
+        mmaps = self.alignment.match_maps.get(line, None)
+        if mmaps:
             return basic_text
         return "%s\n%s associated with:\n%s" % (basic_text, _seq_name(line, self.settings),
             "\n".join(["#%s (%s %s)" % (m.structure.id_string, m.structure.name,
-            line.match_maps[m].struct_seq.name) for m in line.match_maps.keys()]))
+            mmaps[m].struct_seq.name) for m in mmaps.keys()]))
 
     def _large_alignment(self):
         # for now, return False until performance can be tested
@@ -2312,7 +2319,7 @@ class SeqBlock:
         item_aux_info = []
         xs = self._get_xs(end - self.seq_offset)
         if self._large_alignment():
-            res_status = hasattr(line, "match_maps") and line.match_maps
+            res_status = self.alignment.match_maps.get(line, False)
         else:
             res_status = line in self.alignment.seqs or adding
         for i in range(end - self.seq_offset):
@@ -2460,9 +2467,9 @@ class SeqBlock:
         ungapped = aseq.gapped_to_ungapped(index)
         if ungapped is None:
             res_text = "gap"
-        elif aseq.match_maps:
+        elif self.alignment.match_maps[aseq]:
             residues = []
-            for match_map in aseq.match_maps.values():
+            for match_map in self.alignment.match_maps[aseq].values():
                 try:
                     residues.append(match_map[ungapped])
                 except KeyError:
@@ -2671,7 +2678,7 @@ class SeqBlock:
         line_items = self.line_items[seq]
         item_aux_info = self.item_aux_info[seq]
         if self._large_alignment():
-            res_status = hasattr(seq, "match_maps") and seq.match_maps
+            res_status = self.alignment.match_maps.get(seq, False)
         else:
             res_status = seq in self.alignment.seqs
         color_func = self._color_func(seq)
@@ -2713,7 +2720,20 @@ class SeqBlock:
         return min(rawY - self.top_y, self.bottom_y - self.top_y)
 
     def replace_label(self, line):
+        text = self.label_texts[line]
+        old_rect = text.sceneBoundingRect()
         self.label_texts[line].setText(line.name)
+        # maintain right justification
+        new_rect = text.sceneBoundingRect()
+        width_diff = old_rect.width() - new_rect.width()
+        text.moveBy(width_diff, 0)
+        # update size of "colorization" rectangle
+        if line in self.label_rects:
+            rect_item = self.label_rects[line]
+            rect = rect_item.rect()
+            rect.setX(rect.x() + width_diff)
+            rect_item.setRect(rect)
+
         if self.next_block:
             self.next_block.replace_label(line)
 

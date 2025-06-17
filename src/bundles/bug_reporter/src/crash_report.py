@@ -205,12 +205,41 @@ def _last_log_file_path():
 
 # -----------------------------------------------------------------------------
 #
-def _show_bug_report_dialog(session, traceback):
+def _show_bug_report_dialog(session, traceback, advise_on_common_crashes = True):
     from chimerax.bug_reporter import show_bug_reporter
     from chimerax.core.colors import scheme_color
     color = scheme_color('error')
-    br = show_bug_reporter(session)
+    known_crash = False
+    advice = '<p>Please describe steps that led to the crash here.</p>'
+    if advise_on_common_crashes:
+        ccm = _common_crash_message(traceback)
+        if ccm is not None:
+            advice = f'<p><font color="{color}">{ccm}</font></p>'
+            known_crash = True
+    br = show_bug_reporter(session, is_known_crash = known_crash)
     msg = (f'<h3><font color="{color}">Last time you used ChimeraX it crashed.</font></h3>'
-           '<p>Please describe steps that led to the crash here.</p>'
-           '<pre>\n%s\n</pre>' % traceback)
-    br.set_description(msg)
+           f'{advice}'
+           f'<pre>\n{traceback}\n</pre>')
+    br.set_description(msg, minimum_height = 200)
+
+# -----------------------------------------------------------------------------
+#
+def _common_crash_message(traceback):
+    if 'Graphics hardware encountered an error and was reset' in traceback:
+        msg = 'This is an Apple Intel or AMD graphics driver crash that may be related to showing a scene that is complex and uses too much graphics memory.  Apple is unlikely to ever fix this since they no longer make computers with Intel or AMD graphics.  The crash does not happen with Apple M1,M2,M3... graphics.'
+
+    elif 'Qt fatal error: Failed to initialize graphics backend for OpenGL' in traceback:
+        msg = 'The Qt window toolkit was unable to start because it could not initialize OpenGL graphics.  This can happen on Linux when using remote display or when a defective graphics driver is installed.  Remote display of ChimeraX is not supported due to the many issues with remote display of OpenGL graphics.  If you are not using remote display you need to update your computer graphics driver.'
+
+    elif '_NSViewHierarchyDidChangeBackingProperties' in traceback or "displayConfigFinalizedProc" in traceback:
+        msg = 'The Qt window toolkit crashed due to a display configuration change, typically when waking from sleep or when an external display is disconnected or connected.  This has only been seen on Mac computers.  We hope a newer version of Qt will fix it.  We update ChimeraX daily builds whenever a new Qt is released.  You can check here <a href="https://www.cgl.ucsf.edu/chimerax/docs/troubleshoot.html#macdisplay">https://www.cgl.ucsf.edu/chimerax/docs/troubleshoot.html#macdisplay</a> to see if it has been fixed in a newer ChimeraX.'
+
+    else:
+        msg = None
+
+    if msg is None:
+        return None
+
+    advice = f'This is a known crash that we are unable to fix.  Here is information that may help you avoid this crash. {msg}'
+
+    return advice

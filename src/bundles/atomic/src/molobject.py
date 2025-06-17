@@ -831,7 +831,12 @@ class Sequence(State):
         set_c_pointer(self, seq_pointer)
         # since this Sequence has been created in the Python layer, don't call
         # set_sequence_py_instance, since that will add a reference and the
-        # Sequence will not be properly garbage collected
+        # Sequence will not be properly garbage collected.  Yet we need the
+        # C++ layer to know about the Python instance so that callbacks (such
+        # as "sequence renamed") occur, so we call a different setter that
+        # does not produce an additional reference.
+        f = c_function('set_pysequence_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
+        f(self._c_pointer, self)
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,
@@ -859,12 +864,16 @@ class Sequence(State):
     def __copy__(self, copy_seq=None):
         if copy_seq is None:
             copy_seq = Sequence(name=self.name, characters=self.characters)
+            if hasattr(self, 'description'):
+                copy_seq.description = self.description
         else:
             copy_seq.characters = self.characters
         from copy import copy
         copy_seq.attrs = copy(self.attrs)
         copy_seq.markups = copy(self.markups)
         copy_seq.numbering_start = self.numbering_start
+        if hasattr(self, '_features'):
+            copy_seq._features = self._features
         return copy_seq
 
     def __del__(self):
@@ -1022,12 +1031,16 @@ class Sequence(State):
         # ... because ...
         # this class has a __del__ method that can execute multiple times because the
         # __del__ method in some cases can create a self reference.  If the only reference
-        # back to this class is the delayed trigger handler below, then as the set of
+        # back to this class is the delayed trigger handler below [now moot though], then as the set of
         # trigger handlers is cleared, the __del__ can execute multiple times and the
         # dict/set-clearing code doesn't like that and can crash
         if not self.triggers.trigger_handlers(trig_name):
             return
 
+        self.triggers.activate_trigger(trig_name, arg)
+        # changes to the way downgrade-to-Sequence works makes the below code unnecessary;
+        # furthermore, no 'changes' trigger fires for a sequence rename
+        '''
         # when C++ layer notifies us directly of change, delay firing trigger until
         # next 'changes' trigger to ensure that entire C++ layer is in a consistent state
         def delayed(*args, trigs=self.triggers, trig_name=trig_name, trig_arg=arg):
@@ -1037,6 +1050,7 @@ class Sequence(State):
         from chimerax.atomic import get_triggers
         atomic_trigs = get_triggers()
         atomic_trigs.add_handler('changes', delayed)
+        '''
 
 
     @atexit.register
@@ -1052,6 +1066,13 @@ class StructureSeq(Sequence):
     Unlike the Chain subclass, StructureSeq will not change in size once created,
     though associated residues may change to None if those residues are deleted/closed.
     '''
+
+    # For attribute registration...
+    # Chain will also get these
+    _attr_reg_info = [
+        ('chain_id', (str,)), ('circular', (bool,)), ('description', (str,)),
+        ('num_existing_residues', (int,)), ('num_residues', (int,)), ('polymer_type', (int,)),
+    ]
 
     def __init__(self, sseq_pointer=None, *, chain_id=None, structure=None, polymer_type=Residue.PT_NONE):
         if sseq_pointer is None:
@@ -1132,6 +1153,8 @@ class StructureSeq(Sequence):
             self._fire_trigger('residues changed', self)
 
     def __copy__(self):
+        if self.structure is None:
+            return super().__copy__()
         f = c_function('sseq_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
         copy_sseq = StructureSeq(f(self._c_pointer))
         Sequence.__copy__(self, copy_seq = copy_sseq)
@@ -1346,12 +1369,6 @@ class Chain(StructureSeq):
 
     '''
 
-    # For attribute registration...
-    _attr_reg_info = [
-        ('chain_id', (str,)), ('circular', (bool,)), ('description', (bool,)),
-        ('num_existing_residues', (int,)), ('num_residues', (int,)), ('polymer_type', int),
-    ]
-
     def __str__(self):
         return self.string()
 
@@ -1424,8 +1441,10 @@ class Chain(StructureSeq):
     def string(self, style=None, include_structure=None):
         chain_str = self.chain_id_to_atom_spec(self.chain_id)
         from .structure import Structure
+        from .settings import settings
         if include_structure is not False and (
         include_structure is True
+        or settings.always_label_structure
         or len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1
         or not chain_str):
             struct_string = self.structure.string(style=style)
@@ -1547,6 +1566,9 @@ class StructureData:
         doc = "Supported API. Return array of ids of all coordinate sets.")
     coordset_size = c_property('structure_coordset_size', int32, read_only = True,
         doc = "Supported API. Return the size of the active coordinate set array.")
+    coordsets = c_property('structure_coordsets', cptr, 'num_coordsets', astype = convert.coordsets,
+        read_only = True,
+        doc = "Supported API. :class:`.CoordSets` collection containing all coordsets of the structure.")
     display = c_property('structure_display', npy_bool, doc =
         "Don't call this directly.  Use Model's 'display' attribute instead.  Only exposed so that "
         "Model's 'display' attribute can call it so that 'display changed' shows up in triggers.")
@@ -2329,7 +2351,9 @@ class SeqMatchMap(State):
         self._align_seq = align_seq
         self._struct_seq = struct_seq
         from . import get_triggers
-        self._handler = get_triggers().add_handler("changes", self._atomic_changes)
+        self._handlers = [get_triggers().add_handler("changes", self._atomic_changes)]
+        if align_seq.ungapped() == struct_seq.ungapped():
+            self._handlers.append(struct_seq.triggers.add_handler("residues changed", self._res_change_cb))
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('modified')
@@ -2403,11 +2427,20 @@ class SeqMatchMap(State):
             if modified:
                 self.triggers.activate_trigger('modified', self)
 
+    def _res_change_cb(self, trig_name, sseq):
+        # only called if alignment and structure seqs are the same
+        self._res_to_pos.clear()
+        self._pos_to_res.clear()
+        for r, i in sseq.res_map.items():
+            self._res_to_pos[r] = i
+            self._pos_to_res[i] = r
+        self.triggers.activate_trigger('modified', self)
+
     def __del__(self):
         self._pos_to_res.clear()
         self._res_to_pos.clear()
-        from . import get_triggers
-        get_triggers().remove_handler(self._handler)
+        for handler in self._handlers:
+            handler.remove()
 
 # -----------------------------------------------------------------------------
 #

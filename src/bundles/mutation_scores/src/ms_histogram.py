@@ -38,20 +38,21 @@ def mutation_scores_histogram(session, score_name, mutation_set = None,
     message = f'Plotted {len(values)} scores {range} for {score_name}'
     session.logger.info(message)
 
-from chimerax.interfaces.graph import Plot
-class MutationHistogram(Plot):
+from chimerax.interfaces.graph import Graph
+class MutationHistogram(Graph):
 
     def __init__(self, session):
         self.mutation_set_name = ''
         self._synonymous_histogram = None
         self._bounds_artists = None
+        self._drag_colors_structure = True
         
-        Plot.__init__(self, session, tool_name = 'Mutation scores histogram')
+        nodes = edges = []
+        Graph.__init__(self, session, nodes, edges,
+                       tool_name = 'Mutation scores histogram', title = 'Mutation scores histogram',
+                       hide_ticks = False, drag_select_callback = self._rectangle_selected)
 
         tw = self.tool_window
-        tw.fill_context_menu = self._fill_context_menu
-        self.canvas.mousePressEvent = tw._show_context_menu  # Show menu on left click.
-
         parent = tw.ui_area
         layout = parent.layout()
 
@@ -100,16 +101,16 @@ class MutationHistogram(Plot):
                       curve = True, smooth_bins = 20, smooth_width = None,
                       synonymous = True, bounds = True):
         from .ms_data import mutation_scores
-        scores = mutation_scores(self.session, mutation_set_name)
-        score_values = scores.score_values(score_name)
+        mset = mutation_scores(self.session, mutation_set_name)
+        score_values = mset.score_values(score_name)
 
         self._score_menu.value = score_name
-        self._mutation_set_menu.value = self.mutation_set_name = scores.name
+        self._mutation_set_menu.value = self.mutation_set_name = mset.name
 
         values = [value for res_num, from_aa, to_aa, value in score_values.all_values()]
         syn_values = [value for res_num, from_aa, to_aa, value in score_values.all_values() if to_aa == from_aa]
 
-        self._set_values(values, title=scores.name, x_label=score_name, bins=bins, yscale=scale,
+        self._set_values(values, title=mset.name, x_label=score_name, bins=bins, yscale=scale,
                          smooth_curve=curve, smooth_width=smooth_width, smooth_bins=smooth_bins,
                          show_synonymous = synonymous, synonymous_scores = syn_values, synonymous_bounds = bounds)
         return values
@@ -149,11 +150,49 @@ class MutationHistogram(Plot):
         # Don't hide axes and reduce padding
         pass
 
+    @property
+    def mutation_set(self):
+        from .ms_data import mutation_scores
+        mset = mutation_scores(self.session, self.mutation_set_name)
+        return mset
+
+    def _rectangle_selected(self, event1, event2):
+        x1, x2 = event1.xdata, event2.xdata
+        xmin, xmax = min(x1,x2), max(x1,x2)
+        mset = self.mutation_set
+        if mset is None:
+            return
+        score_name = self._score_menu.value
+        score_values = mset.score_values(score_name)
+        res_nums = set([res_num for res_num, from_aa, to_aa, value in score_values.all_values()
+                        if value >= xmin and value <= xmax])
+        mset.associate_chains(self.session)
+        res, rnums = mset.associated_residues(res_nums)
+
+        if len(res) > 0:
+            from chimerax.atomic import concise_residue_spec
+            rspec = concise_residue_spec(self.session, res)
+            cmds = [f'select {rspec}']
+            if self._drag_colors_structure:
+                from chimerax.atomic import concise_chain_spec
+                cspec = concise_chain_spec(res.unique_chains)
+                cmds.append(f'color {cspec} lightgray ; color {rspec} lime')
+        else:
+            cmds = ['select clear']
+            if self._drag_colors_structure:
+                chains = mset.associated_chains()
+                if len(chains) > 0:
+                    from chimerax.atomic import concise_chain_spec
+                    cspec = concise_chain_spec(chains)
+                    cmds.append(f'color {cspec} lightgray')
+        for cmd in cmds:
+            self._run_command(cmd)
+
     def _fill_context_menu(self, menu, x, y):
         if self._yscale == 'linear':
-            self.add_menu_entry(menu, 'Log scale', self._set_log_scale)
+            self.add_menu_entry(menu, 'Switch linear to log scale', self._set_log_scale)
         else:
-            self.add_menu_entry(menu, 'Linear scale', self._set_linear_scale)
+            self.add_menu_entry(menu, 'Switch log to linear scale', self._set_linear_scale)
 
         show_syn = not self._show_synonymous
         show_or_hide = 'Show' if show_syn else 'Hide'
@@ -163,9 +202,12 @@ class MutationHistogram(Plot):
         show_or_hide = 'Show' if show_bounds else 'Hide'
         self.add_menu_entry(menu, f'{show_or_hide} synonymous bounds',
                             lambda show_bounds=show_bounds: self._show_synonymous_bounds(show_bounds))
+        a = self.add_menu_entry(menu, f'Ctrl-drag colors structure', self._toggle_drag_colors_structure)
+        a.setCheckable(True)
+        a.setChecked(self._drag_colors_structure)
             
         self.add_menu_separator(menu)
-        self.add_menu_entry(menu, 'New plot', self._copy_plot)
+        self.add_menu_entry(menu, 'New histogram', self._copy_histogram)
         self.add_menu_entry(menu, 'Save plot as...', self.save_plot_as)
 
     @property
@@ -183,7 +225,7 @@ class MutationHistogram(Plot):
         self.canvas.draw()
 
     def _show_synonymous_histogram(self, show = True):
-        if show and self._synonymous_histogram is None:
+        if show and self._synonymous_histogram is None and self._synonymous_scores:
             _,_,self._synonymous_histogram = \
                 self.axes.hist(self._synonymous_scores, bins = self._bins, color = 'blue')
         elif not show and self._synonymous_histogram:
@@ -192,7 +234,7 @@ class MutationHistogram(Plot):
         self._show_synonymous = show
         self.canvas.draw()
     def _show_synonymous_bounds(self, show = True):
-        if show and not self._bounds_artists:
+        if show and not self._bounds_artists and self._synonymous_scores:
             from numpy import mean, std
             m, d = mean(self._synonymous_scores), std(self._synonymous_scores)
             sd = standard_deviations = 2
@@ -206,12 +248,20 @@ class MutationHistogram(Plot):
             self._bounds_artists = [a.add_artist(line) for line in lines]
         elif not show and self._bounds_artists:
             for ba in self._bounds_artists:
-                ba.remove()
+                if ba.axes is not None:
+                    ba.remove()
             self._bounds_artists.clear()
         self._synonymous_bounds = show
         self.canvas.draw()
 
-    def _copy_plot(self):
+    def _toggle_drag_colors_structure(self):
+        self._drag_colors_structure = not self._drag_colors_structure
+
+    def _run_command(self, command):
+        from chimerax.core.commands import run
+        run(self.session, command)
+
+    def _copy_histogram(self):
         copy = MutationHistogram(self.session)
         copy.set_plot_data(self._score_menu.value, self._mutation_set_menu.value, bins = self._bins,
                            curve = self._smooth_curve, smooth_width = self._smooth_width, smooth_bins = self._smooth_bins,

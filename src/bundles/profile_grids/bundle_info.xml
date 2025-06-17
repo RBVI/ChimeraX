@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ProfileGrids" version="1.0"
+<BundleInfo name="ChimeraX-ProfileGrids" version="1.1.3"
 	    package="chimerax.profile_grids"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -21,7 +21,7 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.4"/>
-    <Dependency name="ChimeraX-Alignments" version="~=2.6"/>
+    <Dependency name="ChimeraX-Alignments" version="~=3.0"/>
     <Dependency name="ChimeraX-AlignmentHdrs" version="~=3.2"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=14.0"/>
@@ -30,7 +30,8 @@
 
   <Providers manager="alignments">
 	<!-- subcommand_name also defined in __init__.py and used in various other .py files -->
-    <Provider name="profile-grids" synonyms="pg,grid" subcommand_name="grid" type="viewer"/>
+    <Provider name="profile grid" synonyms="pg,grid,profile" subcommand_name="grid" type="viewer"
+		sequence_viewer="false" />
   </Providers>
 
 

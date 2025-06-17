@@ -437,7 +437,7 @@ class ModelPanel(ToolInstance):
                     self.session.logger.status("Showing %s" % m)
                     break
             else:
-                self.session.logger.warn("No models in display sequence")
+                self.session.logger.warning("No models in display sequence")
             return
         m = cur_shown[0]
         index = self.models.index(m)

@@ -923,6 +923,93 @@ class StringIntOption(Option):
         layout.addWidget(self._spin_box)
         self.widget.setLayout(layout)
 
+class StringsIntOption(Option):
+    """Supported API. Option for multiple strings and an int (as an N-tuple), for something such as
+       protocol, host and port.  'string_labels' must be a tuple of labels for the entry fields (some
+       of which can be None), so that the option knows how many entry fields to use.  'initial_text_width'
+       can be a single value or a tuple of the same length.  'text_stretchs' can also be a single value or
+       sequence, and is the stretch value given to the line edit in the layout. 'max_text_width' is similar,
+       but is the maximum width(s) of the line edit, in pixels (None is no max width).
+    """
+
+    def get_value(self):
+        return (*[le.text() for le in self._line_edits], self._spin_box.value())
+
+    def set_value(self, value):
+        *texts, integer = value
+        for text, line_edit in zip(texts, self._line_edits):
+            line_edit.setText(text)
+        self._spin_box.setSpecialValueText("")
+        self._spin_box.setValue(integer)
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        for line_edit in self._line_edits:
+            line_edit.setText(self.multiple_value)
+        self._spin_box.setSpecialValueText(self.multiple_value)
+        self._spin_box.setValue(self._spin_box.minimum())
+
+    def _make_widget(self, min=None, max=None, string_labels=None, int_label=None,
+            initial_text_width="10em", max_text_width=None, text_stretchs=1, **kw):
+        """initial_text_width should be a string holding a "stylesheet-friendly"
+           value, (e.g. '10em' or '7ch') or None"""
+        if string_labels is None:
+            raise ValueError("'string_labels' must be supplied and must be a tuple/list")
+        if isinstance(initial_text_width, (list, tuple)):
+            if len(initial_text_width) != len(string_labels):
+                raise ValueError("'initial_text_width' sequence is not the same length as 'string_labels'")
+            initial_text_widths = initial_text_width
+        else:
+            initial_text_widths = [initial_text_width] * len(string_labels)
+        if isinstance(text_stretchs, (list, tuple)):
+            if len(text_stretchs) != len(string_labels):
+                raise ValueError("'text_stretchs' sequence is not the same length as 'string_labels'")
+        else:
+            text_stretchs = [text_stretchs] * len(string_labels)
+        if isinstance(max_text_width, (list, tuple)):
+            if len(max_text_width) != len(string_labels):
+                raise ValueError("'text_stretchs' sequence is not the same length as 'string_labels'")
+            max_text_widths = max_text_width
+        else:
+            max_text_widths = [max_text_width] * len(string_labels)
+        from Qt.QtWidgets import QWidget, QHBoxLayout, QLabel
+        self.widget = QWidget()
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(2)
+        from Qt.QtWidgets import QLineEdit
+        self._line_edits = []
+        for string_label, text_width, stretch, max_text_width in zip(string_labels,
+                initial_text_widths, text_stretchs, max_text_widths):
+            if string_label:
+                layout.addWidget(QLabel(string_label))
+            line_edit = QLineEdit()
+            line_edit.editingFinished.connect(lambda *, s=self: s.make_callback())
+            if initial_text_width:
+                line_edit.setStyleSheet("* { width: %s }" % initial_text_width)
+            if max_text_width:
+                line_edit.setMaximumWidth(max_text_width)
+            layout.addWidget(line_edit, stretch=stretch)
+            self._line_edits.append(line_edit)
+        self._spin_box = _make_int_spinbox(min, max, **kw)
+        self._spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        if int_label:
+            layout.addWidget(QLabel(int_label))
+        layout.addWidget(self._spin_box)
+        self.widget.setLayout(layout)
+
+class HostPortOption(StringIntOption):
+    """Supported API. Option for a host name or address and a TCP port number (as a 2-tuple)"""
+    def _make_widget(self, **kw):
+        StringIntOption._make_widget(self, min=0, max=65535, string_label="host", int_label="port", **kw)
+
+class ProtocolHostPortOption(StringsIntOption):
+    """Supported API. Option for an IP protocol, host name or address and a TCP port number (as a 3-tuple)"""
+    def _make_widget(self, **kw):
+        StringsIntOption._make_widget(self, min=0, max=65535, string_labels=("protocol", "host"),
+            text_stretchs=(0, 1), max_text_width=[50, None], int_label="port", **kw)
+
 class StringsOption(Option):
     """Supported API. Option for list of plain text strings
        There is no builtin way for the user to indicate that they are done editing the text,
@@ -949,12 +1036,6 @@ class StringsOption(Option):
         self.widget = QTextEdit(**kw)
         self.widget.setAcceptRichText(False)
         self.widget.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
-
-class HostPortOption(StringIntOption):
-    """Supported API. Option for a host name or address and a TCP port number (as a 2-tuple)"""
-    def _make_widget(self, **kw):
-        StringIntOption._make_widget(self, min=0, max=65535, string_label="host", int_label="port",             **kw)
-
 
 class SymbolicEnumOption(EnumOption):
     """Supported API. Option for enumerated values with symbolic names

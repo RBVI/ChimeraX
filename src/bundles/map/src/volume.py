@@ -2455,7 +2455,8 @@ class OutlineBox:
              (7,6,2), (2,3,7), (7,5,4), (4,6,7))
     b = 8 + 2 + 1    # Bit mask, 8 = show triangle, edges are bits 4,2,1
     edge_mask = [b]*len(tlist)		# hide box face diagonals
-    return vlist, tlist, edge_mask
+    from numpy import array, float32, int32, uint8
+    return array(vlist, dtype=float32), array(tlist, dtype=int32), array(edge_mask, dtype=uint8)
 
   # ---------------------------------------------------------------------------
   #
@@ -2468,7 +2469,8 @@ class OutlineBox:
     self._crosshairs(corners, center, planes, crosshair_width, vlist, tlist)
     b = 8 + 2 + 1    # Bit mask, 8 = show triangle, edges are bits 4,2,1
     edge_mask = [b]*len(tlist)		# hide box face diagonals
-    return vlist, tlist, edge_mask
+    from numpy import array, float32, int32, uint8
+    return array(vlist, dtype=float32), array(tlist, dtype=int32), array(edge_mask, dtype=uint8)
 
   # ---------------------------------------------------------------------------
   #
@@ -2507,8 +2509,7 @@ class OutlineBox:
     d.pickable = False
     # Set geometry after setting outline_box attribute to avoid undesired
     # coloring and capping of outline boxes.
-    from numpy import array
-    va, ta = array(vertices), array(triangles)
+    va, ta = vertices, triangles
     d.set_geometry(va, None, ta)
     d.edge_mask = edge_mask
     rgba = tuple(rgb) + (1,)

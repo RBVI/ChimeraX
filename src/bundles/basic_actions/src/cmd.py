@@ -50,7 +50,10 @@ def name_frozen(session, name, objects):
     if _is_reserved(name):
         raise UserError("\"%s\" is reserved and cannot be redefined" % name)
     if objects.empty():
-        raise UserError("nothing is selected by specifier")
+        if session.in_script:
+            session.logger.warning("Nothing is selected by specifier")
+        else:
+            raise UserError("Nothing is selected by specifier")
     from chimerax.core.commands import register_selector
     register_selector(name, objects, session.logger, user=True)
     session.basic_actions.define(name, objects)

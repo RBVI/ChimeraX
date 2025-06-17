@@ -396,7 +396,7 @@ class BlastProteinTool(ToolInstance):
         ].input_widget.currentText()
         if self._current_database == "alphafold":
             self.menu_widgets["version"].input_widget.setRange(
-                1, CurrentDBVersions[self._current_database]
+                4, CurrentDBVersions[self._current_database]
             )
             self.menu_widgets["version"].label.show()
             self.menu_widgets["version"].input_widget.show()

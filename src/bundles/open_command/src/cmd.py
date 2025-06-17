@@ -191,7 +191,7 @@ def provider_open(session, names, center=None, format=None, from_database=None, 
                 paths = [_get_path(mgr, fi.file_name, provider_info.check_path)
                     for fi in file_infos]
                 models, status = collated_open(session, None, paths, data_format, _add_models, log_errors,
-                opener_info.open, (session, paths, name), provider_kw)
+                    opener_info.open, (session, paths, name), provider_kw)
                 if status:
                     statuses.append(status)
                 if models:
