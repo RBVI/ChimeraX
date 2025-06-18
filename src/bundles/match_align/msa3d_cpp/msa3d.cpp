@@ -10,11 +10,12 @@
  * This notice must be embedded in or attached to all copies,
  * including partial copies, of the software or any revisions
  * or derivations thereof.
- * === UCSF ChimeraX Copyright ===
+ *=== UCSF ChimeraX Copyright ===
  */
 
 #include <Python.h>
-#include <algorithm>    // std::min
+#include <algorithm>    // std::min, std::max
+#include <iterator>     // std::next
 #include <math.h>
 #include <memory>
 #include <string>
@@ -29,26 +30,34 @@ using atomstruct::Atom;
 using atomstruct::Chain;
 using atomstruct::AtomSearchTree;
 
+typedef std::map<const Chain*, std::vector<Atom*>> PrincipalAtomMap;
+
+// for my personal sanity, define local min/max functions, so that I don't have to try to
+// figure out how to get references/pointers to template functions
+static int min(int a, int b) { return std::min(a, b); }
+static int max(int a, int b) { return std::max(a, b); }
+static int (*val_func)(int, int);
+
 namespace { // so these class declarations are not visible outside this file
 
 class EndPoint
 {
 public:
-    Chain*  chain;
+    const Chain*  chain;
     Chain::SeqPos  pos;
 
-    EndPoint(Chain* _chain, Chain::SeqPos _pos): chain(_chain), pos(_pos) {};
+    EndPoint(const Chain* _chain, Chain::SeqPos _pos): chain(_chain), pos(_pos) {};
 };
 
 class Link
 {
 public:
     std::vector<EndPoint*> info;
-    float val;
-    float penalty = 0.0;
+    double val;
+    double penalty = 0.0;
     std::vector<std::shared_ptr<Link>> cross_links;
 
-    Link(EndPoint* e1, EndPoint* e2, float _val) {
+    Link(EndPoint* e1, EndPoint* e2, double _val) {
         info.push_back(e1);
         info.push_back(e2);
         val = _val;
@@ -58,6 +67,74 @@ public:
             delete ep;
     }
 };
+
+class Column
+{
+public:
+    std::map<const Chain*, Chain::SeqPos> positions;
+
+    bool  contains(const Chain* seq, Chain::SeqPos pos) const {
+        return positions.find(seq) != positions.end() && positions.at(seq) == pos;
+    };
+    double  participation(PrincipalAtomMap& pas, double dist_cutoff) const;
+    double  value(PrincipalAtomMap& pas, double dist_cutoff) const;
+};
+
+double Column::participation(PrincipalAtomMap& pas, double dist_cutoff) const
+{
+    double p = 0;
+    for (auto i = positions.begin(); i != positions.end(); ++i) {
+        auto seq1 = i->first;
+        auto pos1 = i->second;
+        //TODO: if circular...
+        auto pa1 = pas[seq1][pos1];
+        if (pa1 == nullptr)
+            continue;
+        for (auto j = std::next(i); j != positions.end(); ++j) {
+            auto seq2 = j->first;
+            auto pos2 = j->second;
+            //TODO: if circular...
+            auto pa2 = pas[seq2][pos2];
+            if (pa2 == nullptr)
+                continue;
+            p += dist_cutoff - pa1->scene_coord().distance(pa2->scene_coord());
+        }
+    }
+    return p;
+}
+
+double Column::value(PrincipalAtomMap& pas, double dist_cutoff) const
+{   
+    bool val_set = false;
+    double value;
+    for (auto i = positions.begin(); i != positions.end(); ++i) {
+        auto seq1 = i->first;
+        auto pos1 = i->second;
+        //TODO: if circular...
+        auto pa1 = pas[seq1][pos1];
+        if (pa1 == nullptr)
+            continue;
+        for (auto j = std::next(i); j != positions.end(); ++j) {
+            auto seq2 = j->first;
+            auto pos2 = j->second;
+            //TODO: if circular...
+            auto pa2 = pas[seq2][pos2];
+            if (pa2 == nullptr)
+                continue;
+            double val = dist_cutoff - pa1->scene_coord().distance(pa2->scene_coord());
+            if (!val_set) {
+                value = val;
+                val_set = true;
+                continue;
+            }
+            if (val_func == &min && value < 0.0)
+                break;
+        }
+        if (val_func == &min && value < 0.0)
+            break;
+    }
+    return value;
+}
 
 } // end namespace
 
@@ -76,7 +153,7 @@ find_prune_crosslinks(
     std::map<const Chain*, std::vector<LinkList>>& pairings,
     const Chain* seq1, const Chain* seq2,
     LinkList& link_list, std::vector<LinkList>& links1, std::vector<LinkList>& links2,
-    std::string& tag, const char* status_prefix, PyObject* py_logger)
+    std::string tag, const char* status_prefix, PyObject* py_logger)
 {
     logger::status(py_logger, status_prefix, "Finding crosslinks ", tag);
     std::vector<LinkList::size_type> ends;
@@ -87,15 +164,15 @@ find_prune_crosslinks(
     }
     std::vector<LinkList> l2_lists;
     for (auto end: ends)
-        l2_lists.insert(l2_lists.end(), seq2_links.begin(), seq2_links.begin() + end);
+        l2_lists.push_back(LinkList(seq2_links.begin(), seq2_links.begin() + end));
     for (auto& link1: link_list) {
         auto i1 = link1->info[0]->pos;
         auto i2 = link1->info[1]->pos;
         for (auto& link2: l2_lists[i2]) {
             if (link2->info[0]->pos <= i1)
                 continue;
-            link1->crosslinks.push_back(link2);
-            link2->crosslinks.push_back(link1);
+            link1->cross_links.push_back(link2);
+            link2->cross_links.push_back(link1);
             link1->penalty += link2->val;
             link2->penalty += link1->val;
         }
@@ -112,14 +189,14 @@ find_prune_crosslinks(
                 pen = x_pen;
             }
         }
-        if (pen <= 0.0001))
+        if (pen <= 0.0001)
             break;
         auto& link = *pos;
         auto& l1_list = links1[link->info[0]->pos];
-        l1_list.erase(std::find(l1_list.begin(), l1_list.end(), link);
+        l1_list.erase(std::find(l1_list.begin(), l1_list.end(), link));
         auto& l2_list = links2[link->info[1]->pos];
-        l2_list.erase(std::find(l2_list.begin(), l2_list.end(), link);
-        for (auto& clink: link->crosslinks)
+        l2_list.erase(std::find(l2_list.begin(), l2_list.end(), link));
+        for (auto& clink: link->cross_links)
             clink->penalty -= link->val;
         link_list.erase(pos);
     }
@@ -127,13 +204,13 @@ find_prune_crosslinks(
     auto& p1 = pairings[seq1];
     for (auto iter = links1.begin(); iter != links1.end(); ++iter) {
         auto& p1_ll = p1[iter - links1.begin()];
-        p1_ll.insert(p1_ll.end(), (*iter)->begin(), (*iter)->end());
-        all_links.insert(all_links.begin(), (*iter)->begin(), (*iter)->end());
+        p1_ll.insert(p1_ll.end(), iter->begin(), iter->end());
+        all_links.insert(all_links.begin(), iter->begin(), iter->end());
     }
     auto& p2 = pairings[seq2];
     for (auto iter = links2.begin(); iter != links2.end(); ++iter) {
         auto& p2_ll = p2[iter - links2.begin()];
-        p2_ll.insert(p2_ll.end(), (*iter)->begin(), (*iter)->end());
+        p2_ll.insert(p2_ll.end(), iter->begin(), iter->end());
     }
 }
 
@@ -147,14 +224,18 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
         return nullptr;
     }
 
+    if (col_all)
+        val_func = &min;
+    else
+        val_func = &max;
+
     // For each pair, go through the second chain residue by residue
     // and compile crosslinks to other chain.  As links are compiled,
     // figure out what previous links are crossed and keep a running
     // "penalty" for links based on what they cross.  Sort links by
     // penalty and keep pruning worst link until no links cross.
-    std::vector<LinkList> all_links;
 
-    std::map<const Chain*, std::vector<Atom*>> pas;
+    PrincipalAtomMap pas;
     std::map<const Chain*, std::vector<LinkList>> pairings;
     logger::status(py_logger, status_prefix, "Finding residue principal atoms");
     for (auto chain: chains) {
@@ -182,6 +263,7 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
     //std::map<std::pair<const Chain*, const Chain*>, std::pair<int, int>> circular_pairs;
     //std::map<std::pair<const Chain*, const Chain*>, CircularLinkData> hold_data;
 
+    LinkList all_links;
     std::map<const Chain*, AtomSearchTree*> trees;
     auto num_chains = chains.size();
     decltype(num_chains) loop_count = 0, loop_limit = (num_chains * (num_chains-1))/2;
@@ -193,7 +275,7 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
         auto num_pas1 = seq1_pas.size();
         for (decltype(i) j = i+1; j < num_chains; ++j) {
             loop_count += 1;
-            std::string tag;
+            std::stringstream tag;
             tag << "(" << j-i << "/" << num_chains-1 << ")";
             auto seq2 = chains[j];
             auto len2 = pairings[seq2].size();
@@ -203,7 +285,7 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
             auto tree_i = trees.find(seq2);
             decltype(trees)::mapped_type tree;
             if (tree_i == trees.end()) {
-                logger::status(py_logger, status_prefix, "Building search tree ", tag);
+                logger::status(py_logger, status_prefix, "Building search tree ", tag.str());
                 auto& seq2_pas = pas[seq2];
                 auto num_pas = seq2_pas.size();
                 std::vector<Atom*> atoms;
@@ -235,17 +317,19 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
                     if (val <= 0.0)
                         continue;
                     auto i2 = data[pa2];
-                    auto link = Link(EndPoint(seq1, k), EndPoint(seq2, i2), val);
-                    links1[k].push_back(&link);
-                    links2[i2].push_back(&link);
-                    link_list.push_back(&link);
+                    auto end1 = new EndPoint(seq1, k);
+                    auto end2 = new EndPoint(seq2, i2);
+                    auto link = std::shared_ptr<Link>(new Link(end1, end2, val));
+                    links1[k].push_back(link);
+                    links2[i2].push_back(link);
+                    link_list.push_back(link);
                 }
             }
             if (circular) {
                 //TODO
             } else {
-                find_prune_crosslinks(all_links, pairings, seq1, seq2, link_list, links1, links2, tag,
-                    status_prefix);
+                find_prune_crosslinks(all_links, pairings, seq1, seq2, link_list, links1, links2, tag.str(),
+                    status_prefix, py_logger);
             }
         }
     }
