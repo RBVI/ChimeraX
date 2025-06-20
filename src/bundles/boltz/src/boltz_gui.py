@@ -298,7 +298,8 @@ class BoltzPredictionGUI(ToolInstance):
         if e in ('protein sequence', 'rna sequence', 'dna sequence'):
             type = e.split()[0]
             for seq in self._entry_strings():
-                desc = f'{type} sequence length {len(seq)}: {seq}'
+                seq_summary = f'{seq[:8]}...{seq[-8:]}' if len(seq) > 20 else seq
+                desc = f'{type} sequence length {len(seq)}: {seq_summary}'
                 comps.append(MolecularComponent(desc, type = type, sequence_string = seq))
         elif e == 'UniProt identifier':
             uniprot_errors = []
