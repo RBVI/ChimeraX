@@ -15,7 +15,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.core.settings import Settings
 from Qt.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QLabel, QButtonGroup, QRadioButton, QWidget
 from Qt.QtWidgets import QPushButton, QScrollArea, QMenu, QCheckBox, QLineEdit, QSpacerItem, QSizePolicy
-from Qt.QtWidgets import QGroupBox
+from Qt.QtWidgets import QGroupBox, QInputDialog
 from Qt.QtGui import QDoubleValidator, QIntValidator
 from Qt.QtCore import Qt
 from chimerax.core.commands import run
@@ -53,9 +53,8 @@ class AnisoTool(ToolInstance):
 
         self.preset_menu_button = pmb = QPushButton()
         preset_menu = QMenu(pmb)
-        preset_menu.triggered.connect(self._preset_menu_cb)
+        preset_menu.aboutToShow.connect(self._populate_preset_menu)
         pmb.setMenu(preset_menu)
-        self._populate_preset_menu()
         preset_model_layout.addWidget(pmb, alignment=Qt.AlignLeft)
         preset_model_layout.addStretch(1)
 
@@ -180,13 +179,106 @@ class AnisoTool(ToolInstance):
         self.structure_button.destroy()
         super().delete()
 
+    def _delete_preset(self):
+        preset_name, okayed = QInputDialog.getItem(self.preset_menu_button,
+            "Delete User Preset", "Preset:", sorted(list(self.settings.custom_presets.keys())), 0, False)
+        if not okayed:
+            return
+        run(self.session, "aniso preset delete " + preset_name)
+        if self.preset_menu_button.text() == preset_name:
+            self.preset_menu_button.setText(self.NO_PRESET_TEXT)
+
+    def _gather_diffs(self, s):
+        from chimerax.core.commands import camel_case
+        from chimerax.core.colors import color_name
+        from .mgr import manager_for_structure
+        mgr = manager_for_structure(self.session, s)
+        diffs = []
+        for attr_name in style_attrs:
+            widget = getattr(self, attr_name)
+            arg_name = camel_case(attr_name)
+            if isinstance(widget, QLineEdit):
+                str_val = widget.text()
+                if not widget.hasAcceptableInput():
+                    return tool_user_error("Unacceptable value (%s) for '%s' argument"
+                        % (str_val, arg_name))
+                if isinstance(widget.validator(), QDoubleValidator):
+                    val = float(str_val)
+                else:
+                    val = int(str_val)
+            elif isinstance(widget, QGroupBox):
+                # "the blah_factor attributes, that are composed of a QGroupBox and QLineEdit,
+                # are represented as a tuple of widgets
+                val = widget.isChecked()
+                str_val = str(val).lower()
+            elif isinstance(widget, ColorWidget):
+                val = widget.value
+                if val is None:
+                    str_val = "none"
+                else:
+                    str_val = color_name(val)
+            elif isinstance(widget, QPushButton):
+                text = widget.text()
+                if text == "same as color":
+                    val = None
+                    str_val = "none"
+                else:
+                    str_val = text[:-1]
+                    val = int(str_val)
+            elif isinstance(widget, tuple):
+                gbox, factor = widget
+                if gbox.isChecked():
+                    str_val = factor.text()
+                    if not factor.hasAcceptableInput():
+                        return tool_user_error("Unacceptable value (%s) for '%s' argument"
+                            % (str_val, arg_name))
+                    if isinstance(factor.validator(), QDoubleValidator):
+                        val = float(str_val)
+                    else:
+                        val = int(str_val)
+                else:
+                    str_val = "none"
+                    val = None
+            else:
+                raise AssertionError("Unhandled type of input widget")
+            # Since numpy has non-Pythonic equality operators, can't use simple equality test
+            from numpy import array_equal
+            if not array_equal(val, mgr.drawing_params[attr_name]):
+                diffs.extend([arg_name, str_val])
+        return diffs
+
     def _populate_preset_menu(self):
         menu = self.preset_menu_button.menu()
         menu.clear()
         for entry in sorted(list(builtin_presets.keys()) + list(self.settings.custom_presets.keys()),
                 key=lambda x: x.casefold()):
-            menu.addAction(entry)
-        #TODO: entries for saving a preset and deleting a custom preset
+            act = menu.addAction(entry)
+            act.triggered.connect(lambda *args, act=act: self._preset_menu_cb(act))
+        menu.addSeparator()
+        act = menu.addAction("Preset from current settings...")
+        act.triggered.connect(lambda *args: self._preset_from_current())
+        s = self.structure_button.value
+        # disable if changes have not been applied to structure
+        act.setEnabled(s and not self._gather_diffs(s))
+        act = menu.addAction("Delete user preset...")
+        act.triggered.connect(lambda *args: self._delete_preset())
+        act.setEnabled(bool(self.settings.custom_presets))
+
+    def _preset_from_current(self):
+        s = self.structure_button.value
+        if not s:
+            return tool_user_error("No structure chosen")
+        preset_name, okayed = QInputDialog.getText(self.preset_menu_button,
+            "Save Preset", "Name:", QLineEdit.Normal, "")
+        if not okayed:
+            return
+        preset_name = preset_name.strip()
+        if not preset_name:
+            return tool_user_error("Preset name must not be blank")
+        if preset_name in builtin_presets.keys():
+            return tool_user_error("Cannot use built-in preset name")
+        run(self.session, "aniso preset save " + s.atomspec + " " + preset_name)
+        self.preset_menu_button.setText(preset_name)
 
     def _preset_menu_cb(self, action):
         s = self.structure_button.value
@@ -228,66 +320,11 @@ class AnisoTool(ToolInstance):
         spec = s.atomspec
 
         if apply_widgets and not hide:
-            from chimerax.core.commands import camel_case
-            from chimerax.core.colors import color_name
-            from .mgr import manager_for_structure
-            mgr = manager_for_structure(self.session, s)
-            diffs = []
-            for attr_name in style_attrs:
-                widget = getattr(self, attr_name)
-                arg_name = camel_case(attr_name)
-                if isinstance(widget, QLineEdit):
-                    str_val = widget.text()
-                    if not widget.hasAcceptableInput():
-                        return tool_user_error("Unacceptable value (%s) for '%s' argument"
-                            % (str_val, arg_name))
-                    if isinstance(widget.validator(), QDoubleValidator):
-                        val = float(str_val)
-                    else:
-                        val = int(str_val)
-                elif isinstance(widget, QGroupBox):
-                    # "the blah_factor attributes, that are composed of a QGroupBox and QLineEdit,
-                    # are represented as a tuple of widgets
-                    val = widget.isChecked()
-                    str_val = str(val).lower()
-                elif isinstance(widget, ColorWidget):
-                    val = widget.value
-                    if val is None:
-                        str_val = "none"
-                    else:
-                        str_val = color_name(val)
-                elif isinstance(widget, QPushButton):
-                    text = widget.text()
-                    if text == "same as color":
-                        val = None
-                        str_val = "none"
-                    else:
-                        str_val = text[:-1]
-                        val = int(str_val)
-                elif isinstance(widget, tuple):
-                    gbox, factor = widget
-                    if gbox.isChecked():
-                        str_val = factor.text()
-                        if not factor.hasAcceptableInput():
-                            return tool_user_error("Unacceptable value (%s) for '%s' argument"
-                                % (str_val, arg_name))
-                        if isinstance(factor.validator(), QDoubleValidator):
-                            val = float(str_val)
-                        else:
-                            val = int(str_val)
-                    else:
-                        str_val = "none"
-                        val = None
-                else:
-                    raise AssertionError("Unhandled type of input widget")
-                # Since numpy has non-Pythonic equality operators, can't use simple equality test
-                from numpy import array_equal
-                if not array_equal(val, mgr.drawing_params[attr_name]):
-                    diffs.extend([arg_name, str_val])
+            diffs = self._gather_diffs(s)
             if diffs:
                 run(self.session, "aniso style " + " ".join(diffs)),
 
-        if self.sel_restrict_check_box.isChecked():
+        if self.sel_restrict_check_box.isChecked() and s.atoms.selecteds.any():
             spec += " & sel"
 
         run(self.session, "aniso" + (" hide" if hide else '') + ' ' + spec)

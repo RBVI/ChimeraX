@@ -216,6 +216,13 @@ class BugReporter(ToolInstance):
             self.report_email_required_for_known_crashes()
             return
 
+        is_crash_report = ('Last time you used ChimeraX it crashed' in entry_values['description'])
+        if is_crash_report:
+            from sys import platform
+            if platform == 'linux' and not entry_values.get('email'):
+                self.report_email_required_for_linux_crashes()
+                return
+
         # Include log contents in description
         if self.include_log.isChecked():
             from chimerax.log.cmd import get_singleton
@@ -348,6 +355,18 @@ class BugReporter(ToolInstance):
             f"<h3><font color='{color}'<h3>Not submitted: This crash was already reported</font></h3>"
             "<p>What we know about this crash is described in the Description panel in red."
             " If you wish to discuss this crash with us you have to provide an email address.")
+        self.result.setText(thanks)
+
+    def report_email_required_for_linux_crashes(self):
+        from chimerax.core.colors import scheme_color
+        color = scheme_color('status')
+        thanks = (
+            f"<h3><font color='{color}'<h3>Not submitted: Email address required</font></h3>"
+            "<p><font color='red'>Linux crash reports include little diagnostic information so we are rarely able to identify "
+            "the cause without discussing with the reporter.  Therefore we require an email address "
+            "to report ChimeraX crashes on Linux.  The most common cause of ChimeraX crashes on Linux "
+            "is failed remote display.  Remote display techologies with 3D OpenGL graphics often don't work, "
+            "and we are not able to advise on how to fix remote display.</font>")
         self.result.setText(thanks)
         
     def cancel(self):

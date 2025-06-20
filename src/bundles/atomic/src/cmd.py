@@ -171,7 +171,12 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None, r
     if model_id is not None:
         combination.id = model_id
     if add_to_session:
-        session.models.add([combination])
+        from chimerax.core.models import BadIDError
+        try:
+            session.models.add([combination])
+        except BadIDError as e:
+            combination.delete()
+            raise UserError(str(e))
     return combination
 
 def label_missing_cmd(session, structures, max_chains):
@@ -253,6 +258,7 @@ def pbond_cmd(session, atoms, *, color=BuiltinColors["slate gray"], current_coor
     else:
         if pbg in dist_monitor.monitored_groups:
             dist_monitor.remove_group(pbg)
+    return pb
 
 def xpbond_cmd(session, atoms, *, global_=False, name="custom"):
     if len(atoms) != 2:

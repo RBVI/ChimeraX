@@ -58,6 +58,10 @@ saved in <a href="../commands/save.html#session">sessions</a>.
 </p>
 <h3>Display Settings</h3>
 <p>
+Atomic models with anisotropic B-factors are listed in the menu near the
+top right of the dialog. If more than one such model is open, the model
+to act on should be chosen from the menu.
+</p><p>
 Ellipsoid axes and radii correspond to the eigenvectors and eigenvalues
 of the atomic mean-square displacement matrix.
 The radii are proportional to the root-mean-square displacements (RMSDs),
@@ -117,14 +121,21 @@ of the following options:
   &ndash; thickness of principal ellipse depictions
   </ul>
 </ul>
-Clicking <b>Show</b> or pressing return after entering a value 
-creates the depictions; clicking <b>Hide</b> removes them.
+<p>
+Clicking <b>Show</b> after entering a value 
+creates or updates the depictions; clicking <b>Hide</b> removes them.
 When the <b>Restrict Show/Hide...</b> option is on and atoms are
-<a href="../selection.html">selected</a>,
-showing and hiding will affect only the depictions of the
-<a href="../selection.html">selected</a> atoms.
-Otherwise, clicking <b>Show</b> removes any pre-existing depictions
-and generates new ones for the currently displayed atoms.
+<a href="../selection.html">selected</a>, only the depictions of the
+<a href="../selection.html">selected</a> atoms in the
+<a href="#settings">chosen model</a> will be shown or hidden.
+Otherwise (<b>Restrict...</b> option not used or no atoms selected),
+clicking <b>Show</b> removes any pre-existing depictions
+and generates new ones for the chosen model.
+Regardless of whether the <b>Restrict...</b> option is on, however,
+the settings are applied to all atoms of the chosen model even if their
+depictions are not displayed. Atoms can be displayed without their
+anisotropic depictions, but the anisotropic depiction for an atom
+cannot be displayed unless its atom is displayed.
 </p>
 
 <a name="presets"></a>
@@ -134,7 +145,13 @@ and generates new ones for the currently displayed atoms.
 <h3>Thermal Ellipsoid Presets</h3>
 <p>
 The <b>Presets</b> menu in <b>Thermal Ellipsoids</b> includes several
-predefined combinations of <a href="#settings2">style settings</a>:
+predefined combinations of <a href="#settings2">style settings</a>.
+Those listed below are built-in, and more can be defined by the user.
+Presets do not include <a href="#settings1">scaling and smoothing
+settings</a>, which are specified independently.
+Choosing a preset from the menu applies its settings immediately.
+See also: <a href="../commands/aniso.html#preset"><b>aniso preset</b></a>
+</p>
 <ul>
 <li><b>axes</b>
 &ndash; axes only (length factor 1.0)
@@ -171,18 +188,12 @@ showEllipsoid true, color white, transparency 0.5, axisFactor 0.99
 <!--
 showEllipsoid true, color white, transparency 0.5, ellipseFactor 0.99
 -->
+<li><b>Preset from current settings...</b>
+save a custom preset with the current <a href="#settings2">style settings</a>;
+the settings must have been applied to some atoms before they can be saved
+<li><b>Delete user preset...</b>
+remove a previously user-defined preset
 </ul>
-<p>
-Presets do not include <a href="#settings1">scaling and smoothing
-settings</a>, which are specified independently.
-Choosing a preset from the menu applies its settings immediately.
-</p><p>
-Users can create their own custom presets by saving the current settings
-with the command
-<a href="../commands/aniso.html#preset"><b>aniso preset save</b></a>,
-and such user-defined (not built-in) presets can be removed with
-<a href="../commands/aniso.html#preset"><b>aniso preset delete</b></a>.
-</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /

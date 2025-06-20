@@ -149,7 +149,7 @@ class MatchDialog:
                 r = a.residue
                 c = r.chain
                 aseq = aln.associations[c]
-                mmap = aseq.match_maps[c]
+                mmap = aln.match_maps[aseq][c]
                 return aseq, aseq.ungapped_to_gapped(mmap[r])
             region_indices = { seq: set() for seq in self.sv.alignment.seqs }
             for match_atoms, ref_atoms, rmsd, full_rmsd, xform in results:

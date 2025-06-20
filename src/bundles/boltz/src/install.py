@@ -22,7 +22,8 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def boltz_install(session, directory = None, download_model_weights_and_ccd = True, wait = None):
+def boltz_install(session, directory = None, download_model_weights_and_ccd = True,
+                  branch = 'chimerax', wait = None):
     if directory is None:
         from os.path import expanduser
         directory = expanduser('~/boltz')
@@ -38,18 +39,21 @@ def boltz_install(session, directory = None, download_model_weights_and_ccd = Tr
     if wait is None:
         wait = False if session.ui.is_gui else True
 
-    ib = InstallBoltz(session, directory, download_model_weights_and_ccd, wait = wait)
+    ib = InstallBoltz(session, directory, download_model_weights_and_ccd,
+                      branch = branch, wait = wait)
     return ib
             
 # ------------------------------------------------------------------------------
 #
 class InstallBoltz:
 
-    def __init__(self, session, directory, download_model_weights_and_ccd = True, wait = False):
+    def __init__(self, session, directory, download_model_weights_and_ccd = True,
+                 branch = 'chimerax', wait = False):
 
         self._session = session
         self._directory = directory
         self._download_model_weights_and_ccd = download_model_weights_and_ccd
+        self._branch = branch		# Git branch to install
         self._wait = wait
         self.finished_callback = None
         self.success = None
@@ -137,7 +141,7 @@ class InstallBoltz:
 
 #        boltz_ver = 'boltz==0.4.1'
 #        boltz_ver = 'git+https://github.com/jwohlwend/boltz@a9b3abc2c1f90f26b373dd1bcb7afb5a3cb40293'  # Install from Github source
-        boltz_ver = 'git+https://github.com/RBVI/boltz@chimerax'  # Install from RBVI fork of Boltz
+        boltz_ver = f'git+https://github.com/RBVI/boltz@{self._branch}'  # Install from RBVI fork of Boltz
         command = [self._venv_python_executable(), '-m', 'pip', 'install', boltz_ver]
         logger.info(' '.join(command))
 
@@ -253,7 +257,9 @@ class log_subprocess_output:
     def _log_queued_lines(self, *trigger_args):
         while not self._queue.empty():
             line = self._queue.get()
-            self._session.logger.info(line.decode('utf-8'))
+            import locale
+            stdout_encoding = locale.getpreferredencoding()
+            self._session.logger.info(line.decode(stdout_encoding, errors = 'ignore'))
         if not self._thread.is_alive():
             self._finished()
             return 'delete handler'
@@ -302,10 +308,11 @@ def find_executable(venv_directory, exe_name):
 # ------------------------------------------------------------------------------
 #
 def register_boltz_install_command(logger):
-    from chimerax.core.commands import CmdDesc, register, SaveFolderNameArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, SaveFolderNameArg, BoolArg, StringArg
     desc = CmdDesc(
         optional = [('directory', SaveFolderNameArg)],
-        keyword = [('download_model_weights_and_ccd', BoolArg)],
+        keyword = [('download_model_weights_and_ccd', BoolArg),
+                   ('branch', StringArg)],
         synopsis = 'Install Boltz from PyPi in a virtual environment',
         url = 'help:boltz_help.html'
     )

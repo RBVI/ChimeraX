@@ -36,6 +36,10 @@ class="clRighticon" title="User Guide Index"/></a>
 <br><b>alias</b> &nbsp;<b>delete</b>
 (&nbsp;<i>name</i>&nbsp;|&nbsp;<b>all</b>&nbsp;)
 </h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>alias</b> &nbsp;<b>synopsis</b> &nbsp;<i>name</i>
+[&nbsp;<i>usage-description-string</i>&nbsp;]
+</h3>
 <p>
 The <b>alias</b> command defines a new command <i>name</i> as the specified
 <i>wordlist</i>, which could be a composite of other commands.  That is,
@@ -99,9 +103,14 @@ whereas <b>alias list internal</b> lists the built-in aliases.
 </p><p>
 The command <b>alias delete</b> can be used to &ldquo;forget&rdquo; a specific
 alias or <b>all</b> aliases.
+</p><p>
+The command <b>alias synopsis</b> can be used to replace the information
+shown with the <a href="usage.html"><b>usage</b></a> command for the specified
+alias. Omitting <i>usage-description-string</i> resets the information
+to the default for the alias, namely its definition.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2022</address>
+June 2025</address>
 </body></html>

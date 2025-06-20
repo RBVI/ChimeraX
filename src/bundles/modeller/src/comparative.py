@@ -71,8 +71,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
 
     from chimerax.core.errors import LimitationError, UserError
     from .common import (
-        modeller_copy, opal_safe_file_name, regularized_seq,
-        structure_save_name, chain_save_name
+        modeller_copy, opal_safe_file_name, structure_save_name, chain_save_name
     )
     if multichain:
         # So, first find structure with most associated chains and least non-associated chains.
@@ -93,7 +92,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
                 if len(chain.chain_id) > 1:
                     raise LimitationError("Modeller cannot handle templates with multi-character chain IDs")
                 by_structure.setdefault(chain.structure, []).append(chain)
-                chain_info[chain] = (aseq, target)
+                chain_info[chain] = (aseq, target, alignment.match_maps[aseq][chain])
         max_matched = min_unmatched = None
         for s, match_info in by_structure.items():
             matched = len(match_info)
@@ -112,7 +111,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         for chain in multimer_template.chains:
             mm_chains.append(chain)
             try:
-                aseq, target = chain_info[chain]
+                aseq, target, match_maps = chain_info[chain]
             except KeyError:
                 mm_targets.append(None)
             else:
@@ -124,7 +123,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         for chain, info in chain_info.items():
             if chain.structure == multimer_template:
                 continue
-            aseq, target = info
+            aseq, target, match_map = info
             for i, mm_target in enumerate(mm_targets):
                 if mm_target != target:
                     continue
@@ -141,8 +140,8 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         for template_line in single_template_lines:
             for chain, target in zip(template_line, mm_targets):
                 if target is not None and chain is not None:
-                    aseq = chain_info[chain][0]
-                    templates_info.append((chain, aseq.match_maps[chain]))
+                    aseq, _, match_map = chain_info[chain]
+                    templates_info.append((chain, match_map))
     else:
         if len(targets) > 1:
             raise LimitationError("Cannot have multiple targets(/alignments) unless creating multimeric model")
@@ -157,9 +156,10 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         for chain, aseq in alignment.associations.items():
             if len(chain.chain_id) > 1:
                 raise LimitationError("Modeller cannot handle templates with multi-character chain IDs")
-            chain_info[chain] = (aseq, target)
+            match_map = alignment.match_maps[aseq][chain]
+            chain_info[chain] = (aseq, target, match_map)
             templates.append(chain)
-            templates_info.append((chain, aseq.match_maps[chain]))
+            templates_info.append((chain, match_map))
             if not match_chains:
                 match_chains.append(chain)
         target_string, template_info = form_strings(target, templates, chain_info)
@@ -385,8 +385,8 @@ def form_strings(target, templates, chain_info):
     template_state = {}
     target_chars = []
     for template in templates:
-        aseq, target = chain_info[template]
-        template_state[template] = ([], 0, aseq.match_maps[template])
+        aseq, target, match_map = chain_info[template]
+        template_state[template] = ([], 0, match_map)
         update_in_seq_hets(template)
     while True:
         try:

@@ -25,7 +25,7 @@
 def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
                   protein = [], dna = [], rna = [], ligand_ccd = [], ligand_smiles = [],
                   name = None, results_directory = None, device = None,
-                  samples = 1, recycles = 3, seed = None, float16 = False,
+                  samples = 1, recycles = 3, seed = None, float16 = False, steering = False,
                   use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                   open = True, install_location = None, wait = None):
 
@@ -56,7 +56,8 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
         session.logger.info(f'Predicting covalent ligands not yet supported: {covalent_ligands}')
 
     br = BoltzRun(session, molecular_components, name = name, align_to = align_to,
-                  device = device, samples = samples, recycles = recycles, seed = seed, cuda_bfloat16 = float16,
+                  device = device, samples = samples, recycles = recycles, seed = seed,
+                  cuda_bfloat16 = float16, use_steering_potentials = steering,
                   use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
                   open = open, wait = wait)
     br.start(results_directory)
@@ -164,7 +165,7 @@ class BoltzMolecule:
 class BoltzRun:
     def __init__(self, session, molecular_components, name = None, align_to = None,
                  device = 'default', samples = 1, recycles = 3, seed = None,
-                 cuda_bfloat16 = False,
+                 cuda_bfloat16 = False, use_steering_potentials = False,
                  use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                  open = True, wait = False):
 
@@ -176,6 +177,7 @@ class BoltzRun:
         self._samples = samples		# Number of predicted structures
         self._recycles = recycles	# Number of boltz recycling steps
         self._cuda_bfloat16 = cuda_bfloat16	# Save memory using 16-bit instead of 32-bit float
+        self._use_steering_potentials = use_steering_potentials
         self._seed = seed		# Random seed for computation
         self._open = open		# Whether to open predictions when boltz finishes.
 
@@ -335,6 +337,8 @@ class BoltzRun:
         command.extend(['--accelerator', self.device])
         if self._cuda_bfloat16 and self.device == 'gpu':
             command.append('--use_cuda_bfloat16')
+        if not self._use_steering_potentials:
+            command.append('--no_potentials')
 
         if self._samples != 1:
             command.extend(['--diffusion_samples', str(self._samples)])
@@ -443,11 +447,13 @@ class BoltzRun:
 
         p = self._process
         success = (p.returncode == 0)
+        import locale
+        stdout_encoding = locale.getpreferredencoding()
         if success:
             from time import time
             t = time() - self._start_time
             self._session.logger.info(f'Boltz prediction completed in {"%.0f" % t} seconds')
-            stdout = stdout.decode("utf8")
+            stdout = stdout.decode(stdout_encoding, errors = 'ignore')
             if self._prediction_ran_out_of_memory(stdout):
               msg = ('The Boltz prediction ran out of memory.  The memory use depends on the'
                      ' number of protein and nucleic acid residues plus the number of ligand'
@@ -459,8 +465,8 @@ class BoltzRun:
                 self._open_predictions()
             self._add_to_msa_cache()
         else:
-            stdout = stdout.decode("utf8")
-            stderr = stderr.decode('utf8')
+            stdout = stdout.decode(stdout_encoding, errors = 'ignore')
+            stderr = stderr.decode(stdout_encoding, errors = 'ignore')
             if 'No supported gpu backend found' in stderr:
                 msg = ('Attempted to run Boltz on the GPU but no supported GPU device could be found.'
                        ' To avoid this error specify the compute device as "cpu" in the ChimeraX Boltz'
@@ -471,6 +477,10 @@ class BoltzRun:
                        ' support in the future.')
             elif 'No such option: --use_cuda_bfloat16' in stderr:
                 msg = ('The installed Boltz does not have the --use_cuda_bfloat16 option.'
+                       ' You need to install a newer Boltz to get this option.'
+                       ' Use the ChimeraX command "boltz install ~/boltz_new" to install it.')
+            elif 'No such option: --no_potentials' in stderr:
+                msg = ('The installed Boltz does not have the --no_potentials option.'
                        ' You need to install a newer Boltz to get this option.'
                        ' Use the ChimeraX command "boltz install ~/boltz_new" to install it.')
             else:
@@ -594,11 +604,45 @@ def _is_boltz_available(session):
     '''Check if Boltz is locally installed with paths properly setup.'''
     from .settings import _boltz_settings
     settings = _boltz_settings(session)
+    install_location = settings.boltz_install_location
     from os.path import isdir
-    if not isdir(settings.boltz_install_location):
+    if not isdir(install_location):
         msg = 'You need to install Boltz by pressing the "Install Boltz" button on the ChimeraX Boltz user interface, or using the ChimeraX command "boltz install".  If you already have Boltz installed, you can set the Boltz installation location in the user interface under Options, or use the installLocation option of the ChimeraX boltz command "boltz predict ... installLocation /path/to/boltz"'
         session.logger.error(msg)
         return False
+
+    if not _check_venv_valid(session, install_location):
+        return False
+
+    return True
+
+# ------------------------------------------------------------------------------
+#
+def _check_venv_valid(session, install_location):
+    '''
+    Warn if the ChimeraX python that was used for boltz venv does not exist.
+    '''
+    from os.path import join, exists
+    venv_config_path = join(install_location, 'pyvenv.cfg')
+    if not exists(venv_config_path):
+        # Maybe the user installed Boltz themselves.  Don't complain in that case.
+        return True
+
+    with open(venv_config_path, 'r') as f:
+        # Prepend section name since configparser requires a section.
+        config = '[params]\n' + f.read()
+    import configparser
+    p = configparser.ConfigParser()
+    p.read_string(config)
+
+    home = p.get('params', 'home', fallback = None)  # Python bin directory
+    if home and not exists(home):
+        from chimerax.core.commands import quote_path_if_necessary
+        install_loc = quote_path_if_necessary(install_location)
+        msg = f'The ChimeraX version you used to install Boltz no longer exists and Boltz uses the Python from that ChimeraX.  You need to reinstall Boltz with your current ChimeraX.  First remove the directory containing the old Boltz installation\n\n{install_location}\n\nThen restart ChimeraX and press the "Install Boltz" button on the ChimeraX Boltz panel or use the ChimeraX command\n\nboltz install {install_loc}'
+        session.logger.error(msg)
+        return False
+
     return True
 
 # ------------------------------------------------------------------------------
@@ -892,6 +936,7 @@ def register_boltz_predict_command(logger):
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
                    ('float16', BoolArg),
+                   ('steering', BoolArg),
                    ('samples', IntArg),
                    ('recycles', IntArg),
                    ('seed', IntArg),

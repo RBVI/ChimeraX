@@ -393,7 +393,7 @@ class GridCanvas:
         for chain, aseq in self.alignment.associations.items():
             if chain not in sel_chains:
                 continue
-            match_map = aseq.match_maps[chain]
+            match_map = self.alignments.match_maps[aseq][chain]
             for r in chain.existing_residues:
                 if r not in sel_residues:
                     continue
@@ -516,7 +516,7 @@ class GridCanvas:
     def _residues_at(self, grid_row, grid_col):
         residues = []
         for seq in self._sequences_at(grid_row, grid_col):
-            for match_map in seq.match_maps.values():
+            for match_map in self.alignment.match_maps[seq].values():
                 try:
                     residues.append(match_map[seq.gapped_to_ungapped(grid_col)])
                 except KeyError:
@@ -577,12 +577,25 @@ class GridCanvas:
 
         # Apparently the height of the horizontal scrollbar gets added to main view at some point,
         # need to compensate
-        def adjust_scrollbars(sb1=self.main_label_view.verticalScrollBar(), sb2=self.main_view.verticalScrollBar()):
+        from Qt.QtCore import QTimer, Qt
+        def adjust_scrollbars(mlv=self.main_label_view, mv=self.main_view):
+            sb1 = mlv.verticalScrollBar()
+            sb2 = mv.verticalScrollBar()
             min_val = min(sb1.minimum(), sb2.minimum())
             max_val = max(sb1.maximum(), sb2.maximum())
             sb1.setRange(min_val, max_val)
             sb2.setRange(min_val, max_val)
-        from Qt.QtCore import QTimer
+            # on Mac, if the user has their scrollbar policy as "always on", there might be a horizontal
+            # scrollbar on the main canvas and not on the label canvas, which makes the viewports heights
+            # different, so they don't scroll in sync; compensate by adding horizontal scroller to labels
+            lvr = mlv.viewport().rect()
+            mvr = mv.viewport().rect()
+            if lvr.height() > mvr.height():
+                mlv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+                def right_scroll(mlv=mlv):
+                    hsb = mlv.horizontalScrollBar()
+                    hsb.setValue(hsb.maximum())
+                QTimer.singleShot(100, right_scroll)
         QTimer.singleShot(100, adjust_scrollbars)
 
 _seq_lists = [] # hold references so the lists aren't immediately destroyed

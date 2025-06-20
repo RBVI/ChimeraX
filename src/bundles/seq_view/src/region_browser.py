@@ -145,6 +145,7 @@ class Region:
         self._border_rgba = rgba
         # kind of complicated due to highlighting; just redraw
         self.redraw()
+        self._notify_tool("border color")
 
     border_rgba = property(get_border_rgba, set_border_rgba)
 
@@ -252,6 +253,7 @@ class Region:
         for item in self._items:
             item.setBrush(brush)
         self.redraw()
+        self._notify_tool("interior color")
 
     interior_rgba = property(get_interior_rgba, set_interior_rgba)
 
@@ -368,9 +370,10 @@ class Region:
         num_d = sum_d2 = 0
         rmsd_chains = set(self.seq_canvas.alignment.rmsd_chains)
         from chimerax.geometry import distance_squared
+        alignment = self.seq_canvas.alignment
         for block in self.blocks:
             line1, line2, pos1, pos2 = block
-            all_seqs = self.seq_canvas.alignment.seqs
+            all_seqs = alignment.seqs
             try:
                 si1 = all_seqs.index(line1)
             except ValueError:
@@ -382,7 +385,7 @@ class Region:
             match_info = []
             seqs = all_seqs[si1:si2+1]
             for seq in seqs:
-                for chain, match_map in seq.match_maps.items():
+                for chain, match_map in alignment.match_maps[seq].items():
                     if chain in rmsd_chains:
                         match_info.append((seq, match_map))
             if len(match_info) < 2:
@@ -1016,7 +1019,8 @@ class RegionManager:
         ])
 
         # ungapped
-        seqs = self.seq_canvas.alignment.seqs
+        alignment = self.seq_canvas.alignment
+        seqs = alignment.seqs
         chain_info = {}
         for i, seq in enumerate(seqs):
             blocks = []
@@ -1034,7 +1038,7 @@ class RegionManager:
                         break
                 u1, u2 = [seq.gapped_to_ungapped(p) for p in (p1, p2)]
                 blocks.append((u1, u2))
-                for chain, mmap in seq.match_maps.items():
+                for chain, mmap in alignment.match_maps[seq].items():
                     start = None
                     for u in range(u1, u2+1):
                         try:
@@ -1173,8 +1177,9 @@ class RegionManager:
         from chimerax.atomic import selected_residues
         sel_residues = set(selected_residues(self.seq_canvas.sv.session))
         blocks = []
-        for aseq in self.seq_canvas.alignment.seqs:
-            for match_map in aseq.match_maps.values():
+        alignment = self.seq_canvas.alignment
+        for aseq in alignment.seqs:
+            for match_map in alignment.match_maps[aseq].values():
                 start = None
                 end = None
                 for i in range(len(aseq.ungapped())):
@@ -1275,13 +1280,14 @@ class RegionManager:
         assoc_seqs = set()
         helices = []
         strands = []
-        for aseq in self.seq_canvas.alignment.associations.values():
+        alignment = self.seq_canvas.alignment
+        for aseq in alignment.associations.values():
             assoc_seqs.add(aseq)
         for aseq in assoc_seqs:
             in_helix = in_strand = False
             for pos in range(len(aseq.ungapped())):
                 is_helix = is_strand = False
-                for match_map in aseq.match_maps.values():
+                for match_map in alignment.match_maps[aseq].values():
                     try:
                         res = match_map[pos]
                     except KeyError:
@@ -1727,7 +1733,8 @@ class RegionManager:
         line1, line2, pos1, pos2 = block
 
         residues = []
-        seqs = self.seq_canvas.alignment.seqs
+        alignment = self.seq_canvas.alignment
+        seqs = alignment.seqs
         try:
             index1 = seqs.index(line1)
         except ValueError:
@@ -1738,7 +1745,7 @@ class RegionManager:
             index2 = 0
         for aseq in seqs[index1:index2]:
             try:
-                match_maps = aseq.match_maps
+                match_maps = alignment.match_maps[aseq]
             except AttributeError:
                 continue
             for match_map in match_maps.values():
@@ -1948,6 +1955,10 @@ class RegionsTool:
             self.region_table.data = [r for r in all_regions if r in table_regions]
         elif category == "select":
             self.region_table.selected = [r for r in self.region_table.data if r == region]
+        elif category == "border color" or category == "interior color":
+            col_type = "edge" if category == "border color" else "fill"
+            for col_suffix in ["", " color"]:
+                self.region_table.update_cell(self.columns[col_type + col_suffix], region)
         elif region in self.region_table.data:
             col = self.columns[category]
             self.region_table.update_cell(col, region)
