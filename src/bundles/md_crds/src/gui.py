@@ -12,7 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 from Qt.QtWidgets import QFrame, QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QPushButton, QMenu, \
-    QSizePolicy, QWidget, QStackedWidget, QGridLayout
+    QSizePolicy, QWidget, QStackedWidget, QGridLayout, QLineEdit
+from Qt.QtGui import QIntValidator
 from Qt.QtCore import Qt
 
 from chimerax.core.commands import plural_of
@@ -196,9 +197,11 @@ class PlotDialog:
         pc_layout.setSpacing(0)
         pc_layout.setContentsMargins(0,0,0,0)
         plot_control_area.setLayout(pc_layout)
+        from itertools import count
+        row = count()
         plot_button = QPushButton("Plot")
         plot_button.clicked.connect(lambda *args, f=self._plot_atomic, pv=provider_name: f(pv))
-        pc_layout.addWidget(plot_button, 0, 0, alignment=Qt.AlignRight)
+        pc_layout.addWidget(plot_button, next(row), 0, alignment=Qt.AlignRight)
         num_atoms = self.mgr.num_atoms(provider_name)
         preposition = "for" if num_atoms == 0 else "from"
         atom_string = "" if num_atoms == 0 else "%d " % num_atoms
@@ -208,16 +211,32 @@ class PlotDialog:
             reminder = QLabel("(If no selection, all atoms)")
             from chimerax.ui import shrink_font
             shrink_font(reminder)
-            pc_layout.addWidget(reminder, 1, 0, 1, 2, alignment=Qt.AlignCenter)
+            pc_layout.addWidget(reminder, next(row), 0, 1, 2, alignment=Qt.AlignCenter)
+
+        provider_widget_dict = self._provider_widgets.setdefault(provider_name, {})
+        if self.mgr.need_ref_frame(provider_name):
+            ref_container = QWidget()
+            ref_layout = QHBoxLayout()
+            ref_layout.setSpacing(0)
+            ref_layout.setContentsMargins(2,2,2,2)
+            ref_container.setLayout(ref_layout)
+            ref_layout.addWidget(QLabel("Reference frame: "))
+            ref_edit = QLineEdit()
+            ref_edit.setText(str(min(self.structure.coordset_ids)))
+            ref_edit.setFixedWidth(ref_edit.fontMetrics().boundingRect("9999").width())
+            ref_edit.setAlignment(Qt.AlignCenter)
+            ref_edit.setValidator(QIntValidator())
+            ref_layout.addWidget(ref_edit)
+            pc_layout.addWidget(ref_container, next(row), 0, 1, 2, alignment=Qt.AlignCenter)
+            provider_widget_dict["ref-frame"] = ref_edit
+
         excludes = self.mgr.excludes(provider_name)
         if excludes:
-            provider_widget_dict = self._provider_widgets.setdefault(provider_name, {})
             exclude_dict = provider_widget_dict["excludes"] = {}
-            for i, exclude_info in enumerate(excludes.items()):
-                exclude, default = exclude_info
+            for exclude, default in excludes.items():
                 layout_widget, value_widget = self._make_exclude_widget(exclude, default)
                 exclude_dict[exclude] = value_widget
-                pc_layout.addWidget(layout_widget, 2+i, 0, 1, 2, alignment=Qt.AlignCenter)
+                pc_layout.addWidget(layout_widget, next(row), 0, 1, 2, alignment=Qt.AlignCenter)
 
         delete_control_area = QWidget()
         area_layout.addWidget(delete_control_area)
@@ -275,6 +294,8 @@ class PlotDialog:
             for i in range(num_atoms):
                 table.add_column("Atom %d" % (i+1), lambda x, i=i: x.atoms[i],
                     format=lambda a: a.string(minimal=True))
+        if self.mgr.need_ref_frame(provider_name):
+            table.add_column("Ref Frame", "ref_frame")
         table.data = []
         table.launch()
         return table
@@ -323,10 +344,19 @@ class PlotDialog:
         elif len(sel_atoms) != expected_sel:
             return tool_user_error("Plotting %s requires exactly %d selected atoms in the structure;"
                 " %d are currently selected" % (plural_of(ui_name), expected_sel, len(sel_atoms)))
+        kw = {}
+        if self.mgr.need_ref_frame(provider_name):
+            ref_widget = self._provider_widgets[provider_name]["ref-frame"]
+            if not ref_widget.hasAcceptableInput():
+                return tool_user_error("Reference frame must be an integer")
+            frame = int(ref_widget.text())
+            if frame not in self.structure.coordset_ids:
+                return tool_user_error("%s does not have a coordinate set %d" % (self.structure, frame))
+            kw["ref_frame"] = frame
         table = self._tables[provider_name]
         from .manager import PlotValueError
         try:
-            table.data += [TableEntry(self, provider_name, sel_atoms)]
+            table.data += [TableEntry(self, provider_name, sel_atoms, **kw)]
         except PlotValueError as e:
             return tool_user_error("Cannot plot %s for selected atoms: %s" % (ui_name, str(e)))
         self._update_plot(provider_name)
@@ -405,7 +435,7 @@ class PlotDialog:
         canvas.draw_idle()
 
 class TableEntry:
-    def __init__(self, plot_dialog, provider_name, atoms):
+    def __init__(self, plot_dialog, provider_name, atoms, *, ref_frame=None):
         self.plot_dialog = plot_dialog
         mgr = plot_dialog.mgr
         self.provider_name = provider_name
@@ -413,12 +443,22 @@ class TableEntry:
         self.rgba = distinguish_from([(1.0,1.0,1.0,1.0)]
             + [datum.rgba for datum in plot_dialog._tables[provider_name].data])
         self._shown = True
-        self._values = mgr.get_values(provider_name, structure=plot_dialog.structure, atoms=atoms)
+        kw = {}
+        if ref_frame is not None:
+            kw["ref_frame"] = ref_frame
+        self._values = mgr.get_values(provider_name, structure=plot_dialog.structure, atoms=atoms, **kw)
         self.atoms = atoms
+        self._ref_frame = ref_frame
 
     @property
     def num_atoms(self):
         return len(self.atoms)
+
+    @property
+    def ref_frame(self):
+        if self._ref_frame is None:
+            raise AssertionError("Table entry lacks reference frame info")
+        return self._ref_frame
 
     @property
     def rgba8(self):

@@ -37,10 +37,11 @@ class MDPlottingManager(ProviderManager):
         self._max_vals = {}
         self._text_formats = {}
         self._excludes = {}
+        self._need_ref_frames = {}
         super().__init__("MD plotting")
 
     def add_provider(self, bundle_info, name, *, ui_name=None, num_atoms=None, min_val=None, max_val=None,
-            text_format="%g", exclude=None):
+            text_format="%g", exclude=None, need_ref_frame=None):
         # 'name' is the name used as an arg in the command
         # 'ui_name' is the name used in the tool interface (defaults to 'name')
         # 'num_atoms' indicates how many atoms are needed to compute the quantity (and therefore are
@@ -90,6 +91,13 @@ class MDPlottingManager(ProviderManager):
                         " supported values are: %s" % (value, kind,
                         ", ".join(list(self.exclude_info[kind]))))
                 excludes[kind] = value
+        if need_ref_frame is None:
+            self._need_ref_frames[name] = False
+        else:
+            if need_ref_frame not in self.bools:
+                raise ValueError("Unrecognized 'need_ref_frame' value (%s) for provider %s;"
+                    " must be '%s' or '%s'" % (need_ref_frame, name, *self.bools))
+            self._need_ref_frames[name] = eval(need_ref_frame.capitalize())
 
     def excludes(self, provider_name):
         return self._excludes[provider_name]
@@ -103,6 +111,9 @@ class MDPlottingManager(ProviderManager):
 
     def min_val(self, provider_name):
         return self._min_vals[provider_name]
+
+    def need_ref_frame(self, provider_name):
+        return self._need_ref_frames[provider_name]
 
     def num_atoms(self, provider_name):
         return self._num_atoms[provider_name]
