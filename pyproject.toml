@@ -85,7 +85,7 @@ wheel = [
   "networkx==3.3",
   "numpy==1.26.4",
   "openmm==8.2.0 ; platform_machine != 'aarch64'",
-  "openmm-cuda-12==8.2.0 ; platform_machine != 'aarch64'",
+  "openmm-cuda-12==8.2.0 ; (sys_platform == 'win32') and (platform_machine != 'aarch64')",
   "packaging==24.2",
   # as per Tristan's request in ticket #3055"
   "ParmEd==4.2.2",
