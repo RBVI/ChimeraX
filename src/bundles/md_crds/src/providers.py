@@ -20,13 +20,12 @@ def rmsd(session, mgr, **kw):
     s.active_coordset_id = ref
     ref_coords = atoms.coords
     values = {}
-    from math import sqrt
-    import numpy
+    from chimerax.geometry import align_points
     try:
         for i, cs_id in enumerate(s.coordset_ids):
             s.active_coordset_id = cs_id
-            diff = atoms.coords - ref_coords
-            values[cs_id] = sqrt(numpy.sum(diff * diff)/len(atoms))
+            xform, rmsd = align_points(atoms.coords, ref_coords)
+            values[cs_id] = rmsd
     finally:
         s.active_coordset_id = cur_cs_id
         s.active_coordset_change_notify = True
