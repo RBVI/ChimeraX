@@ -137,9 +137,10 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     target_chars.append('-' * len(existing))
                     offset_i += len(existing)
                 else:
-                    match_map = seq_to_alignment[seq].match_maps[seq]
+                    aln = seq_to_alignment[seq]
+                    match_map = aln.match_maps[seq]
                     prefix, suffix = [ret[0] for ret in
-                        find_affixes(r.chain, {r.chain: (seq, None, match_map)})]
+                        find_affixes(r.chain, {r.chain: (seq, None, match_map)}, aln)]
                     chain_template_chars = prefix + regularized_seq(seq,
                         r.chain, match_map).characters + suffix
                     template_chars.append(chain_template_chars)
@@ -291,7 +292,7 @@ def find_missing(match_map, seq, internal_only):
         missing.append((start_missing, len(seq) - 1))
     return missing
 
-def find_affixes(chain, chain_info):
+def find_affixes(chain, chain_info, alignment):
     from chimerax.pdb import standard_polymeric_res_names as std_res_names
     in_seq_hets = []
     prefixes = []
@@ -303,7 +304,7 @@ def find_affixes(chain, chain_info):
         prefixes.append('')
         suffixes.append('')
     else:
-        match_map = aseq.match_maps[chain]
+        match_map = alignment.match_maps[chain]
         prefix = ''
         for r in chain.existing_residues:
             if r in match_map:

@@ -11,16 +11,36 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+def rmsd(session, mgr, **kw):
+    s = kw['structure']
+    atoms = kw['atoms']
+    ref = kw["ref_frame"]
+    cur_cs_id = s.active_coordset_id
+    s.active_coordset_change_notify = False
+    s.active_coordset_id = ref
+    ref_coords = atoms.coords
+    values = {}
+    from chimerax.geometry import align_points
+    try:
+        for i, cs_id in enumerate(s.coordset_ids):
+            s.active_coordset_id = cs_id
+            xform, rmsd = align_points(atoms.coords, ref_coords)
+            values[cs_id] = rmsd
+    finally:
+        s.active_coordset_id = cur_cs_id
+        s.active_coordset_change_notify = True
+    return values
+
 def sasa(session, mgr, **kw):
     s = kw['structure']
     atoms = kw['atoms']
-    print("Computing SASAs for %d atoms" % len(atoms))
     categories = set(atoms.structure_categories)
     from chimerax.atomic import Atoms
     full_atom_set = Atoms([a for a in s.atoms if a.structure_category in categories])
     from math import log2
     status_frequency = max(1, 250000 // len(full_atom_set))
     cur_cs_id = s.active_coordset_id
+    s.active_coordset_change_notify = False
     values = {}
     # Emulate the behavior of chimerax.surface.measure_sasacmd.measure_sasa, but without the logging
     r = full_atom_set.radii

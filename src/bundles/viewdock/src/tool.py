@@ -36,6 +36,7 @@ from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVB
                           QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel, QWidget,)
 from Qt.QtGui import QFont
 from Qt.QtCore import Qt
+from chimerax.viewdock import RATING_KEY, DEFAULT_RATING
 
 
 class ViewDockTool(ToolInstance):
@@ -45,6 +46,16 @@ class ViewDockTool(ToolInstance):
     registered_mousemode = False
 
     def __init__(self, session, tool_name, structures):
+        """
+        Initialize the ViewDock tool with, table, table controls, and model descriptions.
+
+        Args:
+            session: The ChimeraX session.
+            tool_name (str): The name of the tool. Used for saving settings.
+            structures: A list of structures to display in the tool. Structures must have the .viewdock_data attribute
+            with at minimum a rating key. ex {'rating': 2, 'name': 'Docked Structure 1', 'energy_score': -5.0, ...}
+        """
+
         super().__init__(session, tool_name)
         self.display_name = "ViewDock"
 
@@ -186,11 +197,10 @@ class ViewDockTool(ToolInstance):
         table_group.setLayout(table_group_layout)
 
         # Fixed columns. Generic based on ChimeraX model attribute(s).
-        self.struct_table.add_column('ID', lambda s: s.id_string)
-
+        self.struct_table.add_column('ID', lambda s: s.id_string, sort_func=self.id_lt)
         # Custom Rating delegate
         delegate = RatingDelegate(self.struct_table)  # Create the delegate instance
-        self.struct_table.add_column('Rating', lambda s: s.viewdock_data.get('Rating', 2),
+        self.struct_table.add_column('Rating', lambda s: s.viewdock_data.get(RATING_KEY),
                                      data_set = lambda item, value: None,
                                      editable=True)
 
@@ -203,10 +213,13 @@ class ViewDockTool(ToolInstance):
         self.struct_table.setEditTriggers(QAbstractItemView.EditTrigger.CurrentChanged)
 
         # Collect all unique keys from viewdock_data of all structures and add them as columns
-        viewdockx_keys = set()
+        viewdock_keys = set()
         for structure in self.structures:
-            viewdockx_keys.update(structure.viewdock_data.keys())
-        for key in viewdockx_keys:
+            viewdock_keys.update(structure.viewdock_data.keys())
+        for key in viewdock_keys:
+            if key == RATING_KEY:
+                # Rating is already added as a column with a custom delegate, skip it here
+                continue
             self.struct_table.add_column(key, lambda s, k=key: s.viewdock_data.get(k, ''))
 
         # Set the data for the table and launch it
@@ -215,6 +228,34 @@ class ViewDockTool(ToolInstance):
 
         # Add the table group to the layout
         self.main_v_layout.addWidget(table_group)
+
+    def id_lt(self, s1, s2):
+        """
+        Compare two structures' id_strings based on their components, which are expected to be in a dot-separated
+        format (e.g., "1.1.1").
+
+        The method splits the ID strings into parts, converts them to integers, and compares each part sequentially.
+        If all parts are equal, the IDs are compared by their length to ensure that shorter IDs (e.g., "1.1") are considered
+        greater than longer IDs (e.g., "1.1.1").
+
+        Args:
+            s1: The first object, which must have an `id_string` attribute containing the ID in dot-separated format.
+            s2: The second object, which must have an `id_string` attribute containing the ID in dot-separated format.
+
+        Returns:
+            bool: True if `s1` should be sorted before `s2`, False otherwise.
+        """
+        # Split the ID strings into parts
+        id1_parts = list(map(int, s1.id_string.split('.')))
+        id2_parts = list(map(int, s2.id_string.split('.')))
+
+        # Compare each part sequentially
+        for part1, part2 in zip(id1_parts, id2_parts):
+            if part1 != part2:
+                return part1 < part2
+
+        # If all compared parts are equal, compare by length (e.g., "1.1" > "1.1.1").
+        return len(id1_parts) > len(id2_parts)
 
     def description_box_setup(self):
         """
@@ -489,7 +530,7 @@ class RatingDelegate(QStyledItemDelegate):
         # Get the structure (chimerax Structure) from the table row.
         structure = self.parent().data[index.row()]
         new_rating = int(editor.currentText())
-        structure.viewdock_data['Rating'] = new_rating  # Update the rating in the structure's data
+        structure.viewdock_data[RATING_KEY] = new_rating  # Update the rating in the structure's data
 
         model.setData(index, new_rating)  # Optionally, set the value in the model too. This is for Qt completeness
 
