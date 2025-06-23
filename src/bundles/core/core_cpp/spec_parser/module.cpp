@@ -378,12 +378,11 @@ parse(PyObject *, PyObject *args)
     }
     return Py_None;
 #else
-    int c_quoted, c_add_implied;
-    if (!PyArg_ParseTuple(args, "OspOOp", &session, &text, &c_quoted, &parse_error_class,
+    int c_add_implied;
+    if (!PyArg_ParseTuple(args, "OsOOp", &session, &text, &parse_error_class,
             &semantics_error_class, &c_add_implied))
         return nullptr;
 
-    bool quoted = static_cast<bool>(c_quoted);
     add_implied = static_cast<bool>(c_add_implied);
     spec_parser.set_logger([](size_t line, size_t col, const std::string& msg) {
         err_valid = true;
@@ -396,15 +395,9 @@ parse(PyObject *, PyObject *args)
         //TODO: Check if optimized AST is usable.  I suspect that ::name=="CYS" produces an unusable AST
         // because it skips levels
         return eval_atom_spec(*ast);
-    } else {
-        if (quoted) {
-            set_error_info(parse_error_class, err_msg);
-            return nullptr;
-        }
-        //TODO: possibly try again
-        set_error_info(parse_error_class, err_msg);
-        return nullptr;
     }
+    set_error_info(parse_error_class, err_msg);
+    return nullptr;
 #endif
 }
 

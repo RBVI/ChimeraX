@@ -117,82 +117,6 @@ class AtomSpecArg(Annotation):
 
     use_peglib_parser = False
 
-    @staticmethod
-    def evaluate(session, text, models=None, *, order_implicit_atoms=False, add_implied=None, **kw):
-        """Return results of evaluating atom specifier for given models.
-
-        Parameters
-        ----------
-        session : chimerax.core.session.Session instance
-            The session in which to evaluate atom specifier.
-        models : list of chimerax.core.models.Model instances
-            Defaults to None, which uses all models in 'session'.
-        order_implicit_atoms : whether to order atoms that aren't
-            explicitly specified (e.g. ":5") [which can be costly]
-        **kw : keyword arguments
-            If 'models' is None, 'kw' is passed through to call to
-            'session.models.list' to generate the model list.
-
-        Returns
-        -------
-        Objects instance
-            Instance containing data (atoms, bonds, etc) that match
-            this atom specifier.
-        """
-        from chimerax.core._spec_parser import evaluate
-        from .cli import AnnotationError
-        if models is None:
-            models = session.models.list(**kw)
-            models.sort(key=lambda m: m.id)
-        quoted = text and text[0] == '"'
-        if quoted:
-            # Split out quoted argument
-            start = 0
-            m = _double_quote.match(text, start)
-            if m is None:
-                raise AnnotationError("incomplete quoted text")
-            end = m.end()
-            # quote-matching expression ends with space or end-of-line; if a space, delete it
-            if text[end-1] == ' ':
-                end -= 1
-            quoted_text = text[start+1:end-1]
-            from .cli import unescape_with_index_map
-            parse_text, index_map = unescape_with_index_map(quoted_text)
-            def find_offset(e):
-                return 1 + index_map[e.args[0]] + 0 if add_implied else 1
-        else:
-            parse_text = text
-            def find_offset(e):
-                return e.args[0] + 0 if add_implied else 1
-        spec_add_implied = not parse_text or parse_text[0] != '='
-        if not spec_add_implied:
-            parse_text = parse_text[1:]
-        if add_implied is None:
-            add_implied = spec_add_implied
-        try:
-            objects, parsed, remainder = evaluate(session, models, parse_text, quoted, PeglibParseError,
-                PeglibSemanticsError, add_implied, order_implicit_atoms)
-        except PeglibParseError as e:
-            raise AnnotationError(e.args[1], offset=find_offset(e))
-        except PeglibSemanticsError as e:
-            raise AnnotationError(e.args[1], offset=find_offset(e))
-        except RuntimeError as e:
-            raise AssertionError(e.args[1], offset=find_offset(e))
-        objects.spec = parsed
-        if quoted:
-            if remainder:
-                # quoted text not completely consumed
-                offset = index_map[parsed] + 1 + (0 if add_implied else 1)
-                raise AnnotationError("mangled atom specifier", offset=offset)
-            used_text = text[:end]
-            rest = text[end:]
-            while rest.startswith(' '):
-                rest = rest[1:]
-        else:
-            used_text = ('' if add_implied else '=') + parsed
-            rest = remainder
-        return objects, used_text, rest
-
     @classmethod
     def parse(cls, text, session):
         """Parse text and return an atomspec parse tree"""
@@ -228,28 +152,41 @@ class AtomSpecArg(Annotation):
         from .cli import unescape_with_index_map
         token, index_map = unescape_with_index_map(text[start + 1:end - 1])
         # Create parser and parse converted token
-        from ._atomspec import _atomspecParser
-        parser = _atomspecParser(parseinfo=True)
-        semantics = _AtomSpecSemantics(session, add_implied=add_implied)
-        from grako.exceptions import FailedParse, FailedSemantics
-        try:
-            with maximum_stack():
-                ast = parser.parse(token, "atom_specifier", semantics=semantics)
-        except FailedSemantics as e:
-            from .cli import AnnotationError
-            raise AnnotationError(str(e), offset=e.pos)
-        except FailedParse as e:
-            from .cli import AnnotationError, discard_article
-            # Add one to offset for leading quote
-            offset = index_map[e.pos]
-            message = 'invalid ' + discard_article(cls.name)
-            if str(e.message) != 'no available options':
-                message = '%s: %s' % (message, e.message)
-            raise AnnotationError(message, offset=offset)
+        if cls.use_peglib_parser:
+            from chimerax.core._spec_parser import parse
+            try:
+                ast = parse(session, token, PeglibParseError, PeglibSemanticsError, add_implied)
+            except PeglibParseError as e:
+                end = e.args[0]
+            except PeglibSemanticsError as e:
+                from .cli import AnnotationError
+                raise AnnotationError(e.args[1], offset=e.args[0])
+            else:
+                end = len(token)
+        else:
+            from ._atomspec import _atomspecParser
+            parser = _atomspecParser(parseinfo=True)
+            semantics = _AtomSpecSemantics(session, add_implied=add_implied)
+            from grako.exceptions import FailedParse, FailedSemantics
+            try:
+                with maximum_stack():
+                    ast = parser.parse(token, "atom_specifier", semantics=semantics)
+            except FailedSemantics as e:
+                from .cli import AnnotationError
+                raise AnnotationError(str(e), offset=e.pos)
+            except FailedParse as e:
+                from .cli import AnnotationError, discard_article
+                # Add one to offset for leading quote
+                offset = index_map[e.pos]
+                message = 'invalid ' + discard_article(cls.name)
+                if str(e.message) != 'no available options':
+                    message = '%s: %s' % (message, e.message)
+                raise AnnotationError(message, offset=offset)
+            end = ast.parseinfo.endpos
         # Must consume everything inside quotes
-        if ast.parseinfo.endpos != len(token):
+        if end != len(token):
             from .cli import AnnotationError
-            offset = index_map[ast.parseinfo.endpos] + 1
+            offset = index_map[end] + 1
             raise AnnotationError("mangled atom specifier", offset=offset)
         # Success!
         return ast, consumed, rest
@@ -267,24 +204,35 @@ class AtomSpecArg(Annotation):
             parse_text = text
             add_implied = True
             text_offset = 0
-        from ._atomspec import _atomspecParser
-        parser = _atomspecParser(parseinfo=True)
-        semantics = _AtomSpecSemantics(session, add_implied=add_implied)
-        from grako.exceptions import FailedParse, FailedSemantics
-        try:
-            with maximum_stack():
-                ast = parser.parse(parse_text, "atom_specifier", semantics=semantics)
-        except FailedSemantics as e:
-            from .cli import AnnotationError
-            raise AnnotationError(str(e), offset=e.pos)
-        except FailedParse as e:
-            from .cli import AnnotationError, discard_article
-            message = 'invalid ' + discard_article(cls.name)
-            if str(e.message) != 'no available options':
-                message = '%s: %s' % (message, e.message)
-            raise AnnotationError(message, offset=e.pos)
-
-        end = ast.parseinfo.endpos
+        if cls.use_peglib_parser:
+            from chimerax.core._spec_parser import parse
+            try:
+                ast = parse(session, parse_text, PeglibParseError, PeglibSemanticsError, add_implied)
+            except PeglibParseError as e:
+                end = e.args[0]
+            except PeglibSemanticsError as e:
+                from .cli import AnnotationError
+                raise AnnotationError(e.args[1], offset=e.args[0])
+            else:
+                end = len(parse_text)
+        else:
+            from ._atomspec import _atomspecParser
+            parser = _atomspecParser(parseinfo=True)
+            semantics = _AtomSpecSemantics(session, add_implied=add_implied)
+            from grako.exceptions import FailedParse, FailedSemantics
+            try:
+                with maximum_stack():
+                    ast = parser.parse(parse_text, "atom_specifier", semantics=semantics)
+            except FailedSemantics as e:
+                from .cli import AnnotationError
+                raise AnnotationError(str(e), offset=e.pos)
+            except FailedParse as e:
+                from .cli import AnnotationError, discard_article
+                message = 'invalid ' + discard_article(cls.name)
+                if str(e.message) != 'no available options':
+                    message = '%s: %s' % (message, e.message)
+                raise AnnotationError(message, offset=e.pos)
+            end = ast.parseinfo.endpos
         if end == 0:
             from .cli import AnnotationError
             raise AnnotationError("not an atom specifier")
