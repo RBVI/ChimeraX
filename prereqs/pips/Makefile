@@ -92,6 +92,12 @@ endif
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
+	cp $(APP_PYSITEDIR)/nvidia/cufft/bin/* $(APP_PYSITEDIR)/OpenMM.libs/lib/plugins/
+	cp $(APP_PYSITEDIR)/nvidia/cuda_nvrtc/bin/* $(APP_PYSITEDIR)/OpenMM.libs/lib/plugins/
+
+	# TODO:
+	#rm -rf $(APP_PYSITEDIR)/nvidia*
+
 	# tcia_utils (a DICOM dependency) pulls in Pandas, but it is patched
 	# so that pandas is not needed. When those patches are upstreamed
 	# and pandas is optional this line can be removed
