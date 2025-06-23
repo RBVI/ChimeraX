@@ -195,6 +195,9 @@ class _MDCrdsBundleAPI(BundleAPI):
         elif name == "surface":
             from .providers import sasa
             return sasa(session, mgr, **kw)
+        elif name == "rmsd":
+            from .providers import rmsd
+            return rmsd(session, mgr, **kw)
         raise ValueError("Unknown plotting type: %s" % name)
 
 

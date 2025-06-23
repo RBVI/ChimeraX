@@ -1055,7 +1055,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
             if (pt2 == PT_NONE || pt1 == pt2)
                 polymer_type = pt1;
             else
-                polymer_type = PT_NONE;
+                return;
         }
         if (polymer_type != PT_NONE) {
             auto bb_names = polymer_type == PT_AMINO ?
