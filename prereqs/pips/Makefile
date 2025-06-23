@@ -136,6 +136,7 @@ app-upgrade:
 
 clean:
 	-rm -f pip.log
+	-rm -f app_requirements.txt
 	make -C package_checker clean
 
 outdated:
