@@ -197,10 +197,13 @@ with frame number on the horizontal (X) axis.
 In general, each measurement is defined by 
 <a href="../selection.html">selecting</a> the desired atoms 
 (two for <b>Distances</b>, three for <b>Angles</b>, four for <b>Torsions</b>,
-any number for <b>SASAs</b>) and clicking <b>Plot</b>. 
+any number for <b>SASAs</b> or <b>RMSDs</b>) and clicking <b>Plot</b>. 
+</p><p>
+For RMSD, the <b>Reference frame</b> for calculating the (best-fit)
+root-mean-square deviation of the set of atoms must also be designated.
 </p><p>
 Additional options for SASA (area of the atoms'
-<a href="surface.html#surfdefs">solvent-accessible surface</a>):
+<a href="surface.html#surfdefs">solvent-accessible surface</a>) and/or RMSD:
 </p>
 <!-- 
 SASA details: the entire surfcats of all specified atoms are lumped as the 
@@ -211,10 +214,10 @@ with probe radius default = 1.4 Angstroms
 <li><b>Ignore solvent and non-metal ions</b> (default <b>on</b>)
 &ndash; whether to omit <a href="atomspec.html#surfcats">solvent</a> residues
 and non-metal monatomic ions 
-(Cl<sup>&ndash;</sup>, Br<sup>&dash;</sup>, <i>etc.</i>) 
+(Cl<sup>&ndash;</sup>, Br<sup>&ndash;</sup>, <i>etc.</i>) 
+<li><b>Ignore hydrogens</b> (only for RMSD; default <b>on</b>)
 <li><b>Ignore ligands</b> (default <b>on</b>)
 &ndash; whether to omit <a href="atomspec.html#surfcats">ligand</a> residues
-<!-- <li><b>Ignore hydrogens</b> (default <b>on</b>)  [for RMSD plots only] -->
 <li><b>Ignore metal ions</b>
 &ndash; whether to omit <b>alkali</b> metal ions (Li<sup>+</sup>, Na<sup>+</sup>,
 K<sup>+</sup>, <i>etc.</i>), or all metal ions (if <b>true</b>), or none 
@@ -303,5 +306,5 @@ applies in a particular situation.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2025</address>
+June 2025</address>
 </body></html>
