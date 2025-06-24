@@ -92,10 +92,6 @@ endif
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
-ifeq ($(OS),Windows)
-	cp $(APP_PYSITEDIR)/nvidia/cufft/bin/* $(APP_PYSITEDIR)/OpenMM.libs/lib/plugins/
-	cp $(APP_PYSITEDIR)/nvidia/cuda_nvrtc/bin/* $(APP_PYSITEDIR)/OpenMM.libs/lib/plugins/
-endif
 	# TODO:
 	#rm -rf $(APP_PYSITEDIR)/nvidia*
 
