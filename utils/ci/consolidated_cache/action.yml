@@ -1,0 +1,340 @@
+name: Restore cached plato pips or download them
+description: Restore cached plato pips or download them
+
+inputs:
+  platform:
+    description: platform the artifact was built for
+    required: true
+  architecture:
+    description: architecture of the wheel to be downloaded
+    required: true
+  cache_key:
+    description: remote cache key
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Mask input parameters
+      shell: bash
+      run: |
+        export PREBUILT_CACHE_KEY=${{ inputs.cache_key }}
+        echo "::add-mask::$PREBUILT_CACHE_KEY"
+
+    - name: Restore cached generic pips
+      id: cache-plato-pips-generic
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/pips/cxservices-1.2.3-py3-none-any.whl
+        key: generic-plato-pips
+
+    - name: Restore cached Python (Linux)
+      id: cache-python-linux
+      if: ${{ inputs.platform == 'linux' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/Python/Python-3.11.4.tar.xz
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.4
+
+    - name: Restore cached Python (Windows)
+      id: cache-python-windows
+      if: ${{ inputs.platform == 'windows' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/Python/python-3.11.4-win-amd64.tar.bz2
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.4
+
+
+    - name: Restore cached Python (macOS)
+      id: cache-python-macos
+      if: ${{ inputs.platform == 'macos' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/Python/python-3.11.4-mac.tar.bz2
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.4
+
+    - name: Restore cached mmtf dependency sources
+      id: cache-mmtf
+      uses: actions/cache@v4
+      with:
+        path: |
+          src/bundles/mmtf/mmtf-cpp-1.1.0.zip
+          src/bundles/mmtf/msgpack-c-cpp-4.1.2.zip
+        key: mmtf-source-zip-file
+
+    - name: Restore cached ambertools (Linux)
+      id: cache-ambertools-linux
+      if: ${{ inputs.platform == 'linux' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/ambertools/ambertools-20-Linux-Rocky-8.10.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Rocky-9.5.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Freedesktop-23.08.tar.bz2
+          prereqs/ambertools/ambertools-24-Linux-Freedesktop-24.08.tar.bz2
+          prereqs/ambertools/ambertools-24-Linux-arm-Freedesktop-24.08.tar.bz2
+        key: ${{ runner.os }}-${{ inputs.architecture }}-ambertools
+
+    - name: Restore cached ambertools (Windows)
+      id: cache-ambertools-windows
+      if: ${{ inputs.platform == 'windows' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/ambertools/ambertools-20-Windows.tar.bz2
+        key: ${{ runner.os }}-${{ inputs.architecture }}-ambertools
+
+    - name: Restore cached ambertools (macOS)
+      id: cache-ambertools-macos
+      if: ${{ inputs.platform == 'macos' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/ambertools/ambertools-20-Darwin.tar.bz2
+          prereqs/ambertools/ambertools-flibs-20-Darwin.tar.bz2
+        key: ${{ runner.os }}-${{ inputs.architecture }}-ambertools
+
+    - name: Restore cached ffmpeg (Linux)
+      id: cache-ffmpeg-linux-x86_64
+      if: ${{ inputs.platform == 'linux' && inputs.architecture != 'arm64'}}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/ffmpeg/ffmpeg-3.2.4.tar.bz2
+          prereqs/ffmpeg/ffmpeg-6.1.tar.xz
+          prereqs/ffmpeg/libtheora-1.1.1.tar.xz
+          prereqs/ffmpeg/libogg-1.3.2.tar.xz
+          prereqs/ffmpeg/libvpx-1.6.1.tar.xz
+          prereqs/ffmpeg/libvpx-1.13.1.tar.gz
+          prereqs/ffmpeg/yasm-1.3.0.tar.bz2
+          prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz
+          prereqs/ffmpeg/x264-stable.tar.xz
+        key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
+
+    - name: Restore cached ffmpeg (Windows)
+      id: cache-ffmpeg-windows-x86_64
+      if: ${{ inputs.platform == 'windows' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/ffmpeg/ffmpeg-3.2.4-Windows.exe
+        key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
+
+    - name: Restore cached ffmpeg (macOS arm64)
+      id: cache-ffmpeg-macos-arm64
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'arm64' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/ffmpeg/ffmpeg-6.0-Darwin-arm64.exe
+        key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
+
+    - name: Restore cached ffmpeg (macOS Intel)
+      id: cache-ffmpeg-macos-x86_64
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'x86_64' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/ffmpeg/ffmpeg-3.2.4-Darwin.exe
+        key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
+
+    - name: Restore cached PyQt6 and PyQt6-WebEngine (Linux Intel)
+      id: cache-pyqt6-linux-x86_64
+      if: ${{ inputs.platform == 'linux' && inputs.architecture == 'x86_64' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/PyQt/PyQt6_commercial-6.8.1-cp39-abi3-manylinux_2_28_x86_64.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-manylinux_2_28_x86_64.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+
+    - name: Restore cached PyQt6 and PyQt6-WebEngine (Linux ARM)
+      id: cache-pyqt6-linux-arm64
+      if: ${{ inputs.platform == 'linux' && inputs.architecture == 'arm64' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/PyQt/PyQt6_commercial-6.8.1-cp39-abi3-manylinux_2_39_aarch64.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-manylinux_2_39_aarch64.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+
+    - name: Restore cached PyQt6 and PyQt6-WebEngine (Windows)
+      id: cache-pyqt6-windows-x86_64
+      if: ${{ inputs.platform == 'windows' && inputs.architecture == 'x86_64' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/PyQt/PyQt6_commercial-6.8.1-cp39-abi3-win_amd64.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-win_amd64.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+
+    - name: Restore cached PyQt6 and PyQt6-WebEngine (macOS Intel)
+      id: cache-pyqt6-macos-x86_64
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'x86_64' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/PyQt/PyQt6_commercial-6.8.1-cp39-abi3-macosx_10_14_universal2.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-macosx_10_14_universal2.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+
+    - name: Restore cached PyQt6 and PyQt6-WebEngine (macOS)
+      id: cache-pyqt6-macos-arm64
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'arm64' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/PyQt/PyQt6_commercial-6.8.1-cp39-abi3-macosx_10_14_universal2.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.8.0-cp39-abi3-macosx_10_14_universal2.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+
+    - name: Restore cached seggerx dependency sources
+      id: cache-seggerx
+      uses: actions/cache@v4
+      with:
+        path: |
+          src/bundles/segger/seggerx_2024_08_12.tar.gz
+        key: seggerx-source-zip-file
+
+    - name: Restore cached looking_glass dependency sources
+      id: cache-holoplaycore
+      uses: actions/cache@v4
+      with:
+        path: |
+          src/bundles/looking_glass/holoplaycore-0.1.0.tar.gz
+        key: holoplaycore-source-zip-file
+
+    - name: Restore cached spacenavigator
+      id: cache-spacenavigator
+      if: ${{ inputs.platform == 'macos' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          3DxWareMac_v10-8-7_r3836.dmg
+        key: ${{ runner.os }}-spacenavigator
+
+    - name: Fetch spacenavigator
+      shell: bash
+      if: ${{ steps.cache-spacenavigator.outputs.cache-hit != 'true' && inputs.platform == 'macos' }}
+      run: |
+        curl -O https://download.3dconnexion.com/drivers/mac/10-8-7_81855983/3DxWareMac_v10-8-7_r3836.dmg
+
+    - name: Fetch holoplaycore
+      shell: bash
+      if: ${{ steps.cache-holoplaycore.outputs.cache-hit != 'true' }}
+      run: |
+        curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/lookingglass/holoplaycore-0.1.0.tar.gz -O -J
+        mv holoplaycore* src/bundles/looking_glass/
+
+    - name: Fetch seggerx
+      shell: bash
+      if: ${{ steps.cache-seggerx.outputs.cache-hit != 'true' }}
+      run: |
+        curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/segger/seggerx_2024_08_12.tar.gz -O -J
+        mv seggerx* src/bundles/segger/
+
+    - name: Fetch PyQt
+      shell: bash
+      if: ${{ steps[format('cache-pyqt6-{0}-{1}', inputs.platform, inputs.architecture)].outputs.cache-hit != 'true' }}
+      run: |
+        export PYQT_VERSION=6.8.1
+        export PYQTWE_VERSION=6.8.0
+        export PYQT_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_pyqt.py?platform=${{ inputs.platform }}&version=${PYQT_VERSION}&webengine=false&architecture=${{ inputs.architecture }}"
+        export PYQTWE_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_pyqt.py?platform=${{ inputs.platform }}&version=${PYQTWE_VERSION}&webengine=true&architecture=${{ inputs.architecture }}"
+        curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${PYQT_URL} -O -J
+        curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${PYQTWE_URL} -O -J
+        mv PyQt6*.whl prereqs/PyQt/
+
+    - name: Fetch ffmpeg
+      shell: bash
+      if: ${{ steps[format('cache-ffmpeg-{0}-{1}', inputs.platform, inputs.architecture)].outputs.cache-hit != 'true' && (inputs.platform != 'linux' || inputs.architecture == 'x86_64') }}
+      run: |
+        if [ "${{ inputs.platform }}" = "linux" ] ; then
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-3.2.4.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-6.1.tar.xz -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libtheora-1.1.1.tar.xz -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libogg-1.3.2.tar.xz -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libvpx-1.6.1.tar.xz -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libvpx-1.13.1.tar.gz -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/yasm-1.3.0.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/x264-stable.tar.xz -O -J
+          mv libtheora* prereqs/ffmpeg/
+          mv libogg* prereqs/ffmpeg/
+          mv libvpx* prereqs/ffmpeg/
+          mv yasm* prereqs/ffmpeg/
+          mv x264* prereqs/ffmpeg/
+        fi
+        if [ "${{ inputs.platform }}" = "macos" ] ; then
+          if [ "${{ inputs.architecture }}" = "arm64" ] ; then
+            curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-6.0-Darwin-arm64.exe -O -J
+          else
+            curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-3.2.4-Darwin.exe -O -J
+          fi
+        fi
+        if [ "${{ inputs.platform }}" = "windows" ] ; then
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-3.2.4-Windows.exe -O -J
+        fi
+        mv ffmpeg* prereqs/ffmpeg/
+
+    - name: Fetch ambertools
+      shell: bash
+      if: ${{ steps[format('cache-ambertools-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
+      run: |
+        if [ "${{ inputs.platform }}" = "linux" ] ; then
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Rocky-8.10.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Rocky-9.5.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-24-Linux-Freedesktop-24.08.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-24-Linux-arm-Freedesktop-24.08.tar.bz2 -O -J
+        fi
+        if [ "${{ inputs.platform }}" = "macos" ] ; then
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-flibs-20-Darwin.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Darwin.tar.bz2 -O -J
+        fi
+        if [ "${{ inputs.platform }}" = "windows" ] ; then
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Windows.tar.bz2 -O -J
+        fi
+        mv ambertools* prereqs/ambertools/
+
+    - name: Fetch mmtf
+      shell: bash
+      if: ${{ steps.cache-mmtf.outputs.cache-hit != 'true' }}
+      run: |
+        curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/mmtf/msgpack-c-cpp-4.1.2.zip
+        curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/mmtf/mmtf-cpp-1.1.0.zip
+        mv mmtf*.zip src/bundles/mmtf/
+        mv msgpack*.zip src/bundles/mmtf/
+
+    - name: Fetch Python
+      shell: bash
+      if: ${{ steps[format('cache-python-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
+      run: |
+        if [ "${{ inputs.platform }}" = "linux" ] ; then
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/python/Python-3.11.4.tar.xz -O -J
+          mv Python* prereqs/Python/
+        fi
+        if [ "${{ inputs.platform }}" = "macos" ] ; then
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/python/python-3.11.4-mac.tar.bz2 -O -J
+          mv python* prereqs/Python/
+        fi
+        if [ "${{ inputs.platform }}" = "windows" ] ; then
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/python/python-3.11.4-win-amd64.tar.bz2 -O -J
+          mv python* prereqs/Python/
+        fi
+
+    - name: Fetch generic pips
+      shell: bash
+      if: ${{ steps.cache-plato-pips-generic.outputs.cache-hit != 'true' }}
+      run: |
+        curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/cxservices/cxservices-1.2.3-production-py3-none-any.whl
+        mv cxservices* prereqs/pips/cxservices-1.2.3-py3-none-any.whl

@@ -1220,6 +1220,12 @@ class FileNameArg(Annotation):
 _BROWSE_STRING = "browse"
 
 
+import sys
+if sys.platform == 'win32':
+    from chimerax.core.utils import no_garbage_collection as gc_context
+else:
+    from contextlib import nullcontext as gc_context
+
 def _browse_parse(
     text,
     session,
@@ -1249,14 +1255,14 @@ def _browse_parse(
 
             dlg.setNameFilters(make_qt_name_filters(session)[0])
         dlg.setFileMode(dialog_mode)
-        if dlg.exec():
-            paths = dlg.selectedFiles()
-            if not paths:
-                raise AnnotationError("No %s selected by browsing" % item_kind)
-        else:
-            from chimerax.core.errors import CancelOperation
-
-            raise CancelOperation("%s browsing cancelled" % item_kind.capitalize())
+        with gc_context():
+            if dlg.exec():
+                paths = dlg.selectedFiles()
+                if not paths:
+                    raise AnnotationError("No %s selected by browsing" % item_kind)
+            else:
+                from chimerax.core.errors import CancelOperation
+                raise CancelOperation("%s browsing cancelled" % item_kind.capitalize())
     else:
         paths = [path]
     if check_existence:
@@ -2136,6 +2142,8 @@ NonNegativeIntArg = Bounded(IntArg, min=0, name="an integer >= 0")
 PositiveIntArg = Bounded(IntArg, min=1, name="an integer >= 1")
 NonNegativeFloatArg = Bounded(FloatArg, min=0, name="a number >= 0")
 PositiveFloatArg = Bounded(FloatArg, min=0, inclusive=False, name="a number > 0")
+PercentFloatArg = Bounded(FloatArg, min=0, max=100, name="a percentage between 0 and 100")
+PercentIntArg = Bounded(IntArg, min=0, max=100, name="a percentage between 0 and 100")
 ModelIdArg = DottedTupleOf(PositiveIntArg, name="a model id", prefix="#")
 
 
@@ -3088,10 +3096,14 @@ class Command:
                 value, text = self._parse_arg(anno, text, session, final)
                 kwn = "%s_" % kw_name if is_python_keyword(kw_name) else kw_name
                 if hasattr(anno, "allow_repeat") and anno.allow_repeat:
+                    expand = anno.allow_repeat == "expand"
                     if kwn in self._kw_args:
-                        self._kw_args[kwn].append(value)
+                        if expand and isinstance(value, list):
+                            self._kw_args[kwn].extend(value)
+                        else:
+                            self._kw_args[kwn].append(value)
                     else:
-                        self._kw_args[kwn] = [value]
+                        self._kw_args[kwn] = list(value) if expand and isinstance(value, list) else [value]
                 else:
                     if kwn in self._kw_args:
                         self._error = 'Repeated keyword argument "%s"' % user_kw(

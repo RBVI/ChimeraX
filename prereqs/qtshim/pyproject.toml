@@ -4,19 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qtshim"
-version = "1.0"
+version = "1.1"
 license = { text = "Free for non-commercial use" }
-authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
 description = "Qt shim that handles PyQt5/6 and PySide2/6"
 dependencies = []
 
 [project.optional-dependencies]
-pyqt6 = ["PyQt6", "PyQt6-WebEngine"]
+pyqt6 = ["PyQt6", "PyQt6-Qt6", "PyQt6-WebEngine", "PyQt6-sip"]
+pyside6 = ["PySide6", "shiboken6"]
 
 [project.readme]
-content-type = "text"
+content-type = "text/plain"
 text = """Qt shim that handles PyQt5/6 and PySide2/6"""
-	
+
 [project.urls]
 Home = "https://www.rbvi.ucsf.edu/chimerax/"
 

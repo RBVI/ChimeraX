@@ -37,6 +37,7 @@ class ColorKeyModel(Model):
 
     pickable = False
     casts_shadows = False
+    has_scene_bounds = False
 
     CT_BLENDED = "blended"
     CT_DISTINCT = "distinct"

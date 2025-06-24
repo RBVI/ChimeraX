@@ -868,18 +868,27 @@ t0 = t1;
                                 if (bondee->idatm_type() == "Cac")
                                     continue;
                                 if (bondee->idatm_type() == "C2") {
-                                    bool grand_O2 = false;
+                                    bool grand_sp2 = false;
                                     for (auto gnb: bondee->neighbors()) {
-                                        if (gnb->element() == Element::O && gnb->bonds().size() == 1) {
+                                        if (gnb->bonds().size() != 1)
+                                            continue;
+                                        if (gnb->element() == Element::O) {
                                             if (bondee->coord().sqdistance(gnb->coord()) <= p3o2c2) {
-                                                grand_O2 = true;
+                                                grand_sp2 = true;
+                                                break;
+                                            }
+                                        } else if (gnb->element() == Element::S) {
+                                            if (bondee->coord().sqdistance(gnb->coord()) <= p3s2c2) {
+                                                grand_sp2 = true;
                                                 break;
                                             }
                                         }
                                     }
-                                    if (grand_O2)
+                                    if (grand_sp2)
                                         continue;
                                 }
+                                if (bondee->idatm_type() == "C")
+                                    redo[a] = 4;
                                 set_N2 = true;
                                 break;
                             }
@@ -950,8 +959,23 @@ t0 = t1;
               bondee_type == "N1+") || (sqlen < p3n1o1 &&
               bondee->element() == Element::O)) {
                 a->set_computed_idatm_type("N1");
-            } else if (sqlen > p3n3c &&
-              (bondee_type == "C2" || bondee_type == "C3")) {
+                continue;
+            } 
+            if (bondee_type == "C1") {
+                // Could still be N1 despite missing criteria above if the other atom bonded
+                // to the C1 has 3+ bonds
+                for (auto gnb: bondee->neighbors()) {
+                    if (gnb == a)
+                        continue;
+                    if (gnb->neighbors().size() > 2) {
+                        a->set_computed_idatm_type("N1");
+                        break;
+                    }
+                }
+                if (a->idatm_type() == "N1")
+                    continue;
+            }
+            if (sqlen > p3n3c && (bondee_type == "C2" || bondee_type == "C3")) {
                 a->set_computed_idatm_type("N3");
             } else if ((sqlen > p3n3n3 && bondee_type == "N3") ||
               (sqlen > p3n3n2 && bondee_type == "Npl")) {
@@ -1048,7 +1072,7 @@ std::cerr << "pass 3 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n"
 t0 = t1;
 #endif
 
-    // "pass 4": re-examine all atoms with non-zero 'redo' values and
+    // "pass 4": re-examine most atoms with non-zero 'redo' values and
     //   retype them if necessary
     for (auto a: untyped_atoms) {
 
@@ -1081,7 +1105,9 @@ t0 = t1;
                         a->set_computed_idatm_type("Npl");
                     break;
                 }
-            } else {
+            } else if (redo[a] == 3 || redo[a] == -1) {
+                // seems to work better with -1 also, though that isn't original
+                // IDATM (HEMs in 4hhb)
                 if ((sqlen <= p4c2c && bondee_element == Element::C)
                 || (sqlen <= p4c2n && bondee_element == Element::N)) {
                     a->set_computed_idatm_type("C2");
@@ -1220,13 +1246,6 @@ t0 = t1;
     // screen out rings with definite non-planar types
     std::set<const Ring*> planar_rings;
     for (auto& r: rs) {
-        if (r.atoms().size() == 3) {
-            for (auto a: r.atoms()) {
-                if (a->element() == Element::C)
-                    a->set_computed_idatm_type("C3");
-            }
-            continue;
-        }
         bool planar_types = true;
         bool all_planar = true;
         int num_oxygens = 0;
@@ -1822,6 +1841,58 @@ std::cerr << "pass 4.5 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\
 t0 = t1;
 #endif
 
+    // "pass 4.75":  this pass is a followup to Car determination and
+    //    therefore also not in the IDATM paper:  reexamine nitrogens
+    //    that are now adjacent to Car atoms and ensure that their N2
+    //    vs. Npl assignments still make sense
+    for (auto a: untyped_atoms) {
+
+        if (redo[a] != 4)
+            continue;
+
+        if (a->idatm_type() != "N2")
+            continue;
+
+        bool all_single = true;
+        bool seen_Car = false;
+        for (auto nb: a->neighbors()) {
+            auto nb_type = nb->idatm_type();
+            if (nb_type == "Car")
+                seen_Car = true;
+            else {
+                auto type_ptr = info_map.find(nb_type);
+                if (type_ptr == info_map.end())
+                    continue;
+                if ((*type_ptr).second.geometry != 3)
+                    continue;
+                bool other_double = false;
+                for (auto gnb: nb->neighbors()) {
+                    if (gnb == a)
+                        continue;
+                    auto gtype_ptr = info_map.find(gnb->idatm_type());
+                    if (gtype_ptr == info_map.end())
+                        continue;
+                    if ((*gtype_ptr).second.geometry == 3) {
+                        other_double = true;
+                        break;
+                    }
+                }
+                if (!other_double) {
+                    all_single = false;
+                    break;
+                }
+            }
+        }
+        if (seen_Car && all_single)
+            a->set_computed_idatm_type("Npl");
+    }
+
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 4.75 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
+
     // "pass 5": change isolated sp2 carbons to sp3 since it is 
     //   impossible for an atom to be sp2 hybrizided if all its 
     //   neighbors are sp3 hybridized.  In addition, a carbon atom cannot
@@ -1930,21 +2001,38 @@ t0 = t1;
                 a->set_computed_idatm_type("N3+");
             
         } else if (a->idatm_type() == "C2") {
-            int num_Npls = 0;
+            std::vector<Atom*> Ng_plus_candidates;
             for (auto bondee: a->neighbors()) {
-                if ((bondee->idatm_type() == "Npl"
+                if (((bondee->idatm_type() == "Npl"
+                || (bondee->element() == Element::N && bondee->neighbors().size() == 1))
                 && untyped_set.find(bondee) != untyped_set.end())
-                || bondee->idatm_type() == "Ng+")
-                    // Ng+ possible through template
-                    // typing
-                    num_Npls++;
+                || bondee->idatm_type() == "Ng+") {
+                    // Ng+ possible through template typing
+                    Ng_plus_candidates.push_back(bondee);
+                } else if (bondee->idatm_type() == "O2" || bondee->idatm_type() == "S2") {
+                    // guanidinium carbon can't be double bonded
+                    Ng_plus_candidates.clear();
+                    break;
+                } else if (bondee->idatm_type() == "N2") {
+                    auto my_d2 = a->coord().sqdistance(bondee->coord());
+                    for (auto grand_bondee: bondee->neighbors()) {
+                        if (grand_bondee == a)
+                            continue;
+                        my_d2 -= bondee->coord().sqdistance(grand_bondee->coord());
+                        break;
+                    }
+                    if (my_d2 > 0.0) {
+                        // N2 bond longer on C2 side -- looks like single bond
+                        Ng_plus_candidates.clear();
+                        break;
+                    }
+                    Ng_plus_candidates.push_back(bondee);
+                }
             }
 
             bool noplus = false;
-            if (num_Npls >= 2) {
-                for (auto bondee: a->neighbors()) {
-                    if (bondee->idatm_type() != "Npl")
-                        continue;
+            if (Ng_plus_candidates.size() >= 2) {
+                for (auto bondee: Ng_plus_candidates) {
                     if (untyped_set.find(bondee) == untyped_set.end())
                         continue;
                     
@@ -1957,7 +2045,7 @@ t0 = t1;
                 }
             }
             if (noplus) {
-                for (auto bondee: a->neighbors()) {
+                for (auto bondee: Ng_plus_candidates) {
                     if (untyped_set.find(bondee) == untyped_set.end())
                         continue;
                     if (bondee->idatm_type() == "Ng+")

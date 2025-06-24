@@ -8,7 +8,7 @@ class SegmentationsBundle(BundleAPI):
     @staticmethod
     def initialize(session, bundle_info):
         _ = bundle_info
-        from .segmentation_tracker import register_model_trigger_handlers
+        from chimerax.segmentations.segmentation_tracker import register_model_trigger_handlers
 
         if session.ui.is_gui:
             from chimerax.segmentations.view.cmd import register_view_triggers
@@ -43,9 +43,12 @@ class SegmentationsBundle(BundleAPI):
     def start_tool(*args):
         session, _, ti = args
         if ti.name == "Segmentations":
-            from .ui.segmentations import SegmentationTool
-
+            from chimerax.segmentations.ui.segmentations import SegmentationTool
             return SegmentationTool(session)
+
+        if ti.name == "Orthoplanes":
+            from chimerax.segmentations.ui.orthoplane_tool import OrthoplaneTool
+            return OrthoplaneTool(session)
 
     @staticmethod
     def register_command(*args):
@@ -55,13 +58,13 @@ class SegmentationsBundle(BundleAPI):
 
             register_view_cmds(logger)
         elif ci.name == "segmentations":
-            from .cmd.segmentations import register_seg_cmds
+            from chimerax.segmentations.cmd.segmentations import register_seg_cmds
 
             register_seg_cmds(logger)
 
     @staticmethod
     def run_provider(session, name, mgr, **_):
         if mgr == session.toolbar:
-            from .actions import run_toolbar_button
+            from chmerax.segmentations.actions import run_toolbar_button
 
             return run_toolbar_button(session, name)

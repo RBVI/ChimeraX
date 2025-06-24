@@ -5,16 +5,19 @@ include $(TOP)/mk/config.make
 # Using AmberTools distribution from https://ambermd.org
 
 ifeq ($(OS),Darwin)
-VERSION = 24
-SRC_VERSION = 24
+VERSION = 25
+SRC_VERSION = 25
+SRC_NAME = ambertools
 else
 VERSION = 20
 SRC_VERSION = 20
+SRC_NAME = amber
 endif
 
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
 ifeq ($(OS),Darwin)
+# needs build tools as outlined here: https://ambermd.org/InstMacOS.php
 USE_PREBUILT=false
 UPLOAD_PREBUILT=false
 else
@@ -27,6 +30,13 @@ SUPPORTED_DISTROS := Ubuntu CentOS Debian Rocky Freedesktop
 LINUX_FLAVOR = $(shell egrep '^NAME=' /etc/os-release | awk -F= '{ print $$2 }' | awk '{ print $$1 }' | tr -d '"')
 LINUX_RELEASE = $(shell egrep '^VERSION_ID=' /etc/os-release | awk -F= '{ print $$2 }' | tr -d '"')
 AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS)-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
+ifdef FLATPAK_DIST
+ifeq ($(OSARCH),LinuxArm64)
+AMBERTOOLS_PREBUILT = ambertools-24-$(OS)-arm-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
+else
+AMBERTOOLS_PREBUILT = ambertools-24-$(OS)-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
+endif
+endif
 ifneq ($(filter $(LINUX_FLAVOR),$(SUPPORTED_DISTROS)),)
 else
 USE_PREBUILT=false
@@ -43,9 +53,9 @@ CMAKE = cmake
 
 DISTRIBUTION = AmberTools$(VERSION).tar.bz2
 SOURCE = $(tmpdir)/AmberTools$(VERSION)
-AMBERHOME = $(SOURCE)/amber$(SRC_VERSION)_src
-CMAKE_BUILD_DIR = $(SOURCE)/amber$(SRC_VERSION)_build
-CMAKE_INSTALL_DIR = $(SOURCE)/amber$(SRC_VERSION)_install
+AMBERHOME = $(SOURCE)/$(SRC_NAME)$(SRC_VERSION)_src
+CMAKE_BUILD_DIR = $(SOURCE)/$(SRC_NAME)$(SRC_VERSION)_build
+CMAKE_INSTALL_DIR = $(SOURCE)/$(SRC_NAME)$(SRC_VERSION)_install
 CMAKE_TOOL_SRC = $(CMAKE_BUILD_DIR)/AmberTools/src
 TOOL_SRC = $(AMBERHOME)/AmberTools/src
 AMBERBIN_SRC = $(CMAKE_INSTALL_DIR)/bin
@@ -119,10 +129,10 @@ endif
 else
 install: $(SOURCE)
 	-mkdir $(CMAKE_BUILD_DIR) $(CMAKE_INSTALL_DIR)
-	cd $(CMAKE_BUILD_DIR) && env PATH=$(PATH):/opt/homebrew/bin:/usr/local/bin $(CMAKE) $(AMBERHOME) -DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_DIR) -DCOMPILER=CLANG -DDOWNLOAD_MINICONDA=FALSE -DBUILD_PYTHON=FALSE -DFORCE_INTERNAL_LIBS=netcdf
+	cd $(CMAKE_BUILD_DIR) && env PATH=$(PATH):/opt/homebrew/bin:/usr/local/bin $(CMAKE) $(AMBERHOME) -DCMAKE_POLICY_VERSION_MINIMUM=3.12 -DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_DIR) -DCOMPILER=CLANG -DDOWNLOAD_MINICONDA=FALSE -DBUILD_PYTHON=FALSE -DFORCE_INTERNAL_LIBS=netcdf
 	for i in netcdf-4.6.1 netcdf-fortran-4.4.4 arpack sff cifparse ; do \
 		if [ -e $(CMAKE_TOOL_SRC)/$$i ] ; then \
-			cd $(CMAKE_TOOL_SRC)/$$i && $(MAKE) install ; \
+			cd $(CMAKE_TOOL_SRC)/$$i && echo installing $$i && $(MAKE) install && echo installed $$i ; \
 		fi ; \
 	done
 	cd $(CMAKE_TOOL_SRC)/sqm && $(MAKE) install
@@ -159,6 +169,7 @@ ifeq ($(OS),Darwin)
 		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
 			cp $$j $(app_libdir); \
 			filename=`basename $$j`; \
+			chmod u+w $(app_libdir)/$$filename; \
 			echo "$$filename " >> $(FLIB_NAMES_FILE); \
 			install_filename=$(app_libdir)/$$filename; \
 			install_name_tool -id @executable_path/$$filename $$install_filename; \

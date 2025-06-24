@@ -54,6 +54,10 @@ class FitJob(Job):
                 results = _run_fit_subprocess(session, executable_location, optional_args,
                     map1_file_name, map2_file_name, search_center, model_file_name, prefitted_file_name,
                     positional_args, temp_dir, resolution, verbose)
+            except Exception as e:
+                from .util import thread_throw
+                thread_throw(session, e)
+                return
             finally:
                 self._running = False
             self.session.ui.thread_safe(callback, *results)
@@ -94,7 +98,7 @@ command_defaults = {
     'verbose': False
 }
 def phenix_local_fit(session, model, center=None, map_data=None, *, resolution=0.0, show_sharpened_map=False,
-        apply_symmetry=False, prefitted=None, block=None, phenix_location=None,
+        apply_symmetry=False, prefitted=None, show_tool=True, block=None, phenix_location=None,
         verbose=command_defaults['verbose'], option_arg=[], position_arg=[]):
 
     # Find the phenix.voyager.emplace_local executable
@@ -147,9 +151,9 @@ def phenix_local_fit(session, model, center=None, map_data=None, *, resolution=0
     # Run phenix.voyager.emplace_local
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # the program runs
-    callback = lambda transform, sharpened_map, *args, session=session, maps=map_data, \
-        ssm=show_sharpened_map, app_sym=apply_symmetry, d_ref=d: _process_results(session,
-        transform, sharpened_map, model, maps, ssm, app_sym)
+    callback = lambda transforms, sharpened_maps, llgs, ccs, *args, session=session, maps=map_data, \
+        ssm=show_sharpened_map, app_sym=apply_symmetry, show_tool=show_tool, d_ref=d: _process_results(
+        session, transforms, sharpened_maps, llgs, ccs, model, maps, ssm, app_sym, show_tool)
     FitJob(session, exe_path, option_arg, map_arg1, map_arg2, search_center,
         "model.pdb", prefitted_arg, position_arg, temp_dir, resolution, verbose, callback, block)
 
@@ -215,36 +219,61 @@ def view_box(session, model):
         return (face_intercepts[0] + face_intercepts[1]) / 2
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
-def _process_results(session, transform, sharpened_map, orig_model, maps, show_sharpened_map,
-        apply_symmetry):
+def _process_results(session, transforms, map_paths, llgs, ccs, orig_model, maps, show_sharpened_map,
+        apply_symmetry, show_tool):
+    session.logger.status("Fitting job finished")
     if orig_model.deleted:
         raise UserError("Structure being fitting was deleted during fitting")
-    from chimerax.geometry import Place
-    orig_model.scene_position = Place(transform) * orig_model.scene_position
-    sharpened_map.name = "sharpened local map"
-    sharpened_map.display = show_sharpened_map
-    session.models.add([sharpened_map])
-    session.logger.status("Fitting job finished")
+    sharpened_maps = []
+    for map_path in map_paths:
+        sharpened_map, status = session.open_command.open_data(map_path)
+        sharpened_maps.extend(sharpened_map)
+    if len(transforms) > 1:
+        for i, sharpened_map in enumerate(sharpened_maps):
+            sharpened_map.name = "map %d" % (i+1)
+            sharpened_map.display = show_sharpened_map and i == 0
+        from chimerax.core.models import Model
+        group = Model("sharpened local maps", session)
+        group.add(sharpened_maps)
+        session.models.add([group])
+    else:
+        sharpened_map = sharpened_maps[0]
+        sharpened_map.name = "sharpened local map"
+        sharpened_map.display = show_sharpened_map
+        session.models.add(sharpened_maps)
+    from chimerax.core.commands import run, concise_model_spec, StringArg
     if apply_symmetry:
         sym_map = maps[0]
         if sym_map.deleted:
-            raise UserError("Map being fitted has been deleted; not applying symmetry")
-        from chimerax.core.commands import run, concise_model_spec, StringArg
-        run(session, "measure symmetry " + sym_map.atomspec)
-        if maps[0].data.symmetries:
-            prev_models = set(session.models[:])
-            run(session, "sym " + orig_model.atomspec + " symmetry " + sym_map.atomspec + " copies true")
-            added = [m for m in session.models if m not in prev_models]
-            run(session, "combine " + concise_model_spec(session, [orig_model] + added) + " close true"
-                " modelId %d name %s" % (orig_model.id[0], StringArg.unparse(orig_model.name)))
+            session.logger.warning("Map being fitted has been deleted; not applying symmetry")
+            apply_symmetry = False
         else:
-            session.logger.warning(
-                'Could not determine symmetry for %s<br><br>'
-                'If you know the symmetry of the map, you can create symmetry copies of the structure'
-                ' with the <a href="help:user/commands/sym.html">sym</a> command and then combine the'
-                ' symmetry copies with the original structure with the <a'
-                ' href="help:user/commands/combine.html">combine</a> command'
-                % sym_map, is_html=True)
+            run(session, "measure symmetry " + sym_map.atomspec)
+            if not sym_map.data.symmetries:
+                session.logger.warning(
+                    'Could not determine symmetry for %s<br><br>'
+                    'If you know the symmetry of the map, you can create symmetry copies of the structure'
+                    ' with the <a href="help:user/commands/sym.html">sym</a> command and then combine the'
+                    ' symmetry copies into a single structure with the <a'
+                    ' href="help:user/commands/combine.html">combine</a> command'
+                    % sym_map, is_html=True)
+                apply_symmetry = False
+    if show_tool and len(transforms) > 1 and session.ui.is_gui:
+        from .tool import EmplaceLocalResultsViewer
+        EmplaceLocalResultsViewer(session, orig_model, transforms, llgs, ccs, show_sharpened_map, group,
+            sym_map if apply_symmetry else None)
+    else:
+        from chimerax.geometry import Place
+        orig_model.scene_position = Place(transforms[0]) * orig_model.scene_position
+        if apply_symmetry:
+            modelspec = orig_model.atomspec
+            prev_models = set(session.models[:])
+            run(session, f"sym {modelspec} symmetry {sym_map.atomspec} copies true")
+            added = [m for m in session.models if m not in prev_models]
+            orig_id, orig_name = orig_model.id[0], orig_model.name
+            run(session, f"close {modelspec}")
+            run(session, "combine " + concise_model_spec(session, added) + " close true"
+                " modelId %d name %s" % (orig_id, StringArg.unparse(orig_name)))
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
@@ -301,9 +330,6 @@ def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name, map2_f
     import json
     with open(json_path, 'r') as f:
         info = json.load(f)
-    model_path = path.join(temp_dir, info["model_filename"])
-    map_path = path.join(temp_dir, info["map_filename"])
-    sharpened_maps, status = session.open_command.open_data(map_path)
     from chimerax.core.commands import plural_form
     num_solutions = info["n_solutions"]
     tsafe(logger.info, "%d fitting %s" % (num_solutions, plural_form(num_solutions, "solution")))
@@ -311,9 +337,18 @@ def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name, map2_f
         ', '.join(["%g" % v for v in info["mapLLG"]])))
     tsafe(logger.info, "map CC %s: %s" % (plural_form(num_solutions, "value"),
         ', '.join(["%g" % v for v in info["mapCC"]])))
+    if 'map_filenames' in info:
+        # Phenix 2.0
+        map_paths = [path.join(temp_dir, mf) for mf in info["map_filenames"]]
+    else:
+        # Phenix 1.2
+        map_paths = [path.join(temp_dir, info["map_filename"])]
+        info['RT'] = info['RT'][:1]
+        info['mapLLG'] = info['mapLLG'][:1]
+        info['mapCC'] = info['mapCC'][:1]
 
     from numpy import array
-    return array(info['RT'][0]), sharpened_maps[0]
+    return [array(rt) for rt in info['RT']], map_paths, info["mapLLG"], info["mapCC"]
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
@@ -336,6 +371,7 @@ def register_command(logger):
                    ('resolution', NonNegativeFloatArg),
                    ('show_sharpened_map', BoolArg),
                    ('apply_symmetry', BoolArg),
+                   ('show_tool', BoolArg),
         ],
         synopsis = 'Place structure in map'
     )

@@ -145,6 +145,10 @@ class PresetsManager(ProviderManager):
         if not os.path.exists(settings.folder):
             self.session.logger.warning("Custom presets folder '%s' does not exist" % settings.folder)
             return
+        if not os.path.isdir(settings.folder):
+            self.session.logger.warning(
+                "Custom presets \"folder\" '%s' is not actually a folder" % settings.folder)
+            return
         presets_added = False
         preset_info, subfolders = self._gather_presets(settings.folder)
         if preset_info:

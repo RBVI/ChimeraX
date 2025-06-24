@@ -54,7 +54,7 @@
 #define MAX_DELTASITE 20
 #define MAXSTR   10001
 #define INDI -100
-#define MAXSEQNUM 10000
+#define MAXSEQNUM 32000
 
 char *digit="0123456789";
 void nrerror(char error_text[]);

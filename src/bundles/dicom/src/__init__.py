@@ -10,7 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "1.2.5"
+__version__ = "1.2.7"
 from chimerax.core.toolshed import BundleAPI
 from chimerax.map import add_map_format
 from chimerax.core.tools import get_singleton
@@ -45,7 +45,7 @@ class _DICOMBundle(BundleAPI):
         else:
             from chimerax.dicom.ui import DICOMDatabases
 
-            return DICOMDatabases(session)
+            return get_singleton(session, DICOMDatabases, "DICOM Browser")
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):

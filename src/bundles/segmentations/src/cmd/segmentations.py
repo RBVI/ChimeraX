@@ -39,7 +39,7 @@ from chimerax.segmentations.ui.segmentation_mouse_mode import (
 )
 
 import chimerax.segmentations.triggers
-from chimerax.segmentations.triggers import SEGMENTATION_MODIFIED
+from chimerax.segmentations.triggers import Trigger
 
 actions = [
     "add",
@@ -121,7 +121,7 @@ def segmentations(
                     model, model_center, radius, minIntensity, maxIntensity, value
                 )
             chimerax.segmentations.triggers.activate_trigger(
-                SEGMENTATION_MODIFIED, model
+                Trigger.SegmentationModified, model
             )
         else:
             raise UserError("Can't operate on a non-segmentation")

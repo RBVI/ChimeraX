@@ -55,6 +55,7 @@ import shutil
 import sys
 import sysconfig
 from typing import Optional
+from pathlib import Path
 
 if sys.version_info < (3, 11, 0):
     import tomli as tomllib
@@ -66,9 +67,11 @@ import warnings
 
 from Cython.Build import cythonize
 
-from packaging.version import Version
+from packaging.version import Version, parse
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
+from importlib.metadata import version
+
 
 from setuptools import Extension, find_packages
 
@@ -84,6 +87,17 @@ from setuptools.build_meta import (
 # TODO: Verify
 # Always import this because it changes the behavior of setuptools
 from numpy import get_include as get_numpy_include_dirs
+
+try:
+    import openmm
+
+    def get_openmm_lib():
+        return openmm.version.openmm_library_path
+
+    openmm.get_lib = get_openmm_lib
+    openmm.get_include = get_openmm_lib
+except:
+    pass
 
 # TODO Fact check
 # The compile process is initiated by setuptools and handled
@@ -154,7 +168,6 @@ def read_toml(file):
 
 
 class Bundle:
-
     def __init__(self, logger, bundle_info):
         self.logger = logger
         self.bundle_info = bundle_info
@@ -192,7 +205,7 @@ class Bundle:
             else:
                 # Binary files are tied to the current version of Python
                 self.python_requirement = SpecifierSet(
-                    f'=={".".join(str(num) for num in sys.version_info[:2])}.*'
+                    f"=={'.'.join(str(num) for num in sys.version_info[:2])}.*"
                 )
         else:
             self.python_requirement = project_data.get("requires-python", None)
@@ -253,9 +266,11 @@ class Bundle:
         self.dependencies = []
         for req in dependencies:
             try:
-                self.dependencies.append(str(Requirement(req)))
+                req_ = Requirement(req)
+                self.dependencies.append(req_)
             except ValueError:
                 raise ValueError("Bad version specifier (see PEP 440): %r" % req)
+
 
         self.requires_python = project_data.get("requires-python", ">=3.7")
 
@@ -268,7 +283,7 @@ class Bundle:
             self.supersedes = chimerax_data.get("supercedes")
         else:
             self.supersedes = []
-        self.custom_init = str(chimerax_data.get("custom-init", ""))
+        self.custom_init = chimerax_data.get("custom-init", False)
         self.categories = chimerax_data.get("categories", [])
         if len(self.categories) == 0:
             category = chimerax_data.get("category", "")
@@ -387,12 +402,15 @@ class Bundle:
                 self.initializations.append(Initialization(entry_type, _bundles))
         if "extension" in chimerax_data:
             for name, attrs in chimerax_data["extension"].items():
+                attrs["limited-api"] = self.limited_api
                 self.c_modules.append(_CModule(name, attrs))
         if "library" in chimerax_data:
             for name, attrs in chimerax_data["library"].items():
+                attrs["limited-api"] = self.limited_api
                 self.c_libraries.append(_CLibrary(name, attrs))
         if "executable" in chimerax_data:
             for name, attrs in chimerax_data["executable"].items():
+                attrs["limited-api"] = self.limited_api
                 self.c_executables.append(_CExecutable(name, attrs))
 
         # TODO: Finalize
@@ -499,6 +517,20 @@ class Bundle:
         distname = bdist_wheel_cmd.wheel_dist_name
         tag = "-".join(bdist_wheel_cmd.get_tag())
         self._expected_wheel_name = f"{distname}-{tag}.whl"
+
+    def _check_build_requires(self) -> None:
+        # Check the build dependencies in case we are called from ChimeraX, which
+        # means that no Python tooling is checking [build-system] for us.
+        build_dependencies = self.bundle_info["build-system"]["requires"]
+        for dependency in build_dependencies:
+            req = Requirement(dependency)
+            installed_version = parse(version(req.name))
+            if re.match(r"[Cc]himera[Xx]-[Cc]ore", req.name):
+                # Always accept prereleases for the core for developers building
+                # bundles
+                req.specifier.prereleases = True
+            if installed_version not in req.specifier:
+                raise ValueError("Incompatible version for build dependency %s (needed: %s, installed: %s)" % (req.name, req.specifier, str(installed_version)))
 
     @staticmethod
     def format_module_name(name: str, override: Optional[str] = None):
@@ -745,16 +777,14 @@ class Bundle:
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)
             return dist, True
-        except Exception:
+        except (SystemExit, Exception):
             traceback.print_exc()
             return None, False
         finally:
             sys.argv = save
             os.chdir(cwd)
             if MySTARTUPINFO:
-                subprocess.STARTUPINFO = (
-                    MySTARTUPINFO._original
-                )  # noqa we don't care this is protected
+                subprocess.STARTUPINFO = MySTARTUPINFO._original  # noqa we don't care this is protected
 
     def _clear_distutils_dir_and_prep_srcdir(self, build_exts=False):
         # HACK: distutils uses a cache to track created directories
@@ -777,13 +807,13 @@ class Bundle:
     def _check_output(self, type_="wheel", report_name=True):
         if type_ == "wheel":
             output = glob.glob(os.path.join(self.path, "dist", "*.whl"))
-        elif type == "sdist":
-            if sys.platform == "win32":
+        elif type_ == "sdist":
+            if sys.platform == "win32" and not os.getenv("MSYSTEM"):
                 output = glob.glob(os.path.join(self.path, "dist", "*.zip"))
             else:
                 output = glob.glob(os.path.join(self.path, "dist", "*.tar.gz"))
         else:
-            raise ValueError("Unknown output type requested: %s" % type)
+            raise ValueError("Unknown output type requested: %s" % type_)
         if not output:
             # TODO: Report the sdist name on failure, too
             raise RuntimeError(f"Building wheel failed: {self._expected_wheel_name}")
@@ -806,8 +836,22 @@ class Bundle:
         ld_path = ":".join(library_dirs)
         old_ldpath = os.environ.get("LD_LIBRARY_PATH", "")
         os.environ["LD_LIBRARY_PATH"] = f"{ld_path}:$LD_LIBRARY_PATH"
-        output = subprocess.check_output([sys.executable, "-m", "auditwheel", "repair", "--plat", tag, "--only-plat", wheel], stderr=subprocess.STDOUT)
-        wheel_name = output.decode().split('\n')[-2].replace("Fixed up wheel written to ", "")
+        output = subprocess.check_output(
+            [
+                sys.executable,
+                "-m",
+                "auditwheel",
+                "repair",
+                "--plat",
+                tag,
+                "--only-plat",
+                wheel,
+            ],
+            stderr=subprocess.STDOUT,
+        )
+        wheel_name = (
+            output.decode().split("\n")[-2].replace("Fixed up wheel written to ", "")
+        )
         if not os.path.exists(wheel_name):
             pass
         os.environ["LD_LIBRARY_PATH"] = old_ldpath
@@ -815,6 +859,7 @@ class Bundle:
 
     def build_wheel(self, debug=False, release=False):
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
+        self._check_build_requires()
         setup_args = ["--no-user-cfg", "build"]
         setup_args.extend(["bdist_wheel"])
         dist, built = self._run_setup(setup_args)
@@ -849,17 +894,10 @@ class Bundle:
         sdist = self._check_output(type_="sdist")
         return sdist
 
-    # TODO: Remove when pip can glean metadata from build_editable alone
-    def build_wheel_for_build_editable(self):
-        wheel_name = self.build_wheel()
-        wheel_location = os.path.join(self.path, "dist", wheel_name)
-        # Clean everything that was placed in the source directory as a side effect
-        self._clean_extrafiles()
-        return wheel_location
-
     def build_editable(self, config_settings=None):
         self._remove_libraries()
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
+        self._check_build_requires()
         setup_args = ["build_ext", "--inplace", "editable_wheel"]
         if config_settings:
             if "editable_mode" in config_settings:
@@ -919,17 +957,32 @@ class _CompiledCode:
         self.include_libraries = attrs.get("library-modules", [])
         self.library_dirs = attrs.get("library-dirs", [])
         self.framework_dirs = attrs.get("framework-dirs", [])
+        self.optional = attrs.get("optional", False)
         self.macros = []
         self.target_lang = attrs.get("target-lang", None)
         self.limited_api = attrs.get("limited-api", None)
         defines = attrs.get("define-macros", [])
         self.source_files = []
         for entry in source_files:
+            files_for_entry = glob.glob(entry)
+            if not files_for_entry:
+                error_text = f"{self.name}: No files matched the pattern: {entry}"
+                if not self.optional:
+                    raise FileNotFoundError(error_text)
+                else:
+                    warnings.warn(error_text)
+            for f in files_for_entry:
+                if not Path(f).is_file():
+                    error_text = f"{self.name}: Source file {f} not found"
+                    if not self.optional:
+                        raise FileNotFoundError(error_text)
+                    else:
+                        warnings.warn(error_text)
             self.source_files.extend(glob.glob(entry))
         for def_ in defines:
             edef = def_.split("=")
             if len(edef) > 2:
-                raise TypeError("Too many arguments for macro " "definition: %s" % edef)
+                raise TypeError("Too many arguments for macro definition: %s" % edef)
             elif len(edef) == 1:
                 edef.append(None)
             self.add_macro_define(*edef)
@@ -1037,6 +1090,9 @@ class _CompiledCode:
         if sys.platform == "win32":
             # Link library directory for Python on Windows
             compiler.add_library_dir(os.path.join(sys.exec_prefix, "libs"))
+            py_libdir = sysconfig.get_config_var("LIBDIR")
+            if py_libdir:
+                compiler.add_library_dir(py_libdir)
         if not static:
             macros.append(("DYNAMIC_LIBRARY", 1))
         # We need to manually separate out C from C++ code here, since clang
@@ -1071,7 +1127,6 @@ class _CompiledCode:
 
 
 class _CModule(_CompiledCode):
-
     def __init__(self, name, attrs):
         self.name = name
         super().__init__(name, attrs)
@@ -1105,6 +1160,7 @@ class _CModule(_CompiledCode):
                 extra_link_args=extra_link_args,
                 sources=self.source_files,
                 py_limited_api=self.limited_api,
+                optional=self.optional,
             )
         else:
             return None
@@ -1152,6 +1208,12 @@ class _CLibrary(_CompiledCode):
                     pass
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
+                try:
+                    n = compiler.linker_so_cxx.index("-bundle")
+                except ValueError:
+                    pass
+                else:
+                    compiler.linker_so_cxx[n] = "-dynamiclib"
                 lib = compiler.library_filename(self.name, lib_type="dylib")
                 extra_link_args.extend(
                     ["-Wl,-rpath,@loader_path", "-Wl,-install_name,@rpath/%s" % lib]

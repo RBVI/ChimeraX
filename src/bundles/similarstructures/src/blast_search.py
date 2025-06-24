@@ -25,7 +25,7 @@
 def similar_structures_blast(session, chain, database = 'pdb',
                              evalue_cutoff = 1e-3, max_hits = 1000,
                              trim = None, alignment_cutoff_distance = None,
-                             save_directory = None):
+                             save_directory = None, show_table = True):
     '''Search PDB for similar sequences and display results in a table.'''
 
     blast_db = {'pdb':'pdb', 'afdb':'alphafold'}[database]
@@ -33,9 +33,11 @@ def similar_structures_blast(session, chain, database = 'pdb',
     job = blastprotein(session, chain, database = blast_db, cutoff = evalue_cutoff,
                        maxSeqs = max_hits, showResultsTable = False)
 
-    def show_results(job, session=session, chain=chain, database=database, save_directory=save_directory):
-        print ('In blast show results')
+    def show_results(job, session=session, chain=chain, database=database, save_directory=save_directory, show_table=show_table):
         hits = _blast_job_hits(job, database)
+        if len(hits) == 0:
+            session.logger.warning(f'No BLAST matches found in {database} database.')
+            return
 
         from .simstruct import SimilarStructures
         results = SimilarStructures(hits, chain, program = 'blast', database = database)
@@ -45,8 +47,9 @@ def similar_structures_blast(session, chain, database = 'pdb',
             save_directory = expanduser('~/Downloads/ChimeraX/BLAST')
         results.sms_path = results.save_to_directory(save_directory)
 
-        from .gui import show_similar_structures_table
-        show_similar_structures_table(session, results)
+        if show_table:
+            from .gui import show_similar_structures_table
+            show_similar_structures_table(session, results)
         
     from types import MethodType
     job.on_finish = MethodType(show_results, job)
@@ -229,6 +232,7 @@ def register_similar_structures_blast_command(logger):
                    ('trim', TrimArg),
                    ('alignment_cutoff_distance', FloatArg),
                    ('save_directory', SaveFolderNameArg),
+                   ('show_table', BoolArg),
                    ],
         synopsis = 'Search for proteins with similar sequences using RBVI BLAST web service'
     )

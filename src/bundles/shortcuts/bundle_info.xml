@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<BundleInfo name="ChimeraX-Shortcuts" version="1.2.0" package="chimerax.shortcuts" minSessionVersion="1" maxSessionVersion="1">
+<BundleInfo name="ChimeraX-Shortcuts" version="1.2.1" package="chimerax.shortcuts" minSessionVersion="1" maxSessionVersion="1">
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
@@ -82,6 +82,7 @@
     <Provider tab="Extras" section="Images" hidden="true" name="sx" display_name="Snapshot" icon="camera.png" description="Save snapshot to desktop"/>
     <Provider tab="Extras" section="Images" hidden="true" name="vd" display_name="Spin movie" icon="video.png" description="Record spin movie"/>
     <Provider tab="Extras" section="Viewing" hidden="true" name="vr" display_name="Virtual reality" icon="vr.png" description="Enable virtual reality with OpenXR.  Press to toggle passthrough video."/>
+    <Provider tab="Extras" section="Viewing" hidden="true" name="xr" display_name="OpenXR" icon="xr.png" description="Turn OpenXR on/off for 3D flat panel displays."/>
   </Providers>
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

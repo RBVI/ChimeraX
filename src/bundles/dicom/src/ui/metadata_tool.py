@@ -32,7 +32,7 @@ from pydicom.multival import MultiValue
 from .widgets import DICOMTable
 
 dicom_template_url: str = (
-    "http://dicomlookup.com/lookup.asp?sw=Tnumber&q=%s"  # noqa they don't have https
+    "https://dicomlookup.com/dicomtags/%s"
 )
 
 try:

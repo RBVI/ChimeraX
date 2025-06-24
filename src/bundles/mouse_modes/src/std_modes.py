@@ -771,7 +771,7 @@ class ZoomMouseMode(MouseMode):
             # TODO: Make camera field_width a property so it knows to redraw.
             c.redraw_needed = True
         else:
-            shift = c.position.transform_vector((0, 0, delta_z))
+            shift = self.camera_position.transform_vector((0, 0, delta_z))
             v.translate(shift)
 
 class ObjectIdMouseMode(MouseMode):

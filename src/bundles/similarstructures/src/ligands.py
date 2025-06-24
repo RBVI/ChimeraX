@@ -23,7 +23,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def similar_structures_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0, minimum_paired = 0.5,
-                               combine = True, from_set = None, of_structures = None):
+                               combine = True, from_set = None, of_structures = None, warn = True):
     from .simstruct import similar_structure_results
     results = similar_structure_results(session, from_set)
     hits = results.named_hits(of_structures)
@@ -32,6 +32,13 @@ def similar_structures_ligands(session, rmsd_cutoff = 3.0, alignment_range = 5.0
     if query_chain is None:
         from chimerax.core.errors import UserError
         raise UserError('Cannot position Foldseek ligands without query structure')
+
+    if warn and session.ui.is_gui:
+        message = f'This will fetch {len(hits)} PDB structures and align their ligands to the query structure.  It may take several minutes to fetch those structures during which ChimeraX will be frozen.  Do you want to proceed?'
+        from chimerax.ui.ask import ask
+        answer = ask(session, message, title='Fetch similar structure ligands')
+        if answer == 'no':
+            return False
 
     keep_structs = []
     nlighits = 0
@@ -171,6 +178,7 @@ def register_similar_structures_ligands_command(logger):
                    ('combine', BoolArg),
                    ('from_set', StringArg),
                    ('of_structures', StringArg),
+                   ('warn', BoolArg),
                    ],
         synopsis = 'Find ligands in Foldseek hits and align to query.'
     )

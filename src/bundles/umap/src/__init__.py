@@ -25,3 +25,17 @@
 from .umap import install_umap, umap_embed
 from .umap import k_means_clusters, cluster_by_distance, color_by_cluster
 from .umap import UmapPlot
+
+
+from chimerax.core.toolshed import BundleAPI
+
+class _UmapAPI(BundleAPI):
+
+    # Map class name to class for session restore
+    @staticmethod
+    def get_class(class_name):
+        if class_name == 'UmapPlot':
+            from .umap import UmapPlot
+            return UmapPlot
+
+bundle_api = _UmapAPI()

@@ -25,7 +25,7 @@
 def mmseqs2_search(session, chain, database = 'pdb',
                    evalue_cutoff = 1e-3, identity_cutoff = 0, max_hits = 1000,
                    trim = None, alignment_cutoff_distance = None,
-                   save_directory = None):
+                   save_directory = None, show_table = True):
     '''Search PDB for similar sequences and display results in a table.'''
     global _query_in_progress
     if _query_in_progress:
@@ -39,7 +39,7 @@ def mmseqs2_search(session, chain, database = 'pdb',
     Mmseqs2WebQuery(session, chain, database=database,
                     evalue_cutoff = evalue_cutoff, identity_cutoff = identity_cutoff, max_hits = max_hits,
                     trim=trim, alignment_cutoff_distance=alignment_cutoff_distance,
-                    save_directory = save_directory)
+                    save_directory = save_directory, show_table = show_table)
 
 mmseqs2_databases = ['pdb', 'afdb']
 
@@ -50,7 +50,7 @@ class Mmseqs2WebQuery:
     def __init__(self, session, chain, database = 'pdb',
                  evalue_cutoff = 1e-3, identity_cutoff = 0, max_hits = 1000,
                  trim = True, alignment_cutoff_distance = 2.0,
-                 save_directory = None,
+                 save_directory = None, show_table = True,
                  rcsb_search_url = 'https://search.rcsb.org/rcsbsearch/v2/query',
                  rcsb_graphql_url = 'https://data.rcsb.org/graphql'):
         self.session = session
@@ -62,6 +62,7 @@ class Mmseqs2WebQuery:
         self.trim = trim
         self.alignment_cutoff_distance = alignment_cutoff_distance
         self.save_directory = save_directory
+        self.show_table = show_table
         self.rcsb_search_url = rcsb_search_url
         self.rcsb_graphql_url = rcsb_graphql_url
 
@@ -93,8 +94,12 @@ class Mmseqs2WebQuery:
         r = requests.post(self.rcsb_search_url, data = data, headers = headers)
         if r.status_code != 200:
             error_msg = r.text
+            if not error_msg and r.status_code == 204:
+                msg = 'RCSB sequence search no matches found'
+            else:
+                msg = f'RCSB sequence search failed (status {r.status_code}): {error_msg}'
             from chimerax.core.errors import UserError
-            raise UserError(f'RCSB sequence search failed: {error_msg}')
+            raise UserError(msg)
 
         results = r.json()
         return results
@@ -106,26 +111,9 @@ class Mmseqs2WebQuery:
 
         results.sms_path = results.save_to_directory(self.save_directory)
         
-
-        from .gui import show_similar_structures_table
-        show_similar_structures_table(self.session, results)
-#        self._log_open_results_command()
-
-    '''
-    def _log_open_results_command(self):
-        if not self.save_directory:
-            return
-        from os.path import join
-        m8_path = join(self.save_directory, self._results_file_name())
-        cspec = self.chain.string(style='command')
-        from chimerax.core.commands import log_equivalent_command, quote_path_if_necessary
-        cmd = f'open {quote_path_if_necessary(m8_path)} database {self.database} chain {cspec}'
-        log_equivalent_command(self.session, cmd)
-
-        # Record in file history so it is easy to reopen Foldseek results.
-        from chimerax.core.filehistory import remember_file
-        remember_file(self.session, m8_path, 'foldseek', [self.chain.structure], file_saved=True)
-    '''
+        if self.show_table:
+            from .gui import show_similar_structures_table
+            show_similar_structures_table(self.session, results)
     
 structure_types = {'pdb':'experimental', 'afdb':'computational'}
 
@@ -314,6 +302,7 @@ def register_mmseqs2_search_command(logger):
                    ('max_hits', IntArg),
                    ('alignment_cutoff_distance', FloatArg),
                    ('save_directory', SaveFolderNameArg),
+                   ('show_table', BoolArg),
                    ],
         synopsis = 'Search for proteins with similar sequences using RCSB mmseqs2 web service'
     )

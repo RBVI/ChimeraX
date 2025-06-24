@@ -17,15 +17,10 @@ from enum import Enum
 from chimerax.core.commands import run
 from chimerax.core.settings import Settings
 from chimerax.mouse_modes import MouseMode
-
-from chimerax.vive.vr import vr_camera as steamvr_camera
-from chimerax.vive.vr import vr_button as steamvr_button
-from chimerax.vive.vr import SteamVRCamera
-from chimerax.vive.xr import vr_camera as openxr_camera
-from chimerax.vive.xr import vr_button as openxr_button
-from chimerax.vive.xr import OpenXRCamera
+from chimerax.geometry.place import Place
 
 from chimerax.segmentations.ui import find_segmentation_tool
+from chimerax.segmentations.triggers import activate_trigger, Trigger
 
 _saved_mouse_bindings = {
     "left": {
@@ -101,6 +96,7 @@ def save_mouse_bindings(session):
             for modifier in binding.modifiers:
                 _saved_mouse_bindings[binding.button][modifier] = binding.mode.name
     _have_saved_mouse_bindings = True
+    activate_trigger(Trigger.MouseModesChanged, _have_saved_mouse_bindings)
 
 
 def restore_mouse_bindings(session):
@@ -146,6 +142,7 @@ def restore_mouse_bindings(session):
             ),
         )
         _have_saved_mouse_bindings = False
+        activate_trigger(Trigger.MouseModesChanged, _have_saved_mouse_bindings)
     else:
         session.logger.warning("No mouse bindings saved")
 
@@ -153,6 +150,12 @@ def restore_mouse_bindings(session):
 def save_hand_bindings(session, handedness):
     global _saved_hand_bindings
     global _have_saved_hand_bindings
+    from chimerax.vive.vr import SteamVRCamera
+    from chimerax.vive.xr import OpenXRCamera
+    from chimerax.vive.vr import vr_camera as steamvr_camera
+    from chimerax.vive.vr import vr_button as steamvr_button
+    from chimerax.vive.xr import vr_camera as openxr_camera
+    from chimerax.vive.xr import vr_button as openxr_button
     if type(session.main_view.camera) is SteamVRCamera:
         vr_camera = steamvr_camera
         vr_button = steamvr_button
@@ -192,6 +195,8 @@ def save_hand_bindings(session, handedness):
 def restore_hand_bindings(session):
     global _saved_hand_bindings
     global _have_saved_hand_bindings
+    from chimerax.vive.vr import SteamVRCamera
+    from chimerax.vive.xr import OpenXRCamera
     camera = session.main_view.camera
     if isinstance(camera, SteamVRCamera) or isinstance(camera, OpenXRCamera):
         if _have_saved_hand_bindings:
@@ -216,331 +221,115 @@ class CreateSegmentation3DMouseMode(MouseMode):
     """Use the segmentation sphere to mark off regions of data in 3D."""
 
     name = "create segmentations"
-    icon_path = os.path.join(
+    icon_file = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "icons",
         "create_segmentation.png",
     )
 
-    def __init__(self, session):
-        # We cannot check for the existence or lack thereof of the Segmentation Tool
-        # here. When mouse modes are being registered, the session has not yet instantiated
-        # whatever goes in its '.tools' attribute.
-        MouseMode.__init__(self, session)
-        self.segmentation_tool = None
-
-    def enable(self):
-        self.segmentation_tool = find_segmentation_tool(self.session)
-
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        self.segmentation_tool.set_segmentation_step(2)
-        self.segmentation_tool.setSphereRegionToValue(
-            self.segmentation_tool.segmentation_sphere.scene_position.origin(),
-            self.segmentation_tool.segmentation_sphere.radius,
-            1,
-        )
-
-    def wheel(self, event):
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        d = event.wheel_value()
-        if d > 0:
-            self.segmentation_tool.segmentation_sphere.radius += 1
-        elif d < 0:
-            self.segmentation_tool.segmentation_sphere.radius -= 1
+        activate_trigger(Trigger.SegmentationStarted, 1)
+        activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (*self.mouse_motion(event), event.shift_down(), 1))
 
     def mouse_drag(self, event):
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        dx, dy = self.mouse_motion(event)
-        # settings = self.settings
-        ## Compute motion in scene coords of sphere center.
-        c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
-        v = self.session.main_view
-        s = v.pixel_size(c)
-        shift = (s * dx, -s * dy, 0)
-        dxyz = v.camera.position.transform_vector(shift)
-        if event.shift_down():
-            shift = (s * dx, -s * dy, 0)
-        else:
-            shift = (s * dx, -s * dy, 0)
-        self.segmentation_tool.move_sphere(dxyz)
-        self.segmentation_tool.setSphereRegionToValue(
-            self.segmentation_tool.segmentation_sphere.scene_position.origin(),
-            self.segmentation_tool.segmentation_sphere.radius,
-            1,
-        )
-
-    def vr_press(self, event):
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        self.segmentation_tool.set_segmentation_step(2)
-
-    def vr_release(self, event):
-        MouseMode.mouse_up(self, event)
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        self.segmentation_tool.set_segmentation_step(1)
+        activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (*self.mouse_motion(event), event.shift_down(), 1))
 
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        self.segmentation_tool.set_segmentation_step(1)
+        activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (*self.mouse_motion(event), event.shift_down(), 1))
+        activate_trigger(Trigger.SegmentationEnded, 1)
+
+    def wheel(self, event):
+        activate_trigger(Trigger.SegmentationMouseModeWheelEvent, event.wheel_value())
+
+    def vr_press(self, event):
+        activate_trigger(Trigger.SegmentationStarted, 1)
+        activate_trigger(Trigger.SegmentationMouseModeVRMoveEvent, (Place(), event.shift_down(), 1))
+
+    def vr_release(self, event):
+        MouseMode.mouse_up(self, event)
+        activate_trigger(Trigger.SegmentationMouseModeVRMoveEvent, (Place(), event.shift_down(), 1))
+        activate_trigger(Trigger.SegmentationEnded, 1)
 
     def vr_motion(self, event):
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
-        delta_xyz = event.motion * c - c
-        self.segmentation_tool.move_sphere(delta_xyz)
-        self.segmentation_tool.setSphereRegionToValue(
-            self.segmentation_tool.segmentation_sphere.scene_position.origin(),
-            self.segmentation_tool.segmentation_sphere.radius,
-            1,
-        )
-
+        activate_trigger(Trigger.SegmentationMouseModeVRMoveEvent, (event.motion, 1))
 
 class EraseSegmentation3DMouseMode(MouseMode):
     """Use the segmentation sphere to erase regions of data in 3D."""
 
     name = "erase segmentations"
-    icon_path = os.path.join(
+    icon_file = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "icons",
         "create_segmentation.png",
     )
 
-    def __init__(self, session):
-        # We cannot check for the existence or lack thereof of the Segmentation Tool
-        # here. When mouse modes are being registered, the session has not yet instantiated
-        # whatever goes in its '.tools' attribute.
-        MouseMode.__init__(self, session)
-        self.segmentation_tool = None
-
-    def enable(self):
-        self.segmentation_tool = find_segmentation_tool(self.session)
-
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        self.segmentation_tool.set_segmentation_step(2)
-        self.segmentation_tool.setSphereRegionToValue(
-            self.segmentation_tool.segmentation_sphere.scene_position.origin(),
-            self.segmentation_tool.segmentation_sphere.radius,
-            0,
-        )
+        activate_trigger(Trigger.SegmentationStarted)
+        activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (*self.mouse_motion(event), event.shift_down(), 0))
 
     def wheel(self, event):
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        d = event.wheel_value()
-        if d > 0:
-            self.segmentation_tool.segmentation_sphere.radius += 1
-        elif d < 0:
-            self.segmentation_tool.segmentation_sphere.radius -= 1
+        activate_trigger(Trigger.SegmentationMouseModeWheelEvent, event.wheel_value())
 
     def mouse_drag(self, event):
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        dx, dy = self.mouse_motion(event)
-        # settings = self.settings
-        ## Compute motion in scene coords of sphere center.
-        c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
-        v = self.session.main_view
-        s = v.pixel_size(c)
-        shift = (s * dx, -s * dy, 0)
-        dxyz = v.camera.position.transform_vector(shift)
-        if event.shift_down():
-            shift = (s * dx, -s * dy, 0)
-        else:
-            shift = (s * dx, -s * dy, 0)
-        self.segmentation_tool.move_sphere(dxyz)
-        self.segmentation_tool.setSphereRegionToValue(
-            self.segmentation_tool.segmentation_sphere.scene_position.origin(),
-            self.segmentation_tool.segmentation_sphere.radius,
-            0,
-        )
+        activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (*self.mouse_motion(event), event.shift_down(), 0))
 
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        self.segmentation_tool.set_segmentation_step(1)
+        activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (*self.mouse_motion(event), event.shift_down(), 0))
+        activate_trigger(Trigger.SegmentationEnded, 0)
 
     def vr_press(self, event):
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        self.segmentation_tool.set_segmentation_step(2)
+        activate_trigger(Trigger.SegmentationStarted, 0)
+        activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (Place(), mouse_motion(event), event.shift_down(), 0))
 
     def vr_release(self, event):
         MouseMode.mouse_up(self, event)
-        # Any positive Y reading indicates pushing up, getting bigger
-        # Any negative Y reading indicates pushing down, getting smaller
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        self.segmentation_tool.set_segmentation_step(1)
+        activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (Place(), event.shift_down(), 0))
+        activate_trigger(Trigger.SegmentationEnded, 0)
 
     def vr_motion(self, event):
-        # Any positive Y reading indicates pushing up, getting bigger
-        # Any negative Y reading indicates pushing down, getting smaller
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
-        delta_xyz = event.motion * c - c
-        self.segmentation_tool.move_sphere(delta_xyz)
-        self.segmentation_tool.setSphereRegionToValue(
-            self.segmentation_tool.segmentation_sphere.scene_position.origin(),
-            self.segmentation_tool.segmentation_sphere.radius,
-            0,
-        )
-
+        activate_trigger(Trigger.SegmentationMouseModeVRMoveEvent, (event.motion, 0))
 
 class Move3DSegmentationSphereMouseMode(MouseMode):
     name = "move segmentation cursor"
-    icon_path = os.path.join(
+    icon_file = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "icons",
         "move_cursor.png",
     )
 
-    def __init__(self, session):
-        MouseMode.__init__(self, session)
-        self.segmentation_tool = None
-
-    def enable(self):
-        self.segmentation_tool = find_segmentation_tool(self.session)
-
     def mouse_drag(self, event):
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        dx, dy = self.mouse_motion(event)
-        # settings = self.settings
-        ## Compute motion in scene coords of sphere center.
-        c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
-        v = self.session.main_view
-        s = v.pixel_size(c)
-        shift = (s * dx, -s * dy, 0)
-        dxyz = v.camera.position.transform_vector(shift)
-        shift = (s * dx, -s * dy, 0)
-        self.segmentation_tool.move_sphere(dxyz)
+        activate_trigger(Trigger.SegmentationMouseModeMoveEvent, (*self.mouse_motion(event), event.shift_down(), None))
 
     def vr_motion(self, event):
-        # Any positive Y reading indicates pushing up, getting bigger
-        # Any negative Y reading indicates pushing down, getting smaller
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
-        delta_xyz = event.motion * c - c
-        self.segmentation_tool.move_sphere(delta_xyz)
-
+        activate_trigger(Trigger.SegmentationMouseModeVRMoveEvent, (event.motion, 0))
 
 class Toggle3DSegmentationVisibilityMouseMode(MouseMode):
     name = "toggle segmentation visibility"
-    # icon_path =
-
-    def __init__(self, session):
-        MouseMode.__init__(self, session)
-        self.segmentaiton_tool = None
-
-    def enable(self):
-        self.segmentation_tool = find_segmentation_tool(self.session)
 
     def vr_press(self, event):
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        self.segmentation_tool.hide_active_segmentation()
+        activate_trigger(Trigger.SegmentationVisibilityChanged, False)
 
     def vr_release(self, event):
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        self.segmentation_tool.show_active_segmentation()
+        activate_trigger(Trigger.SegmentationVisibilityChanged, True)
 
 
 class Resize3DSegmentationSphereMouseMode(MouseMode):
     name = "resize segmentation cursor"
-    icon_path = os.path.join(
+    icon_file = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "icons",
         "resize_cursor.png",
     )
 
-    def __init__(self, session):
-        MouseMode.__init__(self, session)
-        self.segmentation_tool = None
-
-    def enable(self):
-        self.segmentation_tool = find_segmentation_tool(self.session)
-
     def wheel(self, event):
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        d = event.wheel_value()
-        if d > 0:
-            self.segmentation_tool.segmentation_sphere.radius += 0.25
-        elif d < 0:
-            self.segmentation_tool.segmentation_sphere.radius -= 0.25
+        activate_trigger(Trigger.SegmentationMouseModeWheelEvent, event.wheel_value())
 
     def vr_motion(self, event):
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
-        delta_xyz = event.motion * c - c
-        self.segmentation_tool.move_sphere(delta_xyz)
+        activate_trigger(Trigger.SegmentationMouseModeVRMoveEvent, (event.motion, 0))
 
     def vr_thumbstick(self, event):
-        # Any positive Y reading indicates pushing up, getting bigger
-        # Any negative Y reading indicates pushing down, getting smaller
-        if self.segmentation_tool is None:
-            self.segmentation_tool = find_segmentation_tool(self.session)
-        if self.segmentation_tool is None:
-            return
-        d = event.y
-        if d > 0:
-            self.segmentation_tool.segmentation_sphere.radius += 0.25
-        elif d < 0:
-            self.segmentation_tool.segmentation_sphere.radius -= 0.25
+        activate_trigger(Trigger.SegmentationMouseModeWheelEvent, event.y)

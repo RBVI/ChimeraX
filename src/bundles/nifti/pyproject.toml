@@ -29,13 +29,13 @@ Home = "https://www.rbvi.ucsf.edu/chimerax/"
 [tool.setuptools.dynamic]
 version = { attr = "src.__version__" }
 
-[chimerax]
+[tool.chimerax]
 min-session-version = 1
 max-session-version = 1
 categories = ["Volume Data"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
-[chimerax.data-format."NIfTI Medical Imaging"]
+[tool.chimerax.data-format."NIfTI Medical Imaging"]
 category = "Volume Data"
 nicknames = ["nifti"]
 suffixes = [".nii", ".nii.gz"]
@@ -43,15 +43,15 @@ allow-directory = false
 synopsis = "NIfTI"
 reference-url = "https://nifti.nimh.nih.gov/"
 
-[[chimerax.data-format."NIfTI Medical Imaging".open]]
+[[tool.chimerax.data-format."NIfTI Medical Imaging".open]]
 batch = false
 
-[[chimerax.data-format."NIfTI Medical Imaging".open]]
+[[tool.chimerax.data-format."NIfTI Medical Imaging".open]]
 type = "fetch"
 name = "tcia"
 format-name = "nifti"
 is-default = false
 
-[[chimerax.data-format."NIfTI Medical Imaging".save]]
+[[tool.chimerax.data-format."NIfTI Medical Imaging".save]]
 compression-okay = false
 is-default = true

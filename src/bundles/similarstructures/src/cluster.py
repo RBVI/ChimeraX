@@ -78,8 +78,12 @@ def _show_umap(session, results, hits, query_residues, align_with = None, alignm
         cluster_numbers = None
         colors = None
 
-    plot = _last_plot(session, replace)
+    plot = _find_similar_structure_plot(session, results.name) if replace else None
+    if plot is None:
+        plot = SimilarStructurePlot(session)
+
     plot.set_nodes(results.name, hit_names, umap_xy, colors, query_residues)
+
     if color_by_species:
         plot._color_by_species()
 
@@ -87,17 +91,6 @@ def _show_umap(session, results, hits, query_residues, align_with = None, alignm
     if cluster_numbers is not None:
         msg += f' into {max(cluster_numbers)} groups'
     session.logger.info(msg)
-
-def _last_plot(session, replace):
-    plot = None
-    if replace:
-        plot = getattr(session, '_last_similar_structures_cluster_plot', None)
-        if plot and plot.tool_window.ui_area is None:
-            plot = None
-    if plot is None:
-        plot = SimilarStructurePlot(session)
-        session._last_similar_structures_cluster_plot = plot
-    return plot
 
 from chimerax.umap import UmapPlot
 class SimilarStructurePlot(UmapPlot):
@@ -146,13 +139,18 @@ class SimilarStructurePlot(UmapPlot):
             self.add_menu_separator(menu)
             self.add_menu_entry(menu, f'Show table row for {item.name}',
                                 lambda self=self, item=item: self._show_table_row(item))
+            self.add_menu_entry(menu, f'Select rows for cluster {item.name}',
+                                lambda self=self, item=item: self._select_cluster_table_rows(item))
 
         self.add_menu_separator(menu)
         self.add_menu_entry(menu, 'Show reference atoms', self._show_reference_atoms)
         self.add_menu_entry(menu, 'Select reference atoms', self._select_reference_atoms)
 
     def _show_cluster_traces(self, node):
-        self._show_traces(self._cluster_names(node))
+        if self._create_traces():
+            self._show_only_cluster_traces(node)
+        else:
+            self._show_traces(self._cluster_names(node))
 
     def _show_only_cluster_traces(self, node):
         cnames = self._cluster_names(node)
@@ -163,8 +161,17 @@ class SimilarStructurePlot(UmapPlot):
         self._show_traces(self._cluster_names(node), show = False)
 
     def _show_traces(self, names, show = True, other = False):
+        self._create_traces()
         for tmodel in _backbone_trace_models(self.session, self._similar_structures_id):
             tmodel.show_traces(names, show=show, other=other)
+
+    def _create_traces(self):
+        if len(_backbone_trace_models(self.session, self._similar_structures_id)) == 0:
+            from . import traces
+            traces.similar_structures_traces(self.session, from_set = self._similar_structures_id)
+            self._color_traces()
+            return True
+        return False
 
     def _show_all_traces(self):
         cnames = []
@@ -195,16 +202,18 @@ class SimilarStructurePlot(UmapPlot):
         self._show_traces([n.name for n in self.nodes], show = False, other = True)
 
     def _color_traces(self):
+        self._create_traces()
         tmodels = _backbone_trace_models(self.session, self._similar_structures_id)
         if tmodels:
             from chimerax.core.colors import rgba_to_rgba8
             n2c = {node.name:rgba_to_rgba8(node.color) for node in self.nodes}
             for tmodel in tmodels:
-                vc = tmodel.get_vertex_colors(create = True)
-                for tname, vstart, vend in tmodel.trace_vertex_ranges():
-                    if tname in n2c:
-                        vc[vstart:vend] = n2c[tname]
-                tmodel.vertex_colors = vc
+                for c in tmodel.chains:
+                    color = n2c.get(c.chain_id)
+                    if color is not None:
+                        r = c.existing_residues
+                        r.ribbon_colors = color
+                        r.atoms.colors = color
 
     def _cluster_names(self, node):
         return [n.name for n in self.nodes if n.color == node.color]
@@ -248,7 +257,7 @@ class SimilarStructurePlot(UmapPlot):
                 if cluster_colors:
                     from chimerax.core.colors import rgba_to_rgba8
                     cluster_colors[n.name] = rgba_to_rgba8(color)
-        self.draw_graph()  # Redraw nodes.
+        self.draw_graph(preserve_zoom = True)  # Redraw nodes.
 
     def _color_by_cluster(self, no_cluster_color = (178,178,178,255)):
         cluster_colors = self._cluster_colors
@@ -257,7 +266,7 @@ class SimilarStructurePlot(UmapPlot):
         from chimerax.core.colors import rgba8_to_rgba
         for node in self.nodes:
             node.color = rgba8_to_rgba(cluster_colors.get(node.name, no_cluster_color))
-        self.draw_graph()  # Redraw nodes.
+        self.draw_graph(preserve_zoom = True)  # Redraw nodes.
 
     def _color_by_species(self):
         node_names = set(node.name for node in self.nodes)
@@ -267,7 +276,7 @@ class SimilarStructurePlot(UmapPlot):
         for node in self.nodes:
             if node.name in species:
                 node.color = species_colors[species[node.name]]
-        self.draw_graph()  # Redraw nodes.
+        self.draw_graph(preserve_zoom = True)  # Redraw nodes.
 
     def _species_colors(self, species):
         species_colors = self._species_to_color
@@ -293,6 +302,14 @@ class SimilarStructurePlot(UmapPlot):
                 ssp.select_table_row(hit_nums[0])
         ssp.display(True)
 
+    def _select_cluster_table_rows(self, node):
+        from .gui import similar_structures_panel
+        ssp = similar_structures_panel(self.session)
+        if ssp and self.results is ssp.results:
+            cnames = self._cluster_names(node)
+            ssp.select_table_rows_by_names(cnames)
+        ssp.display(True)
+
     def _show_reference_atoms(self):
         qres = self._query_residues
         qatoms = qres.find_existing_atoms('CA')
@@ -311,6 +328,36 @@ class SimilarStructurePlot(UmapPlot):
         struct = qres[0].structure
         struct.session.selection.clear()
         qatoms.selected = True
+    
+    # ---------------------------------------------------------------------------
+    # Session save and restore.
+    #
+    SESSION_SAVE = True
+
+    def take_snapshot(self, session, flags):
+        umap_data = UmapPlot.take_snapshot(self, session, flags)
+        data = {'umap state': umap_data,
+                'similar_structures_id': self._similar_structures_id,
+                'query_residues': self._query_residues,
+                'cluster_colors': self._cluster_colors,
+                'species_to_color': self._species_to_color,
+                'version': '1'}
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        ssp = cls(session)
+        UmapPlot.set_state_from_snapshot(ssp, session, data['umap state'])
+        ssp._similar_structures_id = data['similar_structures_id']
+        ssp._query_residues = data['query_residues']
+        ssp._cluster_colors = data['cluster_colors']
+        ssp._species_to_color = data['species_to_color']
+        return ssp
+
+def _find_similar_structure_plot(session, similar_structures_id):
+    plots = [tool for tool in session.tools.list()
+             if isinstance(tool, SimilarStructurePlot) and tool._similar_structures_id == similar_structures_id]
+    return plots[-1] if plots else None
 
 def _nodes_by_color(nodes):
     c2n = {}

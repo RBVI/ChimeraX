@@ -28,6 +28,7 @@ from  chimerax.core.settings import Settings
 class _CmdLineSettings(Settings):
     EXPLICIT_SAVE = {
         'startup_commands': [],
+        'default_side': 'bottom'
     }
     AUTO_SAVE = {
         "num_remembered": 500,
@@ -38,15 +39,31 @@ class _CmdLineSettings(Settings):
 # 'settings' module attribute will be set by the initialization of the bundle API
 
 def register_settings_options(session):
-    from chimerax.ui.options import StringsOption
+    from chimerax.ui.options import StringsOption, EnumOption
+    class CmdLinePlacementOption(EnumOption):
+        values = ("left", "right", "bottom")
+
     settings_info = {
         'startup_commands': (
             "Execute these commands at startup",
             StringsOption,
-            "List of commands to execute when ChimeraX command-line tool starts"),
+            "List of commands to execute when ChimeraX command-line tool starts"
+        ),
     }
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, balloon = setting_info
         opt = opt_class(opt_name, getattr(settings, setting), None,
             attr_name=setting, settings=settings, balloon=balloon)
         session.ui.main_window.add_settings_option("Startup", opt)
+    settings_info = {
+        'default_side': (
+            "Default command line location",
+            CmdLinePlacementOption,
+            "Where to place the command line by default on startup"
+        )
+    }
+    for setting, setting_info in settings_info.items():
+        opt_name, opt_class, balloon = setting_info
+        opt = opt_class(opt_name, getattr(settings, setting), None,
+            attr_name=setting, settings=settings, balloon=balloon)
+        session.ui.main_window.add_settings_option("Window", opt)

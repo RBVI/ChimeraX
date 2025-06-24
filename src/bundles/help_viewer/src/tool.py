@@ -54,6 +54,11 @@ class _HelpWebView(ChimeraXHtmlView):
     def __init__(self, session, tool, profile):
         super().__init__(session, tool.tabs, size_hint=(840, 800), profile=profile)
         self.help_tool = tool
+        from Qt.QtWebEngineCore import QWebEngineSettings
+        settings = self.settings()
+        settings.setAttribute(QWebEngineSettings.PluginsEnabled, True)
+        settings.setAttribute(QWebEngineSettings.PdfViewerEnabled, True)
+        self.page().certificateError.connect(self.onCertificateError)
 
     def createWindow(self, win_type):  # noqa
         # win_type is window, tab, dialog, backgroundtab
@@ -85,6 +90,53 @@ class _HelpWebView(ChimeraXHtmlView):
         # if not page.contextMenuData().selectedText():
         #    menu.addAction(page.action(QWebEnginePage.SavePage))
         menu.popup(event.globalPos())
+
+    def onCertificateError(self, error):
+        # dialog asking user what to do
+        #   - show who certificate is issued to, start date, end date
+        from Qt.QtWidgets import QMessageBox, QDialog
+        from Qt.QtNetwork import QSsl
+        from Qt.QtCore import Qt
+
+        if not error.isMainFrame():
+            # introduced in Qt 6.8
+            error.rejectCertificate()
+            return
+
+        info = QMessageBox(
+            QMessageBox.Warning, "Certificate Error", error.description(), parent=self.parent())
+        # info.setWindowModality(Qt.WindowModal) -- use open instead of exec
+        info.addButton("OK", QMessageBox.RejectRole)
+
+        chain = error.certificateChain()
+        if chain:
+            cert = chain[0]
+            effective = cert.effectiveDate().toLocalTime().toString()
+            expires = cert.expiryDate().toLocalTime().toString()
+            name = cert.subjectDisplayName()
+            altnames = [names for entry, names in cert.subjectAlternativeNames().items() if entry == QSsl.DnsEntry]
+            details = f"Subject Name: {name}\n"
+            if altnames:
+                alternates = [name for names in altnames for name in names]
+                try:
+                    alternates.remove(name)
+                except ValueError:
+                    pass
+                if alternates:
+                    details += f"Alternate names: {' '.join(alternates)}\n"
+            details += f"Starting date: {effective}\nExpires: {expires}\n"
+            info.setDetailedText(details)
+
+        if error.isOverridable():
+            accept_risk = info.addButton("Accept Risk", QMessageBox.AcceptRole)
+        else:
+            accept_risk = 'skip'
+
+        acceptable = info.exec()
+        if info.clickedButton() == accept_risk:
+            error.acceptCertificate()
+            return
+        error.rejectCertificate()
 
 
 class HelpUI(ToolInstance):
@@ -332,7 +384,7 @@ class HelpUI(ToolInstance):
                                view=tabs.currentWidget())
 
     def download_requested(self, item):
-        # "item" is an instance of QWebEngineDownloadItem
+        # "item" is an instance of QWebEngineDownloadRequest
         # print("HelpUI.download_requested", item)
         import os
         url_file = item.suggestedFileName()
@@ -343,6 +395,13 @@ class HelpUI(ToolInstance):
         # download extension instead
         if extension == ".whl":
             is_wheel = True
+            page = item.page()
+            if page is None:
+                from_toolshed = False
+            else:
+                url = page.requestedUrl()
+                from_toolshed = url.host() in (
+                        'cxtoolshed.rbvi.ucsf.edu', 'cxtoolshed-preview.rbvi.ucsf.edu')
             # Since the file name encodes information about the bundle, we make
             # sure that we are using the original name instead of the name
             # QWebEngine generated to avoid conflicting with an existing download.
@@ -353,16 +412,15 @@ class HelpUI(ToolInstance):
                 os.remove(file_path)
             except OSError:
                 pass
-            self.session.logger.info("Downloading bundle %s" % url_file)
             self.status("Downloading bundle %s" % url_file, 0)
         else:
             is_wheel = False
+            from_toolshed = False
             from Qt.QtWidgets import QFileDialog
             file_path = os.path.join(item.downloadDirectory(), item.downloadFileName())
             path, filt = QFileDialog.getSaveFileName(directory=file_path)
             if not path:
                 return
-            self.session.logger.info("Downloading file %s" % url_file)
             self.status("Downloading file %s" % url_file, 0)
             dirname, filename = os.path.split(path)
             item.setDownloadDirectory(dirname)
@@ -370,7 +428,7 @@ class HelpUI(ToolInstance):
         # print("HelpUI.download_requested accept", file_path)
         item.totalBytesChanged.connect(lambda: self.change_total_bytes(item=item))
         item.receivedBytesChanged.connect(lambda: self.change_received_bytes(item=item))
-        item.isFinishedChanged.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel))
+        item.isFinishedChanged.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel, from_toolshed=from_toolshed))
         item.accept()
 
     def download_progress(self, bytes_received=None, bytes_total=None):
@@ -387,7 +445,7 @@ class HelpUI(ToolInstance):
     def change_received_bytes(self, item):
         self.download_progress(bytes_received=item.receivedBytes())
 
-    def download_finished(self, *args, item=None, is_wheel=False, **kw):
+    def download_finished(self, *args, item=None, is_wheel=False, from_toolshed=False, **kw):
         item.totalBytesChanged.disconnect()
         item.receivedBytesChanged.disconnect()
         item.isFinishedChanged.disconnect()
@@ -435,18 +493,24 @@ class HelpUI(ToolInstance):
         elif prefix == "Installed":
             action = prefix = "Reinstall"
             reinstall = True
-        how = ask(self.session,
-                  f"{prefix} {wh.name} {wh.version} (file {path})?",
-                  [action, "cancel"],
-                  title="Toolshed")
-        if how == "cancel":
-            self.session.logger.info("Bundle installation canceled")
-            return
+        if not from_toolshed:
+            how = ask(self.session,
+                      f"{prefix} {wh.name} {wh.version} (file {path})?",
+                      [action, "cancel"],
+                      title="Toolshed")
+            if how == "cancel":
+                self.session.logger.info("Bundle installation canceled")
+                return
+        else:
+              msg = f"{wh.name} {wh.version} (file {path})"
+              self.session.logger.status(msg, secondary=True)
         self.session.toolshed.install_bundle(path,
                                              self.session.logger,
                                              per_user=True, reinstall=reinstall,
                                              session=self.session)
         self.reload_toolshed_tabs()
+        if from_toolshed:
+              self.session.logger.status("", secondary=True)
 
     def show(self, url, *, new_tab=False, html=None):
         from urllib.parse import urlparse, urlunparse

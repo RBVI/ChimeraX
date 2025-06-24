@@ -81,7 +81,9 @@ def similar_structures_fetch_coordinates(session, min_aligned_coords = 10, ask =
     if update_table:
         # Adding coordinates allows % close and % cover columns to be computed.
         from . import gui
-        gui.show_similar_structures_table(session, results)
+        ssp = gui.similar_structures_panel(session, create = False)
+        if ssp and ssp.results is results:
+            gui.show_similar_structures_table(session, results)
         
     return True
 

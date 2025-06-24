@@ -2,58 +2,145 @@ name: Nightly Build
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 10 * * *" # 10:30AM UTC / 2:30AM PST / 3:30AM PDT
+    - cron: "0 7 * * *" # 7AM UTC / 11PM PST / 12AM PDT
 
 jobs:
   build-rocky8-docker:
     name: Build ChimeraX for Rocky 8
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+          - branch: release/v1.10
+            release_type: candidate
+          - branch: develop
+            release_type: daily
     uses: ./.github/workflows/rocky8_build.yml
     with:
-      release_type: daily
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
     secrets: inherit
   build-rocky9-docker:
     name: Build ChimeraX for Rocky 9
     needs: [build-rocky8-docker]
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+          - branch: release/v1.10
+            release_type: candidate
+          - branch: develop
+            release_type: daily
     uses: ./.github/workflows/rocky9_build.yml
     with:
-      release_type: daily
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
     secrets: inherit
   build-ubuntu:
     name: Build ChimeraX for Ubuntu
     needs: [build-rocky8-docker]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - branch: release/v1.10
+            release_type: candidate
+          - branch: develop
+            release_type: daily
     uses: ./.github/workflows/ubuntu_build.yml
     with:
-      release_type: daily
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
     secrets: inherit
   build-flatpak:
     name: Build ChimeraX FlatPak
     needs: [build-rocky8-docker]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - branch: release/v1.10
+            release_type: candidate
+          - branch: develop
+            release_type: daily
     uses: ./.github/workflows/flatpak_build.yml
     with:
-      release_type: daily
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit
+  build-flatpak-arm:
+    name: Build ARM ChimeraX FlatPak
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+          - branch: release/v1.10
+            release_type: candidate
+          - branch: develop
+            release_type: daily
+    uses: ./.github/workflows/flatpak_arm_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
     secrets: inherit
   build-arm-macos:
     name: Build ChimeraX for arm64 macOS
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+          - branch: release/v1.10
+            release_type: candidate
+          - branch: develop
+            release_type: daily
     uses: ./.github/workflows/mac_arm_build.yml
     with:
-      release_type: daily
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
     secrets: inherit
   build-intel-macos:
     name: Build ChimeraX for Intel macOS
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+          - branch: release/v1.10
+            release_type: candidate
+          - branch: develop
+            release_type: daily
     uses: ./.github/workflows/mac_intel_build.yml
     with:
-      release_type: daily
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
     secrets: inherit
   build-mac-universal:
     name: Build Universal ChimeraX for macOS
     needs: [build-arm-macos, build-intel-macos]
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+          - branch: release/v1.10
+            release_type: candidate
+          - branch: develop
+            release_type: daily
     uses: ./.github/workflows/mac_universal_build.yml
     with:
-      release_type: daily
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
     secrets: inherit
   build-windows:
     name: Build ChimeraX for Windows
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+          - branch: release/v1.10
+            release_type: candidate
+          - branch: develop
+            release_type: daily
     uses: ./.github/workflows/windows_build.yml
     with:
-      release_type: daily
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
     secrets: inherit

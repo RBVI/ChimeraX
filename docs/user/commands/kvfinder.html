@@ -31,13 +31,15 @@ class="clRighticon" title="User Guide Index"/></a>
 &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp; 
 [&nbsp;<b>probeIn</b>&nbsp;&nbsp;<i>r1</i>&nbsp;]
 [&nbsp;<b>probeOut</b>&nbsp;&nbsp;<i>r2</i>&nbsp;]
+[&nbsp;<b>surfaceType</b>&nbsp;&nbsp;SAS&nbsp;|&nbsp;<b>SES</b>&nbsp;]
 [&nbsp;<b>removalDistance</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>volumeCutoff</b>&nbsp;&nbsp;<i>minvol</i>&nbsp;]
 [&nbsp;<b>gridSpacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>showTool</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>surfaceType</b>&nbsp;&nbsp;SAS&nbsp;|&nbsp;<b>SES</b>&nbsp;]
+[&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>boxOrigin</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
 [&nbsp;<b>boxExtent</b>&nbsp;&nbsp;<i>length</i>&nbsp;|&nbsp;<i>lx,ly,lz</i>&nbsp;]
+[&nbsp;<b>showBox</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <br>
 </blockquote>
 </h3>
@@ -73,7 +75,9 @@ tutorial</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
 target="_blank">MOLE Channel Coloring tutorial</a>,
 <a href="https://rbvi.github.io/chimerax-recipes/castp/castp.html"
-target="_blank">recipe for reading CASTp pockets</a>
+target="_blank">recipe for reading CASTp pockets</a>,
+the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#kvfinder"
+target="_blank">ChimeraX Find Cavities highlight</a>
 </p><p>
 Conceptually, the <b><i>KVFinder</i></b> method uses two spherical probes
 to identify cavities:
@@ -113,9 +117,17 @@ The <b>showTool</b> option indicates whether to also tabulate the results in an
 interactive <a href="../tools/findcavities.html#cavitylist">cavity list</a>
 (default <b>true</b>).
 </p><p>
+With <b>replace true</b> (default), running the calculation again on the
+same atomic model will overwrite the previously created cavity models
+and <a href="../tools/findcavities.html#cavitylist">cavity list</a>.
+If <b>false</b>, a new
+<a href="../tools/findcavities.html#cavitylist">cavity list</a>
+and additional cavity models will be created without closing the existing ones.
+</p><p>
 By default, the entire macromolecular surface will be examined.
 However, the calculation can be limited to a rectangular box by specifying
 <i>both</i> of the following:
+</p>
 <ul>
 <li><b>boxOrigin</b> <i>x,y,z</i> 
 &ndash; coordinates of the corner of the box separated by commas only
@@ -124,8 +136,15 @@ However, the calculation can be limited to a rectangular box by specifying
 for a cubic box, or as three numbers separated by commas only 
 for the box dimensions along X, Y, and Z
 </ul>
+<p>
+The <b>showBox</b> option indicates whether to create a box-outline model 
+when the search is limited to a box (default <b>true</b>).
+The model is named <b>cavity search box</b> and can be hidden/shown or 
+closed in the same ways as other models, such as by using the 
+<a href="../tools/modelpanel.html"><b>Model Panel</b></a>.
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2024</address>
+May 2025</address>
 </body></html>

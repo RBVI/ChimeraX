@@ -38,7 +38,10 @@ class FlipGrid(GridData):
         origin = self.flipped_origin(ijk_origin, ijk_size)
         m = self.data.matrix(origin, ijk_size, ijk_step, progress=progress,
                              from_cache_only=from_cache_only)
-        mf = flip_matrix(m, self.axes)
+        if m is None:
+            mf = None
+        else:
+            mf = flip_matrix(m, self.axes)
         return mf
         
     # -------------------------------------------------------------------------

@@ -16,11 +16,9 @@ import math
 from collections import defaultdict
 from functools import cached_property
 
-import pydicom.uid
 
 from numpy import cross, float32, uint8, int8, uint16, int16
 
-from pydicom import dcmread
 from typing import Optional
 
 from chimerax.core.decorators import requires_gui
@@ -144,6 +142,7 @@ class Study(Model):
     """A set of DICOM files that have the same Study Instance UID"""
 
     def __init__(self, session, uid, patient: Patient):
+        import pydicom.uid
         if type(uid) is str:
             uid = pydicom.uid.UID(uid)
         self.uid = uid
@@ -484,6 +483,7 @@ class DicomData:
         files: list["SeriesFile"],
         mask_number: Optional[int] = None,
     ):
+        import pydicom.uid
         self.session = session
         self.mask_number = mask_number
         self.dicom_series = series
@@ -520,7 +520,7 @@ class DicomData:
             rsi = int(rsi)
         self.rescale_intercept = rsi
         self.rescale_slope = int(self.dicom_series.rescale_slope)
-        if not self.contour_series:
+        if self.image_series and not self.contour_series:
             bits = self.sample_file.get("BitsAllocated")
             rep = self.sample_file.get("PixelRepresentation")
             self.value_type = self.numpy_value_type(
@@ -664,6 +664,18 @@ class DicomData:
             )
 
     @property
+    def number(self):
+        if self.sample_file.get("SeriesNumber", None) is None:
+            self.session.logger.warning("SeriesNumber not specified; setting to 0")
+            return 0
+        else:
+            return int(self.sample_file.get("SeriesNumber", 0))
+
+    @property
+    def patient_id(self):
+        return self.sample_file.get("PatientID", "")
+
+    @property
     def columns(self):
         return self.sample_file.get("Columns")
 
@@ -713,7 +725,7 @@ class DicomData:
                 nt = len(times)
                 for data in self.files:
                     data._time = times.index(data.trigger_time) + 1
-                    data.inferred_properties += "TemporalPositionIdentifier"
+                    data.inferred_properties.add("TemporalPositionIdentifier")
                 if nt > 1:
                     self.session.logger.warning(
                         "Inferring time series from TriggerTime metadata \
@@ -890,14 +902,21 @@ class DicomData:
         return x_scale, y_scale, z_scale
 
     def rotation(self):
-        affine = self.affine
-        x_scale, y_scale, z_scale = self.pixel_spacing()
-        rotation_matrix = [
-            [affine[0][0] / x_scale, affine[0][1] / y_scale, affine[0][2] / z_scale],
-            [affine[1][0] / x_scale, affine[1][1] / y_scale, affine[1][2] / z_scale],
-            [affine[2][0] / x_scale, affine[2][1] / y_scale, affine[2][2] / z_scale],
-        ]
-        return rotation_matrix
+        #affine = self.affine
+        #x_scale, y_scale, z_scale = self.pixel_spacing()
+        #rotation_matrix = [
+        #    [affine[0][0] / x_scale, affine[0][1] / y_scale, affine[0][2] / z_scale],
+        #    [affine[1][0] / x_scale, affine[1][1] / y_scale, affine[1][2] / z_scale],
+        #    [affine[2][0] / x_scale, affine[2][1] / y_scale, affine[2][2] / z_scale],
+        #]
+        # We're ignoring the rotation given by the DICOM files until someone complains about it.
+        # Doing this simplifies other areas of the codebase significantly.
+        # 1) The plane viewers use orthographic cameras pointed down the X, Y, and Z axes, and
+        #    ignoring the rotations of the files means we don't have to calculate new axes to
+        #    point the cameras down when files aren't axis aligned.
+        # 2) We don't have to modify the raycasting shader to do such calculations either.
+        return [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        #return rotation_matrix
 
     def origin(self):
         affine = self.affine
@@ -938,6 +957,7 @@ class DicomData:
 
     def read_plane(self, k, time=None, channel=None, rescale=True):
         # TODO: Don't need to dcmread already read in data...
+        from pydicom import dcmread
         if self._reverse_planes:
             klast = self.data_size[2] - 1
             k = klast - k
@@ -1007,7 +1027,7 @@ class SeriesFile:
     def __init__(self, data):
         self.data = data
         self.path = data.filename
-        self.inferred_properties = []
+        self.inferred_properties = set()
         orient = getattr(
             data, "ImageOrientationPatient", None
         )  # horz and vertical image axes

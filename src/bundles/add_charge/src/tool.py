@@ -142,18 +142,22 @@ class AddChargeTool(ToolInstance):
             spec = "sel" if sel_restrict else ""
         self.session.logger.info("Closest equivalent command: <b>addcharge %s standardizeResidues %s</b>"
             % (spec, ",".join(standardizable_residues) if standardize else "none"), is_html=True)
-        from .charge import add_standard_charges
-        non_std = add_standard_charges(self.session, residues=residues, **params)
+        from .charge import add_standard_charges, ChargeError
+        try:
+            non_std = add_standard_charges(self.session, residues=residues, **params)
+        except ChargeError as e:
+            from chimerax.core.errors import NonChimeraXError
+            raise NonChimeraXError(e)
         if non_std:
             if self.dock_prep_info is not None:
                 from chimerax.atomic import AtomicStructures
                 self.dock_prep_info['structures'] = AtomicStructures(self.structures)
             AddNonstandardChargesTool(self.session, "Add Non-Standard Charges", non_std,
                 dock_prep_info=self.dock_prep_info, main_params=params)
-        self.delete()
         if (not non_std) and self.dock_prep_info is not None:
             from chimerax.atomic import AtomicStructures
             self.dock_prep_info['callback'](AtomicStructures(self.structures), tool_settings=params)
+        self.delete()
 
 class AddNonstandardChargesTool(ToolInstance):
 

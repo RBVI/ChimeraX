@@ -21,10 +21,16 @@
 
   <Providers manager="data formats">
     <Provider name="Mutation scores" synopsis="Mutation scores csv file" nicknames="ms" category="Molecular structure" suffixes=".csv" />
+    <Provider name="UniProt Variants" synopsis="UniProt variant scores" category="Structure analysis"
+		suffixes=".json" nicknames="variants" reference_url="https://www.uniprot.org/help/variant" />
+    <Provider name="AlphaMissense" synopsis="AlphaMissense scores" category="Structure analysis"
+	      suffixes=".csv" nicknames="amiss" reference_url="https://www.science.org/doi/10.1126/science.adg7492" />
   </Providers>
 
   <Providers manager="open command">
     <Provider name="Mutation scores" want_path="true" />
+    <Provider name="uniprot_variants" type="fetch" format_name="variants" synopsis="UniProt Variants" example_ids="Q9UNQ0"/>
+    <Provider name="alpha_missense" type="fetch" format_name="amiss" synopsis="AlphaMissense scores" example_ids="Q9UNQ0"/>
   </Providers>
 
   <Classifiers>

@@ -113,6 +113,12 @@ class _SimilarStructuresBundle(BundleAPI):
         elif class_name == 'SimilarStructuresManager':
             from .simstruct import SimilarStructuresManager
             return SimilarStructuresManager
+        elif class_name == 'BackboneTraces':
+            from .traces import BackboneTraces
+            return BackboneTraces
+        elif class_name == 'SimilarStructurePlot':
+            from .cluster import SimilarStructurePlot
+            return SimilarStructurePlot
             
 
 bundle_api = _SimilarStructuresBundle()

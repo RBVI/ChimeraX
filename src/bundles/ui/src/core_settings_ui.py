@@ -20,7 +20,7 @@ TODO
 
 from chimerax.core.core_settings import set_proxies, settings as core_settings
 from .options import SymbolicEnumOption, ColorOption, BooleanOption, IntOption
-from .options import StringOption, HostPortOption
+from .options import StringOption, ProtocolHostPortOption
 from chimerax.core.colors import color_name
 
 class UpdateIntervalOption(SymbolicEnumOption):
@@ -59,7 +59,7 @@ class CoreSettingsPanel:
         'http_proxy': (
             'HTTP proxy',
             'Web Access',
-            HostPortOption,
+            ProtocolHostPortOption,
             lambda ses, val: set_proxies(),
             None,
             'HTTP proxy for ChimeraX to use when trying to reach web sites',
@@ -67,7 +67,7 @@ class CoreSettingsPanel:
         'https_proxy': (
             'HTTPS proxy',
             'Web Access',
-            HostPortOption,
+            ProtocolHostPortOption,
             lambda ses, val: set_proxies(),
             None,
             'HTTPS proxy for ChimeraX to use when trying to reach web sites',
@@ -103,8 +103,8 @@ class CoreSettingsPanel:
         self.session = session
         from chimerax.core.commands import run
         from .options import CategorizedSettingsPanel
-        self.options_widget = CategorizedSettingsPanel(help_cb=lambda *, category=None, ses=session, run=run:
-            run(ses, "help help:user/preferences.html"
+        self.options_widget = CategorizedSettingsPanel(tabs_as_side_menu=True, help_cb=lambda *, category=None,
+            ses=session, run=run: run(ses, "help help:user/preferences.html"
             + ("" if category is None else "#" + category.replace(' ', '').lower())))
         self.options = {}
 

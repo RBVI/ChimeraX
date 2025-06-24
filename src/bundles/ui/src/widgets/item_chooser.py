@@ -19,7 +19,8 @@ class ItemsGenerator:
             item_text_func=str, class_filter=None, **kw):
         self.list_func = list_func
         if class_filter:
-            filter_func = lambda x, ff=filter_func, cf=class_filter: ff(x) and isinstance(x, cf)
+            # filter classes first in case the filter_func uses attributes/methods only in that class
+            filter_func = lambda x, ff=filter_func, cf=class_filter: isinstance(x, cf) and ff(x)
         self.filter_func = filter_func
         self.key_func = key_func
         self.item_text_func = item_text_func

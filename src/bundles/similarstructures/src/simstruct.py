@@ -25,16 +25,19 @@
 from chimerax.core.state import State  # For session saving
 class SimilarStructures(State):
     def __init__(self, hits, query_chain, program = '', database = '',
-                 trim = True, alignment_cutoff_distance = 2.0):
+                 trim = True, alignment_cutoff_distance = 2.0, session = None):
         self.hits = hits
         self._query_chain = query_chain
+        self._session = query_chain.structure.session if query_chain else session
         self.program = program			# Name of program that did the search, e.g. foldseek, mmseqs2, blast
         self.program_database = database	# Database program searched, e.g. pdb100, afdb50
 
         self._allowed_residue_names = None
         if program == 'foldseek':
-            from .foldseek_search import foldseek_accepted_3_letter_codes
-            self._allowed_residue_names = foldseek_accepted_3_letter_codes
+            if len(hits) > 0 and hits[0].get('foldseek release') is None:
+                # Older foldseek versions excluded various non-standard residues. ChimeraX ticket #17890
+                from .foldseek_search import foldseek_accepted_3_letter_codes
+                self._allowed_residue_names = foldseek_accepted_3_letter_codes
         
         # Default values used when opening and aligning structures
         self.trim = trim
@@ -43,14 +46,18 @@ class SimilarStructures(State):
         # Cached values
         self._clear_cached_values()
 
-        r2i = {r:i for i,r in enumerate(query_chain.residues) if r is not None}
-        qc2f = [r2i[r] for r in self.query_residues]  # Query coordinate index to full sequence index
-        self._query_coord_to_sequence_index = qc2f
-        qf2c = {fi:ci for ci, fi in enumerate(qc2f)}
-        self._query_sequence_to_coord_index = qf2c
-        self._alignment_indexing = 'coordinates' if hits[0].get('coordinate_indexing') else 'sequence'
+        if query_chain:
+            r2i = {r:i for i,r in enumerate(query_chain.residues) if r is not None}
+            qc2f = [r2i[r] for r in self.query_residues]  # Query coordinate index to full sequence index
+            self._query_coord_to_sequence_index = qc2f
+            qf2c = {fi:ci for ci, fi in enumerate(qc2f)}
+            self._query_sequence_to_coord_index = qf2c
+        else:
+            self._query_coord_to_sequence_index = None
+            self._query_sequence_to_coord_index = None
+        self._alignment_indexing = 'coordinates' if len(hits) > 0 and hits[0].get('coordinate_indexing') else 'sequence'
 
-        self.name = add_similar_structures(self.session, self)
+        self.name = add_similar_structures(self._session, self)
 
     def _clear_cached_values(self):
         self._query_residues = None
@@ -198,8 +205,12 @@ class SimilarStructures(State):
             if hxyz is not None:
                 hi, qi = self.hit_residue_pairing(hit)
                 if len(hi) >= 3:  # Need at least 3 atom pairs to align
-                    p, rms, npairs = align_xyz_transform(hxyz[hi], query_xyz[qi],
-                                                         cutoff_distance=alignment_cutoff_distance)
+                    try:
+                        p, rms, npairs = align_xyz_transform(hxyz[hi], query_xyz[qi],
+                                                             cutoff_distance=alignment_cutoff_distance)
+                    except:
+                        print (hi, len(hxyz), qi, len(query_xyz), hit)
+                        raise
                     hit['rmsd'] = rms
                     hit['close'] = 100*npairs/len(hi)
                     hit['cutoff_distance'] = alignment_cutoff_distance
@@ -361,17 +372,24 @@ class SimilarStructures(State):
 
     def _sms_filename(self, directory):
         qc = self.query_chain
-        from os.path import splitext, exists, join
-        sname = splitext(qc.structure.name)[0]
-        filename = sname.replace(' ', '_') if qc else 'results'
+        if qc is None:
+            filename = 'results'
+        else:
+            from os.path import splitext
+            filename = splitext(qc.structure.name)[0]
+            if qc.structure.num_chains > 1:
+                filename += f'_{qc.chain_id}'
         if self.program:
             filename += f'_{self.program}'
         if self.program_database:
             filename += f'_{self.program_database}'
+        filename = filename.replace(' ', '_')
+        prefix = filename
         filename += '.sms'
         count = 1
+        from os.path import exists, join
         while exists(join(directory, filename)):
-            filename = filename[:-4] + f'_{count}.sms'
+            filename = prefix + f'_{count}.sms'
             count += 1
         return filename
 
@@ -429,7 +447,8 @@ class SimilarStructures(State):
 
         r = SimilarStructures(data['hits'], query_chain,
                               program = data['program'], database = data['program_database'],
-                              trim = data['trim'], alignment_cutoff_distance = data['alignment_cutoff_distance'])
+                              trim = data['trim'], alignment_cutoff_distance = data['alignment_cutoff_distance'],
+                              session = session)
 
         if 'query_chain_path' in data:
             r._query_chain_path = data['query_chain_path']
@@ -520,7 +539,10 @@ class SimilarStructures(State):
             hit_chain = structure_chain_with_id(structure, chain_id)
             rnames = self._allowed_residue_names
             hro = _indices_of_residues_with_coords(hit_chain, hit['tstart'], hit['tend'], rnames)
-            qro = _indices_of_residues_with_coords(self.query_chain, hit['qstart'], hit['qend'], rnames)
+            if self.query_chain:
+                qro = _indices_of_residues_with_coords(self.query_chain, hit['qstart'], hit['qend'], rnames)
+            else:
+                qro = None
         else:
             hro = list(range(hit['tstart']-1, hit['tend']))
             qro = list(range(hit['qstart']-1, hit['qend']))
@@ -935,6 +957,19 @@ def hit_coords(hit):
     '''
     hxyz = hit.get('tca')
     return hxyz
+
+def hit_coordinates_sequence(hit):
+    '''
+    Return a map from hit coordinate index to sequence 1 letter code.
+    '''
+    hsi = range(hit['tstart']-1, hit['tend'])  # 0-based sequence indexing
+    hseq = hit['taln'].replace('-','')
+    hi2ci = _hit_sequence_to_coordinate_index(hit)
+    if hi2ci is None:
+        ci2aa = {hi:aa for hi,aa in zip(hsi, hseq)}
+    else:
+        ci2aa = {hi2ci[hi]:aa for hi,aa in zip(hsi, hseq) if hi in hi2ci}
+    return ci2aa
 
 def _hit_sequence_to_coordinate_index(hit):
     '''Return dictionary mapping hit sequence indices (0-based) to coordinate indices (0-based).'''

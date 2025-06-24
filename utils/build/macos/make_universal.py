@@ -7,6 +7,8 @@ from shutil import copy, copytree, copyfile
 import subprocess
 import lief
 import sys
+
+
 # -------------------------------------------------------------------------------------
 # Make a Mac universal build by combining Arm and Intel builds using the lipo command.
 #
@@ -116,13 +118,12 @@ def only_line_endings_differ(arm_path, intel_path):
     return True
 
 
-
 need_lipo = set(
     [
-        lief.MachO.FILE_TYPES.BUNDLE,
-        lief.MachO.FILE_TYPES.DYLIB,
-        lief.MachO.FILE_TYPES.EXECUTE,
-        lief.MachO.FILE_TYPES.OBJECT,
+        lief.MachO.Header.FILE_TYPE.BUNDLE,
+        lief.MachO.Header.FILE_TYPE.DYLIB,
+        lief.MachO.Header.FILE_TYPE.EXECUTE,
+        lief.MachO.Header.FILE_TYPE.OBJECT,
     ]
 )
 lief.logging.disable()
@@ -134,7 +135,9 @@ def is_executable(path):
         return False
     try:
         m = lief.MachO.parse(path)
-    except lief.bad_file:
+    # Bare except is usually bad, but lief does not provide its own
+    # exceptions
+    except Exception as e:
         return False
     if m is None or m.at(0) is None:
         return False
@@ -156,14 +159,15 @@ def lipo_files(arm_path, intel_path, universal_path, warn):
         if not make_thin(arm_path, arm_path_thin, "arm64"):
             log_mismatch(f"ARM ChimeraX has only Intel binary: {arm_path}")
             _copy(arm_path, universal_path)
+            chmod(universal_path, 0o755)  # Add execute permission.
             return
 
         intel_path_thin = universal_path + ".x86_64_thin"
         if not make_thin(intel_path, intel_path_thin, "x86_64"):
             log_mismatch(f"Intel ChimeraX has non-Intel binary: {intel_path}")
             _copy(arm_path, universal_path)
+            chmod(universal_path, 0o755)  # Add execute permission.
             return
-
 
         try:
             args = [
@@ -189,16 +193,18 @@ def lipo_files(arm_path, intel_path, universal_path, warn):
                           basename(universal_path), dirname(universal_path)))
             """
 
-
             remove(arm_path_thin)
             remove(intel_path_thin)
             chmod(universal_path, 0o755)  # Add execute permission.
         except RuntimeError as e:
             error = str(e)
-            if 'have the same architecture' in error:
+            if "have the same architecture" in error:
                 remove(arm_path_thin)
                 rename(intel_path_thin, universal_path)
-                stderr.write("both builds had same arch for %s; renaming instead of lipoing" % universal_path)
+                stderr.write(
+                    "both builds had same arch for %s; renaming instead of lipoing"
+                    % universal_path
+                )
             else:
                 raise e
     except RuntimeError as e:
@@ -211,8 +217,6 @@ def lipo_files(arm_path, intel_path, universal_path, warn):
                 rename(arm_path, universal_path)
             else:
                 raise RuntimeError("No binary file %s" % universal_path)
-
-
 
 
 def make_thin(path, thin_path, arch):
@@ -316,7 +320,6 @@ def exclude(path, omit=omit):
 
 def warn_on_mismatch(path, no_warn=no_warn):
     return not has_suffix(path, no_warn)
-
 
 
 arm_location, intel_location, universal_location = sys.argv[1:4]
