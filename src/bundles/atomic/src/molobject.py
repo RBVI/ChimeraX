@@ -1491,6 +1491,7 @@ class StructureData:
         ret = ctypes.c_char_p)().decode('utf-8')
     PBG_HYDROGEN_BONDS = c_function('structure_PBG_HYDROGEN_BONDS', args = (),
         ret = ctypes.c_char_p)().decode('utf-8')
+    _coordset_suppress_count = 0
     _ss_suppress_count = 0
 
     # For attribute registration...
@@ -1660,9 +1661,25 @@ class StructureData:
 
     from contextlib import contextmanager
     @contextmanager
+    def suppress_coordset_change_notifications(self):
+        """Suppress coordinate set change notifications while the code body runs.
+           Restore the original coordinate set of this structure when done."""
+        orig_coordset_id = self.active_coordset_id
+        if self._coordset_suppress_count == 0:
+            self.active_coordset_change_notify = False
+        self._coordset_suppress_count += 1
+        try:
+            yield
+        finally:
+            self.active_coordset_id = orig_coordset_id
+            self._coordset_suppress_count -= 1
+            if self._coordset_suppress_count == 0:
+                self.active_coordset_change_notify = True
+
+    @contextmanager
     def suppress_ss_change_notifications(self):
         """Suppress secondard structure change notifications while the code body runs.
-           Restore the original secondard structure of this atom when done."""
+           Restore the original secondard structure of this model when done."""
         orig_ss_types = self.residues.ss_types
         orig_ss_ids = self.residues.ss_ids
         if self._ss_suppress_count == 0:
