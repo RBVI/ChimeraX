@@ -165,7 +165,19 @@ ifeq ($(OS),Darwin)
 	# copy the shared libraries needed by the fortran executables and fix up their paths
 	# then do the same for libs that those shared libraries use
 	cat /dev/null > $(FLIB_NAMES_FILE)
+	for copied_lib in $(AMBERLIB_SRC)/*.$(SHLIB_EXT); do \
+		libname=`basename $$copied_lib`; \
+		copy=$(app_libdir)/$$libname; \
+		for k in `otool -L $$copy | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
+			subfilename=`basename $$k`; \
+			install_name_tool -change $$k @executable_path/../../../lib/$$subfilename $$copy; \
+			codesign --force -s - $$copy ; \
+		done; \
+	done; \
 	cd $(AMBERBIN_DST) && for i in sqm; do \
+	    for hb_path in `otool -l $$i | grep 'path /opt/homebrew' | awk '{ print $$2 }'`; do \
+			install_name_tool -delete_rpath $$hb_path $$i ; \
+		done; \
 		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
 			cp $$j $(app_libdir); \
 			filename=`basename $$j`; \
@@ -176,15 +188,7 @@ ifeq ($(OS),Darwin)
 			install_name_tool -change $$j @executable_path/../../../lib/$$filename $$i; \
 			codesign --force -s - $$install_filename ; \
 		done; \
-	done; \
-	for copied_lib in $(AMBERLIB_SRC)/*.$(SHLIB_EXT); do \
-		libname=`basename $$copied_lib`; \
-		copy=$(app_libdir)/$$libname; \
-		for k in `otool -L $$copied_lib | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
-			subfilename=`basename $$k`; \
-			install_name_tool -change $$k @executable_path/../../../lib/$$subfilename $$copy; \
-			codesign --force -s - $$copy ; \
-		done; \
+		codesign --force -s - $$i ; \
 	done;
 endif
 ifeq ($(UPLOAD_PREBUILT),true)
