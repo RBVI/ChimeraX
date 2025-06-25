@@ -65,14 +65,15 @@ The menus below the plot can be used
 to change which scores are plotted and for which mutation set.
 </p><p>
 <a name="associated"></a>
-Opening a mutation scores file automatically associates the data with a
-structure chain, if there is one with matching sequence and residue numbering
-already open. However, if more than one matching structure chain is present, 
-the <a href="../commands/open.html#chain"><b>chain</b></a> option of
-<a href="../commands/open.html"><b>open</b></a> can be used to specify
-which one to use. The association can also be made later
-(after opening the mutation data) by using the command
-<a href="#structure"><b>mutationscores structure</b></a>.
+By default, mutation scores are automatically associated with each
+open structure chain that has exactly the same sequence and residue
+numbering (as in the mutation data) the first time some analysis action
+is performed, such as interacting with a scatter plot.
+However, specific structure chains to associate can be designated with the
+<a href="../commands/open.html#chains"><b>chains</b></a> option of the
+<a href="../commands/open.html"><b>open</b></a> command
+at the time of opening the mutation data, or later (after opening the data) 
+with <a href="#structure"><b>mutationscores structure</b></a>.
 </p><p>
 See also: 
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html" 
@@ -89,14 +90,14 @@ target="_blank">ChimeraX visualization of mutation scores</a>
 &ndash; show a histogram of score values
 <li><a href="#label"><b>mutationscores label</b></a>
 &ndash; show a color-coded grid of the score values 
-per position on the associated structure
+per position on the associated structure(s)
 <li><a href="#statistics"><b>mutationscores statistics</b></a>
 &ndash; compute mutation score average and standard deviation 
 <li><a href="#umap"><b>mutationscores umap</b></a>
 &ndash; project the 20 residue-type scores per sequence position
 into 2D with UMAP
 <li><a href="#structure"><b>mutationscores structure</b></a>
-&ndash; associate mutation data with a specified structure chain
+&ndash; associate mutation data with one or more specified structure chains
 <li><a href="#list"><b>mutationscores list</b></a>
 &ndash; list the currently open sets of mutation data
 <li><a href="#close"><b>mutationscores close</b></a>
@@ -161,11 +162,11 @@ same position as the clicked mutant
 <li><b>Color mutations near residue [<i>mutant position</i>]</b>
 &ndash; circles representating mutations at positions within 3.5 &Aring; of
 the position of the clicked mutant (in the 3D structure of the 
-<a href="#associated">associated structure</a>)
+<a href="#associated">associated structure(s)</a>)
 <li><b>Color mutations for selected residues</b>
 &ndash; color in cyan all circles representing mutations at positions
 of residues <a href="../selection.html">selected</a> in the 
-<a href="#associated">associated structure</a>
+<a href="#associated">associated structure(s)</a>
 <li><b>Color synonymous mutations blue</b>
 &ndash; color in blue all circles for &ldquo;mutants&rdquo; with
 the same residue type as the wild-type protein
@@ -188,7 +189,7 @@ style="display:inline-block; vertical-align:middle"><tr>
 &ndash; color all circles gray
 </ul>
 The following entries apply to the
-<a href="#associated">associated structure</a>:
+<a href="#associated">associated structure(s)</a>:
 <ul>
 <li><b>Structure residue [<i>mutant position in structure</i>]</b>
 &ndash; information for the user (no action): the corresponding structure residue
@@ -384,7 +385,7 @@ alt="mutation scores residue label" width="80px">
 </td></tr>
 </table>
 Label each of the specified residues in the 
-<a href="#associated">associated structure</a>
+<a href="#associated">associated structure(s)</a>
 with a grid of all possible substitutions (the 20 standard amino acids) 
 color-coded by the values of the <i>score</i> at that position.
 The coloring defaults are:
@@ -452,20 +453,58 @@ has not revealed any striking patterns.
 <b>mutationscores structure</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
 [&nbsp;<b>allowMismatches</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>alignSequences</b>&nbsp;&nbsp;<i>alignment-ID</i>&nbsp;|&nbsp;<i>sequence</i>&nbsp;]
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
-Associate the mutation scores with a specified structure chain for further
-analysis. Opening a <a href="../formats/mutationcsv.html">mutation scores
-file</a> automatically associates the data with a structure chain open 
-in ChimeraX, if its sequence and residue numbering match the mutation data.
-However, if more than one matching chain is present, this command 
-allows controlling which is used. Only one structure chain can be associated
-per <a href="#mutationSet">mutation set</a>. (Association can also be 
-specified with the <a href="open.html#chain"><b>chain</b></a> option of the 
-<a href="open.html#local"><b>open</b></a> command.)
-If the chain does not have exactly the same residue types and residue numbering
-as in the mutation data, however, <b>allowMismatches true</b> is needed to
-force the association.
+Designate one or more structure chains to be associated with the mutation 
+scores for further analysis.
+Otherwise, the mutation scores will be associated automatically with each
+open structure chain that has exactly the same sequence and residue
+numbering (as in the mutation data) the first time some analysis action 
+is performed, such as interacting with a scatter plot.
+Multiple structure chains can be associated per 
+<a href="#mutationSet">mutation set</a>. 
+If the chain does not have exactly the same residue types as the wild type 
+in the mutation data, however, <b>allowMismatches true</b> is needed to
+force the association, and if the residue numbering is different, a sequence 
+alignment must be specified with the <b>alignSequences</b> option, either:
+<ul>
+<li>a sequence alignment aleady open in the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
+specified by the <i>alignment-ID</i> shown in the title bar of that tool.
+The first sequence in the alignment must be the same as the sequence
+that goes with the mutation data, and there must also be a sequence
+that exactly matches (including numbering) each of the structure chains 
+to be associated. If multiple structure chains to be associated have the
+same sequence, the alignment only needs to contain one copy, and the
+alignment may also contain additional sequences not used for association
+purposes.
+<br>&ndash; or &ndash;<br>
+<li>the sequence that goes with the mutation data, 
+to be aligned to the sequence(s) of the specified structure chain(s)
+using a Clustal Omega web service hosted by the 
+<a href="https://www.rbvi.ucsf.edu/Overview/index.html" 
+target="_blank">UCSF RBVI</a>. 
+As with <a href="sequence.html#align"><b>sequence align</b></a>,
+a <i>sequence</i> can be given as:
+  <ul>
+  <li>a <a href="https://www.uniprot.org" target="_blank">UniProt</a>
+name or accession number
+  <li>the <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+of a structure chain already open in ChimeraX
+  <li>plain text of the entire amino acid sequence pasted directly
+into the command line
+  <li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
+in the form:
+&nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
+(<a href="seqspec.html">details...</a>)
+  </ul>
+</ul>
+Associations can also be specified with the 
+<a href="open.html#chains"><b>chains</b></a> option of the 
+<a href="open.html#local"><b>open</b></a> command at the time
+of opening the mutation scores file.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -492,5 +531,5 @@ with <a href="#list"><b>mutationscores list</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2024</address>
+February 2025</address>
 </body></html>

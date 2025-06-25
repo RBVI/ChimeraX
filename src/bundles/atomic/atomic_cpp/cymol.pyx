@@ -1759,8 +1759,9 @@ cdef class CyResidue:
             return res_str
         if omit_structure is None:
             from .structure import Structure
+            from .settings import settings
             omit_structure = len([s for s in self.structure.session.models.list()
-                if isinstance(s, Structure)]) == 1
+                if isinstance(s, Structure)]) == 1 and not settings.always_label_structure
         if omit_structure:
             format_string = "%s%s" if style.startswith("command") else "%s %s"
             return format_string % (chain_str, res_str)

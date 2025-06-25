@@ -17,25 +17,16 @@ from chimerax.core.toolshed import BundleAPI
 subcommand_name = "grid"
 class _ProfileGridsBundleAPI(BundleAPI):
 
-    """
     @staticmethod
     def get_class(class_name):
-        if class_name == "SequenceViewer":
-            from .tool import SequenceViewer
-            return SequenceViewer
-        # so that old sessions _might_ work
-        if class_name == "Consensus":
-            from chimerax.alignment_headers import Consensus
-            return Consensus
-        if class_name == "Conservation":
-            from chimerax.alignment_headers import Conservation
-            return Conservation
-    """
+        if class_name == "ProfileGridsTool":
+            from .tool import ProfileGridsTool
+            return ProfileGridsTool
 
     @staticmethod
     def run_provider(session, name, manager, *, alignment=None):
         """Register sequence viewer with alignments manager"""
         from .tool import ProfileGridsTool
-        return ProfileGridsTool(session, "Sequence Viewer", alignment)
+        return ProfileGridsTool(session, "Profile Grids", alignment)
 
 bundle_api = _ProfileGridsBundleAPI()

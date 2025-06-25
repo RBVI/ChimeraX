@@ -150,47 +150,43 @@ class MutationHistogram(Graph):
         # Don't hide axes and reduce padding
         pass
 
+    @property
+    def mutation_set(self):
+        from .ms_data import mutation_scores
+        mset = mutation_scores(self.session, self.mutation_set_name)
+        return mset
+
     def _rectangle_selected(self, event1, event2):
         x1, x2 = event1.xdata, event2.xdata
         xmin, xmax = min(x1,x2), max(x1,x2)
-        from .ms_data import mutation_scores
-        mset = mutation_scores(self.session, self.mutation_set_name)
-        chain = mset.chain
-        if chain is None:
-            chain = mset.find_matching_chain(self.session)
-            if chain is None:
-                return
+        mset = self.mutation_set
+        if mset is None:
+            return
         score_name = self._score_menu.value
         score_values = mset.score_values(score_name)
         res_nums = set([res_num for res_num, from_aa, to_aa, value in score_values.all_values()
                         if value >= xmin and value <= xmax])
-        rmap = {r.number:r for r in chain.existing_residues}
-        res = [rmap[rnum] for rnum in res_nums if rnum in rmap]
-        if res:
-            from chimerax.atomic import Residues, concise_residue_spec
-            res = Residues(res)
+        mset.associate_chains(self.session)
+        res, rnums = mset.associated_residues(res_nums)
+
+        if len(res) > 0:
+            from chimerax.atomic import concise_residue_spec
             rspec = concise_residue_spec(self.session, res)
             cmds = [f'select {rspec}']
-            if self._drag_colors_structure and len(res) > 0:
-                cmds.append(f'color {res[0].chain} lightgray ; color {rspec} lime')
+            if self._drag_colors_structure:
+                from chimerax.atomic import concise_chain_spec
+                cspec = concise_chain_spec(res.unique_chains)
+                cmds.append(f'color {cspec} lightgray ; color {rspec} lime')
         else:
             cmds = ['select clear']
-            if self._drag_colors_structure and self._chain:
-                cmds.append(f'color {self._chain} lightgray')
+            if self._drag_colors_structure:
+                chains = mset.associated_chains()
+                if len(chains) > 0:
+                    from chimerax.atomic import concise_chain_spec
+                    cspec = concise_chain_spec(chains)
+                    cmds.append(f'color {cspec} lightgray')
         for cmd in cmds:
             self._run_command(cmd)
-
-    @property
-    def _chain(self):
-        from .ms_data import mutation_scores
-        mset = mutation_scores(self.session, self.mutation_set_name, raise_error = False)
-        if mset is None:
-            chain = None
-        else:
-            chain = mset.chain
-            if chain is None:
-                chain = mset.find_matching_chain(self.session)
-        return chain
 
     def _fill_context_menu(self, menu, x, y):
         if self._yscale == 'linear':
@@ -252,7 +248,8 @@ class MutationHistogram(Graph):
             self._bounds_artists = [a.add_artist(line) for line in lines]
         elif not show and self._bounds_artists:
             for ba in self._bounds_artists:
-                ba.remove()
+                if ba.axes is not None:
+                    ba.remove()
             self._bounds_artists.clear()
         self._synonymous_bounds = show
         self.canvas.draw()

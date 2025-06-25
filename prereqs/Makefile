@@ -19,16 +19,13 @@ all:
 #
 
 ifndef UBUNTU_DIST
+ifndef FLATPAK_DIST
 NEED_FFMPEG=1
+endif
 endif
 
 ifdef WIN32
 SUBDIRS += win32
-endif
-
-ifdef FLATPAK_DIST
-NEED_RSYNC=1
-NEED_LIBGLU=1
 endif
 
 ifdef NEED_FFMPEG
@@ -38,26 +35,17 @@ ffmpeg.install:
 ffmpeg.app-install:
 endif
 
-ifdef NEED_RSYNC
-SUBDIRS += rsync
-else
-rsync.install:
-rsync.app-install:
-endif
-
-ifdef NEED_LIBGLU
-SUBDIRS += libGLU
-else
-libGLU.install:
-libGLU.app-install:
-endif
 
 # Python egg installation has a race condition updating easy-install.pth
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= ambertools openmm pips PyQt Python
 
+SUBDIRS	+= ambertools pips
+ifndef USE_PYSIDE6
+SUBDIRS += PyQt
+endif
+SUBDIRS += Python
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -113,18 +101,10 @@ $(SUBDIR_APP_INSTALL): build-app-dirs
 ifdef WIN32
 $(subst win32.install,,$(SUBDIR_INSTALL)): win32.install
 endif
-#ifdef UNIX
-#$(subst unix.install,,$(SUBDIR_INSTALL)): unix.install
-#endif
-ifdef FLATPAK_DIST
-$(subst rsync.install,,$(SUBDIR_INSTALL)): rsync.install
-endif
 
 # Please keep dependencies in alphabetical order.
 # All packages that have dependencies should depend on the .install
 # target of the other packages.
 
-openmm.app-install: Python.app-install pips.app-install
-openmm.install: Python.install pips.install
 pips.app-install: Python.app-install
 pips.install: Python.install

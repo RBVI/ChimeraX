@@ -30,52 +30,52 @@ dynamic = ["classifiers", "requires-python", "version"]
 Home = "https://www.rbvi.ucsf.edu/chimerax/"
 
 [tool.setuptools.dynamic]
-version = { attr = "src.buildinfo.version" }
+version = { attr = "src.__version__" }
 
-[chimerax]
+[tool.chimerax]
 min-session-version = 1
 max-session-version = 2
 categories = ["Core"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
-[chimerax.package-data]
+[tool.chimerax.package-data]
 "src/" = ["colorbrewer.json"]
 
-[chimerax.extra-files]
+[tool.chimerax.extra-files]
 "src/include/chutil" = ["core_cpp/chutil/*.h"]
 "src/include/ioutil" = ["core_cpp/ioutil/*.h"]
 "src/include/logger" = ["core_cpp/logger/*.h"]
 "src/include/pysupport" = ["core_cpp/pysupport/*.h"]
 "src/include/mac_util" = ["core_cpp/mac_util/*.h"]
 
-[chimerax.extension._serialize]
+[tool.chimerax.extension._serialize]
 sources = ["src/_serialize.pyx"]
 
-[chimerax.library.chutil]
+[tool.chimerax.library.chutil]
 static = true
 sources = ["core_cpp/chutil/*.cpp"]
 include-dirs = ["core_cpp/chutil/"]
 
-[chimerax.library.ioutil]
+[tool.chimerax.library.ioutil]
 static = true
 sources = ["core_cpp/ioutil/*.cpp"]
 include-dirs = ["core_cpp/ioutil/"]
 
-[chimerax.library.ioutil.platform.win]
+[tool.chimerax.library.ioutil.platform.win]
 sources = ["core_cpp/ioutil/win32_dirent.c"]
 
-[chimerax.library.logger]
+[tool.chimerax.library.logger]
 static = true
 sources = ["core_cpp/logger/*.cpp"]
 include-dirs = ["core_cpp/logger/"]
 
-[chimerax.library.logger.platform.mac]
+[tool.chimerax.library.logger.platform.mac]
 extra-compile-args = ["-Wno-logical-op-parentheses"]
 
-[chimerax.library.logger.platform.linux]
+[tool.chimerax.library.logger.platform.linux]
 extra-compile-args = ["-Wno-logical-op-parentheses"]
 
-[chimerax.extension._mac_util.platform.mac]
+[tool.chimerax.extension._mac_util.platform.mac]
 sources = ["core_cpp/mac_util/*.cpp", "core_cpp/mac_util/*.m"]
 extra-compile-args = [
   "-ObjC++",
@@ -86,7 +86,3 @@ extra-compile-args = [
 ]
 extra-link-args = ["-framework", "AppKit"]
 include-dirs = ["core_cpp/mac_util/"]
-
-[chimerax.extension.pysupport]
-sources = ["core_cpp/pysupport/*.cpp"]
-include-dirs = ["core_cpp/pysupport/"]

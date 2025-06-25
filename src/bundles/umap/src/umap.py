@@ -29,6 +29,9 @@ def install_umap(session):
         session.logger.info('Installing umap-learn package from PyPi')
         from chimerax.core.commands import run
         run(session, 'pip install umap-learn')
+    # Suppress sklearn deprecation warnings since our code does not use sklearn.
+    from warnings import filterwarnings
+    filterwarnings('ignore', category = FutureWarning, module = 'sklearn*')
 
 def umap_embed(data, random_seed = 0):
     if data.shape[0] <= 2:

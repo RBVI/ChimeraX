@@ -5,139 +5,25 @@ on:
     branches: [feature/ambertools]
 
 jobs:
-  build-ubuntu:
-    name: Build ChimeraX
-    strategy:
-      matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
-    env:
-      PYOPENGL_PLATFORM: egl
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
-      - run: MAKEOPTS="-j$(nproc)" make -j$(nproc) install
-      - name: Run the legacy test suite
-        run: make test
-      - name: Install Pytest
-        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
-      - name: Set up the repo for coverage reporting
-        run: make prepare-coverage
-      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
-        run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        run: USE_COVERAGE=1 make pytest-wheel
-      - name: Run distribution tests
-        run: USE_COVERAGE=1 make pytest-app
-      - name: Report coverage
-        run: make report-coverage
-      - name: Make the package
-        run: make -f Makefile.ubuntu canary
-      - run: mv ${{ matrix.os }}/ucsf-chimerax-*.deb ./chimerax.deb
-      - name: Upload ChimeraX
-        uses: ./utils/ci/upload_artifact
-        with:
-          artifact_path: chimerax.deb
-          full_build: true
-          release_type: canary
-          platform: ${{ matrix.os }}
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-  build-rocky8-docker:
-    runs-on: ubuntu-20.04
-    container:
-      image: rockylinux:8
-    env:
-      SHELL: /bin/bash
-      PATH: /usr/bin:/usr/sbin:/bin:/sbin
-    steps:
-      - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
-      - run: dnf update -y
-      - run: dnf install -y git-all
-      - uses: actions/checkout@v4
-      # buildinfo.py breaks without this
-      - run: chown -R $(id -u):$(id -g) $PWD
-      - run: ${PWD}/utils/set_up_centos.sh
-      - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos install
-      - name: Run the legacy test suite
-        run: make test
-      - name: Install Pytest
-        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
-      - name: Set up the repo for coverage reporting
-        run: make prepare-coverage
-      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
-        run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        run: USE_COVERAGE=1 make pytest-wheel
-      - name: Run distribution tests
-        run: USE_COVERAGE=1 make pytest-app
-      - name: Report coverage
-        run: make report-coverage
-  build-macos:
-    runs-on: macos-latest
-    steps:
-      - name: Set up Homebrew
-        id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@master
-      - uses: actions/checkout@v4
-      - run: ${PWD}/utils/set_up_macos.sh
-      - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) install
-      - name: Run the legacy test suite
-        run: make test
-      - name: Install Pytest
-        run: ./ChimeraX.app/Contents/bin/python3.11 -I -m pip install pytest pytest-cov
-      - name: Set up the repo for coverage reporting
-        run: make prepare-coverage
-      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
-        run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        run: USE_COVERAGE=1 make pytest-wheel
-      - name: Run distribution tests
-        run: USE_COVERAGE=1 make pytest-app
-      - name: Report coverage
-        run: make report-coverage
-      - name: Sign the macOS package
-        uses: ./utils/ci/sign_macos/
-        with:
-          build_certificate: ${{ secrets.MAC_CERT_BASE64 }}
-          p12_pw: ${{ secrets.MAC_CERT_P12_PASSWD }}
-          build_profile: ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }}
-          kc_pw: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
-          team_id: ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
-          app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
-          provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
-          email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
-      - name: Upload ChimeraX
-        uses: ./utils/ci/upload_artifact
-        with:
-          artifact_path: ChimeraX.dmg
-          full_build: true
-          release_type: canary
-          platform: mac_arm64
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-  build-windows:
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
-      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) install
-      - name: Run the legacy test suite
-        run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test
-      - name: Install Pytest
-        run: ./ChimeraX.app/bin/python.exe -I -m pip install pytest pytest-cov
-      - name: Set up the repo for coverage reporting
-        run: make prepare-coverage
-      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
-        run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        run: USE_COVERAGE=1 make pytest-wheel
-      - name: Run distribution tests
-        run: USE_COVERAGE=1 make pytest-app
-      - name: Report coverage
-        run: make report-coverage
+  build-arm-macos:
+    name: Build ChimeraX for arm64 macOS
+    uses: ./.github/workflows/mac_arm_build.yml
+    with:
+      branch: feature/ambertools
+      release_type: canary
+    secrets: inherit
+  build-intel-macos:
+    name: Build ChimeraX for Intel macOS
+    uses: ./.github/workflows/mac_intel_build.yml
+    with:
+      branch: feature/ambertools
+      release_type: canary
+    secrets: inherit
+  build-mac-universal:
+    name: Build Universal ChimeraX for macOS
+    needs: [build-arm-macos, build-intel-macos]
+    uses: ./.github/workflows/mac_universal_build.yml
+    with:
+      branch: feature/ambertools
+      release_type: canary
+    secrets: inherit

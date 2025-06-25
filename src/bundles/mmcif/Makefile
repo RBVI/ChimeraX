@@ -1,6 +1,6 @@
 include ../Makefile.bundle
 
-build wheel install install-editable app-install:	lib
+build wheel install install-editable app-install uv-wheel uv-install:	lib
 clean: lib-clean
 
 lib:

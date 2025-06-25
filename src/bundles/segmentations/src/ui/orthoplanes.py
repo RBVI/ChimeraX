@@ -40,25 +40,21 @@ from chimerax.map.volume_viewer import VolumeViewer, Histogram_Pane
 from chimerax.map.volumecommand import apply_volume_options
 from chimerax.mouse_modes.mousemodes import decode_modifier_bits
 from chimerax.mouse_modes.trackpad import MultitouchEvent, Touch
-from chimerax.ui.widgets import ModelMenu
 
-from ..segmentation import Segmentation, copy_volume_for_auxiliary_display
-from ..segmentation_tracker import get_tracker
+from chimerax.segmentations.segmentation import Segmentation, copy_volume_for_auxiliary_display
+from chimerax.segmentations.segmentation_tracker import get_tracker
 
 from chimerax.segmentations.ui.color_key import ColorKeyModel
 
 import chimerax.segmentations.triggers
 from chimerax.segmentations.triggers import (
-    ACTIVE_SEGMENTATION_CHANGED,
     SEGMENTATION_REMOVED,
     SEGMENTATION_ADDED,
     SEGMENTATION_MODIFIED,
-    ENTER_EVENTS,
-    LEAVE_EVENTS,
-    GUIDELINES_VISIBILITY_CHANGED,
 )
+from chimerax.segmentations.triggers import Trigger
 
-from ..graphics import (
+from chimerax.segmentations.graphics import (
     OrthoplaneView,
     OrthoCamera,
     SegmentationOverlay,
@@ -66,8 +62,8 @@ from ..graphics import (
     SegmentationCursorOnOtherAxisOverlay,
     OrthoplaneLocationOverlay,
 )
-from ..types import Direction, Axis
-from .label import Label
+from chimerax.segmentations.types import Direction, Axis
+from chimerax.segmentations.ui.label import Label
 
 TRACKPAD_ZOOM_SPEED: int = 7
 TRACKPAD_PAN_SPEED: int = 100
@@ -105,9 +101,6 @@ class PlaneViewerManager:
         self.have_seg_tool = False
         self.axes = {}
         self.segmentation_tracker = get_tracker()
-        self._active_seg_changed_handler = chimerax.segmentations.triggers.add_handler(
-            ACTIVE_SEGMENTATION_CHANGED, self._active_segmentation_changed_cb
-        )
         self._segmentation_added_handler = chimerax.segmentations.triggers.add_handler(
             SEGMENTATION_ADDED, self._on_segmentation_added
         )
@@ -140,14 +133,10 @@ class PlaneViewerManager:
                 self.axes[Axis.CORONAL].sagittal_index = viewer.sagittal_index
 
     def deregister_triggers(self):
-        chimerax.segmentations.triggers.remove_handler(self._active_seg_changed_handler)
         chimerax.segmentations.triggers.remove_handler(self._segmentation_added_handler)
         chimerax.segmentations.triggers.remove_handler(
             self._segmentation_removed_handler
         )
-
-    def _active_segmentation_changed_cb(self, _, segmentation):
-        pass
 
     def update_dimensions(self, dimensions):
         for axis in self.axes.values():
@@ -168,9 +157,6 @@ class PlaneViewerManager:
             return None
         return self.axes[Axis.AXIAL].segmentation_tool
 
-    def update_displayed_model(self, model):
-        for viewer in self.axes.values():
-            viewer.model_menu._menu.set_value(model)
 
     def _on_segmentation_added(self, _, segmentation):
         self.add_segmentation(segmentation)
@@ -198,6 +184,7 @@ class PlaneViewerManager:
 
 class PlaneViewer(QWindow):
     def __init__(self, parent, manager, session, axis=Axis.AXIAL):
+        from chimerax.ui.widgets import ModelMenu
         QWindow.__init__(self)
         self.parent = parent
         self.manager = manager
@@ -427,13 +414,29 @@ class PlaneViewer(QWindow):
             ADD_TOOL_INSTANCE, self._tool_instance_added_cb
         )
         self.guideline_visibility_handler = chimerax.segmentations.triggers.add_handler(
-            GUIDELINES_VISIBILITY_CHANGED, self._on_guideline_visibility_changed
+            Trigger.GuidelinesVisibilityChanged, self._on_guideline_visibility_changed
+        )
+        self.color_key_visibility_changed_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.ColorKeysVisibilityChanged, self._on_color_key_visibility_changed
         )
         self.segmentation_modified_handler = (
             chimerax.segmentations.triggers.add_handler(
                 SEGMENTATION_MODIFIED, self._on_segmentation_modified
             )
         )
+        self.reference_model_changed_handler = chimerax.segmentations.triggers.add_handler(
+            Trigger.ReferenceModelChanged, self._on_reference_model_changed
+        )
+        self.active_segmentation_changed_handler = (
+            chimerax.segmentations.triggers.add_handler(
+                Trigger.ActiveSegmentationChanged, self._on_active_segmentation_changed
+            )
+        )
+
+    def _on_active_segmentation_changed(self, _, data):
+        self._redraw()
+    def _on_reference_model_changed(self, _, model):
+        self.model_menu._menu.set_value(model)
 
     def _grab_viewport(self):
         image = self.view.image_rgba()
@@ -747,40 +750,47 @@ class PlaneViewer(QWindow):
         self._redraw()
 
     def on_color_changed(self):
-        colors = self.view.drawing.parent.image_colors
-        levels = self.view.drawing.parent.image_levels
-        rgba_and_labels = []
-        for colors, levels in zip(colors, levels):
-            color = colors[:3]
-            alpha = levels[1]
-            # Interpret low alpha as black
-            color = [c * alpha for c in color]
-            level = "{:0.2f}".format(levels[0])
-            rgba_and_labels.append(((*color, 1), level))
-        rgba_and_labels.sort(key=lambda x: float(x[1]))
-        self.color_key.rgbas_and_labels = rgba_and_labels
+        if self.view.drawing is not self.placeholder_drawing:
+            colors = self.view.drawing.parent.image_colors
+            levels = self.view.drawing.parent.image_levels
+            rgba_and_labels = []
+            for colors, levels in zip(colors, levels):
+                color = colors[:3]
+                alpha = levels[1]
+                # Interpret low alpha as black
+                color = [c * alpha for c in color]
+                level = "{:0.2f}".format(levels[0])
+                rgba_and_labels.append(((*color, 1), level))
+            rgba_and_labels.sort(key=lambda x: float(x[1]))
+            self.color_key.rgbas_and_labels = rgba_and_labels
 
     def _update_position_label_text(self) -> None:
-        dicom_data = self.view.drawing.parent.data.dicom_data
-        x_spacing, y_spacing = dicom_data.sample_file.PixelSpacing
-        z_spacing = dicom_data.sample_file.SliceThickness
-        minimum_value = dicom_data.sample_file.ImagePositionPatient[self.axis]
-        # TODO: Re-do the camera so we don't have to do this +/- conversion anymore
-        # it's starting to get a little ridiculous
-        spacing = 0
-        factor = 1
-        if self.axis == Axis.AXIAL:
-            spacing = z_spacing
-        if self.axis == Axis.CORONAL:
-            spacing = x_spacing
-            factor = -1
-        if self.axis == Axis.SAGITTAL:
-            spacing = y_spacing
-        position = round(factor * (minimum_value + self.pos * spacing), 4)
-        self._set_position_label_text(position)
+        if hasattr(self.view.drawing.parent.data, "dicom_data"):
+            dicom_data = self.view.drawing.parent.data.dicom_data
+            x_spacing, y_spacing = dicom_data.sample_file.PixelSpacing
+            z_spacing = dicom_data.affine[3][3]
+            minimum_value = dicom_data.sample_file.ImagePositionPatient[self.axis]
+            # TODO: Re-do the camera so we don't have to do this +/- conversion anymore
+            # it's starting to get a little ridiculous
+            spacing = 0
+            factor = 1
+            if self.axis == Axis.AXIAL:
+                spacing = z_spacing
+            if self.axis == Axis.CORONAL:
+                spacing = x_spacing
+                factor = -1
+            if self.axis == Axis.SAGITTAL:
+                spacing = y_spacing
+            position = round(factor * (minimum_value + self.pos * spacing), 4)
+            label_text = f"{position:.4f}mm"
+        else:
+            pos = self.pos
+            max = self.dimensions[self.axis]
+            label_text = f"Slice {pos}/{max}"
+        self._set_position_label_text(label_text)
 
-    def _set_position_label_text(self, value: float) -> None:
-        self.position_label.setText(f"{value:.4f}mm")
+    def _set_position_label_text(self, text: str) -> None:
+        self.position_label.setText(text)
 
     def close(self):
         # TODO: why does this call make it crash?
@@ -792,7 +802,13 @@ class PlaneViewer(QWindow):
             self.guideline_visibility_handler
         )
         chimerax.segmentations.triggers.remove_handler(
+            self.color_key_visibility_changed_handler
+        )
+        chimerax.segmentations.triggers.remove_handler(
             self.segmentation_modified_handler
+        )
+        chimerax.segmentations.triggers.remove_handler(
+            self.active_segmentation_changed_handler
         )
 
         del self.label
@@ -936,10 +952,24 @@ class PlaneViewer(QWindow):
 
         settings = get_settings(self.session)
         settings.display_guidelines = not settings.display_guidelines
-        chimerax.segmentations.triggers.activate_trigger(GUIDELINES_VISIBILITY_CHANGED)
+        chimerax.segmentations.triggers.activate_trigger(
+            Trigger.GuidelinesVisibilityChanged
+        )
 
-    def toggle_color_key(self):
-        self.color_key.display = not self.color_key.display
+    def toggle_color_keys(self):
+        from chimerax.segmentations.settings import get_settings
+        settings = get_settings(self.session)
+        settings.display_color_keys = not settings.display_color_keys
+
+        chimerax.segmentations.triggers.activate_trigger(
+            Trigger.ColorKeysVisibilityChanged
+        )
+
+    def _on_color_key_visibility_changed(self, _, __):
+        from chimerax.segmentations.settings import get_settings
+
+        settings = get_settings(self.session)
+        self.setColorKeyVisibility(settings.display_color_keys)
 
     def _on_guideline_visibility_changed(self, _, __):
         from chimerax.segmentations.settings import get_settings
@@ -1083,6 +1113,10 @@ class PlaneViewer(QWindow):
         self.vertical_slice_overlay.display = visibility
         self.render()
 
+    def setColorKeyVisibility(self, visibility: bool):
+        self.color_key.display = visibility
+        self.render()
+
     def enableSegmentationOverlays(self):
         self.segmentation_cursor_overlay.display = True
 
@@ -1090,16 +1124,15 @@ class PlaneViewer(QWindow):
         self.segmentation_cursor_overlay.display = False
 
     def enterEvent(self):
-        chimerax.segmentations.triggers.activate_trigger(ENTER_EVENTS[self.axis])
+        chimerax.segmentations.triggers.activate_trigger(Trigger.PlaneViewerEnter, self.axis)
         if self.segmentation_tool:
             self.enableSegmentationOverlays()
             self.resize3DSegmentationCursor()
         self.render()
 
     def leaveEvent(self):
-        chimerax.segmentations.triggers.activate_trigger(LEAVE_EVENTS[self.axis])
-        if self.segmentation_tool:
-            self.disableSegmentationOverlays()
+        chimerax.segmentations.triggers.activate_trigger(Trigger.PlaneViewerLeave, self.axis)
+        self.disableSegmentationOverlays()
         self.level_label.hide()
         self.mouse_move_timer.stop()
         self.render()
@@ -1152,14 +1185,14 @@ class PlaneViewer(QWindow):
                     if not self.context_menu:
                         self.context_menu = QMenu(parent=self.parent)
                         toggle_guidelines_action = QAction("Toggle Guidelines")
-                        toggle_color_key_action = QAction("Toggle Color Guide")
+                        toggle_color_key_action = QAction("Toggle Color Keys")
                         self.context_menu.addAction(toggle_guidelines_action)
                         self.context_menu.addAction(toggle_color_key_action)
                         toggle_guidelines_action.triggered.connect(
                             lambda: self.toggle_guidelines()
                         )
                         toggle_color_key_action.triggered.connect(
-                            lambda: self.toggle_color_key()
+                            lambda: self.toggle_color_keys()
                         )
                         self.context_menu.aboutToHide.connect(self.enterEvent)
                     self.context_menu.exec(self.context_menu_coords)
@@ -1199,6 +1232,13 @@ class PlaneViewer(QWindow):
         if self.segmentation_tool:
             ww, wh = self.main_view.window_size
             width, height = self.view.window_size
+            if (
+                ww <= 0
+                or wh <= 0
+                or width <= 0
+                or height <= 0
+            ):
+                return
             psize = self.view.pixel_size()
             radius = self.segmentation_cursor_overlay.radius
             rel_size = (radius / width) * psize
@@ -1534,7 +1574,9 @@ class PlaneViewer(QWindow):
                     "region": (v.region[0], v.region[1]),
                     "planes": self.axis.cartesian,
                 },
-                roptions={},
+                roptions={
+                    "projection_mode": "3d"
+                },
                 image_mode_off=False,
                 session=self.session,
             )

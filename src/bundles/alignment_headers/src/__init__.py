@@ -21,7 +21,7 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "3.5"
+__version__ = "3.6.1"
 
 import os
 

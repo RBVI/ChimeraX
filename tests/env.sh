@@ -4,11 +4,12 @@
 # runs the same whether it's called by running the ChimeraX binary or by
 # running ChimeraX.app/bin/python -I -m chimerax.core
 
-while getopts cs flag
-do
+while getopts csfu flag; do
   case "${flag}" in
-    c) COVERAGE=true;;
-    s) COV_SILENT=true;;
+  c) COVERAGE=true ;;
+  s) COV_SILENT=true ;;
+  f) FLATPAK=true ;;
+  u) UV_BUILD=true ;;
   esac
 done
 
@@ -26,24 +27,49 @@ CHIMERAX_BIN=
 
 case $OSTYPE in
 linux-gnu)
-	CHIMERAX_PYTHON_BIN=./ChimeraX.app/bin/python3.11
-	CHIMERAX_BIN=./ChimeraX.app/bin/ChimeraX
-	;;
-msys)
-	CHIMERAX_PYTHON_BIN=./ChimeraX.app/bin/python.exe
-	CHIMERAX_BIN=./ChimeraX.app/bin/ChimeraX-console.exe
-	;;
+  if [ "$FLATPAK" = true ]; then
+    CHIMERAX_PYTHON_BIN=$(ls /app/bin/python3.1*)
+    CHIMERAX_BIN=$(ls /app/bin/ChimeraX)
+  else
+    if [ "$UV_BUILD" = true ]; then
+      CHIMERAX_PYTHON_BIN=$(ls ./.venv/bin/python3.1*)
+      CHIMERAX_BIN=./.venv/bin/ChimeraX
+    else
+      CHIMERAX_PYTHON_BIN=$(ls ./ChimeraX.app/bin/python3.1*)
+      CHIMERAX_BIN=./ChimeraX.app/bin/ChimeraX
+    fi
+  fi
+  ;;
+msys | cygwin)
+  if [ "$UV_BUILD" = true ]; then
+    CHIMERAX_PYTHON_BIN=./.venv/Scripts/python.exe
+    CHIMERAX_BIN=./.venv/Scripts/ChimeraX-console.exe
+  else
+    CHIMERAX_PYTHON_BIN=./ChimeraX.app/bin/python.exe
+    CHIMERAX_BIN=./ChimeraX.app/bin/ChimeraX-console.exe
+  fi
+  ;;
 darwin*)
-	CHIMERAX_PYTHON_BIN=./ChimeraX.app/Contents/bin/python3.11
-	CHIMERAX_BIN=./ChimeraX.app/Contents/bin/ChimeraX
-	;;
+  if [ "$UV_BUILD" = true ]; then
+    CHIMERAX_PYTHON_BIN=$(ls ./.venv/bin/python3.1*)
+    CHIMERAX_BIN=./.venv/bin/ChimeraX
+  else
+    CHIMERAX_PYTHON_BIN=$(ls ./ChimeraX.app/Contents/bin/python3.1*)
+    CHIMERAX_BIN=./ChimeraX.app/Contents/bin/ChimeraX
+  fi
+  ;;
 esac
 
+echo "OSTYPE: ${OSTYPE}"
+echo "CHIMERAX_PYTHON_BIN: ${CHIMERAX_PYTHON_BIN}"
+
 if [ ! -e "${CHIMERAX_PYTHON_BIN}" ]; then
-	echo "No ChimeraX Python binary found" && exit 1
+  echo "Looked for ChimeraX Python at ${CHIMERAX_PYTHON_BIN}"
+  echo "No ChimeraX Python binary found" && exit 1
 fi
 if [ ! -e "${CHIMERAX_BIN}" ]; then
-	echo "No ChimeraX binary found" && exit 1
+  echo "Looked for ChimeraX binary at ${CHIMERAX_BIN}"
+  echo "No ChimeraX binary found" && exit 1
 fi
 
 echo "Running Pytest on tests/test_env.py (ChimeraX)"

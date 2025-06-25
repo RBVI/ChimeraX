@@ -569,7 +569,7 @@ def nonstd_charge(session, residues, net_charge, method, *, status=None, temp_di
         else:
             raise ValueError("Unknown charge method: %s" % method)
 
-        # Using the -ek is significantly fasrer but slightly more likely to result in a convergence failure
+        # Using the -ek is significantly faster but slightly more likely to result in a convergence failure
         # so try using the flag first and fall back to not using it if convergence fails.  This only
         # applies to the AM1-BCC method.  See ticket #5729
         for use_ek_flag in use_ek_flags:

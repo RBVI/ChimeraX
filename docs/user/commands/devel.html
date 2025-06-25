@@ -1,0 +1,129 @@
+<html>
+  <!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: devel</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: devel</h3>
+<p>
+The <b>devel</b> command includes several functions for
+building and installing ChimeraX bundles:
+</p>
+<ul>
+<li><a href="#alias"><b>devel alias</b></a>,
+<a href="#unalias"><b>devel unalias</b></a>
+&ndash; assign convenient names to build paths
+<li><a href="#build"><b>devel build</b></a>
+<li><a href="#clean"><b>devel clean</b></a>
+<li><a href="#dump"><b>devel dump</b></a>
+<li><a href="#install"><b>devel install</b></a>
+<li><a href="#pip"><b>devel pip</b></a>
+</ul>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="alias"></a>
+<b>devel alias</b>&nbsp;[&nbsp;<i>name</i>&nbsp;[&nbsp;<i>path</i>&nbsp;]]
+<br>
+<a href="#top" class="nounder">&bull;</a>
+<a name="unalias"></a>
+<b>devel unalias</b>&nbsp;&nbsp;<i>name</i>
+<blockquote>
+Assign a convenient <i>name</i> to a <i>path</i> on the system,
+for use in other <b>devel</b> commands.
+If no arguments are given, list all of the currently defined path aliases. 
+If <i>name</i> but not <i>path</i> is given, report the path aliased to
+that name. If a new path is entered for a name already in use,
+the new alias will replace the old one.
+The command <b>devel unalias</b> deletes the alias associated with <i>name</i>.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="build"></a>
+<b>devel build</b>&nbsp;&nbsp;<i>path</i>&nbsp;
+[&nbsp;<b>debug</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>exit</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<blockquote>
+Build the bundle at <i>path</i> 
+(or a <i>name</i> previously defined with 
+<a href="#alias"><b>devel alias</b></a>). 
+The <b>debug</b> option indicates whether to build any
+compiled extensions with debugging information (default <b>false</b>). 
+The <b>exit</b> option indicates whether to quit from ChimeraX after
+executing the command (default <b>false</b>).
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="clean"></a>
+<b>devel clean</b>&nbsp;&nbsp;<i>path</i>&nbsp;
+[&nbsp;<b>exit</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<blockquote>
+Remove build files from <i>path</i>
+(or a <i>name</i> previously defined with 
+<a href="#alias"><b>devel alias</b></a>). 
+The <b>exit</b> option indicates whether to quit from ChimeraX after
+executing the command (default <b>false</b>).
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="dump"></a>
+<b>devel dump</b> <i>path</i>
+<blockquote>
+Log the metadata for the bundle at <i>path</i> 
+(or a <i>name</i> previously defined with 
+<a href="#alias"><b>devel alias</b></a>).
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="install"></a>
+<b>devel install</b>&nbsp;&nbsp;<i>path</i>&nbsp;
+[&nbsp;<b>debug</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>noDeps</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>user</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>exit</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>editable</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<blockquote>
+Install the bundle at <i>path</i>
+(or a <i>name</i> previously defined with 
+<a href="#alias"><b>devel alias</b></a>), building it first if necessary.
+The <b>debug</b> option indicates whether to build any
+compiled extensions with debugging information (default <b>false</b>). 
+If <b>user</b> is <b>true</b>, the bundle will be installed
+into the user's package directory instead of the internal ChimeraX
+directory. If <b>editable</b> is <b>true</b>, the bundle will be installed
+so that changes to Python files take effect the next time ChimeraX restarts,
+but changes to metadata (bundle_info.xml or pyproject.toml) or to compiled
+extensions still require a reinstall.
+The <b>exit</b> option indicates whether to quit from ChimeraX after
+executing the command (default <b>false</b>).
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="pip"></a>
+<b>devel pip</b>&nbsp;[&nbsp;<i>pip-arguments</i>&nbsp;]
+<blockquote>
+The command <b>devel pip</b> is the same as <b>pip</b> (not yet documented).
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+February 2025</address>
+</body></html>

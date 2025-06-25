@@ -1,3 +1,4 @@
+jq
 language-selector-common
 ffmpeg
 build-essential
@@ -29,6 +30,7 @@ libcairo2-dev
 libcups2-dev
 libdbus-1-dev
 libegl1-mesa-dev
+libevent-2.1-7t64
 libexpat1-dev
 libffi-dev
 libfftw3-dev
@@ -43,6 +45,7 @@ libhdf5-dev
 libicu-dev
 libjpeg-dev
 liblzma-dev
+libminizip1
 libmysqlclient-dev
 libnss3-dev
 libosmesa6-dev

@@ -45,7 +45,7 @@ ifndef WIN32
 	# then you can make -C vdocs by hand if you like
 	$(MAKE) -C vdocs install
 endif
-	$(APP_PYTHON_EXE) clean_app.py
+	$(APP_PYTHON_EXE) utils/clean_app.py
 	$(APP_PYTHON_EXE) -m pip check
 ifeq ($(OS),Darwin)
 	# update Info.plist with data formats provided by bundles
@@ -56,6 +56,16 @@ ifdef FLATPAK_DIST
 	${APP_EXE} --exit --nogui --silent --cmd 'linux flatpak-files edu.ucsf.rbvi.ChimeraX'
 endif
 	@echo 'Finished install at' `date`
+
+uv-build: build-dirs
+	uv pip install -r pyproject.toml --all-extras
+	UV_BUILD=1 $(MAKE) -C prereqs/pips uv-install
+	uv pip install PySide6 shiboken6
+	PYTHON=python $(MAKE) -C src/bundles uv-install
+
+uv-install: build-dirs uv-build
+	UV_BUILD=1 $(MAKE) -e USE_MAC_FRAMEWORKS='' -C src/apps/ChimeraX
+	UV_BUILD=1 $(MAKE) -e USE_MAC_FRAMEWORKS='' -C src/apps/ChimeraX uv-install
 
 install-rbvi:
 	$(MAKE) PYQT_LICENSE=commercial install
@@ -83,11 +93,18 @@ test src.test: testimports
 	$(MAKE) -C src test
 
 testimports:
-	$(APP_EXE) --exit --nogui --silent cxtestimports.py
+	$(APP_EXE) --exit --nogui --silent utils/cxtestimports.py
 
+ifdef FLATPAK_DIST
+SCRIPT_COVERAGE_ARGS := $(if $(USE_COVERAGE),-c -s -f,)
+else
 SCRIPT_COVERAGE_ARGS := $(if $(USE_COVERAGE),-c -s,)
+endif
 COVERAGE_ARGS := $(if $(USE_COVERAGE),--cov=chimerax --cov-append,)
 SILENT_COVERAGE_ARGS := $(if $(USE_COVERAGE),$(COVERAGE_ARGS) --cov-report=,)
+
+pytest-install:
+	$(APP_PYTHON_EXE) -I -m pip install pytest $(if $(USE_COVERAGE),pytest-cov,)
 
 clean-coverage:
 	-rm .coverage
@@ -97,24 +114,45 @@ prepare-coverage:
 	cp -r $(APP_PYSITEDIR)/chimerax .
 
 report-coverage:
+ifdef UV_BUILD
+	python -m coverage report -i
+else
 	$(APP_PYTHON_EXE) -m coverage report -i
+endif
 
 pytest-both-exes:
+ifdef UV_BUILD
+	./tests/env.sh $(SCRIPT_COVERAGE_ARGS) -u
+else
 	./tests/env.sh $(SCRIPT_COVERAGE_ARGS)
+endif
 
 pytest-wheel:
+ifdef UV_BUILD
+	python -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS) tests/test_imports_wheel.py
+	python -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS)
+else
 	$(APP_PYTHON_EXE) -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS) tests/test_imports_wheel.py
 	$(APP_PYTHON_EXE) -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS)
+endif
 
 pytest-app:
+ifdef UV_BUILD
+	python -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS) tests/test_imports_wheel.py
+	python -m pytest -m "wheel" $(SILENT_COVERAGE_ARGS)
+else
 	$(APP_PYTHON_EXE) -m pytest -m "not wheel" $(SILENT_COVERAGE_ARGS) tests/test_imports_app.py
 	$(APP_PYTHON_EXE) -m pytest -m "not wheel" $(SILENT_COVERAGE_ARGS)
+endif
 
 ifdef USE_COVERAGE
 pytest: clean-coverage prepare-coverage pytest-both-exes pytest-wheel pytest-app report-coverage
 else
 pytest: pytest-both-exes pytest-wheel pytest-app
 endif
+
+install-common-wheels:
+	$(APP_PYTHON_EXE) -m pip install wheels/*.whl
 
 sync:
 	mkdir -p $(build_prefix)/sync/
@@ -179,6 +217,7 @@ else
 endif
 
 distclean: clean
+	-rm -rf build
 	-$(MAKE) -C src clean
 	-$(MAKE) -C docs clean
 	-$(MAKE) -C vdocs clean
@@ -220,5 +259,3 @@ endif
 	echo "branch: $(SNAPSHOT_TAG)" > $(SNAPSHOT_DIR)/last-commit
 	git show --summary --date=iso --pretty=fuller $(SNAPSHOT_TAG) >> $(SNAPSHOT_DIR)/last-commit
 	git archive $(SNAPSHOT_TAG) | tar -C $(SNAPSHOT_DIR) -xf -
-
-include $(TOP)/Makefile.tests

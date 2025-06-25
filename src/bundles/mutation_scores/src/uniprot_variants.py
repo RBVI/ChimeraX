@@ -23,7 +23,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def fetch_uniprot_variants(session, uniprot_id, identifier = None,
-                           chain = None, allow_mismatches = False, ignore_cache = False):
+                           chains = None, allow_mismatches = False, ignore_cache = False):
     '''
     Fetch UniProt variants for a UniProt entry specified by its name or accession code.  Data is in JSON format.
     Create a mutation scores instance. Example URL
@@ -46,10 +46,10 @@ def fetch_uniprot_variants(session, uniprot_id, identifier = None,
                           file_name, save_dir, ignore_cache = ignore_cache)
 
     mset, msg = open_uniprot_variant_scores(session, path, identifier = identifier,
-                                            chain = chain, allow_mismatches = allow_mismatches)
+                                            chains = chains, allow_mismatches = allow_mismatches)
     return mset, msg
 
-def open_uniprot_variant_scores(session, path, identifier = None, chain = None, allow_mismatches = False):
+def open_uniprot_variant_scores(session, path, identifier = None, chains = None, allow_mismatches = False):
     with open(path, 'r') as f:
         import json
         variant_info = json.load(f)
@@ -69,12 +69,12 @@ def open_uniprot_variant_scores(session, path, identifier = None, chain = None, 
     if mset is None:
         from .ms_data import MutationSet
         mset = MutationSet(mset_name, mutation_scores,
-                           chain = chain, allow_mismatches = allow_mismatches, path = path)
+                           chains = chains, allow_mismatches = allow_mismatches, path = path)
         msm.add_scores(mset)
     else:
         mset.add_scores(mutation_scores)
-        if chain:
-            mset.set_chain(chain, allow_mismatches)
+        if chains:
+            mset.set_associated_chains(chains, allow_mismatches)
 
     sinfo = []
     score_names = set()

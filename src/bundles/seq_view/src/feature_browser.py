@@ -52,18 +52,37 @@ class FeatureBrowser:
         if state is None:
             self.feature_map = seq.features(fetch=False).get(self.data_source, {})
             ftypes = list(self.feature_map.keys())
-            ftypes.sort()
             self.feature_region = {}
+            def details_to_text(details):
+                detail_parts = []
+                for detail in details:
+                    for detail_part in detail.split('; '):
+                        detail_part = detail_part.strip()
+                        if '</a>' in detail_part:
+                            continue
+                        if detail_part.startswith(("Evidence code", "id=")):
+                            continue
+                        detail_parts.append(detail_part)
+                return '; '.join(detail_parts)
+
+            # feature types in alpabetical order in feature browser...
+            ftypes.sort()
             for ftype in ftypes:
                 category_chooser.addItem(ftype)
+            # ... but with secondary structure categories pushed to bottom in region browser
+            ftypes.sort(key=lambda ftype: (ftype in ['helix', 'strand', 'turn'], ftype))
+            ftypes.reverse()
+            for ftype in ftypes:
                 features = self.feature_map[ftype]
                 color = distinguish_from(used_colors, num_candidates=5)
                 used_colors.append(color)
+                features.sort(key=lambda feature: -feature.positions[0][0])
                 for feature in features:
                     self.feature_region[feature] = sv.new_region(ftype, outline=color, shown=False,
                         read_only=True, sequence=seq, fill=[(x+1)/2 for x in color],
                         source=self.data_source,
-                        blocks=[(seq, seq, start-1, end-1) for start, end in feature.positions])
+                        blocks=[(seq, seq, start-1, end-1) for start, end in feature.positions],
+                        details=details_to_text(feature.details))
             self._selection = None
         else:
             self.feature_map = state['feature_map']

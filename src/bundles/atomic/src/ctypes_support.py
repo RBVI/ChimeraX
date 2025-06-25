@@ -46,6 +46,9 @@ def chain(p):
 def coordset(p):
     from . import CoordSet
     return CoordSet.c_ptr_to_py_inst(p)
+def coordsets(p):
+    from . import CoordSets
+    return CoordSets(p)
 def element(p):
     from . import Element
     return Element.c_ptr_to_py_inst(p)

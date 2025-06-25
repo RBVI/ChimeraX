@@ -14,13 +14,14 @@ TOP = ../..
 SUBDIR_SYNC = 1
 SUBDIR_BUILD = 1
 include $(TOP)/mk/config.make
+PYTHON ?= $(APP_PYTHON_EXE)
 
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
 REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
-	  alphafold altloc_explorer amber_info arrays atom_search \
+	  alphafold altloc_explorer amber_info aniso arrays atom_search \
 	  atomic atomic_lib axes_planes basic_actions bild \
-	  blastprotein bond_rot bug_reporter build_structure \
+	  blastprotein boltz bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
 	  cellpack centroids change_chains check_waters chem_group \
 	  clashes cmd_line color_actions \
@@ -38,7 +39,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  mmcif mmtf model_archive model_panel modeller \
 	  mol2 mole morph mouse_modes movie mutation_scores nmrstar \
 	  neuron nifti nrrd nucleotides open_command orthopick pdb pdb_bio pdb_lib pdb_matrices \
-	  pick_blobs positions preset_mgr pubchem read_pbonds registration \
+	  pick_blobs positions preset_mgr profile_grids pubchem read_pbonds registration \
 	  remote_control render_by_attr renumber_residues rest_server \
 	  residue_fit rna_layout rotamers rotamer_libs \
 	  save_command scheme_mgr \
@@ -75,6 +76,14 @@ install:
 	cd $(SYNC_DIR) && $(APP_BOOTSTRAP_PIP) install --upgrade --upgrade-strategy only-if-needed *.whl
 	$(APP_PYTHON_EXE) -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
 
+uv-install:
+	PYTHON=python $(MAKE) -C bundle_builder uv-build
+	PYTHON=python $(MAKE) -C core uv-build
+	PYTHON=python $(MAKE) -C toolshed_utils uv-build
+	PYTHON=python $(MAKE) uv-build
+	cd $(SYNC_DIR) && uv pip install *.whl
+	python -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
+
 lint:
 ifneq (,$(PYSRCS))
 	$(PYLINT) $(PYSRCS)
@@ -108,7 +117,7 @@ clean:
 
 Makefile.dependencies: */bundle_info.xml* */pyproject.toml* Make_dependencies.py
 ifneq ($(MAKECMDGOALS),clean)
-	$(APP_PYTHON_EXE) Make_dependencies.py
+	$(PYTHON) Make_dependencies.py
 
 # Make sure bundle_builder and toolshed bundles are installed before all others.
 $(REST_SUBDIRS:=.build):

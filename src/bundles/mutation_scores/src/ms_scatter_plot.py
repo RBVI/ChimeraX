@@ -27,10 +27,18 @@ def mutation_scores_scatter_plot(session, x_score_name, y_score_name, mutation_s
                                  color_synonymous = True, bounds = True, correlation = False, replace = True):
     
     plot = _find_mutation_scatter_plot(session, mutation_set) if replace else None
-    if plot is None:
+    new_plot = (plot is None)
+    if new_plot:
         plot = MutationScatterPlot(session)
 
-    plot.set_plot_data(x_score_name, y_score_name, mutation_set)
+    from chimerax.core.errors import UserError
+    try:
+        plot.set_plot_data(x_score_name, y_score_name, mutation_set)
+    except UserError:
+        # Mutation set or named scores do not exist.
+        if new_plot:
+            plot.delete()
+        raise
 
     if plot.is_mutation_plot:
         if color_synonymous:
@@ -263,35 +271,41 @@ class MutationScatterPlot(Graph):
             self._run_command('select clear')
             self._color_and_raise_nodes([], color = (0,1,0,1), tag = 'sel')
             return
-        r = self._node_residue(node)
-        if r is not None:
-            self._select_residue(r)
+        res = self._node_residues(node)
+        if len(res) > 0:
+            self._select_residues(res)
             self._color_and_raise_nodes([node], color = (0,1,0,1), tag = 'sel')
 
-    def _node_residue(self, node):
-        return self._node_residues([node])[0]
-    def _node_residues(self, nodes):
-        chain = self._chain
-        rmap = {} if chain is None else {r.number:r for r in chain.existing_residues}
-        res = []
+    def _node_residues(self, node):
+        nres = self._nodes_residues([node])
+        from chimerax.atomic import Residues
+        res = Residues([r for n,r in nres])
+        return res
+
+    def _nodes_residues(self, nodes):
+        res_nums = []
+        num_to_nodes = {}
         for node in nodes:
             mut_name = node.description
             res_num = int(mut_name[1:-1] if self.is_mutation_plot else mut_name)
-            r = rmap.get(res_num)
-            res.append(r)
-        return res
+            res_nums.append(res_num)
+            if res_num in num_to_nodes:
+                num_to_nodes[res_num].append(node)
+            else:
+                num_to_nodes[res_num] = [node]
 
-    @property
-    def _chain(self):
         from .ms_data import mutation_scores
         mset = mutation_scores(self.session, self.mutation_set_name, raise_error = False)
         if mset is None:
-            chain = None
+            nres = []
         else:
-            chain = mset.chain
-            if chain is None:
-                chain = mset.find_matching_chain(self.session)
-        return chain
+            mset.associate_chains(self.session)
+            res, rnums = mset.associated_residues(res_nums)
+            nres = []
+            for r, rnum in zip(res, rnums):
+                for node in num_to_nodes[rnum]:
+                    nres.append((node, r))
+        return nres
         
     def mouse_hover(self, event):
         a = self.axes
@@ -308,6 +322,12 @@ class MutationScatterPlot(Graph):
         msg =  f'   {xval}    {yval}    {descrip}'
         self._status_line.setText(msg)
 
+    @property
+    def mutation_set(self):
+        from .ms_data import mutation_scores
+        mset = mutation_scores(self.session, self.mutation_set_name)
+        return mset
+
     def _rectangle_selected(self, event1, event2):
         x1, y1, x2, y2 = event1.xdata, event1.ydata, event2.xdata, event2.ydata
         xmin, xmax = min(x1,x2), max(x1,x2)
@@ -318,19 +338,27 @@ class MutationScatterPlot(Graph):
             if x >= xmin and x <= xmax and y >= ymin and y <= ymax:
                 rnodes.append(node)
 
+        cmds = []
         if len(rnodes) > 0:
-            from chimerax.atomic import Residues, concise_residue_spec
-            nres = self._node_residues(rnodes)
-            res = Residues(tuple(set(r for r in nres if r is not None)))	# Unique residues
-            rspec = concise_residue_spec(self.session, res)
-            cmds = [f'select {rspec}']
-            if self._drag_colors_structure and len(res) > 0:
-                cspec = res[0].chain.string(style = 'command')
-                cmds.append(f'color {cspec} lightgray ; color {rspec} lime')
+            nres = self._nodes_residues(rnodes)
+            if len(nres) > 0:
+                from chimerax.atomic import Residues, concise_residue_spec
+                res = Residues(tuple(set(r for node,r in nres)))	# Unique residues
+                rspec = concise_residue_spec(self.session, res)
+                cmds = [f'select {rspec}']
+                if self._drag_colors_structure and len(res) > 0:
+                    cspec = res[0].chain.string(style = 'command')
+                    cmds.append(f'color {cspec} lightgray ; color {rspec} lime')
         else:
             cmds = ['select clear']
-            if self._drag_colors_structure and self._chain:
-                cmds.append(f'color {self._chain} lightgray')
+            if self._drag_colors_structure:
+                mset = self.mutation_set
+                if mset:
+                    chains = mset.associated_chains()
+                    if chains:
+                        from chimerax.atomic import concise_chain_spec
+                        cspec = concise_chain_spec(chains)
+                        cmds.append(f'color {cspec} lightgray')
         for cmd in cmds:
             self._run_command(cmd)
 
@@ -343,17 +371,17 @@ class MutationScatterPlot(Graph):
 
     def fill_context_menu(self, menu, item):
         if item is not None:
-            r = self._node_residue(item)
+            r = self._node_residues(item)
             name = item.description
             rname = name[:-1]
             if self.is_mutation_plot:
                 self.add_menu_entry(menu, f'Mutation {name}', lambda: None)
                 self.add_menu_entry(menu, f'Color mutations for {rname}',
                                     lambda self=self, rname=rname: self._color_residue_mutations(rname))
-                if r:
+                if len(r) > 0:
                     self.add_menu_entry(menu, f'Color mutations near residue {rname}',
                                         lambda self=self, r=r: self._color_near(r))
-            elif r:
+            elif len(r) > 0:
                 self.add_menu_entry(menu, f'Color residues near {name}',
                                     lambda self=self, r=r: self._color_near(r))
         if self.is_mutation_plot:
@@ -371,21 +399,20 @@ class MutationScatterPlot(Graph):
 
         if item is not None:
             self.add_menu_separator(menu)
-            if r is None or r.deleted:
+            if len(r) == 0:
                 self.add_menu_entry(menu, f'{rname} residue not in structure', lambda: None)
             else:
-                rname = f'{r.one_letter_code}{r.number}'
                 self.add_menu_entry(menu, f'Structure residue {rname}', lambda: None)
                 self.add_menu_entry(menu, f'Select',
-                                    lambda self=self, r=r: self._select_residue(r))
+                                    lambda self=self, r=r: self._select_residues(r))
                 self.add_menu_entry(menu, 'Color green',
-                                    lambda self=self, r=r, c=(0,1,0,1): self._color_residue(r,c))
+                                    lambda self=self, r=r, c=(0,1,0,1): self._color_residues(r,c))
                 self.add_menu_entry(menu, 'Color to match plot',
-                                    lambda self=self, r=r, c=item.color: self._color_residue(r,c))
+                                    lambda self=self, r=r, c=item.color: self._color_residues(r,c))
                 self.add_menu_entry(menu, 'Show side chain',
                                     lambda self=self, r=r: self._show_atoms(r))
                 self.add_menu_entry(menu, 'Zoom to residue',
-                                    lambda self=self, r=r: self._zoom_to_residue(r))
+                                    lambda self=self, r=r: self._zoom_to_residues(r))
                 if self.is_mutation_plot:
                     a = self.axes
                     xlabel, ylabel = a.get_xlabel(), a.get_ylabel()
@@ -400,36 +427,41 @@ class MutationScatterPlot(Graph):
         self.add_menu_entry(menu, 'Show histogram', self._show_histogram)
         self.add_menu_entry(menu, 'Save plot as...', self.save_plot_as)
 
-    def _select_residue(self, r):
-        self._run_residue_command(r, 'select %s')
-    def _color_residue(self, r, color):
+    def _select_residues(self, r):
+        self._run_residues_command(r, 'select %s')
+    def _color_residues(self, r, color):
         from chimerax.core.colors import hex_color, rgba_to_rgba8
         cname = hex_color(rgba_to_rgba8(color))
-        self._run_residue_command(r, f'color %s {cname}')
-        self._run_residue_command(r, f'color %s byhet')
+        self._run_residues_command(r, f'color %s {cname}')
+        self._run_residues_command(r, f'color %s byhet')
     def _show_atoms(self, r):
-        self._run_residue_command(r, 'show %s atoms')
-    def _zoom_to_residue(self, r):
-        self._run_residue_command(r, 'view %s')
+        self._run_residues_command(r, 'show %s atoms')
+    def _zoom_to_residues(self, r):
+        self._run_residues_command(r, 'view %s')
     def _label(self, r, score_name):
-        self._run_residue_command(r, f'mutationscores label %s {score_name}')
+        self._run_residues_command(r, f'mutationscores label %s {score_name}')
     def _color_residue_mutations(self, rname, color = (0,1,0,1)):
         rnodes = [node for node in self.nodes if node.description[:-1] == rname]
         self._color_and_raise_nodes(rnodes, color, tag = 'res')
-    def _color_near(self, residue, distance = 3.5):
-        cres = set(_find_close_residues(residue, residue.chain.existing_residues, distance))
-        nres = self._node_residues(self.nodes)
-        nnodes = [(node,r) for node,r in zip(self.nodes,nres) if r in cres]
+    def _color_near(self, residues, distance = 3.5):
+        cres = set()
+        for r in residues:
+            cres.update(_find_close_residues(r, r.chain.existing_residues, distance))
+        for r in residues:
+            cres.discard(r)
+        nres = self._nodes_residues(self.nodes)
+        nnodes = [node for node,r in nres if r in cres]
         color_names = ['red', 'orange', 'yellow', 'violet', 'magenta', 'salmon', 'seagreen', 'skyblue', 'gold', 'coral']
         from chimerax.core.colors import BuiltinColors
         colors = [BuiltinColors[name].rgba for name in color_names]
         n = len(colors)
-        root_color = (0,1,0,1)
-        rcolor = {r:(root_color if r is residue else colors[i%n]) for i,r in enumerate(cres)}
-        for node,r in nnodes:
-            node.color = rcolor[r]
+        nnames = [node.description[:-1] for node in nnodes]
+        nci = {name:i for i,name in enumerate(set(nnames))}
+        ncolor = {node: colors[nci[name]%n] for name,node in zip(nnames,nnodes)}
+        for node in nnodes:
+            node.color = ncolor[node]
             node.color_source = None
-        self._color_and_raise_nodes([n for n,r in nnodes], color = None, tag = 'near')
+        self._color_and_raise_nodes(nnodes, color = None, tag = 'near')
     def _color_synonymous(self, color = (0,0,1,1)):
         syn = [node for node in self.nodes if (node.description[0] == node.description[-1])]
         self._color_and_raise_nodes(syn, color)
@@ -450,8 +482,8 @@ class MutationScatterPlot(Graph):
         self.draw_graph()
         self.canvas.draw()
     def _color_selected(self, color = (0,1,1,1)):
-        nres = self._node_residues(self.nodes)
-        sel = [node for node,r in zip(self.nodes,nres) if r and r.selected]
+        nres = self._nodes_residues(self.nodes)
+        sel = [node for node,r in nres if r and r.selected]
         self._color_and_raise_nodes(sel, color, tag = 'sel')
     def _clear_colors(self, clear_color = (.8,.8,.8,1)):
         self._color_and_raise_nodes(self.nodes, clear_color)
@@ -469,7 +501,8 @@ class MutationScatterPlot(Graph):
             self._bounds_artists = [self.axes.add_artist(line) for line in lines]
         else:
             for ba in self._bounds_artists:
-                ba.remove()
+                if ba.axes is not None:
+                    ba.remove()
             self._bounds_artists = []
         self.canvas.draw()
     @property
@@ -509,8 +542,10 @@ class MutationScatterPlot(Graph):
         self._run_command(f'mutationscores histogram {score_name} mutationSet {mset_name}')
     def _toggle_drag_colors_structure(self):
         self._drag_colors_structure = not self._drag_colors_structure
-    def _run_residue_command(self, r, command):
-        self._run_command(command % r.string(style = 'command'))
+    def _run_residues_command(self, res, command):
+        from chimerax.atomic import concise_residue_spec
+        rspec = concise_residue_spec(self.session, res)
+        self._run_command(command % rspec)
     def _run_command(self, command):
         from chimerax.core.commands import run
         run(self.session, command)

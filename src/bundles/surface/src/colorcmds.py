@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 #
 def register_color_subcommand(command_name, logger):
-    from chimerax.core.commands import register, CmdDesc, ColormapArg, ColormapRangeArg
+    from chimerax.core.commands import register, CmdDesc, ColorArg, ColormapArg, ColormapRangeArg
     from chimerax.core.commands import FloatArg, BoolArg, Float3Arg, Or
     from chimerax.core.commands import SurfacesArg, CenterArg, AxisArg, CoordSysArg
     from chimerax.map import MapArg
@@ -12,6 +12,7 @@ def register_color_subcommand(command_name, logger):
     map_args = [('map', MapArg),
                 ('palette', ColormapArg),
                 ('range', ColormapRangeArg),
+                ('outside_color', ColorArg),
                 ('key', BoolArg),
                 ('offset', Or(FloatArg, Float3Arg)),
                 ('transparency', FloatArg),

@@ -252,7 +252,7 @@ file</a></td>
 <td align="center">
 list of atom pairs
 to connect with <a href="../pseudobonds.html">pseudobonds</a>,
-but see also <a href="commands/pbond.html"><b>pbond</b></a>
+but see also <a href="pbond.html"><b>pbond</b></a>
 </td>
 </tr><tr>
 <td align="center">
@@ -323,6 +323,14 @@ target="_blank">Gromacs full-precision coordinates</a> (binary)</td>
 <td align="center">.trr</td>
 <td align="center">atomic <a href="../trajectories.html">trajectory</a>
 coordinates</td>
+</tr><tr>
+<td align="center"><a href="https://docs.lammps.org/dump.html"
+target="_blank">LAMMPS dump</a></td>
+<td align="center"><b>dump</b></td>
+<td align="center">.dump</td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+coordinates
+<br>(LAMMPS support courtesy of Mitch Murphy)</td>
 </tr><tr>
 <td colspan=4 align="center" class="shaded">
 <a name="trajtop"></a>
@@ -745,8 +753,9 @@ target="_blank">Wavefront OBJ</a></td>
 <a name="sequence"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Sequences</b> (associated tool: 
-<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
-but see the <a href="#viewer"><b>viewer</b></a> option;
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+or <a href="../tools/profilegrid.html"><b>Profile Grid</b></a>,
+see the <a href="#viewer"><b>viewer</b></a> option;
 see also <a href="#ident"><b>ident</b></a>)</td>
 </tr><tr>
 <td align="center">Clustal ALN</td>
@@ -856,8 +865,8 @@ scores file</a></td>
 <td align="center">
 assay scores from deep mutational scanning
 (<a href="../formats/mutationcsv.html">details...</a>);
-a corresponding structure chain can be specified with the
-<a href="#chain"><b>chain</b></a> option</td>
+corresponding structure chains can be specified with the
+<a href="#chains"><b>chains</b></a> option</td>
 </tr><tr>
 <td align="center">photo (single image)</td>
 <td align="center"><b>photo</b></td>
@@ -1062,20 +1071,30 @@ an <a href="atomspec.html"><i>atom-spec</i></a>, or any of the other
 standard <a href="pointspec.html#vector">point specifications</a>.
 </blockquote>
 <blockquote>
-<a name="chain"></a>
-<b>chain</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;[&nbsp;<b>allowMismatches</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<a name="chains"></a>
+<b>chains</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;[&nbsp;<b>allowMismatches</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <br>
-When opening a <a href="../formats/mutationcsv.html">mutation scores</a> (.csv)
-file, associate the data with a specified structure chain for analysis
-with the <a href="mutationscores.html"><b>mutationscores</b></a> command.
-Opening a mutation scores file automatically associates the data with a
-structure chain open in ChimeraX, if its sequence and residue numbering
-match the mutation data. However, if more than one matching chain
-is present, this option allows specifying which to use.
-If the chain does not have exactly the same residue types and residue numbering
-as in the mutation data, however, <b>allowMismatches true</b> is needed to
-force the association. An association can also be made later with the command
+When opening a <a href="../formats/mutationcsv.html">mutation scores</a> 
+(.csv) file, designate one or more structure chains 
+to be associated with the data for analysis with the
+<a href="mutationscores.html"><b>mutationscores</b></a> command.
+Otherwise, the mutation scores will be associated automatically with each 
+open structure chain that has exactly the same sequence and residue 
+numbering (as in the mutation data) the first time some analysis action 
+is performed, such as interacting with a mutation plot.
+The <b>chains</b> option allows explicitly specifying which structure
+chain(s) to use for this purpose, and if a chain does not have exactly 
+the same sequence as the mutation data, <b>allowMismatches true</b>
+is needed to force the association.
+</p><p>
+An association can also be made later with the command
 <a href="mutationscores.html#structure"><b>mutationscores structure</b></a>.
+If the chain residue numbering is different than in the mutation scores file,
+it is necessary to use
+<a href="mutationscores.html#structure"><b>mutationscores structure</b></a>
+with the <a href="mutationscores.html#structure"><b>alignSequences</b></a> 
+option to make the association
+(it cannot be done with the <b>open</b> command).
 </blockquote>
 <blockquote>
 <a name="channel"></a>
@@ -1313,8 +1332,7 @@ When opening <a href="#sequence">sequence data</a>, assign the specified text
 as the sequence alignment identifier. If this option is not used,
 an identifier will be generated automatically. This identifier is used to 
 <a href="seqspec.html">specify</a> the sequence alignment in other commands
-and appears in the title bar of
-the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window,
+and appears in the title bar of the alignment viewer window,
 if shown. See also the <a href="#viewer"><b>viewer</b></a> option.
 </blockquote>
 <blockquote>
@@ -1454,18 +1472,25 @@ See also the <a href="transparency.html"><b>transparency</b></a> command.
 </blockquote>
 <blockquote>
 <a name="viewer"></a>
-<b>viewer</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<b>viewer</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;|&nbsp;<i>viewer-type</i>
 <br>
 Whether to show the 
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+or a <a href="../tools/profilegrid.html"><b>Profile Grid</b></a>
 when opening <a href="#sequence">sequence data</a>.
 See also the <a href="#ident"><b>ident</b></a> option.
-<!-- 
-also has option seqview = sv = view, meaning the Sequence Viewer,
-which will be relevant when an option is added for ProfileGrid instead.
-Then, true will mean whichever of the two was last used, if any, for 
-a single sequence or sequence alignment, which will be remembered separately 
--->
+True (default) means to show the default viewer 
+given the number of sequences in the alignment (according to the
+<a href="../preferences.html#sequences"><b>Sequences</b> preferences</a>),
+whereas false means not to display the alignment in either viewer.
+The viewer type can also be specified directly as <i>viewer-type</i>
+regardless of alignment size, with possible values:
+<ul>
+<li><b>seqview</b> (or <b>view</b> or <b>sv</b>)
+&ndash; <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+<li><b>profile</b> (or <b>grid</b> or <b>pg</b>)
+&ndash; <a href="../tools/profilegrid.html"><b>Profile Grid</b></a>
+</ul>
 </blockquote>
 <blockquote>
 <a name="vseries"></a>
@@ -1549,7 +1574,7 @@ from two different files, either:
 with topology provided by an already-open atomic model specified with the
 <a href="#structureModel"><b>structureModel</b></a> option, for example:
 <br><b>open myfile.trr structureModel #1</b>
-<li> a PSF <a href="#trajtop">trajectory topology file</a> 
+<li>a PSF <a href="#trajtop">trajectory topology file</a> 
 with the corresponding <a href="#trajectory">trajectory coordinate file</a>
 specified with the <a href="#coords"><b>coords</b></a> option, for example:
 <br><b>open myfile.psf coords myfile.dcd</b>
@@ -2325,16 +2350,6 @@ see also <a href="modelcif.html#pae"><b>modelcif pae</b></a>
 file-reading support courtesy of Gerardo Tauriello)</td>
 <td align="center"><b>mmcif</b></td>
 </tr><tr>
-<td align="center"><a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold</a> PAE</td>
-<td align="center"><b>alphafold_pae</b></td>
-<td align="center"><a href="#pae">AlphaFold predicted aligned error</a> (PAE) 
-specified by <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
-name or accession number (<a href="alphafold.html#fetch">details...</a>)
-and associated with the corresponding AlphaFold model using the 
-<a href="#pae"><b>structure</b></a> option</td>
-<td align="center"><b>pae</b></td>
-</tr><tr>
 <td align="center">
 <a href="https://esmatlas.com/about#about_this_website"
 target="_blank">ESM Metagenomic Atlas</a></td>
@@ -2437,6 +2452,7 @@ target="_blank">AlphaMissense</a>
 predicted pathogenicity scores for missense mutations,
 ranging from 0 (benign) to 1 (pathogenic) and assigned score name <b>amiss</b>
 for analysis with <a href="mutationscores.html"><b>mutationscores</b></a>
+<br>(command option <a href="#chains"><b>chains</b></a>)
 </td>
 <td align="center"><b>amiss</b></td>
 </tr><tr>
@@ -2451,6 +2467,7 @@ target="_blank">SIFT</a> predicted pathogenicity values for clinically
 observed human protein variants, assigned score names
 <b>PolyPhen</b> and <b>SIFT</b>, respectively,
 for analysis with <a href="mutationscores.html"><b>mutationscores</b></a>
+<br>(command option <a href="#chains"><b>chains</b></a>)
 </td>
 <td align="center"><b>variants</b></td>
 </tr></table>
@@ -2519,5 +2536,5 @@ generated by Clipper. If <b>false</b>, just save the experimental data.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2024</address>
+April 2025</address>
 </body></html>

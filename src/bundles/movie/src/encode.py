@@ -51,7 +51,8 @@ class ffmpeg_encoder:
                 path_dirs = []
             else:
                 path_dirs = path_dirs.split(os.pathsep)
-            path_dirs.insert(0, app_bin_dir)
+            # TODO: Test each ffmpeg we come across for all the features we require
+            path_dirs.append(app_bin_dir)
             for pd in path_dirs:
                 path = os.path.join(pd, ffmpeg_cmd)
                 if os.path.exists(path):
@@ -146,7 +147,7 @@ class ffmpeg_encoder:
             if os.path.exists(pto):
                 os.remove(pto)
             copy(pat % (n-1-f), pto)
-            
+
     def remove_backwards_frames(self):
 
         if hasattr(self, 'loop'):
@@ -154,7 +155,7 @@ class ffmpeg_encoder:
             pat, n = self.loop
             for f in range(n):
                 os.remove(pat % (n+f))
-            
+
     def _parseOutput(self, out_line):
         ## frame=   36 q=2.0 Lsize=      28kB time=1.4 bitrate= 163.8kbits/s
         if out_line[0:6] == "frame=":

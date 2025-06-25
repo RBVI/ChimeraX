@@ -131,7 +131,10 @@ class ButtonPanel(ToolInstance):
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
         tw.ui_area.setLayout(layout)
-        tw.manage(placement="side")
+        from Qt.QtCore import Qt
+        da = Qt.DockWidgetArea
+        tw.manage(placement="side",
+            allowed_areas=da.RightDockWidgetArea|da.LeftDockWidgetArea|da.TopDockWidgetArea)
 
     def add_button(self, name, command, row=None, column=None):
         parent = self.tool_window.ui_area

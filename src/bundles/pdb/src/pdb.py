@@ -215,10 +215,15 @@ def save_pdb(session, output, *, models=None, selected_only=False, displayed_onl
         polymeric_res_names = _pdbio.standard_polymeric_res_names
     file_per_model = "[NAME]" in output or "[ID]" in output
     if file_per_model:
+        # make NMR ensembles save to one combined file...
+        name_map = {}
         for m, xform in zip(models, xforms):
             file_name = output.replace("[ID]", m.id_string).replace("[NAME]", m.name)
-            _pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only,
-                displayed_only, [xform], all_coordsets,
+            name_map.setdefault(file_name, []).append((m, xform))
+        for file_name, model_info in name_map.items():
+            models, xforms = zip(*model_info)
+            _pdbio.write_pdb_file([m.cpp_pointer for m in models], file_name, selected_only,
+                displayed_only, xforms, all_coordsets,
                 pqr, (serial_numbering == "h36"), polymeric_res_names, session.logger)
     else:
         _pdbio.write_pdb_file([m.cpp_pointer for m in models], output, selected_only,

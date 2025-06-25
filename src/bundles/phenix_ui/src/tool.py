@@ -40,6 +40,7 @@ class PhenixCitation(Citation):
         cite = '<br>'.join(["<b>" + title + "</b>"] + info)
         kw['prefix'] = "%s uses the Phenix <i>%s</i> command. Please cite:" % (tool_name, phenix_name)
         super().__init__(session, cite, **kw)
+
 class DouseSettings(Settings):
     AUTO_SAVE = {
         "show_hbonds": True,
@@ -181,6 +182,218 @@ class LaunchDouseTool(ToolInstance):
         from chimerax.core.commands import run
         run(self.session, cmd)
         self.delete()
+
+class EmplaceLocalResultsViewer(ToolInstance):
+    help = None
+    def __init__(self, session, *args):
+        # if 'args' is empty, we are being restored from a session and _finalize_init() will be called later
+        super().__init__(session, "Local EM Fitting Results")
+        if not args:
+            return
+        self._finalize_init(*args)
+
+    def _finalize_init(self, orig_model, transforms, llgs, ccs, show_sharpened_map, map_group, sym_map,
+            *, table_state=None):
+        self.orig_model = orig_model
+        self.orig_position = orig_model.position
+        self.transforms = transforms
+        self.llgs = llgs
+        self.ccs = ccs
+        self.map_group = map_group
+        self.sym_map = sym_map
+
+        from chimerax.core.models import REMOVE_MODELS
+        from chimerax.atomic import get_triggers
+        self._finalizing_symmetry = False
+        self.handlers = [
+            self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
+        ]
+        self._interpolate_handler = None
+
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
+
+        from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
+        from Qt.QtWidgets import QPushButton, QLabel, QToolButton, QGridLayout, QWidget, QDockWidget
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(2,2,2,2)
+        layout.setSpacing(0)
+        parent.setLayout(layout)
+
+        # Building the table is going to call _new_selection, so the "sharpened" check box needs to exist
+        # before building the table, but don't add them to the layout until after the table
+        check_box_area = QWidget()
+        cb_layout = QHBoxLayout()
+        check_box_area.setLayout(cb_layout)
+        self.sharpened_checkbox = QCheckBox("Show sharpened map")
+        self.sharpened_checkbox.setChecked(show_sharpened_map)
+        self.sharpened_checkbox.toggled.connect(self._show_sharpened_cb)
+        cb_layout.addWidget(self.sharpened_checkbox, alignment=Qt.AlignCenter)
+        if sym_map:
+            self.symmetry_checkbox = QCheckBox("Show symmetry copies")
+            self.symmetry_checkbox.setChecked(True)
+            self.symmetry_checkbox.toggled.connect(self._show_symmetry_cb)
+            cb_layout.addWidget(self.symmetry_checkbox, alignment=Qt.AlignCenter)
+
+        self.table = self._build_table(table_state)
+        layout.addWidget(self.table, stretch=1)
+
+        layout.addWidget(check_box_area, alignment=Qt.AlignCenter)
+
+        from chimerax.ui import shrink_font
+        instructions = QLabel("Click OK to retain the chosen fit and remove others")
+        shrink_font(instructions, 0.85)
+        layout.addWidget(instructions, alignment=Qt.AlignCenter)
+
+        if sym_map:
+            self._show_symmetry_cb(True)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        if hasattr(self, 'accept_fit'):
+            bbox.accepted.connect(self.accept_fit)
+        else:
+            bbox.button(qbbox.Ok).setEnabled(False)
+        bbox.rejected.connect(self.delete)
+        if self.help:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
+        self.tool_window.manage("side")
+
+    def accept_fit(self):
+        # running commands directly in delete() can be hazardous, so...
+        if self.sym_map and self.symmetry_checkbox.isChecked():
+            self._finalizing_symmetry = True
+            from chimerax.core.commands import run, concise_model_spec, StringArg
+            modelspec = self.orig_model.atomspec
+            prev_models = set(self.session.models[:])
+            run(self.session,
+                f"sym clear {modelspec} ; sym {modelspec} symmetry {self.sym_map.atomspec} copies true")
+            added = [m for m in self.session.models if m not in prev_models]
+            orig_id, orig_name = self.orig_model.id[0], self.orig_model.name
+            run(self.session, f"close {modelspec}")
+            run(self.session, "combine " + concise_model_spec(self.session, added) + " close true"
+                " modelId %d name %s" % (orig_id, StringArg.unparse(orig_name)))
+        self.delete()
+
+    def delete(self):
+        for handler in self.handlers:
+            handler.remove()
+        if self._interpolate_handler:
+            self._interpolate_handler.remove()
+        if not self.map_group.deleted:
+            close_group = True
+            if self.sharpened_checkbox.isChecked():
+                sel = self.table.selected
+                for datum in self.table.data:
+                    if datum in sel:
+                        close_group = False
+                    else:
+                        smap = self._sharpened_map(datum.num)
+                        if smap:
+                            self.session.models.close([smap])
+            if close_group:
+                self.session.models.close([self.map_group])
+        self.map_group = self.orig_model = self.sym_map = None
+        super().delete()
+
+    def _build_table(self, table_state):
+        class TableDatum:
+            def __init__(self, num, transform, llg, cc):
+                self.num = num
+                self.transform = transform
+                self.llg = llg
+                self.cc = cc
+        from chimerax.ui.widgets import ItemTable
+        table = ItemTable()
+        result_col = table.add_column("Result", "num")
+        table.add_column("Correlation Coefficient", "cc", format="%.3g")
+        table.add_column("Log-Likelihood Gain", "llg", format="%.3g")
+        table.data = [TableDatum(*args)
+            for args in zip(range(1, len(self.transforms)+1), self.transforms, self.llgs, self.ccs)]
+        table.launch(select_mode=table.SelectionMode.SingleSelection, session_info=table_state)
+        table.sort_by(result_col, table.SORT_ASCENDING)
+        table.selection_changed.connect(self._new_selection)
+        table.selected = table.data[0:1]
+        return table
+
+    def _interpolate(self, destination):
+        if self._interpolate_handler:
+            self._interpolate_handler.remove()
+        # interpolation code largely cribbed from map_fit.search.move_models/move_step
+        def make_step(trig_name, trig_data, *, tool=self, destination=destination, frame_info=[10]):
+            m = tool.orig_model
+            b = m.bounds()
+            finish = False
+            if b:
+                num_frames = frame_info[0]
+                cscene = .5 * (b.xyz_min + b.xyz_max)
+                c = m.scene_position.inverse() * cscene # Center in model coordinates
+                m.position = m.position.interpolate(destination, c, 1.0/num_frames)
+                if num_frames > 1:
+                    frame_info[0] = num_frames - 1
+                else:
+                    finish = True
+            else:
+                m.position = destination
+                finish = True
+            if finish:
+                tool._interpolate_handler.remove()
+                tool._interpolate_handler = None
+                if self.sym_map and self.symmetry_checkbox.isChecked():
+                    from chimerax.core.commands import run
+                    run(self.session, "sym " + self.orig_model.atomspec + " symmetry "
+                        + self.sym_map.atomspec + " copies false", log=False)
+        self._interpolate_handler = self.session.triggers.add_handler("new frame", make_step)
+
+    def _models_removed_cb(self, trig_name, trig_data):
+        if self.orig_model in trig_data and not self._finalizing_symmetry:
+            self.delete()
+
+    def _new_selection(self, selected, unselected):
+        if not selected:
+            return
+        from chimerax.geometry import Place
+        destination = Place(selected[0].transform) * self.orig_position
+        if unselected:
+            self._interpolate(destination)
+        else:
+            self.orig_model.position = destination
+
+        if self.sharpened_checkbox.isChecked():
+            for data, disp_state in [(unselected, False), (selected, True)]:
+                for datum in data:
+                    smap = self._sharpened_map(datum.num)
+                    if smap:
+                        smap.display = disp_state
+
+    def _sharpened_map(self, num):
+        if self.map_group.deleted:
+            return None
+        for child in self.map_group.child_models():
+            if child.name == "map %d" % num:
+                return child
+        return None
+
+    def _show_sharpened_cb(self, checked):
+        for datum in self.table.selected:
+            smap = self._sharpened_map(datum.num)
+            if smap:
+                smap.display = checked
+
+    def _show_symmetry_cb(self, checked):
+        from chimerax.core.commands import run
+        if checked:
+            run(self.session, "sym " + self.orig_model.atomspec + " symmetry " + self.sym_map.atomspec
+                + " copies false")
+        else:
+            run(self.session, "sym clear " + self.orig_model.atomspec)
 
 class LaunchEmplaceLocalTool(ToolInstance):
     help = "help:user/tools/localemfitting.html"
@@ -982,7 +1195,7 @@ class VerifyELCenterDialog(VerifyCenterDialog):
 
 class VerifyLFCenterDialog(VerifyCenterDialog):
     def __init__(self, session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution,
-            initial_center, opaque_maps):
+            initial_center, opaque_maps, hbonds):
         self._search_radius = None
         self.ligand_fmt = ligand_fmt
         self.ligand_value = ligand_value
@@ -991,6 +1204,7 @@ class VerifyLFCenterDialog(VerifyCenterDialog):
         self.chain_id = chain_id
         self.res_num = res_num
         self.resolution = resolution
+        self.hbonds = hbonds
         super().__init__(session, initial_center, opaque_maps)
 
     @property
@@ -1022,7 +1236,7 @@ class VerifyLFCenterDialog(VerifyCenterDialog):
                     m.rgba = tuple(rgba)
         center = self.marker.scene_coord
         _run_ligand_fit_command(self.session, self.ligand_fmt, self.ligand_value, self.receptor, self.map,
-            self.chain_id, self.res_num, self.resolution, center)
+            self.chain_id, self.res_num, self.resolution, center, self.hbonds)
 
     @property
     def search_button_label(self):
@@ -1212,15 +1426,13 @@ class LaunchLigandFitTool(ToolInstance):
         self.verify_center_checkbox.clicked.connect(lambda checked, b=self.opaque_maps_checkbox:
             b.setHidden(not checked))
         checkbox_layout.addWidget(self.opaque_maps_checkbox, alignment=Qt.AlignLeft)
-        """
+        self.show_hbonds_checkbox = QCheckBox("Show H-bonds formed by fit ligand")
+        self.show_hbonds_checkbox.setChecked(True)
+        checkbox_layout.addWidget(self.show_hbonds_checkbox, alignment=Qt.AlignLeft)
+
         layout.addSpacing(10)
 
-        layout.addWidget(PhenixCitation(session, tool_name, "emplace_local",
-            title="Likelihood-based interactive local docking into cryo-EM maps in ChimeraX",
-            info=["Read RJ, Pettersen EF, McCoy AJ, Croll TI, Terwilliger TC, Poon BK, Meng EC",
-                "Liebschner D, Adams PD", "Acta Cryst. D80, 588-598 (2024)"],
-            pubmed_id=39058381), alignment=Qt.AlignCenter)
-        """
+        layout.addWidget(PhenixCitation(session, tool_name, "ligandfit"), alignment=Qt.AlignCenter)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -1322,10 +1534,10 @@ class LaunchLigandFitTool(ToolInstance):
         if self.verify_center_checkbox.isChecked():
             self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
             VerifyLFCenterDialog(self.session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-                resolution, center, self.settings.opaque_maps)
+                resolution, center, self.settings.opaque_maps, self.show_hbonds_checkbox.isChecked())
         else:
             _run_ligand_fit_command(self.session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-                resolution, center)
+                resolution, center, self.show_hbonds_checkbox.isChecked())
         if not apply:
             self.display(False)
 
@@ -1399,15 +1611,16 @@ def _run_emplace_local_command(session, structure, maps, resolution, prefitted, 
     run(session, cmd)
 
 def _run_ligand_fit_command(session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution,
-        center):
-    from chimerax.core.commands import run, StringArg
+        center, hbonds):
+    from chimerax.core.commands import run, StringArg, BoolArg
     from chimerax.map import Volume
     LLFT = LaunchLigandFitTool
     lig_arg = "%s:%s" % ({LLFT.LIGAND_FMT_CCD: "ccd", LLFT.LIGAND_FMT_MODEL: "file",
         LLFT.LIGAND_FMT_PUBCHEM: "pubchem", LLFT.LIGAND_FMT_SMILES: "smiles"}[ligand_fmt],
         (ligand_value.atomspec if ligand_fmt == LLFT.LIGAND_FMT_MODEL else ligand_value))
-    cmd = "phenix ligandFit %s %s center %g,%g,%g inMap %s resolution %g" % (
-        receptor.atomspec, StringArg.unparse(lig_arg), *center, map.atomspec, resolution)
+    cmd = "phenix ligandFit %s %s center %g,%g,%g inMap %s resolution %g hbonds %s" % (
+        receptor.atomspec, StringArg.unparse(lig_arg), *center, map.atomspec, resolution,
+        BoolArg.unparse(hbonds))
     if chain_id:
         cmd += " chain " + chain_id
     if res_num is not None:

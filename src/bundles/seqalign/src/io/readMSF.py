@@ -43,20 +43,20 @@ def read(session, f):
 import re
 class MSF:
 
-    _Hdr = re.compile('\s*(\S*)\s*'            # name
+    _Hdr = re.compile(r'\s*(\S*)\s*'            # name
                 'MSF:\s*(\S*)\s*'    # length?
                 'Type:\s*(\S*)\s*'    # type
                 '(.*)\s*'        # date/time
                 'Check:\s*(\S*)\s*'    # checksum
                 '\.\.')            # signature
-    _MultalinHdr = re.compile('\s*(\S.*)\s*'    # name
+    _MultalinHdr = re.compile(r'\s*(\S.*)\s*'    # name
                 'MSF:\s*(\S*)\s*'    # length?
                             # missing type
                             # missing date/time
                 'Check:\s*(\S*)\s*'    # checksum
                 '\.\.')            # signature
 
-    _Sum = re.compile('\s*Name:\s*(\S*)\s*o*\s*'    # name
+    _Sum = re.compile(r'\s*Name:\s*(\S*)\s*o*\s*'    # name
                 'Len:\s*(\S*)\s*'    # length
                 'Check:\s*(\S*)\s*'    # checksum
                 'Weight:\s*(\S*)\s*')    # weight

@@ -76,24 +76,6 @@ SPHERE_CURSOR_RESIZED: Activated whenever the user resizes the spherical
                        segmentation cursor using the corresponding mouse or hand
                        mode.
 
-AXIAL_PLANE_VIEWER_ENTER: Activated when the mouse enters a PlaneViewer
-                          displaying an axial slice
-
-CORONAL_PLANE_VIEWER_ENTER: Activated when the mouse enters a PlaneViewer
-                            displaying a coronal slice
-
-SAGITTAL_PLANE_VIEWER_ENTER: Activated when the mouse enters a PlaneViewer
-                             displaying a sagittal slice
-
-AXIAL_PLANE_VIEWER_LEAVE: Activated when the mouse leaves a PlaneViewer
-                          displaying an axial slice
-
-CORONAL_PLANE_VIEWER_LEAVE: Activated when the mouse leaves a PlaneViewer
-                            displaying a coronal slice
-
-SAGITTAL_PLANE_VIEWER_LEAVE: Activated when the mouse leaves a PlaneViewer
-                             displaying a sagittal slice
-
 VIEW_LAYOUT_CHANGED: (EXPERIMENTAL) Activated when the view layout changes. May
                      be moved to chimerax.ui
 
@@ -138,6 +120,9 @@ class Trigger(StrEnum):
     ReferenceModelChanged = "reference model changed"
     ActiveSegmentationChanged = "active segmentation changed"
 
+    PlaneViewerEnter = "plane viewer enter"
+    PlaneViewerLeave = "plane viewer leave"
+
     AxialCursorMoved = "axial cursor moved"
     CoronalCursorMoved = "coronal cursor moved"
     SagittalCursorMoved = "sagittal cursor moved"
@@ -148,16 +133,10 @@ class Trigger(StrEnum):
     SagittalCursorResized = "sagittal cursor resized"
     SphereCursorResized = "sphere cursor resized"
 
-    AxialPlaneViewerEnter = "axial plane viewer enter"
-    CoronalPlaneViewerEnter = "coronal plane viewer enter"
-    SagittalPlaneViewerEnter = "sagittal plane viewer enter"
-
-    AxialPlaneViewerLeave = "axial plane viewer leave"
-    CoronalPlaneViewerLeave = "coronal plane viewer leave"
-    SagittalPlaneViewerLeave = "sagittal plane viewer leave"
 
     ViewLayoutChanged = "view layout changed"
     GuidelinesVisibilityChanged = "guidelines visibility changed"
+    ColorKeysVisibilityChanged = "color keys visibility changed"
 
     HandModesChanged = "hand modes changed"
     MouseModesChanged = "mouse modes changed"
@@ -182,31 +161,10 @@ CORONAL_CURSOR_RESIZED = Trigger.CoronalCursorResized
 SAGITTAL_CURSOR_RESIZED = Trigger.SagittalCursorResized
 SPHERE_CURSOR_RESIZED = Trigger.SphereCursorResized
 
-AXIAL_PLANE_VIEWER_ENTER = Trigger.AxialPlaneViewerEnter
-CORONAL_PLANE_VIEWER_ENTER = Trigger.CoronalPlaneViewerEnter
-SAGITTAL_PLANE_VIEWER_ENTER = Trigger.SagittalPlaneViewerEnter
-
-AXIAL_PLANE_VIEWER_LEAVE = Trigger.AxialPlaneViewerLeave
-CORONAL_PLANE_VIEWER_LEAVE = Trigger.CoronalPlaneViewerLeave
-SAGITTAL_PLANE_VIEWER_LEAVE = Trigger.SagittalPlaneViewerLeave
-
 VIEW_LAYOUT_CHANGED = Trigger.ViewLayoutChanged
-GUIDELINES_VISIBILITY_CHANGED = Trigger.GuidelinesVisibilityChanged
 
 HAND_MODES_CHANGED = Trigger.HandModesChanged
 MOUSE_MODES_CHANGED = Trigger.MouseModesChanged
-
-ENTER_EVENTS = {
-    Axis.AXIAL: Trigger.AxialPlaneViewerEnter,
-    Axis.CORONAL: Trigger.CoronalPlaneViewerEnter,
-    Axis.SAGITTAL: Trigger.SagittalPlaneViewerEnter,
-}
-
-LEAVE_EVENTS = {
-    Axis.AXIAL: Trigger.AxialPlaneViewerLeave,
-    Axis.CORONAL: Trigger.CoronalPlaneViewerLeave,
-    Axis.SAGITTAL: Trigger.SagittalPlaneViewerLeave,
-}
 
 class SegmentationTriggerSet(TriggerSet):
     def __init__(self):
@@ -227,6 +185,9 @@ class SegmentationTriggerSet(TriggerSet):
         self.add_trigger(Trigger.ActiveSegmentationChanged)
         self.add_trigger(Trigger.ReferenceModelChanged)
 
+        self.add_trigger(Trigger.PlaneViewerEnter)
+        self.add_trigger(Trigger.PlaneViewerLeave)
+
         self.add_trigger(Trigger.AxialCursorMoved)
         self.add_trigger(Trigger.CoronalCursorMoved)
         self.add_trigger(Trigger.SagittalCursorMoved)
@@ -237,16 +198,10 @@ class SegmentationTriggerSet(TriggerSet):
         self.add_trigger(Trigger.SagittalCursorResized)
         self.add_trigger(Trigger.SphereCursorResized)
 
-        self.add_trigger(Trigger.AxialPlaneViewerEnter)
-        self.add_trigger(Trigger.CoronalPlaneViewerEnter)
-        self.add_trigger(Trigger.SagittalPlaneViewerEnter)
-
-        self.add_trigger(Trigger.AxialPlaneViewerLeave)
-        self.add_trigger(Trigger.CoronalPlaneViewerLeave)
-        self.add_trigger(Trigger.SagittalPlaneViewerLeave)
 
         self.add_trigger(Trigger.ViewLayoutChanged)
         self.add_trigger(Trigger.GuidelinesVisibilityChanged)
+        self.add_trigger(Trigger.ColorKeysVisibilityChanged)
         self.add_trigger(Trigger.HandModesChanged)
         self.add_trigger(Trigger.MouseModesChanged)
 
@@ -270,8 +225,8 @@ def activate_trigger(trigger: str, data: Optional[Any] = None) -> None:
     *_CURSOR_MOVED: the new coordinates of the axial cursor
     *_CURSOR_RESIZED: tuple(type of change[grow,shrink], resize step size(px))
 
-    *_PLANE_VIEWER_ENTER: None
-    *_PLANE_VIEWER_LEAVE: None
+    PLANE_VIEWER_ENTER: The axis of the entered viewer
+    PLANE_VIEWER_LEAVE: The axis of the left viewer
 
     VIEW_LAYOUT_CHANGED: the name of the new view layout
     GUIDELINES_TOGGLED: bool representing whether guidelines are on or off

@@ -77,7 +77,18 @@ class Plot(ToolInstance):
         Make both axes use same scaling, pixels per plot unit.
         Without this if the window is not square, the plot squishes one axis.
         '''
+        self._suppress_matplotlib_warnings()
         self.axes.set_aspect('equal', adjustable='datalim')
+
+    def _suppress_matplotlib_warnings(self):
+        # Ignore matplotlib 3.10.1 warning that preserving equal scaling conflicts with fixed limits.
+        from logging import Filter, getLogger
+        class _AspectFilter(Filter):
+            def filter(self, record):
+                return record.msg not in (
+                    'Ignoring fixed x limits to fulfill fixed data aspect with adjustable data limits.',
+                    'Ignoring fixed y limits to fulfill fixed data aspect with adjustable data limits.')
+        getLogger('matplotlib.axes._base').addFilter(_AspectFilter())
 
     def move(self, delta_x, delta_y):
         '''Move plot objects by delta values in window pixels.'''
@@ -232,7 +243,7 @@ class Graph(Plot):
                 G.add_edge(e.nodes[0], e.nodes[1], weight = e.weight/max_weight, edge_object=e)
         return G
 
-    def draw_graph(self):
+    def draw_graph(self, preserve_zoom = False):
         # Draw nodes
         node_pos = self._draw_nodes()
     
@@ -242,8 +253,10 @@ class Graph(Plot):
         # Draw node labels
         self._draw_labels(node_pos)
 
-        self.tight_layout()
-        self.equal_aspect()	# Don't squish plot if window is not square.
+        if not preserve_zoom:
+            self.tight_layout()
+            self.equal_aspect()	# Don't squish plot if window is not square.
+
         self.canvas.draw()
 
         self.show()	# Show graph panel
@@ -260,7 +273,7 @@ class Graph(Plot):
                                     node_size=node_sizes, node_color=node_colors, ax=self.axes,
                                     hide_ticks = self.hide_ticks)
         na.set_picker(True)	# Generate mouse pick events for clicks on nodes
-        if self._node_artist:
+        if self._node_artist and self._node_artist.axes is not None:
             self._node_artist.remove()
         self._node_artist = na	# matplotlib PathCollection object
         self._node_objects = nodes
@@ -323,7 +336,7 @@ class Graph(Plot):
         ea = nx.draw_networkx_edges(G, node_pos, edgelist=edges, width=widths,
                                     style=styles, ax=self.axes, hide_ticks = self.hide_ticks)
         ea.set_picker(True)
-        if self._edge_artist:
+        if self._edge_artist and self._edge_artist.axes is not None:
             self._edge_artist.remove()
         self._edge_artist = ea
 
@@ -348,7 +361,8 @@ class Graph(Plot):
         if self._labels:
             # Remove existing labels.
             for t in self._labels.values():
-                t.remove()
+                if t.axes is not None:
+                    t.remove()
         self._labels = labels	# Dictionary mapping node to matplotlib Text objects.
             
     def _mouse_press(self, event):
@@ -471,6 +485,8 @@ class Graph(Plot):
         return item
     
     def clicked_item(self, matplotlib_event):
+        if self._node_artist is None:
+            return None
         e = matplotlib_event
         c,d = self._node_artist.contains(e)
         item = None

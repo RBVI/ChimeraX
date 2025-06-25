@@ -1,0 +1,35 @@
+<!-- vi:set shiftwidth=2 expandtab: -->
+<BundleInfo name="ChimeraX-Aniso" version="1.1.4"
+	package="chimerax.aniso"
+  	minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Create thermal ellipsoid displays</Synopsis>
+  <Description>
+  Create atomic representations depicting anisotropic temperature factors
+  as ellipsoids.
+  </Description>
+
+  <Categories>
+    <Category name="Depiction"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.8"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.58"/>
+    <Dependency name="ChimeraX-UI" version="~=1.40"/>
+  </Dependencies>
+
+  <Classifiers>
+    <!-- Development Status should be compatible with bundle version number -->
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: aniso :: Depiction :: Show thermal ellipsoids</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ~aniso :: Depiction :: Hide thermal ellipsoids</ChimeraXClassifier>
+    <!-- <ChimeraXClassifier>Tool :: Thermal Ellipsoids :: Structure Analysis, Depiction :: depict atomic anisotropic temperature factor information</ChimeraXClassifier> -->
+  </Classifiers>
+
+</BundleInfo>

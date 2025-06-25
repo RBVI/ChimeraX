@@ -1,0 +1,194 @@
+name: Rebuild on change
+
+on:
+  push:
+    branches: [develop, release/*]
+    paths-ignore: [.github/workflows/nightly.yml, .github/workflows/*build.yml]
+
+jobs:
+  build-and-test-rocky8-docker:
+    runs-on: ubuntu-22.04
+    container:
+      image: rockylinux:8
+    env:
+      SHELL: /bin/bash
+      PATH: /usr/bin:/usr/sbin:/bin:/sbin
+    steps:
+      - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+      - run: dnf update -y
+      - run: dnf install -y git-all
+      - uses: actions/checkout@v4
+      # buildinfo.py breaks without this
+      - run: chown -R $(id -u):$(id -g) $PWD
+      - run: ${PWD}/utils/set_up_centos.sh
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
+        with:
+          platform: linux
+          architecture: x86_64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos build-minimal
+      - name: Install Pytest
+        run: USE_COVERAGE=1 make pytest-install
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage
+  build-and-test-arm-linux:
+    runs-on: ubuntu-24.04-arm
+    env:
+      SHELL: /bin/bash
+      PATH: /usr/bin:/usr/sbin:/bin:/sbin
+      PYOPENGL_PLATFORM: egl
+    container:
+      image: fedora:latest
+      options: --privileged
+    steps:
+      - name: Update system packages
+        run: |
+          dnf update -y
+          dnf install -y dbus-daemon flatpak flatpak-builder git-lfs python3-aiohttp python3-tenacity python3-gobject xorg-x11-server-Xvfb ccache zstd libappstream-glib
+          dnf clean all
+          flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak remote-add --if-not-exists flathub-beta https://flathub.org/beta-repo/flathub-beta.flatpakrepo
+          flatpak install -y flathub org.flatpak.Builder
+          flatpak install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+      - uses: actions/checkout@v4
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
+        with:
+          platform: linux
+          architecture: arm64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Build ChimeraX
+        uses: flatpak/flatpak-github-actions/flatpak-builder@master
+        with:
+          bundle: chimerax.flatpak
+          manifest-path: arm-flatpak.yml
+          arch: aarch64
+          cache-key: flatpak-builder-arm64
+          upload-artifact: false
+  build-and-test-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - uses: actions/checkout@v4
+      - run: ${PWD}/utils/set_up_macos.sh
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
+        with:
+          platform: macos
+          architecture: arm64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Install the 3DConnexion Framework
+        run: |
+          hdiutil attach 3DxWareMac_v10-8-7_r3836.dmg -nobrowse -noverify -quiet
+          sudo installer -pkg /Volumes/3Dconnexion\ Software/Install\ 3Dconnexion\ software.pkg -target /
+          hdiutil detach /Volumes/3Dconnexion\ Software
+      - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) build-minimal
+      - name: Install Pytest
+        run: USE_COVERAGE=1 make pytest-install
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage
+  build-and-test-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
+        with:
+          platform: windows
+          architecture: x86_64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) build-minimal
+      - name: Install Pytest
+        run: USE_COVERAGE=1 make pytest-install
+      - name: Set up the repo for coverage reporting
+        run: make prepare-coverage
+      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
+        run: USE_COVERAGE=1 make pytest-both-exes
+      - name: Run wheel tests
+        run: USE_COVERAGE=1 make pytest-wheel
+      - name: Run distribution tests
+        run: USE_COVERAGE=1 make pytest-app
+      - name: Report coverage
+        run: make report-coverage
+  build-and-test-wheels:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - run: ${PWD}/utils/set_up_macos.sh
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
+        with:
+          platform: macos
+          architecture: arm64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      - name: Install the 3DConnexion Framework
+        run: |
+          hdiutil attach 3DxWareMac_v10-8-7_r3836.dmg -nobrowse -noverify
+          sudo installer -pkg /Volumes/3Dconnexion\ Software/Install\ 3Dconnexion\ software.pkg -target /
+          hdiutil detach /Volumes/3Dconnexion\ Software
+      - name: Set up uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          uv venv -p 3.11.4
+          source .venv/bin/activate
+      - run: source .venv/bin/activate && MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(sysctl -n hw.logicalcpu) uv-install
+      - name: Copy the ChimeraX directory out of the virtual environment
+        run: |
+          mkdir -p build/wheel/
+          mv .venv/lib/python3.11/site-packages/chimerax build/wheel
+          rm -rf .venv/lib/python3.11/site-packages/chimerax*
+      - name: Copy the wheel build files to build/wheel
+        run: |
+          cp pyproject.toml build/wheel
+          cp utils/build/wheel/make_init.py build/wheel
+          cp utils/build/wheel/setup.py build/wheel
+          cp utils/build/wheel/filter_modules.py build/wheel
+          cp utils/build/wheel/make_init.py build/wheel
+      - name: Remove UI files and add an __init__.py
+        run: |
+          source .venv/bin/activate
+          cd build/wheel
+          python filter_modules.py
+          python make_init.py
+          # TODO: filter_deps.py
+          uv build --wheel
+      - name: Reinstall the wheel we just made
+        continue-on-error: true
+        run: |
+          source .venv/bin/activate
+          uv pip install build/wheel/dist/*.whl
+      - name: Test the wheel again
+        continue-on-error: true
+        run: |
+          source .venv/bin/activate
+          UV_BUILD=1 USE_COVERAGE=1 make pytest-wheel

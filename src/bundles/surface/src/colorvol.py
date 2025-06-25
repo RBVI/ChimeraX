@@ -43,22 +43,22 @@ _color_map_args_doc = '''
 
 # -----------------------------------------------------------------------------
 #
-def color_sample(session, surfaces, map, palette = None, range = None, key = False,
-                 offset = 0, transparency = None, update = True, undo_state = None):
+def color_sample(session, surfaces, map, palette = None, range = None, outside_color = None,
+                 key = False, offset = 0, transparency = None, update = True, undo_state = None):
     '''
     Color surfaces using an interpolated map value at each surface vertex
     with values mapped to colors by a color palette.
     '''
-    _color_by_map_value(session, surfaces, map, palette = palette, range = range, key = key,
-                        offset = offset, transparency = transparency, auto_update = update,
+    _color_by_map_value(session, surfaces, map, palette = palette, range = range, outside_color = outside_color,
+                        key = key, offset = offset, transparency = transparency, auto_update = update,
                         undo_name = 'color sample', undo_state = undo_state)
 
 color_sample.__doc__ += _color_map_args_doc
 
 # -----------------------------------------------------------------------------
 #
-def color_electrostatic(session, surfaces, map, palette = None, range = None, key = False,
-                        offset = 1.4, transparency = None, update = True):
+def color_electrostatic(session, surfaces, map, palette = None, range = None, outside_color = None,
+                        key = False, offset = 1.4, transparency = None, update = True):
     '''
     Color surfaces using an interpolated electrostatic potential map value
     at each surface vertex with values mapped to colors by a color palette.
@@ -67,16 +67,16 @@ def color_electrostatic(session, surfaces, map, palette = None, range = None, ke
     if range is None and (palette is None or not palette.values_specified):
         range = (-10,10)
         
-    _color_by_map_value(session, surfaces, map, palette = palette, range = range, key = key,
-                        offset = offset, transparency = transparency, auto_update = update,
+    _color_by_map_value(session, surfaces, map, palette = palette, range = range, outside_color = outside_color,
+                        key = key, offset = offset, transparency = transparency, auto_update = update,
                         undo_name = 'color electrostatic')
     
 color_electrostatic.__doc__ += _color_map_args_doc
 
 # -----------------------------------------------------------------------------
 #
-def color_gradient(session, surfaces, map = None, palette = None, range = None, key = False,
-                   offset = 0, transparency = None, update = True):
+def color_gradient(session, surfaces, map = None, palette = None, range = None, outside_color = None,
+                   key = False, offset = 0, transparency = None, update = True):
     '''
     Color surfaces using an map gradient norm value at each surface vertex
     with values mapped to colors by a color palette.
@@ -89,8 +89,8 @@ def color_gradient(session, surfaces, map = None, palette = None, range = None, 
             raise UserError('volume gradient command must specify "map" option')
         map = surfaces[0].volume
             
-    _color_by_map_value(session, surfaces, map, palette = palette, range = range, key = key,
-                        offset = offset, transparency = transparency, gradient = True,
+    _color_by_map_value(session, surfaces, map, palette = palette, range = range, outside_color = outside_color,
+                        key = key, offset = offset, transparency = transparency, gradient = True,
                         auto_update = update, undo_name = 'color gradient')
 
 color_gradient.__doc__ += _color_map_args_doc
@@ -118,8 +118,8 @@ def color_surfaces_by_map_value(atoms = None, opacity = None, map = None,
 
 # -----------------------------------------------------------------------------
 #
-def _color_by_map_value(session, surfaces, map, palette = None, range = None, key = False,
-                        offset = 0, transparency = None, gradient = False, caps_only = False,
+def _color_by_map_value(session, surfaces, map, palette = None, range = None, outside_color = None,
+                        key = False, offset = 0, transparency = None, gradient = False, caps_only = False,
                         auto_update = True, undo_name = 'color map by value', undo_state = None):
 
     if len(surfaces) == 0:
@@ -142,7 +142,8 @@ def _color_by_map_value(session, surfaces, map, palette = None, range = None, ke
     for surf in surfs:
         cprev = surf.color_undo_state
         cs = cs_class(surf, map, palette, range, transparency = transparency,
-                      offset = _offsets(offset), auto_recolor = auto_update)
+                      outside_color = outside_color, offset = _offsets(offset),
+                      auto_recolor = auto_update)
         cs.set_vertex_colors()
         undo.add(surf, 'color_undo_state', cprev, surf.color_undo_state)
         if key:
@@ -162,7 +163,7 @@ def _use_full_range(range, palette):
 
 # -----------------------------------------------------------------------------
 #
-def _colormap_with_range(cmap, range, default = 'redblue'):
+def _colormap_with_range(cmap, range, default = 'redblue', outside_color = None):
     if cmap is None:
         from chimerax.core.colors import BuiltinColormaps
         cmap = BuiltinColormaps[default]
@@ -182,7 +183,8 @@ from chimerax.core.state import State
 class VolumeColor(State):
 
     def __init__(self, surface, volume, palette = None, range = None,
-                 transparency = None, offset = 0, auto_recolor = True):
+                 transparency = None, outside_color = None, offset = 0,
+                 auto_recolor = True):
 
         self.surface = surface
         self.volume = volume
@@ -193,7 +195,7 @@ class VolumeColor(State):
         self.per_pixel_coloring = False
         self.solid = None             # Manages 3D texture
 
-        self.set_colormap(palette, range)
+        self.set_colormap(palette, range, outside_color = outside_color)
         
         arv = self._auto_recolor if auto_recolor else None
         surface.auto_recolor_vertices = arv
@@ -210,9 +212,16 @@ class VolumeColor(State):
 
     # -------------------------------------------------------------------------
     #
-    def set_colormap(self, palette, range, per_pixel = False):
+    def set_colormap(self, palette, range, per_pixel = False, outside_color = None):
         r = self.value_range() if _use_full_range(range, palette) else range
-        self.colormap = _colormap_with_range(palette, r)
+        cmap = _colormap_with_range(palette, r)
+        if outside_color is not None:
+            from chimerax.core.colors import Colormap
+            cmap = Colormap(cmap.data_values, cmap.colors,
+                            cmap.color_below_value_range,
+                            cmap.color_above_value_range,
+                            color_no_value = outside_color.rgba)
+        self.colormap = cmap
         self.per_pixel_coloring = per_pixel
         self.set_texture_colormap()
         

@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def fetch_alpha_missense_scores(session, uniprot_id, chain = None, allow_mismatches = False,
+def fetch_alpha_missense_scores(session, uniprot_id, chains = None, allow_mismatches = False,
                                 identifier = None, ignore_cache = False):
     '''
     Fetch AlphaMissense scores for a UniProt entry specified by its UniProt name or accession code.
@@ -52,10 +52,10 @@ def fetch_alpha_missense_scores(session, uniprot_id, chain = None, allow_mismatc
     if identifier is None:
         identifier = uniprot_id
     mset, msg = open_alpha_missense_scores(session, path, identifier = identifier,
-                                           chain = chain, allow_mismatches = allow_mismatches)
+                                           chains = chains, allow_mismatches = allow_mismatches)
     return mset, msg
 
-def open_alpha_missense_scores(session, path, identifier = None, chain = None, allow_mismatches = False):
+def open_alpha_missense_scores(session, path, identifier = None, chains = None, allow_mismatches = False):
     with open(path, 'r') as f:
         lines = f.readlines()
 
@@ -81,13 +81,13 @@ def open_alpha_missense_scores(session, path, identifier = None, chain = None, a
     if mset is None:
         from .ms_data import MutationSet
         mset = MutationSet(mset_name, mutation_scores,
-                           chain = chain, allow_mismatches = allow_mismatches,
+                           chains = chains, allow_mismatches = allow_mismatches,
                            path = path)
         msm.add_scores(mset)
     else:
         mset.add_scores(mutation_scores)
-        if chain:
-            mset.set_chain(chain, allow_mismatches)
+        if chains:
+            mset.set_associated_chains(chains, allow_mismatches)
 
     nres = len(set(ms.residue_number for ms in mutation_scores))
     msg = f'Fetched AlphaMissense scores {identifier} for {nres} residues'

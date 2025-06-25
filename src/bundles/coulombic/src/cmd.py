@@ -209,7 +209,7 @@ def color_vertices(session, surface, offset, charged_atoms, dist_dep, dielectric
     if undo_info:
         undo_new_vals.append(rgba8)
     surface.auto_recolor_vertices = arv
-    if log:
+    if log and len(vertex_values):
         session.logger.info("Coulombic values for %s: minimum, %.2f, mean %.2f, maximum %.2f"
             % (surface, amin(vertex_values), mean(vertex_values), amax(vertex_values)))
 

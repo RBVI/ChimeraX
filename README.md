@@ -1,5 +1,8 @@
 <h1 align="center">UCSF ChimeraX Molecular Visualization</h1>
 <div align="center">
+  <a href='https://github.com/RBVI/ChimeraX/actions/workflows/nightly.yml'>
+    <img src='https://github.com/RBVI/ChimeraX/actions/workflows/nightly.yml/badge.svg?branch=develop' alt='Nightly Build Status'/>
+  </a>
   <a href='https://chimerax.readthedocs.io/en/latest/?badge=latest'>
     <img src='https://readthedocs.org/projects/chimerax/badge/?version=latest' alt='Documentation Status' />
   </a>

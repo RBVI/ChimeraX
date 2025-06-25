@@ -12,7 +12,7 @@ import chimerax
 
 sys.path.append(
     os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "utils", "wheel"
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "utils", "build", "wheel"
     )
 )
 

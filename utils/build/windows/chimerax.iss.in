@@ -8,7 +8,7 @@ const
     // in the Details tab of the Properties dialog.
     // For example: 14.25.28508.3 -> NeededMajor: 14, NeededMinor: 25
     NeededMajor = 14;
-    NeededMinor = 25;
+    NeededMinor = 42;
     RuntimeKey = 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64';
 
 function ShouldInstallVCRuntime: Boolean;
@@ -109,7 +109,7 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Explorer\MenuOrde
 
 [Icons]
 Name: "{group}\ChimeraX $(VERSION)"; Filename: "{app}\bin\ChimeraX.exe"; WorkingDir: "{commonappdata}\ChimeraX"
-Name: "{group}\ChimeraX - Debug"; Filename: "{app}\bin\ChimeraX.exe"; Parameters: "--debug"; WorkingDir: "{commonappdata}\ChimeraX"
+Name: "{group}\ChimeraX - Debug"; Filename: "{app}\bin\ChimeraX-console.exe"; Parameters: "--debug"; WorkingDir: "{commonappdata}\ChimeraX"
 Name: "{group}\ChimeraX Home Page"; Filename: "{app}\chimerax.url"
 Name: "{group}\Uninstall ChimeraX"; Filename: "{uninstallexe}"
 Name: "{commondesktop}\ChimeraX $(VERSION)"; Filename: "{app}\bin\ChimeraX.exe"; Tasks: chimeraxicon; WorkingDir: "{commondesktop}"

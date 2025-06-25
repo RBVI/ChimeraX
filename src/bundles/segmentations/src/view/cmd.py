@@ -2,13 +2,9 @@ from chimerax.core.commands import CmdDesc, register, BoolArg, EnumOf
 from chimerax.core.models import REMOVE_MODELS
 
 from chimerax.map import Volume
-from chimerax.dicom.dicom_volumes import DICOMVolume
 
 import chimerax.segmentations.triggers
-from chimerax.segmentations.triggers import (
-    VIEW_LAYOUT_CHANGED,
-    GUIDELINES_VISIBILITY_CHANGED,
-)
+from chimerax.segmentations.triggers import Trigger
 
 from chimerax.segmentations.view import views, FourPanelView
 from chimerax.segmentations.ui import find_segmentation_tool
@@ -27,31 +23,31 @@ def view_layout(
     settings = get_settings(session)
     if layout == "default" and session.ui.main_window.view_layout != "default":
         session.ui.main_window.restore_default_main_view()
-        chimerax.segmentations.triggers.activate_trigger(VIEW_LAYOUT_CHANGED, layout)
+        chimerax.segmentations.triggers.activate_trigger(Trigger.ViewLayoutChanged, layout)
     elif layout in views and session.ui.main_window.view_layout != "orthoplanes":
         if not layout:
             session.ui.main_window.main_view = FourPanelView(session)
         else:
             session.ui.main_window.main_view = FourPanelView(session, layout)
         session.ui.main_window.view_layout = "orthoplanes"
-        chimerax.segmentations.triggers.activate_trigger(VIEW_LAYOUT_CHANGED, layout)
+        chimerax.segmentations.triggers.activate_trigger(Trigger.ViewLayoutChanged, layout)
         if st:
             session.ui.main_window.main_view.register_segmentation_tool(st)
         if guidelines:
             settings.display_guidelines = guidelines
             chimerax.segmentations.triggers.activate_trigger(
-                chimerax.segmentations.triggers.GUIDELINES_VISIBILITY_CHANGED
+                Trigger.GuidelinesVisibilityChanged
             )
     elif layout in views and session.ui.main_window.view_layout == "orthoplanes":
         if layout:
             session.ui.main_window.main_view.convert_to_layout(layout)
             chimerax.segmentations.triggers.activate_trigger(
-                VIEW_LAYOUT_CHANGED, layout
+                Trigger.ViewLayoutChanged, layout
             )
         if guidelines is not None:
             settings.display_guidelines = guidelines
             chimerax.segmentations.triggers.activate_trigger(
-                GUIDELINES_VISIBILITY_CHANGED
+                Trigger.GuidelinesVisibilityChanged
             )
 
 

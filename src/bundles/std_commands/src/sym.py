@@ -443,8 +443,8 @@ class Assembly:
 
     def _partition_atoms(self, atoms, chain_ids):
         mmcif_cids = mmcif_chain_ids(atoms, self.from_mmcif)
-        from numpy import in1d, logical_not
-        mask = in1d(mmcif_cids, chain_ids)
+        from numpy import isin, logical_not
+        mask = isin(mmcif_cids, chain_ids)
         included_atoms = atoms.filter(mask)
         logical_not(mask,mask)
         excluded_atoms = atoms.filter(mask)

@@ -503,8 +503,6 @@ class RenderByAttrTool(ToolInstance):
         attr_name = self.select_attr_menu_button.text()
         if attr_name == self.NO_ATTR_TEXT:
             raise UserError("No attribute chosen for selection")
-        if isinstance(self.select_histogram.data_source, str):
-            raise UserError(self.select_histogram.data_source)
         cur_widget = self.select_widgets.currentWidget()
         if cur_widget == self.select_message_widget:
             raise UserError("Can't select using attribute '%s'" % attr_name)
@@ -515,6 +513,8 @@ class RenderByAttrTool(ToolInstance):
                 raise UserError("No values chosen for selection")
             params = [self.sel_text_to_value.get(txt, txt) for txt in texts]
         elif cur_widget == self.select_histogram_area:
+            if isinstance(self.select_histogram.data_source, str):
+                raise UserError(self.select_histogram.data_source)
             discrete = False
             checked_id = self.select_histogram_buttons.checkedId()
             if checked_id == 2:
@@ -558,7 +558,9 @@ class RenderByAttrTool(ToolInstance):
             move_callback=markers.move_callback, color_change_callback=markers.color_change_callback,
             new_color=markers.new_color)
         for marker in markers:
-            cloned.append((marker.xy, marker.rgba))
+            cmarker = cloned.append((marker.xy, marker.rgba))
+            if hasattr(marker, 'radius'):
+                cmarker.radius = marker.radius
         cloned.add_del_callback = markers.add_del_callback
         return cloned
 

@@ -110,24 +110,37 @@ class UI(QApplication):
         if qt_have_web_engine():
             import Qt.QtWebEngineWidgets
 
+        # make sure that validated input fields (QValidator) generate numbers
+        # Python's float will accept [#16374]...
+        from Qt.QtCore import QLocale
+        QLocale.setDefault(QLocale.c())
+
+        redirect_stdio_to_logger(self.session.logger)
+        self.redirect_qt_messages()
+
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
         import sys
 
+        from Qt.QtCore import Qt
+        if sys.platform == 'win32':
+            self.setStyle('Fusion')
+        self.fixed_color_scheme = color_scheme
         if color_scheme is None:
-            from Qt.QtCore import Qt
             if self.styleHints().colorScheme() == Qt.ColorScheme.Dark:
                 color_scheme = 'dark'
             else:
                 color_scheme = 'light'
-        if color_scheme == 'dark' and sys.platform == 'win32':
-            self.setStyle('Fusion')
+            self.styleHints().colorSchemeChanged.connect(self._update_color_scheme)
+        elif color_scheme == 'dark':
+            self.styleHints().setColorScheme(Qt.ColorScheme.Dark)
+            if self.styleHints().colorScheme() != Qt.ColorScheme.Dark:
+                self.session.logger.warning("Unable to set dark mode")
+                color_scheme = 'light'
+        else:
+            self.styleHints().setColorScheme(Qt.ColorScheme.Light)
         self.color_scheme = color_scheme
         set_default_color_scheme(self.color_scheme)
-        # TODO: hook up Qt signal to monitor color scheme changes
-
-        redirect_stdio_to_logger(self.session.logger)
-        self.redirect_qt_messages()
 
         self._keystroke_sinks = []
         self._key_callbacks = {}	# Maps Qt key number to callback func(session, key_num).
@@ -138,12 +151,33 @@ class UI(QApplication):
         self.triggers.add_trigger('ready')
         self.triggers.add_trigger('tool window show')
         self.triggers.add_trigger('tool window hide')
+        self.triggers.add_trigger('color scheme changed')
 
         # Work around Mac crash when adding or removing a screen. ChimeraX ticket #15277.
         from sys import platform
         if platform == 'darwin':
             self.screenAdded.connect(self._screen_added)
             self.screenRemoved.connect(self._screen_removed)
+
+    def _update_color_scheme(self):
+        from Qt.QtCore import Qt
+        from Qt.QtCore import QEvent
+        new_scheme = 'dark' if self.styleHints().colorScheme() == Qt.ColorScheme.Dark else 'light'
+        if new_scheme != self.color_scheme:
+            self.color_scheme = new_scheme
+            set_default_color_scheme(self.color_scheme)
+            sbar = self.main_window._status_bar
+            sbar.set_colors()
+            msg = f"Desktop color scheme is {new_scheme}"
+            self.session.logger.status(msg)
+            print(msg)  # cause log to redraw with new color scheme
+            if hasattr(self.main_window, 'fh'):
+                fh = self.main_window.fh
+                background = scheme_color('new_user_canvas')
+                fh.bg_color = background
+                # HTML widgets need to wait
+                self.thread_safe(fh.update_html, post_event=True)
+            self.thread_safe(self.triggers.activate_trigger, 'color scheme changed', None, post_event=True)
 
     def _screen_added(self):
         self._block_redraw_during_screen_change()
@@ -303,7 +337,11 @@ class UI(QApplication):
         # times on the command line.
         self._bad_drop_events = list(ignore_files)
         for bad_drop in getattr(self, '_seen_bad_drops', []):
-            self._bad_drop_events.remove(bad_drop)
+            # Debuggers stop here when ChimeraX is opened. Somehow bad_drop's value becomes the
+            # path to the debugpy executable but it is not in bad_drop_events, so we'll just check
+            # before trying to remove bad_drop from the list
+            if bad_drop in self._bad_drop_events:
+                self._bad_drop_events.remove(bad_drop)
         for path in self._files_to_open:
             if path not in ignore_files:
                 try:
@@ -428,13 +466,16 @@ class UI(QApplication):
         log.clear()    # clear logging timers
         ses.triggers.activate_trigger('app quit', None)
         self.closeAllWindows()
+        from sys import platform
+        if platform == 'darwin':
+            return	# Avoid Mac Qt 6.8.2 crash on exit.  ChimeraX bug #17265
         QApplication.quit()
 
-    def thread_safe(self, func, *args, **kw):
+    def thread_safe(self, func, *args, post_event=False, **kw):
         """Supported API.  Call function 'func' in a thread-safe manner
         """
         import threading
-        if threading.main_thread() == threading.current_thread():
+        if not post_event and threading.main_thread() == threading.current_thread():
             func(*args, **kw)
             return
         from Qt.QtCore import QEvent
@@ -525,8 +566,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         foreground = scheme_color('new_user_canvas_text')
         link = scheme_color('LinkText')
         new_user_text = [
-            "<html>",
-            "<body>",
             "<style>",
             "body {",
             f"    background-color: {background};"
@@ -554,13 +593,11 @@ class MainWindow(QMainWindow, PlainTextLog):
             "</style>",
             '<p class="banner-text">ChimeraX</p>',
             '<p class="help-link"><a href="cxcmd:help help:quickstart">Get started</a><p>',
-            "</body>",
-            "</html>"
         ]
         from Qt import qt_have_web_engine
         if qt_have_web_engine():
             from .file_history import FileHistory
-            fh = FileHistory(session, self.rapid_access, bg_color=background, thumbnail_size=(128,128),
+            self.fh = FileHistory(session, self.rapid_access, bg_color=background, thumbnail_size=(128,128),
                              filename_size=15, no_hist_text="\n".join(new_user_text))
         self._stack.addWidget(self.rapid_access)
         self._stack.setCurrentWidget(g.widget)
@@ -633,7 +670,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 resize_h = min(req_height, round(0.9 * (vg.height() - ydec)))
             if need_resize:
                 self.resize(resize_w, resize_h)
-            
+
             # Then ensure the corners are onscreen
             fgeom = self.frameGeometry() # above resize may have changed it
             geom = self.geometry()
@@ -2218,7 +2255,8 @@ class ToolWindow(StatusLogger):
         dock_area_value(Qt.DockWidgetArea.TopDockWidgetArea): "top",
         dock_area_value(Qt.DockWidgetArea.BottomDockWidgetArea): "bottom"
     }
-    def manage(self, placement = None, fixed_size=False, allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas,
+    def manage(self, placement = None, fixed_size=False,
+            allowed_areas=Qt.DockWidgetArea.RightDockWidgetArea|Qt.DockWidgetArea.LeftDockWidgetArea,
             initially_hidden=False):
         """Supported API. Show this tool window in the interface
 
@@ -2246,6 +2284,7 @@ class ToolWindow(StatusLogger):
             if tool_name not in settings.undockable:
                 settings.undockable = settings.undockable + [tool_name]
         from Qt.QtCore import Qt
+        self.default_allowed_areas = allowed_areas
         if tool_name in settings.undockable:
             allowed_areas = Qt.DockWidgetArea.NoDockWidgetArea
         geometry = None
@@ -2314,7 +2353,7 @@ class ToolWindow(StatusLogger):
         """Supported API. Perform actions when window hidden/shown
 
         Override to perform any actions you want done when the window
-        is hidden (\ `shown` = False) or shown (\ `shown` = True)"""
+        is hidden (`shown` = False) or shown (`shown` = True)"""
         pass
 
     def shrink_to_fit(self):
@@ -2409,7 +2448,7 @@ class ToolWindow(StatusLogger):
             # In Qt 6.7 pressing the Command key caused forwarding and focus switch to command-line
             # preventing Command+C copying from the Log, ChimeraX bug #16453.
             return
-        
+
         self.tool_instance.session.ui.forward_keystroke(event)
 
     def _mw_set_dockable(self, dockable):
@@ -2575,7 +2614,7 @@ class _Qt:
     @dockable.setter
     def dockable(self, dockable):
         from Qt.QtCore import Qt
-        areas = Qt.DockWidgetArea.AllDockWidgetAreas if dockable else Qt.DockWidgetArea.NoDockWidgetArea
+        areas = self.tool_window.default_allowed_areas if dockable else Qt.DockWidgetArea.NoDockWidgetArea
         self.dock_widget.setAllowedAreas(areas)
         if not dockable and not self.dock_widget.isFloating():
             self.dock_widget.setFloating(True)
@@ -3454,3 +3493,15 @@ def precise_target(session):
         # some selected bonds have neither endpoint atom selected
         return 'ab'
     return 'a'
+
+def tool_user_error(msg, parent=None, *, title="Error"):
+    # for (floating) dialogs, so they don't disappear behind the main window (which is what happens
+    # if you raise UserError)
+    from Qt.QtWidgets import QMessageBox
+    em = QMessageBox(parent)
+    em.setWindowTitle(title)
+    em.setText(msg)
+    b = em.addButton("OK", QMessageBox.AcceptRole)
+    em.setDefaultButton(b)
+    em.exec() if hasattr(em, 'exec') else em.exec_()
+

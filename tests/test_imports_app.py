@@ -22,6 +22,8 @@ blacklist = set(
         "chimerax.alphafold.fix_seq_titles",  # Alphafold database processing script.
         "chimerax.atomic.libmolc",  # non-importable dynamic lib
         "chimerax.atomic.md_crds.dcd.MDToolsMarch97.md_tests",  # test code
+        "chimerax.boltz.download_weights_and_ccd", # Boltz install code
+        "chimerax.boltz.make_ccd_atom_counts_file", # Boltz install code
         "chimerax.build_structure.process",  # processes Chimera fragment files
         "chimerax.coulombic.create_data",  # creates data.py
         "chimerax.dicom.scan_dicoms",  # development script
@@ -56,6 +58,10 @@ for info in pkgutil.walk_packages(
     module_finder, name, is_pkg = info
     if name not in blacklist:
         modules.append(name)
+
+# Other modules that need to be tested since they're e.g. optional
+# modules of dependencies, like numpy_formathandler
+modules.extend(["OpenGL_accelerate.numpy_formathandler"])
 
 
 @pytest.mark.parametrize("module", modules)

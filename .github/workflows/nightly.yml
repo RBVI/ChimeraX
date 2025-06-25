@@ -2,514 +2,161 @@ name: Nightly Build
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 10 * * *" # 10:30AM UTC / 2:30AM PST / 3:30AM PDT
+    - cron: "0 7 * * *" # 7AM UTC / 11PM PST / 12AM PDT
 
 jobs:
   build-rocky8-docker:
     name: Build ChimeraX for Rocky 8
-    runs-on: ubuntu-20.04
-    container:
-      image: rockylinux:8
-    env:
-      SHELL: /bin/bash
-      PATH: /usr/bin:/usr/sbin:/bin:/sbin
-    steps:
-      - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
-      - run: dnf update -y
-      - run: dnf install -y git-all
-      - uses: actions/checkout@v4
-      # buildinfo.py breaks without this
-      - run: chown -R $(id -u):$(id -g) $PWD
-      - run: ${PWD}/utils/set_up_centos.sh
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
-        with:
-          platform: linux
-          architecture: x86_64
-          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - uses: ./utils/ci/cache_mmtf/
-      - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos install-rbvi
-      - name: Run the legacy test suite
-        run: make test
-      - name: Install Pytest
-        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
-      - name: Set up the repo for coverage reporting
-        run: make prepare-coverage
-      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
-        run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        run: USE_COVERAGE=1 make pytest-wheel
-      - name: Run distribution tests
-        run: USE_COVERAGE=1 make pytest-app
-      - name: Report coverage
-        run: make report-coverage
-      - name: Build the Rocky 8 package
-        run: make -f Makefile.centos github-techpreview-package
-      - run: mv rpmbuild/RPMS/x86_64/ucsf-chimerax*.rpm ./chimerax.rpm
-      - name: Upload ChimeraX
-        uses: ./utils/ci/upload_artifact
-        with:
-          artifact_path: chimerax.rpm
-          full_build: true
-          release_type: github-techpreview
-          platform: centos-8
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - name: Tar bundles and includes for other builds
-        run: |
-          export BUNDLE_REPO_DIR=$(git rev-parse --show-toplevel)/build/sync
-          tar -cvzf linux-bundles.tar.gz -C $BUNDLE_REPO_DIR .
-          tar -cvzf linux-include.tar.gz -C build include
-      - name: Cache the bundles and includes
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            linux-bundles.tar.gz
-            linux-include.tar.gz
-          key: linux-bundles-github-techpreview-${{ github.sha }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+#          - branch: release/v1.10
+#            release_type: candidate
+          - branch: develop
+            release_type: daily
+          - branch: python3.13
+            release_type: techpreview
+    uses: ./.github/workflows/rocky8_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit
   build-rocky9-docker:
     name: Build ChimeraX for Rocky 9
     needs: [build-rocky8-docker]
-    runs-on: ubuntu-20.04
-    container:
-      image: rockylinux:9
-    env:
-      SHELL: /bin/bash
-      PATH: /usr/bin:/usr/sbin:/bin:/sbin
-      PYOPENGL_PLATFORM: egl
-    steps:
-      - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
-      - run: dnf update -y
-      - run: dnf install -y git-all
-      - uses: actions/checkout@v4
-      # buildinfo.py breaks without this
-      - run: chown -R $(id -u):$(id -g) $PWD
-      - run: ${PWD}/utils/set_up_centos.sh
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
-        with:
-          platform: linux
-          architecture: x86_64
-          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - name: Restore bundles and includes from cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            linux-bundles.tar.gz
-            linux-include.tar.gz
-          key: linux-bundles-github-techpreview-${{ github.sha }}
-      - name: Unpack the bundles to build/sync
-        run: |
-          mkdir wheels
-          tar -xvf linux-bundles.tar.gz -C wheels
-      - name: Unpack the include tarball to include
-        run: |
-          tar -xvf linux-include.tar.gz
-      - name: Build the rest of ChimeraX
-        run: |
-          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial make -j$(nproc) -C prereqs install
-          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial make -j$(nproc) -C prereqs app-install
-          make -C src/apps/ChimeraX install BUILD_TYPE=daily
-          ChimeraX.app/bin/python3.11 -m pip install wheels/*.whl
-          cp -rp include ChimeraX.app
-          make -C src/apps install BUILD_TYPE=daily
-          make -C docs install BUILD_TYPE=daily
-      - name: Run the legacy test suite
-        run: make test
-      - name: Install Pytest
-        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
-      - name: Set up the repo for coverage reporting
-        run: make prepare-coverage
-      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
-        run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        run: USE_COVERAGE=1 make pytest-wheel
-      - name: Run distribution tests
-        run: USE_COVERAGE=1 make pytest-app
-      - name: Report coverage
-        run: make report-coverage
-      - name: Make the package
-        run: make -f Makefile.centos github-techpreview-package
-      - run: mv rpmbuild/RPMS/x86_64/ucsf-chimerax*.rpm ./chimerax.rpm
-      - name: Upload ChimeraX
-        uses: ./utils/ci/upload_artifact
-        with:
-          artifact_path: chimerax.rpm
-          full_build: true
-          release_type: github-techpreview
-          platform: centos-9
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+#          - branch: release/v1.10
+#            release_type: candidate
+          - branch: develop
+            release_type: daily
+          - branch: python3.13
+            release_type: techpreview
+    uses: ./.github/workflows/rocky9_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit
   build-ubuntu:
     name: Build ChimeraX for Ubuntu
     needs: [build-rocky8-docker]
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
-    env:
-      PYOPENGL_PLATFORM: egl
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
-        with:
-          platform: linux
-          architecture: x86_64
-          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - name: Restore bundles and includes from cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            linux-bundles.tar.gz
-            linux-include.tar.gz
-          key: linux-bundles-github-techpreview-${{ github.sha }}
-      - name: Unpack the bundles tarball to wheels
-        run: |
-          mkdir wheels
-          tar -xvf linux-bundles.tar.gz -C wheels
-      - name: Unpack the include tarball to include
-        run: |
-          tar -xvf linux-include.tar.gz
-      - name: Build the rest of ChimeraX
-        run: |
-          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial make -j$(nproc) -C prereqs install
-          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial make -j$(nproc) -C prereqs app-install
-          make -C src/apps/ChimeraX install BUILD_TYPE=daily
-          ChimeraX.app/bin/python3.11 -m pip install wheels/*.whl
-          cp -rp include ChimeraX.app
-          make -C src/apps install BUILD_TYPE=daily
-          make -C docs install BUILD_TYPE=daily
-      - name: Run the legacy test suite
-        run: make test
-      - name: Install Pytest
-        run: ./ChimeraX.app/bin/python3.11 -I -m pip install pytest pytest-cov
-      - name: Set up the repo for coverage reporting
-        run: make prepare-coverage
-      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
-        run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        run: USE_COVERAGE=1 make pytest-wheel
-      - name: Run distribution tests
-        run: USE_COVERAGE=1 make pytest-app
-      - name: Report coverage
-        run: make report-coverage
-      - name: Make the package
-        run: make -f Makefile.ubuntu github-techpreview-package
-      - run: mv ${{ matrix.os }}/ucsf-chimerax-*.deb ./chimerax.deb
-      - name: Upload ChimeraX
-        uses: ./utils/ci/upload_artifact
-        with:
-          artifact_path: chimerax.deb
-          full_build: true
-          release_type: github-techpreview
-          platform: ${{ matrix.os }}
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+        include:
+          #          - branch: release/v1.10
+          #            release_type: candidate
+          - branch: develop
+            release_type: daily
+          - branch: python3.13
+            release_type: techpreview
+    uses: ./.github/workflows/ubuntu_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit
   build-flatpak:
-    name: Build ChimeraX Flatpak
+    name: Build ChimeraX FlatPak
     needs: [build-rocky8-docker]
-    runs-on: ubuntu-20.04
-    env:
-      SHELL: /bin/bash
-      PATH: /usr/bin:/usr/sbin:/bin:/sbin
-      PYOPENGL_PLATFORM: egl
-    container:
-      image: bilelmoussaoui/flatpak-github-actions:freedesktop-23.08
-      options: --privileged
-    steps:
-      - uses: actions/checkout@v4
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
-        with:
-          platform: linux
-          architecture: x86_64
-          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - name: Restore bundles and includes from cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            linux-bundles.tar.gz
-            linux-include.tar.gz
-          key: linux-bundles-github-techpreview-${{ github.sha }}
-      - run: chown -R $(id -u):$(id -g) $PWD
-      - name: Unpack the bundles to build/sync
-        run: |
-          mkdir wheels
-          tar -xvf linux-bundles.tar.gz -C wheels
-      - name: Unpack the include tarball to include
-        run: |
-          tar -xvf linux-include.tar.gz
-      - name: Build the rest of ChimeraX
-        uses: flatpak/flatpak-github-actions/flatpak-builder@master
-        with:
-          bundle: chimerax.flatpak
-          manifest-path: github-flatpak.yaml
-          cache-key: flatpak-builder-${{ github.sha }}
-          upload-artifact: false
-      # For now, we're skipping tests for the Flatpak
-      - name: Upload ChimeraX
-        uses: ./utils/ci/upload_artifact
-        with:
-          artifact_path: chimerax.flatpak
-          full_build: true
-          release_type: github-techpreview
-          platform: flatpak
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - branch: develop
+            release_type: daily
+          #- branch: python3.13
+          #  release_type: techpreview
+    uses: ./.github/workflows/flatpak_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit
+  build-flatpak-arm:
+    name: Build ARM ChimeraX FlatPak
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+#          - branch: release/v1.10
+#            release_type: candidate
+          - branch: develop
+            release_type: daily
+          #- branch: python3.13
+          #  release_type: techpreview
+    uses: ./.github/workflows/flatpak_arm_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit
   build-arm-macos:
-    name: Build ChimeraX for Apple Silicon
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Homebrew
-        id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@master
-      - run: |
-          brew install python@3.10
-          python3.10 -m pip install lief==0.12.2 dmgbuild
-          patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
-      - uses: actions/checkout@v4
-      - run: ${PWD}/utils/set_up_macos.sh
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
-        with:
-          platform: macos
-          architecture: universal2
-          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - uses: ./utils/ci/cache_mmtf/
-      - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) install-rbvi
-      - name: Run the legacy test suite
-        run: make test
-      - name: Install Pytest
-        run: ./ChimeraX.app/Contents/bin/python3.11 -I -m pip install pytest pytest-cov
-      - name: Set up the repo for coverage reporting
-        run: make prepare-coverage
-      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
-        run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        run: USE_COVERAGE=1 make pytest-wheel
-      - name: Run distribution tests
-        run: USE_COVERAGE=1 make pytest-app
-      - name: Report coverage
-        run: make report-coverage
-      - name: Sign the macOS package
-        uses: ./utils/ci/sign_macos/
-        with:
-          build_certificate: ${{ secrets.MAC_CERT_BASE64 }}
-          p12_pw: ${{ secrets.MAC_CERT_P12_PASSWD }}
-          build_profile: ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }}
-          kc_pw: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
-          team_id: ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
-          app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
-          provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
-          email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
-      - name: Upload ChimeraX
-        uses: ./utils/ci/upload_artifact
-        with:
-          artifact_path: ChimeraX.dmg
-          full_build: true
-          release_type: github-techpreview
-          platform: mac_arm64
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+    name: Build ChimeraX for arm64 macOS
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+#          - branch: release/v1.10
+#            release_type: candidate
+          - branch: develop
+            release_type: daily
+          - branch: python3.13
+            release_type: techpreview
+    uses: ./.github/workflows/mac_arm_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit
   build-intel-macos:
-    name: Build ChimeraX for Intel Macs
-    runs-on: macos-13
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Homebrew
-        id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@master
-      - run: |
-          brew install python@3.10
-          python3.10 -m pip install lief==0.12.2 dmgbuild
-          patch --ignore-whitespace -d /usr/local/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
-      # Temporarily force this to succeed. The container's Python conflicts with homebrew's,
-      # but we don't really use it anyway.
-      - run: ${PWD}/utils/set_up_macos.sh || true
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
-        with:
-          platform: macos
-          architecture: universal2
-          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - uses: ./utils/ci/cache_mmtf/
-      - run: MAKEOPTS="-j$(sysctl -n hw.logicalcpu)" make -j$(sysctl -n hw.logicalcpu) install-rbvi
-      - name: Run the legacy test suite
-        run: make test
-      - name: Install Pytest
-        run: ./ChimeraX.app/Contents/bin/python3.11 -I -m pip install pytest pytest-cov
-      - name: Set up the repo for coverage reporting
-        run: make prepare-coverage
-      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
-        run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        run: USE_COVERAGE=1 make pytest-wheel
-      - name: Run distribution tests
-        run: USE_COVERAGE=1 make pytest-app
-      - name: Report coverage
-        run: make report-coverage
-      - name: Sign the macOS package
-        uses: ./utils/ci/sign_macos/
-        with:
-          build_certificate: ${{ secrets.MAC_CERT_BASE64 }}
-          p12_pw: ${{ secrets.MAC_CERT_P12_PASSWD }}
-          build_profile: ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }}
-          kc_pw: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
-          team_id: ${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
-          app_pw: ${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
-          provider: ${{ secrets.MAC_NOTARIZATION_PROVIDER }}
-          email: ${{ secrets.MAC_NOTARIZATION_EMAIL }}
-      - name: Upload ChimeraX
-        uses: ./utils/ci/upload_artifact
-        with:
-          artifact_path: ChimeraX.dmg
-          full_build: true
-          release_type: github-techpreview
-          platform: macosx
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+    name: Build ChimeraX for Intel macOS
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+#          - branch: release/v1.10
+#            release_type: candidate
+          - branch: develop
+            release_type: daily
+          - branch: python3.13
+            release_type: techpreview
+    uses: ./.github/workflows/mac_intel_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit
   build-mac-universal:
-    name: Build ChimeraX for all Macs
-    needs: [build-intel-macos, build-arm-macos]
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        run: |
-          brew install python@3.10
-          python3.10 -m pip install setuptools==54.0
-          python3.10 -m pip install lief==0.12.2
-          python3.10 -m pip install dmgbuild 
-          # Make dmgbuild allocate an adult sized DMG
-          patch --ignore-whitespace -d /opt/homebrew/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
-      - uses: ./utils/ci/download_mac_chimerax
-        with:
-          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-          build_type: github-techpreview
-      - name: Extract the ChimeraXes
-        run: |
-          hdiutil attach chimerax_intel.dmg
-          cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_intel.app
-          hdiutil detach /Volumes/ChimeraX\ Installer
-          rm chimerax_intel.dmg
-          hdiutil attach chimerax_arm.dmg
-          cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_arm64.app
-          hdiutil detach /Volumes/ChimeraX\ Installer
-          rm chimerax_arm.dmg
-      - name: Make the universal build
-        run: |
-          python3.10 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app 2>&1
-      - name: Remove unneeded ChimeraXes
-        run: |
-          rm -r chimerax_arm64.app
-          rm -r chimerax_intel.app
-        # I have no idea why dmgbuild keeps complaining that it runs out of space if these
-        # steps are not separated instead of using the action and at this point I don't
-        # care to keep looking.
-      - name: Install the Apple certificate and provisioning profile
-        shell: bash
-        run: |
-          # create variables
-          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
-          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          # import certificate and provisioning profile from secrets
-          echo -n ${{ secrets.MAC_CERT_BASE64 }} | base64 --decode -o $CERTIFICATE_PATH
-          echo -n ${{ secrets.MAC_PROVISION_PROFILE_BASE64 }} | base64 --decode -o $PP_PATH
-          # create temporary keychain
-          security create-keychain -p "${{secrets.MAC_KEYCHAIN_PASSWORD}}" $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
-          security unlock-keychain -p  $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
-          # import certificate to keychain
-          security import $CERTIFICATE_PATH -P "${{ secrets.MAC_CERT_P12_PASSWD }}" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
-          security set-key-partition-list -S apple-tool:,apple: -k "${{ secrets.MAC_KEYCHAIN_PASSWORD }}" $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
-          security list-keychain -d user -s $KEYCHAIN_PATH 1>/dev/null 2>/dev/null
-          # apply provisioning profile
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
-      - name: Sign the macOS Package
-        run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          python3.10 utils/build/macos/notarize.py sign \
-          -a ChimeraX.app \
-          -d ChimeraX.dmg \
-          -T ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
-          -s ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
-          -p ${{ secrets.MAC_NOTARIZATION_APP_PSWD }} \
-          -P ${{ secrets.MAC_NOTARIZATION_PROVIDER }} \
-          -i ${{ secrets.MAC_NOTARIZATION_EMAIL }} \
-          -k "$KEYCHAIN_PATH" \
-          -K ${{ secrets.MAC_NOTARIZATION_KEYCHAIN_PW }} \
-          -v -v -v
-      - name: Make the DMG
-        run: |
-          python3.10 -m dmgbuild -s ./utils/build/macos/dmgbuildsettings.json "ChimeraX Installer" ChimeraX.dmg
-      - name: Notarize the DMG
-        run: |
-          python3.10 utils/build/macos/notarize.py notarize \
-          -a ChimeraX.app \
-          -d ChimeraX.dmg \
-          -T ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
-          -s ${{ secrets.MAC_NOTARIZATION_TEAM_ID }} \
-          -p ${{ secrets.MAC_NOTARIZATION_APP_PSWD }} \
-          -P ${{ secrets.MAC_NOTARIZATION_PROVIDER }} \
-          -i ${{ secrets.MAC_NOTARIZATION_EMAIL }} \
-          -k "$KEYCHAIN_PATH" \
-          -K ${{ secrets.MAC_NOTARIZATION_KEYCHAIN_PW }} \
-          -v -v -v
-      - name: Upload ChimeraX
-        uses: ./utils/ci/upload_artifact
-        with:
-          artifact_path: ChimeraX.dmg
-          full_build: true
-          release_type: github-techpreview
-          platform: mac_universal
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+    name: Build Universal ChimeraX for macOS
+    needs: [build-arm-macos, build-intel-macos]
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+#          - branch: release/v1.10
+#            release_type: candidate
+          - branch: develop
+            release_type: daily
+          #- branch: python3.13
+          #  release_type: techpreview
+    uses: ./.github/workflows/mac_universal_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit
   build-windows:
     name: Build ChimeraX for Windows
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
-      - name: Fetch PyQt6 and PyQt6-WebEngine from Plato
-        uses: ./utils/ci/cache_pyqt
-        with:
-          platform: windows
-          architecture: x86
-          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - uses: ./utils/ci/cache_mmtf/
-      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) install
-      - name: Run the legacy test suite
-        run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test
-      - name: Install Pytest
-        run: ./ChimeraX.app/bin/python.exe -I -m pip install pytest pytest-cov
-      - name: Set up the repo for coverage reporting
-        run: make prepare-coverage
-      - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
-        run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        run: USE_COVERAGE=1 make pytest-wheel
-      - name: Run distribution tests
-        run: USE_COVERAGE=1 make pytest-app
-      - name: Report coverage
-        run: make report-coverage
-      - name: Copy scripts into the package
-        run: |
-          cp utils/build/windows/remove_pycache.py ChimeraX.app/bin/
-      - name: Sign the Windows Package
-        uses: ./utils/ci/sign_windows
-        with:
-          build_certificate: ${{ secrets.WINDOWS_SIGNING_CERT }}
-          cert_password: ${{ secrets.WINDOWS_SIGNING_PASS }}
-      - name: Upload ChimeraX
-        uses: ./utils/ci/upload_artifact
-        with:
-          artifact_path: chimerax-installer.exe
-          full_build: true
-          release_type: github-techpreview
-          platform: windows
-          deploy_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+#          - branch: release/v1.10
+#            release_type: candidate
+          - branch: develop
+            release_type: daily
+          - branch: python3.13
+            release_type: techpreview
+    uses: ./.github/workflows/windows_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit

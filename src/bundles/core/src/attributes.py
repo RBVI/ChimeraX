@@ -187,16 +187,20 @@ def register_class(reg_class, instances_func, builtin_attr_info={}):
         return and possibly also None if the attribute could return None.
     """
     if hasattr(reg_class, '_attr_registration'):
-        return
-    reg_class._attr_registration = AttrRegistration(reg_class)
-    reg_class.register_attr = register_attr
-    reg_class.has_custom_attrs = has_custom_attrs
-    reg_class.custom_attrs = custom_attrs
-    reg_class.set_custom_attrs = set_custom_attrs
-    if _mgr:
-        _mgr.class_info[reg_class] = (instances_func, builtin_attr_info)
+        if _mgr:
+            _mgr.class_info[reg_class] = (instances_func, builtin_attr_info)
+        else:
+            _pending_classes[reg_class] = (instances_func, builtin_attr_info)
     else:
-        _pending_classes[reg_class] = (instances_func, builtin_attr_info)
+        reg_class._attr_registration = AttrRegistration(reg_class)
+        reg_class.register_attr = register_attr
+        reg_class.has_custom_attrs = has_custom_attrs
+        reg_class.custom_attrs = custom_attrs
+        reg_class.set_custom_attrs = set_custom_attrs
+        if _mgr:
+            _mgr.class_info[reg_class] = (instances_func, builtin_attr_info)
+        else:
+            _pending_classes[reg_class] = (instances_func, builtin_attr_info)
 
 MANAGER_NAME = "attribute registration"
 class RegAttrManager(StateManager):

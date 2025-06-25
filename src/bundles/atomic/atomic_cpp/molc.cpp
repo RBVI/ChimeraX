@@ -4509,6 +4509,20 @@ extern "C" EXPORT void structure_coordset_size(void *mols, size_t n, int32_t *co
     }
 }
 
+extern "C" EXPORT void structure_coordsets(void *mols, size_t n, pyobject_t *coordsets)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const Structure::CoordSets &cs = m[i]->coord_sets();
+            for (size_t j = 0; j != cs.size(); ++j)
+                *coordsets++ = cs[j];
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_num_coordsets(void *mols, size_t n, size_t *ncoord_sets)
 {
     Structure **m = static_cast<Structure **>(mols);
@@ -5439,6 +5453,22 @@ extern "C" EXPORT void set_metadata_entry(void* mols, size_t n, PyObject* key, P
         PyErr_Format(PyExc_ValueError, "Expected key to be a string");
         return;
     }
+    if (values == Py_None) {
+        // remove key from metadata
+        try {
+            std::string cpp_key = string_from_unicode(key);
+            Structure **m = static_cast<Structure **>(mols);
+            for (size_t i = 0; i < n; ++i) {
+                if (m == nullptr)
+                    continue;
+                auto& metadata = m[i]->metadata;
+                metadata.erase(cpp_key);
+            }
+        } catch (...) {
+            molc_error();
+        }
+        return;
+    }
     PyObject* fast_values = PySequence_Fast(values, "Expected values to be a sequence");
     if (fast_values == NULL)
         return;
@@ -5898,6 +5928,18 @@ GET_PYTHON_INSTANCES(ring, Ring)
 GET_PYTHON_INSTANCES(sequence, Sequence)
 GET_PYTHON_INSTANCES(structure, Structure)
 GET_PYTHON_INSTANCES(structureseq, StructureSeq)
+
+// need a special setter for Sequences created in the Python layer that does not add a reference
+extern "C" EXPORT void set_pysequence_py_instance(void* pysequence, PyObject* py_inst)
+{
+   Sequence *s = static_cast<Sequence *>(pysequence);
+   try {
+       s->set_py_instance(py_inst);
+       Py_DECREF(py_inst);
+   } catch (...) {
+       molc_error();
+   }
+}
 
 #include <pyinstance/PythonInstance.declare.h>
 extern "C" EXPORT PyObject *python_instances_of_class(PyObject* cls)

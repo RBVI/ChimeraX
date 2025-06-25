@@ -28,12 +28,13 @@
 
   <Providers manager="data formats">
     <Provider name="Integrative/Hybrid Models" category="Higher-order structure" suffixes=".ihm"
-		nicknames="ihm" reference_url="https://pdb-dev.wwpdb.org/about/" />
+		nicknames="ihm" reference_url="https://pdb-ihm.org/" />
   </Providers>
 
   <Providers manager="open command">
     <Provider name="Integrative/Hybrid Models" want_path="true" />
     <Provider name="pdbdev" type="fetch" format_name="Integrative/Hybrid Models" />
+    <Provider name="pdbihm" type="fetch" format_name="Integrative/Hybrid Models" />
   </Providers>
 
   <Classifiers>
