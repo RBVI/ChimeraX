@@ -113,6 +113,7 @@ jobs:
         shell: bash
         run: |
           export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g') >> $GITHUB_ENV
+          echo BUILD_VERSION=$BUILD_VERSION >> $GITHUB_ENV
           echo CHIMERAX_APP_NAME=ChimeraX-$BUILD_VERSION.app >> $GITHUB_ENV
 
       - name: Put the app name in GITHUB_ENV (daily)
