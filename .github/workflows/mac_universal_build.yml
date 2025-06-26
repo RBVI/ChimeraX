@@ -102,7 +102,7 @@ jobs:
       - name: Give the Intel ChimeraX a standard name (production)
         if: ${{ inputs.release_type == 'production' }}
         run: |
-          mv chimerax-$BUILD_VERSION.dmg chimerax_intel.dmg
+          mv $CHIMERAX_APP_NAME chimerax_intel.dmg
 
       - name: Download the ARM ChimeraX
         uses: nick-fields/retry@v3
@@ -121,7 +121,7 @@ jobs:
       - name: Give the ARM ChimeraX a standard name (production)
         if: ${{ inputs.release_type == 'production' }}
         run: |
-          mv ChimeraX-$BUILD_VERSION.dmg chimerax_arm.dmg
+          mv $CHIMERAX_APP_NAME chimerax_arm.dmg
 
       - name: Extract the ChimeraXes
         run: |
