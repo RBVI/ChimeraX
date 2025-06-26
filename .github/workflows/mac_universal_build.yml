@@ -61,10 +61,25 @@ jobs:
           timeout_seconds: 60
           command: ./utils/ci/nightly_logs.sh ${{ secrets.PREBUILT_CACHE_SECRET }} ${{ github.run_id }} ${{ steps.get_job_id.outputs.job_id }} mac_universal ${{ inputs.release_type }}
 
+      - name: Get the version of the production build and put the app name in the env (production)
+        if: ${{ inputs.release_type == 'production' }}
+        run:
+          export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g') >> $GITHUB_ENV
+          echo CHIMERAX_APP_NAME=ChimeraX-$BUILD_VERSION.app >> $GITHUB_ENV
+
       - name: Put the URLs of the ChimeraXes in GitHub's environment
+        if: ${{ inputs.release_type != 'production' }}
         run: |
           export CHIMERAX_AMD64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=macosx&build_type=${{ inputs.release_type }}&architecture=x86_64"
           export CHIMERAX_ARM64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=mac_arm64&build_type=${{ inputs.release_type }}&architecture=arm64"
+          echo "CHIMERAX_AMD64_URL=$CHIMERAX_AMD64_URL" >> $GITHUB_ENV
+          echo "CHIMERAX_ARM64_URL=$CHIMERAX_ARM64_URL" >> $GITHUB_ENV
+
+      - name: Put the URLs of the ChimeraXes in GitHub's environment (production)
+        if: ${{ inputs.release_type == 'production' }}
+        run: |
+          export CHIMERAX_AMD64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=macosx&build_type=${{ inputs.release_type }}&architecture=x86_64&version=$BUILD_VERSION"
+          export CHIMERAX_ARM64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=mac_arm64&build_type=${{ inputs.release_type }}&architecture=arm64&version=$BUILD_VERSION"
           echo "CHIMERAX_AMD64_URL=$CHIMERAX_AMD64_URL" >> $GITHUB_ENV
           echo "CHIMERAX_ARM64_URL=$CHIMERAX_ARM64_URL" >> $GITHUB_ENV
 
@@ -78,9 +93,15 @@ jobs:
           timeout_minutes: 30
           command: curl -H "X-API-KEY:${{ secrets.PREBUILT_CACHE_SECRET }}" $CHIMERAX_AMD64_URL -O -J
 
-      - name: Give the Intel ChimeraX a standard name
+      - name: Give the Intel ChimeraX a standard name (non-production)
+        if: ${{ inputs.release_type != 'production' }}
         run: |
           mv chimerax-${{ inputs.release_type}}.dmg chimerax_intel.dmg
+
+      - name: Give the Intel ChimeraX a standard name (production)
+        if: ${{ inputs.release_type == 'production' }}
+        run: |
+          mv chimerax-$BUILD_VERSION.dmg chimerax_intel.dmg
 
       - name: Download the ARM ChimeraX
         uses: nick-fields/retry@v3
@@ -91,9 +112,15 @@ jobs:
           timeout_minutes: 30
           command: curl -H "X-API-KEY:${{ secrets.PREBUILT_CACHE_SECRET }}" $CHIMERAX_ARM64_URL -O -J
 
-      - name: Give the ARM ChimeraX a standard name
+      - name: Give the ARM ChimeraX a standard name (non-production)
+        if: ${{ inputs.release_type != 'production' }}
         run: |
           mv chimerax-${{ inputs.release_type}}.dmg chimerax_arm.dmg
+
+      - name: Give the ARM ChimeraX a standard name (production)
+        if: ${{ inputs.release_type == 'production' }}
+        run: |
+          mv ChimeraX-$BUILD_VERSION.dmg chimerax_arm.dmg
 
       - name: Extract the ChimeraXes
         run: |
@@ -117,15 +144,10 @@ jobs:
         run: |
           rm -r chimerax_arm64.app
           rm -r chimerax_intel.app
+
         # I have no idea why dmgbuild keeps complaining that it runs out of space if these
         # steps are not separated instead of using the action and at this point I don't
         # care to keep looking.
-      - name: Put the app name in GITHUB_ENV (production)
-        if: ${{ inputs.release_type == 'production' }}
-        shell: bash
-        run: |
-          export BUILD_VERSION=$(echo ${{ inputs.branch }} | sed -e 's/.*v//g')
-          echo CHIMERAX_APP_NAME=ChimeraX-$BUILD_VERSION.app >> $GITHUB_ENV
 
       - name: Put the app name in GITHUB_ENV (daily)
         if: ${{ inputs.release_type == 'daily' }}
