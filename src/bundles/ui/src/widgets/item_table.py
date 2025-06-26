@@ -498,6 +498,7 @@ class ItemTable(QTableView):
 
         self._pending_columns.append(c)
         if refresh:
+            selected = self.selected
             num_existing = len(self._columns)
             self._table_model.beginInsertColumns(QModelIndex(),
                 num_existing, num_existing + len(self._pending_columns)-1)
@@ -506,6 +507,7 @@ class ItemTable(QTableView):
             self._pending_columns = []
             self.resizeColumnsToContents()
             self.resizeRowsToContents()
+            self.selected = selected
         return c
 
     @property
