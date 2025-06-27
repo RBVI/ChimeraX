@@ -25,29 +25,93 @@
 from chimerax.core.errors import UserError
 from chimerax.add_charge import ChargeMethodArg
 
-def cmd_minimize(session, structures, *, charge_method=ChargeMethodArg.default_value, dock_prep=True,
-        his_scheme=None):
-        args = (session, structures, charge_method, his_scheme)
+def cmd_minimize(session, structure, *, dock_prep=True, **kw):
+    if structure is None:
+        from chimerax.atomic import all_atomic_structures
+        available = all_atomic_structures(session)
+        if len(available) == 0:
+            raise UserError("No structures open")
+        elif len(available) == 1:
+            structure = available[0]
+        else:
+            raise UserError("Multiple structures open")
     if dock_prep:
-        #TODO: pass charge_method/his_scheme to right step
         from chimerax.dock_prep import dock_prep_caller
-        dock_prep_caller(session, structures, memorize_name="minimization",
-            callback=lambda args=args: _minimize(*args))
+        dock_prep_caller(session, [structure], memorize_name="minimization",
+            callback=lambda ses=session, struct=structure: _minimize(ses, struct), **kw)
     else:
-        _minimize(*args)
+        _minimize(session, structure)
 
-#TODO: def _minimize(...):
+def _minimize(session, structure):
+    from openmm.app import Topology, ForceField, element, HBonds
+    from openmm.unit import angstrom, nanometer, kelvin, picosecond, picoseconds, Quantity
+    from openmm import LangevinIntegrator, LocalEnergyMinimizer, vec3, Context, MinimizationReporter
+    import numpy
+    top = Topology()
+    atoms = {}
+    residues= {}
+    chains = {}
+    coords = []
+    reordered_atoms = []
+    # OpenMM wants all atoms in a residue to be added consecutively, so loop through residues instead of atoms...
+    for r in structure.residues:
+        c = r.chain
+        try:
+            mm_c = chains[c]
+        except KeyError:
+            mm_c = chains[c] = top.addChain("singletons" if c is None else c)
+        try:
+            mm_r = residues[r]
+        except KeyError:
+            mm_r = residues[r] = top.addResidue(r.name, mm_c, r.number, r.insertion_code)
+        for a in r.atoms:
+            atoms[a] = top.addAtom(a.name, element.Element.getBySymbol(a.element.name), mm_r, a.serial_number)
+            coords.append(Quantity(vec3.Vec3(*a.coord), angstrom))
+            reordered_atoms.append(a)
+
+    for b in structure.bonds:
+        top.addBond(atoms[b.atoms[0]], atoms[b.atoms[1]])
+
+    forcefield = ForceField('amber14-all.xml', 'amber14/tip3pfb.xml')
+    system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
+    integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 0.004*picoseconds)
+    context = Context(system, integrator)
+    context.setPositions(Quantity(coords))
+    class Reporter(MinimizationReporter):
+        step = 0
+        report_interval = 100
+
+        def __init__(self, atoms):
+            self.atoms = atoms
+            super().__init__()
+
+        def report(self, iteration, xyz, gradient, *args):
+            self.step += 1
+            if self.step % self.report_interval == 0:
+                session.logger.status("step %d: energy %.1f" % (self.step, args[0]["system energy"]), log=True)
+                crds = numpy.array(xyz)
+                crds = numpy.reshape(crds, (-1,3))
+                self.atoms.coords = crds * 10
+                from chimerax.core.commands import run
+                run(session, "wait 1", log=False)
+            return False
+    from chimerax.atomic import Atoms
+    cx_atoms = Atoms(reordered_atoms)
+    LocalEnergyMinimizer.minimize(context, reporter=Reporter(cx_atoms))
+    final_crds = numpy.array([q.value_in_unit(angstrom)
+        for q in context.getState(getPositions=True).getPositions()])
+    final_crds = numpy.reshape(final_crds, (-1,3))
+    cx_atoms.coords = final_crds
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, EnumOf, BoolArg
-    from chimerax.atomic import AtomicStructuresArg
+    from chimerax.atomic import AtomicStructureArg
+    from chimerax.dock_prep import get_param_info
     desc = CmdDesc(
-        required = [('structures', Or(AtomicStructuresArg, EmptyArg))],
+        required = [('structure', Or(AtomicStructureArg, EmptyArg))],
         keyword = [
-            ('charge_method', ChargeMethodArg),
             ('dock_prep', BoolArg),
-            ('his_scheme', EnumOf(['HIP', 'HIE', 'HID'])),
-        ],
+        ] + list(get_param_info(logger.session).items()),
         synopsis = 'Minimize structures'
     )
     register("minimize", desc, cmd_minimize, logger=logger)
