@@ -109,7 +109,8 @@ jobs:
         if: ${{ inputs.release_type == 'production' }}
         shell: bash
         run: |
-          export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g') >> $GITHUB_ENV
+          export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g')
+          echo BUILD_VERSION=$BUILD_VERSION >> $GITHUB_ENV
           echo CHIMERAX_APP_NAME=ChimeraX-$BUILD_VERSION.app >> $GITHUB_ENV
 
       - name: Put the app name in GITHUB_ENV (daily)
@@ -250,7 +251,7 @@ jobs:
           max_attempts: 1000
           timeout_minutes: 60
           command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=mac_arm64" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/ChimeraX.dmg" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
-      - name: Put release version in the environment
+      - name: Put release version in the environment (candidate)
         if: ${{ inputs.release_type == 'candidate' }}
         run: |
           export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g')

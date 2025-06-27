@@ -293,7 +293,7 @@ def move_atoms(atoms, to_atoms, tf, move):
             matoms = atoms.unique_residues.atoms
         elif move == 'chains':
             matoms = extend_to_chains(atoms)
-        elif move == 'structure atoms':
+        elif move == 'structure atoms' or move == 'structure-atoms':
             from chimerax.atomic import concatenate, Atoms
             matoms = concatenate([m.atoms for m in atoms.unique_structures], Atoms)
         elif isinstance(move, Atoms):
@@ -320,7 +320,7 @@ def register_command(logger):
     desc = CmdDesc(required = [('atoms', OrderedAtomsArg)],
                    keyword = [('to_atoms', OrderedAtomsArg),
                               ('move', EnumOf(('atoms', 'residues', 'chains', 'structures',
-                                               'structure atoms', 'nothing'))),
+                                               'structure atoms', 'structure-atoms', 'nothing'))),
                               ('each', EnumOf(('chain', 'structure', 'coordset'))),
                               ('match_chain_ids', BoolArg),
                               ('match_numbering', BoolArg),
