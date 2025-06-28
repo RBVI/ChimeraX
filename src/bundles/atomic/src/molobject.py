@@ -1287,12 +1287,14 @@ class StructureSeq(Sequence):
         if "name changed" in changes.residue_reasons():
             updated_chars = []
             some_changed = False
+            # prevent calling C++ layer for residues mulitple times
+            residues = self.residues
             for gi, c in enumerate(self.characters):
                 ugi = self.gapped_to_ungapped(gi)
                 if ugi is None:
                     updated_chars.append(c)
                 else:
-                    res = self.residues[ugi]
+                    res = residues[ugi]
                     if res:
                         uc = Sequence.rname3to1(res.name)
                         updated_chars.append(uc)
@@ -1302,7 +1304,7 @@ class StructureSeq(Sequence):
                         updated_chars.append(c)
 
             if some_changed:
-                self.bulk_set(self.residues, ''.join(updated_chars), fire_triggers=False)
+                self.bulk_set(residues, ''.join(updated_chars), fire_triggers=False)
                 self._fire_trigger('characters changed', self)
 
     def _cpp_structure_seq_demotion(self):
