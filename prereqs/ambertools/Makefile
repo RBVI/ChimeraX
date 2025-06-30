@@ -158,6 +158,7 @@ ifneq ($(LIBGCCDIR),)
 endif
 ifeq ($(OS),Windows)
 	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /usr/bin/cygreadline*.dll /usr/bin/cygintl*.dll /usr/bin/cygncursesw*.dll /usr/bin/cygiconv*.dll /bin/sh.exe $(AMBERBIN_DST)
+	$(RSYNC) $(CMAKE_INSTALL_DIR)/*.$(SHLIB_EXT) $(AMBERBIN_DST)
 endif
 ifeq ($(OS),Darwin)
 	install_name_tool -rpath @loader_path/../../lib @loader_path/../../../lib $(AMBERBIN_DST)/antechamber
