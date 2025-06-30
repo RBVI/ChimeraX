@@ -230,7 +230,7 @@ def make_link(target, source) -> None:
     """An OS-agnostic way to make a symbolic link that does not require permissions
     on Windows to use."""
     if sys.platform == "win32":
-        subprocess.run('mklink /J "%s" "%s"' % (source, target), shell = True)
+        subprocess.run(['mklink', '/J', source, target])
     else:
         os.symlink(target, source)
 

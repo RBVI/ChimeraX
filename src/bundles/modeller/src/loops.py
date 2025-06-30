@@ -71,8 +71,10 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
 
     by_structure = {}
     chain_indices = {}
+    seq_to_alignment = {}
     for alignment, seq, region_info in targets:
-        model_chains = set(seq.match_maps.keys())
+        seq_to_alignment[seq] = alignment
+        model_chains = set(alignment.match_maps[seq].keys())
         if not model_chains:
             raise UserError("No chains/structures associated with sequence %s" % seq.name)
         if chains:
@@ -84,9 +86,9 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
 
         for chain in model_chains:
             if region_info == ALL_MISSING:
-                chain_indices[chain] = find_missing(chain, seq, False)
+                chain_indices[chain] = find_missing(alignment.match_maps[seq][chain], seq, False)
             elif region_info == INTERNAL_MISSING:
-                chain_indices[chain] = find_missing(chain, seq, True)
+                chain_indices[chain] = find_missing(alignment.match_maps[seq][chain], seq, True)
             else:
                 chain_indices[chain] = region_info
     # MAV: loop_data = (protocol, chain_indices[chain], seq, template_models)
@@ -135,8 +137,12 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     target_chars.append('-' * len(existing))
                     offset_i += len(existing)
                 else:
-                    prefix, suffix = [ret[0] for ret in find_affixes([r.chain], {r.chain: (seq, None)})]
-                    chain_template_chars = prefix + regularized_seq(seq, r.chain).characters + suffix
+                    aln = seq_to_alignment[seq]
+                    match_map = aln.match_maps[seq]
+                    prefix, suffix = [ret[0] for ret in
+                        find_affixes(r.chain, {r.chain: (seq, None, match_map)}, aln)]
+                    chain_template_chars = prefix + regularized_seq(seq,
+                        r.chain, match_map).characters + suffix
                     template_chars.append(chain_template_chars)
                     # prevent Modeller from filling in unmodelled missing structure by using '-'
                     chain_target_chars = []
@@ -165,7 +171,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         # ensure that the bounding residues actually exist
         loop_data = []
         for chain, seq in chain_map.items():
-            mmap = seq.match_maps[chain]
+            mmap = seq_to_alignment[seq].match_maps[seq][chain]
             for start, end in chain_indices[chain]:
                 start = max(start - adjacent_flexible, 0)
                 while start > 0 and start-1 not in mmap:
@@ -270,8 +276,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         job_runner.run(block=block)
     return
 
-def find_missing(chain, seq, internal_only):
-    match_map = seq.match_maps[chain]
+def find_missing(match_map, seq, internal_only):
     missing = []
     start_missing = None
     for i in range(len(seq)):
@@ -287,20 +292,19 @@ def find_missing(chain, seq, internal_only):
         missing.append((start_missing, len(seq) - 1))
     return missing
 
-def find_affixes(chains, chain_info):
+def find_affixes(chain, chain_info, alignment):
     from chimerax.pdb import standard_polymeric_res_names as std_res_names
     in_seq_hets = []
     prefixes = []
     suffixes = []
     from chimerax.atomic import Sequence
-    for chain in chains:
-        try:
-            aseq, target = chain_info[chain]
-        except KeyError:
-            prefixes.append('')
-            suffixes.append('')
-            continue
-        match_map = aseq.match_maps[chain]
+    try:
+        aseq, target, match_map = chain_info[chain]
+    except KeyError:
+        prefixes.append('')
+        suffixes.append('')
+    else:
+        match_map = alignment.match_maps[chain]
         prefix = ''
         for r in chain.existing_residues:
             if r in match_map:

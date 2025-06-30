@@ -364,8 +364,7 @@ See also: <a href="colortables.html#map">initial colors</a>
   <li>For <b>surface</b> and <b>mesh</b> displays, transparency
   is the fraction of light transmitted from behind the surface or a
   line of mesh (default <b>0.0</b>). By default,
-  these objects are dimmed as they are made more transparent
-  (see <a href="#dim"><b>dimTransparency</b></a>.) See also:
+  these objects are dimmed as they are made more transparent. See also:
   <a href="../tools/densitymaps.html" title="Map Toolbar...">
   <img class="icon" border=1 src="../tools/shortcut-icons/icecube.png"></a>
 <br><br>
@@ -932,16 +931,6 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>smoothLines</b> &nbsp;true | <b>false</b>
-  <br>Turn on anti-aliasing to smooth lines in mesh displays.
-  Mesh lines with <a href="#transparency">transparency</a> &gt; 0.0 can 
-  only be smoothed when <a href="#dim"><b>dimTransparency</b></a> is true.
-  A side effect of OpenGL anti-aliasing is that dense meshes 
- look brighter from some viewpoints and darker from others, depending on the
-  order in which the lines were drawn.  
-</blockquote>
-<blockquote>
-  <a href="#top" class="nounder">&bull;</a>
   <b>squareMesh</b> &nbsp;<b>true</b> | false
   <br>Display only a subset of the lines in the triangular mesh.  
   Lines in the square mesh show the intersection of the 
@@ -955,14 +944,6 @@ both depict isosurfaces.
  must be a positive integer (default <b>1</b>).
 </blockquote>
 -->
-<blockquote>
-  <a href="#top" class="nounder">&bull;</a>
-  <a name="dim"><b>dimTransparency</b> &nbsp;<b>true</b> | false</a>
-  <br>Decrease the brightness of surface and mesh displays as their
-  <a href="#transparency">transparency</a> is increased.
-  When dimming is on, OpenGL (alpha,1&ndash;alpha)
-  blending is used instead of (1,1&ndash;alpha) blending.
-</blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="meshLighting"><b>meshLighting</b> &nbsp;<b>true</b> | false</a>
@@ -1467,9 +1448,7 @@ detail in their respective sections:
  <li>smoothingFactor
  <li>subdivideSurface
  <li>subdivisionLevels
- <li>smoothLines
  <li>squareMesh
- <li>dimTransparency
  <li>meshLighting
  <li>twoSidedLighting
  <li>flipNormals
@@ -2871,5 +2850,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2024</address>
+June 2025</address>
 </body></html>

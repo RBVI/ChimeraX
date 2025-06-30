@@ -189,10 +189,6 @@ class AlignmentsManager(StateManager, ProviderManager):
         intrinsic : boolean
             If True, then the alignment is treated as "coupled" to the structures associated with
             it in that if all associations are removed then the alignment is destroyed.
-        copy_seqs: boolean
-            If True, copy the sequences so that attributes set on them (such as 'match_maps') don't
-            conflict with other alignments.  The default depends on the value of identify_as.  If
-            identify_as is False, then False, otherwise True.
 
         Returns the created Alignment
         """

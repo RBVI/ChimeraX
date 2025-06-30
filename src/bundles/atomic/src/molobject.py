@@ -1287,12 +1287,14 @@ class StructureSeq(Sequence):
         if "name changed" in changes.residue_reasons():
             updated_chars = []
             some_changed = False
+            # prevent calling C++ layer for residues mulitple times
+            residues = self.residues
             for gi, c in enumerate(self.characters):
                 ugi = self.gapped_to_ungapped(gi)
                 if ugi is None:
                     updated_chars.append(c)
                 else:
-                    res = self.residues[ugi]
+                    res = residues[ugi]
                     if res:
                         uc = Sequence.rname3to1(res.name)
                         updated_chars.append(uc)
@@ -1302,7 +1304,7 @@ class StructureSeq(Sequence):
                         updated_chars.append(c)
 
             if some_changed:
-                self.bulk_set(self.residues, ''.join(updated_chars), fire_triggers=False)
+                self.bulk_set(residues, ''.join(updated_chars), fire_triggers=False)
                 self._fire_trigger('characters changed', self)
 
     def _cpp_structure_seq_demotion(self):
@@ -1491,6 +1493,7 @@ class StructureData:
         ret = ctypes.c_char_p)().decode('utf-8')
     PBG_HYDROGEN_BONDS = c_function('structure_PBG_HYDROGEN_BONDS', args = (),
         ret = ctypes.c_char_p)().decode('utf-8')
+    _coordset_suppress_count = 0
     _ss_suppress_count = 0
 
     # For attribute registration...
@@ -1660,9 +1663,25 @@ class StructureData:
 
     from contextlib import contextmanager
     @contextmanager
+    def suppress_coordset_change_notifications(self):
+        """Suppress coordinate set change notifications while the code body runs.
+           Restore the original coordinate set of this structure when done."""
+        orig_coordset_id = self.active_coordset_id
+        if self._coordset_suppress_count == 0:
+            self.active_coordset_change_notify = False
+        self._coordset_suppress_count += 1
+        try:
+            yield
+        finally:
+            self.active_coordset_id = orig_coordset_id
+            self._coordset_suppress_count -= 1
+            if self._coordset_suppress_count == 0:
+                self.active_coordset_change_notify = True
+
+    @contextmanager
     def suppress_ss_change_notifications(self):
         """Suppress secondard structure change notifications while the code body runs.
-           Restore the original secondard structure of this atom when done."""
+           Restore the original secondard structure of this model when done."""
         orig_ss_types = self.residues.ss_types
         orig_ss_ids = self.residues.ss_ids
         if self._ss_suppress_count == 0:
@@ -2351,7 +2370,9 @@ class SeqMatchMap(State):
         self._align_seq = align_seq
         self._struct_seq = struct_seq
         from . import get_triggers
-        self._handler = get_triggers().add_handler("changes", self._atomic_changes)
+        self._handlers = [get_triggers().add_handler("changes", self._atomic_changes)]
+        if align_seq.ungapped() == struct_seq.ungapped():
+            self._handlers.append(struct_seq.triggers.add_handler("residues changed", self._res_change_cb))
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('modified')
@@ -2425,11 +2446,20 @@ class SeqMatchMap(State):
             if modified:
                 self.triggers.activate_trigger('modified', self)
 
+    def _res_change_cb(self, trig_name, sseq):
+        # only called if alignment and structure seqs are the same
+        self._res_to_pos.clear()
+        self._pos_to_res.clear()
+        for r, i in sseq.res_map.items():
+            self._res_to_pos[r] = i
+            self._pos_to_res[i] = r
+        self.triggers.activate_trigger('modified', self)
+
     def __del__(self):
         self._pos_to_res.clear()
         self._res_to_pos.clear()
-        from . import get_triggers
-        get_triggers().remove_handler(self._handler)
+        for handler in self._handlers:
+            handler.remove()
 
 # -----------------------------------------------------------------------------
 #

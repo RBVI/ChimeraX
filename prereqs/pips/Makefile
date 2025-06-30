@@ -92,6 +92,9 @@ endif
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
+	# TODO:
+	#rm -rf $(APP_PYSITEDIR)/nvidia*
+
 	# tcia_utils (a DICOM dependency) pulls in Pandas, but it is patched
 	# so that pandas is not needed. When those patches are upstreamed
 	# and pandas is optional this line can be removed
@@ -136,6 +139,7 @@ app-upgrade:
 
 clean:
 	-rm -f pip.log
+	-rm -f app_requirements.txt
 	make -C package_checker clean
 
 outdated:

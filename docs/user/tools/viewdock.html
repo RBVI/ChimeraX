@@ -1,0 +1,184 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: ViewDock</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: ViewDock</h3>
+<p>
+<b>ViewDock</b> is a tool for the interactive analysis of
+molecular docking results.
+Users can click through a list of docked compounds (or different
+poses of the same compound) to view them individually in the context
+of a binding site. Results can be sorted, rated, and saved.
+See also: 
+an <a href="../formats/dock4.mol2">example file</a> of compounds docked to 
+H-ras (the protein part of PDB entry
+<a href="https://www.rcsb.org/pdb/explore/explore.do?structureId=121p"
+target="_blank">121p</a>),
+<a href="hbonds.html"><b>H-Bonds</b></a>,
+<a href="clashes.html"><b>Clashes/Contacts</b></a>,
+<a href="dockprep.html"><b>Dock Prep</b></a>
+</p><p>
+<a name="formats"></a>
+Possible <a href="../commands/open.html#atomic">formats</a>
+of docking results:
+</p>
+<ul>
+<li>Mol2 (.mol2) from
+  <ul>
+  <li><a href="https://dock.compbio.ucsf.edu/" 
+target="_blank">UCSF&nbsp;DOCK</a>&nbsp;v4-6 
+  <li><a href="https://dock.compbio.ucsf.edu/DOCK3.7/" 
+target="_blank">UCSF&nbsp;DOCK&nbsp;v3.7</a>
+(however, the ligand descriptors in condensed tabular form will not be shown)
+  <li><a 
+href="https://www.ccdc.cam.ac.uk/solutions/csd-discovery/components/gold/"
+target="_blank">GOLD</a>
+  <li><a 
+href="https://www.chemcomp.com/MOE-Molecular_Operating_Environment.htm/" 
+target="_blank">MOE</a>
+  </ul>
+<li><a href="https://vina.scripps.edu/" target="_blank">AutoDock Vina</a> PDBQT
+(.pdbqt) (Protein Data Bank with partial charge Q and atom type T format)
+<li><a href="https://www.schrodinger.com/glide" target="_blank">Glide</a>
+Maestro (.mae, .maegz) 
+&ndash; to be recognized as docking results, the file must contain the
+<b>r_i_docking_score</b> descriptor; other Maestro files
+(those not produced by Glide) may not contain this descriptor
+<li><a href="https://www.swissdock.ch/" target="_blank">SwissDock</a>
+modified PDB format (<a href="../commands/open.html#local"><b>open</b></a>
+with <a href="../commands/open.html#file-table"><b>format swissdock</b></a>;
+the ligand and receptor files can be opened in either order, and with 
+two commands or a single command)
+</ul>
+<p>
+By default
+(<a href="../commands/open.html#local"><b>open</b></a> command with
+<a href="../commands/open.html#showTool"><b>showTool true</b></a>),
+opening a file that contains multiple docked ligands or ligand poses 
+will automatically start the <b>ViewDock</b> interface. 
+Alternatively, one or more such files can be opened with
+<a href="../commands/open.html#showTool"><b>showTool false</b></a>,
+and subsequently the <b>ViewDock</b> tool can be started
+from the <b>Binding Analysis</b> section of the <b>Tools</b> menu
+</p><p>
+The docking results and scores (if any) are listed in a 
+<a href="#table">table</a>
+that can be manipulated like other panels in ChimeraX 
+(<a href="../window.html#panels">more...</a>).
+</p>
+
+<a name="table"></a>
+<p class="nav">
+[<a href="#top">back to top: ViewDock</a>]
+</p>
+<h3>ViewDock Table</h3>
+<p>
+In the table of docking results, the rows are different compounds or
+different positions of a compound, and the columns show additional data
+read from the input, typically including compound names
+and docking scores. The structures and their data are saved in
+<a href="../commands/save.html#session">sessions</a>.
+</p><p>
+One or more rows can be <b><i>chosen</i></b> (highlighted) in the list
+by clicking and dragging with the left mouse button;
+<b>Ctrl</b>-click (or <b>command</b>-click if using a Mac)
+toggles whether a row is chosen. 
+Choosing rows displays the corresponding
+ligands and hides the others.
+</p><p>
+The first two columns in the table are generated automatically:
+</p>
+<ul>
+<li><b>ID</b> &ndash; model number
+<li><b>Rating</b> &ndash; rating on a scale of 1 to 3 (click to change)
+</ul>
+<p>
+Any additional columns that appear when <b>ViewDock</b> is first started
+reflect information read from the input file(s).
+Clicking a column header sorts by the values in that column.
+Checkboxes in the bottom section of the panel control which columns of
+information are shown in the table of hits, with buttons:
+</p>
+<ul>
+<li><b>All</b> &ndash; show all columns
+<li><b>Default</b> &ndash; restore the previously saved
+<a href="../preferences.html#other">preference</a> for which columns are shown
+<li><b>Standard</b> &ndash; use &ldquo;factory default&rdquo; set of
+initially displayed columns
+<li><b>Set Default</b> &ndash; save the currently shown set as a
+user <a href="../preferences.html#other">preference</a>
+<li><b>Toggle Controls</b> &ndash; show/hide the checkbox section
+</ul>
+<p>
+When the <b>ViewDock</b> dialog has the mouse focus and a single
+compound is shown (it may be necessary to click on the row for that compound
+after interacting with other windows),
+pressing the keyboard down (up) arrow key hides the compound and shows
+the next (previous) compound in the list.
+All of the descriptors read from the file for that compound will be shown in
+a panel at the very bottom of the dialog. The list can also be navigated with
+the <b>next docked</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/nextdocking.png"></a>.
+</p><p>
+<a name="buttons"></a>
+Buttons above the table:
+</p>
+<ul>
+<li><b>HBonds</b> 
+&ndash; calculate and add a column for
+the number of H-bonds between each compound and all other atoms
+(excluding the other docked compounds) using the
+<a href="hbonds.html"><b>H-Bonds</b></a> tool
+<!-- hbonds [dock-models] restrict [other-models] reveal true interSub true -->
+<li><b>Clashes</b> 
+&ndash; calculate and add a column for
+the number of clashes between each compound and all other atoms
+(excluding the other docked compounds) using the
+<a href="clashes.html"><b>Clashes</b></a> tool
+<!-- clashes [dock-models] test others reveal true -->
+<blockquote>
+<table cellpadding="8px" cellspacing="0px" border=1><tr><td class="shaded">
+Because <b><i>all</i></b> other atoms besides the docked compounds
+are treated as the receptor for identifying H-bonds and clashes,
+any atoms not meant to be considered (generally solvent, 
+co-crystallized ligands, <i>etc.</i>) should be deleted beforehand.
+In addition, any models other than the receptor and its docked compounds
+should be spatially separated from them or closed.
+</td></tr></table>
+</blockquote>
+<!--
+<li><b>Save...</b> save all compound structures and descriptors 
+(including current ratings) to a Mol2 file; the file can be
+reopened later for further analysis with <b>ViewDock</b>
+<li><b>Close</b> &ndash; close any structures with ratings no greater 
+than the specified number and remove their rows from the table
+-->
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+June 2025</address>
+</body></html>

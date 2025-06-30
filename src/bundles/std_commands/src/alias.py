@@ -46,6 +46,13 @@ def alias(session, name, text=''):
     cli.create_alias(name, text, user=True, logger=logger)
 
 
+def alias_synopsis(session, name, text=None):
+    try:
+        cli.command_set_synopsis(name, text)
+    except ValueError as e:
+        session.logger.warning(str(e))
+
+
 def list_aliases(session, internal=False):
     # list aliases
     logger = session.logger
@@ -80,6 +87,13 @@ def register_command(logger):
         non_keyword=['text'],
         synopsis='define or show a command alias')
     cli.register('alias', desc, alias, logger=logger)
+
+    desc = cli.CmdDesc(
+        required=[('name', cli.StringArg)],
+        optional=[('text', cli.WholeRestOfLine)],
+        non_keyword=['text'],
+        synopsis="set alias' synopsis")
+    cli.register('alias synopsis', desc, alias_synopsis, logger=logger)
 
     desc = cli.CmdDesc(
         keyword=[('internal', cli.NoArg)],
