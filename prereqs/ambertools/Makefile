@@ -127,10 +127,15 @@ ifeq ($(OS),Darwin)
 endif
 
 else
+ifeq ($(OS),Windows)
+INSTALLABLES = netcdf-4.6.1 netcdf-fortran-4.4.4 arpack sff cifparse lapack
+else
+INSTALLABLES = netcdf-4.6.1 netcdf-fortran-4.4.4 arpack sff cifparse
+endif
 install: $(SOURCE)
 	-mkdir "$(CMAKE_BUILD_DIR)" "$(CMAKE_INSTALL_DIR)"
 	cd "$(CMAKE_BUILD_DIR)" && env "PATH=$(PATH):/opt/homebrew/bin:/usr/local/bin" $(CMAKE) $(AMBERHOME) -DCMAKE_POLICY_VERSION_MINIMUM=3.12 -DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_DIR) -DCOMPILER=CLANG -DDOWNLOAD_MINICONDA=FALSE -DBUILD_PYTHON=FALSE -DFORCE_INTERNAL_LIBS=netcdf
-	for i in netcdf-4.6.1 netcdf-fortran-4.4.4 arpack sff cifparse ; do \
+	for i in $(INSTALLABLES) ; do \
 		if [ -e "$(CMAKE_TOOL_SRC)/$$i" ] ; then \
 			cd "$(CMAKE_TOOL_SRC)/$$i" && echo installing $$i && $(MAKE) install && echo installed $$i ; \
 		fi ; \
