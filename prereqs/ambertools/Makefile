@@ -128,7 +128,7 @@ endif
 
 else
 ifeq ($(OS),Windows)
-INSTALLABLES = netcdf-4.6.1 netcdf-fortran-4.4.4 arpack sff cifparse lapack
+INSTALLABLES = netcdf-4.6.1 netcdf-fortran-4.4.4 arpack sff cifparse lapack blas
 else
 INSTALLABLES = netcdf-4.6.1 netcdf-fortran-4.4.4 arpack sff cifparse
 endif
