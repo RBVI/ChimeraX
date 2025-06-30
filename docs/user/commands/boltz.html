@@ -120,6 +120,7 @@ with CUDA 12.6 support is installed before boltz.
 [&nbsp;<b>resultsDirectory</b>&nbsp;&nbsp;<i>directory</i>&nbsp;]
 [&nbsp;<b>device</b>&nbsp;&nbsp;<b>default</b>&nbsp;|&nbsp;cpu&nbsp;|&nbsp;gpu&nbsp;]
 [&nbsp;<b>float16</b>&nbsp;&nbsp;true&nbsp;&nbsp;|&nbsp;&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>steering</b>&nbsp;&nbsp;true&nbsp;&nbsp;|&nbsp;&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>samples</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>recycles</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>seed</b>&nbsp;&nbsp;<i>K</i>&nbsp;]
@@ -189,25 +190,29 @@ in which to store prediction results. It may include <b>[name]</b>
 to indicate substitution by the specified <i>prediction-name</i>.
 If the folder already exists, a numeric suffix _1, _2, _3... will be appended.
 <li><b>device</b>&nbsp;&nbsp;<b>default</b>&nbsp;|&nbsp;cpu&nbsp;|&nbsp;gpu 
-&ndash; Whether to run the computation on the GPU or CPU.
+&ndash; whether to run the computation on the GPU or CPU.
 The <b>default</b> setting chooses based on the availability of an Nvidia
 or Mac M series GPU and Torch support for the GPU.
 <li><b>float16</b>&nbsp;&nbsp;true&nbsp;&nbsp;|&nbsp;&nbsp;<b>false</b>
-&ndash; Whether to use 16-bit floating point (bfloat16) instead of 32-bit
+&ndash; whether to use 16-bit floating point (bfloat16) instead of 32-bit
 on Nvidia GPUs to allow predicting larger structures
 (approximately 40% more residues). The default is <b>false</b>; 
 using <b>float16 true</b> may reduce prediction accuracy.
+<li><b>steering</b>&nbsp;&nbsp;true&nbsp;&nbsp;|&nbsp;&nbsp;<b>false</b>
+&ndash; whether to use Boltz version 1x diffusion steering potentials,
+which are claimed to increase accuracy, but have been observed to
+increase run times (1.25x on Nvidia, 2.5x on Mac)
 <li><b>samples</b>&nbsp;&nbsp;<i>N</i>
-&ndash; Number of predictions (default <b>1</b>). This is what Boltz calls 
+&ndash; number of predictions (default <b>1</b>). This is what Boltz calls 
 "diffusion samples." Creating additional structures takes much less time 
 than creating the first structure.
 <li><b>recycles</b>&nbsp;&nbsp;<i>M</i>
-&ndash; Number of passes through the neural net that derives spatial 
+&ndash; number of passes through the neural net that derives spatial 
 information from which structures will be computed (default <b>3</b>).
 Higher numbers (<i>e.g.</i> 10) may give better structures but at the cost
 of increased runtime.
 <li><b>seed</b>&nbsp;&nbsp;<i>K</i>
-&ndash; Random number seed (an integer) to initialize the calculation.
+&ndash; random number seed (an integer) to initialize the calculation.
 Runs with different seeds will give different results.
 <li><b>useMsaCache</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 &ndash; whether to cache (and potentially reuse) the deep sequence alignments 
@@ -221,7 +226,7 @@ for assemblies with the exact same set of proteins.
 Alignments computed for individual proteins from multiple different runs
 cannot be used for an assembly of those proteins.
 <li><b>open</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
-&ndash; Whether to open the predicted structures when the prediction finishes
+&ndash; whether to open the predicted structures when the prediction finishes
 (default <b>true</b>). Initial coloring is by residue confidence values
 (<a href="../tools/boltz.html#confidence">details...</a>).
 The structures will be aligned to an already open model with
@@ -237,5 +242,5 @@ or allow ChimeraX use during the computation (default, <b>wait false</b>).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2025</address>
+June 2025</address>
 </body></html>
