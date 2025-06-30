@@ -304,7 +304,7 @@ def find_affixes(chain, chain_info, alignment):
         prefixes.append('')
         suffixes.append('')
     else:
-        match_map = alignment.match_maps[chain]
+        match_map = alignment.match_maps[aseq][chain]
         prefix = ''
         for r in chain.existing_residues:
             if r in match_map:
