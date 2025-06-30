@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 
 # Using AmberTools distribution from https://ambermd.org
 
-ifeq ($(OS),Darwin)
+ifneq ($(OS),Linux)
 VERSION = 25
 SRC_VERSION = 25
 SRC_NAME = ambertools
@@ -16,7 +16,7 @@ endif
 
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
-ifeq ($(OS),Darwin)
+ifneq ($(OS),Linux)
 # needs build tools as outlined here: https://ambermd.org/InstMacOS.php
 USE_PREBUILT=false
 UPLOAD_PREBUILT=false
@@ -77,7 +77,7 @@ ENV_OPTS =
 ifeq ($(OS),Windows)
 CONFIG_ARGS = -cygwin gnu
 ENV_OPTS = -u CC -u CXX FFLAGS=-fallow-argument-mismatch
-PATCHES += flex-cygwin.patch
+#PATCHES += flex-cygwin.patch
 else ifeq ($(OS),Linux)
 CONFIG_ARGS = gnu
 ENV_OPTS = FFLAGS=-fallow-argument-mismatch
@@ -128,15 +128,15 @@ endif
 
 else
 install: $(SOURCE)
-	-mkdir $(CMAKE_BUILD_DIR) $(CMAKE_INSTALL_DIR)
-	cd $(CMAKE_BUILD_DIR) && env PATH=$(PATH):/opt/homebrew/bin:/usr/local/bin $(CMAKE) $(AMBERHOME) -DCMAKE_POLICY_VERSION_MINIMUM=3.12 -DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_DIR) -DCOMPILER=CLANG -DDOWNLOAD_MINICONDA=FALSE -DBUILD_PYTHON=FALSE -DFORCE_INTERNAL_LIBS=netcdf
+	-mkdir "$(CMAKE_BUILD_DIR)" "$(CMAKE_INSTALL_DIR)"
+	cd "$(CMAKE_BUILD_DIR)" && env "PATH=$(PATH):/opt/homebrew/bin:/usr/local/bin" $(CMAKE) $(AMBERHOME) -DCMAKE_POLICY_VERSION_MINIMUM=3.12 -DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_DIR) -DCOMPILER=CLANG -DDOWNLOAD_MINICONDA=FALSE -DBUILD_PYTHON=FALSE -DFORCE_INTERNAL_LIBS=netcdf
 	for i in netcdf-4.6.1 netcdf-fortran-4.4.4 arpack sff cifparse ; do \
-		if [ -e $(CMAKE_TOOL_SRC)/$$i ] ; then \
-			cd $(CMAKE_TOOL_SRC)/$$i && echo installing $$i && $(MAKE) install && echo installed $$i ; \
+		if [ -e "$(CMAKE_TOOL_SRC)/$$i" ] ; then \
+			cd "$(CMAKE_TOOL_SRC)/$$i" && echo installing $$i && $(MAKE) install && echo installed $$i ; \
 		fi ; \
 	done
-	cd $(CMAKE_TOOL_SRC)/sqm && $(MAKE) install
-	cd $(CMAKE_TOOL_SRC)/antechamber && $(MAKE) install
+	cd "$(CMAKE_TOOL_SRC)/sqm" && $(MAKE) install
+	cd "$(CMAKE_TOOL_SRC)/antechamber" && $(MAKE) install
 
 app-install: install
 	-mkdir -p $(AMBERBIN_DST) $(AMBERDAT_ANTECHAMBER_DST) $(AMBERDAT_PARM_DST)
