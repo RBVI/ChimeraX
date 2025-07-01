@@ -58,9 +58,9 @@ def _minimize(session, structure, live_updates, max_steps):
     # Also, it can't handle missing structure, so make ends of missing structure look like terminii
     fake_c = set()
     fake_n = set()
-    prev_r = None
-    in_missing = False
     for chain in structure.chains:
+        in_missing = False
+        prev_r = None
         for r in chain.residues:
             if r is None:
                 if prev_r:
@@ -72,7 +72,7 @@ def _minimize(session, structure, live_updates, max_steps):
                 in_missing = False
             prev_r = r
     n_error_template = "Don't know how to modify %s to match N-terminal template: %s"
-    n_error_template = "Don't know how to modify %s to match C-terminal template: %s"
+    c_error_template = "Don't know how to modify %s to match C-terminal template: %s"
     from chimerax.atomic.bond_geom import bond_positions
     from chimerax.addh import bond_with_H_length
     NH_len = CO_len = None
@@ -135,7 +135,19 @@ def _minimize(session, structure, live_updates, max_steps):
         top.addBond(atoms[b.atoms[0]], atoms[b.atoms[1]])
 
     forcefield = ForceField('amber14-all.xml', 'amber14/tip3pfb.xml')
-    system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
+    try:
+        system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
+    except ValueError as e:
+        err_text = str(e)
+        if err_text.startswith("No template"):
+            left_paren = err_text.find('(')
+            right_paren = err_text.find(')')
+            if left_paren >= 0 and right_paren > left_paren:
+                raise LimitationError("Support for minimizing structures with non-standard residues"
+                    " (such as %s) not yet implemented.  If such residues are not crucial for your"
+                    " analysis, consider deleting them and then minimizing."
+                    % err_text[left_paren+1:right_paren])
+        raise
     integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 0.004*picoseconds)
     context = Context(system, integrator)
     context.setPositions(Quantity(coords))
