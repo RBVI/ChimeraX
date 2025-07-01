@@ -25,7 +25,7 @@
 from chimerax.core.errors import UserError, LimitationError
 from chimerax.add_charge import ChargeMethodArg
 
-def cmd_minimize(session, structure, *, dock_prep=True, **kw):
+def cmd_minimize(session, structure, *, dock_prep=True, live_updates=True, max_steps=None, **kw):
     if structure is None:
         from chimerax.atomic import all_atomic_structures
         available = all_atomic_structures(session)
@@ -38,11 +38,12 @@ def cmd_minimize(session, structure, *, dock_prep=True, **kw):
     if dock_prep:
         from chimerax.dock_prep import dock_prep_caller
         dock_prep_caller(session, [structure], memorize_name="minimization", nogui=True,
-            callback=lambda ses=session, struct=structure: _minimize(ses, struct), **kw)
+            callback=lambda ses=session, struct=structure, updates=live_updates, steps=max_steps:
+                _minimize(ses, struct, updates, steps), **kw)
     else:
-        _minimize(session, structure)
+        _minimize(session, structure, live_updates, max_steps)
 
-def _minimize(session, structure):
+def _minimize(session, structure, live_updates, max_steps):
     from openmm.app import Topology, ForceField, element, HBonds
     from openmm.unit import angstrom, nanometer, kelvin, picosecond, picoseconds, Quantity
     from openmm import LangevinIntegrator, LocalEnergyMinimizer, vec3, Context, MinimizationReporter
@@ -150,14 +151,17 @@ def _minimize(session, structure):
             self.step += 1
             if self.step % self.report_interval == 0:
                 session.logger.status("step %d: energy %.1f" % (self.step, args[0]["system energy"]), log=True)
-                crds = numpy.array(xyz)
-                crds = numpy.reshape(crds, (-1,3))
-                self.atoms.coords = crds[filter] * 10
-                from chimerax.core.commands import run
-                run(session, "wait 1", log=False)
-            return False
+                if live_updates:
+                    crds = numpy.array(xyz)
+                    crds = numpy.reshape(crds, (-1,3))
+                    self.atoms.coords = crds[filter] * 10
+                    from chimerax.core.commands import run
+                    run(session, "wait 1", log=False)
+            return False if max_steps is None else self.step >= max_steps
     from chimerax.atomic import Atoms
     cx_atoms = Atoms(reordered_atoms)
+    # maxIterations doesn't truly constrain maximum iterations as you would expect
+    # (see https://github.com/openmm/openmm/issues/4983), so it is handled in the reporter instead
     LocalEnergyMinimizer.minimize(context, reporter=Reporter(cx_atoms))
     final_crds = numpy.array([q.value_in_unit(angstrom)
         for q in context.getState(getPositions=True).getPositions()])
@@ -165,13 +169,15 @@ def _minimize(session, structure):
     cx_atoms.coords = final_crds[filter]
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, EnumOf, BoolArg
+    from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, EnumOf, BoolArg, PositiveIntArg
     from chimerax.atomic import AtomicStructureArg
     from chimerax.dock_prep import get_param_info
     desc = CmdDesc(
         required = [('structure', Or(AtomicStructureArg, EmptyArg))],
         keyword = [
             ('dock_prep', BoolArg),
+            ('live_updates', BoolArg),
+            ('max_steps', PositiveIntArg),
         ] + list(get_param_info(logger.session).items()),
         synopsis = 'Minimize structures'
     )
