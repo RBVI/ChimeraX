@@ -81,7 +81,7 @@ class AnimationsTool(ToolInstance):
         main_vbox_layout = QVBoxLayout()
 
         # Keyframe editor graphics view widget.
-        self.kf_editor_widget = KeyframeEditorWidget(5, [])
+        self.kf_editor_widget = KeyframeEditorWidget([])
         main_vbox_layout.addWidget(self.kf_editor_widget)
 
         self.tool_window.ui_area.setLayout(main_vbox_layout)
