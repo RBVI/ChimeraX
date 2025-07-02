@@ -116,17 +116,24 @@ class ViewDockTool(ToolInstance):
         """
         self.hbonds_col = self.clashes_col = None
 
+        # though strictly speaking we should set inter/intra_model/mol/res false in these calls,
+        # because we are also using "restrict" they are superfluous, so don't bother
         self.hbonds_button = QPushButton("HBonds")
         self.hbonds_button.clicked.connect(
-            lambda: self.popup_callback(
-                HBondsGUI, "HBonds", self.process_hbonds, show_model_restrict=False, show_bond_restrict=False
+            lambda: self.popup_callback(HBondsGUI, "HBonds", self.process_hbonds,
+                show_bond_restrict=False, show_inter_model=False, show_intra_model=False,
+                show_intra_mol=False, show_intra_res=False, show_inter_submodel=False,
+                show_model_restrict=False,
             )
         )
         self.top_buttons_layout.addWidget(self.hbonds_button)
 
         self.clashes_button = QPushButton("Clashes")
         self.clashes_button.clicked.connect(
-            lambda: self.popup_callback(ClashesGUI, "Clashes", self.process_clashes, has_apply_button=False, show_restrict=False)
+            lambda: self.popup_callback(ClashesGUI, "Clashes", self.process_clashes,
+                has_apply_button=False, log=False, reveal=True, show_bond_separation=False,
+                show_checking_frequency=False, show_inter_model=False, show_intra_model=False,
+                show_intra_mol=False, show_intra_res=False, show_res_separation=False, show_restrict=False)
         )
         self.top_buttons_layout.addWidget(self.clashes_button)
 
@@ -147,7 +154,7 @@ class ViewDockTool(ToolInstance):
             **kwargs: Additional keyword arguments to pass to the GUI class constructor. Session is passed to all GUI
                 class constructors automatically and should not be specified in this list
         """
-        gui_instance = gui_class(self.session, **kwargs)
+        gui_instance = gui_class(self.session, settings_name="viewdock", **kwargs)
 
         # Create a QDialog to act as the popup
         dialog = QDialog(self.tool_window.ui_area)
@@ -172,10 +179,11 @@ class ViewDockTool(ToolInstance):
             # All structures that are AtomicStructures but not in the binding analysis structures
             others = concise_model_spec(self.session, set(all_structures) - set(self.structures))
             if others == "#":
-                self.session.logger.warning(f"First open a model for {popup_name.capitalize()}.")
+                self.session.logger.warning(f"First open a receptor model for {popup_name.capitalize()}.")
             else:
                 # command[0] = command name, command[1] = model selection, command[2] = other arguments
-                results_callback(run(self.session, f"{command[0]} {mine} restrict {others} {command[2]}"))
+                results_callback(run(self.session,
+                    f"{command[0]} {mine} restrict {others} & (main|ligand) {command[2]}"))
             dialog.accept()
 
         button_box.accepted.connect(ok_cb)
@@ -442,10 +450,11 @@ class ViewDockTool(ToolInstance):
         for a1, clashes in cmd_results.items():
             for a2 in clashes.keys():
                 for s in set([a.structure for a in (a1,a2)]):
-                    counts[s] += 1
+                    if s in counts:
+                        counts[s] += 1
         for s, count in counts.items():
             # divide by two since both "directions" occur in the clash results
-            s.viewdock_data["clashes"] = count / 2
+            s.viewdock_data["clashes"] = count // 2
         if self.clashes_col is None:
             self.clashes_col = self.struct_table.add_column("Clashes",
                 lambda s: s.viewdock_data["clashes"])
@@ -457,7 +466,8 @@ class ViewDockTool(ToolInstance):
         counts = { s: 0 for s in self.struct_table.data }
         for hb in cmd_results:
             for s in set([da.structure for da in hb]):
-                counts[s] += 1
+                if s in counts:
+                    counts[s] += 1
         for s, count in counts.items():
             s.viewdock_data["hbonds"] = count
         if self.hbonds_col is None:
