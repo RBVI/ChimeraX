@@ -348,6 +348,9 @@ def user_kw(kw_name):
 
 def _user_kw_cnt(kw_name):
     """Return user version of a keyword argument name and number of words."""
+    if isinstance(kw_name, int):
+        return f'${kw_name}', 1
+    words = kw_name.split("_")
     words = kw_name.split("_")
     return words[0] + "".join([x.capitalize() for x in words[1:]]), len(words)
 
@@ -3364,22 +3367,6 @@ def command_url(name, no_aliases=False, *, registry=None):
     return _get_help_url(cmd.command_name.split())
 
 
-def command_set_synopsis(name, synopsis=None, user_alias=True, *, registry=None):
-    cmd = Command(None, registry=registry)
-    cmd.current_text = name
-    cmd._find_command_name(no_aliases=False)
-    if cmd.amount_parsed == 0 or not cmd._ci:
-        raise ValueError('"%s" is not a command name' % name)
-    if user_alias and (not isinstance(cmd._ci.function, Alias)
-            or not cmd._ci.function.user_generated):
-        raise ValueError("can only set synopsis for user aliases")
-    if synopsis is None:
-        if not isinstance(cmd._ci.function, Alias):
-            raise ValueError("can not reset non-alias synopsis")
-        synopsis = f'alias of "{cmd._ci.function.original_text}"'
-    cmd._ci.synopsis = synopsis
-
-
 def usage(
     session,
     name,
@@ -3417,139 +3404,6 @@ def usage(
     return text
 
 
-def _usage(
-    name,
-    no_aliases=False,
-    show_subcommands=5,
-    expand_alias=True,
-    show_hidden=False,
-    *,
-    registry=None,
-    _shown_cmds=None
-):
-    """Return usage string for given command name
-
-    :param name: the name of the command
-    :param no_aliases: True if aliases should not be considered.
-    :param show_subcommands: number of subcommands that should be shown.
-    :param show_hidden: True if hidden keywords should be shown.
-    :returns: a usage string for the command
-    """
-    if _shown_cmds is None:
-        _shown_cmds = set()
-    name = name.strip()
-    cmd = Command(None, registry=registry)
-    cmd.current_text = name
-    cmd._find_command_name(no_aliases=no_aliases)
-    if cmd.amount_parsed == 0:
-        raise ValueError('"%s" is not a command name' % name)
-    if cmd.command_name in _shown_cmds:
-        return ""
-
-    syntax = ""
-    ci = cmd._ci
-    if ci:
-        arg_syntax = []
-        syntax = cmd.command_name
-        for arg_name in ci._required:
-            arg = ci._required[arg_name]
-            arg_name = user_kw(arg_name)
-            type = arg.name
-            if can_be_empty_arg(arg):
-                syntax += " [%s]" % arg_name
-            else:
-                syntax += " %s" % arg_name
-            arg_syntax.append("  %s: %s" % (arg_name, type))
-        num_opt = 0
-        for arg_name in ci._optional:
-            if not show_hidden and arg_name in ci._hidden:
-                continue
-            arg = ci._optional[arg_name]
-            arg_name = user_kw(arg_name)
-            type = arg.name
-            if can_be_empty_arg(arg):
-                syntax += " [%s]" % arg_name
-            else:
-                syntax += " [%s" % arg_name
-                num_opt += 1
-            arg_syntax.append("  %s: %s" % (arg_name, type))
-        syntax += "]" * num_opt
-        for arg_name in ci._keyword:
-            if not show_hidden and (arg_name in ci._hidden or arg_name in ci._optional):
-                continue
-            arg_type = ci._keyword[arg_name]
-            uarg_name = user_kw(arg_name)
-            if arg_type is NoArg:
-                syntax += " [%s]" % uarg_name
-                continue
-            if arg_name in ci._required_arguments:
-                syntax += " %s _%s_" % (uarg_name, arg_type.name)
-            else:
-                syntax += " [%s _%s_]" % (uarg_name, arg_type.name)
-        if registry is not None and registry is _available_commands:
-            uninstalled = " (uninstalled)"
-        else:
-            uninstalled = ""
-        if ci.synopsis:
-            syntax += " --%s %s" % (uninstalled, ci.synopsis)
-        else:
-            syntax += " --%s no synopsis available" % uninstalled
-        if arg_syntax:
-            syntax += "\n%s" % "\n".join(arg_syntax)
-        _shown_cmds.add(cmd.command_name)
-        if expand_alias and ci.is_alias():
-            alias = ci.function
-            arg_text = cmd.current_text[cmd.amount_parsed:]
-            args = arg_text.split(maxsplit=alias.num_args)
-            if len(args) > alias.num_args:
-                optional = args[-1]
-                del args[-1]
-            else:
-                optional = ""
-            try:
-                name = alias.expand(*args, optional=optional, partial_ok=True)
-                if name not in _shown_cmds:
-                    syntax += "\n" + _usage(
-                        name, registry=registry, _shown_cmds=_shown_cmds
-                    )
-                    _shown_cmds.add(name)
-            except Exception as e:
-                print(e)
-                pass
-
-    if (
-        show_subcommands
-        and cmd.word_info is not None
-        and cmd.word_info.has_subcommands()
-    ):
-        sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
-        name = cmd.current_text[: cmd.amount_parsed]
-        if len(sub_cmds) <= show_subcommands:
-            for w in sub_cmds:
-                subcmd = "%s %s" % (name, w)
-                if subcmd in _shown_cmds:
-                    continue
-                syntax += "\n\n" + _usage(
-                    subcmd,
-                    show_subcommands=0,
-                    registry=registry,
-                    _shown_cmds=_shown_cmds,
-                )
-                _shown_cmds.add(subcmd)
-        else:
-            if syntax:
-                syntax += "\n"
-            syntax += "Subcommands are:\n" + "\n".join(
-                "  %s %s" % (name, w) for w in sub_cmds
-            )
-
-    return syntax
-
-
-def can_be_empty_arg(arg):
-    return isinstance(arg, Or) and EmptyArg in arg.annotations
-
-
 def html_usage(
     session,
     name,
@@ -3561,39 +3415,46 @@ def html_usage(
     registry=None
 ):
     try:
-        text = _html_usage(
+        text = _usage(
             name,
             no_aliases,
             show_subcommands,
             expand_alias,
             show_hidden,
             registry=registry,
+            use_html=True
         )
     except ValueError as e:
         _compute_available_commands(session)
         if _available_commands is None:
             raise e
         try:
-            text = _html_usage(
+            text = _usage(
                 name,
                 no_aliases,
                 show_subcommands,
                 expand_alias,
                 show_hidden,
                 registry=_available_commands if registry is None else registry,
+                use_html=True
             )
         except ValueError:
             raise e
     return text
 
 
-def _html_usage(
+def can_be_empty_arg(arg):
+    return isinstance(arg, Or) and EmptyArg in arg.annotations
+
+
+def _usage(
     name,
     no_aliases=False,
     show_subcommands=5,
     expand_alias=True,
     show_hidden=False,
     *,
+    use_html=False,
     registry=None,
     _shown_cmds=None
 ):
@@ -3614,29 +3475,50 @@ def _html_usage(
         raise ValueError('"%s" is not a command name' % name)
     if cmd.command_name in _shown_cmds:
         return ""
-    from html import escape
+    if not use_html:
+        from ..nogui import escape
+        sb = "'"    # start bold
+        eb = "'"    # end bold
+        si = '_'    # start italics
+        ei = '_'    # end italics
+        snobr = ''  # start non-breaking text
+        enobr = ''  # end non-breaking text
+        mdash = '--'
+    else:
+        from html import escape
+        sb = '<b>'
+        eb = '</b>'
+        si = '<i>'
+        ei = '</i>'
+        snobr = '<nobr>'
+        enobr = '</nobr>'
+        mdash = '&mdash;'
 
     syntax = ""
     ci = cmd._ci
     if ci:
         arg_syntax = []
-        if cmd._ci.url is None:
-            syntax += "<b>%s</b>" % escape(cmd.command_name)
+        if not use_html or cmd._ci.url is None:
+            syntax += f"{sb}{escape(cmd.command_name)}{eb}"
         else:
-            syntax += '<b><a href="%s">%s</a></b>' % (ci.url, escape(cmd.command_name))
+            syntax += f'<a href="{ci.url}">{sb}{escape(cmd.command_name)}{eb}</a>'
         for arg_name in ci._required:
             arg_type = ci._required[arg_name]
             arg_name = user_kw(arg_name)
-            if arg_type.url is not None:
+            if use_html and arg_type.url is not None:
                 arg_name = arg_type.html_name(arg_name)
             else:
                 arg_name = escape(arg_name)
             if can_be_empty_arg(arg_type):
-                syntax += " [<i>%s</i>]" % arg_name
+                syntax += f" [{si}{arg_name}{ei}]"
             else:
-                syntax += " <i>%s</i>" % arg_name
+                syntax += f" {si}{arg_name}{ei}"
             if arg_type.url is None:
-                arg_syntax.append("<i>%s</i>: %s" % (arg_name, arg_type.html_name()))
+                if use_html:
+                    arg_type_name = arg_type.html_name()
+                else:
+                    arg_type_name = arg_type.name
+                arg_syntax.append(f"{si}{arg_name}{ei}: {arg_type_name}")
         num_opt = 0
         for arg_name in ci._optional:
             if not show_hidden and arg_name in ci._hidden:
@@ -3648,12 +3530,16 @@ def _html_usage(
             else:
                 arg_name = escape(arg_name)
             if can_be_empty_arg(arg_type):
-                syntax += " [<i>%s</i>]" % arg_name
+                syntax += f" [{si}{arg_name}{ei}]"
             else:
-                syntax += " [<i>%s</i>" % arg_name
+                syntax += f" [{si}{arg_name}{ei}"
                 num_opt += 1
             if arg_type.url is None:
-                arg_syntax.append("<i>%s</i>: %s" % (arg_name, arg_type.html_name()))
+                if use_html:
+                    arg_type_name = arg_type.html_name()
+                else:
+                    arg_type_name = arg_type.name
+                arg_syntax.append(f"{si}{arg_name}{ei}: {arg_type_name}")
         syntax += "]" * num_opt
         for arg_name in ci._keyword:
             if not show_hidden and (arg_name in ci._hidden or arg_name in ci._optional):
@@ -3663,26 +3549,38 @@ def _html_usage(
             if arg_type is NoArg:
                 type_info = ""
             elif isinstance(arg_type, type):
-                type_info = " <i>%s</i>" % arg_type.html_name()
+                if use_html:
+                    arg_type_name = arg_type.html_name()
+                else:
+                    arg_type_name = arg_type.name
+                type_info = f" {si}{arg_type_name}{ei}"
             else:
-                type_info = " <i>%s</i>" % uarg_name
+                type_info = f" {si}{uarg_name}{ei}"
                 if arg_name not in ci._optional:
-                    arg_syntax.append(
-                        "<i>%s</i>: %s" % (uarg_name, arg_type.html_name())
-                    )
+                    if use_html:
+                        arg_type_name = arg_type.html_name()
+                    else:
+                        arg_type_name = arg_type.name
+                    arg_syntax.append(f"{si}{uarg_name}{ei}: {arg_type_name}")
             if arg_name in ci._required_arguments:
-                syntax += " <nobr><b>%s</b>%s</nobr>" % (uarg_name, type_info)
+                syntax += f" {snobr}{sb}{uarg_name}{eb}{type_info}{enobr}"
             else:
-                syntax += " <nobr>[<b>%s</b>%s]</nobr>" % (uarg_name, type_info)
-        syntax += "<br>\n&nbsp;&nbsp;&nbsp;&nbsp;&mdash; "  # synopsis prefix
+                syntax += f" {snobr}[{sb}{uarg_name}{eb}{type_info}]{enobr}"
+        if use_html:
+            syntax += f"<br>\n&nbsp;&nbsp;&nbsp;&nbsp;{mdash} "  # synopsis prefix
+        else:
+            syntax += f" {mdash} "
         if registry is not None and registry is _available_commands:
             syntax += "(uninstalled) "
         if ci.synopsis:
-            syntax += "<i>%s</i>\n" % escape(ci.synopsis)
+            syntax += f"{escape(ci.synopsis)}\n"
         else:
-            syntax += "<i>[no synopsis available]</i>\n"
+            syntax += "(no synopsis available)\n"
         if arg_syntax:
-            syntax += "<br>\n&nbsp;&nbsp;%s" % "<br>\n&nbsp;&nbsp;".join(arg_syntax)
+            if use_html:
+                syntax += "<br>\n&nbsp;&nbsp;%s" % "<br>\n&nbsp;&nbsp;".join(arg_syntax)
+            else:
+                syntax += "\n%s" % "\n".join(arg_syntax)
         _shown_cmds.add(cmd.command_name)
         if expand_alias and ci.is_alias():
             alias = ci.function
@@ -3696,8 +3594,9 @@ def _html_usage(
             try:
                 name = alias.expand(*args, optional=optional, partial_ok=True)
                 if name not in _shown_cmds:
-                    syntax += "<br>" + _html_usage(
-                        name, registry=registry, _shown_cmds=_shown_cmds
+                    syntax += "<br>" + _usage(
+                        name, registry=registry, _shown_cmds=_shown_cmds,
+                        use_html=use_html
                     )
                     _shown_cmds.add(name)
             except Exception:
@@ -3711,17 +3610,28 @@ def _html_usage(
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
         name = cmd.current_text[: cmd.amount_parsed]
         if len(sub_cmds) <= show_subcommands:
+            if use_html:
+                sep = "<p>\n"
+            else:
+                sep = "\n\n"
             for w in sub_cmds:
                 subcmd = "%s %s" % (name, w)
                 if subcmd in _shown_cmds:
                     continue
-                syntax += "<p>\n" + _html_usage(
+                syntax += sep + _usage(
                     subcmd,
                     show_subcommands=0,
                     registry=registry,
                     _shown_cmds=_shown_cmds,
+                    use_html=use_html
                 )
                 _shown_cmds.add(subcmd)
+        elif not use_html:
+            if syntax:
+                syntax += "\n"
+            syntax += "Subcommands are:\n" + "\n".join(
+                "\N{bullet} %s %s" % (name, w) for w in sub_cmds
+            )
         else:
             if syntax:
                 syntax += "<br>\n"
@@ -3795,6 +3705,11 @@ def registered_commands(multiword=False, _start=None):
     return list(cmds("", parent_info))
 
 
+class AliasArg(StringArg):
+    # Used internally to override usage for alias arguments
+    pass
+
+
 class Alias:
     """alias a command
 
@@ -3812,12 +3727,15 @@ class Alias:
         self.original_text = text
         self.user_generated = user
         self.num_args = 0
+        self.num_optional_args = 0
         self.parts = []  # list of strings and integer argument numbers
         self.optional_rest_of_line = False
         self.registry = registry
         not_dollar = re.compile(r"[^$]*")
         number = re.compile(r"\d*")
 
+        nested_optional = 0
+        max_outside_optional = 0
         start = 0
         while True:
             m = not_dollar.match(text, start)
@@ -3828,26 +3746,48 @@ class Alias:
             if start == len(text):
                 break
             start += 1  # skip over $
-            if start < len(text) and text[start] == "$":
-                self.parts.append("$")  # $$
-                start += 1
-                continue
-            if start < len(text) and text[start] == "*":
-                self.optional_rest_of_line = True
-                self.parts.append(-1)
-                start += 1
-                continue
+            if start < len(text):
+                if text[start] == "$":
+                    self.parts.append("$")  # $$
+                    start += 1
+                    continue
+                if text[start] == "[":
+                    self.parts.append("$[")
+                    nested_optional += 1
+                    if nested_optional > 1:
+                        raise UserError("Nested optional parts of aliases are not supported")
+                    start += 1
+                    continue
+                if text[start] == "]":
+                    self.parts.append("$]")
+                    nested_optional -= 1
+                    if nested_optional < 0:
+                        raise UserError("Missing start of optional part of alias")
+                    start += 1
+                    continue
+                if text[start] == "*":
+                    self.optional_rest_of_line = True
+                    self.parts.append(0)
+                    start += 1
+                    continue
             m = number.match(text, start)
             end = m.end()
             if end == start:
                 # not followed by a number
                 self.parts.append("$")
                 continue
-            i = int(text[start:end])
-            if i > self.num_args:
-                self.num_args = i
-            self.parts.append(i - 1)  # convert to a 0-based index
+            arg_num = int(text[start:end])
+            if arg_num > self.num_args:
+                self.num_args = arg_num
+            self.parts.append(arg_num)
+            if nested_optional == 0 and arg_num > max_outside_optional:
+                max_outside_optional = arg_num
             start = end
+        if nested_optional != 0:
+            raise UserError("Unterminated optional part of alias")
+        if max_outside_optional < self.num_args:
+            self.num_optional_args = self.num_args - max_outside_optional
+            self.num_args -= self.num_optional_args
 
     def cmd_desc(self, **kw):
         """Return CmdDesc instance for alias
@@ -3862,29 +3802,52 @@ class Alias:
         if kw.pop("keyword", None) is not None:
             raise ValueError("can not override keyword arguments")
         required = [((i + 1), StringArg) for i in range(self.num_args)]
-        if not self.optional_rest_of_line:
-            return CmdDesc(required=required, **kw)
-        return CmdDesc(
-            required=required,
-            optional=[("optional", RestOfLine)],
-            non_keyword=["optional"],
-            **kw
-        )
+        optional = [((i + 1), StringArg) for i in range(self.num_args, self.num_args + self.num_optional_args)]
+        non_keyword = list(opt[0] for opt in optional)
+        if self.optional_rest_of_line:
+            optional += [("optional", RestOfLine)]
+            non_keyword += ["optional"]
+        self._cmd_desc = CmdDesc(required=required, optional=optional, non_keyword=non_keyword, **kw)
+        return self._cmd_desc
 
     def expand(self, *args, optional="", partial_ok=False):
         if not partial_ok and len(args) < self.num_args:
             raise UserError("Not enough arguments")
         # substitute args for positional arguments
         text = ""
+        in_optional = False
+        opt_text = None
         for part in self.parts:
             if isinstance(part, str):
-                text += part
+                if part == '$[':
+                    in_optional = True
+                    opt_text = ""
+                elif part == '$]':
+                    in_optional = False
+                    if opt_text is not None:
+                        text += opt_text
+                elif not in_optional:
+                    text += part
+                elif opt_text is not None:
+                    opt_text += part
                 continue
             # part is an argument index
-            if part < 0:
-                text += optional
-            else:
-                text += args[part]
+            if not in_optional:
+                if part == 0:
+                    text += optional
+                else:
+                    text += args[part - 1]
+            elif opt_text is not None:
+                if part == 0:
+                    if optional:
+                        opt_text += optional
+                    else:
+                        opt_text = None
+                else:
+                    if part <= len(args):
+                        opt_text += args[part - 1]
+                    else:
+                        opt_text = None
         return text
 
     def __call__(
@@ -3898,6 +3861,64 @@ class Alias:
         # save Command object so error reporting can give underlying error
         self.cmd = Command(session, registry=self.registry)
         return self.cmd.run(text, _used_aliases=_used_aliases, log=log)
+
+
+def command_set_alias_usage(name, *, user_alias=True, registry=None, url=None, synopsis=None, **kw):
+    arguments = set(["$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$*"])
+    unknown = set(kw) - arguments
+    if unknown:
+        raise ValueError(f"Unknown {plural_form(unknown, 'argument')}: {commas(unknown, 'and')}")
+
+    cmd = Command(None, registry=registry)
+    cmd.current_text = name
+    cmd._find_command_name(no_aliases=False)
+    if cmd.amount_parsed == 0 or not cmd._ci:
+        raise ValueError('"%s" is not a command name' % name)
+    if user_alias and (not isinstance(cmd._ci.function, Alias)
+                       or not cmd._ci.function.user_generated):
+        raise ValueError("can only set usage for user aliases")
+    elif not isinstance(cmd._ci.function, Alias):
+        raise ValueError("can not reset non-alias synopsis")
+    if url is not None:
+        cmd._ci.url = url
+    if synopsis is not None:
+        if synopsis == 'default':
+            synopsis = f'alias of "{cmd._ci.function.original_text}"'
+        cmd._ci.synopsis = synopsis
+    if not kw:
+        return
+    required = list(cmd._ci._required.items())
+    optional = list(cmd._ci._optional.items())
+    if len(optional) > 0 and optional[-1][1] == RestOfLine:
+        has_optional_arg = 1
+    else:
+        has_optional_arg = 0
+    for arg_num, arg in enumerate(["$*", "$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9"]):
+        arg_name, description = kw.get(arg, (None, None))
+        if arg_name is None:
+            continue
+        if arg_num == 0:
+            if not has_optional_arg:
+                raise ValueError("no argument for $*")
+            if description:
+                arg_type = RestOfLine(description)
+            else:
+                arg_type = RestOfLine
+            optional[-1] = (arg_name, arg_type)
+            continue
+        if description:
+            arg_type = StringArg(description)
+        else:
+            arg_type = StringArg
+        if arg_num <= len(required):
+            required[arg_num - 1] = (arg_name, arg_type)
+        else:
+            arg_num -= len(required)
+            if arg_num > len(optional) - has_optional_arg:
+                raise ValueError(f"no argument for {arg}")
+            optional[arg_num - 1] = (arg_name, arg_type)
+    cmd._ci._required = OrderedDict(required)
+    cmd._ci._optional = OrderedDict(optional)
 
 
 def list_aliases(all=False, logger=None):
