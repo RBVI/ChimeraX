@@ -454,7 +454,7 @@ class ViewDockTool(ToolInstance):
                         counts[s] += 1
         for s, count in counts.items():
             # divide by two since both "directions" occur in the clash results
-            s.viewdock_data["clashes"] = count / 2
+            s.viewdock_data["clashes"] = count // 2
         if self.clashes_col is None:
             self.clashes_col = self.struct_table.add_column("Clashes",
                 lambda s: s.viewdock_data["clashes"])
