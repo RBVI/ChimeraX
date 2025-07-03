@@ -3705,11 +3705,6 @@ def registered_commands(multiword=False, _start=None):
     return list(cmds("", parent_info))
 
 
-class AliasArg(StringArg):
-    # Used internally to override usage for alias arguments
-    pass
-
-
 class Alias:
     """alias a command
 
