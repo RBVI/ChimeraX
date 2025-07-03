@@ -1,4 +1,12 @@
 ########## Number      : 1
+########## Source num  : 22
+########## Name        : test_22
+########## Description : ribose-monophosphate
+########## Reflect     : 0
+########## Energy score                             :     -42.64
+##########   intermolecular van der Waals                 -21.10
+##########   intermolecular electrostatic                 -21.54
+########## RMSD from input orientation (A)          :      40.86
 
 @<TRIPOS>MOLECULE
 test_22

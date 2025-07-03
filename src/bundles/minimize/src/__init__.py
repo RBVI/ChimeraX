@@ -1,10 +1,12 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
-# Copyright 2025 Regents of the University of California. All rights reserved.
+# Copyright 2022 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
 # agreement, which covers academic and commercial uses. For more details, see
 # <https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
-# You can also
+# This particular file is part of the ChimeraX library. You can also
 # redistribute and/or modify it under the terms of the GNU Lesser General
 # Public License version 2.1 as published by the Free Software Foundation.
 # For more details, see
@@ -20,28 +22,15 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, StringArg
-from chimerax.atomic import AtomicStructuresArg
+#from ._dssp import compute_ss
+
+from chimerax.core.toolshed import BundleAPI
+
+class _MinimizeBundle(BundleAPI):
+    @staticmethod
+    def register_command(command_name, logger):
+        from . import cmd
+        cmd.register_command(logger)
 
 
-def viewdock(session, structures=None, name=None):
-    from .tool import ViewDockTool
-    return ViewDockTool(session, "ViewDock")
-
-viewdock_desc = CmdDesc(optional=[("structures", AtomicStructuresArg),
-                                  ("name", StringArg)])
-
-command_map = {
-    "viewdock": (viewdock, viewdock_desc),
-}
-
-
-def register_command(ci):
-    try:
-        func, desc = command_map[ci.name]
-    except KeyError:
-        raise ValueError("trying to register unknown command: %s" % ci.name)
-    if desc.synopsis is None:
-        desc.synopsis = ci.synopsis
-    from chimerax.core.commands import register
-    register(ci.name, desc, func)
+bundle_api = _MinimizeBundle()

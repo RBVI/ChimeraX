@@ -70,10 +70,10 @@ jobs:
       branch: master
       release_type: production
     secrets: inherit
-  build-wheels:
-    name: Build ChimeraX wheels
-    uses: ./.github/workflows/wheels.yml
-    with:
-      branch: develop
-      release_type: production
-    secrets: inherit
+#  build-wheels:
+#    name: Build ChimeraX wheels
+#    uses: ./.github/workflows/wheels.yml
+#    with:
+#      branch: develop
+#      release_type: production
+#    secrets: inherit

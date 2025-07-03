@@ -1,0 +1,87 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: minimize</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: minimize</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>minimize</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model-spec</i></a>&nbsp;
+[&nbsp;<b>dockPrep</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;
+[&nbsp;<a href="dockprep.html"><i>dockprep-options</i></a>&nbsp;]]
+[&nbsp;<b>maxSteps</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>liveUpdates</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<p>
+<b>**In progress**</b>: currently works only for structures containing only
+&ldquo;standard&rdquo; residues as defined  in the Amber14 parameter files.
+<!-- 
+it uses amber14-all.xml and amber14/tip3pfb.xml to define what's standard,
+and amber-14-all in turn uses amber14/protein.ff14SB.xml, amber14/DNA.OL15.xml,
+amber14/RNA.OL3.xml, and amber14/lipid17.xml. Links:
+https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14-all.xml
+https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/tip3pfb.xml
+https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/protein.ff14SB.xml
+https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/DNA.OL15.xml
+https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/RNA.OL3.xml
+https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/lipid17.xml
+-->
+These include standard amino and nucleic acid residues, water, and 
+several lipids and metal ions, but not arbitrary ligands.
+Only a single model should be specified.
+The minimization is carried out using the OpenMM
+<a href="http://docs.openmm.org/7.0.0/api-python/generated/simtk.openmm.openmm.LocalEnergyMinimizer.html" 
+target="_blank">LocalEnergyMinimizer</a> with the
+<a href="http://docs.openmm.org/7.1.0/api-python/generated/simtk.openmm.openmm.LangevinIntegrator.html"
+target="_blank">LangevinIntegrator</a>.
+</p><p>
+By default (<b>dockprep true</b>), the <b>minimize</b> command calls 
+<a href="dockprep.html"><b>dockprep</b></a> to perform
+several tasks to prepare the structure beforehand, such as:
+</p>
+<ul>
+<li> deleting water molecules
+<li> repairing truncated sidechains
+<li> adding hydrogens
+<li> assigning partial charges
+</ul>
+<p>
+The <a href="dockprep.html"><b>dockprep</b></a> command options can
+also be used in the <b>minimize</b> command to control these processes.
+</p><p>
+The <b>maxSteps</b> option sets the number of iterations
+(default <b>0</b>, meaning that minimization will continue until 
+convergence regardless of how many iterations it takes).
+Convergence is defined as when the root-mean-square of all force components 
+falls to 10 or lower. 
+</p><p>
+The <b>liveUpdates</b> option (default <b>true</b>)
+specifies whether to update the structure periodically at the same
+time the energy is reported, currently after every 100 steps.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+July 2024</address>
+</body></html>

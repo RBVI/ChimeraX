@@ -37,8 +37,12 @@ class="clRighticon" title="User Guide Index"/></a>
 (&nbsp;<i>name</i>&nbsp;|&nbsp;<b>all</b>&nbsp;)
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>alias</b> &nbsp;<b>synopsis</b> &nbsp;<i>name</i>
-[&nbsp;<i>usage-description-string</i>&nbsp;]
+<br><a href="#usage"><b>alias usage</b></a> &nbsp;<i>name</i>
+[&nbsp;<b>synopsis</b>&nbsp;&nbsp;<i>usage-description-string</i>&nbsp;]
+[&nbsp;<b>url</b>&nbsp;&nbsp;<i>help-URL</i>&nbsp;]
+[&nbsp;<b>$1</b>&nbsp;&nbsp;<i>argument-name[:description]</i>&nbsp;]
+[&nbsp;<b>$2</b>&nbsp;&nbsp;<i>argument-name[:description]</i>&nbsp;]
+...
 </h3>
 <p>
 The <b>alias</b> command defines a new command <i>name</i> as the specified
@@ -103,14 +107,57 @@ whereas <b>alias list internal</b> lists the built-in aliases.
 </p><p>
 The command <b>alias delete</b> can be used to &ldquo;forget&rdquo; a specific
 alias or <b>all</b> aliases.
-</p><p>
-The command <b>alias synopsis</b> can be used to replace the information
-shown with the <a href="usage.html"><b>usage</b></a> command for the specified
-alias. Omitting <i>usage-description-string</i> resets the information
-to the default for the alias, namely its definition.
 </p>
+
+<a name="usage"></a>
+<p class="nav">
+[<a href="#top">back to top: alias</a>]
+</p>
+<h3>Usage Information for Aliases</h3
+
+<blockquote>
+<a href="usageconventions.html">Usage</a>:
+<b>alias usage</b> &nbsp;<i>name</i>
+[&nbsp;<b>synopsis</b>&nbsp;&nbsp;<i>usage-description-string</i>&nbsp;]
+[&nbsp;<b>url</b>&nbsp;&nbsp;<i>help-URL</i>&nbsp;]
+[&nbsp;<b>$1</b>&nbsp;&nbsp;<i>argument-name[:description]</i>&nbsp;]
+[&nbsp;<b>$2</b>&nbsp;&nbsp;<i>argument-name[:description]</i>&nbsp;]
+...
+[&nbsp;<b>$9</b>&nbsp;&nbsp;<i>argument-name[:description]</i>&nbsp;]
+[&nbsp;<b>$*</b>&nbsp;&nbsp;<i>rest-of-line-name</i>[:description]</i>&nbsp;]
+</blockquote>
+<p>
+The command <b>alias usage</b> can be used to replace the information
+shown with the <a href="usage.html"><b>usage</b></a> command for the specified
+alias. The <b>synopsis</b> option allows supplying a short description.
+The <b>url</b> option specifies a help page for the alias. 
+The additional options allow assigning names and descriptions for
+arguments $1, $2, <i>etc.</i>
+Strings containing spaces should be enclosed in quotation marks.
+Example:
+</p>
+<blockquote>
+<b>alias turtle open $1</b><br>
+<b>usage turtle</b><br>
+<br>
+... gives default usage information in the 
+<a href="../tools/log.html"><b>Log</b></a>:<br>
+<b>turtle</b> <i>$1</i><br>
+&nbsp;&nbsp;&mdash; alias of "open $1"<br>
+&nbsp;&nbsp;<i>$1</i>: a text string<br>
+<br>
+Changing this information and trying <b>usage</b> again:<br>
+<b>alias&nbsp;usage&nbsp;turtle&nbsp;synopsis&nbsp;"open&nbsp;a&nbsp;PDB&nbsp;structure"&nbsp;$1&nbsp;"pdbId:a&nbsp;protein&nbsp;databank&nbsp;identifier"</b><br>
+<b>usage turtle</b><br>
+<br>
+... now shows the updated information in the
+<a href="../tools/log.html"><b>Log</b></a>:<br>
+<b>turtle</b> <i>pdbId</i><br>
+&nbsp;&nbsp;&mdash; open a PDB structure<br>
+&nbsp;&nbsp;<i>pdbId</i>: a protein databank identifier
+</b></blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2025</address>
+June 2026</address>
 </body></html>
