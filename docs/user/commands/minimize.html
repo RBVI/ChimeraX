@@ -49,6 +49,7 @@ https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amb
 -->
 These include standard amino and nucleic acid residues, water, and 
 several lipids and metal ions, but not arbitrary ligands.
+Only a single model should be specified.
 The minimization is carried out using the OpenMM
 <a href="http://docs.openmm.org/7.0.0/api-python/generated/simtk.openmm.openmm.LocalEnergyMinimizer.html" 
 target="_blank">LocalEnergyMinimizer</a> with the
@@ -57,7 +58,7 @@ target="_blank">LangevinIntegrator</a>.
 </p><p>
 By default (<b>dockprep true</b>), the <b>minimize</b> command calls 
 <a href="dockprep.html"><b>dockprep</b></a> to perform
-several tasks to prepare the structures beforehand, such as:
+several tasks to prepare the structure beforehand, such as:
 </p>
 <ul>
 <li> deleting water molecules
