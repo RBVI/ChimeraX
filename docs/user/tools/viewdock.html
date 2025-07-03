@@ -152,19 +152,22 @@ Buttons above the table:
 the number of H-bonds between each compound and all other atoms
 (excluding the other docked compounds) using the
 <a href="hbonds.html"><b>H-Bonds</b></a> tool
-<!-- hbonds [dock-models] restrict [other-models] reveal true interSub true -->
+<!-- 
+hbonds docked-models restrict all-other-atomic-models & (main | ligand) reveal true
+-->
 <li><b>Clashes</b> 
 &ndash; calculate and add a column for
 the number of clashes between each compound and all other atoms
 (excluding the other docked compounds) using the
 <a href="clashes.html"><b>Clashes</b></a> tool
-<!-- clashes [dock-models] test others reveal true -->
+<!-- 
+clashes docked-models restrict all-other-atomic-models & (main | ligand) reveal true
+-->
 <blockquote>
 <table cellpadding="8px" cellspacing="0px" border=1><tr><td class="shaded">
-Because <b><i>all</i></b> other atoms besides the docked compounds
-are treated as the receptor for identifying H-bonds and clashes,
-any atoms not meant to be considered (generally solvent, 
-co-crystallized ligands, <i>etc.</i>) should be deleted beforehand.
+For the purposes of identifying H-bonds and clashes,
+<a href="../commands/atomspec.html#surfcats">ligand</a> residues in the
+receptor model not meant to be considered should be deleted beforehand.
 In addition, any models other than the receptor and its docked compounds
 should be spatially separated from them or closed.
 </td></tr></table>
@@ -180,5 +183,5 @@ than the specified number and remove their rows from the table
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2025</address>
+July 2025</address>
 </body></html>

@@ -48,7 +48,7 @@ def alias(session, name, text=''):
 
 def alias_usage(session, name, **kw):
     try:
-        cli.command_set_alias_usage(name, **kw)
+        cli.set_alias_usage(name, **kw)
     except ValueError as e:
         session.logger.warning(str(e))
 
@@ -142,6 +142,10 @@ def register_command(logger):
         synopsis="set alias' usage")
     cli.register('alias usage', desc, alias_usage, logger=logger)
     cli.create_alias('alias synopsis', 'alias usage $1 synopsis "$*"', logger=logger)
+    # alias usage 'alias synopsis' $1 name $* description
+    cli.set_alias_usage(
+            'alias synopsis', user_alias=False,
+            **{'$1': ('name', 'the alias name'), '$*': ('description', None)})
 
     desc = cli.CmdDesc(
         keyword=[('internal', cli.NoArg)],
