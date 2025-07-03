@@ -142,6 +142,10 @@ def register_command(logger):
         synopsis="set alias' usage")
     cli.register('alias usage', desc, alias_usage, logger=logger)
     cli.create_alias('alias synopsis', 'alias usage $1 synopsis "$*"', logger=logger)
+    # alias usage 'alias synopsis' $1 name $* description
+    cli.command_set_alias_usage(
+            'alias synopsis', user_alias=False,
+            **{'$1': ('name', 'the alias name'), '$*': ('description', None)})
 
     desc = cli.CmdDesc(
         keyword=[('internal', cli.NoArg)],
