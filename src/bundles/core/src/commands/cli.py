@@ -2104,7 +2104,7 @@ def _upto_semicolon(text):
 class RestOfLine(Annotation):
     """Return the rest of the line up to a semicolon"""
 
-    name = "the rest of line"
+    name = "the rest of the line"
 
     @staticmethod
     def parse(text, session):
@@ -2123,7 +2123,7 @@ class RestOfLine(Annotation):
 class WholeRestOfLine(Annotation):
     """Return the whole rest of the line including semicolons"""
 
-    name = "the rest of line"
+    name = "the rest of the line"
 
     @staticmethod
     def parse(text, session):
