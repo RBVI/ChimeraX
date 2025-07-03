@@ -3863,7 +3863,7 @@ class Alias:
         return self.cmd.run(text, _used_aliases=_used_aliases, log=log)
 
 
-def command_set_alias_usage(name, *, user_alias=True, registry=None, url=None, synopsis=None, **kw):
+def set_alias_usage(name, *, user_alias=True, registry=None, url=None, synopsis=None, **kw):
     arguments = set(["$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$*"])
     unknown = set(kw) - arguments
     if unknown:
@@ -3878,7 +3878,7 @@ def command_set_alias_usage(name, *, user_alias=True, registry=None, url=None, s
                        or not cmd._ci.function.user_generated):
         raise ValueError("can only set usage for user aliases")
     elif not isinstance(cmd._ci.function, Alias):
-        raise ValueError("can not reset non-alias synopsis")
+        raise ValueError("can only change usage for aliases")
     if url is not None:
         cmd._ci.url = url
     if synopsis is not None:
