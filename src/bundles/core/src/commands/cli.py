@@ -3877,6 +3877,7 @@ def set_alias_usage(name, *, user_alias=True, registry=None, url=None, synopsis=
         arg_name, description = kw.get(arg, (None, None))
         if arg_name is None:
             continue
+        arg_name = arg_name.replace(' ', '_')
         if arg_num == 0:
             if not has_optional_arg:
                 raise ValueError("no argument for $*")
