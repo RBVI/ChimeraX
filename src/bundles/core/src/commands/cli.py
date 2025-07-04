@@ -3571,7 +3571,7 @@ def _usage(
         if use_html:
             prefix = f"<br>\n&nbsp;&nbsp;&nbsp;&nbsp;{mdash} "  # synopsis prefix
         else:
-            prefix += f" {mdash} "
+            prefix = f" {mdash} "
         if registry is not None and registry is _available_commands:
             syntax += prefix + "(uninstalled) "
         if ci.synopsis:
@@ -3862,8 +3862,6 @@ def set_alias_usage(name, *, user_alias=True, registry=None, url=None, synopsis=
     if url is not None:
         cmd._ci.url = url
     if synopsis is not None:
-        #if synopsis == 'default':
-        #    synopsis = f'alias of "{cmd._ci.function.original_text}"'
         cmd._ci.synopsis = synopsis
     if not kw:
         return
