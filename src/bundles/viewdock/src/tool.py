@@ -30,7 +30,7 @@ from chimerax.core.settings import Settings
 from chimerax.hbonds.gui import HBondsGUI
 from chimerax.clashes.gui import ClashesGUI
 from chimerax.ui.widgets import ItemTable
-from chimerax.core.commands import run, concise_model_spec
+from chimerax.core.commands import run, concise_model_spec, StringArg
 from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
                           QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel, QWidget,)
@@ -137,7 +137,15 @@ class ViewDockTool(ToolInstance):
         )
         self.top_buttons_layout.addWidget(self.clashes_button)
 
-        self.top_buttons_layout.setAlignment(Qt.AlignLeft)
+        self.top_buttons_layout.addStretch(1)
+
+        save_area = QHBoxLayout()
+        save_area.setSpacing(0)
+        self.top_buttons_layout.addLayout(save_area)
+        self.save_mol2_button = QPushButton("Save")
+        self.save_mol2_button.clicked.connect(self.save_mol2_cb)
+        save_area.addWidget(self.save_mol2_button)
+        save_area.addWidget(QLabel(" Mol2 file"))
 
     def popup_callback(self, gui_class, popup_name, results_callback, **kwargs):
         """
@@ -191,6 +199,31 @@ class ViewDockTool(ToolInstance):
 
         # Show the dialog
         dialog.exec()
+
+    def save_mol2_cb(self, *args):
+        structures = self.struct_table.data
+        for s in structures:
+            s.mol2_comments = []
+        from numbers import Number
+        for col in self.struct_table.columns:
+            category = col.title
+            if category == "ID":
+                continue
+            if category == "Rating":
+                category = RATING_KEY
+            for s in structures:
+                val = col.value(s)
+                if isinstance(val, (str, Number)):
+                    s.mol2_comments.append("########## %s : %s" % (category, str(val)))
+        from chimerax.ui.open_save import SaveDialog
+        sd = SaveDialog(self.session, self.tool_window.ui_area,
+            data_formats=[self.session.data_formats["mol2"]])
+        if not sd.exec():
+            return
+        path = sd.get_path()
+        if path:
+            model_spec = concise_model_spec(self.session, structures, allow_empty_spec=False)
+            run(self.session, "save %s models %s" % (StringArg.unparse(path), model_spec))
 
     def table_setup(self):
         """
