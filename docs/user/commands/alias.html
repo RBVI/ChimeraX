@@ -109,6 +109,49 @@ The command <b>alias delete</b> can be used to &ldquo;forget&rdquo; a specific
 alias or <b>all</b> aliases.
 </p>
 
+<a name="optional"></a>
+<p class="nav">
+[<a href="#top">back to top: alias</a>]
+</p>
+<h3>Optional Arguments</h3
+<p>
+An optional argument can be specified with <b>$[</b> and <b>$]</b> in the
+definition of the alias. Optional arguments cannot be nested.
+Example:
+</p>
+<blockquote>
+<b>alias myzone <a href="zone.html">zone</a> clear; <a href="zone.html">zone</a> $1 $[residueDistance $2$] $[label $3$]; view $1:<8 clip false</b>
+<br>
+<b>myzone /A:12</b>
+<br>
+<b>myzone /A:12 6.5</b>
+<br>
+<b>myzone /A:12 6.5 false</b>
+<br>--<i>but not</i>--<br>
+<b>myzone /A:12 false</b>
+</blockquote>
+<p>
+A single optional section may contain multiple arguments, but
+all of them must be supplied for that part of the command to take effect:
+</p>
+<blockquote>
+<b>alias myzone <a href="zone.html">zone</a> clear; <a href="zone.html">zone</a> $1 $[residueDistance $2 label $3$]; view $1:<8 clip false</b>
+<br>--<i>the following two will work as expected</i>--<br>
+<b>myzone /A:12</b>
+<br>
+<b>myzone /A:12 6.5 false</b>
+<br>--<i>the following will be accepted,
+but all optional values ignored!!</i>--<br>
+<b>myzone /A:12 6.5</b>
+<br>
+<b>myzone /A:12 false</b>
+</blockquote>
+<p>
+Note that the <a href="zone.html"><b>zone</b></a> command is somewhat unusual 
+in that the default distance cutoff is &ldquo;sticky&rdquo; within a session
+(resets to the value most recently used).
+</p>
+
 <a name="usage"></a>
 <p class="nav">
 [<a href="#top">back to top: alias</a>]
@@ -127,8 +170,8 @@ alias or <b>all</b> aliases.
 [&nbsp;<b>$*</b>&nbsp;&nbsp;<i>rest-of-line-name</i>[:description]</i>&nbsp;]
 </blockquote>
 <p>
-The command <b>alias usage</b> can be used to replace the information
-shown with the <a href="usage.html"><b>usage</b></a> command for the specified
+The command <b>alias usage</b> sets what information will be shown by 
+the <a href="usage.html"><b>usage</b></a> command for the specified
 alias. The <b>synopsis</b> option allows supplying a short description.
 The <b>url</b> option specifies a help page for the alias. 
 The additional options allow assigning names and descriptions for
