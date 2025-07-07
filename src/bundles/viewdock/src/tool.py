@@ -209,13 +209,18 @@ class ViewDockTool(ToolInstance):
             category = col.title
             if category == "ID":
                 continue
+            if category == "Rating":
+                category = RATING_KEY
             for s in structures:
                 val = col.value(s)
                 if isinstance(val, (str, Number)):
                     s.mol2_comments.append("########## %s : %s" % (category, str(val)))
         from chimerax.ui.open_save import SaveDialog
-        path = SaveDialog(self.session, data_formats=[fmt
-            for fmt in self.session.data_formats.formats if fmt.name == "Sybyl Mol2"]).get_path()
+        sd = SaveDialog(self.session, self.tool_window.ui_area,
+            data_formats=[self.session.data_formats["mol2"]])
+        if not sd.exec():
+            return
+        path = sd.get_path()
         if path:
             model_spec = concise_model_spec(self.session, structures, allow_empty_spec=False)
             run(self.session, "save %s models %s" % (StringArg.unparse(path), model_spec))

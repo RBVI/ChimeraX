@@ -2627,7 +2627,7 @@ def register(
         cmd_desc = function
     else:
         cmd_desc.function = function
-        if cmd_desc.synopsis is None:
+        if cmd_desc.synopsis is None and not isinstance(function, Alias):
             msg = 'Command "%s" is missing a synopsis' % name
             if logger is None:
                 print(msg)
@@ -3477,13 +3477,14 @@ def _usage(
         return ""
     if not use_html:
         from ..nogui import escape
-        sb = "'"    # start bold
-        eb = "'"    # end bold
-        si = '_'    # start italics
-        ei = '_'    # end italics
-        snobr = ''  # start non-breaking text
-        enobr = ''  # end non-breaking text
-        mdash = '--'
+        sb = "'"      # start bold
+        eb = "'"      # end bold
+        si = '_'      # start italics
+        ei = '_'      # end italics
+        snobr = ''    # start non-breaking text
+        enobr = ''    # end non-breaking text
+        mdash = '--'  # em-dash
+        br = '\n'     # line break
     else:
         from html import escape
         sb = '<b>'
@@ -3493,6 +3494,7 @@ def _usage(
         snobr = '<nobr>'
         enobr = '</nobr>'
         mdash = '&mdash;'
+        br = '<br>'
 
     syntax = ""
     ci = cmd._ci
@@ -3567,40 +3569,23 @@ def _usage(
             else:
                 syntax += f" {snobr}[{sb}{uarg_name}{eb}{type_info}]{enobr}"
         if use_html:
-            syntax += f"<br>\n&nbsp;&nbsp;&nbsp;&nbsp;{mdash} "  # synopsis prefix
+            prefix = f"<br>\n&nbsp;&nbsp;&nbsp;&nbsp;{mdash} "  # synopsis prefix
         else:
-            syntax += f" {mdash} "
+            prefix = f" {mdash} "
         if registry is not None and registry is _available_commands:
-            syntax += "(uninstalled) "
+            syntax += prefix + "(uninstalled) "
         if ci.synopsis:
-            syntax += f"{escape(ci.synopsis)}\n"
-        else:
-            syntax += "(no synopsis available)\n"
+            syntax += prefix + f"{escape(ci.synopsis)}\n"
+        elif not ci.is_alias():
+            syntax += prefix + "(no synopsis available)\n"
         if arg_syntax:
             if use_html:
                 syntax += "<br>\n&nbsp;&nbsp;%s" % "<br>\n&nbsp;&nbsp;".join(arg_syntax)
             else:
                 syntax += "\n%s" % "\n".join(arg_syntax)
         _shown_cmds.add(cmd.command_name)
-        if expand_alias and ci.is_alias():
-            alias = ci.function
-            arg_text = cmd.current_text[cmd.amount_parsed:]
-            args = arg_text.split(maxsplit=alias.num_args)
-            if len(args) > alias.num_args:
-                optional = args[-1]
-                del args[-1]
-            else:
-                optional = ""
-            try:
-                name = alias.expand(*args, optional=optional, partial_ok=True)
-                if name not in _shown_cmds:
-                    syntax += "<br>" + _usage(
-                        name, registry=registry, _shown_cmds=_shown_cmds,
-                        use_html=use_html
-                    )
-                    _shown_cmds.add(name)
-            except Exception:
-                pass
+        if ci.is_alias():
+            syntax += f'{br}\n{sb}{cmd.command_name}{eb} is an alias of "{cmd._ci.function.original_text}"'
 
     if (
         show_subcommands
@@ -3877,8 +3862,6 @@ def set_alias_usage(name, *, user_alias=True, registry=None, url=None, synopsis=
     if url is not None:
         cmd._ci.url = url
     if synopsis is not None:
-        if synopsis == 'default':
-            synopsis = f'alias of "{cmd._ci.function.original_text}"'
         cmd._ci.synopsis = synopsis
     if not kw:
         return
@@ -3892,6 +3875,7 @@ def set_alias_usage(name, *, user_alias=True, registry=None, url=None, synopsis=
         arg_name, description = kw.get(arg, (None, None))
         if arg_name is None:
             continue
+        arg_name = arg_name.replace(' ', '_')
         if arg_num == 0:
             if not has_optional_arg:
                 raise ValueError("no argument for $*")
@@ -3974,8 +3958,8 @@ def create_alias(name, text, *, user=False, logger=None, url=None, registry=None
     """
     name = " ".join(name.split())  # canonicalize
     alias = Alias(text, user=user, registry=registry)
-    if synopsis is None:
-        synopsis = f'alias of "{text}"'
+    #if synopsis is None:
+    #    synopsis = f'alias of "{text}"'
     try:
         register(
             name,

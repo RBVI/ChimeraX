@@ -1,0 +1,16 @@
+*** openmm_cuda_12-8.3.0.dist-info/METADATA.orig	2025-07-07 14:57:33
+--- openmm_cuda_12-8.3.0.dist-info/METADATA	2025-07-07 14:57:43
+*************** Author: Peter Eastman
+*** 4,14 ****
+  Summary: CUDA platform for OpenMM
+  Home-page: https://openmm.org
+  Author: Peter Eastman
+- Requires-Dist: nvidia-cuda-runtime-cu12
+- Requires-Dist: nvidia-cuda-nvcc-cu12
+- Requires-Dist: nvidia-cuda-nvrtc-cu12
+- Requires-Dist: nvidia-cuda-cupti-cu12
+- Requires-Dist: nvidia-cufft-cu12
+  Dynamic: author
+  Dynamic: home-page
+  Dynamic: requires-dist
+--- 4,9 ----

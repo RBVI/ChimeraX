@@ -315,7 +315,11 @@ def _matching_pae_file(structure_path):
         return None
 
     from os import listdir
-    dfiles = listdir(dir)
+    try:
+        dfiles = listdir(dir)
+    except PermissionError:
+        return None
+
     pkl_files = [f for f in dfiles if f.endswith('.pkl')]
     json_files = [f for f in dfiles if f.endswith('.json') and not f.startswith('confidence_')]
     npy_files = [f for f in dfiles if f.endswith('.npy') or f.endswith('.npz')]
