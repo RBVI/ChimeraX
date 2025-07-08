@@ -45,7 +45,7 @@ class ViewDockTool(ToolInstance):
     SESSION_SAVE = True
     registered_mousemode = False
 
-    def __init__(self, session, tool_name, structures):
+    def __init__(self, session, tool_name, structures, *, table_state=None):
         """
         Initialize the ViewDock tool with, table, table controls, and model descriptions.
 
@@ -77,7 +77,7 @@ class ViewDockTool(ToolInstance):
         self.struct_table = ItemTable(session=self.session, column_control_info=(
             self.col_display_widget, self.settings, {}, True, None, None, True
         ))
-        self.table_setup()
+        self.table_setup(table_state)
 
         from .mousemode import register_mousemode, NextDockingMouseMode
         if not self.__class__.registered_mousemode:
@@ -86,7 +86,7 @@ class ViewDockTool(ToolInstance):
         NextDockingMouseMode.vd_instance = self
 
         self.description_group = QGroupBox()
-        self.description_box_setup()
+        self.description_box_setup(table_state)
 
 
 
@@ -244,7 +244,7 @@ class ViewDockTool(ToolInstance):
                 return
         run(self.session, "close " + concise_model_spec(self.session, closures))
 
-    def table_setup(self):
+    def table_setup(self, table_state):
         """
         Create the ItemTable for the structures. Add a for the
         structure ID, a column for the Rating with a custom delegate, and columns for each key in the viewdock_data
@@ -261,11 +261,12 @@ class ViewDockTool(ToolInstance):
 
         # Fixed columns. Generic based on ChimeraX model attribute(s).
         id_col = self.struct_table.add_column('ID', lambda s: s.id_string, sort_func=self.id_lt)
-        # Custom Rating delegate
-        delegate = RatingDelegate(self.struct_table)  # Create the delegate instance
         self.struct_table.add_column('Rating', lambda s: s.viewdock_data.get(RATING_KEY),
                                      data_set = lambda item, value: None,
                                      editable=True)
+
+        # Custom Rating delegate
+        delegate = RatingDelegate(self.struct_table)  # Create the delegate instance
 
         # Associate the delegate with the "Rating" column
         rating_column_index = self.struct_table.column_names.index('Rating')
@@ -279,7 +280,8 @@ class ViewDockTool(ToolInstance):
         viewdock_keys = set()
         for structure in self.structures:
             viewdock_keys.update(structure.viewdock_data.keys())
-        for key in viewdock_keys:
+        # Need to add columns in predictable order so that table-session state data works
+        for key in sorted(viewdock_keys):
             if key == RATING_KEY:
                 # Rating is already added as a column with a custom delegate, skip it here
                 continue
@@ -287,8 +289,9 @@ class ViewDockTool(ToolInstance):
 
         # Set the data for the table and launch it
         self.struct_table.data = self.structures
-        self.struct_table.launch()
-        self.struct_table.sort_by(id_col, self.struct_table.SORT_ASCENDING)
+        self.struct_table.launch(session_info=table_state)
+        if table_state is None:
+            self.struct_table.sort_by(id_col, self.struct_table.SORT_ASCENDING)
 
         # Add the table group to the layout
         self.main_v_layout.addWidget(table_group)
@@ -321,7 +324,7 @@ class ViewDockTool(ToolInstance):
         # If all compared parts are equal, compare by length (e.g., "1.1" > "1.1.1").
         return len(id1_parts) < len(id2_parts)
 
-    def description_box_setup(self):
+    def description_box_setup(self, table_state):
         """
         Build the description box at the bottom of the tool which displays all the docking attribute information
         for a selected docking model.
@@ -344,9 +347,12 @@ class ViewDockTool(ToolInstance):
         # Add the group box to the main layout
         self.main_v_layout.addWidget(self.description_group)
 
-        if len(self.structures) > 0:
-            # Select the first structure in the table to display its data in the description box
-            self.struct_table.selected = [self.structures[0]]
+        if table_state is None:
+            if len(self.structures) > 0:
+                # Select the first structure in the table to display its data in the description box
+                self.struct_table.selected = [self.structures[0]]
+        else:
+            self.table_selection_changed()
 
     def table_selection_changed(self, *args):
         """
@@ -543,6 +549,7 @@ class ViewDockTool(ToolInstance):
         return {
             'version': 1,
             'structures': self.structures,
+            'table_state': self.struct_table.session_info(),
             'tool_name': self.tool_name
         }
 
@@ -568,7 +575,8 @@ class ViewDockTool(ToolInstance):
             )
             return None
 
-        return cls(session, snapshot['tool_name'], snapshot['structures'])
+        return cls(session, snapshot['tool_name'], snapshot['structures'],
+            table_state=snapshot.get('table_state', None))
 
 class RatingDelegate(QStyledItemDelegate):
     """
