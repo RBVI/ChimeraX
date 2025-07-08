@@ -51,7 +51,6 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Tool :: ViewDock :: Binding Analysis :: display docking results</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: viewdock :: Binding Analysis :: specify models as docking results </ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
