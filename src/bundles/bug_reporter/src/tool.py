@@ -278,7 +278,8 @@ class BugReporter(ToolInstance):
             return
 
         # Report success or error.
-        if int(errcode) == 200:
+        from http import HTTPStatus
+        if errcode == HTTPStatus.OK:
             self.report_success()
             self.cancel_button.setText("Close")
             self.submit_button.deleteLater()  # Prevent second submission
@@ -286,7 +287,7 @@ class BugReporter(ToolInstance):
             s.contact_name = self.contact_name.text()
             s.email_address = self.email_address.text()
         else:
-            self.report_failure()
+            self.report_failure(f"HTTP error {errcode} occurred")
 
     def read_attachment(self, file_path):
         if file_path:
