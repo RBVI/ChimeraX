@@ -59,7 +59,7 @@ class ViewDockTool(ToolInstance):
         super().__init__(session, tool_name)
         self.display_name = "ViewDock"
 
-        self.tool_window = MainToolWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys=False)
 
         # Create a vertical layout for the tool
         self.main_v_layout = QVBoxLayout()

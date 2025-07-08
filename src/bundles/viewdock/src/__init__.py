@@ -34,11 +34,6 @@ class _MyAPI(BundleAPI):
             show_docking_file_dialogue(session)
 
     @staticmethod
-    def register_command(bi, ci, logger):
-        from . import cmd
-        cmd.register_command(ci)
-
-    @staticmethod
     def get_class(name):
         if name == "ViewDockTool" or name == "TableTool":
             from .tool import ViewDockTool
