@@ -25,7 +25,8 @@
 from chimerax.core.errors import UserError, LimitationError
 from chimerax.add_charge import ChargeMethodArg
 
-def cmd_minimize(session, structure, *, dock_prep=True, live_updates=True, max_steps=None, **kw):
+def cmd_minimize(session, structure, *, dock_prep=True, live_updates=True, log_energy=False,
+        max_steps=None, **kw):
     if structure is None:
         from chimerax.atomic import all_atomic_structures
         available = all_atomic_structures(session)
@@ -38,12 +39,12 @@ def cmd_minimize(session, structure, *, dock_prep=True, live_updates=True, max_s
     if dock_prep:
         from chimerax.dock_prep import dock_prep_caller
         dock_prep_caller(session, [structure], memorize_name="minimization", nogui=True,
-            callback=lambda ses=session, struct=structure, updates=live_updates, steps=max_steps:
-                _minimize(ses, struct, updates, steps), **kw)
+            callback=lambda ses=session, struct=structure, updates=live_updates, log=log_energy,
+            steps=max_steps: _minimize(ses, struct, updates, log, steps), **kw)
     else:
-        _minimize(session, structure, live_updates, max_steps)
+        _minimize(session, structure, live_updates, log_energy, max_steps)
 
-def _minimize(session, structure, live_updates, max_steps):
+def _minimize(session, structure, live_updates, log_energy, max_steps):
     from openmm.app import Topology, ForceField, element, HBonds
     from openmm.unit import angstrom, nanometer, kelvin, picosecond, picoseconds, Quantity
     from openmm import LangevinIntegrator, LocalEnergyMinimizer, vec3, Context, MinimizationReporter
@@ -162,7 +163,8 @@ def _minimize(session, structure, live_updates, max_steps):
         def report(self, iteration, xyz, gradient, *args):
             self.step += 1
             if self.step % self.report_interval == 0:
-                session.logger.status("step %d: energy %.1f" % (self.step, args[0]["system energy"]), log=True)
+                session.logger.status("step %d: energy %.1f" % (self.step, args[0]["system energy"]),
+                    log=log_energy)
                 if live_updates:
                     crds = numpy.array(xyz)
                     crds = numpy.reshape(crds, (-1,3))
@@ -189,6 +191,7 @@ def register_command(logger):
         keyword = [
             ('dock_prep', BoolArg),
             ('live_updates', BoolArg),
+            ('log_energy', BoolArg),
             ('max_steps', PositiveIntArg),
         ] + list(get_param_info(logger.session).items()),
         synopsis = 'Minimize structures'
