@@ -142,10 +142,18 @@ class ViewDockTool(ToolInstance):
         save_area = QHBoxLayout()
         save_area.setSpacing(0)
         self.top_buttons_layout.addLayout(save_area)
-        self.save_mol2_button = QPushButton("Save")
-        self.save_mol2_button.clicked.connect(self.save_mol2_cb)
-        save_area.addWidget(self.save_mol2_button)
+        save_mol2_button = QPushButton("Save")
+        save_mol2_button.clicked.connect(self.save_mol2_cb)
+        save_area.addWidget(save_mol2_button)
         save_area.addWidget(QLabel(" Mol2 file"))
+
+        close_area = QHBoxLayout()
+        close_area.setSpacing(0)
+        self.top_buttons_layout.addLayout(close_area)
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(self.close_compounds_cb)
+        close_area.addWidget(close_button)
+        close_area.addWidget(QLabel(" chosen compounds"))
 
     def popup_callback(self, gui_class, popup_name, results_callback, **kwargs):
         """
@@ -224,6 +232,17 @@ class ViewDockTool(ToolInstance):
         if path:
             model_spec = concise_model_spec(self.session, structures, allow_empty_spec=False)
             run(self.session, "save %s models %s" % (StringArg.unparse(path), model_spec))
+
+    def close_compounds_cb(self, *args):
+        closures = self.struct_table.selected
+        if not closures:
+            from chimerax.core.errors import UserError
+            raise UserError("No compounds in table have been chosen")
+        if len(closures) == len(self.struct_table.data):
+            from chimerax.ui.ask import ask
+            if ask(self.session, "Really close all compounds?") == "no":
+                return
+        run(self.session, "close " + concise_model_spec(self.session, closures))
 
     def table_setup(self):
         """
@@ -351,7 +370,8 @@ class ViewDockTool(ToolInstance):
         selected = set(self.struct_table.selected)
         for s in self.struct_table.data:
             sel = s in selected
-            if s.display != sel:
+            # table doesn't know the data are models, so screen out closed models
+            if s.id and s.display != sel:
                 needs = needs_hide if s.display else needs_show
                 needs.append(s)
         self.set_visibility(needs_show, True)
