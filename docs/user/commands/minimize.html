@@ -75,17 +75,18 @@ The <b>maxSteps</b> option sets the number of iterations
 (default <b>0</b>, meaning that minimization will continue until 
 convergence regardless of how many iterations it takes).
 Convergence is defined as when the root-mean-square of all force components 
-falls to 10 or lower. 
+falls to 10 or lower.
 </p><p>
 The <b>liveUpdates</b> option (default <b>true</b>)
-specifies whether to also update the structure when
-the energy is reported in the <a href="../window.html">status line</a>,
-currently every 100 steps.
-</p><p>
-The <b>logEnergy</b> option indicates whether to report the energy in the 
-<a href="../tools/log.html"><b>Log</b></a></a>
-(default <b>false</b>, energy reported
-in the <a href="../window.html">status line</a> only).
+indicates whether to update the structure periodically during the
+minimization; if <b>false</b>, the structure will not be updated 
+until the minimization ends.
+The current update interval is every 100 steps, at the same time
+the energy is reported in the <a href="../window.html">status line</a>. 
+Messages in the <a href="../window.html">status line</a>, however,
+are only transient. The <b>logEnergy</b> option (default <b>false</b>)
+indicates whether to also report the energy in the 
+<a href="../tools/log.html"><b>Log</b></a>.
 </p>
 
 <hr>
