@@ -136,6 +136,14 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
         top.addBond(atoms[b.atoms[0]], atoms[b.atoms[1]])
 
     forcefield = ForceField('amber14-all.xml', 'amber14/tip3pfb.xml')
+    unmatched_omm_residues = forcefield.getUnmatchedResidues(top)
+    if unmatched_omm_residues:
+        from .parameterize import parameterize
+        from chimerax.core.commands import commas
+        print("Unmatched residues: %s" % commas([rname for rname in set([r.name for r in unmatched_omm_residues])], conjunction="and"))
+        #TODO: need to find these residues in structure, sort into isomers, for each generate a
+        # ForceField._TemplateData (see openmm.app.forcefield), possibly add a distinguishing isomer
+        # number, and register template
     try:
         system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
     except ValueError as e:
