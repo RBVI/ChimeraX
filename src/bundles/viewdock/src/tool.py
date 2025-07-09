@@ -41,6 +41,8 @@ from chimerax.viewdock import RATING_KEY, DEFAULT_RATING
 
 class ViewDockTool(ToolInstance):
 
+    help = "help:user/tools/viewdock.html"
+
     SESSION_ENDURING = False
     SESSION_SAVE = True
     registered_mousemode = False
