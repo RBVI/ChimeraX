@@ -65,7 +65,7 @@ class ViewDockTool(ToolInstance):
         self.main_v_layout = QVBoxLayout()
         self.tool_window.ui_area.setLayout(self.main_v_layout)
 
-        self.structures = self.filter_structures(structures)
+        vd_structures = self.filter_structures(structures)
 
         self.top_buttons_layout = QHBoxLayout()
         self.top_buttons_setup()
@@ -77,7 +77,7 @@ class ViewDockTool(ToolInstance):
         self.struct_table = ItemTable(session=self.session, column_control_info=(
             self.col_display_widget, self.settings, {}, True, None, None, True
         ))
-        self.table_setup(table_state)
+        self.table_setup(vd_structures, table_state)
 
         from .mousemode import register_mousemode, NextDockingMouseMode
         if not self.__class__.registered_mousemode:
@@ -190,10 +190,10 @@ class ViewDockTool(ToolInstance):
             # Default behavior for chimerax.ui.widgets
             command = gui_instance.get_command()
             # Binding analysis structures
-            mine = concise_model_spec(self.session, self.structures)
+            mine = concise_model_spec(self.session, self.struct_table.data)
             all_structures = self.session.models.list(type=AtomicStructure)
             # All structures that are AtomicStructures but not in the binding analysis structures
-            others = concise_model_spec(self.session, set(all_structures) - set(self.structures))
+            others = concise_model_spec(self.session, set(all_structures) - set(self.struct_table.data))
             if others == "#":
                 self.session.logger.warning(f"First open a receptor model for {popup_name.capitalize()}.")
             else:
@@ -244,7 +244,7 @@ class ViewDockTool(ToolInstance):
                 return
         run(self.session, "close " + concise_model_spec(self.session, closures))
 
-    def table_setup(self, table_state):
+    def table_setup(self, structures, table_state):
         """
         Create the ItemTable for the structures. Add a for the
         structure ID, a column for the Rating with a custom delegate, and columns for each key in the viewdock_data
@@ -278,19 +278,20 @@ class ViewDockTool(ToolInstance):
 
         # Collect all unique keys from viewdock_data of all structures and add them as columns
         viewdock_keys = set()
-        for structure in self.structures:
+        for structure in structures:
             viewdock_keys.update(structure.viewdock_data.keys())
         # Need to add columns in predictable order so that table-session state data works
-        for key in sorted(viewdock_keys):
+        for key in sorted(viewdock_keys, key=lambda k: k.lower()):
             if key == RATING_KEY:
                 # Rating is already added as a column with a custom delegate, skip it here
                 continue
             self.struct_table.add_column(key, lambda s, k=key: s.viewdock_data.get(k, ''))
 
         # Set the data for the table and launch it
-        self.struct_table.data = self.structures
-        self.struct_table.launch(session_info=table_state)
-        if table_state is None:
+        self.struct_table.data = structures
+        # table_state is False if coming from ViewDockX session
+        self.struct_table.launch(session_info=(table_state if table_state else None))
+        if not table_state:
             self.struct_table.sort_by(id_col, self.struct_table.SORT_ASCENDING)
 
         # Add the table group to the layout
@@ -348,9 +349,12 @@ class ViewDockTool(ToolInstance):
         self.main_v_layout.addWidget(self.description_group)
 
         if table_state is None:
-            if len(self.structures) > 0:
+            if len(self.struct_table.data) > 0:
                 # Select the first structure in the table to display its data in the description box
-                self.struct_table.selected = [self.structures[0]]
+                self.struct_table.selected = [self.struct_table.data[0]]
+        elif table_state is False:
+            # ViewDockX session restore
+            self.struct_table.selected = [s for s in self.struct_table.data if s.display]
         else:
             self.table_selection_changed()
 
@@ -475,13 +479,14 @@ class ViewDockTool(ToolInstance):
         if trigger_name != REMOVE_MODELS:
             return
 
+        cur_structures = self.struct_table.data
         for model in trigger_data:
-            if model in self.structures:
-                self.structures.remove(model)
-        if not self.structures:
+            if model in cur_structures:
+                cur_structures.remove(model)
+        if not cur_structures:
             self.delete()
         else:
-            self.struct_table.data = self.structures
+            self.struct_table.data = cur_structures
 
     def set_visibility(self, structs, value):
         """
@@ -548,7 +553,7 @@ class ViewDockTool(ToolInstance):
     def take_snapshot(self, session, flags):
         return {
             'version': 1,
-            'structures': self.structures,
+            'structures': self.struct_table.data,
             'table_state': self.struct_table.session_info(),
             'tool_name': self.tool_name
         }
@@ -566,7 +571,7 @@ class ViewDockTool(ToolInstance):
                     "Can only convert ViewDockX version 2 tool instances for ViewDock."
                 )
                 return None
-            return cls(session, "ViewDock", snapshot['structures'])
+            return cls(session, "ViewDock", snapshot['structures'], table_state=False)
         # ViewDock snapshots
         if snapshot['version'] != 1:
             session.logger.warning(
