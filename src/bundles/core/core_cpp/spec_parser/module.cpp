@@ -39,12 +39,17 @@ static parser spec_parser;
 static PyObject* session;
 static PyObject *parse_error_class, *semantics_error_class;
 static PyObject* AtomSpec_class;
+static PyObject* _Chain_class;
 static PyObject* _Model_class;
 static PyObject* _ModelHierarchy_class;
 static PyObject* _ModelList_class;
 static PyObject* _ModelRange_class;
 static PyObject* _ModelRangeList_class;
+static PyObject* _Part_class;
+static PyObject* _PartList_class;
 static PyObject* _Term_class;
+static PyObject* add_part_arg;
+static PyObject* add_parts_arg;
 static PyObject* append_arg;
 static std::string use_python_error("Use Python error");
 static bool add_implied, order_implicit_atoms, outermost_inversion;
@@ -117,19 +122,93 @@ std::cerr << "eval_zone_selector\n";
 }
 
 static PyObject*
-eval_model_parts(const Ast &ast) {
-std::cerr << "eval_model_parts\n";
-    // model_parts <- chain+
-    //TODO
-    return Py_None;
-}
-
-static PyObject*
 eval_attribute_list(const Ast &ast) {
 std::cerr << "eval_attribute_list\n";
     // attribute_list <- attr_test ("," _ attr_test)*
     //TODO
     return Py_None;
+}
+
+static PyObject*
+eval_PART_RANGE_LIST(const Ast &ast) {
+std::cerr << "eval_PART_RANGE_LIST\n";
+    // PART_RANGE_LIST <- < RANGE_PART _ "-" _ RANGE_PART > / RANGE_PART
+    PyObject* start;
+    PyObject* end;
+    auto token = ast.token_to_string();
+    if (ast.choice == 0) {
+        auto dash_index = token.find_first_of('-', 1);
+        start = PyUnicode_FromString(token.substr(0, dash_index).c_str());
+        end = PyUnicode_FromString(token.substr(dash_index+1).c_str());
+    } else {
+        start = PyUnicode_FromString(token.c_str());
+        end = Py_None;
+    }
+    auto part = PyObject_CallFunctionObjArgs(_Part_class, start, end, nullptr);
+    if (part == nullptr) {
+        set_error_info(semantics_error_class, use_python_error);
+        return nullptr;
+    }
+    return part;
+}
+
+static PyObject*
+eval_part_list(const Ast &ast) {
+std::cerr << "eval_part_list\n";
+    // part_list <- PART_RANGE_LIST "," part_list / PART_RANGE_LIST
+    auto part_range = eval_PART_RANGE_LIST(*ast.nodes[0]);
+    PyObject* part_list;
+    if (ast.choice == 0) {
+        part_list = eval_part_list(*ast.nodes[1]);
+        if (PyObject_CallMethodOneArg(part_list, add_parts_arg, part_range) == nullptr) {
+            Py_DECREF(part_list);
+            throw std::logic_error(use_python_error);
+        }
+    } else {
+        part_list = PyObject_CallFunctionObjArgs(_PartList_class, part_range, nullptr);
+        if (part_list == nullptr) {
+            set_error_info(semantics_error_class, use_python_error);
+            return nullptr;
+        }
+    }
+    return part_list;
+}
+
+static PyObject*
+eval_chain(const Ast &ast) {
+std::cerr << "eval_chain\n";
+    // chain <- "/" part_list ("//" attribute_list)? chain_parts* / "//" attribute_list chain_parts* / chain_parts+
+    PyObject* attrs = Py_None;
+    PyObject* part_list = Py_None;
+    for (auto node: ast.nodes) {
+        if (node->name == "part_list") {
+            part_list = eval_part_list(*node);
+        } else if (node->name == "attribute_list") {
+            attrs = eval_attribute_list(*node);
+        } else if (node->name == "chain_parts") {
+            //TODO
+            //parts = eval_chain_parts(*node);
+        }
+    }
+    // part_list and attribute_list go in _Chain constructor; chain_parts use .add_part()
+    //TODO
+    auto chain = PyObject_CallFunctionObjArgs(_Chain_class, part_list, attrs, nullptr);
+    if (chain == nullptr) {
+        set_error_info(semantics_error_class, use_python_error);
+        return nullptr;
+    }
+    return chain;
+}
+
+static std::vector<PyObject*>
+eval_model_parts(const Ast &ast) {
+std::cerr << "eval_model_parts\n";
+    // model_parts <- chain+
+    std::vector<PyObject*> chains;
+    for (auto node: ast.nodes) {
+        chains.push_back(eval_chain(*node));
+    }
+    return chains;
 }
 
 static PyObject*
@@ -247,7 +326,7 @@ std::cerr << "eval_model\n";
     bool exact_match = false;
     PyObject* hierarchy = Py_None;
     PyObject* attrs = Py_None;
-    PyObject* parts = Py_None;
+    std::vector<PyObject*> parts;
     PyObject* zone = Py_None;
     for (auto node: ast.nodes) {
         if (node->name == "HASH_TYPE") {
@@ -269,8 +348,11 @@ std::cerr << "eval_model\n";
         set_error_info(semantics_error_class, use_python_error);
         return nullptr;
     }
-    if (parts != Py_None) {
-        //TODO
+    for (auto part: parts) {
+        if (PyObject_CallMethodOneArg(model, add_part_arg, part) == nullptr) {
+            Py_DECREF(model);
+            throw std::logic_error(use_python_error);
+        }
     }
     if (zone == Py_None)
         return model;
@@ -383,6 +465,7 @@ parse(PyObject *, PyObject *args)
             &semantics_error_class, &c_add_implied))
         return nullptr;
 
+std::cerr << "parse text: " << text << "\n";
     add_implied = static_cast<bool>(c_add_implied);
     spec_parser.set_logger([](size_t line, size_t col, const std::string& msg) {
         err_valid = true;
@@ -538,6 +621,9 @@ PyMODINIT_FUNC PyInit__spec_parser()
     AtomSpec_class = get_module_attribute("chimerax.core.commands.atomspec", "AtomSpec");
     if (AtomSpec_class == nullptr)
         return nullptr;
+    _Chain_class = get_module_attribute("chimerax.core.commands.atomspec", "_Chain");
+    if (_Chain_class == nullptr)
+        return nullptr;
     _Model_class = get_module_attribute("chimerax.core.commands.atomspec", "_Model");
     if (_Model_class == nullptr)
         return nullptr;
@@ -553,10 +639,22 @@ PyMODINIT_FUNC PyInit__spec_parser()
     _ModelRangeList_class = get_module_attribute("chimerax.core.commands.atomspec", "_ModelRangeList");
     if (_ModelRangeList_class == nullptr)
         return nullptr;
+    _Part_class = get_module_attribute("chimerax.core.commands.atomspec", "_Part");
+    if (_Part_class == nullptr)
+        return nullptr;
+    _PartList_class = get_module_attribute("chimerax.core.commands.atomspec", "_PartList");
+    if (_PartList_class == nullptr)
+        return nullptr;
     _Term_class = get_module_attribute("chimerax.core.commands.atomspec", "_Term");
     if (_Term_class == nullptr)
         return nullptr;
 
+    add_part_arg = PyUnicode_FromString("add_part");
+    if (add_part_arg == nullptr)
+        return nullptr;
+    add_parts_arg = PyUnicode_FromString("add_parts");
+    if (add_parts_arg == nullptr)
+        return nullptr;
     append_arg = PyUnicode_FromString("append");
     if (append_arg == nullptr)
         return nullptr;
