@@ -23,6 +23,9 @@ CXSERVICES_DEPLOYMENT_VER ?= production
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
 PATCHES = tcia_utils.patch tcia_utils_metadata.patch grako.patch
+ifeq ($(OS),Windows)
+PATCHES += openmm_metadata.patch
+endif
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 
 ifeq ($(OSARCH),DarwinArm64)
@@ -92,13 +95,14 @@ endif
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
-	# TODO:
-	#rm -rf $(APP_PYSITEDIR)/nvidia*
-
 	# tcia_utils (a DICOM dependency) pulls in Pandas, but it is patched
 	# so that pandas is not needed. When those patches are upstreamed
 	# and pandas is optional this line can be removed
 	$(APP_PIP) uninstall -y pandas
+ifeq ($(OS),Windows)
+	# openmm-cuda-12 brings in ~600MB of CUDA dependencies it does not use
+	$(APP_PIP) uninstall -y nvidia-cuda-runtime-cu12 nvidia-cuda-nvcc-cu12 nvidia-cuda-nvrtc-cu12 nvidia-cuda-cupti-cu12 nvidia-cufft-cu12
+endif
 
 app_requirements.txt:
 	$(APP_PYTHON_BIN) make_requirements.py

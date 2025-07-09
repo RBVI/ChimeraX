@@ -785,25 +785,11 @@ class ObjectIdMouseMode(MouseMode):
         session.triggers.add_trigger('mouse hover')
 
     def pause(self, position):
-        ui = self.session.ui
-        if ui.activeWindow() is None:
-            # Qt 5.7 gives app mouse events on Mac even if another application has the focus,
-            # and even if the this app is minimized, it gets events for where it used to be on the screen.
-            return
-        # ensure that no other top-level window is above the graphics
-        from Qt.QtGui import QCursor
-        if ui.topLevelAt(QCursor.pos()) != ui.main_window:
-            return
-        # ensure there's no popup menu above the graphics
-        apw = ui.activePopupWidget()
-        from Qt.QtCore import QPoint
-        if apw and ui.topLevelAt(apw.mapToGlobal(QPoint())) == ui.main_window:
-            return
         x,y = position
         p = self.view.picked_object(x, y)
 
         # Show atom spec balloon
-        pu = ui.main_window.graphics_window.popup
+        pu = self.session.ui.main_window.graphics_window.popup
         if p:
             pu.show_text(p.description(), (x+10,y))
             self.session.triggers.activate_trigger('mouse hover', p)
