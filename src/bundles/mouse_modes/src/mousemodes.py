@@ -481,26 +481,34 @@ class MouseModes:
         when a mouse pause occurs.
         '''
         cp = self._graphics_cursor_position()
-        if cp is None:
-            return
+        paused, unpaused = self.mouse_paused(cp)
+        if paused:
+            self._mouse_pause()
+        elif unpaused:
+            self._mouse_move_after_pause()
+
+    def mouse_paused(self, position):
+        if position is None:
+            return False, self._paused
         if self._mouse_buttons_down():
-            return
+            return False, self._paused
         from time import time
         t = time()
-        moved = (cp != self._mouse_pause_position)
+        moved = (position != self._mouse_pause_position)
         if moved:
-            self._mouse_pause_position = cp
+            self._mouse_pause_position = position
             self._last_mouse_time = t
             if self._paused:
                 # Moved after pausing
                 self._paused = False
-                self._mouse_move_after_pause()
+                return False, True
         elif not self._paused:
             # Not moving but not paused for enough time yet.
             lt = self._last_mouse_time
             if lt and t >= lt + self._mouse_pause_interval:
-                self._mouse_pause()
                 self._paused = True
+                return True, False
+        return False, False
 
     def _graphics_cursor_position(self):
         from Qt.QtGui import QCursor
@@ -529,6 +537,16 @@ class MouseModes:
             if ui.topLevelAt(pp) == ui.main_window:
                 return None
         return x, y
+
+    def _mouse_pause(self):
+        m = self.mode('pause')
+        if m:
+            m.pause(self._mouse_pause_position)
+
+    def _mouse_move_after_pause(self):
+        m = self.mode('pause')
+        if m:
+            m.move_after_pause()
 
     def remove_binding(self, button=None, modifiers=[],
             trackpad_action=None, trackpad_modifiers=[]):
@@ -658,16 +676,6 @@ class MouseModes:
             if b.exact_match(button, [modifier]):
                 return True
         return False
-
-    def _mouse_pause(self):
-        m = self.mode('pause')
-        if m:
-            m.pause(self._mouse_pause_position)
-
-    def _mouse_move_after_pause(self):
-        m = self.mode('pause')
-        if m:
-            m.move_after_pause()
 
     def set_graphics_window(self, graphics_window):
         self.graphics_window = gw = graphics_window
