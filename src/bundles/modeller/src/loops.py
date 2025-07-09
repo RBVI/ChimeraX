@@ -140,9 +140,9 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     aln = seq_to_alignment[seq]
                     match_map = aln.match_maps[seq]
                     prefix, suffix = [ret[0] for ret in
-                        find_affixes(r.chain, {r.chain: (seq, None, match_map)}, aln)]
+                        find_affixes(r.chain, {r.chain: (seq, None)}, aln)]
                     chain_template_chars = prefix + regularized_seq(seq,
-                        r.chain, match_map).characters + suffix
+                        r.chain, match_map[r.chain]).characters + suffix
                     template_chars.append(chain_template_chars)
                     # prevent Modeller from filling in unmodelled missing structure by using '-'
                     chain_target_chars = []
@@ -299,7 +299,7 @@ def find_affixes(chain, chain_info, alignment):
     suffixes = []
     from chimerax.atomic import Sequence
     try:
-        aseq, target, match_map = chain_info[chain]
+        aseq, target = chain_info[chain]
     except KeyError:
         prefixes.append('')
         suffixes.append('')
