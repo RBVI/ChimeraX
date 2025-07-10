@@ -47,6 +47,7 @@ static PyObject* _ModelRange_class;
 static PyObject* _ModelRangeList_class;
 static PyObject* _Part_class;
 static PyObject* _PartList_class;
+static PyObject* _Residue_class;
 static PyObject* _Term_class;
 static PyObject* add_part_arg;
 static PyObject* add_parts_arg;
@@ -175,27 +176,74 @@ std::cerr << "eval_part_list\n";
 }
 
 static PyObject*
+eval_residue(const Ast &ast) {
+std::cerr << "eval_residue\n";
+    // residue <- ":" part_list ("::" attribute_list)? residue_parts* / "::" attribute_list residue_parts* / residue_parts+
+    PyObject* attrs = Py_None;
+    PyObject* part_list = Py_None;
+    std::vector<PyObject*> parts;
+    for (auto node: ast.nodes) {
+        if (node->name == "part_list") {
+            part_list = eval_part_list(*node);
+        } else if (node->name == "attribute_list") {
+            attrs = eval_attribute_list(*node);
+        } else if (node->name == "residue_parts") {
+            //TODO: parts = eval_residue_parts(*node);
+        }
+    }
+    // part_list and attribute_list go in _Residue constructor; residue_parts use .add_part()
+    auto residue = PyObject_CallFunctionObjArgs(_Residue_class, part_list, attrs, nullptr);
+    if (residue == nullptr) {
+        set_error_info(semantics_error_class, use_python_error);
+        return nullptr;
+    }
+    for (auto part: parts) {
+        if (PyObject_CallMethodOneArg(residue, add_part_arg, part) == nullptr) {
+            Py_DECREF(residue);
+            throw std::logic_error(use_python_error);
+        }
+    }
+    return residue;
+}
+
+static std::vector<PyObject*>
+eval_chain_parts(const Ast &ast) {
+std::cerr << "eval_chain_parts\n";
+    // chain_parts <- residue+
+    std::vector<PyObject*> residues;
+    for (auto node: ast.nodes) {
+        residues.push_back(eval_residue(*node));
+    }
+    return residues;
+}
+
+static PyObject*
 eval_chain(const Ast &ast) {
 std::cerr << "eval_chain\n";
     // chain <- "/" part_list ("//" attribute_list)? chain_parts* / "//" attribute_list chain_parts* / chain_parts+
     PyObject* attrs = Py_None;
     PyObject* part_list = Py_None;
+    std::vector<PyObject*> parts;
     for (auto node: ast.nodes) {
         if (node->name == "part_list") {
             part_list = eval_part_list(*node);
         } else if (node->name == "attribute_list") {
             attrs = eval_attribute_list(*node);
         } else if (node->name == "chain_parts") {
-            //TODO
-            //parts = eval_chain_parts(*node);
+            parts = eval_chain_parts(*node);
         }
     }
     // part_list and attribute_list go in _Chain constructor; chain_parts use .add_part()
-    //TODO
     auto chain = PyObject_CallFunctionObjArgs(_Chain_class, part_list, attrs, nullptr);
     if (chain == nullptr) {
         set_error_info(semantics_error_class, use_python_error);
         return nullptr;
+    }
+    for (auto part: parts) {
+        if (PyObject_CallMethodOneArg(chain, add_part_arg, part) == nullptr) {
+            Py_DECREF(chain);
+            throw std::logic_error(use_python_error);
+        }
     }
     return chain;
 }
@@ -644,6 +692,9 @@ PyMODINIT_FUNC PyInit__spec_parser()
         return nullptr;
     _PartList_class = get_module_attribute("chimerax.core.commands.atomspec", "_PartList");
     if (_PartList_class == nullptr)
+        return nullptr;
+    _Residue_class = get_module_attribute("chimerax.core.commands.atomspec", "_Residue");
+    if (_Residue_class == nullptr)
         return nullptr;
     _Term_class = get_module_attribute("chimerax.core.commands.atomspec", "_Term");
     if (_Term_class == nullptr)
