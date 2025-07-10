@@ -39,6 +39,7 @@ static parser spec_parser;
 static PyObject* session;
 static PyObject *parse_error_class, *semantics_error_class;
 static PyObject* AtomSpec_class;
+static PyObject* _Atom_class;
 static PyObject* _Chain_class;
 static PyObject* _Model_class;
 static PyObject* _ModelHierarchy_class;
@@ -176,6 +177,73 @@ std::cerr << "eval_part_list\n";
 }
 
 static PyObject*
+eval_ATOM_NAME(const Ast &ast) {
+std::cerr << "eval_ATOM_NAME\n";
+    // ATOM_NAME <- < [-+a-zA-Z0-9_'"*?\[\]\\]+ >
+    auto part = PyObject_CallFunctionObjArgs(_Part_class,
+        PyUnicode_FromString(ast.token_to_string().c_str()), Py_None, nullptr);
+    if (part == nullptr) {
+        set_error_info(semantics_error_class, use_python_error);
+        return nullptr;
+    }
+    return part;
+}
+
+static PyObject*
+eval_atom_list(const Ast &ast) {
+std::cerr << "eval_atom_list\n";
+    // atom_list <- ATOM_NAME "," atom_list / ATOM_NAME
+    auto atom_name = eval_ATOM_NAME(*ast.nodes[0]);
+    PyObject* atom_list;
+    if (ast.choice == 0) {
+        atom_list = eval_atom_list(*ast.nodes[1]);
+        if (PyObject_CallMethodOneArg(atom_list, add_parts_arg, atom_name) == nullptr) {
+            Py_DECREF(atom_list);
+            throw std::logic_error(use_python_error);
+        }
+    } else {
+        atom_list = PyObject_CallFunctionObjArgs(_PartList_class, atom_name, nullptr);
+        if (atom_list == nullptr) {
+            set_error_info(semantics_error_class, use_python_error);
+            return nullptr;
+        }
+    }
+    return atom_list;
+}
+
+static PyObject*
+eval_atom(const Ast &ast) {
+std::cerr << "eval_atom\n";
+    // atom <- "@" atom_list ("@@" attribute_list)? / "@@" attribute_list
+    PyObject* attrs = Py_None;
+    PyObject* atom_list = Py_None;
+    for (auto node: ast.nodes) {
+        if (node->name == "atom_list") {
+            atom_list = eval_atom_list(*node);
+        } else if (node->name == "attribute_list") {
+            attrs = eval_attribute_list(*node);
+        }
+    }
+    auto atom = PyObject_CallFunctionObjArgs(_Atom_class, atom_list, attrs, nullptr);
+    if (atom == nullptr) {
+        set_error_info(semantics_error_class, use_python_error);
+        return nullptr;
+    }
+    return atom;
+}
+
+static std::vector<PyObject*>
+eval_residue_parts(const Ast &ast) {
+std::cerr << "eval_residue_parts\n";
+    // residue_parts <- atom+
+    std::vector<PyObject*> atoms;
+    for (auto node: ast.nodes) {
+        atoms.push_back(eval_atom(*node));
+    }
+    return atoms;
+}
+
+static PyObject*
 eval_residue(const Ast &ast) {
 std::cerr << "eval_residue\n";
     // residue <- ":" part_list ("::" attribute_list)? residue_parts* / "::" attribute_list residue_parts* / residue_parts+
@@ -188,7 +256,7 @@ std::cerr << "eval_residue\n";
         } else if (node->name == "attribute_list") {
             attrs = eval_attribute_list(*node);
         } else if (node->name == "residue_parts") {
-            //TODO: parts = eval_residue_parts(*node);
+            parts = eval_residue_parts(*node);
         }
     }
     // part_list and attribute_list go in _Residue constructor; residue_parts use .add_part()
@@ -668,6 +736,9 @@ PyMODINIT_FUNC PyInit__spec_parser()
 
     AtomSpec_class = get_module_attribute("chimerax.core.commands.atomspec", "AtomSpec");
     if (AtomSpec_class == nullptr)
+        return nullptr;
+    _Atom_class = get_module_attribute("chimerax.core.commands.atomspec", "_Atom");
+    if (_Atom_class == nullptr)
         return nullptr;
     _Chain_class = get_module_attribute("chimerax.core.commands.atomspec", "_Chain");
     if (_Chain_class == nullptr)
