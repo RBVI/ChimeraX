@@ -1,5 +1,5 @@
-*** OpenMM_CUDA_12-8.2.0.dist-info/METADATA.orig	2025-07-07 14:57:33
---- OpenMM_CUDA_12-8.2.0.dist-info/METADATA	2025-07-07 14:57:43
+*** OpenMM_CUDA_12-8.2.0.dist-info/METADATA.orig	2025-07-10 13:41:23
+--- OpenMM_CUDA_12-8.2.0.dist-info/METADATA	2025-07-10 13:41:28
 *************** Author: Peter Eastman
 *** 4,12 ****
   Summary: CUDA platform for OpenMM
@@ -10,4 +10,5 @@
 - Requires-Dist: nvidia-cuda-nvrtc-cu12
 - Requires-Dist: nvidia-cuda-cupti-cu12
 - Requires-Dist: nvidia-cufft-cu12
---- 4,9 ----
+- 
+--- 4,6 ----
