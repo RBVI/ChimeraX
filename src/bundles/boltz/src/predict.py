@@ -24,15 +24,17 @@
 
 def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
                   protein = [], dna = [], rna = [], ligand_ccd = [], ligand_smiles = [],
-                  name = None, results_directory = None, device = None,
-                  samples = 1, recycles = 3, seed = None, float16 = False, steering = False,
+                  name = None, results_directory = None,
+                  device = None, kernels = None, precision = None, float16 = False,
+                  samples = 1, recycles = 3, seed = None,
+                  affinity = None, steering = False,
                   use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                   open = True, install_location = None, wait = None):
 
     if install_location is not None:
         from .settings import _boltz_settings
         settings = _boltz_settings(session)
-        settings.boltz_install_location = install_location
+        settings.boltz2_install_location = install_location
         settings.save()
 
     if not _is_boltz_available(session):
@@ -47,6 +49,8 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
     ligand_components, covalent_ligands = _ligand_components(ligands, exclude_ligands.split(','),
                                                              ligand_ccd, ligand_smiles, used_chain_ids)
     molecular_components = polymer_components + ligand_components
+
+    predict_affinity = _affinity_component(affinity, ligand_components)
                             
     # Warn about unmodeled compnents
     if unmodeled_chains:
@@ -56,8 +60,9 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
         session.logger.info(f'Predicting covalent ligands not yet supported: {covalent_ligands}')
 
     br = BoltzRun(session, molecular_components, name = name, align_to = align_to,
-                  device = device, samples = samples, recycles = recycles, seed = seed,
-                  cuda_bfloat16 = float16, use_steering_potentials = steering,
+                  samples = samples, recycles = recycles, seed = seed,
+                  predict_affinity = predict_affinity, use_steering_potentials = steering,
+                  device = device, use_kernels = kernels, precision = precision, cuda_bfloat16 = float16,
                   use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
                   open = open, wait = wait)
     br.start(results_directory)
@@ -152,6 +157,23 @@ def _ligand_components(ligands, exclude_ligands, ligand_ccd, ligand_smiles, used
 
 # ------------------------------------------------------------------------------
 #
+def _affinity_component(affinity, ligand_components):
+    predict_affinity = None
+    if affinity:
+        for lig_comp in ligand_components:
+            if affinity in (lig_comp.ccd_code, lig_comp.smiles_string):
+                ncopies = len(lig_comp.chain_ids)
+                if ncopies > 1:
+                    from chimerax.core.errors import UserError
+                    raise UserError(f'Affinity ligand {affinity} has {ncopies} copies.  Boltz 2 can only predict affinity for single-copy ligands.')
+                predict_affinity = lig_comp
+        if predict_affinity is None:
+            from chimerax.core.errors import UserError
+            raise UserError(f'Affinity ligand {affinity} is not a component of the predicted structure')
+    return predict_affinity
+
+# ------------------------------------------------------------------------------
+#
 class BoltzMolecule:
     def __init__(self, type, chain_ids, sequence_string = None, ccd_code = None, smiles_string = None):
         self.type = type	# protein, dna, rna, ligand
@@ -164,8 +186,9 @@ class BoltzMolecule:
 #
 class BoltzRun:
     def __init__(self, session, molecular_components, name = None, align_to = None,
-                 device = 'default', samples = 1, recycles = 3, seed = None,
-                 cuda_bfloat16 = False, use_steering_potentials = False,
+                 samples = 1, recycles = 3, seed = None,
+                 predict_affinity = None, use_steering_potentials = False,
+                 device = 'default', use_kernels = None, precision = None, cuda_bfloat16 = False,
                  use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                  open = True, wait = False):
 
@@ -173,10 +196,13 @@ class BoltzRun:
         self._molecular_components = molecular_components  # List of BoltzMolecule
         self.name = name
         self._align_to = align_to	# AtomicStructure to align prediction to.
-        self._device = device		# gpu, cpu or default, or None (uses settings value)
         self._samples = samples		# Number of predicted structures
         self._recycles = recycles	# Number of boltz recycling steps
+        self._device = device		# gpu, cpu or default, or None (uses settings value)
+        self._use_kernels = use_kernels	# whether to use cuequivariance module for triangle attention
+        self._precision = precision	# "32", "bf16-mixed", "16", "bf16-true"
         self._cuda_bfloat16 = cuda_bfloat16	# Save memory using 16-bit instead of 32-bit float
+        self._predict_affinity = predict_affinity  # BoltzMolecule for affinity prediction
         self._use_steering_potentials = use_steering_potentials
         self._seed = seed		# Random seed for computation
         self._open = open		# Whether to open predictions when boltz finishes.
@@ -292,6 +318,15 @@ class BoltzRun:
                 ligand_entry.append(spec)
                 yaml_lines.extend(ligand_entry)
 
+        # Predict affinity
+        if self._predict_affinity:
+            ligand_chain_id = self._predict_affinity.chain_ids[-1]
+            affinity_lines = [
+                'properties:',
+                '  - affinity:', 
+                f'      binder: {ligand_chain_id}']
+            yaml_lines.extend(affinity_lines)
+
         # Create yaml string
         yaml = '\n'.join(yaml_lines)
 
@@ -323,22 +358,31 @@ class BoltzRun:
 
         self._log_prediction_info()
 
-        boltz_venv = self._settings.boltz_install_location
+        boltz_venv = self._settings.boltz2_install_location
         from .install import find_executable
         boltz_exe = find_executable(boltz_venv, 'boltz')
 
-        command = [boltz_exe, 'predict',
-                   self._yaml_path,
-                   '--write_full_pae',
-                   ]
+        command = [boltz_exe, 'predict', self._yaml_path]
+        
         if self.use_msa_server:
             command.append('--use_msa_server')
+
+        if self._use_steering_potentials:
+            command.append('--use_potentials')
 
         command.extend(['--accelerator', self.device])
         if self._cuda_bfloat16 and self.device == 'gpu':
             command.append('--use_cuda_bfloat16')
-        if not self._use_steering_potentials:
-            command.append('--no_potentials')
+
+        use_kernels = self._use_kernels
+        if self._use_kernels is None:
+            from sys import platform
+            use_kernels = (self.device == 'gpu' and platform == 'linux')
+        if not use_kernels:
+            command.append('--no_kernels')
+
+        if self._precision is not None:
+            command.extend(['--precision', self._precision])
 
         if self._samples != 1:
             command.extend(['--diffusion_samples', str(self._samples)])
@@ -347,7 +391,6 @@ class BoltzRun:
         if self._seed is not None:
             command.extend(['--seed', str(self._seed)])
 
-        from sys import platform
         if platform == 'darwin':
             env = {}
             # On Mac PyTorch uses MPS (metal performance shaders) but not all functions are implemented
@@ -449,23 +492,26 @@ class BoltzRun:
         success = (p.returncode == 0)
         import locale
         stdout_encoding = locale.getpreferredencoding()
-        if success:
+        stdout = stdout.decode(stdout_encoding, errors = 'ignore')
+        if self._prediction_ran_out_of_memory(stdout):
+            msg = ('The Boltz prediction ran out of memory.  The memory use depends on the'
+                   ' number of protein and nucleic acid residues plus the number of ligand'
+                   ' atoms.  You can reduce the size of your molecular assembly to stay'
+                   ' within the memory limits.')
+            self._session.logger.error(msg)
+            self._add_to_msa_cache()
+            success = False	# Boltz usual exits with return code 0 when it runs out of memory
+        elif success:
             from time import time
             t = time() - self._start_time
             self._session.logger.info(f'Boltz prediction completed in {"%.0f" % t} seconds')
-            stdout = stdout.decode(stdout_encoding, errors = 'ignore')
-            if self._prediction_ran_out_of_memory(stdout):
-              msg = ('The Boltz prediction ran out of memory.  The memory use depends on the'
-                     ' number of protein and nucleic acid residues plus the number of ligand'
-                     ' atoms.  You can reduce the size of your molecular assembly to stay'
-                     ' within the memory limits.')
-              self._session.logger.error(msg)
-              success = False
-            elif self._open:
+            self._copy_predictions()
+            if self._open:
                 self._open_predictions()
+            if self._predict_affinity:
+                self._report_affinity()
             self._add_to_msa_cache()
         else:
-            stdout = stdout.decode(stdout_encoding, errors = 'ignore')
             stderr = stderr.decode(stdout_encoding, errors = 'ignore')
             if 'No supported gpu backend found' in stderr:
                 msg = ('Attempted to run Boltz on the GPU but no supported GPU device could be found.'
@@ -514,7 +560,6 @@ class BoltzRun:
         return not exists(pdir) and 'ran out of memory' in stdout
             
     def _open_predictions(self):
-        self._copy_predictions()
         for n in range(self._samples):
             self._open_prediction(n)
 
@@ -554,6 +599,8 @@ class BoltzRun:
         from os import listdir
         from shutil import copy
         for filename in listdir(pdir):
+            if filename.endswith('.npz') and not filename.startswith('pae_'):
+                continue	# Don't copy pde, plddt and pre_affinity files.
             copy(join(pdir, filename), dir)
 
     def _add_to_msa_cache(self):
@@ -565,6 +612,23 @@ class BoltzRun:
         from os.path import join
         msa_dir = join(self._results_directory, f'boltz_results_{self.name}', 'msa')
         _add_to_msa_cache(self.name, protein_seqs, msa_dir, self.msa_cache_dir)
+
+    def _report_affinity(self):
+        ligand_mol = self._predict_affinity
+        if ligand_mol is None:
+            return
+        from os.path import join, exists
+        affinity_json = join(self._results_directory, f'affinity_{self.name}.json')
+        if exists(affinity_json):
+            import json
+            with open(affinity_json, 'r') as f:
+                results = json.load(f)
+            log_ic50_uM = results['affinity_pred_value']
+            ic50_uM = 10.0 ** log_ic50_uM
+            prob = results['affinity_probability_binary']
+            lig_spec = (ligand_mol.ccd_code or ligand_mol.smiles_string)
+            msg = f'Ligand {lig_spec} predicted IC50 binding affinity {"%.2g" % ic50_uM} uM, predicted binding probability {"%.2g" % prob}'
+            self._session.logger.info(msg)    
 
 # ------------------------------------------------------------------------------
 #
@@ -604,7 +668,7 @@ def _is_boltz_available(session):
     '''Check if Boltz is locally installed with paths properly setup.'''
     from .settings import _boltz_settings
     settings = _boltz_settings(session)
-    install_location = settings.boltz_install_location
+    install_location = settings.boltz2_install_location
     from os.path import isdir
     if not isdir(install_location):
         msg = 'You need to install Boltz by pressing the "Install Boltz" button on the ChimeraX Boltz user interface, or using the ChimeraX command "boltz install".  If you already have Boltz installed, you can set the Boltz installation location in the user interface under Options, or use the installLocation option of the ChimeraX boltz command "boltz predict ... installLocation /path/to/boltz"'
@@ -675,7 +739,7 @@ def _torch_has_cuda(session):
         lib_path = f'lib/python{v.major}.{v.minor}/site-packages/torch/lib/libtorch_cuda.so'
     from .settings import _boltz_settings
     settings = _boltz_settings(session)
-    boltz_install = settings.boltz_install_location
+    boltz_install = settings.boltz2_install_location
     from os.path import join, exists
     torch_cuda_lib = join(boltz_install, lib_path)
     return exists(torch_cuda_lib)
@@ -828,7 +892,7 @@ def _ccd_atom_counts():
     global _ccd_atom_counts_table
     if _ccd_atom_counts_table is None:
         from os.path import expanduser, exists
-        counts_path = expanduser('~/.boltz/ccd_atom_counts.npz')
+        counts_path = expanduser('~/.boltz/ccd_atom_counts_boltz2.npz')
         if exists(counts_path):
             import numpy
             with numpy.load(counts_path) as counts:
@@ -935,7 +999,10 @@ def register_boltz_predict_command(logger):
                    ('name', StringArg),
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
+                   ('kernels', BoolArg),
+                   ('precision', EnumOf(['32', 'bf16-mixed', '16', 'bf16-true'])),
                    ('float16', BoolArg),
+                   ('affinity', StringArg),
                    ('steering', BoolArg),
                    ('samples', IntArg),
                    ('recycles', IntArg),

@@ -105,7 +105,7 @@
       and uses the Torch machine learning package.  It also requires the neural network weights (3.3 Gbytes)
       and PDB Chemical Component Dictionary (CCD, 0.3 Gbytes) to make predictions.  Downloading and installing all of these
       files will take 10 minutes or more depending on network speed and install the software in your home
-      directory in ~/boltz and the network weights and CCD in ~/.boltz.
+      directory in ~/boltz2 and the network weights and CCD in ~/.boltz.
     </p>
 
     <p>
@@ -446,7 +446,7 @@
      <p>
        The boltz install command creates a Python virtual environment to install
        <a href="https://pypi.org/project/boltz/">Boltz from PyPi</a>.  If no directory
-       is specified then ~/boltz in the user's home directory is used.  The directory
+       is specified then ~/boltz2 in the user's home directory is used.  The directory
        will be created or if it already exists must be empty.  It then downloads
        the Boltz network parameters and Chemical Component Dictionary to ~/.boltz.
        Finally it makes
@@ -526,7 +526,7 @@
 	<a href="https://pytorch.org/get-started/locally/">Torch installation page</a>
 	for the correct pip install command and replace torch with the following shell commands.
 	<pre>
-	  $ cd ~/boltz/bin
+	  $ cd ~/boltz2/bin
 	  $ ./pip uninstall torch
 	  $ ./pip install torch --index-url https://download.pytorch.org/whl/cu118</pre>
 
