@@ -391,6 +391,7 @@ class BoltzRun:
         if self._seed is not None:
             command.extend(['--seed', str(self._seed)])
 
+        from sys import platform
         if platform == 'darwin':
             env = {}
             # On Mac PyTorch uses MPS (metal performance shaders) but not all functions are implemented
