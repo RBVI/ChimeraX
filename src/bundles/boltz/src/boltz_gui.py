@@ -415,7 +415,9 @@ class BoltzPredictionGUI(ToolInstance):
                 spec = comp.uniprot_id or comp.sequence_string
                 for i in range(comp.count):
                     if comp.chains:
-                        spec = comp.chains[i % len(comp.chains)].atomspec
+                        chain = comp.chains[i % len(comp.chains)]
+                        if chain.chain is not None:  # Check if chain is deleted
+                            spec = chain.atomspec
                     options.append(f'{comp.type} {spec}')
 
         ligand_ccds = []
