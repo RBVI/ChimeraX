@@ -77,7 +77,8 @@ wheel = [
   "jedi==0.19.1",
   "jupyter-client==8.6.3",
   "lxml==5.3.1",
-  "lz4==4.4.4",
+  # lz4 4.4.4 has problems decompressing what it encoded, ticket #18140
+  "lz4==4.3.2",
   "matplotlib==3.10.1",
   "msgpack==1.1.0",
   "nibabel == 5.2.0",

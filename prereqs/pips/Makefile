@@ -24,7 +24,11 @@ CXSERVICES_DEPLOYMENT_VER ?= production
 # Remove if tcia_utils removes those imports
 PATCHES = tcia_utils.patch tcia_utils_metadata.patch grako.patch
 ifeq ($(OS),Windows)
+ifneq ($(filter $(MSYSTEM),MSYS MINGW64),)
 PATCHES += openmm_metadata.patch
+else
+PATCHES += openmm_metadata_cygwin.patch
+endif
 endif
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 

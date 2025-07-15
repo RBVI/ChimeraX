@@ -94,7 +94,7 @@ command_defaults = {
     'verbose': False
 }
 def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resolution=None, *, block=None,
-        chain_id=None, hbonds=False, phenix_location=None, residue_number=None,
+        chain_id=None, clashes=False, hbonds=False, phenix_location=None, residue_number=None,
         verbose=command_defaults['verbose'], option_arg=[], position_arg=[]):
 
     # Find the phenix.ligandfit executable
@@ -169,8 +169,8 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resoluti
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # the program runs
     callback = lambda placed_ligand, *args, session=session, model=model, chain_id=chain_id, \
-        hbonds=hbonds, residue_number=residue_number, d_ref=d: _process_results(
-        session, placed_ligand, model, chain_id, residue_number, hbonds)
+        hbonds=hbonds, clashes=clashes, residue_number=residue_number, d_ref=d: _process_results(
+        session, placed_ligand, model, chain_id, residue_number, hbonds, clashes)
     FitJob(session, exe_path, option_arg, search_center, resolution, position_arg, temp_dir, verbose,
         callback, block)
 
@@ -236,7 +236,7 @@ def view_box(session, model):
         return (face_intercepts[0] + face_intercepts[1]) / 2
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
-def _process_results(session, placed_ligand, model, chain_id, residue_number, hbonds):
+def _process_results(session, placed_ligand, model, chain_id, residue_number, hbonds, clashes):
     session.logger.status("Fitting job finished")
     if model.deleted:
         placed_ligand.delete()
@@ -254,9 +254,13 @@ def _process_results(session, placed_ligand, model, chain_id, residue_number, hb
     placed_ligand.ss_assigned = True
     model.combine(placed_ligand, {}, model.scene_position)
     session.logger.info("Ligand added to %s as residue %d in chain %s" % (model,  residue_number, chain_id))
+    placed_spec = model.atomspec + '/' + chain_id + ':' + str(residue_number)
     if hbonds:
         from chimerax.core.commands import run
-        run(session, "hbonds %s reveal true" % (model.atomspec + '/' + chain_id + ':' + str(residue_number)))
+        run(session, "hbonds %s reveal true" % placed_spec)
+    if clashes:
+        from chimerax.core.commands import run
+        run(session, "clashes %s restrict #!%s reveal true" % (placed_spec, model.id_string))
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
@@ -347,6 +351,7 @@ def register_command(logger):
                    ('resolution', PositiveFloatArg),
                    # put the above three first so that they show up in usage before the optional keywords
                    ('block', BoolArg),
+                   ('clashes', BoolArg),
                    ('chain_id', StringArg),
                    ('hbonds', BoolArg),
                    ('phenix_location', OpenFolderNameArg),

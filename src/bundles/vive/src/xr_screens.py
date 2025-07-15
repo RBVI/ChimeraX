@@ -126,7 +126,7 @@ class XRBackingWindow:
     and Sony Spatial Reality to capture mouse and keyboard events when
     mouse is on the 3D display.
     '''
-    def __init__(self, session, screen, in_front = False):
+    def __init__(self, session, screen, in_front = False, hover_text = True):
         self._session = session
         self._screen = screen
         
@@ -148,12 +148,11 @@ class XRBackingWindow:
         # Remove backing window when openxr is turned off.
         session.triggers.add_handler('vr stopped', self._xr_quit)
 
-        # Would be nice if mouse hover popup shown.
-        # But we don't get any mouse hover events because the hover
-        # code only triggers when the actual mouse cursor position
-        # (from QCursor.pos()) is in the main graphics window.
-        #   session.triggers.add_handler('mouse hover', self._mouse_hover)
-
+        # Show text labels for atoms and residues when mouse pauses.
+        if hover_text:
+            session.triggers.add_handler('graphics update',
+                                         self._check_for_mouse_hover)
+        
     def _make_transparent_in_front(self, w):
         # On Sony Spatial Reality displays the full screen
         # window made by Sony OpenXR captures mouse events
@@ -207,7 +206,7 @@ class XRBackingWindow:
         graphics pane coordinates and dispatch it.
         '''
         p = event.position()
-        gx, gy = self._map_event_coordinates(p.x(), p.y())
+        gx, gy = self._backing_to_graphics_coordinates(p.x(), p.y())
         e = self._repositioned_event(event, gx, gy)
         mm = self._session.ui.mouse_modes
         mm._dispatch_mouse_event(e, action)
@@ -218,16 +217,17 @@ class XRBackingWindow:
         graphics pane coordinates and dispatch it.
         '''
         p = event.position()
-        gx, gy = self._map_event_coordinates(p.x(), p.y())
+        gx, gy = self._backing_to_graphics_coordinates(p.x(), p.y())
         e = self._repositioned_event(event, gx, gy)
         mm = self._session.ui.mouse_modes
         mm._wheel_event(e)
 
-    def _map_event_coordinates(self, x, y):
+    def _backing_to_graphics_coordinates(self, x, y):
         '''
-        Handle different aspect ratio of 3D screen window and
-        graphics window.  Graphics window has cropped version
-        of 3D window image.
+        Convert backing window x,y pixel coordinates to main
+        graphics window coordinates. Handle different aspect ratio
+        of backing and graphics windows. Graphics window has cropped
+        version of openxr window image.
         '''
         w3d = self._widget
         w, h = w3d.width(), w3d.height()
@@ -257,7 +257,79 @@ class XRBackingWindow:
             raise RuntimeError(f'Event type is not mouse or wheel event {event}')
         return e
 
+    def _graphics_cursor_position(self):
+        from Qt.QtGui import QCursor
+        cp = QCursor.pos()
+        if self._session.ui.topLevelAt(cp) == self._widget:
+            p = self._widget.mapFromGlobal(cp)
+            x,y = self._map_event_coordinates(p.x(), p.y())
+            return (int(x), int(y))
+        else:
+            mm = self._session.ui.mouse_modes
+            return mm._graphics_cursor_position_original()
+        return None
+
+    def _check_for_mouse_hover(self, *args):
+        if self._widget is None:
+            return 'delete handler'
+        from Qt.QtGui import QCursor
+        cp = QCursor.pos()
+        if self._session.ui.topLevelAt(cp) != self._widget:
+            return
+
+        bp = self._widget.mapFromGlobal(cp)
+        x,y = self._backing_to_graphics_coordinates(bp.x(), bp.y())
+        mm = self._session.ui.mouse_modes
+        paused, unpaused = mm.mouse_paused((int(x),int(y)))
+        if not paused and not unpaused:
+            return
+
+        if paused:
+            pick, object, label_type = self._hover_pick(x, y)
+            if pick is None:
+                self._hide_hover_label()
+            else:
+                self._show_hover_label(pick, object, label_type)
+        if unpaused:
+            self._hide_hover_label()
+
+    def _show_hover_label(self, pick, object, label_type):
+        text = pick.description()
+        from chimerax.label.label3d import label
+        label(self._session, object, label_type,
+              text = text, bg_color = (0,0,0,255))
+        self._hover_label_object = object, label_type
+
+    def _hide_hover_label(self):
+        if hasattr(self, '_hover_label_object'):
+            object, label_type = self._hover_label_object
+            if object:
+                from chimerax.label.label3d import label_delete
+                label_delete(self._session, object, label_type)
+                self._hover_label_object = None, None
+
+    def _hover_pick(self, x, y):
+        pick = self._session.main_view.picked_object(x, y)
+
+        from chimerax.atomic import PickedAtom, PickedResidue, PickedBond
+        from chimerax.core.objects import Objects
+        if isinstance(pick, PickedAtom):
+            from chimerax.atomic import Atoms
+            object = Objects(atoms = Atoms([pick.atom]))
+            label_type = 'atoms'
+        elif isinstance(pick, PickedResidue):
+            object = Objects(atoms = pick.residue.atoms)
+            label_type = 'residues'
+        elif isinstance(pick, PickedBond):
+            from chimerax.atomic import Bonds
+            object = Objects(bonds = Bonds([pick.bond]))
+            label_type = 'bonds'
+        else:
+            pick = object = label_type = None
+        return pick, object, label_type
+    
     def _xr_quit(self, *args):
+        self._hide_hover_label()
         # Delete the backing window
         self._widget.deleteLater()
         self._widget = None
