@@ -1843,14 +1843,18 @@ t0 = t1;
 
     // "pass 4.75":  this pass is a followup to Car determination and
     //    therefore also not in the IDATM paper:  reexamine nitrogens
-    //    that are now adjacent to Car atoms and ensure that their N2
-    //    vs. Npl assignments still make sense
+    //    that are now adjacent to Car atoms (but not in the ring itself)
+    //    and ensure that their N2 vs. Npl assignments still make sense
+    //    (e.g. N8 in LLX of 3max)
     for (auto a: untyped_atoms) {
 
-        if (redo[a] != 4)
+        if (redo.find(a) == redo.end() || redo[a] != 4)
             continue;
 
         if (a->idatm_type() != "N2")
+            continue;
+
+        if (a->rings(false, ring_limit, &mapped_residues).size() > 0)
             continue;
 
         bool all_single = true;

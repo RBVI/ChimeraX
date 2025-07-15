@@ -1206,7 +1206,7 @@ class VerifyELCenterDialog(VerifyCenterDialog):
 
 class VerifyLFCenterDialog(VerifyCenterDialog):
     def __init__(self, session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution,
-            initial_center, opaque_maps, hbonds):
+            initial_center, opaque_maps, hbonds, clashes):
         self._search_radius = None
         self.ligand_fmt = ligand_fmt
         self.ligand_value = ligand_value
@@ -1216,6 +1216,7 @@ class VerifyLFCenterDialog(VerifyCenterDialog):
         self.res_num = res_num
         self.resolution = resolution
         self.hbonds = hbonds
+        self.clashes = clashes
         super().__init__(session, initial_center, opaque_maps)
 
     @property
@@ -1247,7 +1248,7 @@ class VerifyLFCenterDialog(VerifyCenterDialog):
                     m.rgba = tuple(rgba)
         center = self.marker.scene_coord
         _run_ligand_fit_command(self.session, self.ligand_fmt, self.ligand_value, self.receptor, self.map,
-            self.chain_id, self.res_num, self.resolution, center, self.hbonds)
+            self.chain_id, self.res_num, self.resolution, center, self.hbonds, self.clashes)
 
     @property
     def search_button_label(self):
@@ -1440,6 +1441,9 @@ class LaunchLigandFitTool(ToolInstance):
         self.show_hbonds_checkbox = QCheckBox("Show H-bonds formed by fit ligand")
         self.show_hbonds_checkbox.setChecked(True)
         checkbox_layout.addWidget(self.show_hbonds_checkbox, alignment=Qt.AlignLeft)
+        self.show_clashes_checkbox = QCheckBox("Show clashes with fit ligand")
+        self.show_clashes_checkbox.setChecked(True)
+        checkbox_layout.addWidget(self.show_clashes_checkbox, alignment=Qt.AlignLeft)
 
         layout.addSpacing(10)
 
@@ -1545,10 +1549,12 @@ class LaunchLigandFitTool(ToolInstance):
         if self.verify_center_checkbox.isChecked():
             self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
             VerifyLFCenterDialog(self.session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-                resolution, center, self.settings.opaque_maps, self.show_hbonds_checkbox.isChecked())
+                resolution, center, self.settings.opaque_maps, self.show_hbonds_checkbox.isChecked(),
+                self.show_clashes_checkbox.isChecked())
         else:
             _run_ligand_fit_command(self.session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-                resolution, center, self.show_hbonds_checkbox.isChecked())
+                resolution, center, self.show_hbonds_checkbox.isChecked(),
+                self.show_clashes_checkbox.isChecked())
         if not apply:
             self.display(False)
 
@@ -1622,16 +1628,16 @@ def _run_emplace_local_command(session, structure, maps, resolution, prefitted, 
     run(session, cmd)
 
 def _run_ligand_fit_command(session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution,
-        center, hbonds):
+        center, hbonds, clashes):
     from chimerax.core.commands import run, StringArg, BoolArg
     from chimerax.map import Volume
     LLFT = LaunchLigandFitTool
     lig_arg = "%s:%s" % ({LLFT.LIGAND_FMT_CCD: "ccd", LLFT.LIGAND_FMT_MODEL: "file",
         LLFT.LIGAND_FMT_PUBCHEM: "pubchem", LLFT.LIGAND_FMT_SMILES: "smiles"}[ligand_fmt],
         (ligand_value.atomspec if ligand_fmt == LLFT.LIGAND_FMT_MODEL else ligand_value))
-    cmd = "phenix ligandFit %s %s center %g,%g,%g inMap %s resolution %g hbonds %s" % (
+    cmd = "phenix ligandFit %s %s center %g,%g,%g inMap %s resolution %g hbonds %s clashes %s" % (
         receptor.atomspec, StringArg.unparse(lig_arg), *center, map.atomspec, resolution,
-        BoolArg.unparse(hbonds))
+        BoolArg.unparse(hbonds), BoolArg.unparse(clashes))
     if chain_id:
         cmd += " chain " + chain_id
     if res_num is not None:
