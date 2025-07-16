@@ -259,7 +259,7 @@ class AnisoTool(ToolInstance):
         act.triggered.connect(lambda *args: self._preset_from_current())
         s = self.structure_button.value
         # disable if changes have not been applied to structure
-        act.setEnabled(s and not self._gather_diffs(s))
+        act.setEnabled(bool(s) and not self._gather_diffs(s))
         act = menu.addAction("Delete user preset...")
         act.triggered.connect(lambda *args: self._delete_preset())
         act.setEnabled(bool(self.settings.custom_presets))
