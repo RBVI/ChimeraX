@@ -489,20 +489,15 @@ class BoltzRun:
         with open(join(dir, 'stderr'), 'wb') as f:
             f.write(stderr)
 
-        p = self._process
-        success = (p.returncode == 0)
         import locale
         stdout_encoding = locale.getpreferredencoding()
         stdout = stdout.decode(stdout_encoding, errors = 'ignore')
-        if self._prediction_ran_out_of_memory(stdout):
-            msg = ('The Boltz prediction ran out of memory.  The memory use depends on the'
-                   ' number of protein and nucleic acid residues plus the number of ligand'
-                   ' atoms.  You can reduce the size of your molecular assembly to stay'
-                   ' within the memory limits.')
+        stderr = stderr.decode(stdout_encoding, errors = 'ignore')
+        msg = self._prediction_failed_message(self._process.returncode, stdout, stderr)
+        if msg:
             self._session.logger.error(msg)
-            self._add_to_msa_cache()
-            success = False	# Boltz usual exits with return code 0 when it runs out of memory
-        elif success:
+            success = False
+        else:
             from time import time
             t = time() - self._start_time
             self._session.logger.info(f'Boltz prediction completed in {"%.0f" % t} seconds')
@@ -511,9 +506,22 @@ class BoltzRun:
                 self._open_predictions()
             if self._predict_affinity:
                 self._report_affinity()
-            self._add_to_msa_cache()
-        else:
-            stderr = stderr.decode(stdout_encoding, errors = 'ignore')
+            success = True
+
+        self._add_to_msa_cache()
+
+        self._running = False
+        self.success = success
+
+    def _prediction_failed_message(self, exit_code, stdout, stderr):
+
+        msg = None
+        if self._prediction_ran_out_of_memory(stdout):
+            msg = ('The Boltz prediction ran out of memory.  The memory use depends on the'
+                   ' number of protein and nucleic acid residues plus the number of ligand'
+                   ' atoms.  You can reduce the size of your molecular assembly to stay'
+                   ' within the memory limits.')
+        elif exit_code != 0 or not self._predicted_model_exists():
             if 'No supported gpu backend found' in stderr:
                 msg = ('Attempted to run Boltz on the GPU but no supported GPU device could be found.'
                        ' To avoid this error specify the compute device as "cpu" in the ChimeraX Boltz'
@@ -530,22 +538,30 @@ class BoltzRun:
                 msg = ('The installed Boltz does not have the --no_potentials option.'
                        ' You need to install a newer Boltz to get this option.'
                        ' Use the ChimeraX command "boltz install ~/boltz_new" to install it.')
+            elif 'ValueError: Molecule is excluded' in stderr:
+                msg = ('Affinity calculation of a ligand given as a SMILES string'
+                       ' containing certain elements (e.g. metals) cannot be handled'
+                       ' because the ChEMBL structure pipeline library used by Boltz'
+                       ' cannot standardize such SMILES strings.')
             else:
                 if self._user_terminated:
                     msg = 'Prediction terminated by user'
                     self._user_terminated = False
                 else:
                     msg = '\n'.join([
-                        f'Running boltz prediction failed with exit code {p.returncode}:',
+                        f'Running boltz prediction failed with exit code {exit_code}:',
                         'command:',self._command,
                         'stdout:', stdout,
                         'stderr:', stderr,
                         ])
-            self._session.logger.error(msg)
+        return msg
 
-        self._running = False
-        self.success = success
-
+    def _predicted_model_exists(self):
+        from os.path import join, exists
+        mmcif_path = join(self._results_directory, f'boltz_results_{self.name}', 'predictions', self.name,
+                          f'{self.name}_model_0.cif')
+        return exists(mmcif_path)
+        
     @property
     def running(self):
         return self._running
@@ -610,8 +626,14 @@ class BoltzRun:
         protein_seqs = [mc.sequence_string for mc in self._molecular_components if mc.type == 'protein']
         if len(protein_seqs) == 0:
             return False
-        from os.path import join
+        from os.path import join, exists
         msa_dir = join(self._results_directory, f'boltz_results_{self.name}', 'msa')
+        if not exists(msa_dir):
+            return False
+        from os import listdir
+        csv_files = [msa_file for msa_file in listdir(msa_dir) if msa_file.endswith('.csv')]
+        if len(csv_files) < len(protein_seqs):
+            return False
         _add_to_msa_cache(self.name, protein_seqs, msa_dir, self.msa_cache_dir)
 
     def _report_affinity(self):
