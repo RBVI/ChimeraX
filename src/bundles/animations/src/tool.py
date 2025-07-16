@@ -14,7 +14,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui.open_save import SaveDialog
 
 from chimerax.animations.triggers import (add_handler, KF_EDIT, PREVIEW, PLAY, KF_ADD, KF_DELETE, RECORD, STOP_PLAYING, INSERT_TIME, REMOVE_TIME, remove_handler, STOP_RECORDING)
-from chimerax.animations.kf_editor_widget import KeyframeEditorWidget
+from chimerax.animations.kf_editor_two import KeyframeEditorWidget
 
 
 class AnimationsTool(ToolInstance):
@@ -81,7 +81,7 @@ class AnimationsTool(ToolInstance):
         main_vbox_layout = QVBoxLayout()
 
         # Keyframe editor graphics view widget.
-        self.kf_editor_widget = KeyframeEditorWidget([])
+        self.kf_editor_widget = KeyframeEditorWidget(self.session)
         main_vbox_layout.addWidget(self.kf_editor_widget)
 
         self.tool_window.ui_area.setLayout(main_vbox_layout)
