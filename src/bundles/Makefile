@@ -35,7 +35,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  kvfinder list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker mcopy md_crds \
-	  medical_toolbar meeting mlp model_series \
+	  medical_toolbar meeting minimize mlp model_series \
 	  mmcif mmtf model_archive model_panel modeller \
 	  mol2 mole morph mouse_modes movie mutation_scores nmrstar \
 	  neuron nifti nrrd nucleotides open_command orthopick pdb pdb_bio pdb_lib pdb_matrices \

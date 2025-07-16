@@ -4,7 +4,7 @@ build-backend = "chimerax.bundle_builder.cx_pep517"
 
 [project]
 name = "ChimeraX-MDcrds"
-version = "2.11"
+version = "2.12.1"
 license = { text = "Free for non-commercial use" }
 authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
 description = "Molecular dynamics support"
@@ -173,13 +173,13 @@ num-atoms = "0"
 text-format = "%.1f"
 exclude = "solution=true,ligands=true,metals=alkali"
 
-#[[tool.chimerax.provider."MD plotting"]]
-#name = "rmsd"
-#ui-name = "RMSD"
-#num-atoms = "0"
-#text-format = "distance"
-#ref-frame = true
-#exclude = "solution=true,hydrogens=true,ligands=false,metals=alkali"
+[[tool.chimerax.provider."MD plotting"]]
+name = "rmsd"
+ui-name = "RMSD"
+num-atoms = "0"
+text-format = "%.2f"
+need-ref-frame = true
+exclude = "solution=true,hydrogens=true,ligands=false,metals=alkali"
 
 [tool.chimerax.extension._gromacs]
 sources = ["gromacs/gromacs.cpp"]

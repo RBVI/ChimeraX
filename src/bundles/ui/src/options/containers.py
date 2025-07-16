@@ -276,7 +276,7 @@ class CategorizedOptionsPanel(QWidget):
             return self._tabs_menu_button.text()
         elif self._tabs_as_side_menu:
             return self._category_list.currentItem().text()
-        return self._tabs_widget.tabText(self.currentIndex())
+        return self._tabs_widget.tabText(self._tabs_widget.currentIndex())
 
     def hide_option(self, option):
         return self.set_option_shown(option, False)

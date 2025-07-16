@@ -552,9 +552,9 @@ class OpenXRCamera(Camera, StateManager):
             self._xr = None
             raise
 
-        # Set initial model view
-        if self.openxr_system_name == 'SonySRD System':
-            self._sony_spatial_reality_setup()
+        # Set coordinates for auto-stereo monitors
+        from .xr_screens import setup_openxr_screen
+        setup_openxr_screen(self.openxr_system_name, self)
 
         # Map ChimeraX scene coordinates to OpenVR room coordinates
         if self._room_to_scene is None:
@@ -573,49 +573,13 @@ class OpenXRCamera(Camera, StateManager):
         # Notify other tools that VR has started
         self._session.triggers.activate_trigger('vr started', self)
 
-    def _sony_spatial_reality_setup(self):
-        # Flatpanel Sony Spatial Reality display with eye tracking.
-        #   15.6" screen, 34 x 19 cm, tilted at 45 degree angle.
-        # TODO: Distinguish 27" from 15.6" display.  Might use OpenXR vendorId
-        from math import sqrt
-        s2 = 1/sqrt(2)
-        w,h = 0.34, 0.19	# Screen size meters
-        from numpy import array
-        screen_center = array((0, s2*h/2, -s2*h/2))
-        from chimerax.geometry import rotation
-        screen_orientation = rotation((1,0,0), -45)	# View direction 45 degree down.
-
-        # Room size and center for view_all() positioning.
-        self._initial_room_scene_size = h  # meters
-        self._initial_room_center = screen_center
-
-        # Make mouse zoom always perpendicular at screen center.
-        # Sony rendered camera positions always are perpendicular
-        # to screen but offset based on eye-tracking head position.
-        # That leads to confusing skewed mouse zooming.
-        self._desktop_view_point = screen_center
-
-        # When leaving XR keep the same camera view point in the graphics window.
-        self.keep_position = True
-
-        # Set camera position and room to scene transform preserving
-        # current camera view direction.
-        v = self._session.main_view
-        c = v.camera
-        self.fit_view_to_room(room_width = w,
-                              room_center = screen_center,
-                              room_center_distance = 0.40,
-                              screen_orientation = screen_orientation,
-                              scene_center = v.center_of_rotation,
-                              scene_camera = v.camera)
-
     @property
     def openxr_system_name(self):
         return self._xr.system_name()
 
     @property
     def is_vr_headset(self):
-        return self.openxr_system_name != 'SonySRD System'
+        return self.openxr_system_name not in ('SonySRD System', 'SpatialLabs Display Driver')
 
     @property
     def active(self):

@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2025 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
@@ -19,6 +21,8 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+
+from chimerax.viewdock import RATING_KEY, DEFAULT_RATING
 
 def open_mol2(session, path, file_name, auto_style, atomic):
     from chimerax.io import open_input
@@ -162,7 +166,7 @@ class Mol2Parser:
 
     def _reset_structure(self):
         """Reset structure data cache"""
-        self._data = {}
+        self._data = {RATING_KEY: DEFAULT_RATING}
         self._molecule = None
         self._atoms = []
         self._bonds = []
@@ -518,7 +522,7 @@ def open_swissdock(session, stream, file_name, auto_style, atomic):
     is_ligands = True
     used_chains = set()
     cur_in_chain = cur_out_chain = cur_res_num = None
-    viewdock_data = {}
+    viewdock_data = {RATING_KEY: DEFAULT_RATING}
     models = []
     status = ""
     from chimerax.pdb import open_pdb
@@ -556,7 +560,7 @@ def open_swissdock(session, stream, file_name, auto_style, atomic):
                     models.append(lig)
                 os.unlink(out_f.name)
                 out_f = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', suffix=".pdb", delete=False)
-                viewdock_data = {}
+                viewdock_data = {RATING_KEY: DEFAULT_RATING}
         elif line.startswith("REMARK"):
             if line.count(': ') != 1:
                 is_ligands = False

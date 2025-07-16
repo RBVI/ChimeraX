@@ -71,6 +71,8 @@ def find_phenix_command(session, program_name, phenix_location=None, *, verify_i
         for pdir in phenix_dirs:
             for bin_dir in bin_dirs:
                 cmd = join(pdir, bin_dir, program_name)
+                if sys.platform == 'win32' and not verify_installation:
+                    cmd += '.bat'
                 if isfile(cmd):
                     return cmd
         from chimerax.core.commands import commas

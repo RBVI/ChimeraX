@@ -340,12 +340,17 @@ def dq_repr(obj):
 
 def user_kw(kw_name):
     """Return user version of a keyword argument name."""
+    if isinstance(kw_name, int):
+        return f'${kw_name}'
     words = kw_name.split("_")
     return words[0] + "".join([x.capitalize() for x in words[1:]])
 
 
 def _user_kw_cnt(kw_name):
     """Return user version of a keyword argument name and number of words."""
+    if isinstance(kw_name, int):
+        return f'${kw_name}', 1
+    words = kw_name.split("_")
     words = kw_name.split("_")
     return words[0] + "".join([x.capitalize() for x in words[1:]]), len(words)
 
@@ -527,7 +532,7 @@ class Aggregate(Annotation):
         result = self.constructor()
         used = ""
         if self.prefix and text.startswith(self.prefix):
-            text = text[len(self.prefix) :]
+            text = text[len(self.prefix):]
             used += self.prefix
         while True:
             # find next list-separator character while honoring quoting
@@ -578,7 +583,7 @@ class Aggregate(Annotation):
                     rest += text[i:]
                     break
             used += self.separator
-            text = text[i + 1 :]
+            text = text[i + 1:]
             m = _whitespace.match(text)
             i = m.end()
             if i:
@@ -1220,11 +1225,11 @@ class FileNameArg(Annotation):
 _BROWSE_STRING = "browse"
 
 
-import sys
 if sys.platform == 'win32':
     from chimerax.core.utils import no_garbage_collection as gc_context
 else:
     from contextlib import nullcontext as gc_context
+
 
 def _browse_parse(
     text,
@@ -1958,9 +1963,9 @@ def unescape_with_index_map(text):
             break
         escaped = text[index + 1]
         if escaped in _escape_table:
-            text = text[:index] + _escape_table[escaped] + text[index + 2 :]
+            text = text[:index] + _escape_table[escaped] + text[index + 2:]
             # Assumes that replacement is a single character
-            index_map = index_map[:index] + index_map[index + 1 :]
+            index_map = index_map[:index] + index_map[index + 1:]
             start = index + 1
         elif escaped in "01234567":
             # up to 3 octal digits
@@ -1968,36 +1973,36 @@ def unescape_with_index_map(text):
                 if text[index + count] not in "01234567":
                     break
             try:
-                char = chr(int(text[index + 1 : index + count], 8))
-                text = text[:index] + char + text[index + count :]
-                index_map = index_map[:index] + index_map[index + count - 1 :]
+                char = chr(int(text[index + 1:index + count], 8))
+                text = text[:index] + char + text[index + count:]
+                index_map = index_map[:index] + index_map[index + count - 1:]
             except ValueError:
                 pass
             start = index + 1
         elif escaped == "x":
             # 2 hex digits
             try:
-                char = chr(int(text[index + 2 : index + 4], 16))
-                text = text[:index] + char + text[index + 4 :]
-                index_map = index_map[:index] + index_map[index + 3 :]
+                char = chr(int(text[index + 2:index + 4], 16))
+                text = text[:index] + char + text[index + 4:]
+                index_map = index_map[:index] + index_map[index + 3:]
             except ValueError:
                 pass
             start = index + 1
         elif escaped == "u":
             # 4 hex digits
             try:
-                char = chr(int(text[index + 2 : index + 6], 16))
-                text = text[:index] + char + text[index + 6 :]
-                index_map = index_map[:index] + index_map[index + 5 :]
+                char = chr(int(text[index + 2:index + 6], 16))
+                text = text[:index] + char + text[index + 6:]
+                index_map = index_map[:index] + index_map[index + 5:]
             except ValueError:
                 pass
             start = index + 1
         elif escaped == "U":
             # 8 hex digits
             try:
-                char = chr(int(text[index + 2 : index + 10], 16))
-                text = text[:index] + char + text[index + 10 :]
-                index_map = index_map[:index] + index_map[index + 9 :]
+                char = chr(int(text[index + 2:index + 10], 16))
+                text = text[:index] + char + text[index + 10:]
+                index_map = index_map[:index] + index_map[index + 9:]
             except ValueError:
                 pass
             start = index + 1
@@ -2010,10 +2015,10 @@ def unescape_with_index_map(text):
             if end > 0:
                 import unicodedata
 
-                char_name = text[index + 3 : end]
+                char_name = text[index + 3:end]
                 try:
                     char = unicodedata.lookup(char_name)
-                    text = text[:index] + char + text[end + 1 :]
+                    text = text[:index] + char + text[end + 1:]
                     index_map = index_map[:index] + index_map[end:]
                 except KeyError:
                     pass
@@ -2045,13 +2050,13 @@ def next_token(text, convert=False):
         if not m:
             raise AnnotationError("incomplete quoted text")
         end = m.end("string")
-        token = text[1 : end - 1]
+        token = text[1:end - 1]
     elif text[0] == "'":
         m = _single_quote.match(text)
         if not m:
             raise AnnotationError("incomplete quoted text")
         end = m.end("string")
-        token = text[1 : end - 1]
+        token = text[1:end - 1]
     elif text[0] == ";":
         return ";", ";", text[1:]
     else:
@@ -2099,7 +2104,7 @@ def _upto_semicolon(text):
 class RestOfLine(Annotation):
     """Return the rest of the line up to a semicolon"""
 
-    name = "the rest of line"
+    name = "the rest of the line"
 
     @staticmethod
     def parse(text, session):
@@ -2118,7 +2123,7 @@ class RestOfLine(Annotation):
 class WholeRestOfLine(Annotation):
     """Return the whole rest of the line including semicolons"""
 
-    name = "the rest of line"
+    name = "the rest of the line"
 
     @staticmethod
     def parse(text, session):
@@ -2622,7 +2627,7 @@ def register(
         cmd_desc = function
     else:
         cmd_desc.function = function
-        if cmd_desc.synopsis is None:
+        if cmd_desc.synopsis is None and not isinstance(function, Alias):
             msg = 'Command "%s" is missing a synopsis' % name
             if logger is None:
                 print(msg)
@@ -2776,7 +2781,7 @@ class Command:
         i = len(chars)
         j = self.amount_parsed
         t = self.current_text
-        self.current_text = t[0:j] + replacement + t[i + j :]
+        self.current_text = t[0:j] + replacement + t[i + j:]
         return len(replacement)
 
     def _parse_arg(self, annotation, text, session, final):
@@ -2853,11 +2858,11 @@ class Command:
                     self.amount_parsed = cur_end
                     c = self.completions[0]
                     self._replace(chars, c)
-                    text = self.current_text[self.amount_parsed :]
+                    text = self.current_text[self.amount_parsed:]
                     continue
                 if word and self._ci is None:
                     self._error = (
-                        "Unknown command: %s" % self.current_text[self.start :]
+                        "Unknown command: %s" % self.current_text[self.start:]
                     )
                 return
             self.amount_parsed = cur_end
@@ -2865,7 +2870,7 @@ class Command:
             self.word_info = what
             self.command_name = None
             self.amount_parsed += len(chars)
-            cmd_name = self.current_text[self.start : self.amount_parsed]
+            cmd_name = self.current_text[self.start:self.amount_parsed]
             cmd_name = " ".join(cmd_name.split())  # canonicalize
             if what.is_deferred():
                 what.lazy_register(cmd_name)
@@ -2900,7 +2905,7 @@ class Command:
                 return
             # word might be part of multiword command name
             if parent_info.cmd_desc is None:
-                self.command_name = self.current_text[self.start : self.amount_parsed]
+                self.command_name = self.current_text[self.start:self.amount_parsed]
                 self._error = "Incomplete command: %s" % self.command_name
 
     def _process_positional_arguments(self):
@@ -2911,7 +2916,7 @@ class Command:
         # for better error messages return:
         #   (last successful annotation, failed optional annotation)
         session = self._session()  # resolve back reference
-        text = self.current_text[self.amount_parsed :]
+        text = self.current_text[self.amount_parsed:]
         positional = self._ci._required.copy()
         positional.update(self._ci._optional)
         self.completion_prefix = ""
@@ -3015,7 +3020,7 @@ class Command:
         session = self._session()  # resolve back reference
         m = _whitespace.match(self.current_text, self.amount_parsed)
         self.amount_parsed = m.end()
-        text = self.current_text[self.amount_parsed :]
+        text = self.current_text[self.amount_parsed:]
         if not text:
             return
         while 1:
@@ -3057,7 +3062,7 @@ class Command:
                     if unambiguous:
                         c = completions[0][1]
                         self._replace(chars, c)
-                        text = self.current_text[self.amount_parsed :]
+                        text = self.current_text[self.amount_parsed:]
                         self.completions = []
                         continue
                     self.completions = list(c[1] for c in completions)
@@ -3211,7 +3216,7 @@ class Command:
             really_log = log and _used_aliases is None and not self._ci.self_logging
             if really_log or log_only:
                 self.log()
-            cmd_text = self.current_text[self.start : self.amount_parsed]
+            cmd_text = self.current_text[self.start:self.amount_parsed]
             with command_trigger(session, really_log, cmd_text):
                 from chimerax.core.errors import CancelOperation
 
@@ -3267,26 +3272,26 @@ class Command:
 
     def log(self):
         session = self._session()  # resolve back reference
-        cmd_text = self.current_text[self.start : self.amount_parsed]
+        cmd_text = self.current_text[self.start:self.amount_parsed]
         url = self._ci.url if self._ci is not None else None
         log_command(session, self.command_name, cmd_text, url=url)
 
     def log_parse_error(self):
         session = self._session()  # resolve back reference
-        rest = self.current_text[self.amount_parsed :]
+        rest = self.current_text[self.amount_parsed:]
         spaces = len(rest) - len(rest.lstrip())
         error_at = self.amount_parsed + spaces
         syntax_error = error_at < len(self.current_text)
         if session is None:
             # for testing purposes
-            print(self.current_text[self.start :])
+            print(self.current_text[self.start:])
             if syntax_error:
                 error_at -= self.start
                 if error_at:
                     print("%s^" % ("." * error_at))
             print(self._error)
         elif not session.ui.is_gui:
-            session.logger.error(self.current_text[self.start :])
+            session.logger.error(self.current_text[self.start:])
             if syntax_error:
                 error_at -= self.start
                 if error_at:
@@ -3305,11 +3310,11 @@ class Command:
                 msg += '<a href="%s">%s</a>' % (ci.url, escape(self.command_name))
             if not syntax_error:
                 msg += escape(
-                    self.current_text[self.start + offset : self.amount_parsed]
+                    self.current_text[self.start + offset:self.amount_parsed]
                 )
             else:
                 msg += '%s<span style="background-color:%s;">%s</span>' % (
-                    escape(self.current_text[self.start + offset : error_at]),
+                    escape(self.current_text[self.start + offset:error_at]),
                     err_color, escape(self.current_text[error_at:]),
                 )
             msg += "</div>"
@@ -3399,139 +3404,6 @@ def usage(
     return text
 
 
-def _usage(
-    name,
-    no_aliases=False,
-    show_subcommands=5,
-    expand_alias=True,
-    show_hidden=False,
-    *,
-    registry=None,
-    _shown_cmds=None
-):
-    """Return usage string for given command name
-
-    :param name: the name of the command
-    :param no_aliases: True if aliases should not be considered.
-    :param show_subcommands: number of subcommands that should be shown.
-    :param show_hidden: True if hidden keywords should be shown.
-    :returns: a usage string for the command
-    """
-    if _shown_cmds is None:
-        _shown_cmds = set()
-    name = name.strip()
-    cmd = Command(None, registry=registry)
-    cmd.current_text = name
-    cmd._find_command_name(no_aliases=no_aliases)
-    if cmd.amount_parsed == 0:
-        raise ValueError('"%s" is not a command name' % name)
-    if cmd.command_name in _shown_cmds:
-        return ""
-
-    syntax = ""
-    ci = cmd._ci
-    if ci:
-        arg_syntax = []
-        syntax = cmd.command_name
-        for arg_name in ci._required:
-            arg = ci._required[arg_name]
-            arg_name = user_kw(arg_name)
-            type = arg.name
-            if can_be_empty_arg(arg):
-                syntax += " [%s]" % arg_name
-            else:
-                syntax += " %s" % arg_name
-            arg_syntax.append("  %s: %s" % (arg_name, type))
-        num_opt = 0
-        for arg_name in ci._optional:
-            if not show_hidden and arg_name in ci._hidden:
-                continue
-            arg = ci._optional[arg_name]
-            arg_name = user_kw(arg_name)
-            type = arg.name
-            if can_be_empty_arg(arg):
-                syntax += " [%s]" % arg_name
-            else:
-                syntax += " [%s" % arg_name
-                num_opt += 1
-            arg_syntax.append("  %s: %s" % (arg_name, type))
-        syntax += "]" * num_opt
-        for arg_name in ci._keyword:
-            if not show_hidden and (arg_name in ci._hidden or arg_name in ci._optional):
-                continue
-            arg_type = ci._keyword[arg_name]
-            uarg_name = user_kw(arg_name)
-            if arg_type is NoArg:
-                syntax += " [%s]" % uarg_name
-                continue
-            if arg_name in ci._required_arguments:
-                syntax += " %s _%s_" % (uarg_name, arg_type.name)
-            else:
-                syntax += " [%s _%s_]" % (uarg_name, arg_type.name)
-        if registry is not None and registry is _available_commands:
-            uninstalled = " (uninstalled)"
-        else:
-            uninstalled = ""
-        if ci.synopsis:
-            syntax += " --%s %s" % (uninstalled, ci.synopsis)
-        else:
-            syntax += " --%s no synopsis available" % uninstalled
-        if arg_syntax:
-            syntax += "\n%s" % "\n".join(arg_syntax)
-        _shown_cmds.add(cmd.command_name)
-        if expand_alias and ci.is_alias():
-            alias = ci.function
-            arg_text = cmd.current_text[cmd.amount_parsed :]
-            args = arg_text.split(maxsplit=alias.num_args)
-            if len(args) > alias.num_args:
-                optional = args[-1]
-                del args[-1]
-            else:
-                optional = ""
-            try:
-                name = alias.expand(*args, optional=optional, partial_ok=True)
-                if name not in _shown_cmds:
-                    syntax += "\n" + _usage(
-                        name, registry=registry, _shown_cmds=_shown_cmds
-                    )
-                    _shown_cmds.add(name)
-            except Exception as e:
-                print(e)
-                pass
-
-    if (
-        show_subcommands
-        and cmd.word_info is not None
-        and cmd.word_info.has_subcommands()
-    ):
-        sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
-        name = cmd.current_text[: cmd.amount_parsed]
-        if len(sub_cmds) <= show_subcommands:
-            for w in sub_cmds:
-                subcmd = "%s %s" % (name, w)
-                if subcmd in _shown_cmds:
-                    continue
-                syntax += "\n\n" + _usage(
-                    subcmd,
-                    show_subcommands=0,
-                    registry=registry,
-                    _shown_cmds=_shown_cmds,
-                )
-                _shown_cmds.add(subcmd)
-        else:
-            if syntax:
-                syntax += "\n"
-            syntax += "Subcommands are:\n" + "\n".join(
-                "  %s %s" % (name, w) for w in sub_cmds
-            )
-
-    return syntax
-
-
-def can_be_empty_arg(arg):
-    return isinstance(arg, Or) and EmptyArg in arg.annotations
-
-
 def html_usage(
     session,
     name,
@@ -3543,39 +3415,46 @@ def html_usage(
     registry=None
 ):
     try:
-        text = _html_usage(
+        text = _usage(
             name,
             no_aliases,
             show_subcommands,
             expand_alias,
             show_hidden,
             registry=registry,
+            use_html=True
         )
     except ValueError as e:
         _compute_available_commands(session)
         if _available_commands is None:
             raise e
         try:
-            text = _html_usage(
+            text = _usage(
                 name,
                 no_aliases,
                 show_subcommands,
                 expand_alias,
                 show_hidden,
                 registry=_available_commands if registry is None else registry,
+                use_html=True
             )
         except ValueError:
             raise e
     return text
 
 
-def _html_usage(
+def can_be_empty_arg(arg):
+    return isinstance(arg, Or) and EmptyArg in arg.annotations
+
+
+def _usage(
     name,
     no_aliases=False,
     show_subcommands=5,
     expand_alias=True,
     show_hidden=False,
     *,
+    use_html=False,
     registry=None,
     _shown_cmds=None
 ):
@@ -3596,29 +3475,52 @@ def _html_usage(
         raise ValueError('"%s" is not a command name' % name)
     if cmd.command_name in _shown_cmds:
         return ""
-    from html import escape
+    if not use_html:
+        from ..nogui import escape
+        sb = "'"      # start bold
+        eb = "'"      # end bold
+        si = '_'      # start italics
+        ei = '_'      # end italics
+        snobr = ''    # start non-breaking text
+        enobr = ''    # end non-breaking text
+        mdash = '--'  # em-dash
+        br = '\n'     # line break
+    else:
+        from html import escape
+        sb = '<b>'
+        eb = '</b>'
+        si = '<i>'
+        ei = '</i>'
+        snobr = '<nobr>'
+        enobr = '</nobr>'
+        mdash = '&mdash;'
+        br = '<br>'
 
     syntax = ""
     ci = cmd._ci
     if ci:
         arg_syntax = []
-        if cmd._ci.url is None:
-            syntax += "<b>%s</b>" % escape(cmd.command_name)
+        if not use_html or cmd._ci.url is None:
+            syntax += f"{sb}{escape(cmd.command_name)}{eb}"
         else:
-            syntax += '<b><a href="%s">%s</a></b>' % (ci.url, escape(cmd.command_name))
+            syntax += f'<a href="{ci.url}">{sb}{escape(cmd.command_name)}{eb}</a>'
         for arg_name in ci._required:
             arg_type = ci._required[arg_name]
             arg_name = user_kw(arg_name)
-            if arg_type.url is not None:
+            if use_html and arg_type.url is not None:
                 arg_name = arg_type.html_name(arg_name)
             else:
                 arg_name = escape(arg_name)
             if can_be_empty_arg(arg_type):
-                syntax += " [<i>%s</i>]" % arg_name
+                syntax += f" [{si}{arg_name}{ei}]"
             else:
-                syntax += " <i>%s</i>" % arg_name
+                syntax += f" {si}{arg_name}{ei}"
             if arg_type.url is None:
-                arg_syntax.append("<i>%s</i>: %s" % (arg_name, arg_type.html_name()))
+                if use_html:
+                    arg_type_name = arg_type.html_name()
+                else:
+                    arg_type_name = arg_type.name
+                arg_syntax.append(f"{si}{arg_name}{ei}: {arg_type_name}")
         num_opt = 0
         for arg_name in ci._optional:
             if not show_hidden and arg_name in ci._hidden:
@@ -3630,12 +3532,16 @@ def _html_usage(
             else:
                 arg_name = escape(arg_name)
             if can_be_empty_arg(arg_type):
-                syntax += " [<i>%s</i>]" % arg_name
+                syntax += f" [{si}{arg_name}{ei}]"
             else:
-                syntax += " [<i>%s</i>" % arg_name
+                syntax += f" [{si}{arg_name}{ei}"
                 num_opt += 1
             if arg_type.url is None:
-                arg_syntax.append("<i>%s</i>: %s" % (arg_name, arg_type.html_name()))
+                if use_html:
+                    arg_type_name = arg_type.html_name()
+                else:
+                    arg_type_name = arg_type.name
+                arg_syntax.append(f"{si}{arg_name}{ei}: {arg_type_name}")
         syntax += "]" * num_opt
         for arg_name in ci._keyword:
             if not show_hidden and (arg_name in ci._hidden or arg_name in ci._optional):
@@ -3645,45 +3551,41 @@ def _html_usage(
             if arg_type is NoArg:
                 type_info = ""
             elif isinstance(arg_type, type):
-                type_info = " <i>%s</i>" % arg_type.html_name()
+                if use_html:
+                    arg_type_name = arg_type.html_name()
+                else:
+                    arg_type_name = arg_type.name
+                type_info = f" {si}{arg_type_name}{ei}"
             else:
-                type_info = " <i>%s</i>" % uarg_name
+                type_info = f" {si}{uarg_name}{ei}"
                 if arg_name not in ci._optional:
-                    arg_syntax.append(
-                        "<i>%s</i>: %s" % (uarg_name, arg_type.html_name())
-                    )
+                    if use_html:
+                        arg_type_name = arg_type.html_name()
+                    else:
+                        arg_type_name = arg_type.name
+                    arg_syntax.append(f"{si}{uarg_name}{ei}: {arg_type_name}")
             if arg_name in ci._required_arguments:
-                syntax += " <nobr><b>%s</b>%s</nobr>" % (uarg_name, type_info)
+                syntax += f" {snobr}{sb}{uarg_name}{eb}{type_info}{enobr}"
             else:
-                syntax += " <nobr>[<b>%s</b>%s]</nobr>" % (uarg_name, type_info)
-        syntax += "<br>\n&nbsp;&nbsp;&nbsp;&nbsp;&mdash; "  # synopsis prefix
-        if registry is not None and registry is _available_commands:
-            syntax += "(uninstalled) "
-        if ci.synopsis:
-            syntax += "<i>%s</i>\n" % escape(ci.synopsis)
+                syntax += f" {snobr}[{sb}{uarg_name}{eb}{type_info}]{enobr}"
+        if use_html:
+            prefix = f"<br>\n&nbsp;&nbsp;&nbsp;&nbsp;{mdash} "  # synopsis prefix
         else:
-            syntax += "<i>[no synopsis available]</i>\n"
+            prefix = f" {mdash} "
+        if registry is not None and registry is _available_commands:
+            syntax += prefix + "(uninstalled) "
+        if ci.synopsis:
+            syntax += prefix + f"{escape(ci.synopsis)}\n"
+        elif not ci.is_alias():
+            syntax += prefix + "(no synopsis available)\n"
         if arg_syntax:
-            syntax += "<br>\n&nbsp;&nbsp;%s" % "<br>\n&nbsp;&nbsp;".join(arg_syntax)
-        _shown_cmds.add(cmd.command_name)
-        if expand_alias and ci.is_alias():
-            alias = ci.function
-            arg_text = cmd.current_text[cmd.amount_parsed :]
-            args = arg_text.split(maxsplit=alias.num_args)
-            if len(args) > alias.num_args:
-                optional = args[-1]
-                del args[-1]
+            if use_html:
+                syntax += "<br>\n&nbsp;&nbsp;%s" % "<br>\n&nbsp;&nbsp;".join(arg_syntax)
             else:
-                optional = ""
-            try:
-                name = alias.expand(*args, optional=optional, partial_ok=True)
-                if name not in _shown_cmds:
-                    syntax += "<br>" + _html_usage(
-                        name, registry=registry, _shown_cmds=_shown_cmds
-                    )
-                    _shown_cmds.add(name)
-            except Exception:
-                pass
+                syntax += "\n%s" % "\n".join(arg_syntax)
+        _shown_cmds.add(cmd.command_name)
+        if ci.is_alias():
+            syntax += f'{br}\n{sb}{cmd.command_name}{eb} is an alias of "{cmd._ci.function.original_text}"'
 
     if (
         show_subcommands
@@ -3693,17 +3595,28 @@ def _html_usage(
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
         name = cmd.current_text[: cmd.amount_parsed]
         if len(sub_cmds) <= show_subcommands:
+            if use_html:
+                sep = "<p>\n"
+            else:
+                sep = "\n\n"
             for w in sub_cmds:
                 subcmd = "%s %s" % (name, w)
                 if subcmd in _shown_cmds:
                     continue
-                syntax += "<p>\n" + _html_usage(
+                syntax += sep + _usage(
                     subcmd,
                     show_subcommands=0,
                     registry=registry,
                     _shown_cmds=_shown_cmds,
+                    use_html=use_html
                 )
                 _shown_cmds.add(subcmd)
+        elif not use_html:
+            if syntax:
+                syntax += "\n"
+            syntax += "Subcommands are:\n" + "\n".join(
+                "\N{bullet} %s %s" % (name, w) for w in sub_cmds
+            )
         else:
             if syntax:
                 syntax += "<br>\n"
@@ -3741,7 +3654,7 @@ def registered_commands(multiword=False, _start=None):
 
     if not multiword:
         words = list(parent_info.subcommands.keys())
-        words.sort(key=lambda x: x[x[0] == "~" :])
+        words.sort(key=lambda x: x[x[0] == "~":])
         return words
 
     def cmds(parent_cmd, parent_info):
@@ -3758,7 +3671,7 @@ def registered_commands(multiword=False, _start=None):
         words = [
             word for word in parent_info.subcommands.keys() if word not in skip_list
         ]
-        words.sort(key=lambda x: x[x[0] == "~" :].lower())
+        words.sort(key=lambda x: x[x[0] == "~":].lower())
         for word in words:
             word_info = parent_info.subcommands[word]
             if word_info.is_deferred():
@@ -3794,12 +3707,15 @@ class Alias:
         self.original_text = text
         self.user_generated = user
         self.num_args = 0
+        self.num_optional_args = 0
         self.parts = []  # list of strings and integer argument numbers
         self.optional_rest_of_line = False
         self.registry = registry
         not_dollar = re.compile(r"[^$]*")
         number = re.compile(r"\d*")
 
+        nested_optional = 0
+        max_outside_optional = 0
         start = 0
         while True:
             m = not_dollar.match(text, start)
@@ -3810,26 +3726,48 @@ class Alias:
             if start == len(text):
                 break
             start += 1  # skip over $
-            if start < len(text) and text[start] == "$":
-                self.parts.append("$")  # $$
-                start += 1
-                continue
-            if start < len(text) and text[start] == "*":
-                self.optional_rest_of_line = True
-                self.parts.append(-1)
-                start += 1
-                continue
+            if start < len(text):
+                if text[start] == "$":
+                    self.parts.append("$")  # $$
+                    start += 1
+                    continue
+                if text[start] == "[":
+                    self.parts.append("$[")
+                    nested_optional += 1
+                    if nested_optional > 1:
+                        raise UserError("Nested optional parts of aliases are not supported")
+                    start += 1
+                    continue
+                if text[start] == "]":
+                    self.parts.append("$]")
+                    nested_optional -= 1
+                    if nested_optional < 0:
+                        raise UserError("Missing start of optional part of alias")
+                    start += 1
+                    continue
+                if text[start] == "*":
+                    self.optional_rest_of_line = True
+                    self.parts.append(0)
+                    start += 1
+                    continue
             m = number.match(text, start)
             end = m.end()
             if end == start:
                 # not followed by a number
                 self.parts.append("$")
                 continue
-            i = int(text[start:end])
-            if i > self.num_args:
-                self.num_args = i
-            self.parts.append(i - 1)  # convert to a 0-based index
+            arg_num = int(text[start:end])
+            if arg_num > self.num_args:
+                self.num_args = arg_num
+            self.parts.append(arg_num)
+            if nested_optional == 0 and arg_num > max_outside_optional:
+                max_outside_optional = arg_num
             start = end
+        if nested_optional != 0:
+            raise UserError("Unterminated optional part of alias")
+        if max_outside_optional < self.num_args:
+            self.num_optional_args = self.num_args - max_outside_optional
+            self.num_args -= self.num_optional_args
 
     def cmd_desc(self, **kw):
         """Return CmdDesc instance for alias
@@ -3844,29 +3782,52 @@ class Alias:
         if kw.pop("keyword", None) is not None:
             raise ValueError("can not override keyword arguments")
         required = [((i + 1), StringArg) for i in range(self.num_args)]
-        if not self.optional_rest_of_line:
-            return CmdDesc(required=required, **kw)
-        return CmdDesc(
-            required=required,
-            optional=[("optional", RestOfLine)],
-            non_keyword=["optional"],
-            **kw
-        )
+        optional = [((i + 1), StringArg) for i in range(self.num_args, self.num_args + self.num_optional_args)]
+        non_keyword = list(opt[0] for opt in optional)
+        if self.optional_rest_of_line:
+            optional += [("optional", RestOfLine)]
+            non_keyword += ["optional"]
+        self._cmd_desc = CmdDesc(required=required, optional=optional, non_keyword=non_keyword, **kw)
+        return self._cmd_desc
 
     def expand(self, *args, optional="", partial_ok=False):
         if not partial_ok and len(args) < self.num_args:
             raise UserError("Not enough arguments")
         # substitute args for positional arguments
         text = ""
+        in_optional = False
+        opt_text = None
         for part in self.parts:
             if isinstance(part, str):
-                text += part
+                if part == '$[':
+                    in_optional = True
+                    opt_text = ""
+                elif part == '$]':
+                    in_optional = False
+                    if opt_text is not None:
+                        text += opt_text
+                elif not in_optional:
+                    text += part
+                elif opt_text is not None:
+                    opt_text += part
                 continue
             # part is an argument index
-            if part < 0:
-                text += optional
-            else:
-                text += args[part]
+            if not in_optional:
+                if part == 0:
+                    text += optional
+                else:
+                    text += args[part - 1]
+            elif opt_text is not None:
+                if part == 0:
+                    if optional:
+                        opt_text += optional
+                    else:
+                        opt_text = None
+                else:
+                    if part <= len(args):
+                        opt_text += args[part - 1]
+                    else:
+                        opt_text = None
         return text
 
     def __call__(
@@ -3880,6 +3841,63 @@ class Alias:
         # save Command object so error reporting can give underlying error
         self.cmd = Command(session, registry=self.registry)
         return self.cmd.run(text, _used_aliases=_used_aliases, log=log)
+
+
+def set_alias_usage(name, *, user_alias=True, registry=None, url=None, synopsis=None, **kw):
+    arguments = set(["$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$*"])
+    unknown = set(kw) - arguments
+    if unknown:
+        raise ValueError(f"Unknown {plural_form(unknown, 'argument')}: {commas(unknown, 'and')}")
+
+    cmd = Command(None, registry=registry)
+    cmd.current_text = name
+    cmd._find_command_name(no_aliases=False)
+    if cmd.amount_parsed == 0 or not cmd._ci:
+        raise ValueError('"%s" is not a command name' % name)
+    if user_alias and (not isinstance(cmd._ci.function, Alias)
+                       or not cmd._ci.function.user_generated):
+        raise ValueError("can only set usage for user aliases")
+    elif not isinstance(cmd._ci.function, Alias):
+        raise ValueError("can only change usage for aliases")
+    if url is not None:
+        cmd._ci.url = url
+    if synopsis is not None:
+        cmd._ci.synopsis = synopsis
+    if not kw:
+        return
+    required = list(cmd._ci._required.items())
+    optional = list(cmd._ci._optional.items())
+    if len(optional) > 0 and optional[-1][1] == RestOfLine:
+        has_optional_arg = 1
+    else:
+        has_optional_arg = 0
+    for arg_num, arg in enumerate(["$*", "$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9"]):
+        arg_name, description = kw.get(arg, (None, None))
+        if arg_name is None:
+            continue
+        arg_name = arg_name.replace(' ', '_')
+        if arg_num == 0:
+            if not has_optional_arg:
+                raise ValueError("no argument for $*")
+            if description:
+                arg_type = RestOfLine(description)
+            else:
+                arg_type = RestOfLine
+            optional[-1] = (arg_name, arg_type)
+            continue
+        if description:
+            arg_type = StringArg(description)
+        else:
+            arg_type = StringArg
+        if arg_num <= len(required):
+            required[arg_num - 1] = (arg_name, arg_type)
+        else:
+            arg_num -= len(required)
+            if arg_num > len(optional) - has_optional_arg:
+                raise ValueError(f"no argument for {arg}")
+            optional[arg_num - 1] = (arg_name, arg_type)
+    cmd._ci._required = OrderedDict(required)
+    cmd._ci._optional = OrderedDict(optional)
 
 
 def list_aliases(all=False, logger=None):
@@ -3930,7 +3948,7 @@ def expand_alias(name, *, registry=None):
     return cmd.word_info.alias().original_text
 
 
-def create_alias(name, text, *, user=False, logger=None, url=None, registry=None):
+def create_alias(name, text, *, user=False, logger=None, url=None, registry=None, synopsis=None):
     """Create command alias
 
     :param name: name of the alias
@@ -3940,10 +3958,12 @@ def create_alias(name, text, *, user=False, logger=None, url=None, registry=None
     """
     name = " ".join(name.split())  # canonicalize
     alias = Alias(text, user=user, registry=registry)
+    #if synopsis is None:
+    #    synopsis = f'alias of "{text}"'
     try:
         register(
             name,
-            alias.cmd_desc(synopsis='alias of "%s"' % text, url=url),
+            alias.cmd_desc(synopsis=synopsis, url=url),
             alias,
             logger=logger,
             registry=registry,
@@ -4003,7 +4023,7 @@ if __name__ == "__main__":
                 names = [n for n in ColorArg.Builtin_Colors if n.startswith(color_name)]
                 if len(names) == 0:
                     raise ValueError('Invalid color name: "%s"' % color_name)
-                suffix = names[0][len(color_name) :]
+                suffix = names[0][len(color_name):]
                 if " " not in suffix:
                     color_name = names[0]
                     continue
@@ -4011,7 +4031,7 @@ if __name__ == "__main__":
                     color_name += suffix.split(None, 1)[0]
 
                 m = _whitespace.match(rest)
-                rest = rest[m.end() :]
+                rest = rest[m.end():]
                 color_name += " "
 
                 token, chars, rest = next_token(rest)
@@ -4161,7 +4181,7 @@ if __name__ == "__main__":
                 raise SystemExit(0)
             except UserError as err:
                 print(cmd.current_text)
-                rest = cmd.current_text[cmd.amount_parsed :]
+                rest = cmd.current_text[cmd.amount_parsed:]
                 spaces = len(rest) - len(rest.lstrip())
                 error_at = cmd.amount_parsed + spaces
                 print("%s^" % ("." * error_at))
@@ -4280,7 +4300,7 @@ def log_command(session, command_name, command_text, *, url=None):
         if url is None:
             msg += escape(command_text)
         else:
-            cargs = command_text[len(command_name) :]
+            cargs = command_text[len(command_name):]
             msg += '<a href="%s">%s</a>%s' % (url, escape(command_name), escape(cargs))
         text = escape(command_text)
         msg += (

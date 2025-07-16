@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ViewDock" version="0.1"
+<BundleInfo name="ChimeraX-ViewDock" version="1.1"
 	    package="chimerax.viewdock"
   	    customInit="false" minSessionVersion="1" maxSessionVersion="1">
 
@@ -51,9 +51,6 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Tool :: ViewDock :: Binding Analysis :: display docking results</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: viewdock :: Binding Analysis :: specify models as docking results </ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: viewdock down :: Binding Analysis :: Simulate down-arrow key in ViewDockX</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: viewdock up :: Binding Analysis :: Simulate up-arrow key in ViewDockX</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
