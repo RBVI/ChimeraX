@@ -38,9 +38,15 @@ using namespace peg;
 static parser spec_parser;
 static PyObject* session;
 static PyObject *parse_error_class, *semantics_error_class;
+static PyObject* add_part_arg;
+static PyObject* add_parts_arg;
+static PyObject* append_arg;
 static PyObject* AtomSpec_class;
 static PyObject* _Atom_class;
+static PyObject* _AttrList_class;
+static PyObject* _AttrTest_class;
 static PyObject* _Chain_class;
+static PyObject* _Invert_class;
 static PyObject* _Model_class;
 static PyObject* _ModelHierarchy_class;
 static PyObject* _ModelList_class;
@@ -49,12 +55,22 @@ static PyObject* _ModelRangeList_class;
 static PyObject* _Part_class;
 static PyObject* _PartList_class;
 static PyObject* _Residue_class;
+static PyObject* _SelectorName_class;
 static PyObject* _Term_class;
-static PyObject* add_part_arg;
-static PyObject* add_parts_arg;
-static PyObject* append_arg;
+static PyObject* get_selector_func;
+static PyObject* op_eq;
+static PyObject* op_ge;
+static PyObject* op_gt;
+static PyObject* op_le;
+static PyObject* op_lt;
+static PyObject* op_ne;
+static PyObject* op_not;
+static PyObject* op_truth;
+static PyObject* end_string;
+static PyObject* star_string;
+static PyObject* start_string;
 static std::string use_python_error("Use Python error");
-static bool add_implied, order_implicit_atoms, outermost_inversion;
+static bool add_implied;
 
 static const char*
 docstr_parse = \
@@ -71,26 +87,26 @@ static bool err_valid;
 static void
 set_error_info(PyObject* err_type, std::string msg)
 {
-    auto err_val = PyTuple_New(2);
+    auto err_val = PyList_New(2);
     if (err_val == nullptr) {
-        PyErr_SetString(PyExc_AssertionError, "Could not create error-value tuple");
+        PyErr_SetString(PyExc_AssertionError, "Could not create error-value list");
         throw std::runtime_error("Could not create tuple");
     }
-    PyTuple_SetItem(err_val, 0, PyLong_FromSize_t( err_valid ? err_col-1 : (size_t)0));
+    PyList_SetItem(err_val, 0, PyLong_FromSize_t( err_valid ? err_col-1 : (size_t)0));
     if (PyErr_Occurred() == nullptr) {
         if (msg == use_python_error) {
             PyErr_SetString(PyExc_AssertionError, "Trying to use Python error when none set");
             throw std::runtime_error("No Python error message to use");
         }
-        PyTuple_SetItem(err_val, 1, PyUnicode_FromString(msg.c_str()));
+        PyList_SetItem(err_val, 1, PyUnicode_FromString(msg.c_str()));
         PyErr_SetObject(err_type, err_val);
     } else {
         PyObject *type, *value, *traceback;
         PyErr_Fetch(&type, &value, &traceback);
         if (msg == use_python_error) {
-            PyTuple_SetItem(err_val, 1, value);
+            PyList_SetItem(err_val, 1, value);
         } else {
-            PyTuple_SetItem(err_val, 1, PyUnicode_FromString(msg.c_str()));
+            PyList_SetItem(err_val, 1, PyUnicode_FromString(msg.c_str()));
             Py_DECREF(value);
         }
         PyErr_Restore(err_type, err_val, traceback);
@@ -100,13 +116,13 @@ set_error_info(PyObject* err_type, std::string msg)
 
 // Fixed text strings that need to be handed off to the Python layer
 enum Symbols { OP_UNION, OP_INTERSECT, NUM_SYMBOLS };
-static std::vector<std::string> symbols = { "|", "&" };
+static std::vector<std::string> symbols = { "&", "|" };
 static std::vector<PyObject*> py_symbols;
 
 void
 print_ast(const Ast & ast)
 {
-    std::cerr << ast.name << " '" << ast.token_to_string() << "'; choice " << ast.choice << "  " << ast.nodes.size() << " subnodes\n";
+    std::cerr << "  " << ast.name << " '" << ast.token_to_string() << "'; choice " << ast.choice << "  " << ast.nodes.size() << " subnodes\n";
     for (auto node: ast.nodes) {
         print_ast(*node);
     }
@@ -120,15 +136,85 @@ eval_zone_selector(const Ast &ast) {
 std::cerr << "eval_zone_selector\n";
     // zone_selector <- ZONE_OPERATOR _ real_number / ZONE_OPERATOR _ integer
     //TODO
+std::cerr << "eval_zone_selector needs implementation\n";
     return Py_None;
+}
+
+static PyObject*
+eval_ATTR_NAME(const Ast &ast) {
+    // ATTR_NAME <- < [a-zA-Z_] [a-zA-Z0-9_]* >
+std::cerr << "eval_ATTR_NAME\n";
+    return PyUnicode_FromString(ast.token_to_string().c_str());
+}
+
+static PyObject*
+eval_ATTR_OPERATOR(const Ast &ast) {
+std::cerr << "eval_ATTR_OPERATOR\n";
+    // ATTR_OPERATOR <- ">=" | ">" | "<=" | "<" | "==" | "=" | "!==" | "!=" | "<>"
+    auto token = ast.token_to_string();
+    if (token == "=")
+        return op_eq;
+    if (token == "!=")
+        return op_ne;
+    if (token == ">=")
+        return op_ge;
+    if (token == ">")
+        return op_gt;
+    if (token == "<=")
+        return op_le;
+    if (token == "<")
+        return op_lt;
+    return PyUnicode_FromString(token.c_str());
+}
+
+static PyObject*
+eval_ATTR_VALUE(const Ast &ast) {
+std::cerr << "eval_ATTR_VALUE\n";
+    // ATTR_VALUE <- < '"' < [^"]+ > '"' > / < "'" < [^']+ > "'" > / < [^#/:@,;"' ]+ >
+    //TODO
+std::cerr << "need to finish implementing eval_ATTR_VALUE\n";
+return Py_None;
+}
+
+static PyObject*
+eval_attr_test(const Ast &ast) {
+std::cerr << "eval_attr_test\n";
+    // attr_test <- ATTR_NAME ATTR_OPERATOR ATTR_VALUE / "^" ATTR_NAME / ATTR_NAME
+    auto attr_name = eval_ATTR_NAME(*ast.nodes[0]);
+    // replicate logic of chimerax.core.commands.atomspec._AtomSpecSemantics.attr_test
+    PyObject* op;
+    PyObject* value;
+    if (ast.choice == 0) {
+        op = eval_ATTR_OPERATOR(*ast.nodes[1]);
+        value = eval_ATTR_VALUE(*ast.nodes[2]);
+    } else if (ast.choice == 1) {
+        op = op_not;
+        value = Py_None;
+    } else {
+        op = op_truth;
+        value = Py_None;
+    }
+    auto attr_test = PyObject_CallFunctionObjArgs(_AttrTest_class, ast.choice == 1 ? Py_True : Py_None,
+        attr_name, op, value, nullptr);
+    if (attr_test == nullptr)
+        throw std::logic_error(use_python_error);
+    return attr_test;
 }
 
 static PyObject*
 eval_attribute_list(const Ast &ast) {
 std::cerr << "eval_attribute_list\n";
     // attribute_list <- attr_test ("," _ attr_test)*
-    //TODO
-    return Py_None;
+    auto attr_list = PyObject_CallNoArgs(_AttrList_class);
+    if (attr_list == nullptr)
+        throw std::logic_error(use_python_error);
+    for (auto node: ast.nodes) {
+        if (PyObject_CallMethodOneArg(attr_list, append_arg, eval_attr_test(*node)) == nullptr) {
+            Py_DECREF(attr_list);
+            throw std::logic_error(use_python_error);
+        }
+    }
+    return attr_list;
 }
 
 static PyObject*
@@ -147,10 +233,8 @@ std::cerr << "eval_PART_RANGE_LIST\n";
         end = Py_None;
     }
     auto part = PyObject_CallFunctionObjArgs(_Part_class, start, end, nullptr);
-    if (part == nullptr) {
-        set_error_info(semantics_error_class, use_python_error);
-        return nullptr;
-    }
+    if (part == nullptr)
+        throw std::logic_error(use_python_error);
     return part;
 }
 
@@ -168,10 +252,8 @@ std::cerr << "eval_part_list\n";
         }
     } else {
         part_list = PyObject_CallFunctionObjArgs(_PartList_class, part_range, nullptr);
-        if (part_list == nullptr) {
-            set_error_info(semantics_error_class, use_python_error);
-            return nullptr;
-        }
+        if (part_list == nullptr)
+            throw std::logic_error(use_python_error);
     }
     return part_list;
 }
@@ -182,10 +264,8 @@ std::cerr << "eval_ATOM_NAME\n";
     // ATOM_NAME <- < [-+a-zA-Z0-9_'"*?\[\]\\]+ >
     auto part = PyObject_CallFunctionObjArgs(_Part_class,
         PyUnicode_FromString(ast.token_to_string().c_str()), Py_None, nullptr);
-    if (part == nullptr) {
-        set_error_info(semantics_error_class, use_python_error);
-        return nullptr;
-    }
+    if (part == nullptr)
+        throw std::logic_error(use_python_error);
     return part;
 }
 
@@ -203,10 +283,8 @@ std::cerr << "eval_atom_list\n";
         }
     } else {
         atom_list = PyObject_CallFunctionObjArgs(_PartList_class, atom_name, nullptr);
-        if (atom_list == nullptr) {
-            set_error_info(semantics_error_class, use_python_error);
-            return nullptr;
-        }
+        if (atom_list == nullptr)
+            throw std::logic_error(use_python_error);
     }
     return atom_list;
 }
@@ -225,10 +303,8 @@ std::cerr << "eval_atom\n";
         }
     }
     auto atom = PyObject_CallFunctionObjArgs(_Atom_class, atom_list, attrs, nullptr);
-    if (atom == nullptr) {
-        set_error_info(semantics_error_class, use_python_error);
-        return nullptr;
-    }
+    if (atom == nullptr)
+        throw std::logic_error(use_python_error);
     return atom;
 }
 
@@ -261,10 +337,8 @@ std::cerr << "eval_residue\n";
     }
     // part_list and attribute_list go in _Residue constructor; residue_parts use .add_part()
     auto residue = PyObject_CallFunctionObjArgs(_Residue_class, part_list, attrs, nullptr);
-    if (residue == nullptr) {
-        set_error_info(semantics_error_class, use_python_error);
-        return nullptr;
-    }
+    if (residue == nullptr)
+        throw std::logic_error(use_python_error);
     for (auto part: parts) {
         if (PyObject_CallMethodOneArg(residue, add_part_arg, part) == nullptr) {
             Py_DECREF(residue);
@@ -303,10 +377,8 @@ std::cerr << "eval_chain\n";
     }
     // part_list and attribute_list go in _Chain constructor; chain_parts use .add_part()
     auto chain = PyObject_CallFunctionObjArgs(_Chain_class, part_list, attrs, nullptr);
-    if (chain == nullptr) {
-        set_error_info(semantics_error_class, use_python_error);
-        return nullptr;
-    }
+    if (chain == nullptr)
+        throw std::logic_error(use_python_error);
     for (auto part: parts) {
         if (PyObject_CallMethodOneArg(chain, add_part_arg, part) == nullptr) {
             Py_DECREF(chain);
@@ -338,16 +410,18 @@ static PyObject*
 eval_MODEL_SPEC_START(const Ast &ast) {
 std::cerr << "eval_MODEL_SPEC_START\n";
     // MODEL_SPEC_START <- MODEL_SPEC / "start" / "*"
-    //TODO
-    return Py_None;
+    if (ast.choice == 0)
+        return eval_MODEL_SPEC(*ast.nodes[0]);
+    return ast.choice == 1 ? start_string : star_string;
 }
 
 static PyObject*
 eval_MODEL_SPEC_END(const Ast &ast) {
 std::cerr << "eval_MODEL_SPEC_END\n";
     // MODEL_SPEC_END <- MODEL_SPEC / "end" / "*"
-    //TODO
-    return Py_None;
+    if (ast.choice == 0)
+        return eval_MODEL_SPEC(*ast.nodes[0]);
+    return ast.choice == 1 ? end_string : star_string;
 }
 
 static PyObject*
@@ -356,10 +430,7 @@ std::cerr << "eval_MODEL_SPEC_ANY\n";
     // MODEL_SPEC_ANY <- MODEL_SPEC / "*"
     if (ast.choice == 0)
         return eval_MODEL_SPEC(*ast.nodes[0]);
-    auto text = PyUnicode_FromString(ast.token_to_string().c_str());
-    if (text == nullptr)
-        return nullptr;
-    return text;
+    return star_string;
 }
 
 static PyObject*
@@ -370,16 +441,14 @@ std::cerr << "eval_model_range\n";
     PyObject* right;
     if (ast.choice == 0) {
         left = eval_MODEL_SPEC_START(*ast.nodes[0]);
-        right = eval_MODEL_SPEC_START(*ast.nodes[1]);
+        right = eval_MODEL_SPEC_END(*ast.nodes[1]);
     } else {
         left = eval_MODEL_SPEC_ANY(*ast.nodes[0]);
         right = Py_None;
     }
     auto mr = PyObject_CallFunctionObjArgs(_ModelRange_class, left, right, nullptr);
-    if (mr == nullptr) {
-        set_error_info(semantics_error_class, use_python_error);
-        return nullptr;
-    }
+    if (mr == nullptr)
+        throw std::logic_error(use_python_error);
     return mr;
 }
 
@@ -388,19 +457,11 @@ eval_model_range_list(const Ast &ast) {
 std::cerr << "eval_model_range_list\n";
     // model_range_list <- model_range ("," _ model_range)*
     auto range = eval_model_range(*ast.nodes[0]);
-    if (range == nullptr)
-        return nullptr;
     auto mrl = PyObject_CallFunctionObjArgs(_ModelRangeList_class, range, nullptr);
-    if (mrl == nullptr) {
-        set_error_info(semantics_error_class, use_python_error);
-        return nullptr;
-    }
+    if (mrl == nullptr)
+        throw std::logic_error(use_python_error);
     for (auto i = 1u; i < ast.nodes.size(); ++i) {
         range = eval_model_range(*ast.nodes[i]);
-        if (range == nullptr) {
-            set_error_info(semantics_error_class, use_python_error);
-            return nullptr;
-        }
         if (PyObject_CallMethodOneArg(mrl, append_arg, range) == nullptr) {
             Py_DECREF(mrl);
             throw std::logic_error(use_python_error);
@@ -414,19 +475,11 @@ eval_model_hierarchy(const Ast &ast) {
 std::cerr << "eval_model_hierarchy\n";
     // model_hierarchy <- model_range_list ("." model_range_list)*
     auto rl = eval_model_range_list(*ast.nodes[0]);
-    if (rl == nullptr)
-        return nullptr;
     auto hierarchy = PyObject_CallFunctionObjArgs(_ModelHierarchy_class, rl, nullptr);
-    if (hierarchy == nullptr) {
-        set_error_info(semantics_error_class, use_python_error);
-        return nullptr;
-    }
+    if (hierarchy == nullptr)
+        throw std::logic_error(use_python_error);
     for (auto i = 1u; i < ast.nodes.size(); ++i) {
         rl = eval_model_range_list(*ast.nodes[i]);
-        if (rl == nullptr) {
-            set_error_info(semantics_error_class, use_python_error);
-            return nullptr;
-        }
         if (PyObject_CallMethodOneArg(hierarchy, append_arg, rl) == nullptr) {
             Py_DECREF(hierarchy);
             throw std::logic_error(use_python_error);
@@ -460,10 +513,8 @@ std::cerr << "eval_model\n";
     }
     auto model = PyObject_CallFunctionObjArgs(_Model_class, (exact_match ? Py_True : Py_False),
         hierarchy, attrs, nullptr);
-    if (model == nullptr) {
-        set_error_info(semantics_error_class, use_python_error);
-        return nullptr;
-    }
+    if (model == nullptr)
+        throw std::logic_error(use_python_error);
     for (auto part: parts) {
         if (PyObject_CallMethodOneArg(model, add_part_arg, part) == nullptr) {
             Py_DECREF(model);
@@ -475,9 +526,10 @@ std::cerr << "eval_model\n";
     
     if (PyObject_SetAttrString(zone, "model", model) < 0) {
         Py_DECREF(model);
-        set_error_info(semantics_error_class, use_python_error);
-        return nullptr;
+        throw std::logic_error(use_python_error);
     }
+    //TODO: combine model/zone
+std::cerr << "Combining model and zone needs implementation\n";
     return zone;
 }
 
@@ -489,11 +541,12 @@ std::cerr << "eval_model_list\n";
     for (auto node: ast.nodes) {
         auto model = eval_model(*node);
         if (model == nullptr) {
-            set_error_info(semantics_error_class, use_python_error);
-            return nullptr;
+            Py_DECREF(py_ml);
+            throw std::logic_error(use_python_error);
         }
         if (PyObject_CallMethodOneArg(py_ml, append_arg, model) == nullptr) {
             Py_DECREF(py_ml);
+            Py_DECREF(model);
             throw std::logic_error(use_python_error);
         }
     }
@@ -501,17 +554,81 @@ std::cerr << "eval_model_list\n";
 }
 
 static PyObject*
+eval_SELECTOR_NAME(const Ast &ast) {
+std::cerr << "eval_SELECTOR_NAME\n";
+    // SELECTOR_NAME <- < [a-zA-Z_][-+a-zA-Z0-9_]* >
+    auto token = ast.token_to_string();
+    PyObject* name = PyUnicode_FromString(token.c_str());
+    auto result = PyObject_CallOneArg(get_selector_func, name);
+    if (result == nullptr)
+        throw std::logic_error(use_python_error);
+    if (result == Py_None) {
+        std::string msg;
+        msg.push_back('"');
+        msg.append(token);
+        msg.push_back('"');
+        msg.append(" is not a selector name");
+        throw std::logic_error(msg);
+    }
+    auto sn = PyObject_CallOneArg(_SelectorName_class, name);
+    if (sn == nullptr)
+        throw std::logic_error(use_python_error);
+    return sn;
+}
+
+static PyObject*
 eval_as_term(const Ast &ast) {
 std::cerr << "eval_as_term\n";
     // as_term <- "(" _ atom_specifier _ ")" _ zone_selector? / "~" _ as_term _ zone_selector? / SELECTOR_NAME _ zone_selector? / model_list
+    PyObject* as_term;
+    PyObject* inner_as_term;
+    PyObject* args;
+    PyObject* kw_args;
     switch (ast.choice) {
         case 0:
+            //TODO: parens
+            as_term = Py_None;
+std::cerr << "Parenthesized expressions needs implementation\n";
+            break;
         case 1:
+            // tilde
+            inner_as_term = eval_as_term(*ast.nodes[0]);
+
+            args = PyTuple_New(1);
+            if (args == nullptr) {
+                throw std::runtime_error("Could not create tuple");
+            }
+            PyTuple_SET_ITEM(args, 0, inner_as_term);
+
+            kw_args = PyDict_New();
+            if (kw_args == nullptr) {
+                Py_DECREF(args);
+                throw std::runtime_error("Cannot create keyword dictionary");
+            }
+            if (PyDict_SetItemString(kw_args, "add_implied", add_implied ? Py_True : Py_False) < 0) {
+                Py_DECREF(args);
+                Py_DECREF(kw_args);
+                throw std::logic_error(use_python_error);
+            }
+
+            as_term = PyObject_Call(_Invert_class, args, kw_args);
+            if (as_term == nullptr) {
+                Py_DECREF(inner_as_term);
+                throw std::logic_error(use_python_error);
+            }
+            break;
         case 2:
-            //TODO
-            return Py_None;
+            // selector
+            as_term = eval_SELECTOR_NAME(*ast.nodes[0]);
+            break;
+        case 3:
+            return PyObject_CallOneArg(_Term_class, eval_model_list(*ast.nodes[0]));
     }
-    return PyObject_CallOneArg(_Term_class, eval_model_list(*ast.nodes[0]));
+    if (ast.nodes.size() > 1) {
+        //TODO: zones
+std::cerr << "as_term zones need implementation\n";
+    }
+    return as_term;
 }
     
 static PyObject*
@@ -576,12 +693,12 @@ parse(PyObject *, PyObject *args)
     }
     return Py_None;
 #else
+std::cerr << "parse text: " << text << "\n";
     int c_add_implied;
     if (!PyArg_ParseTuple(args, "OsOOp", &session, &text, &parse_error_class,
             &semantics_error_class, &c_add_implied))
         return nullptr;
 
-std::cerr << "parse text: " << text << "\n";
     add_implied = static_cast<bool>(c_add_implied);
     spec_parser.set_logger([](size_t line, size_t col, const std::string& msg) {
         err_valid = true;
@@ -593,9 +710,14 @@ std::cerr << "parse text: " << text << "\n";
     if (spec_parser.parse(text, ast)) {
         //TODO: Check if optimized AST is usable.  I suspect that ::name=="CYS" produces an unusable AST
         // because it skips levels
-        return eval_atom_spec(*ast);
+        try {
+            return eval_atom_spec(*ast);
+        } catch (std::logic_error& e) {
+            set_error_info(parse_error_class, e.what());
+        }
+    } else{
+        set_error_info(parse_error_class, err_msg);
     }
-    set_error_info(parse_error_class, err_msg);
     return nullptr;
 #endif
 }
@@ -740,8 +862,17 @@ PyMODINIT_FUNC PyInit__spec_parser()
     _Atom_class = get_module_attribute("chimerax.core.commands.atomspec", "_Atom");
     if (_Atom_class == nullptr)
         return nullptr;
+    _AttrList_class = get_module_attribute("chimerax.core.commands.atomspec", "_AttrList");
+    if (_AttrList_class == nullptr)
+        return nullptr;
+    _AttrTest_class = get_module_attribute("chimerax.core.commands.atomspec", "_AttrTest");
+    if (_AttrTest_class == nullptr)
+        return nullptr;
     _Chain_class = get_module_attribute("chimerax.core.commands.atomspec", "_Chain");
     if (_Chain_class == nullptr)
+        return nullptr;
+    _Invert_class = get_module_attribute("chimerax.core.commands.atomspec", "_Invert");
+    if (_Invert_class == nullptr)
         return nullptr;
     _Model_class = get_module_attribute("chimerax.core.commands.atomspec", "_Model");
     if (_Model_class == nullptr)
@@ -767,6 +898,9 @@ PyMODINIT_FUNC PyInit__spec_parser()
     _Residue_class = get_module_attribute("chimerax.core.commands.atomspec", "_Residue");
     if (_Residue_class == nullptr)
         return nullptr;
+    _SelectorName_class = get_module_attribute("chimerax.core.commands.atomspec", "_SelectorName");
+    if (_SelectorName_class == nullptr)
+        return nullptr;
     _Term_class = get_module_attribute("chimerax.core.commands.atomspec", "_Term");
     if (_Term_class == nullptr)
         return nullptr;
@@ -779,6 +913,45 @@ PyMODINIT_FUNC PyInit__spec_parser()
         return nullptr;
     append_arg = PyUnicode_FromString("append");
     if (append_arg == nullptr)
+        return nullptr;
+
+    get_selector_func = get_module_attribute("chimerax.core.commands.atomspec", "get_selector");
+    if (get_selector_func == nullptr)
+        return nullptr;
+
+    op_eq = get_module_attribute("operator", "eq");
+    if (op_eq == nullptr)
+        return nullptr;
+    op_ge = get_module_attribute("operator", "ge");
+    if (op_ge == nullptr)
+        return nullptr;
+    op_gt = get_module_attribute("operator", "gt");
+    if (op_gt == nullptr)
+        return nullptr;
+    op_le = get_module_attribute("operator", "le");
+    if (op_le == nullptr)
+        return nullptr;
+    op_lt = get_module_attribute("operator", "lt");
+    if (op_lt == nullptr)
+        return nullptr;
+    op_ne = get_module_attribute("operator", "ne");
+    if (op_ne == nullptr)
+        return nullptr;
+    op_not = get_module_attribute("operator", "not_");
+    if (op_not == nullptr)
+        return nullptr;
+    op_truth = get_module_attribute("operator", "truth");
+    if (op_truth == nullptr)
+        return nullptr;
+
+    end_string = PyUnicode_FromString("end");
+    if (end_string == nullptr)
+        return nullptr;
+    star_string = PyUnicode_FromString("*");
+    if (star_string == nullptr)
+        return nullptr;
+    start_string = PyUnicode_FromString("start");
+    if (start_string == nullptr)
         return nullptr;
 
     return mod;

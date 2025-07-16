@@ -157,10 +157,17 @@ class AtomSpecArg(Annotation):
             try:
                 ast = parse(session, token, PeglibParseError, PeglibSemanticsError, add_implied)
             except PeglibParseError as e:
+                import sys
+                print("PeglibParseError:", e[1], file=sys.__stderr__)
                 end = e.args[0]
             except PeglibSemanticsError as e:
+                import sys
+                print("PeglibSemanticsError:", e[1], file=sys.__stderr__)
                 from .cli import AnnotationError
                 raise AnnotationError(e.args[1], offset=e.args[0])
+            except Exception as e:
+                import sys
+                print(e.__class__.__name__, e[1], file=sys.__stderr__)
             else:
                 end = len(token)
         else:
