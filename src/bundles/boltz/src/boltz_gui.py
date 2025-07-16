@@ -439,6 +439,18 @@ class BoltzPredictionGUI(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
+    def _affinity_ligand_value(self):
+        text = self._affinity_ligand.value
+        if text == 'none':
+            value = None
+        elif text == 'last ligand':
+            value = self._last_ligand()
+        else:
+            value = self._affinity_value_map.get(text, text)
+        return value
+
+    # ---------------------------------------------------------------------------
+    #
     def _last_ligand(self):
         mt = self._molecules_table
         if mt is None or len(mt.data) == 0:
@@ -514,10 +526,9 @@ class BoltzPredictionGUI(ToolInstance):
             options.append('useMsaCache false')
         if self._device.value != 'default':
             options.append(f'device {self._device.value}')
-        if self._affinity_ligand.value == 'last ligand':
-            lig = self._last_ligand()
-            if lig:
-                options.append(f'affinity {lig}')
+        lig = self._affinity_ligand_value()
+        if lig:
+            options.append(f'affinity {lig}')
         if self._use_steering_potentials.value:
             options.append('steering true')
         if self._use_cuda_bfloat16 and self._use_cuda_bfloat16.value:
@@ -695,6 +706,8 @@ class BoltzPredictionGUI(ToolInstance):
         # Affinity prediction
         la = EntriesRow(f, 'Predict ligand binding affinity for ', ('none', 'last ligand'))
         self._affinity_ligand = al = la.values[0]
+        self._affinity_menu = am = al.widget.menu()
+        am.aboutToShow.connect(self._fill_affinity_menu)
 
         # Steering potentials
         sp = EntriesRow(f, False, 'Use steering potentials.  May be more accurate, but slower.')
@@ -732,6 +745,29 @@ class BoltzPredictionGUI(ToolInstance):
 
         return p
 
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _fill_affinity_menu(self):
+        choices = ['none', 'last ligand']
+        self._affinity_value_map = {}	# Map abbreviated to full length smiles strings.
+        mt = self._molecules_table
+        if mt is not None:
+            for comp in mt.data:
+                if comp.type == 'ligand':
+                    if comp.ccd_code:
+                        choices.append(comp.ccd_code)
+                    elif comp.smiles_string:
+                        smiles = comp.smiles_string
+                        if len(smiles) > 30:
+                            smiles = smiles[:12] + '...' + smiles[-12:]
+                            self._affinity_value_map[smiles] = comp.smiles_string
+                        choices.append(smiles)
+        menu = self._affinity_menu
+        menu.clear()
+        for text in choices:
+            menu.addAction(text)
+        
     # ---------------------------------------------------------------------------
     #
     def default_results_directory(self):
