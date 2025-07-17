@@ -138,12 +138,13 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     forcefield = ForceField('amber14-all.xml', 'amber14/tip3pfb.xml')
     unmatched_omm_residues = forcefield.getUnmatchedResidues(top)
     if unmatched_omm_residues:
-        from .parameterize import parameterize
+        #from .parameterize import parameterize
         from chimerax.core.commands import commas
         print("Unmatched residues: %s" % commas([rname for rname in set([r.name for r in unmatched_omm_residues])], conjunction="and"))
         #TODO: need to find these residues in structure, sort into isomers, for each generate a
         # ForceField._TemplateData (see openmm.app.forcefield), possibly add a distinguishing isomer
         # number, and register template
+        raise LimitationError("Non-standard residues in structure; see log for details")
     try:
         system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
     except ValueError as e:
