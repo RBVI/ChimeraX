@@ -41,6 +41,7 @@ def open_stack(paths, time=None, channel=None, log=None):
   if len(paths) > 1 and not is_3d_image(paths[0]):
     # Stack of 2d images as a single map.
     grids = image_stack_grids(paths)
+    tiff_type = None
   else:
     # 3d images.
     grids = []
