@@ -156,18 +156,9 @@ class AtomSpecArg(Annotation):
             from chimerax.core._spec_parser import parse
             try:
                 ast = parse(session, token, PeglibParseError, PeglibSemanticsError, add_implied)
-            except PeglibParseError as e:
-                import sys
-                print("PeglibParseError:", e[1], file=sys.__stderr__)
-                end = e.args[0]
-            except PeglibSemanticsError as e:
-                import sys
-                print("PeglibSemanticsError:", e[1], file=sys.__stderr__)
+            except (PegilbParseError, PeglibSemanticsError) as e:
                 from .cli import AnnotationError
                 raise AnnotationError(e.args[1], offset=e.args[0])
-            except Exception as e:
-                import sys
-                print(e.__class__.__name__, e[1], file=sys.__stderr__)
             else:
                 end = len(token)
         else:
@@ -987,10 +978,8 @@ class _SelectorName:
             else:
                 try:
                     f(session, models, results)
-                except Exception:
-                    session.logger.report_exception(preface="Error executing selector '%s'" % self.name)
-                    from grako.exceptions import FailedSemantics
-                    raise FailedSemantics("error evaluating selector %s" % self.name)
+                except Exception as e:
+                    raise RuntimeError("Error executing selector '%s'" % self.name) from e
 
 
 class _ZoneSelector:
