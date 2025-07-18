@@ -575,11 +575,10 @@ class BoltzRun:
                  + wait_t
                  + st.get('sequence search submitted', 0)
                  + st.get('sequence search running', 0))
-        if seq_t > 0:
-            sst = f'sequence search {"%.0f" % seq_t} sec'
-            if wait_t > 0:
-                sst += f' (waiting {"%.0f" % wait_t} sec, running {"%.0f" % (seq_t-wait_t)} sec)'
-            parts.append(sst)
+        sst = f'sequence search {"%.0f" % seq_t} sec'
+        if wait_t > 0:
+            sst += f' (waiting {"%.0f" % wait_t} sec, running {"%.0f" % (seq_t-wait_t)} sec)'
+        parts.append(sst)
         lwt = st.get('loading weights', 0)
         parts.append(f'load weights {"%.0f" % lwt} sec')
         sit = st.get('structure inference', 0)
@@ -594,7 +593,7 @@ class BoltzRun:
         msg = f'Boltz prediction completed in {"%.0f" % total} seconds ({timings})'
         self._session.logger.info(msg)
 
-        if wait_t >= 60:
+        if self.use_msa_server and wait_t >= 60:
             msg = f'The sequence alignment server api.colabfold.com was busy and Boltz waited {"%.0f" % wait_t} seconds to start the alignment computation for this prediction.'
             self._session.logger.warning(msg)
             
