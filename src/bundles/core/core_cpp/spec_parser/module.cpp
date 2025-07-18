@@ -64,6 +64,7 @@ static PyObject* _PartList_class;
 static PyObject* _Residue_class;
 static PyObject* _SelectorName_class;
 static PyObject* _Term_class;
+static PyObject* _ZoneSelector_class;
 static PyObject* color_converter_func;
 static PyObject* get_selector_func;
 static PyObject* op_eq;
@@ -150,13 +151,47 @@ print_ast(const Ast & ast)
 // NOTE: to figure out how things work in the Python layer you have to not only look at the
 // corresponding parsing class, but also the corresponding method of _AtomSpecSemantics
 
+static PyObject* eval_atom_spec(const Ast &ast);
+
+static PyObject*
+eval_integer(const Ast &ast) {
+std::cerr << "eval_integer\n";
+    // integer <- < [1-9][0-9]* >
+    auto integer = PyNumber_Long(PyUnicode_FromString(ast.token_to_string().c_str()));
+    if (integer == nullptr)
+        throw SemanticsError(use_python_error);
+    return integer;
+}
+
+static PyObject*
+eval_real_number(const Ast &ast) {
+std::cerr << "eval_real_number\n";
+    // real_number <- < [0-9]* '.' [0-9]+ >
+    auto real = PyNumber_Float(PyUnicode_FromString(ast.token_to_string().c_str()));
+    if (real == nullptr)
+        throw SemanticsError(use_python_error);
+    return real;
+}
+
+static PyObject*
+eval_ZONE_OPERATOR(const Ast &ast) {
+std::cerr << "eval_ZONE_OPERATOR\n";
+    // ZONE_OPERATOR <- "@>" | "@<" | ":>" | ":<" | "/>" | "/<" | "#>" | "#<"
+    return PyUnicode_FromString(ast.token_to_string().c_str());
+}
+
 static PyObject*
 eval_zone_selector(const Ast &ast) {
 std::cerr << "eval_zone_selector\n";
     // zone_selector <- ZONE_OPERATOR _ real_number / ZONE_OPERATOR _ integer
-    //TODO
-std::cerr << "eval_zone_selector needs implementation\n";
-    return Py_None;
+    auto zone_op = eval_ZONE_OPERATOR(*ast.nodes[0]);
+    auto distance = (ast.choice == 0 ? eval_real_number : eval_integer)(*ast.nodes[1]);
+    auto zone_sel = PyObject_CallFunctionObjArgs(_ZoneSelector_class, zone_op, distance, nullptr);
+    if (zone_sel == nullptr) {
+        Py_DECREF(distance);
+        throw SemanticsError(use_python_error);
+    }
+    return zone_sel;
 }
 
 static std::pair<std::string, PyObject*>
@@ -608,8 +643,6 @@ std::cerr << "eval_model\n";
         Py_DECREF(model);
         throw SemanticsError(use_python_error);
     }
-    //TODO: combine model/zone
-std::cerr << "Combining model and zone needs implementation\n";
     return zone;
 }
 
@@ -666,9 +699,7 @@ std::cerr << "eval_as_term\n";
     PyObject* kw_args;
     switch (ast.choice) {
         case 0:
-            //TODO: parens
-            as_term = Py_None;
-std::cerr << "Parenthesized expressions needs implementation\n";
+            as_term = eval_atom_spec(*ast.nodes[0]);
             break;
         case 1:
             // tilde
@@ -699,14 +730,18 @@ std::cerr << "Parenthesized expressions needs implementation\n";
             break;
         case 2:
             // selector
-            as_term = eval_SELECTOR_NAME(*ast.nodes[0]);
+            as_term = PyObject_CallOneArg(_Term_class, eval_SELECTOR_NAME(*ast.nodes[0]));
             break;
         case 3:
             return PyObject_CallOneArg(_Term_class, eval_model_list(*ast.nodes[0]));
     }
     if (ast.nodes.size() > 1) {
-        //TODO: zones
-std::cerr << "as_term zones need implementation\n";
+        auto zone = eval_zone_selector(*ast.nodes[1]);
+        if (PyObject_SetAttrString(zone, "model", as_term) < 0) {
+            Py_DECREF(as_term);
+            throw SemanticsError(use_python_error);
+        }
+        return zone;
     }
     return as_term;
 }
@@ -714,7 +749,6 @@ std::cerr << "as_term zones need implementation\n";
 static PyObject*
 eval_atom_spec(const Ast &ast) {
 std::cerr << "eval_atom_spec\n";
-    print_ast(ast);
     // atom_specifier <- as_term _ "&" _ atom_specifier / as_term _ "|" _ atom_specifier / as_term
     PyObject* left_spec;
     PyObject* right_spec;
@@ -752,7 +786,13 @@ std::cerr << "eval_atom_spec\n";
         Py_DECREF(kw_args);
         throw SemanticsError(use_python_error);
     }
-    return PyObject_Call(AtomSpec_class, args, kw_args);
+    auto atom_spec = PyObject_Call(AtomSpec_class, args, kw_args);
+    if (atom_spec == nullptr) {
+        Py_DECREF(args);
+        Py_DECREF(kw_args);
+        throw SemanticsError(use_python_error);
+    }
+    return atom_spec;
 }
 
 //TODO: accept find_match() keywords
@@ -773,11 +813,11 @@ parse(PyObject *, PyObject *args)
     }
     return Py_None;
 #else
-std::cerr << "parse text: " << text << "\n";
     int c_add_implied;
     if (!PyArg_ParseTuple(args, "OsOOp", &session, &text, &parse_error_class,
             &semantics_error_class, &c_add_implied))
         return nullptr;
+std::cerr << "parse text: " << text << "\n";
 
     add_implied = static_cast<bool>(c_add_implied);
     spec_parser.set_logger([](size_t line, size_t col, const std::string& msg) {
@@ -790,6 +830,7 @@ std::cerr << "parse text: " << text << "\n";
     if (spec_parser.parse(text, ast)) {
         //TODO: Check if optimized AST is usable.  I suspect that ::name=="CYS" produces an unusable AST
         // because it skips levels
+        print_ast(*ast);
         try {
             return eval_atom_spec(*ast);
         } catch (SemanticsError& e) {
@@ -994,6 +1035,9 @@ PyMODINIT_FUNC PyInit__spec_parser()
         return nullptr;
     _Term_class = get_module_attribute("chimerax.core.commands.atomspec", "_Term");
     if (_Term_class == nullptr)
+        return nullptr;
+    _ZoneSelector_class = get_module_attribute("chimerax.core.commands.atomspec", "_ZoneSelector");
+    if (_ZoneSelector_class == nullptr)
         return nullptr;
 
     add_part_arg = PyUnicode_FromString("add_part");

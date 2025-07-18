@@ -997,7 +997,10 @@ class _ZoneSelector:
         self.model = None
 
     def __str__(self):
-        return "%s%s%.3f" % (self.target_type, self.operator, self.distance)
+        zone_part = "%s%s%.3f" % (self.target_type, self.operator, self.distance)
+        if self.model is None:
+            return zone_part
+        return str(self.model) + ' ' + zone_part
 
     def find_matches(self, session, models, results, ordered, *, add_implied=None):
         if self.model is None:
