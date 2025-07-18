@@ -620,6 +620,15 @@ class BoltzPredictionGUI(ToolInstance):
             return
         self._next_progress_time = t + 1
         msg = f'Prediction running {"%.0f" % elapsed} seconds'
+        if br.stage:
+            msg += ': ' + br.stage
+            if br.stage == 'sequence server busy... waiting':
+                self._progress_label.setStyleSheet('background-color: lightyellow;')
+                self._progress_label_colored = True
+            elif getattr(self, '_progress_label_colored', False):
+                self._progress_label.setStyleSheet('')
+                self._progress_label_colored = False
+                
         # Memory use values are not too useful on Mac ARM since GPU memory is not included
         # in RSS and too many libraries included in VMS.  Needs more investigation.
         '''
@@ -995,7 +1004,7 @@ class MoleculesTable(ItemTable):
     def __init__(self, parent, row_data = []):
         ItemTable.__init__(self, parent = parent, allow_user_sorting = False, auto_multiline_headers = False)
         self.setWordWrap(False)	# This allows ellipses to terminate long strings not limited to word boundaries.
-        desc_col = self.add_column('Molecular component', 'description', justification = 'left')
+        desc_col = self.add_column('Molecular component', 'short_description', justification = 'left')
         count_col = self.add_column('Count', 'count', format = '%d')
         self.data = row_data
         self.launch()
@@ -1066,6 +1075,13 @@ class MolecularComponent:
          }
         uid = (self.type,) + tuple((attr, getattr(self, attr)) for attr in mspec[self.type])
         return uid
+
+    @property
+    def short_description(self, max_length=70):
+        d = self.description
+        if len(d) > max_length:
+            d = d[:max_length] + '...'
+        return d
 
 # -----------------------------------------------------------------------------
 #

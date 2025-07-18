@@ -67,11 +67,6 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
                   open = open, wait = wait)
     br.start(results_directory)
 
-    if not hasattr(session, '_cite_boltz'):
-        msg = 'Please cite <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11601547/">Boltz-1 Democratizing Biomolecular Interaction Modeling. BioRxiv https://doi.org/10.1101/2024.11.19.624167</a> if you use these predictions.'
-        session.logger.info(msg, is_html = True)
-        session._cite_boltz = True  # Only log this message once per session.
-
     return br
 
 # ------------------------------------------------------------------------------
@@ -210,12 +205,14 @@ class BoltzRun:
         self._results_directory = None
         self._yaml_path = None
         self._running = False
+        self._stage = ''		# String included in status messages
+        self._stage_times = {}		# Stage name to elapsed time for that stage
+        self._stage_start_time = None	# Start of the current stage.
         self._user_terminated = False
         self.success = None
         self._process = None
         self._wait = wait
         self._start_time = None
-        self._monitor_trigger = None
         self._predicted_structure = None	# AtomicStructure that is opened when job completes
 
         # MSA cache parameters
@@ -355,6 +352,7 @@ class BoltzRun:
 
     def _run_boltz_local(self):
         self._running = True
+        self._set_stage('starting Boltz')
 
         self._log_prediction_info()
 
@@ -421,10 +419,12 @@ class BoltzRun:
         from time import time
         self._start_time = time()
 
+        self._monitor_boltz_output()
+        
         if self._wait:
             self._check_process_completion()
         else:
-            self._monitor_trigger = self._session.triggers.add_handler('new frame', self._check_process_completion)
+            self._session.triggers.add_handler('new frame', self._check_process_completion)
 
     def _log_prediction_info(self):
         log = self._session.logger
@@ -462,50 +462,100 @@ class BoltzRun:
 
         assem_descrip = ', '.join(parts)
         return assem_descrip
-        
-    def _check_process_completion(self, *trigger_args):
-        if self._wait:
-            stdout, stderr = self._process.communicate()
-        else:
-            p = self._process
-            if p.poll() is None:
-                # Process still running
-                # Add threaded reading of stdout and stdin to give progress messages.
-                return
 
-            self._session.triggers.remove_handler(self._monitor_trigger)
-            self._monitor_trigger = None
-            stdout = p.stdout.read()
-            stderr = p.stderr.read()
+    def _monitor_boltz_output(self):
+        p = self._process
+        self._stdout = ReadOutputThread(p.stdout)
+        self._stderr = ReadOutputThread(p.stderr)
+
+    def _check_process_completion(self, *trigger_args):
+        p = self._process
+        if self._wait:
+            while p.poll() is None:
+                self._check_boltz_output()
+                from time import sleep
+                sleep(1)
+        else:
+            self._check_boltz_output()
+            if p.poll() is None:
+                return		    # Process still running
+
+        self._set_stage('')	    # Job finished
+
+        stdout = ''.join(self._stdout.all_lines())
+        stderr = ''.join(self._stderr.all_lines())
 
         self._process_completed(stdout, stderr)
 
+        return 'delete handler'
+
+    def _check_boltz_output(self):
+
+        new_lines = self._stderr.new_lines()
+        stages = [('SUBMIT', 'submitting sequence search'),
+                  ('RATELIMIT', 'sequence server busy... waiting'),
+                  ('PENDING', 'sequence search submitted'),
+                  ('RUNNING', 'sequence search running'),
+                  ('COMPLETE', 'sequence search finished'),
+                  ('Loading Boltz structure prediction weights', 'loading weights'),
+                  ('Finished loading Boltz structure prediction weights', ''),
+                  ('Starting structure inference', 'structure inference'),
+                  ('Finished structure inference', ''),
+                  ('Loading affinity prediction weights', 'loading affinity weights'),
+                  ('Finished loading affinity prediction weights', ''),
+                  ('Starting affinity inference', 'affinity inference'),
+                  ('Finished affinity inference', ''),
+                  ]
+        found_stage = None
+        for line in reversed(new_lines):
+            msgs = []
+            for text, stage in stages:
+                if text in line:
+                    msgs.append((line.find(text), stage))
+            if msgs:
+                found_stage = max(msgs)[1]
+                break
+
+        if found_stage:
+            self._set_stage(found_stage)
+            
+    def _set_stage(self, stage):
+        if stage == self._stage:
+            return
+        from time import time
+        t = time()
+        if self._stage_start_time is not None:
+            cur_stage = self._stage
+            st = self._stage_times
+            st[cur_stage] = st.get(cur_stage, 0) + t - self._stage_start_time
+        self._stage = stage
+        self._stage_start_time = t
+
+    @property
+    def stage(self):
+        return self._stage
+    
     def _process_completed(self, stdout, stderr):
         
         dir = self._results_directory
         from os.path import join
-        with open(join(dir, 'stdout'), 'wb') as f:
+        with open(join(dir, 'stdout'), 'w') as f:
             f.write(stdout)
-        with open(join(dir, 'stderr'), 'wb') as f:
+        with open(join(dir, 'stderr'), 'w') as f:
             f.write(stderr)
 
-        import locale
-        stdout_encoding = locale.getpreferredencoding()
-        stdout = stdout.decode(stdout_encoding, errors = 'ignore')
-        stderr = stderr.decode(stdout_encoding, errors = 'ignore')
         msg = self._prediction_failed_message(self._process.returncode, stdout, stderr)
         if msg:
             self._session.logger.error(msg)
             success = False
         else:
-            from time import time
-            t = time() - self._start_time
-            self._session.logger.info(f'Boltz prediction completed in {"%.0f" % t} seconds')
             self._copy_predictions()
-            if self._open:
-                self._open_predictions()
             if self._predict_affinity:
                 self._report_affinity()
+            self._report_runtime()
+            self._cite()
+            if self._open:
+                self._open_predictions()
             success = True
 
         self._add_to_msa_cache()
@@ -513,6 +563,41 @@ class BoltzRun:
         self._running = False
         self.success = success
 
+    def _report_runtime(self):
+        from time import time
+        total = time() - self._start_time
+        parts = []
+        st = self._stage_times
+        sut = st.get('starting Boltz', 0)
+        parts.append(f'start boltz {"%.0f" % sut} sec')
+        wait_t = st.get('sequence server busy... waiting', 0)
+        seq_t = (st.get('submitting sequence search', 0)
+                 + wait_t
+                 + st.get('sequence search submitted', 0)
+                 + st.get('sequence search running', 0))
+        if seq_t > 0:
+            sst = f'sequence search {"%.0f" % seq_t} sec'
+            if wait_t > 0:
+                sst += f' (waiting {"%.0f" % wait_t} sec, running {"%.0f" % (seq_t-wait_t)} sec)'
+            parts.append(sst)
+        lwt = st.get('loading weights', 0)
+        parts.append(f'load weights {"%.0f" % lwt} sec')
+        sit = st.get('structure inference', 0)
+        parts.append(f'structure inference {"%.0f" % sit} sec')
+        if self._predict_affinity:
+            lawt = st.get('loading affinity weights', 0)
+            parts.append(f'load affinity weights {"%.0f" % lawt} sec')
+            ait = st.get('affinity inference', 0)
+            parts.append(f'affinity inference {"%.0f" % ait} sec')
+
+        timings = ', '.join(parts)
+        msg = f'Boltz prediction completed in {"%.0f" % total} seconds ({timings})'
+        self._session.logger.info(msg)
+
+        if wait_t >= 60:
+            msg = f'The sequence alignment server api.colabfold.com was busy and Boltz waited {"%.0f" % wait_t} seconds to start the alignment computation for this prediction.'
+            self._session.logger.warning(msg)
+            
     def _prediction_failed_message(self, exit_code, stdout, stderr):
 
         msg = None
@@ -598,11 +683,11 @@ class BoltzRun:
         if self._align_to:
             aspec = self._align_to.atomspec
             for model in models:
-                run(self._session, f'matchmaker {model.atomspec} to {aspec} logParameters false')
+                run(self._session, f'matchmaker {model.atomspec} to {aspec} logParameters false', log = False)
 
         # Color by confidence
         for model in models:
-            run(self._session, f'color bfactor {model.atomspec} palette alphafold')
+            run(self._session, f'color bfactor {model.atomspec} palette alphafold log False', log = False)
 
     def _copy_predictions(self):
         '''
@@ -651,7 +736,15 @@ class BoltzRun:
             prob = results['affinity_probability_binary']
             lig_spec = (ligand_mol.ccd_code or ligand_mol.smiles_string)
             msg = f'Ligand {lig_spec} predicted IC50 binding affinity {"%.2g" % ic50_uM} uM, predicted binding probability {"%.2g" % prob}'
-            self._session.logger.info(msg)    
+            self._session.logger.info(msg)
+
+    def _cite(self):
+        session = self._session
+        if not hasattr(session, '_cite_boltz'):
+            msg = 'Please cite <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11601547/">Boltz-1 Democratizing Biomolecular Interaction Modeling. BioRxiv https://doi.org/10.1101/2024.11.19.624167</a> if you use these predictions.'
+            session.logger.info(msg, is_html = True)
+            session._cite_boltz = True  # Only log this message once per session.
+
 
 # ------------------------------------------------------------------------------
 #
@@ -965,6 +1058,42 @@ def _test_smiles_atom_count():
         ccd_count = CalcNumHeavyAtoms(mol)
         if sa_count != ccd_count:
             print(f'Smiles {smiles} atom count {sa_count} differs from ccd atom count {ccd_count}.')
+
+# ------------------------------------------------------------------------------
+#
+class ReadOutputThread:
+    def __init__(self, stream):
+        self._stream = stream
+
+        import locale
+        self._text_encoding = locale.getpreferredencoding()
+        self._all_lines = []
+
+        from queue import Queue
+        self._queue = Queue()
+        from threading import Thread
+        # Set daemon true so that ChimeraX exit is not blocked by the thread still running.
+        self._thread = t = Thread(target = self._queue_output_in_thread, daemon = True)
+        t.start()
+
+    def _queue_output_in_thread(self):
+        while True:
+            line = self._stream.readline() # blocking read
+            if not line:
+                break
+            self._queue.put(line)
+
+    def new_lines(self):
+        lines = []
+        while not self._queue.empty():
+            line = self._queue.get()
+            lines.append(line.decode(self._text_encoding, errors = 'ignore'))
+        self._all_lines.extend(lines)
+        return lines
+
+    def all_lines(self):
+        self.new_lines()
+        return self._all_lines
 
 # ------------------------------------------------------------------------------
 #
