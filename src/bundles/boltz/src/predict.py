@@ -550,6 +550,7 @@ class BoltzRun:
             success = False
         else:
             self._copy_predictions()
+            self._report_confidence()
             if self._predict_affinity:
                 self._report_affinity()
             self._report_runtime()
@@ -719,6 +720,32 @@ class BoltzRun:
         if len(csv_files) < len(protein_seqs):
             return False
         _add_to_msa_cache(self.name, protein_seqs, msa_dir, self.msa_cache_dir)
+
+    def _report_confidence(self):
+        from os.path import join, exists
+        conf_json = join(self._results_directory, f'confidence_{self.name}_model_0.json')
+        if not exists(conf_json):
+            return
+        import json
+        with open(conf_json, 'r') as f:
+            results = json.load(f)
+        conf = results.get('confidence_score', -1)
+        ptm = results.get('ptm', -1)
+        iptm = results.get('iptm', -1)
+        lig_iptm = results.get('ligand_iptm', -1)
+        prot_iptm = results.get('protein_iptm', -1)
+        plddt = results.get('complex_plddt', -1)
+
+        if iptm != ptm:
+            iptm_text = f'ipTM {"%.2f" % iptm}'
+            if lig_iptm > 0 and prot_iptm > 0:
+                iptm_text += f' (ligand {"%.2f" % lig_iptm}, protein {"%.2f" % prot_iptm})'
+        parts = [f'Confidence score {"%.2f" % conf}',
+                 f'pTM {"%.2f" % ptm}',
+                 iptm_text,
+                 f'pLDDT {"%.2f" % plddt}']
+        msg = ', '.join(parts)
+        self._session.logger.info(msg)
 
     def _report_affinity(self):
         ligand_mol = self._predict_affinity
