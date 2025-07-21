@@ -161,7 +161,7 @@ class KeyframeItem(QGraphicsRectItem):
     def mousePressEvent(self, event):  # noqa: D401, N802
         self._drag_start_frame = self.data.frame
         super().mousePressEvent(event)
-    
+
     def mouseMoveEvent(self, event):  # noqa: D401, N802
         super().mouseMoveEvent(event)
 
@@ -173,29 +173,29 @@ class KeyframeItem(QGraphicsRectItem):
                 # Calculate correct Y position for this track
                 track_y = self._track_row.index * TRACK_HEIGHT + RULER_HEIGHT + TRACK_HEIGHT / 2
                 value.setY(track_y)
-            
+
             # Snap to frame boundaries
             frame_width = getattr(self.scene(), 'frame_width', FRAME_WIDTH)
             frame = round(new_x / frame_width)
             # Clamp frame to non‑negative
             frame = max(frame, 0)
             value.setX(frame * frame_width)
-            
+
             # Update model data
             self.data.frame = frame
-            
+
             # Extend timeline if needed
             if hasattr(self.scene(), 'extend_timeline') and frame > self.scene().num_frames:
                 self.scene().extend_timeline(frame + 24)  # Add some padding
-            
+
             return value
         return super().itemChange(change, value)
-    
+
     def paint(self, painter, option, widget):
         """Custom paint to show selection state."""
         # Draw the keyframe
         super().paint(painter, option, widget)
-        
+
         # Draw selection border if selected
         if self.isSelected():
             selection_pen = QPen(QColor("#FFFFFF"))
@@ -242,11 +242,11 @@ class TrackRow(QGraphicsItemGroup):
         super().__init__()
         self.index = index
         self.name = name
-        
+
         # Position the entire group at the track's location
         y = index * TRACK_HEIGHT + RULER_HEIGHT
         self.setPos(0, y)
-        
+
         # Background rect - positioned relative to group (0,0)
         self.bg = QGraphicsRectItem(0, 0, scene_width, TRACK_HEIGHT, self)
         self.bg.setBrush(QColor("#202020"))
@@ -256,7 +256,7 @@ class TrackRow(QGraphicsItemGroup):
         self.bg.setFlag(QGraphicsItem.ItemIsSelectable, False)
         self.bg.setFlag(QGraphicsItem.ItemIsMovable, False)
         self.bg.setAcceptedMouseButtons(Qt.NoButton)
-        
+
         # Bottom separator line - positioned relative to group
         self.sep = QGraphicsRectItem(0, TRACK_HEIGHT - 1, scene_width, 1, self)
         self.sep.setBrush(SEPARATOR_PEN.color())
@@ -266,7 +266,7 @@ class TrackRow(QGraphicsItemGroup):
         self.sep.setFlag(QGraphicsItem.ItemIsSelectable, False)
         self.sep.setFlag(QGraphicsItem.ItemIsMovable, False)
         self.sep.setAcceptedMouseButtons(Qt.NoButton)
-        
+
         self.addToGroup(self.bg)
         self.addToGroup(self.sep)
         self._highlighted = False
@@ -328,7 +328,7 @@ class TrackRow(QGraphicsItemGroup):
 
         frame_width = getattr(self.scene(), 'frame_width', FRAME_WIDTH) if self.scene() else FRAME_WIDTH
         # Position clip relative to the track's current position
-        track_y = self.pos().y()  # Get current track position  
+        track_y = self.pos().y()  # Get current track position
         clip.setPos(clip_data.start * frame_width, track_y)
         self.addToGroup(clip)
         return clip
@@ -350,34 +350,34 @@ class TimelineScene(QGraphicsScene):
         self._draw_ruler()
         self._draw_frame_grid()
         self._draw_playhead()
-    
+
     @property
     def frame_width(self):
         """Get current frame width based on zoom."""
         return self.base_frame_width * self.zoom_factor
-    
+
     def set_zoom(self, factor: float):
         """Set zoom factor and redraw timeline."""
         old_zoom = self.zoom_factor
         self.zoom_factor = max(0.1, min(factor, 10.0))  # Clamp zoom between 0.1x and 10x
-        
+
         if old_zoom != self.zoom_factor:
             self._redraw_timeline()
-    
+
     def zoom_in(self):
         """Zoom in by 20%."""
         self.set_zoom(self.zoom_factor * 1.2)
-    
+
     def zoom_out(self):
         """Zoom out by 20%."""
         self.set_zoom(self.zoom_factor / 1.2)
-    
+
     def extend_timeline(self, new_num_frames: int):
         """Extend timeline to accommodate more frames."""
         if new_num_frames > self.num_frames:
             self.num_frames = new_num_frames
             self._redraw_timeline()
-    
+
     def _redraw_timeline(self):
         """Redraw entire timeline with current zoom and frame count."""
         # Clear existing ruler and grid items
@@ -387,7 +387,7 @@ class TimelineScene(QGraphicsScene):
             self.removeItem(item)
         self.ruler_items.clear()
         self.grid_items.clear()
-        
+
         # Redraw everything
         self._draw_ruler()
         self._draw_frame_grid()
@@ -405,7 +405,7 @@ class TimelineScene(QGraphicsScene):
             tick_interval = 5  # Show every 5 frames at medium zoom
         else:
             tick_interval = 10  # Show every 10 frames when zoomed out
-        
+
         for frame in range(0, self.num_frames + 1, tick_interval):
             x = frame * self.frame_width
             tick = QGraphicsRectItem(x, 0, 1, 6)
@@ -413,7 +413,7 @@ class TimelineScene(QGraphicsScene):
             tick.setPen(QPen(Qt.NoPen))
             self.addItem(tick)
             self.ruler_items.append(tick)
-            
+
             # Only add labels for major ticks to avoid clutter
             if frame % (tick_interval * 2) == 0 or tick_interval == 1:
                 label = self.addText(str(frame), font)
@@ -422,14 +422,14 @@ class TimelineScene(QGraphicsScene):
                 self.ruler_items.append(label)
 
     def _draw_frame_grid(self):
-        # Adaptive grid spacing based on zoom  
+        # Adaptive grid spacing based on zoom
         if self.zoom_factor >= 2.0:
             grid_interval = 1  # Show every frame when heavily zoomed in
         elif self.zoom_factor >= 1.0:
             grid_interval = 5  # Show every 5 frames when zoomed in
         else:
             grid_interval = 10  # Show every 10 frames when zoomed out
-            
+
         # Only draw frame markers in the ruler area, not extending to tracks
         for frame in range(0, self.num_frames + 1, grid_interval):
             x = frame * self.frame_width
@@ -445,7 +445,7 @@ class TimelineScene(QGraphicsScene):
         height = RULER_HEIGHT + visible_track_count * TRACK_HEIGHT
         width = self.num_frames * self.frame_width
         self.setSceneRect(0, 0, width, height)
-    
+
     def _update_track_positions(self):
         """Update positions of all keyframes and clips when zoom changes."""
         for track_row in self.track_rows:
@@ -473,7 +473,30 @@ class TimelineScene(QGraphicsScene):
         # Update playhead to account for new height
         self._draw_playhead()
         return row
-    
+
+    def insert_track(self, position: int, name: str):
+        """Insert a track at a specific position."""
+        # Create the track row with temporary index
+        row = TrackRow(position, name, self.num_frames * self.frame_width)
+
+        # Insert into track_rows list at the specified position
+        self.track_rows.insert(position, row)
+
+        # Update indices for all tracks after the insertion point
+        for i in range(position, len(self.track_rows)):
+            self.track_rows[i].index = i
+            # Update the track position
+            new_y = i * TRACK_HEIGHT + RULER_HEIGHT
+            self.track_rows[i].setPos(0, new_y)
+
+        self.addItem(row)
+        # Extend grid lines
+        self._draw_frame_grid()
+        self._update_scene_rect()
+        # Update playhead to account for new height
+        self._draw_playhead()
+        return row
+
     def set_track_visible(self, track_index: int, visible: bool):
         """Show or hide a track row in the timeline."""
         if track_index < len(self.track_rows):
@@ -491,7 +514,7 @@ class TimelineScene(QGraphicsScene):
             for view in self.views():
                 view.update()
                 view.viewport().update()
-    
+
     def _update_track_positions_for_visibility(self):
         """Update track positions to account for hidden tracks."""
         visible_track_count = 0
@@ -499,51 +522,51 @@ class TimelineScene(QGraphicsScene):
             if track_row.isVisible():
                 # Position this track at the next available visible position
                 new_y_pos = visible_track_count * TRACK_HEIGHT + RULER_HEIGHT
-                
+
                 # Force update the track row position
                 track_row.setPos(0, new_y_pos)
                 track_row.update()  # Force the item to update its visual representation
-                
+
                 # Also update the internal index for calculations
                 track_row.visual_index = visible_track_count
-                
+
                 # Update keyframes for this track to match new position
                 for item in self.items():
-                    if (isinstance(item, KeyframeItem) and 
-                        hasattr(item, '_track_row') and 
+                    if (isinstance(item, KeyframeItem) and
+                        hasattr(item, '_track_row') and
                         item._track_row == track_row and
                         item.isVisible()):
                         kf_y = new_y_pos + TRACK_HEIGHT / 2
                         item.setPos(item.pos().x(), kf_y)
-                
+
                 visible_track_count += 1
             else:
                 # Hidden tracks get moved out of view
                 track_row.setPos(0, -1000)  # Move off-screen
-    
+
     def _draw_playhead(self):
         """Draw the playhead line."""
         if self.playhead_line is not None:
             self.removeItem(self.playhead_line)
-        
+
         x = self.current_frame * self.frame_width
         # Calculate height based on visible tracks only
         visible_track_count = sum(1 for track in self.track_rows if track.isVisible())
         height = RULER_HEIGHT + visible_track_count * TRACK_HEIGHT
-        
+
         # Create playhead line
         playhead_pen = QPen(QColor("#FF6B6B"))  # Red playhead
         playhead_pen.setWidth(2)
         self.playhead_line = self.addLine(x, 0, x, height, playhead_pen)
         self.playhead_line.setZValue(10)  # Always on top
-    
+
     def set_current_frame(self, frame: int):
         """Set the current frame and update playhead position."""
         frame = max(0, min(frame, self.num_frames))
         if frame != self.current_frame:
             self.current_frame = frame
             self._draw_playhead()
-    
+
     def get_current_frame(self) -> int:
         """Get the current frame."""
         return self.current_frame
@@ -588,14 +611,14 @@ class TimelineView(QGraphicsView):
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             pos = self.mapToScene(event.position().toPoint())
-            
+
             # First check if we clicked on a keyframe
             item_at_pos = self.itemAt(event.position().toPoint())
             if isinstance(item_at_pos, KeyframeItem):
                 # Let keyframe handle the event
                 super().mousePressEvent(event)
                 return
-            
+
             # Check if clicking in ruler area to set playhead
             if 0 <= pos.y() <= RULER_HEIGHT:
                 frame_width = self.scene().frame_width  # type: ignore[attr-defined]
@@ -606,7 +629,7 @@ class TimelineView(QGraphicsView):
                 # Start playhead dragging
                 self._dragging_playhead = True
                 return
-            
+
             # Check if clicking on track rows for track selection
             scene_height = RULER_HEIGHT + len(self.scene().track_rows) * TRACK_HEIGHT  # type: ignore[arg-type]
             if RULER_HEIGHT < pos.y() <= scene_height:
@@ -616,7 +639,7 @@ class TimelineView(QGraphicsView):
                     self.row_clicked.emit(index)
                     return
         super().mousePressEvent(event)
-    
+
     def mouseMoveEvent(self, event):
         """Handle mouse move events for playhead dragging."""
         if self._dragging_playhead:
@@ -626,36 +649,36 @@ class TimelineView(QGraphicsView):
             frame = max(0, min(frame, self.scene().num_frames))  # type: ignore[attr-defined]
             self.scene().set_current_frame(frame)  # type: ignore[attr-defined]
             self.frame_changed.emit(frame)
-            
+
             # Extend timeline if dragging beyond current end
             if frame > self.scene().num_frames - 12:  # type: ignore[attr-defined]
                 self.scene().extend_timeline(frame + 24)  # type: ignore[attr-defined]
         else:
             super().mouseMoveEvent(event)
-    
+
     def mouseReleaseEvent(self, event):
         """Handle mouse release events."""
         if event.button() == Qt.MouseButton.LeftButton:
             self._dragging_playhead = False
         super().mouseReleaseEvent(event)
-    
+
     def keyPressEvent(self, event):
         """Handle key press events."""
         if event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace:
             # Delete selected keyframes
             selected_items = self.scene().selectedItems()
             keyframes_to_delete = []
-            
+
             for item in selected_items:
                 if isinstance(item, KeyframeItem):
                     keyframes_to_delete.append(item)
-            
+
             if keyframes_to_delete:
                 self._delete_keyframes(keyframes_to_delete)
                 self.keyframes_deleted.emit(keyframes_to_delete)
         else:
             super().keyPressEvent(event)
-    
+
     def _delete_keyframes(self, keyframes):
         """Delete the specified keyframes from the scene."""
         for keyframe in keyframes:
@@ -698,28 +721,55 @@ class TrackHeaderView(QListWidget):
         item = QListWidgetItem()
         item.setSizeHint(QSize(0, TRACK_HEIGHT))
         self.addItem(item)
-        
+
         track_index = self.count() - 1
         track_widget = TrackItemWidget(track_index, name, is_parent)
         track_widget.expand_clicked.connect(self._on_track_collapsed)
-        
+
         self.setItemWidget(item, track_widget)
         self.track_widgets[track_index] = track_widget
         return item
-    
+
     def add_subtrack(self, name: str, parent_index: int):
         """Add a subtrack under a parent track."""
         item = QListWidgetItem()
         item.setSizeHint(QSize(0, TRACK_HEIGHT))
         self.addItem(item)
-        
+
         track_index = self.count() - 1
         track_widget = TrackItemWidget(track_index, name, is_parent=False)
-        
+
         self.setItemWidget(item, track_widget)
         self.track_widgets[track_index] = track_widget
         return item
-    
+
+    def insert_track(self, position: int, name: str, is_parent: bool = False):
+        """Insert a track at a specific position."""
+        item = QListWidgetItem()
+        item.setSizeHint(QSize(0, TRACK_HEIGHT))
+        self.insertItem(position, item)
+
+        # Update track widget indices for all items after insertion point
+        # First, shift existing track_widgets
+        old_widgets = dict(self.track_widgets)
+        self.track_widgets.clear()
+
+        for old_index, widget in old_widgets.items():
+            if old_index >= position:
+                new_index = old_index + 1
+                widget.track_index = new_index
+                self.track_widgets[new_index] = widget
+            else:
+                self.track_widgets[old_index] = widget
+
+        # Create widget for the new track
+        track_widget = TrackItemWidget(position, name, is_parent)
+        track_widget.expand_clicked.connect(self._on_track_collapsed)
+
+        self.setItemWidget(item, track_widget)
+        self.track_widgets[position] = track_widget
+        return item
+
     def set_track_as_parent(self, track_index: int):
         """Convert an existing track to a parent track with expand/collapse button."""
         if track_index in self.track_widgets:
@@ -732,16 +782,16 @@ class TrackHeaderView(QListWidget):
                 new_widget.expand_clicked.connect(self._on_track_collapsed)
                 self.setItemWidget(item, new_widget)
                 self.track_widgets[track_index] = new_widget
-    
+
     def _on_track_collapsed(self, track_index: int):
         """Handle track expand/collapse."""
         self.track_collapsed.emit(track_index)
-    
+
     def set_track_expanded(self, track_index: int, expanded: bool):
         """Set the expanded state of a track."""
         if track_index in self.track_widgets:
             self.track_widgets[track_index].set_expanded(expanded)
-    
+
     def set_track_visible(self, track_index: int, visible: bool):
         """Show or hide a track."""
         if track_index < self.count():
@@ -791,18 +841,18 @@ class TrackHeaderView(QListWidget):
 
 class TrackItemWidget(QWidget):
     """Custom widget for track items with expand/collapse button."""
-    
+
     expand_clicked = Signal(int)  # track_index
-    
+
     def __init__(self, track_index: int, name: str, is_parent: bool = False):
         super().__init__()
         self.track_index = track_index
         self.is_parent = is_parent
         self.is_expanded = True
-        
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(2, 0, 2, 0)
-        
+
         if is_parent:
             # Add expand/collapse button for parent tracks
             self.expand_btn = QPushButton("▼")
@@ -829,17 +879,17 @@ class TrackItemWidget(QWidget):
         else:
             # Add spacer for subtracks to align text
             layout.addSpacing(20)
-        
+
         # Track name label
         self.name_label = QLabel(name)
         layout.addWidget(self.name_label)
         layout.addStretch()
-    
+
     def _on_expand_clicked(self):
         self.is_expanded = not self.is_expanded
         self.expand_btn.setText("▼" if self.is_expanded else "▶")
         self.expand_clicked.emit(self.track_index)
-    
+
     def set_expanded(self, expanded: bool):
         self.is_expanded = expanded
         if hasattr(self, 'expand_btn'):
@@ -904,10 +954,10 @@ class ModelSelectionPanel(QWidget):
 
 class PlaceEditorWidget(QWidget):
     """Widget for editing Place objects (position, rotation, scale)."""
-    
+
     place_changed = Signal(object)  # Emits the new Place object
     keyframe_requested = Signal(str, object)  # property_name, value
-    
+
     def __init__(self, session, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.session = session
@@ -916,95 +966,105 @@ class PlaceEditorWidget(QWidget):
         self._handlers = []
         self.setup_ui()
         self._setup_handlers()
-    
+
+        # Set up a timer to periodically check for position changes
+        self._update_timer = QTimer(self)
+        self._update_timer.timeout.connect(self._check_position_update)
+        self._update_timer.start(100)  # Check every 100ms
+
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
-        
+
         # Position group
         pos_group = QGroupBox("Position")
         pos_layout = QGridLayout(pos_group)
-        
+
         self.x_spin = QDoubleSpinBox()
         self.x_spin.setRange(-9999, 9999)
         self.x_spin.setDecimals(2)
         self.x_spin.valueChanged.connect(self._on_position_changed)
-        
+
         self.y_spin = QDoubleSpinBox()
         self.y_spin.setRange(-9999, 9999)
         self.y_spin.setDecimals(2)
         self.y_spin.valueChanged.connect(self._on_position_changed)
-        
+
         self.z_spin = QDoubleSpinBox()
         self.z_spin.setRange(-9999, 9999)
         self.z_spin.setDecimals(2)
         self.z_spin.valueChanged.connect(self._on_position_changed)
-        
+
         pos_layout.addWidget(QLabel("X:"), 0, 0)
         pos_layout.addWidget(self.x_spin, 0, 1)
         pos_layout.addWidget(QLabel("Y:"), 1, 0)
         pos_layout.addWidget(self.y_spin, 1, 1)
         pos_layout.addWidget(QLabel("Z:"), 2, 0)
         pos_layout.addWidget(self.z_spin, 2, 1)
-        
+
         # Rotation group
         rot_group = QGroupBox("Rotation")
         rot_layout = QGridLayout(rot_group)
-        
+
         self.rx_spin = QDoubleSpinBox()
         self.rx_spin.setRange(-180, 180)
         self.rx_spin.setDecimals(1)
         self.rx_spin.setSuffix("°")
         self.rx_spin.valueChanged.connect(self._on_rotation_changed)
-        
+
         self.ry_spin = QDoubleSpinBox()
         self.ry_spin.setRange(-180, 180)
         self.ry_spin.setDecimals(1)
         self.ry_spin.setSuffix("°")
         self.ry_spin.valueChanged.connect(self._on_rotation_changed)
-        
+
         self.rz_spin = QDoubleSpinBox()
         self.rz_spin.setRange(-180, 180)
         self.rz_spin.setDecimals(1)
         self.rz_spin.setSuffix("°")
         self.rz_spin.valueChanged.connect(self._on_rotation_changed)
-        
+
         rot_layout.addWidget(QLabel("X:"), 0, 0)
         rot_layout.addWidget(self.rx_spin, 0, 1)
         rot_layout.addWidget(QLabel("Y:"), 1, 0)
         rot_layout.addWidget(self.ry_spin, 1, 1)
         rot_layout.addWidget(QLabel("Z:"), 2, 0)
         rot_layout.addWidget(self.rz_spin, 2, 1)
-        
+
         layout.addWidget(pos_group)
         layout.addWidget(rot_group)
-        
+
         # Keyframe buttons
         button_group = QGroupBox("Keyframes")
         button_layout = QVBoxLayout(button_group)
-        
+
         self.keyframe_btn = QPushButton("Create Keyframe")
         self.keyframe_btn.clicked.connect(self._create_keyframe)
         button_layout.addWidget(self.keyframe_btn)
-        
+
         layout.addWidget(button_group)
         layout.addStretch()
-        
+
         # Initially disabled
         self.setEnabled(False)
-    
+
     def _setup_handlers(self):
         """Set up triggers to listen for position changes."""
         # Listen for graphics updates (camera changes)
         handler = self.session.triggers.add_handler(
             'graphics update', self._on_graphics_update)
         self._handlers.append(handler)
-        
-        # Listen for model position changes
-        handler = self.session.triggers.add_handler(
-            'model position changed', self._on_model_position_changed)
-        self._handlers.append(handler)
-    
+
+        # Listen for model position changes - try multiple trigger names
+        # Different versions of ChimeraX may use different trigger names
+        for trigger_name in ['model position changed', 'models changed', 'frame']:
+            try:
+                handler = self.session.triggers.add_handler(
+                    trigger_name, self._on_model_position_changed)
+                self._handlers.append(handler)
+            except:
+                pass  # Trigger doesn't exist, skip it
+
     def _on_graphics_update(self, trigger_name, view):
         """Handle graphics updates (camera changes)."""
         if not self._updating and self._place is not None:
@@ -1013,7 +1073,7 @@ class PlaceEditorWidget(QWidget):
                 current_camera_pos = self._current_camera.position
                 if not self._places_equal(current_camera_pos, self._place):
                     self.set_place(current_camera_pos)
-    
+
     def _on_model_position_changed(self, trigger_name, model):
         """Handle model position changes."""
         if not self._updating and self._place is not None:
@@ -1021,35 +1081,53 @@ class PlaceEditorWidget(QWidget):
             if hasattr(self, '_current_model') and self._current_model == model:
                 if not self._places_equal(model.position, self._place):
                     self.set_place(model.position)
-    
+
     def _places_equal(self, place1, place2, tolerance=1e-6):
         """Check if two Place objects are approximately equal."""
         if place1 is None or place2 is None:
             return place1 is place2
         import numpy as np
         return np.allclose(place1.matrix, place2.matrix, atol=tolerance)
-    
+
+    def _check_position_update(self):
+        """Periodically check if the current model/camera position has changed."""
+        if self._updating or self._place is None:
+            return
+
+        current_position = None
+        if hasattr(self, '_current_model') and self._current_model is not None:
+            current_position = self._current_model.position
+        elif hasattr(self, '_current_camera') and self._current_camera is not None:
+            current_position = self._current_camera.position
+
+        if current_position is not None and not self._places_equal(current_position, self._place):
+            self.set_place(current_position)
+
     def cleanup(self):
         """Clean up event handlers."""
         for handler in self._handlers:
             handler.remove()
         self._handlers.clear()
-    
+
+        # Stop the update timer
+        if hasattr(self, '_update_timer'):
+            self._update_timer.stop()
+
     def set_place(self, place):
         """Set the Place object to edit."""
         self._place = place
         self._updating = True
-        
+
         if place is not None:
             # Update position - use translation() method
             position = place.translation()
             self.x_spin.setValue(position[0])
             self.y_spin.setValue(position[1])
             self.z_spin.setValue(position[2])
-            
+
             # Update rotation - use axis and angle for now (simpler and more reliable)
             axis, angle = place.rotation_axis_and_angle()
-            
+
             # For now, just show the total rotation around the primary axis
             # This is a simplified approach - proper Euler angle conversion is complex
             if abs(axis[0]) > 0.7:  # Primarily X rotation
@@ -1069,13 +1147,13 @@ class PlaceEditorWidget(QWidget):
                 self.rx_spin.setValue(0)
                 self.ry_spin.setValue(0)
                 self.rz_spin.setValue(0)
-            
+
             self.setEnabled(True)
         else:
             self.setEnabled(False)
-        
+
         self._updating = False
-    
+
     def set_object(self, obj):
         """Set the object (model or camera) being edited."""
         if hasattr(obj, 'position') and not hasattr(obj, 'view'):
@@ -1096,57 +1174,57 @@ class PlaceEditorWidget(QWidget):
             self._current_camera = None
             self._is_camera = False
             self.set_place(None)
-    
+
     def _on_position_changed(self):
         """Handle position changes."""
         if self._updating or self._place is None:
             return
-        
+
         from chimerax.geometry import Place
-        
+
         # Create new Place with same rotation but new position
         new_position = [self.x_spin.value(), self.y_spin.value(), self.z_spin.value()]
         new_place = Place(axes=self._place.axes(), origin=new_position)
-        
+
         self._place = new_place
         # Apply the change to the object
         if hasattr(self, '_current_model') and self._current_model is not None:
             self._current_model.position = new_place
         elif hasattr(self, '_current_camera') and self._current_camera is not None:
             self._current_camera.position = new_place
-        
+
         self.place_changed.emit(new_place)
-    
+
     def _on_rotation_changed(self):
         """Handle rotation changes."""
         if self._updating or self._place is None:
             return
-        
+
         from chimerax.geometry import rotation, Place
-        
+
         # Get current position
         current_pos = self._place.translation()
-        
+
         # Create rotation transformations
         rx = rotation([1, 0, 0], self.rx_spin.value())
         ry = rotation([0, 1, 0], self.ry_spin.value())
         rz = rotation([0, 0, 1], self.rz_spin.value())
-        
+
         # Combine rotations (order matters - ZYX)
         combined_rotation = rz * ry * rx
-        
+
         # Create new Place with new rotation and same position
         new_place = Place(axes=combined_rotation.axes(), origin=current_pos)
-        
+
         self._place = new_place
         # Apply the change to the object
         if hasattr(self, '_current_model') and self._current_model is not None:
             self._current_model.position = new_place
         elif hasattr(self, '_current_camera') and self._current_camera is not None:
             self._current_camera.position = new_place
-        
+
         self.place_changed.emit(new_place)
-    
+
     def _create_keyframe(self):
         """Create a keyframe for the current transformation."""
         if self._place is not None:
@@ -1155,7 +1233,7 @@ class PlaceEditorWidget(QWidget):
 
 class TrackDetailView(QWidget):
     """Detail view showing track info and property editors."""
-    
+
     keyframe_requested = Signal(str, object)  # property_name, value
 
     def __init__(self, session, parent: Optional[QWidget] = None):
@@ -1163,39 +1241,39 @@ class TrackDetailView(QWidget):
         self.session = session
         self.current_model = None
         self.setup_ui()
-    
+
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
-        
+
         # Track info label
         self.label = QLabel("no track selected", self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.label)
-        
+
         # Place editor
         self.place_editor = PlaceEditorWidget(self.session, self)
         self.place_editor.place_changed.connect(self._on_place_changed)
         self.place_editor.keyframe_requested.connect(self.keyframe_requested)
         layout.addWidget(self.place_editor)
-        
+
         layout.addStretch()
 
     @Slot(str)
     def set_track(self, name: str):
         self.label.setText(name)
-    
+
     def set_model(self, model):
         """Set the model to edit."""
         self.current_model = model
         self.place_editor.set_object(model)
-    
+
     @Slot(object)
     def _on_place_changed(self, new_place):
         """Handle place changes from the editor."""
         if self.current_model and hasattr(self.current_model, 'position'):
             self.current_model.position = new_place
-    
+
     def cleanup(self):
         """Clean up resources."""
         if hasattr(self.place_editor, 'cleanup'):
@@ -1230,17 +1308,17 @@ class KeyframeEditorWidget(QWidget):
         self.timeline_view = TimelineView(self.timeline_scene)
         self.track_detail_view = TrackDetailView(session)
         self.track_detail_view.setFixedWidth(160)
-        
+
         # Create transport controls
         self.transport_controls = self._create_transport_controls()
 
         # Main layout
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
-        
+
         # Transport controls at top
         main_layout.addWidget(self.transport_controls)
-        
+
         # Timeline area
         timeline_layout = QHBoxLayout()
         timeline_layout.setContentsMargins(0, 0, 0, 0)
@@ -1248,7 +1326,7 @@ class KeyframeEditorWidget(QWidget):
         timeline_layout.addWidget(self.track_header)
         timeline_layout.addWidget(self.timeline_view)
         timeline_layout.addWidget(self.track_detail_view)
-        
+
         # Add timeline to main layout
         main_layout.addLayout(timeline_layout)
         # keep vertical scroll positions tied together
@@ -1265,48 +1343,48 @@ class KeyframeEditorWidget(QWidget):
         # Connect hover events
         self.track_header.track_hovered.connect(self._on_track_hovered)
         self.timeline_view.track_hovered.connect(self._on_track_hovered)
-        
+
         # Connect track collapse/expand
         self.track_header.track_collapsed.connect(self._on_track_collapsed)
-        
+
         # Connect keyframe creation
         self.track_detail_view.keyframe_requested.connect(self._on_keyframe_requested)
-        
+
         # Connect frame changes
         self.timeline_view.frame_changed.connect(self._on_frame_changed)
         # Also connect scene frame changes to update UI
         self.timeline_view.frame_changed.connect(lambda f: self.frame_label.setText(f"Frame: {f}"))
-        
+
         # Connect keyframe deletion
         self.timeline_view.keyframes_deleted.connect(self._on_keyframes_deleted)
 
         self.add_camera_track()
-    
+
     def _create_transport_controls(self):
         """Create the transport control panel with play/pause buttons."""
         controls_frame = QFrame()
         controls_frame.setFrameStyle(QFrame.StyledPanel)
         controls_frame.setFixedHeight(40)
-        
+
         layout = QHBoxLayout(controls_frame)
         layout.setContentsMargins(5, 5, 5, 5)
-        
+
         # Play/Pause button
         self.play_pause_btn = QPushButton("Play")
         self.play_pause_btn.clicked.connect(self._toggle_playback)
         self.play_pause_btn.setFixedSize(60, 30)
         layout.addWidget(self.play_pause_btn)
-        
+
         # Stop button
         self.stop_btn = QPushButton("Stop")
         self.stop_btn.clicked.connect(self._stop_playback)
         self.stop_btn.setFixedSize(60, 30)
         layout.addWidget(self.stop_btn)
-        
+
         # Frame display
         self.frame_label = QLabel("Frame: 0")
         layout.addWidget(self.frame_label)
-        
+
         # FPS control
         layout.addWidget(QLabel("FPS:"))
         self.fps_spin = QSpinBox()
@@ -1315,30 +1393,30 @@ class KeyframeEditorWidget(QWidget):
         self.fps_spin.valueChanged.connect(self._on_fps_changed)
         self.fps_spin.setFixedWidth(60)
         layout.addWidget(self.fps_spin)
-        
+
         # Zoom controls
         layout.addWidget(QLabel("Zoom:"))
-        
+
         zoom_out_btn = QPushButton("-")
         zoom_out_btn.clicked.connect(self._zoom_out)
         zoom_out_btn.setFixedSize(30, 30)
         layout.addWidget(zoom_out_btn)
-        
+
         self.zoom_label = QLabel("100%")
         self.zoom_label.setFixedWidth(50)
         self.zoom_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.zoom_label)
-        
+
         zoom_in_btn = QPushButton("+")
         zoom_in_btn.clicked.connect(self._zoom_in)
         zoom_in_btn.setFixedSize(30, 30)
         layout.addWidget(zoom_in_btn)
-        
+
         zoom_fit_btn = QPushButton("Fit")
         zoom_fit_btn.clicked.connect(self._zoom_fit)
         zoom_fit_btn.setFixedSize(40, 30)
         layout.addWidget(zoom_fit_btn)
-        
+
         layout.addStretch()
         return controls_frame
 
@@ -1369,7 +1447,7 @@ class KeyframeEditorWidget(QWidget):
         # Clear previous highlights
         for row in self.timeline_scene.track_rows:
             row.set_highlighted(False)
-        
+
         # Clear all manual header backgrounds so CSS takes over
         for i in range(self.track_header.count()):
             item = self.track_header.item(i)
@@ -1410,7 +1488,7 @@ class KeyframeEditorWidget(QWidget):
                         item.setBackground(QBrush(QColor("#3D5A80")))  # Keep selection color
                     else:
                         item.setBackground(QBrush())  # Clear background
-    
+
     @Slot(str, object)
     def _on_keyframe_requested(self, property_name: str, value: object):
         """Handle keyframe creation request."""
@@ -1418,21 +1496,21 @@ class KeyframeEditorWidget(QWidget):
         current_track = self.track_header.currentRow()
         if current_track < 0:
             return
-        
+
         # Find the root parent track (in case a subtrack is selected)
         root_track = self._get_root_parent_track(current_track)
-        
+
         # Create or find subtrack for this property under the root track
         subtrack_index = self._get_or_create_subtrack(root_track, property_name)
-        
+
         # Add keyframe at current frame
         current_frame = self.timeline_scene.get_current_frame()
-        
+
         # Check for existing keyframe at this frame and remove it
         self._remove_keyframe_at_frame(subtrack_index, current_frame)
-        
+
         self.insert_keyframe(subtrack_index, current_frame, value)
-    
+
     def _get_root_parent_track(self, track_index: int):
         """Get the root parent track (handle case where subtrack is selected)."""
         # If this track is a subtrack, find its parent
@@ -1440,18 +1518,18 @@ class KeyframeEditorWidget(QWidget):
             return self.track_parents[track_index]
         # Otherwise, it's already a root track
         return track_index
-    
+
     def _get_or_create_subtrack(self, parent_track_index: int, property_name: str):
         """Get or create a subtrack for a specific property."""
         # Initialize subtracks dict for this track if needed
         if parent_track_index not in self.track_subtracks:
             self.track_subtracks[parent_track_index] = {}
-        
+
         # Check if subtrack already exists
         if property_name in self.track_subtracks[parent_track_index]:
             existing_subtrack = self.track_subtracks[parent_track_index][property_name]
             return existing_subtrack
-        
+
         # Create new subtrack
         parent_model = self.track_models.get(parent_track_index)
         if parent_model:
@@ -1461,18 +1539,69 @@ class KeyframeEditorWidget(QWidget):
                 subtrack_name = f"  └─ {property_name}"
         else:
             subtrack_name = f"  └─ {property_name}"
-        
-        # Add the subtrack
-        subtrack_index = len(self.timeline_scene.track_rows)
+
+        # Find the correct position to insert the subtrack (after parent and any existing subtracks)
+        insertion_position = self._find_subtrack_insertion_position(parent_track_index)
+
+        # Shift all track indices that come after the insertion point
+        self._shift_track_indices_after(insertion_position)
+
+        # Create the subtrack at the insertion position
+        subtrack_index = insertion_position
         self.track_subtracks[parent_track_index][property_name] = subtrack_index
         self.track_models[subtrack_index] = parent_model  # Reference same model
         self.track_parents[subtrack_index] = parent_track_index  # Record parent relationship
-        
-        # Add to UI
-        self.add_track(subtrack_name)
-        
+
+        # Insert to UI at specific position
+        self.insert_track(insertion_position, subtrack_name)
+
         return subtrack_index
-    
+
+    def _find_subtrack_insertion_position(self, parent_track_index: int):
+        """Find the position where a new subtrack should be inserted."""
+        # Start right after the parent track
+        insertion_pos = parent_track_index + 1
+
+        # If parent already has subtracks, find the position after the last one
+        if parent_track_index in self.track_subtracks:
+            for property_name, existing_subtrack_index in self.track_subtracks[parent_track_index].items():
+                if existing_subtrack_index >= insertion_pos:
+                    insertion_pos = existing_subtrack_index + 1
+
+        return insertion_pos
+
+    def _shift_track_indices_after(self, insertion_position: int):
+        """Shift all track indices that are >= insertion_position by +1."""
+        # Update track_models mapping
+        old_models = dict(self.track_models)
+        self.track_models.clear()
+        for track_index, model in old_models.items():
+            if track_index >= insertion_position:
+                self.track_models[track_index + 1] = model
+            else:
+                self.track_models[track_index] = model
+
+        # Update track_subtracks mapping
+        old_subtracks = dict(self.track_subtracks)
+        self.track_subtracks.clear()
+        for parent_index, subtracks in old_subtracks.items():
+            # Update parent index if needed
+            new_parent_index = parent_index + 1 if parent_index >= insertion_position else parent_index
+            self.track_subtracks[new_parent_index] = {}
+
+            # Update subtrack indices
+            for property_name, subtrack_index in subtracks.items():
+                new_subtrack_index = subtrack_index + 1 if subtrack_index >= insertion_position else subtrack_index
+                self.track_subtracks[new_parent_index][property_name] = new_subtrack_index
+
+        # Update track_parents mapping
+        old_parents = dict(self.track_parents)
+        self.track_parents.clear()
+        for subtrack_index, parent_index in old_parents.items():
+            new_subtrack_index = subtrack_index + 1 if subtrack_index >= insertion_position else subtrack_index
+            new_parent_index = parent_index + 1 if parent_index >= insertion_position else parent_index
+            self.track_parents[new_subtrack_index] = new_parent_index
+
     @Slot(int)
     def _on_track_collapsed(self, track_index: int):
         """Handle track collapse/expand."""
@@ -1482,11 +1611,11 @@ class KeyframeEditorWidget(QWidget):
             self._show_subtracks(track_index)
             self.track_header.set_track_expanded(track_index, True)
         else:
-            # Track is currently expanded, collapse it  
+            # Track is currently expanded, collapse it
             self.collapsed_tracks.add(track_index)
             self._hide_subtracks(track_index)
             self.track_header.set_track_expanded(track_index, False)
-    
+
     def _hide_subtracks(self, parent_track_index: int):
         """Hide all subtracks of a parent track."""
         if parent_track_index in self.track_subtracks:
@@ -1496,7 +1625,7 @@ class KeyframeEditorWidget(QWidget):
                 self.timeline_scene.set_track_visible(subtrack_index, False)
                 # Hide all keyframes for this subtrack
                 self._hide_subtrack_keyframes(subtrack_index)
-    
+
     def _show_subtracks(self, parent_track_index: int):
         """Show all subtracks of a parent track."""
         if parent_track_index in self.track_subtracks:
@@ -1506,38 +1635,38 @@ class KeyframeEditorWidget(QWidget):
                 self.timeline_scene.set_track_visible(subtrack_index, True)
                 # Show all keyframes for this subtrack
                 self._show_subtrack_keyframes(subtrack_index)
-    
+
     def _hide_subtrack_keyframes(self, track_index: int):
         """Hide all keyframes for a specific subtrack."""
         if track_index >= len(self.timeline_scene.track_rows):
             return
-        
+
         # Find and hide all keyframes for this track
         for item in self.timeline_scene.items():
-            if (isinstance(item, KeyframeItem) and 
-                hasattr(item, '_track_row') and 
+            if (isinstance(item, KeyframeItem) and
+                hasattr(item, '_track_row') and
                 item._track_row.index == track_index):
                 item.setVisible(False)
-    
+
     def _show_subtrack_keyframes(self, track_index: int):
         """Show all keyframes for a specific subtrack."""
         if track_index >= len(self.timeline_scene.track_rows):
             return
-        
+
         # Find and show all keyframes for this track
         for item in self.timeline_scene.items():
-            if (isinstance(item, KeyframeItem) and 
-                hasattr(item, '_track_row') and 
+            if (isinstance(item, KeyframeItem) and
+                hasattr(item, '_track_row') and
                 item._track_row.index == track_index):
                 item.setVisible(True)
-    
+
     @Slot(int)
     def _on_frame_changed(self, frame: int):
         """Handle frame changes from the timeline."""
         self.frame_label.setText(f"Frame: {frame}")
         # Apply animation at this frame
         self._evaluate_animation_at_frame(frame)
-    
+
     @Slot()
     def _toggle_playback(self):
         """Toggle between play and pause."""
@@ -1545,7 +1674,7 @@ class KeyframeEditorWidget(QWidget):
             self._pause_playback()
         else:
             self._start_playback()
-    
+
     def _start_playback(self):
         """Start timeline playback."""
         self.is_playing = True
@@ -1553,32 +1682,32 @@ class KeyframeEditorWidget(QWidget):
         # Calculate timer interval from FPS
         interval = int(1000 / self.fps)  # milliseconds
         self.playback_timer.start(interval)
-    
+
     def _pause_playback(self):
         """Pause timeline playback."""
         self.is_playing = False
         self.play_pause_btn.setText("Play")
         self.playback_timer.stop()
-    
+
     @Slot()
     def _stop_playback(self):
         """Stop playback and return to frame 0."""
         self._pause_playback()
         self.timeline_scene.set_current_frame(0)
         self.timeline_view.frame_changed.emit(0)
-    
+
     def _advance_frame(self):
         """Advance to the next frame during playback."""
         current_frame = self.timeline_scene.get_current_frame()
         next_frame = current_frame + 1
-        
+
         # Loop back to start if we reach the end
         if next_frame > self.timeline_scene.num_frames:
             next_frame = 0
-        
+
         self.timeline_scene.set_current_frame(next_frame)
         self.timeline_view.frame_changed.emit(next_frame)
-    
+
     @Slot(int)
     def _on_fps_changed(self, fps: int):
         """Handle FPS changes."""
@@ -1587,13 +1716,13 @@ class KeyframeEditorWidget(QWidget):
             # Restart timer with new interval
             interval = int(1000 / self.fps)
             self.playback_timer.start(interval)
-    
+
     def _evaluate_animation_at_frame(self, frame: int):
         """Evaluate and apply animation at the given frame."""
         for track_index, model in self.track_models.items():
             if model is None:
                 continue
-            
+
             # Check if this track has subtracks (animated properties)
             if track_index in self.track_subtracks:
                 for property_name, subtrack_index in self.track_subtracks[track_index].items():
@@ -1604,43 +1733,43 @@ class KeyframeEditorWidget(QWidget):
                             # Apply the transformation
                             if hasattr(model, 'position'):
                                 model.position = interpolated_value
-    
+
     def _interpolate_keyframes(self, track_index: int, frame: int):
         """Interpolate between keyframes for the given track at the given frame."""
         if track_index >= len(self.timeline_scene.track_rows):
             return None
-        
+
         # Collect all keyframes for this track from the scene
         keyframes = []
         for item in self.timeline_scene.items():
-            if (isinstance(item, KeyframeItem) and 
-                hasattr(item, '_track_row') and 
+            if (isinstance(item, KeyframeItem) and
+                hasattr(item, '_track_row') and
                 item._track_row.index == track_index):
                 keyframes.append((item.data.frame, item.data.value))
-        
+
         if not keyframes:
             return None
-        
+
         # Sort keyframes by frame
         keyframes.sort(key=lambda x: x[0])
-        
+
         # Find surrounding keyframes
         prev_kf = None
         next_kf = None
-        
+
         for kf_frame, kf_value in keyframes:
             if kf_frame <= frame:
                 prev_kf = (kf_frame, kf_value)
             if kf_frame >= frame and next_kf is None:
                 next_kf = (kf_frame, kf_value)
                 break
-        
+
         # If we're exactly on a keyframe, return that value
         if prev_kf and prev_kf[0] == frame:
             return prev_kf[1]
         if next_kf and next_kf[0] == frame:
             return next_kf[1]
-        
+
         # If we only have one keyframe or we're before/after all keyframes
         if not prev_kf and next_kf:
             return next_kf[1]  # Before first keyframe
@@ -1648,49 +1777,55 @@ class KeyframeEditorWidget(QWidget):
             return prev_kf[1]  # After last keyframe
         if not prev_kf and not next_kf:
             return None  # No keyframes
-        
+
         # Interpolate between keyframes
         if prev_kf and next_kf and prev_kf[0] != next_kf[0]:
             # Calculate interpolation factor
             t = (frame - prev_kf[0]) / (next_kf[0] - prev_kf[0])
             t = max(0, min(1, t))  # Clamp to [0, 1]
-            
+
             # Interpolate Place objects
             from chimerax.geometry import Place
             if isinstance(prev_kf[1], Place) and isinstance(next_kf[1], Place):
                 # Use ChimeraX's Place interpolation
                 center = [0, 0, 0]  # Use origin as interpolation center
                 return prev_kf[1].interpolate(next_kf[1], center, t)
-        
+
         return prev_kf[1] if prev_kf else next_kf[1]
-    
+
     @Slot(list)
     def _on_keyframes_deleted(self, deleted_keyframes):
         """Handle keyframe deletion."""
         # The keyframes have already been removed from the scene
         # We could add additional cleanup here if needed
         pass
-    
+
     def _remove_keyframe_at_frame(self, track_index: int, frame: int):
         """Remove any existing keyframe at the specified frame."""
         if track_index >= len(self.timeline_scene.track_rows):
             return
-        
+
         # Find keyframes in the scene that belong to this track and frame
         items_to_remove = []
         for item in self.timeline_scene.items():
-            if (isinstance(item, KeyframeItem) and 
-                hasattr(item, '_track_row') and 
-                item._track_row.index == track_index and 
+            if (isinstance(item, KeyframeItem) and
+                hasattr(item, '_track_row') and
+                item._track_row.index == track_index and
                 item.data.frame == frame):
                 items_to_remove.append(item)
-        
+
         for item in items_to_remove:
             self.timeline_scene.removeItem(item)
 
     def add_track(self, name: str, is_parent: bool = False):
         row = self.timeline_scene.add_track(name)
         self.track_header.add_track(name, is_parent)  # keep in sync
+        return row
+
+    def insert_track(self, position: int, name: str, is_parent: bool = False):
+        """Insert a track at a specific position."""
+        row = self.timeline_scene.insert_track(position, name)
+        self.track_header.insert_track(position, name, is_parent)  # keep in sync
         return row
 
     def insert_keyframe(self, track_index: int, frame: int, value: any):  # noqa: ANN401 – allow arbitrary
@@ -1704,17 +1839,17 @@ class KeyframeEditorWidget(QWidget):
         row = self.timeline_scene.track_rows[track_index]
         clip_item = row.add_clip(clip_data)
         return clip_item
-    
+
     def _zoom_in(self):
         """Zoom in the timeline."""
         self.timeline_scene.zoom_in()
         self._update_zoom_label()
-    
+
     def _zoom_out(self):
         """Zoom out the timeline."""
         self.timeline_scene.zoom_out()
         self._update_zoom_label()
-    
+
     def _zoom_fit(self):
         """Zoom to fit all content in view."""
         # Calculate zoom to fit timeline width in view
@@ -1724,7 +1859,7 @@ class KeyframeEditorWidget(QWidget):
             fit_zoom = view_width / scene_width * 0.9  # 90% to leave some margin
             self.timeline_scene.set_zoom(fit_zoom)
             self._update_zoom_label()
-    
+
     def _update_zoom_label(self):
         """Update the zoom percentage label."""
         zoom_percent = int(self.timeline_scene.zoom_factor * 100)
