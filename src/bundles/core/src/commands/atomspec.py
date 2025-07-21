@@ -404,7 +404,7 @@ class _AtomSpecSemantics:
         if not attr_list:
             return _AttrList([attr_test])
         else:
-            return attr_list.insert(0, attr_test)
+            return _AttrList([attr_test] + [at for comma, at in attr_list])
 
     def attr_test(self, ast):
         import operator
