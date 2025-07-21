@@ -628,6 +628,15 @@ class BoltzRun:
                        ' containing certain elements (e.g. metals) cannot be handled'
                        ' because the ChEMBL structure pipeline library used by Boltz'
                        ' cannot standardize such SMILES strings.')
+            elif 'ValueError: CCD component ' in stderr:
+                i_ccd_start = stderr.find('ValueError: CCD component ') + 26
+                i_ccd_end = i_ccd_start + stderr[i_ccd_start:].find(' ')
+                ccd_code = stderr[i_ccd_start:i_ccd_end]
+                msg = ('Your Boltz installation does not have a molecular structure for'
+                       f' PDB chemical component dictionary code {ccd_code} either because'
+                       ' that code is new or is mistyped.  You can try specifying that ligand'
+                       f' using a SMILES string from https://www.rcsb.org/ligand/{ccd_code}'
+                       ' instead of using its CCD code.')
             else:
                 if self._user_terminated:
                     msg = 'Prediction terminated by user'
