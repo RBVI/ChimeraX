@@ -196,6 +196,8 @@ class CategorizedOptionsPanel(QWidget):
                 def sizeHint(self):
                     return QSize(self.sizeHintForColumn(0), super().sizeHint().height())
             self._category_list = NarrowListWidget()
+            self._category_list.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            self._category_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             self._category_list.currentItemChanged.connect(lambda cur, prev: self.show_category(cur.text()))
             self._category_areas = QStackedWidget()
             layout.addWidget(self._category_list, alignment=Qt.AlignRight)
