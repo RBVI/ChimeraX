@@ -24,15 +24,17 @@
 
 def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
                   protein = [], dna = [], rna = [], ligand_ccd = [], ligand_smiles = [],
-                  name = None, results_directory = None, device = None,
-                  samples = 1, recycles = 3, seed = None, float16 = False, steering = False,
+                  name = None, results_directory = None,
+                  device = None, kernels = None, precision = None, float16 = False,
+                  samples = 1, recycles = 3, seed = None,
+                  affinity = None, steering = False,
                   use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                   open = True, install_location = None, wait = None):
 
     if install_location is not None:
         from .settings import _boltz_settings
         settings = _boltz_settings(session)
-        settings.boltz_install_location = install_location
+        settings.boltz2_install_location = install_location
         settings.save()
 
     if not _is_boltz_available(session):
@@ -47,6 +49,8 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
     ligand_components, covalent_ligands = _ligand_components(ligands, exclude_ligands.split(','),
                                                              ligand_ccd, ligand_smiles, used_chain_ids)
     molecular_components = polymer_components + ligand_components
+
+    predict_affinity = _affinity_component(affinity, ligand_components)
                             
     # Warn about unmodeled compnents
     if unmodeled_chains:
@@ -56,16 +60,12 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
         session.logger.info(f'Predicting covalent ligands not yet supported: {covalent_ligands}')
 
     br = BoltzRun(session, molecular_components, name = name, align_to = align_to,
-                  device = device, samples = samples, recycles = recycles, seed = seed,
-                  cuda_bfloat16 = float16, use_steering_potentials = steering,
+                  samples = samples, recycles = recycles, seed = seed,
+                  predict_affinity = predict_affinity, use_steering_potentials = steering,
+                  device = device, use_kernels = kernels, precision = precision, cuda_bfloat16 = float16,
                   use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
                   open = open, wait = wait)
     br.start(results_directory)
-
-    if not hasattr(session, '_cite_boltz'):
-        msg = 'Please cite <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11601547/">Boltz-1 Democratizing Biomolecular Interaction Modeling. BioRxiv https://doi.org/10.1101/2024.11.19.624167</a> if you use these predictions.'
-        session.logger.info(msg, is_html = True)
-        session._cite_boltz = True  # Only log this message once per session.
 
     return br
 
@@ -152,6 +152,23 @@ def _ligand_components(ligands, exclude_ligands, ligand_ccd, ligand_smiles, used
 
 # ------------------------------------------------------------------------------
 #
+def _affinity_component(affinity, ligand_components):
+    predict_affinity = None
+    if affinity:
+        for lig_comp in ligand_components:
+            if affinity in (lig_comp.ccd_code, lig_comp.smiles_string):
+                ncopies = len(lig_comp.chain_ids)
+                if ncopies > 1:
+                    from chimerax.core.errors import UserError
+                    raise UserError(f'Affinity ligand {affinity} has {ncopies} copies.  Boltz 2 can only predict affinity for single-copy ligands.')
+                predict_affinity = lig_comp
+        if predict_affinity is None:
+            from chimerax.core.errors import UserError
+            raise UserError(f'Affinity ligand {affinity} is not a component of the predicted structure')
+    return predict_affinity
+
+# ------------------------------------------------------------------------------
+#
 class BoltzMolecule:
     def __init__(self, type, chain_ids, sequence_string = None, ccd_code = None, smiles_string = None):
         self.type = type	# protein, dna, rna, ligand
@@ -164,8 +181,9 @@ class BoltzMolecule:
 #
 class BoltzRun:
     def __init__(self, session, molecular_components, name = None, align_to = None,
-                 device = 'default', samples = 1, recycles = 3, seed = None,
-                 cuda_bfloat16 = False, use_steering_potentials = False,
+                 samples = 1, recycles = 3, seed = None,
+                 predict_affinity = None, use_steering_potentials = False,
+                 device = 'default', use_kernels = None, precision = None, cuda_bfloat16 = False,
                  use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                  open = True, wait = False):
 
@@ -173,10 +191,13 @@ class BoltzRun:
         self._molecular_components = molecular_components  # List of BoltzMolecule
         self.name = name
         self._align_to = align_to	# AtomicStructure to align prediction to.
-        self._device = device		# gpu, cpu or default, or None (uses settings value)
         self._samples = samples		# Number of predicted structures
         self._recycles = recycles	# Number of boltz recycling steps
+        self._device = device		# gpu, cpu or default, or None (uses settings value)
+        self._use_kernels = use_kernels	# whether to use cuequivariance module for triangle attention
+        self._precision = precision	# "32", "bf16-mixed", "16", "bf16-true"
         self._cuda_bfloat16 = cuda_bfloat16	# Save memory using 16-bit instead of 32-bit float
+        self._predict_affinity = predict_affinity  # BoltzMolecule for affinity prediction
         self._use_steering_potentials = use_steering_potentials
         self._seed = seed		# Random seed for computation
         self._open = open		# Whether to open predictions when boltz finishes.
@@ -184,12 +205,14 @@ class BoltzRun:
         self._results_directory = None
         self._yaml_path = None
         self._running = False
+        self._stage = ''		# String included in status messages
+        self._stage_times = {}		# Stage name to elapsed time for that stage
+        self._stage_start_time = None	# Start of the current stage.
         self._user_terminated = False
         self.success = None
         self._process = None
         self._wait = wait
         self._start_time = None
-        self._monitor_trigger = None
         self._predicted_structure = None	# AtomicStructure that is opened when job completes
 
         # MSA cache parameters
@@ -292,6 +315,15 @@ class BoltzRun:
                 ligand_entry.append(spec)
                 yaml_lines.extend(ligand_entry)
 
+        # Predict affinity
+        if self._predict_affinity:
+            ligand_chain_id = self._predict_affinity.chain_ids[-1]
+            affinity_lines = [
+                'properties:',
+                '  - affinity:', 
+                f'      binder: {ligand_chain_id}']
+            yaml_lines.extend(affinity_lines)
+
         # Create yaml string
         yaml = '\n'.join(yaml_lines)
 
@@ -320,25 +352,35 @@ class BoltzRun:
 
     def _run_boltz_local(self):
         self._running = True
+        self._set_stage('starting Boltz')
 
         self._log_prediction_info()
 
-        boltz_venv = self._settings.boltz_install_location
+        boltz_venv = self._settings.boltz2_install_location
         from .install import find_executable
         boltz_exe = find_executable(boltz_venv, 'boltz')
 
-        command = [boltz_exe, 'predict',
-                   self._yaml_path,
-                   '--write_full_pae',
-                   ]
+        command = [boltz_exe, 'predict', self._yaml_path]
+        
         if self.use_msa_server:
             command.append('--use_msa_server')
+
+        if self._use_steering_potentials:
+            command.append('--use_potentials')
 
         command.extend(['--accelerator', self.device])
         if self._cuda_bfloat16 and self.device == 'gpu':
             command.append('--use_cuda_bfloat16')
-        if not self._use_steering_potentials:
-            command.append('--no_potentials')
+
+        use_kernels = self._use_kernels
+        if self._use_kernels is None:
+            from sys import platform
+            use_kernels = (self.device == 'gpu' and platform == 'linux')
+        if not use_kernels:
+            command.append('--no_kernels')
+
+        if self._precision is not None:
+            command.extend(['--precision', self._precision])
 
         if self._samples != 1:
             command.extend(['--diffusion_samples', str(self._samples)])
@@ -377,10 +419,12 @@ class BoltzRun:
         from time import time
         self._start_time = time()
 
+        self._monitor_boltz_output()
+        
         if self._wait:
             self._check_process_completion()
         else:
-            self._monitor_trigger = self._session.triggers.add_handler('new frame', self._check_process_completion)
+            self._session.triggers.add_handler('new frame', self._check_process_completion)
 
     def _log_prediction_info(self):
         log = self._session.logger
@@ -418,55 +462,151 @@ class BoltzRun:
 
         assem_descrip = ', '.join(parts)
         return assem_descrip
-        
-    def _check_process_completion(self, *trigger_args):
-        if self._wait:
-            stdout, stderr = self._process.communicate()
-        else:
-            p = self._process
-            if p.poll() is None:
-                # Process still running
-                # Add threaded reading of stdout and stdin to give progress messages.
-                return
 
-            self._session.triggers.remove_handler(self._monitor_trigger)
-            self._monitor_trigger = None
-            stdout = p.stdout.read()
-            stderr = p.stderr.read()
+    def _monitor_boltz_output(self):
+        p = self._process
+        self._stdout = ReadOutputThread(p.stdout)
+        self._stderr = ReadOutputThread(p.stderr)
+
+    def _check_process_completion(self, *trigger_args):
+        p = self._process
+        if self._wait:
+            while p.poll() is None:
+                self._check_boltz_output()
+                from time import sleep
+                sleep(1)
+        else:
+            self._check_boltz_output()
+            if p.poll() is None:
+                return		    # Process still running
+
+        self._set_stage('')	    # Job finished
+
+        stdout = ''.join(self._stdout.all_lines())
+        stderr = ''.join(self._stderr.all_lines())
 
         self._process_completed(stdout, stderr)
 
+        return 'delete handler'
+
+    def _check_boltz_output(self):
+
+        new_lines = self._stderr.new_lines()
+        stages = [('SUBMIT', 'submitting sequence search'),
+                  ('RATELIMIT', 'sequence server busy... waiting'),
+                  ('PENDING', 'sequence search submitted'),
+                  ('RUNNING', 'sequence search running'),
+                  ('COMPLETE', 'sequence search finished'),
+                  ('Loading Boltz structure prediction weights', 'loading weights'),
+                  ('Finished loading Boltz structure prediction weights', ''),
+                  ('Starting structure inference', 'structure inference'),
+                  ('Finished structure inference', ''),
+                  ('Loading affinity prediction weights', 'loading affinity weights'),
+                  ('Finished loading affinity prediction weights', ''),
+                  ('Starting affinity inference', 'affinity inference'),
+                  ('Finished affinity inference', ''),
+                  ]
+        found_stage = None
+        for line in reversed(new_lines):
+            msgs = []
+            for text, stage in stages:
+                if text in line:
+                    msgs.append((line.find(text), stage))
+            if msgs:
+                found_stage = max(msgs)[1]
+                break
+
+        if found_stage:
+            self._set_stage(found_stage)
+            
+    def _set_stage(self, stage):
+        if stage == self._stage:
+            return
+        from time import time
+        t = time()
+        if self._stage_start_time is not None:
+            cur_stage = self._stage
+            st = self._stage_times
+            st[cur_stage] = st.get(cur_stage, 0) + t - self._stage_start_time
+        self._stage = stage
+        self._stage_start_time = t
+
+    @property
+    def stage(self):
+        return self._stage
+    
     def _process_completed(self, stdout, stderr):
         
         dir = self._results_directory
         from os.path import join
-        with open(join(dir, 'stdout'), 'wb') as f:
+        with open(join(dir, 'stdout'), 'w') as f:
             f.write(stdout)
-        with open(join(dir, 'stderr'), 'wb') as f:
+        with open(join(dir, 'stderr'), 'w') as f:
             f.write(stderr)
 
-        p = self._process
-        success = (p.returncode == 0)
-        import locale
-        stdout_encoding = locale.getpreferredencoding()
-        if success:
-            from time import time
-            t = time() - self._start_time
-            self._session.logger.info(f'Boltz prediction completed in {"%.0f" % t} seconds')
-            stdout = stdout.decode(stdout_encoding, errors = 'ignore')
-            if self._prediction_ran_out_of_memory(stdout):
-              msg = ('The Boltz prediction ran out of memory.  The memory use depends on the'
-                     ' number of protein and nucleic acid residues plus the number of ligand'
-                     ' atoms.  You can reduce the size of your molecular assembly to stay'
-                     ' within the memory limits.')
-              self._session.logger.error(msg)
-              success = False
-            elif self._open:
-                self._open_predictions()
-            self._add_to_msa_cache()
+        msg = self._prediction_failed_message(self._process.returncode, stdout, stderr)
+        if msg:
+            self._session.logger.error(msg)
+            success = False
         else:
-            stdout = stdout.decode(stdout_encoding, errors = 'ignore')
-            stderr = stderr.decode(stdout_encoding, errors = 'ignore')
+            self._copy_predictions()
+            self._report_confidence()
+            if self._predict_affinity:
+                self._report_affinity()
+            self._report_runtime()
+            self._cite()
+            if self._open:
+                self._open_predictions()
+            success = True
+
+        self._add_to_msa_cache()
+
+        self._running = False
+        self.success = success
+
+    def _report_runtime(self):
+        from time import time
+        total = time() - self._start_time
+        parts = []
+        st = self._stage_times
+        sut = st.get('starting Boltz', 0)
+        parts.append(f'start boltz {"%.0f" % sut} sec')
+        wait_t = st.get('sequence server busy... waiting', 0)
+        seq_t = (st.get('submitting sequence search', 0)
+                 + wait_t
+                 + st.get('sequence search submitted', 0)
+                 + st.get('sequence search running', 0))
+        sst = f'sequence search {"%.0f" % seq_t} sec'
+        if wait_t > 0:
+            sst += f' (waiting {"%.0f" % wait_t} sec, running {"%.0f" % (seq_t-wait_t)} sec)'
+        parts.append(sst)
+        lwt = st.get('loading weights', 0)
+        parts.append(f'load weights {"%.0f" % lwt} sec')
+        sit = st.get('structure inference', 0)
+        parts.append(f'structure inference {"%.0f" % sit} sec')
+        if self._predict_affinity:
+            lawt = st.get('loading affinity weights', 0)
+            parts.append(f'load affinity weights {"%.0f" % lawt} sec')
+            ait = st.get('affinity inference', 0)
+            parts.append(f'affinity inference {"%.0f" % ait} sec')
+
+        timings = ', '.join(parts)
+        msg = f'Boltz prediction completed in {"%.0f" % total} seconds ({timings})'
+        self._session.logger.info(msg)
+
+        if self.use_msa_server and wait_t >= 60:
+            msg = f'The sequence alignment server api.colabfold.com was busy and Boltz waited {"%.0f" % wait_t} seconds to start the alignment computation for this prediction.'
+            self._session.logger.warning(msg)
+            
+    def _prediction_failed_message(self, exit_code, stdout, stderr):
+
+        msg = None
+        if self._prediction_ran_out_of_memory(stdout):
+            msg = ('The Boltz prediction ran out of memory.  The memory use depends on the'
+                   ' number of protein and nucleic acid residues plus the number of ligand'
+                   ' atoms.  You can reduce the size of your molecular assembly to stay'
+                   ' within the memory limits.')
+        elif exit_code != 0 or not self._predicted_model_exists():
             if 'No supported gpu backend found' in stderr:
                 msg = ('Attempted to run Boltz on the GPU but no supported GPU device could be found.'
                        ' To avoid this error specify the compute device as "cpu" in the ChimeraX Boltz'
@@ -483,22 +623,39 @@ class BoltzRun:
                 msg = ('The installed Boltz does not have the --no_potentials option.'
                        ' You need to install a newer Boltz to get this option.'
                        ' Use the ChimeraX command "boltz install ~/boltz_new" to install it.')
+            elif 'ValueError: Molecule is excluded' in stderr:
+                msg = ('Affinity calculation of a ligand given as a SMILES string'
+                       ' containing certain elements (e.g. metals) cannot be handled'
+                       ' because the ChEMBL structure pipeline library used by Boltz'
+                       ' cannot standardize such SMILES strings.')
+            elif 'ValueError: CCD component ' in stderr:
+                i_ccd_start = stderr.find('ValueError: CCD component ') + 26
+                i_ccd_end = i_ccd_start + stderr[i_ccd_start:].find(' ')
+                ccd_code = stderr[i_ccd_start:i_ccd_end]
+                msg = ('Your Boltz installation does not have a molecular structure for'
+                       f' PDB chemical component dictionary code {ccd_code} either because'
+                       ' that code is new or is mistyped.  You can try specifying that ligand'
+                       f' using a SMILES string from https://www.rcsb.org/ligand/{ccd_code}'
+                       ' instead of using its CCD code.')
             else:
                 if self._user_terminated:
                     msg = 'Prediction terminated by user'
                     self._user_terminated = False
                 else:
                     msg = '\n'.join([
-                        f'Running boltz prediction failed with exit code {p.returncode}:',
+                        f'Running boltz prediction failed with exit code {exit_code}:',
                         'command:',self._command,
                         'stdout:', stdout,
                         'stderr:', stderr,
                         ])
-            self._session.logger.error(msg)
+        return msg
 
-        self._running = False
-        self.success = success
-
+    def _predicted_model_exists(self):
+        from os.path import join, exists
+        mmcif_path = join(self._results_directory, f'boltz_results_{self.name}', 'predictions', self.name,
+                          f'{self.name}_model_0.cif')
+        return exists(mmcif_path)
+        
     @property
     def running(self):
         return self._running
@@ -514,7 +671,6 @@ class BoltzRun:
         return not exists(pdir) and 'ran out of memory' in stdout
             
     def _open_predictions(self):
-        self._copy_predictions()
         for n in range(self._samples):
             self._open_prediction(n)
 
@@ -536,11 +692,11 @@ class BoltzRun:
         if self._align_to:
             aspec = self._align_to.atomspec
             for model in models:
-                run(self._session, f'matchmaker {model.atomspec} to {aspec} logParameters false')
+                run(self._session, f'matchmaker {model.atomspec} to {aspec} logParameters false', log = False)
 
         # Color by confidence
         for model in models:
-            run(self._session, f'color bfactor {model.atomspec} palette alphafold')
+            run(self._session, f'color bfactor {model.atomspec} palette alphafold log False', log = False)
 
     def _copy_predictions(self):
         '''
@@ -554,6 +710,8 @@ class BoltzRun:
         from os import listdir
         from shutil import copy
         for filename in listdir(pdir):
+            if filename.endswith('.npz') and not filename.startswith('pae_'):
+                continue	# Don't copy pde, plddt and pre_affinity files.
             copy(join(pdir, filename), dir)
 
     def _add_to_msa_cache(self):
@@ -562,9 +720,69 @@ class BoltzRun:
         protein_seqs = [mc.sequence_string for mc in self._molecular_components if mc.type == 'protein']
         if len(protein_seqs) == 0:
             return False
-        from os.path import join
+        from os.path import join, exists
         msa_dir = join(self._results_directory, f'boltz_results_{self.name}', 'msa')
+        if not exists(msa_dir):
+            return False
+        from os import listdir
+        csv_files = [msa_file for msa_file in listdir(msa_dir) if msa_file.endswith('.csv')]
+        if len(csv_files) < len(protein_seqs):
+            return False
         _add_to_msa_cache(self.name, protein_seqs, msa_dir, self.msa_cache_dir)
+
+    def _report_confidence(self):
+        from os.path import join, exists
+        lines = []
+        for sample in range(self._samples):
+            conf_json = join(self._results_directory, f'confidence_{self.name}_model_{sample}.json')
+            if not exists(conf_json):
+                continue
+            import json
+            with open(conf_json, 'r') as f:
+                results = json.load(f)
+            conf = results.get('confidence_score', -1)
+            ptm = results.get('ptm', -1)
+            iptm = results.get('iptm', -1)
+            lig_iptm = results.get('ligand_iptm', -1)
+            prot_iptm = results.get('protein_iptm', -1)
+            plddt = results.get('complex_plddt', -1)
+
+            if iptm != ptm:
+                iptm_text = f'ipTM {"%.2f" % iptm}'
+                if lig_iptm > 0 and prot_iptm > 0:
+                    iptm_text += f' (ligand {"%.2f" % lig_iptm}, protein {"%.2f" % prot_iptm})'
+            parts = [f'Confidence score {"%.2f" % conf}',
+                     f'pTM {"%.2f" % ptm}',
+                     iptm_text,
+                     f'pLDDT {"%.2f" % plddt}']
+            lines.append(', '.join(parts))
+        if lines:
+            self._session.logger.info('<br>'.join(lines), is_html = True)
+
+    def _report_affinity(self):
+        ligand_mol = self._predict_affinity
+        if ligand_mol is None:
+            return
+        from os.path import join, exists
+        affinity_json = join(self._results_directory, f'affinity_{self.name}.json')
+        if exists(affinity_json):
+            import json
+            with open(affinity_json, 'r') as f:
+                results = json.load(f)
+            log_ic50_uM = results['affinity_pred_value']
+            ic50_uM = 10.0 ** log_ic50_uM
+            prob = results['affinity_probability_binary']
+            lig_spec = (ligand_mol.ccd_code or ligand_mol.smiles_string)
+            msg = f'Ligand {lig_spec} predicted IC50 binding affinity {"%.2g" % ic50_uM} uM, predicted binding probability {"%.2g" % prob}'
+            self._session.logger.info(msg)
+
+    def _cite(self):
+        session = self._session
+        if not hasattr(session, '_cite_boltz'):
+            msg = 'Please cite <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11601547/">Boltz-1 Democratizing Biomolecular Interaction Modeling. BioRxiv https://doi.org/10.1101/2024.11.19.624167</a> if you use these predictions.'
+            session.logger.info(msg, is_html = True)
+            session._cite_boltz = True  # Only log this message once per session.
+
 
 # ------------------------------------------------------------------------------
 #
@@ -604,7 +822,7 @@ def _is_boltz_available(session):
     '''Check if Boltz is locally installed with paths properly setup.'''
     from .settings import _boltz_settings
     settings = _boltz_settings(session)
-    install_location = settings.boltz_install_location
+    install_location = settings.boltz2_install_location
     from os.path import isdir
     if not isdir(install_location):
         msg = 'You need to install Boltz by pressing the "Install Boltz" button on the ChimeraX Boltz user interface, or using the ChimeraX command "boltz install".  If you already have Boltz installed, you can set the Boltz installation location in the user interface under Options, or use the installLocation option of the ChimeraX boltz command "boltz predict ... installLocation /path/to/boltz"'
@@ -675,7 +893,7 @@ def _torch_has_cuda(session):
         lib_path = f'lib/python{v.major}.{v.minor}/site-packages/torch/lib/libtorch_cuda.so'
     from .settings import _boltz_settings
     settings = _boltz_settings(session)
-    boltz_install = settings.boltz_install_location
+    boltz_install = settings.boltz2_install_location
     from os.path import join, exists
     torch_cuda_lib = join(boltz_install, lib_path)
     return exists(torch_cuda_lib)
@@ -828,7 +1046,7 @@ def _ccd_atom_counts():
     global _ccd_atom_counts_table
     if _ccd_atom_counts_table is None:
         from os.path import expanduser, exists
-        counts_path = expanduser('~/.boltz/ccd_atom_counts.npz')
+        counts_path = expanduser('~/.boltz/ccd_atom_counts_boltz2.npz')
         if exists(counts_path):
             import numpy
             with numpy.load(counts_path) as counts:
@@ -878,6 +1096,42 @@ def _test_smiles_atom_count():
         ccd_count = CalcNumHeavyAtoms(mol)
         if sa_count != ccd_count:
             print(f'Smiles {smiles} atom count {sa_count} differs from ccd atom count {ccd_count}.')
+
+# ------------------------------------------------------------------------------
+#
+class ReadOutputThread:
+    def __init__(self, stream):
+        self._stream = stream
+
+        import locale
+        self._text_encoding = locale.getpreferredencoding()
+        self._all_lines = []
+
+        from queue import Queue
+        self._queue = Queue()
+        from threading import Thread
+        # Set daemon true so that ChimeraX exit is not blocked by the thread still running.
+        self._thread = t = Thread(target = self._queue_output_in_thread, daemon = True)
+        t.start()
+
+    def _queue_output_in_thread(self):
+        while True:
+            line = self._stream.readline() # blocking read
+            if not line:
+                break
+            self._queue.put(line)
+
+    def new_lines(self):
+        lines = []
+        while not self._queue.empty():
+            line = self._queue.get()
+            lines.append(line.decode(self._text_encoding, errors = 'ignore'))
+        self._all_lines.extend(lines)
+        return lines
+
+    def all_lines(self):
+        self.new_lines()
+        return self._all_lines
 
 # ------------------------------------------------------------------------------
 #
@@ -935,7 +1189,10 @@ def register_boltz_predict_command(logger):
                    ('name', StringArg),
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
+                   ('kernels', BoolArg),
+                   ('precision', EnumOf(['32', 'bf16-mixed', '16', 'bf16-true'])),
                    ('float16', BoolArg),
+                   ('affinity', StringArg),
                    ('steering', BoolArg),
                    ('samples', IntArg),
                    ('recycles', IntArg),

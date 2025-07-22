@@ -415,7 +415,9 @@ class BoltzPredictionGUI(ToolInstance):
                 spec = comp.uniprot_id or comp.sequence_string
                 for i in range(comp.count):
                     if comp.chains:
-                        spec = comp.chains[i % len(comp.chains)].atomspec
+                        chain = comp.chains[i % len(comp.chains)]
+                        if chain.chain is not None:  # Check if chain is deleted
+                            spec = chain.atomspec
                     options.append(f'{comp.type} {spec}')
 
         ligand_ccds = []
@@ -434,6 +436,33 @@ class BoltzPredictionGUI(ToolInstance):
             options.append(f'ligandSmiles {smiles_specs}')
 
         return options
+
+    # ---------------------------------------------------------------------------
+    #
+    def _affinity_ligand_value(self):
+        text = self._affinity_ligand.value
+        if text == 'none':
+            value = None
+        elif text == 'last ligand':
+            value = self._last_ligand()
+        else:
+            value = self._affinity_value_map.get(text, text)
+        return value
+
+    # ---------------------------------------------------------------------------
+    #
+    def _last_ligand(self):
+        mt = self._molecules_table
+        if mt is None or len(mt.data) == 0:
+            return None
+        ligand_spec = None
+        for comp in mt.data:
+            if comp.type == 'ligand':
+                if comp.ccd_code:
+                    ligand_spec = comp.ccd_code
+                elif comp.smiles_string:
+                    ligand_spec = comp.smiles_string
+        return ligand_spec
 
     # ---------------------------------------------------------------------------
     #
@@ -465,7 +494,7 @@ class BoltzPredictionGUI(ToolInstance):
     def _need_to_install_boltz(self):
         from .settings import _boltz_settings
         settings = _boltz_settings(self.session)
-        boltz_dir = settings.boltz_install_location
+        boltz_dir = settings.boltz2_install_location
         from .install import find_executable
         boltz_exe = find_executable(boltz_dir, 'boltz')
         from os.path import isdir, isfile
@@ -497,15 +526,18 @@ class BoltzPredictionGUI(ToolInstance):
             options.append('useMsaCache false')
         if self._device.value != 'default':
             options.append(f'device {self._device.value}')
-        if self._use_cuda_bfloat16 and self._use_cuda_bfloat16.value:
-            options.append('float16 true')
+        lig = self._affinity_ligand_value()
+        if lig:
+            options.append(f'affinity {lig}')
         if self._use_steering_potentials.value:
             options.append('steering true')
+        if self._use_cuda_bfloat16 and self._use_cuda_bfloat16.value:
+            options.append('float16 true')
         if self._samples.value != 1:
             options.append(f'samples {self._samples.value}')
         from .settings import _boltz_settings
         settings = _boltz_settings(self.session)
-        if self._install_directory.value != settings.boltz_install_location:
+        if self._install_directory.value != settings.boltz2_install_location:
             from chimerax.core.commands import quote_path_if_necessary
             options.append(f'installLocation {quote_path_if_necessary(self._install_directory.value)}')
         self._run_prediction(options = ' '.join(options))
@@ -588,6 +620,15 @@ class BoltzPredictionGUI(ToolInstance):
             return
         self._next_progress_time = t + 1
         msg = f'Prediction running {"%.0f" % elapsed} seconds'
+        if br.stage:
+            msg += ': ' + br.stage
+            if br.stage == 'sequence server busy... waiting':
+                self._progress_label.setStyleSheet('background-color: lightyellow;')
+                self._progress_label_colored = True
+            elif getattr(self, '_progress_label_colored', False):
+                self._progress_label.setStyleSheet('')
+                self._progress_label_colored = False
+                
         # Memory use values are not too useful on Mac ARM since GPU memory is not included
         # in RSS and too many libraries included in VMS.  Needs more investigation.
         '''
@@ -671,42 +712,71 @@ class BoltzPredictionGUI(ToolInstance):
         self._samples = sam = ns.values[0]
         sam.value = settings.samples
 
-        # CPU or GPU device
-        cd = EntriesRow(f, 'Compute device', ('default', 'cpu', 'gpu'))
-        self._device = dev = cd.values[0]
-        dev.value = settings.device
-
-        # Use 16-bit float with Nvidia CUDA, only shown if Nvidia gpu available
-        from .install import have_nvidia_driver
-        if have_nvidia_driver():
-            bf = EntriesRow(f, True, 'Predict larger structures with Nvidia 16-bit floating point')
-            self._use_cuda_bfloat16 = cbf = bf.values[0]
-            cbf.value = settings.use_cuda_bfloat16
-        else:
-            self._use_cuda_bfloat16 = None
+        # Affinity prediction
+        la = EntriesRow(f, 'Predict ligand binding affinity for ', ('none', 'last ligand'))
+        self._affinity_ligand = al = la.values[0]
+        self._affinity_menu = am = al.widget.menu()
+        am.aboutToShow.connect(self._fill_affinity_menu)
 
         # Steering potentials
         sp = EntriesRow(f, False, 'Use steering potentials.  May be more accurate, but slower.')
         self._use_steering_potentials = usp = sp.values[0]
         usp.value = settings.use_steering_potentials
 
+        # Disabled this option since I only support it in Boltz 1.  Might add it to boltz 2 later.
+        # Use 16-bit float with Nvidia CUDA, only shown if Nvidia gpu available
+        from .install import have_nvidia_driver
+        if have_nvidia_driver() and False:
+            bf = EntriesRow(f, True, 'Predict larger structures with Nvidia 16-bit floating point')
+            self._use_cuda_bfloat16 = cbf = bf.values[0]
+            cbf.value = settings.use_cuda_bfloat16
+        else:
+            self._use_cuda_bfloat16 = None
 
         # Use MSA cache
         mc = EntriesRow(f, True, 'Use multiple sequence alignment cache')
         self._use_msa_cache = uc = mc.values[0]
         uc.value = settings.use_msa_cache
+
+        # CPU or GPU device
+        cd = EntriesRow(f, 'Compute device', ('default', 'cpu', 'gpu'))
+        self._device = dev = cd.values[0]
+        dev.value = settings.device
         
         # Boltz install location
         id = EntriesRow(f, 'Boltz install location', '',
                         ('Browse', self._choose_install_directory))
         self._install_directory = dir = id.values[0]
         dir.pixel_width = 350
-        dir.value = settings.boltz_install_location
+        dir.value = settings.boltz2_install_location
 
         EntriesRow(f, ('Save default options', self._save_default_options))
 
         return p
 
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _fill_affinity_menu(self):
+        choices = ['none', 'last ligand']
+        self._affinity_value_map = {}	# Map abbreviated to full length smiles strings.
+        mt = self._molecules_table
+        if mt is not None:
+            for comp in mt.data:
+                if comp.type == 'ligand':
+                    if comp.ccd_code:
+                        choices.append(comp.ccd_code)
+                    elif comp.smiles_string:
+                        smiles = comp.smiles_string
+                        if len(smiles) > 30:
+                            smiles = smiles[:12] + '...' + smiles[-12:]
+                            self._affinity_value_map[smiles] = comp.smiles_string
+                        choices.append(smiles)
+        menu = self._affinity_menu
+        menu.clear()
+        for text in choices:
+            menu.addAction(text)
+        
     # ---------------------------------------------------------------------------
     #
     def default_results_directory(self):
@@ -747,7 +817,7 @@ class BoltzPredictionGUI(ToolInstance):
                 settings.use_cuda_bfloat16 = self._use_cuda_bfloat16.value
             settings.use_steering_potentials = self._use_steering_potentials.value                
             settings.use_msa_cache = self._use_msa_cache.value
-        settings.boltz_install_location = self._install_directory.value
+        settings.boltz2_install_location = self._install_directory.value
         settings.save()
         
     # ---------------------------------------------------------------------------
@@ -755,12 +825,12 @@ class BoltzPredictionGUI(ToolInstance):
     def _install_boltz(self):
 
         from os.path import expanduser
-        boltz_dir = expanduser('~/boltz')
+        boltz_dir = expanduser('~/boltz2')
         param_dir = expanduser('~/.boltz')
         message = ('Do you want to install Boltz?\n\n'
                    'This will take about 4 Gbytes of disk space and ten minutes or more depending on network speed.'
                    f' Boltz and its required packages will be installed in folder {boltz_dir} (1 GByte)'
-                   '  and its model parameters (3.3 GBytes) and chemical component dictionary (0.3 Gbytes)'
+                   '  and its model parameters (4 GBytes) and chemical component dictionary (1.8 Gbytes)'
                    f' will be installed in {param_dir}')
         from chimerax.ui.ask import ask
         answer = ask(self.session, message, title = 'Install Boltz', help_url = 'help:user/tools/boltz.html')
@@ -934,7 +1004,7 @@ class MoleculesTable(ItemTable):
     def __init__(self, parent, row_data = []):
         ItemTable.__init__(self, parent = parent, allow_user_sorting = False, auto_multiline_headers = False)
         self.setWordWrap(False)	# This allows ellipses to terminate long strings not limited to word boundaries.
-        desc_col = self.add_column('Molecular component', 'description', justification = 'left')
+        desc_col = self.add_column('Molecular component', 'short_description', justification = 'left')
         count_col = self.add_column('Count', 'count', format = '%d')
         self.data = row_data
         self.launch()
@@ -1005,6 +1075,13 @@ class MolecularComponent:
          }
         uid = (self.type,) + tuple((attr, getattr(self, attr)) for attr in mspec[self.type])
         return uid
+
+    @property
+    def short_description(self, max_length=70):
+        d = self.description
+        if len(d) > max_length:
+            d = d[:max_length] + '...'
+        return d
 
 # -----------------------------------------------------------------------------
 #
