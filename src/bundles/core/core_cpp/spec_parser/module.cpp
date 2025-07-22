@@ -836,8 +836,7 @@ parse(PyObject *, PyObject *args)
     });
     std::shared_ptr<peg::Ast> ast;
     if (spec_parser.parse(text, ast)) {
-        //TODO: Check if optimized AST is usable.  I suspect that ::name=="CYS" produces an unusable AST
-        // because it skips levels
+        // Optimized AST is unusable because it skips levels
         //print_ast(*ast);
         try {
             return eval_atom_spec(*ast);
