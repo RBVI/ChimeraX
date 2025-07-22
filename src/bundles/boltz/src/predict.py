@@ -213,7 +213,7 @@ class BoltzRun:
         self._process = None
         self._wait = wait
         self._start_time = None
-        self._predicted_structure = None	# AtomicStructure that is opened when job completes
+        self._predicted_structures = []	# AtomicStructure instances opened when job completes
 
         # MSA cache parameters
         self.use_msa_cache = use_msa_cache
@@ -686,7 +686,7 @@ class BoltzRun:
         from chimerax.core.commands import quote_path_if_necessary, run
         path_arg = quote_path_if_necessary(mmcif_path)
         models = run(self._session, f'open {path_arg} logInfo false')
-        self._predicted_structure = models[0]
+        self._predicted_structures.append(models[0])
 
         # Align prediction to input model
         if self._align_to:

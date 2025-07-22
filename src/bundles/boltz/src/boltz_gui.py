@@ -679,7 +679,7 @@ class BoltzPredictionGUI(ToolInstance):
             from chimerax.core.errors import UserError
             raise UserError(f'Boltz PAE file does not exist "{pae_path}".')
 
-        structure = br._predicted_structure
+        structure = br._predicted_structures[0]
         if structure is None or structure.deleted:
             from chimerax.core.errors import UserError
             raise UserError('Boltz predicted structure is not open.')
