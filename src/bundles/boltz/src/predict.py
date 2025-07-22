@@ -732,29 +732,32 @@ class BoltzRun:
 
     def _report_confidence(self):
         from os.path import join, exists
-        conf_json = join(self._results_directory, f'confidence_{self.name}_model_0.json')
-        if not exists(conf_json):
-            return
-        import json
-        with open(conf_json, 'r') as f:
-            results = json.load(f)
-        conf = results.get('confidence_score', -1)
-        ptm = results.get('ptm', -1)
-        iptm = results.get('iptm', -1)
-        lig_iptm = results.get('ligand_iptm', -1)
-        prot_iptm = results.get('protein_iptm', -1)
-        plddt = results.get('complex_plddt', -1)
+        lines = []
+        for sample in range(self._samples):
+            conf_json = join(self._results_directory, f'confidence_{self.name}_model_{sample}.json')
+            if not exists(conf_json):
+                continue
+            import json
+            with open(conf_json, 'r') as f:
+                results = json.load(f)
+            conf = results.get('confidence_score', -1)
+            ptm = results.get('ptm', -1)
+            iptm = results.get('iptm', -1)
+            lig_iptm = results.get('ligand_iptm', -1)
+            prot_iptm = results.get('protein_iptm', -1)
+            plddt = results.get('complex_plddt', -1)
 
-        if iptm != ptm:
-            iptm_text = f'ipTM {"%.2f" % iptm}'
-            if lig_iptm > 0 and prot_iptm > 0:
-                iptm_text += f' (ligand {"%.2f" % lig_iptm}, protein {"%.2f" % prot_iptm})'
-        parts = [f'Confidence score {"%.2f" % conf}',
-                 f'pTM {"%.2f" % ptm}',
-                 iptm_text,
-                 f'pLDDT {"%.2f" % plddt}']
-        msg = ', '.join(parts)
-        self._session.logger.info(msg)
+            if iptm != ptm:
+                iptm_text = f'ipTM {"%.2f" % iptm}'
+                if lig_iptm > 0 and prot_iptm > 0:
+                    iptm_text += f' (ligand {"%.2f" % lig_iptm}, protein {"%.2f" % prot_iptm})'
+            parts = [f'Confidence score {"%.2f" % conf}',
+                     f'pTM {"%.2f" % ptm}',
+                     iptm_text,
+                     f'pLDDT {"%.2f" % plddt}']
+            lines.append(', '.join(parts))
+        if lines:
+            self._session.logger.info('<br>'.join(lines), is_html = True)
 
     def _report_affinity(self):
         ligand_mol = self._predict_affinity
