@@ -218,8 +218,8 @@ class VolumeColor(State):
         if outside_color is not None:
             from chimerax.core.colors import Colormap
             cmap = Colormap(cmap.data_values, cmap.colors,
-                            cmap.color_below_value_range,
-                            cmap.color_above_value_range,
+                            color_above_value_range = cmap.color_above_value_range,
+                            color_below_value_range = cmap.color_below_value_range,
                             color_no_value = outside_color.rgba)
         self.colormap = cmap
         self.per_pixel_coloring = per_pixel

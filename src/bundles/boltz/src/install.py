@@ -23,10 +23,10 @@
 # === UCSF ChimeraX Copyright ===
 
 def boltz_install(session, directory = None, download_model_weights_and_ccd = True,
-                  branch = 'chimerax', wait = None):
+                  branch = 'chimerax_boltz2', wait = None):
     if directory is None:
         from os.path import expanduser
-        directory = expanduser('~/boltz')
+        directory = expanduser('~/boltz2')
 
     # Check that directory either does not exist or is empty.
     from os.path import exists, isdir
@@ -154,12 +154,10 @@ class InstallBoltz:
         # Report success of failure of pip install of Boltz
         logger = self._session.logger
         if success:
-            logger.info('Successfully installed Boltz.')
-
             # Remember the Boltz install directory
             from .settings import _boltz_settings
             settings = _boltz_settings(self._session)
-            settings.boltz_install_location = self._directory
+            settings.boltz2_install_location = self._directory
             settings.save()
 
             # Make the Boltz GUI show the install location.
@@ -177,7 +175,7 @@ class InstallBoltz:
     def _download_model_weights_and_ccd_database(self):
 
         logger = self._session.logger
-        logger.info('Downloading Boltz model parameters (3.3 GB) and chemical component database (330 MB) to ~/.boltz')
+        logger.info('Downloading Boltz model parameters (4 GB) and chemical component database (1.8 GB) to ~/.boltz')
 
         from os.path import join, dirname
         download_path = join(dirname(__file__), 'download_weights_and_ccd.py')
