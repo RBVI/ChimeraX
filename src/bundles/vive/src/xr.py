@@ -1038,7 +1038,13 @@ class OpenXRCamera(Camera, StateManager):
         return 3 if draw_desktop else 2
 
     def view_width(self, point):
-        fov = 100	# Effective field of view, degrees
+        fov = 100	# Default field of view in VR
+        xr = self._xr
+        if xr:
+            xr_fov = xr.field_of_view[RIGHT_EYE]
+            if xr_fov is not None:
+                from math import pi
+                fov = (xr_fov.angle_right - xr_fov.angle_left) * 180 / pi
         from chimerax.graphics.camera import perspective_view_width
         return perspective_view_width(point, self.position.origin(), fov)
 
