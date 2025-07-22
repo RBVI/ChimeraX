@@ -257,6 +257,12 @@ inline long pyint_to_clong(PyObject* pyint, const char* item_description) {
     return PyLong_AsLong(pyint);
 }
 
+inline long long pyint_to_clonglong(PyObject* pyint, const char* item_description) {
+    if (!PyLong_Check(pyint))
+        throw ErrListItemNotInt(item_description);
+    return PyLong_AsLongLong(pyint);
+}
+
 inline double pyfloat_to_cdouble(PyObject* pyfloat, const char* item_description) {
     if (!PyFloat_Check(pyfloat))
         throw ErrListItemNotFloat(item_description);
@@ -327,6 +333,21 @@ void pylist_of_float_to_cvec(PyObject* pylist, std::vector<Float>& cvec,
     for (decltype(num_items) i = 0; i < num_items; ++i) {
         PyObject* item = PyList_GET_ITEM(pylist, i);
         cvec[i] = static_cast<Float>(pyfloat_to_cdouble(item, item_description));
+    }
+}
+
+template <class Ptr>
+void pylist_of_int_to_cvec_of_ptrs(PyObject* pylist, std::vector<Ptr>& cvec, const char* item_description) {
+    if (!PyList_Check(pylist))
+        throw ErrNotList(item_description);
+    auto num_items = PyList_GET_SIZE(pylist);
+    cvec.resize(num_items);
+    for (decltype(num_items) i = 0; i < num_items; ++i) {
+        PyObject* item = PyList_GET_ITEM(pylist, i);
+        if (sizeof(Ptr) == sizeof(long))
+            cvec[i] = reinterpret_cast<Ptr>(pyint_to_clong(item, item_description));
+        else
+            cvec[i] = reinterpret_cast<Ptr>(pyint_to_clonglong(item, item_description));
     }
 }
 
