@@ -117,6 +117,7 @@ endif
 ifeq ($(OSARCH),Linux)
 	$(APP_PIP) uninstall -y nvidia-nvjitlink-cu12
 endif
+endif
 
 app_requirements.txt:
 	$(APP_PYTHON_BIN) make_requirements.py
