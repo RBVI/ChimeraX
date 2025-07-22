@@ -30,6 +30,12 @@ else
 PATCHES += openmm_metadata_cygwin.patch
 endif
 endif
+ifeq ($(OS),Linux)
+ifneq ($(OSARCH),LinuxArm64)
+PATCHES += openmm_metadata.patch
+endif
+endif
+
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 
 ifeq ($(OSARCH),DarwinArm64)
@@ -103,9 +109,14 @@ endif
 	# so that pandas is not needed. When those patches are upstreamed
 	# and pandas is optional this line can be removed
 	$(APP_PIP) uninstall -y pandas
-ifeq ($(OS),Windows)
+ifneq (,$(filter $(OS),Windows Linux))
+ifneq ($(OSARCH),LinuxArm64)
 	# openmm-cuda-12 brings in ~600MB of CUDA dependencies it does not use
 	$(APP_PIP) uninstall -y nvidia-cuda-runtime-cu12 nvidia-cuda-nvcc-cu12 nvidia-cuda-nvrtc-cu12 nvidia-cuda-cupti-cu12 nvidia-cufft-cu12
+endif
+ifeq ($(OSARCH),Linux)
+	$(APP_PIP) uninstall -y nvidia-nvjitlink-cu12
+endif
 endif
 
 app_requirements.txt:
