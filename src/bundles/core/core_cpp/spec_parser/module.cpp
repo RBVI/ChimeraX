@@ -155,7 +155,7 @@ static PyObject* eval_atom_spec(const Ast &ast);
 
 static PyObject*
 eval_integer(const Ast &ast) {
-std::cerr << "eval_integer\n";
+//std::cerr << "eval_integer\n";
     // integer <- < [1-9][0-9]* >
     auto integer = PyNumber_Long(PyUnicode_FromString(ast.token_to_string().c_str()));
     if (integer == nullptr)
@@ -165,7 +165,7 @@ std::cerr << "eval_integer\n";
 
 static PyObject*
 eval_real_number(const Ast &ast) {
-std::cerr << "eval_real_number\n";
+//std::cerr << "eval_real_number\n";
     // real_number <- < [0-9]* '.' [0-9]+ >
     auto real = PyNumber_Float(PyUnicode_FromString(ast.token_to_string().c_str()));
     if (real == nullptr)
@@ -175,14 +175,14 @@ std::cerr << "eval_real_number\n";
 
 static PyObject*
 eval_ZONE_OPERATOR(const Ast &ast) {
-std::cerr << "eval_ZONE_OPERATOR\n";
+//std::cerr << "eval_ZONE_OPERATOR\n";
     // ZONE_OPERATOR <- "@>" | "@<" | ":>" | ":<" | "/>" | "/<" | "#>" | "#<"
     return PyUnicode_FromString(ast.token_to_string().c_str());
 }
 
 static PyObject*
 eval_zone_selector(const Ast &ast) {
-std::cerr << "eval_zone_selector\n";
+//std::cerr << "eval_zone_selector\n";
     // zone_selector <- ZONE_OPERATOR _ real_number / ZONE_OPERATOR _ integer
     auto zone_op = eval_ZONE_OPERATOR(*ast.nodes[0]);
     auto distance = (ast.choice == 0 ? eval_real_number : eval_integer)(*ast.nodes[1]);
@@ -197,14 +197,14 @@ std::cerr << "eval_zone_selector\n";
 static std::pair<std::string, PyObject*>
 eval_ATTR_NAME(const Ast &ast) {
     // ATTR_NAME <- < [a-zA-Z_] [a-zA-Z0-9_]* >
-std::cerr << "eval_ATTR_NAME\n";
+//std::cerr << "eval_ATTR_NAME\n";
     auto token = ast.token_to_string();
     return std::pair<std::string, PyObject*>(token, PyUnicode_FromString(token.c_str()));
 }
 
 static std::pair<std::string, PyObject*>
 eval_ATTR_OPERATOR(const Ast &ast) {
-std::cerr << "eval_ATTR_OPERATOR\n";
+//std::cerr << "eval_ATTR_OPERATOR\n";
     // ATTR_OPERATOR <- ">=" | ">" | "<=" | "<" | "==" | "=" | "!==" | "!=" | "<>"
     auto token = ast.token_to_string();
     PyObject *op;
@@ -227,7 +227,7 @@ std::cerr << "eval_ATTR_OPERATOR\n";
 
 static PyObject*
 eval_ATTR_VALUE(const Ast &ast, std::string& attr_name, std::string& op) {
-std::cerr << "eval_ATTR_VALUE\n";
+//std::cerr << "eval_ATTR_VALUE\n";
     // ATTR_VALUE <- < '"' < [^"]+ > '"' > / < "'" < [^']+ > "'" > / < [^#/:@,;"' ]+ >
     PyObject* value;
     auto vstr = ast.token_to_string();
@@ -292,7 +292,7 @@ std::cerr << "eval_ATTR_VALUE\n";
 
 static PyObject*
 eval_attr_test(const Ast &ast) {
-std::cerr << "eval_attr_test\n";
+//std::cerr << "eval_attr_test\n";
     // attr_test <- ATTR_NAME ATTR_OPERATOR ATTR_VALUE / "^" ATTR_NAME / ATTR_NAME
     auto str_obj = eval_ATTR_NAME(*ast.nodes[0]);
     // replicate logic of chimerax.core.commands.atomspec._AtomSpecSemantics.attr_test
@@ -318,7 +318,7 @@ std::cerr << "eval_attr_test\n";
 
 static PyObject*
 eval_attribute_list(const Ast &ast) {
-std::cerr << "eval_attribute_list\n";
+//std::cerr << "eval_attribute_list\n";
     // attribute_list <- attr_test ("," _ attr_test)*
     auto attr_list = PyObject_CallNoArgs(_AttrList_class);
     if (attr_list == nullptr)
@@ -334,7 +334,7 @@ std::cerr << "eval_attribute_list\n";
 
 static PyObject*
 eval_PART_RANGE_LIST(const Ast &ast) {
-std::cerr << "eval_PART_RANGE_LIST\n";
+//std::cerr << "eval_PART_RANGE_LIST\n";
     // PART_RANGE_LIST <- < RANGE_PART _ "-" _ RANGE_PART > / RANGE_PART
     PyObject* start;
     PyObject* end;
@@ -355,7 +355,7 @@ std::cerr << "eval_PART_RANGE_LIST\n";
 
 static PyObject*
 eval_part_list(const Ast &ast) {
-std::cerr << "eval_part_list\n";
+//std::cerr << "eval_part_list\n";
     // part_list <- PART_RANGE_LIST "," part_list / PART_RANGE_LIST
     auto part_range = eval_PART_RANGE_LIST(*ast.nodes[0]);
     PyObject* part_list;
@@ -375,7 +375,7 @@ std::cerr << "eval_part_list\n";
 
 static PyObject*
 eval_ATOM_NAME(const Ast &ast) {
-std::cerr << "eval_ATOM_NAME\n";
+//std::cerr << "eval_ATOM_NAME\n";
     // ATOM_NAME <- < [-+a-zA-Z0-9_'"*?\[\]\\]+ >
     auto part = PyObject_CallFunctionObjArgs(_Part_class,
         PyUnicode_FromString(ast.token_to_string().c_str()), Py_None, nullptr);
@@ -386,7 +386,7 @@ std::cerr << "eval_ATOM_NAME\n";
 
 static PyObject*
 eval_atom_list(const Ast &ast) {
-std::cerr << "eval_atom_list\n";
+//std::cerr << "eval_atom_list\n";
     // atom_list <- ATOM_NAME "," atom_list / ATOM_NAME
     auto atom_name = eval_ATOM_NAME(*ast.nodes[0]);
     PyObject* atom_list;
@@ -406,7 +406,7 @@ std::cerr << "eval_atom_list\n";
 
 static PyObject*
 eval_atom(const Ast &ast) {
-std::cerr << "eval_atom\n";
+//std::cerr << "eval_atom\n";
     // atom <- "@" atom_list ("@@" attribute_list)? / "@@" attribute_list
     PyObject* attrs = Py_None;
     PyObject* atom_list = Py_None;
@@ -425,7 +425,7 @@ std::cerr << "eval_atom\n";
 
 static std::vector<PyObject*>
 eval_residue_parts(const Ast &ast) {
-std::cerr << "eval_residue_parts\n";
+//std::cerr << "eval_residue_parts\n";
     // residue_parts <- atom+
     std::vector<PyObject*> atoms;
     for (auto node: ast.nodes) {
@@ -436,7 +436,7 @@ std::cerr << "eval_residue_parts\n";
 
 static PyObject*
 eval_residue(const Ast &ast) {
-std::cerr << "eval_residue\n";
+//std::cerr << "eval_residue\n";
     // residue <- ":" part_list ("::" attribute_list)? residue_parts* / "::" attribute_list residue_parts* / residue_parts+
     PyObject* attrs = Py_None;
     PyObject* part_list = Py_None;
@@ -465,7 +465,7 @@ std::cerr << "eval_residue\n";
 
 static std::vector<PyObject*>
 eval_chain_parts(const Ast &ast) {
-std::cerr << "eval_chain_parts\n";
+//std::cerr << "eval_chain_parts\n";
     // chain_parts <- residue+
     std::vector<PyObject*> residues;
     for (auto node: ast.nodes) {
@@ -476,7 +476,7 @@ std::cerr << "eval_chain_parts\n";
 
 static PyObject*
 eval_chain(const Ast &ast) {
-std::cerr << "eval_chain\n";
+//std::cerr << "eval_chain\n";
     // chain <- "/" part_list ("//" attribute_list)? chain_parts* / "//" attribute_list chain_parts* / chain_parts+
     PyObject* attrs = Py_None;
     PyObject* part_list = Py_None;
@@ -505,7 +505,7 @@ std::cerr << "eval_chain\n";
 
 static std::vector<PyObject*>
 eval_model_parts(const Ast &ast) {
-std::cerr << "eval_model_parts\n";
+//std::cerr << "eval_model_parts\n";
     // model_parts <- chain+
     std::vector<PyObject*> chains;
     for (auto node: ast.nodes) {
@@ -516,14 +516,14 @@ std::cerr << "eval_model_parts\n";
 
 static PyObject*
 eval_MODEL_SPEC(const Ast &ast) {
-std::cerr << "eval_MODEL_SPEC\n";
+//std::cerr << "eval_MODEL_SPEC\n";
     // MODEL_SPEC <- < [0-9]{1,5} > ![0-9A-Fa-f]
     return PyLong_FromLong(ast.token_to_number<long>());
 }
 
 static PyObject*
 eval_MODEL_SPEC_START(const Ast &ast) {
-std::cerr << "eval_MODEL_SPEC_START\n";
+//std::cerr << "eval_MODEL_SPEC_START\n";
     // MODEL_SPEC_START <- MODEL_SPEC / "start" / "*"
     if (ast.choice == 0)
         return eval_MODEL_SPEC(*ast.nodes[0]);
@@ -532,7 +532,7 @@ std::cerr << "eval_MODEL_SPEC_START\n";
 
 static PyObject*
 eval_MODEL_SPEC_END(const Ast &ast) {
-std::cerr << "eval_MODEL_SPEC_END\n";
+//std::cerr << "eval_MODEL_SPEC_END\n";
     // MODEL_SPEC_END <- MODEL_SPEC / "end" / "*"
     if (ast.choice == 0)
         return eval_MODEL_SPEC(*ast.nodes[0]);
@@ -541,7 +541,7 @@ std::cerr << "eval_MODEL_SPEC_END\n";
 
 static PyObject*
 eval_MODEL_SPEC_ANY(const Ast &ast) {
-std::cerr << "eval_MODEL_SPEC_ANY\n";
+//std::cerr << "eval_MODEL_SPEC_ANY\n";
     // MODEL_SPEC_ANY <- MODEL_SPEC / "*"
     if (ast.choice == 0)
         return eval_MODEL_SPEC(*ast.nodes[0]);
@@ -550,7 +550,7 @@ std::cerr << "eval_MODEL_SPEC_ANY\n";
 
 static PyObject*
 eval_model_range(const Ast &ast) {
-std::cerr << "eval_model_range\n";
+//std::cerr << "eval_model_range\n";
     // model_range <- MODEL_SPEC_START _ "-" _ MODEL_SPEC_END / MODEL_SPEC_ANY
     PyObject* left;
     PyObject* right;
@@ -569,7 +569,7 @@ std::cerr << "eval_model_range\n";
 
 static PyObject*
 eval_model_range_list(const Ast &ast) {
-std::cerr << "eval_model_range_list\n";
+//std::cerr << "eval_model_range_list\n";
     // model_range_list <- model_range ("," _ model_range)*
     auto range = eval_model_range(*ast.nodes[0]);
     auto mrl = PyObject_CallFunctionObjArgs(_ModelRangeList_class, range, nullptr);
@@ -587,7 +587,7 @@ std::cerr << "eval_model_range_list\n";
 
 static PyObject*
 eval_model_hierarchy(const Ast &ast) {
-std::cerr << "eval_model_hierarchy\n";
+//std::cerr << "eval_model_hierarchy\n";
     // model_hierarchy <- model_range_list ("." model_range_list)*
     auto rl = eval_model_range_list(*ast.nodes[0]);
     auto hierarchy = PyObject_CallFunctionObjArgs(_ModelHierarchy_class, rl, nullptr);
@@ -605,7 +605,7 @@ std::cerr << "eval_model_hierarchy\n";
 
 static PyObject*
 eval_model(const Ast &ast) {
-std::cerr << "eval_model\n";
+//std::cerr << "eval_model\n";
     // model <- HASH_TYPE _ model_hierarchy (_ "##" _ attribute_list)? _ model_parts* _ zone_selector? / "##" _ attribute_list _ model_parts* _ zone_selector? / model_parts _ zone_selector?
     bool exact_match = false;
     PyObject* hierarchy = Py_None;
@@ -648,7 +648,7 @@ std::cerr << "eval_model\n";
 
 static PyObject*
 eval_model_list(const Ast &ast) {
-std::cerr << "eval_model_list\n";
+//std::cerr << "eval_model_list\n";
     // model_list <- model+
     auto py_ml = PyObject_CallNoArgs(_ModelList_class);
     for (auto node: ast.nodes) {
@@ -668,7 +668,7 @@ std::cerr << "eval_model_list\n";
 
 static PyObject*
 eval_SELECTOR_NAME(const Ast &ast) {
-std::cerr << "eval_SELECTOR_NAME\n";
+//std::cerr << "eval_SELECTOR_NAME\n";
     // SELECTOR_NAME <- < [a-zA-Z_][-+a-zA-Z0-9_]* >
     auto token = ast.token_to_string();
     PyObject* name = PyUnicode_FromString(token.c_str());
@@ -691,7 +691,7 @@ std::cerr << "eval_SELECTOR_NAME\n";
 
 static PyObject*
 eval_as_term(const Ast &ast) {
-std::cerr << "eval_as_term\n";
+//std::cerr << "eval_as_term\n";
     // as_term <- "(" _ atom_specifier _ ")" _ zone_selector? / "~" _ as_term _ zone_selector? / SELECTOR_NAME _ zone_selector? / model_list
     PyObject* as_term;
     PyObject* inner_as_term;
@@ -731,6 +731,10 @@ std::cerr << "eval_as_term\n";
         case 2:
             // selector
             as_term = PyObject_CallOneArg(_Term_class, eval_SELECTOR_NAME(*ast.nodes[0]));
+            if (as_term == nullptr) {
+                Py_DECREF(as_term);
+                throw SemanticsError(use_python_error);
+            }
             break;
         case 3:
             return PyObject_CallOneArg(_Term_class, eval_model_list(*ast.nodes[0]));
@@ -741,14 +745,18 @@ std::cerr << "eval_as_term\n";
             Py_DECREF(as_term);
             throw SemanticsError(use_python_error);
         }
-        return zone;
+        as_term = PyObject_CallOneArg(_Term_class, zone);
+        if (as_term == nullptr) {
+            Py_DECREF(as_term);
+            throw SemanticsError(use_python_error);
+        }
     }
     return as_term;
 }
     
 static PyObject*
 eval_atom_spec(const Ast &ast) {
-std::cerr << "eval_atom_spec\n";
+//std::cerr << "eval_atom_spec\n";
     // atom_specifier <- as_term _ "&" _ atom_specifier / as_term _ "|" _ atom_specifier / as_term
     PyObject* left_spec;
     PyObject* right_spec;
@@ -817,7 +825,7 @@ parse(PyObject *, PyObject *args)
     if (!PyArg_ParseTuple(args, "OsOOp", &session, &text, &parse_error_class,
             &semantics_error_class, &c_add_implied))
         return nullptr;
-std::cerr << "parse text: " << text << "\n";
+//std::cerr << "parse text: " << text << "\n";
 
     add_implied = static_cast<bool>(c_add_implied);
     spec_parser.set_logger([](size_t line, size_t col, const std::string& msg) {
@@ -830,7 +838,7 @@ std::cerr << "parse text: " << text << "\n";
     if (spec_parser.parse(text, ast)) {
         //TODO: Check if optimized AST is usable.  I suspect that ::name=="CYS" produces an unusable AST
         // because it skips levels
-        print_ast(*ast);
+        //print_ast(*ast);
         try {
             return eval_atom_spec(*ast);
         } catch (SemanticsError& e) {

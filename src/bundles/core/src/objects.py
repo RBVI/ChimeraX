@@ -227,9 +227,6 @@ class Objects:
 
     @staticmethod
     def intersect(left, right):
-        import sys
-        print("Left:", left, file=sys.__stderr__)
-        print("Right:", right, file=sys.__stderr__)
         u = Objects(models = (left._models & right._models),
                     atoms = (right.atoms & left.atoms),
                     bonds = (right.bonds & left.bonds),

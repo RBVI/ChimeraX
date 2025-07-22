@@ -207,7 +207,7 @@ class AtomSpecArg(Annotation):
             try:
                 ast = parse(session, parse_text, PeglibParseError, PeglibSemanticsError, add_implied)
             except PeglibParseError as e:
-                end = e.args[0]
+                end = e.args[0][0]
             except PeglibSemanticsError as e:
                 from .cli import AnnotationError
                 raise AnnotationError(e.args[1], offset=e.args[0])
