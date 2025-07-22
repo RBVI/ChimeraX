@@ -237,7 +237,7 @@
 	<td align=center>2.3
 	<td align=center>24
 	<td align=center>0.6
-	<td align=center>
+	<td align=center>29
 	<td align=center>2.5
 	<td>660 amino acids, heterotetramer, 0.8A RMSD 132 residues
       <tr>
@@ -355,7 +355,7 @@
       <li><b>Results directory</b>: You can change where the results are placed.
 	The path contains "[name]" which is replaced with the prediction name.
       <li><b>Number of predictions</b>: The default number of predicted structures is 1, but you can request more to get an ensemble of structures that usually have small variations.
-      <li><b>Predict ligand binding affinity for</b>: Boltz can predict the binding affinity (IC50 in uM) for a single lgand.  Only one affinity prediction is made even if multiple structures are predicted.  Also ligands that occur in more than one copy cannot have affinity predicted.
+      <li><b>Predict ligand binding affinity for</b>: Boltz can predict the binding affinity uM for a single ligand.  It was trained using Kd, Ki, and IC50 affinity values treating them as equivalent, so the predicted affinity should be interpreted as a qualitative affinity without precise definition.	Only one affinity prediction is made even if multiple structures are predicted.  Also ligands that occur in more than one copy cannot have affinity predicted.
       <li><b>Use steering potentials.  May be more accurate, but slower</b>: Use Boltz diffusion steering potentials which are claimed to produce more accurate predictions but runs slower (1.25x on Nvidia, 2.5x on Mac).
       <li><b>Use multiple sequence alignment cache</b>: Boltz uses deep multiple sequence alignments for proteins
 	that are computed using the Colabfold server.  To avoid recomputing the alignments when you run predictions
