@@ -94,8 +94,9 @@ command_defaults = {
     'verbose': False
 }
 def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resolution=None, *, block=None,
-        chain_id=None, clashes=False, hbonds=False, phenix_location=None, residue_number=None,
-        verbose=command_defaults['verbose'], option_arg=[], position_arg=[]):
+        chain_id=None, clashes=False, extent_type="ligand", extent_value=1.1, hbonds=False,
+        phenix_location=None, residue_number=None, verbose=command_defaults['verbose'],
+        option_arg=[], position_arg=[]):
 
     # Find the phenix.ligandfit executable
     from .locate import find_phenix_command
@@ -353,6 +354,8 @@ def register_command(logger):
                    ('block', BoolArg),
                    ('clashes', BoolArg),
                    ('chain_id', StringArg),
+                   ('extent_type', EnumOf(["length", "angstroms"])),
+                   ('extent_value', PositiveFloatArg),
                    ('hbonds', BoolArg),
                    ('phenix_location', OpenFolderNameArg),
                    ('residue_number', IntArg),

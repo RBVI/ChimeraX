@@ -1220,7 +1220,7 @@ class VerifyStructureCenterDialog(VerifyCenterDialog):
 
 class VerifyLFCenterDialog(VerifyStructureCenterDialog):
     def __init__(self, session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution,
-            initial_center, hbonds, clashes):
+            initial_center, extent_type, extent_value, hbonds, clashes):
         self._search_radius = None
         self.ligand_fmt = ligand_fmt
         self.ligand_value = ligand_value
@@ -1281,11 +1281,16 @@ class LaunchLigandFitTool(ToolInstance):
     #help = "help:user/tools/localemfitting.html"
     help = None
 
+    CENTER_BLOB = "picked volume blob"
     CENTER_MODEL = "center of model..."
     CENTER_SELECTION = "center of selection"
     CENTER_VIEW = "center of view"
     CENTER_XYZ = "specified xyz position..."
-    CENTERING_METHODS = [CENTER_MODEL, CENTER_SELECTION, CENTER_VIEW, CENTER_XYZ]
+    CENTERING_METHODS = [CENTER_BLOB, CENTER_MODEL, CENTER_SELECTION, CENTER_VIEW, CENTER_XYZ]
+
+    EXTENT_LENGTH = "ligand lengths"
+    EXTENT_ANGSTROMS = "angstroms"
+    EXTENT_METHODS = [EXTENT_LENGTH, EXTENT_ANGSTROMS]
 
     LIGAND_FMT_CCD = "CCD identifier"
     LIGAND_FMT_MODEL = "existing structure"
@@ -1390,12 +1395,15 @@ class LaunchLigandFitTool(ToolInstance):
         res_layout.addWidget(self.resolution_entry)
         self._update_spec_widgets()
 
-        centering_widget = QWidget()
-        layout.addWidget(centering_widget, alignment=Qt.AlignCenter, stretch=1)
+        layout.addStretch(1)
+
         centering_layout = QHBoxLayout()
         centering_layout.setSpacing(1)
-        centering_widget.setLayout(centering_layout)
+        centering_layout.addStretch(1)
+        layout.addLayout(centering_layout)
         centering_tip = '''How to specify the center of the fitting search.  Choices are:
+
+%s - A blob of density chosen interactively (after clicking OK or Apply on this dialog).
 
 %s — If the center of rotation is being displayed ("cofr showPivot true") use that.  Otherwise,
     if the center of rotation is a fixed point ("cofr fixed") use that.  If neither of those is
@@ -1408,7 +1416,7 @@ class LaunchLigandFitTool(ToolInstance):
 %s - The center of the bounding box enclosing currently selected objects.
 
 %s — A specific X/Y/Z position, given in angstroms relative to the origin of the map.
-        ''' % (self.CENTER_VIEW.rstrip('.'), self.CENTER_MODEL.rstrip('.'),
+        ''' % (self.CENTER_BLOB, self.CENTER_VIEW.rstrip('.'), self.CENTER_MODEL.rstrip('.'),
             self.CENTER_SELECTION.rstrip('.'), self.CENTER_XYZ.rstrip('.'))
         centering_label = QLabel("Center search at")
         centering_label.setToolTip(centering_tip)
@@ -1436,16 +1444,53 @@ class LaunchLigandFitTool(ToolInstance):
             xyz_layout.addWidget(entry, alignment=Qt.AlignLeft)
             self.xyz_widgets.append(entry)
         self.model_menu = ModelMenuButton(session)
+        self.blob_label = QLabel("(chosen after OK/Apply)")
         centering_layout.addWidget(self.model_menu)
         centering_layout.addWidget(self.xyz_area)
+        centering_layout.addWidget(self.blob_label)
+        centering_layout.addStretch(1)
+
+        extent_layout = QHBoxLayout()
+        extent_layout.setSpacing(1)
+        layout.addLayout(extent_layout)
+        extent_tip = '''How to specify the extent of the search from the center (along cell axes).
+Choices are:
+
+%s - The longest atom-to-atom length in the ligand
+
+%s — A fixed amount in angstroms
+''' % (self.EXTENT_LENGTH, self.EXTENT_ANGSTROMS)
+        extent_layout.addStretch(1)
+        extent_layout.addWidget(QLabel("Search region within "))
+        self.extent_entry = entry = QLineEdit()
+        entry.setValidator(QDoubleValidator())
+        entry.setAlignment(Qt.AlignRight)
+        entry.setMaximumWidth(30)
+        entry.setText("%g" % self.settings.extent_value)
+        extent_layout.addWidget(entry)
+        self.extent_button = QPushButton()
+        self.extent_button.setToolTip(extent_tip)
+        extent_layout.addWidget(self.extent_button)
+        extent_menu = QMenu(self.extent_button)
+        for method in self.EXTENT_METHODS:
+            extent_menu.addAction(method)
+        extent_menu.triggered.connect(lambda act: self._set_extent_method(act.text()))
+        self.extent_button.setMenu(extent_menu)
+        extent_layout.addWidget(QLabel(" of center along cell axes"))
+        extent_layout.addStretch(1)
+
         self._set_centering_method()
+        self._extent_values = [None] * len(self.EXTENT_METHODS)
+        self._set_extent_method()
+
+        layout.addStretch(1)
 
         checkbox_area = QWidget()
         layout.addWidget(checkbox_area, alignment=Qt.AlignCenter)
         checkbox_layout = QVBoxLayout()
         checkbox_layout.setContentsMargins(0,0,0,0)
         checkbox_area.setLayout(checkbox_layout)
-        self.verify_center_checkbox = QCheckBox("Interactively verify/adjust center before searching")
+        self.verify_center_checkbox = QCheckBox("Interactively adjust search region before fitting")
         self.verify_center_checkbox.setChecked(True)
         checkbox_layout.addWidget(self.verify_center_checkbox, alignment=Qt.AlignLeft)
         self.show_hbonds_checkbox = QCheckBox("Show H-bonds formed by fit ligand")
@@ -1504,8 +1549,24 @@ class LaunchLigandFitTool(ToolInstance):
                 raise UserError("Residue number must be an integer")
         else:
             res_num = None
+        if not self.extent_entry.hasAcceptableInput():
+            raise UserError("Search-extent value not a valid number")
+        self.settings.extent_value = extent_value = float(self.extent_entry.text())
+        self.settings.extent_type = extent_type = self.extent_button.text()
+
+        if extent_value <= 0:
+            raise UserError("Search-extent value must be a positive number")
+
+        non_center_args = (ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
+            resolution, extent_type, extent_value, self.show_hbonds_checkbox.isChecked(),
+            self.show_clashes_checkbox.isChecked())
+
         method = self.centering_button.text()
-        if method == self.CENTER_XYZ:
+        if method == self.CENTER_BLOB:
+            from chimerax.core.errors import LimitationError
+            raise LimitationError("Blob-picking centering not yet implemented")
+            # PickBlobDialog(self.session, non_center_args)
+        elif method == self.CENTER_XYZ:
             center = [float(widget.text()) for widget in self.xyz_widgets]
         elif method == self.CENTER_MODEL:
             centering_model = self.model_menu.value
@@ -1557,13 +1618,9 @@ class LaunchLigandFitTool(ToolInstance):
             raise AssertionError("Unknown centering method")
         self.settings.search_center = method
         if self.verify_center_checkbox.isChecked():
-            VerifyLFCenterDialog(self.session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-                resolution, center, self.show_hbonds_checkbox.isChecked(),
-                self.show_clashes_checkbox.isChecked())
+            VerifyLFCenterDialog(self.session, center, *non_center_args)
         else:
-            _run_ligand_fit_command(self.session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-                resolution, center, self.show_hbonds_checkbox.isChecked(),
-                self.show_clashes_checkbox.isChecked())
+            _run_ligand_fit_command(self.session, center, *non_center_args)
         if not apply:
             self.display(False)
 
@@ -1574,14 +1631,38 @@ class LaunchLigandFitTool(ToolInstance):
         if method is None:
             method = self.settings.search_center
             if method not in self.CENTERING_METHODS:
-                method = self.CENTER_MODEL
+                method = self.CENTER_BLOB
         self.centering_button.setText(method)
         self.xyz_area.setHidden(True)
         self.model_menu.setHidden(True)
+        self.blob_label.setHidden(True)
         if method == self.CENTER_XYZ:
             self.xyz_area.setHidden(False)
         elif method == self.CENTER_MODEL:
             self.model_menu.setHidden(False)
+        elif method == self.CENTER_BLOB:
+            self.blob_label.setHidden(False)
+
+    def _set_extent_method(self, method=None):
+        if method is None:
+            method = self.settings.extent_type
+            if method not in self.EXTENT_METHODS:
+                method = self.EXTENT_LENGTH
+                new_value = 1.1
+            else:
+                new_value = self.settings.extent_value
+        else:
+            # we're switching the method; remember the old value if valid and restore from previous if known
+            if self.extent_entry.hasAcceptableInput():
+                self._extent_values[self.EXTENT_METHODS.index(self.extent_button.text())] = float(
+                    self.extent_entry.text())
+            prev_extent = self._extent_values[self.EXTENT_METHODS.index(method)]
+            if prev_extent is None:
+                new_value = 1.1 if method == self.EXTENT_LENGTH else 10
+            else:
+                new_value = prev_extent
+        self.extent_button.setText(method)
+        self.extent_entry.setText("%g" % new_value)
 
     def _update_fmt_widgets(self, fmt):
         self.ligand_fmt_button.setText(fmt)
@@ -1618,7 +1699,9 @@ class LaunchLigandFitTool(ToolInstance):
 class LaunchLigandFitSettings(Settings):
     AUTO_SAVE = {
         'ligand_format': LaunchLigandFitTool.LIGAND_FMT_CCD,
-        'search_center': LaunchLigandFitTool.CENTER_MODEL,
+        'search_center': LaunchLigandFitTool.CENTER_BLOB,
+        'extent_type': LaunchLigandFitTool.EXTENT_LENGTH,
+        'extent_value': 1.1,
     }
 
 def _run_emplace_local_command(session, structure, maps, resolution, prefitted, center, show_sharpened_map,
@@ -1635,17 +1718,18 @@ def _run_emplace_local_command(session, structure, maps, resolution, prefitted, 
             allow_empty_spec=False)
     run(session, cmd)
 
-def _run_ligand_fit_command(session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution,
-        center, hbonds, clashes):
+def _run_ligand_fit_command(session, center, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
+        resolution, extent_type, extent_value, hbonds, clashes):
     from chimerax.core.commands import run, StringArg, BoolArg
     from chimerax.map import Volume
     LLFT = LaunchLigandFitTool
     lig_arg = "%s:%s" % ({LLFT.LIGAND_FMT_CCD: "ccd", LLFT.LIGAND_FMT_MODEL: "file",
         LLFT.LIGAND_FMT_PUBCHEM: "pubchem", LLFT.LIGAND_FMT_SMILES: "smiles"}[ligand_fmt],
         (ligand_value.atomspec if ligand_fmt == LLFT.LIGAND_FMT_MODEL else ligand_value))
-    cmd = "phenix ligandFit %s %s center %g,%g,%g inMap %s resolution %g hbonds %s clashes %s" % (
-        receptor.atomspec, StringArg.unparse(lig_arg), *center, map.atomspec, resolution,
-        BoolArg.unparse(hbonds), BoolArg.unparse(clashes))
+    cmd = "phenix ligandFit %s %s center %g,%g,%g inMap %s resolution %g extentType %s extentValue %g" \
+        " hbonds %s clashes %s" % (receptor.atomspec, StringArg.unparse(lig_arg), *center, map.atomspec,
+        resolution, ("length" if extent_type == LaunchLigandFitTool.EXTENT_LENGTH else "angstroms"),
+        extent_value, BoolArg.unparse(hbonds), BoolArg.unparse(clashes))
     if chain_id:
         cmd += " chain " + chain_id
     if res_num is not None:
