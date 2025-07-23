@@ -111,12 +111,32 @@ class PlotDialog:
         for provider_name in self.mgr.provider_names:
             self.tab_info[provider_name] = self.make_tab(provider_name)
 
+        tw.fill_context_menu = self.fill_context_menu
         tw.manage(None)
+
+    def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        act = QAction("Save CSV or TSV File...", parent=menu)
+        act.triggered.connect(self.save_values)
+        menu.addAction(act)
 
     def make_tab(self, provider_name):
         if self.mgr.num_atoms(provider_name) is None:
             return self._make_scalar_tab(provider_name)
         return self._make_atomic_tab(provider_name)
+
+    def save_values(self, *args):
+        tab_widget = self.plot_tabs.currentWidget()
+        for provider_name, info in self.tab_info.items():
+            tab_name, page = info
+            if tab_widget == page:
+                break
+        else:
+            raise AssertionError("Current tab not found in tab data")
+        table = self._tables[provider_name]
+        table.write_values(header_vals=[cn for cn in table.column_names[3:]] +
+            ["Frame %d" % cs_id for cs_id in sorted(self.structure.coordset_ids)],
+            row_func=lambda datum, *, table=table: self._table_row_output(table, datum))
 
     def show_tab(self, provider_name):
         tab_name, tab_widget = self.tab_info[provider_name]
@@ -279,6 +299,8 @@ class PlotDialog:
     def _make_table(self, provider_name):
         from chimerax.ui.widgets import ItemTable
         table = ItemTable(allow_user_sorting=False)
+        # These first three columns are not put in output files; if these columns are rearranged
+        # or additional "skippable" columns are added, update the save_values method
         table.add_column("Color", "rgba8", format=table.COL_FORMAT_OPAQUE_COLOR, title_display=False)
         table.add_column("Shown", "shown", format=table.COL_FORMAT_BOOLEAN, icon="shown")
         val_col_name = self.mgr.ui_name(provider_name)
@@ -393,6 +415,10 @@ class PlotDialog:
             else:
                 raise ValueError("Unknown kind of atom for 'exclude': %s" % kind)
         return sel_atoms
+
+    def _table_row_output(self, table, datum):
+        return [col.display_value(datum) for col in table.columns[3:]] + ["%g" % datum.values[cs_id]
+            for cs_id in sorted(list(datum.values.keys()))]
 
     def _update_plot(self, provider_name):
         stack = self._plot_stacks[provider_name]

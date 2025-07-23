@@ -4,7 +4,7 @@ build-backend = "chimerax.bundle_builder.cx_pep517"
 
 [project]
 name = "ChimeraX-MDcrds"
-version = "2.12.1"
+version = "2.13"
 license = { text = "Free for non-commercial use" }
 authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
 description = "Molecular dynamics support"
@@ -14,6 +14,7 @@ dependencies = [
   "ChimeraX-DataFormats ~=1.0",
   "ChimeraX-OpenCommand ~=1.0",
   "ChimeraX-SaveCommand ~=1.0",
+  "ChimeraX-UI ~=1.47",
 ]
 dynamic = ["classifiers", "requires-python"]
 
