@@ -129,6 +129,7 @@ def register_volume_command(logger):
                ('axis', AxisArg),
                ('coordinate_system', CoordSysArg),
         ] + global_options + rendering_options,
+        hidden = ['smooth_lines', 'dim_transparency'],  # Options not implemented
         synopsis = 'set volume model parameters, display style and colors')
     register('volume', volume_desc, volume, logger=logger)
 

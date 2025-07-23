@@ -315,7 +315,11 @@ def _matching_pae_file(structure_path):
         return None
 
     from os import listdir
-    dfiles = listdir(dir)
+    try:
+        dfiles = listdir(dir)
+    except PermissionError:
+        return None
+
     pkl_files = [f for f in dfiles if f.endswith('.pkl')]
     json_files = [f for f in dfiles if f.endswith('.json') and not f.startswith('confidence_')]
     npy_files = [f for f in dfiles if f.endswith('.npy') or f.endswith('.npz')]
@@ -990,6 +994,8 @@ class AlphaFoldPAE:
         self._cluster_colors = None
         self._plddt_palette = 'alphafold'
 
+        self._check_for_boltz_pae()
+            
     # ---------------------------------------------------------------------------
     #
     def reduce_matrix_to_residues_in_structure(self):
@@ -1039,16 +1045,22 @@ class AlphaFoldPAE:
                 self._num_atoms = s.num_atoms
                 self._num_residues = s.num_residues
             return self._row_residues_or_atoms
-        ra = []
-        for r in s.residues:
-            if per_residue_pae(r):
-                ra.append(r)
-            else:
-                ra.extend(r.atoms)
+        ra = self._pae_residues_or_atoms()
         self._row_residues_or_atoms = tuple(ra)
         self._num_atoms = s.num_atoms		# Used to check for deletions
         self._num_residues = s.num_residues	# Used to check for deletions
         return self._row_residues_or_atoms
+
+    # ---------------------------------------------------------------------------
+    #
+    def _pae_residues_or_atoms(self, pae_source = None):
+        ra = []
+        for r in self.structure.residues:
+            if per_residue_pae(r, pae_source = pae_source):
+                ra.append(r)
+            else:
+                ra.extend(r.atoms)
+        return ra
 
     # ---------------------------------------------------------------------------
     #
@@ -1101,6 +1113,21 @@ class AlphaFoldPAE:
             if ra.deleted:
                 return True
         return False
+    
+    # ---------------------------------------------------------------------------
+    #
+    def _check_for_boltz_pae(self):
+        '''
+        Boltz gives per-residue PAE instead of per-atom for modified residues.
+        Test if this might be Boltz PAE and set correct row residues and atoms.
+        '''
+        if not self._pae_path.endswith('.npz'):
+            return
+        rra = self.row_residues_or_atoms()
+        if len(rra) > self.matrix_size:
+            bra = self._pae_residues_or_atoms(pae_source = 'boltz')
+            if len(bra) == self.matrix_size:
+                self._row_residues_or_atoms = tuple(bra)
     
     # ---------------------------------------------------------------------------
     #
@@ -1182,9 +1209,11 @@ class AlphaFoldPAE:
 
 # ---------------------------------------------------------------------------
 #
-def per_residue_pae(r):
+def per_residue_pae(r, pae_source = None):
     '''Determine if PAE for this residue is one value or a value for each atom.'''
     ptype = r.polymer_type
+    if pae_source == 'boltz' and ptype in (r.PT_PROTEIN, r.PT_NUCLEIC):
+        return True  # Boltz as per-residue PAE even for modified residues.
     if ptype == r.PT_PROTEIN and r.name == r.standard_aa_name:
         return True
     if ptype == r.PT_NUCLEIC and r.name in ('A','C','G','U','DA','DC','DG','DT'):

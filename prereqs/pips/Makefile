@@ -23,6 +23,19 @@ CXSERVICES_DEPLOYMENT_VER ?= production
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
 PATCHES = tcia_utils.patch tcia_utils_metadata.patch grako.patch
+ifeq ($(OS),Windows)
+ifneq ($(filter $(MSYSTEM),MSYS MINGW64),)
+PATCHES += openmm_metadata.patch
+else
+PATCHES += openmm_metadata_cygwin.patch
+endif
+endif
+ifeq ($(OS),Linux)
+ifneq ($(OSARCH),LinuxArm64)
+PATCHES += openmm_metadata.patch
+endif
+endif
+
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 
 ifeq ($(OSARCH),DarwinArm64)
@@ -96,6 +109,15 @@ endif
 	# so that pandas is not needed. When those patches are upstreamed
 	# and pandas is optional this line can be removed
 	$(APP_PIP) uninstall -y pandas
+ifneq (,$(filter $(OS),Windows Linux))
+ifneq ($(OSARCH),LinuxArm64)
+	# openmm-cuda-12 brings in ~600MB of CUDA dependencies it does not use
+	$(APP_PIP) uninstall -y nvidia-cuda-runtime-cu12 nvidia-cuda-nvcc-cu12 nvidia-cuda-nvrtc-cu12 nvidia-cuda-cupti-cu12 nvidia-cufft-cu12
+endif
+ifeq ($(OSARCH),Linux)
+	$(APP_PIP) uninstall -y nvidia-nvjitlink-cu12
+endif
+endif
 
 app_requirements.txt:
 	$(APP_PYTHON_BIN) make_requirements.py
@@ -136,6 +158,7 @@ app-upgrade:
 
 clean:
 	-rm -f pip.log
+	-rm -f app_requirements.txt
 	make -C package_checker clean
 
 outdated:

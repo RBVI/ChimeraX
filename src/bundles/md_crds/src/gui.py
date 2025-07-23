@@ -339,8 +339,8 @@ class PlotDialog:
             if not sel_atoms:
                 from chimerax.core.commands import commas
                 return tool_user_error("No atoms remain after removing %s" %
-                    commas([self.exclude_interface.get(kind, kind) for kind in self.mgr.exclude_info.keys()],
-                        conjunction="and"))
+                    commas([self.exclude_interface_text.get(kind, kind)
+                        for kind in self.mgr.exclude_info.keys()], conjunction="and"))
         elif len(sel_atoms) != expected_sel:
             return tool_user_error("Plotting %s requires exactly %d selected atoms in the structure;"
                 " %d are currently selected" % (plural_of(ui_name), expected_sel, len(sel_atoms)))
