@@ -41,6 +41,8 @@ def hbonds(session, mgr, **kw):
             spec = s.atomspec + " & sel" if need_sel else s.atomspec
         else:
             spec = "sel" if need_sel else ""
+        # running after ok_cb returns doesn't get the dialog to disappear any quicker
+        # because we still don't reach the event loop
         from chimerax.core.commands import run
         results.extend(run(session, f"{cmd_name} {spec} {cmd_args}"))
         dialog.accept()
