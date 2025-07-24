@@ -309,7 +309,7 @@ class BoltzRun:
                 ligand_entry = [ '  - ligand:',
                                 f'      id: [{", ".join(mc.chain_ids)}]']
                 if mc.ccd_code:
-                    spec = f'      ccd: {mc.ccd_code}'
+                    spec = f'      ccd: "{mc.ccd_code}"'
                 elif mc.smiles_string:
                     spec = f'      smiles: "{mc.smiles_string}"'
                 ligand_entry.append(spec)
