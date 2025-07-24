@@ -173,7 +173,13 @@ class Movie:
         from PIL import Image
         # Flip y-axis since PIL image has row 0 at top, opengl has row 0 at bottom.
         i = Image.fromarray(rgba[::-1, :, :color_components])
-        i.save(save_path, self.img_fmt)
+        try:
+            i.save(save_path, self.img_fmt)
+        except OSError as e:
+            if 'No space left on device' in str(e):
+                from chimerax.core.errors import UserError
+                raise UserError(f'Out of disk space trying to save movie frame image {save_path}')
+            raise
         v.movie_image_rgba = rgba	# Used by crossfade command
 
         if self.postprocess_frames > 0:
