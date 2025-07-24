@@ -4,7 +4,7 @@ build-backend = "chimerax.bundle_builder.cx_pep517"
 
 [project]
 name = "ChimeraX-MDcrds"
-version = "2.13"
+version = "2.14"
 license = { text = "Free for non-commercial use" }
 authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
 description = "Molecular dynamics support"
@@ -181,6 +181,12 @@ num-atoms = "0"
 text-format = "%.2f"
 need-ref-frame = true
 exclude = "solution=true,hydrogens=true,ligands=false,metals=alkali"
+
+[[tool.chimerax.provider."MD plotting"]]
+name = "hbonds"
+ui-name = "H-Bonds"
+num-atoms = "0"
+text-format = "%d"
 
 [tool.chimerax.extension._gromacs]
 sources = ["gromacs/gromacs.cpp"]
