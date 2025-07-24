@@ -73,7 +73,7 @@ runs:
       with:
         path: |
           prereqs/ambertools/ambertools-20-Linux-Rocky-8.10.tar.bz2
-          prereqs/ambertools/ambertools-20-Linux-Rocky-9.5.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Rocky-9.6.tar.bz2
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2
           prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2
@@ -290,7 +290,7 @@ runs:
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Rocky-8.10.tar.bz2 -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Rocky-9.5.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Rocky-9.6.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2 -O -J
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2 -O -J
