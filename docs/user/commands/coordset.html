@@ -192,12 +192,16 @@ The slider <a href="../window.html#context-menu">context menu</a> includes:
 <ul>
 <a name="plotting"></a>
 <li><b>Plot</b> &ndash; plot various measurables across the whole trajectory,
-with frame number on the horizontal (X) axis. 
+with frame number on the horizontal (X) axis. See also:
+<a href="../measurements.html">measurements</a>
 <p>
 In general, each measurement is defined by 
 <a href="../selection.html">selecting</a> the desired atoms 
 (two for <b>Distances</b>, three for <b>Angles</b>, four for <b>Torsions</b>,
-any number for <b>SASAs</b> or <b>RMSDs</b>) and clicking <b>Plot</b>. 
+any number for <b>SASAs</b>, <b>RMSDs</b>, or <b>H-Bonds</b>)
+and clicking <b>Plot</b>. For <b>H-Bonds</b>, 
+clicking <b>Plot</b> brings up another dialog for (optionally) adjusting 
+certain <a href="../tools/hbonds.html"><b>H-Bonds</b></a> parameters beforehand.
 </p><p>
 For RMSD, the <b>Reference frame</b> for calculating the (best-fit)
 root-mean-square deviation of the set of atoms must also be designated.
@@ -241,6 +245,10 @@ It is important to avoid closing the plot window, as the measurement
 definitions will be lost if that occurs. If the plot window is left open
 but gets lost behind other windows, it can be resurrected using the slider
 context menu.
+</p><p>
+The plotted values can be saved to a comma- or tab-separated values file
+by choosing <b>Save CSV or TSV File...</b> from the plot window's
+<a href="../window.html#context-menu">context menu</a>.
 </p>
 <li><b>Loop Playback</b> (initially on) &ndash; whether interactive playback 
 should continue until explicitly paused 
@@ -306,5 +314,5 @@ applies in a particular situation.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2025</address>
+July 2025</address>
 </body></html>
