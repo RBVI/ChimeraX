@@ -97,10 +97,6 @@ ifeq ($(OSARCH),DarwinArm64)
 	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
 endif
 	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
-ifdef USE_PYSIDE6
-	$(APP_PIP_INSTALL) $(shell grep PySide6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
-	$(APP_PIP_INSTALL) $(shell grep shiboken6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
-endif
 ifneq ($(filter $(OSARCH),DarwinIntel64 LinuxArm64),)
 	$(APP_PIP_INSTALL) $(PYOPENGL_WHEEL)
 else
