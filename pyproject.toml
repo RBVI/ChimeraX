@@ -35,7 +35,7 @@ gui = [
   "qtshim==1.1",
   # Used by the DICOM bundle for a double-ended QSlider"
   "superqt==0.7.5",
-  #tinyarray==1.2.4
+  "tinyarray==1.2.5",
   "webcolors==24.11.1",
   "wheel-filename==1.4.2",
   #
