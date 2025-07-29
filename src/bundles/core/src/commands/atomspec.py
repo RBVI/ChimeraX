@@ -89,6 +89,29 @@ _terminator = re.compile(r"[;\s]")  # semicolon or whitespace
 
 MAX_STACK_DEPTH = 10000000
 
+_rlimit_set = False
+def max_cpp_stack():
+    global _rlimit_set
+    if not _rlimit_set:
+        _rlimit_set = True
+        try:
+            import resource
+        except ImportError:
+            pass
+        else:
+            try:
+                soft, hard = resource.getrlimit(resource.RLIMIT_STACK)
+            except OSError:
+                pass
+            except ValueError:
+                pass
+            else:
+                try:
+                    resource.setrlimit(resource.RLIMIT_STACK, (hard, hard))
+                except ValueError:
+                    pass
+                except OSError:
+                    pass
 
 @contextmanager
 def maximum_stack(max_depth=MAX_STACK_DEPTH):
@@ -153,9 +176,11 @@ class AtomSpecArg(Annotation):
         token, index_map = unescape_with_index_map(text[start + 1:end - 1])
         # Create parser and parse converted token
         if cls.use_peglib_parser:
+            max_cpp_stack()
             from chimerax.core._spec_parser import parse
             try:
-                ast = parse(session, token, PeglibParseError, PeglibSemanticsError, add_implied)
+                with maximum_stack():
+                    ast = parse(session, token, PeglibParseError, PeglibSemanticsError, add_implied)
             except (PegilbParseError, PeglibSemanticsError) as e:
                 from .cli import AnnotationError
                 raise AnnotationError(e.args[1], offset=e.args[0])
@@ -203,6 +228,7 @@ class AtomSpecArg(Annotation):
             add_implied = True
             text_offset = 0
         if cls.use_peglib_parser:
+            max_cpp_stack()
             from chimerax.core._spec_parser import parse
             try:
                 ast = parse(session, parse_text, PeglibParseError, PeglibSemanticsError, add_implied)
