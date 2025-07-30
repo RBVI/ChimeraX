@@ -24,7 +24,7 @@ file = "README.md"
 
 [project.optional-dependencies]
 gui = [
-  "openvr==1.26.701",
+  "openvr==2.5.102",
   "PyOpenGL==3.1.9",
   #"PyOpenGL-accelerate==3.1.9",
   # PyQt handled in prereqs/PyQt"
