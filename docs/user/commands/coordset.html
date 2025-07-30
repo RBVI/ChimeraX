@@ -245,11 +245,22 @@ It is important to avoid closing the plot window, as the measurement
 definitions will be lost if that occurs. If the plot window is left open
 but gets lost behind other windows, it can be resurrected using the slider
 context menu.
-</p><p>
-The plotted values can be saved to a comma- or tab-separated values file
-by choosing <b>Save CSV or TSV File...</b> from the plot window's
-<a href="../window.html#context-menu">context menu</a>.
 </p>
+<blockquote>
+The plot window has its own 
+<a href="../window.html#context-menu">context menu</a>, including:
+  <ul>
+  <li><b>Save Plot Image...</b> save the plot to an image file 
+(several choices of image file format), optionally with a
+<b>Transparent background</b> and a specified <b>DPI</b>
+(resolution in pixels per inch; although the displayed aspect ratio is
+retained, however, there is no way to specify the size in inches,
+which is somehow determined by
+<a href="https://matplotlib.org/" target="_blank">Matplotlib</a>)
+  <li><b>Save CSV or TSV File...</b> save the plotted values to a 
+  comma- or tab-separated values file
+  </ul>
+</blockquote>
 <li><b>Loop Playback</b> (initially on) &ndash; whether interactive playback 
 should continue until explicitly paused 
 <li><b>Bounce Playback</b> (only available when <b>Loop Playback</b> is on)
