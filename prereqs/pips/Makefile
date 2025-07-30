@@ -89,6 +89,7 @@ app-install: app_requirements.txt $(PLATO_WHEELS) $(SCIPY_WHEEL)
 else
 app-install: app_requirements.txt $(PLATO_WHEELS)
 endif
+endif
 	# Install Cython first so PyOpenGL_accelerate builds
 	$(APP_PIP_INSTALL) $(CYTHON_BUILD_ARGS) $(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt | sed -e 's/[\ #",]//g')
