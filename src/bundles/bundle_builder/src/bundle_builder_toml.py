@@ -1053,9 +1053,22 @@ class _CompiledCode:
             for lib in self.libraries:
                 if lib.lower().endswith(".lib"):
                     # Strip the .lib since suffixes are handled automatically
-                    libraries.append(lib[:-4])
+                    tentative_name = lib[:-4]
                 else:
-                    libraries.append("lib" + lib)
+                    tentative_name = lib
+                lib_name = None
+                for path in lib_dirs:
+                    maybe_lib = glob.glob(f"*{tentative_name}*", root_dir = path)
+                    if not maybe_lib:
+                        continue
+                    else:
+                        lib_name = maybe_lib[1]
+                        break
+                if lib_name:
+                    libraries.append(lib_name)
+                else:
+                    search_path = ":".join(lib_dirs)
+                    raise ValueError(f"Library {tentative_name} not found in search path {search_path}")
             cpp_flags = []
             extra_link_args = []
         else:
