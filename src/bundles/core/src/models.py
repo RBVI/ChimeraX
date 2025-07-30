@@ -548,7 +548,7 @@ class Model(State, Drawing):
         pass
 
     def atomspec_model_attr(self, attrs):
-        # Return true is attributes specifier matches model
+        # Return true if attributes specifier matches model
         for attr in attrs:
             try:
                 v = getattr(self, attr.name)
@@ -556,8 +556,25 @@ class Model(State, Drawing):
                 if not attr.no:
                     return False
             else:
+                import operator
                 if attr.value is None:
                     tv = attr.op(v)
+                elif (attr.op in (operator.eq, operator.ne, "==", "!==")
+                and isinstance(attr.value, str)):
+                    # Equality-comparison operators for strings handle wildcards
+                    # Largely cribbed from chimerax,commands.atomspec._AttrTest.attr_matcher
+                    case_sensitive = attr.op in ["==", "!=="]
+                    attr_value = attr.value if case_sensitive else attr.value.lower()
+                    if not case_sensitive:
+                        v = v.lower()
+                    invert = attr.op in (operator.ne, "!==")
+                    from chimerax.core.commands.atomspec import has_wildcard
+                    if has_wildcard(attr.value):
+                        from fnmatch import fnmatchcase
+                        matches = fnmatchcase(v, attr_value)
+                    else:
+                        matches = v == attr_value
+                    tv = not matches if invert else matches
                 else:
                     tv = attr.op(v, attr.value)
                 if not tv:

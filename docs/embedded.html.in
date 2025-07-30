@@ -119,6 +119,12 @@ Linux only.
 License type: <a href="licenses/basictypes-license.txt" target="_blank">BSD license</a>
  
 <p>
+<dt><a href="https://github.com/yhirose/cpp-peglib" target="_blank">cpp-peglib</a> (downloaded 9 July 2024)
+	<dd>The cpp-peglib library was written by Yuji Hirose and is used in ChimeraX to parse command-line specifiers.  
+<br>
+License type: <a href="licenses/cpp-peglib-license.txt" target="_blank">MIT license</a>
+ 
+<p>
 <dt><a href="https://ambermd.org" target="_blank">AmberTools</a>
 	<dd> Certain executables from the AmberTools package are included with ChimeraX in order to compute partial charges.  These executables are unmodified relative to their AmberTools versions, and are communicated with via their normal inputs and outputs.
 <br>

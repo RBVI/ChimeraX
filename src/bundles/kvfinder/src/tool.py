@@ -304,6 +304,9 @@ class KVFinderResultsDialog(ToolInstance):
     def delete(self, from_mgr=False):
         for handler in self.handlers:
             handler.remove()
+        # on Windows only (e.g. #18297), the dead table can try to fetch info from dead models
+        # despite all the handlers being removed that would drive that; remove the table data
+        self.table.data = []
         super().delete()
 
     @classmethod
