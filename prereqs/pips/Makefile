@@ -197,7 +197,7 @@ $(PYOPENGL_SRC):
 patched-pyopengl: $(PYOPENGL_SRC)
 	tar --no-same-owner -xf $(PYOPENGL_SRC)
 	patch -N -p0 < pyopengl_accelerate.patch
-	$(APP_PIP) -m build --wheel pyopengl_accelerate-3.1.9
+	$(APP_PYTHON_BIN) -m build --wheel pyopengl_accelerate-3.1.9
 	mv pyopengl_accelerate-3.1.9/dist/$(PYOPENGL_WHEEL) .
 endif
 
