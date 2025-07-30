@@ -50,7 +50,7 @@ ifeq ($(OS),Windows)
 else
 ifeq ($(OS),Linux)
 ifeq ($(OSARCH),LinuxArm64)
-PYOPENGL_WHEEL = PyOpenGL_accelerate-3.1.9-cp311-cp311-linux_aarch64.whl
+PYOPENGL_WHEEL = pyopengl_accelerate-3.1.9-cp311-cp311-linux_aarch64.whl
 else
 endif
 else
@@ -60,7 +60,7 @@ ifeq ($(OSARCH),DarwinArm64)
 SCIPY_WHEEL = $(subst ==,-,$(shell grep scipy $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_12_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
-PYOPENGL_WHEEL = PyOpenGL_accelerate-3.1.9-cp311-cp311-macosx_10_9_x86_64.whl
+PYOPENGL_WHEEL = pyopengl_accelerate-3.1.9-cp311-cp311-macosx_10_9_x86_64.whl
 endif
 endif
 endif
