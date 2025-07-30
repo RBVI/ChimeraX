@@ -103,6 +103,8 @@ ifdef USE_PYSIDE6
 endif
 ifneq ($(filter $(OSARCH),DarwinIntel64 LinuxArm64),)
 	$(APP_PIP_INSTALL) $(PYOPENGL_WHEEL)
+else
+	$(APP_PIP_INSTALL) $(shell grep PyOpenGL-accelerate $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 endif
 ifneq (,$(SOURCE_WHEELS))
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
