@@ -44,10 +44,13 @@ else
 CYTHON_BUILD_ARGS=
 endif
 
+PYOPENGL_SRC = pyopengl_accelerate-3.1.9.tar.gz
+
 ifeq ($(OS),Windows)
 else
 ifeq ($(OS),Linux)
 ifeq ($(OSARCH),LinuxArm64)
+PYOPENGL_WHEEL = PyOpenGL_accelerate-3.1.9-cp311-cp311-linux_aarch64.whl
 else
 endif
 else
@@ -57,6 +60,7 @@ ifeq ($(OSARCH),DarwinArm64)
 SCIPY_WHEEL = $(subst ==,-,$(shell grep scipy $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_12_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
+PYOPENGL_WHEEL = PyOpenGL_accelerate-3.1.9-cp311-cp311-macosx_10_9_x86_64.whl
 endif
 endif
 endif
@@ -77,6 +81,9 @@ app-list:
 
 upgrade:
 
+ifneq ($(filter $(OSARCH),DarwinIntel64 LinuxArm64),)
+app-install: app_requirements.txt $(PLATO_WHEELS) patched-pyopengl
+else
 ifeq ($(OSARCH),DarwinArm64)
 app-install: app_requirements.txt $(PLATO_WHEELS) $(SCIPY_WHEEL)
 else
@@ -92,6 +99,9 @@ endif
 ifdef USE_PYSIDE6
 	$(APP_PIP_INSTALL) $(shell grep PySide6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 	$(APP_PIP_INSTALL) $(shell grep shiboken6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
+endif
+ifneq ($(filter $(OSARCH),DarwinIntel64 LinuxArm64),)
+	$(APP_PIP_INSTALL) $(PYOPENGL_WHEEL)
 endif
 ifneq (,$(SOURCE_WHEELS))
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
@@ -153,6 +163,8 @@ app-upgrade:
 clean:
 	-rm -f pip.log
 	-rm -f app_requirements.txt
+	-rm -f pyopengl_accelerate-3.1.9.tar.gz
+	-rm -rf pyopengl_accelerate-3.1.9
 	make -C package_checker clean
 
 outdated:
@@ -176,6 +188,17 @@ app-outdated:
 
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src
+
+ifneq ($(filter $(OSARCH),DarwinIntel64 LinuxArm64),)
+$(PYOPENGL_SRC):
+	$(APP_PIP) download --no-build-isolation --no-binary=:all: $(shell grep PyOpenGL $(TOP)/pyproject.toml | sed 's/[\ ",#]//g')
+
+patched-pyopengl: $(PYOPENGL_SRC)
+	tar --no-same-owner -xf $(PYOPENGL_SRC)
+	patch -N -p0 < pyopengl_accelerate.patch
+	$(APP_PIP) -m build --wheel pyopengl_accelerate-3.1.9
+	mv pyopengl_accelerate-3.1.9/dist/$(PYOPENGL_WHEEL) .
+endif
 
 $(SCIPY_WHEEL):
 	$(APP_PIP) download --platform=macosx_12_0_arm64 --no-deps $(shell grep scipy $(TOP)/pyproject.toml | sed 's/[\ ",]//g')

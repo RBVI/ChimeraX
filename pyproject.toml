@@ -26,7 +26,7 @@ file = "README.md"
 gui = [
   "openvr==1.26.701",
   "PyOpenGL==3.1.9",
-  "PyOpenGL-accelerate==3.1.9",
+  #"PyOpenGL-accelerate==3.1.9",
   # PyQt handled in prereqs/PyQt"
   # sip handled in prereqs/PyQt
   #PySide6==6.9.0
