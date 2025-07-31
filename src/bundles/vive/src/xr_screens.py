@@ -108,7 +108,7 @@ def _enable_xr_mouse_modes(session, screen_model_name = None,
     XRBackingWindow(session, screen, in_front = openxr_window_captures_events)
     return True
 
-xr_screen_model_names = ['ASV27-2P', 'SR Display']
+xr_screen_model_names = ['ASV27-2P', '1ASV27-2P', 'DS1_156', 'SR Display']
 def find_xr_screen(session, screen_model_name = None):
     model_names = [screen_model_name] if screen_model_name else xr_screen_model_names
     screens = session.ui.screens()
