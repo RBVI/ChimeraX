@@ -37,6 +37,7 @@ version = { attr = "src.__version__" }
 [tool.chimerax]
 min-session-version = 1
 max-session-version = 1
+custom-init = true
 categories = ["General"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 

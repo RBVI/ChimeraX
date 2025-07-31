@@ -109,6 +109,8 @@ from Qt.QtWidgets import (QAbstractItemView, QAbstractScrollArea, QApplication, 
                                QPushButton, QFrame, QDoubleSpinBox, QSpinBox, QFormLayout,
                                QGroupBox, QGridLayout)
 
+from chimerax.animations.settings import get_settings
+
 __all__ = [
     "KeyframeEditorWidget",
 ]
@@ -577,6 +579,8 @@ class TimelineView(QGraphicsView):
     row_clicked = Signal(int)
     track_hovered = Signal(int, bool)  # track_index, is_hovered
     frame_changed = Signal(int)  # current_frame
+    ruler_clicked = Signal()
+    mouse_released = Signal()
     keyframes_deleted = Signal(list)  # list of deleted keyframes
 
     def __init__(self, scene: TimelineScene, parent: Optional[QWidget] = None):
@@ -621,6 +625,7 @@ class TimelineView(QGraphicsView):
 
             # Check if clicking in ruler area to set playhead
             if 0 <= pos.y() <= RULER_HEIGHT:
+                self.ruler_clicked.emit()
                 frame_width = self.scene().frame_width  # type: ignore[attr-defined]
                 frame = round(pos.x() / frame_width)
                 frame = max(0, min(frame, self.scene().num_frames))  # type: ignore[attr-defined]
@@ -659,6 +664,7 @@ class TimelineView(QGraphicsView):
     def mouseReleaseEvent(self, event):
         """Handle mouse release events."""
         if event.button() == Qt.MouseButton.LeftButton:
+            self.mouse_released.emit()
             self._dragging_playhead = False
         super().mouseReleaseEvent(event)
 
@@ -1289,6 +1295,7 @@ class KeyframeEditorWidget(QWidget):
     def __init__(self, session=None, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.session = session
+        self.settings = get_settings(session)
         self.track_models = {}  # track_index -> model
         self.track_subtracks = {}  # track_index -> {property_name: subtrack_index}
         self.track_parents = {}  # subtrack_index -> parent_track_index
@@ -1355,10 +1362,24 @@ class KeyframeEditorWidget(QWidget):
         # Also connect scene frame changes to update UI
         self.timeline_view.frame_changed.connect(lambda f: self.frame_label.setText(f"Frame: {f}"))
 
+        self.timeline_view.ruler_clicked.connect(self._set_preview_graphics_options)
+        self.timeline_view.mouse_released.connect(self._restore_graphics_options)
+
         # Connect keyframe deletion
         self.timeline_view.keyframes_deleted.connect(self._on_keyframes_deleted)
 
         self.add_camera_track()
+
+    def _set_preview_graphics_options(self):
+        from copy import deepcopy
+        from chimerax.core.commands import run
+        self._need_restore_graphics = True
+        self._old_lighting = deepcopy(self.session.main_view.lighting)
+        run(self.session, "lighting %s" % self.settings.preview_lighting)
+
+    def _restore_graphics_options(self):
+        self.session.main_view.lighting = self._old_lighting
+        self._need_restore_graphics = False
 
     def _create_transport_controls(self):
         """Create the transport control panel with play/pause buttons."""
@@ -1677,6 +1698,7 @@ class KeyframeEditorWidget(QWidget):
 
     def _start_playback(self):
         """Start timeline playback."""
+        self._set_preview_graphics_options()
         self.is_playing = True
         self.play_pause_btn.setText("Pause")
         # Calculate timer interval from FPS
@@ -1685,6 +1707,7 @@ class KeyframeEditorWidget(QWidget):
 
     def _pause_playback(self):
         """Pause timeline playback."""
+        self._restore_graphics_options()
         self.is_playing = False
         self.play_pause_btn.setText("Play")
         self.playback_timer.stop()
