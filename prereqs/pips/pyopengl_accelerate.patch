@@ -1,0 +1,92 @@
+diff --color -rp pyopengl_accelerate-3.1.9.old/pyproject.toml pyopengl_accelerate-3.1.9/pyproject.toml
+*** pyopengl_accelerate-3.1.9.old/pyproject.toml	2025-01-19 16:30:48
+--- pyopengl_accelerate-3.1.9/pyproject.toml	2025-07-30 13:50:18
+*************** dynamic=["version"]
+*** 1,6 ****
+--- 1,7 ----
+  [project]
+  name="PyOpenGL-accelerate"
+  dynamic=["version"]
++ requires-python = ">= 3.9" # At least Python 3.9
+  description = "Cython-coded accelerators for PyOpenGL"
+  authors = [
+      {name="Mike C. Fletcher",email="mcfletch@vrplumber.com"},
+*************** classifiers = [
+*** 23,29 ****
+  classifiers = [
+      "License :: OSI Approved :: BSD License",
+      "Programming Language :: Python",
+-     "Programming Language :: Python :: 2",
+      "Programming Language :: Python :: 3",
+      "Topic :: Multimedia :: Graphics :: 3D Rendering",
+      "Topic :: Software Development :: Libraries :: Python Modules",
+--- 24,29 ----
+*************** Documentation = "https://mcfletch.github.io/pyopengl/d
+*** 36,42 ****
+  Documentation = "https://mcfletch.github.io/pyopengl/documentation/index.html"
+  
+  [build-system]
+! requires = [ "setuptools >= 42.0", "Cython >= 0.28", "numpy" ]
+  build-backend = "setuptools.build_meta"
+  
+  [tool.setuptools.dynamic]
+--- 36,42 ----
+  Documentation = "https://mcfletch.github.io/pyopengl/documentation/index.html"
+  
+  [build-system]
+! requires = [ "setuptools >= 42.0", "Cython >= 3", "numpy" ]
+  build-backend = "setuptools.build_meta"
+  
+  [tool.setuptools.dynamic]
+*************** include=["OpenGL_accelerate"]
+*** 45,49 ****
+  [tool.setuptools.packages.find]
+  namespaces=false
+  include=["OpenGL_accelerate"]
+! exclude=["tests","src"]
+  
+--- 45,49 ----
+  [tool.setuptools.packages.find]
+  namespaces=false
+  include=["OpenGL_accelerate"]
+! exclude=["tests", "src"]
+  
+diff --color -rp pyopengl_accelerate-3.1.9.old/src/vbo.pyx pyopengl_accelerate-3.1.9/src/vbo.pyx
+*** pyopengl_accelerate-3.1.9.old/src/vbo.pyx	2025-01-19 16:30:48
+--- pyopengl_accelerate-3.1.9/src/vbo.pyx	2025-07-30 13:50:18
+*************** cdef class VBO:
+*** 188,195 ****
+          assert not self.created, """Already created the buffer"""
+          buffers = self.get_implementation().glGenBuffers(1)
+          try:
+!             self.buffer = long( buffers )
+!         except (TypeError,ValueError) as err:
+              self.buffer = buffers[0]
+          self.target = self.c_resolve( self.target_spec )
+          self.usage = self.c_resolve( self.usage_spec )
+--- 188,195 ----
+          assert not self.created, """Already created the buffer"""
+          buffers = self.get_implementation().glGenBuffers(1)
+          try:
+!             self.buffer = int( buffers )
+!         except (TypeError, ValueError) as err:
+              self.buffer = buffers[0]
+          self.target = self.c_resolve( self.target_spec )
+          self.usage = self.c_resolve( self.usage_spec )
+*************** cdef class VBO:
+*** 242,248 ****
+          """Add an integer to this VBO (offset)"""
+          if hasattr( other, 'offset' ):
+              other = other.offset
+!         assert isinstance( other, (int,long) ), """Only know how to add integer/long offsets"""
+          return VBOOffset( self, other )
+      cdef int check_live( self ):
+          if self.data is _NULL:
+--- 242,248 ----
+          """Add an integer to this VBO (offset)"""
+          if hasattr( other, 'offset' ):
+              other = other.offset
+!         assert isinstance( other, int), """Only know how to add integer offsets"""
+          return VBOOffset( self, other )
+      cdef int check_live( self ):
+          if self.data is _NULL:
