@@ -25,10 +25,15 @@ UCSF ChimeraX is built upon other great software.
 <li> <a href="#p"> Included Python Packages </a>
 </ul>
 
+<small><i>
+GENERATED
+</i></small>
+
 <h2><a id="o"> Included Software </a></h2>
 
 <dl>
-<dt><a href="https://www.python.org/" target="_blank"> Python </a> version 3.7
+<dt><a href="https://www.python.org/" target="_blank"> Python </a> version
+PYTHON_VERSION
 <dd>&ldquo;The Python programming language and interpreter.&rdquo;
 <br>
 History and License: <a href="https://docs.python.org/3/license.html" target="_blank">open source</a>

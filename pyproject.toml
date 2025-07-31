@@ -132,7 +132,10 @@ wheel = [
   #
   "traitlets==5.14.3",
 ]
-dev = ["line_profiler==5.0.0"]
+dev = [
+  "line_profiler==5.0.0",
+  "markdown==3.8.2",
+]
 test = ["pytest", "pytest-cov", "coverage"]
 
 [tool.setuptools.dynamic]

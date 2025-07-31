@@ -24,7 +24,9 @@ SUBDIRS = devel pdbimages quickstart user js
 DOCDIR = $(app_datadir)/docs
 
 ifndef UBUNTU_DIST
+ifndef FLATPAK_DIST
 EXTRA_EMBEDDED = ffmpeg
+endif
 endif
 
 SRCS = $(wildcard *.html) license.html embedded.html licenses videos
