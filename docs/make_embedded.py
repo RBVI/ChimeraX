@@ -304,7 +304,7 @@ with open('embedded.html.in') as src:
                 system = platform.system()
                 chver = buildinfo.version
                 date = buildinfo.date
-                msg = f"This information was generatered for ChimeraX {chver} on {system} from {date}."
+                msg = f"This information was generated from ChimeraX {chver} for {system} on {date}."
                 print(msg, file=out)
             elif line == '<!--ffmpeg-->\n':
                 if include_ffmpeg:
