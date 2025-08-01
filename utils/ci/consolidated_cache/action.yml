@@ -35,8 +35,8 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/Python/Python-3.11.9.tar.xz
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.9
+          prereqs/Python/Python-3.11.13.tar.xz
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.13
 
     - name: Restore cached Python (Windows)
       id: cache-python-windows
@@ -257,7 +257,7 @@ runs:
       if: ${{ steps[format('cache-python-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/python/Python-3.11.9.tar.xz -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/python/Python-3.11.13.tar.xz -O -J
           mv Python* prereqs/Python/
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
