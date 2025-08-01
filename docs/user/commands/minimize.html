@@ -32,9 +32,10 @@ class="clRighticon" title="User Guide Index"/></a>
 [&nbsp;<a href="dockprep.html"><i>dockprep-options</i></a>&nbsp;]]
 [&nbsp;<b>maxSteps</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>liveUpdates</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>logEnergy</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </h3>
 <p>
-<b>**In progress**</b>: currently works only for structures containing only
+<b>**In progress**</b> and currently works only for structures containing only
 &ldquo;standard&rdquo; residues as defined  in the Amber14 parameter files.
 <!-- 
 it uses amber14-all.xml and amber14/tip3pfb.xml to define what's standard,
@@ -74,11 +75,18 @@ The <b>maxSteps</b> option sets the number of iterations
 (default <b>0</b>, meaning that minimization will continue until 
 convergence regardless of how many iterations it takes).
 Convergence is defined as when the root-mean-square of all force components 
-falls to 10 or lower. 
+falls to 10 or lower.
 </p><p>
 The <b>liveUpdates</b> option (default <b>true</b>)
-specifies whether to update the structure periodically at the same
-time the energy is reported, currently after every 100 steps.
+indicates whether to update the structure periodically during the
+minimization; if <b>false</b>, the structure will not be updated 
+until the minimization ends.
+The current update interval is every 100 steps, at the same time
+the energy is reported in the <a href="../window.html">status line</a>. 
+Messages in the <a href="../window.html">status line</a>, however,
+are only transient. The <b>logEnergy</b> option (default <b>false</b>)
+indicates whether to also report the energy in the 
+<a href="../tools/log.html"><b>Log</b></a>.
 </p>
 
 <hr>

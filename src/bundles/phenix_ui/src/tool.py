@@ -1069,15 +1069,10 @@ class LaunchFitLoopsTool(ToolInstance):
 import abc
 
 class VerifyCenterDialog(QDialog):
-    def __init__(self, session, initial_center, opaque_maps):
+    def __init__(self, session, model):
         super().__init__()
         self.session = session
-        self.opaque_maps = opaque_maps
-
-        self.marker_set_id = session.models.next_id()[0]
-        from chimerax.core.commands import run
-        self.marker = run(session, "marker #%d position %g,%g,%g radius %g color 100,65,0,50"
-            % (self.marker_set_id, *initial_center, self.search_radius))
+        self.model = model
 
         from chimerax.core.models import REMOVE_MODELS
         self.handler = session.triggers.add_handler(REMOVE_MODELS, self._check_still_valid)
@@ -1098,16 +1093,6 @@ class VerifyCenterDialog(QDialog):
         bbox.rejected.connect(self.close)
         layout.addWidget(bbox)
 
-        if opaque_maps:
-            from chimerax.map import VolumeSurface
-            self.opaque_data = {}
-            for m in session.models:
-                if isinstance(m, VolumeSurface) and m.rgba[-1] < 1.0:
-                    self.opaque_data[m] = m.rgba[-1]
-                    rgba = list(m.rgba)
-                    rgba[-1] = 1.0
-                    m.rgba = tuple(rgba)
-
         self.show()
 
     @property
@@ -1116,8 +1101,8 @@ class VerifyCenterDialog(QDialog):
         pass
 
     def closeEvent(self, event):
-        if not self.marker.structure.deleted:
-            self.session.models.close([self.marker.structure])
+        if not self.model.deleted:
+            self.session.models.close([self.model])
         self.handler.remove()
         super().closeEvent(event)
 
@@ -1143,11 +1128,31 @@ class VerifyCenterDialog(QDialog):
 
     def _check_still_valid(self, trig_name, removed_models):
         for rm in removed_models:
-            if rm in self.check_models + [self.marker.structure]:
+            if rm in self.check_models + [self.model]:
                 self.close()
                 break
 
-class VerifyELCenterDialog(VerifyCenterDialog):
+class VerifyMarkerCenterDialog(VerifyCenterDialog):
+    def __init__(self, session, initial_center, opaque_maps):
+        self.opaque_maps = opaque_maps
+
+        if opaque_maps:
+            from chimerax.map import VolumeSurface
+            self.opaque_data = {}
+            for m in session.models:
+                if isinstance(m, VolumeSurface) and m.rgba[-1] < 1.0:
+                    self.opaque_data[m] = m.rgba[-1]
+                    rgba = list(m.rgba)
+                    rgba[-1] = 1.0
+                    m.rgba = tuple(rgba)
+
+        self.marker_set_id = session.models.next_id()[0]
+        from chimerax.core.commands import run
+        self.marker = run(session, "marker #%d position %g,%g,%g radius %g color 100,65,0,50"
+            % (self.marker_set_id, *initial_center, self.search_radius))
+        super().__init__(session, self.marker.structure)
+
+class VerifyELCenterDialog(VerifyMarkerCenterDialog):
     def __init__(self, session, structure, maps, resolution, prefitted, initial_center, opaque_maps,
             show_sharpened_map, apply_symmetry):
         self._search_radius = None
@@ -1159,11 +1164,9 @@ class VerifyELCenterDialog(VerifyCenterDialog):
         self.prefitted = prefitted
         super().__init__(session, initial_center, opaque_maps)
 
-
     @property
-    @abc.abstractmethod
     def check_models(self):
-        return self.maps + [self.structure]
+        return self.maps + [self.marker, self.structure]
 
     @property
     def instructions(self):
@@ -1204,9 +1207,20 @@ class VerifyELCenterDialog(VerifyCenterDialog):
             self._search_radius = max(numpy.linalg.norm(crds-mid, axis=1))
         return self._search_radius
 
-class VerifyLFCenterDialog(VerifyCenterDialog):
+class VerifyStructureCenterDialog(VerifyCenterDialog):
+    def __init__(self, session, initial_center, structure):
+        self.structure = structure
+
+        
+
+        from chimerax.core.commands import run
+        self.marker = run(session, "marker #%d position %g,%g,%g radius %g color 100,65,0,50"
+            % (self.marker_set_id, *initial_center, self.search_radius))
+        super().__init__(session, self.marker.structure)
+
+class VerifyLFCenterDialog(VerifyStructureCenterDialog):
     def __init__(self, session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution,
-            initial_center, opaque_maps, hbonds):
+            initial_center, hbonds, clashes):
         self._search_radius = None
         self.ligand_fmt = ligand_fmt
         self.ligand_value = ligand_value
@@ -1216,7 +1230,13 @@ class VerifyLFCenterDialog(VerifyCenterDialog):
         self.res_num = res_num
         self.resolution = resolution
         self.hbonds = hbonds
-        super().__init__(session, initial_center, opaque_maps)
+        self.clashes = clashes
+        if isinstance(self.ligand_value, Model):
+            pass
+        else:
+            pass
+        #TODO: adjust guide_structure coords so that they are centered at initial_center
+        super().__init__(session, initial_center, guide_structure)
 
     @property
     @abc.abstractmethod
@@ -1247,7 +1267,7 @@ class VerifyLFCenterDialog(VerifyCenterDialog):
                     m.rgba = tuple(rgba)
         center = self.marker.scene_coord
         _run_ligand_fit_command(self.session, self.ligand_fmt, self.ligand_value, self.receptor, self.map,
-            self.chain_id, self.res_num, self.resolution, center, self.hbonds)
+            self.chain_id, self.res_num, self.resolution, center, self.hbonds, self.clashes)
 
     @property
     def search_button_label(self):
@@ -1428,18 +1448,12 @@ class LaunchLigandFitTool(ToolInstance):
         self.verify_center_checkbox = QCheckBox("Interactively verify/adjust center before searching")
         self.verify_center_checkbox.setChecked(True)
         checkbox_layout.addWidget(self.verify_center_checkbox, alignment=Qt.AlignLeft)
-        self.opaque_maps_checkbox = QCheckBox("Make maps opaque while verifying center")
-        self.opaque_maps_checkbox.setToolTip(
-            "ChimeraX cannot show multiple transparent objects correctly, so make maps opaque\n"
-            "while transparent interactive search-center sphere is being displayed"
-        )
-        self.opaque_maps_checkbox.setChecked(self.settings.opaque_maps)
-        self.verify_center_checkbox.clicked.connect(lambda checked, b=self.opaque_maps_checkbox:
-            b.setHidden(not checked))
-        checkbox_layout.addWidget(self.opaque_maps_checkbox, alignment=Qt.AlignLeft)
         self.show_hbonds_checkbox = QCheckBox("Show H-bonds formed by fit ligand")
         self.show_hbonds_checkbox.setChecked(True)
         checkbox_layout.addWidget(self.show_hbonds_checkbox, alignment=Qt.AlignLeft)
+        self.show_clashes_checkbox = QCheckBox("Show clashes with fit ligand")
+        self.show_clashes_checkbox.setChecked(True)
+        checkbox_layout.addWidget(self.show_clashes_checkbox, alignment=Qt.AlignLeft)
 
         layout.addSpacing(10)
 
@@ -1543,12 +1557,13 @@ class LaunchLigandFitTool(ToolInstance):
             raise AssertionError("Unknown centering method")
         self.settings.search_center = method
         if self.verify_center_checkbox.isChecked():
-            self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
             VerifyLFCenterDialog(self.session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-                resolution, center, self.settings.opaque_maps, self.show_hbonds_checkbox.isChecked())
+                resolution, center, self.show_hbonds_checkbox.isChecked(),
+                self.show_clashes_checkbox.isChecked())
         else:
             _run_ligand_fit_command(self.session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-                resolution, center, self.show_hbonds_checkbox.isChecked())
+                resolution, center, self.show_hbonds_checkbox.isChecked(),
+                self.show_clashes_checkbox.isChecked())
         if not apply:
             self.display(False)
 
@@ -1604,7 +1619,6 @@ class LaunchLigandFitSettings(Settings):
     AUTO_SAVE = {
         'ligand_format': LaunchLigandFitTool.LIGAND_FMT_CCD,
         'search_center': LaunchLigandFitTool.CENTER_MODEL,
-        'opaque_maps': True,
     }
 
 def _run_emplace_local_command(session, structure, maps, resolution, prefitted, center, show_sharpened_map,
@@ -1622,16 +1636,16 @@ def _run_emplace_local_command(session, structure, maps, resolution, prefitted, 
     run(session, cmd)
 
 def _run_ligand_fit_command(session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution,
-        center, hbonds):
+        center, hbonds, clashes):
     from chimerax.core.commands import run, StringArg, BoolArg
     from chimerax.map import Volume
     LLFT = LaunchLigandFitTool
     lig_arg = "%s:%s" % ({LLFT.LIGAND_FMT_CCD: "ccd", LLFT.LIGAND_FMT_MODEL: "file",
         LLFT.LIGAND_FMT_PUBCHEM: "pubchem", LLFT.LIGAND_FMT_SMILES: "smiles"}[ligand_fmt],
         (ligand_value.atomspec if ligand_fmt == LLFT.LIGAND_FMT_MODEL else ligand_value))
-    cmd = "phenix ligandFit %s %s center %g,%g,%g inMap %s resolution %g hbonds %s" % (
+    cmd = "phenix ligandFit %s %s center %g,%g,%g inMap %s resolution %g hbonds %s clashes %s" % (
         receptor.atomspec, StringArg.unparse(lig_arg), *center, map.atomspec, resolution,
-        BoolArg.unparse(hbonds))
+        BoolArg.unparse(hbonds), BoolArg.unparse(clashes))
     if chain_id:
         cmd += " chain " + chain_id
     if res_num is not None:

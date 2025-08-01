@@ -16,7 +16,6 @@ from chimerax.core.tools import ToolInstance
 
 BUG_HOST = "www.rbvi.ucsf.edu"
 BUG_SELECTOR = "/chimerax/cgi-bin/chimerax_bug_report.py"
-BUG_URL = "https://" + BUG_HOST + BUG_SELECTOR
 
 
 # ------------------------------------------------------------------------------
@@ -257,7 +256,7 @@ class BugReporter(ToolInstance):
         from chimerax.webservices.post_form import post_multipart_formdata
         import socket
         try:
-            errcode, errmsg, headers, body = post_multipart_formdata(BUG_HOST, BUG_SELECTOR, fields, timeout=10)
+            errcode, errmsg, headers, body = post_multipart_formdata(BUG_HOST, BUG_SELECTOR, fields, timeout=10, ssl=True)
         except socket.gaierror:
             # Not connected to internet or hostname unknown.
             msg = 'Possibly no internet connection.'
@@ -278,7 +277,8 @@ class BugReporter(ToolInstance):
             return
 
         # Report success or error.
-        if int(errcode) == 200:
+        from http import HTTPStatus
+        if errcode == HTTPStatus.OK:
             self.report_success()
             self.cancel_button.setText("Close")
             self.submit_button.deleteLater()  # Prevent second submission
@@ -286,7 +286,7 @@ class BugReporter(ToolInstance):
             s.contact_name = self.contact_name.text()
             s.email_address = self.email_address.text()
         else:
-            self.report_failure()
+            self.report_failure(f"HTTP error {errcode} occurred")
 
     def read_attachment(self, file_path):
         if file_path:

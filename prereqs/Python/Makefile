@@ -5,9 +5,9 @@ include $(TOP)/mk/config.make
 # PYTHON_VERSION is in config.make
 PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 
-PIP_VERSION = 25.0.1
+PIP_VERSION = 25.2
 WHEEL_VERSION = 0.45.1
-SETUPTOOLS_VERSION = 78.1.1
+SETUPTOOLS_VERSION = 80.9.0
 BUILD_VERSION = 1.2.2.post1
 
 ifeq ($(OS),Windows)
@@ -233,7 +233,11 @@ endif
 endif
 
 $(DISTRIBUTION):
+ifeq ($(OS),Darwin)
+	NO_LOCAL_SSL_CERT=1 $(MAKE) -f Makefile.macos
+else
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/python/$(DISTRIBUTION)
+endif
 
 upload_new_version:
 	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/python

@@ -34,6 +34,9 @@ class _MyAPI(BundleAPI):
         elif ci.name == "debug expectfail":
             desc = CmdDesc(synopsis=ci.synopsis, required=[('command', RestOfLine)])
             register(ci.name, desc, test.run_expectfail, logger=logger)
+        elif ci.name == "debug parser":
+            desc = CmdDesc(synopsis=ci.synopsis, required=[('use_parser', BoolArg)])
+            register(ci.name, desc, test.run_new_parser, logger=logger)
 
 
 bundle_api = _MyAPI()

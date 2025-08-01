@@ -25,10 +25,15 @@ UCSF ChimeraX is built upon other great software.
 <li> <a href="#p"> Included Python Packages </a>
 </ul>
 
+<small><i>
+GENERATED
+</i></small>
+
 <h2><a id="o"> Included Software </a></h2>
 
 <dl>
-<dt><a href="https://www.python.org/" target="_blank"> Python </a> version 3.7
+<dt><a href="https://www.python.org/" target="_blank"> Python </a> version
+PYTHON_VERSION
 <dd>&ldquo;The Python programming language and interpreter.&rdquo;
 <br>
 History and License: <a href="https://docs.python.org/3/license.html" target="_blank">open source</a>
@@ -117,6 +122,12 @@ Linux only.
 <dd> The <b>flatten</b> function in <b>basictypes/latebind.py</b> is the basis for our <b>chimerax.core.utils.flattened</b> function.  The Python packages are not included.
 <br>
 License type: <a href="licenses/basictypes-license.txt" target="_blank">BSD license</a>
+ 
+<p>
+<dt><a href="https://github.com/yhirose/cpp-peglib" target="_blank">cpp-peglib</a> (downloaded 9 July 2024)
+	<dd>The cpp-peglib library was written by Yuji Hirose and is used in ChimeraX to parse command-line specifiers.  
+<br>
+License type: <a href="licenses/cpp-peglib-license.txt" target="_blank">MIT license</a>
  
 <p>
 <dt><a href="https://ambermd.org" target="_blank">AmberTools</a>

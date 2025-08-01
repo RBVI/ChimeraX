@@ -101,6 +101,7 @@ read from the input, typically including compound names
 and docking scores. The structures and their data are saved in
 <a href="../commands/save.html#session">sessions</a>.
 </p><p>
+<a name="chosen"></a>
 One or more rows can be <b><i>chosen</i></b> (highlighted) in the list
 by clicking and dragging with the left mouse button;
 <b>Ctrl</b>-click (or <b>command</b>-click if using a Mac)
@@ -172,13 +173,12 @@ In addition, any models other than the receptor and its docked compounds
 should be spatially separated from them or closed.
 </td></tr></table>
 </blockquote>
-<!--
-<li><b>Save...</b> save all compound structures and descriptors 
-(including current ratings) to a Mol2 file; the file can be
+<li><b>Save...</b> save all compound structures listed in the table
+and their descriptors (including ratings) to a Mol2 file; the file can be
 reopened later for further analysis with <b>ViewDock</b>
-<li><b>Close</b> &ndash; close any structures with ratings no greater 
-than the specified number and remove their rows from the table
--->
+<li><b>Close</b> &ndash; close the currently
+<a href="#chosen">chosen</a> compounds
+and remove their rows from the table
 </ul>
 
 <hr>

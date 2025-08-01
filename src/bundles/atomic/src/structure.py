@@ -979,7 +979,6 @@ class Structure(Model, StructureData):
             selected = [(selected[i] and choose(obj)) for i, obj in enumerate(objects)]
         return numpy.array(selected)
 
-
     def _atomspec_filter_residue(self, atoms, num_atoms, parts, attrs):
         # print("Structure._atomspec_filter_residue", num_atoms, parts, attrs)
         import numpy

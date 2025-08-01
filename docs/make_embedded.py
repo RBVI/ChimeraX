@@ -14,16 +14,17 @@ import copy
 from html import escape
 import os
 import pathlib
+import platform
 import importlib.metadata
 import shutil
 
 ffmpeg_doc = """
 <p>
-<dt><a href="https://ffmpeg.org/" target="_blank"> FFmpeg </a> version 3.2.4
+<dt><a href="https://ffmpeg.org/" target="_blank"> FFmpeg </a> version VERSION
 <dd>&ldquo;A complete, cross-platform solution to record, convert and stream audio and video.&rdquo;
 <br>
 License: <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU General Public License v3</a><br>
-Embedded licenses: <a href="licenses/ffmpeg/index.html" target="_blank">FFmpeg embedded licences</a>
+Embedded licenses: <a href="licenses/ffmpeg-LICENSE.html" target="_blank">FFmpeg embedded licences</a>
 <p>
 FFmpeg is bundled as a convenience for users of ChimeraX.
 It is a separate product,
@@ -204,12 +205,26 @@ def extract_version(srcdir, var_name):
         return version
 
 
-def ffmpeg_licenses():
+def ffmpeg_version():
     ffmpeg_srcdir = pathlib.Path('..', 'prereqs', 'ffmpeg')
     version = extract_version(ffmpeg_srcdir, "FFMPEG_VERSION")
     if version is None:
-        print('Unable to find openmm version')
-        return
+        print('Unable to find ffmpeg version')
+        return ''
+    return version
+
+
+def ffmpeg_licenses():
+    print("GOT HERE!!!")
+    import markdown
+    license_file = pathlib.Path('..', 'prereqs', 'ffmpeg', 'LICENSE.md')
+    with open(license_file, 'r', encoding='utf-8') as f:
+        license = f.read()
+    html = markdown.markdown(license)
+    with open('licenses/ffmpeg-LICENSE.html', 'w') as f:
+        f.write(html)
+    return
+    ffmpeg_srcdir = pathlib.Path('..', 'prereqs', 'ffmpeg')
     import zipfile
     windist_dir = 'ffmpeg-%s-win64-static' % version
     zip_filename = os.path.join(ffmpeg_srcdir, '%s.zip' % windist_dir)
@@ -282,9 +297,19 @@ with open('embedded.html.in') as src:
         for line in src.readlines():
             if line == 'PYTHON_PKGS\n':
                 print_pkgs(infos, out)
+            elif line == 'PYTHON_VERSION\n':
+                print(platform.python_version(), file=out)
+            elif line == 'GENERATED\n':
+                from chimerax.core import buildinfo
+                system = platform.system()
+                chver = buildinfo.version
+                date = buildinfo.date
+                msg = f"This information was generated from ChimeraX {chver} for {system} on {date}."
+                print(msg, file=out)
             elif line == '<!--ffmpeg-->\n':
                 if include_ffmpeg:
-                    print(ffmpeg_doc, end='', file=out)
+                    version = ffmpeg_version()
+                    print(ffmpeg_doc.replace("VERSION", version), end='', file=out)
             elif line == '<!--openmm-->\n':
                 if include_openmm:
                     print(openmm_doc, end='', file=out)

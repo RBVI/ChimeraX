@@ -21,7 +21,6 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-from PyQt6.QtWidgets import QMenu
 
 from chimerax.atomic import AtomicStructure
 from chimerax.ui import MainToolWindow
@@ -34,6 +33,7 @@ from chimerax.core.commands import run, concise_model_spec, StringArg
 from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
                           QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel, QWidget,)
+from Qt.QtWidgets import QMenu
 from Qt.QtGui import QFont
 from Qt.QtCore import Qt
 from chimerax.viewdock import RATING_KEY, DEFAULT_RATING
@@ -41,11 +41,13 @@ from chimerax.viewdock import RATING_KEY, DEFAULT_RATING
 
 class ViewDockTool(ToolInstance):
 
+    help = "help:user/tools/viewdock.html"
+
     SESSION_ENDURING = False
     SESSION_SAVE = True
     registered_mousemode = False
 
-    def __init__(self, session, tool_name, structures):
+    def __init__(self, session, tool_name, structures, *, table_state=None):
         """
         Initialize the ViewDock tool with, table, table controls, and model descriptions.
 
@@ -59,13 +61,13 @@ class ViewDockTool(ToolInstance):
         super().__init__(session, tool_name)
         self.display_name = "ViewDock"
 
-        self.tool_window = MainToolWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys=False)
 
         # Create a vertical layout for the tool
         self.main_v_layout = QVBoxLayout()
         self.tool_window.ui_area.setLayout(self.main_v_layout)
 
-        self.structures = self.filter_structures(structures)
+        vd_structures = self.filter_structures(structures)
 
         self.top_buttons_layout = QHBoxLayout()
         self.top_buttons_setup()
@@ -77,7 +79,7 @@ class ViewDockTool(ToolInstance):
         self.struct_table = ItemTable(session=self.session, column_control_info=(
             self.col_display_widget, self.settings, {}, True, None, None, True
         ))
-        self.table_setup()
+        self.table_setup(vd_structures, table_state)
 
         from .mousemode import register_mousemode, NextDockingMouseMode
         if not self.__class__.registered_mousemode:
@@ -86,7 +88,7 @@ class ViewDockTool(ToolInstance):
         NextDockingMouseMode.vd_instance = self
 
         self.description_group = QGroupBox()
-        self.description_box_setup()
+        self.description_box_setup(table_state)
 
 
 
@@ -142,10 +144,18 @@ class ViewDockTool(ToolInstance):
         save_area = QHBoxLayout()
         save_area.setSpacing(0)
         self.top_buttons_layout.addLayout(save_area)
-        self.save_mol2_button = QPushButton("Save")
-        self.save_mol2_button.clicked.connect(self.save_mol2_cb)
-        save_area.addWidget(self.save_mol2_button)
+        save_mol2_button = QPushButton("Save")
+        save_mol2_button.clicked.connect(self.save_mol2_cb)
+        save_area.addWidget(save_mol2_button)
         save_area.addWidget(QLabel(" Mol2 file"))
+
+        close_area = QHBoxLayout()
+        close_area.setSpacing(0)
+        self.top_buttons_layout.addLayout(close_area)
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(self.close_compounds_cb)
+        close_area.addWidget(close_button)
+        close_area.addWidget(QLabel(" chosen compounds"))
 
     def popup_callback(self, gui_class, popup_name, results_callback, **kwargs):
         """
@@ -182,10 +192,10 @@ class ViewDockTool(ToolInstance):
             # Default behavior for chimerax.ui.widgets
             command = gui_instance.get_command()
             # Binding analysis structures
-            mine = concise_model_spec(self.session, self.structures)
+            mine = concise_model_spec(self.session, self.struct_table.data)
             all_structures = self.session.models.list(type=AtomicStructure)
             # All structures that are AtomicStructures but not in the binding analysis structures
-            others = concise_model_spec(self.session, set(all_structures) - set(self.structures))
+            others = concise_model_spec(self.session, set(all_structures) - set(self.struct_table.data))
             if others == "#":
                 self.session.logger.warning(f"First open a receptor model for {popup_name.capitalize()}.")
             else:
@@ -225,7 +235,18 @@ class ViewDockTool(ToolInstance):
             model_spec = concise_model_spec(self.session, structures, allow_empty_spec=False)
             run(self.session, "save %s models %s" % (StringArg.unparse(path), model_spec))
 
-    def table_setup(self):
+    def close_compounds_cb(self, *args):
+        closures = self.struct_table.selected
+        if not closures:
+            from chimerax.core.errors import UserError
+            raise UserError("No compounds in table have been chosen")
+        if len(closures) == len(self.struct_table.data):
+            from chimerax.ui.ask import ask
+            if ask(self.session, "Really close all compounds?") == "no":
+                return
+        run(self.session, "close " + concise_model_spec(self.session, closures))
+
+    def table_setup(self, structures, table_state):
         """
         Create the ItemTable for the structures. Add a for the
         structure ID, a column for the Rating with a custom delegate, and columns for each key in the viewdock_data
@@ -242,11 +263,12 @@ class ViewDockTool(ToolInstance):
 
         # Fixed columns. Generic based on ChimeraX model attribute(s).
         id_col = self.struct_table.add_column('ID', lambda s: s.id_string, sort_func=self.id_lt)
-        # Custom Rating delegate
-        delegate = RatingDelegate(self.struct_table)  # Create the delegate instance
         self.struct_table.add_column('Rating', lambda s: s.viewdock_data.get(RATING_KEY),
                                      data_set = lambda item, value: None,
                                      editable=True)
+
+        # Custom Rating delegate
+        delegate = RatingDelegate(self.struct_table)  # Create the delegate instance
 
         # Associate the delegate with the "Rating" column
         rating_column_index = self.struct_table.column_names.index('Rating')
@@ -258,18 +280,21 @@ class ViewDockTool(ToolInstance):
 
         # Collect all unique keys from viewdock_data of all structures and add them as columns
         viewdock_keys = set()
-        for structure in self.structures:
+        for structure in structures:
             viewdock_keys.update(structure.viewdock_data.keys())
-        for key in viewdock_keys:
+        # Need to add columns in predictable order so that table-session state data works
+        for key in sorted(viewdock_keys, key=lambda k: k.lower()):
             if key == RATING_KEY:
                 # Rating is already added as a column with a custom delegate, skip it here
                 continue
             self.struct_table.add_column(key, lambda s, k=key: s.viewdock_data.get(k, ''))
 
         # Set the data for the table and launch it
-        self.struct_table.data = self.structures
-        self.struct_table.launch()
-        self.struct_table.sort_by(id_col, self.struct_table.SORT_ASCENDING)
+        self.struct_table.data = structures
+        # table_state is False if coming from ViewDockX session
+        self.struct_table.launch(session_info=(table_state if table_state else None))
+        if not table_state:
+            self.struct_table.sort_by(id_col, self.struct_table.SORT_ASCENDING)
 
         # Add the table group to the layout
         self.main_v_layout.addWidget(table_group)
@@ -302,7 +327,7 @@ class ViewDockTool(ToolInstance):
         # If all compared parts are equal, compare by length (e.g., "1.1" > "1.1.1").
         return len(id1_parts) < len(id2_parts)
 
-    def description_box_setup(self):
+    def description_box_setup(self, table_state):
         """
         Build the description box at the bottom of the tool which displays all the docking attribute information
         for a selected docking model.
@@ -325,9 +350,15 @@ class ViewDockTool(ToolInstance):
         # Add the group box to the main layout
         self.main_v_layout.addWidget(self.description_group)
 
-        if len(self.structures) > 0:
-            # Select the first structure in the table to display its data in the description box
-            self.struct_table.selected = [self.structures[0]]
+        if table_state is None:
+            if len(self.struct_table.data) > 0:
+                # Select the first structure in the table to display its data in the description box
+                self.struct_table.selected = [self.struct_table.data[0]]
+        elif table_state is False:
+            # ViewDockX session restore
+            self.struct_table.selected = [s for s in self.struct_table.data if s.display]
+        else:
+            self.table_selection_changed()
 
     def table_selection_changed(self, *args):
         """
@@ -351,7 +382,8 @@ class ViewDockTool(ToolInstance):
         selected = set(self.struct_table.selected)
         for s in self.struct_table.data:
             sel = s in selected
-            if s.display != sel:
+            # table doesn't know the data are models, so screen out closed models
+            if s.id and s.display != sel:
                 needs = needs_hide if s.display else needs_show
                 needs.append(s)
         self.set_visibility(needs_show, True)
@@ -449,13 +481,14 @@ class ViewDockTool(ToolInstance):
         if trigger_name != REMOVE_MODELS:
             return
 
+        cur_structures = self.struct_table.data
         for model in trigger_data:
-            if model in self.structures:
-                self.structures.remove(model)
-        if not self.structures:
+            if model in cur_structures:
+                cur_structures.remove(model)
+        if not cur_structures:
             self.delete()
         else:
-            self.struct_table.data = self.structures
+            self.struct_table.data = cur_structures
 
     def set_visibility(self, structs, value):
         """
@@ -522,7 +555,8 @@ class ViewDockTool(ToolInstance):
     def take_snapshot(self, session, flags):
         return {
             'version': 1,
-            'structures': self.structures,
+            'structures': self.struct_table.data,
+            'table_state': self.struct_table.session_info(),
             'tool_name': self.tool_name
         }
 
@@ -539,7 +573,7 @@ class ViewDockTool(ToolInstance):
                     "Can only convert ViewDockX version 2 tool instances for ViewDock."
                 )
                 return None
-            return cls(session, "ViewDock", snapshot['structures'])
+            return cls(session, "ViewDock", snapshot['structures'], table_state=False)
         # ViewDock snapshots
         if snapshot['version'] != 1:
             session.logger.warning(
@@ -548,7 +582,8 @@ class ViewDockTool(ToolInstance):
             )
             return None
 
-        return cls(session, snapshot['tool_name'], snapshot['structures'])
+        return cls(session, snapshot['tool_name'], snapshot['structures'],
+            table_state=snapshot.get('table_state', None))
 
 class RatingDelegate(QStyledItemDelegate):
     """

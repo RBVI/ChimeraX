@@ -734,13 +734,17 @@ class ItemTable(QTableView):
         bottom_right = self._table_model.index(len(self._data)-1, self._columns.index(column))
         self._table_model.dataChanged.emit(top_left, bottom_right, changes)
 
-    def write_values(self, file=None, *, separator=None):
+    def write_values(self, file=None, *, separator=None, header_vals=None, row_func=None):
         """ Write the table headers and contents to a comma/tab/other-separated value file.
             With no args, query the user for the file name whether to use commas or tabs as separators.
             If the 'file' arg is supplied, then the 'separator' arg must also be supplied and the
             requested file will be written.  You *can* omit 'file' but still specifiy 'separator', in
             which case the user will be queried for the file ('separator' has to be comma or tab in
             this usage).
+
+            The header and row output can be customized by supplying 'header_vals' and/or 'row_func'.
+            'header_vals' should be a list of strings and 'row_func' should be a function that takes
+            a data item as its only argument and returns a list of strings.
         """
         all_separators = ['\t', ',']
         if separator is None:
@@ -775,7 +779,9 @@ class ItemTable(QTableView):
             separator = filter_to_sep[filter]
         from chimerax.io import open_output
         with open_output(file, encoding="utf-8") as f:
-            print(separator.join(self.column_names), file=f)
+            if header_vals is None:
+                header_vals = self.column_names
+            print(separator.join(header_vals), file=f)
             def printable(col, datum):
                 dval = col.display_value(datum)
                 if isinstance(dval, str):
@@ -785,8 +791,11 @@ class ItemTable(QTableView):
                 except Exception:
                     return ""
             for datum in self.sorted_data:
-                print(separator.join([printable(col, datum) for col in self.columns]),
-                    file=f)
+                if row_func is None:
+                    row_vals = [printable(col, datum) for col in self.columns]
+                else:
+                    row_vals = row_func(datum)
+                print(separator.join(row_vals), file=f)
 
     def _add_column_control_entry(self, col):
         action = QAction(col.title)
