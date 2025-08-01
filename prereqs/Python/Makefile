@@ -233,7 +233,11 @@ endif
 endif
 
 $(DISTRIBUTION):
+ifeq ($(OS),Darwin)
+	NO_LOCAL_SSL_CERT=1 $(MAKE) -f Makefile.macos
+else
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/python/$(DISTRIBUTION)
+endif
 
 upload_new_version:
 	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/python
