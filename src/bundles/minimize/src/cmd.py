@@ -135,16 +135,31 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     for b in structure.bonds:
         top.addBond(atoms[b.atoms[0]], atoms[b.atoms[1]])
 
-    forcefield = ForceField('amber14-all.xml', 'amber14/tip3pfb.xml')
-    unmatched_omm_residues = forcefield.getUnmatchedResidues(top)
-    if unmatched_omm_residues:
-        #from .parameterize import parameterize
-        from chimerax.core.commands import commas
-        print("Unmatched residues: %s" % commas([rname for rname in set([r.name for r in unmatched_omm_residues])], conjunction="and"))
-        #TODO: need to find these residues in structure, sort into isomers, for each generate a
-        # ForceField._TemplateData (see openmm.app.forcefield), possibly add a distinguishing isomer
-        # number, and register template
-        raise LimitationError("Non-standard residues in structure; see log for details")
+    forcefield = ForceField('amber14-all.xml', 'amber14/tip3pfb.xml', 'amber/gaff-2.2.20.xml')
+    while True:
+        templates, no_tmpl_omm_residues = forcefield.generateTemplatesForUnmatchedResidues(top)
+        if not templates:
+            break
+        omm_res_to_cx = { omm_r: cx_r for cx_r, omm_r in residues.items() }
+        for template, omm_res in zip(templates, no_tmpl_omm_residues):
+            cx_res = omm_res_to_cx[omm_res]
+            for omm_atom in template.atoms:
+                #TODO: actually need to define a "type" within the forcefield object itself and use that
+                gaff_type = cx_res.find_atom(omm_atom.name).gaff_type
+    '''
+        unmatched_omm_residues = forcefield.getUnmatchedResidues(top)
+        if unmatched_omm_residues:
+            omm_res_to_cx = { omm_r: cx_r for cx_r, omm_r in residues.items() }
+            #from .parameterize import parameterize
+            from chimerax.core.commands import commas
+            rnames = [r.name for r in unmatched_omm_residues]
+            print("Unmatched residue types: %s" % commas(["%s [%d]" % (rname, rnames.count(rname)) for rname in set(rnames)], conjunction="and"))
+            print("Unmatched residues: %s" % commas([str(omm_res_to_cx[omm_r]) for omm_r in unmatched_omm_residues], conjunction="and"))
+            #TODO: need to find these residues in structure, sort into isomers, for each generate a
+            # ForceField._TemplateData (see openmm.app.forcefield), possibly add a distinguishing isomer
+            # number, and register template
+            raise LimitationError("Non-standard residues in structure; see log for details")
+    '''
     try:
         system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
     except ValueError as e:
