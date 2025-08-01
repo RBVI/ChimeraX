@@ -261,7 +261,7 @@ runs:
           mv Python* prereqs/Python/
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
-          cd prereqs/Python && make -f Makefile.macos
+          cd prereqs/Python && NO_LOCAL_SSL_CERT=1 make -f Makefile.macos
         fi
         if [ "${{ inputs.platform }}" = "windows" ] ; then
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/python/python-3.11.4-win-amd64.tar.bz2 -O -J
