@@ -23,12 +23,13 @@
 # === UCSF ChimeraX Copyright ===
 
 def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
-                  protein = [], dna = [], rna = [], ligand_ccd = [], ligand_smiles = [],
+                  protein = [], dna = [], rna = [],
+                  ligand_ccd = [], ligand_smiles = [], for_each_smiles_ligand = [],
                   name = None, results_directory = None,
                   device = None, kernels = None, precision = None, float16 = False,
                   samples = 1, recycles = 3, seed = None,
                   affinity = None, steering = False,
-                  use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
+                  msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                   open = True, install_location = None, wait = None):
 
     if install_location is not None:
@@ -51,7 +52,13 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
     molecular_components = polymer_components + ligand_components
 
     predict_affinity = _affinity_component(affinity, ligand_components)
-                            
+
+    for_each_ligand = _for_each_ligand(for_each_smiles_ligand, used_chain_ids)
+    if for_each_ligand:
+        if not _cache_msa(session, name, molecular_components, msa_cache_dir):
+            from chimerax.core.errors import UserError
+            raise UserError(f'Failed computing MSA for {len(for_each_ligand)} ligand predictions') 
+    
     # Warn about unmodeled compnents
     if unmodeled_chains:
         msg = f'Chains {", ".join(unmodeled_chains)} not modeled because not protein/DNA/RNA'
@@ -59,11 +66,12 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
     if covalent_ligands:
         session.logger.info(f'Predicting covalent ligands not yet supported: {covalent_ligands}')
 
-    br = BoltzRun(session, molecular_components, name = name, align_to = align_to,
+    br = BoltzRun(session, molecular_components, for_each_ligand = for_each_ligand,
+                  name = name, align_to = align_to,
                   samples = samples, recycles = recycles, seed = seed,
                   predict_affinity = predict_affinity, use_steering_potentials = steering,
                   device = device, use_kernels = kernels, precision = precision, cuda_bfloat16 = float16,
-                  use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
+                  msa_only = msa_only, use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
                   open = open, wait = wait)
     br.start(results_directory)
 
@@ -152,7 +160,19 @@ def _ligand_components(ligands, exclude_ligands, ligand_ccd, ligand_smiles, used
 
 # ------------------------------------------------------------------------------
 #
+def _for_each_ligand(name_and_smiles, used_chain_ids):
+    if len(name_and_smiles) == 0:
+        return None
+    chain_ids = _next_chain_id(used_chain_ids)
+    ligands = [BoltzMolecule('ligand', smiles_string = smiles, name = name, chain_ids = chain_ids)
+               for name, smiles in name_and_smiles]
+    return ligands
+        
+# ------------------------------------------------------------------------------
+#
 def _affinity_component(affinity, ligand_components):
+    if affinity == 'each':
+        return 'each'		# Predicting multiple structures with different ligands
     predict_affinity = None
     if affinity:
         for lig_comp in ligand_components:
@@ -169,26 +189,44 @@ def _affinity_component(affinity, ligand_components):
 
 # ------------------------------------------------------------------------------
 #
+def _cache_msa(session, name, molecular_components, msa_cache_dir):
+    proteins = [mc for mc in molecular_components if mc.type == 'protein']
+    protein_seqs = [mc.sequence_string for mc in proteins]
+    if protein_seqs:
+        msa_cache_files = _find_msa_cache_files(protein_seqs, msa_cache_dir)
+        if not msa_cache_files:
+            msa_name = f'{name}_msa' if name else 'msa'
+            br = BoltzRun(session, proteins, name = msa_name,
+                          msa_only = True, msa_cache_dir = msa_cache_dir, wait = True)
+            br.start()
+            return br.success
+    return True 
+
+# ------------------------------------------------------------------------------
+#
 class BoltzMolecule:
-    def __init__(self, type, chain_ids, sequence_string = None, ccd_code = None, smiles_string = None):
+    def __init__(self, type, chain_ids, sequence_string = None, ccd_code = None, smiles_string = None, name = None):
         self.type = type	# protein, dna, rna, ligand
         self.chain_ids = chain_ids
         self.sequence_string = sequence_string
         self.ccd_code = ccd_code
         self.smiles_string = smiles_string
+        self.name = name
 
 # ------------------------------------------------------------------------------
 #
 class BoltzRun:
-    def __init__(self, session, molecular_components, name = None, align_to = None,
+    def __init__(self, session, molecular_components, for_each_ligand = None,
+                 name = None, align_to = None,
                  samples = 1, recycles = 3, seed = None,
                  predict_affinity = None, use_steering_potentials = False,
                  device = 'default', use_kernels = None, precision = None, cuda_bfloat16 = False,
-                 use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
+                 msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                  open = True, wait = False):
 
         self._session = session
         self._molecular_components = molecular_components  # List of BoltzMolecule
+        self._for_each_ligand = for_each_ligand		   # List of BoltzMolecule
         self.name = name
         self._align_to = align_to	# AtomicStructure to align prediction to.
         self._samples = samples		# Number of predicted structures
@@ -202,8 +240,8 @@ class BoltzRun:
         self._seed = seed		# Random seed for computation
         self._open = open		# Whether to open predictions when boltz finishes.
 
-        self._results_directory = None
-        self._yaml_path = None
+        self._run_directory = None	# Location of input and results files
+        self._input_path = None		# YAML file path or directory of yaml files
         self._running = False
         self._stage = ''		# String included in status messages
         self._stage_times = {}		# Stage name to elapsed time for that stage
@@ -216,35 +254,23 @@ class BoltzRun:
         self._predicted_structures = []	# AtomicStructure instances opened when job completes
 
         # MSA cache parameters
+        self._msa_only = msa_only
         self.use_msa_cache = use_msa_cache
         from os.path import expanduser
         self.msa_cache_dir = expanduser(msa_cache_dir)
         self.use_msa_server = True
         self.cached_msa_dir = None
 
-    def start(self, results_location):
-        yaml = self._create_yaml_input()
-
-        dir = self._unique_results_directory(results_location)
-        self._results_directory = dir
-
-        from os import path
-        if self.name is None:
-            self.name = path.basename(dir)
-        yaml_filename = f'{self.name}.yaml'
-        self._yaml_path = path.join(dir, yaml_filename)
-
-        with open(self._yaml_path, 'w') as f:
-            f.write(yaml)
-
+    def start(self, run_location = None):
+        self._write_yaml_input_file(run_location)
         self._run_boltz_local()
 
-    def _unique_results_directory(self, results_location):
-        if results_location is None:
-            results_location = self._settings.boltz_results_location
+    def _unique_run_directory(self, run_location):
+        if run_location is None:
+            run_location = self._settings.boltz_results_location
 
         from os.path import expanduser
-        rdir = expanduser(results_location)
+        rdir = expanduser(run_location)
         rdir = self._add_directory_suffix(rdir)
 
         from os.path import exists
@@ -287,13 +313,53 @@ class BoltzRun:
         settings = _boltz_settings(self._session)
         return settings
 
-    def _create_yaml_input(self):
+    def _write_yaml_input_file(self, run_location):
+        # Create yaml before making directory so directory is not created
+        # if yaml parsing fails.
+        if self._for_each_ligand:
+            yamls = []
+            for ligand in self._for_each_ligand:
+                components = self._molecular_components + [ligand]
+                affinity = ligand if self._predict_affinity == 'each' else self._predict_affinity
+                yaml = self._create_yaml_input(components, predict_affinity = affinity,
+                                               msa_cache_files = self._msa_cache_files())
+                yamls.append(yaml)
+        else:
+            yaml = self._create_yaml_input()
+
+        dir = self._run_directory
+        if dir is None:
+            dir = self._unique_run_directory(run_location)
+            self._run_directory = dir
+
+        from os import path
+        if self.name is None:
+            self.name = path.basename(dir)
+
+        if self._for_each_ligand:
+            for ligand, yaml in zip(self._for_each_ligand, yamls):
+                yaml_filename = f'{ligand.name}.yaml'
+                yaml_path = path.join(dir, yaml_filename)
+                with open(yaml_path, 'w') as f:
+                    f.write(yaml)
+            self._input_path = dir
+        else:
+            yaml_filename = f'{self.name}.yaml'
+            self._input_path = path.join(dir, yaml_filename)
+            with open(self._input_path, 'w') as f:
+                f.write(yaml)
+
+    def _create_yaml_input(self, molecular_components = None, predict_affinity = None, msa_cache_files = None):
+        if molecular_components is None:
+            molecular_components = self._molecular_components
+
         yaml_lines = ['version: 1',
                       'sequences:']
 
         # Create yaml for polymers
-        msa_cache_files = self._msa_cache_files()
-        for mc in self._molecular_components:
+        if msa_cache_files is None:
+            msa_cache_files = self._msa_cache_files()
+        for mc in molecular_components:
             if mc.type in ('protein', 'dna', 'rna'):
                 polymer_entry = [f'  - {mc.type}:',
                                  f'      id: [{", ".join(mc.chain_ids)}]',
@@ -304,7 +370,7 @@ class BoltzRun:
                 yaml_lines.extend(polymer_entry)
 
         # Create yaml for ligands
-        for mc in self._molecular_components:
+        for mc in molecular_components:
             if mc.type == 'ligand':
                 ligand_entry = [ '  - ligand:',
                                 f'      id: [{", ".join(mc.chain_ids)}]']
@@ -316,8 +382,10 @@ class BoltzRun:
                 yaml_lines.extend(ligand_entry)
 
         # Predict affinity
-        if self._predict_affinity:
-            ligand_chain_id = self._predict_affinity.chain_ids[-1]
+        if predict_affinity is None:
+            predict_affinity = self._predict_affinity
+        if predict_affinity:
+            ligand_chain_id = predict_affinity.chain_ids[-1]
             affinity_lines = [
                 'properties:',
                 '  - affinity:', 
@@ -360,10 +428,13 @@ class BoltzRun:
         from .install import find_executable
         boltz_exe = find_executable(boltz_venv, 'boltz')
 
-        command = [boltz_exe, 'predict', self._yaml_path]
+        command = [boltz_exe, 'predict', self._input_path]
         
         if self.use_msa_server:
             command.append('--use_msa_server')
+
+        if self._msa_only:
+            command.append('--msa_only')
 
         if self._use_steering_potentials:
             command.append('--use_potentials')
@@ -404,7 +475,7 @@ class BoltzRun:
 
         # Save command to a file
         from os.path import join
-        command_file = join(self._results_directory, 'command')
+        command_file = join(self._run_directory, 'command')
         self._command = cmd = ' '.join(command)
         with open(command_file, 'w') as f:
             f.write(cmd)
@@ -412,7 +483,7 @@ class BoltzRun:
         from subprocess import Popen, PIPE
         from .install import _no_subprocess_window
         # To continue to run even if ChimeraX exits use start_new_session=True
-        p = Popen(command, cwd = self._results_directory,
+        p = Popen(command, cwd = self._run_directory,
                   stdout = PIPE, stderr = PIPE, env=env,
                   creationflags = _no_subprocess_window())
         self._process = p
@@ -537,7 +608,7 @@ class BoltzRun:
     
     def _process_completed(self, stdout, stderr):
         
-        dir = self._results_directory
+        dir = self._run_directory
         from os.path import join
         with open(join(dir, 'stdout'), 'w') as f:
             f.write(stdout)
@@ -549,14 +620,19 @@ class BoltzRun:
             self._session.logger.error(msg)
             success = False
         else:
-            self._copy_predictions()
-            self._report_confidence()
-            if self._predict_affinity:
-                self._report_affinity()
-            self._report_runtime()
-            self._cite()
-            if self._open:
-                self._open_predictions()
+            if self._msa_only:
+                self._report_runtime()
+            elif self._for_each_ligand:
+                self._report_for_each_ligand_results()
+            else:
+                self._copy_predictions()
+                self._report_confidence()
+                if self._predict_affinity:
+                    self._report_affinity()
+                self._report_runtime()
+                self._cite()
+                if self._open:
+                    self._open_predictions()
             success = True
 
         self._add_to_msa_cache()
@@ -606,7 +682,7 @@ class BoltzRun:
                    ' number of protein and nucleic acid residues plus the number of ligand'
                    ' atoms.  You can reduce the size of your molecular assembly to stay'
                    ' within the memory limits.')
-        elif exit_code != 0 or not self._predicted_model_exists():
+        elif exit_code != 0 or (not self._msa_only and not self._predicted_model_exists()):
             if 'No supported gpu backend found' in stderr:
                 msg = ('Attempted to run Boltz on the GPU but no supported GPU device could be found.'
                        ' To avoid this error specify the compute device as "cpu" in the ChimeraX Boltz'
@@ -651,9 +727,12 @@ class BoltzRun:
         return msg
 
     def _predicted_model_exists(self):
+        if self._for_each_ligand:
+            name = self._for_each_ligand[0].name
+        else:
+            name = self.name
         from os.path import join, exists
-        mmcif_path = join(self._results_directory, f'boltz_results_{self.name}', 'predictions', self.name,
-                          f'{self.name}_model_0.cif')
+        mmcif_path = join(self._predictions_directory, name, f'{name}_model_0.cif')
         return exists(mmcif_path)
         
     @property
@@ -667,9 +746,26 @@ class BoltzRun:
 
     def _prediction_ran_out_of_memory(self, stdout):
         from os.path import join, exists
-        pdir = join(self._results_directory, f'boltz_results_{self.name}', 'predictions', self.name)
+        pdir = join(self._predictions_directory, self.name)
         return not exists(pdir) and 'ran out of memory' in stdout
-            
+
+    @property
+    def _results_directory(self):
+        if self._for_each_ligand:
+            # Boltz names the results directory using the run directory name
+            from os.path import basename
+            name = basename(self._run_directory)
+        else:
+            # Boltz names the results directory using the yaml file name.
+            name = self.name
+        from os.path import join
+        return join(self._run_directory, f'boltz_results_{name}')
+
+    @property
+    def _predictions_directory(self):
+        from os.path import join
+        return join(self._results_directory, 'predictions')
+    
     def _open_predictions(self):
         for n in range(self._samples):
             self._open_prediction(n)
@@ -677,7 +773,7 @@ class BoltzRun:
     def _open_prediction(self, n):        
         # Find path to predicted model
         from os.path import join, exists
-        mmcif_path = join(self._results_directory, f'{self.name}_model_{n}.cif')
+        mmcif_path = join(self._run_directory, f'{self.name}_model_{n}.cif')
         if not exists(mmcif_path):
             self._session.logger.warning('Prediction file not found: %s' % mmcif_path)
             return
@@ -704,9 +800,9 @@ class BoltzRun:
         Copy them to the same directory as the input yaml file for ease of use.
         '''
         # Find path to predicted model
-        dir = self._results_directory
+        dir = self._run_directory
         from os.path import join
-        pdir = join(dir, f'boltz_results_{self.name}', 'predictions', self.name)
+        pdir = join(self._predictions_directory, self.name)
         from os import listdir
         from shutil import copy
         for filename in listdir(pdir):
@@ -720,8 +816,8 @@ class BoltzRun:
         protein_seqs = [mc.sequence_string for mc in self._molecular_components if mc.type == 'protein']
         if len(protein_seqs) == 0:
             return False
-        from os.path import join, exists
-        msa_dir = join(self._results_directory, f'boltz_results_{self.name}', 'msa')
+        from os.path import exists
+        msa_dir = self._msa_directory
         if not exists(msa_dir):
             return False
         from os import listdir
@@ -730,16 +826,18 @@ class BoltzRun:
             return False
         _add_to_msa_cache(self.name, protein_seqs, msa_dir, self.msa_cache_dir)
 
+    @property
+    def _msa_directory(self):
+        from os.path import join
+        return join(self._results_directory, 'msa')
+
     def _report_confidence(self):
         from os.path import join, exists
         lines = []
         for sample in range(self._samples):
-            conf_json = join(self._results_directory, f'confidence_{self.name}_model_{sample}.json')
-            if not exists(conf_json):
+            results = _read_json(self._predictions_directory, f'confidence_{self.name}_model_{sample}.json')
+            if not results:
                 continue
-            import json
-            with open(conf_json, 'r') as f:
-                results = json.load(f)
             conf = results.get('confidence_score', -1)
             ptm = results.get('ptm', -1)
             iptm = results.get('iptm', -1)
@@ -763,18 +861,24 @@ class BoltzRun:
         ligand_mol = self._predict_affinity
         if ligand_mol is None:
             return
-        from os.path import join, exists
-        affinity_json = join(self._results_directory, f'affinity_{self.name}.json')
-        if exists(affinity_json):
-            import json
-            with open(affinity_json, 'r') as f:
-                results = json.load(f)
-            log_ic50_uM = results['affinity_pred_value']
-            ic50_uM = 10.0 ** log_ic50_uM
+        results = _read_json(self._predictions_directory, f'affinity_{self.name}.json')
+        if results:
+            log_affinity_uM = results['affinity_pred_value']
+            affinity_uM = 10.0 ** log_affinity_uM
             prob = results['affinity_probability_binary']
             lig_spec = (ligand_mol.ccd_code or ligand_mol.smiles_string)
-            msg = f'Ligand {lig_spec} predicted binding affinity {"%.2g" % ic50_uM} uM, predicted binding probability {"%.2g" % prob}'
+            msg = f'Ligand {lig_spec} predicted binding affinity {"%.2g" % affinity_uM} uM, predicted binding probability {"%.2g" % prob}'
             self._session.logger.info(msg)
+
+    def _report_for_each_ligand_results(self):
+        n = len(self._for_each_ligand)
+        msg = f'Predicted structures for {n} ligands'
+        self._session.logger.info(msg)
+        self._report_runtime()
+        # Create table of results
+        smiles = {lig.name:lig.smiles_string for lig in self._for_each_ligand}
+        LigandPredictionResults(self._session, self._predictions_directory,
+                                smiles = smiles, align_to = self._align_to)
 
     def _cite(self):
         session = self._session
@@ -783,6 +887,17 @@ class BoltzRun:
             session.logger.info(msg, is_html = True)
             session._cite_boltz = True  # Only log this message once per session.
 
+# ------------------------------------------------------------------------------
+#
+def _read_json(directory, filename):
+    from os.path import join, exists
+    path = join(directory, filename)
+    if not exists(path):
+        return None
+    import json
+    with open(path, 'r') as f:
+        results = json.load(f)
+    return results
 
 # ------------------------------------------------------------------------------
 #
@@ -815,6 +930,134 @@ def _chain_names(chains):
             sc[s] = []
         sc[s].append(chain.chain_id)
     return ''.join(str(s) + '/' + ','.join(schains) for s, schains in sc.items())
+
+# ------------------------------------------------------------------------------
+#
+def boltz_results(session, predictions_directory, align_to = None):
+    '''Show a table of Boltz prediction results.'''
+    LigandPredictionResults(session, predictions_directory, align_to = align_to)
+
+# ------------------------------------------------------------------------------
+#
+from chimerax.core.tools import ToolInstance
+class LigandPredictionResults(ToolInstance):
+    def __init__(self, session, predictions_directory, smiles = None, align_to = None):
+        self._predictions_directory = predictions_directory
+        self._smiles = smiles
+        self._opened = [] if align_to is None else [align_to]
+        ToolInstance.__init__(self, session, 'Boltz Ligand Predictions')
+
+        from chimerax.ui import MainToolWindow
+        tw = MainToolWindow(self)
+        self.tool_window = tw
+        parent = tw.ui_area
+
+        from chimerax.ui.widgets import vertical_layout
+        layout = vertical_layout(parent, margins = (5,0,0,0))
+
+        # Heading
+        from chimerax.ui.widgets import EntriesRow
+        hl = EntriesRow(parent, 'Boltz predicted structures with ligands')
+        layout.addWidget(hl.frame)
+
+        # Table
+        rows = self._table_rows()
+        hl.labels[0].setText(f'Boltz predicted structures for {len(rows)} ligands')
+        self._ligands_table = lt = BoltzLigandsTable(parent, rows)
+        layout.addWidget(lt)
+
+        # Buttons
+        from chimerax.ui.widgets import button_row
+        bf = button_row(parent,
+                        [('Open', self._open_selected),],
+                        spacing = 2)
+        bf.setContentsMargins(0,5,0,0)
+        layout.addWidget(bf)
+
+        from .boltz_gui import boltz_panel
+        bpanel = boltz_panel(self.session)
+        placement = bpanel.tool_window if bpanel else 'right'
+        tw.manage(placement = placement)
+
+    def _table_rows(self):
+        rows = []
+        pdir = self._predictions_directory
+        from os.path import join
+        import os
+        ligand_names = os.listdir(pdir)
+        for ligand_name in ligand_names:
+            ldir = join(pdir, ligand_name)
+            confidence = _read_json(ldir, f'confidence_{ligand_name}_model_0.json')
+            lig_iptm = confidence.get('ligand_iptm')
+            affinity = _read_json(ldir, f'affinity_{ligand_name}.json')
+            if affinity:
+                log_affinity_uM = affinity.get('affinity_pred_value')
+                affinity_uM = 10.0 ** log_affinity_uM
+                prob = affinity.get('affinity_probability_binary')
+            else:
+                affinity_uM = prob = None
+            smiles = self._smiles.get(ligand_name) if self._smiles else None
+            row = LigandsTableRow(ligand_name, lig_iptm, affinity_uM, prob, smiles=smiles)
+            rows.append(row)
+        return rows
+
+    def _open_selected(self):
+        rows = self._ligands_table.selected		# LigandsTableRow instances
+        paths = []
+        from os.path import join
+        for row in rows:
+            name = row.ligand_name
+            path = join(self._predictions_directory, name, f'{name}_model_0.cif')
+            paths.append(path)
+
+        # Open models
+        from chimerax.core.commands import run, quote_path_if_necessary, concise_model_spec
+        qpaths = [quote_path_if_necessary(path) for path in paths]
+        cmd = 'open ' + ' '.join(qpaths)
+        models = run(self.session, cmd)
+
+        # Align models
+        self._opened = [m for m in self._opened if not m.deleted]
+        malign = models if self._opened else models[1:]
+        self._opened.extend(models)
+        if len(self._opened) > 1:
+            model_spec = concise_model_spec(self.session, malign)
+            first_model_spec = concise_model_spec(self.session, self._opened[:1])
+            cmd = f'mm {model_spec} to {first_model_spec} logParameters false'
+            run(self.session, cmd)
+
+        return models
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.ui.widgets import ItemTable
+class BoltzLigandsTable(ItemTable):
+    def __init__(self, parent, rows):
+        ItemTable.__init__(self, parent = parent)
+        self.add_column('Ligand', 'ligand_name')
+        iptm = self.add_column('ipTM', 'iptm_score', format = '%.2f')
+        self.add_column('Affinity (uM)', 'binding_affinity', format = '%.2g')
+        self.add_column('Binding probability', 'binding_probability', format = '%.2g')
+        smiles = self.add_column('SMILES', 'smiles')
+        self.data = rows
+        self.launch()
+        self.sort_by(iptm, self.SORT_DESCENDING)
+        smiles_column_index = self.columns.index(smiles)
+        smiles_column_width = 250
+        self.setColumnWidth(smiles_column_index, smiles_column_width)
+#        self.setAutoScroll(False)  # Otherwise click on Description column scrolls horizontally
+#        from Qt.QtWidgets import QSizePolicy
+#        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)  # Don't resize whole panel width
+
+# -----------------------------------------------------------------------------
+#
+class LigandsTableRow:
+    def __init__(self, ligand_name, iptm_score, binding_affinity, binding_probability, smiles = None):
+        self.ligand_name = ligand_name
+        self.iptm_score = iptm_score
+        self.binding_affinity = binding_affinity
+        self.binding_probability = binding_probability
+        self.smiles = smiles
 
 # ------------------------------------------------------------------------------
 #
@@ -902,7 +1145,8 @@ def _torch_has_cuda(session):
 #
 def _find_msa_cache_files(protein_seqs, msa_cache_dir):
     msa_cache_files = []
-    from os.path import exists, join, splitext
+    from os.path import exists, join, splitext, expanduser
+    msa_cache_dir = expanduser(msa_cache_dir)
     if not exists(msa_cache_dir):
         return msa_cache_files
     index_path = join(msa_cache_dir, 'index')
@@ -1159,6 +1403,21 @@ class LigandsArg(Annotation):
 
 # ------------------------------------------------------------------------------
 #
+class NamedLigandsArg(Annotation):
+    name = 'list of name and smiles string'
+
+    @classmethod
+    def parse(cls, text, session):
+        value, used, rest = StringArg.parse(text, session)
+        ligands = [name_smiles.split() for name_smiles in value.split(',')]
+        for ligand in ligands:
+            if len(ligand) != 2:
+                bad_lig = ' '.join(ligand)
+                raise AnnotationError(f'Named ligands must be a comma separated list of name space smiles string, got {value}, and "{bad_lig}" does not have name and smiles')
+        return ligands, used, rest
+
+# ------------------------------------------------------------------------------
+#
 class RepeatSequencesArg(Annotation):
     name = 'sequences'
     allow_repeat = 'expand'
@@ -1174,8 +1433,8 @@ class RepeatSequencesArg(Annotation):
 # ------------------------------------------------------------------------------
 #
 def register_boltz_predict_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg, EnumOf, IntArg
-    from chimerax.atomic import SequencesArg, ResiduesArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg, EnumOf, IntArg, OpenFolderNameArg
+    from chimerax.atomic import SequencesArg, ResiduesArg, AtomicStructureArg
 
     desc = CmdDesc(
         optional = [('sequences', SequencesArg)],
@@ -1186,6 +1445,7 @@ def register_boltz_predict_command(logger):
                    ('rna', RepeatSequencesArg),
                    ('ligand_ccd', LigandsArg),
                    ('ligand_smiles', LigandsArg),
+                   ('for_each_smiles_ligand', NamedLigandsArg),
                    ('name', StringArg),
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
@@ -1198,6 +1458,7 @@ def register_boltz_predict_command(logger):
                    ('recycles', IntArg),
                    ('seed', IntArg),
                    ('use_msa_cache', BoolArg),
+                   ('msa_only', BoolArg),
                    ('open', BoolArg),
                    ('install_location', SaveFolderNameArg),
                    ('wait', BoolArg)],
@@ -1205,4 +1466,12 @@ def register_boltz_predict_command(logger):
         url = 'help:boltz_help.html'
     )
     register('boltz predict', desc, boltz_predict, logger=logger)
+
+    desc = CmdDesc(
+        required = [('predictions_directory', OpenFolderNameArg),],
+        keyword = [('align_to', AtomicStructureArg),],
+        synopsis = 'Show table of Boltz prediction results',
+        url = 'help:boltz_help.html'
+    )
+    register('boltz results', desc, boltz_results, logger=logger)
 

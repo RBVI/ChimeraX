@@ -173,7 +173,8 @@ class BoltzPredictionGUI(ToolInstance):
     #
     def _update_entry_display(self):
         text = self._seq_button.text()
-        if text in ('protein sequence', 'rna sequence', 'dna sequence', 'ligand SMILES string'):
+        if text in ('protein sequence', 'rna sequence', 'dna sequence', 'ligand SMILES string',
+                    'each ligand SMILES string'):
             show_seq, show_uniprot = True, False
         elif text in ('UniProt identifier', 'ligand CCD code'):
             show_seq, show_uniprot = False, True
@@ -186,16 +187,19 @@ class BoltzPredictionGUI(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _entry_strings(self):
+    def _entry_strings(self, remove_whitespace = True, separator = ','):
         e = self._seq_button.text()
-        if e in ('protein sequence', 'rna sequence', 'dna sequence', 'ligand SMILES string'):
+        if e in ('protein sequence', 'rna sequence', 'dna sequence', 'ligand SMILES string',
+                 'each ligand SMILES string'):
             text = self._sequence_entry.toPlainText()
         elif e in ('UniProt identifier', 'ligand CCD code'):
             text = self._molecule_identifier_entry.text()
         else:
             text = ''
-        strings = [_remove_whitespace(field) for field in text.split(',')]
-        strings = [string for string in strings if string]	# Remove empty strings
+        strings = text.split(separator)
+        if remove_whitespace:
+            strings = [_remove_whitespace(string) for string in strings]
+        strings = [string for string in strings if string.strip()]	# Remove empty strings
         return strings
 
     # ---------------------------------------------------------------------------
@@ -205,7 +209,7 @@ class BoltzPredictionGUI(ToolInstance):
             return
         text = self._seq_button.text()
         if text in ('protein sequence', 'rna sequence', 'dna sequence',
-                    'ligand CCD code', 'ligand SMILES string'):
+                    'ligand CCD code', 'ligand SMILES string', 'each ligand SMILES string'):
             pname = ''
         elif text == 'UniProt identifier':
             uids = self._entry_strings()
@@ -262,7 +266,8 @@ class BoltzPredictionGUI(ToolInstance):
                        ('dna sequence',None),
                        ('UniProt identifier',None),
                        ('ligand CCD code',None),
-                       ('ligand SMILES string',None)])
+                       ('ligand SMILES string',None),
+                       ('each ligand SMILES string',None)])
         return values
 
     # ---------------------------------------------------------------------------
@@ -328,6 +333,11 @@ class BoltzPredictionGUI(ToolInstance):
         elif e == 'ligand SMILES string':
             for smiles in self._entry_strings():
                 comps.append(MolecularComponent(f'ligand SMILES {smiles}', type = 'ligand', smiles_string = smiles))
+        elif e == 'each ligand SMILES string':
+            named_ligands = self._parse_each_ligand_smiles()  # list of (name, smiles)
+            if named_ligands:
+                comps.append(MolecularComponent(f'Each of {len(named_ligands)} ligands',
+                                                type = 'each ligand', named_ligands = named_ligands))
         else:
             s, c = self._menu_structure_or_chain()
             if s:
@@ -345,6 +355,20 @@ class BoltzPredictionGUI(ToolInstance):
                                             sequence_string = chains[0].characters)
                          for chains,polymer_type,desc in _unique_chain_descriptions([c])]
         return comps
+
+    # ---------------------------------------------------------------------------
+    #
+    def _parse_each_ligand_smiles(self):
+        named_ligands = []
+        for name_smiles in self._entry_strings(remove_whitespace = False, separator = '\n'):
+            if name_smiles:
+                fields = name_smiles.split()
+                if len(fields) != 2:
+                    msg = f'Each ligand SMILES string text must be one ligand name (without spaces) and SMILES string per line, "{name_smiles}" is not valid.'
+                    self.session.logger.error(msg)
+                    return ()
+                named_ligands.append(tuple(fields))
+        return named_ligands
 
     # ---------------------------------------------------------------------------
     #
@@ -435,6 +459,14 @@ class BoltzPredictionGUI(ToolInstance):
             smiles_specs = _ligands_with_counts(ligand_smiles)
             options.append(f'ligandSmiles {smiles_specs}')
 
+        each_ligand = []
+        for comp in mt.data:
+            if comp.type == 'each ligand':
+                each_ligand.extend([f'{name} {smiles}' for name, smiles in comp.named_ligands])
+        if each_ligand:
+            eligands = ','.join(each_ligand)
+            options.append(f'forEachSmilesLigand "{eligands}"')
+                            
         return options
 
     # ---------------------------------------------------------------------------
@@ -758,7 +790,7 @@ class BoltzPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _fill_affinity_menu(self):
-        choices = ['none', 'last ligand']
+        choices = ['none']
         self._affinity_value_map = {}	# Map abbreviated to full length smiles strings.
         mt = self._molecules_table
         if mt is not None:
@@ -772,6 +804,9 @@ class BoltzPredictionGUI(ToolInstance):
                             smiles = smiles[:12] + '...' + smiles[-12:]
                             self._affinity_value_map[smiles] = comp.smiles_string
                         choices.append(smiles)
+                elif comp.type == 'each ligand':
+                    choices.append('each')
+        choices.append('last ligand')
         menu = self._affinity_menu
         menu.clear()
         for text in choices:
@@ -1050,15 +1085,16 @@ class MoleculesTable(ItemTable):
 class MolecularComponent:
     def __init__(self, description, type = None, count = 1,
                  chains = [], sequence_string = None, uniprot_id = None,
-                 ccd_code = None, smiles_string = None):
+                 ccd_code = None, smiles_string = None, named_ligands = None):
         self.description = description
-        self.type = type		# protein, dna, rna, ligand
+        self.type = type		# protein, dna, rna, ligand, each ligand
         self.count = count
         self.chains = chains		# chains of open models, use chain ids for prediction
         self.sequence_string = sequence_string
         self.uniprot_id = uniprot_id
         self.ccd_code = ccd_code
         self.smiles_string = smiles_string
+        self.named_ligands = named_ligands	# Used for type "each ligand"
 
     def copy(self):
         return MolecularComponent(self.description, type = self.type, count = self.count, chains = self.chains,
@@ -1073,7 +1109,10 @@ class MolecularComponent:
             'rna': ['sequence_string'],
             'ligand': ['ccd_code', 'smiles_string'],
          }
-        uid = (self.type,) + tuple((attr, getattr(self, attr)) for attr in mspec[self.type])
+        if self.type == 'each ligand':
+            uid = id(self)	# Don't combine different each ligand specifiers
+        else:
+            uid = (self.type,) + tuple((attr, getattr(self, attr)) for attr in mspec[self.type])
         return uid
 
     @property

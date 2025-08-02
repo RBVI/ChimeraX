@@ -34,7 +34,7 @@ class _BoltzBundle(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        if command_name == 'boltz predict':
+        if command_name in ('boltz predict', 'boltz results'):
             from . import predict
             predict.register_boltz_predict_command(logger)
         elif command_name == 'boltz install':

@@ -26,6 +26,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: boltz predict :: Structure Prediction :: Predict a structure using Boltz</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: boltz results :: Structure Prediction :: Show table of Boltz results</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: boltz install :: Structure Prediction :: Install Boltz</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Boltz :: Structure Prediction :: Predict structures using Boltz</ChimeraXClassifier>
   </Classifiers>
