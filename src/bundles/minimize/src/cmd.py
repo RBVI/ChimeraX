@@ -135,7 +135,32 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     for b in structure.bonds:
         top.addBond(atoms[b.atoms[0]], atoms[b.atoms[1]])
 
+    import os
     forcefield = ForceField('amber14-all.xml', 'amber14/tip3pfb.xml')
+    forcefield.loadFile(os.path.join(os.path.dirname(__file__), 'gaff-2.2.20.xml'))
+    while True:
+        templates, no_tmpl_omm_residues = forcefield.generateTemplatesForUnmatchedResidues(top)
+        if not templates:
+            break
+        omm_res_to_cx = { omm_r: cx_r for cx_r, omm_r in residues.items() }
+        template, omm_res = templates[0], no_tmpl_omm_residues[0]
+        cx_res = omm_res_to_cx[omm_res]
+        #TODO: try to fix NAD (in 7cmc for example) by prepending 'DNA-', but there is no
+        # DNA-N (atom n7n) so needs further investigation
+        #adjust_gaff_type = cx_res.name in ['ADP', 'ATP', 'GDP', 'GTP', 'NAD', 'NDP']
+        template.name = "%s-%s-%s%s" % ("blank" if cx_res.chain_id.isspace() else cx_res.chain_id,
+            cx_res.name, cx_res.number, cx_res.insertion_code)
+        for omm_atom in template.atoms:
+            cx_atom = cx_res.find_atom(omm_atom.name)
+            gaff_type = cx_atom.gaff_type
+            #if adjust_gaff_type:
+            #    gaff_type = 'DNA-' + gaff_type
+            omm_atom.type = gaff_type
+            omm_atom.parameters['charge'] = cx_atom.charge
+        for omm_res in no_tmpl_omm_residues:
+            omm_res.name = template.name
+
+        forcefield.registerResidueTemplate(template)
     try:
         system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
     except ValueError as e:
@@ -176,6 +201,7 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     cx_atoms = Atoms(reordered_atoms)
     # maxIterations doesn't truly constrain maximum iterations as you would expect
     # (see https://github.com/openmm/openmm/issues/4983), so it is handled in the reporter instead
+    session.logger.status("Starting minimization")
     LocalEnergyMinimizer.minimize(context, reporter=Reporter(cx_atoms))
     final_crds = numpy.array([q.value_in_unit(angstrom)
         for q in context.getState(getPositions=True).getPositions()])
