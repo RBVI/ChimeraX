@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Minimize" version="1.1"
+<BundleInfo name="ChimeraX-Minimize" version="1.2"
 	    package="chimerax.minimize"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -12,6 +12,10 @@
   <Categories>
     <Category name="Structure Editing"/>
   </Categories>
+
+  <DataFiles>
+  	<DataFile>gaff-2.2.20.xml</DataFile>
+  </DataFiles>
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.10"/>

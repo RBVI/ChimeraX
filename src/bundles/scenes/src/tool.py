@@ -24,9 +24,9 @@ import base64
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
 from chimerax.ui.widgets import DisclosureArea
-from Qt.QtWidgets import QHBoxLayout, QLineEdit, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton
-from Qt.QtGui import QPixmap
-from Qt.QtCore import Qt
+from Qt.QtWidgets import QHBoxLayout, QLineEdit, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton, QApplication
+from Qt.QtGui import QPixmap, QDrag
+from Qt.QtCore import Qt, QMimeData, QPoint
 from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, SAVED, SCENE_HIGHLIGHTED, DELETED
 from chimerax.core.commands import run
 
@@ -73,8 +73,6 @@ class ScenesTool(ToolInstance):
         self.handlers.append(add_handler(SCENE_HIGHLIGHTED, self.scene_highlighted_cb))
         self.handlers.append(add_handler(DELETED, self.scene_deleted_cb))
 
-        # SceneItem widget that is highlighted
-        self.highlighted_scene = None
 
     def build_ui(self):
         """
@@ -156,13 +154,9 @@ class ScenesTool(ToolInstance):
 
     def scene_highlighted_cb(self, trigger_name, scene_name):
         """
-        Callback for the HIGHLIGHTED trigger. Set the highlighted_scene attribute to the SceneItem widget that was
-        highlighted. If there is a previously highlighted scene, clear the highlight.
+        Callback for the HIGHLIGHTED trigger. This is now handled by SceneScrollArea directly.
         """
-        if self.highlighted_scene:
-            if self.highlighted_scene.get_name() != scene_name:
-                self.highlighted_scene.set_highlighted(False)
-        self.highlighted_scene = self.scroll_area.get_scene_item(scene_name)
+        pass
 
     def scene_deleted_cb(self, trigger_name, scene_name):
         """
@@ -170,8 +164,6 @@ class ScenesTool(ToolInstance):
         the deleted scene.
         """
         self.scroll_area.remove_scene_item(scene_name)
-        if self.highlighted_scene and self.highlighted_scene.get_name() == scene_name:
-            self.highlighted_scene = None
 
     def save_button_clicked(self):
         """
@@ -184,8 +176,9 @@ class ScenesTool(ToolInstance):
         """
         Edit the highlighted scene.
         """
-        if self.highlighted_scene:
-            run(self.session, f"scene edit {self.highlighted_scene.get_name()}")
+        highlighted_scene = self.scroll_area.get_highlighted_scene()
+        if highlighted_scene:
+            run(self.session, f"scene edit {highlighted_scene.get_name()}")
         else:
             self.session.logger.warning("No scene selected to edit")
 
@@ -193,8 +186,9 @@ class ScenesTool(ToolInstance):
         """
         Delete the highlighted scene.
         """
-        if self.highlighted_scene:
-            run(self.session, f"scene delete {self.highlighted_scene.get_name()}")
+        highlighted_scene = self.scroll_area.get_highlighted_scene()
+        if highlighted_scene:
+            run(self.session, f"scene delete {highlighted_scene.get_name()}")
         else:
             self.session.logger.warning("No scene selected to delete")
 
@@ -211,7 +205,8 @@ class ScenesTool(ToolInstance):
         Save the active highlighted scene
         """
         data = super().take_snapshot(session, flags)
-        data['highlighted_scene'] = self.highlighted_scene.get_name() if self.highlighted_scene else None
+        highlighted_scene = self.scroll_area.get_highlighted_scene()
+        data['highlighted_scene'] = highlighted_scene.get_name() if highlighted_scene else None
         data['scroll_area'] = self.scroll_area.take_snapshot(session, flags)
         return data
 
@@ -221,9 +216,11 @@ class ScenesTool(ToolInstance):
         Restore highlighted SceneItem in the tools scroll area when needed.
         """
         ti = super().restore_snapshot(session, data) # get tool instance
-        highlighted_scene = data.get('highlighted_scene')
-        if highlighted_scene:
-            ti.scroll_area.get_scene_item(highlighted_scene).set_highlighted(True)
+        highlighted_scene_name = data.get('highlighted_scene')
+        if highlighted_scene_name:
+            scene_item = ti.scroll_area.get_scene_item(highlighted_scene_name)
+            if scene_item:
+                ti.scroll_area.set_highlighted_scene(scene_item)
         ti.scroll_area.set_state_from_snapshot(session, data.get('scroll_area'))
         return ti
 
@@ -240,6 +237,7 @@ class SceneScrollArea(QScrollArea):
     def __init__(self, session, parent=None):
         super().__init__(parent)
         self.setWidgetResizable(True)
+        self.session = session
         self.container_widget = QWidget()
         self.grid = QGridLayout(self.container_widget)
         self.grid.setContentsMargins(0, 0, 0, 0)  # Remove margins
@@ -249,6 +247,7 @@ class SceneScrollArea(QScrollArea):
         self.setWidget(self.container_widget)
         self.cols = 0
         self.scene_items = []
+        self.highlighted_scene = None
         self.init_scene_item_widgets(session)
 
     def init_scene_item_widgets(self, session):
@@ -320,6 +319,8 @@ class SceneScrollArea(QScrollArea):
         """
         scene_item = self.get_scene_item(scene_name)
         if scene_item:
+            if self.highlighted_scene == scene_item:
+                self.highlighted_scene = None
             self.scene_items.remove(scene_item)
             self.update_grid()
 
@@ -337,6 +338,23 @@ class SceneScrollArea(QScrollArea):
 
     def get_scene_item(self, name):
         return next((scene_item for scene_item in self.scene_items if scene_item.get_name() == name), None)
+
+    def set_highlighted_scene(self, scene_item):
+        """
+        Set the highlighted scene. Clears previous highlight and sets new one.
+        """
+        if self.highlighted_scene:
+            self.highlighted_scene.set_highlighted(False)
+        self.highlighted_scene = scene_item
+        if scene_item:
+            scene_item.set_highlighted(True)
+            activate_trigger(SCENE_HIGHLIGHTED, scene_item.get_name())
+
+    def get_highlighted_scene(self):
+        """
+        Get the currently highlighted scene item.
+        """
+        return self.highlighted_scene
 
     def take_snapshot(self, session, flags):
         """
@@ -356,6 +374,29 @@ class SceneScrollArea(QScrollArea):
         self.scene_items = [scene_item_dict[name] for name in ordered_scene_names if name in scene_item_dict]
         self.update_grid() # Make sure the grid layout reflects the new ordering
 
+    def mousePressEvent(self, event):
+        """
+        Handle mouse press events on the scroll area. If clicked on blank area, deselect highlighted scene.
+        """
+        if event.button() == Qt.LeftButton:
+            # Check if click is on a SceneItem widget
+            clicked_widget = self.childAt(event.pos())
+            scene_item_clicked = False
+            
+            # Walk up the widget hierarchy to see if we clicked on a SceneItem
+            widget = clicked_widget
+            while widget and widget != self:
+                if isinstance(widget, SceneItem):
+                    scene_item_clicked = True
+                    break
+                widget = widget.parent()
+            
+            # If we didn't click on a SceneItem, deselect the highlighted scene
+            if not scene_item_clicked:
+                self.set_highlighted_scene(None)
+        
+        super().mousePressEvent(event)
+
 class SceneItem(QWidget):
     """
     The SceneItem widget is a custom widget that displays a thumbnail image and the name of a scene. The widget handles
@@ -370,6 +411,7 @@ class SceneItem(QWidget):
         super().__init__(parent)
         self.name = scene_name
         self.thumbnail_data = thumbnail_data
+        self.drag_start_position = None
         self.init_ui()
 
     def init_ui(self):
@@ -412,8 +454,84 @@ class SceneItem(QWidget):
         Handle mouse press events for selecting and highlighting the SceneItem widget.
         """
         if event.button() == Qt.LeftButton:
-            self.set_highlighted(True)
+            # Store the position for potential drag operation
+            self.drag_start_position = event.pos()
+            
+            # Find the parent SceneScrollArea and tell it to highlight this item
+            parent = self.parent()
+            while parent and not isinstance(parent, SceneScrollArea):
+                parent = parent.parent()
+            if parent:
+                parent.set_highlighted_scene(self)
         super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        """
+        Handle mouse move events to initiate drag operations.
+        """
+        if not (event.buttons() & Qt.LeftButton):
+            return
+        
+        if not self.drag_start_position:
+            return
+            
+        # Check if we've moved far enough to start a drag
+        if ((event.pos() - self.drag_start_position).manhattanLength() < 
+            QApplication.startDragDistance()):
+            return
+            
+        self.start_drag()
+        super().mouseMoveEvent(event)
+
+    def start_drag(self):
+        """
+        Start a drag operation with the scene data.
+        """
+        drag = QDrag(self)
+        mime_data = QMimeData()
+        
+        # Set basic scene name
+        mime_data.setText(self.name)
+        
+        # Get scene from session and encode comprehensive data
+        parent = self.parent()
+        while parent and not isinstance(parent, SceneScrollArea):
+            parent = parent.parent()
+        
+        if parent and parent.session:
+            scene = parent.session.scenes.get_scene(self.name)
+            if scene:
+                import json
+                scene_data = {
+                    'name': self.name,
+                    'thumbnail': self.thumbnail_data,
+                    'models': []  # Will be populated from scene data
+                }
+                
+                # Extract model positions from the scene if available
+                try:
+                    # This may vary depending on ChimeraX scene format
+                    # For now, we'll pass the scene name and let the drop handler get the scene
+                    pass
+                except:
+                    pass
+                
+                mime_data.setData("application/x-chimerax-scene", json.dumps(scene_data).encode('utf-8'))
+            else:
+                # Fallback to just the name
+                mime_data.setData("application/x-chimerax-scene", self.name.encode('utf-8'))
+        else:
+            # Fallback to just the name
+            mime_data.setData("application/x-chimerax-scene", self.name.encode('utf-8'))
+        
+        drag.setMimeData(mime_data)
+        
+        # Use the thumbnail as the drag pixmap
+        drag.setPixmap(self.pixmap)
+        drag.setHotSpot(QPoint(self.pixmap.width() // 2, self.pixmap.height() // 2))
+        
+        # Execute the drag
+        drag.exec(Qt.CopyAction)
 
     def mouseDoubleClickEvent(self, event):
         """
@@ -425,12 +543,10 @@ class SceneItem(QWidget):
     def set_highlighted(self, highlighted):
         """
         Set the SceneItem widget as highlighted or not highlighted. This method updates the style of the widget to
-        indicate whether it is highlighted or not. If the widget gets highlighted, the SCENE_HIGHLIGHTED trigger is
-        activated with the SceneItem widget's name.
+        indicate whether it is highlighted or not.
         """
         if highlighted:
             self.setStyleSheet("border: 2px solid #007BFF;")
-            activate_trigger(SCENE_HIGHLIGHTED, self.name)
         else:
             self.setStyleSheet("")
 

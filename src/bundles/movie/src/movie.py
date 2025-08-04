@@ -212,6 +212,10 @@ class Movie:
         from PIL import Image
         image1 = Image.open(save_path1)
         image2 = Image.open(save_path2)
+        if image2.size != image1.size:
+            self.stop_recording()
+            from chimerax.core.errors import UserError
+            raise UserError('Cannot resize the graphics window while recording a movie.')
         for f in range(frames):
             imagef = Image.blend(image1, image2, float(f)/(frames-1))
             # TODO: Add save image options as in printer.saveImage()

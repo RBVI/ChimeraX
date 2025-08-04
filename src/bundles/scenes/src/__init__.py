@@ -53,7 +53,7 @@ class _ScenesBundleAPI(BundleAPI):
     def start_tool(session, bi, ti):
         if ti.name == "Scenes":
             from .tool import ScenesTool
-            return ScenesTool(session, ti)
+            return ScenesTool(session, ti.name)
         raise ValueError("unknown tool %s" % ti.name)
 
 bundle_api = _ScenesBundleAPI()
