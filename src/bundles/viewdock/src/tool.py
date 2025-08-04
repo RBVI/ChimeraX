@@ -31,12 +31,15 @@ from chimerax.clashes.gui import ClashesGUI
 from chimerax.ui.widgets import ItemTable
 from chimerax.core.commands import run, concise_model_spec, StringArg
 from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
-from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
-                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel, QWidget,)
+from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle,
+        QStyleOptionComboBox, QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout,
+        QLabel, QWidget, QRadioButton, )
 from Qt.QtWidgets import QMenu
 from Qt.QtGui import QFont
 from Qt.QtCore import Qt
 from chimerax.viewdock import RATING_KEY, DEFAULT_RATING
+
+rating_labels = ['(unrated)', 'bad', 'maybe', 'good']
 
 
 class ViewDockTool(ToolInstance):
@@ -90,11 +93,19 @@ class ViewDockTool(ToolInstance):
         self.description_group = QGroupBox()
         self.description_box_setup(table_state)
 
+        self.rating_area = QWidget()
+        self.rating_area_setup()
 
 
         self.handlers = []
         self.add_handlers()
-        self.tool_window.manage('side')
+        # constrain table width to the wider of the other interface areas
+        other_width = max([widget.sizeHint().width()
+            for widget in (self.col_display_widget, self.description_group, self.rating_area)])
+        table_size = self.struct_table.sizeHint()
+        table_size.setWidth(other_width)
+        self.struct_table.sizeHint = lambda *args, sz=table_size: sz
+        self.tool_window.manage(None)
 
     def filter_structures(self, structures):
         """
@@ -263,10 +274,11 @@ class ViewDockTool(ToolInstance):
 
         # Fixed columns. Generic based on ChimeraX model attribute(s).
         id_col = self.struct_table.add_column('ID', lambda s: s.id_string, sort_func=self.id_lt)
-        self.struct_table.add_column('Rating', lambda s: s.viewdock_data.get(RATING_KEY),
-                                     data_set = lambda item, value: None,
-                                     editable=True)
+        self.struct_table.add_column('Rating', lambda s: s.viewdock_data.get(RATING_KEY, DEFAULT_RATING),
+            format=lambda r: rating_labels[r])
 
+        # retained the code below for reference in case I ever need to implement a table delegate
+        '''
         # Custom Rating delegate
         delegate = RatingDelegate(self.struct_table)  # Create the delegate instance
 
@@ -277,6 +289,7 @@ class ViewDockTool(ToolInstance):
         # Set an edit trigger for the table whenever the current selected item changes. Prevents having to click through
         # multiple selections to edit the rating of a structure.
         self.struct_table.setEditTriggers(QAbstractItemView.EditTrigger.CurrentChanged)
+        '''
 
         # Collect all unique keys from viewdock_data of all structures and add them as columns
         viewdock_keys = set()
@@ -287,7 +300,7 @@ class ViewDockTool(ToolInstance):
             if key == RATING_KEY:
                 # Rating is already added as a column with a custom delegate, skip it here
                 continue
-            self.struct_table.add_column(key, lambda s, k=key: s.viewdock_data.get(k, ''))
+            self.struct_table.add_column(self.display_key(key), lambda s, k=key: s.viewdock_data.get(k, ''))
 
         # Set the data for the table and launch it
         self.struct_table.data = structures
@@ -360,6 +373,27 @@ class ViewDockTool(ToolInstance):
         else:
             self.table_selection_changed()
 
+    def rating_area_setup(self):
+        rating_layout = QHBoxLayout()
+        self.rating_area.setLayout(rating_layout)
+        rating_layout.addStretch(1)
+        rating_buttons = []
+        for val, label in reversed(list(enumerate(rating_labels))):
+            but = QRadioButton(label.capitalize())
+            rating_buttons.append(but)
+            rating_layout.addWidget(but)
+            but.toggled.connect(self.rating_changed)
+            rating_layout.addStretch(1)
+        self.rating_buttons = reversed(rating_buttons)
+        self.main_v_layout.addWidget(self.rating_area)
+
+    def rating_changed(self):
+        #TODO
+        pass
+
+    def display_key(self, key):
+        return key.replace('.', ' ').replace('_', ' ')
+
     def table_selection_changed(self, *args):
         """
         Callback for when the selection in the ItemTable changes. Updates what docking structure is visible and the
@@ -367,6 +401,7 @@ class ViewDockTool(ToolInstance):
         """
         self.update_structure_displays()
         self.update_model_description()
+        self.update_rating()
 
     def update_structure_displays(self):
         """
@@ -451,7 +486,7 @@ class ViewDockTool(ToolInstance):
             col = (index // rows_per_column) * 2  # Multiply by 2 to account for key-value pairs
 
             # Add key label
-            key_label = QLabel(f"<b>{key}:</b>") # Use HTML to bold the attr name
+            key_label = QLabel(f"<b>{self.display_key(key)}:</b>") # Use HTML to bold the attr name
             key_label.setFont(label_font)
             layout.addWidget(key_label, row, col)
 
@@ -459,6 +494,10 @@ class ViewDockTool(ToolInstance):
             value_label = QLabel(str(value))
             value_label.setFont(label_font)
             layout.addWidget(value_label, row, col + 1)
+
+    def update_rating(self):
+        #TODO
+        pass
 
     def add_handlers(self):
         """
@@ -585,6 +624,7 @@ class ViewDockTool(ToolInstance):
         return cls(session, snapshot['tool_name'], snapshot['structures'],
             table_state=snapshot.get('table_state', None))
 
+# RatingDelegate no longer used, but retaining code for reference
 class RatingDelegate(QStyledItemDelegate):
     """
     A delegate that provides a QComboBox editor for editing ratings in a table view.
