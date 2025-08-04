@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from Qt.QtWidgets import QListWidget, QPushButton, QMenu
+from Qt.QtWidgets import QListWidget, QPushButton, QMenu, QAbstractItemView
 from Qt.QtCore import Qt, Signal
 
 class ItemsGenerator:
@@ -114,8 +114,8 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
             **kw):
         super().__init__(**kw)
         self.autoselect = self.autoselect_default if autoselect == 'default' else autoselect
-        self.setSelectionMode({'single': self.SingleSelection, 'extended': self.ExtendedSelection,
-            'multi': self.MultiSelection}[selection_mode])
+        self.setSelectionMode({'single': QAbstractItemView.SelectionMode.SingleSelection, 'extended': QAbstractItemView.SelectionMode.ExtendedSelection,
+            'multi': QAbstractItemView.SelectionMode.MultiSelection}[selection_mode])
         self.itemSelectionChanged.connect(self.value_changed.emit)
         if balloon_help or selection_mode == 'extended':
             self.setToolTip(balloon_help if balloon_help else self.extended_balloon_help)
@@ -133,7 +133,7 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
     def get_value(self):
         self._sleep_check()
         values = [self.item_map[si.text()] for si in self.selectedItems()]
-        if self.selectionMode() == self.SingleSelection:
+        if self.selectionMode() == QAbstractItemView.SelectionMode.SingleSelection:
             return values[0] if values else None
         return values
 
@@ -172,7 +172,7 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
         # could be different for the same item (e.g. model number prepended) [#15551]
         if prev_value is None:
             test_value = []
-        elif self.selectionMode() == self.SingleSelection:
+        elif self.selectionMode() == QAbstractItemView.SelectionMode.SingleSelection:
             test_value = [prev_value]
         else:
             test_value = prev_value
@@ -212,7 +212,7 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
                 self.blockSignals(True)
             self.clear()
             self.addItems(item_names)
-            if self.selectionMode() == self.SingleSelection:
+            if self.selectionMode() == QAbstractItemView.SelectionMode.SingleSelection:
                 if filtered_sel:
                     next_value = self.item_map[filtered_sel[0]]
                 else:
@@ -236,7 +236,7 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
             delattr(self, '_recursion')
 
     def _select_value(self, val):
-        if self.selectionMode() == self.SingleSelection:
+        if self.selectionMode() == QAbstractItemView.SelectionMode.SingleSelection:
             if val is None:
                 val_names = set()
             else:
