@@ -196,6 +196,8 @@ class CategorizedOptionsPanel(QWidget):
                 def sizeHint(self):
                     return QSize(self.sizeHintForColumn(0), super().sizeHint().height())
             self._category_list = NarrowListWidget()
+            self._category_list.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            self._category_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             self._category_list.currentItemChanged.connect(lambda cur, prev: self.show_category(cur.text()))
             self._category_areas = QStackedWidget()
             layout.addWidget(self._category_list, alignment=Qt.AlignRight)
@@ -276,7 +278,7 @@ class CategorizedOptionsPanel(QWidget):
             return self._tabs_menu_button.text()
         elif self._tabs_as_side_menu:
             return self._category_list.currentItem().text()
-        return self._tabs_widget.tabText(self.currentIndex())
+        return self._tabs_widget.tabText(self._tabs_widget.currentIndex())
 
     def hide_option(self, option):
         return self.set_option_shown(option, False)

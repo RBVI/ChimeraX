@@ -1,7 +1,7 @@
 import sys
 
 from enum import StrEnum
-from PyQt6.QtGui import QMouseEvent
+from Qt.QtGui import QMouseEvent
 
 from Qt.QtCore import Qt
 from Qt.QtGui import QWindow, QSurface

@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Animations"
+license = { text = "Free for non-commercial use" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+description = "Create, play back, edit, and save animation timelines."
+dependencies = [
+	"ChimeraX-Core ~=1.0"
+	, "ChimeraX-UI ~=1.0"
+	, "ChimeraX-Movie ~=1.0"
+	, "ChimeraX-Scenes ~=0.1"
+]
+
+# TODO:
+# [project.optional-dependencies]
+# ui = ["ChimeraX-UI ~= 1.0", "ChimeraX-Help ~= 1.0"]
+# alignments = ["ChimeraX-Alignments ~= 2.0"]
+# alphafold = ["ChimeraX-AlphaFold ~= 1.0"]
+
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = """The Animations bundle offers comprehensive tools for creating, modifying, and capturing animations
+within the ChimeraX application. It enables users to build a keyframe animation, manage timelines, preview frames,
+and record animations to files, enhancing the dynamic visualization capabilities of ChimeraX."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+custom-init = true
+categories = ["General"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.command.animations]
+category = "General"
+description = "Create, play back, edit, and save animation timelines."
+
+[tool.chimerax.tool."Animations"]
+category = "General"
+description = "Create, play back, edit, and save animation timelines."

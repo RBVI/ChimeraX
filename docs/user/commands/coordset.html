@@ -192,15 +192,22 @@ The slider <a href="../window.html#context-menu">context menu</a> includes:
 <ul>
 <a name="plotting"></a>
 <li><b>Plot</b> &ndash; plot various measurables across the whole trajectory,
-with frame number on the horizontal (X) axis. 
+with frame number on the horizontal (X) axis. See also:
+<a href="../measurements.html">measurements</a>
 <p>
 In general, each measurement is defined by 
 <a href="../selection.html">selecting</a> the desired atoms 
 (two for <b>Distances</b>, three for <b>Angles</b>, four for <b>Torsions</b>,
-any number for <b>SASAs</b>) and clicking <b>Plot</b>. 
+any number for <b>SASAs</b>, <b>RMSDs</b>, or <b>H-Bonds</b>)
+and clicking <b>Plot</b>. For <b>H-Bonds</b>, 
+clicking <b>Plot</b> brings up another dialog for (optionally) adjusting 
+certain <a href="../tools/hbonds.html"><b>H-Bonds</b></a> parameters beforehand.
+</p><p>
+For RMSD, the <b>Reference frame</b> for calculating the (best-fit)
+root-mean-square deviation of the set of atoms must also be designated.
 </p><p>
 Additional options for SASA (area of the atoms'
-<a href="surface.html#surfdefs">solvent-accessible surface</a>):
+<a href="surface.html#surfdefs">solvent-accessible surface</a>) and/or RMSD:
 </p>
 <!-- 
 SASA details: the entire surfcats of all specified atoms are lumped as the 
@@ -211,10 +218,10 @@ with probe radius default = 1.4 Angstroms
 <li><b>Ignore solvent and non-metal ions</b> (default <b>on</b>)
 &ndash; whether to omit <a href="atomspec.html#surfcats">solvent</a> residues
 and non-metal monatomic ions 
-(Cl<sup>&ndash;</sup>, Br<sup>&dash;</sup>, <i>etc.</i>) 
+(Cl<sup>&ndash;</sup>, Br<sup>&ndash;</sup>, <i>etc.</i>) 
+<li><b>Ignore hydrogens</b> (only for RMSD; default <b>on</b>)
 <li><b>Ignore ligands</b> (default <b>on</b>)
 &ndash; whether to omit <a href="atomspec.html#surfcats">ligand</a> residues
-<!-- <li><b>Ignore hydrogens</b> (default <b>on</b>)  [for RMSD plots only] -->
 <li><b>Ignore metal ions</b>
 &ndash; whether to omit <b>alkali</b> metal ions (Li<sup>+</sup>, Na<sup>+</sup>,
 K<sup>+</sup>, <i>etc.</i>), or all metal ions (if <b>true</b>), or none 
@@ -239,6 +246,21 @@ definitions will be lost if that occurs. If the plot window is left open
 but gets lost behind other windows, it can be resurrected using the slider
 context menu.
 </p>
+<blockquote>
+The plot window has its own 
+<a href="../window.html#context-menu">context menu</a>, including:
+  <ul>
+  <li><b>Save Plot Image...</b> save the plot to an image file 
+(several choices of image file format), optionally with a
+<b>Transparent background</b> and a specified <b>DPI</b>
+(resolution in pixels per inch; although the displayed aspect ratio is
+retained, however, there is no way to specify the size in inches,
+which is somehow determined by
+<a href="https://matplotlib.org/" target="_blank">Matplotlib</a>)
+  <li><b>Save CSV or TSV File...</b> save the plotted values to a 
+  comma- or tab-separated values file
+  </ul>
+</blockquote>
 <li><b>Loop Playback</b> (initially on) &ndash; whether interactive playback 
 should continue until explicitly paused 
 <li><b>Bounce Playback</b> (only available when <b>Loop Playback</b> is on)
@@ -303,5 +325,5 @@ applies in a particular situation.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2025</address>
+July 2025</address>
 </body></html>

@@ -67,6 +67,8 @@ prereqs/pips/grako*.whl
 prereqs/pips/tinyarray*.whl
 prereqs/pips/Cython*.whl
 prereqs/pips/PyOpenGL*.whl
+prereqs/pips/pyopengl_accelerate*.tar.gz
+prereqs/pips/pyopengl_accelerate-3.1.9
 prereqs/pips/*.dylib.arm64
 prereqs/pips/*.dylib
 prereqs/pips/qtshim*.whl

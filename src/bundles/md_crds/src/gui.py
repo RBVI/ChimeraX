@@ -12,7 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 from Qt.QtWidgets import QFrame, QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QPushButton, QMenu, \
-    QSizePolicy, QWidget, QStackedWidget, QGridLayout
+    QSizePolicy, QWidget, QStackedWidget, QGridLayout, QLineEdit
+from Qt.QtGui import QIntValidator
 from Qt.QtCore import Qt
 
 from chimerax.core.commands import plural_of
@@ -110,12 +111,58 @@ class PlotDialog:
         for provider_name in self.mgr.provider_names:
             self.tab_info[provider_name] = self.make_tab(provider_name)
 
+        tw.fill_context_menu = self.fill_context_menu
         tw.manage(None)
+
+    @property
+    def cur_provider(self):
+        tab_widget = self.plot_tabs.currentWidget()
+        for provider_name, info in self.tab_info.items():
+            tab_name, page = info
+            if tab_widget == page:
+                break
+        else:
+            raise AssertionError("Current tab not found in tab data")
+        return provider_name
+
+    def fill_context_menu(self, menu, x, y):
+        table = self._tables[self.cur_provider]
+        enabled = bool(table.data)
+
+        from Qt.QtGui import QAction
+        act = QAction("Save Plot Image...", parent=menu)
+        act.triggered.connect(self.save_plot)
+        act.setEnabled(enabled)
+        menu.addAction(act)
+
+        act = QAction("Save CSV or TSV File...", parent=menu)
+        act.triggered.connect(self.save_values)
+        act.setEnabled(enabled)
+        menu.addAction(act)
 
     def make_tab(self, provider_name):
         if self.mgr.num_atoms(provider_name) is None:
             return self._make_scalar_tab(provider_name)
         return self._make_atomic_tab(provider_name)
+
+    def save_plot(self, *args):
+        provider_name = self.cur_provider
+        plot = self._plot_stacks[provider_name].widget(1)
+
+        spd = SavePlotDialog(self.session, plot)
+        if not spd.exec():
+            return
+        path = spd.path
+        if path is None:
+            return
+        plot.figure.savefig(path, transparent=spd.transparent_background, dpi=spd.dpi)
+        self.session.logger.info("%s plot saved to %s" % (self.mgr.ui_name(provider_name), path))
+
+    def save_values(self, *args):
+        table = self._tables[self.cur_provider]
+        table.write_values(header_vals=[cn for cn in table.column_names[3:]] +
+            ["Frame %d" % cs_id for cs_id in sorted(self.structure.coordset_ids)],
+            row_func=lambda datum, *, table=table: self._table_row_output(table, datum))
 
     def show_tab(self, provider_name):
         tab_name, tab_widget = self.tab_info[provider_name]
@@ -196,9 +243,11 @@ class PlotDialog:
         pc_layout.setSpacing(0)
         pc_layout.setContentsMargins(0,0,0,0)
         plot_control_area.setLayout(pc_layout)
+        from itertools import count
+        row = count()
         plot_button = QPushButton("Plot")
         plot_button.clicked.connect(lambda *args, f=self._plot_atomic, pv=provider_name: f(pv))
-        pc_layout.addWidget(plot_button, 0, 0, alignment=Qt.AlignRight)
+        pc_layout.addWidget(plot_button, next(row), 0, alignment=Qt.AlignRight)
         num_atoms = self.mgr.num_atoms(provider_name)
         preposition = "for" if num_atoms == 0 else "from"
         atom_string = "" if num_atoms == 0 else "%d " % num_atoms
@@ -208,16 +257,32 @@ class PlotDialog:
             reminder = QLabel("(If no selection, all atoms)")
             from chimerax.ui import shrink_font
             shrink_font(reminder)
-            pc_layout.addWidget(reminder, 1, 0, 1, 2, alignment=Qt.AlignCenter)
+            pc_layout.addWidget(reminder, next(row), 0, 1, 2, alignment=Qt.AlignCenter)
+
+        provider_widget_dict = self._provider_widgets.setdefault(provider_name, {})
+        if self.mgr.need_ref_frame(provider_name):
+            ref_container = QWidget()
+            ref_layout = QHBoxLayout()
+            ref_layout.setSpacing(0)
+            ref_layout.setContentsMargins(2,2,2,2)
+            ref_container.setLayout(ref_layout)
+            ref_layout.addWidget(QLabel("Reference frame: "))
+            ref_edit = QLineEdit()
+            ref_edit.setText(str(min(self.structure.coordset_ids)))
+            ref_edit.setFixedWidth(ref_edit.fontMetrics().boundingRect("9999").width())
+            ref_edit.setAlignment(Qt.AlignCenter)
+            ref_edit.setValidator(QIntValidator())
+            ref_layout.addWidget(ref_edit)
+            pc_layout.addWidget(ref_container, next(row), 0, 1, 2, alignment=Qt.AlignCenter)
+            provider_widget_dict["ref-frame"] = ref_edit
+
         excludes = self.mgr.excludes(provider_name)
         if excludes:
-            provider_widget_dict = self._provider_widgets.setdefault(provider_name, {})
             exclude_dict = provider_widget_dict["excludes"] = {}
-            for i, exclude_info in enumerate(excludes.items()):
-                exclude, default = exclude_info
+            for exclude, default in excludes.items():
                 layout_widget, value_widget = self._make_exclude_widget(exclude, default)
                 exclude_dict[exclude] = value_widget
-                pc_layout.addWidget(layout_widget, 2+i, 0, 1, 2, alignment=Qt.AlignCenter)
+                pc_layout.addWidget(layout_widget, next(row), 0, 1, 2, alignment=Qt.AlignCenter)
 
         delete_control_area = QWidget()
         area_layout.addWidget(delete_control_area)
@@ -260,6 +325,8 @@ class PlotDialog:
     def _make_table(self, provider_name):
         from chimerax.ui.widgets import ItemTable
         table = ItemTable(allow_user_sorting=False)
+        # These first three columns are not put in output files; if these columns are rearranged
+        # or additional "skippable" columns are added, update the save_values method
         table.add_column("Color", "rgba8", format=table.COL_FORMAT_OPAQUE_COLOR, title_display=False)
         table.add_column("Shown", "shown", format=table.COL_FORMAT_BOOLEAN, icon="shown")
         val_col_name = self.mgr.ui_name(provider_name)
@@ -275,6 +342,8 @@ class PlotDialog:
             for i in range(num_atoms):
                 table.add_column("Atom %d" % (i+1), lambda x, i=i: x.atoms[i],
                     format=lambda a: a.string(minimal=True))
+        if self.mgr.need_ref_frame(provider_name):
+            table.add_column("Ref Frame", "ref_frame")
         table.data = []
         table.launch()
         return table
@@ -318,15 +387,24 @@ class PlotDialog:
             if not sel_atoms:
                 from chimerax.core.commands import commas
                 return tool_user_error("No atoms remain after removing %s" %
-                    commas([self.exclude_interface.get(kind, kind) for kind in self.mgr.exclude_info.keys()],
-                        conjunction="and"))
+                    commas([self.exclude_interface_text.get(kind, kind)
+                        for kind in self.mgr.exclude_info.keys()], conjunction="and"))
         elif len(sel_atoms) != expected_sel:
             return tool_user_error("Plotting %s requires exactly %d selected atoms in the structure;"
                 " %d are currently selected" % (plural_of(ui_name), expected_sel, len(sel_atoms)))
+        kw = {}
+        if self.mgr.need_ref_frame(provider_name):
+            ref_widget = self._provider_widgets[provider_name]["ref-frame"]
+            if not ref_widget.hasAcceptableInput():
+                return tool_user_error("Reference frame must be an integer")
+            frame = int(ref_widget.text())
+            if frame not in self.structure.coordset_ids:
+                return tool_user_error("%s does not have a coordinate set %d" % (self.structure, frame))
+            kw["ref_frame"] = frame
         table = self._tables[provider_name]
         from .manager import PlotValueError
         try:
-            table.data += [TableEntry(self, provider_name, sel_atoms)]
+            table.data += [TableEntry(self, provider_name, sel_atoms, **kw)]
         except PlotValueError as e:
             return tool_user_error("Cannot plot %s for selected atoms: %s" % (ui_name, str(e)))
         self._update_plot(provider_name)
@@ -363,6 +441,10 @@ class PlotDialog:
             else:
                 raise ValueError("Unknown kind of atom for 'exclude': %s" % kind)
         return sel_atoms
+
+    def _table_row_output(self, table, datum):
+        return [col.display_value(datum) for col in table.columns[3:]] + ["%g" % datum.values[cs_id]
+            for cs_id in sorted(list(datum.values.keys()))]
 
     def _update_plot(self, provider_name):
         stack = self._plot_stacks[provider_name]
@@ -405,7 +487,7 @@ class PlotDialog:
         canvas.draw_idle()
 
 class TableEntry:
-    def __init__(self, plot_dialog, provider_name, atoms):
+    def __init__(self, plot_dialog, provider_name, atoms, *, ref_frame=None):
         self.plot_dialog = plot_dialog
         mgr = plot_dialog.mgr
         self.provider_name = provider_name
@@ -413,12 +495,22 @@ class TableEntry:
         self.rgba = distinguish_from([(1.0,1.0,1.0,1.0)]
             + [datum.rgba for datum in plot_dialog._tables[provider_name].data])
         self._shown = True
-        self._values = mgr.get_values(provider_name, structure=plot_dialog.structure, atoms=atoms)
+        kw = {}
+        if ref_frame is not None:
+            kw["ref_frame"] = ref_frame
+        self._values = mgr.get_values(provider_name, structure=plot_dialog.structure, atoms=atoms, **kw)
         self.atoms = atoms
+        self._ref_frame = ref_frame
 
     @property
     def num_atoms(self):
         return len(self.atoms)
+
+    @property
+    def ref_frame(self):
+        if self._ref_frame is None:
+            raise AssertionError("Table entry lacks reference frame info")
+        return self._ref_frame
 
     @property
     def rgba8(self):
@@ -447,6 +539,94 @@ class TableEntry:
     @property
     def values(self):
         return self._values
+
+from chimerax.core.settings import Settings
+class SavePlotDialogSettings(Settings):
+    AUTO_SAVE = {
+        "dpi": None,
+        "save_format": "PNG",
+        "transparent_background": False,
+    }
+
+# Cribbed from chimerax.ui.open_save.SaveDialog, but since we need to save the formats ourselves and
+# save some formats otherwise unknown to ChimeraX (e.g. EPS, SVG), we provide our own dialog
+from Qt.QtWidgets import QFileDialog
+class SavePlotDialog(QFileDialog):
+    def __init__(self, session, parent = None, *args, **kw):
+        self.format_info = [
+            ("PNG", "Portable Network Graphics", "png"),
+            ("JPEG/JPG", "Joint Photographic Experts Group", "jpg *.jpeg"),
+            ("TIFF", "Tagged Image File Format", "tiff"),
+            ("PDF", "Portable Document Format", "pdf"),
+            ("SVG", "Scalable Vector Graphics", "svg"),
+            ("EPS", "Encapsulated PostScript", "eps"),
+            ("PS", "PostScript", "ps"),
+        ]
+        name_filters = ["%s [%s] (*.%s)" % fmt_info for fmt_info in self.format_info]
+        self.filter_to_info = {flt: info for flt, info in zip(name_filters, self.format_info)}
+        fmt_to_filter = { info[0]: flt for flt, info in self.filter_to_info.items() }
+        super().__init__(parent, *args, **kw)
+        self.setFileMode(QFileDialog.AnyFile)
+        self.setAcceptMode(QFileDialog.AcceptSave)
+        self.setOption(QFileDialog.DontUseNativeDialog)
+        self.setNameFilters(name_filters)
+        self.settings = SavePlotDialogSettings(session, "MD save plot dialog")
+        try:
+            self.selectNameFilter(fmt_to_filter[self.settings.save_format])
+        except KeyError:
+            self.selectNameFilter(fmt_to_filter["PNG"])
+
+        custom_area = QFrame(self)
+        custom_area.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        custom_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        layout = self.layout()
+        row = layout.rowCount()
+        layout.addWidget(custom_area, row, 0, 1, -1)
+        custom_layout = QHBoxLayout()
+        custom_area.setLayout(custom_layout)
+        custom_layout.addStretch(1)
+        self._transparent_checkbox = QCheckBox("Transparent background")
+        self._transparent_checkbox.setChecked(self.settings.transparent_background)
+        custom_layout.addWidget(self._transparent_checkbox)
+        custom_layout.addStretch(1)
+        custom_layout.addWidget(QLabel("DPI:"))
+        self._dpi_entry = QLineEdit()
+        self._dpi_entry.setAlignment(Qt.AlignCenter)
+        self._dpi_entry.setPlaceholderText("default")
+        self._dpi_entry.setMaximumWidth(50)
+        validator = QIntValidator()
+        validator.setBottom(1)
+        self._dpi_entry.setValidator(validator)
+        if self.settings.dpi is not None:
+            self._dpi_entry.setText(str(self.settings.dpi))
+        custom_layout.addWidget(self._dpi_entry)
+        custom_layout.addStretch(1)
+
+    @property
+    def dpi(self):
+        if self._dpi_entry.hasAcceptableInput():
+            return int(self._dpi_entry.text())
+        return None
+
+    @property
+    def path(self):
+        paths = self.selectedFiles()
+        if not paths:
+            return None
+        path = paths[0]
+        name_filter = self.selectedNameFilter()
+        fmt_name, fmt_desc, suffix_info = self.filter_to_info[name_filter]
+        self.settings.save_format = fmt_name
+        self.settings.transparent_background = self.transparent_background
+        self.settings.dpi = self.dpi
+        suffix = '.' + (suffix_info[:suffix_info.index(' ')] if ' ' in suffix_info else suffix_info)
+        if path.endswith(suffix):
+            return path
+        return path + suffix
+
+    @property
+    def transparent_background(self):
+        return self._transparent_checkbox.isChecked()
 
 _md_tool_windows = {}
 def _show_plot_dialog(main_tool_window, structure):

@@ -98,16 +98,13 @@ compute_profile(PyObject *, PyObject *args)
 		return nullptr;
 	}
 
-	std::vector<long> longs;
+	SequencesType sequences;
 	try {
-		pysupport::pylist_of_int_to_cvec(py_seqs, longs, "sequences");
+		pysupport::pylist_of_int_to_cvec_of_ptrs(py_seqs, sequences, "sequences");
 	} catch (pysupport::PySupportError& pse) {
 		PyErr_SetString(PyExc_TypeError, pse.what());
 		return nullptr;
 	}
-	SequencesType sequences;
-	for (auto ptr_val: longs)
-		sequences.push_back(reinterpret_cast<Sequence*>(ptr_val));
 	auto seq_len = sequences[0]->size();
 	for (auto seq: sequences)
 		if (seq->size() != seq_len) {

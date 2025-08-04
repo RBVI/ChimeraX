@@ -20,7 +20,7 @@ jobs:
   build-daily:
     name: Daily
     if: ${{ inputs.release_type == 'daily' }}
-    runs-on: windows-latest
+    runs-on: windows-2022
     defaults:
       run:
         shell: msys2 {0}
@@ -52,6 +52,7 @@ jobs:
           # GitHub Actions couldn't contact Plato.
           max_attempts: 1000
           timeout_seconds: 60
+          shell: bash
           command: ./utils/ci/nightly_logs.sh ${{ secrets.PREBUILT_CACHE_SECRET }} ${{ github.run_id }} ${{ steps.get_job_id.outputs.job_id }} windows ${{ inputs.release_type }}
       - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) install-rbvi
       - name: Install Pytest
@@ -113,7 +114,7 @@ jobs:
   build-candidate:
     name: Candidate
     if: ${{ inputs.release_type == 'candidate' }}
-    runs-on: windows-latest
+    runs-on: windows-2022
     defaults:
       run:
         shell: msys2 {0}
@@ -145,6 +146,7 @@ jobs:
           # GitHub Actions couldn't contact Plato.
           max_attempts: 1000
           timeout_seconds: 60
+          shell: bash
           command: ./utils/ci/nightly_logs.sh ${{ secrets.PREBUILT_CACHE_SECRET }} ${{ github.run_id }} ${{ steps.get_job_id.outputs.job_id }} windows ${{ inputs.release_type }}
       - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" BUILD_TYPE=candidate make -j$(nproc) install-rbvi
       - name: Install Pytest
@@ -212,7 +214,7 @@ jobs:
   build-production:
     name: Production
     if: ${{ inputs.release_type == 'production' }}
-    runs-on: windows-latest
+    runs-on: windows-2022
     defaults:
       run:
         shell: msys2 {0}
@@ -272,7 +274,7 @@ jobs:
   build-techpreview:
     name: Preview
     if: ${{ inputs.release_type == 'techpreview' }}
-    runs-on: windows-latest
+    runs-on: windows-2022
     defaults:
       run:
         shell: msys2 {0}

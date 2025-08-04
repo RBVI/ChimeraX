@@ -23,6 +23,19 @@ CXSERVICES_DEPLOYMENT_VER ?= production
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
 PATCHES = tcia_utils.patch tcia_utils_metadata.patch grako.patch
+ifeq ($(OS),Windows)
+ifneq ($(filter $(MSYSTEM),MSYS MINGW64),)
+PATCHES += openmm_metadata.patch
+else
+PATCHES += openmm_metadata_cygwin.patch
+endif
+endif
+ifeq ($(OS),Linux)
+ifneq ($(OSARCH),LinuxArm64)
+PATCHES += openmm_metadata.patch
+endif
+endif
+
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 
 ifeq ($(OSARCH),DarwinArm64)
@@ -31,10 +44,13 @@ else
 CYTHON_BUILD_ARGS=
 endif
 
+PYOPENGL_SRC = pyopengl_accelerate-3.1.9.tar.gz
+
 ifeq ($(OS),Windows)
 else
 ifeq ($(OS),Linux)
 ifeq ($(OSARCH),LinuxArm64)
+PYOPENGL_WHEEL = pyopengl_accelerate-3.1.9-cp311-cp311-linux_aarch64.whl
 else
 endif
 else
@@ -44,6 +60,7 @@ ifeq ($(OSARCH),DarwinArm64)
 SCIPY_WHEEL = $(subst ==,-,$(shell grep scipy $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_12_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
+PYOPENGL_WHEEL = pyopengl_accelerate-3.1.9-cp311-cp311-macosx_12_0_universal2.whl
 endif
 endif
 endif
@@ -64,10 +81,14 @@ app-list:
 
 upgrade:
 
-ifeq ($(OSARCH),DarwinArm64)
-app-install: app_requirements.txt $(PLATO_WHEELS) $(SCIPY_WHEEL) patched-tinyarray
+ifneq ($(filter $(OSARCH),DarwinIntel64 LinuxArm64),)
+app-install: app_requirements.txt $(PLATO_WHEELS) patched-pyopengl
 else
-app-install: app_requirements.txt $(PLATO_WHEELS) patched-tinyarray
+ifeq ($(OSARCH),DarwinArm64)
+app-install: app_requirements.txt $(PLATO_WHEELS) $(SCIPY_WHEEL)
+else
+app-install: app_requirements.txt $(PLATO_WHEELS)
+endif
 endif
 	# Install Cython first so PyOpenGL_accelerate builds
 	$(APP_PIP_INSTALL) $(CYTHON_BUILD_ARGS) $(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
@@ -75,12 +96,15 @@ endif
 ifeq ($(OSARCH),DarwinArm64)
 	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
 endif
-	# Install tinyarray with the Py_ssize_t patch
-	$(APP_PIP_INSTALL) ./$(subst ==,-,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #",]//g'))
 	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifdef USE_PYSIDE6
 	$(APP_PIP_INSTALL) $(shell grep PySide6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 	$(APP_PIP_INSTALL) $(shell grep shiboken6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
+endif
+ifneq ($(filter $(OSARCH),DarwinIntel64 LinuxArm64),)
+	$(APP_PIP_INSTALL) $(PYOPENGL_WHEEL)
+else
+	$(APP_PIP_INSTALL) $(shell grep PyOpenGL-accelerate $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 endif
 ifneq (,$(SOURCE_WHEELS))
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
@@ -96,6 +120,15 @@ endif
 	# so that pandas is not needed. When those patches are upstreamed
 	# and pandas is optional this line can be removed
 	$(APP_PIP) uninstall -y pandas
+ifneq (,$(filter $(OS),Windows Linux))
+ifneq ($(OSARCH),LinuxArm64)
+	# openmm-cuda-12 brings in ~600MB of CUDA dependencies it does not use
+	$(APP_PIP) uninstall -y nvidia-cuda-runtime-cu12 nvidia-cuda-nvcc-cu12 nvidia-cuda-nvrtc-cu12 nvidia-cuda-cupti-cu12 nvidia-cufft-cu12
+endif
+ifeq ($(OSARCH),Linux)
+	$(APP_PIP) uninstall -y nvidia-nvjitlink-cu12
+endif
+endif
 
 app_requirements.txt:
 	$(APP_PYTHON_BIN) make_requirements.py
@@ -106,10 +139,6 @@ uv-install: $(PLATO_WHEELS)
 ifeq ($(OSARCH),DarwinArm64)
 	uv pip install ./$(SCIPY_WHEEL)
 endif
-	uvx pip download $(subst #,,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/^[ \t]*//;s/[ \t]*$$//'))
-	tar -xf $(subst ==,-,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #",]//g')).tar.gz --no-same-owner
-	cd ./$(subst ==,-,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #",]//g')) && patch -p1 < ../tinyarray-pyssizet-patch.patch
-	uv pip install ./$(subst ==,-,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #",]//g'))
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(TOP)/.venv/lib/python3.11/site-packages/ -N -p0 < $$p ; \
 	done
@@ -136,6 +165,9 @@ app-upgrade:
 
 clean:
 	-rm -f pip.log
+	-rm -f app_requirements.txt
+	-rm -f pyopengl_accelerate-3.1.9.tar.gz
+	-rm -rf pyopengl_accelerate-3.1.9
 	make -C package_checker clean
 
 outdated:
@@ -160,13 +192,19 @@ app-outdated:
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src
 
+ifneq ($(filter $(OSARCH),DarwinIntel64 LinuxArm64),)
+$(PYOPENGL_SRC):
+	$(APP_PIP) download --no-build-isolation --no-binary=:all: $(shell grep PyOpenGL $(TOP)/pyproject.toml | sed 's/[\ ",#]//g')
+
+patched-pyopengl: $(PYOPENGL_SRC)
+	tar --no-same-owner -xf $(PYOPENGL_SRC)
+	patch -N -p0 < pyopengl_accelerate.patch
+	$(APP_PYTHON_BIN) -m build --wheel pyopengl_accelerate-3.1.9
+	mv pyopengl_accelerate-3.1.9/dist/$(PYOPENGL_WHEEL) .
+endif
+
 $(SCIPY_WHEEL):
 	$(APP_PIP) download --platform=macosx_12_0_arm64 --no-deps $(shell grep scipy $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
-
-patched-tinyarray:
-	$(APP_PIP) download $(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #]//g')
-	tar -xf $(subst ==,-,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #]//g')).tar.gz --no-same-owner
-	cd $(subst ==,-,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #]//g')) && patch -p1 < ../tinyarray-pyssizet-patch.patch
 
 $(CYTHON_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cython/$(CYTHON_WHEEL)

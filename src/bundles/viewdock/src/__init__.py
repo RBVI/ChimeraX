@@ -23,7 +23,7 @@
 from chimerax.core.toolshed import BundleAPI
 
 RATING_KEY = 'rating'
-DEFAULT_RATING = 2
+DEFAULT_RATING = 0
 
 class _MyAPI(BundleAPI):
     api_version = 1
@@ -32,11 +32,6 @@ class _MyAPI(BundleAPI):
     def start_tool(session, bi, ti):
         if ti.name == "ViewDock":
             show_docking_file_dialogue(session)
-
-    @staticmethod
-    def register_command(bi, ci, logger):
-        from . import cmd
-        cmd.register_command(ci)
 
     @staticmethod
     def get_class(name):
@@ -65,7 +60,7 @@ class _MyAPI(BundleAPI):
                 # the below code is also in the Maestro bundle
                 models, status = opener(session, data, file_name, True, True)
                 all_models = sum([m.all_models() for m in models], start=[])
-                if show_tool and session.ui.is_gui and len(all_models) > 1:
+                if show_tool and session.ui.is_gui:
                     for m in all_models:
                         if hasattr(m, 'viewdock_data'):
                             show_dock = True
