@@ -47,6 +47,7 @@ runs:
           prereqs/Python/python-3.11.9-win-amd64.tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.9
 
+
     - name: Restore cached Python (macOS)
       id: cache-python-macos
       if: ${{ inputs.platform == 'macos' }}
@@ -144,6 +145,56 @@ runs:
           prereqs/ffmpeg/ffmpeg-3.2.4-Darwin.exe
         key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
 
+    - name: Restore cached PyQt6 and PyQt6-WebEngine (Linux Intel)
+      id: cache-pyqt6-linux-x86_64
+      if: ${{ inputs.platform == 'linux' && inputs.architecture == 'x86_64' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/PyQt/PyQt6_commercial-6.9.1-cp39-abi3-manylinux_2_28_x86_64.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.9.0-cp39-abi3-manylinux_2_28_x86_64.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+
+    - name: Restore cached PyQt6 and PyQt6-WebEngine (Linux ARM)
+      id: cache-pyqt6-linux-arm64
+      if: ${{ inputs.platform == 'linux' && inputs.architecture == 'arm64' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/PyQt/PyQt6_commercial-6.9.1-cp39-abi3-manylinux_2_39_aarch64.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.9.0-cp39-abi3-manylinux_2_39_aarch64.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+
+    - name: Restore cached PyQt6 and PyQt6-WebEngine (Windows)
+      id: cache-pyqt6-windows-x86_64
+      if: ${{ inputs.platform == 'windows' && inputs.architecture == 'x86_64' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/PyQt/PyQt6_commercial-6.9.1-cp39-abi3-win_amd64.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.9.0-cp39-abi3-win_amd64.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+
+    - name: Restore cached PyQt6 and PyQt6-WebEngine (macOS Intel)
+      id: cache-pyqt6-macos-x86_64
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'x86_64' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/PyQt/PyQt6_commercial-6.9.1-cp39-abi3-macosx_10_14_universal2.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.9.0-cp39-abi3-macosx_10_14_universal2.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+
+    - name: Restore cached PyQt6 and PyQt6-WebEngine (macOS)
+      id: cache-pyqt6-macos-arm64
+      if: ${{ inputs.platform == 'macos' && inputs.architecture == 'arm64' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/PyQt/PyQt6_commercial-6.9.1-cp39-abi3-macosx_10_14_universal2.whl
+          prereqs/PyQt/PyQt6_WebEngine_commercial-6.9.0-cp39-abi3-macosx_10_14_universal2.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+
     - name: Restore cached seggerx dependency sources
       id: cache-seggerx
       uses: actions/cache@v4
@@ -188,6 +239,18 @@ runs:
       run: |
         curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/segger/seggerx_2024_08_12.tar.gz -O -J
         mv seggerx* src/bundles/segger/
+
+    - name: Fetch PyQt
+      shell: bash
+      if: ${{ steps[format('cache-pyqt6-{0}-{1}', inputs.platform, inputs.architecture)].outputs.cache-hit != 'true' }}
+      run: |
+        export PYQT_VERSION=6.9.1
+        export PYQTWE_VERSION=6.9.0
+        export PYQT_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_pyqt.py?platform=${{ inputs.platform }}&version=${PYQT_VERSION}&webengine=false&architecture=${{ inputs.architecture }}"
+        export PYQTWE_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_pyqt.py?platform=${{ inputs.platform }}&version=${PYQTWE_VERSION}&webengine=true&architecture=${{ inputs.architecture }}"
+        curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${PYQT_URL} -O -J
+        curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${PYQTWE_URL} -O -J
+        mv PyQt6*.whl prereqs/PyQt/
 
     - name: Fetch ffmpeg
       shell: bash

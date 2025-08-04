@@ -27,8 +27,10 @@ gui = [
   "openvr==1.26.701",
   "PyOpenGL==3.1.9",
   #"PyOpenGL-accelerate==3.1.9",
-  "PySide6==6.9.1",
-  "shiboken6==6.9.1",
+  # PyQt handled in prereqs/PyQt"
+  # sip handled in prereqs/PyQt
+  #PySide6==6.9.0
+  #shiboken6==6.9.0
   "qtconsole==5.5.2",
   "qtshim==1.1",
   # Used by the DICOM bundle for a double-ended QSlider"
