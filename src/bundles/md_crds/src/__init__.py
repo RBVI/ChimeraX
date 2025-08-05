@@ -173,6 +173,8 @@ class _MDCrdsBundleAPI(BundleAPI):
             return MDInfo()
 
         # MD plotting manager
+        if kw.get('check_relevance', False):
+            return True
         if name == "distance":
             a1, a2 = kw['atoms']
             from chimerax.geometry import distance

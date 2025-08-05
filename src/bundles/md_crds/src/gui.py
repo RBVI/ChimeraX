@@ -109,7 +109,8 @@ class PlotDialog:
         self._provider_widgets = {}
 
         for provider_name in self.mgr.provider_names:
-            self.tab_info[provider_name] = self.make_tab(provider_name)
+            if self.mgr.is_relevant(provider_name, structure=structure):
+                self.tab_info[provider_name] = self.make_tab(provider_name)
 
         tw.fill_context_menu = self.fill_context_menu
         tw.manage(None)

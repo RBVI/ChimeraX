@@ -106,6 +106,10 @@ class MDPlottingManager(ProviderManager):
         return self._provider_bundles[provider_name].run_provider(self.session,
             provider_name, self, **kw)
 
+    def is_relevant(self, provider_name, **kw):
+        return self._provider_bundles[provider_name].run_provider(self.session,
+            provider_name, self, check_relevance=True, **kw)
+
     def max_val(self, provider_name):
         return self._max_vals[provider_name]
 
