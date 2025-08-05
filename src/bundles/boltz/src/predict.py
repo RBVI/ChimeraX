@@ -54,10 +54,6 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
     predict_affinity = _affinity_component(affinity, ligand_components)
 
     for_each_ligand = _for_each_ligand(for_each_smiles_ligand, used_chain_ids)
-    if for_each_ligand:
-        if not _cache_msa(session, name, molecular_components, msa_cache_dir):
-            from chimerax.core.errors import UserError
-            raise UserError(f'Failed computing MSA for {len(for_each_ligand)} ligand predictions') 
     
     # Warn about unmodeled compnents
     if unmodeled_chains:
@@ -67,15 +63,28 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
         session.logger.info(f'Predicting covalent ligands not yet supported: {covalent_ligands}')
 
     br = BoltzRun(session, molecular_components, for_each_ligand = for_each_ligand,
-                  name = name, align_to = align_to,
+                  name = name, run_directory = results_directory, align_to = align_to,
                   samples = samples, recycles = recycles, seed = seed,
                   predict_affinity = predict_affinity, use_steering_potentials = steering,
                   device = device, use_kernels = kernels, precision = precision, cuda_bfloat16 = float16,
                   msa_only = msa_only, use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
                   open = open, wait = wait)
-    br.start(results_directory)
 
-    return br
+    msa_run = _msa_run(session, name, molecular_components, msa_cache_dir, wait) if for_each_ligand else None
+    if msa_run:
+        # Run MSA server calculation before multiple ligand structure predictions.
+        if wait:
+            msa_run.start()
+            br.start()
+        else:
+            def predict_when_msa_finishes():
+                if msa_run.success:
+                    br.start()
+            msa_run.start(finished_callback = predict_when_msa_finishes)
+    else:
+        br.start()
+
+    return br if msa_run is None else [msa_run, br]
 
 # ------------------------------------------------------------------------------
 #
@@ -189,7 +198,7 @@ def _affinity_component(affinity, ligand_components):
 
 # ------------------------------------------------------------------------------
 #
-def _cache_msa(session, name, molecular_components, msa_cache_dir):
+def _msa_run(session, name, molecular_components, msa_cache_dir, wait):
     proteins = [mc for mc in molecular_components if mc.type == 'protein']
     protein_seqs = [mc.sequence_string for mc in proteins]
     if protein_seqs:
@@ -197,10 +206,10 @@ def _cache_msa(session, name, molecular_components, msa_cache_dir):
         if not msa_cache_files:
             msa_name = f'{name}_msa' if name else 'msa'
             br = BoltzRun(session, proteins, name = msa_name,
-                          msa_only = True, msa_cache_dir = msa_cache_dir, wait = True)
-            br.start()
-            return br.success
-    return True 
+                          msa_only = True, msa_cache_dir = msa_cache_dir,
+                          wait = wait)
+            return br
+    return None
 
 # ------------------------------------------------------------------------------
 #
@@ -217,7 +226,7 @@ class BoltzMolecule:
 #
 class BoltzRun:
     def __init__(self, session, molecular_components, for_each_ligand = None,
-                 name = None, align_to = None,
+                 name = None, run_directory = None, align_to = None,
                  samples = 1, recycles = 3, seed = None,
                  predict_affinity = None, use_steering_potentials = False,
                  device = 'default', use_kernels = None, precision = None, cuda_bfloat16 = False,
@@ -240,10 +249,13 @@ class BoltzRun:
         self._seed = seed		# Random seed for computation
         self._open = open		# Whether to open predictions when boltz finishes.
 
-        self._run_directory = None	# Location of input and results files
+        self._run_directory = run_directory	# Location of input and results files
         self._input_path = None		# YAML file path or directory of yaml files
-        self._running = False
+        self._running = False		# Subprocess running
+        self._finished = False
+        self._finished_callback = None
         self._stage = ''		# String included in status messages
+        self._stage_detail = ''		# Extra info for status message, which ligand in batch predictions
         self._stage_times = {}		# Stage name to elapsed time for that stage
         self._stage_start_time = None	# Start of the current stage.
         self._user_terminated = False
@@ -261,17 +273,20 @@ class BoltzRun:
         self.use_msa_server = True
         self.cached_msa_dir = None
 
-    def start(self, run_location = None):
-        self._write_yaml_input_file(run_location)
-        self._run_boltz_local()
+    def start(self, finished_callback = None):
+        self._finished_callback = finished_callback
+        self._write_yaml_input_file()
+        self._run_boltz()
 
-    def _unique_run_directory(self, run_location):
-        if run_location is None:
-            run_location = self._settings.boltz_results_location
+    def _unique_run_directory(self):
+        dir = self._run_directory
+        if dir is None:
+            dir = self._settings.boltz_results_location
 
         from os.path import expanduser
-        rdir = expanduser(run_location)
-        rdir = self._add_directory_suffix(rdir)
+        dir = expanduser(dir)
+
+        rdir = self._add_directory_suffix(dir)
 
         from os.path import exists
         if not exists(rdir):
@@ -313,7 +328,7 @@ class BoltzRun:
         settings = _boltz_settings(self._session)
         return settings
 
-    def _write_yaml_input_file(self, run_location):
+    def _write_yaml_input_file(self):
         # Create yaml before making directory so directory is not created
         # if yaml parsing fails.
         if self._for_each_ligand:
@@ -327,10 +342,7 @@ class BoltzRun:
         else:
             yaml = self._create_yaml_input()
 
-        dir = self._run_directory
-        if dir is None:
-            dir = self._unique_run_directory(run_location)
-            self._run_directory = dir
+        self._run_directory = dir = self._unique_run_directory()
 
         from os import path
         if self.name is None:
@@ -418,7 +430,7 @@ class BoltzRun:
             device = self._device
         return device
 
-    def _run_boltz_local(self):
+    def _run_boltz(self):
         self._running = True
         self._set_stage('starting Boltz')
 
@@ -563,6 +575,15 @@ class BoltzRun:
     def _check_boltz_output(self):
 
         new_lines = self._stderr.new_lines()
+        if len(new_lines) == 0:
+            return
+
+        if self._for_each_ligand:
+            # Report ligand being docked in status messages.
+            detail_func = lambda text: text[25:].strip()
+        else:
+            detail_func = lambda text: ''
+            
         stages = [('SUBMIT', 'submitting sequence search'),
                   ('RATELIMIT', 'sequence server busy... waiting'),
                   ('PENDING', 'sequence search submitted'),
@@ -571,10 +592,14 @@ class BoltzRun:
                   ('Loading Boltz structure prediction weights', 'loading weights'),
                   ('Finished loading Boltz structure prediction weights', ''),
                   ('Starting structure inference', 'structure inference'),
+                  ('Begin structure inference ', ('structure inference', detail_func)),
+                  ('End structure inference ', 'structure inference'),
                   ('Finished structure inference', ''),
                   ('Loading affinity prediction weights', 'loading affinity weights'),
                   ('Finished loading affinity prediction weights', ''),
                   ('Starting affinity inference', 'affinity inference'),
+                  ('Begin affinity inference ', ('affinity inference', detail_func)),
+                  ('End affinity inference ', 'affinity inference'),
                   ('Finished affinity inference', ''),
                   ]
         found_stage = None
@@ -582,15 +607,22 @@ class BoltzRun:
             msgs = []
             for text, stage in stages:
                 if text in line:
-                    msgs.append((line.find(text), stage))
+                    pos = line.find(text)
+                    if isinstance(stage, tuple):
+                        stage, detail_function = stage
+                        detail = detail_function(line[pos:])
+                    else:
+                        detail = ''
+                    msgs.append((pos, stage, detail))
             if msgs:
-                found_stage = max(msgs)[1]
+                found_stage, detail = max(msgs)[1:]
                 break
 
         if found_stage:
-            self._set_stage(found_stage)
+            self._set_stage(found_stage, detail=detail)
             
-    def _set_stage(self, stage):
+    def _set_stage(self, stage, detail = ''):
+        self._stage_detail = detail
         if stage == self._stage:
             return
         from time import time
@@ -603,8 +635,8 @@ class BoltzRun:
         self._stage_start_time = t
 
     @property
-    def stage(self):
-        return self._stage
+    def stage_info(self):
+        return self._stage if not self._stage_detail else (self._stage + ' ' + self._stage_detail)
     
     def _process_completed(self, stdout, stderr):
         
@@ -637,8 +669,11 @@ class BoltzRun:
 
         self._add_to_msa_cache()
 
-        self._running = False
         self.success = success
+        self._running = False
+        self._finished = True
+        if self._finished_callback:
+            self._finished_callback()
 
     def _report_runtime(self):
         from time import time
@@ -736,8 +771,8 @@ class BoltzRun:
         return exists(mmcif_path)
         
     @property
-    def running(self):
-        return self._running
+    def finished(self):
+        return self._finished
 
     def terminate(self):
         if self._running:
@@ -835,7 +870,7 @@ class BoltzRun:
         from os.path import join, exists
         lines = []
         for sample in range(self._samples):
-            results = _read_json(self._predictions_directory, f'confidence_{self.name}_model_{sample}.json')
+            results = _read_json(self._predictions_directory, self.name, f'confidence_{self.name}_model_{sample}.json')
             if not results:
                 continue
             conf = results.get('confidence_score', -1)
@@ -861,7 +896,7 @@ class BoltzRun:
         ligand_mol = self._predict_affinity
         if ligand_mol is None:
             return
-        results = _read_json(self._predictions_directory, f'affinity_{self.name}.json')
+        results = _read_json(self._predictions_directory, self.name, f'affinity_{self.name}.json')
         if results:
             log_affinity_uM = results['affinity_pred_value']
             affinity_uM = 10.0 ** log_affinity_uM
@@ -889,9 +924,9 @@ class BoltzRun:
 
 # ------------------------------------------------------------------------------
 #
-def _read_json(directory, filename):
+def _read_json(*path_components):
     from os.path import join, exists
-    path = join(directory, filename)
+    path = join(*path_components)
     if not exists(path):
         return None
     import json
@@ -982,14 +1017,12 @@ class LigandPredictionResults(ToolInstance):
     def _table_rows(self):
         rows = []
         pdir = self._predictions_directory
-        from os.path import join
         import os
         ligand_names = os.listdir(pdir)
         for ligand_name in ligand_names:
-            ldir = join(pdir, ligand_name)
-            confidence = _read_json(ldir, f'confidence_{ligand_name}_model_0.json')
+            confidence = _read_json(pdir, ligand_name, f'confidence_{ligand_name}_model_0.json')
             lig_iptm = confidence.get('ligand_iptm')
-            affinity = _read_json(ldir, f'affinity_{ligand_name}.json')
+            affinity = _read_json(pdir, ligand_name, f'affinity_{ligand_name}.json')
             if affinity:
                 log_affinity_uM = affinity.get('affinity_pred_value')
                 affinity_uM = 10.0 ** log_affinity_uM

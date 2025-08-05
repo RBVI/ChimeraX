@@ -34,7 +34,7 @@ class BoltzPredictionGUI(ToolInstance):
     def __init__(self, session, tool_name):
 
         self._auto_set_prediction_name = True
-        self._boltz_run = None		# BoltzRun instance if a prediction has been started
+        self._boltz_runs = None		# List of BoltzRun instances if a prediction has been started
         self._installing_boltz = False
 
         ToolInstance.__init__(self, session, tool_name)
@@ -544,7 +544,7 @@ class BoltzPredictionGUI(ToolInstance):
         if self._installing_boltz:
             self.session.logger.error('Cannot make a prediction until Boltz installation finishes.')
             return
-        if self._boltz_run and self._boltz_run.running:
+        if self._boltz_run and not self._boltz_run.finished:
             self.session.logger.error('Cannot make a new prediction until the current prediction finishes.')
             return
         options = []
@@ -592,9 +592,20 @@ class BoltzPredictionGUI(ToolInstance):
         br = run(self.session, cmd)
         if br is None:
             return  # Boltz not yet installed or other startup error.
-        self._boltz_run = br
+        self._boltz_runs = br
 
         self._show_prediction_progress()
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def _boltz_run(self):
+        br = self._boltz_runs
+        if isinstance(br, list):
+            while len(br) > 1 and br[0].finished:
+                del br[0]
+            br = br[0]
+        return br
 
     # ---------------------------------------------------------------------------
     #
@@ -640,7 +651,7 @@ class BoltzPredictionGUI(ToolInstance):
         t = time()
         elapsed = t - self._prediction_start_time
         br = self._boltz_run
-        if br and not br.running:
+        if br and br.finished:
             status = 'completed in' if br.success else 'failed after'
             msg = f'Prediction {status} {"%.0f" % elapsed} seconds'
             if self._max_memory_use:
@@ -652,9 +663,9 @@ class BoltzPredictionGUI(ToolInstance):
             return
         self._next_progress_time = t + 1
         msg = f'Prediction running {"%.0f" % elapsed} seconds'
-        if br.stage:
-            msg += ': ' + br.stage
-            if br.stage == 'sequence server busy... waiting':
+        if br.stage_info:
+            msg += ': ' + br.stage_info
+            if br.stage_info == 'sequence server busy... waiting':
                 self._progress_label.setStyleSheet('background-color: lightyellow;')
                 self._progress_label_colored = True
             elif getattr(self, '_progress_label_colored', False):
