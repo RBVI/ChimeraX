@@ -16,6 +16,7 @@
 #include <Python.h>
 #include <algorithm>    // std::min, std::max
 #include <iterator>     // std::next
+#include <list>
 #include <math.h>
 #include <memory>
 #include <string>
@@ -52,6 +53,8 @@ public:
 class Link
 {
 public:
+    // info is really a pair of end points, but much easier to iterate through a vector
+    // than a pair, so...
     std::vector<EndPoint*> info;
     double val;
     double penalty = 0.0;
@@ -341,7 +344,51 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
         //TODO
     }
 
-    //TODO: column collation
+    // column collation
+    std::map<Chain*, std::map<Column*, std::map<int,int>::size_type>> columns;
+    std::map<Chain*, std::vector<std::map<int,int>::size_type>> partial_order;
+
+    std::set<std::pair<EndPoint*, EndPoint*>> seen;
+    while (all_links.size() > 0) {
+        if (all_links.size() % 100 == 0)
+            logger::status(py_logger, status_prefix,
+                    "Forming columns (", all_links.size(), " links to check)");
+        auto back_val = all_links.back()->val;
+        for (auto link: all_links) {
+            if (link->val > back_val) {
+                std::sort(all_links.begin(), all_links.end(),
+                    [](std::shared_ptr<Link>& l1, std::shared_ptr<Link>& l2) { return l1->val < l2->val; });
+                if (val_func == &min) {
+                    // Since all_links is a vector, try to make only one erase call...
+                    auto erasable = all_links.begin();
+                    for (auto i = all_links.begin(); i != all_links.end(); ++i) {
+                        if (i+1 == all_links.end())
+                            break;
+                        if ((*i)->val > 0)
+                            break;
+                        erasable = i+1;
+                    }
+                    if (erasable != all_links.begin())
+                        all_links.erase(all_links.begin(), erasable);
+                }
+                break;
+            }
+        }
+        auto link = all_links.back();
+        all_links.pop_back();
+        if (link->val < 0)
+            break;
+
+        std::pair<EndPoint*, EndPoint*> key(link->info[0], link->info[1]);
+        if (seen.find(key) != seen.end())
+            continue;
+        seen.insert(key);
+
+        //TODO
+        //for (auto endp: link->info)
+        //    pairings[endp->pos][endp->pos]
+    }
+        
 
     PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align not implemented");
     return nullptr;
