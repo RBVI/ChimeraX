@@ -384,9 +384,17 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
             continue;
         seen.insert(key);
 
+        std::map<Chain*, Chain::SeqPos> check_info;
+        for (auto endp: link->info) {
+            auto& list = pairings[endp->chain];
+            list.erase(list.begin() + endp->pos);
+            check_info[endp->chain] = endp->pos;
+        }
+
+        // AFAICT links are _always_ between different chains, so the whole "okay check"
+        // in the Chimera code seems superfluous
+
         //TODO
-        //for (auto endp: link->info)
-        //    pairings[endp->pos][endp->pos]
     }
         
 
