@@ -53,8 +53,8 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
 
     predict_affinity = _affinity_component(affinity, ligand_components)
 
-    for_each_ligand = _for_each_ligand(for_each_smiles_ligand, used_chain_ids)
-    
+    for_each_ligand = _for_each_ligand(for_each_smiles_ligand, used_chain_ids, predict_affinity, session.logger)
+   
     # Warn about unmodeled compnents
     if unmodeled_chains:
         msg = f'Chains {", ".join(unmodeled_chains)} not modeled because not protein/DNA/RNA'
@@ -169,9 +169,24 @@ def _ligand_components(ligands, exclude_ligands, ligand_ccd, ligand_smiles, used
 
 # ------------------------------------------------------------------------------
 #
-def _for_each_ligand(name_and_smiles, used_chain_ids):
-    if len(name_and_smiles) == 0:
+def _for_each_ligand(name_and_smiles, used_chain_ids, predict_affinity, log):
+    n = len(name_and_smiles)
+    if n == 0:
         return None
+
+    if predict_affinity == 'each':
+        # Remove multi-component ligands
+        multi_comp = [name for name, smiles in name_and_smiles if '.' in smiles]
+        if multi_comp:
+            msg = f'Boltz 2 can only predict affinity of ligands having one covalently connected component. {len(multi_comp)} ligands with multiple components ("." in SMILES string) specified: {", ".join(multi_comp)}.'
+            if len(multi_comp) == n:
+                from chimerax.core.errors import UserError
+                raise UserError(msg)
+            else:
+                names_and_smiles = [(name,smiles) for name, smiles in name_and_smiles if '.' not in smiles]
+                msg += f'  Predicting only {len(names_and_smiles)} of {n} covalently connected ligands.'
+                log.warning(msg)
+
     chain_ids = _next_chain_id(used_chain_ids)
     ligands = [BoltzMolecule('ligand', smiles_string = smiles, name = name, chain_ids = chain_ids)
                for name, smiles in name_and_smiles]
@@ -191,6 +206,9 @@ def _affinity_component(affinity, ligand_components):
                     from chimerax.core.errors import UserError
                     raise UserError(f'Affinity ligand {affinity} has {ncopies} copies.  Boltz 2 can only predict affinity for single-copy ligands.')
                 predict_affinity = lig_comp
+            if affinity == lig_comp.smiles_string and '.' in lig_comp.smiles_string:
+                from chimerax.core.errors import UserError
+                raise UserError(f'Affinity ligand {affinity} has multiple components that are not covalently linked ("." in SMILES string).  Boltz 2 cannot predict affinity for multi-component ligands.')
         if predict_affinity is None:
             from chimerax.core.errors import UserError
             raise UserError(f'Affinity ligand {affinity} is not a component of the predicted structure')
@@ -389,7 +407,8 @@ class BoltzRun:
                 if mc.ccd_code:
                     spec = f'      ccd: "{mc.ccd_code}"'
                 elif mc.smiles_string:
-                    spec = f'      smiles: "{mc.smiles_string}"'
+                    smiles = mc.smiles_string.replace('\\', '\\\\')  # Escape backslashes
+                    spec = f'      smiles: "{smiles}"'
                 ligand_entry.append(spec)
                 yaml_lines.extend(ligand_entry)
 
@@ -762,12 +781,16 @@ class BoltzRun:
         return msg
 
     def _predicted_model_exists(self):
-        if self._for_each_ligand:
-            name = self._for_each_ligand[0].name
-        else:
-            name = self.name
         from os.path import join, exists
-        mmcif_path = join(self._predictions_directory, name, f'{name}_model_0.cif')
+        if self._for_each_ligand:
+            # Not all ligand predictions succeed due to chembl standarization errors.
+            for lig in self._for_each_ligand:
+                mmcif_path = join(self._predictions_directory, lig.name, f'{lig.name}_model_0.cif')
+                if exists(mmcif_path):
+                    return True
+            return False
+
+        mmcif_path = join(self._predictions_directory, self.name, f'{self.name}_model_0.cif')
         return exists(mmcif_path)
         
     @property
@@ -1021,6 +1044,8 @@ class LigandPredictionResults(ToolInstance):
         ligand_names = os.listdir(pdir)
         for ligand_name in ligand_names:
             confidence = _read_json(pdir, ligand_name, f'confidence_{ligand_name}_model_0.json')
+            if not confidence:
+                continue  # Prediction failed probably due to chembl ligand standardization
             lig_iptm = confidence.get('ligand_iptm')
             affinity = _read_json(pdir, ligand_name, f'affinity_{ligand_name}.json')
             if affinity:
