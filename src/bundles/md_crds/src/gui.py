@@ -197,19 +197,10 @@ class PlotDialog:
     def _make_scalar_tab(self, provider_name):
         #TODO
         raise NotImplementedError("Scalar plotting not implemented")
+        tab_name, page, page_layout = self._tab_setup(provider_name)
 
     def _make_atomic_tab(self, provider_name):
-        ui_name = self.mgr.ui_name(provider_name)
-        tab_name = plural_of(ui_name)
-        if tab_name.lower() == tab_name:
-            # no caps
-            tab_name = tab_name.capitalize()
-        from Qt.QtWidgets import QWidget, QLabel, QHBoxLayout, QVBoxLayout
-        page = QWidget()
-        page_layout = QHBoxLayout()
-        page_layout.setSpacing(0)
-        page_layout.setContentsMargins(0,0,0,0)
-        page.setLayout(page_layout)
+        tab_name, page, page_layout = self._tab_setup(provider_name)
         self._plot_stacks[provider_name] = stack = QStackedWidget()
         num_atoms = self.mgr.num_atoms(provider_name)
         atom_string = "any number of" if num_atoms == 0 else "%d" % num_atoms
@@ -226,7 +217,6 @@ class PlotDialog:
         controls_layout.addWidget(table, stretch=1)
         controls_layout.addWidget(self._make_buttons_area(provider_name), alignment=Qt.AlignCenter)
         page_layout.addWidget(controls_area)
-        self.plot_tabs.addTab(page, tab_name)
         return tab_name, page
 
     def _make_buttons_area(self, provider_name):
@@ -442,6 +432,20 @@ class PlotDialog:
             else:
                 raise ValueError("Unknown kind of atom for 'exclude': %s" % kind)
         return sel_atoms
+
+    def _tab_setup(self, provider_name):
+        ui_name = self.mgr.ui_name(provider_name)
+        tab_name = plural_of(ui_name)
+        if tab_name.lower() == tab_name:
+            # no caps
+            tab_name = tab_name.capitalize()
+        page = QWidget()
+        page_layout = QHBoxLayout()
+        page_layout.setSpacing(0)
+        page_layout.setContentsMargins(0,0,0,0)
+        page.setLayout(page_layout)
+        self.plot_tabs.addTab(page, tab_name)
+        return tab_name, page, page_layout
 
     def _table_row_output(self, table, datum):
         return [col.display_value(datum) for col in table.columns[3:]] + ["%g" % datum.values[cs_id]
