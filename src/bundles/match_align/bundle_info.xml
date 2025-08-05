@@ -22,7 +22,8 @@
 
   <CModule name="_msa3d">
     <SourceFile>msa3d_cpp/msa3d.cpp</SourceFile>
-	<Library>atomstruct</Library>
+    <Library>atomstruct</Library>
+    <Library>logger</Library>
   </CModule>
 
   <Classifiers>
