@@ -15,6 +15,10 @@
 UCSF DOCK output in PDB and mol2 formats are supported.
   </Description>
 
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+  </DataFiles>
+
   <!-- Categories is a list where this bundle should appear -->
   <Categories>
     <Category name="General"/>
@@ -44,6 +48,11 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <Provider name="Sybyl Mol2" want_path="true" />
     <Provider name="ZDOCK" />
     <Provider name="SwissDock" />
+  </Providers>
+
+  <Providers manager="toolbar">
+    <Provider tab="Right Mouse" section="Other" name="mO1" mouse_mode="next docked"
+	  display_name="Next docked" description="Show next docked ligand" icon="nextdocking.png" />
   </Providers>
 
   <Classifiers>
