@@ -183,8 +183,8 @@ def _for_each_ligand(name_and_smiles, used_chain_ids, predict_affinity, log):
                 from chimerax.core.errors import UserError
                 raise UserError(msg)
             else:
-                names_and_smiles = [(name,smiles) for name, smiles in name_and_smiles if '.' not in smiles]
-                msg += f'  Predicting only {len(names_and_smiles)} of {n} ligands.'
+                name_and_smiles = [(name,smiles) for name, smiles in name_and_smiles if '.' not in smiles]
+                msg += f'  Predicting only {len(name_and_smiles)} of {n} ligands.'
                 log.warning(msg)
 
     chain_ids = _next_chain_id(used_chain_ids)
