@@ -82,7 +82,7 @@ class PlotDialog:
                 handler.remove()
             pd.handlers.clear()
             for provider, cids in pd._mouse_handlers.items():
-                canvas = pd._plot_stacks[provider].widget(1)
+                canvas = pd.plot(provider)
                 for cid in cids:
                     canvas.mpl_disconnect(cid)
             pd._mouse_handlers.clear()
@@ -103,6 +103,7 @@ class PlotDialog:
         self.tab_info = {}
         self._tables = {}
         self._plot_stacks = {}
+        self._scalar_plots = {}
         self._value_columns = {}
         self._frame_indicators = {}
         self._mouse_handlers = {}
@@ -146,9 +147,18 @@ class PlotDialog:
             return self._make_scalar_tab(provider_name)
         return self._make_atomic_tab(provider_name)
 
+    def plot(self, provider_name):
+        if self.mgr.num_atoms(provider_name) is None:
+            return self._scalar_plots[provider_name]
+        return self._plot_stacks[provider_name].widget(1)
+
+    @property
+    def plots(self):
+        return [stack.widget(1) for stack in self._plot_stacks.values()] + list(self._scalar_plots.values())
+
     def save_plot(self, *args):
         provider_name = self.cur_provider
-        plot = self._plot_stacks[provider_name].widget(1)
+        plot = self.plot(provider_name)
 
         spd = SavePlotDialog(self.session, plot)
         if not spd.exec():
@@ -177,7 +187,10 @@ class PlotDialog:
                     continue
                 table.update_column(self._value_columns[provider], data=True)
                 self._frame_indicators[provider].set_xdata([s.active_coordset_id])
-                self._plot_stacks[provider].widget(1).draw_idle()
+                self.plot(provider).draw_idle()
+            for provider, plot in self._scalar_plots.items():
+                self._frame_indicators[provider].set_xdata([s.active_coordset_id])
+                self.plot(provider).draw_idle()
 
     def _delete_table_entries(self, provider_name):
         table = self._tables[provider_name]
@@ -195,9 +208,36 @@ class PlotDialog:
         self._update_plot(provider_name)
 
     def _make_scalar_tab(self, provider_name):
-        #TODO
-        raise NotImplementedError("Scalar plotting not implemented")
         tab_name, page, page_layout = self._tab_setup(provider_name)
+        from matplotlib.backends.backend_qtagg import FigureCanvas
+        from matplotlib.figure import Figure
+        self._scalar_plots[provider_name] = canvas = FigureCanvas(Figure())
+        page_layout.addWidget(canvas, stretch=1)
+
+        figure = canvas.figure
+        axis = figure.subplots()
+        self._mouse_handlers[provider_name] = [
+            canvas.mpl_connect('motion_notify_event', self._mouse_event),
+            canvas.mpl_connect('button_press_event', self._mouse_event),
+        ]
+        from matplotlib.ticker import MaxNLocator
+        axis.xaxis.set_major_locator(MaxNLocator(integer=True))
+        cs_ids = self.structure.coordset_ids
+        cs_ids.sort()
+        axis.set_xlim(cs_ids[0], cs_ids[-1])
+
+        values = self.mgr.get_values(provider_name, structure=self.structure)
+        axis.plot(cs_ids, [values[cs_id] for cs_id in cs_ids], color="blue")
+        y_min, y_max = self.mgr.min_val(provider_name), self.mgr.max_val(provider_name)
+        if y_min is not None:
+            axis.set_ylim(ymin=y_min)
+        if y_max is not None:
+            axis.set_ylim(ymax=y_max)
+        axis.set_xlabel("Coord Set")
+        ui_name = self.mgr.ui_name(provider_name)
+        axis.set_ylabel(ui_name.title() if ui_name.islower() else ui_name)
+        self._frame_indicators[provider_name] = axis.axvline(self.structure.active_coordset_id, color='k')
+        canvas.draw_idle()
 
     def _make_atomic_tab(self, provider_name):
         tab_name, page, page_layout = self._tab_setup(provider_name)
@@ -349,8 +389,8 @@ class PlotDialog:
                 return
         else:
             raise ValueError("Unexpected Matplotlib event: %s" % event.name)
-        for provider, stack in self._plot_stacks.items():
-            if event.canvas == stack.widget(1):
+        for plot in self.plots:
+            if event.canvas == plot:
                 if not event.inaxes:
                     break
                 cs_id = round(event.xdata)
