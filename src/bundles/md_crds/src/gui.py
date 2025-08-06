@@ -475,7 +475,11 @@ class PlotDialog:
 
     def _tab_setup(self, provider_name):
         ui_name = self.mgr.ui_name(provider_name)
-        tab_name = plural_of(ui_name)
+        # scalar tab names singular; atomic tab names plural
+        if self.mgr.num_atoms(provider_name) is None:
+            tab_name = ui_name
+        else:
+            tab_name = plural_of(ui_name)
         if tab_name.lower() == tab_name:
             # no caps
             tab_name = tab_name.capitalize()
