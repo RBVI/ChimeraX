@@ -319,8 +319,14 @@ def show_open_file_dialog(session, initial_directory=None, format_names=None, *,
     if _use_native_open_file_dialog and caption is None:
         from Qt.QtWidgets import QFileDialog
         with gc_context():
-            paths, file_filter = QFileDialog.getOpenFileNames(filter=qt_filter,
+            from Qt import using_pyqt6
+            if using_pyqt6:
+                paths, file_filter = QFileDialog.getOpenFileNames(filter=qt_filter,
                                                        directory=initial_directory)
+            else:
+                paths, file_filter = QFileDialog.getOpenFileNames(filter=qt_filter,
+                                                       dir=initial_directory)
+
         from sys import platform
         if platform == 'win32':
             # On Windows 10 the native open dialog puts "fatal errors" into the

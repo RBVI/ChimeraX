@@ -34,6 +34,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  interfaces items_inspection io label iupac \
 	  kvfinder list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
+	  markers mask match_align match_maker md_crds \
 	  markers mask match_maker mcopy md_crds \
 	  medical_toolbar meeting minimize mlp model_series \
 	  mmcif mmtf model_archive model_panel modeller \

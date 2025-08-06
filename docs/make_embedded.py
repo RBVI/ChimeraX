@@ -199,7 +199,7 @@ def get_ffmpeg_version():
             encoding='utf-8',
             env={'LANG': 'en_US.UTF-8'}
         )
-    except subprocess.SubprocessError:
+    except (subprocess.SubprocessError, FileNotFoundError):
         return None
     first_line = output.split('\n', maxsplit=1)[0].split()
     if first_line[0:2] != ['ffmpeg', 'version']:

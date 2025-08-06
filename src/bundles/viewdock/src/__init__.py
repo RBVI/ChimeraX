@@ -23,7 +23,7 @@
 from chimerax.core.toolshed import BundleAPI
 
 RATING_KEY = 'rating'
-DEFAULT_RATING = 2
+DEFAULT_RATING = 0
 
 class _MyAPI(BundleAPI):
     api_version = 1

@@ -62,7 +62,7 @@ class ATOMSTRUCT_IMEX AtomSearchTree: public DestructionObserver {
     // as per "The Design and Analysis of Spatial Data Structures" pp. 70-71.
     // Basically, given a set of k-dimensional points (each dimension referred
     // to as an "attribute") with associated data, they are partitioned into
-    // leaf nodes.  Each leaf nodes hold lists of associated data whose
+    // leaf nodes.  Each leaf node holds lists of associated data whose
     // corresponding attributes vary by less than an initially-supplied threshold
     // ('sep_val').  Also, each leaf node holds a bounding box of the leaf data.
 
