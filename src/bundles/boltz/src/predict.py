@@ -184,11 +184,11 @@ def _for_each_ligand(name_and_smiles, used_chain_ids, predict_affinity, log):
                 raise UserError(msg)
             else:
                 names_and_smiles = [(name,smiles) for name, smiles in name_and_smiles if '.' not in smiles]
-                msg += f'  Predicting only {len(names_and_smiles)} of {n} covalently connected ligands.'
+                msg += f'  Predicting only {len(names_and_smiles)} of {n} ligands.'
                 log.warning(msg)
 
     chain_ids = _next_chain_id(used_chain_ids)
-    ligands = [BoltzMolecule('ligand', smiles_string = smiles, name = name, chain_ids = chain_ids)
+    ligands = [BoltzMolecule('ligand', smiles_string = smiles, name = name.replace(' ', '_'), chain_ids = chain_ids)
                for name, smiles in name_and_smiles]
     return ligands
         
@@ -1467,11 +1467,12 @@ class NamedLigandsArg(Annotation):
     @classmethod
     def parse(cls, text, session):
         value, used, rest = StringArg.parse(text, session)
-        ligands = [name_smiles.split() for name_smiles in value.split(',')]
-        for ligand in ligands:
-            if len(ligand) != 2:
-                bad_lig = ' '.join(ligand)
-                raise AnnotationError(f'Named ligands must be a comma separated list of name space smiles string, got {value}, and "{bad_lig}" does not have name and smiles')
+        names_and_smiles = value.split(',')
+        if len(names_and_smiles) % 2 == 1:
+            raise AnnotationError('Named ligands must be a comma separated list of names and smiles string, got an odd number of comma-separated values')
+        names = names_and_smiles[::2]
+        smiles = names_and_smiles[1::2]
+        ligands = [(name, smile) for name, smile in zip(names, smiles)]
         return ligands, used, rest
 
 # ------------------------------------------------------------------------------

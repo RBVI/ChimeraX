@@ -362,12 +362,12 @@ class BoltzPredictionGUI(ToolInstance):
         named_ligands = []
         for name_smiles in self._entry_strings(remove_whitespace = False, separator = '\n'):
             if name_smiles:
-                fields = name_smiles.split()
+                fields = name_smiles.split(',')
                 if len(fields) != 2:
-                    msg = f'Each ligand SMILES string text must be one ligand name (without spaces) and SMILES string per line, "{name_smiles}" is not valid.'
+                    msg = f'Each ligand SMILES string must have one ligand name and SMILES string per line separated by a comma, "{name_smiles}" is not valid.'
                     self.session.logger.error(msg)
                     return ()
-                named_ligands.append(tuple(fields))
+                named_ligands.append(tuple(f.strip() for f in fields))
         return named_ligands
 
     # ---------------------------------------------------------------------------
@@ -462,7 +462,7 @@ class BoltzPredictionGUI(ToolInstance):
         each_ligand = []
         for comp in mt.data:
             if comp.type == 'each ligand':
-                each_ligand.extend([f'{name} {smiles}' for name, smiles in comp.named_ligands])
+                each_ligand.extend([f'{name},{smiles}' for name, smiles in comp.named_ligands])
         if each_ligand:
             eligands = ','.join(each_ligand)
             options.append(f'forEachSmilesLigand "{eligands}"')
