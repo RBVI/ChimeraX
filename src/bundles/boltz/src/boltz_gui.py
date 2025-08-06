@@ -36,6 +36,7 @@ class BoltzPredictionGUI(ToolInstance):
         self._auto_set_prediction_name = True
         self._boltz_runs = None		# List of BoltzRun instances if a prediction has been started
         self._installing_boltz = False
+        self._affinity_value_map = {'each': 'each'}
 
         ToolInstance.__init__(self, session, tool_name)
 
@@ -293,6 +294,10 @@ class BoltzPredictionGUI(ToolInstance):
         if first_addition:
             self._set_prediction_name()
 
+        each_ligand = len([comp for comp in comps if comp.type == 'each ligand']) > 0
+        if each_ligand and self._affinity_ligand_value() is None:
+            self._affinity_ligand.value = 'each'
+            
         self._report_number_of_tokens()
         
     # ---------------------------------------------------------------------------
