@@ -43,7 +43,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  pick_blobs positions preset_mgr profile_grids pubchem read_pbonds registration \
 	  remote_control render_by_attr renumber_residues rest_server \
 	  residue_fit rna_layout rotamers rotamer_libs \
-	  save_command scheme_mgr \
+	  save_command scenes scheme_mgr \
 	  sdf sel_inspector segger segment segmentations seqalign seq_view shape \
 	  shell shortcuts show_sequences sideview sim_matrices similarstructures smiles \
 	  smooth_lines spacenavigator std_commands \
