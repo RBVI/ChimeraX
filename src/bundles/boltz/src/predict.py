@@ -1437,14 +1437,14 @@ class ReadOutputThread:
 
 # ------------------------------------------------------------------------------
 #
-from chimerax.core.commands import Annotation, AnnotationError, StringArg
+from chimerax.core.commands import Annotation, AnnotationError, next_token
 class LigandsArg(Annotation):
     name = 'ligands'
     allow_repeat = 'expand'
 
     @classmethod
     def parse(cls, text, session):
-        value, used, rest = StringArg.parse(text, session)
+        value, used, rest = next_token(text)
         ligands = []
         for ligand in value.split(','):
             count = 1
@@ -1466,7 +1466,7 @@ class NamedLigandsArg(Annotation):
 
     @classmethod
     def parse(cls, text, session):
-        value, used, rest = StringArg.parse(text, session)
+        value, used, rest = next_token(text)
         names_and_smiles = value.split(',')
         if len(names_and_smiles) % 2 == 1:
             raise AnnotationError('Named ligands must be a comma separated list of names and smiles string, got an odd number of comma-separated values')
