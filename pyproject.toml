@@ -27,10 +27,12 @@ gui = [
   "openvr==1.26.701",
   "PyOpenGL==3.1.9",
   #"PyOpenGL-accelerate==3.1.9",
-  "PySide6==6.9.1",
-  "shiboken6==6.9.1",
+  # PyQt handled in prereqs/PyQt"
+  # sip handled in prereqs/PyQt
+  #PySide6==6.9.0
+  #shiboken6==6.9.0
   "qtconsole==5.5.2",
-  "qtshim==1.1",
+  "qtshim==1.2",
   # Used by the DICOM bundle for a double-ended QSlider"
   "superqt==0.7.5",
   "tinyarray==1.2.5",
@@ -130,10 +132,7 @@ wheel = [
   #
   "traitlets==5.14.3",
 ]
-dev = [
-  "line_profiler==5.0.0",
-  "markdown==3.8.2",
-]
+dev = ["line_profiler==5.0.0", "markdown==3.8.2"]
 test = ["pytest", "pytest-cov", "coverage"]
 
 [tool.setuptools.dynamic]

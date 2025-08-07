@@ -34,6 +34,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  interfaces items_inspection io label iupac \
 	  kvfinder list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
+	  markers mask match_align match_maker md_crds \
 	  markers mask match_maker mcopy md_crds \
 	  medical_toolbar meeting minimize mlp model_series \
 	  mmcif mmtf model_archive model_panel modeller \
@@ -42,7 +43,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  pick_blobs positions preset_mgr profile_grids pubchem read_pbonds registration \
 	  remote_control render_by_attr renumber_residues rest_server \
 	  residue_fit rna_layout rotamers rotamer_libs \
-	  save_command scheme_mgr \
+	  save_command scenes scheme_mgr \
 	  sdf sel_inspector segger segment segmentations seqalign seq_view shape \
 	  shell shortcuts show_sequences sideview sim_matrices similarstructures smiles \
 	  smooth_lines spacenavigator std_commands \

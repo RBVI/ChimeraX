@@ -68,6 +68,7 @@ class ViewDockTool(ToolInstance):
 
         # Create a vertical layout for the tool
         self.main_v_layout = QVBoxLayout()
+        self.main_v_layout.setSpacing(0)
         self.tool_window.ui_area.setLayout(self.main_v_layout)
 
         vd_structures = self.filter_structures(structures)
@@ -91,10 +92,20 @@ class ViewDockTool(ToolInstance):
         NextDockingMouseMode.vd_instance = self
 
         self.description_group = QGroupBox()
-        self.description_box_setup(table_state)
+        self.description_box_setup()
 
         self.rating_area = QWidget()
         self.rating_area_setup()
+
+        if table_state is None:
+            if len(self.struct_table.data) > 0:
+                # Select the first structure in the table to display its data in the description box
+                self.struct_table.selected = [self.struct_table.data[0]]
+        elif table_state is False:
+            # ViewDockX session restore
+            self.struct_table.selected = [s for s in self.struct_table.data if s.display]
+        else:
+            self.table_selection_changed()
 
 
         self.handlers = []
@@ -150,7 +161,7 @@ class ViewDockTool(ToolInstance):
         )
         self.top_buttons_layout.addWidget(self.clashes_button)
 
-        self.top_buttons_layout.addStretch(1)
+        self.top_buttons_layout.addStretch(10)
 
         save_area = QHBoxLayout()
         save_area.setSpacing(0)
@@ -159,6 +170,8 @@ class ViewDockTool(ToolInstance):
         save_mol2_button.clicked.connect(self.save_mol2_cb)
         save_area.addWidget(save_mol2_button)
         save_area.addWidget(QLabel(" Mol2 file"))
+
+        self.top_buttons_layout.addStretch(1)
 
         close_area = QHBoxLayout()
         close_area.setSpacing(0)
@@ -274,8 +287,8 @@ class ViewDockTool(ToolInstance):
 
         # Fixed columns. Generic based on ChimeraX model attribute(s).
         id_col = self.struct_table.add_column('ID', lambda s: s.id_string, sort_func=self.id_lt)
-        self.struct_table.add_column('Rating', lambda s: s.viewdock_data.get(RATING_KEY, DEFAULT_RATING),
-            format=lambda r: rating_labels[r])
+        self.struct_table.add_column('Rating',
+            lambda s: s.viewdock_data.get(RATING_KEY, DEFAULT_RATING), format=lambda r: rating_labels[r])
 
         # retained the code below for reference in case I ever need to implement a table delegate
         '''
@@ -340,7 +353,7 @@ class ViewDockTool(ToolInstance):
         # If all compared parts are equal, compare by length (e.g., "1.1" > "1.1.1").
         return len(id1_parts) < len(id2_parts)
 
-    def description_box_setup(self, table_state):
+    def description_box_setup(self):
         """
         Build the description box at the bottom of the tool which displays all the docking attribute information
         for a selected docking model.
@@ -363,15 +376,37 @@ class ViewDockTool(ToolInstance):
         # Add the group box to the main layout
         self.main_v_layout.addWidget(self.description_group)
 
-        if table_state is None:
-            if len(self.struct_table.data) > 0:
-                # Select the first structure in the table to display its data in the description box
-                self.struct_table.selected = [self.struct_table.data[0]]
-        elif table_state is False:
-            # ViewDockX session restore
-            self.struct_table.selected = [s for s in self.struct_table.data if s.display]
-        else:
-            self.table_selection_changed()
+    def rating_area_setup(self):
+        overall_layout = QVBoxLayout()
+
+        # Customize the font for the title
+        title_font = QFont()
+        title_font.setPointSize(16)  # Set font size
+        title = QLabel("Compound Rating")
+        title.setFont(title_font)
+        overall_layout.addWidget(title, alignment=Qt.AlignCenter)
+
+        rating_layout = QHBoxLayout()
+        overall_layout.addLayout(rating_layout)
+        self.rating_area.setLayout(overall_layout)
+        rating_layout.addStretch(1)
+        rating_buttons = []
+        for val, label in reversed(list(enumerate(rating_labels))):
+            but = QRadioButton(label)
+            rating_buttons.append(but)
+            rating_layout.addWidget(but)
+            but.toggled.connect(lambda *args, val=val: self.rating_changed(val))
+            rating_layout.addStretch(1)
+        self.rating_buttons = list(reversed(rating_buttons))
+        self.main_v_layout.addWidget(self.rating_area)
+
+    def rating_changed(self, value):
+        for s in self.struct_table.selected:
+            s.viewdock_data[RATING_KEY] = value
+            self.struct_table.update_cell('Rating', s)
+
+    def display_key(self, key):
+        return key.replace('.', ' ').replace('_', ' ')
 
     def rating_area_setup(self):
         rating_layout = QHBoxLayout()
@@ -488,16 +523,29 @@ class ViewDockTool(ToolInstance):
             # Add key label
             key_label = QLabel(f"<b>{self.display_key(key)}:</b>") # Use HTML to bold the attr name
             key_label.setFont(label_font)
+            key_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
             layout.addWidget(key_label, row, col)
 
             # Add value label
             value_label = QLabel(str(value))
             value_label.setFont(label_font)
+            value_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
             layout.addWidget(value_label, row, col + 1)
 
     def update_rating(self):
-        #TODO
-        pass
+        rating_button = None
+        try:
+            for s in self.struct_table.selected:
+                button = self.rating_buttons[s.viewdock_data.get(RATING_KEY, DEFAULT_RATING)]
+                if rating_button is None:
+                    rating_button = button
+                elif rating_button != button:
+                    raise IndexError("multiple ratings")
+        except IndexError:
+            rating_button = self.rating_buttons[DEFAULT_RATING]
+        if rating_button is not None:
+            if not rating_button.isChecked():
+                rating_button.setChecked(True)
 
     def add_handlers(self):
         """
