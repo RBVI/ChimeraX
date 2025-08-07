@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Maestro" version="1.9.1"
+<BundleInfo name="ChimeraX-Maestro" version="1.9.2"
 	    package="chimerax.maestro"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -22,7 +22,7 @@
 
   <Providers manager="data formats">
     <Provider name="Schrodinger Maestro" synopsis="Maestro"
-		category="Molecular structure" suffixes=".mae,.maegz" encoding="utf-8" />
+		category="Docking results" suffixes=".mae,.maegz" encoding="utf-8" />
   </Providers>
 
   <Providers manager="open command">
