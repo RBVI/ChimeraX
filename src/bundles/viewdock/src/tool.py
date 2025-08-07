@@ -502,11 +502,13 @@ class ViewDockTool(ToolInstance):
             # Add key label
             key_label = QLabel(f"<b>{self.display_key(key)}:</b>") # Use HTML to bold the attr name
             key_label.setFont(label_font)
+            key_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
             layout.addWidget(key_label, row, col)
 
             # Add value label
             value_label = QLabel(str(value))
             value_label.setFont(label_font)
+            value_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
             layout.addWidget(value_label, row, col + 1)
 
     def update_rating(self):
