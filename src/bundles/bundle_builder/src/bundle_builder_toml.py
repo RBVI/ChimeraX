@@ -89,6 +89,11 @@ from setuptools.build_meta import (
 from numpy import get_include as get_numpy_include_dirs
 
 try:
+    from pybind11.setup_helpers import Pybind11Extension
+except:
+    pass
+
+try:
     import openmm
 
     def get_openmm_lib():
@@ -1154,7 +1159,11 @@ class _CModule(_CompiledCode):
         elif sys.platform == "darwin":
             extra_link_args.append("-Wl,-rpath,@loader_path/lib")
         if self.source_files:
-            return Extension(
+            if 'pybind11' in self.include_modules:
+                ext_type = Pybind11Extension
+            else:
+                ext_type = Extension
+            return ext_type(
                 package + "." + self.name,
                 define_macros=macros,
                 extra_compile_args=cpp_flags + self.compile_arguments,
