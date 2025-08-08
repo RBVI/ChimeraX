@@ -1043,7 +1043,9 @@ class _CompiledCode:
             # when receiving a -std=c++11 option when compiling
             # a C (not C++) source file, which is why this value
             # is named "cpp_flags" not "compile_flags"
-            cpp_flags = ["-std=c++11", "-stdlib=libc++"]
+            cpp_flags = ["-stdlib=libc++"]
+            if not any([flag.startswith("-std=") for flag in self.compile_arguments]):
+                cpp_flags.append("-std=c++11")
             extra_link_args = ["-F" + d for d in self.framework_dirs]
             for fw in self.frameworks:
                 extra_link_args.extend(["-framework", fw])
