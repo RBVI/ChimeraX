@@ -233,7 +233,6 @@ src/bundles/file_history/pyproject.toml
 src/bundles/function_key/pyproject.toml
 src/bundles/geometry/pyproject.toml
 src/bundles/gltf/pyproject.toml
-src/bundles/graphics/pyproject.toml
 src/bundles/hbonds/pyproject.toml
 src/bundles/help_viewer/pyproject.toml
 src/bundles/hkcage/pyproject.toml
