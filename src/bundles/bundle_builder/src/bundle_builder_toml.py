@@ -956,9 +956,10 @@ class _CompiledCode:
         self.frameworks = attrs.get("frameworks", [])
         self.libraries = attrs.get("libraries", [])
         self.compile_arguments = attrs.get("extra-compile-args", [])
+        self.link_arguments = attrs.get("extra-link-args", [])
         if sys.platform == "darwin":
             self.compile_arguments.append("-mmacos-version-min=11")
-        self.link_arguments = attrs.get("extra-link-args", [])
+            self.link_arguments.append("-mmacos-version-min=11")
         self.include_dirs = attrs.get("include-dirs", [])
         self.include_modules = attrs.get("include-modules", [])
         self.include_libraries = attrs.get("library-modules", [])
