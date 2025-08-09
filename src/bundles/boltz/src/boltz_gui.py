@@ -711,26 +711,23 @@ class BoltzPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def show_error_plot(self):
+        from chimerax.core.errors import UserError
+
         br = self._boltz_run
         if br is None:
-            from chimerax.core.errors import UserError
             raise UserError('No Boltz prediction has been run.')
 
-        rdir = br._results_directory
-        if br._results_directory is None:
-            from chimerax.core.errors import UserError
-            raise UserError('No Boltz results directory.')
-
-        from os.path import join, isfile
-        pae_path = join(rdir, f'pae_{br.name}_model_0.npz')
-        if not isfile(pae_path):
-            from chimerax.core.errors import UserError
-            raise UserError(f'Boltz PAE file does not exist "{pae_path}".')
-
-        structure = br._predicted_structures[0]
-        if structure is None or structure.deleted:
-            from chimerax.core.errors import UserError
+        if len(br._opened_predictions) == 0:
             raise UserError('Boltz predicted structure is not open.')
+
+        structure = br._opened_predictions[0]
+        if structure is None or structure.deleted:
+            raise UserError('Boltz predicted structure is not open.')
+
+        from chimerax.alphafold.pae import _matching_pae_file
+        pae_path = _matching_pae_file(structure.filename)
+        if pae_path is None:
+            raise UserError(f'Could not find Boltz PAE file for "{structure.filename}".')
             
         from chimerax.alphafold.pae import AlphaFoldPAE, AlphaFoldPAEPlot
         pae = AlphaFoldPAE(pae_path, structure)
@@ -1137,6 +1134,129 @@ class MolecularComponent:
         if len(d) > max_length:
             d = d[:max_length] + '...'
         return d
+
+# ------------------------------------------------------------------------------
+#
+from chimerax.core.tools import ToolInstance
+class LigandPredictionResults(ToolInstance):
+    def __init__(self, session, predictions_directory, smiles = None, align_to = None):
+        self._predictions_directory = predictions_directory
+        self._smiles = smiles
+        self._opened = [] if align_to is None else [align_to]
+        ToolInstance.__init__(self, session, 'Boltz Ligand Predictions')
+
+        from chimerax.ui import MainToolWindow
+        tw = MainToolWindow(self)
+        self.tool_window = tw
+        parent = tw.ui_area
+
+        from chimerax.ui.widgets import vertical_layout
+        layout = vertical_layout(parent, margins = (5,0,0,0))
+
+        # Heading
+        from chimerax.ui.widgets import EntriesRow
+        hl = EntriesRow(parent, 'Boltz predicted structures with ligands')
+        layout.addWidget(hl.frame)
+
+        # Table
+        rows = self._table_rows()
+        hl.labels[0].setText(f'Boltz predicted structures for {len(rows)} ligands')
+        self._ligands_table = lt = BoltzLigandsTable(parent, rows)
+        layout.addWidget(lt)
+
+        # Buttons
+        from chimerax.ui.widgets import button_row
+        bf = button_row(parent,
+                        [('Open', self._open_selected),],
+                        spacing = 2)
+        bf.setContentsMargins(0,5,0,0)
+        layout.addWidget(bf)
+
+        from .boltz_gui import boltz_panel
+        bpanel = boltz_panel(self.session)
+        placement = bpanel.tool_window if bpanel else 'right'
+        tw.manage(placement = placement)
+
+    def _table_rows(self):
+        rows = []
+        pdir = self._predictions_directory
+        import os
+        ligand_names = os.listdir(pdir)
+        for ligand_name in ligand_names:
+            from .predict import _read_json
+            confidence = _read_json(pdir, ligand_name, f'confidence_{ligand_name}_model_0.json')
+            if not confidence:
+                continue  # Prediction failed probably due to chembl ligand standardization
+            lig_iptm = confidence.get('ligand_iptm')
+            affinity = _read_json(pdir, ligand_name, f'affinity_{ligand_name}.json')
+            if affinity:
+                log_affinity_uM = affinity.get('affinity_pred_value')
+                affinity_uM = 10.0 ** log_affinity_uM
+                prob = affinity.get('affinity_probability_binary')
+            else:
+                affinity_uM = prob = None
+            smiles = self._smiles.get(ligand_name) if self._smiles else None
+            row = LigandsTableRow(ligand_name, lig_iptm, affinity_uM, prob, smiles=smiles)
+            rows.append(row)
+        return rows
+
+    def _open_selected(self):
+        rows = self._ligands_table.selected		# LigandsTableRow instances
+        paths = []
+        from os.path import join
+        for row in rows:
+            name = row.ligand_name
+            path = join(self._predictions_directory, name, f'{name}_model_0.cif')
+            paths.append(path)
+
+        # Open models
+        from chimerax.core.commands import run, quote_path_if_necessary, concise_model_spec
+        qpaths = [quote_path_if_necessary(path) for path in paths]
+        cmd = 'open ' + ' '.join(qpaths)
+        models = run(self.session, cmd)
+
+        # Align models
+        self._opened = [m for m in self._opened if not m.deleted]
+        malign = models if self._opened else models[1:]
+        self._opened.extend(models)
+        if len(self._opened) > 1:
+            model_spec = concise_model_spec(self.session, malign)
+            first_model_spec = concise_model_spec(self.session, self._opened[:1])
+            cmd = f'mm {model_spec} to {first_model_spec} logParameters false'
+            run(self.session, cmd)
+
+        return models
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.ui.widgets import ItemTable
+class BoltzLigandsTable(ItemTable):
+    def __init__(self, parent, rows):
+        ItemTable.__init__(self, parent = parent)
+        self.add_column('Ligand', 'ligand_name')
+        iptm = self.add_column('ipTM', 'iptm_score', format = '%.2f')
+        self.add_column('Affinity (uM)', 'binding_affinity', format = '%.2g')
+        self.add_column('Binding probability', 'binding_probability', format = '%.2g')
+        smiles = self.add_column('SMILES', 'smiles')
+        self.data = rows
+        self.launch()
+        self.sort_by(iptm, self.SORT_DESCENDING)
+        smiles_column_index = self.columns.index(smiles)
+        smiles_column_width = 250
+        self.setColumnWidth(smiles_column_index, smiles_column_width)
+#        self.setAutoScroll(False)  # Otherwise click on Description column scrolls horizontally
+#        from Qt.QtWidgets import QSizePolicy
+#        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)  # Don't resize whole panel width
+
+# -----------------------------------------------------------------------------
+#
+class LigandsTableRow:
+    def __init__(self, ligand_name, iptm_score, binding_affinity, binding_probability, smiles = None):
+        self.ligand_name = ligand_name
+        self.iptm_score = iptm_score
+        self.binding_affinity = binding_affinity
+        self.binding_probability = binding_probability
+        self.smiles = smiles
 
 # -----------------------------------------------------------------------------
 #
