@@ -59,7 +59,7 @@ include-modules = ["pybind11"]
 
 # TODO: Make bundle builder try calling pkg-config to find libraries
 platform.mac.libraries = ["vulkan"]
-platform.mac.extra-compile-args = ["-std=c++17"]
+platform.mac.extra-compile-args = ["-std=c++17", "-ObjC++"]
 platform.mac.include-dirs = ["/Users/zjp/VulkanSDK/1.3.296.0/macOS/include"]
 platform.mac.library-dirs = ["/Users/zjp/VulkanSDK/1.3.296.0/macOS/lib"]
 
