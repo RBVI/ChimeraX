@@ -1,6 +1,7 @@
 #ifdef __APPLE__
 // MoltenVK statically linked
 #import <Cocoa/Cocoa.h>
+#define VK_USE_PLATFORM_MACOS_MVK
 #include <MoltenVK/mvk_vulkan.h>
 #import <QuartzCore/CAMetalLayer.h>
 #elif _WIN32
@@ -12,8 +13,8 @@
 #include <wayland-client.h>
 #endif
 
-#include <vulkan/vulkan.h>
 #include <pybind11/pybind11.h>
+#include <vulkan/vulkan.h>
 
 #include <algorithm>
 #include <array>
@@ -133,34 +134,34 @@ public:
   ~VulkanRenderer(){};
   void initVulkan() {
     createInstance();
-    std::cout << "instance created"  << std::endl;
+    std::cout << "instance created" << std::endl;
     setupDebugMessenger();
-    std::cout << "debug messenger setup"  << std::endl;
+    std::cout << "debug messenger setup" << std::endl;
     createSurface();
-    std::cout << "surface created"  << std::endl;
+    std::cout << "surface created" << std::endl;
     pickPhysicalDevice();
-    std::cout << "physical device picked"  << std::endl;
+    std::cout << "physical device picked" << std::endl;
     createLogicalDevice();
-    std::cout << "logical device created"  << std::endl;
+    std::cout << "logical device created" << std::endl;
     createSwapChain();
-    std::cout << "swapchain created"  << std::endl;
+    std::cout << "swapchain created" << std::endl;
     createImageViews();
-    std::cout << "image views created"  << std::endl;
+    std::cout << "image views created" << std::endl;
     createRenderPass();
-    std::cout << "render pass created"  << std::endl;
+    std::cout << "render pass created" << std::endl;
     createGraphicsPipeline();
-    std::cout << "graphics pipeline created"  << std::endl;
+    std::cout << "graphics pipeline created" << std::endl;
     createFramebuffers();
-    std::cout << "framebuffers created"  << std::endl;
+    std::cout << "framebuffers created" << std::endl;
     createCommandPool();
-    std::cout << "command pool created"  << std::endl;
+    std::cout << "command pool created" << std::endl;
     createVertexBuffer();
-    std::cout << "vertex buffer created"  << std::endl;
+    std::cout << "vertex buffer created" << std::endl;
     createCommandBuffers();
-    std::cout << "command buffers created"  << std::endl;
+    std::cout << "command buffers created" << std::endl;
     createSyncObjects();
-    std::cout << "sync objects created"  << std::endl;
-    std::cout << "initialization complete"  << std::endl;
+    std::cout << "sync objects created" << std::endl;
+    std::cout << "initialization complete" << std::endl;
   }
 
   void drawFrame() {
@@ -351,15 +352,17 @@ private:
     surfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     surfaceInfo.hwnd = (HWND)window_id;
     surfaceInfo.hinstance = GetModuleHandle(nullptr);
-    if (vkCreateWin32SurfaceKHR(instance, &surfaceInfo, nullptr, &surface) != VK_SUCCESS) {
+    if (vkCreateWin32SurfaceKHR(instance, &surfaceInfo, nullptr, &surface) !=
+        VK_SUCCESS) {
       throw std::runtime_error("failed to create window surface!");
     }
 #else // linux
     VkWaylandSurfaceCreateInfoKHR surfaceInfo{};
     surfaceInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
     surfaceInfo.display = wl_display_connect("wayland-0");
-    surfaceInfo.surface = (wl_surface*)window_id;
-    if (vkCreateWaylandSurfaceKHR(instance, &surfaceInfo, nullptr, &surface) != VK_SUCCESS) {
+    surfaceInfo.surface = (wl_surface *)window_id;
+    if (vkCreateWaylandSurfaceKHR(instance, &surfaceInfo, nullptr, &surface) !=
+        VK_SUCCESS) {
       throw std::runtime_error("failed to create window surface!");
     }
 
@@ -1172,7 +1175,7 @@ private:
         VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 #elif _WIN32
     extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#else 
+#else
     extensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 #endif
 
