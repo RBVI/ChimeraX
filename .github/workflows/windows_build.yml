@@ -90,11 +90,11 @@ jobs:
       - name: Copy scripts into the package
         run: |
           cp utils/build/windows/remove_pycache.py ChimeraX.app/bin/
-      #- name: Sign the Windows Package
-      #  uses: ./utils/ci/sign_windows
-      #  with:
-      #    build_certificate: ${{ secrets.WINDOWS_SIGNING_CERT }}
-      #    cert_password: ${{ secrets.WINDOWS_SIGNING_PASS }}
+      - name: Sign the Windows Package
+        uses: ./utils/ci/sign_windows
+        with:
+          build_certificate: ${{ secrets.WINDOWS_SIGNING_CERT }}
+          cert_password: ${{ secrets.WINDOWS_SIGNING_PASS }}
       - name: Put the build date and commit in the environment
         shell: bash
         run: |
@@ -178,11 +178,11 @@ jobs:
       - name: Copy scripts into the package
         run: |
           cp utils/build/windows/remove_pycache.py ChimeraX.app/bin/
-      #- name: Sign the Windows Package
-      #  uses: ./utils/ci/sign_windows
-      #  with:
-      #    build_certificate: ${{ secrets.WINDOWS_SIGNING_CERT }}
-      #    cert_password: ${{ secrets.WINDOWS_SIGNING_PASS }}
+      - name: Sign the Windows Package
+        uses: ./utils/ci/sign_windows
+        with:
+          build_certificate: ${{ secrets.WINDOWS_SIGNING_CERT }}
+          cert_password: ${{ secrets.WINDOWS_SIGNING_PASS }}
       - name: Put the build date and commit in the environment
         shell: bash
         run: |
@@ -249,11 +249,11 @@ jobs:
       - name: Copy scripts into the package
         run: |
           cp utils/build/windows/remove_pycache.py ChimeraX.app/bin/
-      #- name: Sign the Windows Package
-      #  uses: ./utils/ci/sign_windows
-      #  with:
-      #    build_certificate: ${{ secrets.WINDOWS_SIGNING_CERT }}
-      #    cert_password: ${{ secrets.WINDOWS_SIGNING_PASS }}
+      - name: Sign the Windows Package
+        uses: ./utils/ci/sign_windows
+        with:
+          build_certificate: ${{ secrets.WINDOWS_SIGNING_CERT }}
+          cert_password: ${{ secrets.WINDOWS_SIGNING_PASS }}
       - name: Put the build date, commit, and version in the environment
         shell: bash
         run: |
@@ -315,11 +315,11 @@ jobs:
       - name: Copy scripts into the package
         run: |
           cp utils/build/windows/remove_pycache.py ChimeraX.app/bin/
-      #- name: Sign the Windows Package
-      #  uses: ./utils/ci/sign_windows
-      #  with:
-      #    build_certificate: ${{ secrets.WINDOWS_SIGNING_CERT }}
-      #    cert_password: ${{ secrets.WINDOWS_SIGNING_PASS }}
+      - name: Sign the Windows Package
+        uses: ./utils/ci/sign_windows
+        with:
+          build_certificate: ${{ secrets.WINDOWS_SIGNING_CERT }}
+          cert_password: ${{ secrets.WINDOWS_SIGNING_PASS }}
       - name: Put the build date and commit in the environment
         shell: bash
         run: |
