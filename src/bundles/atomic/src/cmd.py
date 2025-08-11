@@ -26,8 +26,21 @@ from chimerax.core.errors import UserError
 
 def chirality_cmd(session, atoms):
     from .chirality import chirality
-    chiralities = [chirality(atom) for atom in atoms]
-    for atom, ch in zip(atoms, chiralities):
+    if not atoms:
+        raise UserError("No atoms specified")
+    from .idatm import type_info
+    centers = []
+    for atom in atoms:
+        try:
+            info = type_info[atom.idatm_type]
+        except KeyError:
+            continue
+        if info.substituents == 4:
+            centers.append(atom)
+    if not centers:
+        raise UserError("There are no possible stereo centers in the specified atoms")
+    chiralities = [chirality(atom) for atom in centers]
+    for atom, ch in zip(centers, chiralities):
         session.logger.info("%s is %s" % (atom, "not chiral" if not ch else ch))
     return chiralities
 
