@@ -354,8 +354,6 @@ class ItemTable(QTableView):
                 if column_control_info[-1]:
                     from Qt.QtWidgets import QDialogButtonBox as qbbox
                     self._col_button_container = QWidget(parent=widget)
-                    toggle_vis = lambda x: x.setVisible(not x.isVisible())
-                    toggle_callback = toggle_vis(self._col_button_container)
                     main_layout.addWidget(self._col_button_container, alignment=Qt.AlignLeft)
                     buttons_layout = QHBoxLayout()
                     buttons_layout.setContentsMargins(0,0,0,0)
