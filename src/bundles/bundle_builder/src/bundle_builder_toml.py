@@ -89,6 +89,11 @@ from setuptools.build_meta import (
 from numpy import get_include as get_numpy_include_dirs
 
 try:
+    from pybind11.setup_helpers import Pybind11Extension
+except:
+    pass
+
+try:
     import openmm
 
     def get_openmm_lib():
@@ -181,7 +186,6 @@ class Bundle:
             chimerax_data = bundle_info["tool"]["chimerax"]
         else:
             raise ValueError("No [chimerax] or [tool.chimerax] table in pyproject.toml")
-        print(chimerax_data)
         self.pure_python = not (
             bool(chimerax_data.get("extension", {}))
             or bool(chimerax_data.get("library", {}))
@@ -952,9 +956,10 @@ class _CompiledCode:
         self.frameworks = attrs.get("frameworks", [])
         self.libraries = attrs.get("libraries", [])
         self.compile_arguments = attrs.get("extra-compile-args", [])
+        self.link_arguments = attrs.get("extra-link-args", [])
         if sys.platform == "darwin":
             self.compile_arguments.append("-mmacos-version-min=11")
-        self.link_arguments = attrs.get("extra-link-args", [])
+            self.link_arguments.append("-mmacos-version-min=11")
         self.include_dirs = attrs.get("include-dirs", [])
         self.include_modules = attrs.get("include-modules", [])
         self.include_libraries = attrs.get("library-modules", [])
@@ -1044,7 +1049,9 @@ class _CompiledCode:
             # when receiving a -std=c++11 option when compiling
             # a C (not C++) source file, which is why this value
             # is named "cpp_flags" not "compile_flags"
-            cpp_flags = ["-std=c++11", "-stdlib=libc++"]
+            cpp_flags = ["-stdlib=libc++"]
+            if not any([flag.startswith("-std=") for flag in self.compile_arguments]):
+                cpp_flags.append("-std=c++11")
             extra_link_args = ["-F" + d for d in self.framework_dirs]
             for fw in self.frameworks:
                 extra_link_args.extend(["-framework", fw])
@@ -1153,7 +1160,11 @@ class _CModule(_CompiledCode):
         elif sys.platform == "darwin":
             extra_link_args.append("-Wl,-rpath,@loader_path/lib")
         if self.source_files:
-            return Extension(
+            if 'pybind11' in self.include_modules:
+                ext_type = Pybind11Extension
+            else:
+                ext_type = Extension
+            return ext_type(
                 package + "." + self.name,
                 define_macros=macros,
                 extra_compile_args=cpp_flags + self.compile_arguments,
