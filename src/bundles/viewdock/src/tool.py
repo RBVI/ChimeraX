@@ -360,17 +360,19 @@ class ViewDockTool(ToolInstance):
         """
 
         # Create a group box for the description box
-        #scrolled_layout = QVBoxLayout()
-        #self.description_group.setLayout(scrolled_layout)
-        #scrolled_widget = QWidget()
+        scrolled_layout = QVBoxLayout()
+        self.description_group.setLayout(scrolled_layout)
+        scrolled_widget = QWidget()
         self.description_layout = QGridLayout()
+        self.description_layout.setSizeConstraint(QGridLayout.SetMinAndMaxSize)
         self.description_layout.setColumnStretch(1, 1)
         self.description_layout.setColumnStretch(3, 1)
-        #scrolled_widget.setLayout(self.description_layout)
-        #scrolled_area = QScrollArea()
-        #scrolled_area.setWidget(scrolled_widget)
-        #scrolled_layout.addWidget(scrolled_area)
-        self.description_group.setLayout(self.description_layout)
+        scrolled_widget.setLayout(self.description_layout)
+        scrolled_area = QScrollArea()
+        scrolled_area.setWidgetResizable(True)
+        scrolled_area.setWidget(scrolled_widget)
+        scrolled_layout.addWidget(scrolled_area)
+        #self.description_group.setLayout(self.description_layout)
 
         # Set the title alignment to center
         self.description_group.setAlignment(Qt.AlignCenter)
@@ -414,27 +416,6 @@ class ViewDockTool(ToolInstance):
             s.viewdock_data[RATING_KEY] = value
             self.struct_table.update_cell('Rating', s)
         self.update_model_description()
-
-    def display_key(self, key):
-        return key.replace('.', ' ').replace('_', ' ')
-
-    def rating_area_setup(self):
-        rating_layout = QHBoxLayout()
-        self.rating_area.setLayout(rating_layout)
-        rating_layout.addStretch(1)
-        rating_buttons = []
-        for val, label in reversed(list(enumerate(rating_labels))):
-            but = QRadioButton(label.capitalize())
-            rating_buttons.append(but)
-            rating_layout.addWidget(but)
-            but.toggled.connect(self.rating_changed)
-            rating_layout.addStretch(1)
-        self.rating_buttons = reversed(rating_buttons)
-        self.main_v_layout.addWidget(self.rating_area)
-
-    def rating_changed(self):
-        #TODO
-        pass
 
     def display_key(self, key):
         return key.replace('.', ' ').replace('_', ' ')
