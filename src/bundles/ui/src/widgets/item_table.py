@@ -354,8 +354,6 @@ class ItemTable(QTableView):
                 if column_control_info[-1]:
                     from Qt.QtWidgets import QDialogButtonBox as qbbox
                     self._col_button_container = QWidget(parent=widget)
-                    toggle_vis = lambda x: x.setVisible(not x.isVisible())
-                    toggle_callback = toggle_vis(self._col_button_container)
                     main_layout.addWidget(self._col_button_container, alignment=Qt.AlignLeft)
                     buttons_layout = QHBoxLayout()
                     buttons_layout.setContentsMargins(0,0,0,0)
@@ -837,12 +835,16 @@ class ItemTable(QTableView):
     def _arrange_col_checkboxes(self):
         while self._col_checkbox_layout.count() > 0:
             self._col_checkbox_layout.takeAt(0)
-        self._col_checkboxes.sort(key=lambda cb: cb.text())
+        self._col_checkboxes.sort(key=lambda cb: cb.text().lower())
         requested_cols = self._column_control_info[-2]
         num_buttons = len(self._col_checkboxes)
         from math import sqrt, ceil
         if requested_cols is None:
-            num_cols = int(sqrt(num_buttons)+0.5)
+            # checkboxes are much wider than tall, so to prevent the checkbox area from forcing
+            # dialogs to be wider in extreme cases (think >64 table columns, longish labels),
+            # scale number of columns based on rough estimated width
+            longest_text = max([len(cb.text()) for cb in self._col_checkboxes])
+            num_cols = int(sqrt(num_buttons/max(1, longest_text/15))+0.5)
         else:
             num_cols = requested_cols
         num_rows = int(ceil(num_buttons/num_cols))

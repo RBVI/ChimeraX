@@ -25,18 +25,18 @@
  */
 
 #ifdef __APPLE__
-#include <OpenGL/OpenGL.h>			// Use CGLSetParameter
+#define GL_SILENCE_DEPRECATION
+#include <OpenGL/OpenGL.h> // Use CGLSetParameter
 #endif
 
-#include <arrays/pythonarray.h>		// use python_bool()
+#include <arrays/pythonarray.h> // use python_bool()
 
 // ----------------------------------------------------------------------------
 //
-static bool set_mac_swap_interval(int sync)
-{
+static bool set_mac_swap_interval(int sync) {
 #ifdef __APPLE__
-  GLint                       gl_sync = sync;
-  CGLContextObj               ctx = CGLGetCurrentContext();
+  GLint gl_sync = sync;
+  CGLContextObj ctx = CGLGetCurrentContext();
 
   if (ctx == 0)
     return false;
@@ -50,14 +50,12 @@ static bool set_mac_swap_interval(int sync)
 
 // ----------------------------------------------------------------------------
 //
-extern "C" PyObject *
-set_mac_swap_interval(PyObject *, PyObject *args, PyObject *keywds)
-{
+extern "C" PyObject *set_mac_swap_interval(PyObject *, PyObject *args,
+                                           PyObject *keywds) {
   int sync;
   const char *kwlist[] = {"sync", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("i"),
-				   (char **)kwlist,
-				   &sync))
+                                   (char **)kwlist, &sync))
     return NULL;
 
   bool success = set_mac_swap_interval(sync);

@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2025 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
@@ -108,6 +110,11 @@ def open_viewdock_tool(session, structures):
 
     if not structures:
         session.logger.warning("Cannot open ViewDock without providing docking structures.")
+        return
+    # Don't show ViewDock if the structures aren't open in the session
+    # (e.g. the output of antechamber being read by add_charge)
+    structures = [s for s in structures if s.id is not None]
+    if not structures:
         return
     from .tool import ViewDockTool
     ViewDockTool(session, "ViewDock", structures)
