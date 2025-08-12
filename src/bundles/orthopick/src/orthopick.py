@@ -553,8 +553,9 @@ class OrthoPickSettings(ToolInstance):
 
         from chimerax.ui.widgets import button_row
         button_row(parent, [('Show particle surface', self._show_particle_surface),
-                            ('Save particle map', self._save_particle_map)])
-        
+                            ('Save particle map', self._save_particle_map),
+                            ('Help', self._show_help)])
+
         layout.addStretch(1)    # Extra space at end
 
         tw.manage(placement="side")
@@ -569,6 +570,10 @@ class OrthoPickSettings(ToolInstance):
 
     def hide(self):
         self.tool_window.shown = False
+
+    def _show_help(self):
+        from chimerax.core.commands import run
+        run(self.session, 'help %s' % self.help)
 
     def _show_particle_surface(self):
         oview = self._orthoview

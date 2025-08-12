@@ -82,7 +82,7 @@ class PlotDialog:
                 handler.remove()
             pd.handlers.clear()
             for provider, cids in pd._mouse_handlers.items():
-                canvas = pd._plot_stacks[provider].widget(1)
+                canvas = pd.plot(provider)
                 for cid in cids:
                     canvas.mpl_disconnect(cid)
             pd._mouse_handlers.clear()
@@ -103,20 +103,77 @@ class PlotDialog:
         self.tab_info = {}
         self._tables = {}
         self._plot_stacks = {}
+        self._scalar_plots = {}
         self._value_columns = {}
         self._frame_indicators = {}
         self._mouse_handlers = {}
         self._provider_widgets = {}
 
         for provider_name in self.mgr.provider_names:
-            self.tab_info[provider_name] = self.make_tab(provider_name)
+            if self.mgr.is_relevant(provider_name, structure=structure):
+                self.tab_info[provider_name] = self.make_tab(provider_name)
 
+        tw.fill_context_menu = self.fill_context_menu
         tw.manage(None)
+
+    @property
+    def cur_provider(self):
+        tab_widget = self.plot_tabs.currentWidget()
+        for provider_name, info in self.tab_info.items():
+            tab_name, page = info
+            if tab_widget == page:
+                break
+        else:
+            raise AssertionError("Current tab not found in tab data")
+        return provider_name
+
+    def fill_context_menu(self, menu, x, y):
+        table = self._tables[self.cur_provider]
+        enabled = bool(table.data)
+
+        from Qt.QtGui import QAction
+        act = QAction("Save Plot Image...", parent=menu)
+        act.triggered.connect(self.save_plot)
+        act.setEnabled(enabled)
+        menu.addAction(act)
+
+        act = QAction("Save CSV or TSV File...", parent=menu)
+        act.triggered.connect(self.save_values)
+        act.setEnabled(enabled)
+        menu.addAction(act)
 
     def make_tab(self, provider_name):
         if self.mgr.num_atoms(provider_name) is None:
             return self._make_scalar_tab(provider_name)
         return self._make_atomic_tab(provider_name)
+
+    def plot(self, provider_name):
+        if self.mgr.num_atoms(provider_name) is None:
+            return self._scalar_plots[provider_name]
+        return self._plot_stacks[provider_name].widget(1)
+
+    @property
+    def plots(self):
+        return [stack.widget(1) for stack in self._plot_stacks.values()] + list(self._scalar_plots.values())
+
+    def save_plot(self, *args):
+        provider_name = self.cur_provider
+        plot = self.plot(provider_name)
+
+        spd = SavePlotDialog(self.session, plot)
+        if not spd.exec():
+            return
+        path = spd.path
+        if path is None:
+            return
+        plot.figure.savefig(path, transparent=spd.transparent_background, dpi=spd.dpi)
+        self.session.logger.info("%s plot saved to %s" % (self.mgr.ui_name(provider_name), path))
+
+    def save_values(self, *args):
+        table = self._tables[self.cur_provider]
+        table.write_values(header_vals=[cn for cn in table.column_names[3:]] +
+            ["Frame %d" % cs_id for cs_id in sorted(self.structure.coordset_ids)],
+            row_func=lambda datum, *, table=table: self._table_row_output(table, datum))
 
     def show_tab(self, provider_name):
         tab_name, tab_widget = self.tab_info[provider_name]
@@ -130,7 +187,10 @@ class PlotDialog:
                     continue
                 table.update_column(self._value_columns[provider], data=True)
                 self._frame_indicators[provider].set_xdata([s.active_coordset_id])
-                self._plot_stacks[provider].widget(1).draw_idle()
+                self.plot(provider).draw_idle()
+            for provider, plot in self._scalar_plots.items():
+                self._frame_indicators[provider].set_xdata([s.active_coordset_id])
+                self.plot(provider).draw_idle()
 
     def _delete_table_entries(self, provider_name):
         table = self._tables[provider_name]
@@ -148,21 +208,39 @@ class PlotDialog:
         self._update_plot(provider_name)
 
     def _make_scalar_tab(self, provider_name):
-        #TODO
-        raise NotImplementedError("Scalar plotting not implemented")
+        tab_name, page, page_layout = self._tab_setup(provider_name)
+        from matplotlib.backends.backend_qtagg import FigureCanvas
+        from matplotlib.figure import Figure
+        self._scalar_plots[provider_name] = canvas = FigureCanvas(Figure())
+        page_layout.addWidget(canvas, stretch=1)
+
+        figure = canvas.figure
+        axis = figure.subplots()
+        self._mouse_handlers[provider_name] = [
+            canvas.mpl_connect('motion_notify_event', self._mouse_event),
+            canvas.mpl_connect('button_press_event', self._mouse_event),
+        ]
+        from matplotlib.ticker import MaxNLocator
+        axis.xaxis.set_major_locator(MaxNLocator(integer=True))
+        cs_ids = self.structure.coordset_ids
+        cs_ids.sort()
+        axis.set_xlim(cs_ids[0], cs_ids[-1])
+
+        values = self.mgr.get_values(provider_name, structure=self.structure)
+        axis.plot(cs_ids, [values[cs_id] for cs_id in cs_ids], color="blue")
+        y_min, y_max = self.mgr.min_val(provider_name), self.mgr.max_val(provider_name)
+        if y_min is not None:
+            axis.set_ylim(ymin=y_min)
+        if y_max is not None:
+            axis.set_ylim(ymax=y_max)
+        axis.set_xlabel("Coord Set")
+        ui_name = self.mgr.ui_name(provider_name)
+        axis.set_ylabel(ui_name.title() if ui_name.islower() else ui_name)
+        self._frame_indicators[provider_name] = axis.axvline(self.structure.active_coordset_id, color='k')
+        canvas.draw_idle()
 
     def _make_atomic_tab(self, provider_name):
-        ui_name = self.mgr.ui_name(provider_name)
-        tab_name = plural_of(ui_name)
-        if tab_name.lower() == tab_name:
-            # no caps
-            tab_name = tab_name.capitalize()
-        from Qt.QtWidgets import QWidget, QLabel, QHBoxLayout, QVBoxLayout
-        page = QWidget()
-        page_layout = QHBoxLayout()
-        page_layout.setSpacing(0)
-        page_layout.setContentsMargins(0,0,0,0)
-        page.setLayout(page_layout)
+        tab_name, page, page_layout = self._tab_setup(provider_name)
         self._plot_stacks[provider_name] = stack = QStackedWidget()
         num_atoms = self.mgr.num_atoms(provider_name)
         atom_string = "any number of" if num_atoms == 0 else "%d" % num_atoms
@@ -179,7 +257,6 @@ class PlotDialog:
         controls_layout.addWidget(table, stretch=1)
         controls_layout.addWidget(self._make_buttons_area(provider_name), alignment=Qt.AlignCenter)
         page_layout.addWidget(controls_area)
-        self.plot_tabs.addTab(page, tab_name)
         return tab_name, page
 
     def _make_buttons_area(self, provider_name):
@@ -279,6 +356,8 @@ class PlotDialog:
     def _make_table(self, provider_name):
         from chimerax.ui.widgets import ItemTable
         table = ItemTable(allow_user_sorting=False)
+        # These first three columns are not put in output files; if these columns are rearranged
+        # or additional "skippable" columns are added, update the save_values method
         table.add_column("Color", "rgba8", format=table.COL_FORMAT_OPAQUE_COLOR, title_display=False)
         table.add_column("Shown", "shown", format=table.COL_FORMAT_BOOLEAN, icon="shown")
         val_col_name = self.mgr.ui_name(provider_name)
@@ -310,8 +389,8 @@ class PlotDialog:
                 return
         else:
             raise ValueError("Unexpected Matplotlib event: %s" % event.name)
-        for provider, stack in self._plot_stacks.items():
-            if event.canvas == stack.widget(1):
+        for plot in self.plots:
+            if event.canvas == plot:
                 if not event.inaxes:
                     break
                 cs_id = round(event.xdata)
@@ -393,6 +472,28 @@ class PlotDialog:
             else:
                 raise ValueError("Unknown kind of atom for 'exclude': %s" % kind)
         return sel_atoms
+
+    def _tab_setup(self, provider_name):
+        ui_name = self.mgr.ui_name(provider_name)
+        # scalar tab names singular; atomic tab names plural
+        if self.mgr.num_atoms(provider_name) is None:
+            tab_name = ui_name
+        else:
+            tab_name = plural_of(ui_name)
+        if tab_name.lower() == tab_name:
+            # no caps
+            tab_name = tab_name.capitalize()
+        page = QWidget()
+        page_layout = QHBoxLayout()
+        page_layout.setSpacing(0)
+        page_layout.setContentsMargins(0,0,0,0)
+        page.setLayout(page_layout)
+        self.plot_tabs.addTab(page, tab_name)
+        return tab_name, page, page_layout
+
+    def _table_row_output(self, table, datum):
+        return [col.display_value(datum) for col in table.columns[3:]] + ["%g" % datum.values[cs_id]
+            for cs_id in sorted(list(datum.values.keys()))]
 
     def _update_plot(self, provider_name):
         stack = self._plot_stacks[provider_name]
@@ -487,6 +588,94 @@ class TableEntry:
     @property
     def values(self):
         return self._values
+
+from chimerax.core.settings import Settings
+class SavePlotDialogSettings(Settings):
+    AUTO_SAVE = {
+        "dpi": None,
+        "save_format": "PNG",
+        "transparent_background": False,
+    }
+
+# Cribbed from chimerax.ui.open_save.SaveDialog, but since we need to save the formats ourselves and
+# save some formats otherwise unknown to ChimeraX (e.g. EPS, SVG), we provide our own dialog
+from Qt.QtWidgets import QFileDialog
+class SavePlotDialog(QFileDialog):
+    def __init__(self, session, parent = None, *args, **kw):
+        self.format_info = [
+            ("PNG", "Portable Network Graphics", "png"),
+            ("JPEG/JPG", "Joint Photographic Experts Group", "jpg *.jpeg"),
+            ("TIFF", "Tagged Image File Format", "tiff"),
+            ("PDF", "Portable Document Format", "pdf"),
+            ("SVG", "Scalable Vector Graphics", "svg"),
+            ("EPS", "Encapsulated PostScript", "eps"),
+            ("PS", "PostScript", "ps"),
+        ]
+        name_filters = ["%s [%s] (*.%s)" % fmt_info for fmt_info in self.format_info]
+        self.filter_to_info = {flt: info for flt, info in zip(name_filters, self.format_info)}
+        fmt_to_filter = { info[0]: flt for flt, info in self.filter_to_info.items() }
+        super().__init__(parent, *args, **kw)
+        self.setFileMode(QFileDialog.AnyFile)
+        self.setAcceptMode(QFileDialog.AcceptSave)
+        self.setOption(QFileDialog.DontUseNativeDialog)
+        self.setNameFilters(name_filters)
+        self.settings = SavePlotDialogSettings(session, "MD save plot dialog")
+        try:
+            self.selectNameFilter(fmt_to_filter[self.settings.save_format])
+        except KeyError:
+            self.selectNameFilter(fmt_to_filter["PNG"])
+
+        custom_area = QFrame(self)
+        custom_area.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        custom_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        layout = self.layout()
+        row = layout.rowCount()
+        layout.addWidget(custom_area, row, 0, 1, -1)
+        custom_layout = QHBoxLayout()
+        custom_area.setLayout(custom_layout)
+        custom_layout.addStretch(1)
+        self._transparent_checkbox = QCheckBox("Transparent background")
+        self._transparent_checkbox.setChecked(self.settings.transparent_background)
+        custom_layout.addWidget(self._transparent_checkbox)
+        custom_layout.addStretch(1)
+        custom_layout.addWidget(QLabel("DPI:"))
+        self._dpi_entry = QLineEdit()
+        self._dpi_entry.setAlignment(Qt.AlignCenter)
+        self._dpi_entry.setPlaceholderText("default")
+        self._dpi_entry.setMaximumWidth(50)
+        validator = QIntValidator()
+        validator.setBottom(1)
+        self._dpi_entry.setValidator(validator)
+        if self.settings.dpi is not None:
+            self._dpi_entry.setText(str(self.settings.dpi))
+        custom_layout.addWidget(self._dpi_entry)
+        custom_layout.addStretch(1)
+
+    @property
+    def dpi(self):
+        if self._dpi_entry.hasAcceptableInput():
+            return int(self._dpi_entry.text())
+        return None
+
+    @property
+    def path(self):
+        paths = self.selectedFiles()
+        if not paths:
+            return None
+        path = paths[0]
+        name_filter = self.selectedNameFilter()
+        fmt_name, fmt_desc, suffix_info = self.filter_to_info[name_filter]
+        self.settings.save_format = fmt_name
+        self.settings.transparent_background = self.transparent_background
+        self.settings.dpi = self.dpi
+        suffix = '.' + (suffix_info[:suffix_info.index(' ')] if ' ' in suffix_info else suffix_info)
+        if path.endswith(suffix):
+            return path
+        return path + suffix
+
+    @property
+    def transparent_background(self):
+        return self._transparent_checkbox.isChecked()
 
 _md_tool_windows = {}
 def _show_plot_dialog(main_tool_window, structure):

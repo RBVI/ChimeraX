@@ -309,7 +309,7 @@ class BoltzRun:
                 ligand_entry = [ '  - ligand:',
                                 f'      id: [{", ".join(mc.chain_ids)}]']
                 if mc.ccd_code:
-                    spec = f'      ccd: {mc.ccd_code}'
+                    spec = f'      ccd: "{mc.ccd_code}"'
                 elif mc.smiles_string:
                     spec = f'      smiles: "{mc.smiles_string}"'
                 ligand_entry.append(spec)
@@ -773,7 +773,7 @@ class BoltzRun:
             ic50_uM = 10.0 ** log_ic50_uM
             prob = results['affinity_probability_binary']
             lig_spec = (ligand_mol.ccd_code or ligand_mol.smiles_string)
-            msg = f'Ligand {lig_spec} predicted IC50 binding affinity {"%.2g" % ic50_uM} uM, predicted binding probability {"%.2g" % prob}'
+            msg = f'Ligand {lig_spec} predicted binding affinity {"%.2g" % ic50_uM} uM, predicted binding probability {"%.2g" % prob}'
             self._session.logger.info(msg)
 
     def _cite(self):

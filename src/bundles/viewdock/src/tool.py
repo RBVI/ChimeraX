@@ -21,7 +21,6 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-from PyQt6.QtWidgets import QMenu
 
 from chimerax.atomic import AtomicStructure
 from chimerax.ui import MainToolWindow
@@ -32,11 +31,15 @@ from chimerax.clashes.gui import ClashesGUI
 from chimerax.ui.widgets import ItemTable
 from chimerax.core.commands import run, concise_model_spec, StringArg
 from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
-from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle, QStyleOptionComboBox,
-                          QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout, QLabel, QWidget,)
+from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle,
+        QStyleOptionComboBox, QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout,
+        QLabel, QWidget, QRadioButton, QScrollArea, )
+from Qt.QtWidgets import QMenu
 from Qt.QtGui import QFont
 from Qt.QtCore import Qt
 from chimerax.viewdock import RATING_KEY, DEFAULT_RATING
+
+rating_labels = ['(unrated)', 'bad', 'maybe', 'good']
 
 
 class ViewDockTool(ToolInstance):
@@ -65,6 +68,7 @@ class ViewDockTool(ToolInstance):
 
         # Create a vertical layout for the tool
         self.main_v_layout = QVBoxLayout()
+        self.main_v_layout.setSpacing(0)
         self.tool_window.ui_area.setLayout(self.main_v_layout)
 
         vd_structures = self.filter_structures(structures)
@@ -88,13 +92,31 @@ class ViewDockTool(ToolInstance):
         NextDockingMouseMode.vd_instance = self
 
         self.description_group = QGroupBox()
-        self.description_box_setup(table_state)
+        self.description_box_setup()
 
+        self.rating_area = QWidget()
+        self.rating_area_setup()
+
+        if table_state is None:
+            if len(self.struct_table.data) > 0:
+                # Select the first structure in the table to display its data in the description box
+                self.struct_table.selected = [self.struct_table.data[0]]
+        elif table_state is False:
+            # ViewDockX session restore
+            self.struct_table.selected = [s for s in self.struct_table.data if s.display]
+        else:
+            self.table_selection_changed()
 
 
         self.handlers = []
         self.add_handlers()
-        self.tool_window.manage('side')
+        # constrain table width to the wider of the other interface areas
+        other_width = max([widget.sizeHint().width()
+            for widget in (self.col_display_widget, self.description_group, self.rating_area)])
+        table_size = self.struct_table.sizeHint()
+        table_size.setWidth(other_width)
+        self.struct_table.sizeHint = lambda *args, sz=table_size: sz
+        self.tool_window.manage(None)
 
     def filter_structures(self, structures):
         """
@@ -139,7 +161,7 @@ class ViewDockTool(ToolInstance):
         )
         self.top_buttons_layout.addWidget(self.clashes_button)
 
-        self.top_buttons_layout.addStretch(1)
+        self.top_buttons_layout.addStretch(10)
 
         save_area = QHBoxLayout()
         save_area.setSpacing(0)
@@ -148,6 +170,8 @@ class ViewDockTool(ToolInstance):
         save_mol2_button.clicked.connect(self.save_mol2_cb)
         save_area.addWidget(save_mol2_button)
         save_area.addWidget(QLabel(" Mol2 file"))
+
+        self.top_buttons_layout.addStretch(1)
 
         close_area = QHBoxLayout()
         close_area.setSpacing(0)
@@ -263,10 +287,11 @@ class ViewDockTool(ToolInstance):
 
         # Fixed columns. Generic based on ChimeraX model attribute(s).
         id_col = self.struct_table.add_column('ID', lambda s: s.id_string, sort_func=self.id_lt)
-        self.struct_table.add_column('Rating', lambda s: s.viewdock_data.get(RATING_KEY),
-                                     data_set = lambda item, value: None,
-                                     editable=True)
+        self.struct_table.add_column('Rating',
+            lambda s: s.viewdock_data.get(RATING_KEY, DEFAULT_RATING), format=lambda r: rating_labels[r])
 
+        # retained the code below for reference in case I ever need to implement a table delegate
+        '''
         # Custom Rating delegate
         delegate = RatingDelegate(self.struct_table)  # Create the delegate instance
 
@@ -277,6 +302,7 @@ class ViewDockTool(ToolInstance):
         # Set an edit trigger for the table whenever the current selected item changes. Prevents having to click through
         # multiple selections to edit the rating of a structure.
         self.struct_table.setEditTriggers(QAbstractItemView.EditTrigger.CurrentChanged)
+        '''
 
         # Collect all unique keys from viewdock_data of all structures and add them as columns
         viewdock_keys = set()
@@ -287,7 +313,7 @@ class ViewDockTool(ToolInstance):
             if key == RATING_KEY:
                 # Rating is already added as a column with a custom delegate, skip it here
                 continue
-            self.struct_table.add_column(key, lambda s, k=key: s.viewdock_data.get(k, ''))
+            self.struct_table.add_column(self.display_key(key), lambda s, k=key: s.viewdock_data.get(k, ''))
 
         # Set the data for the table and launch it
         self.struct_table.data = structures
@@ -327,15 +353,26 @@ class ViewDockTool(ToolInstance):
         # If all compared parts are equal, compare by length (e.g., "1.1" > "1.1.1").
         return len(id1_parts) < len(id2_parts)
 
-    def description_box_setup(self, table_state):
+    def description_box_setup(self):
         """
         Build the description box at the bottom of the tool which displays all the docking attribute information
         for a selected docking model.
         """
 
         # Create a group box for the description box
-        description_layout = QGridLayout()
-        self.description_group.setLayout(description_layout)
+        scrolled_layout = QVBoxLayout()
+        self.description_group.setLayout(scrolled_layout)
+        scrolled_widget = QWidget()
+        self.description_layout = QGridLayout()
+        self.description_layout.setSizeConstraint(QGridLayout.SetMinAndMaxSize)
+        self.description_layout.setColumnStretch(1, 1)
+        self.description_layout.setColumnStretch(3, 1)
+        scrolled_widget.setLayout(self.description_layout)
+        scrolled_area = QScrollArea()
+        scrolled_area.setWidgetResizable(True)
+        scrolled_area.setWidget(scrolled_widget)
+        scrolled_layout.addWidget(scrolled_area)
+        #self.description_group.setLayout(self.description_layout)
 
         # Set the title alignment to center
         self.description_group.setAlignment(Qt.AlignCenter)
@@ -350,15 +387,38 @@ class ViewDockTool(ToolInstance):
         # Add the group box to the main layout
         self.main_v_layout.addWidget(self.description_group)
 
-        if table_state is None:
-            if len(self.struct_table.data) > 0:
-                # Select the first structure in the table to display its data in the description box
-                self.struct_table.selected = [self.struct_table.data[0]]
-        elif table_state is False:
-            # ViewDockX session restore
-            self.struct_table.selected = [s for s in self.struct_table.data if s.display]
-        else:
-            self.table_selection_changed()
+    def rating_area_setup(self):
+        overall_layout = QVBoxLayout()
+
+        # Customize the font for the title
+        title_font = QFont()
+        title_font.setPointSize(16)  # Set font size
+        title = QLabel("Compound Rating")
+        title.setFont(title_font)
+        overall_layout.addWidget(title, alignment=Qt.AlignCenter)
+
+        rating_layout = QHBoxLayout()
+        overall_layout.addLayout(rating_layout)
+        self.rating_area.setLayout(overall_layout)
+        rating_layout.addStretch(1)
+        rating_buttons = []
+        for val, label in reversed(list(enumerate(rating_labels))):
+            but = QRadioButton(label)
+            rating_buttons.append(but)
+            rating_layout.addWidget(but)
+            but.toggled.connect(lambda *args, val=val: self.rating_changed(val))
+            rating_layout.addStretch(1)
+        self.rating_buttons = list(reversed(rating_buttons))
+        self.main_v_layout.addWidget(self.rating_area)
+
+    def rating_changed(self, value):
+        for s in self.struct_table.selected:
+            s.viewdock_data[RATING_KEY] = value
+            self.struct_table.update_cell('Rating', s)
+        self.update_model_description()
+
+    def display_key(self, key):
+        return key.replace('.', ' ').replace('_', ' ')
 
     def table_selection_changed(self, *args):
         """
@@ -367,6 +427,7 @@ class ViewDockTool(ToolInstance):
         """
         self.update_structure_displays()
         self.update_model_description()
+        self.update_rating()
 
     def update_structure_displays(self):
         """
@@ -402,7 +463,7 @@ class ViewDockTool(ToolInstance):
         label_font.setPointSize(12)  # Set the font size
 
         # Clear the existing layout
-        layout = self.description_group.layout()
+        layout = self.description_layout
         for i in reversed(range(layout.count())):
             widget = layout.itemAt(i).widget()
             if widget:
@@ -426,39 +487,72 @@ class ViewDockTool(ToolInstance):
         self.description_group.setTitle(f"ChimeraX Model {docking_structure.atomspec}")
 
         # Add attributes in a grid layout
-        attributes = list(docking_structure.viewdock_data.items())
-        total_attributes = len(attributes)
-        rows_per_column = (total_attributes + 1) // 2  # Divide attributes evenly over two columns
+        column_map = { col.title: col for col in self.struct_table.columns }
+        all_titles = [key for key in docking_structure.viewdock_data.keys()
+            if key != RATING_KEY] + ["Rating"]
+        all_titles.sort(key=lambda title: title.lower())
+        short_titles = []
+        long_titles = []
+        for title in all_titles:
+            if len(column_map[title].display_value(docking_structure)) > 20:
+                long_titles.append(title)
+            else:
+                short_titles.append(title)
+        total_titles = len(short_titles)
+        rows_per_column = (total_titles + 1) // 2  # Divide attributes evenly over two columns
 
-        for index, (key, value) in enumerate(attributes):
+        for index, title in enumerate(short_titles):
             # Use the column's data_fetch to get the value for attributes appearing in the table
-            column = next((col for col in self.struct_table.columns if col.title == key), None)
-            if column and column.data_fetch:
-                # Fetch the value using the column's data_fetch
-                if callable(column.data_fetch):
-                    value = column.data_fetch(docking_structure)
-                else:
-                    # If data_fetch wasn't initialized as a callable, assume data_fetch is a string representing an
-                    # attribute path
-                    value = docking_structure
-                    for attr in column.data_fetch.split('.'):
-                        # Loop through nested attributes
-                        value = getattr(value, attr, None)
-                        if value is None:
-                            break
+            value = column_map[title].display_value(docking_structure)
 
             row = index % rows_per_column
             col = (index // rows_per_column) * 2  # Multiply by 2 to account for key-value pairs
 
             # Add key label
-            key_label = QLabel(f"<b>{key}:</b>") # Use HTML to bold the attr name
+            key_label = QLabel(f"<b>{self.display_key(title)}:</b>") # Use HTML to bold the attr name
             key_label.setFont(label_font)
+            key_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
             layout.addWidget(key_label, row, col)
 
             # Add value label
             value_label = QLabel(str(value))
             value_label.setFont(label_font)
+            value_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
             layout.addWidget(value_label, row, col + 1)
+
+        row = rows_per_column
+        for title in long_titles:
+            # Use the column's data_fetch to get the value for attributes appearing in the table
+            value = column_map[title].display_value(docking_structure)
+
+            # Add key label
+            key_label = QLabel(f"<b>{self.display_key(title)}:</b>") # Use HTML to bold the attr name
+            key_label.setFont(label_font)
+            key_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            layout.addWidget(key_label, row, 0)
+
+            # Add value label
+            value_label = QLabel(str(value))
+            value_label.setFont(label_font)
+            value_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            layout.addWidget(value_label, row, 1, 1, 3)
+
+            row += 1
+
+    def update_rating(self):
+        rating_button = None
+        try:
+            for s in self.struct_table.selected:
+                button = self.rating_buttons[s.viewdock_data.get(RATING_KEY, DEFAULT_RATING)]
+                if rating_button is None:
+                    rating_button = button
+                elif rating_button != button:
+                    raise IndexError("multiple ratings")
+        except IndexError:
+            rating_button = self.rating_buttons[DEFAULT_RATING]
+        if rating_button is not None:
+            if not rating_button.isChecked():
+                rating_button.setChecked(True)
 
     def add_handlers(self):
         """
@@ -585,6 +679,7 @@ class ViewDockTool(ToolInstance):
         return cls(session, snapshot['tool_name'], snapshot['structures'],
             table_state=snapshot.get('table_state', None))
 
+# RatingDelegate no longer used, but retaining code for reference
 class RatingDelegate(QStyledItemDelegate):
     """
     A delegate that provides a QComboBox editor for editing ratings in a table view.

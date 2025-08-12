@@ -173,6 +173,8 @@ class _MDCrdsBundleAPI(BundleAPI):
             return MDInfo()
 
         # MD plotting manager
+        if kw.get('check_relevance', False):
+            return True
         if name == "distance":
             a1, a2 = kw['atoms']
             from chimerax.geometry import distance
@@ -198,6 +200,9 @@ class _MDCrdsBundleAPI(BundleAPI):
         elif name == "rmsd":
             from .providers import rmsd
             return rmsd(session, mgr, **kw)
+        elif name == "hbonds":
+            from .providers import hbonds
+            return hbonds(session, mgr, **kw)
         raise ValueError("Unknown plotting type: %s" % name)
 
 

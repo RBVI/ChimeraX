@@ -41,10 +41,11 @@ Wohlwend J, Corso G, Passaro S, Reveiz M, Leidal K, Swiderski W, Portnoi T, Chin
 </blockquote>
 <p>
 The ChimeraX <b>Boltz</b> tool installs and runs 
-<a href="https://github.com/jwohlwend/boltz" target="_blank"><i>Boltz-1</i></a>
-on the local machine.  The prediction runs on Mac, Linux, and Windows 
+<a href="https://github.com/jwohlwend/boltz" target="_blank"><i>Boltz-2</i></a>
+on the local machine. The prediction runs on Mac, Linux, and Windows 
 without requiring an Nvidia GPU, typically taking on the order of minutes, and
 is run in background so that ChimeraX can be used for other tasks.
+</p><p>
 The ChimeraX <b>Boltz</b> tool can be opened from the 
 <b>Structure Prediction</b>
 section of the <b>Tools</b> menu and manipulated like other panels
@@ -58,7 +59,7 @@ Residue-residue alignment errors for the modeled structures
 are shown in the <a href="#pae"><b>Error Plot</b></a>.
 See the 
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html"
-target="_blank">ChimeraX Boltz example</a> and
+target="_blank">ChimeraX Boltz details</a> and
 video <a href="https://www.youtube.com/watch?v=377V9A_0ECc" target="_blank">
 Boltz structure prediction in ChimeraX</a>. 
 See also:
@@ -81,17 +82,21 @@ See also:
 </p>
 <h3>Boltz Installation</h3>
 <p>
-<i>Boltz-1</i> installation only needs to be done once per computer,
+<i>Boltz-2</i> installation only needs to be done once per computer,
 as long as the ChimeraX installation is not moved or deleted. 
 Clicking the <b>Install Boltz</b> button on the tool dialog
 creates a Python virtual environment to install
 <a href="https://pypi.org/project/boltz/" target="_blank">Boltz from PyPi</a>.
 Boltz uses Torch and other packages, and
-the total installation including <i>Boltz-1</i>, the trained neural 
+the total installation including <i>Boltz-2</i>, the trained neural 
 network weights, and the PDB Chemical Component Dictionary for defining 
-residue types is about 4 GB and may take 10 minutes or 
+residue types is over 4 GB and may take 10 minutes or 
 more to download and install, depending on network speed.
-Installation can also be done with the command
+<i>Boltz-2</i> is installed in ~/boltz2 in the user's home directory.
+This boltz2 directory will be created, or if it already exists must be empty.
+The Boltz network parameters and <a href="https://www.wwpdb.org/data/ccd"
+target="_blank">Chemical Component Dictionary</a> are downloaded
+to ~/.boltz. Installation can also be done with the command
 <a href="../commands/boltz.html#install"><b>boltz install</b></a>.
 </p>
 
@@ -120,7 +125,11 @@ target="_blank">SMILES</a> string
 </ul>
 <p>
 The current set of components to model are listed in a table, with the polymer
-residue count tallied underneath to help assess the size of the calculation.
+residue count tallied underneath to help assess the size of the calculation
+(see the
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html"
+target="_blank">ChimeraX Boltz details</a> for guidelines on run times
+based on size and resources). 
 The <b>Clear</b> button can be used to clear the table contents to start over,
 and <b>Delete selected rows</b> to remove just the row(s) currently 
 highlighted in the table.
@@ -142,16 +151,24 @@ brings up a file browser window for choosing a folder interactively.
 <li><b>Number of predicted structures</b> (initial default <b>1</b>)
 &ndash; how many predictions to generate; if more than one, they typically
 have only small variations
-<li><b>Compute device</b>
-&ndash; whether to use the CPU always, GPU always (requires an Nvidia or
-Mac M series GPU), or GPU if available (initial <b>default</b>),
-as it will be faster than the CPU
-<li><b>Predict larger structures with Nvidia 16-bit floating point</b>
-(for systems with Nvidia GPUs only)
-&ndash; whether to use 16-bit floating point (bfloat16) instead of 32-bit
-on Nvidia GPUs to allow predicting larger structures 
-(approximately 40% more residues).
-The initial default is <b>off</b>; turning it on may reduce prediction accuracy.
+<li><b>Predict ligand binding affinity for</b>
+  <ul>
+  <li><b>none</b> (initial default)
+  <li><b>last ligand</b> 
+&ndash; the last non-biopolymer listed in the table of components
+  <li><b><i>ligand-name</i></b> 
+&ndash; ligand CCD code or SMILES string as listed in the table of components
+  </ul>
+Boltz can predict the binding affinity in &micro;M for a single ligand. 
+It was trained using Kd, Ki, and IC50 affinity values, treating them as 
+equivalent, so the predicted affinity should be interpreted as a 
+qualitative affinity without a precise definition. 
+Only one affinity prediction is made even if the system contains
+multiple ligands, and the affinity cannot be predicted for
+ligands that occur in more than one copy.
+<li><b>Use steering potentials. May be more accurate, but slower.</b>
+(initial default <b>off</b>)
+&ndash; whether to use Boltz diffusion steering potentials
 <li><b>Use multiple sequence alignment cache</b> (initial default <b>on</b>)
 &ndash; whether to cache (and potentially reuse) the deep sequence alignments
 generated by the Colabfold server for protein chains.
@@ -163,6 +180,10 @@ to match ones from the same organisms, the cached alignments can only be reused
 for assemblies with the exact same set of proteins.
 Alignments computed for individual proteins from multiple different runs
 cannot be used for an assembly of those proteins.
+<li><b>Compute device</b>
+&ndash; whether to use the CPU always, GPU always (requires an Nvidia or
+Mac M series GPU), or GPU if available (initial <b>default</b>),
+as it will be faster than the CPU
 <li><b>Boltz install location</b> &ndash; the folder containing
 a virtual Python environment in which Boltz is installed
 </ul>
@@ -175,7 +196,7 @@ More options are available as part of the
 Clicking <b>Predict</b> launches the calculation
 (see the
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html"
-target="_blank">ChimeraX Boltz example</a> for run times on various systems).
+target="_blank">ChimeraX Boltz details</a> for run times on various systems).
 The Boltz prediction is run in the background so that ChimeraX can be used 
 for other tasks. Clicking <b>Stop</b> halts a calculation in progress.
 When the prediction finishes, the resulting structure(s) are opened 
@@ -404,7 +425,7 @@ prediction with 3 times the number of residue and ligand atoms will take
 approximately 9 times longer to run. For a table of the run times to predict
 assemblies of different sizes on various desktop and laptop computers, see the 
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html"
-target="_blank">ChimeraX Boltz example</a>.
+target="_blank">ChimeraX Boltz details</a>.
 </p><p>
 <b>Nvidia GPU support on Windows</b>.
 Installing Boltz will get a CUDA-enabled version of the torch machine 

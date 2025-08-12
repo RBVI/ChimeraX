@@ -623,7 +623,7 @@ def level_and_color_settings(v, options):
             levels.extend(rms_levels)
         if sd_levels:
             for lvl in sd_levels:
-                lvl[0] *= sd
+                lvl[0] = mean + sd*lvl[0]
             levels.extend(sd_levels)
 
     colors = options.get('color', [])

@@ -109,9 +109,9 @@ class BoltzPredictionGUI(ToolInstance):
         from chimerax.ui.widgets import EntriesRow
 
         pn = EntriesRow(parent, 'Prediction name', '')
-        self._prediction_name = pn.values[0]
-        pn.pixel_width = 100
-        self._prediction_name._line_edit.textEdited.connect(self._prediction_name_edited)
+        self._prediction_name = pname = pn.values[0]
+        pname.pixel_width = 200
+        pname._line_edit.textEdited.connect(self._prediction_name_edited)
         return pn
 
     # ---------------------------------------------------------------------------
