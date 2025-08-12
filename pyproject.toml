@@ -72,7 +72,7 @@ wheel = [
   # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
   # try a newer version of jedi
   "ipykernel==6.29.5",
-  "ipython==8.26.0",
+  "ipython==9.2.0",
   # the version of jedi that works with ipython
   "jedi==0.19.1",
   "jupyter-client==8.6.3",
