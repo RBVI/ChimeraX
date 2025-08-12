@@ -843,11 +843,13 @@ class Alignment(State):
                 self._rmsd_chains = best_chains
         if prev_rmsd_chains:
             if not self._rmsd_chains:
-                self._rmsd_handler.remove()
-                self._rmsd_handler = None
+                if self._rmsd_handler is not None:
+                    self._rmsd_handler.remove()
+                    self._rmsd_handler = None
         elif self._rmsd_chains:
             from chimerax.atomic import get_triggers
-            self._rmsd_handler = get_triggers().add_handler('changes', self._rmsd_atomic_cb)
+            if self._rmsd_handler is None:
+                self._rmsd_handler = get_triggers().add_handler('changes', self._rmsd_atomic_cb)
         return self._rmsd_chains
 
     def save(self, output, format_name="fasta"):
