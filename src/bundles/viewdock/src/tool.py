@@ -33,7 +33,7 @@ from chimerax.core.commands import run, concise_model_spec, StringArg
 from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle,
         QStyleOptionComboBox, QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout,
-        QLabel, QWidget, QRadioButton, )
+        QLabel, QWidget, QRadioButton, QScrollArea, )
 from Qt.QtWidgets import QMenu
 from Qt.QtGui import QFont
 from Qt.QtCore import Qt
@@ -360,10 +360,17 @@ class ViewDockTool(ToolInstance):
         """
 
         # Create a group box for the description box
-        description_layout = QGridLayout()
-        description_layout.setColumnStretch(1, 1)
-        description_layout.setColumnStretch(3, 1)
-        self.description_group.setLayout(description_layout)
+        #scrolled_layout = QVBoxLayout()
+        #self.description_group.setLayout(scrolled_layout)
+        #scrolled_widget = QWidget()
+        self.description_layout = QGridLayout()
+        self.description_layout.setColumnStretch(1, 1)
+        self.description_layout.setColumnStretch(3, 1)
+        #scrolled_widget.setLayout(self.description_layout)
+        #scrolled_area = QScrollArea()
+        #scrolled_area.setWidget(scrolled_widget)
+        #scrolled_layout.addWidget(scrolled_area)
+        self.description_group.setLayout(self.description_layout)
 
         # Set the title alignment to center
         self.description_group.setAlignment(Qt.AlignCenter)
@@ -406,6 +413,7 @@ class ViewDockTool(ToolInstance):
         for s in self.struct_table.selected:
             s.viewdock_data[RATING_KEY] = value
             self.struct_table.update_cell('Rating', s)
+        self.update_model_description()
 
     def display_key(self, key):
         return key.replace('.', ' ').replace('_', ' ')
@@ -453,7 +461,7 @@ class ViewDockTool(ToolInstance):
         label_font.setPointSize(12)  # Set the font size
 
         # Clear the existing layout
-        layout = self.description_group.layout()
+        layout = self.description_layout
         for i in reversed(range(layout.count())):
             widget = layout.itemAt(i).widget()
             if widget:
@@ -477,20 +485,29 @@ class ViewDockTool(ToolInstance):
         self.description_group.setTitle(f"ChimeraX Model {docking_structure.atomspec}")
 
         # Add attributes in a grid layout
-        attributes = list(docking_structure.viewdock_data.items())
-        total_attributes = len(attributes)
-        rows_per_column = (total_attributes + 1) // 2  # Divide attributes evenly over two columns
+        column_map = { col.title: col for col in self.struct_table.columns }
+        all_titles = [key for key in docking_structure.viewdock_data.keys()
+            if key != RATING_KEY] + ["Rating"]
+        all_titles.sort(key=lambda title: title.lower())
+        short_titles = []
+        long_titles = []
+        for title in all_titles:
+            if len(column_map[title].display_value(docking_structure)) > 20:
+                long_titles.append(title)
+            else:
+                short_titles.append(title)
+        total_titles = len(short_titles)
+        rows_per_column = (total_titles + 1) // 2  # Divide attributes evenly over two columns
 
-        for index, (key, value) in enumerate(attributes):
+        for index, title in enumerate(short_titles):
             # Use the column's data_fetch to get the value for attributes appearing in the table
-            column = next((col for col in self.struct_table.columns if col.title == key), None)
-            value = column.display_value(docking_structure)
+            value = column_map[title].display_value(docking_structure)
 
             row = index % rows_per_column
             col = (index // rows_per_column) * 2  # Multiply by 2 to account for key-value pairs
 
             # Add key label
-            key_label = QLabel(f"<b>{self.display_key(key)}:</b>") # Use HTML to bold the attr name
+            key_label = QLabel(f"<b>{self.display_key(title)}:</b>") # Use HTML to bold the attr name
             key_label.setFont(label_font)
             key_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
             layout.addWidget(key_label, row, col)
@@ -500,6 +517,25 @@ class ViewDockTool(ToolInstance):
             value_label.setFont(label_font)
             value_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
             layout.addWidget(value_label, row, col + 1)
+
+        row = rows_per_column
+        for title in long_titles:
+            # Use the column's data_fetch to get the value for attributes appearing in the table
+            value = column_map[title].display_value(docking_structure)
+
+            # Add key label
+            key_label = QLabel(f"<b>{self.display_key(title)}:</b>") # Use HTML to bold the attr name
+            key_label.setFont(label_font)
+            key_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            layout.addWidget(key_label, row, 0)
+
+            # Add value label
+            value_label = QLabel(str(value))
+            value_label.setFont(label_font)
+            value_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            layout.addWidget(value_label, row, 1, 1, 3)
+
+            row += 1
 
     def update_rating(self):
         rating_button = None
