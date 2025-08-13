@@ -94,7 +94,7 @@ command_defaults = {
     'verbose': False
 }
 def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resolution=None, *, block=None,
-        chain_id=None, clashes=False, extent_type="ligand", extent_value=1.1, hbonds=False,
+        chain_id=None, clashes=False, extent_type="length", extent_value=1.1, hbonds=False,
         phenix_location=None, residue_number=None, verbose=command_defaults['verbose'],
         option_arg=[], position_arg=[]):
 
@@ -111,11 +111,12 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resoluti
 
     # Setup temporary directory to run phenix.ligandfit
     from tempfile import TemporaryDirectory
-    d = TemporaryDirectory(prefix = 'phenix_ligandfit_')  # Will be cleaned up when object deleted.
-    temp_dir = d.name
+    tdir = TemporaryDirectory(prefix = 'phenix_ligandfit_')  # Will be cleaned up when object deleted.
+    temp_dir = tdir.name
 
     # Save model to file.
     from chimerax.pdb import save_pdb
+    from os import path
     save_pdb(session, path.join(temp_dir,'model.pdb'), models=[model], rel_model=in_map)
 
     if ligand.startswith(('smiles:', 'ccd:', 'pubchem:')):
@@ -123,8 +124,7 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resoluti
     elif ligand.startswith('file:'):
         ligand_format, ligand_data = ligand.split(':', 1)
     else:
-        import os
-        if os.path.exists(ligand):
+        if path.exists(ligand):
             ligand_data = ligand
             ligand_format = 'file'
         else:
@@ -162,7 +162,9 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resoluti
     save_pdb(session, path.join(temp_dir,'ligand.pdb'), models=ligand_models)
 
     # convert extent to angstroms if needed
-    if extent_type == "ligand":
+    #NOTE: debugging
+    print("Extent type:", extent_type)
+    if extent_type == "length":
         from chimerax.geometry import distance
         longest = None
         for i, a1 in enumerate(ligand_models[0].atoms):
@@ -175,17 +177,31 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resoluti
         extent_angstroms = extent_value * longest
     else:
         extent_angstroms = extent_value
+    #NOTE: debugging
+    print("Extent in angstroms:", extent_angstroms)
 
-    # Check map_data arg and save map data
-    from os import path
+    # save map data
+    vxyz = in_map.scene_position.inverse() * center.scene_coordinates()
+    center_ijk = in_map.data.xyz_to_ijk(vxyz)
+    size_ijk = [extent_angstroms / s for s in in_map.data.step]
+    from math import ceil, floor
+    ijk_max = [int(ceil(c + s)) for c,s in zip(center_ijk, size_ijk)]
+    ijk_min = [int(floor(c - s)) for c,s in zip(center_ijk, size_ijk)]
+    # Make sure region is within the bounds of the full map
+    from chimerax.map_data import clamp_region
+    ijk_min, ijk_max = clamp_region((ijk_min, ijk_max), in_map.data.size)
+    grid_data = in_map.grid_data(subregion=(ijk_min, ijk_max))
     from chimerax.map_data import save_grid_data
-    save_grid_data([in_map.data], path.join(temp_dir, 'map.mrc'), session)
+    from chimerax.map import Volume
+    #NOTE: debugging
+    session.models.add([Volume(session, grid_data)])
+    save_grid_data(grid_data, path.join(temp_dir, 'map.mrc'), session)
 
     # Run phenix.ligandfit
-    # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
+    # keep a reference to 'tdir' in the callback so that the temporary directory isn't removed before
     # the program runs
     callback = lambda placed_ligand, *args, session=session, model=model, chain_id=chain_id, \
-        hbonds=hbonds, clashes=clashes, residue_number=residue_number, d_ref=d: _process_results(
+        hbonds=hbonds, clashes=clashes, residue_number=residue_number, d_ref=tdir: _process_results(
         session, placed_ligand, model, chain_id, residue_number, hbonds, clashes)
     FitJob(session, exe_path, option_arg, search_center, resolution, position_arg, temp_dir, verbose,
         callback, block)

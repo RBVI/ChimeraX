@@ -63,7 +63,6 @@ class DouseResultsViewer(CheckWaterViewer):
             "Waters in input model only"
             ))
 
-from chimerax.core.settings import Settings
 from .douse import command_defaults as douse_defaults
 class LaunchDouseSettings(Settings):
     AUTO_SAVE = {
