@@ -88,7 +88,10 @@ class Structure(Model, StructureData):
                 ("save_teardown", "end save session")]:
             self._ses_handlers.append(t.add_handler(trig_name,
                     lambda *args, qual=ses_func: self._ses_call(qual)))
-        from chimerax.core.models import MODEL_POSITION_CHANGED, MODEL_DISPLAY_CHANGED
+        # since the C++ layer is tracking the *scene* position of the structure,
+        # which includes transformations from higher hierarchy layers, can't just
+        # notify when the structure's own transformation changes
+        from chimerax.core.models import MODEL_POSITION_CHANGED
         self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
         self.triggers.add_trigger("changes")
         _register_hover_trigger(session)
@@ -186,8 +189,10 @@ class Structure(Model, StructureData):
                     {'custom attrs': py_obj.custom_attrs})
 
     def added_to_session(self, session):
-        if not self.scene_position.is_identity():
-            self._cpp_notify_position(self.scene_position)
+        # Used to exclude notifying the C++ layer if the scene position was the identity,
+        # but that is only certain to be correct if this is the first time the structure
+        # has been added to the session, so always set it. [#18427]
+        self._cpp_notify_position(self.scene_position)
         if self._auto_style:
             self.apply_auto_styling(set_lighting = self._is_only_model())
         self._start_change_tracking(session.change_tracker)
