@@ -88,8 +88,6 @@ class Structure(Model, StructureData):
                 ("save_teardown", "end save session")]:
             self._ses_handlers.append(t.add_handler(trig_name,
                     lambda *args, qual=ses_func: self._ses_call(qual)))
-        from chimerax.core.models import MODEL_POSITION_CHANGED, MODEL_DISPLAY_CHANGED
-        self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
         self.triggers.add_trigger("changes")
         _register_hover_trigger(session)
         
@@ -279,6 +277,7 @@ class Structure(Model, StructureData):
 
     def _structure_set_position(self, pos):
         if pos != self.position:
+            self._cpp_notify_position(pos)
             Model.position.fset(self, pos)
             self.change_tracker.add_modified(self, "position changed")
     position = property(Model.position.fget, _structure_set_position)
@@ -545,18 +544,6 @@ class Structure(Model, StructureData):
         ad = self._atoms_drawing
         if ad:
             lod.set_atom_sphere_geometry(ad, total_atoms)
-
-    def _update_position(self, trig_name, updated_model):
-        need_update = False
-        check_model = self
-        while isinstance(check_model, Model):
-            if updated_model == check_model:
-                need_update = True
-                break
-            check_model = check_model.parent
-
-        if need_update:
-            self._cpp_notify_position(self.scene_position)
 
     def _create_ring_graphics(self):
         p = self._ring_drawing
