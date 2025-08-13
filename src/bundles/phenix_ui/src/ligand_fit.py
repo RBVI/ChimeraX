@@ -114,11 +114,6 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resoluti
     d = TemporaryDirectory(prefix = 'phenix_ligandfit_')  # Will be cleaned up when object deleted.
     temp_dir = d.name
 
-    # Check map_data arg and save map data
-    from os import path
-    from chimerax.map_data import save_grid_data
-    save_grid_data([in_map.data], path.join(temp_dir, 'map.mrc'), session)
-
     # Save model to file.
     from chimerax.pdb import save_pdb
     save_pdb(session, path.join(temp_dir,'model.pdb'), models=[model], rel_model=in_map)
@@ -165,6 +160,26 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resoluti
     # Save ligand to file.
     from chimerax.pdb import save_pdb
     save_pdb(session, path.join(temp_dir,'ligand.pdb'), models=ligand_models)
+
+    # convert extent to angstroms if needed
+    if extent_type == "ligand":
+        from chimerax.geometry import distance
+        longest = None
+        for i, a1 in enumerate(ligand_models[0].atoms):
+            for a2 in ligand_models[0].atoms[i+1:]:
+                d = distance(a1.coord, a2.coord)
+                if longest is None or d > longest:
+                    longest = d
+        if longest is None:
+            longest = ligand_models[0].atoms[0].radius
+        extent_angstroms = extent_value * longest
+    else:
+        extent_angstroms = extent_value
+
+    # Check map_data arg and save map data
+    from os import path
+    from chimerax.map_data import save_grid_data
+    save_grid_data([in_map.data], path.join(temp_dir, 'map.mrc'), session)
 
     # Run phenix.ligandfit
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
