@@ -38,22 +38,22 @@ class OpenGLRenderer:
         self.surface = surface
         self.context = context
         self.context.makeCurrent(self.surface)
-        
+
         # Compile shaders
         vs = GL.glCreateShader(GL.GL_VERTEX_SHADER)
         GL.glShaderSource(vs, opengl_vertex_shader)
         GL.glCompileShader(vs)
- 
+
         fs = GL.glCreateShader(GL.GL_FRAGMENT_SHADER)
         GL.glShaderSource(fs, opengl_fragment_shader)
         GL.glCompileShader(fs)
-        
+
         # Link program
         self.program = GL.glCreateProgram()
         GL.glAttachShader(self.program, vs)
         GL.glAttachShader(self.program, fs)
         GL.glLinkProgram(self.program)
-        
+
         # Triangle data (position + color)
         vertices = np.array([
             # x,    y,     r,   g,   b
@@ -61,52 +61,49 @@ class OpenGLRenderer:
              0.5, -0.5,   0.0, 1.0, 0.0,  # Bottom right - green
              0.0,  0.5,   0.0, 0.0, 1.0,  # Top - blue
         ], dtype=np.float32)
-        
+
         # Create and bind VAO
         self.vao = GL.glGenVertexArrays(1)
         GL.glBindVertexArray(self.vao)
-        
+
         # Create and bind VBO
-        vbo = GL.glGenBuffers(1)
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, vbo)
+        self.vbo = GL.glGenBuffers(1)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vbo)
         GL.glBufferData(GL.GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL.GL_STATIC_DRAW)
-        
+
         ## Set up vertex attributes
         GL.glVertexAttribPointer(0, 2, GL.GL_FLOAT, GL.GL_FALSE, 20, GL.ctypes.c_void_p(0))
         GL.glEnableVertexAttribArray(0)
         GL.glVertexAttribPointer(1, 3, GL.GL_FLOAT, GL.GL_FALSE, 20, GL.ctypes.c_void_p(8))
         GL.glEnableVertexAttribArray(1)
 
- 
+
     def drawFrame(self):
         """Placeholder for OpenGL rendering logic"""
         # Clear and draw
         self.context.makeCurrent(self.surface)
         GL.glClearColor(0.2, 0.2, 0.2, 1.0)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
-        
+
         GL.glUseProgram(self.program)
         GL.glBindVertexArray(self.vao)
         GL.glDrawArrays(GL.GL_TRIANGLES, 0, 3)
-        
+
         self.context.swapBuffers(self.surface)
- 
-     
-        
+
+    def cleanup(self):
+        GL.glDeleteVertexArrays(1, [self.vao])
+        GL.glDeleteBuffers(1, [self.vbo])
+        GL.glDeleteProgram(self.program)
+        self.context.doneCurrent()
+
+
 class GraphicsWindow(QWindow):
     def __init__(self):
         super().__init__()
 
-        self._opengl_surface_format = QSurfaceFormat()
-        self._opengl_surface_format.setVersion(3,3)
-        self._opengl_surface_format.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
-        self._opengl_surface_format.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
-        self._context = QOpenGLContext()
-        self._context.setFormat(self._opengl_surface_format)
-        self._context.create()
-
         self._opengl_renderer = None
-       
+        self._vulkan_context = _vulkan.VulkanContext();
         self._vulkan_renderer = None
 
         self.renderer = None
@@ -117,12 +114,24 @@ class GraphicsWindow(QWindow):
 
     def _initializeOpenGLSurface(self):
         self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
- 
+        self._opengl_surface_format = QSurfaceFormat()
+        self._opengl_surface_format.setVersion(3,3)
+        self._opengl_surface_format.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
+        self._opengl_surface_format.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
+        self._context = QOpenGLContext()
+        self._context.setFormat(self._opengl_surface_format)
+        self._context.create()
+
+
     def switch_to_vulkan(self):
         self.render_timer.stop()
         time.sleep(0.1)  # give time for the last frame to be drawn
+        self._opengl_renderer.cleanup()
+        del self._opengl_renderer
+        del self._context
         self.renderer = self._vulkan_renderer
         self.setSurfaceType(QSurface.SurfaceType.VulkanSurface)
+        self._vulkan_renderer.recreateSurface(self.winId())
         self.render_timer.start(16)
 
     def switch_to_opengl(self):
@@ -141,19 +150,19 @@ class GraphicsWindow(QWindow):
             self.renderer = self._vulkan_renderer
 
     def _initializeVulkan(self):
-        self.setSurfaceType(QSurface.SurfaceType.VulkanSurface)
+        self.setSurfaceType(QSurface.SurfaceType.MetalSurface)
 
         # Get the window handle
         window_id = int(self.winId())
-        
+
         # Set it globally (for your current architecture)
         _vulkan.set_window_id(window_id)
 
         # Create and initialize renderer
-        self._vulkan_renderer = _vulkan.VulkanRenderer()
+        self._vulkan_renderer = _vulkan.VulkanRenderer(self._vulkan_context)
         self._vulkan_renderer.initVulkan()
         self._vulkan_renderer.clearToBlack()
- 
+
     def render_frame(self):
         if self.renderer and self.isExposed():
             try:

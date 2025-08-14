@@ -54,8 +54,14 @@ classifiers = ["Development Status :: 2 - Pre-Alpha"]
 #platform.linux.libraries = ["GL"]
 
 [tool.chimerax.extension._vulkan]
-sources = ["hello_triangle.cpp"]
+#sources = ["_vulkan/vk_module.cpp", "_vulkan/vk_context.cpp"]
+sources = [
+  "hello_triangle.cpp",
+  "_vulkan/vk_context.cpp",
+  #"_vulkan/vk_surface.cpp",
+]
 include-modules = ["pybind11"]
+include-dirs = ["_vulkan/include"]
 
 # TODO: Make bundle builder try calling pkg-config to find libraries
 platform.mac.libraries = ["vulkan"]

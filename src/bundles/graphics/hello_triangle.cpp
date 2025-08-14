@@ -1,7 +1,6 @@
 #ifdef __APPLE__
 // MoltenVK statically linked
 #import <Cocoa/Cocoa.h>
-#define VK_USE_PLATFORM_MACOS_MVK
 #include <MoltenVK/mvk_vulkan.h>
 #import <QuartzCore/CAMetalLayer.h>
 #elif _WIN32
@@ -16,6 +15,9 @@
 #include <pybind11/pybind11.h>
 #include <vulkan/vulkan.h>
 
+#include "vk_context.h"
+//#include "vk_surface.h"
+
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -24,16 +26,23 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
-#include <optional>
 #include <set>
 #include <stdexcept>
 #include <vector>
+#include <optional>
 
 namespace py = pybind11;
 
 uintptr_t window_id{0};
 
 uintptr_t get_window_id() { return window_id; }
+
+struct SwapChainSupportDetails {
+  VkSurfaceCapabilitiesKHR capabilities;
+  std::vector<VkSurfaceFormatKHR> formats;
+  std::vector<VkPresentModeKHR> presentModes;
+};
+
 
 void set_window_id(uintptr_t w_pointer) {
   // This function would set the window pointer for the Vulkan application.
@@ -44,40 +53,8 @@ void set_window_id(uintptr_t w_pointer) {
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-const std::vector<const char *> validationLayers = {
-    "VK_LAYER_KHRONOS_validation"};
-
 const std::vector<const char *> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
-
-VkResult CreateDebugUtilsMessengerEXT(
-    VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-    const VkAllocationCallbacks *pAllocator,
-    VkDebugUtilsMessengerEXT *pDebugMessenger) {
-  auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-      instance, "vkCreateDebugUtilsMessengerEXT");
-  if (func != nullptr) {
-    return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-  } else {
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
-  }
-}
-
-void DestroyDebugUtilsMessengerEXT(VkInstance instance,
-                                   VkDebugUtilsMessengerEXT debugMessenger,
-                                   const VkAllocationCallbacks *pAllocator) {
-  auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-      instance, "vkDestroyDebugUtilsMessengerEXT");
-  if (func != nullptr) {
-    func(instance, debugMessenger, pAllocator);
-  }
-}
 
 struct QueueFamilyIndices {
   std::optional<uint32_t> graphicsFamily;
@@ -86,12 +63,6 @@ struct QueueFamilyIndices {
   bool isComplete() {
     return graphicsFamily.has_value() && presentFamily.has_value();
   }
-};
-
-struct SwapChainSupportDetails {
-  VkSurfaceCapabilitiesKHR capabilities;
-  std::vector<VkSurfaceFormatKHR> formats;
-  std::vector<VkPresentModeKHR> presentModes;
 };
 
 struct Vertex {
@@ -128,17 +99,17 @@ struct Vertex {
 const std::vector<Vertex> vertices = {{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
                                       {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
                                       {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
-
 class VulkanRenderer {
 public:
+  VulkanRenderer(VulkanContext& context) : m_context(&context), m_offscreen(false) {
+    context.getInstance();
+  };
+  // VulkanRenderer(VulkanContext& context, bool offscreen = false) : m_context(&context), m_offscreen(offscreen) {
   ~VulkanRenderer(){};
   void initVulkan() {
-    createInstance();
-    std::cout << "instance created" << std::endl;
-    setupDebugMessenger();
-    std::cout << "debug messenger setup" << std::endl;
-    createSurface();
+    auto instance = m_context->getInstance();
     std::cout << "surface created" << std::endl;
+    createSurface(instance, surface, window_id);
     pickPhysicalDevice();
     std::cout << "physical device picked" << std::endl;
     createLogicalDevice();
@@ -162,6 +133,67 @@ public:
     createSyncObjects();
     std::cout << "sync objects created" << std::endl;
     std::cout << "initialization complete" << std::endl;
+  }
+
+  void recreateSurface(uintptr_t window_id) {
+    auto instance = m_context->getInstance();
+    createSurface(instance, surface, window_id);
+    recreateSwapChain();
+  }
+
+  void createSurface(VkInstance &instance, VkSurfaceKHR &surface,
+                     uintptr_t window_id) {
+#ifdef __APPLE__
+    NSView *view = (NSView *)window_id;
+    // Objective-C code in a .cpp file!
+    if (!view.layer || ![view.layer isKindOfClass:[CAMetalLayer class]]) {
+      CAMetalLayer *metalLayer = [CAMetalLayer layer];
+      metalLayer.contentsScale = view.window.backingScaleFactor;
+      view.layer = metalLayer;
+      view.wantsLayer = YES;
+    }
+
+    // Option 1: Use MVK's helper (simpler, if available)
+    VkMacOSSurfaceCreateInfoMVK surfaceInfo{};
+    surfaceInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
+    surfaceInfo.pNext = nullptr;
+    surfaceInfo.flags = 0;
+    surfaceInfo.pView = (void *)window_id; // NSView*
+    auto result =
+        vkCreateMacOSSurfaceMVK(instance, &surfaceInfo, nullptr, &surface);
+#elif _WIN32
+    VkWin32SurfaceCreateInfoKHR surfaceInfo{};
+    surfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    surfaceInfo.hwnd = (HWND)window_id;
+    surfaceInfo.hinstance = GetModuleHandle(nullptr);
+    auto result =
+        kCreateWin32SurfaceKHR(instance, &surfaceInfo, nullptr, &surface);
+#else // linux
+    VkWaylandSurfaceCreateInfoKHR surfaceInfo{};
+    surfaceInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+    surfaceInfo.display = wl_display_connect("wayland-0");
+    surfaceInfo.surface = (wl_surface *)window_id;
+    auto result =
+        vkCreateWaylandSurfaceKHR(instance, &surfaceInfo, nullptr, &surface);
+#endif
+    if (result != VK_SUCCESS)
+      throw std::runtime_error("failed to create window surface!");
+  }
+
+  uint32_t findMemoryType(VkPhysicalDevice &device, uint32_t typeFilter,
+                          VkMemoryPropertyFlags properties) {
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(device, &memProperties);
+
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+      if ((typeFilter & (1 << i)) &&
+          (memProperties.memoryTypes[i].propertyFlags & properties) ==
+              properties) {
+        return i;
+      }
+    }
+
+    throw std::runtime_error("failed to find suitable memory type!");
   }
 
   void drawFrame() {
@@ -290,8 +322,9 @@ public:
   }
 
 private:
-  VkInstance instance;
-  VkDebugUtilsMessengerEXT debugMessenger;
+  VulkanContext* m_context;
+  bool m_offscreen;
+
   VkSurfaceKHR surface;
 
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -324,50 +357,6 @@ private:
   uint32_t currentFrame = 0;
 
   bool framebufferResized = false;
-
-  void createSurface() {
-#ifdef __APPLE__
-    NSView *view = (NSView *)window_id;
-    // Objective-C code in a .cpp file!
-    if (!view.layer || ![view.layer isKindOfClass:[CAMetalLayer class]]) {
-      CAMetalLayer *metalLayer = [CAMetalLayer layer];
-      metalLayer.contentsScale = view.window.backingScaleFactor;
-      view.layer = metalLayer;
-      view.wantsLayer = YES;
-    }
-
-    // Option 1: Use MVK's helper (simpler, if available)
-    VkMacOSSurfaceCreateInfoMVK surfaceInfo{};
-    surfaceInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
-    surfaceInfo.pNext = nullptr;
-    surfaceInfo.flags = 0;
-    surfaceInfo.pView = (void *)window_id; // NSView*
-
-    if (vkCreateMacOSSurfaceMVK(instance, &surfaceInfo, nullptr, &surface) !=
-        VK_SUCCESS) {
-      throw std::runtime_error("failed to create window surface!");
-    }
-#elif _WIN32
-    VkWin32SurfaceCreateInfoKHR surfaceInfo{};
-    surfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    surfaceInfo.hwnd = (HWND)window_id;
-    surfaceInfo.hinstance = GetModuleHandle(nullptr);
-    if (vkCreateWin32SurfaceKHR(instance, &surfaceInfo, nullptr, &surface) !=
-        VK_SUCCESS) {
-      throw std::runtime_error("failed to create window surface!");
-    }
-#else // linux
-    VkWaylandSurfaceCreateInfoKHR surfaceInfo{};
-    surfaceInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-    surfaceInfo.display = wl_display_connect("wayland-0");
-    surfaceInfo.surface = (wl_surface *)window_id;
-    if (vkCreateWaylandSurfaceKHR(instance, &surfaceInfo, nullptr, &surface) !=
-        VK_SUCCESS) {
-      throw std::runtime_error("failed to create window surface!");
-    }
-
-#endif
-  }
 
   void finishFrame() { vkDeviceWaitIdle(device); }
 
@@ -403,12 +392,8 @@ private:
 
     vkDestroyDevice(device, nullptr);
 
-    if (enableValidationLayers) {
-      DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-    }
-
+    auto instance = m_context->getInstance();
     vkDestroySurfaceKHR(instance, surface, nullptr);
-    vkDestroyInstance(instance, nullptr);
   }
 
   void recreateSwapChain() {
@@ -421,84 +406,8 @@ private:
     createFramebuffers();
   }
 
-  void createInstance() {
-    if (enableValidationLayers && !checkValidationLayerSupport()) {
-      throw std::runtime_error(
-          "validation layers requested, but not available!");
-    }
-
-    VkApplicationInfo appInfo{};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "UCSF ChimeraX";
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 10, 1);
-    appInfo.pEngineName = "Placeholder";
-    appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
-
-    VkInstanceCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    createInfo.pApplicationInfo = &appInfo;
-
-    auto extensions = getRequiredExtensions();
-    std::cout << "Extensions size: " << extensions.size() << std::endl;
-    std::cout << "Extensions required: " << std::endl;
-    for (auto ext : extensions) {
-      std::cout << "  - " << ext << "\n";
-    }
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-    createInfo.ppEnabledExtensionNames = extensions.data();
-
-#ifdef __APPLE__
-    createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-#endif
-
-    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-    if (enableValidationLayers) {
-      createInfo.enabledLayerCount =
-          static_cast<uint32_t>(validationLayers.size());
-      createInfo.ppEnabledLayerNames = validationLayers.data();
-
-      populateDebugMessengerCreateInfo(debugCreateInfo);
-      createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT *)&debugCreateInfo;
-    } else {
-      createInfo.enabledLayerCount = 0;
-
-      createInfo.pNext = nullptr;
-    }
-
-    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-      throw std::runtime_error("failed to create instance!");
-    }
-  }
-
-  void populateDebugMessengerCreateInfo(
-      VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
-    createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    createInfo.messageSeverity =
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                             VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                             VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    createInfo.pfnUserCallback = debugCallback;
-  }
-
-  void setupDebugMessenger() {
-    if (!enableValidationLayers)
-      return;
-
-    VkDebugUtilsMessengerCreateInfoEXT createInfo;
-    populateDebugMessengerCreateInfo(createInfo);
-
-    if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr,
-                                     &debugMessenger) != VK_SUCCESS) {
-      throw std::runtime_error("failed to set up debug messenger!");
-    }
-  }
-
   void pickPhysicalDevice() {
+    auto instance = m_context->getInstance();
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
@@ -553,7 +462,7 @@ private:
         static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-    if (enableValidationLayers) {
+    if (m_context->isDebugContext()) {
       createInfo.enabledLayerCount =
           static_cast<uint32_t>(validationLayers.size());
       createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -878,7 +787,7 @@ private:
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex =
-        findMemoryType(memRequirements.memoryTypeBits,
+        findMemoryType(physicalDevice, memRequirements.memoryTypeBits,
                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
@@ -893,22 +802,6 @@ private:
     vkMapMemory(device, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
     memcpy(data, vertices.data(), (size_t)bufferInfo.size);
     vkUnmapMemory(device, vertexBufferMemory);
-  }
-
-  uint32_t findMemoryType(uint32_t typeFilter,
-                          VkMemoryPropertyFlags properties) {
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
-
-    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-      if ((typeFilter & (1 << i)) &&
-          (memProperties.memoryTypes[i].propertyFlags & properties) ==
-              properties) {
-        return i;
-      }
-    }
-
-    throw std::runtime_error("failed to find suitable memory type!");
   }
 
   void createCommandBuffers() {
@@ -1134,7 +1027,6 @@ private:
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount,
                                              nullptr);
 
-    std::cout << "Queue family count: " << queueFamilyCount << std::endl;
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount,
                                              queueFamilies.data());
@@ -1143,7 +1035,6 @@ private:
     for (const auto &queueFamily : queueFamilies) {
       if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
         indices.graphicsFamily = i;
-        std::cout << "graphicsFamily index: " << i << std::endl;
       }
 
       VkBool32 presentSupport = false;
@@ -1151,7 +1042,6 @@ private:
 
       if (presentSupport) {
         indices.presentFamily = i;
-        std::cout << "presentFamily index: " << i << std::endl;
       }
 
       if (indices.isComplete()) {
@@ -1162,53 +1052,6 @@ private:
     }
 
     return indices;
-  }
-
-  std::vector<const char *> getRequiredExtensions() {
-    std::vector<const char *> extensions;
-    extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-#ifdef __APPLE__
-    extensions.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
-    extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-    extensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
-    extensions.push_back(
-        VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-#elif _WIN32
-    extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#else
-    extensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
-#endif
-
-    if (enableValidationLayers) {
-      extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
-
-    return extensions;
-  }
-
-  bool checkValidationLayerSupport() {
-    uint32_t layerCount;
-    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-
-    std::vector<VkLayerProperties> availableLayers(layerCount);
-    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-    for (const char *layerName : validationLayers) {
-      bool layerFound = false;
-
-      for (const auto &layerProperties : availableLayers) {
-        if (strcmp(layerName, layerProperties.layerName) == 0) {
-          layerFound = true;
-          break;
-        }
-      }
-
-      if (!layerFound) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   static std::vector<char> readFile(const std::string &filename) {
@@ -1228,16 +1071,6 @@ private:
 
     return buffer;
   }
-
-  static VKAPI_ATTR VkBool32 VKAPI_CALL
-  debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                VkDebugUtilsMessageTypeFlagsEXT messageType,
-                const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-                void *pUserData) {
-    std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
-
-    return VK_FALSE;
-  }
 };
 
 PYBIND11_MODULE(_vulkan, m) {
@@ -1248,12 +1081,18 @@ PYBIND11_MODULE(_vulkan, m) {
   m.def("set_window_id", &set_window_id, py::arg("window_id"),
         "Set the window pointer for Vulkan");
 
-  py::class_<VulkanRenderer>(m, "VulkanRenderer")
+  py::class_<VulkanContext>(m, "VulkanContext")
       .def(py::init<>())
+      .def("listGPUs", &VulkanContext::listGPUs, "List the available GPUs");
+
+
+  py::class_<VulkanRenderer>(m, "VulkanRenderer")
+      .def(py::init<VulkanContext&>(), py::keep_alive<1,2>())
       .def("initVulkan", &VulkanRenderer::initVulkan,
            "Initialize the Vulkan renderer")
       .def("clearToBlack", &VulkanRenderer::clearToBlack,
            "Clear the screen to black")
-      .def("drawFrame", &VulkanRenderer::drawFrame,
-           "Clear the screen to black");
+      .def("drawFrame", &VulkanRenderer::drawFrame, "Clear the screen to black")
+      .def("recreateSurface", &VulkanRenderer::recreateSurface,
+           "recreate the surface");
 }
