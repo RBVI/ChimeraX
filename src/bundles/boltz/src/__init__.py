@@ -34,11 +34,31 @@ class _BoltzBundle(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        if command_name in ('boltz predict', 'boltz results'):
+        if command_name in ('boltz predict', 'boltz ligandtable'):
             from . import predict
             predict.register_boltz_predict_command(logger)
         elif command_name == 'boltz install':
             from . import install
             install.register_boltz_install_command(logger)
+
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        if mgr == session.open_command:
+            from chimerax.open_command import OpenerInfo
+            if name == 'Boltz ligands':
+                class BoltzLigandsInfo(OpenerInfo):
+                    def open(self, session, path, file_name, **kw):
+                        if session.ui.is_gui:
+                            from . import boltz_gui
+                            blt = boltz_gui.open_boltz_ligands_file(session, path, align_to = kw.get('align_to'))
+                            msg = f'Read {blt.ligand_count()} ligands'
+                        else:
+                            msg = 'Cannot show ligands table in no-GUI mode.'
+                        return [], msg
+                    @property
+                    def open_args(self):
+                        from chimerax.atomic import AtomicStructureArg
+                        return { 'align_to': AtomicStructureArg, }
+                return BoltzLigandsInfo()
 
 bundle_api = _BoltzBundle()

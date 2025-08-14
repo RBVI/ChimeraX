@@ -35,7 +35,7 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
     if install_location is not None:
         from .settings import _boltz_settings
         settings = _boltz_settings(session)
-        settings.boltz2_install_location = install_location
+        settings.boltz22_install_location = install_location
         settings.save()
 
     if not _is_boltz_available(session):
@@ -568,7 +568,7 @@ class BoltzRun:
 
         self._log_prediction_info()
 
-        boltz_venv = self._settings.boltz2_install_location
+        boltz_venv = self._settings.boltz22_install_location
         from .install import find_executable
         boltz_exe = find_executable(boltz_venv, 'boltz')
 
@@ -973,8 +973,16 @@ class BoltzRun:
         smiles = {p.name:p.smiles_string for p in self._predictions}
         align_to = self._predictions[0]._align_to if self._predictions else None
         from . import boltz_gui
-        boltz_gui.LigandPredictionResults(self._session, self._predictions_directory,
-                                          smiles = smiles, align_to = align_to)
+        t = boltz_gui.LigandPredictionsTable(self._session, self._predictions_directory,
+                                             smiles = smiles, align_to = align_to)
+        self._save_results_as_csv_file(t)
+
+    def _save_results_as_csv_file(self, table):
+        from os.path import join
+        csv_path = join(self._run_directory, f'{self.name}.bzlig')
+        table.save_csv_file(csv_path)
+        from chimerax.core.filehistory import remember_file
+        remember_file(self._session, csv_path, 'bzlig', models=[], file_saved=True)
 
     def _cite(self):
         session = self._session
@@ -1029,10 +1037,15 @@ def _chain_names(chains):
 
 # ------------------------------------------------------------------------------
 #
-def boltz_results(session, predictions_directory, align_to = None):
-    '''Show a table of Boltz prediction results.'''
+def boltz_ligand_table(session, run_directory, align_to = None):
+    '''Show a table of Boltz ligand binding prediction results.'''
+    from os.path import join, basename, exists
+    predictions_directory = join(run_directory, f'boltz_results_{basename(run_directory)}', 'predictions')
+    if not exists(predictions_directory):
+        from chimerax.core.errors import UserError
+        raise UserError(f'Expected to find Boltz predictions in results directory {predictions_directory} which does not exist.')
     from . import boltz_gui
-    boltz_gui.LigandPredictionResults(session, predictions_directory, align_to = align_to)
+    boltz_gui.LigandPredictionsTable(session, predictions_directory, align_to = align_to)
 
 # ------------------------------------------------------------------------------
 #
@@ -1040,7 +1053,7 @@ def _is_boltz_available(session):
     '''Check if Boltz is locally installed with paths properly setup.'''
     from .settings import _boltz_settings
     settings = _boltz_settings(session)
-    install_location = settings.boltz2_install_location
+    install_location = settings.boltz22_install_location
     from os.path import isdir
     if not isdir(install_location):
         msg = 'You need to install Boltz by pressing the "Install Boltz" button on the ChimeraX Boltz user interface, or using the ChimeraX command "boltz install".  If you already have Boltz installed, you can set the Boltz installation location in the user interface under Options, or use the installLocation option of the ChimeraX boltz command "boltz predict ... installLocation /path/to/boltz"'
@@ -1111,7 +1124,7 @@ def _torch_has_cuda(session):
         lib_path = f'lib/python{v.major}.{v.minor}/site-packages/torch/lib/libtorch_cuda.so'
     from .settings import _boltz_settings
     settings = _boltz_settings(session)
-    boltz_install = settings.boltz2_install_location
+    boltz_install = settings.boltz22_install_location
     from os.path import join, exists
     torch_cuda_lib = join(boltz_install, lib_path)
     return exists(torch_cuda_lib)
@@ -1437,10 +1450,10 @@ def register_boltz_predict_command(logger):
     register('boltz predict', desc, boltz_predict, logger=logger)
 
     desc = CmdDesc(
-        required = [('predictions_directory', OpenFolderNameArg),],
+        required = [('run_directory', OpenFolderNameArg),],
         keyword = [('align_to', AtomicStructureArg),],
-        synopsis = 'Show table of Boltz prediction results',
+        synopsis = 'Show table of Boltz ligand binding prediction results',
         url = 'help:boltz_help.html'
     )
-    register('boltz results', desc, boltz_results, logger=logger)
+    register('boltz ligandtable', desc, boltz_ligand_table, logger=logger)
 

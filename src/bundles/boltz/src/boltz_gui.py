@@ -365,14 +365,18 @@ class BoltzPredictionGUI(ToolInstance):
     #
     def _parse_each_ligand_smiles(self):
         named_ligands = []
-        for name_smiles in self._entry_strings(remove_whitespace = False, separator = '\n'):
+        rows = self._entry_strings(remove_whitespace = False, separator = '\n')
+        for i, name_smiles in enumerate(rows):
             if name_smiles:
                 fields = name_smiles.split(',')
-                if len(fields) != 2:
-                    msg = f'Each ligand SMILES string must have one ligand name and SMILES string per line separated by a comma, "{name_smiles}" is not valid.'
+                if len(fields) == 2:
+                    named_ligands.append(tuple(f.strip() for f in fields))
+                elif len(fields) == 1:
+                    named_ligands.append((f'ligand{i+1}', fields[0].strip()))
+                else:
+                    msg = f'Each ligand SMILES text must have on each line one SMILES string or a ligand name and SMILES string separated by a comma, "{name_smiles}" is not valid.'
                     self.session.logger.error(msg)
                     return ()
-                named_ligands.append(tuple(f.strip() for f in fields))
         return named_ligands
 
     # ---------------------------------------------------------------------------
@@ -531,7 +535,7 @@ class BoltzPredictionGUI(ToolInstance):
     def _need_to_install_boltz(self):
         from .settings import _boltz_settings
         settings = _boltz_settings(self.session)
-        boltz_dir = settings.boltz2_install_location
+        boltz_dir = settings.boltz22_install_location
         from .install import find_executable
         boltz_exe = find_executable(boltz_dir, 'boltz')
         from os.path import isdir, isfile
@@ -574,7 +578,7 @@ class BoltzPredictionGUI(ToolInstance):
             options.append(f'samples {self._samples.value}')
         from .settings import _boltz_settings
         settings = _boltz_settings(self.session)
-        if self._install_directory.value != settings.boltz2_install_location:
+        if self._install_directory.value != settings.boltz22_install_location:
             from chimerax.core.commands import quote_path_if_necessary
             options.append(f'installLocation {quote_path_if_necessary(self._install_directory.value)}')
         self._run_prediction(options = ' '.join(options))
@@ -793,7 +797,7 @@ class BoltzPredictionGUI(ToolInstance):
                         ('Browse', self._choose_install_directory))
         self._install_directory = dir = id.values[0]
         dir.pixel_width = 350
-        dir.value = settings.boltz2_install_location
+        dir.value = settings.boltz22_install_location
 
         EntriesRow(f, ('Save default options', self._save_default_options))
 
@@ -865,7 +869,7 @@ class BoltzPredictionGUI(ToolInstance):
                 settings.use_cuda_bfloat16 = self._use_cuda_bfloat16.value
             settings.use_steering_potentials = self._use_steering_potentials.value                
             settings.use_msa_cache = self._use_msa_cache.value
-        settings.boltz2_install_location = self._install_directory.value
+        settings.boltz22_install_location = self._install_directory.value
         settings.save()
         
     # ---------------------------------------------------------------------------
@@ -873,7 +877,7 @@ class BoltzPredictionGUI(ToolInstance):
     def _install_boltz(self):
 
         from os.path import expanduser
-        boltz_dir = expanduser('~/boltz2')
+        boltz_dir = expanduser('~/boltz22')
         param_dir = expanduser('~/.boltz')
         message = ('Do you want to install Boltz?\n\n'
                    'This will take about 4 Gbytes of disk space and ten minutes or more depending on network speed.'
@@ -1138,8 +1142,8 @@ class MolecularComponent:
 # ------------------------------------------------------------------------------
 #
 from chimerax.core.tools import ToolInstance
-class LigandPredictionResults(ToolInstance):
-    def __init__(self, session, predictions_directory, smiles = None, align_to = None):
+class LigandPredictionsTable(ToolInstance):
+    def __init__(self, session, predictions_directory, rows = None, smiles = None, align_to = None):
         self._predictions_directory = predictions_directory
         self._smiles = smiles
         self._opened = [] if align_to is None else [align_to]
@@ -1147,6 +1151,7 @@ class LigandPredictionResults(ToolInstance):
 
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
+        tw.fill_context_menu = self._fill_context_menu
         self.tool_window = tw
         parent = tw.ui_area
 
@@ -1159,7 +1164,8 @@ class LigandPredictionResults(ToolInstance):
         layout.addWidget(hl.frame)
 
         # Table
-        rows = self._table_rows()
+        if rows is None:
+            rows = self._table_rows()
         hl.labels[0].setText(f'Boltz predicted structures for {len(rows)} ligands')
         self._ligands_table = lt = BoltzLigandsTable(parent, rows)
         layout.addWidget(lt)
@@ -1176,6 +1182,9 @@ class LigandPredictionResults(ToolInstance):
         bpanel = boltz_panel(self.session)
         placement = bpanel.tool_window if bpanel else 'right'
         tw.manage(placement = placement)
+
+    def ligand_count(self):
+        return len(self._ligands_table.data)
 
     def _table_rows(self):
         rows = []
@@ -1195,20 +1204,48 @@ class LigandPredictionResults(ToolInstance):
                 prob = affinity.get('affinity_probability_binary')
             else:
                 affinity_uM = prob = None
-            smiles = self._smiles.get(ligand_name) if self._smiles else None
+            smiles = self._smiles.get(ligand_name) if self._smiles else self._smiles_from_yaml(ligand_name)
             row = LigandsTableRow(ligand_name, lig_iptm, affinity_uM, prob, smiles=smiles)
             rows.append(row)
         return rows
 
+    def _smiles_from_yaml(self, ligand_name):
+        from os.path import join, exists
+        yaml_path = join(self._predictions_directory, '..', '..', f'{ligand_name}.yaml')
+        if not exists(yaml_path):
+            return None
+        smiles = None
+        with open(yaml_path, 'r') as f:
+            for line in f.readlines():
+                fields = line.split()
+                if len(fields) == 2 and fields[0] == 'smiles:':
+                    smiles = fields[1][1:-1] # Strip quote marks
+        return smiles
+    
     def _open_selected(self):
         rows = self._ligands_table.selected		# LigandsTableRow instances
         paths = []
-        from os.path import join
+        missing_paths = []
+        from os.path import join, exists
         for row in rows:
             name = row.ligand_name
-            path = join(self._predictions_directory, name, f'{name}_model_0.cif')
-            paths.append(path)
+            i = 0
+            while True:
+                path = join(self._predictions_directory, name, f'{name}_model_{i}.cif')
+                if exists(path):
+                    paths.append(path)
+                    i += 1
+                else:
+                    if i == 0:
+                        missing_paths.append(path)
+                    break
 
+        if missing_paths:
+            self.session.logger.error(f'Could not find Boltz predictions {", ".join(missing_paths)}')
+
+        if len(paths) == 0:
+            return []
+        
         # Open models
         from chimerax.core.commands import run, quote_path_if_necessary, concise_model_spec
         qpaths = [quote_path_if_necessary(path) for path in paths]
@@ -1226,6 +1263,52 @@ class LigandPredictionResults(ToolInstance):
             run(self.session, cmd)
 
         return models
+
+    def save_csv_file(self, path):
+        with open(path, 'w') as f:
+            self._ligands_table.write_values(f, separator = ',')
+
+    def _fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        act = QAction("Save CSV or TSV File...", parent=menu)
+        act.triggered.connect(lambda *args, tab=self._ligands_table: tab.write_values())
+        menu.addAction(act)
+
+# -----------------------------------------------------------------------------
+#
+def open_boltz_ligands_file(session, path, align_to = None):
+    with open(path, 'r') as f:
+        line = f.readline()
+        headings = line.strip().split(',')
+        heading_attr = {
+            'Ligand': 'ligand_name',
+            'ipTM': ('iptm_score', float),
+            'Affinity (uM)': ('binding_affinity', float),
+            'Binding probability': ('binding_probability', float),
+            'SMILES': 'smiles',
+            }
+        rows = []
+        while True:
+            line = f.readline()
+            if not line:
+                break
+            fields = line.strip().split(',')
+            if len(fields) != len(headings):
+                from chimerax.core.errors import UserError
+                raise UserError(f'Boltz ligands file has line with {len(fields)} values but there are {len(headings)} headings: {line}')
+            attr_values = {}
+            for value, h in zip(fields, headings):
+                attr = heading_attr.get(h)
+                if attr:
+                    attr_name, attr_type = (attr, None) if isinstance(attr, str) else attr
+                    attr_values[attr_name] = value if attr_type is None else attr_type(value)
+            row = LigandsTableRow(**attr_values)
+            rows.append(row)
+
+    from os.path import join, dirname, basename
+    predictions_directory = join(dirname(path), f'boltz_results_{basename(dirname(path))}', 'predictions')
+    lpt = LigandPredictionsTable(session, predictions_directory, rows = rows, align_to = align_to)
+    return lpt
 
 # -----------------------------------------------------------------------------
 #
