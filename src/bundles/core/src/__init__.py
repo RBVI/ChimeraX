@@ -57,7 +57,7 @@ def get_minimal_test_session():
 
     _set_app_dirs(version)
     session = Session(minimal=False)
-    session.ui = nogui.UI(sess)
+    session.ui = nogui.UI(session)
     session.logger.add_log(nogui.NoGuiLog())
     session.ui.initialize_color_output(True)  # Colored text
 
