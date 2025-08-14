@@ -567,12 +567,6 @@ class Session:
             trigger_set=self.triggers,
         )
         self.main_view = view
-        try:
-            from .core_settings import settings
-
-            self.main_view.background_color = settings.background_color.rgba
-        except ImportError:
-            pass
 
         from .selection import Selection
 
