@@ -650,23 +650,25 @@ def init(argv, event_loop=True):
 
     from chimerax.core import session
 
-    try:
-        sess = session.Session(
-            app_name,
-            debug=opts.debug,
-            silent=opts.silent,
-            minimal=opts.safe_mode,
-            offscreen_rendering=opts.offscreen,
-        )
-    except ImportError as err:
-        if opts.offscreen and "OpenGL" in err.args[0]:
-            if sys.platform.startswith("linux"):
-                why = "failed"
-            else:
-                why = "not supported on this platform"
-            print("Offscreen rendering is", why, file=sys.stderr)
-            return os.EX_UNAVAILABLE
-        raise
+    sess = session.Session(
+        app_name,
+        debug=opts.debug,
+        silent=opts.silent,
+        minimal=opts.safe_mode,
+    )
+
+    if opts.offscreen:
+        try:
+            sess.ui.initialize_offscreen_rendering()
+        except ImportError as err:
+            if opts.offscreen and "OpenGL" in err.args[0]:
+                if sys.platform.startswith("linux"):
+                    why = "failed"
+                else:
+                    why = "not supported on this platform"
+                print("Offscreen rendering is", why, file=sys.stderr)
+                return os.EX_UNAVAILABLE
+            raise
 
     from chimerax.core import core_settings
 

@@ -573,8 +573,6 @@ class Session:
             self.main_view.background_color = settings.background_color.rgba
         except ImportError:
             pass
-        if offscreen_rendering:
-            self.ui.initialize_offscreen_rendering()
 
         from .selection import Selection
 
