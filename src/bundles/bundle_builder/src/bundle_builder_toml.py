@@ -1073,6 +1073,7 @@ class _CompiledCode:
             extra_link_args = []
         else:
             libraries = self.libraries
+            cpp_flags = []
             if not any([flag.startswith("-std=") for flag in self.compile_arguments]):
                 cpp_flags.append("-std=c++11")
             extra_link_args = []
