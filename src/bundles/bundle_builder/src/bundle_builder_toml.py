@@ -88,6 +88,8 @@ from setuptools.build_meta import (
 # Always import this because it changes the behavior of setuptools
 from numpy import get_include as get_numpy_include_dirs
 
+cpu_count = os.cpu_count()
+
 try:
     from pybind11.setup_helpers import Pybind11Extension
 except:
@@ -275,7 +277,6 @@ class Bundle:
                 self.dependencies.append(req_)
             except ValueError:
                 raise ValueError("Bad version specifier (see PEP 440): %r" % req)
-
 
         self.requires_python = project_data.get("requires-python", ">=3.7")
 
@@ -535,7 +536,10 @@ class Bundle:
                 # bundles
                 req.specifier.prereleases = True
             if installed_version not in req.specifier:
-                raise ValueError("Incompatible version for build dependency %s (needed: %s, installed: %s)" % (req.name, req.specifier, str(installed_version)))
+                raise ValueError(
+                    "Incompatible version for build dependency %s (needed: %s, installed: %s)"
+                    % (req.name, req.specifier, str(installed_version))
+                )
 
     @staticmethod
     def format_module_name(name: str, override: Optional[str] = None):
@@ -867,7 +871,7 @@ class Bundle:
     def build_wheel(self, debug=False, release=False):
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         self._check_build_requires()
-        setup_args = ["--no-user-cfg", "build"]
+        setup_args = ["--no-user-cfg", "build", f"-j{cpu_count}"]
         setup_args.extend(["bdist_wheel"])
         dist, built = self._run_setup(setup_args)
         if not self.version:
@@ -905,7 +909,7 @@ class Bundle:
         self._remove_libraries()
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         self._check_build_requires()
-        setup_args = ["build_ext", "--inplace", "editable_wheel"]
+        setup_args = ["build_ext", f"-j{cpu_count}", "--inplace", "editable_wheel"]
         if config_settings:
             if "editable_mode" in config_settings:
                 setup_args.extend(["--mode", config_settings["editable_mode"]])
@@ -1064,10 +1068,14 @@ class _CompiledCode:
                 else:
                     libraries.append("lib" + lib)
             cpp_flags = []
+            if not any([flag.startswith("/std:") for flag in self.compile_arguments]):
+                cpp_flags.append("/std:c++11")
             extra_link_args = []
         else:
             libraries = self.libraries
-            cpp_flags = ["-std=c++11"]
+            cpp_flags = []
+            if not any([flag.startswith("-std=") for flag in self.compile_arguments]):
+                cpp_flags.append("-std=c++11")
             extra_link_args = []
         for req in self.requires:
             if not os.path.exists(req):
@@ -1160,7 +1168,7 @@ class _CModule(_CompiledCode):
         elif sys.platform == "darwin":
             extra_link_args.append("-Wl,-rpath,@loader_path/lib")
         if self.source_files:
-            if 'pybind11' in self.include_modules:
+            if "pybind11" in self.include_modules:
                 ext_type = Pybind11Extension
             else:
                 ext_type = Extension

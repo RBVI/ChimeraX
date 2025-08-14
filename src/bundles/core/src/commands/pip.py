@@ -68,9 +68,9 @@ def pip(
             else:
                 pip_cmd.extend(["uninstall", "-y", "%s" % package])
     elif action == 'list':
-        pip_cmd.appendf("list")
+        pip_cmd.append("list")
     elif action == 'check':
-        pip_cmd.appendf("check")
+        pip_cmd.append("check")
     elif action == 'show':
         if not package:
             raise UserError("Can't possibly show an unspecified package.")

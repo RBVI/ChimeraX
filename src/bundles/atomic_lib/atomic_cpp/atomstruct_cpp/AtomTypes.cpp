@@ -867,7 +867,7 @@ t0 = t1;
                                     continue;
                                 if (bondee->idatm_type() == "Cac")
                                     continue;
-                                if (bondee->idatm_type() == "C2") {
+                                if (bondee->idatm_type() == "C2" || bondee->idatm_type() == "C") {
                                     bool grand_sp2 = false;
                                     for (auto gnb: bondee->neighbors()) {
                                         if (gnb->bonds().size() != 1)

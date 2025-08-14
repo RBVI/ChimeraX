@@ -650,23 +650,31 @@ def init(argv, event_loop=True):
 
     from chimerax.core import session
 
-    try:
-        sess = session.Session(
-            app_name,
-            debug=opts.debug,
-            silent=opts.silent,
-            minimal=opts.safe_mode,
-            offscreen_rendering=opts.offscreen,
-        )
-    except ImportError as err:
-        if opts.offscreen and "OpenGL" in err.args[0]:
-            if sys.platform.startswith("linux"):
-                why = "failed"
-            else:
-                why = "not supported on this platform"
-            print("Offscreen rendering is", why, file=sys.stderr)
-            return os.EX_UNAVAILABLE
-        raise
+    sess = session.Session(
+        app_name,
+        debug=opts.debug,
+        silent=opts.silent,
+        minimal=opts.safe_mode,
+    )
+
+    if not opts.gui:
+        from . import nogui
+        sess.ui = nogui.UI(sess)
+        sess.logger.add_log(nogui.NoGuiLog())
+        sess.ui.initialize_color_output(opts.color)  # Colored text
+
+    if opts.offscreen:
+        try:
+            sess.ui.initialize_offscreen_rendering()
+        except ImportError as err:
+            if opts.offscreen and "OpenGL" in err.args[0]:
+                if sys.platform.startswith("linux"):
+                    why = "failed"
+                else:
+                    why = "not supported on this platform"
+                print("Offscreen rendering is", why, file=sys.stderr)
+                return os.EX_UNAVAILABLE
+            raise
 
     from chimerax.core import core_settings
 
@@ -697,18 +705,11 @@ def init(argv, event_loop=True):
     # sets up logging
     if opts.gui:
         from chimerax.ui import gui
-
         sess.ui = gui.UI(sess, color_scheme=opts.color_scheme)
-    else:
-        from chimerax.core.nogui import NoGuiLog
-
-        sess.logger.add_log(NoGuiLog())
-
+ 
     # Set ui options
     sess.ui.stereo = opts.stereo
     sess.ui.autostart_tools = opts.load_tools
-    if not opts.gui:
-        sess.ui.initialize_color_output(opts.color)  # Colored text
 
     # Set current working directory to Desktop when launched from icon.
     if (sys.platform.startswith("darwin") and os.getcwd() == "/") or (
