@@ -660,6 +660,8 @@ def init(argv, event_loop=True):
     if not opts.gui:
         from . import nogui
         sess.ui = nogui.UI(sess)
+        sess.logger.add_log(nogui.NoGuiLog())
+        sess.ui.initialize_color_output(opts.color)  # Colored text
 
     if opts.offscreen:
         try:
@@ -703,18 +705,11 @@ def init(argv, event_loop=True):
     # sets up logging
     if opts.gui:
         from chimerax.ui import gui
-
         sess.ui = gui.UI(sess, color_scheme=opts.color_scheme)
-    else:
-        from chimerax.core.nogui import NoGuiLog
-
-        sess.logger.add_log(NoGuiLog())
-
+ 
     # Set ui options
     sess.ui.stereo = opts.stereo
     sess.ui.autostart_tools = opts.load_tools
-    if not opts.gui:
-        sess.ui.initialize_color_output(opts.color)  # Colored text
 
     # Set current working directory to Desktop when launched from icon.
     if (sys.platform.startswith("darwin") and os.getcwd() == "/") or (
