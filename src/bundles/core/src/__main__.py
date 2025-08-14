@@ -657,6 +657,10 @@ def init(argv, event_loop=True):
         minimal=opts.safe_mode,
     )
 
+    if not opts.gui:
+        from . import nogui
+        sess.ui = nogui.UI(sess)
+
     if opts.offscreen:
         try:
             sess.ui.initialize_offscreen_rendering()

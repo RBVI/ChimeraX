@@ -522,9 +522,7 @@ class Session:
         from . import logger
 
         self.logger = logger.Logger(self)
-        from . import nogui
 
-        self.ui = nogui.UI(self)
         from . import triggerset
 
         self.triggers = triggerset.TriggerSet()
