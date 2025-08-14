@@ -248,8 +248,8 @@ def _msa_run(session, name, molecular_components, msa_cache_dir, wait):
         msa_cache_files = _find_msa_cache_files(protein_seqs, msa_cache_dir)
         if not msa_cache_files:
             msa_name = f'{name}_msa' if name else 'msa'
-            br = BoltzRun(session, proteins, name = msa_name,
-                          msa_only = True, msa_cache_dir = msa_cache_dir,
+            prediction = BoltzPrediction(msa_name, [proteins])
+            br = BoltzRun(session, prediction, msa_only = True, msa_cache_dir = msa_cache_dir,
                           wait = wait)
             return br
     return None
