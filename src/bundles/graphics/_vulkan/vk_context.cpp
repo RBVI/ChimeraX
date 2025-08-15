@@ -1,6 +1,7 @@
 #include "vk_context.h"
 
 #include <cstdint>
+#include <cstring>
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -126,6 +127,8 @@ std::vector<const char *> VulkanContext::getRequiredExtensions(bool debug) {
   extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #else
   extensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+  extensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+  extensions.push_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 #endif
 
   if (debug) {

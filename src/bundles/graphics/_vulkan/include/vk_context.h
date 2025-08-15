@@ -1,8 +1,16 @@
 #ifdef __APPLE__
 #include <MoltenVK/mvk_vulkan.h>
+#elif _WIN32
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <vulkan/vulkan.h>
 #else
+#define VK_USE_PLATFORM_WAYLAND_KHR
+#define VK_USE_PLATFORM_XLIB_KHR
+#define VK_USE_PLATFORM_XCB_KHR
+#include <wayland-client.h>
 #include <vulkan/vulkan.h>
 #endif
+
 
 #include <iostream>
 #include <vector>

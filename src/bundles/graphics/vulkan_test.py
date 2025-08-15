@@ -3,7 +3,7 @@
 import sys
 import time
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
-from PySide6.QtGui import QWindow, QSurface, QSurfaceFormat, QOpenGLContext
+from PySide6.QtGui import QWindow, QSurface, QSurfaceFormat, QOpenGLContext, QNativeInterface
 from PySide6.QtCore import Qt, QTimer
 
 import numpy as np
@@ -131,7 +131,8 @@ class GraphicsWindow(QWindow):
         del self._context
         self.renderer = self._vulkan_renderer
         self.setSurfaceType(QSurface.SurfaceType.VulkanSurface)
-        self._vulkan_renderer.recreateSurface(self.winId())
+        _vulkan.set_window_id(self.winId())
+        self._vulkan_renderer.recreateSurface()
         self.render_timer.start(16)
 
     def switch_to_opengl(self):
@@ -154,9 +155,19 @@ class GraphicsWindow(QWindow):
 
         # Get the window handle
         window_id = int(self.winId())
+        app = QApplication.instance()
+        platform = app.platformName()
+        if platform == "wayland":
+            pni = app.nativeInterface()
+            display = pni.display()
+            _vulkan.set_window_system_type(_vulkan.SurfaceBackend.Wayland)
+        elif platform == "xcb":
+            pni = app.nativeInterface()
+            display_id = pni.connection()
+            _vulkan.set_window_system_type(_vulkan.SurfaceBackend.Xcb)
 
-        # Set it globally (for your current architecture)
         _vulkan.set_window_id(window_id)
+        _vulkan.set_display_id(display_id)
 
         # Create and initialize renderer
         self._vulkan_renderer = _vulkan.VulkanRenderer(self._vulkan_context)
@@ -206,6 +217,7 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
+    print(app.platformName())
 
     window = MainWindow()
     window.show()

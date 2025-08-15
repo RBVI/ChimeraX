@@ -10,9 +10,11 @@
 #define VK_USE_PLATFORM_XLIB_KHR
 #define VK_USE_PLATFORM_XCB_KHR
 #include <wayland-client.h>
+#include <xcb/xcb.h>
 #endif
 
 #include <pybind11/pybind11.h>
+#include <pybind11/native_enum.h>
 #include <vulkan/vulkan.h>
 
 #include "vk_context.h"
@@ -33,9 +35,7 @@
 
 namespace py = pybind11;
 
-uintptr_t window_id{0};
 
-uintptr_t get_window_id() { return window_id; }
 
 struct SwapChainSupportDetails {
   VkSurfaceCapabilitiesKHR capabilities;
@@ -43,13 +43,22 @@ struct SwapChainSupportDetails {
   std::vector<VkPresentModeKHR> presentModes;
 };
 
+enum class SurfaceBackend {
+	Wayland,
+	Xcb,
+	Xlib,
+	Win32,
+	Metal,
+	Android
+};
 
-void set_window_id(uintptr_t w_pointer) {
-  // This function would set the window pointer for the Vulkan application.
-  // In a real application, you would use this pointer to create a Vulkan
-  // surface.
-  window_id = w_pointer;
-}
+struct SurfaceHandles {
+	SurfaceBackend backend;
+	uintptr_t window;
+	std::optional<uintptr_t> display;
+};
+
+SurfaceHandles handles;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -109,7 +118,7 @@ public:
   void initVulkan() {
     auto instance = m_context->getInstance();
     std::cout << "surface created" << std::endl;
-    createSurface(instance, surface, window_id);
+    createSurface(instance, surface, handles);
     pickPhysicalDevice();
     std::cout << "physical device picked" << std::endl;
     createLogicalDevice();
@@ -135,16 +144,16 @@ public:
     std::cout << "initialization complete" << std::endl;
   }
 
-  void recreateSurface(uintptr_t window_id) {
+  void recreateSurface() {
     auto instance = m_context->getInstance();
-    createSurface(instance, surface, window_id);
+    createSurface(instance, surface, handles);
     recreateSwapChain();
   }
 
   void createSurface(VkInstance &instance, VkSurfaceKHR &surface,
-                     uintptr_t window_id) {
+                     SurfaceHandles handles) {
 #ifdef __APPLE__
-    NSView *view = (NSView *)window_id;
+    NSView *view = (NSView *)handles.window;
     // Objective-C code in a .cpp file!
     if (!view.layer || ![view.layer isKindOfClass:[CAMetalLayer class]]) {
       CAMetalLayer *metalLayer = [CAMetalLayer layer];
@@ -158,26 +167,42 @@ public:
     surfaceInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
     surfaceInfo.pNext = nullptr;
     surfaceInfo.flags = 0;
-    surfaceInfo.pView = (void *)window_id; // NSView*
+    surfaceInfo.pView = (void *)handles.window; // NSView*
     auto result =
         vkCreateMacOSSurfaceMVK(instance, &surfaceInfo, nullptr, &surface);
+    if (result != VK_SUCCESS)
+      throw std::runtime_error("failed to create window surface!");
 #elif _WIN32
     VkWin32SurfaceCreateInfoKHR surfaceInfo{};
     surfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    surfaceInfo.hwnd = (HWND)window_id;
+    surfaceInfo.hwnd = (HWND)handles.window;
     surfaceInfo.hinstance = GetModuleHandle(nullptr);
     auto result =
         kCreateWin32SurfaceKHR(instance, &surfaceInfo, nullptr, &surface);
-#else // linux
-    VkWaylandSurfaceCreateInfoKHR surfaceInfo{};
-    surfaceInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-    surfaceInfo.display = wl_display_connect("wayland-0");
-    surfaceInfo.surface = (wl_surface *)window_id;
-    auto result =
-        vkCreateWaylandSurfaceKHR(instance, &surfaceInfo, nullptr, &surface);
-#endif
     if (result != VK_SUCCESS)
       throw std::runtime_error("failed to create window surface!");
+#else // linux
+    if (handles.backend == SurfaceBackend::Wayland) {
+    	VkWaylandSurfaceCreateInfoKHR surfaceInfo{};
+    	surfaceInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+    	surfaceInfo.display = (wl_display *)handles.display.value();
+    	surfaceInfo.surface = (wl_surface *)handles.window;
+    	auto result =
+        	vkCreateWaylandSurfaceKHR(instance, &surfaceInfo, nullptr, &surface);
+    	if (result != VK_SUCCESS)
+		throw std::runtime_error("failed to create window surface!");
+    }
+    if (handles.backend == SurfaceBackend::Xcb) {
+        VkXcbSurfaceCreateInfoKHR surfaceInfo{};
+	surfaceInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+	surfaceInfo.connection = (xcb_connection_t *)handles.display.value();
+	surfaceInfo.window = handles.window;
+    	auto result =
+                vkCreateXcbSurfaceKHR(instance, &surfaceInfo, nullptr, &surface);
+    	if (result != VK_SUCCESS)
+		throw std::runtime_error("failed to create window surface!");
+    }
+#endif
   }
 
   uint32_t findMemoryType(VkPhysicalDevice &device, uint32_t typeFilter,
@@ -1073,18 +1098,51 @@ private:
   }
 };
 
+void set_window_id(uintptr_t window_id) {
+	handles.window = window_id;
+}
+
+void set_display_id(uintptr_t display_id) {
+	handles.display = display_id;
+}
+
+
+void set_window_system_type(SurfaceBackend backend) {
+	handles.backend = backend;
+}
+
+
 PYBIND11_MODULE(_vulkan, m) {
   m.doc() = "A Vulkan renderer for UCSF ChimeraX";
 
-  m.def("get_window_id", &get_window_id, "Get the window pointer for Vulkan");
 
   m.def("set_window_id", &set_window_id, py::arg("window_id"),
         "Set the window pointer for Vulkan");
+
+  m.def("set_display_id", &set_display_id, py::arg("display_id"),
+        "Set the windowing system pointer for Vulkan");
+
+  m.def("set_window_system_type", &set_window_system_type, py::arg("backend"),
+        "Set the windowing system type for Vulkan");
 
   py::class_<VulkanContext>(m, "VulkanContext")
       .def(py::init<>())
       .def("listGPUs", &VulkanContext::listGPUs, "List the available GPUs");
 
+  py::class_<SurfaceHandles>(m, "SurfaceHandles")
+      .def(py::init<>())
+      .def_readwrite("backend", &SurfaceHandles::backend)
+      .def_readwrite("window", &SurfaceHandles::window)
+      .def_readwrite("display", &SurfaceHandles::display);
+
+  py::native_enum<SurfaceBackend>(m, "SurfaceBackend", "enum.Enum")
+      .value("Wayland", SurfaceBackend::Wayland)
+      .value("Xcb", SurfaceBackend::Xcb)
+      .value("Xlib", SurfaceBackend::Xlib)
+      .value("Win32", SurfaceBackend::Win32)
+      .value("Metal", SurfaceBackend::Metal)
+      .export_values()
+      .finalize();
 
   py::class_<VulkanRenderer>(m, "VulkanRenderer")
       .def(py::init<VulkanContext&>(), py::keep_alive<1,2>())
