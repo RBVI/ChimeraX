@@ -697,6 +697,11 @@ def init(argv, event_loop=True):
             # ChimeraX needs to use XWayland for now
             os.environ["QT_QPA_PLATFORM"] = "xcb"
             os.environ["PYOPENGL_PLATFORM"] = "x11"
+        # When Qt 6.10 comes out, try Wayland on WSLg again
+        # May need to tell Chromium to use software rendering
+        # with QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu", since
+        # all of QtWebEngine's hardware renderers produce a stream
+        # of errors on WSLg 
         from chimerax.ui import initialize_qt
 
         initialize_qt()
