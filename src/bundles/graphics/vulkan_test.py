@@ -3,7 +3,13 @@
 import sys
 import time
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
-from PySide6.QtGui import QWindow, QSurface, QSurfaceFormat, QOpenGLContext, QNativeInterface
+from PySide6.QtGui import (
+    QWindow,
+    QSurface,
+    QSurfaceFormat,
+    QOpenGLContext,
+    QNativeInterface,
+)
 from PySide6.QtCore import Qt, QTimer
 
 import numpy as np
@@ -33,6 +39,7 @@ void main() {
 }
 """
 
+
 class OpenGLRenderer:
     def __init__(self, surface, context):
         self.surface = surface
@@ -55,12 +62,27 @@ class OpenGLRenderer:
         GL.glLinkProgram(self.program)
 
         # Triangle data (position + color)
-        vertices = np.array([
-            # x,    y,     r,   g,   b
-            -0.5, -0.5,   1.0, 0.0, 0.0,  # Bottom left - red
-             0.5, -0.5,   0.0, 1.0, 0.0,  # Bottom right - green
-             0.0,  0.5,   0.0, 0.0, 1.0,  # Top - blue
-        ], dtype=np.float32)
+        vertices = np.array(
+            [
+                # x,    y,     r,   g,   b
+                -0.5,
+                -0.5,
+                1.0,
+                0.0,
+                0.0,  # Bottom left - red
+                0.5,
+                -0.5,
+                0.0,
+                1.0,
+                0.0,  # Bottom right - green
+                0.0,
+                0.5,
+                0.0,
+                0.0,
+                1.0,  # Top - blue
+            ],
+            dtype=np.float32,
+        )
 
         # Create and bind VAO
         self.vao = GL.glGenVertexArrays(1)
@@ -69,14 +91,19 @@ class OpenGLRenderer:
         # Create and bind VBO
         self.vbo = GL.glGenBuffers(1)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vbo)
-        GL.glBufferData(GL.GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL.GL_STATIC_DRAW)
+        GL.glBufferData(
+            GL.GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL.GL_STATIC_DRAW
+        )
 
         ## Set up vertex attributes
-        GL.glVertexAttribPointer(0, 2, GL.GL_FLOAT, GL.GL_FALSE, 20, GL.ctypes.c_void_p(0))
+        GL.glVertexAttribPointer(
+            0, 2, GL.GL_FLOAT, GL.GL_FALSE, 20, GL.ctypes.c_void_p(0)
+        )
         GL.glEnableVertexAttribArray(0)
-        GL.glVertexAttribPointer(1, 3, GL.GL_FLOAT, GL.GL_FALSE, 20, GL.ctypes.c_void_p(8))
+        GL.glVertexAttribPointer(
+            1, 3, GL.GL_FLOAT, GL.GL_FALSE, 20, GL.ctypes.c_void_p(8)
+        )
         GL.glEnableVertexAttribArray(1)
-
 
     def drawFrame(self):
         """Placeholder for OpenGL rendering logic"""
@@ -103,7 +130,7 @@ class GraphicsWindow(QWindow):
         super().__init__()
 
         self._opengl_renderer = None
-        self._vulkan_context = _vulkan.VulkanContext();
+        self._vulkan_context = _vulkan.VulkanContext()
         self._vulkan_renderer = None
 
         self.renderer = None
@@ -115,13 +142,17 @@ class GraphicsWindow(QWindow):
     def _initializeOpenGLSurface(self):
         self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
         self._opengl_surface_format = QSurfaceFormat()
-        self._opengl_surface_format.setVersion(3,3)
-        self._opengl_surface_format.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
-        self._opengl_surface_format.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
+        self._opengl_surface_format.setVersion(3, 3)
+        self._opengl_surface_format.setProfile(
+            QSurfaceFormat.OpenGLContextProfile.CoreProfile
+        )
+        self._opengl_surface_format.setRenderableType(
+            QSurfaceFormat.RenderableType.OpenGL
+        )
+        self.setFormat(self._opengl_surface_format)
         self._context = QOpenGLContext()
         self._context.setFormat(self._opengl_surface_format)
         self._context.create()
-
 
     def switch_to_vulkan(self):
         self.render_timer.stop()
@@ -129,16 +160,35 @@ class GraphicsWindow(QWindow):
         self._opengl_renderer.cleanup()
         del self._opengl_renderer
         del self._context
+        self._opengl_renderer = None
+        self._context = None
         self.renderer = self._vulkan_renderer
         self.setSurfaceType(QSurface.SurfaceType.VulkanSurface)
+        if sys.platform == "win32":
+            self.destroy()  # drops the HWND
+            self.create()  # allocates a new HWND with GL-capable PF
+            self.show()
         _vulkan.set_window_id(self.winId())
         self._vulkan_renderer.recreateSurface()
         self.render_timer.start(16)
 
+    def resizeEvent(self, e):
+        if self._opengl_renderer is not None:
+            self._context.makeCurrent(self)
+            GL.glViewport(0, 0, self.width(), self.height())
+
     def switch_to_opengl(self):
         self.render_timer.stop()
         time.sleep(0.1)  # give time for the last frame to be drawn
+
+        if sys.platform == "win32":
+            self.destroy()  # drops the HWND
+            self.create()  # allocates a new HWND with GL-capable PF
+            self.show()
+
         self._initializeOpenGLSurface()
+        self._context.makeCurrent(self)
+        self._context.swapBuffers(self)  # should flash magenta once
         self._opengl_renderer = OpenGLRenderer(self, self._context)
         self.renderer = self._opengl_renderer
         self.render_timer.start(16)
@@ -191,12 +241,15 @@ class GraphicsWindow(QWindow):
         elif event.key() == Qt.Key.Key_G:
             self.switch_to_opengl()
 
+
 class GraphicsWidget(QWidget):
     def __init__(self):
         super().__init__()
 
         self.graphics_window = GraphicsWindow()
-        self.graphics_container = QWidget.createWindowContainer(self.graphics_window, self)
+        self.graphics_container = QWidget.createWindowContainer(
+            self.graphics_window, self
+        )
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.graphics_container)
@@ -219,11 +272,7 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    print(app.platformName())
-    import Qt.QtCore
-    from Qt.QtGui import QScreen
-    for s in app.screens():
-        print(s.nativeInterface())
+
     window = MainWindow()
     window.show()
 
