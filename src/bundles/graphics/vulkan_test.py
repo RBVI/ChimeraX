@@ -157,6 +157,7 @@ class GraphicsWindow(QWindow):
         window_id = int(self.winId())
         app = QApplication.instance()
         platform = app.platformName()
+        # This will not work until Qt 6.10, see PySide bug #2787
         if platform == "wayland":
             pni = app.nativeInterface()
             display = pni.display()
@@ -218,7 +219,10 @@ class MainWindow(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     print(app.platformName())
-
+    import Qt.QtCore
+    from Qt.QtGui import QScreen
+    for s in app.screens():
+        print(s.nativeInterface())
     window = MainWindow()
     window.show()
 
