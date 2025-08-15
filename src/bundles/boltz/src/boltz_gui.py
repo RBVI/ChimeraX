@@ -1145,7 +1145,7 @@ from chimerax.core.tools import ToolInstance
 class LigandPredictionsTable(ToolInstance):
     def __init__(self, session, predictions_directory, rows = None, smiles = None, align_to = None):
         self._predictions_directory = predictions_directory
-        self._smiles = smiles
+        self._smiles = self._read_ligand_smiles() if smiles is None else smiles
         self._opened = [] if align_to is None else [align_to]
         ToolInstance.__init__(self, session, 'Boltz Ligand Predictions')
 
@@ -1204,22 +1204,22 @@ class LigandPredictionsTable(ToolInstance):
                 prob = affinity.get('affinity_probability_binary')
             else:
                 affinity_uM = prob = None
-            smiles = self._smiles.get(ligand_name) if self._smiles else self._smiles_from_yaml(ligand_name)
+            smiles = self._smiles.get(ligand_name) if self._smiles else None
             row = LigandsTableRow(ligand_name, lig_iptm, affinity_uM, prob, smiles=smiles)
             rows.append(row)
         return rows
 
-    def _smiles_from_yaml(self, ligand_name):
+    def _read_ligand_smiles(self):
         from os.path import join, exists
-        yaml_path = join(self._predictions_directory, '..', '..', f'{ligand_name}.yaml')
-        if not exists(yaml_path):
+        ligands_path = join(self._predictions_directory, '..', '..', 'ligands')
+        if not exists(ligands_path):
             return None
-        smiles = None
-        with open(yaml_path, 'r') as f:
+        smiles = {}
+        with open(ligands_path, 'r') as f:
             for line in f.readlines():
-                fields = line.split()
+                fields = line.split(',')
                 if len(fields) == 2 and fields[0] == 'smiles:':
-                    smiles = fields[1][1:-1] # Strip quote marks
+                    smiles[fields[0].strip()] = fields[1].strip()
         return smiles
     
     def _open_selected(self):
@@ -1301,7 +1301,9 @@ def open_boltz_ligands_file(session, path, align_to = None):
                 attr = heading_attr.get(h)
                 if attr:
                     attr_name, attr_type = (attr, None) if isinstance(attr, str) else attr
-                    attr_values[attr_name] = value if attr_type is None else attr_type(value)
+                    if attr_type:
+                        value = attr_type(value) if value else None
+                    attr_values[attr_name] = value
             row = LigandsTableRow(**attr_values)
             rows.append(row)
 

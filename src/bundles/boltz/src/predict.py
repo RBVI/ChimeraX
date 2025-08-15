@@ -66,17 +66,9 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
         p = BoltzPrediction(name, molecular_components, predict_affinity = predict_affinity, align_to = align_to)
         predictions = [p]
     else:
-        predictions = []
-        for ligand in for_each_ligand:
-            components = molecular_components + [ligand]
-            if predict_affinity == 'each':
-                _split_affinity_ligand(ligand, components)
-                affinity = ligand
-            else:
-                affinity = self._predict_affinity
-            p = BoltzPrediction(ligand.name, components, predict_affinity = affinity, align_to = align_to)
-            p.smiles_string = ligand.smiles_string
-            predictions.append(p)
+        predictions = _each_ligand_predictions(for_each_ligand, molecular_components, predict_affinity, align_to)
+        if predict_affinity:
+            _warn_about_multicopy_ligands(predictions, session.logger)
             
     br = BoltzRun(session, predictions, name = name, run_directory = results_directory,
                   samples = samples, recycles = recycles, seed = seed, use_steering_potentials = steering,
@@ -85,18 +77,10 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
                   open = open, wait = wait)
 
     msa_run = _msa_run(session, name, molecular_components, msa_cache_dir, wait) if for_each_ligand else None
-    if msa_run:
-        # Run MSA server calculation before multiple ligand structure predictions.
-        if wait:
-            msa_run.start()
-            br.start()
-        else:
-            def predict_when_msa_finishes():
-                if msa_run.success:
-                    br.start()
-            msa_run.start(finished_callback = predict_when_msa_finishes)
-    else:
+    if msa_run is None:
         br.start()
+    else:
+        _start_multiple_runs([msa_run, br], wait=wait)
 
     return br if msa_run is None else [msa_run, br]
 
@@ -202,6 +186,40 @@ def _for_each_ligand(name_and_smiles, used_chain_ids, predict_affinity, log):
         
 # ------------------------------------------------------------------------------
 #
+def _each_ligand_predictions(for_each_ligand, molecular_components, predict_affinity, align_to):
+    predictions = []
+    for ligand in for_each_ligand:
+        components = molecular_components + [ligand]
+        if predict_affinity == 'each':
+            _split_affinity_ligand(ligand, components)
+            affinity = ligand
+        else:
+            affinity = self._predict_affinity
+        if affinity and _ligand_copies(affinity, components) >= 2:
+            affinity = None	# Boltz 2.2 can't predict affinity for multicopy ligands
+        p = BoltzPrediction(ligand.name, components, predict_affinity = affinity, align_to = align_to)
+        p.ligand_smiles_string = ligand.smiles_string
+        predictions.append(p)
+    return predictions
+
+# ------------------------------------------------------------------------------
+#
+def _ligand_copies(ligand, components):
+    count = 0
+    for c in components:
+        if c.type == 'ligand' and c.smiles_string == ligand.smiles_string:
+            count += 1
+    return count
+
+# ------------------------------------------------------------------------------
+#
+def _warn_about_multicopy_ligands(predictions, log):
+    no_affinity = [p.name for p in predictions if p._predict_affinity is None]
+    if no_affinity:
+        log.warning(f'Boltz cannot predict affinity for ligands present in more than one copy.  Not predicting affinity for {", ".join(no_affinity)}')
+
+# ------------------------------------------------------------------------------
+#
 def _affinity_component(affinity, ligand_components):
     if affinity == 'each':
         return 'each'		# Predicting multiple structures with different ligands
@@ -248,11 +266,27 @@ def _msa_run(session, name, molecular_components, msa_cache_dir, wait):
         msa_cache_files = _find_msa_cache_files(protein_seqs, msa_cache_dir)
         if not msa_cache_files:
             msa_name = f'{name}_msa' if name else 'msa'
-            prediction = BoltzPrediction(msa_name, [proteins])
+            prediction = BoltzPrediction(msa_name, proteins)
             br = BoltzRun(session, prediction, msa_only = True, msa_cache_dir = msa_cache_dir,
                           wait = wait)
             return br
     return None
+
+# ------------------------------------------------------------------------------
+#
+def _start_multiple_runs(boltz_runs, wait = False):
+    # Run MSA server calculation before multiple ligand structure predictions.
+    if wait:
+        for br in boltz_runs:
+            br.start(wait = True)
+            if not br.success:
+                break
+    else:
+        def run_next(boltz_runs, previous_run = None):
+            if boltz_runs and (previous_run is None or previous_run.success):
+                boltz_runs[0].start(finished_callback =
+                                    lambda: run_next(boltz_runs[1:], previous_run = boltz_runs[0]))
+        run_next(boltz_runs)
 
 # ------------------------------------------------------------------------------
 #
@@ -476,6 +510,7 @@ class BoltzRun:
     def start(self, finished_callback = None):
         self._finished_callback = finished_callback
         self._write_yaml_input_files()
+        self._write_ligands_file()
         self._run_boltz()
 
     @property
@@ -507,6 +542,15 @@ class BoltzRun:
                 
         self._input_path = yaml_path if len(yaml) == 1 else dir
         self._use_msa_server = (self._use_msa_server and self._need_msa_server)
+
+    def _write_ligands_file(self, filename = 'ligands'):
+        name_and_smiles = [(p.name, p.ligand_smiles_string) for p in self._predictions
+                           if hasattr(p, 'ligand_smiles_string')]
+        if name_and_smiles:
+            text = '\n'.join(f'{name},{smiles}' for name, smiles in name_and_smiles)
+            from os.path import join
+            with open(join(self._run_directory, filename), 'w') as f:
+                f.write(text)
 
     def _unique_run_directory(self):
         dir = self._run_directory
@@ -970,7 +1014,7 @@ class BoltzRun:
         self._session.logger.info(msg)
         self._report_runtime()
         # Create table of results
-        smiles = {p.name:p.smiles_string for p in self._predictions}
+        smiles = {p.name:p.ligand_smiles_string for p in self._predictions}
         align_to = self._predictions[0]._align_to if self._predictions else None
         from . import boltz_gui
         t = boltz_gui.LigandPredictionsTable(self._session, self._predictions_directory,
