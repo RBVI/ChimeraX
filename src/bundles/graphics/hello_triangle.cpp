@@ -178,7 +178,7 @@ public:
     surfaceInfo.hwnd = (HWND)handles.window;
     surfaceInfo.hinstance = GetModuleHandle(nullptr);
     auto result =
-        kCreateWin32SurfaceKHR(instance, &surfaceInfo, nullptr, &surface);
+        vkCreateWin32SurfaceKHR(instance, &surfaceInfo, nullptr, &surface);
     if (result != VK_SUCCESS)
       throw std::runtime_error("failed to create window surface!");
 #else // linux

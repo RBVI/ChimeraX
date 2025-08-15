@@ -162,13 +162,14 @@ class GraphicsWindow(QWindow):
             pni = app.nativeInterface()
             display = pni.display()
             _vulkan.set_window_system_type(_vulkan.SurfaceBackend.Wayland)
+            _vulkan.set_display_id(display_id)
         elif platform == "xcb":
             pni = app.nativeInterface()
             display_id = pni.connection()
             _vulkan.set_window_system_type(_vulkan.SurfaceBackend.Xcb)
+            _vulkan.set_display_id(display_id)
 
         _vulkan.set_window_id(window_id)
-        _vulkan.set_display_id(display_id)
 
         # Create and initialize renderer
         self._vulkan_renderer = _vulkan.VulkanRenderer(self._vulkan_context)
