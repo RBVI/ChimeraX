@@ -298,7 +298,9 @@ class BoltzPrediction:
         self._predict_affinity = predict_affinity          # BoltzMolecule for affinity prediction
         self._align_to = align_to	                   # AtomicStructure to align prediction to.
 
-    def yaml_filename(self):
+    def yaml_filename(self, default_name = 'input'):
+        if self.name is None:
+            self.name = default_name
         return self.name + '.yaml'
 
     def yaml_input(self, msa_cache_directory = None):
@@ -520,15 +522,15 @@ class BoltzRun:
         return settings
 
     def _write_yaml_input_files(self):
-        msa_cache_dir = self._msa_cache_dir if self._use_msa_cache else None
-        yaml = [(p.yaml_filename(), p.yaml_input(msa_cache_dir)) for p in self._predictions]
-
         # Create yaml before making directory so directory is not created if yaml creation fails.
         self._run_directory = dir = self._unique_run_directory()
 
         if self.name is None:
             from os.path import basename
             self.name = basename(dir)
+
+        msa_cache_dir = self._msa_cache_dir if self._use_msa_cache else None
+        yaml = [(p.yaml_filename(self.name), p.yaml_input(msa_cache_dir)) for p in self._predictions]
 
         for i, (filename, yaml_text) in enumerate(yaml):
             if filename is None:
