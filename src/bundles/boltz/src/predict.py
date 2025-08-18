@@ -1181,9 +1181,9 @@ def _find_msa_cache_files(protein_seqs, msa_cache_dir):
     msa_cache_files = []
     from os.path import exists, join, splitext, expanduser
     msa_cache_dir = expanduser(msa_cache_dir)
-    if not exists(msa_cache_dir):
-        return msa_cache_files
     index_path = join(msa_cache_dir, 'index')
+    if not exists(msa_cache_dir) or not exists(index_path):
+        return msa_cache_files
     with open(index_path, 'r') as f:
         index_lines = f.readlines()
     for line in index_lines:
