@@ -36,7 +36,7 @@ jobs:
     name: Build ChimeraX for Intel Macs
     runs-on: macos-13
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - name: Set up Homebrew

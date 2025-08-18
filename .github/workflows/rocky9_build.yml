@@ -25,7 +25,7 @@ jobs:
       - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
       - run: dnf update -y
       - run: dnf install -y git-all
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.branch || 'develop' }}
       # buildinfo.py breaks without this

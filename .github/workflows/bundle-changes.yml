@@ -189,7 +189,7 @@ jobs:
       change_in_viewdockx: ${{ steps.changes.outputs.change_in_viewdockx }}
       change_in_dock_prep: ${{ steps.changes.outputs.change_in_dock_prep }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dorny/paths-filter@v3
         id: changes
         with:

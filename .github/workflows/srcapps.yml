@@ -14,7 +14,7 @@ jobs:
       change_in_valgrind: ${{ steps.changes.outputs.change_in_valgrind }}
       change_in_structcomp: ${{ steps.changes.outputs.change_in_structcomp }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dorny/paths-filter@v3
         id: changes
         with:

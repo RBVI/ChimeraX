@@ -17,7 +17,7 @@ jobs:
       - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
       - run: dnf update -y
       - run: dnf install -y git-all
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # buildinfo.py breaks without this
       - run: chown -R $(id -u):$(id -g) $PWD
       - run: ${PWD}/utils/set_up_centos.sh
@@ -59,7 +59,7 @@ jobs:
           flatpak remote-add --if-not-exists flathub-beta https://flathub.org/beta-repo/flathub-beta.flatpakrepo
           flatpak install -y flathub org.flatpak.Builder
           flatpak install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Fetch Plato prerequisites
         uses: ./utils/ci/consolidated_cache
         with:
@@ -80,7 +80,7 @@ jobs:
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: ${PWD}/utils/set_up_macos.sh
       - name: Fetch Plato prerequisites
         uses: ./utils/ci/consolidated_cache
@@ -112,7 +112,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -140,7 +140,7 @@ jobs:
   build-and-test-wheels:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
