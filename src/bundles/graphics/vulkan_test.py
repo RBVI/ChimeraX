@@ -2,16 +2,15 @@
 
 import sys
 import time
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
-from PySide6.QtGui import (
+# Will not work on PyQt6 because it does not expose QApplication.QNativeInterface
+from Qt.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+from Qt.QtGui import (
     QWindow,
     QSurface,
     QSurfaceFormat,
     QOpenGLContext,
-    QNativeInterface,
 )
-from PySide6.QtCore import Qt, QTimer
-
+from Qt.QtCore import Qt, QTimer
 import numpy as np
 from OpenGL import GL
 
@@ -176,6 +175,14 @@ class GraphicsWindow(QWindow):
         if self._opengl_renderer is not None:
             self._context.makeCurrent(self)
             GL.glViewport(0, 0, self.width(), self.height())
+
+    def destroy(self):
+        self._vulkan_renderer.remove_surface(self.winId())
+        super().destroy()
+
+    def create(self):
+        super().create()
+        self._vulkan_renderer.add_surface(self.winId())
 
     def switch_to_opengl(self):
         self.render_timer.stop()
