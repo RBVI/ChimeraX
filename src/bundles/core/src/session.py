@@ -522,9 +522,7 @@ class Session:
         from . import logger
 
         self.logger = logger.Logger(self)
-        from . import nogui
 
-        self.ui = nogui.UI(self)
         from . import triggerset
 
         self.triggers = triggerset.TriggerSet()
@@ -567,14 +565,6 @@ class Session:
             trigger_set=self.triggers,
         )
         self.main_view = view
-        try:
-            from .core_settings import settings
-
-            self.main_view.background_color = settings.background_color.rgba
-        except ImportError:
-            pass
-        if offscreen_rendering:
-            self.ui.initialize_offscreen_rendering()
 
         from .selection import Selection
 

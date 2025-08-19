@@ -41,7 +41,8 @@ Wohlwend J, Corso G, Passaro S, Reveiz M, Leidal K, Swiderski W, Portnoi T, Chin
 </blockquote>
 <p>
 The ChimeraX <b>Boltz</b> tool installs and runs 
-<a href="https://github.com/jwohlwend/boltz" target="_blank"><i>Boltz-2</i></a>
+<a href="https://github.com/jwohlwend/boltz" target="_blank"><i>Boltz</i></a>
+(currently version 2.1.1)
 on the local machine. The prediction runs on Mac, Linux, and Windows 
 without requiring an Nvidia GPU, typically taking on the order of minutes, and
 is run in background so that ChimeraX can be used for other tasks.
@@ -82,18 +83,19 @@ See also:
 </p>
 <h3>Boltz Installation</h3>
 <p>
-<i>Boltz-2</i> installation only needs to be done once per computer,
+<i>Boltz</i> installation only needs to be done once per computer,
 as long as the ChimeraX installation is not moved or deleted. 
 Clicking the <b>Install Boltz</b> button on the tool dialog
 creates a Python virtual environment to install
 <a href="https://pypi.org/project/boltz/" target="_blank">Boltz from PyPi</a>.
 Boltz uses Torch and other packages, and
-the total installation including <i>Boltz-2</i>, the trained neural 
+the total installation including <i>Boltz</i>, the trained neural 
 network weights, and the PDB Chemical Component Dictionary for defining 
 residue types is over 4 GB and may take 10 minutes or 
 more to download and install, depending on network speed.
-<i>Boltz-2</i> is installed in ~/boltz2 in the user's home directory.
-This boltz2 directory will be created, or if it already exists must be empty.
+<i>Boltz</i> (currently version 2.1.1)
+is installed in ~/boltz2 in the user's home directory.
+This directory will be created, or if it already exists must be empty.
 The Boltz network parameters and <a href="https://www.wwpdb.org/data/ccd"
 target="_blank">Chemical Component Dictionary</a> are downloaded
 to ~/.boltz. Installation can also be done with the command
@@ -122,6 +124,18 @@ target="_blank">PDB Chemical Component Dictionary (CCD)</a>
 <li><a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
 target="_blank">SMILES</a> string
 (small organic molecules)
+<!-- batch prediction 
+<li>each ligand 
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> &ndash; a list of ligands for batch prediction
+of each single ligand with the other components;
+each line in the list should be of the form <i>name</i>,<i>SMILES</i>
+<p>
+results columns:
+ipTM = confidence, affinity = semiquantitative prediction of affinity
+trained on IC50 and Kd values, binding probability = trained on binary 
+classification of positive/negative binders
+-->
 </ul>
 <p>
 The current set of components to model are listed in a table, with the polymer
@@ -485,5 +499,5 @@ polymers.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2025</address>
+August 2025</address>
 </body></html>

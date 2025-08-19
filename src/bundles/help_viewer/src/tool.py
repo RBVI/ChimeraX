@@ -139,6 +139,9 @@ class _HelpWebView(ChimeraXHtmlView):
         error.rejectCertificate()
 
 
+_null_authenticator = None
+
+
 class HelpUI(ToolInstance):
 
     # do not close when opening session (especially if web page asked to open session)
@@ -301,6 +304,7 @@ class HelpUI(ToolInstance):
     def authorize(self, requestUrl, auth):
         from Qt.QtWidgets import QDialog, QGridLayout, QLineEdit, QLabel, QPushButton
         from Qt.QtCore import Qt
+        from Qt import using_pyqt6, using_pyside6
 
         class PasswordDialog(QDialog):
 
@@ -338,9 +342,24 @@ class HelpUI(ToolInstance):
                 layout.addWidget(self.ok_button, 3, 3)
 
             def reject(self):
+                # https://doc.qt.io/qt-6/qtwebengine-webenginewidgets-simplebrowser-example.html
+                # *auth = QAuthenticator();
                 from Qt.QtNetwork import QAuthenticator
-                from qtpy import sip
-                sip.assign(self.auth, QAuthenticator())
+                if using_pyqt6:
+                    from qtpy import sip
+                    sip.assign(self.auth, QAuthenticator())
+                else:
+                    # PySide6
+                    global _null_authenticator
+                    if _null_authenticator is None:
+                        _null_authenticator = QAuthenticator()
+                    import ctypes
+                    from shiboken6 import Shiboken
+                    ctypes.memmove(
+                        Shiboken.getCppPointer(auth)[0],
+                        Shiboken.getCppPointer(_null_authenticator)[0],
+                        8  # size of 64-bit pointer
+                    )
                 return super().reject()
 
             def accept(self):
