@@ -188,6 +188,8 @@ class Scene(State):
             # ViewState.
             if model in self.named_view.positions:
                 model.positions = self.named_view.positions[model]
+            else:
+                model.display = False
             for model, scene_info in self.scene_models.items():
                 restore_implemented, scene_data = scene_info
                 if restore_implemented:
@@ -227,7 +229,7 @@ class Scene(State):
 
     @staticmethod
     def restore_snapshot(session, data):
-        if data['version'] >= Scene.version:
+        if data['version'] > Scene.version:
             raise ValueError("Cannot restore Scene data with version %d" % data['version'])
         return Scene(session, data['name'], scene_data=data)
 
