@@ -653,7 +653,10 @@ class BoltzPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _report_progress(self, tname, tdata):
-        if not self.tool_window.shown:
+        tw = self.tool_window
+        if tw.ui_area is None:
+            return 'delete handler'
+        if not tw.shown:
             return
 
         from time import time
