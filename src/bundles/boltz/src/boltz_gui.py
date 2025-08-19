@@ -434,6 +434,9 @@ class BoltzPredictionGUI(ToolInstance):
         mt = self._molecules_table
         if mt:
             mt.clear()
+            self._affinity_value_map = {}
+            if self._affinity_ligand.value not in ('none', 'last ligand'):
+                self._affinity_ligand.value = 'none'
 
     # ---------------------------------------------------------------------------
     #
