@@ -241,7 +241,9 @@ def _affinity_component(affinity, ligand_components):
 # ------------------------------------------------------------------------------
 #
 def _split_affinity_ligand(affinity_ligand, molecular_components, allow_split = True):
-    if isinstance(affinity_ligand, BoltzMolecule) and '.' in affinity_ligand.smiles_string:
+    if (isinstance(affinity_ligand, BoltzMolecule) and
+        affinity_ligand.smiles_string is not None and
+        '.' in affinity_ligand.smiles_string):
         smiles = affinity_ligand.smiles_string
         if allow_split:
             smiles_pieces = smiles.split('.')
