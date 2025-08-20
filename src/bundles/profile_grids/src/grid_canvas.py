@@ -82,6 +82,7 @@ class GridCanvas:
         self.main_scene.mouseReleaseEvent = self.mouse_click
         self.main_scene.helpEvent = self.mouse_hover
         self.main_scene.mouseMoveEvent = self.mouse_move
+        self.main_scene.eventFilter = self.main_event_filter
         from Qt.QtWidgets import QToolTip
         """if gray background desired...
         ms_brush = self.main_scene.backgroundBrush()
@@ -92,6 +93,7 @@ class GridCanvas:
         """
         self.main_view = QGraphicsView(self.main_scene)
         self.main_view.setAttribute(Qt.WA_AlwaysShowToolTips)
+        self.main_view.viewport().installEventFilter(self.main_scene)
         #self.main_view.setViewportMargins(0, 0, 0, -20)
         #from Qt.QtWidgets import QFrame
         #self.main_view.setFrameStyle(QFrame.NoFrame)
@@ -287,6 +289,11 @@ class GridCanvas:
         seqs = self._check_cells()
         _SeqList(self.pg.session, seqs).show()
 
+    def main_event_filter(self, watcher, event):
+        if event.type() == event.Leave:
+            self.pg.status("", secondary=True)
+        return False
+
     def mouse_click(self, event):
         from Qt.QtCore import Qt
         shifted = event.modifiers() & Qt.ShiftModifier
@@ -345,8 +352,11 @@ class GridCanvas:
 
     def mouse_move(self, event):
         residues, row, col = self._residues_for_event(event)
-        if col is not None:
-            self.pg.status("Column %d" % (col+1), secondary=True)
+        if col is None:
+            text = ""
+        else:
+            text = "Column " + str(col+1)
+        self.pg.status(text, secondary=True)
 
     def refresh(self, seq, left=0, right=None):
         if seq not in self.alignment.headers:
