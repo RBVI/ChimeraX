@@ -329,13 +329,13 @@ class GridCanvas:
                 else:
                     item.hide()
                     self.main_scene.removeItem(item)
-                    del self.chosen_cells[(row, col)]
+                    self._unchoose_cell(row, col)
                     return
             else:
                 for item in self.chosen_cells.values():
                     item.hide()
                     self.main_scene.removeItem(item)
-                self.chosen_cells.clear()
+                self._clear_chosen_cells()
             self._choose_cell(row, col)
 
     def mouse_hover(self, event):
@@ -459,17 +459,7 @@ class GridCanvas:
                 " and then clicking on desired cell(s)" % self._choose_cell_text)
 
         # since cells in the same column 'union' together, but columns intersect, organize by column...
-        by_col = {}
-        for row, col in self.chosen_cells.keys():
-            by_col.setdefault(col, []).append(row)
-        seqs = set(self.alignment.seqs)
-        for col, rows in by_col.items():
-            col_seqs = set()
-            for row in rows:
-                col_seqs.update(self._sequences_at(row, col))
-            seqs &= col_seqs
-        # in same order though
-        aln_seqs = [seq for seq in self.alignment.seqs if seq in seqs]
+        aln_seqs = self._get_chosen_seqs()
         if not aln_seqs:
             raise UserError("No sequences match the chosen cells")
         return aln_seqs
@@ -488,6 +478,11 @@ class GridCanvas:
         bottom_y = top_y + height
         self.chosen_cells[(row, col)] = self.main_scene.addPolygon(QPolygonF([QPointF(x, y) for x,y in
             [(left_x, mid_y), (mid_x, top_y), (right_x, mid_y), (mid_x, bottom_y), (left_x, mid_y)]]), pen)
+        self._report_chosen_seqs()
+
+    def _clear_chosen_cells(self):
+        self.chosen_cells.clear()
+        self._report_chosen_seqs()
 
     def _clear_header_contents(self, header):
         header_group = self.header_groups[header]
@@ -530,6 +525,19 @@ class GridCanvas:
         self.header_groups[header] = group = self.header_scene.createItemGroup(items);
         return group
 
+    def _get_chosen_seqs(self):
+        by_col = {}
+        for row, col in self.chosen_cells.keys():
+            by_col.setdefault(col, []).append(row)
+        seqs = set(self.alignment.seqs)
+        for col, rows in by_col.items():
+            col_seqs = set()
+            for row in rows:
+                col_seqs.update(self._sequences_at(row, col))
+            seqs &= col_seqs
+        # in same order though
+        return [seq for seq in self.alignment.seqs if seq in seqs]
+
     def _residues_at(self, grid_row, grid_col):
         residues = []
         for seq in self._sequences_at(grid_row, grid_col):
@@ -540,13 +548,12 @@ class GridCanvas:
                     continue
         return residues
 
-    def _sequences_at(self, grid_row, grid_col):
-        seqs = []
-        row_label = self.existing_row_labels[grid_row]
-        for seq in self.alignment.seqs:
-            if seq.characters[grid_col].upper() == row_label:
-                seqs.append(seq)
-        return seqs
+    def _report_chosen_seqs(self):
+        if not self.chosen_cells:
+            self.pg.status("")
+            return
+        seqs = self._get_chosen_seqs()
+        self.pg.status("%d sequences match chosen cells" % len(seqs))
 
     def _residues_for_event(self, event):
         width, height = self.font_pixels
@@ -560,6 +567,22 @@ class GridCanvas:
         if col < 0 or col > grid_columns - 1:
             return None, None, None
         return self._residues_at(row, col), row, col
+
+    def _sequences_at(self, grid_row, grid_col):
+        seqs = []
+        row_label = self.existing_row_labels[grid_row]
+        for seq in self.alignment.seqs:
+            char = seq.characters[grid_col]
+            if row_label == "gap":
+                if seq.is_gap_character(char):
+                    seqs.append(seq)
+            elif char.upper() == row_label:
+                seqs.append(seq)
+        return seqs
+
+    def _unchoose_cell(self, row, col):
+        del self.chosen_cells[(row, col)]
+        self._report_chosen_seqs()
 
     def _update_cell_texts(self):
         for cell_text, *pos_args, val, fraction in self._cell_text_infos:
