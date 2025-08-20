@@ -50,6 +50,9 @@ class Structure(Model, StructureData):
     The data is managed by the :class:`.StructureData` base class
     which provides access to the C++ structures.
     """
+    ATOM_SCENE_ATTRS = ['colors', 'coords', 'displays', 'selected']
+    BOND_SCENE_ATTRS = ['colors', 'displays', 'halfbonds', 'selected']
+    RESIDUE_SCENE_ATTRS = ['ribbon_colors', 'ribbon_displays', 'ring_colors', 'ring_displays']
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  auto_style = True, log_info = True):
@@ -222,9 +225,20 @@ class Structure(Model, StructureData):
     def take_snapshot(self, session, flags):
         # Scene interface implementation.
         if flags == State.SCENE:
+            atoms = self.atoms
+            bonds = self.bonds
+            residues = self.residues
             scene_data = {
                 'model state': Model.take_snapshot(self, session, flags),
-                'version': STRUCTURE_STATE_VERSION
+                'atoms': { attr_name: getattr(atoms, attr_name)
+                    for attr_name in ['colors', 'coords', 'displays', 'selected']
+                },
+                'bonds': { attr_name: getattr(bonds, attr_name)
+                    for attr_name in ['colors', 'displays', 'halfbonds', 'selected']
+                },
+                'residues': { attr_name: getattr(residues, attr_name)
+                    for attr_name in ['ribbon_colors', 'ribbon_displays', 'ring_colors', 'ring_displays']
+                },
             }
             return scene_data
 
@@ -247,9 +261,15 @@ class Structure(Model, StructureData):
         Scene interface implementation.
         """
         Model.restore_scene(self, scene_data['model state'])
-        if scene_data['version'] != STRUCTURE_STATE_VERSION:
-            raise TypeError(f"Can't restore incompatible version "
-                            f"{scene_data['version']}; expected {STRUCTURE_STATE_VERSION}")
+        for target, attr_names in [
+                ('atoms', self.ATOM_SCENE_ATTRS),
+                ('bonds', self.BOND_SCENE_ATTRS),
+                ('residues', self.RESIDUE_SCENE_ATTRS)]:
+            collection = getattr(self, target)
+            values = scene_data.get(target, {})
+            for attr_name in attr_names:
+                if attr_name in values:
+                    setattr(collection, attr_name, values[attr_name])
 
     def set_state_from_snapshot(self, session, data):
         StructureData.set_state_from_snapshot(self, session, data['structure state'])
@@ -1450,12 +1470,6 @@ class AtomicStructure(Structure):
             'structure state': Structure.take_snapshot(self, session, flags),
         }
 
-        # Scene interface implementation
-        if flags == State.SCENE:
-            data['atoms'] = self.atoms.take_snapshot(session, flags)
-            data['bonds'] = self.bonds.take_snapshot(session, flags)
-            data['residues'] = self.residues.take_snapshot(session, flags)
-
         return data
 
     @staticmethod
@@ -1469,11 +1483,6 @@ class AtomicStructure(Structure):
         Scene interface implementation.
         """
         Structure.restore_scene(self, scene_data['structure state'])
-        if scene_data['AtomicStructure version'] != 3:
-            raise ValueError("AtomicStructure version mismatch on scene restore")
-        self.atoms.restore_scene(scene_data['atoms'])
-        self.bonds.restore_scene(scene_data['bonds'])
-        self.residues.restore_scene(scene_data['residues'])
 
     def set_state_from_snapshot(self, session, data):
         version = data.get('AtomicStructure version', 1)
