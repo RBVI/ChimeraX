@@ -81,6 +81,8 @@ class GridCanvas:
         self.main_scene.setBackgroundBrush(Qt.white)
         self.main_scene.mouseReleaseEvent = self.mouse_click
         self.main_scene.helpEvent = self.mouse_hover
+        self.main_scene.mouseMoveEvent = self.mouse_move
+        self.main_scene.eventFilter = self.main_event_filter
         from Qt.QtWidgets import QToolTip
         """if gray background desired...
         ms_brush = self.main_scene.backgroundBrush()
@@ -91,10 +93,12 @@ class GridCanvas:
         """
         self.main_view = QGraphicsView(self.main_scene)
         self.main_view.setAttribute(Qt.WA_AlwaysShowToolTips)
+        self.main_view.viewport().installEventFilter(self.main_scene)
         #self.main_view.setViewportMargins(0, 0, 0, -20)
         #from Qt.QtWidgets import QFrame
         #self.main_view.setFrameStyle(QFrame.NoFrame)
-        #self.main_view.setMouseTracking(True)
+        # To show column number in status area as mouse is moved...
+        self.main_view.setMouseTracking(True)
         main_vsb = self.main_view.verticalScrollBar()
         label_vsb = self.main_label_view.verticalScrollBar()
         main_vsb.valueChanged.connect(label_vsb.setValue)
@@ -285,6 +289,11 @@ class GridCanvas:
         seqs = self._check_cells()
         _SeqList(self.pg.session, seqs).show()
 
+    def main_event_filter(self, watcher, event):
+        if event.type() == event.Leave:
+            self.pg.status("", secondary=True)
+        return False
+
     def mouse_click(self, event):
         from Qt.QtCore import Qt
         shifted = event.modifiers() & Qt.ShiftModifier
@@ -320,13 +329,13 @@ class GridCanvas:
                 else:
                     item.hide()
                     self.main_scene.removeItem(item)
-                    del self.chosen_cells[(row, col)]
+                    self._unchoose_cell(row, col)
                     return
             else:
                 for item in self.chosen_cells.values():
                     item.hide()
                     self.main_scene.removeItem(item)
-                self.chosen_cells.clear()
+                self._clear_chosen_cells()
             self._choose_cell(row, col)
 
     def mouse_hover(self, event):
@@ -340,6 +349,14 @@ class GridCanvas:
         from chimerax.atomic import concise_residue_spec
         self.main_view.setToolTip(concise_residue_spec(self.pg.session, residues))
         QToolTip.showText(event.screenPos(), self.main_view.toolTip())
+
+    def mouse_move(self, event):
+        residues, row, col = self._residues_for_event(event)
+        if col is None:
+            text = ""
+        else:
+            text = "Column " + str(col+1)
+        self.pg.status(text, secondary=True)
 
     def refresh(self, seq, left=0, right=None):
         if seq not in self.alignment.headers:
@@ -442,17 +459,7 @@ class GridCanvas:
                 " and then clicking on desired cell(s)" % self._choose_cell_text)
 
         # since cells in the same column 'union' together, but columns intersect, organize by column...
-        by_col = {}
-        for row, col in self.chosen_cells.keys():
-            by_col.setdefault(col, []).append(row)
-        seqs = set(self.alignment.seqs)
-        for col, rows in by_col.items():
-            col_seqs = set()
-            for row in rows:
-                col_seqs.update(self._sequences_at(row, col))
-            seqs &= col_seqs
-        # in same order though
-        aln_seqs = [seq for seq in self.alignment.seqs if seq in seqs]
+        aln_seqs = self._get_chosen_seqs()
         if not aln_seqs:
             raise UserError("No sequences match the chosen cells")
         return aln_seqs
@@ -471,6 +478,11 @@ class GridCanvas:
         bottom_y = top_y + height
         self.chosen_cells[(row, col)] = self.main_scene.addPolygon(QPolygonF([QPointF(x, y) for x,y in
             [(left_x, mid_y), (mid_x, top_y), (right_x, mid_y), (mid_x, bottom_y), (left_x, mid_y)]]), pen)
+        self._report_chosen_seqs()
+
+    def _clear_chosen_cells(self):
+        self.chosen_cells.clear()
+        self._report_chosen_seqs()
 
     def _clear_header_contents(self, header):
         header_group = self.header_groups[header]
@@ -513,6 +525,19 @@ class GridCanvas:
         self.header_groups[header] = group = self.header_scene.createItemGroup(items);
         return group
 
+    def _get_chosen_seqs(self):
+        by_col = {}
+        for row, col in self.chosen_cells.keys():
+            by_col.setdefault(col, []).append(row)
+        seqs = set(self.alignment.seqs)
+        for col, rows in by_col.items():
+            col_seqs = set()
+            for row in rows:
+                col_seqs.update(self._sequences_at(row, col))
+            seqs &= col_seqs
+        # in same order though
+        return [seq for seq in self.alignment.seqs if seq in seqs]
+
     def _residues_at(self, grid_row, grid_col):
         residues = []
         for seq in self._sequences_at(grid_row, grid_col):
@@ -523,13 +548,12 @@ class GridCanvas:
                     continue
         return residues
 
-    def _sequences_at(self, grid_row, grid_col):
-        seqs = []
-        row_label = self.existing_row_labels[grid_row]
-        for seq in self.alignment.seqs:
-            if seq.characters[grid_col].upper() == row_label:
-                seqs.append(seq)
-        return seqs
+    def _report_chosen_seqs(self):
+        if not self.chosen_cells:
+            self.pg.status("")
+            return
+        seqs = self._get_chosen_seqs()
+        self.pg.status("%d sequences match chosen cells" % len(seqs))
 
     def _residues_for_event(self, event):
         width, height = self.font_pixels
@@ -543,6 +567,22 @@ class GridCanvas:
         if col < 0 or col > grid_columns - 1:
             return None, None, None
         return self._residues_at(row, col), row, col
+
+    def _sequences_at(self, grid_row, grid_col):
+        seqs = []
+        row_label = self.existing_row_labels[grid_row]
+        for seq in self.alignment.seqs:
+            char = seq.characters[grid_col]
+            if row_label == "gap":
+                if seq.is_gap_character(char):
+                    seqs.append(seq)
+            elif char.upper() == row_label:
+                seqs.append(seq)
+        return seqs
+
+    def _unchoose_cell(self, row, col):
+        del self.chosen_cells[(row, col)]
+        self._report_chosen_seqs()
 
     def _update_cell_texts(self):
         for cell_text, *pos_args, val, fraction in self._cell_text_infos:

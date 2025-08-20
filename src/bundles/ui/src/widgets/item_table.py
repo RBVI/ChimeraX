@@ -278,19 +278,20 @@ class ItemTable(QTableView):
     SORT_DESCENDING = Qt.SortOrder.DescendingOrder
 
     def __init__(self, *, auto_multiline_headers: bool=True, column_control_info=None,
-             allow_user_sorting=True, settings_attr=None, parent=None, session=None, color_column_width=32):
+             allow_user_sorting=True, settings_attr=None, parent=None, session=None, color_column_width=32,
+             allow_user_column_ordering=True):
         """
         Parameters:
             auto_multiline_headers: controls whether header titles can be split into multiple
                                     lines on word boundaries.
-            allow_user_sorting: controls whether mouse clicks on column headers will sort the
-                                columns.
+            allow_user_sorting: controls whether mouse clicks on column headers will sort the columns.
             column_control_info: If provided, used to populate either a menu or widget with check box
                 entries or check boxes (respectively) to control which columns are displayed.
             session: for backwards compatibility, this parameter is optional, but is in fact required if the
                 table adds columns whose 'data_set' attribute is a string (since it will be run as command).
             color_column_width: Columns containing color buttons will be this wide.  Some tables for
                 practical or esthetic reasons may prefer a narrower value (e.g. 16).
+            allow_user_sorting: controls whether the user can rearrange columns by dragging the headers
 
         Notes:
             For a menu the value of column_control_info should be:
@@ -325,6 +326,7 @@ class ItemTable(QTableView):
         self._columns = []
         self._data = []
         self._allow_user_sorting = allow_user_sorting
+        self._allow_user_column_ordering = allow_user_column_ordering
         self._auto_multiline_headers = auto_multiline_headers
         self._column_control_info = column_control_info
         self._settings_attr = self.DEFAULT_SETTINGS_ATTR if settings_attr is None else settings_attr
@@ -352,8 +354,6 @@ class ItemTable(QTableView):
                 if column_control_info[-1]:
                     from Qt.QtWidgets import QDialogButtonBox as qbbox
                     self._col_button_container = QWidget(parent=widget)
-                    toggle_vis = lambda x: x.setVisible(not x.isVisible())
-                    toggle_callback = toggle_vis(self._col_button_container)
                     main_layout.addWidget(self._col_button_container, alignment=Qt.AlignLeft)
                     buttons_layout = QHBoxLayout()
                     buttons_layout.setContentsMargins(0,0,0,0)
@@ -608,13 +608,15 @@ class ItemTable(QTableView):
             self.setSortingEnabled(True)
         else:
             self.setModel(self._table_model)
+        if self._allow_user_column_ordering:
+            self.horizontalHeader().setSectionsMovable(True)
         self.setSelectionBehavior(self.SelectRows)
         self.setSelectionMode(select_mode)
         if self._column_control_info and not isinstance(self._column_control_info[0], QMenu):
             self._arrange_col_checkboxes()
         scroll_to = None
         if session_info:
-            version, selected, column_display, highlighted, sort_info = session_info
+            version, selected, column_display, highlighted, sort_info, *version_args = session_info
             if self._allow_user_sorting and sort_info is not None:
                 col_num, order = sort_info
                 self.sortByColumn(col_num, qt_enum_from_int(Qt.SortOrder, order))
@@ -628,10 +630,17 @@ class ItemTable(QTableView):
             self.highlight([self._data[i] for i in highlighted])
             for c in self._columns:
                 self.update_column(c, display=column_display.get(c.title, True))
+            if version >= 2:
+                header_info, *version_args = version_args
+                from Qt.QtCore import QByteArray
+                self.horizontalHeader().restoreState(QByteArray(header_info))
+
         self.selectionModel().selectionChanged.connect(self._relay_selection_change)
-        for col in self._columns:
+        for i, col in enumerate(self._columns):
             if not col.display:
-                self.hideColumn(self._columns.index(col))
+                self.hideColumn(i)
+            else:
+                self.showColumn(i)
         self.verticalHeader().setVisible(False)
         if not suppress_resize:
             self.resizeColumnsToContents()
@@ -668,7 +677,7 @@ class ItemTable(QTableView):
             sel_model.select(index, sel_model.Select | sel_model.Rows)
 
     def session_info(self):
-        version = 1
+        version = 2
         if self._allow_user_sorting:
             selected = set([self.model().mapToSource(i).row() for i in self.selectionModel().selectedRows()])
         else:
@@ -679,7 +688,11 @@ class ItemTable(QTableView):
             sort_info = (self.model().sortColumn(), qt_enum_as_int(self.model().sortOrder()))
         else:
             sort_info = None
-        return (version, selected, column_display, highlighted, sort_info)
+        if self._allow_user_column_ordering:
+            header_info = self.horizontalHeader().saveState().data()
+        else:
+            header_info = None
+        return (version, selected, column_display, highlighted, sort_info, header_info)
 
     def sizeHintForColumn(self, col_index):
         if self._columns[col_index].display_format in self.color_formats:
@@ -824,12 +837,16 @@ class ItemTable(QTableView):
     def _arrange_col_checkboxes(self):
         while self._col_checkbox_layout.count() > 0:
             self._col_checkbox_layout.takeAt(0)
-        self._col_checkboxes.sort(key=lambda cb: cb.text())
+        self._col_checkboxes.sort(key=lambda cb: cb.text().lower())
         requested_cols = self._column_control_info[-2]
         num_buttons = len(self._col_checkboxes)
         from math import sqrt, ceil
         if requested_cols is None:
-            num_cols = int(sqrt(num_buttons)+0.5)
+            # checkboxes are much wider than tall, so to prevent the checkbox area from forcing
+            # dialogs to be wider in extreme cases (think >64 table columns, longish labels),
+            # scale number of columns based on rough estimated width
+            longest_text = max([len(cb.text()) for cb in self._col_checkboxes])
+            num_cols = int(sqrt(num_buttons/max(1, longest_text/15))+0.5)
         else:
             num_cols = requested_cols
         num_rows = int(ceil(num_buttons/num_cols))

@@ -67,7 +67,7 @@ class _MDCrdsBundleAPI(BundleAPI):
             else:
                 class MDInfo(OpenerInfo):
                     def open(self, session, data, file_name, *, structure_model=None,
-                            md_type=name, replace=True, slider=True, start=1, step=1, end=None, **kw):
+                            md_type=name, replace=None, slider=True, start=1, step=1, end=None, **kw):
                         if structure_model is None:
                             from chimerax.core.errors import UserError, CancelOperation
                             from chimerax.atomic import Structure
@@ -114,6 +114,9 @@ class _MDCrdsBundleAPI(BundleAPI):
                                 else:
                                     raise UserError("Must specify an atomic model to read the coordinates"
                                         " into")
+                        if replace is None:
+                            # if 'replace' omitted, replace if 1 coordset, otherwise append
+                            replace = structure_model.num_coordsets < 2
                         from .read_coords import read_coords
                         num_coords = read_coords(session, data, structure_model, md_type,
                             replace=replace, start=start, step=step, end=end)
@@ -173,6 +176,8 @@ class _MDCrdsBundleAPI(BundleAPI):
             return MDInfo()
 
         # MD plotting manager
+        if kw.get('check_relevance', False):
+            return True
         if name == "distance":
             a1, a2 = kw['atoms']
             from chimerax.geometry import distance

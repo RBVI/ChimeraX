@@ -88,6 +88,13 @@ from setuptools.build_meta import (
 # Always import this because it changes the behavior of setuptools
 from numpy import get_include as get_numpy_include_dirs
 
+cpu_count = os.cpu_count()
+
+try:
+    from pybind11.setup_helpers import Pybind11Extension
+except:
+    pass
+
 try:
     import openmm
 
@@ -181,7 +188,6 @@ class Bundle:
             chimerax_data = bundle_info["tool"]["chimerax"]
         else:
             raise ValueError("No [chimerax] or [tool.chimerax] table in pyproject.toml")
-        print(chimerax_data)
         self.pure_python = not (
             bool(chimerax_data.get("extension", {}))
             or bool(chimerax_data.get("library", {}))
@@ -271,7 +277,6 @@ class Bundle:
                 self.dependencies.append(req_)
             except ValueError:
                 raise ValueError("Bad version specifier (see PEP 440): %r" % req)
-
 
         self.requires_python = project_data.get("requires-python", ">=3.7")
 
@@ -531,7 +536,10 @@ class Bundle:
                 # bundles
                 req.specifier.prereleases = True
             if installed_version not in req.specifier:
-                raise ValueError("Incompatible version for build dependency %s (needed: %s, installed: %s)" % (req.name, req.specifier, str(installed_version)))
+                raise ValueError(
+                    "Incompatible version for build dependency %s (needed: %s, installed: %s)"
+                    % (req.name, req.specifier, str(installed_version))
+                )
 
     @staticmethod
     def format_module_name(name: str, override: Optional[str] = None):
@@ -863,7 +871,7 @@ class Bundle:
     def build_wheel(self, debug=False, release=False):
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         self._check_build_requires()
-        setup_args = ["--no-user-cfg", "build"]
+        setup_args = ["--no-user-cfg", "build", f"-j{cpu_count}"]
         setup_args.extend(["bdist_wheel"])
         dist, built = self._run_setup(setup_args)
         if not self.version:
@@ -901,7 +909,7 @@ class Bundle:
         self._remove_libraries()
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         self._check_build_requires()
-        setup_args = ["build_ext", "--inplace", "editable_wheel"]
+        setup_args = ["build_ext", f"-j{cpu_count}", "--inplace", "editable_wheel"]
         if config_settings:
             if "editable_mode" in config_settings:
                 setup_args.extend(["--mode", config_settings["editable_mode"]])
@@ -952,9 +960,10 @@ class _CompiledCode:
         self.frameworks = attrs.get("frameworks", [])
         self.libraries = attrs.get("libraries", [])
         self.compile_arguments = attrs.get("extra-compile-args", [])
+        self.link_arguments = attrs.get("extra-link-args", [])
         if sys.platform == "darwin":
             self.compile_arguments.append("-mmacos-version-min=11")
-        self.link_arguments = attrs.get("extra-link-args", [])
+            self.link_arguments.append("-mmacos-version-min=11")
         self.include_dirs = attrs.get("include-dirs", [])
         self.include_modules = attrs.get("include-modules", [])
         self.include_libraries = attrs.get("library-modules", [])
@@ -1044,7 +1053,9 @@ class _CompiledCode:
             # when receiving a -std=c++11 option when compiling
             # a C (not C++) source file, which is why this value
             # is named "cpp_flags" not "compile_flags"
-            cpp_flags = ["-std=c++11", "-stdlib=libc++"]
+            cpp_flags = ["-stdlib=libc++"]
+            if not any([flag.startswith("-std=") for flag in self.compile_arguments]):
+                cpp_flags.append("-std=c++11")
             extra_link_args = ["-F" + d for d in self.framework_dirs]
             for fw in self.frameworks:
                 extra_link_args.extend(["-framework", fw])
@@ -1057,10 +1068,14 @@ class _CompiledCode:
                 else:
                     libraries.append("lib" + lib)
             cpp_flags = []
+            if not any([flag.startswith("/std:") for flag in self.compile_arguments]):
+                cpp_flags.append("/std:c++11")
             extra_link_args = []
         else:
             libraries = self.libraries
-            cpp_flags = ["-std=c++11"]
+            cpp_flags = []
+            if not any([flag.startswith("-std=") for flag in self.compile_arguments]):
+                cpp_flags.append("-std=c++11")
             extra_link_args = []
         for req in self.requires:
             if not os.path.exists(req):
@@ -1153,7 +1168,11 @@ class _CModule(_CompiledCode):
         elif sys.platform == "darwin":
             extra_link_args.append("-Wl,-rpath,@loader_path/lib")
         if self.source_files:
-            return Extension(
+            if "pybind11" in self.include_modules:
+                ext_type = Pybind11Extension
+            else:
+                ext_type = Extension
+            return ext_type(
                 package + "." + self.name,
                 define_macros=macros,
                 extra_compile_args=cpp_flags + self.compile_arguments,

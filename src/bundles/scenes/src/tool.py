@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2025 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
@@ -28,7 +30,7 @@ from Qt.QtWidgets import QHBoxLayout, QLineEdit, QScrollArea, QWidget, QGridLayo
 from Qt.QtGui import QPixmap, QDrag
 from Qt.QtCore import Qt, QMimeData, QPoint
 from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, SAVED, SCENE_HIGHLIGHTED, DELETED
-from chimerax.core.commands import run
+from chimerax.core.commands import run, StringArg
 
 """
 This module defines the `ScenesTool` class and related classes for managing scenes within the ChimeraX application.
@@ -129,7 +131,7 @@ class ScenesTool(ToolInstance):
         """
         Callback for the SELECTED trigger. Restore the scene with the given name.
         """
-        run(self.session, f'scene restore "{scene_name}"')
+        run(self.session, f'scene restore "{StringArg.unparse(scene_name)}"')
 
     def scene_edited_cb(self, trigger_name, scene_name):
         """
@@ -170,7 +172,7 @@ class ScenesTool(ToolInstance):
         Save the current scene with the name in the line edit widget.
         """
         scene_name = self.scene_name_entry.text()
-        run(self.session, f"scene save {scene_name}")
+        run(self.session, f"scene save {StringArg.unparse(scene_name)}")
 
     def edit_button_clicked(self):
         """
@@ -178,7 +180,7 @@ class ScenesTool(ToolInstance):
         """
         highlighted_scene = self.scroll_area.get_highlighted_scene()
         if highlighted_scene:
-            run(self.session, f"scene edit {highlighted_scene.get_name()}")
+            run(self.session, f"scene edit {StringArg.unparse(highlighted_scene.get_name())}")
         else:
             self.session.logger.warning("No scene selected to edit")
 
@@ -188,7 +190,7 @@ class ScenesTool(ToolInstance):
         """
         highlighted_scene = self.scroll_area.get_highlighted_scene()
         if highlighted_scene:
-            run(self.session, f"scene delete {highlighted_scene.get_name()}")
+            run(self.session, f"scene delete {StringArg.unparse(highlighted_scene.get_name())}")
         else:
             self.session.logger.warning("No scene selected to delete")
 

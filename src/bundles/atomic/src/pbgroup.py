@@ -331,6 +331,16 @@ class PseudobondGroup(PseudobondGroupData, Model):
         if self._global_group:
             # Make the global manager restore before we do
             data['mgr'] = session.pb_manager
+        from chimerax.core.state import State
+        if flags == State.SCENE:
+            pseudobonds = self.pseudobonds
+            data['scene state'] = {
+                'colors': pseudobonds.colors,
+                'displays': pseudobonds.displays,
+                'halfbonds': pseudobonds.halfbonds,
+                'radii': pseudobonds.radii,
+                'selecteds': pseudobonds.selecteds,
+            }
 
         return data
 
@@ -354,7 +364,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
         """
         Model.restore_scene(self, scene_data['model state'])
         self.dashes = scene_data['dashes']
-        PseudobondGroupData.restore_scene(self, scene_data['pseudobond data'])
+        pseudobonds = self.pseudobonds
+        pb_state = scene_data['scene state']
+        pseudobonds.colors = pb_state['colors']
+        pseudobonds.displays = pb_state['displays']
+        pseudobonds.halfbonds = pb_state['halfbonds']
+        pseudobonds.radii = pb_state['radii']
+        pseudobonds.selecteds = pb_state['selecteds']
 
 # -----------------------------------------------------------------------------
 #

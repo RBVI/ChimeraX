@@ -636,7 +636,7 @@ def nonstd_charge(session, residues, net_charge, method, *, status=None, temp_di
         if status:
             status("Reading ANTECHAMBER output for residue %s" % r.name)
         try:
-            mols, status_message = session.open_command.open_data(ante_out, show_tool=False)
+            mols, status_message = session.open_command.open_data(ante_out)
         except Exception as e:
             raise IOError("Problem reading ANTECHAMBER output file: %s" % str(e))
         if not mols:
