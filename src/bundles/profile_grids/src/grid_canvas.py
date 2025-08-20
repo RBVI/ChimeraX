@@ -81,6 +81,7 @@ class GridCanvas:
         self.main_scene.setBackgroundBrush(Qt.white)
         self.main_scene.mouseReleaseEvent = self.mouse_click
         self.main_scene.helpEvent = self.mouse_hover
+        self.main_scene.mouseMoveEvent = self.mouse_move
         from Qt.QtWidgets import QToolTip
         """if gray background desired...
         ms_brush = self.main_scene.backgroundBrush()
@@ -94,7 +95,8 @@ class GridCanvas:
         #self.main_view.setViewportMargins(0, 0, 0, -20)
         #from Qt.QtWidgets import QFrame
         #self.main_view.setFrameStyle(QFrame.NoFrame)
-        #self.main_view.setMouseTracking(True)
+        # To show column number in status area as mouse is moved...
+        self.main_view.setMouseTracking(True)
         main_vsb = self.main_view.verticalScrollBar()
         label_vsb = self.main_label_view.verticalScrollBar()
         main_vsb.valueChanged.connect(label_vsb.setValue)
@@ -340,6 +342,11 @@ class GridCanvas:
         from chimerax.atomic import concise_residue_spec
         self.main_view.setToolTip(concise_residue_spec(self.pg.session, residues))
         QToolTip.showText(event.screenPos(), self.main_view.toolTip())
+
+    def mouse_move(self, event):
+        residues, row, col = self._residues_for_event(event)
+        if col is not None:
+            self.pg.status("Column %d" % (col+1), secondary=True)
 
     def refresh(self, seq, left=0, right=None):
         if seq not in self.alignment.headers:
