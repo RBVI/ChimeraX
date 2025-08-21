@@ -410,7 +410,7 @@ class GridCanvas:
         for chain, aseq in self.alignment.associations.items():
             if chain not in sel_chains:
                 continue
-            match_map = self.alignments.match_maps[aseq][chain]
+            match_map = self.alignment.match_maps[aseq][chain]
             for r in chain.existing_residues:
                 if r not in sel_residues:
                     continue
