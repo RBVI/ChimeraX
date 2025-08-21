@@ -1630,23 +1630,27 @@ class AtomicStructure(Structure):
         if local_scores and scoring_metrics:
             from chimerax.core.attributes import string_to_attr
             scoring_metric_cache = {}
-            chain_cache = {}
+            chain_lookup = { chain.chain_id: chain for chain in self.chains }
             res_scoring = []
             metric_names = scoring_metrics.mapping('id', 'name')
+            non_chain_residues = None
             for chain_id, res_name, seq_id, metric_id, value in local_scores.fields(
                     ['label_asym_id', 'label_comp_id', 'label_seq_id', 'metric_id', 'metric_value']):
                 try:
-                    chain = chain_cache[chain_id]
+                    chain = chain_lookup[chain_id]
                 except KeyError:
-                    for chain in self.chains:
-                        if chain.chain_id == chain_id:
-                            chain_cache[chain_id] = chain
-                            break
-                    else:
+                    if non_chain_residues is None:
+                        non_chain_residues = { (r.chain_id, r.number): r
+                            for r in self.residues if r.chain is None }
+                    try:
+                        res = non_chain_residues[(chain_id, int(seq_id))]
+                    except KeyError:
                         session.logger.warning("No chain in structure corresponds to chain ID given"
-                            " in local score info (chain '%s')" % chain_id)
+                            " in local score info (chain '%s') or can't find residue %s in that chain"
+                            % (chain_id, seq_id))
                         break
-                res = chain.residues[int(seq_id)-1]
+                else:
+                    res = chain.residues[int(seq_id)-1]
                 if not res:
                     continue
                 if res.name != res_name:
