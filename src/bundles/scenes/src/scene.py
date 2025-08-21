@@ -114,7 +114,7 @@ class Scene(State):
         version = scene_data['version']
         if version == 0:
             # First version didn't retain whether the data came from the derived class or the
-            # base Model class; guesstimate that scene implmentation status for the class
+            # base Model class; guesstimate that scene implementation status for the class
             # hasn't changed...
             revised_scene_models = {}
             for model, model_scene_data in scene_data['scene_models'].items():
