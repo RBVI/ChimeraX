@@ -15,6 +15,7 @@
 
 #include <Python.h>
 #include <algorithm>    // std::min, std::max
+#include <climits>      // INT_MIN
 #include <iterator>     // std::next
 #include <list>
 #include <math.h>
@@ -31,7 +32,7 @@ using atomstruct::Atom;
 using atomstruct::Chain;
 using atomstruct::AtomSearchTree;
 
-typedef std::map<const Chain*, std::vector<Atom*>> PrincipalAtomMap;
+typedef std::map<Chain*, std::vector<Atom*>> PrincipalAtomMap;
 
 // for my personal sanity, define local min/max functions, so that I don't have to try to
 // figure out how to get references/pointers to template functions
@@ -44,10 +45,10 @@ namespace { // so these class declarations are not visible outside this file
 class EndPoint
 {
 public:
-    const Chain*  chain;
+    Chain*  chain;
     Chain::SeqPos  pos;
 
-    EndPoint(const Chain* _chain, Chain::SeqPos _pos): chain(_chain), pos(_pos) {};
+    EndPoint(Chain* _chain, Chain::SeqPos _pos): chain(_chain), pos(_pos) {};
 };
 
 class Link
@@ -74,9 +75,9 @@ public:
 class Column
 {
 public:
-    std::map<const Chain*, Chain::SeqPos> positions;
+    std::map<Chain*, Chain::SeqPos> positions;
 
-    bool  contains(const Chain* seq, Chain::SeqPos pos) const {
+    bool  contains(Chain* seq, Chain::SeqPos pos) const {
         return positions.find(seq) != positions.end() && positions.at(seq) == pos;
     };
     double  participation(PrincipalAtomMap& pas, double dist_cutoff) const;
@@ -153,8 +154,8 @@ public:
 static void
 find_prune_crosslinks(
     LinkList& all_links,
-    std::map<const Chain*, std::vector<LinkList>>& pairings,
-    const Chain* seq1, const Chain* seq2,
+    std::map<Chain*, std::vector<LinkList>>& pairings,
+    Chain* seq1, Chain* seq2,
     LinkList& link_list, std::vector<LinkList>& links1, std::vector<LinkList>& links2,
     std::string tag, const char* status_prefix, PyObject* py_logger)
 {
@@ -217,8 +218,21 @@ find_prune_crosslinks(
     }
 }
 
+bool
+_check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<Column*>>& order,
+    std::vector<Chain*>& chains)
+{
+    std::map<Chain*, std::vector<int>> equiv;
+    std::vector<int> null_init = { INT_MIN, INT_MIN, INT_MIN };
+    for (auto chain: chains)
+        equiv[chain] = null_init;
+    std::vector<std::pair<std::vector<Column*>, int>> todo;
+    //TODO
+    return true;
+}
+
 PyObject *
-multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all, char gap_char,
+multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char gap_char,
     bool circular, const char* status_prefix, PyObject* py_logger)
 {
     // Create list of pairings between chains and prune to be monotonic
@@ -239,7 +253,7 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
     // penalty and keep pruning worst link until no links cross.
 
     PrincipalAtomMap pas;
-    std::map<const Chain*, std::vector<LinkList>> pairings;
+    std::map<Chain*, std::vector<LinkList>> pairings;
     logger::status(py_logger, status_prefix, "Finding residue principal atoms");
     for (auto chain: chains) {
         decltype(pas)::mapped_type seq_pas;
@@ -263,14 +277,14 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
     }
 
     //TODO: circular permutation support
-    //std::map<std::pair<const Chain*, const Chain*>, std::pair<int, int>> circular_pairs;
-    //std::map<std::pair<const Chain*, const Chain*>, CircularLinkData> hold_data;
+    //std::map<std::pair<Chain*, Chain*>, std::pair<int, int>> circular_pairs;
+    //std::map<std::pair<Chain*, Chain*>, CircularLinkData> hold_data;
 
     LinkList all_links;
-    std::map<const Chain*, AtomSearchTree*> trees;
+    std::map<Chain*, AtomSearchTree*> trees;
     auto num_chains = chains.size();
     decltype(num_chains) loop_count = 0, loop_limit = (num_chains * (num_chains-1))/2;
-    std::map<const Chain*, std::map<Atom*, decltype(num_chains)>> datas;
+    std::map<Chain*, std::map<Atom*, decltype(num_chains)>> datas;
     for (decltype(num_chains) i = 0; i < num_chains; ++i) {
         auto seq1 = chains[i];
         auto len1 = pairings[seq1].size();
@@ -305,8 +319,11 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
             } else {
                 tree = (*tree_i).second;
             }
-            logger::status(py_logger, status_prefix,
-                    "Searching tree, building links (", loop_count, "/", loop_limit, ")");
+            // To avoid having the logging slow us down a bunch, only update every 1%
+            int before = (loop_count-1) * 100.0 / loop_limit;
+            int after = loop_count * 100.0 / loop_limit;
+            if (after > before)
+                logger::status(py_logger, status_prefix, "Searching tree, building links: ", after, "%");
             for (decltype(num_pas1) k = 0; k < num_pas1; ++k) {
                 auto pa1 = seq1_pas[k];
                 if (pa1 == nullptr)
@@ -345,8 +362,8 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
     }
 
     // column collation
-    std::map<Chain*, std::map<Column*, std::map<int,int>::size_type>> columns;
-    std::map<Chain*, std::vector<std::map<int,int>::size_type>> partial_order;
+    std::map<Chain*, std::map<Column*, std::vector<int>::size_type>> columns;
+    std::map<Chain*, std::vector<Column*>> partial_order;
 
     std::set<std::pair<EndPoint*, EndPoint*>> seen;
     while (all_links.size() > 0) {
@@ -386,14 +403,16 @@ multi_align(std::vector<const Chain*>& chains, double dist_cutoff, bool col_all,
 
         std::map<Chain*, Chain::SeqPos> check_info;
         for (auto endp: link->info) {
-            auto& list = pairings[endp->chain];
-            list.erase(list.begin() + endp->pos);
+            auto& list = pairings[endp->chain][endp->pos];
+            list.erase(std::find(list.begin(), list.end(), link));
             check_info[endp->chain] = endp->pos;
         }
 
         // AFAICT links are _always_ between different chains, so the whole "okay check"
         // in the Chimera code seems superfluous
 
+        if (!_check(check_info, partial_order, chains))
+            continue;
         //TODO
     }
         
@@ -425,7 +444,7 @@ py_multi_align(PyObject*, PyObject* args)
             " two chains");
         return nullptr;
     }
-    std::vector<const Chain*> chains;
+    std::vector<Chain*> chains;
     for (decltype(num_chains) i = 0; i < num_chains; ++i) {
         PyObject* py_ptr = PySequence_GetItem(chain_ptrs_list, i);
         if (!PyLong_Check(py_ptr)) {
@@ -434,7 +453,7 @@ py_multi_align(PyObject*, PyObject* args)
             PyErr_SetString(PyExc_TypeError, err_msg.str().c_str());
             return nullptr;
         }
-        chains.push_back(static_cast<const Chain*>(PyLong_AsVoidPtr(py_ptr)));
+        chains.push_back(static_cast<Chain*>(PyLong_AsVoidPtr(py_ptr)));
     }
     return multi_align(chains, dist_cutoff, (bool)col_all, gap_char, (bool)circular,
         status_prefix, py_logger);
