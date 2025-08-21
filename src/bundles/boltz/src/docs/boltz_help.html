@@ -8,7 +8,7 @@
     <h1>Making Boltz Structure Predictions in ChimeraX</h1>
     <p>
       Tom Goddard<br>
-      Updated July 21, 2025 (Boltz 2.1.1), updated May 30, 2025 (Boltz 1.0.0), initial version April 23, 2025 (Boltz 0.4.1)
+      Updated August 20, 2025 Boltz 2.2, July 21, 2025 Boltz 2.1.1, May 30, 2025 Boltz 1.0.0, initial version April 23, 2025 Boltz 0.4.1
     </p>
 
     <table>
@@ -23,6 +23,7 @@
       	<td width=40>
     <td>
       <a href="#runtimes">Run times and size limits</a>
+      <br><a href="#ligands">Batch predictions with sets of ligands</a>
       <br><a href="#options">Options</a>
       <br><a href="#command">ChimeraX boltz command</a>
       <br><a href="#limitations">Limitations</a>
@@ -40,7 +41,8 @@
       ChimeraX daily builds dated July 22, 2025 and newer use Boltz 2.1.1 and include ligand affinity prediction.
       ChimeraX 1.10 released June 26, 2025 uses Boltz 1.0.0. 
       See the <a href="https://youtu.be/377V9A_0ECc">demonstration video</a> or
-      <a href="https://youtu.be/jdoJEcWT-VY">affinity prediction video</a>.
+      <a href="https://youtu.be/jdoJEcWT-VY">affinity prediction video</a> or
+      <a href="https://youtu.be/h06yOBcaOqc">batch ligands video</a>.
       The method is inspired by AlphaFold 3 and described in the following
       <a href="https://www.biorxiv.org/content/10.1101/2024.11.19.624167v2">preprint</a>
       and is fully open source with a very permissive MIT license.
@@ -341,7 +343,37 @@
       Structure predictions 40% larger are possible by using 16-bit floating point (bfloat16) on Nvidia GPUs instead of float32 for boltz weights and activations.  Prediction speed is about the same.  I tested this on Nvidia 4090 on Linux and it was able to predict 9fz5 (1025 tokens) in 3 minutes and 8sa0 (1371 tokens) in 5 minutes.  I have not seen a reduction in accuracy.  Details in ChimeraX ticket <a href="https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/17555">#17555</a>.
       This is available as the 16-bit floating point option in the ChimeraX Boltz Options panel or the float16 option of the ChimeraX boltz predict command.
     </p>
+    
+    <a name="ligands">
+    <h2>Batch predictions with sets of ligands</h2>
+    </a>
 
+    <p>
+      Several predictions can be run each with a different ligand to see how it binds to the rest of the molecular assembly. Use the Add molecule "each ligand SMILES string" menu entry.  Paste in a set of SMILES strings with ligand names.  Each line should have a ligand name, comma, followed by a SMILES string.  The ligand names will be used as the predicted structure file names.  Alternatively you can just enter one SMILES string per line without a name and the ligands will be named "ligand1", "ligand2", ....  Press the Add button after pasting in the set of ligands, then the Predict button to run the series of predictions.
+    </p>
+
+    <table>
+      <tr><td><img src="images/ligands_gui.png" width=600>
+	  <br>Example input for <a href="https://www.rbvi.ucsf.edu/chimerax/data/af3-drugs-dec2024/data/virus_drugs_smiles.txt">52 anti-viral ligands</a> run against HIV protease.
+	  <br>Predictions completed in 14 minutes on an Nvidia 4090 GPU.
+	<td><img src="images/hiv_protease_51_highlight.png" width=300>
+	  <br>Binding confidence and affinity scores for ligands.
+	  <br>Green highlights shows known HIV protease inhibitors.
+    </table>
+
+    <p>
+      Progress messages will appear in the Boltz panel as the structures are predicted for each ligand.
+      After all structures are predicted the binding affinity is predicted.  About half of the time is taken
+      to predict affinity and if you don't want affinity scores you can set "Predict ligand binding affinity: none"
+      under Options to speed up the calculation.  When the predictions complete a table of results giving
+      ligand name, ipTM, affinity, binding probability, and SMILES string will appear.  The table can be
+      sorted by clicking on the column headers.  Selecting rows of the table and pressing the Open button
+      will open the selected structure predictions.  The table is written as comma-separated values to the
+      directory where Boltz was run, for example hiv_protease/hiv_protease.bzlig in the case shown.  This
+      file will appear in the file history thumbnails when you start ChimeraX in future sessions
+      and clicking on the thumbnail will reshow the table.
+    </p>
+    
     <a name="options">
     <h2>Options</h2>
     </a>
@@ -385,10 +417,13 @@
       <b>boltz predict</b> [<i>sequences</i>] [<b>protein</b> <i>sequences</i>] [<b>dna</b> <i>sequences</i>] [<b>rna</b> <i>sequences</i>]
          [<b>ligands</b> <i>residue-spec</i>] [<b>excludeLigands</b> <i>ccd-codes</i>]
          [<b>ligandCcd</b> <i>ccd-codes</i>] [<b>ligandSmiles</b> <i>smiles-string</i>]
+         [<b>forEachSmilesLigand</b> <i>name,smiles-string,name,smiles-string...</i>]
+         [<b>affinity</b> <i>ligand-ccd-or-smiles-string</i> | each | <b>none</b>]
          [<b>name</b> <i>prediction-name</i>] [<b>resultsDirectory</b> <i>directory</i>]
          [<b>device</b> default|cpu|gpu] [<b>float16</b> true|<b>false</b>] [<b>steering</b> true|<b>false</b>]
          [<b>samples</b> <i>n</i>] [<b>recycles</b> <i>n</i>] [<b>seed</b> <i>n</i>]
-         [<b>useMsaCache</b> <b>true</b>|false] [<b>open</b> <b>true</b>|false] [<b>installLocation</b> <i>directory</i>] [<b>wait</b> true|<b>false</b>]</pre>
+         [<b>useMsaCache</b> <b>true</b>|false] [<b>msaOnly</b> true|<b>false</b>]
+         [<b>open</b> <b>true</b>|false] [<b>installLocation</b> <i>directory</i>] [<b>wait</b> true|<b>false</b>]</pre>
 
     <p>
       Options descriptions
@@ -403,7 +438,8 @@
        <li><b>excludeLigands</b> <i>ccd-codes</i> - Exclude these CCD codes when interpreting the ligands option.  By default it excludes ccd code "HOH", ie water.
        <li><b>ligandCcd</b> <i>ccd-codes</i> - Comma-separated list of 3 or 5-letter CCD codes.  This option can be used more than once.
        <li><b>ligandSmiles</b> <i>smiles-string</i> - Comma-separated list of SMILES strings.  This option can be used more than once.
-       <li><b>name</b> <i>prediction-name</i> - Name of prediction used in the results folder name.
+       <li><b>forEachSmilesLigand</b> <i>name,smiles-string,name,smiles-string...</i> - Comma-separated list of ligand names and SMILES strings.  A separate prediction will be made for each ligand by adding each ligand to the molecular assembly.  In order to predict affinity for each ligand use the "affinity each" option.
+       <li><b>affinity</b> <i>ligand-ccd-or-smiles-string</i> | each | <b>none</b> - Whether to predict binding affinity for a specified ligand.  The ligand CCD code or SMILES string is uses to specify the ligand.  Boltz can only predict affinity for a single ligand and their must be only one copy of the ligand.  If the <b>forEachSmilesLigand</b> option is used to predict structures for multiple ligands, the "affinity each" option can be used to predict affinity for each of those ligands.  Default is <b>none</b>, not predicting affinity.  Affinity prediction takes roughly the same amount of time as structure prediction.
        <li><b>resultsDirectory</b> <i>directory</i> - Path to the results directory that will be created.  "[name]" in the path will be replaced by the prediction name.  If the folder already exists an numeric suffix _1, _2, _3... will be appended.
        <li><b>device</b> <b>default</b> | cpu | gpu - Whether to run the computation on GPU or CPU.  The default setting chooses based on GPU availability and torch support for the GPU.
        <li><b>kernels</b> true | false - Whether to use Nvidia CUDA optimization kernels.  This was 30% faster on a test with 100 protein monomers with 100-700 residues, with no loss of accuracy.  Default is true on Linux with GPU, otherwise false.
@@ -412,6 +448,7 @@
        <li><b>recycles</b> <i>n</i> - Number of passes through the neural net that derives spatial information from which structures will be computed.  Defaults to 3.  Better structures make result from 10 but runtime will be increased.
        <li><b>seed</b> <i>n</i> - Random numbers seed (integer) to initialize calculation.  Runs with different seeds will give different results.
        <li><b>useMsaCache</b> <b>true</b> | false - Whether to use protein deep sequences alignments from the ChimeraX Boltz MSA cache in ~/Downloads/ChimeraX/BoltzMSA.  Because the alignments for different proteins in an assembly are paired to match ones from the same organisms, using the cache requires that an assembly have the exact same set of proteins.  It cannot use alignments computed for individual proteins from multiple different runs.
+       <li><b>msaOnly</b> true|<b>false</b> - Whether to just calculate and cache the multiple sequence alignment using the Colabfold server.  This allows computing the MSA separately from the structure.  It can be useful to precompute and cache MSAs when running structure predictions on a cluster which does not have internet access.
        <li><b>open</b> <b>true</b> | false - Whether to open the predicted structures when the prediction finishes.
 	 The structures will be aligned to an already open model if that open model was used (the first used) in
 	 specifying the assembly.
@@ -484,6 +521,15 @@
 	licensing restrictions.  We hope in the future Boltz will optimize memory use to predict larger
 	structures.
 
+      <li><b>Ligand affinity accuracy</b>.
+	Predictions of ligand affinity are qualitative with values given in uM.  The Boltz neural net
+	was trained with a mix of Kd, Ki, and IC50 affinity values without distinguishing the different
+	definitions.  So the uM value should only be viewed as a qualitative measure.  Studies suggest
+	that the existing experimental ligand data is not sufficient to predict novel ligand affinity very well.
+	Ligands and pockets that are similar to structures in the training data can be predicted but
+	accuracy will probably be low for novel ligands or pockets.  See
+	<a href="https://www.biorxiv.org/content/10.1101/2025.02.03.636309v3.full">Have protein-ligand co-folding methods moved beyond memorisation?</a>
+	
       <li><b>Run time</b>.  The computation time increases as the square with the number of tokens.  So
 	a prediction with 3 times the number of residue and ligand atoms will take approximately
 	9 times longer to run.
@@ -534,6 +580,7 @@
     </a>
 
     <ul>
+      <li><b>August 20, 2025</b>. Updated to Boltz 2.2 and added batch ligand predictions.
       <li><b>July 22, 2025</b>. Updated to Boltz 2.1.1 and added ligand affinity prediction.
       <li><b>May 28, 2025</b>.  Updated to Boltz-1x (1.0.0) with new trifast CUDA attention and new diffusion steering potentials.  Added steering option (default false).  Using <a href="https://github.com/RBVI/boltz/tree/chimerax">RBVI Boltz 1.0.0 fork</a> with bfloat16 option and trifast fix.
       <li><b>May 12, 2025</b>.  Added 16-bit floating point option to predict larger structures.

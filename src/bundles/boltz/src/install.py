@@ -23,10 +23,10 @@
 # === UCSF ChimeraX Copyright ===
 
 def boltz_install(session, directory = None, download_model_weights_and_ccd = True,
-                  branch = 'chimerax_boltz2', wait = None):
+                  branch = 'chimerax_boltz22', wait = None):
     if directory is None:
         from os.path import expanduser
-        directory = expanduser('~/boltz2')
+        directory = expanduser('~/boltz22')
 
     # Check that directory either does not exist or is empty.
     from os.path import exists, isdir
@@ -157,7 +157,7 @@ class InstallBoltz:
             # Remember the Boltz install directory
             from .settings import _boltz_settings
             settings = _boltz_settings(self._session)
-            settings.boltz2_install_location = self._directory
+            settings.boltz22_install_location = self._directory
             settings.save()
 
             # Make the Boltz GUI show the install location.
