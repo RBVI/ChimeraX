@@ -619,10 +619,10 @@ class ViewDockTool(ToolInstance):
                         counts[s] += 1
         for s, count in counts.items():
             # divide by two since both "directions" occur in the clash results
-            s.viewdock_data["clashes"] = count // 2
+            s.viewdock_data["Clashes"] = count // 2
         if self.clashes_col is None:
             self.clashes_col = self.struct_table.add_column("Clashes",
-                lambda s: s.viewdock_data["clashes"])
+                lambda s: s.viewdock_data["Clashes"])
         else:
             self.struct_table.update_column(self.clashes_col, data=True)
         self.update_model_description()
@@ -634,9 +634,9 @@ class ViewDockTool(ToolInstance):
                 if s in counts:
                     counts[s] += 1
         for s, count in counts.items():
-            s.viewdock_data["hbonds"] = count
+            s.viewdock_data["H-Bonds"] = count
         if self.hbonds_col is None:
-            self.hbonds_col = self.struct_table.add_column("H-Bonds", lambda s: s.viewdock_data["hbonds"])
+            self.hbonds_col = self.struct_table.add_column("H-Bonds", lambda s: s.viewdock_data["H-Bonds"])
         else:
             self.struct_table.update_column(self.hbonds_col, data=True)
         self.update_model_description()
