@@ -415,7 +415,9 @@ class ViewDockTool(ToolInstance):
         for s in self.struct_table.selected:
             s.viewdock_data[RATING_KEY] = value
             self.struct_table.update_cell('Rating', s)
-        self.update_model_description()
+            if self.rating_label_info is not None:
+                col, rating_label = self.rating_label_info
+                rating_label.setText(col.display_value(s))
 
     def display_key(self, key):
         return key.replace('.', ' ').replace('_', ' ')
@@ -481,6 +483,7 @@ class ViewDockTool(ToolInstance):
             label = QLabel("<b>" + ("Multiple compounds" if multiple else "No compound") + " selected</b>")
             label.setFont(label_font)
             layout.addWidget(label, 0, 0, alignment=Qt.AlignCenter)
+            self.rating_label_info = None
             return
 
         docking_structure = selected[0]
@@ -519,6 +522,8 @@ class ViewDockTool(ToolInstance):
             value_label.setFont(label_font)
             value_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
             layout.addWidget(value_label, row, col + 1)
+            if title == "Rating":
+                self.rating_label_info = (column_map[title], value_label)
 
         row = rows_per_column
         for title in long_titles:
