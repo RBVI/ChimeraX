@@ -636,9 +636,11 @@ class ItemTable(QTableView):
                 self.horizontalHeader().restoreState(QByteArray(header_info))
 
         self.selectionModel().selectionChanged.connect(self._relay_selection_change)
-        for col in self._columns:
+        for i, col in enumerate(self._columns):
             if not col.display:
-                self.hideColumn(self._columns.index(col))
+                self.hideColumn(i)
+            else:
+                self.showColumn(i)
         self.verticalHeader().setVisible(False)
         if not suppress_resize:
             self.resizeColumnsToContents()

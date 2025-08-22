@@ -538,8 +538,9 @@ class Log(ToolInstance, HtmlLog):
                 e.getparent().remove(e)
             contents = html.tostring(tmp)
         from chimerax.ui.html import disclosure
+        # From CSS4, ButtonFace color should contrast with Canvas (text) color
         prev_ses_html = disclosure('%s<p>&mdash;&mdash;&mdash; End of log from %s &mdash;&mdash;&mdash;</p>'
-            % (contents, date), summary= 'Log from %s' % date, background_color="#ebf5fb")
+            % (contents, date), summary= 'Log from %s' % date, background_color="ButtonFace")
         if (self.settings.session_restore_clears and session.restore_options['clear log']
                 and not session.restore_options['combine']):
             def clear_log_unless_error(trig_name, session, *, self=self, prev_ses_html=prev_ses_html):

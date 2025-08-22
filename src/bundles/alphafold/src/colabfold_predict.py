@@ -248,6 +248,8 @@ pip install --upgrade dm-haiku
 # pip install "jax[cuda]==0.3.25" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 # Biopython 1.82 removes SCOPData required by AlphaFold.
 # pip install biopython==1.81
+# hack to fix Colab TensorFlow error Aug 14, 2025
+rm -f /usr/local/lib/python3.*/dist-packages/tensorflow/core/kernels/libtfkernel_sobol_op.so
 touch COLABFOLD_READY
 '''
     run_shell_commands(cmds, 'install_colabfold.sh', install_log)
