@@ -47,11 +47,11 @@ gui = [
   "Pygments==2.18.0",
   "Sphinx==8.2.3",
   "sphinxcontrib-blockdiag==3.0.0",
-  "sphinx_autodoc_typehints==3.1.0",
+  "sphinx_autodoc_typehints==3.2.0",
   #
   # Windows
   #
-  "pywin32==310; sys_platform == 'win32'",
+  "pywin32==311; sys_platform == 'win32'",
   "WMI==1.5.1; sys_platform == 'win32'",
   "comtypes==1.4.11; sys_platform == 'win32'",
   #
@@ -66,7 +66,7 @@ wheel = [
   "Cython==3.1.2",
   "filelock==3.18.0",
   "grako==3.16.5",
-  "html2text==2024.2.26",
+  "html2text==2025.4.15",
   "ihm==2.2",
   "imagecodecs==2024.6.1",
   # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
@@ -76,11 +76,11 @@ wheel = [
   # the version of jedi that works with ipython
   #"jedi==0.19.1",
   #"jupyter-client==8.6.3",
-  "lxml==5.3.1",
+  "lxml==6.0.0",
   # lz4 4.4.4 has problems decompressing what it encoded, ticket #18140
   "lz4==4.3.2",
   "matplotlib==3.10.1",
-  "msgpack==1.1.0",
+  "msgpack==1.1.1",
   "nibabel == 5.2.0",
   "netCDF4==1.6.5",
   "networkx==3.3",
@@ -93,7 +93,7 @@ wheel = [
   "pep517==0.13.1",
   # optional package to prevent warning in Python shell [#16571]
   "pickleshare==0.7.5",
-  "Pillow==10.4.0",
+  "Pillow==11.3.0",
   "pkginfo==1.12.1.2",
   "psutil==7.0.0",
   "pybind11==3.0.0",
@@ -117,11 +117,11 @@ wheel = [
   "Pygments==2.18.0",
   "Sphinx==8.2.3",
   "sphinxcontrib-blockdiag==3.0.0",
-  "sphinx_autodoc_typehints==3.1.0",
+  "sphinx_autodoc_typehints==3.2.0",
   #
   # Windows
   #
-  "pywin32==310; sys_platform == 'win32'",
+  "pywin32==311; sys_platform == 'win32'",
   "WMI==1.5.1; sys_platform == 'win32'",
   "comtypes==1.4.11; sys_platform == 'win32'",
   #
