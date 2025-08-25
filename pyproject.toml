@@ -96,7 +96,7 @@ wheel = [
   "Pillow==11.3.0",
   "pkginfo==1.12.1.2",
   "psutil==7.0.0",
-  "pybind11==3.0.0",
+  "pybind11==3.0.1",
   "pycollada==0.8",
   "pydicom==2.4.4",
   "pynrrd==1.0.0",
