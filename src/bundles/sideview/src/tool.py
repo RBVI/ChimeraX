@@ -53,6 +53,7 @@ class OrthoCamera(Camera):
         h = w * aspect
         left, right, bot, top = -0.5 * w, 0.5 * w, -0.5 * h, 0.5 * h
         from chimerax.graphics.camera import ortho
+
         pm = ortho(left, right, bot, top, near, far)
         return pm
 
@@ -61,8 +62,7 @@ class OrthoCamera(Camera):
 
 
 class SideViewCanvas(QWindow):
-
-    EyeSize = 4     # half size really
+    EyeSize = 4  # half size really
     TOP_SIDE = 1
     RIGHT_SIDE = 2
 
@@ -74,6 +74,7 @@ class SideViewCanvas(QWindow):
     def __init__(self, parent, view, session, panel, side=RIGHT_SIDE):
         QWindow.__init__(self)
         from Qt.QtWidgets import QWidget
+
         self.widget = QWidget.createWindowContainer(self, parent)
         self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
         self.view = view
@@ -85,20 +86,21 @@ class SideViewCanvas(QWindow):
         self.moving = self.ON_NOTHING
 
         self.locations = loc = _PixelLocations()
-        loc.eye = 0, 0, 0   # x, y coordinates of eye
-        loc.near = 0        # X coordinate of near plane
-        loc.far = 0         # Y coordinate of near plane
-        loc.bottom = 0      # bottom of clipping planes
-        loc.top = 0         # top of clipping planes
+        loc.eye = 0, 0, 0  # x, y coordinates of eye
+        loc.near = 0  # X coordinate of near plane
+        loc.far = 0  # Y coordinate of near plane
+        loc.bottom = 0  # bottom of clipping planes
+        loc.top = 0  # top of clipping planes
         loc.far_bottom = 0  # right clip intersect far
-        loc.far_top = 0     # left clip intersect far
+        loc.far_top = 0  # left clip intersect far
 
-        self.applique = OrthoOverlay('sideview')
+        self.applique = OrthoOverlay("sideview")
         self.applique.display_style = Drawing.Mesh
         self.applique.use_lighting = False
         self.view.add_overlay(self.applique)
-        self.handler = session.triggers.add_handler('frame drawn', self._redraw)
+        self.handler = session.triggers.add_handler("frame drawn", self._redraw)
         from Qt.QtCore import QSize
+
         self.widget.setMinimumSize(QSize(20, 20))
 
     def close(self):
@@ -106,7 +108,7 @@ class SideViewCanvas(QWindow):
         self.view.remove_overlays([self.applique])
         self.applique.delete()
         self.applique = None
-        self.setParent(None)
+        # self.setParent(None)
         QWindow.destroy(self)
 
     def _redraw(self, *_):
@@ -139,6 +141,7 @@ class SideViewCanvas(QWindow):
             return
         from math import tan, atan, radians
         from numpy import array, float32, uint8, int32
+
         # self.view.set_background_color((.3, .3, .3, 1))  # DEBUG
         mvwin = self.view.render.use_shared_context(self)
         try:
@@ -150,7 +153,7 @@ class SideViewCanvas(QWindow):
             #     string_marker.glStringMarkerGREMEDY(len(text), text)
             main_view = self.main_view
             main_camera = main_view.camera
-            ortho = hasattr(main_camera, 'field_width')
+            ortho = hasattr(main_camera, "field_width")
             view_num = None  # TODO: 0, 1 for stereo
 
             camera = self.view.camera
@@ -158,14 +161,21 @@ class SideViewCanvas(QWindow):
             # unlike a camera, where it is the horizontal field of view
             # TODO: Handle orthographic main_camera which has no "field_of_view" attribute.
             if self.side == self.TOP_SIDE:
-                fov = radians(main_camera.field_of_view) if hasattr(main_camera, 'field_of_view') else 45
+                fov = (
+                    radians(main_camera.field_of_view)
+                    if hasattr(main_camera, "field_of_view")
+                    else 45
+                )
             else:
-                fov = (2 * atan(wh / ww * tan(radians(main_camera.field_of_view / 2)))
-                       if hasattr(main_camera, 'field_of_view') else 45)
+                fov = (
+                    2 * atan(wh / ww * tan(radians(main_camera.field_of_view / 2)))
+                    if hasattr(main_camera, "field_of_view")
+                    else 45
+                )
             main_pos = main_camera.get_position(view_num)
             near, far = main_view.near_far_distances(main_camera, view_num)
             planes = self.main_view.clip_planes
-            near_plane = planes.find_plane('near')
+            near_plane = planes.find_plane("near")
             button = self.panel.clip_near
             if near_plane:
                 near = near_plane.offset(main_pos.origin())
@@ -174,7 +184,7 @@ class SideViewCanvas(QWindow):
             else:
                 if button.isChecked():
                     button.setChecked(False)
-            far_plane = planes.find_plane('far')
+            far_plane = planes.find_plane("far")
             button = self.panel.clip_far
             if far_plane:
                 far = -far_plane.offset(main_pos.origin())
@@ -189,22 +199,21 @@ class SideViewCanvas(QWindow):
                     axes = (-main_axes[2], -main_axes[0], main_axes[1])
                 else:
                     axes = (-main_axes[2], main_axes[1], main_axes[0])
-                center = main_pos.origin() + (.5 * far) * \
-                    main_camera.view_direction()
+                center = main_pos.origin() + (0.5 * far) * main_camera.view_direction()
                 main_view_width = main_camera.view_width(center)
                 if main_view_width is None:
                     main_view_width = far
                 origin = center + axes[2] * main_view_width * 5
-                camera_pos = Place(axes = axes, origin= origin)
+                camera_pos = Place(axes=axes, origin=origin)
                 camera.position = camera_pos
 
             # figure out how big to make applique
             # eye and lines to far plane must be on screen
             loc = self.locations
-            loc.bottom = .05 * height
-            loc.top = .95 * height
+            loc.bottom = 0.05 * height
+            loc.top = 0.95 * height
             if ortho:
-                ratio = 0.5 * main_camera.field_width * (wh/ww) / far
+                ratio = 0.5 * main_camera.field_width * (wh / ww) / far
             else:
                 ratio = tan(0.5 * fov)
             if self.moving:
@@ -217,27 +226,25 @@ class SideViewCanvas(QWindow):
                 if far_plane:
                     win_pt = self.view.win_coord(far_plane.plane_point)
                     loc.far = win_pt[0]
-            elif ratio * width / 1.1 < .45 * height:
+            elif ratio * width / 1.1 < 0.45 * height:
                 camera.field_width = 1.1 * far
-                loc.eye = array([.05 / 1.1 * width, height / 2, 0],
-                                dtype=float32)
-                loc.near = (.05 + near / far) / 1.1 * width
+                loc.eye = array([0.05 / 1.1 * width, height / 2, 0], dtype=float32)
+                loc.near = (0.05 + near / far) / 1.1 * width
                 loc.far = 1.05 / 1.1 * width
-                loc.far_top = .5 * height + ratio * width / 1.1
-                loc.far_bottom = .5 * height - ratio * width / 1.1
+                loc.far_top = 0.5 * height + ratio * width / 1.1
+                loc.far_bottom = 0.5 * height - ratio * width / 1.1
             else:
                 loc.far_bottom = loc.bottom
                 loc.far_top = loc.top
-                f = .45 * height / ratio
+                f = 0.45 * height / ratio
                 n = f * near / far
-                loc.eye = array([.5 * width - f / 2, height / 2, 0],
-                                dtype=float32)
+                loc.eye = array([0.5 * width - f / 2, height / 2, 0], dtype=float32)
                 loc.near = loc.eye[0] + n
-                loc.far = .5 * width + f / 2
+                loc.far = 0.5 * width + f / 2
                 camera.field_width = far * width / f
 
             vc = array([[255, 0, 0, 255]] * 12, dtype=uint8)
-            vc[0:8,:] = [255, 255, 0, 255]
+            vc[0:8, :] = [255, 255, 0, 255]
             if self.moving == self.ON_EYE:
                 vc[0] = vc[1] = vc[2] = vc[3] = [0, 255, 0, 255]
             elif self.moving == self.ON_NEAR:
@@ -246,18 +253,27 @@ class SideViewCanvas(QWindow):
                 vc[6] = vc[7] = [0, 255, 0, 255]
             es = self.EyeSize
             old_vertices = self.applique.vertices
-            v = array([
-                loc.eye + [-es, -es, 0], loc.eye + [-es, es, 0],
-                loc.eye + [es, es, 0], loc.eye + [es, -es, 0],
-                (loc.near, loc.bottom, 0), (loc.near, loc.top, 0),
-                (loc.far, loc.bottom, 0), (loc.far, loc.top, 0),
-                (0, 0, 0), (0, 0, 0),
-                (0, 0, 0), (0, 0, 0),
-            ], dtype=float32)
+            v = array(
+                [
+                    loc.eye + [-es, -es, 0],
+                    loc.eye + [-es, es, 0],
+                    loc.eye + [es, es, 0],
+                    loc.eye + [es, -es, 0],
+                    (loc.near, loc.bottom, 0),
+                    (loc.near, loc.top, 0),
+                    (loc.far, loc.bottom, 0),
+                    (loc.far, loc.top, 0),
+                    (0, 0, 0),
+                    (0, 0, 0),
+                    (0, 0, 0),
+                    (0, 0, 0),
+                ],
+                dtype=float32,
+            )
             if ortho:
                 fh = main_camera.field_width * wh / ww
                 oh = fh * (loc.far - loc.eye[0]) / far
-                ft, fb = 0.5*height + 0.5*oh, 0.5*height - 0.5*oh
+                ft, fb = 0.5 * height + 0.5 * oh, 0.5 * height - 0.5 * oh
                 v[8] = (loc.near, ft, 0)
                 v[9] = (loc.near, fb, 0)
             else:
@@ -276,13 +292,19 @@ class SideViewCanvas(QWindow):
                     v[11] = (loc.far, loc.far_bottom, 0)
             ps = self.view.render.pixel_scale()
             v *= ps
-            t = array([
-                [0, 1], [1, 2], [2, 3], [3, 0],  # eye box
-                [4, 5],    # near plane
-                [6, 7],    # far plane
-                [8, 10],   # left plane
-                [9, 11],   # right plane
-            ], dtype=int32)
+            t = array(
+                [
+                    [0, 1],
+                    [1, 2],
+                    [2, 3],
+                    [3, 0],  # eye box
+                    [4, 5],  # near plane
+                    [6, 7],  # far plane
+                    [8, 10],  # left plane
+                    [9, 11],  # right plane
+                ],
+                dtype=int32,
+            )
             self.applique.set_geometry(v, None, t)
             self.applique.vertex_colors = vc
             self.view.draw()
@@ -296,14 +318,18 @@ class SideViewCanvas(QWindow):
 
     def mousePressEvent(self, event):  # noqa
         from Qt.QtCore import Qt
+
         b = event.button() | event.buttons()
         if b & Qt.RightButton:
             from Qt.QtGui import QContextMenuEvent
+
             e = QContextMenuEvent(QContextMenuEvent.Mouse, event.pos())
             self.widget.parent().parent().contextMenuEvent(e)
             return
         if b & Qt.LeftButton:
-            p = event.position() if hasattr(event, 'position') else event.pos()  # PyQt6 / PyQt5
+            p = (
+                event.position() if hasattr(event, "position") else event.pos()
+            )  # PyQt6 / PyQt5
             x, y = p.x(), p.y()
             eye_x, eye_y = self.locations.eye[0:2]
             near = self.locations.near
@@ -324,6 +350,7 @@ class SideViewCanvas(QWindow):
         if not self.moving:
             return
         from Qt.QtCore import Qt
+
         b = event.button() | event.buttons()
         if b & Qt.LeftButton:
             self.moving = self.ON_NOTHING
@@ -333,10 +360,13 @@ class SideViewCanvas(QWindow):
         if self.moving is self.ON_NOTHING:
             return
         from Qt.QtCore import Qt
+
         b = event.button() | event.buttons()
         if (b & Qt.LeftButton) == 0:
             return
-        p = event.position() if hasattr(event, 'position') else event.pos()  # PyQt6 / PyQt5
+        p = (
+            event.position() if hasattr(event, "position") else event.pos()
+        )  # PyQt6 / PyQt5
         x, y = p.x(), p.y()
         diff_x = x - self.x
         self.x, self.y = x, y
@@ -344,7 +374,7 @@ class SideViewCanvas(QWindow):
         shift = self.main_view.camera.position.transform_vector((0, 0, diff_x * psize))
         if self.moving == self.ON_EYE:
             main_camera = self.main_view.camera
-            ortho = hasattr(main_camera, 'field_width')
+            ortho = hasattr(main_camera, "field_width")
             if ortho:
                 size = min(self.view.window_size)
                 # factor = 1 + diff_x / size
@@ -356,7 +386,7 @@ class SideViewCanvas(QWindow):
         elif self.moving == self.ON_NEAR:
             v = self.main_view
             planes = v.clip_planes
-            p = planes.find_plane('near')
+            p = planes.find_plane("near")
             if p:
                 plane_point = p.plane_point
             else:
@@ -364,11 +394,11 @@ class SideViewCanvas(QWindow):
                 camera_pos = v.camera.position.origin()
                 vd = v.camera.view_direction()
                 plane_point = camera_pos + near * vd
-            planes.set_clip_position('near', plane_point - shift, v)
+            planes.set_clip_position("near", plane_point - shift, v)
         elif self.moving == self.ON_FAR:
             v = self.main_view
             planes = v.clip_planes
-            p = planes.find_plane('far')
+            p = planes.find_plane("far")
             if p:
                 plane_point = p.plane_point
             else:
@@ -376,31 +406,38 @@ class SideViewCanvas(QWindow):
                 camera_pos = v.camera.position.origin()
                 vd = v.camera.view_direction()
                 plane_point = camera_pos + far * vd
-            planes.set_clip_position('far', plane_point - shift, v)
+            planes.set_clip_position("far", plane_point - shift, v)
 
     def keyPressEvent(self, event):  # noqa
         return self.session.ui.forward_keystroke(event)
 
 
 class SideViewUI(ToolInstance):
-
     SESSION_ENDURING = True
     help = "help:user/tools/sideview.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
         from chimerax.ui import MainToolWindow
+
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
 
         # UI content code
         from Qt.QtCore import Qt
-        from Qt.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QCheckBox, QStackedWidget
+        from Qt.QtWidgets import (
+            QLabel,
+            QHBoxLayout,
+            QVBoxLayout,
+            QCheckBox,
+            QStackedWidget,
+        )
+
         self.view = v = View(session.models.scene_root_model, window_size=(0, 0))
         v.initialize_rendering(session.main_view.render.opengl_context)
         # TODO: from chimerax.graphics.camera import OrthographicCamera
         v.camera = OrthoCamera()
-        if self.display_name.startswith('Top'):
+        if self.display_name.startswith("Top"):
             side = SideViewCanvas.TOP_SIDE
         else:
             side = SideViewCanvas.RIGHT_SIDE
@@ -419,7 +456,7 @@ class SideViewUI(ToolInstance):
         self.clip_far.clicked.connect(self.on_far)
 
         button_layout = QHBoxLayout()
-        button_layout.setContentsMargins(10,0,0,0)
+        button_layout.setContentsMargins(10, 0, 0, 0)
         button_layout.setSpacing(10)
         button_layout.addWidget(clip, alignment=Qt.AlignCenter)
         button_layout.addWidget(self.clip_near)
@@ -427,13 +464,13 @@ class SideViewUI(ToolInstance):
         button_layout.addStretch(1)
 
         class graphics_area(QStackedWidget):
-
             def sizeHint(self):  # noqa
                 from Qt.QtCore import QSize
+
                 return QSize(200, 200)
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         ga = graphics_area(parent)
         ga.addWidget(self.opengl_canvas.widget)
@@ -453,52 +490,59 @@ class SideViewUI(ToolInstance):
         v = session.main_view
         planes = v.clip_planes
         if not self.clip_near.isChecked():
-            planes.remove_plane('near')
+            planes.remove_plane("near")
             return
-        p = planes.find_plane('near')
+        p = planes.find_plane("near")
         if p:
             return
         b = v.drawing_bounds()
         if b is None:
-            session.logger.info("Can not turn on clipping since there are no models to clip")
+            session.logger.info(
+                "Can not turn on clipping since there are no models to clip"
+            )
             self.clip_near.setChecked(False)
             return
         near, far = v.near_far_distances(v.camera, None)
         camera_pos = v.camera.position.origin()
         vd = v.camera.view_direction()
         plane_point = camera_pos + near * vd
-        planes.set_clip_position('near', plane_point, v)
+        planes.set_clip_position("near", plane_point, v)
 
     def on_far(self, event):
         session = self._session()
         v = session.main_view
         planes = v.clip_planes
         if not self.clip_far.isChecked():
-            planes.remove_plane('far')
+            planes.remove_plane("far")
             return
-        p = planes.find_plane('far')
+        p = planes.find_plane("far")
         if p:
             return
         b = v.drawing_bounds()
         if b is None:
-            session.logger.info("Can not turn on clipping since there are no models to clip")
+            session.logger.info(
+                "Can not turn on clipping since there are no models to clip"
+            )
             self.clip_far.setChecked(False)
             return
         near, far = v.near_far_distances(v.camera, None)
         camera_pos = v.camera.position.origin()
         vd = v.camera.view_direction()
         plane_point = camera_pos + far * vd
-        planes.set_clip_position('far', plane_point, v)
+        planes.set_clip_position("far", plane_point, v)
 
 
 class OrthoOverlay(Drawing):
-    '''Overlay drawing that uses orthographic projection in window pixel units.'''
+    """Overlay drawing that uses orthographic projection in window pixel units."""
+
     def draw(self, renderer, draw_pass):
         r = renderer
         ww, wh = r.render_size()
         from chimerax.graphics.camera import ortho
+
         projection = ortho(0, ww, 0, wh, -1, 1)
         r.set_projection_matrix(projection)
         Drawing.draw(self, renderer, draw_pass)
-        r.set_projection_matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
-                                 (0, 0, 0, 1)))
+        r.set_projection_matrix(
+            ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1))
+        )
