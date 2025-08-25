@@ -43,9 +43,9 @@ begin
 end;
 
 [Setup]
-ArchitecturesAllowed=x64
-ArchitecturesInstallIn64BitMode=x64
-AppCopyright=Copyright © 2016-2019 Regents of the University of California
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
+AppCopyright=Copyright © 2016-2025 Regents of the University of California
 AppId=UCSF ChimeraX $(VERSION)
 AppName=ChimeraX
 AppVersion=$(VERSION)
