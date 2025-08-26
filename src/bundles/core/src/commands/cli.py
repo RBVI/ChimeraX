@@ -2311,6 +2311,8 @@ class CmdDesc:
         "url",
         "synopsis",
         "self_logging",
+        "alias_required",
+        "alias_optional",
     ]
 
     def __init__(
@@ -2349,6 +2351,8 @@ class CmdDesc:
         self.self_logging = self_logging
         self._function = None
         self._can_return_json = False
+        self.alias_required = None
+        self.alias_optional = None
 
     @property
     def function(self):
@@ -2627,7 +2631,10 @@ def register(
         cmd_desc = function
     else:
         cmd_desc.function = function
-        if cmd_desc.synopsis is None and not isinstance(function, Alias):
+        if cmd_desc.is_alias():
+            cmd_desc.alias_required = None
+            cmd_desc.alias_optional = None
+        elif cmd_desc.synopsis is None:
             msg = 'Command "%s" is missing a synopsis' % name
             if logger is None:
                 print(msg)
@@ -3499,13 +3506,18 @@ def _usage(
     syntax = ""
     ci = cmd._ci
     if ci:
+        ci_required = ci._required
+        ci_optional = ci._optional
+        if ci.is_alias() and ci.alias_required is not None:
+            ci_required = ci.alias_required
+            ci_optional = ci.alias_optional
         arg_syntax = []
         if not use_html or cmd._ci.url is None:
             syntax += f"{sb}{escape(cmd.command_name)}{eb}"
         else:
             syntax += f'<a href="{ci.url}">{sb}{escape(cmd.command_name)}{eb}</a>'
-        for arg_name in ci._required:
-            arg_type = ci._required[arg_name]
+        for arg_name in ci_required:
+            arg_type = ci_required[arg_name]
             arg_name = user_kw(arg_name)
             if use_html and arg_type.url is not None:
                 arg_name = arg_type.html_name(arg_name)
@@ -3522,10 +3534,10 @@ def _usage(
                     arg_type_name = arg_type.name
                 arg_syntax.append(f"{si}{arg_name}{ei}: {arg_type_name}")
         num_opt = 0
-        for arg_name in ci._optional:
+        for arg_name in ci_optional:
             if not show_hidden and arg_name in ci._hidden:
                 continue
-            arg_type = ci._optional[arg_name]
+            arg_type = ci_optional[arg_name]
             arg_name = escape(user_kw(arg_name))
             if arg_type.url is not None:
                 arg_name = arg_type.html_name(arg_name)
@@ -3792,7 +3804,7 @@ class Alias:
 
     def expand(self, *args, optional="", partial_ok=False):
         if not partial_ok and len(args) < self.num_args:
-            raise UserError("Not enough arguments")
+            raise UserError(f"Not enough arguments: {len(args)} {self.num_args}")  # DEBUG
         # substitute args for positional arguments
         text = ""
         in_optional = False
@@ -3844,6 +3856,7 @@ class Alias:
 
 
 def set_alias_usage(name, *, user_alias=True, registry=None, url=None, synopsis=None, **kw):
+    """Update command descriptor for alias"""
     arguments = set(["$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$*"])
     unknown = set(kw) - arguments
     if unknown:
@@ -3857,7 +3870,7 @@ def set_alias_usage(name, *, user_alias=True, registry=None, url=None, synopsis=
     if user_alias and (not isinstance(cmd._ci.function, Alias)
                        or not cmd._ci.function.user_generated):
         raise ValueError("can only set usage for user aliases")
-    elif not isinstance(cmd._ci.function, Alias):
+    elif not cmd._ci.is_alias():
         raise ValueError("can only change usage for aliases")
     if url is not None:
         cmd._ci.url = url
@@ -3865,8 +3878,14 @@ def set_alias_usage(name, *, user_alias=True, registry=None, url=None, synopsis=
         cmd._ci.synopsis = synopsis
     if not kw:
         return
-    required = list(cmd._ci._required.items())
-    optional = list(cmd._ci._optional.items())
+    if cmd._ci.alias_required is None:
+        required = list(cmd._ci._required.items())
+    else:
+        required = list(cmd._ci.alias_required.items())
+    if cmd._ci.alias_optional is None:
+        optional = list(cmd._ci._optional.items())
+    else:
+        optional = list(cmd._ci.alias_optional.items())
     if len(optional) > 0 and optional[-1][1] == RestOfLine:
         has_optional_arg = 1
     else:
@@ -3896,8 +3915,8 @@ def set_alias_usage(name, *, user_alias=True, registry=None, url=None, synopsis=
             if arg_num > len(optional) - has_optional_arg:
                 raise ValueError(f"no argument for {arg}")
             optional[arg_num - 1] = (arg_name, arg_type)
-    cmd._ci._required = OrderedDict(required)
-    cmd._ci._optional = OrderedDict(optional)
+    cmd._ci.alias_required = OrderedDict(required)
+    cmd._ci.alias_optional = OrderedDict(optional)
 
 
 def list_aliases(all=False, logger=None):

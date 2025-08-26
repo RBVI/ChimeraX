@@ -63,7 +63,6 @@ class DouseResultsViewer(CheckWaterViewer):
             "Waters in input model only"
             ))
 
-from chimerax.core.settings import Settings
 from .douse import command_defaults as douse_defaults
 class LaunchDouseSettings(Settings):
     AUTO_SAVE = {
@@ -1232,8 +1231,10 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         self.hbonds = hbonds
         self.clashes = clashes
         if isinstance(self.ligand_value, Model):
+            #TODO: copy model
             pass
         else:
+            #TODO: translate to structure
             pass
         #TODO: adjust guide_structure coords so that they are centered at initial_center
         super().__init__(session, initial_center, guide_structure)
@@ -1723,13 +1724,13 @@ def _run_ligand_fit_command(session, center, ligand_fmt, ligand_value, receptor,
     from chimerax.core.commands import run, StringArg, BoolArg
     from chimerax.map import Volume
     LLFT = LaunchLigandFitTool
-    lig_arg = "%s:%s" % ({LLFT.LIGAND_FMT_CCD: "ccd", LLFT.LIGAND_FMT_MODEL: "file",
-        LLFT.LIGAND_FMT_PUBCHEM: "pubchem", LLFT.LIGAND_FMT_SMILES: "smiles"}[ligand_fmt],
+    lig_arg = "%s%s" % ({LLFT.LIGAND_FMT_CCD: "ccd:", LLFT.LIGAND_FMT_MODEL: "",
+        LLFT.LIGAND_FMT_PUBCHEM: "pubchem:", LLFT.LIGAND_FMT_SMILES: "smiles:"}[ligand_fmt],
         (ligand_value.atomspec if ligand_fmt == LLFT.LIGAND_FMT_MODEL else ligand_value))
-    cmd = "phenix ligandFit %s %s center %g,%g,%g inMap %s resolution %g extentType %s extentValue %g" \
-        " hbonds %s clashes %s" % (receptor.atomspec, StringArg.unparse(lig_arg), *center, map.atomspec,
-        resolution, ("length" if extent_type == LaunchLigandFitTool.EXTENT_LENGTH else "angstroms"),
-        extent_value, BoolArg.unparse(hbonds), BoolArg.unparse(clashes))
+    cmd = "phenix ligandFit %s ligand %s center %g,%g,%g inMap %s resolution %g extentType %s" \
+        " extentValue %g hbonds %s clashes %s" % (receptor.atomspec, StringArg.unparse(lig_arg), *center,
+        map.atomspec, resolution, ("length" if extent_type == LaunchLigandFitTool.EXTENT_LENGTH
+        else "angstroms"), extent_value, BoolArg.unparse(hbonds), BoolArg.unparse(clashes))
     if chain_id:
         cmd += " chain " + chain_id
     if res_num is not None:

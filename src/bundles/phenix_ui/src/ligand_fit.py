@@ -27,6 +27,7 @@
 #
 from chimerax.core.tasks import Job
 from chimerax.core.errors import UserError
+from chimerax.atomic import AtomicStructure, Atom, colors, Residue
 from time import time
 
 class FitJob(Job):
@@ -93,8 +94,8 @@ class FitJob(Job):
 command_defaults = {
     'verbose': False
 }
-def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resolution=None, *, block=None,
-        chain_id=None, clashes=False, extent_type="ligand", extent_value=1.1, hbonds=False,
+def phenix_ligand_fit(session, model, ligand=None, center=None, in_map=None, resolution=None, *, block=None,
+        chain_id=None, clashes=False, extent_type="length", extent_value=1.1, hbonds=False,
         phenix_location=None, residue_number=None, verbose=command_defaults['verbose'],
         option_arg=[], position_arg=[]):
 
@@ -111,41 +112,39 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resoluti
 
     # Setup temporary directory to run phenix.ligandfit
     from tempfile import TemporaryDirectory
-    d = TemporaryDirectory(prefix = 'phenix_ligandfit_')  # Will be cleaned up when object deleted.
-    temp_dir = d.name
-
-    # Check map_data arg and save map data
-    from os import path
-    from chimerax.map_data import save_grid_data
-    save_grid_data([in_map.data], path.join(temp_dir, 'map.mrc'), session)
+    tdir = TemporaryDirectory(prefix = 'phenix_ligandfit_')  # Will be cleaned up when object deleted.
+    temp_dir = tdir.name
 
     # Save model to file.
     from chimerax.pdb import save_pdb
+    from os import path
     save_pdb(session, path.join(temp_dir,'model.pdb'), models=[model], rel_model=in_map)
 
-    if ligand.startswith(('smiles:', 'ccd:', 'pubchem:')):
-        ligand_data = ligand
-    elif ligand.startswith('file:'):
-        ligand_format, ligand_data = ligand.split(':', 1)
+    if isinstance(ligand, AtomicStructure):
+        ligand_models = [ligand]
     else:
-        import os
-        if os.path.exists(ligand):
+        if ligand.startswith(('smiles:', 'ccd:', 'pubchem:')):
             ligand_data = ligand
-            ligand_format = 'file'
+        elif ligand.startswith('file:'):
+            ligand_format, ligand_data = ligand.split(':', 1)
         else:
-            if ligand.isdigit() and len(ligand) != 3:
-                ligand_format = 'pubchem'
-            elif len(ligand) in (3,5) and ligand.isalnum():
-                ligand_format = 'ccd'
+            if path.exists(ligand):
+                ligand_data = ligand
+                ligand_format = 'file'
             else:
-                ligand_format = 'smiles'
-            ligand_data = ligand_format + ':' + ligand
-        session.logger.info(f"Guessing ligand format to be '{ligand_format}'")
+                if ligand.isdigit() and len(ligand) != 3:
+                    ligand_format = 'pubchem'
+                elif len(ligand) in (3,5) and ligand.isalnum():
+                    ligand_format = 'ccd'
+                else:
+                    ligand_format = 'smiles'
+                ligand_data = ligand_format + ':' + ligand
+            session.logger.info(f"Guessing ligand format to be '{ligand_format}'")
 
-    try:
-        ligand_models, status = session.open_command.open_data(ligand_data)
-    except Exception as e:
-        raise UserError(f"Cannot open ligand '{ligand}': {str(e)}")
+        try:
+            ligand_models, status = session.open_command.open_data(ligand_data)
+        except Exception as e:
+            raise UserError(f"Cannot open ligand '{ligand}': {str(e)}")
 
     check_needed = chain_id is not None and residue_number is not None
     if chain_id is None:
@@ -166,11 +165,47 @@ def phenix_ligand_fit(session, model, ligand, center=None, in_map=None, resoluti
     from chimerax.pdb import save_pdb
     save_pdb(session, path.join(temp_dir,'ligand.pdb'), models=ligand_models)
 
+    # convert extent to angstroms if needed
+    #NOTE: debugging
+    print("Extent type:", extent_type)
+    if extent_type == "length":
+        from chimerax.geometry import distance
+        longest = None
+        for i, a1 in enumerate(ligand_models[0].atoms):
+            for a2 in ligand_models[0].atoms[i+1:]:
+                d = distance(a1.coord, a2.coord)
+                if longest is None or d > longest:
+                    longest = d
+        if longest is None:
+            longest = ligand_models[0].atoms[0].radius
+        extent_angstroms = extent_value * longest
+    else:
+        extent_angstroms = extent_value
+    #NOTE: debugging
+    print("Extent in angstroms:", extent_angstroms)
+
+    # save map data
+    vxyz = in_map.scene_position.inverse() * center.scene_coordinates()
+    center_ijk = in_map.data.xyz_to_ijk(vxyz)
+    size_ijk = [extent_angstroms / s for s in in_map.data.step]
+    from math import ceil, floor
+    ijk_max = [int(ceil(c + s)) for c,s in zip(center_ijk, size_ijk)]
+    ijk_min = [int(floor(c - s)) for c,s in zip(center_ijk, size_ijk)]
+    # Make sure region is within the bounds of the full map
+    from chimerax.map_data import clamp_region
+    ijk_min, ijk_max = clamp_region((ijk_min, ijk_max), in_map.data.size)
+    grid_data = in_map.grid_data(subregion=(ijk_min, ijk_max))
+    from chimerax.map_data import save_grid_data
+    from chimerax.map import Volume
+    #NOTE: debugging
+    session.models.add([Volume(session, grid_data)])
+    save_grid_data(grid_data, path.join(temp_dir, 'map.mrc'), session)
+
     # Run phenix.ligandfit
-    # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
+    # keep a reference to 'tdir' in the callback so that the temporary directory isn't removed before
     # the program runs
     callback = lambda placed_ligand, *args, session=session, model=model, chain_id=chain_id, \
-        hbonds=hbonds, clashes=clashes, residue_number=residue_number, d_ref=d: _process_results(
+        hbonds=hbonds, clashes=clashes, residue_number=residue_number, d_ref=tdir: _process_results(
         session, placed_ligand, model, chain_id, residue_number, hbonds, clashes)
     FitJob(session, exe_path, option_arg, search_center, resolution, position_arg, temp_dir, verbose,
         callback, block)
@@ -242,7 +277,6 @@ def _process_results(session, placed_ligand, model, chain_id, residue_number, hb
     if model.deleted:
         placed_ligand.delete()
         raise UserError("Receptor structure was deleted during ligand fitting")
-    from chimerax.atomic import Atom, colors, Residue
     res = placed_ligand.residues[0]
     res.chain_id = chain_id
     res.number = residue_number
@@ -343,14 +377,14 @@ def register_command(logger):
     from chimerax.map import MapArg
     from chimerax.atomic import AtomicStructureArg
     desc = CmdDesc(
-        required = [('model', AtomicStructureArg),
-                    ('ligand', Or(OpenFileNameArg,StringArg)),
-        ],
-        required_arguments = ['center', 'in_map', 'resolution'],
-        keyword = [('center', CenterArg),
+        required = [('model', AtomicStructureArg),],
+        required_arguments = ['ligand', 'center', 'in_map', 'resolution'],
+        keyword = [
+                   ('ligand', Or(AtomicStructureArg, OpenFileNameArg, StringArg)),
+                   ('center', CenterArg),
                    ('in_map', MapArg),
                    ('resolution', PositiveFloatArg),
-                   # put the above three first so that they show up in usage before the optional keywords
+                   # put the above four first so that they show up in usage before the optional keywords
                    ('block', BoolArg),
                    ('clashes', BoolArg),
                    ('chain_id', StringArg),
