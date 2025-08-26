@@ -91,6 +91,31 @@ class FitJob(Job):
     def running(self):
         return self._running
 
+def ligand_from_string(session, ligand):
+    if ligand.startswith(('smiles:', 'ccd:', 'pubchem:')):
+        ligand_data = ligand
+    elif ligand.startswith('file:'):
+        ligand_format, ligand_data = ligand.split(':', 1)
+    else:
+        if path.exists(ligand):
+            ligand_data = ligand
+            ligand_format = 'file'
+        else:
+            if ligand.isdigit() and len(ligand) != 3:
+                ligand_format = 'pubchem'
+            elif len(ligand) in (3,5) and ligand.isalnum():
+                ligand_format = 'ccd'
+            else:
+                ligand_format = 'smiles'
+            ligand_data = ligand_format + ':' + ligand
+        session.logger.info(f"Guessing ligand format to be '{ligand_format}'")
+
+    try:
+        ligand_models, status = session.open_command.open_data(ligand_data)
+    except Exception as e:
+        raise UserError(f"Cannot open ligand '{ligand}': {str(e)}")
+    return ligand_models[0]
+
 command_defaults = {
     'verbose': False
 }
@@ -121,30 +146,9 @@ def phenix_ligand_fit(session, model, ligand=None, center=None, in_map=None, res
     save_pdb(session, path.join(temp_dir,'model.pdb'), models=[model], rel_model=in_map)
 
     if isinstance(ligand, AtomicStructure):
-        ligand_models = [ligand]
+        ligand_model = ligand
     else:
-        if ligand.startswith(('smiles:', 'ccd:', 'pubchem:')):
-            ligand_data = ligand
-        elif ligand.startswith('file:'):
-            ligand_format, ligand_data = ligand.split(':', 1)
-        else:
-            if path.exists(ligand):
-                ligand_data = ligand
-                ligand_format = 'file'
-            else:
-                if ligand.isdigit() and len(ligand) != 3:
-                    ligand_format = 'pubchem'
-                elif len(ligand) in (3,5) and ligand.isalnum():
-                    ligand_format = 'ccd'
-                else:
-                    ligand_format = 'smiles'
-                ligand_data = ligand_format + ':' + ligand
-            session.logger.info(f"Guessing ligand format to be '{ligand_format}'")
-
-        try:
-            ligand_models, status = session.open_command.open_data(ligand_data)
-        except Exception as e:
-            raise UserError(f"Cannot open ligand '{ligand}': {str(e)}")
+        ligand_model = ligand_from_string(session, ligand)
 
     check_needed = chain_id is not None and residue_number is not None
     if chain_id is None:
@@ -163,7 +167,7 @@ def phenix_ligand_fit(session, model, ligand=None, center=None, in_map=None, res
 
     # Save ligand to file.
     from chimerax.pdb import save_pdb
-    save_pdb(session, path.join(temp_dir,'ligand.pdb'), models=ligand_models)
+    save_pdb(session, path.join(temp_dir,'ligand.pdb'), models=[ligand_model])
 
     # convert extent to angstroms if needed
     #NOTE: debugging

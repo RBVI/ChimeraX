@@ -1074,7 +1074,7 @@ class VerifyCenterDialog(QDialog):
         self.model = model
 
         from chimerax.core.models import REMOVE_MODELS
-        self.handler = session.triggers.add_handler(REMOVE_MODELS, self._check_still_valid)
+        self.vcd_handler = session.triggers.add_handler(REMOVE_MODELS, self._check_still_valid)
 
         from Qt.QtWidgets import QVBoxLayout, QLabel
         layout = QVBoxLayout()
@@ -1083,6 +1083,8 @@ class VerifyCenterDialog(QDialog):
         instructions.setWordWrap(True)
         instructions.setAlignment(Qt.AlignCenter)
         layout.addWidget(instructions)
+
+        self.add_custom_widgets(layout)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Cancel)
@@ -1094,6 +1096,9 @@ class VerifyCenterDialog(QDialog):
 
         self.show()
 
+    def add_custom_widgets(self, layout):
+        pass
+
     @property
     @abc.abstractmethod
     def check_models(self):
@@ -1102,8 +1107,8 @@ class VerifyCenterDialog(QDialog):
     def closeEvent(self, event):
         if not self.model.deleted:
             self.session.models.close([self.model])
-        self.handler.remove()
-        super().closeEvent(event)
+        self.vcd_handler.remove()
+        return super().closeEvent(event)
 
     @property
     @abc.abstractmethod
@@ -1118,11 +1123,6 @@ class VerifyCenterDialog(QDialog):
     @property
     @abc.abstractmethod
     def search_button_label(self):
-        pass
-
-    @property
-    @abc.abstractmethod
-    def search_radius(self):
         pass
 
     def _check_still_valid(self, trig_name, removed_models):
@@ -1209,18 +1209,15 @@ class VerifyELCenterDialog(VerifyMarkerCenterDialog):
 class VerifyStructureCenterDialog(VerifyCenterDialog):
     def __init__(self, session, initial_center, structure):
         self.structure = structure
-
-        
-
-        from chimerax.core.commands import run
-        self.marker = run(session, "marker #%d position %g,%g,%g radius %g color 100,65,0,50"
-            % (self.marker_set_id, *initial_center, self.search_radius))
-        super().__init__(session, self.marker.structure)
+        crd_mean = structure.atoms.coords.mean(0)
+        import numpy
+        structure.atoms.coords += numpy.array(initial_center) - structure.atoms.coords.mean(0)
+        session.models.add([structure])
+        super().__init__(session, structure)
 
 class VerifyLFCenterDialog(VerifyStructureCenterDialog):
-    def __init__(self, session, ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution,
-            initial_center, extent_type, extent_value, hbonds, clashes):
-        self._search_radius = None
+    def __init__(self, session, initial_center, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
+            resolution, extent_type, extent_value, hbonds, clashes):
         self.ligand_fmt = ligand_fmt
         self.ligand_value = ligand_value
         self.receptor = receptor
@@ -1228,55 +1225,73 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         self.chain_id = chain_id
         self.res_num = res_num
         self.resolution = resolution
+        self.extent_type = extent_type
+        self.extent_value = extent_value
         self.hbonds = hbonds
         self.clashes = clashes
-        if isinstance(self.ligand_value, Model):
-            #TODO: copy model
-            pass
-        else:
-            #TODO: translate to structure
-            pass
-        #TODO: adjust guide_structure coords so that they are centered at initial_center
-        super().__init__(session, initial_center, guide_structure)
-
-    @property
-    @abc.abstractmethod
-    def check_models(self):
-        check_models = [self.map, self.receptor]
         from chimerax.core.models import Model
         if isinstance(self.ligand_value, Model):
-            check_models.append(self.ligand_value)
-        return check_models
+            ligand = self.ligand_value.copy()
+        else:
+            from .ligand_fit import ligand_from_string
+            ligand = ligand_from_string(session,
+                LaunchLigandFitTool.ligand_fmt_to_prefix[ligand_fmt] + ligand_value)
+        super().__init__(session, initial_center, ligand)
+        from chimerax.core.commands import run
+        self.marker = run(session, "ui mousemode right 'translate selected models'")
+
+    def add_custom_widgets(self, layout):
+        super().add_custom_widgets(layout)
+        from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QGroupBox, QRadioButton
+        button_area = QGroupBox("Right Mouse Function")
+        button_area.setAlignment(Qt.AlignHCenter)
+        layout.addWidget(button_area)
+        b_layout = QHBoxLayout()
+        button_area.setLayout(b_layout)
+        #TODO: the next two buttons need to do something when clicked
+        self.bounds_button = QRadioButton("Adjust search bounds")
+        b_layout.addWidget(self.bounds_button)
+        self.center_button = QRadioButton("Move example ligand")
+        b_layout.addWidget(self.center_button)
+        self.other_button = QRadioButton("(Other)")
+        b_layout.addWidget(self.other_button)
+        self.other_button.setEnabled(False)
+        self.mouse_handler = self.session.triggers.add_handler("set mouse mode", self._mouse_mode_changed)
+
+    @property
+    def check_models(self):
+        return [self.map, self.receptor, self.structure]
+
+    def closeEvent(self, event):
+        self.mouse_handler.remove()
+        return super().closeEvent(event)
 
     @property
     def instructions(self):
         return (
-            "A transparent orange marker (model #%d) has been drawn to show the search center. "
-            "The search center can be moved by moving the marker, "
-            "using any ChimeraX method for moving markers or models "
-            '(e.g. the "move markers" right mouse mode in the Markers section of the toolbar).'
-            '  When the position is satisfactory, click "%s."'
-             % (self.marker_set_id, self.search_button_label)
+            #TODO
+            "Instructions not available"
         )
 
     def launch(self):
-        if self.opaque_maps:
-            for m, alpha in self.opaque_data.items():
-                if not m.deleted:
-                    rgba = list(m.rgba)
-                    rgba[-1] = alpha
-                    m.rgba = tuple(rgba)
-        center = self.marker.scene_coord
-        _run_ligand_fit_command(self.session, self.ligand_fmt, self.ligand_value, self.receptor, self.map,
-            self.chain_id, self.res_num, self.resolution, center, self.hbonds, self.clashes)
+        #TODO
+        pass
 
     @property
     def search_button_label(self):
-        return "Start search"
+        return "Start ligand fitting"
 
-    @property
-    def search_radius(self):
-        return 2.0
+    def _mouse_mode_changed(self, trig_name, trig_data):
+        button, modifiers, mode = trig_data
+        if mode.name == 'translate selected models':
+            self.center_button.setChecked(True)
+            self.other_button.setHidden(True)
+        elif mode.name == '??adjust bounds??': #TODO
+            self.bounds_button.setChecked(True)
+            self.other_button.setHidden(True)
+        else:
+            self.other_button.setHidden(False)
+            self.other_button.setChecked(True)
 
 class LaunchLigandFitTool(ToolInstance):
     #help = "help:user/tools/localemfitting.html"
@@ -1298,6 +1313,8 @@ class LaunchLigandFitTool(ToolInstance):
     LIGAND_FMT_PUBCHEM = "PubChem identifier"
     LIGAND_FMT_SMILES = "SMILES string"
     LIGAND_FORMATS = [LIGAND_FMT_CCD, LIGAND_FMT_MODEL, LIGAND_FMT_PUBCHEM, LIGAND_FMT_SMILES]
+    ligand_fmt_to_prefix = {LIGAND_FMT_CCD: "ccd:", LIGAND_FMT_MODEL: "", LIGAND_FMT_PUBCHEM: "pubchem:",
+        LIGAND_FMT_SMILES: "smiles:"}
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -1724,8 +1741,7 @@ def _run_ligand_fit_command(session, center, ligand_fmt, ligand_value, receptor,
     from chimerax.core.commands import run, StringArg, BoolArg
     from chimerax.map import Volume
     LLFT = LaunchLigandFitTool
-    lig_arg = "%s%s" % ({LLFT.LIGAND_FMT_CCD: "ccd:", LLFT.LIGAND_FMT_MODEL: "",
-        LLFT.LIGAND_FMT_PUBCHEM: "pubchem:", LLFT.LIGAND_FMT_SMILES: "smiles:"}[ligand_fmt],
+    lig_arg = "%s%s" % (self.ligand_fmt_to_prefix[ligand_fmt],
         (ligand_value.atomspec if ligand_fmt == LLFT.LIGAND_FMT_MODEL else ligand_value))
     cmd = "phenix ligandFit %s ligand %s center %g,%g,%g inMap %s resolution %g extentType %s" \
         " extentValue %g hbonds %s clashes %s" % (receptor.atomspec, StringArg.unparse(lig_arg), *center,
