@@ -415,7 +415,9 @@ class ViewDockTool(ToolInstance):
         for s in self.struct_table.selected:
             s.viewdock_data[RATING_KEY] = value
             self.struct_table.update_cell('Rating', s)
-        self.update_model_description()
+            if self.rating_label_info is not None:
+                col, rating_label = self.rating_label_info
+                rating_label.setText(col.display_value(s))
 
     def display_key(self, key):
         return key.replace('.', ' ').replace('_', ' ')
@@ -481,6 +483,7 @@ class ViewDockTool(ToolInstance):
             label = QLabel("<b>" + ("Multiple compounds" if multiple else "No compound") + " selected</b>")
             label.setFont(label_font)
             layout.addWidget(label, 0, 0, alignment=Qt.AlignCenter)
+            self.rating_label_info = None
             return
 
         docking_structure = selected[0]
@@ -519,6 +522,8 @@ class ViewDockTool(ToolInstance):
             value_label.setFont(label_font)
             value_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
             layout.addWidget(value_label, row, col + 1)
+            if title == "Rating":
+                self.rating_label_info = (column_map[title], value_label)
 
         row = rows_per_column
         for title in long_titles:
@@ -614,10 +619,10 @@ class ViewDockTool(ToolInstance):
                         counts[s] += 1
         for s, count in counts.items():
             # divide by two since both "directions" occur in the clash results
-            s.viewdock_data["clashes"] = count // 2
+            s.viewdock_data["Clashes"] = count // 2
         if self.clashes_col is None:
             self.clashes_col = self.struct_table.add_column("Clashes",
-                lambda s: s.viewdock_data["clashes"])
+                lambda s: s.viewdock_data["Clashes"])
         else:
             self.struct_table.update_column(self.clashes_col, data=True)
         self.update_model_description()
@@ -629,9 +634,9 @@ class ViewDockTool(ToolInstance):
                 if s in counts:
                     counts[s] += 1
         for s, count in counts.items():
-            s.viewdock_data["hbonds"] = count
+            s.viewdock_data["H-Bonds"] = count
         if self.hbonds_col is None:
-            self.hbonds_col = self.struct_table.add_column("H-Bonds", lambda s: s.viewdock_data["hbonds"])
+            self.hbonds_col = self.struct_table.add_column("H-Bonds", lambda s: s.viewdock_data["H-Bonds"])
         else:
             self.struct_table.update_column(self.hbonds_col, data=True)
         self.update_model_description()

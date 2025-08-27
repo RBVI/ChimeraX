@@ -216,7 +216,7 @@ class InstallBoltz:
                 if self._download_model_weights_and_ccd:
                     self._download_model_weights_and_ccd_database()
                     return
-            self._session.logger.info('Successfully installed Boltz.')
+            self._session.logger.info('Successfully installed Boltz program and neural net weights.')
 
         self.success = success
         if self.finished_callback:

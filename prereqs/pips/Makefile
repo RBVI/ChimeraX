@@ -117,7 +117,7 @@ ifeq ($(OSARCH),Linux)
 endif
 endif
 
-app_requirements.txt:
+app_requirements.txt: ../../pyproject.toml
 	$(APP_PYTHON_BIN) make_requirements.py
 
 uv-install: $(PLATO_WHEELS)
@@ -130,7 +130,7 @@ endif
 		patch --ignore-whitespace -d $(TOP)/.venv/lib/python3.11/site-packages/ -N -p0 < $$p ; \
 	done
 
-app-upgrade:
+app-upgrade: app_requirements.txt
 	$(APP_PIP_INSTALL) -U -r app_requirements.txt
 
 # Example targets for patching a pip package. These targets would

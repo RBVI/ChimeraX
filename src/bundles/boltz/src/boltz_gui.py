@@ -917,6 +917,8 @@ class BoltzPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _boltz_install_finished(self, success):
+        if self.tool_window.ui_area is None:
+            return	# Boltz gui was closed.
         layout = self._button_row.layout()
         layout.removeWidget(self._installing_label)
         self._installing_label.deleteLater()
