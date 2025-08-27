@@ -1236,9 +1236,31 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
             from .ligand_fit import ligand_from_string
             ligand = ligand_from_string(session,
                 LaunchLigandFitTool.ligand_fmt_to_prefix[ligand_fmt] + ligand_value)
+        if extent_type == LaunchLigandFitTool.EXTENT_ANGSTROMS:
+            extent_angstroms = extent_value
+        else:
+            from chimerax.geometry import distance
+            longest = None
+            for i, a1 in enumerate(ligand.atoms):
+                for a2 in ligand.atoms[i+1:]:
+                    d = distance(a1.coord, a2.coord)
+                    if longest is None or d > longest:
+                        longest = d
+            if longest is None:
+                longest = ligand_models[0].atoms[0].radius
+            extent_angstroms = extent_value * longest
+        from .ligand_fit import ijk_min_max
+        ijk_min, ijk_max = ijk_min_max(map, initial_center, extent_angstroms)
+        map.new_region(ijk_min, ijk_max, map.region[-1], adjust_step=False, adjust_voxel_limit=False)
+        map.rendering_options.show_outline_box = True
+        #TODO: register callback with map for region changes
+        self.center = initial_center
+
+        self.bounds_text = "Adjust search bounds"
+        self.move_text = "Move example ligand"
         super().__init__(session, initial_center, ligand)
         from chimerax.core.commands import run
-        self.marker = run(session, "ui mousemode right 'translate selected models'")
+        run(session, f"view {map.atomspec}; ui mousemode right 'translate selected models'; select {ligand.atomspec}")
 
     def add_custom_widgets(self, layout):
         super().add_custom_widgets(layout)
@@ -1248,10 +1270,14 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         layout.addWidget(button_area)
         b_layout = QHBoxLayout()
         button_area.setLayout(b_layout)
-        #TODO: the next two buttons need to do something when clicked
-        self.bounds_button = QRadioButton("Adjust search bounds")
+        from chimerax.core.commands import run
+        self.bounds_button = QRadioButton(self.bounds_text)
+        self.bounds_button.toggled.connect(lambda *args, run=run, ses=self.session:
+            run(ses, "ui mousemode right 'crop volume'"))
         b_layout.addWidget(self.bounds_button)
-        self.center_button = QRadioButton("Move example ligand")
+        self.center_button = QRadioButton(self.move_text)
+        self.center_button.toggled.connect(lambda *args, run=run, ses=self.session:
+            run(ses, "ui mousemode right 'translate selected models'"))
         b_layout.addWidget(self.center_button)
         self.other_button = QRadioButton("(Other)")
         b_layout.addWidget(self.other_button)
@@ -1269,8 +1295,15 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
     @property
     def instructions(self):
         return (
-            #TODO
-            "Instructions not available"
+            "While the '%s' mouse mode (below) is active, you can move the ligand with the right mouse"
+            " to place its center where you want the search focused.  The ligand must be selected"
+            " (green outline) to be moved.  Once satified with the search focus, switch to the '%s'"
+            " mouse mode to use the right mouse to adjust the bounds of the search area.  You can switch"
+            " between centering/focusing and bounds adjustment as needed.  You may have to occasionally"
+            " switch to the 'Translate' mouse mode (in the Right Mouse tab at the top right of the ChimeraX"
+            " window) to adjust your view of the search area.  When satisified with the search area, click"
+            " the '%s' button to fit the ligand." % (self.move_text, self.bounds_text,
+                self.search_button_label)
         )
 
     def launch(self):
@@ -1283,15 +1316,22 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
 
     def _mouse_mode_changed(self, trig_name, trig_data):
         button, modifiers, mode = trig_data
-        if mode.name == 'translate selected models':
-            self.center_button.setChecked(True)
-            self.other_button.setHidden(True)
-        elif mode.name == '??adjust bounds??': #TODO
-            self.bounds_button.setChecked(True)
-            self.other_button.setHidden(True)
-        else:
-            self.other_button.setHidden(False)
-            self.other_button.setChecked(True)
+        all_buttons = [self.center_button, self.bounds_button, self.other_button]
+        for b in all_buttons:
+            b.blockSignals(True)
+        try:
+            if mode.name == 'translate selected models':
+                self.center_button.setChecked(True)
+                self.other_button.setHidden(True)
+            elif mode.name == 'crop volume':
+                self.bounds_button.setChecked(True)
+                self.other_button.setHidden(True)
+            else:
+                self.other_button.setHidden(False)
+                self.other_button.setChecked(True)
+        finally:
+            for b in all_buttons:
+                b.blockSignals(False)
 
 class LaunchLigandFitTool(ToolInstance):
     #help = "help:user/tools/localemfitting.html"

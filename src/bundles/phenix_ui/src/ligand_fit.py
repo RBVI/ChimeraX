@@ -91,6 +91,17 @@ class FitJob(Job):
     def running(self):
         return self._running
 
+def ijk_min_max(v, center, angstroms):
+    vxyz = v.scene_position.inverse() * center
+    center_ijk = v.data.xyz_to_ijk(vxyz)
+    size_ijk = [angstroms / s for s in v.data.step]
+    from math import ceil, floor
+    ijk_max = [int(ceil(c + s)) for c,s in zip(center_ijk, size_ijk)]
+    ijk_min = [int(floor(c - s)) for c,s in zip(center_ijk, size_ijk)]
+    # Make sure region is within the bounds of the full map
+    from chimerax.map_data import clamp_region
+    return clamp_region((ijk_min, ijk_max), v.data.size)
+
 def ligand_from_string(session, ligand):
     if ligand.startswith(('smiles:', 'ccd:', 'pubchem:')):
         ligand_data = ligand
@@ -120,7 +131,7 @@ command_defaults = {
     'verbose': False
 }
 def phenix_ligand_fit(session, model, ligand=None, center=None, in_map=None, resolution=None, *, block=None,
-        chain_id=None, clashes=False, extent_type="length", extent_value=1.1, hbonds=False,
+        chain_id=None, clashes=False, extent_type=None, extent_value=1.1, hbonds=False,
         phenix_location=None, residue_number=None, verbose=command_defaults['verbose'],
         option_arg=[], position_arg=[]):
 
@@ -170,8 +181,6 @@ def phenix_ligand_fit(session, model, ligand=None, center=None, in_map=None, res
     save_pdb(session, path.join(temp_dir,'ligand.pdb'), models=[ligand_model])
 
     # convert extent to angstroms if needed
-    #NOTE: debugging
-    print("Extent type:", extent_type)
     if extent_type == "length":
         from chimerax.geometry import distance
         longest = None
@@ -183,26 +192,16 @@ def phenix_ligand_fit(session, model, ligand=None, center=None, in_map=None, res
         if longest is None:
             longest = ligand_models[0].atoms[0].radius
         extent_angstroms = extent_value * longest
-    else:
+    elif extent_type == "angstroms":
         extent_angstroms = extent_value
-    #NOTE: debugging
-    print("Extent in angstroms:", extent_angstroms)
 
     # save map data
-    vxyz = in_map.scene_position.inverse() * center.scene_coordinates()
-    center_ijk = in_map.data.xyz_to_ijk(vxyz)
-    size_ijk = [extent_angstroms / s for s in in_map.data.step]
-    from math import ceil, floor
-    ijk_max = [int(ceil(c + s)) for c,s in zip(center_ijk, size_ijk)]
-    ijk_min = [int(floor(c - s)) for c,s in zip(center_ijk, size_ijk)]
-    # Make sure region is within the bounds of the full map
-    from chimerax.map_data import clamp_region
-    ijk_min, ijk_max = clamp_region((ijk_min, ijk_max), in_map.data.size)
-    grid_data = in_map.grid_data(subregion=(ijk_min, ijk_max))
+    if extent_type is not None:
+        ijk_min, ijk_max = ijk_min_max(in_map, center.scene_coordinates(), extent_angstroms)
+        grid_data = in_map.grid_data(subregion=(ijk_min, ijk_max))
+    else:
+        grid_data = in_map
     from chimerax.map_data import save_grid_data
-    from chimerax.map import Volume
-    #NOTE: debugging
-    session.models.add([Volume(session, grid_data)])
     save_grid_data(grid_data, path.join(temp_dir, 'map.mrc'), session)
 
     # Run phenix.ligandfit
