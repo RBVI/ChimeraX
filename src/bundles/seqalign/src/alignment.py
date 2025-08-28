@@ -643,14 +643,14 @@ class Alignment(State):
             if conservation is None:
                 final_restriction = None
             else:
-                threshold = len(self._seqs) * conservation / 100.0
+                threshold = len(self._seqs) * conservation
                 final_restriction = set([col for col in range(len(self._seqs[0]))
                     if self.most_common(col)[-1] >= threshold])
         else:
             if conservation is None:
                 final_restriction = set(restriction)
             else:
-                threshold = len(self._seqs) * conservation / 100.0
+                threshold = len(self._seqs) * conservation
                 final_restriction = set([col for col in restriction
                     if self.most_common(col)[-1] >= threshold])
 
@@ -1075,7 +1075,8 @@ class Alignment(State):
         if headers is None:
             headers = [hdr for hdr in self._headers if hdr.shown or hdr.eval_while_hidden]
             if len(self.seqs) > 1:
-                values = [100.0 * self.most_common(col)[1] for col in range(len(self._seqs[0]))]
+                num_seqs = len(self._seqs)
+                values = [100.0 * self.most_common(col)[1] / num_seqs for col in range(len(self._seqs[0]))]
                 process_attr(self.COL_IDENTITY_ATTR, values)
         from chimerax.atomic import Residue
         for header in headers:
