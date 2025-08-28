@@ -198,13 +198,14 @@ BaseManager::session_save_setup() const
 }
 
 void
-BaseManager::session_restore(int version, int** ints, float** floats, PyObject* misc)
+BaseManager::session_restore(int version, int** ints, float** floats, PyObject* misc, bool combine)
 {
     if (version > CURRENT_SESSION_VERSION)
         throw std::invalid_argument("Don't know how to restore new session data; update your"
             " version of ChimeraX");
 
-    clear(); // only really relevant for global manager, but oh well
+    if (!combine)
+        clear(); // only really relevant for global manager, but oh well
 
     auto& int_ptr = *ints;
     auto& float_ptr = *floats;
