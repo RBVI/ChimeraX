@@ -1253,7 +1253,7 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         ijk_min, ijk_max = ijk_min_max(map, initial_center, extent_angstroms)
         map.new_region(ijk_min, ijk_max, map.region[-1], adjust_step=False, adjust_voxel_limit=False)
         map.rendering_options.show_outline_box = True
-        #TODO: register callback with map for region changes
+        map.add_volume_change_callback(self._vol_change_cb)
         self.center = initial_center
 
         self.bounds_text = "Adjust search bounds"
@@ -1290,6 +1290,7 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
 
     def closeEvent(self, event):
         self.mouse_handler.remove()
+        self.map.remove_volume_change_callback(self._vol_change_cb)
         return super().closeEvent(event)
 
     @property
@@ -1314,6 +1315,10 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
     def search_button_label(self):
         return "Start ligand fitting"
 
+    @property
+    def search_center(self):
+        return self.structure.atoms.scene_coords.mean(0)
+
     def _mouse_mode_changed(self, trig_name, trig_data):
         button, modifiers, mode = trig_data
         all_buttons = [self.center_button, self.bounds_button, self.other_button]
@@ -1332,6 +1337,16 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         finally:
             for b in all_buttons:
                 b.blockSignals(False)
+
+    def _vol_change_cb(self, vol, reason):
+        if reason != "region changed" or vol != self.map:
+            return
+        #TODO: need to track changes in center or compute center from ligand
+        #  which might be inverting origin from ligand's scene coordinates(?)
+        #
+        #vxyz = vol.scene_position.inverse() * self.center
+        #center_ijk = v.data.xyz_to_ijk(vxyz)
+        #self.session.logger.status("Region changed", blank_after=1)
 
 class LaunchLigandFitTool(ToolInstance):
     #help = "help:user/tools/localemfitting.html"

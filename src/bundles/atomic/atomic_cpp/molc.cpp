@@ -2491,7 +2491,7 @@ extern "C" EXPORT int pseudobond_global_manager_session_info(void *manager, PyOb
 }
 
 extern "C" EXPORT void pseudobond_global_manager_session_restore(void *manager, int version,
-    PyObject *ints, PyObject *floats, PyObject *misc)
+    PyObject *ints, PyObject *floats, PyObject *misc, bool combine)
 {
     PBManager *mgr = static_cast<PBManager *>(manager);
     try {
@@ -2505,7 +2505,7 @@ extern "C" EXPORT void pseudobond_global_manager_session_restore(void *manager, 
             throw std::invalid_argument("Global pseudobond float data is not a one-dimensional"
                 " numpy float array");
         float* float_array = static_cast<float*>(farray.values());
-        mgr->session_restore(version, &int_array, &float_array, misc);
+        mgr->session_restore(version, &int_array, &float_array, misc, combine);
     } catch (...) {
         molc_error();
     }

@@ -279,6 +279,18 @@ class Collection(State):
         if instantiate:
             return [self._object_class.c_ptr_to_py_inst(p) for p in self._pointers]
         return [self._object_class.c_ptr_to_existing_py_inst(p) for p in self._pointers]
+    STATE_VERSION = 1
+    def take_snapshot(self, session, flags):
+        return {'version': self.STATE_VERSION,
+                'pointers': self.session_save_pointers(session)}
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        if data['version'] > cls.STATE_VERSION:
+            raise ValueError("Don't know how to restore Collections from this session"
+                             " (session version [{}] > code version [{}]);"
+                             " update your ChimeraX".format(data['version'], self.STATE_VERSION))
+        c_pointers = cls.session_restore_pointers(session, data['pointers'])
+        return cls(c_pointers)
 
     @classmethod
     def session_restore_pointers(cls, session, data):
