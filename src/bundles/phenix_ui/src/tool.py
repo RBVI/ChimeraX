@@ -1341,12 +1341,31 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
     def _vol_change_cb(self, vol, reason):
         if reason != "region changed" or vol != self.map:
             return
-        #TODO: need to track changes in center or compute center from ligand
-        #  which might be inverting origin from ligand's scene coordinates(?)
-        #
-        #vxyz = vol.scene_position.inverse() * self.center
-        #center_ijk = v.data.xyz_to_ijk(vxyz)
-        #self.session.logger.status("Region changed", blank_after=1)
+        # Ensure region still encloses search center
+        vxyz = vol.scene_position.inverse() * self.center
+        center_ijk = vol.data.xyz_to_ijk(vxyz)
+        ijk_min, ijk_max, ijk_step = vol.region
+        # avoid directly modifying
+        import sys
+        ijk_min = list(ijk_min[:])
+        ijk_max = list(ijk_max[:])
+        violated = False
+        for index in range(3):
+            c_val = center_ijk[index]
+            if c_val < ijk_min[index]:
+                violated = True
+                while ijk_min[index] > c_val:
+                    ijk_min[index] -= 1
+            elif c_val > ijk_max[index]:
+                violated = True
+                while ijk_max[index] < c_val:
+                    ijk_max[index] += 1
+        if violated:
+            vol.new_region(ijk_min, ijk_max, ijk_step, adjust_step=False, adjust_voxel_limit=False)
+            self.session.logger.status("Search center must be within volume box; clamping box",
+                color="medium purple", blank_after=5)
+        else:
+            self.session.logger.status("")
 
 class LaunchLigandFitTool(ToolInstance):
     #help = "help:user/tools/localemfitting.html"
