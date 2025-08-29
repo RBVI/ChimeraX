@@ -32,13 +32,9 @@ class AtomsArg(AtomSpecArg):
 
     @classmethod
     def parse(cls, text, session, ordered=False):
-        if cls.use_peglib_parser:
-            objs, text, rest = super().evaluate(session, text, order_implicit_atoms=ordered)
-            atoms = objs.atoms
-        else:
-            aspec, text, rest = super().parse(text, session)
-            atoms = aspec.evaluate(session, order_implicit_atoms=ordered).atoms
-            #atoms.spec = str(aspec)
+        aspec, text, rest = super().parse(text, session)
+        atoms = aspec.evaluate(session, order_implicit_atoms=ordered).atoms
+        atoms.spec = str(aspec)
         return atoms, text, rest
 
 
@@ -82,13 +78,9 @@ class ResiduesArg(AtomSpecArg):
     @classmethod
     def parse(cls, text, session):
         orig_text = text
-        if cls.use_peglib_parser:
-            evaled, text, rest = super().evaluate(session, text)
-            outermost_inversion = evaled.outermost_inversion
-        else:
-            aspec, text, rest = super().parse(text, session)
-            evaled = aspec.evaluate(session)
-            outermost_inversion = aspec.outermost_inversion
+        aspec, text, rest = super().parse(text, session)
+        evaled = aspec.evaluate(session)
+        outermost_inversion = aspec.outermost_inversion
         from .molarray import concatenate, Atoms, Residues
         # inter-residue bonds don't select either residue
         atoms1, atoms2 = evaled.bonds.atoms
@@ -125,7 +117,7 @@ class ResiduesArg(AtomSpecArg):
                     if len(res_bonds & explicit.bonds) == len(res_bonds):
                         remaining.append(r)
                 residues = Residues(remaining)
-        #residues.spec = str(aspec)
+        residues.spec = str(aspec)
         return residues, text, rest
 
 
@@ -135,14 +127,9 @@ class UniqueChainsArg(AtomSpecArg):
 
     @classmethod
     def parse(cls, text, session):
-        if cls.use_peglib_parser:
-            objs, text, rest = super().evaluate(session, text)
-            chains = objs.atoms.residues.unique_chains
-            outermost_inversion = objs.outermost_inversion
-        else:
-            aspec, text, rest = super().parse(text, session)
-            chains = aspec.evaluate(session).atoms.residues.unique_chains
-            outermost_inversion = aspec.outermost_inversion
+        aspec, text, rest = super().parse(text, session)
+        chains = aspec.evaluate(session).atoms.residues.unique_chains
+        outermost_inversion = aspec.outermost_inversion
         if outermost_inversion:
             # the outermost operator was '~', so weed out partially-selected residues
             if cls.use_peglib_parser:
@@ -159,7 +146,7 @@ class UniqueChainsArg(AtomSpecArg):
                     remaining.append(chain)
             from .molarray import Chains
             chains = Chains(remaining)
-        #chains.spec = str(aspec)
+        chains.spec = str(aspec)
         return chains, text, rest
 
 

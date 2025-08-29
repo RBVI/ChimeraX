@@ -48,6 +48,7 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     from openmm.app import Topology, ForceField, element, HBonds
     from openmm.unit import angstrom, nanometer, kelvin, picosecond, picoseconds, Quantity
     from openmm import LangevinIntegrator, LocalEnergyMinimizer, vec3, Context, MinimizationReporter
+    #from openmmtools.integrators import GradientDescentMinimizationIntegrator
     import numpy
     top = Topology()
     atoms = {}
@@ -175,6 +176,7 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
                     % err_text[left_paren+1:right_paren])
         raise
     integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 0.004*picoseconds)
+    #integrator = GradientDescentMinimizationIntegrator()
     context = Context(system, integrator)
     context.setPositions(Quantity(coords))
     class Reporter(MinimizationReporter):

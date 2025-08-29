@@ -89,7 +89,7 @@ public:
         session_save_pbs = nullptr;
         _ses_struct_to_id_map = nullptr;
     }
-    void  session_restore(int version, int** ints, float** floats, PyObject* misc);
+    void  session_restore(int version, int** ints, float** floats, PyObject* misc, bool combine=false);
     typedef std::unordered_map<int, const Pseudobond*> SessionRestorePbMap;
     mutable SessionRestorePbMap* session_restore_pbs = nullptr;
     void  session_restore_setup() const {
