@@ -222,12 +222,188 @@ bool
 _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<Column*>>& order,
     std::vector<Chain*>& chains)
 {
-    std::map<Chain*, std::vector<int>> equiv;
-    std::vector<int> null_init = { INT_MIN, INT_MIN, INT_MIN };
+    std::map<Chain*, std::vector<Chain::SeqPos>> equiv;
+    std::vector<Chain::SeqPos> null_init = { INT_MAX, INT_MAX, INT_MAX };
     for (auto chain: chains)
         equiv[chain] = null_init;
     std::vector<std::pair<std::vector<Column*>, int>> todo;
-    //TODO
+    for (auto& seq_pos: info) {
+        auto seq = seq_pos.first;
+        auto pos = seq_pos.second;
+        auto& pos_vec = equiv[seq];
+        pos_vec[0] = pos - 1;
+        pos_vec[1] = pos;
+        pos_vec[2] = pos + 1;
+        auto seq_cols = order[seq];
+        if (seq_cols.empty())
+            continue;
+        auto num_cols = seq_cols.size();
+        bool added_todo = false;
+        decltype(num_cols) i, j;
+        for (i = 0; i < num_cols; ++i) {
+            auto col = seq_cols[i];
+            if (col->positions[seq] >= pos) {
+                todo.emplace_back(std::vector<Column*>(seq_cols.begin(), seq_cols.begin() + i), -1);
+                added_todo = true;
+                break;
+            }
+        }
+        if (!added_todo) {
+            todo.emplace_back(seq_cols, -1);
+            continue;
+        }
+        added_todo = false;
+        for (j = i; j < num_cols; ++j) {
+            auto col = seq_cols[j];
+            if (col->positions[seq] > pos) {
+                if (j > 1)
+                    todo.emplace_back(std::vector<Column*>(seq_cols.begin() + i, seq_cols.begin() + j), 0);
+                added_todo = true;
+                break;
+            }
+        }
+        if (!added_todo) {
+            todo.emplace_back(std::vector<Column*>(seq_cols.begin() + i, seq_cols.end()), 0);
+            continue;
+        }
+        todo.emplace_back(std::vector<Column*>(seq_cols.begin() + j, seq_cols.end()), 1);
+    }
+    while (todo.size() > 0) {
+        auto& cols_rel = todo.back();
+        auto cols = cols_rel.first;
+        auto rel = cols_rel.second;
+        todo.pop_back();
+        for (auto col: cols) {
+            for (auto& cseq_cpos: col->positions) {
+                auto cseq = cseq_cpos.first;
+                auto cpos = cseq_cpos.second;
+                auto eqseq = equiv[cseq];
+                auto eq = eqseq[rel+1];
+                if (eq != INT_MAX && (cpos < eq ? -1 : (cpos > eq ? 1 : 0)) == rel)
+                    continue;
+                auto seq_cols = order[cseq];
+                if (rel == 0) {
+                    auto num_seq_cols = seq_cols.size();
+                    decltype(num_seq_cols) i, j;
+                    if (eq != INT_MAX)
+                        return false;
+                    if ((eqseq[0] != INT_MAX && eqseq[0] >= cpos)
+                    || (eqseq[2] != INT_MAX && eqseq[2] <= cpos))
+                        return false;
+                    eqseq[1] = cpos;
+                    bool broke = false;
+                    for (i = 0; i < num_seq_cols; ++i) {
+                        auto ccol = seq_cols[i];
+                        auto ccol_pos = ccol->positions[cseq];
+                        if (ccol_pos > cpos) {
+                            i = num_seq_cols;
+                            broke = true;
+                            break;
+                        }
+                        if (ccol_pos == cpos) {
+                            broke = true;
+                            break;
+                        }
+                    }
+                    if (!broke)
+                        i = num_seq_cols;
+                    broke = false;
+                    for (j = i; j < num_seq_cols; ++j) {
+                        auto ccol = seq_cols[j];
+                        if (ccol->positions[cseq] > cpos) {
+                            broke = true;
+                            break;
+                        }
+                    }
+                    if (!broke)
+                        j = num_seq_cols;
+                    if (j > i) {
+                        auto td_list = std::vector<Column*>(seq_cols.begin() + i, seq_cols.begin() + j);
+                        td_list.erase(std::find(td_list.begin(), td_list.end(), col));
+                        if (!td_list.empty())
+                            todo.emplace_back(td_list, 0);
+                    }
+                    continue;
+                }
+                auto test = equiv[cseq][1];
+                if (test == INT_MAX)
+                    test = equiv[cseq][1-rel];
+                if (test != INT_MAX && (cpos < test ? -1 : (cpos > test ? 1 : 0)) != rel)
+                    return false;
+                if (rel < 0) {
+                    auto num_seq_cols = seq_cols.size();
+                    decltype(num_seq_cols) i, j;
+                    if (eq == INT_MAX)
+                        i = 0;
+                    else {
+                        bool broke = false;
+                        for (i = 0; i < num_seq_cols; ++i) {
+                            auto ccol = seq_cols[i];
+                            if (ccol->positions[cseq] > eq) {
+                                broke = true;
+                                break;
+                            }
+                        }
+                        if (!broke)
+                            i = num_seq_cols;
+                    }
+                    bool broke = false;
+                    for (j = i; j < num_seq_cols; ++j) {
+                        auto ccol = seq_cols[j];
+                        if (ccol->positions[cseq] > cpos) {
+                            broke = true;
+                            break;
+                        }
+                    }
+                    if (!broke)
+                        j = num_seq_cols;
+                    equiv[cseq][rel+1] = cpos;
+                    if (j > 1) {
+                        auto td_list = std::vector<Column*>(seq_cols.begin() + i, seq_cols.begin() + j);
+                        td_list.erase(std::find(td_list.begin(), td_list.end(), col));
+                        if (!td_list.empty())
+                            todo.emplace_back(td_list, rel);
+                    }
+
+                } else {
+                    int num_seq_cols = seq_cols.size();
+                    decltype(num_seq_cols) i, j;
+                    if (eq == INT_MAX)
+                        i = num_seq_cols - 1;
+                    else {
+                        bool broke = false;
+                        for (i = num_seq_cols-1; i >= 0; --i) {
+                            auto ccol = seq_cols[i];
+                            if (ccol->positions[cseq] < eq) {
+                                broke = true;
+                                break;
+                            }
+                        }
+                        if (!broke)
+                            i = -1;
+                        broke = false;
+                        for (j = i; j >= 0; --j) {
+                            auto ccol = seq_cols[j];
+                            if (ccol->positions[cseq] < cpos) {
+                                j += 1;
+                                broke = true;
+                                break;
+                            }
+                        }
+                        if (!broke)
+                            j = 0;
+                        equiv[cseq][rel+1] = cpos;
+                        if (j < i+1) {
+                            auto td_list = std::vector<Column*>(seq_cols.begin()+j, seq_cols.begin()+i+1);
+                            td_list.erase(std::find(td_list.begin(), td_list.end(), col));
+                            if (!td_list.empty())
+                                todo.emplace_back(td_list, rel);
+                        }
+                    }
+                }
+            }
+        }
+    }
     return true;
 }
 
