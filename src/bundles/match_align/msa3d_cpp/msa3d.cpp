@@ -77,6 +77,7 @@ class Column
 public:
     std::map<Chain*, Chain::SeqPos> positions;
 
+    Column(decltype(positions) pos_info): positions(pos_info) {};
     bool  contains(Chain* seq, Chain::SeqPos pos) const {
         return positions.find(seq) != positions.end() && positions.at(seq) == pos;
     };
@@ -589,6 +590,33 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
 
         if (!_check(check_info, partial_order, chains))
             continue;
+
+        //TODO: the next line probably needs to be a shared_ptr, so a lot of revamping
+        auto col = Column(check_info);
+        for (auto seq_pos: check_info) {
+            auto seq = seq_pos.first;
+            auto pos = seq_pos.second;
+            auto po = partial_order[seq];
+            auto num_po = po.size();
+            decltype(num_po) i;
+            bool broke = false;
+            for (i = 0; i < num_po; ++i) {
+                auto pcol = po[i];
+                if (pcol->positions[seq] > pos) {
+                    broke - true;
+                    break;
+                }
+            }
+            if (!broke)
+                i = num_po;
+            po.insert(po.begin()+i, col);
+            auto cols = columns[seq];
+            cols[col] = i;
+            for (auto ncol_i = po.begin()+i+1; ncol_i != po.end(); ++ncol_i) {
+                auto ncol = *ncol_i;
+                cols[ncol] += 1;
+            }
+        }
         //TODO
     }
         
