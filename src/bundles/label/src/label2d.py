@@ -731,14 +731,26 @@ class LabelModel(Model):
         pass
 
     def take_snapshot(self, session, flags):
-        lattrs = ('name', 'text', 'color', 'background', 'size', 'font',
-                  'bold', 'italic', 'xpos', 'ypos', 'visibility',
-                  'scalebar_width', 'scalebar_height')
+        from chimerax.core.state import State
+        if flags == State.SCENE:
+            arg_to_attr = { 'bg_color': 'background' }
+            base_attrs = ('bg_color',)
+        else:
+            arg_to_attr = {}
+            base_attrs = ('name', 'background', 'scalebar_width', 'scalebar_height')
+        lattrs = base_attrs + ('text', 'color', 'size', 'font', 'bold', 'italic', 'xpos', 'ypos',
+            'visibility')
         l = self.label
-        lstate = {attr:getattr(l, attr) for attr in lattrs}
+        lstate = {attr:getattr(l, arg_to_attr.get(attr, attr)) for attr in lattrs}
         data = {'label state': lstate,
                 'version': 1}
         return data
+
+    def restore_scene(self, scene_data):
+        from chimerax.core.colors import Color
+        label_change(self.session, [self.label],
+            **{ key: (Color(value) if key.lower().endswith("color") and value is not None else value)
+            for key, value in LabelModel._label_restore_parameters(scene_data, label_change).items() })
 
     @staticmethod
     def restore_snapshot(session, data):
@@ -746,11 +758,13 @@ class LabelModel(Model):
         return label.drawing
 
     @staticmethod
-    def _label_restore_parameters(data):
+    def _label_restore_parameters(data, func=None):
         # Try to allow a newer session to open in older ChimeraX by
         # filtering out extra parameters not known by older ChimeraX.
+        if func is None:
+            func = Label.__init__
         from inspect import signature
-        param_names = signature(Label.__init__).parameters
+        param_names = signature(func).parameters
         ls = data['label state']
         params = {key:val for key,val in ls.items() if key in param_names}
         return params 
