@@ -785,7 +785,7 @@ class Session:
                 or len(tokens) < 5
                 or tokens[0:4] != [b"#", b"ChimeraX", b"Session", b"version"]
             ):
-                raise RuntimeError("Not a ChimeraX session file")
+                raise UserError("Not a ChimeraX session file")
             version = int(tokens[4])
             if version == 2:
                 raise UserError(

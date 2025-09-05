@@ -1218,6 +1218,7 @@ class VerifyStructureCenterDialog(VerifyCenterDialog):
 class VerifyLFCenterDialog(VerifyStructureCenterDialog):
     def __init__(self, session, initial_center, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
             resolution, extent_type, extent_value, hbonds, clashes):
+        self.session = session
         self.ligand_fmt = ligand_fmt
         self.ligand_value = ligand_value
         self.receptor = receptor
@@ -1260,7 +1261,8 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         self.move_text = "Move example ligand"
         super().__init__(session, initial_center, ligand)
         from chimerax.core.commands import run
-        run(session, f"view {map.atomspec}; ui mousemode right 'translate selected models'; select {ligand.atomspec}")
+        run(session,
+            f"view {map.atomspec}; ui mousemode right 'translate selected models'; select {ligand.atomspec}")
 
     def add_custom_widgets(self, layout):
         super().add_custom_widgets(layout)
@@ -1308,8 +1310,9 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         )
 
     def launch(self):
-        #TODO
-        pass
+        _run_ligand_fit_command(self.session, self.search_center, self.ligand_fmt, self.ligand_value,
+            self.receptor, self.map, self.chain_id, self.res_num, self.resolution, None, None, self.hbonds,
+            self.clashes)
 
     @property
     def search_button_label(self):
@@ -1815,12 +1818,16 @@ def _run_ligand_fit_command(session, center, ligand_fmt, ligand_value, receptor,
     from chimerax.core.commands import run, StringArg, BoolArg
     from chimerax.map import Volume
     LLFT = LaunchLigandFitTool
-    lig_arg = "%s%s" % (self.ligand_fmt_to_prefix[ligand_fmt],
+    lig_arg = "%s%s" % (LaunchLigandFitTool.ligand_fmt_to_prefix[ligand_fmt],
         (ligand_value.atomspec if ligand_fmt == LLFT.LIGAND_FMT_MODEL else ligand_value))
-    cmd = "phenix ligandFit %s ligand %s center %g,%g,%g inMap %s resolution %g extentType %s" \
-        " extentValue %g hbonds %s clashes %s" % (receptor.atomspec, StringArg.unparse(lig_arg), *center,
-        map.atomspec, resolution, ("length" if extent_type == LaunchLigandFitTool.EXTENT_LENGTH
-        else "angstroms"), extent_value, BoolArg.unparse(hbonds), BoolArg.unparse(clashes))
+    if extent_type is None:
+        extent_arg = ""
+    else:
+        extent_arg =  " extentType %s extentValue %g" % (
+            ("length" if extent_type == LaunchLigandFitTool.EXTENT_LENGTH else "angstroms"), extent_value)
+    cmd = "phenix ligandFit %s ligand %s center %g,%g,%g inMap %s resolution %g%s " \
+        " hbonds %s clashes %s" % (receptor.atomspec, StringArg.unparse(lig_arg), *center,
+        map.atomspec, resolution, extent_arg, BoolArg.unparse(hbonds), BoolArg.unparse(clashes))
     if chain_id:
         cmd += " chain " + chain_id
     if res_num is not None:
