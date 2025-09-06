@@ -41,7 +41,7 @@ endif
 
 # keep in alphabetical order, dependencies go below
 
-SUBDIRS	+= ambertools pips
+SUBDIRS	+= ambertools openmmtools pips
 ifndef USE_PYSIDE6
 SUBDIRS += PyQt
 endif
@@ -106,5 +106,7 @@ endif
 # All packages that have dependencies should depend on the .install
 # target of the other packages.
 
+openmmtools.app-install: pips.app-install
+openmmtools.install: pips.install
 pips.app-install: Python.app-install
 pips.install: Python.install
