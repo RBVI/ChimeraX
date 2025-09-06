@@ -80,6 +80,8 @@ wheel = [
   # lz4 4.4.4 has problems decompressing what it encoded, ticket #18140
   "lz4==4.3.2",
   "matplotlib==3.10.5",
+  # openmmtools (if not installed by pip) needs mdtraj
+  "mdtraj==1.11.0",
   "msgpack==1.1.1",
   "nibabel == 5.2.0",
   "netCDF4==1.6.5",
@@ -101,6 +103,8 @@ wheel = [
   "pydicom==2.4.4",
   "pynrrd==1.0.0",
   "pyopenxr==1.1.4501",
+  # openmmtools (if not installed by pip) needs pyyaml
+  "pyyaml==6.0.2",
   "tcia_utils==1.5.1",
   "python-dateutil==2.9.0.post0",
   "requests==2.32.4",
