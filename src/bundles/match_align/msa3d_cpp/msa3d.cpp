@@ -801,7 +801,37 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
 
     // For maximum benefit from the "column squeezing" step that follows, we
     // need to add in the one-residue columns whose position is well-determined.
-    decltype(ordered_columns) new_ordered = { ordered_columns[0] };
+    decltype(ordered_columns) new_ordered;
+    for (auto col: ordered_columns) {
+        if (new_ordered.empty()) {
+            new_ordered.push_back(col);
+            continue;
+        }
+        Chain* gap = nullptr;
+        for (auto seq_pos: new_ordered.back()->positions) {
+            auto seq = seq_pos.first;
+            if (col->positions.find(seq) == col->positions.end())
+                continue;
+            auto pos = seq_pos.second;
+            if (col->positions[seq] == pos + 1)
+                continue;
+            if (gap != nullptr) {
+                // not well-determined
+                gap = nullptr;
+                break;
+            }
+            gap = seq;
+        }
+        if (gap != nullptr) {
+            for (auto pos = new_ordered.back()->positions[gap]+1; pos < col->positions[gap]; ++pos) {
+                if (gap->residues()[pos % gap->residues().size()] == nullptr)
+                    continue;
+                new_ordered.emplace_back(new Column({{gap, pos}}));
+            }
+        }
+        new_ordered.push_back(col);
+    }
+    ordered_columns = new_ordered;
     //TODO
 
     PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align not implemented");
