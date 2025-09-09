@@ -587,15 +587,22 @@ def _wordize(sd_key):
         if sd_key.startswith("deltaG"):
             parts.extend(["delta", "G"])
             sd_key = sd_key[6:]
+        elif '_' in sd_key:
+            part, sd_key = sd_key.split('_', 1)
+            parts.append(part)
         else:
             part = sd_key[0]
+            breakable = False
             for c in sd_key[1:]:
                 if c.islower():
                     part = part + c
-                else:
+                    breakable = True
+                elif breakable or c.isspace():
                     break
+                else:
+                    part = part + c
             parts.append(part)
-            sd_key = sd_key[len(part):]
+            sd_key = sd_key[len(part):].strip()
     return ' '.join(parts)
 
 def open_zdock(session, stream, file_name, auto_style, atomic):

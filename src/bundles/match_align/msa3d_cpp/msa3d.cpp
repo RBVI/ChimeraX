@@ -781,11 +781,11 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
     // Make the clone in the C++ layer, so that it is easier/faster to access its functions
     std::map<Chain*, StructureSeq*> cpp_clones;
     std::map<Chain*, int> current;
+    std::map<StructureSeq*, std::string> working_seqs;
     for (auto seq: chains) {
         auto cpp_clone = seq->copy();
-        //TODO: clear is private, so need to track assembled sequence characters separately and
-        // use bulk_set at the end to finish
-        cpp_clone->clear();
+        // clear() is private, so need to track assembled sequence characters separately
+        // (working_seqs map) and use bulk_set at the end to finish
         cpp_clone->set_description(seq->description());
         auto py_s = seq->structure()->py_instance(true);
         auto py_struct_name = PyObject_Str(py_s);
@@ -796,7 +796,42 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
         }
         cpp_clone->set_name(PyUnicode_AsUTF8(py_struct_name));
         cpp_clones[seq] = cpp_clone;
+        current[seq] = -1;
     }
+
+    // For maximum benefit from the "column squeezing" step that follows, we
+    // need to add in the one-residue columns whose position is well-determined.
+    decltype(ordered_columns) new_ordered;
+    for (auto col: ordered_columns) {
+        if (new_ordered.empty()) {
+            new_ordered.push_back(col);
+            continue;
+        }
+        Chain* gap = nullptr;
+        for (auto seq_pos: new_ordered.back()->positions) {
+            auto seq = seq_pos.first;
+            if (col->positions.find(seq) == col->positions.end())
+                continue;
+            auto pos = seq_pos.second;
+            if (col->positions[seq] == pos + 1)
+                continue;
+            if (gap != nullptr) {
+                // not well-determined
+                gap = nullptr;
+                break;
+            }
+            gap = seq;
+        }
+        if (gap != nullptr) {
+            for (auto pos = new_ordered.back()->positions[gap]+1; pos < col->positions[gap]; ++pos) {
+                if (gap->residues()[pos % gap->residues().size()] == nullptr)
+                    continue;
+                new_ordered.emplace_back(new Column({{gap, pos}}));
+            }
+        }
+        new_ordered.push_back(col);
+    }
+    ordered_columns = new_ordered;
     //TODO
 
     PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align not implemented");
