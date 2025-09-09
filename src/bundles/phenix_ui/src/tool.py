@@ -1310,6 +1310,7 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         )
 
     def launch(self):
+        #TODO: restore previous mouse mode
         _run_ligand_fit_command(self.session, self.search_center, self.ligand_fmt, self.ligand_value,
             self.receptor, self.map, self.chain_id, self.res_num, self.resolution, None, None, self.hbonds,
             self.clashes)
