@@ -1257,6 +1257,12 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         map.add_volume_change_callback(self._vol_change_cb)
         self.center = initial_center
 
+        self.prev_mouse_mode = None
+        for binding in session.ui.mouse_modes.bindings:
+            if binding.matches('right', []):
+                self.prev_mouse_mode = binding.mode
+                break
+
         self.bounds_text = "Adjust search bounds"
         self.move_text = "Move example ligand"
         super().__init__(session, initial_center, ligand)
@@ -1310,7 +1316,10 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         )
 
     def launch(self):
-        #TODO: restore previous mouse mode
+        # restore previous mouse mode
+        if self.prev_mouse_mode is not None:
+            from chimerax.core.commands import run
+            run(self.session, f"ui mousemode right '{self.prev_mouse_mode.name}'")
         _run_ligand_fit_command(self.session, self.search_center, self.ligand_fmt, self.ligand_value,
             self.receptor, self.map, self.chain_id, self.res_num, self.resolution, None, None, self.hbonds,
             self.clashes)
