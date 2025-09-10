@@ -15,7 +15,6 @@
 
 #include <Python.h>
 #include <algorithm>    // std::min, std::max
-#include <cassert>
 #include <climits>      // INT_MAX
 #include <cmath>        // std::isnan
 #include <iterator>     // std::next
@@ -1012,7 +1011,10 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
             }
         }
         if (!broke_col_value) {
-            assert(replace_cols.back().positions.empty());
+            if (!replace_cols.back()->positions.empty()) {
+                PyErr_SetString(PyExc_AssertionError, "Final replacement column not empty");
+                return nullptr;
+            }
             double ov = 0.0;
             auto rc_end = ordered_columns.begin() + col_index + rcols + 1;
             for (auto oi = ordered_columns.begin() + col_index; oi != rc_end; ++oi)
