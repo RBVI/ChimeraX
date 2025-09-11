@@ -1216,6 +1216,8 @@ class VerifyStructureCenterDialog(VerifyCenterDialog):
         super().__init__(session, structure)
 
 class VerifyLFCenterDialog(VerifyStructureCenterDialog):
+    search_button_text = "Start ligand fitting"
+
     def __init__(self, session, initial_center, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
             resolution, extent_type, extent_value, hbonds, clashes):
         self.session = session
@@ -1326,7 +1328,7 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
 
     @property
     def search_button_label(self):
-        return "Start ligand fitting"
+        return self.search_button_text
 
     @property
     def search_center(self):
@@ -1379,6 +1381,50 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
                 color="medium purple", blank_after=5)
         else:
             self.session.logger.status("")
+
+class PickBlobDialog(QDialog):
+    instructions = "instructions"
+
+    def __init__(self, session, verify_center, ligand_fmt, ligand_value, receptor, map,
+            chain_id, res_num, resolution, extent_type, extent_value, hbonds, clashes):
+        super().__init__()
+        self.session = session
+        self.verify_center = verify_center
+        self.ligand_fmt = ligand_fmt
+        self.ligand_value = ligand_value
+        self.receptor = receptor
+        self.map = map
+        self.chain_id = chain_id
+        self.res_num = res_num
+        self.resolution = resolution
+        self.extent_type = extent_type
+        self.extent_value = extent_value
+        self.hbonds = hbonds
+        self.clashes = clashes
+
+        from Qt.QtWidgets import QVBoxLayout, QLabel
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        instructions = QLabel(self.instructions)
+        instructions.setWordWrap(True)
+        instructions.setAlignment(Qt.AlignCenter)
+        layout.addWidget(instructions)
+
+        #self.add_custom_widgets(layout)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Cancel)
+        bbox.addButton("Adjust search zone" if verify_center else VerifyLFCenterDialog.search_button_text,
+            bbox.AcceptRole)
+        bbox.accepted.connect(self.launch)
+        bbox.accepted.connect(self.close)
+        bbox.rejected.connect(self.close)
+        layout.addWidget(bbox)
+
+        self.show()
+
+    def launch(self):
+        pass
 
 class LaunchLigandFitTool(ToolInstance):
     #help = "help:user/tools/localemfitting.html"
@@ -1666,11 +1712,17 @@ Choices are:
             resolution, extent_type, extent_value, self.show_hbonds_checkbox.isChecked(),
             self.show_clashes_checkbox.isChecked())
 
-        method = self.centering_button.text()
+        self.settings.search_center = method = self.centering_button.text()
+        if not apply:
+            self.display(False)
+        verify_center = self.verify_center_checkbox.isChecked()
+
         if method == self.CENTER_BLOB:
             from chimerax.core.errors import LimitationError
             raise LimitationError("Blob-picking centering not yet implemented")
-            # PickBlobDialog(self.session, non_center_args)
+            # Probably needs to subclass VerifyCenterDialog, so that (among other things)
+            # triggers hold a reference to the dialog so that it isn't immediately destroyed
+            #return PickBlobDialog(self.session, verify_center, *non_center_args)
         elif method == self.CENTER_XYZ:
             center = [float(widget.text()) for widget in self.xyz_widgets]
         elif method == self.CENTER_MODEL:
@@ -1721,13 +1773,10 @@ Choices are:
             center = bbox.center()
         else:
             raise AssertionError("Unknown centering method")
-        self.settings.search_center = method
-        if self.verify_center_checkbox.isChecked():
+        if verify_center:
             VerifyLFCenterDialog(self.session, center, *non_center_args)
         else:
             _run_ligand_fit_command(self.session, center, *non_center_args)
-        if not apply:
-            self.display(False)
 
     def _fmt_menu_cb(self, action):
         self._update_fmt_widgets(action.text())
