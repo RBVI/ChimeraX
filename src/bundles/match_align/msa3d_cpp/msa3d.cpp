@@ -32,6 +32,7 @@
 
 using atomstruct::Atom;
 using atomstruct::Chain;
+using atomstruct::Sequence;
 using atomstruct::StructureSeq;
 using atomstruct::AtomSearchTree;
 
@@ -51,6 +52,7 @@ public:
     std::map<Chain*, Chain::SeqPos> positions;
 
     Column(decltype(positions) pos_info): positions(pos_info) {};
+    Column(const std::shared_ptr<Column>& _col): positions(_col->positions) {};
 
     bool  contains(Chain* seq, Chain::SeqPos pos) const {
         return positions.find(seq) != positions.end() && positions.at(seq) == pos;
@@ -204,6 +206,17 @@ void Link::evaluate(PrincipalAtomMap& pas, double dist_cutoff)
         }
     }
 }
+
+class GapInfo
+{
+public:
+    bool  in_gap;
+    Chain::SeqPos  pos;
+    unsigned int  num_gaps;
+
+    GapInfo(bool _in_gap, Chain::SeqPos _pos, unsigned int _num_gaps):
+        in_gap(_in_gap), pos(_pos), num_gaps(_num_gaps) {};
+};
 
 } // end namespace
 
@@ -781,11 +794,11 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
     // Make the clone in the C++ layer, so that it is easier/faster to access its functions
     std::map<Chain*, StructureSeq*> cpp_clones;
     std::map<Chain*, int> current;
+    std::map<StructureSeq*, Sequence::Contents> working_seqs;
     for (auto seq: chains) {
         auto cpp_clone = seq->copy();
-        //TODO: clear is private, so need to track assembled sequence characters separately and
-        // use bulk_set at the end to finish
-        cpp_clone->clear();
+        // clear() is private, so need to track assembled sequence characters separately
+        // (working_seqs map) and use bulk_set at the end to finish
         cpp_clone->set_description(seq->description());
         auto py_s = seq->structure()->py_instance(true);
         auto py_struct_name = PyObject_Str(py_s);
@@ -796,12 +809,309 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
         }
         cpp_clone->set_name(PyUnicode_AsUTF8(py_struct_name));
         cpp_clones[seq] = cpp_clone;
+        current[seq] = -1;
     }
-    //TODO
 
-    PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align not implemented");
-    return nullptr;
-    // return Python map from original sequence to realigned sequence ;
+    // For maximum benefit from the "column squeezing" step that follows, we
+    // need to add in the one-residue columns whose position is well-determined.
+    decltype(ordered_columns) new_ordered;
+    for (auto col: ordered_columns) {
+        if (new_ordered.empty()) {
+            new_ordered.push_back(col);
+            continue;
+        }
+        Chain* gap = nullptr;
+        for (auto seq_pos: new_ordered.back()->positions) {
+            auto seq = seq_pos.first;
+            if (col->positions.find(seq) == col->positions.end())
+                continue;
+            auto pos = seq_pos.second;
+            if (col->positions[seq] == pos + 1)
+                continue;
+            if (gap != nullptr) {
+                // not well-determined
+                gap = nullptr;
+                break;
+            }
+            gap = seq;
+        }
+        if (gap != nullptr) {
+            for (auto pos = new_ordered.back()->positions[gap]+1; pos < col->positions[gap]; ++pos) {
+                if (gap->residues()[pos % gap->residues().size()] == nullptr)
+                    continue;
+                new_ordered.emplace_back(new Column({{gap, pos}}));
+            }
+        }
+        new_ordered.push_back(col);
+    }
+    ordered_columns = new_ordered;
+
+    // Squeeze column where possible:
+    //
+    //   Find pairs of columns where the left-hand one could accept
+    //   one or more residues from the right-hand one
+    //
+    //   Keep looking right (if necessary) until each row has at
+    //   least one gap, but no more than one
+    //
+    //   Squeeze
+    decltype(ordered_columns)::size_type col_index = 0;
+    while (col_index < ordered_columns.size() - 1) {
+        logger::status(py_logger, status_prefix,
+            "Merging columns (", col_index, "/", ordered_columns.size()-1, ")");
+        auto l = ordered_columns[col_index];
+        auto r = ordered_columns[col_index+1];
+        bool squeezable = false;
+        for (auto seq_pos: r->positions) {
+            auto seq = seq_pos.first;
+            if (l->positions.find(seq) == l->positions.end()) {
+                squeezable = true;
+                break;
+            }
+        }
+        if (!squeezable) {
+            col_index += 1;
+            continue;
+        }
+
+        std::map<Chain*, std::shared_ptr<GapInfo>> gap_info;
+        for (auto seq: chains) {
+            // Couldn't figure out how to emplace() in a map where the second arg is a class
+            // with constructor args, so...
+            // (after more Googling, maybe:
+            //    .emplace(seq, GapInfo{...args..})
+            // or
+            //    .emplace<Chain*, GapInfo>(seq, {...args...})
+            if (l->positions.find(seq) != l->positions.end())
+                gap_info[seq] = std::shared_ptr<GapInfo>(new GapInfo(false, l->positions[seq], 0u));
+            else
+                gap_info[seq] = std::shared_ptr<GapInfo>(new GapInfo(true, INT_MAX, 1u));
+        }
+
+        squeezable = false;
+        bool redo = false;
+        int rcols = 0;
+        for (auto ri = ordered_columns.begin()+col_index+1; ri != ordered_columns.end(); ++ri) {
+            auto r = *ri;
+            rcols += 1;
+            // look for indeterminate residues first, so we can potentially
+            // form a single-residue column to complete the squeeze
+            bool indeterminates = false;
+            for (auto seq_rpos: r->positions) {
+                auto seq = seq_rpos.first;
+                auto right_pos = seq_rpos.second;
+                auto gi = gap_info[seq];
+                auto left_pos = gi->pos;
+                if (gi->pos == INT_MAX || right_pos == left_pos + 1)
+                    continue;
+                if (gi->num_gaps == 0) {
+                    indeterminates = true;
+                    continue;
+                }
+                bool broke_gaps = false;
+                for (auto chain_gi: gap_info) {
+                    auto oseq = chain_gi.first;
+                    if (oseq == seq)
+                        continue;
+                    auto info = chain_gi.second;
+                    if (info->in_gap)
+                        continue;
+                    if (info->num_gaps != 0) {
+                        broke_gaps = true;
+                        break;
+                    }
+                }
+                if (!broke_gaps) {
+                    // squeezable
+                    ordered_columns.insert(ordered_columns.begin() + col_index + rcols,
+                        std::shared_ptr<Column>(new Column({{seq, left_pos}})));
+                    redo = true;
+                    break;
+                }
+                indeterminates = true;
+            }
+
+            if (redo)
+                break;
+
+            if (indeterminates)
+                break;
+
+            bool broke_gaps = false;
+            for (auto seq_info: gap_info) {
+                auto seq = seq_info.first;
+                auto info = seq_info.second;
+                auto in_gap = info->in_gap;
+                auto num_gaps = info->num_gaps;
+                if (r->positions.find(seq) != r->positions.end()) {
+                    auto right_pos = r->positions[seq];
+                    if (in_gap)
+                        // closing a gap
+                        gap_info[seq] = std::shared_ptr<GapInfo>(new GapInfo(false, right_pos, 1));
+                    else
+                        // non gap
+                        gap_info[seq] = std::shared_ptr<GapInfo>(new GapInfo(false, right_pos, num_gaps));
+                } else {
+                    if (!in_gap && num_gaps > 0) {
+                        // two gaps: no-no
+                        broke_gaps = true;
+                        break;
+                    }
+                    auto left_pos = info->pos;
+                    gap_info[seq] = std::shared_ptr<GapInfo>(new GapInfo(true, left_pos, 1));
+                }
+            }
+            if (!broke_gaps) {
+                // check if squeeze criteria fulfilled
+                bool broke_squeeze = false;
+                for (auto seq_info: gap_info) {
+                    auto info = seq_info.second;
+                    if (info->num_gaps == 0) {
+                        broke_squeeze = true;
+                        break;
+                    }
+                }
+                if (!broke_squeeze) {
+                    squeezable = true;
+                    break;
+                }
+                l = r;
+                continue;
+            }
+            break;
+        }
+
+        if (redo)
+            continue;
+
+        if (!squeezable) {
+            col_index += 1;
+            continue;
+        }
+
+        // squeeze
+        std::vector<std::shared_ptr<Column>> replace_cols;
+        auto rc_end = ordered_columns.begin() + col_index + rcols + 1;
+        for (auto oi = ordered_columns.begin() + col_index; oi != rc_end; ++oi)
+            replace_cols.emplace_back(*oi);
+        bool broke_col_value = false;
+        for (decltype(replace_cols)::size_type i = 0; i < replace_cols.size()-1; ++i) {
+            auto col = replace_cols[i];
+            auto rcol = replace_cols[i+1];
+            for (auto seq_pos: rcol->positions) {
+                auto seq = seq_pos.first;
+                if (col->positions.find(seq) != col->positions.end())
+                    continue;
+                auto pos = seq_pos.second;
+                col->positions[seq] = pos;
+                rcol->positions.erase(seq);
+            }
+            if (col->value(pas, dist_cutoff) < 0.0) {
+                broke_col_value = true;
+                break;
+            }
+        }
+        if (!broke_col_value) {
+            if (!replace_cols.back()->positions.empty()) {
+                PyErr_SetString(PyExc_AssertionError, "Final replacement column not empty");
+                return nullptr;
+            }
+            double ov = 0.0;
+            auto rc_end = ordered_columns.begin() + col_index + rcols + 1;
+            for (auto oi = ordered_columns.begin() + col_index; oi != rc_end; ++oi)
+                ov += (*oi)->participation(pas, dist_cutoff);
+            decltype(ov) nv = 0.0;
+            for (decltype(replace_cols)::size_type i = 0; i < replace_cols.size()-1; ++i)
+                nv += replace_cols[i]->participation(pas, dist_cutoff);
+            if (ov >= nv) {
+                col_index += 1;
+                continue;
+            }
+            for (decltype(rcols) i = 0; i < rcols; ++i)
+                ordered_columns[col_index + i] = replace_cols[i];
+            ordered_columns.erase(ordered_columns.begin() + col_index + rcols);
+            if (col_index > 0)
+                col_index -= 1;
+            continue;
+        }
+        col_index += 1;
+    }
+
+    logger::status(py_logger, status_prefix, "Composing alignment");
+    for (auto col: ordered_columns) {
+        for (auto seq_offset: col->positions) {
+            auto seq = seq_offset.first;
+            auto offset = seq_offset.second;
+            auto cur_pos = current[seq];
+            auto diff = offset - cur_pos;
+            if (diff < 2)
+                continue;
+            //TODO: circular
+            auto start_frag = cur_pos+1;
+            decltype(start_frag) end_frag = offset;
+            for (auto ci = start_frag; ci <= end_frag; ++ci)
+                working_seqs[seq].push_back(seq->characters()[ci]);
+            Sequence::Contents gap(diff-1, gap_char);
+            for (auto wseq_chars: working_seqs) {
+                auto wseq = wseq_chars.first;
+                if (wseq == seq)
+                    continue;
+                auto& chars = wseq_chars.second;
+                chars.insert(chars.end(), gap.begin(), gap.end());
+            }
+        }
+        for (auto seq: chains) {
+            if (col->positions.find(seq) != col->positions.end()) {
+                auto offset = col->positions[seq];
+                //TODO: circular
+                auto c = seq->characters()[offset];
+                working_seqs[seq].push_back(c);
+                current[seq] = offset;
+            } else
+                working_seqs[seq].push_back(gap_char);
+        }
+    }
+
+    for (auto seq_offset: current) {
+        //TODO: circular
+        auto seq = seq_offset.first;
+        auto offset = seq_offset.second;
+        if (offset == static_cast<int>(seq->size())-1)
+            continue;
+        Sequence::Contents frag;
+        for (Sequence::Contents::size_type ci = offset+1; ci < seq->size(); ++ci)
+            frag.push_back(seq->characters()[ci]);
+        Sequence::Contents gap(frag.size(), gap_char);
+        for (auto wseq_chars: working_seqs) {
+            auto wseq = wseq_chars.first;
+            auto& chars = wseq_chars.second;
+            if (wseq == seq)
+                chars.insert(chars.end(), frag.begin(), frag.end());
+            else
+                chars.insert(chars.end(), gap.begin(), gap.end());
+        }
+    }
+
+    // Put the sequences in the clones
+    for (auto chain_clone: cpp_clones) {
+        auto chain = chain_clone.first;
+        auto& clone = chain_clone.second;
+        auto& clone_seq = working_seqs[clone];
+        auto& residues = chain->residues();
+        clone->bulk_set(residues, &clone_seq);
+    }
+
+    auto py_clones = PyList_New(cpp_clones.size());
+    if (py_clones == nullptr) {
+        PyErr_SetString(PyExc_AssertionError, "Could not make list for aligned sequences");
+        return nullptr;
+    }
+    Py_ssize_t li = 0;
+    for (auto chain_clone: cpp_clones)
+        PyList_SET_ITEM(py_clones, li++, chain_clone.second->py_instance(true));
+
+    logger::status(py_logger, status_prefix, "Done");
+    return py_clones;
 }
 
 static PyObject*

@@ -1123,6 +1123,11 @@ start_t = end_t;
                     ++brn;
                 }
                 ResName res_name(rn);
+                // some non-standard PDB files may not have a full 13 residues per line...
+                if (res_name.empty()) {
+                    seqres_cur_count -= 1;
+                    continue;
+                }
                 as->extend_input_seq_info(chain_id, res_name);
             }
             if (as->input_seq_source.empty())
