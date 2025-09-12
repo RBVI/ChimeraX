@@ -32,6 +32,7 @@
 
 using atomstruct::Atom;
 using atomstruct::Chain;
+using atomstruct::Sequence;
 using atomstruct::StructureSeq;
 using atomstruct::AtomSearchTree;
 
@@ -793,7 +794,7 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
     // Make the clone in the C++ layer, so that it is easier/faster to access its functions
     std::map<Chain*, StructureSeq*> cpp_clones;
     std::map<Chain*, int> current;
-    std::map<StructureSeq*, std::string> working_seqs;
+    std::map<StructureSeq*, Sequence::Contents> working_seqs;
     for (auto seq: chains) {
         auto cpp_clone = seq->copy();
         // clear() is private, so need to track assembled sequence characters separately
@@ -1026,17 +1027,91 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
                 col_index += 1;
                 continue;
             }
-            //TODO (may not be replacing same number of columns)
+            for (decltype(rcols) i = 0; i < rcols; ++i)
+                ordered_columns[col_index + i] = replace_cols[i];
+            ordered_columns.erase(ordered_columns.begin() + col_index + rcols);
+            if (col_index > 0)
+                col_index -= 1;
+            continue;
         }
         col_index += 1;
-        //TODO
     }
 
-    //TODO
+    logger::status(py_logger, status_prefix, "Composing alignment");
+    for (auto col: ordered_columns) {
+        for (auto seq_offset: col->positions) {
+            auto seq = seq_offset.first;
+            auto offset = seq_offset.second;
+            auto cur_pos = current[seq];
+            auto diff = offset - cur_pos;
+            if (diff < 2)
+                continue;
+            //TODO: circular
+            auto start_frag = cur_pos+1;
+            decltype(start_frag) end_frag = offset;
+            for (auto ci = start_frag; ci <= end_frag; ++ci)
+                working_seqs[seq].push_back(seq->characters()[ci]);
+            Sequence::Contents gap(diff-1, gap_char);
+            for (auto wseq_chars: working_seqs) {
+                auto wseq = wseq_chars.first;
+                if (wseq == seq)
+                    continue;
+                auto& chars = wseq_chars.second;
+                chars.insert(chars.end(), gap.begin(), gap.end());
+            }
+        }
+        for (auto seq: chains) {
+            if (col->positions.find(seq) != col->positions.end()) {
+                auto offset = col->positions[seq];
+                //TODO: circular
+                auto c = seq->characters()[offset];
+                working_seqs[seq].push_back(c);
+                current[seq] = offset;
+            } else
+                working_seqs[seq].push_back(gap_char);
+        }
+    }
 
-    PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align not implemented");
-    return nullptr;
-    // return Python map from original sequence to realigned sequence ;
+    for (auto seq_offset: current) {
+        //TODO: circular
+        auto seq = seq_offset.first;
+        auto offset = seq_offset.second;
+        if (offset == static_cast<int>(seq->size())-1)
+            continue;
+        Sequence::Contents frag;
+        for (Sequence::Contents::size_type ci = offset+1; ci < seq->size(); ++ci)
+            frag.push_back(seq->characters()[ci]);
+        Sequence::Contents gap(frag.size(), gap_char);
+        for (auto wseq_chars: working_seqs) {
+            auto wseq = wseq_chars.first;
+            auto& chars = wseq_chars.second;
+            if (wseq == seq)
+                chars.insert(chars.end(), frag.begin(), frag.end());
+            else
+                chars.insert(chars.end(), gap.begin(), gap.end());
+        }
+    }
+
+    // Put the sequences in the clones
+    for (auto chain_clone: cpp_clones) {
+        auto chain = chain_clone.first;
+        auto& clone = chain_clone.second;
+        auto& clone_seq = working_seqs[clone];
+        auto& residues = chain->residues();
+        clone->bulk_set(residues, &clone_seq);
+    }
+
+    auto py_clones = PyList_New(cpp_clones.size());
+    if (py_clones == nullptr) {
+        PyErr_SetString(PyExc_AssertionError, "Could not make list for aligned sequences");
+        return nullptr;
+    }
+    Py_ssize_t li = 0;
+    for (auto chain_clone: cpp_clones)
+        PyList_SET_ITEM(py_clones, li++, chain_clone.second->py_instance(true));
+
+    logger::status(py_logger, status_prefix, "Done");
+    return py_clones;
 }
 
 static PyObject*
