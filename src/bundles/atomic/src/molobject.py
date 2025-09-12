@@ -579,6 +579,7 @@ class PseudobondManager(StateManager):
 
     @staticmethod
     def restore_snapshot(session, data):
+        import sys
         pbm = session.pb_manager
         # restore the int->structure mapping the pseudobonds use...
         ptr_mapping = {}
@@ -590,8 +591,8 @@ class PseudobondManager(StateManager):
         ints, floats, misc = data['mgr data']
         f = c_function('pseudobond_global_manager_session_restore',
                 args = (ctypes.c_void_p, ctypes.c_int,
-                        ctypes.py_object, ctypes.py_object, ctypes.py_object))
-        f(pbm._c_pointer, data['version'], ints, floats, misc)
+                        ctypes.py_object, ctypes.py_object, ctypes.py_object, ctypes.c_bool))
+        f(pbm._c_pointer, data['version'], ints, floats, misc, session.restore_options["combine"])
         pbm.set_custom_attrs(data)
         return pbm
 

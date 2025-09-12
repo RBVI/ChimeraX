@@ -200,9 +200,13 @@ def phenix_ligand_fit(session, model, ligand=None, center=None, in_map=None, res
         ijk_min, ijk_max = ijk_min_max(in_map, center.scene_coordinates(), extent_angstroms)
         grid_data = in_map.grid_data(subregion=(ijk_min, ijk_max))
     else:
-        grid_data = in_map
+        grid_data = in_map.grid_data()
     from chimerax.map_data import save_grid_data
     save_grid_data(grid_data, path.join(temp_dir, 'map.mrc'), session)
+    #NOTE: debugging...
+    from chimerax.core.commands import run
+    run(session, "open " + path.join(temp_dir, 'map.mrc'))
+
 
     # Run phenix.ligandfit
     # keep a reference to 'tdir' in the callback so that the temporary directory isn't removed before

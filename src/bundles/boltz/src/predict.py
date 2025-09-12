@@ -487,7 +487,9 @@ class BoltzRun:
         self._seed = seed		# Random seed for computation
         self._open = open		# Whether to open predictions when boltz finishes.
 
-        self._run_directory = run_directory	# Location of input and results files
+        from os.path import abspath, isabs
+        run_dir = abspath(run_directory) if run_directory and not isabs(run_directory) else None
+        self._run_directory = run_dir	# Location of input and results files
         self._input_path = None		# YAML file path or directory of yaml files
         self._running = False		# Subprocess running
         self._finished = False
@@ -920,6 +922,13 @@ class BoltzRun:
                        ' that code is new or is mistyped.  You can try specifying that ligand'
                        f' using a SMILES string from https://www.rcsb.org/ligand/{ccd_code}'
                        ' instead of using its CCD code.')
+            elif 'load_from_checkpoint' in stderr and 'PytorchStreamReader failed reading zip archive' in stderr:
+                msg = ('Boltz failed reading neural network weights from directory ~/.boltz.'
+                       ' This can happen if you quit ChimeraX while installing Boltz before the'
+                       ' installation finished. To fix it delete the ~/.boltz directory.'
+                       ' The next time a Boltz prediction is run it will download the neural'
+                       ' network weights and chemical components (5 Gbytes). That may take'
+                       ' minutes to hours depending on your internet connection speed.')
             else:
                 if self._user_terminated:
                     msg = 'Prediction terminated by user'

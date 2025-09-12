@@ -1218,6 +1218,7 @@ class VerifyStructureCenterDialog(VerifyCenterDialog):
 class VerifyLFCenterDialog(VerifyStructureCenterDialog):
     def __init__(self, session, initial_center, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
             resolution, extent_type, extent_value, hbonds, clashes):
+        self.session = session
         self.ligand_fmt = ligand_fmt
         self.ligand_value = ligand_value
         self.receptor = receptor
@@ -1253,14 +1254,21 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         ijk_min, ijk_max = ijk_min_max(map, initial_center, extent_angstroms)
         map.new_region(ijk_min, ijk_max, map.region[-1], adjust_step=False, adjust_voxel_limit=False)
         map.rendering_options.show_outline_box = True
-        #TODO: register callback with map for region changes
+        map.add_volume_change_callback(self._vol_change_cb)
         self.center = initial_center
+
+        self.prev_mouse_mode = None
+        for binding in session.ui.mouse_modes.bindings:
+            if binding.matches('right', []):
+                self.prev_mouse_mode = binding.mode
+                break
 
         self.bounds_text = "Adjust search bounds"
         self.move_text = "Move example ligand"
         super().__init__(session, initial_center, ligand)
         from chimerax.core.commands import run
-        run(session, f"view {map.atomspec}; ui mousemode right 'translate selected models'; select {ligand.atomspec}")
+        run(session,
+            f"view {map.atomspec}; ui mousemode right 'translate selected models'; select {ligand.atomspec}")
 
     def add_custom_widgets(self, layout):
         super().add_custom_widgets(layout)
@@ -1290,6 +1298,7 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
 
     def closeEvent(self, event):
         self.mouse_handler.remove()
+        self.map.remove_volume_change_callback(self._vol_change_cb)
         return super().closeEvent(event)
 
     @property
@@ -1307,12 +1316,21 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         )
 
     def launch(self):
-        #TODO
-        pass
+        # restore previous mouse mode
+        if self.prev_mouse_mode is not None:
+            from chimerax.core.commands import run
+            run(self.session, f"ui mousemode right '{self.prev_mouse_mode.name}'")
+        _run_ligand_fit_command(self.session, self.search_center, self.ligand_fmt, self.ligand_value,
+            self.receptor, self.map, self.chain_id, self.res_num, self.resolution, None, None, self.hbonds,
+            self.clashes)
 
     @property
     def search_button_label(self):
         return "Start ligand fitting"
+
+    @property
+    def search_center(self):
+        return self.structure.atoms.scene_coords.mean(0)
 
     def _mouse_mode_changed(self, trig_name, trig_data):
         button, modifiers, mode = trig_data
@@ -1332,6 +1350,35 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         finally:
             for b in all_buttons:
                 b.blockSignals(False)
+
+    def _vol_change_cb(self, vol, reason):
+        if reason != "region changed" or vol != self.map:
+            return
+        # Ensure region still encloses search center
+        vxyz = vol.scene_position.inverse() * self.center
+        center_ijk = vol.data.xyz_to_ijk(vxyz)
+        ijk_min, ijk_max, ijk_step = vol.region
+        # avoid directly modifying
+        import sys
+        ijk_min = list(ijk_min[:])
+        ijk_max = list(ijk_max[:])
+        violated = False
+        for index in range(3):
+            c_val = center_ijk[index]
+            if c_val < ijk_min[index]:
+                violated = True
+                while ijk_min[index] > c_val:
+                    ijk_min[index] -= 1
+            elif c_val > ijk_max[index]:
+                violated = True
+                while ijk_max[index] < c_val:
+                    ijk_max[index] += 1
+        if violated:
+            vol.new_region(ijk_min, ijk_max, ijk_step, adjust_step=False, adjust_voxel_limit=False)
+            self.session.logger.status("Search center must be within volume box; clamping box",
+                color="medium purple", blank_after=5)
+        else:
+            self.session.logger.status("")
 
 class LaunchLigandFitTool(ToolInstance):
     #help = "help:user/tools/localemfitting.html"
@@ -1781,12 +1828,16 @@ def _run_ligand_fit_command(session, center, ligand_fmt, ligand_value, receptor,
     from chimerax.core.commands import run, StringArg, BoolArg
     from chimerax.map import Volume
     LLFT = LaunchLigandFitTool
-    lig_arg = "%s%s" % (self.ligand_fmt_to_prefix[ligand_fmt],
+    lig_arg = "%s%s" % (LaunchLigandFitTool.ligand_fmt_to_prefix[ligand_fmt],
         (ligand_value.atomspec if ligand_fmt == LLFT.LIGAND_FMT_MODEL else ligand_value))
-    cmd = "phenix ligandFit %s ligand %s center %g,%g,%g inMap %s resolution %g extentType %s" \
-        " extentValue %g hbonds %s clashes %s" % (receptor.atomspec, StringArg.unparse(lig_arg), *center,
-        map.atomspec, resolution, ("length" if extent_type == LaunchLigandFitTool.EXTENT_LENGTH
-        else "angstroms"), extent_value, BoolArg.unparse(hbonds), BoolArg.unparse(clashes))
+    if extent_type is None:
+        extent_arg = ""
+    else:
+        extent_arg =  " extentType %s extentValue %g" % (
+            ("length" if extent_type == LaunchLigandFitTool.EXTENT_LENGTH else "angstroms"), extent_value)
+    cmd = "phenix ligandFit %s ligand %s center %g,%g,%g inMap %s resolution %g%s " \
+        " hbonds %s clashes %s" % (receptor.atomspec, StringArg.unparse(lig_arg), *center,
+        map.atomspec, resolution, extent_arg, BoolArg.unparse(hbonds), BoolArg.unparse(clashes))
     if chain_id:
         cmd += " chain " + chain_id
     if res_num is not None:

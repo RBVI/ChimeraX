@@ -150,7 +150,7 @@ class Scene(State):
         # Attr scene_models stores model -> snapshot data mappings.
         self.scene_models = {}
         for model in self.session.models:
-            if model.restore_scene == Model.restore_scene:
+            if model.__class__.restore_scene == Model.restore_scene:
                 model_scene_data = (False, Model.take_snapshot(model, self.session, flags=State.SCENE))
             else:
                 model_scene_data = (True, model.__class__.take_snapshot(model, self.session, flags=State.SCENE))

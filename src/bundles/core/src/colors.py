@@ -354,20 +354,18 @@ class Colormap(State):
                         self.color_no_value)
         return cmap
 
-    def rescale_range(self, value0, value1, full=False):
+    def rescale_range(self, value0, value1, from_range = None):
         '''
-        Return new colormap with [0,1] range becoming [value0,value1].
-        Or if full is true rescale current range to new range.
+        Return new colormap with the range becoming [value0,value1].
+        If from_range specifies a pair of float values (from0, from1)
+        then that interval of the current color palette is mapped to
+        the specified range (value0, value1).
         '''
         v = self.data_values.copy()
-        if full:
-            cur0, cur1 = self.value_range()
-            v -= cur0
-            v *= (value1 - value0) / (cur1 - cur0)
-            v += value0
-        else:
-            v *= (value1 - value0)
-            v += value0
+        cur0, cur1 = self.value_range() if from_range is None else from_range
+        v -= cur0
+        v *= (value1 - value0) / (cur1 - cur0)
+        v += value0
         cmap = Colormap(v, self.colors,
                         self.color_above_value_range,
                         self.color_below_value_range,
@@ -426,7 +424,7 @@ def colormap_with_range(colormap, range, default_colormap_name='red-blue', full_
         return cmap
     vmin, vmax = range
     if colormap.values_specified:
-        cmap = colormap.rescale_range(vmin, vmax, full=True)
+        cmap = colormap.rescale_range(vmin, vmax)
     else:
         cmap = colormap.linear_range(vmin, vmax)
     return cmap
