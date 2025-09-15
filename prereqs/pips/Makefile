@@ -14,6 +14,9 @@ SOURCE_WHEELS =
 SOURCE_VERSIONS =
 WHEEL_CFLAGS ?=
 
+# On macOS, only the x86_64 version of Cython is available from pypi.
+# So we install the same version on arm64, but from source.
+CYTHON_VERSION = $(shell grep Cython $(TOP)/pyproject.toml  | sed -e 's/ ;.*//' -e 's/.*=//' -e 's/.*=//' -e 's/",//')
 CXSERVICES_VER = 1.2.3
 CXSERVICES_DEPLOYMENT_VER ?= production
 
@@ -34,6 +37,12 @@ endif
 endif
 
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
+
+ifeq ($(OSARCH),DarwinArm64)
+CYTHON_BUILD_ARGS= --no-binary :all:
+else
+CYTHON_BUILD_ARGS=
+endif
 
 ifeq ($(OS),Windows)
 else
@@ -73,6 +82,9 @@ app-install: app_requirements.txt $(PLATO_WHEELS) $(SCIPY_WHEEL)
 else
 app-install: app_requirements.txt $(PLATO_WHEELS)
 endif
+	# Install Cython first so PyOpenGL_accelerate builds
+	$(APP_PIP_INSTALL) $(CYTHON_BUILD_ARGS) $(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
+	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt | sed -e 's/[\ #",]//g')
 ifeq ($(OSARCH),DarwinArm64)
 	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
 endif
