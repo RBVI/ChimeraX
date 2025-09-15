@@ -369,6 +369,18 @@ metal_coordination_bonds(Structure* as)
                 }
                 ++bi;
             }
+            if (del_bonds.size() > 0 && metal->bonds().size() - del_bonds.size() == 1) {
+                // If there are other coordination bonds, then one bond to a singletion
+                // atom is probably a coordination bond (O3 in ccd:SI7)
+                for (auto mb: metal_bonds) {
+                    if (del_bonds.find(mb) == del_bonds.end()) {
+                        auto nb = mb->other_atom(metal);
+                        if (nb->bonds().size() == 1)
+                            del_bonds.insert(mb);
+                        break;
+                    }
+                }
+            }
         }
         if (del_bonds.size() > 0)
             mc_bonds.insert(del_bonds.begin(), del_bonds.end());
