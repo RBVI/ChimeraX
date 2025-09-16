@@ -194,7 +194,7 @@ def _each_ligand_predictions(for_each_ligand, molecular_components, predict_affi
             _split_affinity_ligand(ligand, components)
             affinity = ligand
         else:
-            affinity = self._predict_affinity
+            affinity = predict_affinity
         if affinity and _ligand_copies(affinity, components) >= 2:
             affinity = None	# Boltz 2.2 can't predict affinity for multicopy ligands
         p = BoltzPrediction(ligand.name, components, predict_affinity = affinity, align_to = align_to)
