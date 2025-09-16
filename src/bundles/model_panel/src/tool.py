@@ -598,7 +598,7 @@ class GroupModelsTool(ToolInstance):
         bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
         # Don't also connect accepted to self.delete, since input error should reshow dialog
         bbox.accepted.connect(self.group_models)
-        bbox.rejected.connect(self.delete)
+        bbox.rejected.connect(lambda *args, s=self: s.display(False))
         if getattr(self, 'help', None) is None:
             bbox.button(qbbox.Help).setEnabled(False)
         else:
