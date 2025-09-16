@@ -45,7 +45,7 @@ def cmd_minimize(session, structure, *, dock_prep=True, live_updates=True, log_e
         _minimize(session, structure, live_updates, log_energy, max_steps)
 
 def _minimize(session, structure, live_updates, log_energy, max_steps):
-    from openmm.app import Topology, ForceField, element, HBonds
+    from openmm.app import Topology, ForceField, element, HBonds, Simulation
     from openmm.unit import angstrom, nanometer, kelvin, picosecond, picoseconds, Quantity
     from openmm import LangevinIntegrator, LocalEnergyMinimizer, vec3, Context, MinimizationReporter
     #from openmmtools.integrators import GradientDescentMinimizationIntegrator
@@ -177,8 +177,11 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
         raise
     integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 0.004*picoseconds)
     #integrator = GradientDescentMinimizationIntegrator()
-    context = Context(system, integrator)
-    context.setPositions(Quantity(coords))
+    from chimerax.atomic import Atoms
+    cx_atoms = Atoms(reordered_atoms)
+    session.logger.status("Starting minimization")
+    # maxIterations doesn't truly constrain maximum iterations as you would expect
+    # (see https://github.com/openmm/openmm/issues/4983), so it is handled in the reporter instead
     class Reporter(MinimizationReporter):
         step = 0
         report_interval = 100
@@ -199,16 +202,20 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
                     from chimerax.core.commands import run
                     run(session, "wait 1", log=False)
             return False if max_steps is None else self.step >= max_steps
-    from chimerax.atomic import Atoms
-    cx_atoms = Atoms(reordered_atoms)
-    # maxIterations doesn't truly constrain maximum iterations as you would expect
-    # (see https://github.com/openmm/openmm/issues/4983), so it is handled in the reporter instead
-    session.logger.status("Starting minimization")
+    # Alternative, using Simulation
+    #simulation = Simulation(top, system, integrator)
+    #simulation.context.setPositions(Quantity(coords))
+    #simulation.minimizeEnergy(reporter=Reporter(cx_atoms))
+    #final_crds = numpy.array([q.value_in_unit(angstrom)
+    #    for q in simulation.context.getState(getPositions=True).getPositions()])
+    context = Context(system, integrator)
+    context.setPositions(Quantity(coords))
     LocalEnergyMinimizer.minimize(context, reporter=Reporter(cx_atoms))
     final_crds = numpy.array([q.value_in_unit(angstrom)
         for q in context.getState(getPositions=True).getPositions()])
     final_crds = numpy.reshape(final_crds, (-1,3))
     cx_atoms.coords = final_crds[filter]
+    session.logger.status("Minimization complete")
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, EnumOf, BoolArg, PositiveIntArg
