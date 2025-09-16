@@ -138,6 +138,11 @@ class ModelPanel(ToolInstance):
 
     def fill_context_menu(self, menu, x, y):
         from Qt.QtGui import QAction
+
+        action = QAction("Group Models...", menu)
+        action.triggered.connect(lambda *args, s=self: show_group_models_tool(s.session))
+        menu.addAction(action)
+
         action = QAction("Show Sequential Display Controls", menu)
         action.setCheckable(True)
         action.setChecked(self.showing_sequence_controls)
@@ -546,3 +551,107 @@ def view(objs, session):
     # one or more surfaces as submodels.  So change any '#!'s to just '#'.
     run(session, "view %s clip false" % concise_model_spec(session, models).replace('#!', '#'))
 
+_gmt = None
+def show_group_models_tool(session):
+    global _gmt
+    if _gmt is None:
+        _gmt = GroupModelsTool(session)
+    _gmt.display(True)
+
+class GroupModelsTool(ToolInstance):
+
+    #help = "help:user/tools/modelpanel.html"
+
+    def __init__(self, session):
+        ToolInstance.__init__(self, session, "Group Models")
+
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
+
+        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QLineEdit
+        from Qt.QtCore import Qt
+
+        layout = QVBoxLayout()
+        parent.setLayout(layout)
+
+        from chimerax.ui.widgets import ModelListWidget
+        self.model_list = ModelListWidget(session)
+        layout.addWidget(self.model_list, stretch=1)
+
+        layout.addWidget(QLabel("Choose models from above list to group"), alignment=Qt.AlignCenter)
+
+        info_layout = QHBoxLayout()
+        info_layout.addStretch(1)
+        info_layout.addWidget(QLabel("New group ID: #"))
+        self.id_entry = QLineEdit()
+        info_layout.addWidget(self.id_entry)
+        info_layout.addStretch(1)
+        info_layout.addWidget(QLabel("New group name:"))
+        self.name_entry = QLineEdit()
+        self.name_entry.setText("group")
+        info_layout.addWidget(self.name_entry)
+        info_layout.addStretch(1)
+        layout.addLayout(info_layout)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        # Don't also connect accepted to self.delete, since input error should reshow dialog
+        bbox.accepted.connect(self.group_models)
+        bbox.rejected.connect(self.delete)
+        if getattr(self, 'help', None) is None:
+            bbox.button(qbbox.Help).setEnabled(False)
+        else:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        layout.addWidget(bbox)
+
+
+        tw.manage(placement=None)
+
+    def group_models(self):
+        from chimerax.ui import tool_user_error
+        id_components = []
+        id_err_msg = "Group ID must be one or more positive integers separated by period ('.') characters"
+        for comp in self.id_entry.text().strip().split('.'):
+            try:
+                comp = int(comp.strip())
+            except ValueError:
+                return tool_user_error(id_err_msg)
+            if comp <= 0:
+                return tool_user_error(id_err_msg)
+            id_components.append(comp)
+        target_id = tuple(id_components)
+        target_id_string = '.'.join([str(comp) for comp in target_id])
+        if len(id_components) > 1:
+            parent = self.session.models.list(model_id=target_id[:-1])
+            if not parent:
+                return tool_user_error("Cannot create group with ID %s because the parent model (%s)"
+                    " does not exist" % (target_id_string, '.'.join([str(comp) for comp in target_id[:-1]])))
+            parent_model = parent[0]
+        else:
+            parent_model = None
+
+        existing_models = self.session.models.list(model_id=target_id)
+        if existing_models:
+            return tool_user_error("There is already an existing model with the requested ID (%s)"
+                % existing_models[0])
+
+        grouped_members = self.model_list.value
+        if not grouped_members:
+            return tool_user_error("Must select at least one model to group")
+        for member in grouped_members:
+            if member.id == target_id[:len(member.id)]:
+                return tool_user_error("Cannot make a model (%s) a child of itself (%s)"
+                    % (member, target_id_string))
+
+        group_name = self.name_entry.text().strip()
+        if not group_name:
+            return tool_user_error("Group name entry field is blank")
+
+        from chimerax.core.commands import concise_model_spec, run, StringArg
+        spec = concise_model_spec(self.session, grouped_members, allow_empty_spec=False)
+        run(self.session, f"rename {spec} id {target_id_string}")
+        run(self.session, f"rename #{target_id_string} {StringArg.unparse(group_name)}")
+
+        self.display(False)
