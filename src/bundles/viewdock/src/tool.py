@@ -33,7 +33,7 @@ from chimerax.core.commands import run, concise_model_spec, StringArg
 from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from Qt.QtWidgets import (QStyledItemDelegate, QComboBox, QAbstractItemView, QVBoxLayout, QStyle,
         QStyleOptionComboBox, QHBoxLayout, QPushButton, QDialog, QDialogButtonBox, QGroupBox, QGridLayout,
-        QLabel, QWidget, QRadioButton, QScrollArea, )
+        QLabel, QWidget, QRadioButton, QScrollArea, QCheckBox)
 from Qt.QtWidgets import QMenu
 from Qt.QtGui import QFont
 from Qt.QtCore import Qt
@@ -50,7 +50,7 @@ class ViewDockTool(ToolInstance):
     SESSION_SAVE = True
     registered_mousemode = False
 
-    def __init__(self, session, tool_name, structures, *, table_state=None):
+    def __init__(self, session, tool_name, structures, *, table_state=None, hide_boxes=None):
         """
         Initialize the ViewDock tool with, table, table controls, and model descriptions.
 
@@ -79,10 +79,14 @@ class ViewDockTool(ToolInstance):
 
         self.settings = ViewDockSettings(self.session, tool_name)
 
+        self.rating_area = QWidget()
+        self.rating_area_setup(hide_boxes)
+
         self.col_display_widget = QWidget()
         self.struct_table = ItemTable(session=self.session, column_control_info=(
             self.col_display_widget, self.settings, {}, True, None, None, True
         ))
+        self.vd_structures = vd_structures
         self.table_setup(vd_structures, table_state)
 
         from .mousemode import register_mousemode, NextDockingMouseMode
@@ -94,8 +98,7 @@ class ViewDockTool(ToolInstance):
         self.description_group = QGroupBox()
         self.description_box_setup()
 
-        self.rating_area = QWidget()
-        self.rating_area_setup()
+        self.main_v_layout.addWidget(self.rating_area)
 
         if table_state is None:
             if len(self.struct_table.data) > 0:
@@ -216,10 +219,10 @@ class ViewDockTool(ToolInstance):
             # Default behavior for chimerax.ui.widgets
             command = gui_instance.get_command()
             # Binding analysis structures
-            mine = concise_model_spec(self.session, self.struct_table.data)
+            mine = concise_model_spec(self.session, self.vd_structures)
             all_structures = self.session.models.list(type=AtomicStructure)
             # All structures that are AtomicStructures but not in the binding analysis structures
-            others = concise_model_spec(self.session, set(all_structures) - set(self.struct_table.data))
+            others = concise_model_spec(self.session, set(all_structures) - set(self.vd_structures))
             if others == "#":
                 self.session.logger.warning(f"First open a receptor model for {popup_name.capitalize()}.")
             else:
@@ -387,7 +390,9 @@ class ViewDockTool(ToolInstance):
         # Add the group box to the main layout
         self.main_v_layout.addWidget(self.description_group)
 
-    def rating_area_setup(self):
+    def rating_area_setup(self, prev_hides):
+        if prev_hides is None:
+            prev_hides = { 1: True }
         overall_layout = QVBoxLayout()
 
         # Customize the font for the title
@@ -397,19 +402,27 @@ class ViewDockTool(ToolInstance):
         title.setFont(title_font)
         overall_layout.addWidget(title, alignment=Qt.AlignCenter)
 
-        rating_layout = QHBoxLayout()
+        rating_layout = QGridLayout()
         overall_layout.addLayout(rating_layout)
         self.rating_area.setLayout(overall_layout)
-        rating_layout.addStretch(1)
+        rating_layout.setColumnStretch(0, 1)
+        col = 1
         rating_buttons = []
+        hide_rating_boxes = {}
         for val, label in reversed(list(enumerate(rating_labels))):
             but = QRadioButton(label)
             rating_buttons.append(but)
-            rating_layout.addWidget(but)
-            but.toggled.connect(lambda *args, val=val: self.rating_changed(val))
-            rating_layout.addStretch(1)
+            rating_layout.addWidget(but, 0, col)
+            but.clicked.connect(lambda *args, val=val: self.rating_changed(val))
+            box = QCheckBox("hide")
+            box.setChecked(prev_hides.get(val, False))
+            hide_rating_boxes[val] = box
+            box.clicked.connect(lambda *args, s=self, v=val: s.hide_rating_changed(v))
+            rating_layout.addWidget(box, 1, col)
+            rating_layout.setColumnStretch(col+1, 1)
+            col += 2
         self.rating_buttons = list(reversed(rating_buttons))
-        self.main_v_layout.addWidget(self.rating_area)
+        self.hide_rating_boxes = hide_rating_boxes
 
     def rating_changed(self, value):
         for s in self.struct_table.selected:
@@ -418,6 +431,31 @@ class ViewDockTool(ToolInstance):
             if self.rating_label_info is not None:
                 col, rating_label = self.rating_label_info
                 rating_label.setText(col.display_value(s))
+        if self.hide_rating_boxes[value].isChecked():
+            for s in self.struct_table.selected:
+                s.display = False
+            self.update_table_for_hidden()
+
+    def hide_rating_changed(self, val):
+        hiding = self.hide_rating_boxes[val].isChecked()
+        if hiding:
+            for s in self.vd_structures:
+                if s.viewdock_data[RATING_KEY] == val:
+                    s.display = False
+            self.update_table_for_hidden()
+        else:
+            self.struct_table.data = self.table_structures
+
+    def update_table_for_hidden(self):
+        sel = self.struct_table.selected
+        self.struct_table.data = self.table_structures
+        if sel and not self.struct_table.selected and self.struct_table.data:
+            for possible in self.vd_structures[self.vd_structures.index(sel[-1])+1:]:
+                if possible in self.struct_table.data:
+                    self.struct_table.selected = [possible]
+                    break
+            else:
+                self.struct_table.selected = self.struct_table.data[0:1]
 
     def display_key(self, key):
         return key.replace('.', ' ').replace('_', ' ')
@@ -430,6 +468,11 @@ class ViewDockTool(ToolInstance):
         self.update_structure_displays()
         self.update_model_description()
         self.update_rating()
+
+    @property
+    def table_structures(self):
+        return [s for s in self.vd_structures
+            if not self.hide_rating_boxes[s.viewdock_data[RATING_KEY]].isChecked()]
 
     def update_structure_displays(self):
         """
@@ -584,7 +627,9 @@ class ViewDockTool(ToolInstance):
         for model in trigger_data:
             if model in cur_structures:
                 cur_structures.remove(model)
-        if not cur_structures:
+            if model in self.vd_structures:
+                self.vd_structures.remove(model)
+        if not self.vd_structures:
             self.delete()
         else:
             self.struct_table.data = cur_structures
@@ -611,7 +656,7 @@ class ViewDockTool(ToolInstance):
             run(self.session, f'hide {model_spec} models', log=False)
 
     def process_clashes(self, cmd_results):
-        counts = { s: 0 for s in self.struct_table.data }
+        counts = { s: 0 for s in self.vd_structures }
         for a1, clashes in cmd_results.items():
             for a2 in clashes.keys():
                 for s in set([a.structure for a in (a1,a2)]):
@@ -628,7 +673,7 @@ class ViewDockTool(ToolInstance):
         self.update_model_description()
 
     def process_hbonds(self, cmd_results):
-        counts = { s: 0 for s in self.struct_table.data }
+        counts = { s: 0 for s in self.vd_structures }
         for hb in cmd_results:
             for s in set([da.structure for da in hb]):
                 if s in counts:
@@ -654,6 +699,7 @@ class ViewDockTool(ToolInstance):
     def take_snapshot(self, session, flags):
         return {
             'version': 1,
+            'hide_boxes': { val: box.isChecked() for val, box in self.hide_rating_boxes.items() },
             'structures': self.struct_table.data,
             'table_state': self.struct_table.session_info(),
             'tool_name': self.tool_name
@@ -682,7 +728,7 @@ class ViewDockTool(ToolInstance):
             return None
 
         return cls(session, snapshot['tool_name'], snapshot['structures'],
-            table_state=snapshot.get('table_state', None))
+            table_state=snapshot.get('table_state', None), hide_boxes=snapshot.get('hide_boxes', {}))
 
 # RatingDelegate no longer used, but retaining code for reference
 class RatingDelegate(QStyledItemDelegate):
