@@ -153,7 +153,12 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
             cx_res.name, cx_res.number, cx_res.insertion_code)
         for omm_atom in template.atoms:
             cx_atom = cx_res.find_atom(omm_atom.name)
-            gaff_type = cx_atom.gaff_type
+            if cx_atom.num_bonds == 0:
+                gaff_type = "tip3pfb_standard-" + cx_atom.element.name + (str(cx_atom.charge)
+                    if abs(cx_atom.charge) > 1 else "") + ('+' if cx_atom.charge > 0 else '-')
+            else:
+                gaff_type = cx_atom.gaff_type
+
             #if adjust_gaff_type:
             #    gaff_type = 'DNA-' + gaff_type
             omm_atom.type = gaff_type
