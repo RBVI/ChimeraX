@@ -105,11 +105,26 @@ and docking scores. The structures and their data are saved in
 One or more rows can be <b><i>chosen</i></b> (highlighted) in the list
 by clicking and dragging with the left mouse button;
 <b>Ctrl</b>-click (or <b>command</b>-click if using a Mac)
-toggles whether a row is chosen. 
-Choosing rows displays the corresponding
-compounds and hides the others. Choosing a single compound (row)
-displays all of its descriptor values in the lower part of the panel
-and allows rating it as <b>good</b>, <b>maybe</b>, or <b>bad</b>.
+toggles whether a row is chosen. Choosing rows displays the corresponding
+compounds and hides the others. 
+Choosing a single compound (row) displays all of its descriptor values 
+in the lower part of the panel and allows setting its <b>Compound Rating</b> as
+<b>good</b>, <b>maybe</b>, or <b>bad</b> or <b>(unrated)</b>.
+If multiple compounds are chosen, their descriptors are not shown, 
+but their ratings can be changed collectively.
+Below each rating button is a <b>hide</b> checkbox, which if activated
+will hide all of the corresponding compounds in both the <b>ViewDock</b> table
+and the graphics window. The hidden models will still be listed in the 
+<a href="modelpanel.html"><b>Model Panel</b></a>.
+</p><p>
+When the <b>ViewDock</b> dialog has the mouse focus and a single
+compound is shown (it may be necessary to click on the row for that compound
+after interacting with other windows), pressing the keyboard 
+down (up) arrow key chooses the next (previous) 
+compound in the list. The list can also be navigated with the 
+<b>next docked</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/nextdocking.png"></a>.
 </p><p>
 The first two columns in the table are generated automatically:
 </p>
@@ -137,17 +152,6 @@ user <a href="../preferences.html#other">preference</a>
 <li><b>Toggle Controls</b> &ndash; show/hide the checkbox section
 </ul>
 <p>
-When the <b>ViewDock</b> dialog has the mouse focus and a single
-compound is shown (it may be necessary to click on the row for that compound
-after interacting with other windows),
-pressing the keyboard down (up) arrow key hides the compound and shows
-the next (previous) compound in the list.
-All of the descriptors read from the file for that compound will be shown in
-a panel at the very bottom of the dialog. The list can also be navigated with
-the <b>next docked</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
-<a href="mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="mouse-icons/nextdocking.png"></a>.
-</p><p>
 <a name="buttons"></a>
 Buttons above the table:
 </p>
@@ -187,5 +191,5 @@ and remove their rows from the table
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2025</address>
+September 2025</address>
 </body></html>
