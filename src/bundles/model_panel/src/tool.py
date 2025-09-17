@@ -560,7 +560,7 @@ def show_group_models_tool(session):
 
 class GroupModelsTool(ToolInstance):
 
-    #help = "help:user/tools/modelpanel.html"
+    help = "help:user/tools/modelpanel.html#group"
 
     def __init__(self, session):
         ToolInstance.__init__(self, session, "Group Models")
