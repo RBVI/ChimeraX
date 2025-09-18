@@ -458,7 +458,14 @@ class ViewDockTool(ToolInstance):
                 self.struct_table.selected = self.struct_table.data[0:1]
 
     def display_key(self, key):
-        return key.replace('.', ' ').replace('_', ' ')
+        disp_words = []
+        for space_word in key.split():
+            for fragment in space_word.split('_'):
+                if fragment.endswith('.'):
+                    disp_words.append(fragment)
+                else:
+                    disp_words.extend(fragment.split('.'))
+        return ' '.join(disp_words)
 
     def table_selection_changed(self, *args):
         """
@@ -534,7 +541,7 @@ class ViewDockTool(ToolInstance):
 
         # Add attributes in a grid layout
         column_map = { col.title: col for col in self.struct_table.columns }
-        all_titles = [key for key in docking_structure.viewdock_data.keys()
+        all_titles = [self.display_key(key) for key in docking_structure.viewdock_data.keys()
             if key != RATING_KEY] + ["Rating"]
         all_titles.sort(key=lambda title: title.lower())
         short_titles = []
