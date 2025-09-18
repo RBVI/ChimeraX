@@ -117,13 +117,16 @@ double Column::value(PrincipalAtomMap& pas, double dist_cutoff) const
     return value;
 }
 
+static int _num_endpoints = 0;
 class EndPoint
 {
 public:
     Chain*  chain;
     Chain::SeqPos  pos;
     decltype(Column::positions) positions;
-    EndPoint(Chain* _chain, Chain::SeqPos _pos): chain(_chain), pos(_pos) { positions[_chain] = _pos; };
+    EndPoint(Chain* _chain, Chain::SeqPos _pos): chain(_chain), pos(_pos) { positions[_chain] = _pos;
+_num_endpoints++;
+    };
 
     bool contains(Chain* _seq, Chain::SeqPos _pos) { return chain == _seq && pos == _pos; }
 };
@@ -147,7 +150,7 @@ public:
             return col->contains(_seq, _pos);
         return ep->contains(_seq, _pos);
     }
-    decltype(Column::positions) positions() {
+    decltype(Column::positions) &positions() {
         if (is_column)
             return col->positions;
         return ep->positions;
@@ -159,19 +162,19 @@ class Link
 public:
     // info is really a pair of end points or column + end point, but much easier to iterate through a vector
     // than a pair, so...
-    std::vector<EndPointOrColumn> info;
+    std::vector<std::shared_ptr<EndPointOrColumn>> info;
     double val;
     double penalty = 0.0;
     std::vector<std::shared_ptr<Link>> cross_links;
 
     Link(std::shared_ptr<EndPoint>& e1, std::shared_ptr<EndPoint>& e2, double _val) {
-        info.emplace_back(e1);
-        info.emplace_back(e2);
+        info.emplace_back(new EndPointOrColumn(e1));
+        info.emplace_back(new EndPointOrColumn(e2));
         val = _val;
     }
     Link(std::shared_ptr<Column>& col, std::shared_ptr<EndPoint>& ep, double _val) {
-        info.emplace_back(col);
-        info.emplace_back(ep);
+        info.emplace_back(new EndPointOrColumn(col));
+        info.emplace_back(new EndPointOrColumn(ep));
         val = _val;
     }
 
@@ -181,14 +184,14 @@ public:
 void Link::evaluate(PrincipalAtomMap& pas, double dist_cutoff)
 {
     val = std::numeric_limits<double>::quiet_NaN();
-    for (auto seq_pos1: info[0].positions()) {
+    for (auto seq_pos1: info[0]->positions()) {
         auto s1 = seq_pos1.first;
         auto p1 = seq_pos1.second;
         //TODO: circular
         auto pa1 = pas[s1][p1];
         if (pa1 == nullptr)
             continue;
-        for (auto seq_pos2: info[1].positions()) {
+        for (auto seq_pos2: info[1]->positions()) {
             auto s2 = seq_pos2.first;
             auto p2 = seq_pos2.second;
             //TODO: circular
@@ -248,10 +251,11 @@ find_prune_crosslinks(
     for (auto end: ends)
         l2_lists.push_back(LinkList(seq2_links.begin(), seq2_links.begin() + end));
     for (auto& link1: link_list) {
-        auto i1 = link1->info[0].ep->pos;
-        auto i2 = link1->info[1].ep->pos;
+        // Original Chimera code directly accesses .pos, so must be an EndPoint...
+        auto i1 = link1->info[0]->ep->pos;
+        auto i2 = link1->info[1]->ep->pos;
         for (auto& link2: l2_lists[i2]) {
-            if (link2->info[0].ep->pos <= i1)
+            if (link2->info[0]->ep->pos <= i1)
                 continue;
             link1->cross_links.push_back(link2);
             link2->cross_links.push_back(link1);
@@ -274,9 +278,9 @@ find_prune_crosslinks(
         if (pen <= 0.0001)
             break;
         auto& link = *pos;
-        auto& l1_list = links1[link->info[0].ep->pos];
+        auto& l1_list = links1[link->info[0]->ep->pos];
         l1_list.erase(std::find(l1_list.begin(), l1_list.end(), link));
-        auto& l2_list = links2[link->info[1].ep->pos];
+        auto& l2_list = links2[link->info[1]->ep->pos];
         l2_list.erase(std::find(l2_list.begin(), l2_list.end(), link));
         for (auto& clink: link->cross_links)
             clink->penalty -= link->val;
@@ -494,6 +498,7 @@ PyObject *
 multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char gap_char,
     bool circular, const char* status_prefix, PyObject* py_logger, PyObject* error_class)
 {
+std::cerr << "dist cutoff: " << dist_cutoff << "  all: " << col_all << "\n";
     // Create list of pairings between chains and prune to be monotonic
     if (circular) {
         PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align cicular permutation support not implemented");
@@ -534,6 +539,8 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
         pas[chain] = seq_pas;
         pairings[chain] = pairing;
     }
+std::cerr << pairings.size() << " pairings\n";
+for (auto chain_links: pairings) std::cerr << chain_links.first->name() << " has " << chain_links.second.size() << " links\n";
 
     //TODO: circular permutation support
     //std::map<std::pair<Chain*, Chain*>, std::pair<int, int>> circular_pairs;
@@ -544,6 +551,7 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
     auto num_chains = chains.size();
     decltype(num_chains) loop_count = 0, loop_limit = (num_chains * (num_chains-1))/2;
     std::map<Chain*, std::map<Atom*, decltype(num_chains)>> datas;
+int num_dist_okay = 0;
     for (decltype(num_chains) i = 0; i < num_chains; ++i) {
         auto seq1 = chains[i];
         auto len1 = pairings[seq1].size();
@@ -595,6 +603,7 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
                     auto val = dist_cutoff - dist;
                     if (val <= 0.0)
                         continue;
+++num_dist_okay;
                     auto i2 = data[pa2];
                     auto end1 = std::shared_ptr<EndPoint>(new EndPoint(seq1, k));
                     auto end2 = std::shared_ptr<EndPoint>(new EndPoint(seq2, i2));
@@ -612,6 +621,8 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
             }
         }
     }
+std::cerr << num_dist_okay << " distances okay\n";
+std::cerr << _num_endpoints << " EndPoints created\n";
     for (auto chain_tree: trees) {
         delete chain_tree.second;
     }
@@ -620,11 +631,17 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
         //TODO
     }
 
+for (auto chain_lists: pairings) {
+    std::cerr << chain_lists.first->name() << "\n";
+    for (auto& link_list: chain_lists.second)
+        std:: cerr << "  " << link_list.size() << "\n";
+}
     // column collation
     std::map<Chain*, std::map<std::shared_ptr<Column>, std::vector<int>::size_type>> columns;
     std::map<Chain*, std::vector<std::shared_ptr<Column>>> partial_order;
+std::cerr << all_links.size() << " all links\n";
 
-    std::set<std::pair<std::shared_ptr<EndPoint>, std::shared_ptr<EndPoint>>> seen;
+    std::set<std::pair<std::shared_ptr<EndPointOrColumn>, std::shared_ptr<EndPointOrColumn>>> seen;
     while (all_links.size() > 0) {
         if (all_links.size() % 100 == 0)
             logger::status(py_logger, status_prefix,
@@ -652,26 +669,42 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
         }
         auto link = all_links.back();
         all_links.pop_back();
+std::cerr << "all links reduced to " << all_links.size() << "\n";
         if (link->val < 0)
             break;
 
-        std::pair<std::shared_ptr<EndPoint>, std::shared_ptr<EndPoint>>
-            key(link->info[0].ep, link->info[1].ep);
+        std::pair<std::shared_ptr<EndPointOrColumn>, std::shared_ptr<EndPointOrColumn>>
+            key(link->info[0], link->info[1]);
         if (seen.find(key) != seen.end())
             continue;
         seen.insert(key);
-
-        std::map<Chain*, Chain::SeqPos> check_info;
-        for (auto endp: link->info) {
-            auto& list = pairings[endp.ep->chain][endp.ep->pos];
-            list.erase(std::find(list.begin(), list.end(), link));
-            check_info[endp.ep->chain] = endp.ep->pos;
+        for (auto ep_or_col: link->info) {
+            for (auto seq_pos: ep_or_col->positions()) {
+                auto& link_list = pairings[seq_pos.first][seq_pos.second];
+                link_list.erase(std::find(link_list.begin(), link_list.end(), link));
+            }
         }
 
-        // AFAICT links are _always_ between different chains, so the whole "okay check"
-        // in the Chimera code seems superfluous
+        std::map<Chain*, Chain::SeqPos> check_info;
+        for (auto ep_or_col: link->info) {
+            for (auto seq_pos: ep_or_col->positions())
+                check_info.insert(seq_pos);
+        }
 
-        if (!_check(check_info, partial_order, chains))
+        // Links between EndPoints will always be different sequences (I think),
+        // but if one or both end are Columns, they might both involve the same sequence...
+        bool okay = true;
+        for (auto seq_pos1: link->info[0]->positions()) {
+            auto seq1 = seq_pos1.first;
+            auto& positions2 = link->info[1]->positions();
+            if (positions2.find(seq1) != positions2.end()) {
+                okay = false;
+                break;
+            }
+        }
+
+
+        if (!okay || !_check(check_info, partial_order, chains))
             continue;
 
         auto col = std::shared_ptr<Column>(new Column(check_info));
@@ -700,23 +733,21 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
             }
         }
 
-        // From here forward, link.info might contain Columns, so don't just use its
-        // .ep attribute, which is what the preceding code does
         for (auto col_or_ep: link->info) {
-            for (auto seq_pos: col_or_ep.positions()) {
+            for (auto seq_pos: col_or_ep->positions()) {
                 auto seq = seq_pos.first;
                 auto pos = seq_pos.second;
                 for (auto l: pairings[seq][pos]) {
-                    EndPointOrColumn *base, *connect;
-                    if (l->info[0].contains(seq, pos)) {
-                        base = &l->info[0];
-                        connect = &l->info[1];
+                    std::shared_ptr<EndPointOrColumn> base, connect;
+                    if (l->info[0]->contains(seq, pos)) {
+                        base = l->info[0];
+                        connect = l->info[1];
                     } else {
-                        connect = &l->info[0];
-                        base = &l->info[1];
+                        connect = l->info[0];
+                        base = l->info[1];
                     }
-                    l->info[0] = col;
-                    l->info[1] = *connect;
+                    *(l->info[0]) = col;
+                    *(l->info[1]) = *connect;
                     l->evaluate(pas, dist_cutoff);
                     for (auto c_seq_pos: col->positions) {
                         auto cseq = c_seq_pos.first;
@@ -727,11 +758,11 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
                     }
                 }
             }
-            if (col_or_ep.is_column) {
-                for (auto seq_pos: col_or_ep.positions()) {
+            if (col_or_ep->is_column) {
+                for (auto seq_pos: col_or_ep->positions()) {
                     auto seq = seq_pos.first;
                     auto seq_cols = columns[seq];
-                    auto opos = seq_cols[col_or_ep.col];
+                    auto opos = seq_cols[col_or_ep->col];
                     auto po = partial_order[seq];
                     auto new_po = decltype(po)(po.begin(), po.begin()+opos);
                     auto new_po_back = decltype(po)(po.begin()+opos+1, po.end());
@@ -739,11 +770,12 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
                     partial_order[seq] = new_po;
                     for (auto pcol: new_po_back)
                         seq_cols[pcol] -= 1;
-                    seq_cols.erase(col_or_ep.col);
+                    seq_cols.erase(col_or_ep->col);
                 }
             }
         }
     }
+std::cerr << partial_order.size() << " entries in partial_order\n";
         
     logger::status(py_logger, status_prefix, "Collating columns");
 
@@ -752,8 +784,9 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
     while (true) {
         // find an initial sequence column that can lead
         bool broke_po = false;
+        Chain* seq;
         for (auto seq_cols: partial_order) {
-            auto seq = seq_cols.first;
+            seq = seq_cols.first;
             auto cols = seq_cols.second;
             if (cols.empty()) {
                 auto py_struct = seq->structure()->py_instance(true);
@@ -784,6 +817,40 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
         }
         if (!broke_po)
             break;
+
+        ordered_columns.push_back(col);
+        for (auto cseq_pos: col->positions) {
+            auto cseq = cseq_pos.first;
+            auto& cols = partial_order[cseq];
+            auto col = cols.front();
+            if (cols.size() > 1)
+                cols.erase(cols.begin());
+            else
+                partial_order.erase(cseq);
+        }
+        // try to continue using this sequence as long as possible
+        while (partial_order.find(seq) != partial_order.end()) {
+            auto col = partial_order[seq].front();
+            bool broke_colpos = false;
+            for (auto cseq_pos: col->positions) {
+                if (partial_order[cseq_pos.first].front() != col) {
+                    broke_colpos = true;
+                    break;
+                }
+            }
+            if (broke_colpos)
+                break;
+            ordered_columns.push_back(col);
+            for (auto cseq_pos: col->positions) {
+                auto cseq = cseq_pos.first;
+                auto& cols = partial_order[cseq];
+                auto col = cols.front();
+                if (cols.size() > 1)
+                    cols.erase(cols.begin());
+                else
+                    partial_order.erase(cseq);
+            }
+        }
     }
     if (ordered_columns.empty()) {
         logger::status(py_logger, "");
@@ -1123,7 +1190,7 @@ py_multi_align(PyObject*, PyObject* args)
     double dist_cutoff;
     int col_all, circular, py_gap_char;
     const char* status_prefix;
-    if (!PyArg_ParseTuple(args, const_cast<char *>("OfpCpsOO"), &chain_ptrs_list, &dist_cutoff,
+    if (!PyArg_ParseTuple(args, const_cast<char *>("OdpCpsOO"), &chain_ptrs_list, &dist_cutoff,
             &col_all, &py_gap_char, &circular, &status_prefix, &py_logger, &error_class))
         return NULL;
     char gap_char = (char)py_gap_char;
