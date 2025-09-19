@@ -123,7 +123,7 @@ class ScenesTool(ToolInstance):
         """
         Callback for the SELECTED trigger. Restore the scene with the given name.
         """
-        run(self.session, f'scene restore "{StringArg.unparse(scene_name)}"')
+        run(self.session, f'scene restore {StringArg.unparse(scene_name)}')
 
     def scene_edited_cb(self, trigger_name, scene_name):
         """
@@ -527,12 +527,12 @@ class SceneItem(QWidget):
         # Execute the drag
         drag.exec(Qt.CopyAction)
 
-    def mouseDoubleClickEvent(self, event):
+    def mousePressEvent(self, event):
         """
-        Handle double click events for activating the SCENE_SELECTED trigger with the SceneItem widget's name.
+        Handle mouse click events for activating the SCENE_SELECTED trigger with the SceneItem widget's name.
         """
         activate_trigger(SCENE_SELECTED, self.name)
-        super().mouseDoubleClickEvent(event)
+        super().mousePressEvent(event)
 
     def set_highlighted(self, highlighted):
         """
