@@ -28,7 +28,7 @@ from chimerax.ui import MainToolWindow
 from Qt.QtWidgets import QHBoxLayout, QLineEdit, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton, QApplication
 from Qt.QtGui import QPixmap, QDrag
 from Qt.QtCore import Qt, QMimeData, QPoint
-from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, SAVED, RESTORED, SCENE_HIGHLIGHTED, DELETED
+from .triggers import activate_trigger, add_handler, SCENE_SELECTED, SAVED, RESTORED, SCENE_HIGHLIGHTED, DELETED
 from chimerax.core.commands import run, StringArg
 
 """
@@ -54,7 +54,7 @@ class ScenesTool(ToolInstance):
     """
     Main tool for managing scenes. This tool contains a custom scroll area for displaying SceneItem widgets and an
     area for adding, editing, and deleting scenes. The tool contains handlers for the following
-    triggers: SCENE_SELECTED, EDITED, ADDED, SCENE_HIGHLIGHTED, DELETED.
+    triggers: SCENE_SELECTED, ADDED, SCENE_HIGHLIGHTED, DELETED.
     """
 
     SESSION_ENDURING = False
@@ -69,7 +69,6 @@ class ScenesTool(ToolInstance):
 
         self.handlers = []
         self.handlers.append(add_handler(SCENE_SELECTED, self.scene_selected_cb))
-        self.handlers.append(add_handler(EDITED, self.scene_edited_cb))
         self.handlers.append(add_handler(SAVED, self.scene_saved_cb))
         self.handlers.append(add_handler(RESTORED, self.scene_restored_cb))
         self.handlers.append(add_handler(SCENE_HIGHLIGHTED, self.scene_highlighted_cb))
@@ -106,14 +105,11 @@ class ScenesTool(ToolInstance):
         # Create buttons for saving, editing, and deleting scenes and connect them to their respective methods
         self.save_button = QPushButton("Save")
         self.save_button.clicked.connect(self.save_button_clicked)
-        self.edit_button = QPushButton("Edit")
-        self.edit_button.clicked.connect(self.edit_button_clicked)
         self.delete_button = QPushButton("Delete")
         self.delete_button.clicked.connect(self.delete_button_clicked)
 
         # Add the buttons to the action buttons layout
         self.action_buttons_layout.addWidget(self.save_button)
-        self.action_buttons_layout.addWidget(self.edit_button)
         self.action_buttons_layout.addWidget(self.delete_button)
 
         self.main_layout.addLayout(self.action_buttons_layout)
@@ -126,25 +122,16 @@ class ScenesTool(ToolInstance):
         """
         run(self.session, f'scene restore {StringArg.unparse(scene_name)}')
 
-    def scene_edited_cb(self, trigger_name, scene_name):
-        """
-        Callback for the EDITED trigger. Update the thumbnail of the SceneItem from the updated scene in the session.
-        Move the SceneItem to the top of the grid layout to reflect the most recently edited scene.
-        """
-        scene_item_widget = self.scroll_area.get_scene_item(scene_name)
-        if scene_item_widget:
-            scenes_mgr = self.session.scenes
-            scene = scenes_mgr.get_scene(scene_name)
-            if scene:
-                scene_item_widget.set_thumbnail(scene.get_thumbnail())
-                self.scroll_area.set_latest_scene(scene_name)
-
     def scene_saved_cb(self, trigger_name, scene_name):
         """
         Callback for the SAVED trigger. Get the newly added scene from the session and add it to the scroll area.
         """
         scene = self.session.scenes.get_scene(scene_name)
-        if scene:
+        scene_item_widget = self.scroll_area.get_scene_item(scene_name)
+        if scene_item_widget:
+            scene_item_widget.set_thumbnail(scene.get_thumbnail())
+            self.scroll_area.set_latest_scene(scene_name)
+        else:
             self.scroll_area.add_scene_item(scene_name, scene.get_thumbnail())
 
     def scene_restored_cb(self, trigger_name, scene_name):
@@ -171,6 +158,10 @@ class ScenesTool(ToolInstance):
         Save the current scene with the name in the line edit widget.
         """
         scene_name = self.scene_name_entry.text()
+        if self.session.scenes.get_scene(scene_name) is not None:
+            from chimerax.ui.ask import ask
+            if ask(self.session, "Replace/update scene_name?", title="Scene Replacement") == "no":
+                return
         run(self.session, f"scene save {StringArg.unparse(scene_name)}")
 
     def edit_button_clicked(self):
@@ -302,7 +293,7 @@ class SceneScrollArea(QScrollArea):
     def add_scene_item(self, scene_name, thumbnail_data):
         """
         Add a new SceneItem widget to the scroll area. This method creates a new SceneItem widget with the given scene
-        name and thumbnail data and inserts it at the beginning of the scene_items list. The grid layout is then updated
+        name and thumbnail data and appends it to the end of the scene_items list. The grid layout is then updated
         to reflect the new SceneItem widget.
 
         Args:
@@ -310,7 +301,7 @@ class SceneScrollArea(QScrollArea):
             thumbnail_data (str): Base64 encoded image data for the thumbnail image.
         """
         scene_item = SceneItem(scene_name, thumbnail_data)
-        self.scene_items.insert(0, scene_item)
+        self.scene_items.append(scene_item)
         self.update_grid()
 
     def remove_scene_item(self, scene_name):
@@ -327,15 +318,19 @@ class SceneScrollArea(QScrollArea):
 
     def set_latest_scene(self, scene_name):
         """
+        Used to:
         Move the SceneItem widget to the top of the grid layout. This method adjusts the ordering of the scene_items
         attribute and updates the grid layout to reflect the new ordering in order to move a recently edited or added
         scene to the top of the grid layout.
+
+        Now:
+        No-op
         """
-        scene_item = self.get_scene_item(scene_name)
-        if scene_item:
-            self.scene_items.remove(scene_item)
-            self.scene_items.insert(0, scene_item)
-            self.update_grid()
+        #scene_item = self.get_scene_item(scene_name)
+        #if scene_item:
+        #    self.scene_items.remove(scene_item)
+        #    self.scene_items.insert(0, scene_item)
+        #    self.update_grid()
 
     def get_scene_item(self, name):
         return next((scene_item for scene_item in self.scene_items if scene_item.get_name() == name), None)
