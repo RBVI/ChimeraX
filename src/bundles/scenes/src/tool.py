@@ -415,17 +415,17 @@ class SceneItem(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        # Thumbnail
-        self.thumbnail_label = QLabel()
-        self.pixmap = QPixmap()
-        self.set_thumbnail(self.thumbnail_data)
-        layout.addWidget(self.thumbnail_label)
-
         # Label
         self.label = QLabel(self.name)
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setWordWrap(True)
         layout.addWidget(self.label)
+
+        # Thumbnail
+        self.thumbnail_label = QLabel()
+        self.pixmap = QPixmap()
+        self.set_thumbnail(self.thumbnail_data)
+        layout.addWidget(self.thumbnail_label)
 
         # Set fixed size for the SceneItem
         self.setFixedSize(self.pixmap.width(), self.pixmap.height() + self.label.sizeHint().height())
