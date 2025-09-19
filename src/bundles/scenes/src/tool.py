@@ -25,7 +25,6 @@
 import base64
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
-from chimerax.ui.widgets import DisclosureArea
 from Qt.QtWidgets import QHBoxLayout, QLineEdit, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton, QApplication
 from Qt.QtGui import QPixmap, QDrag
 from Qt.QtCore import Qt, QMimeData, QPoint
@@ -41,7 +40,7 @@ Classes:
     - SceneItem: Custom widget that displays a thumbnail image and the name of a scene.
 
 The `ScenesTool` class provides a user interface for managing scenes, including a scroll area for displaying SceneItem
-widgets and a disclosure area for scene actions. The tool handles various triggers for scene selection, editing, saving,
+widgets and an area for scene actions. The tool handles various triggers for scene selection, editing, saving,
  highlighting, and deletion.
 
 The `SceneScrollArea` class manages the layout and display of SceneItem widgets, adjusting the grid layout based on the
@@ -53,8 +52,8 @@ activation of relevant triggers.
 
 class ScenesTool(ToolInstance):
     """
-    Main tool for managing scenes. This tool contains a custom scroll area for displaying SceneItem widgets and a
-    chimerax.ui DisclosureArea for adding, editing, and deleting scenes. The tool contains handlers for the following
+    Main tool for managing scenes. This tool contains a custom scroll area for displaying SceneItem widgets and an
+    area for adding, editing, and deleting scenes. The tool contains handlers for the following
     triggers: SCENE_SELECTED, EDITED, ADDED, SCENE_HIGHLIGHTED, DELETED.
     """
 
@@ -83,16 +82,12 @@ class ScenesTool(ToolInstance):
         """
 
         self.main_layout = QVBoxLayout()
+        self.main_layout.setSpacing(5)
         self.tool_window.ui_area.setLayout(self.main_layout)
 
         # The scroll area contains the SceneItem widgets ordered in a grid layout
         self.scroll_area = SceneScrollArea(self.session)
         self.main_layout.addWidget(self.scroll_area)
-
-        # The disclosure area is the popup menu at the bottom of the tool window
-        self.disclosure_area = DisclosureArea(title="Scene Actions")
-        self.main_disclosure_layout = QVBoxLayout()
-        self.main_disclosure_layout.setSpacing(0)
 
         # Set up the line edit for entering the scene name
         self.scene_entry_label = QLabel("Scene Name:")
@@ -101,11 +96,11 @@ class ScenesTool(ToolInstance):
         self.line_edit_layout.setSpacing(10)
         self.line_edit_layout.addWidget(self.scene_entry_label)
         self.line_edit_layout.addWidget(self.scene_name_entry)
-        self.main_disclosure_layout.addLayout(self.line_edit_layout)
+        self.main_layout.addLayout(self.line_edit_layout)
 
         # Layout for buttons
-        self.disclosure_buttons_layout = QHBoxLayout()
-        self.disclosure_buttons_layout.setSpacing(5)
+        self.action_buttons_layout = QHBoxLayout()
+        self.action_buttons_layout.setSpacing(5)
 
         # Create buttons for saving, editing, and deleting scenes and connect them to their respective methods
         self.save_button = QPushButton("Save")
@@ -115,15 +110,12 @@ class ScenesTool(ToolInstance):
         self.delete_button = QPushButton("Delete")
         self.delete_button.clicked.connect(self.delete_button_clicked)
 
-        # Add the buttons to the disclosure button layout
-        self.disclosure_buttons_layout.addWidget(self.save_button)
-        self.disclosure_buttons_layout.addWidget(self.edit_button)
-        self.disclosure_buttons_layout.addWidget(self.delete_button)
+        # Add the buttons to the action buttons layout
+        self.action_buttons_layout.addWidget(self.save_button)
+        self.action_buttons_layout.addWidget(self.edit_button)
+        self.action_buttons_layout.addWidget(self.delete_button)
 
-        self.main_disclosure_layout.addLayout(self.disclosure_buttons_layout)
-
-        self.disclosure_area.setContentLayout(self.main_disclosure_layout)
-        self.main_layout.addWidget(self.disclosure_area)
+        self.main_layout.addLayout(self.action_buttons_layout)
 
         self.tool_window.ui_area.setMinimumWidth(300)
 
