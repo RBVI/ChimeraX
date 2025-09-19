@@ -24,7 +24,7 @@
 
 import base64
 from chimerax.core.tools import ToolInstance
-from chimerax.ui import MainToolWindow
+from chimerax.ui import MainToolWindow, tool_user_error
 from Qt.QtWidgets import QHBoxLayout, QLineEdit, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton, QApplication
 from Qt.QtGui import QPixmap, QDrag
 from Qt.QtCore import Qt, QMimeData, QPoint
@@ -164,25 +164,17 @@ class ScenesTool(ToolInstance):
                 return
         run(self.session, f"scene save {StringArg.unparse(scene_name)}")
 
-    def edit_button_clicked(self):
-        """
-        Edit the highlighted scene.
-        """
-        highlighted_scene = self.scroll_area.get_highlighted_scene()
-        if highlighted_scene:
-            run(self.session, f"scene edit {StringArg.unparse(highlighted_scene.get_name())}")
-        else:
-            self.session.logger.warning("No scene selected to edit")
-
     def delete_button_clicked(self):
         """
         Delete the highlighted scene.
         """
-        highlighted_scene = self.scroll_area.get_highlighted_scene()
-        if highlighted_scene:
-            run(self.session, f"scene delete {StringArg.unparse(highlighted_scene.get_name())}")
+        scene_name = self.scene_name_entry.text().strip()
+        if not scene_name:
+            return tool_user_error("Scene-name entry field is empty")
+        if self.session.scenes.get_scene(scene_name) is not None:
+            run(self.session, f"scene delete {StringArg.unparse(scene_name)}")
         else:
-            self.session.logger.warning("No scene selected to delete")
+            tool_user_error(f"No scene named '{scene_name}' to delete")
 
     def delete(self):
         """

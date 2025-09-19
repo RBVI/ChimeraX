@@ -84,7 +84,7 @@ class SceneManager(StateManager):
         Save the current state as a scene.
         """
         if not scene_name:
-            scene_name = f"Scene {self.num_saved_scenes + 1}"
+            scene_name = f"{self.num_saved_scenes + 1}"
         if self.scene_exists(scene_name):
             self.get_scene(scene_name).init_from_session()
         else:
