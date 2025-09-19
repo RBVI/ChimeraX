@@ -26,7 +26,7 @@ from typing import Optional
 from chimerax.core.state import StateManager
 from .scene import Scene
 from chimerax.core.models import REMOVE_MODELS
-from .triggers import activate_trigger, SAVED, DELETED, EDITED
+from .triggers import activate_trigger, SAVED, DELETED, EDITED, RESTORED
 
 
 class SceneManager(StateManager):
@@ -108,6 +108,7 @@ class SceneManager(StateManager):
         """
         if self.scene_exists(scene_name):
             self.get_scene(scene_name).restore_scene()
+            activate_trigger(RESTORED, scene_name)
         return
 
     # session methods

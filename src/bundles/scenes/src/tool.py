@@ -28,7 +28,7 @@ from chimerax.ui import MainToolWindow
 from Qt.QtWidgets import QHBoxLayout, QLineEdit, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton, QApplication
 from Qt.QtGui import QPixmap, QDrag
 from Qt.QtCore import Qt, QMimeData, QPoint
-from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, SAVED, SCENE_HIGHLIGHTED, DELETED
+from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, SAVED, RESTORED, SCENE_HIGHLIGHTED, DELETED
 from chimerax.core.commands import run, StringArg
 
 """
@@ -71,6 +71,7 @@ class ScenesTool(ToolInstance):
         self.handlers.append(add_handler(SCENE_SELECTED, self.scene_selected_cb))
         self.handlers.append(add_handler(EDITED, self.scene_edited_cb))
         self.handlers.append(add_handler(SAVED, self.scene_saved_cb))
+        self.handlers.append(add_handler(RESTORED, self.scene_restored_cb))
         self.handlers.append(add_handler(SCENE_HIGHLIGHTED, self.scene_highlighted_cb))
         self.handlers.append(add_handler(DELETED, self.scene_deleted_cb))
 
@@ -145,6 +146,12 @@ class ScenesTool(ToolInstance):
         scene = self.session.scenes.get_scene(scene_name)
         if scene:
             self.scroll_area.add_scene_item(scene_name, scene.get_thumbnail())
+
+    def scene_restored_cb(self, trigger_name, scene_name):
+        """
+        Callback for the RESTORED trigger. Get the scene from the session put its name in the text area
+        """
+        self.scene_name_entry.setText(scene_name)
 
     def scene_highlighted_cb(self, trigger_name, scene_name):
         """

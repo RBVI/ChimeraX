@@ -23,7 +23,8 @@
 from chimerax.core.triggerset import TriggerSet
 from typing import Any, Callable, Optional
 
-(SAVED, DELETED, EDITED) = manager_triggers = ("scenes saved", "scenes deleted", "scenes edited")
+(SAVED, DELETED, EDITED, RESTORED) = manager_triggers = ("scene saved", "scene deleted", "scene edited",
+	"scene restored")
 (SCENE_SELECTED, SCENE_HIGHLIGHTED) = tool_triggers = ("scene selected", "scene highlighted")
 
 """
