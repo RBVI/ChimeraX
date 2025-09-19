@@ -29,7 +29,6 @@ from chimerax.core.commands import register, CmdDesc, StringArg, FloatArg
 def register_commands(logger):
     register("scenes save", save_scene_desc, save_scene)
     register("scenes delete", delete_scene_desc, delete_scene)
-    register("scenes edit", edit_scene_desc, edit_scene)
     register("scenes restore", restore_scene_desc, restore_scene)
     register("scenes list", list_scenes_desc, list_scenes)
 
@@ -53,17 +52,6 @@ def delete_scene(session, scene_name: str):
 delete_scene_desc = CmdDesc(
     required=[("scene_name", StringArg)],
     synopsis="Delete scene 'scene_name'."
-)
-
-
-def edit_scene(session, scene_name: str):
-    """Edit the scene 'scene_name'."""
-    session.scenes.edit_scene(scene_name)
-
-
-edit_scene_desc = CmdDesc(
-    required=[("scene_name", StringArg)],
-    synopsis="Edit scene 'scene_name'."
 )
 
 

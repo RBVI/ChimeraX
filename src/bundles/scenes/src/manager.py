@@ -26,7 +26,7 @@ from typing import Optional
 from chimerax.core.state import StateManager
 from .scene import Scene
 from chimerax.core.models import REMOVE_MODELS
-from .triggers import activate_trigger, SAVED, DELETED, EDITED, RESTORED
+from .triggers import activate_trigger, SAVED, DELETED, RESTORED
 
 
 class SceneManager(StateManager):
@@ -72,16 +72,6 @@ class SceneManager(StateManager):
         else:
             self.session.logger.warning(f"Scene {scene_name} does not exist.")
 
-    def edit_scene(self, scene_name):
-        """
-        Edit a scene by name. This method will re-initialize the scene from the current session state.
-        """
-        if self.scene_exists(scene_name):
-            self.get_scene(scene_name).init_from_session()
-            activate_trigger(EDITED, scene_name)
-        else:
-            self.session.logger.warning(f"Scene {scene_name} does not exist.")
-
     def clear(self):
         """
         Delete all scenes.
@@ -96,10 +86,10 @@ class SceneManager(StateManager):
         if not scene_name:
             scene_name = f"Scene {self.num_saved_scenes + 1}"
         if self.scene_exists(scene_name):
-            self.session.logger.warning(f"Scene {scene_name} already exists.")
-            return
-        self.scenes.append(Scene(self.session, scene_name))
-        self.num_saved_scenes += 1
+            self.get_scene(scene_name).init_from_session()
+        else:
+            self.scenes.append(Scene(self.session, scene_name))
+            self.num_saved_scenes += 1
         activate_trigger(SAVED, scene_name)
 
     def restore_scene(self, scene_name):

@@ -49,10 +49,6 @@ description = "Save a scene to the sessions scene manager."
 category = "General"
 description = "Delete a scene from the sessions scene manager."
 
-[tool.chimerax.command."scenes edit"]
-category = "General"
-description = "Edit a scene from the sessions scene manager."
-
 [tool.chimerax.command."scenes restore"]
 category = "General"
 description = "Restore a scene from the saved scenes."
