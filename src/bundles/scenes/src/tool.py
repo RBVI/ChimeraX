@@ -24,12 +24,11 @@
 
 import base64
 from chimerax.core.tools import ToolInstance
-from chimerax.ui import MainToolWindow
-from chimerax.ui.widgets import DisclosureArea
+from chimerax.ui import MainToolWindow, tool_user_error
 from Qt.QtWidgets import QHBoxLayout, QLineEdit, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton, QApplication
 from Qt.QtGui import QPixmap, QDrag
 from Qt.QtCore import Qt, QMimeData, QPoint
-from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, SAVED, SCENE_HIGHLIGHTED, DELETED
+from .triggers import activate_trigger, add_handler, SCENE_SELECTED, SAVED, RESTORED, SCENE_HIGHLIGHTED, DELETED, RENAMED
 from chimerax.core.commands import run, StringArg
 
 """
@@ -41,7 +40,7 @@ Classes:
     - SceneItem: Custom widget that displays a thumbnail image and the name of a scene.
 
 The `ScenesTool` class provides a user interface for managing scenes, including a scroll area for displaying SceneItem
-widgets and a disclosure area for scene actions. The tool handles various triggers for scene selection, editing, saving,
+widgets and an area for scene actions. The tool handles various triggers for scene selection, editing, saving,
  highlighting, and deletion.
 
 The `SceneScrollArea` class manages the layout and display of SceneItem widgets, adjusting the grid layout based on the
@@ -53,9 +52,9 @@ activation of relevant triggers.
 
 class ScenesTool(ToolInstance):
     """
-    Main tool for managing scenes. This tool contains a custom scroll area for displaying SceneItem widgets and a
-    chimerax.ui DisclosureArea for adding, editing, and deleting scenes. The tool contains handlers for the following
-    triggers: SCENE_SELECTED, EDITED, ADDED, SCENE_HIGHLIGHTED, DELETED.
+    Main tool for managing scenes. This tool contains a custom scroll area for displaying SceneItem widgets and an
+    area for adding, editing, and deleting scenes. The tool contains handlers for the following
+    triggers: SCENE_SELECTED, ADDED, SCENE_HIGHLIGHTED, DELETED.
     """
 
     SESSION_ENDURING = False
@@ -70,10 +69,11 @@ class ScenesTool(ToolInstance):
 
         self.handlers = []
         self.handlers.append(add_handler(SCENE_SELECTED, self.scene_selected_cb))
-        self.handlers.append(add_handler(EDITED, self.scene_edited_cb))
         self.handlers.append(add_handler(SAVED, self.scene_saved_cb))
+        self.handlers.append(add_handler(RESTORED, self.scene_restored_cb))
         self.handlers.append(add_handler(SCENE_HIGHLIGHTED, self.scene_highlighted_cb))
         self.handlers.append(add_handler(DELETED, self.scene_deleted_cb))
+        self.handlers.append(add_handler(RENAMED, self.scene_renamed_cb))
 
 
     def build_ui(self):
@@ -83,47 +83,43 @@ class ScenesTool(ToolInstance):
         """
 
         self.main_layout = QVBoxLayout()
+        self.main_layout.setSpacing(5)
         self.tool_window.ui_area.setLayout(self.main_layout)
 
         # The scroll area contains the SceneItem widgets ordered in a grid layout
         self.scroll_area = SceneScrollArea(self.session)
         self.main_layout.addWidget(self.scroll_area)
 
-        # The disclosure area is the popup menu at the bottom of the tool window
-        self.disclosure_area = DisclosureArea(title="Scene Actions")
-        self.main_disclosure_layout = QVBoxLayout()
-        self.main_disclosure_layout.setSpacing(0)
-
         # Set up the line edit for entering the scene name
         self.scene_entry_label = QLabel("Scene Name:")
         self.scene_name_entry = QLineEdit()
+        self.scene_name_entry.returnPressed.connect(self.rename_button_clicked)
         self.line_edit_layout = QHBoxLayout()
         self.line_edit_layout.setSpacing(10)
         self.line_edit_layout.addWidget(self.scene_entry_label)
         self.line_edit_layout.addWidget(self.scene_name_entry)
-        self.main_disclosure_layout.addLayout(self.line_edit_layout)
+        self.main_layout.addLayout(self.line_edit_layout)
 
         # Layout for buttons
-        self.disclosure_buttons_layout = QHBoxLayout()
-        self.disclosure_buttons_layout.setSpacing(5)
+        self.action_buttons_layout = QHBoxLayout()
+        self.action_buttons_layout.setSpacing(5)
 
         # Create buttons for saving, editing, and deleting scenes and connect them to their respective methods
         self.save_button = QPushButton("Save")
         self.save_button.clicked.connect(self.save_button_clicked)
-        self.edit_button = QPushButton("Edit")
-        self.edit_button.clicked.connect(self.edit_button_clicked)
+        self.rename_button = QPushButton("Rename")
+        self.rename_button.clicked.connect(self.rename_button_clicked)
+        self.rename_button.setEnabled(False)
         self.delete_button = QPushButton("Delete")
         self.delete_button.clicked.connect(self.delete_button_clicked)
+        self.delete_button.setEnabled(False)
 
-        # Add the buttons to the disclosure button layout
-        self.disclosure_buttons_layout.addWidget(self.save_button)
-        self.disclosure_buttons_layout.addWidget(self.edit_button)
-        self.disclosure_buttons_layout.addWidget(self.delete_button)
+        # Add the buttons to the action buttons layout
+        self.action_buttons_layout.addWidget(self.save_button)
+        self.action_buttons_layout.addWidget(self.rename_button)
+        self.action_buttons_layout.addWidget(self.delete_button)
 
-        self.main_disclosure_layout.addLayout(self.disclosure_buttons_layout)
-
-        self.disclosure_area.setContentLayout(self.main_disclosure_layout)
-        self.main_layout.addWidget(self.disclosure_area)
+        self.main_layout.addLayout(self.action_buttons_layout)
 
         self.tool_window.ui_area.setMinimumWidth(300)
 
@@ -131,34 +127,46 @@ class ScenesTool(ToolInstance):
         """
         Callback for the SELECTED trigger. Restore the scene with the given name.
         """
-        run(self.session, f'scene restore "{StringArg.unparse(scene_name)}"')
-
-    def scene_edited_cb(self, trigger_name, scene_name):
-        """
-        Callback for the EDITED trigger. Update the thumbnail of the SceneItem from the updated scene in the session.
-        Move the SceneItem to the top of the grid layout to reflect the most recently edited scene.
-        """
-        scene_item_widget = self.scroll_area.get_scene_item(scene_name)
-        if scene_item_widget:
-            scenes_mgr = self.session.scenes
-            scene = scenes_mgr.get_scene(scene_name)
-            if scene:
-                scene_item_widget.set_thumbnail(scene.get_thumbnail())
-                self.scroll_area.set_latest_scene(scene_name)
+        run(self.session, f'scene restore {StringArg.unparse(scene_name)}')
 
     def scene_saved_cb(self, trigger_name, scene_name):
         """
         Callback for the SAVED trigger. Get the newly added scene from the session and add it to the scroll area.
         """
         scene = self.session.scenes.get_scene(scene_name)
-        if scene:
+        scene_item_widget = self.scroll_area.get_scene_item(scene_name)
+        if scene_item_widget:
+            scene_item_widget.set_thumbnail(scene.get_thumbnail())
+            self.scroll_area.set_latest_scene(scene_name)
+        else:
             self.scroll_area.add_scene_item(scene_name, scene.get_thumbnail())
+
+    def scene_restored_cb(self, trigger_name, scene_name):
+        """
+        Callback for the RESTORED trigger. Get the scene from the session put its name in the text area
+        """
+        scene_item_widget = self.scroll_area.get_scene_item(scene_name)
+        if scene_item_widget:
+            self.scroll_area.set_highlighted_scene(scene_item_widget)
+
+    def scene_renamed_cb(self, trigger_name, names):
+        """
+        Callback for the SAVED trigger. Get the newly added scene from the session and add it to the scroll area.
+        """
+        old_scene_name, new_scene_name = names
+        scene_item_widget = self.scroll_area.get_scene_item(old_scene_name)
+        if scene_item_widget:
+            scene_item_widget.set_name(new_scene_name)
 
     def scene_highlighted_cb(self, trigger_name, scene_name):
         """
-        Callback for the HIGHLIGHTED trigger. This is now handled by SceneScrollArea directly.
+        Callback for the HIGHLIGHTED trigger. This is now mostly handled by SceneScrollArea directly.
         """
-        pass
+        highlighting = scene_name is not None
+        self.scene_name_entry.setText(scene_name if highlighting else "")
+        self.save_button.setText("Update" if highlighting else "Save")
+        self.rename_button.setEnabled(highlighting)
+        self.delete_button.setEnabled(highlighting)
 
     def scene_deleted_cb(self, trigger_name, scene_name):
         """
@@ -171,18 +179,26 @@ class ScenesTool(ToolInstance):
         """
         Save the current scene with the name in the line edit widget.
         """
-        scene_name = self.scene_name_entry.text()
+        highlighted_scene = self.scroll_area.get_highlighted_scene()
+        if highlighted_scene:
+            # Update
+            scene_name = highlighted_scene.get_name()
+        else:
+            # New scene
+            scene_name = self.scene_name_entry.text().strip()
+            scene_name = scene_name.strip()
         run(self.session, f"scene save {StringArg.unparse(scene_name)}")
 
-    def edit_button_clicked(self):
+    def rename_button_clicked(self):
         """
-        Edit the highlighted scene.
+        Rename the highlighted scene.
         """
         highlighted_scene = self.scroll_area.get_highlighted_scene()
         if highlighted_scene:
-            run(self.session, f"scene edit {StringArg.unparse(highlighted_scene.get_name())}")
-        else:
-            self.session.logger.warning("No scene selected to edit")
+            new_scene_name = self.scene_name_entry.text().strip()
+            if not new_scene_name:
+                tool_user_error(f"New scene name is blank")
+            run(self.session, f"scene rename {StringArg.unparse(highlighted_scene.get_name())} {StringArg.unparse(new_scene_name)}")
 
     def delete_button_clicked(self):
         """
@@ -190,9 +206,9 @@ class ScenesTool(ToolInstance):
         """
         highlighted_scene = self.scroll_area.get_highlighted_scene()
         if highlighted_scene:
-            run(self.session, f"scene delete {StringArg.unparse(highlighted_scene.get_name())}")
+            run(self.session, f"scene delete {StringArg.unparse(highlighted_scene.name)}")
         else:
-            self.session.logger.warning("No scene selected to delete")
+            tool_user_error(f"No scene chosen in scene list")
 
     def delete(self):
         """
@@ -303,7 +319,7 @@ class SceneScrollArea(QScrollArea):
     def add_scene_item(self, scene_name, thumbnail_data):
         """
         Add a new SceneItem widget to the scroll area. This method creates a new SceneItem widget with the given scene
-        name and thumbnail data and inserts it at the beginning of the scene_items list. The grid layout is then updated
+        name and thumbnail data and appends it to the end of the scene_items list. The grid layout is then updated
         to reflect the new SceneItem widget.
 
         Args:
@@ -311,7 +327,7 @@ class SceneScrollArea(QScrollArea):
             thumbnail_data (str): Base64 encoded image data for the thumbnail image.
         """
         scene_item = SceneItem(scene_name, thumbnail_data)
-        self.scene_items.insert(0, scene_item)
+        self.scene_items.append(scene_item)
         self.update_grid()
 
     def remove_scene_item(self, scene_name):
@@ -328,29 +344,46 @@ class SceneScrollArea(QScrollArea):
 
     def set_latest_scene(self, scene_name):
         """
+        Used to:
         Move the SceneItem widget to the top of the grid layout. This method adjusts the ordering of the scene_items
         attribute and updates the grid layout to reflect the new ordering in order to move a recently edited or added
         scene to the top of the grid layout.
+
+        Now:
+        No-op
         """
-        scene_item = self.get_scene_item(scene_name)
-        if scene_item:
-            self.scene_items.remove(scene_item)
-            self.scene_items.insert(0, scene_item)
-            self.update_grid()
+        #scene_item = self.get_scene_item(scene_name)
+        #if scene_item:
+        #    self.scene_items.remove(scene_item)
+        #    self.scene_items.insert(0, scene_item)
+        #    self.update_grid()
 
     def get_scene_item(self, name):
         return next((scene_item for scene_item in self.scene_items if scene_item.get_name() == name), None)
 
     def set_highlighted_scene(self, scene_item):
         """
-        Set the highlighted scene. Clears previous highlight and sets new one.
+        Set the highlighted scene. If already highlighted, de-highlight.  If None, dehighlight current
+        highlight.
         """
-        if self.highlighted_scene:
-            self.highlighted_scene.set_highlighted(False)
-        self.highlighted_scene = scene_item
-        if scene_item:
+        if scene_item is None:
+            if self.highlighted_scene:
+                self.highlighted_scene.set_highlighted(False)
+            self.highlighted_scene = None
+        elif self.highlighted_scene is None:
+            self.highlighted_scene = scene_item
             scene_item.set_highlighted(True)
-            activate_trigger(SCENE_HIGHLIGHTED, scene_item.get_name())
+        elif self.highlighted_scene == scene_item:
+            # toggle highlighting
+            self.highlighted_scene.set_highlighted(False)
+            self.highlighted_scene = None
+        else:
+            self.highlighted_scene.set_highlighted(False)
+            scene_item.set_highlighted(True)
+            self.highlighted_scene = scene_item
+
+        activate_trigger(SCENE_HIGHLIGHTED,
+            None if self.highlighted_scene is None else self.highlighted_scene.get_name())
 
     def get_highlighted_scene(self):
         """
@@ -423,17 +456,17 @@ class SceneItem(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        # Thumbnail
-        self.thumbnail_label = QLabel()
-        self.pixmap = QPixmap()
-        self.set_thumbnail(self.thumbnail_data)
-        layout.addWidget(self.thumbnail_label)
-
         # Label
         self.label = QLabel(self.name)
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setWordWrap(True)
         layout.addWidget(self.label)
+
+        # Thumbnail
+        self.thumbnail_label = QLabel()
+        self.pixmap = QPixmap()
+        self.set_thumbnail(self.thumbnail_data)
+        layout.addWidget(self.thumbnail_label)
 
         # Set fixed size for the SceneItem
         self.setFixedSize(self.pixmap.width(), self.pixmap.height() + self.label.sizeHint().height())
@@ -450,6 +483,10 @@ class SceneItem(QWidget):
         self.pixmap = self.pixmap.scaled(self.IMAGE_WIDTH, self.IMAGE_HEIGHT, Qt.KeepAspectRatio)
         self.thumbnail_label.setPixmap(self.pixmap)
         self.thumbnail_label.setAlignment(Qt.AlignCenter)
+    
+    def set_name(self, new_name):
+        self.name = new_name
+        self.label.setText(new_name)
 
     def mousePressEvent(self, event):
         """
@@ -535,12 +572,12 @@ class SceneItem(QWidget):
         # Execute the drag
         drag.exec(Qt.CopyAction)
 
-    def mouseDoubleClickEvent(self, event):
+    def mousePressEvent(self, event):
         """
-        Handle double click events for activating the SCENE_SELECTED trigger with the SceneItem widget's name.
+        Handle mouse click events for activating the SCENE_SELECTED trigger with the SceneItem widget's name.
         """
         activate_trigger(SCENE_SELECTED, self.name)
-        super().mouseDoubleClickEvent(event)
+        super().mousePressEvent(event)
 
     def set_highlighted(self, highlighted):
         """
