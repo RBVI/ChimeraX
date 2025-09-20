@@ -37,7 +37,7 @@ categories = ["Depiction"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
 [tool.chimerax.tool."Scenes"]
-category = "General"
+category = "Depiction"
 description = "Graphical interface for session scenes."
 
 
@@ -52,6 +52,10 @@ description = "Delete a scene from the sessions scene manager."
 [tool.chimerax.command."scenes restore"]
 category = "General"
 description = "Restore a scene from the saved scenes."
+
+[tool.chimerax.command."scenes rename"]
+category = "General"
+description = "Rename a scene."
 
 [tool.chimerax.command."scenes list"]
 category = "General"

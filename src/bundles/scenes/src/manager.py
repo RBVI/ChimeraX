@@ -26,7 +26,7 @@ from typing import Optional
 from chimerax.core.state import StateManager
 from .scene import Scene
 from chimerax.core.models import REMOVE_MODELS
-from .triggers import activate_trigger, SAVED, DELETED, RESTORED
+from .triggers import activate_trigger, SAVED, DELETED, RENAMED, RESTORED
 
 
 class SceneManager(StateManager):
@@ -99,6 +99,18 @@ class SceneManager(StateManager):
         if self.scene_exists(scene_name):
             self.get_scene(scene_name).restore_scene()
             activate_trigger(RESTORED, scene_name)
+        return
+
+    def rename_scene(self, scene_name, new_scene_name):
+        """
+        Rename a scene.
+        """
+        if self.scene_exists(new_scene_name):
+            self.session.logger.warning(f"Scene {new_scene_name} already exists.")
+            return
+        if self.scene_exists(scene_name):
+            self.get_scene(scene_name).rename_scene(new_scene_name)
+            activate_trigger(RENAMED, (scene_name, new_scene_name))
         return
 
     # session methods

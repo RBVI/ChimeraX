@@ -172,6 +172,9 @@ class Scene(State):
         image_base64 = codecs.encode(image_bytes, 'base64').decode('utf-8')
         return image_base64
 
+    def rename_scene(self, new_name):
+        self.name = new_name
+
     def restore_scene(self):
         """
         Restore the session state with the data in this scene. All data is passed to restore_scene implementations
