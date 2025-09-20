@@ -30,6 +30,7 @@ def register_commands(logger):
     register("scenes save", save_scene_desc, save_scene)
     register("scenes delete", delete_scene_desc, delete_scene)
     register("scenes restore", restore_scene_desc, restore_scene)
+    register("scenes rename", rename_scene_desc, rename_scene)
     register("scenes list", list_scenes_desc, list_scenes)
 
 
@@ -63,6 +64,16 @@ def restore_scene(session, scene_name):
 restore_scene_desc = CmdDesc(
     required=[("scene_name", StringArg)],
     synopsis="Restore the scene named 'scene_name'."
+)
+
+def rename_scene(session, scene_name, new_scene_name):
+    """Rename the scene named 'scene_name' to 'new_scene_name'."""
+    session.scenes.rename_scene(scene_name, new_scene_name)
+
+
+rename_scene_desc = CmdDesc(
+    required=[("scene_name", StringArg), ("new_scene_name", StringArg)],
+    synopsis="Rename the scene named 'scene_name'."
 )
 
 
