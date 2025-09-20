@@ -145,9 +145,21 @@ def write_dimers_yaml(output_yaml_directory, seq_pairs, msa_directory = None):
         relative_msa_dir = None
 
     for (name1, seq1), (name2, seq2) in seq_pairs:
-        msa1 = _boltz_msa_spec(f'{name1}_{name2}_0.csv', msa_directory, relative_msa_dir)
-        msa2 = _boltz_msa_spec(f'{name1}_{name2}_1.csv', msa_directory, relative_msa_dir)
-        yaml = \
+        if name1 == name2 and seq1 == seq2:
+            msa = _boltz_msa_spec(f'{name1}.csv', msa_directory, relative_msa_dir)
+            yaml = \
+f'''\
+version: 1
+sequences:
+  - protein:
+      id: [A,B]
+      sequence: {seq1}
+      {msa}
+'''
+        else:
+            msa1 = _boltz_msa_spec(f'{name1}_{name2}_0.csv', msa_directory, relative_msa_dir)
+            msa2 = _boltz_msa_spec(f'{name1}_{name2}_1.csv', msa_directory, relative_msa_dir)
+            yaml = \
 f'''\
 version: 1
 sequences:
@@ -165,12 +177,12 @@ sequences:
 
 # -----------------------------------------------------------------------------
 #
-def _boltz_msa_spec(filename, msa_directory, relative_msa_dir):
+def _boltz_msa_spec(filename, msa_directory, relative_msa_dir, msa_file_must_exist = False):
     yaml = ''
     if msa_directory:
         from os.path import join, exists
         msa_path = join(msa_directory, filename)
-        if exists(msa_path):
+        if not msa_file_must_exist or exists(msa_path):
             rel_msa_path = join(relative_msa_dir, filename)
             yaml = f'msa: {rel_msa_path}\n'
     return yaml
