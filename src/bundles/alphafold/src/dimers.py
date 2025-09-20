@@ -25,9 +25,10 @@
 # -----------------------------------------------------------------------------
 #
 def alphafold_dimers(session, sequences, with_sequences = None,
-                     homodimers = True, max_length = None, recycles = 3,
-                     models = (1,2,3,4,5), output_fasta = None, output_json = None,
-                     output_yaml = None, msa_directory = None, list_sequences = False):
+                     homodimers = True, max_length = None, max_spacing = None,
+                     recycles = 3, models = (1,2,3,4,5),
+                     output_fasta = None, output_json = None, output_yaml = None, msa_directory = None,
+                     list_sequences = False):
     '''
     Create dimer sequence file to run predictions of all combinations for a given set of sequences
     using localcolabfold (https://github.com/YoshitakaMo/localcolabfold).
@@ -41,7 +42,7 @@ def alphafold_dimers(session, sequences, with_sequences = None,
     seqs = _unique_sequences(sequences)
     with_seqs = _unique_sequences(with_sequences) if with_sequences is not None else None
 
-    all_seq_pairs = _sequence_pairs(seqs, with_seqs, homodimers)
+    all_seq_pairs = _sequence_pairs(seqs, with_seqs, homodimers, max_spacing)
     seq_pairs, long_pairs = _filter_by_length(all_seq_pairs, max_length)
 
     msg = _prediction_info(seqs, with_seqs, seq_pairs, long_pairs, recycles, models,
@@ -251,16 +252,17 @@ def _unique_sequences(named_sequences):
 
 # -----------------------------------------------------------------------------
 #
-def _sequence_pairs(seqs, with_seqs = None, homodimers = True):
+def _sequence_pairs(seqs, with_seqs = None, homodimers = True, max_spacing = None):
     seq_pairs = []
     seqs2 = seqs if with_seqs is None else with_seqs
     found = set()
-    for name1,seq1 in seqs:
-        for name2,seq2 in seqs2:
+    for i1,(name1,seq1) in enumerate(seqs):
+        for i2,(name2,seq2) in enumerate(seqs2):
             if (seq1, seq2) not in found and (seq2, seq1) not in found:
                 if homodimers or seq2 != seq1:
-                    seq_pairs.append(((name1,seq1),(name2,seq2)))
-                    found.add((seq1, seq2))
+                    if max_spacing is None or abs(i2-i1) <= max_spacing:
+                        seq_pairs.append(((name1,seq1),(name2,seq2)))
+                        found.add((seq1, seq2))
     return seq_pairs
 
 # -----------------------------------------------------------------------------
@@ -538,6 +540,7 @@ def register_alphafold_dimers_command(logger):
         keyword = [('with_sequences', NamedSeqsArg),
                    ('homodimers', BoolArg),
                    ('max_length', IntArg),
+                   ('max_spacing', IntArg),
                    ('recycles', IntArg),
                    ('models', IntsArg),
                    ('output_fasta', SaveFileNameArg),
