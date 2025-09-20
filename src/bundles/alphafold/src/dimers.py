@@ -172,7 +172,7 @@ sequences:
       sequence: {seq2}
       {msa2}
 '''
-        with open(join(output_yaml_directory, f'{name1}_{name2}.yaml'), 'w') as f:
+        with open(join(output_yaml_directory, f'{name1}.{name2}.yaml'), 'w') as f:
             f.write(yaml)
 
 # -----------------------------------------------------------------------------
