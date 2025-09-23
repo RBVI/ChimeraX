@@ -25,8 +25,10 @@
 # -----------------------------------------------------------------------------
 #
 def alphafold_dimers(session, sequences, with_sequences = None,
-                     homodimers = True, max_length = None, recycles = 3,
-                     models = (1,2,3,4,5), output_fasta = None, output_json = None):
+                     homodimers = True, max_length = None, max_spacing = None,
+                     recycles = 3, models = (1,2,3,4,5),
+                     output_fasta = None, output_json = None, output_yaml = None, msa_directory = None,
+                     list_sequences = False):
     '''
     Create dimer sequence file to run predictions of all combinations for a given set of sequences
     using localcolabfold (https://github.com/YoshitakaMo/localcolabfold).
@@ -40,20 +42,35 @@ def alphafold_dimers(session, sequences, with_sequences = None,
     seqs = _unique_sequences(sequences)
     with_seqs = _unique_sequences(with_sequences) if with_sequences is not None else None
 
-    all_seq_pairs = _sequence_pairs(seqs, with_seqs, homodimers)
+    all_seq_pairs = _sequence_pairs(seqs, with_seqs, homodimers, max_spacing)
     seq_pairs, long_pairs = _filter_by_length(all_seq_pairs, max_length)
 
-    msg = _prediction_info(seqs, with_seqs, seq_pairs, long_pairs, recycles, models)
-    session.logger.info(msg)
+    msg = _prediction_info(seqs, with_seqs, seq_pairs, long_pairs, recycles, models,
+                           list_sequences = list_sequences)
 
     if output_fasta:
         write_dimers_fasta(output_fasta, seq_pairs)
         cmd = colabfold_batch_command(output_fasta, recycles, models)
-        session.logger.info(f'Prediction command: {cmd}')
+        msg += f'\nPrediction command: {cmd}'
 
     if output_json:
         write_dimers_json(output_json, seq_pairs)
-        
+        from os.path import basename
+        json_filename = basename(output_json)
+        cmd = f'python run_alphafold.py --json_path {json_filename} --output_dir {json_filename[:-5]}_results --num-recycles {recycles}'
+        msg += f'\nPrediction command: {cmd}'
+
+    if output_yaml:
+        write_dimers_yaml(output_yaml, seq_pairs, msa_directory = msa_directory)
+        from os.path import basename
+        yaml_dir = basename(output_yaml)
+        cmd = f'boltz predict {yaml_dir} --out_dir {yaml_dir}_predictions --recycling_steps {recycles}'
+        if msa_directory is None:
+            cmd += ' --use_msa_server'
+        msg += f'\nPrediction command: {cmd}'
+
+    session.logger.info(msg)
+
 # -----------------------------------------------------------------------------
 #
 def run_predictions(fasta_path, recycles, models, directory):
@@ -115,6 +132,63 @@ def write_dimers_json(output_json, seq_pairs, seeds = [1]):
 
 # -----------------------------------------------------------------------------
 #
+def write_dimers_yaml(output_yaml_directory, seq_pairs, msa_directory = None):
+    '''Write Boltz 2 yaml format, separate file for each sequene.'''
+    from os.path import exists, join, abspath, relpath
+    if not exists(output_yaml_directory):
+        from os import mkdir
+        mkdir(output_yaml_directory)
+
+    if msa_directory:
+        relative_msa_dir = relpath(abspath(msa_directory), start = abspath(output_yaml_directory))
+    else:
+        relative_msa_dir = None
+
+    for (name1, seq1), (name2, seq2) in seq_pairs:
+        if name1 == name2 and seq1 == seq2:
+            msa = _boltz_msa_spec(f'{name1}.csv', msa_directory, relative_msa_dir)
+            yaml = \
+f'''\
+version: 1
+sequences:
+  - protein:
+      id: [A,B]
+      sequence: {seq1}
+      {msa}
+'''
+        else:
+            msa1 = _boltz_msa_spec(f'{name1}_{name2}_0.csv', msa_directory, relative_msa_dir)
+            msa2 = _boltz_msa_spec(f'{name1}_{name2}_1.csv', msa_directory, relative_msa_dir)
+            yaml = \
+f'''\
+version: 1
+sequences:
+  - protein:
+      id: [A]
+      sequence: {seq1}
+      {msa1}
+  - protein:
+      id: [B]
+      sequence: {seq2}
+      {msa2}
+'''
+        with open(join(output_yaml_directory, f'{name1}.{name2}.yaml'), 'w') as f:
+            f.write(yaml)
+
+# -----------------------------------------------------------------------------
+#
+def _boltz_msa_spec(filename, msa_directory, relative_msa_dir, msa_file_must_exist = False):
+    yaml = ''
+    if msa_directory:
+        from os.path import join, exists
+        msa_path = join(msa_directory, filename)
+        if not msa_file_must_exist or exists(msa_path):
+            rel_msa_path = join(relative_msa_dir, filename)
+            yaml = f'msa: {rel_msa_path}\n'
+    return yaml
+
+# -----------------------------------------------------------------------------
+#
 def write_monomers_fasta(output_fasta, named_seqs):
     lines = []
     for name, seq in named_seqs:
@@ -138,6 +212,34 @@ def write_monomers_json(output_json, named_seqs, seeds = [1]):
     import json
     with open(output_json, 'w') as f:
         json.dump(jobs, f)
+
+# -----------------------------------------------------------------------------
+#
+def write_monomers_yaml(output_yaml_directory, named_seqs, msa_directory = None):
+    '''Write Boltz 2 yaml format, separate file for each sequene.'''
+    from os.path import exists, join, abspath, relpath
+    if not exists(output_yaml_directory):
+        from os import mkdir
+        mkdir(output_yaml_directory)
+
+    if msa_directory:
+        relative_msa_dir = relpath(abspath(msa_directory), start = abspath(output_yaml_directory))
+    else:
+        relative_msa_dir = None
+
+    for name, seq in named_seqs:
+        msa_spec = _boltz_msa_spec(f'{name}.a3m', msa_directory, relative_msa_dir)
+        yaml = \
+f'''\
+version: 1
+sequences:
+  - protein:
+      id: [A]
+      sequence: {seq}
+      {msa_spec}
+'''
+        with open(join(output_yaml_directory, name + '.yaml'), 'w') as f:
+            f.write(yaml)
         
 # -----------------------------------------------------------------------------
 #
@@ -162,16 +264,17 @@ def _unique_sequences(named_sequences):
 
 # -----------------------------------------------------------------------------
 #
-def _sequence_pairs(seqs, with_seqs = None, homodimers = True):
+def _sequence_pairs(seqs, with_seqs = None, homodimers = True, max_spacing = None):
     seq_pairs = []
     seqs2 = seqs if with_seqs is None else with_seqs
     found = set()
-    for name1,seq1 in seqs:
-        for name2,seq2 in seqs2:
+    for i1,(name1,seq1) in enumerate(seqs):
+        for i2,(name2,seq2) in enumerate(seqs2):
             if (seq1, seq2) not in found and (seq2, seq1) not in found:
                 if homodimers or seq2 != seq1:
-                    seq_pairs.append(((name1,seq1),(name2,seq2)))
-                    found.add((seq1, seq2))
+                    if max_spacing is None or abs(i2-i1) <= max_spacing:
+                        seq_pairs.append(((name1,seq1),(name2,seq2)))
+                        found.add((seq1, seq2))
     return seq_pairs
 
 # -----------------------------------------------------------------------------
@@ -219,37 +322,41 @@ def _seconds_to_day_hour_minute(seconds, precision = 0.04):
 
 # -----------------------------------------------------------------------------
 #
-def _prediction_info(seqs, with_seqs, seq_pairs, long_pairs, recycles, models):
+def _prediction_info(seqs, with_seqs, seq_pairs, long_pairs, recycles, models, list_sequences = False):
     pair_lengths = _sequence_pair_lengths(seq_pairs)
     rt = sum([_estimated_runtime(slen, recycles, len(models)) for slen in pair_lengths])
     rt_string = _seconds_to_day_hour_minute(rt)
 
     pmin_length, pmax_length = min(pair_lengths), max(pair_lengths)
     msg = f'{len(seq_pairs)} dimers with lengths {pmin_length}-{pmax_length}.'
-    msg += f'\nEstimated prediction time {rt_string} using Nvidia 3090 GPU.'
+    msg += f'\nEstimated ColabFold prediction time {rt_string} using Nvidia 3090 GPU.'
     if long_pairs:
         long_lengths = _sequence_pair_lengths(long_pairs)
         lmin_length, lmax_length = min(long_lengths), max(long_lengths)
         msg += f'\nOmitted {len(long_pairs)} dimers with long sequence lengths {lmin_length}-{lmax_length}'
-    mdescrip = _monomers_description(seqs, with_seqs)
-    msg += f'\n{mdescrip}'
+    if list_sequences:
+        mdescrip = _monomers_description(seqs, with_seqs)
+        msg += f'\n{mdescrip}'
     return msg
 
 # -----------------------------------------------------------------------------
 #
-def _monomers_description(seqs, with_seqs = None):
+def _monomers_description(seqs, with_seqs = None, list_sequences = False):
     sequences = sorted(seqs)
     seq_lengths = [len(seq) for name, seq in sequences]
     smin_length, smax_length = min(seq_lengths), max(seq_lengths)
-    seq_names = ", ".join(f'{name} ({len(seq)})' for name, seq in sequences)
+    if list_sequences:
+        seq_names = ", ".join(f'{name} ({len(seq)})' for name, seq in sequences)
     msg = f'{len(seqs)} monomer sequences with lengths {smin_length}-{smax_length}:'
     if with_seqs is not None:
         with_sequences = sorted(with_seqs)
         wseq_lengths = [len(seq) for name, seq in with_sequences]
         wmin_length, wmax_length = min(wseq_lengths), max(wseq_lengths)
         msg += f' with {len(with_seqs)} sequences, lengths {wmin_length}-{wmax_length}'
-        seq_names += " and " + ", ".join(f'{name} ({len(seq)})' for name, seq in with_sequences)
-    msg += f'\n{seq_names}'
+        if list_sequences:
+            seq_names += " and " + ", ".join(f'{name} ({len(seq)})' for name, seq in with_sequences)
+    if list_sequences:
+        msg += f'\n{seq_names}'
     return msg
 
 # -----------------------------------------------------------------------------
@@ -330,7 +437,8 @@ def _chain_sequence_name(chain):
 #
 def alphafold_monomers(session, sequences = None, max_length = None, recycles = 3,
                        models = (1,2,3,4,5), output_fasta = None, output_json = None,
-                       open = '.'):
+                       output_yaml = None, msa_directory = None,
+                       open = '.', list_sequences = False):
     '''
     Estimate time for predicting a set of monomers using
     localcolabfold (https://github.com/YoshitakaMo/localcolabfold).
@@ -348,28 +456,42 @@ def alphafold_monomers(session, sequences = None, max_length = None, recycles = 
 
     rt = sum([_estimated_runtime(len(seq), recycles, len(models)) for name,seq in seqs])
     rt_string = _seconds_to_day_hour_minute(rt)
-    msg = f'Estimated prediction time {rt_string} using Nvidia 3090 GPU.'
+    msg = f'Estimated ColabFold prediction time {rt_string} using Nvidia 3090 GPU.'
 
-    sdescrip = _monomers_description(seqs)
+    sdescrip = _monomers_description(seqs, list_sequences = list_sequences)
     msg += f'\n{sdescrip}'
-
     if len(seqs) < len(useqs):
         lseqs = [(name,seq) for name,seq in useqs if len(seq) > max_length]
-        ldescrip = _monomers_description(lseqs)
+        ldescrip = _monomers_description(lseqs, list_sequences = list_sequences)
         msg += f'\nOmitted {ldescrip}'
 
-    seq_path = 'sequences.fasta' if output_fasta is None else output_fasta
-    cmd = colabfold_batch_command(seq_path, recycles, models)
-    msg += f'\nPrediction command: {cmd}'
-
-    session.logger.info(msg)
-
+    from os.path import basename
     if output_fasta:
         write_monomers_fasta(output_fasta, seqs)
+        fasta_filename = basename(output_fasta)
+        cmd = colabfold_batch_command(fasta_filename, recycles, models)
+        msg += f'\nPrediction command: {cmd}'
 
     if output_json:
         write_monomers_json(output_json, seqs)
+        json_filename = basename(output_json)
+        cmd = f'python run_alphafold.py --json_path {json_filename} --output_dir {json_filename[:-5]}_results --num-recycles {recycles}'
+        msg += f'\nPrediction command: {cmd}'
         
+    if output_yaml:
+        write_monomers_yaml(output_yaml, seqs, msa_directory = msa_directory)
+        yaml_dir = basename(output_yaml)
+        cmd = f'boltz predict {yaml_dir} --out_dir {yaml_dir}_predictions --recycling_steps {recycles}'
+        if msa_directory is None:
+            cmd += ' --use_msa_server'
+        msg += f'\nPrediction command: {cmd}'
+
+    if max_length is None and output_fasta is None and output_json is None and output_yaml is None:
+        cmd = colabfold_batch_command('sequences.fasta', recycles, models)
+        msg += f'\nPrediction command: {cmd}'
+        
+    session.logger.info(msg)
+
 # -----------------------------------------------------------------------------
 #
 def alphafold_open_monomers(session, directory = '.'):
@@ -401,7 +523,8 @@ def alphafold_open_monomers(session, directory = '.'):
 # -----------------------------------------------------------------------------
 #
 def register_alphafold_monomers_command(logger):
-    from chimerax.core.commands import CmdDesc, register, IntArg, IntsArg, SaveFileNameArg, OpenFolderNameArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, IntsArg
+    from chimerax.core.commands import SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg
     desc = CmdDesc(
         optional = [('sequences', NamedSeqsArg)],
         keyword = [('max_length', IntArg),
@@ -409,7 +532,10 @@ def register_alphafold_monomers_command(logger):
                    ('models', IntsArg),
                    ('output_fasta', SaveFileNameArg),
                    ('output_json', SaveFileNameArg),
+                   ('output_yaml', SaveFolderNameArg),
+                   ('msa_directory', OpenFolderNameArg),
                    ('open', OpenFolderNameArg),
+                   ('list_sequences', BoolArg),
                    ],
         synopsis = 'Estimate runtime for monomer AlphaFold predictions using colabfold_batch'
     )
@@ -419,16 +545,21 @@ def register_alphafold_monomers_command(logger):
 # -----------------------------------------------------------------------------
 #
 def register_alphafold_dimers_command(logger):
-    from chimerax.core.commands import CmdDesc, register, IntArg, IntsArg, BoolArg, SaveFileNameArg
+    from chimerax.core.commands import CmdDesc, register, IntArg, IntsArg, BoolArg
+    from chimerax.core.commands import SaveFileNameArg, SaveFolderNameArg, OpenFolderNameArg
     desc = CmdDesc(
         required = [('sequences', NamedSeqsArg)],
         keyword = [('with_sequences', NamedSeqsArg),
                    ('homodimers', BoolArg),
                    ('max_length', IntArg),
+                   ('max_spacing', IntArg),
                    ('recycles', IntArg),
                    ('models', IntsArg),
                    ('output_fasta', SaveFileNameArg),
                    ('output_json', SaveFileNameArg),
+                   ('output_yaml', SaveFolderNameArg),
+                   ('msa_directory', OpenFolderNameArg),
+                   ('list_sequences', BoolArg),
                    ],
         synopsis = 'Setup AlphaFold predictions for all dimers for a set of sequences using colabfold_batch'
     )

@@ -440,7 +440,7 @@ class ViewDockTool(ToolInstance):
         hiding = self.hide_rating_boxes[val].isChecked()
         if hiding:
             for s in self.vd_structures:
-                if s.viewdock_data[RATING_KEY] == val:
+                if s.viewdock_data.get(RATING_KEY, DEFAULT_RATING) == val:
                     s.display = False
             self.update_table_for_hidden()
         else:
@@ -479,7 +479,7 @@ class ViewDockTool(ToolInstance):
     @property
     def table_structures(self):
         return [s for s in self.vd_structures
-            if not self.hide_rating_boxes[s.viewdock_data[RATING_KEY]].isChecked()]
+            if not self.hide_rating_boxes[s.viewdock_data.get(RATING_KEY, DEFAULT_RATING)].isChecked()]
 
     def update_structure_displays(self):
         """
