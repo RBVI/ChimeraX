@@ -141,7 +141,8 @@ class InstallBoltz:
 
 #        boltz_ver = 'boltz==0.4.1'
 #        boltz_ver = 'git+https://github.com/jwohlwend/boltz@a9b3abc2c1f90f26b373dd1bcb7afb5a3cb40293'  # Install from Github source
-        boltz_ver = f'git+https://github.com/RBVI/boltz@{self._branch}'  # Install from RBVI fork of Boltz
+#        boltz_ver = f'git+https://github.com/RBVI/boltz@{self._branch}'  # Install from RBVI fork of Boltz
+        boltz_ver = f'https://github.com/RBVI/boltz/archive/{self._branch}.zip'  # Install from RBVI fork of Boltz using zip so git not needed.
         command = [self._venv_python_executable(), '-m', 'pip', 'install', boltz_ver]
         logger.info(' '.join(command))
 
