@@ -163,8 +163,7 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
             #    gaff_type = 'DNA-' + gaff_type
             omm_atom.type = gaff_type
             omm_atom.parameters['charge'] = cx_atom.charge
-        for omm_res in no_tmpl_omm_residues:
-            omm_res.name = template.name
+        omm_res.name = template.name
 
         forcefield.registerResidueTemplate(template)
     try:
