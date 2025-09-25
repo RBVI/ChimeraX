@@ -162,9 +162,11 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
             #if adjust_gaff_type:
             #    gaff_type = 'DNA-' + gaff_type
             omm_atom.type = gaff_type
+            # The next line is necessary until a fixed version of OpenMM is available,
+            # as per: https://github.com/openmm/openmm/issues/5075
+            omm_atom.parameters = omm_atom.parameters.copy()
             omm_atom.parameters['charge'] = cx_atom.charge
-        for omm_res in no_tmpl_omm_residues:
-            omm_res.name = template.name
+        omm_res.name = template.name
 
         forcefield.registerResidueTemplate(template)
     try:

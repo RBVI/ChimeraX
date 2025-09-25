@@ -203,7 +203,7 @@ class Structure(Model, StructureData):
         # Setup handler to manage C++ data changes that require graphics updates.
         self._graphics_updater.add_structure(self)
         Model.added_to_session(self, session, log_info = self._log_info)
-
+            
     def removed_from_session(self, session):
         self._graphics_updater.remove_structure(self)
 
@@ -1329,6 +1329,14 @@ class AtomicStructure(Structure):
             self._report_model_info(session)
             self._report_altloc_info(session)
             self._report_aniso_info(session)
+
+        emdb_id = getattr(self, 'fetch_emdb_id', None)
+        if emdb_id:
+            from chimerax.core.commands import run
+            try:
+                run(session, f'open {emdb_id} from emdb')
+            except BaseException as e:
+                session.logger.warning(f'Failed fetching {emdb_id}: {str(e)}')
 
     def apply_auto_styling(self, set_lighting = False, style=None):
         explicit_style = style is not None

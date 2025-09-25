@@ -38,6 +38,8 @@ def alphafold_dimers(session, sequences, with_sequences = None,
         raise UserError('No sequences specified')
     if with_sequences is not None and len(with_sequences) == 0:
         raise UserError('No with sequences specified')
+    if with_sequences is not None and max_spacing is not None:
+        raise UserError('Cannot use maxSpacing and withSequences options together')
 
     seqs = _unique_sequences(sequences)
     with_seqs = _unique_sequences(with_sequences) if with_sequences is not None else None
@@ -145,9 +147,21 @@ def write_dimers_yaml(output_yaml_directory, seq_pairs, msa_directory = None):
         relative_msa_dir = None
 
     for (name1, seq1), (name2, seq2) in seq_pairs:
-        msa1 = _boltz_msa_spec(f'{name1}_{name2}_0.csv', msa_directory, relative_msa_dir)
-        msa2 = _boltz_msa_spec(f'{name1}_{name2}_1.csv', msa_directory, relative_msa_dir)
-        yaml = \
+        if name1 == name2 and seq1 == seq2:
+            msa = _boltz_msa_spec(f'{name1}.csv', msa_directory, relative_msa_dir)
+            yaml = \
+f'''\
+version: 1
+sequences:
+  - protein:
+      id: [A,B]
+      sequence: {seq1}
+      {msa}
+'''
+        else:
+            msa1 = _boltz_msa_spec(f'{name1}_{name2}_0.csv', msa_directory, relative_msa_dir)
+            msa2 = _boltz_msa_spec(f'{name1}_{name2}_1.csv', msa_directory, relative_msa_dir)
+            yaml = \
 f'''\
 version: 1
 sequences:
@@ -160,17 +174,17 @@ sequences:
       sequence: {seq2}
       {msa2}
 '''
-        with open(join(output_yaml_directory, f'{name1}_{name2}.yaml'), 'w') as f:
+        with open(join(output_yaml_directory, f'{name1}.{name2}.yaml'), 'w') as f:
             f.write(yaml)
 
 # -----------------------------------------------------------------------------
 #
-def _boltz_msa_spec(filename, msa_directory, relative_msa_dir):
+def _boltz_msa_spec(filename, msa_directory, relative_msa_dir, msa_file_must_exist = False):
     yaml = ''
     if msa_directory:
         from os.path import join, exists
         msa_path = join(msa_directory, filename)
-        if exists(msa_path):
+        if not msa_file_must_exist or exists(msa_path):
             rel_msa_path = join(relative_msa_dir, filename)
             yaml = f'msa: {rel_msa_path}\n'
     return yaml

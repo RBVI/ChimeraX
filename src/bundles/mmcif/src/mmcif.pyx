@@ -89,7 +89,7 @@ def _initialize(session):
 
 def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True,
                max_models=None, log_info=True, extra_categories=(), combine_sym_atoms=True,
-               slider=True, ignore_styling=False):
+               slider=True, ignore_styling=False, fetch_emdb_map=False):
     # mmCIF parsing requires an uncompressed file
 
     if not _initialized:
@@ -181,6 +181,8 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         model.get_formatted_metadata = MethodType(_get_formatted_metadata, proxy(model))
         model.get_formatted_res_info = MethodType(_get_formatted_res_info, proxy(model))
         break
+    if fetch_emdb_map and models:
+        _fetch_emdb_map_for_mmcif_model(models[0])
     if log is not None and not models:
         log.warning("No mmCIF models found.\n")
     return models, info
@@ -241,25 +243,14 @@ def _get_formatted_metadata(model, session, *, verbose=False):
                 'host_org_species', 'pdbx_host_org_ncbi_taxonomy_id'])
 
     # EMDB map
-    for table_name, field_names in [
-            ('database_2', ['database_id', 'database_code']),
-            ('pdbx_database_related', ['db_name', 'db_id'])]:
-        db_info = get_mmcif_tables_from_metadata(model, [table_name], metadata=metadata)[0]
-        if db_info:
-            for id, code in db_info.fields(field_names):
-                if id == 'EMDB' and code.startswith('EMD-'):
-                    entry_id = escape(code[4:])
-                    emdb_link = '<a href="https://www.ebi.ac.uk/emdb/EMD-%s">EMDB %s</a>' % (
-                        entry_id, entry_id)
-                    emdb_load = '<a href="cxcmd:open %s from emdb">open map</a>' % entry_id
-                    html += '  <tr>\n'
-                    html += '   <th>CryoEM Map</th>\n'
-                    html += '   <td>%s &mdash; %s</td>\n' % (emdb_link, emdb_load)
-                    html += '  </tr>\n'
-                    break
-            else:
-                continue
-            break
+    entry_id = _emdb_map_id_for_mmcif_model(model)
+    if entry_id:
+        emdb_link = '<a href="https://www.ebi.ac.uk/emdb/EMD-%s">EMDB %s</a>' % (entry_id, entry_id)
+        emdb_load = '<a href="cxcmd:open %s from emdb">open map</a>' % entry_id
+        html += '  <tr>\n'
+        html += '   <th>CryoEM Map</th>\n'
+        html += '   <td>%s &mdash; %s</td>\n' % (emdb_link, emdb_load)
+        html += '  </tr>\n'
 
     # experimental method; resolution
     method = experimental_method(model, metadata=metadata)
@@ -320,6 +311,29 @@ def _get_formatted_metadata(model, session, *, verbose=False):
 
     return html
 
+def _fetch_emdb_map_for_mmcif_model(mmcif_model):
+    emdb_id = _emdb_map_id_for_mmcif_model(mmcif_model)
+    if emdb_id is None:
+        from os .path import basename
+        filename = basename(mmcif_model.filename)
+        mmcif_model.session.logger.warning(f'No EMDB map ID in mmCIF file {filename}')
+    else:
+        # Fetched after mmcif model is added to session so EMDB map appears after
+        # mmcif model in model list.
+        mmcif_model.fetch_emdb_id = emdb_id
+    
+def _emdb_map_id_for_mmcif_model(mmcif_model):
+    for table_name, field_names in [('database_2', ['database_id', 'database_code']),
+                                    ('pdbx_database_related', ['db_name', 'db_id'])]:
+        db_info = get_mmcif_tables_from_metadata(mmcif_model, [table_name], metadata=mmcif_model.metadata)[0]
+        if db_info:
+            for id, code in db_info.fields(field_names):
+                if id == 'EMDB' and code.startswith('EMD-'):
+                    from html import escape
+                    emdb_id = escape(code[4:])
+                    return emdb_id
+    return None
+    
 def _nmr_ensemble_id(model):
     'Determine if this model is one of an ensemble of models for applying NMR constraints.'
     if len(model.id) < 2:
