@@ -1092,6 +1092,9 @@ opens the resulting structures and displays them in a convenient fashion:
 Given a <i>sequence-list</i>, <b>alphafold dimers</b>
 estimates the time it would take ColabFold to run dimer predictions 
 on an Nvidia 3090 GPU for all pairs of the sequences.
+The command also reports in the <a href="../tools/log.html"><b>Log</b></a> the
+colabfold_batch command that would be used to run the predictions
+from the Linux shell, but it does not actually run the predictions.
 The <b>maxSpacing</b> option can be used to restrict the pairs 
 to those no more than <i>K</i> sequences apart in the input list 
 (for example, <i>K</i> = 1 indicates that only sequences immediately
@@ -1100,12 +1103,7 @@ that is in genome order, to pair only sequences close together in the genome;
 default is no restriction on spacing.
 If <b>withSequences</b> is used to give a second list of sequences,
 only pairs with one sequence in the first list and the other in the second 
-list will be considered. 
-The <b>withSequences</b> and <b>maxSpacing</b> options cannot be used together.
-The <b>alphafold dimers</b> command
-also reports in the <a href="../tools/log.html"><b>Log</b></a> the
-colabfold_batch command that would be used to run the predictions
-from the Linux shell, but it does not actually run the predictions.
+list will be considered (cannot be used together with <b>maxSpacing</b>).
 <p>
 Each sequence list can be given as either of the following:
 <ul>
