@@ -48,6 +48,7 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     from openmm.app import Topology, ForceField, element, HBonds, Simulation
     from openmm.unit import angstrom, nanometer, kelvin, picosecond, picoseconds, Quantity
     from openmm import LangevinIntegrator, LocalEnergyMinimizer, vec3, Context, MinimizationReporter
+    from openmm import OpenMMException, Platform
     #from openmmtools.integrators import GradientDescentMinimizationIntegrator
     import numpy
     top = Topology()
@@ -215,7 +216,14 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     #simulation.minimizeEnergy(reporter=Reporter(cx_atoms))
     #final_crds = numpy.array([q.value_in_unit(angstrom)
     #    for q in simulation.context.getState(getPositions=True).getPositions()])
-    context = Context(system, integrator)
+    try:
+        context = Context(system, integrator)
+    except OpenMMException as e:
+        if "Error compiling kernel" in str(e):
+            session.logger.warning("Using GPU for minimization failed, falling back to using CPU")
+            context = Context(system, integrator, Platform.getPlatformByName('CPU'))
+        else:
+            raise
     context.setPositions(Quantity(coords))
     LocalEnergyMinimizer.minimize(context, reporter=Reporter(cx_atoms))
     final_crds = numpy.array([q.value_in_unit(angstrom)
