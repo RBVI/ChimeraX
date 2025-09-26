@@ -1243,7 +1243,8 @@ class PlaneViewer(QWindow):
             radius = self.segmentation_cursor_overlay.radius
             rel_size = (radius / width) * psize
             needed_rad = (rel_size / psize) * ww
-            self.segmentation_tool.segmentation_cursors[self.axis].radius = (
+            self.segmentation_tool.set_radius(
+                self.axis,
                 self.segmentation_cursor_overlay.radius * psize / self.scale
             )
 
