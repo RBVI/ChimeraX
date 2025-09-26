@@ -750,7 +750,7 @@ class PlaneViewer(QWindow):
         self._redraw()
 
     def on_color_changed(self):
-        if self.view.drawing is not self.placeholder_drawing:
+        if self.view.drawing is not self.placeholder_drawing and self.view.drawing.parent is not None:
             colors = self.view.drawing.parent.image_colors
             levels = self.view.drawing.parent.image_levels
             rgba_and_labels = []
