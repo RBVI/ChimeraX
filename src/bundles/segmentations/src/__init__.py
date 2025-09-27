@@ -10,7 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "3.5.7"
+__version__ = "3.5.9"
 
 from chimerax.core import runtime_env_is_chimerax_app as _runtime_env_is_chimerax_app
 from chimerax.segmentations.segmentation import Segmentation, open_grids_as_segmentation

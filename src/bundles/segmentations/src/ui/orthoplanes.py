@@ -750,7 +750,7 @@ class PlaneViewer(QWindow):
         self._redraw()
 
     def on_color_changed(self):
-        if self.view.drawing is not self.placeholder_drawing:
+        if self.view.drawing is not self.placeholder_drawing and self.view.drawing.parent is not None:
             colors = self.view.drawing.parent.image_colors
             levels = self.view.drawing.parent.image_levels
             rgba_and_labels = []
@@ -1243,7 +1243,8 @@ class PlaneViewer(QWindow):
             radius = self.segmentation_cursor_overlay.radius
             rel_size = (radius / width) * psize
             needed_rad = (rel_size / psize) * ww
-            self.segmentation_tool.segmentation_cursors[self.axis].radius = (
+            self.segmentation_tool.set_radius(
+                self.axis,
                 self.segmentation_cursor_overlay.radius * psize / self.scale
             )
 

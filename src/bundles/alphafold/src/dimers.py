@@ -38,6 +38,8 @@ def alphafold_dimers(session, sequences, with_sequences = None,
         raise UserError('No sequences specified')
     if with_sequences is not None and len(with_sequences) == 0:
         raise UserError('No with sequences specified')
+    if with_sequences is not None and max_spacing is not None:
+        raise UserError('Cannot use maxSpacing and withSequences options together')
 
     seqs = _unique_sequences(sequences)
     with_seqs = _unique_sequences(with_sequences) if with_sequences is not None else None
