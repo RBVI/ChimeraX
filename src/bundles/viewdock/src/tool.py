@@ -39,7 +39,7 @@ from Qt.QtGui import QFont
 from Qt.QtCore import Qt
 from chimerax.viewdock import RATING_KEY, DEFAULT_RATING
 
-# if these labels change, ensure the code in process_hotkey() is still correct
+# if these labels change, ensure the code in process_hotkey() and info in hotkeys_setup() is still correct
 rating_labels = ['(unrated)', 'bad', 'maybe', 'good']
 
 
@@ -486,6 +486,24 @@ class ViewDockTool(ToolInstance):
         if hotkeys_on:
             ui_area.keyPressEvent = self.process_hotkey
             self.session.ui.register_for_keystrokes(self)
+            abbrevs = []
+            for rl in reversed(rating_labels):
+                for c in rl:
+                    if c.isalnum():
+                        abbrevs.append((c, rl))
+                        break
+            self.session.logger.info("<h3>ViewDock hotkeys on</h3>"
+                "If clicked into ViewDock dialog or main 3D graphics area, the following keys are active:"
+                "<dl>"
+                    "<dt>%s</dt>"
+                    "<dd>Assign %s rating to chosen compounds</dt>"
+                    "<dt>up/down arrow</dt>"
+                    "<dd>Move up/down compound list<super>*</super></dd>"
+                    "<dt>Escape</dt>"
+                    "<dd>Turn hotkeys off (have to use context menu to re-enable)</dd>"
+                "</dl>"
+                "<super>*</super>Unless in 3D graphics with a selection, in which case normal selection widening/narrowing happens" % ('/'.join([abbrev[0] for abbrev in abbrevs]),
+                '/'.join([abbrev[1] for abbrev in abbrevs])), is_html=True)
         else:
             ui_area.keyPressEvent = self.session.ui.forward_keystroke
             self.session.ui.deregister_for_keystrokes(self)
