@@ -39,6 +39,7 @@ from Qt.QtGui import QFont
 from Qt.QtCore import Qt
 from chimerax.viewdock import RATING_KEY, DEFAULT_RATING
 
+# if these labels change, ensure the code in process_hotkey() and info in hotkeys_setup() is still correct
 rating_labels = ['(unrated)', 'bad', 'maybe', 'good']
 
 
@@ -70,6 +71,8 @@ class ViewDockTool(ToolInstance):
         self.main_v_layout = QVBoxLayout()
         self.main_v_layout.setSpacing(0)
         self.tool_window.ui_area.setLayout(self.main_v_layout)
+        self.tool_window.fill_context_menu = self.fill_context_menu
+        self.tool_window.shown_changed = self.tool_window_shown_changed
 
         vd_structures = self.filter_structures(structures)
 
@@ -110,6 +113,8 @@ class ViewDockTool(ToolInstance):
         else:
             self.table_selection_changed()
 
+        self.hotkeys_on = False
+        self.hotkeys_setup()
 
         self.handlers = []
         self.add_handlers()
@@ -120,6 +125,15 @@ class ViewDockTool(ToolInstance):
         table_size.setWidth(other_width)
         self.struct_table.sizeHint = lambda *args, sz=table_size: sz
         self.tool_window.manage(None)
+
+    def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        hotkeys_action = QAction("Hotkeys active", menu)
+        hotkeys_action.setCheckable(True)
+        hotkeys_action.setChecked(self.settings.hotkeys_on)
+        hotkeys_action.triggered.connect(
+            lambda checked: (setattr(self.settings, "hotkeys_on", checked), self.hotkeys_setup()))
+        menu.addAction(hotkeys_action)
 
     def filter_structures(self, structures):
         """
@@ -183,6 +197,23 @@ class ViewDockTool(ToolInstance):
         close_button.clicked.connect(self.close_compounds_cb)
         close_area.addWidget(close_button)
         close_area.addWidget(QLabel(" chosen compounds"))
+
+    def next_selected(self, direction):
+        sel = self.struct_table.selected
+        if not sel:
+            self.session.logger.warning("No structures chosen in table")
+            return
+        if len(sel) > 1:
+            self.session.logger.warning("Multiple structures chosen in table")
+            return
+        next_index = self.struct_table.data.index(sel[0]) + direction
+        if next_index < 0:
+            self.session.logger.warning("Already at top of table")
+            return
+        if next_index >= len(self.struct_table.data):
+            self.session.logger.warning("Already at bottom of table")
+            return
+        self.struct_table.selected = [self.struct_table.data[next_index]]
 
     def popup_callback(self, gui_class, popup_name, results_callback, **kwargs):
         """
@@ -446,6 +477,38 @@ class ViewDockTool(ToolInstance):
         else:
             self.struct_table.data = self.table_structures
 
+    def hotkeys_setup(self, *, hotkeys_on=None):
+        ui_area = self.tool_window.ui_area
+        if hotkeys_on is None:
+            hotkeys_on = self.settings.hotkeys_on
+        if self.hotkeys_on == hotkeys_on:
+            return
+        if hotkeys_on:
+            ui_area.keyPressEvent = self.process_hotkey
+            self.session.ui.register_for_keystrokes(self)
+            abbrevs = []
+            for rl in reversed(rating_labels):
+                for c in rl:
+                    if c.isalnum():
+                        abbrevs.append((c, rl))
+                        break
+            self.session.logger.info("<h3>ViewDock hotkeys on</h3>"
+                "If clicked into ViewDock dialog or main 3D graphics area, the following keys are active:"
+                "<dl>"
+                    "<dt>%s</dt>"
+                    "<dd>Assign %s rating to chosen compounds</dt>"
+                    "<dt>up/down arrow</dt>"
+                    "<dd>Move up/down compound list<super>*</super></dd>"
+                    "<dt>Escape</dt>"
+                    "<dd>Turn hotkeys off (have to use context menu to re-enable)</dd>"
+                "</dl>"
+                "<super>*</super>Unless in 3D graphics with a selection, in which case normal selection widening/narrowing happens" % ('/'.join([abbrev[0] for abbrev in abbrevs]),
+                '/'.join([abbrev[1] for abbrev in abbrevs])), is_html=True)
+        else:
+            ui_area.keyPressEvent = self.session.ui.forward_keystroke
+            self.session.ui.deregister_for_keystrokes(self)
+        self.hotkeys_on = hotkeys_on
+
     def update_table_for_hidden(self):
         sel = self.struct_table.selected
         self.struct_table.data = self.table_structures
@@ -456,6 +519,12 @@ class ViewDockTool(ToolInstance):
                     break
             else:
                 self.struct_table.selected = self.struct_table.data[0:1]
+
+    def tool_window_shown_changed(self, shown):
+        if shown:
+            self.hotkeys_setup()
+        else:
+            self.hotkeys_setup(hotkeys_on=False)
 
     def display_key(self, key):
         disp_words = []
@@ -693,6 +762,29 @@ class ViewDockTool(ToolInstance):
             self.struct_table.update_column(self.hbonds_col, data=True)
         self.update_model_description()
 
+    def process_hotkey(self, event):
+        key = event.key()
+        if key == Qt.Key.Key_Up:
+            self.next_selected(-1)
+        elif key == Qt.Key.Key_Down:
+            self.next_selected(1)
+        elif key == Qt.Key_Escape:
+            self.settings.hotkeys_on = False
+            self.hotkeys_setup(hotkeys_on=False)
+        else:
+            rating_letter = event.text()
+            if len(rating_letter) == 1:
+                for value, rating_label in enumerate(rating_labels):
+                    for c in rating_label:
+                        if c.isalnum():
+                            first_letter = c
+                            break
+                    if rating_letter == first_letter:
+                        self.rating_buttons[value].click()
+                        break
+
+    forwarded_keystroke = process_hotkey
+
     def delete(self):
         """
         Remove all trigger handlers from the tool before deleting.
@@ -701,6 +793,7 @@ class ViewDockTool(ToolInstance):
             self.session.triggers.remove_handler(handler)
         from .mousemode import NextDockingMouseMode
         NextDockingMouseMode.vd_instance = None
+        self.hotkeys_setup(hotkeys_on=False)
         super().delete()
 
     def take_snapshot(self, session, flags):
@@ -875,3 +968,6 @@ class ViewDockSettings(Settings):
 
     EXPLICIT_SAVE = {ItemTable.DEFAULT_SETTINGS_ATTR: {}}
 
+    AUTO_SAVE = {
+        'hotkeys_on': False
+    }
