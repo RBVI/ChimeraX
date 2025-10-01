@@ -394,9 +394,11 @@ class UI(QApplication):
                 return
             # Up arrow on an empty selection was probably intended for the command history...
         elif k == Qt.Key.Key_Down:
-            from chimerax.core.commands import run
-            run(self.session, 'select down')
-            return
+            if not self.session.selection.empty():
+                from chimerax.core.commands import run
+                run(self.session, 'select down')
+                return
+            # other keystroke sinks (e.g. ViewDock) could be interested in arrow down...
         elif k in (Qt.Key.Key_Right, Qt.Key.Key_Left):
             from chimerax.core.commands import run
             if event.modifiers() & Qt.ShiftModifier:
