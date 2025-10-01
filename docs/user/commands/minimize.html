@@ -35,10 +35,8 @@ class="clRighticon" title="User Guide Index"/></a>
 [&nbsp;<b>logEnergy</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </h3>
 <p>
-<b>**In progress**</b> and currently works only for structures containing only
-&ldquo;standard&rdquo; residues as defined  in the Amber14 parameter files.
 <!-- 
-it uses amber14-all.xml and amber14/tip3pfb.xml to define what's standard,
+uses amber14-all.xml and amber14/tip3pfb.xml to define what's standard,
 and amber-14-all in turn uses amber14/protein.ff14SB.xml, amber14/DNA.OL15.xml,
 amber14/RNA.OL3.xml, and amber14/lipid17.xml. Links:
 https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14-all.xml
@@ -48,10 +46,11 @@ https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amb
 https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/RNA.OL3.xml
 https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/lipid17.xml
 -->
-These include standard amino and nucleic acid residues, water, and 
-several lipids and metal ions, but not arbitrary ligands.
-Only a single model should be specified.
-The minimization is carried out using the OpenMM
+The <b>minimize</b> command performs energy minimization.
+Only a single atomic model should be specified.
+The atoms are assigned types and associated force field parameters
+as described for <a href="addcharge.html"><b>addcharge</b></a>, and
+then the minimization is carried out using the OpenMM
 <a href="http://docs.openmm.org/7.0.0/api-python/generated/simtk.openmm.openmm.LocalEnergyMinimizer.html" 
 target="_blank">LocalEnergyMinimizer</a> with the
 <a href="http://docs.openmm.org/7.1.0/api-python/generated/simtk.openmm.openmm.LangevinIntegrator.html"
@@ -91,5 +90,5 @@ indicates whether to also report the energy in the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-July 2024</address>
+October 2025</address>
 </body></html>
