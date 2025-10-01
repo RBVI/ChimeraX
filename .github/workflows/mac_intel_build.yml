@@ -224,7 +224,7 @@ jobs:
       - name: Verify that ChimeraX will pass macOS Gatekeeper
         shell: bash
         run: |
-          spctl --assess --type execute $CHIMERAX_APP_NAME
+          spctl --assess --type execute --verbose=4 $CHIMERAX_APP_NAME
 
       - name: Make the DMG
         shell: bash
