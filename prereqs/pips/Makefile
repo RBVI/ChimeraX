@@ -51,6 +51,7 @@ ifeq ($(OSARCH),DarwinArm64)
 SCIPY_WHEEL = $(subst ==,-,$(shell grep scipy $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_12_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
+SCIPY_WHEEL = $(subst ==,-,$(shell grep scipy $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_10_14_x86_64.whl
 endif
 endif
 endif
@@ -71,7 +72,7 @@ app-list:
 
 upgrade:
 
-ifeq ($(OSARCH),DarwinArm64)
+ifeq ($(OS),Darwin)
 app-install: app_requirements.txt $(PLATO_WHEELS) $(SCIPY_WHEEL)
 else
 app-install: app_requirements.txt $(PLATO_WHEELS)
