@@ -6,7 +6,7 @@ Classes:
         and handling triggers.
 """
 
-from Qt.QtWidgets import QVBoxLayout
+from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QStackedWidget, QPushButton, QButtonGroup
 
 from chimerax.core.commands import run
 from chimerax.core.tools import ToolInstance
@@ -15,6 +15,8 @@ from chimerax.ui.open_save import SaveDialog
 
 from chimerax.animations.triggers import (add_handler, KF_EDIT, PREVIEW, PLAY, KF_ADD, KF_DELETE, RECORD, STOP_PLAYING, INSERT_TIME, REMOVE_TIME, remove_handler, STOP_RECORDING)
 from chimerax.animations.kf_editor_two import KeyframeEditorWidget
+from chimerax.animations.scene_timeline import SceneTimelineWidget
+from chimerax.animations.scene_animation import SceneAnimation
 
 
 class AnimationsTool(ToolInstance):
@@ -51,15 +53,18 @@ class AnimationsTool(ToolInstance):
         self.display_name = "Animations"
 
         # Store a reference to the animation manager
-        #self.animation_mgr = self.session.get_state_manager("animations")
+        self.animation_mgr = self.session.get_state_manager("animations")
+
+        # Get or create scene animation manager
+        self.scene_animation = self._get_scene_animation_manager()
 
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
 
-        # test scene thumbnails
+        # Build UI with mode switching
         self.build_ui()
 
-        # Register handlers for the triggers
+        # Register handlers for the triggers (only for keyframe mode)
         self.handlers.append(add_handler(PREVIEW, lambda trigger_name, time: run(self.session, f"animations preview {time}")))
         self.handlers.append(add_handler(KF_EDIT, lambda trigger_name, data: run(self.session, f"animations keyframe edit {data[0]} time {data[1]}")))
         self.handlers.append(add_handler(PLAY, lambda trigger_name, data: run(self.session, f"animations play start {data[0]} reverse {data[1]}")))
@@ -80,11 +85,114 @@ class AnimationsTool(ToolInstance):
 
         main_vbox_layout = QVBoxLayout()
 
-        # Keyframe editor graphics view widget.
+        # Mode switching controls
+        mode_controls_layout = QHBoxLayout()
+
+        self.mode_button_group = QButtonGroup()
+
+        self.keyframe_mode_btn = QPushButton("Keyframe Mode")
+        self.keyframe_mode_btn.setCheckable(True)
+        self.keyframe_mode_btn.setChecked(True)  # Default to keyframe mode
+        self.keyframe_mode_btn.setStyleSheet("""
+            QPushButton:checked {
+                background-color: #4CAF50;
+                color: white;
+                font-weight: bold;
+            }
+        """)
+
+        self.scene_mode_btn = QPushButton("Scene Mode")
+        self.scene_mode_btn.setCheckable(True)
+        self.scene_mode_btn.setStyleSheet("""
+            QPushButton:checked {
+                background-color: #2196F3;
+                color: white;
+                font-weight: bold;
+            }
+        """)
+
+        self.mode_button_group.addButton(self.keyframe_mode_btn, 0)
+        self.mode_button_group.addButton(self.scene_mode_btn, 1)
+        self.mode_button_group.buttonClicked.connect(self.switch_mode)
+
+        mode_controls_layout.addWidget(self.keyframe_mode_btn)
+        mode_controls_layout.addWidget(self.scene_mode_btn)
+        mode_controls_layout.addStretch()
+
+        main_vbox_layout.addLayout(mode_controls_layout)
+
+        # Stacked widget for different modes
+        self.stacked_widget = QStackedWidget()
+
+        # Keyframe editor mode (original)
         self.kf_editor_widget = KeyframeEditorWidget(self.session)
-        main_vbox_layout.addWidget(self.kf_editor_widget)
+        self.stacked_widget.addWidget(self.kf_editor_widget)
+
+        # Scene timeline mode (new)
+        self.scene_timeline_widget = SceneTimelineWidget(self.session)
+        self.stacked_widget.addWidget(self.scene_timeline_widget)
+
+        # Connect scene timeline signals
+        self.scene_timeline_widget.scene_added.connect(self.on_scene_added)
+        self.scene_timeline_widget.scene_removed.connect(self.on_scene_removed)
+        self.scene_timeline_widget.scene_selected.connect(self.on_scene_selected)
+        self.scene_timeline_widget.time_changed.connect(self.on_scene_time_changed)
+
+        # Connect timeline drag and drop
+        self.scene_timeline_widget.timeline_scene.scene_dropped.connect(self.on_scene_dropped)
+
+        main_vbox_layout.addWidget(self.stacked_widget)
 
         self.tool_window.ui_area.setLayout(main_vbox_layout)
+
+    def _get_scene_animation_manager(self):
+        """Get or create the scene animation manager"""
+        if not hasattr(self.session, '_scene_animation_manager'):
+            self.session._scene_animation_manager = SceneAnimation(self.session)
+        return self.session._scene_animation_manager
+
+    def switch_mode(self, button):
+        """Switch between keyframe and scene animation modes"""
+        if button == self.keyframe_mode_btn:
+            self.stacked_widget.setCurrentIndex(0)
+            self.session.logger.info("Switched to Keyframe Mode")
+        elif button == self.scene_mode_btn:
+            self.stacked_widget.setCurrentIndex(1)
+            self.session.logger.info("Switched to Scene Mode")
+
+    def on_scene_added(self, scene_name, time=None):
+        """Handle scene addition in scene mode"""
+        if time is None:
+            time = self.scene_timeline_widget.timeline_controls.current_time
+
+        success = self.scene_animation.add_scene_at_time(scene_name, time)
+
+        if success:
+            self.scene_timeline_widget.add_scene_marker(time, scene_name)
+            self.session.logger.info(f"Added scene '{scene_name}' to animation at {time:.2f}s")
+
+    def on_scene_removed(self, scene_name):
+        """Handle scene removal in scene mode"""
+        success = self.scene_animation.remove_scene(scene_name)
+
+        if success:
+            self.scene_timeline_widget.timeline_scene.remove_scene_marker(scene_name)
+            self.session.logger.info(f"Removed scene '{scene_name}' from animation")
+
+    def on_scene_selected(self, scene_name):
+        """Handle scene selection in scene mode"""
+        if self.session.scenes.get_scene(scene_name):
+            self.session.scenes.restore_scene(scene_name)
+            self.session.logger.info(f"Restored scene '{scene_name}'")
+
+    def on_scene_time_changed(self, time):
+        """Handle timeline time change in scene mode"""
+        self.scene_animation.preview_at_time(time)
+        self.scene_timeline_widget.set_current_time(time)
+
+    def on_scene_dropped(self, scene_name, time):
+        """Handle scene dropped onto timeline"""
+        self.on_scene_added(scene_name, time)
 
     def add_keyframe(self, time):
         """
@@ -125,6 +233,11 @@ class AnimationsTool(ToolInstance):
             remove_handler(handler)
         if self.kf_editor_widget is not None:
             self.kf_editor_widget.remove_handlers()
+
+        # Stop any scene animation playback
+        if hasattr(self, 'scene_animation') and self.scene_animation:
+            self.scene_animation.stop_playing()
+
         super().delete()
 
     def take_snapshot(self, session, flags):
