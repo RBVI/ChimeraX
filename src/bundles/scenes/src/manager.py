@@ -180,3 +180,87 @@ class SceneManager(StateManager):
         if 'num_saved_scenes' in data:
             self.num_saved_scenes = data['num_saved_scenes']
 
+    def interpolate_scenes(self, scene1_name: str, scene2_name: str, fraction: float):
+        """
+        Interpolate between two scenes at the given fraction.
+
+        Args:
+            scene1_name (str): Name of the first scene
+            scene2_name (str): Name of the second scene
+            fraction (float): Interpolation fraction (0.0 = scene1, 1.0 = scene2)
+        """
+        scene1 = self.get_scene(scene1_name)
+        scene2 = self.get_scene(scene2_name)
+
+        if not scene1:
+            self.session.logger.warning(f"Scene '{scene1_name}' not found")
+            return
+        if not scene2:
+            self.session.logger.warning(f"Scene '{scene2_name}' not found")
+            return
+
+        # Clamp fraction to valid range
+        fraction = max(0.0, min(1.0, fraction))
+
+        # If fraction is 0, just restore scene1
+        if fraction == 0.0:
+            self.restore_scene(scene1_name)
+            return
+        # If fraction is 1, just restore scene2
+        elif fraction == 1.0:
+            self.restore_scene(scene2_name)
+            return
+
+        # Import interpolation functions from view module
+        from chimerax.std_commands.view import _interpolate_views
+
+        # Create mock view objects for interpolation
+        # We'll use the NamedView data to interpolate camera and model positions
+        v1 = scene1.named_view
+        v2 = scene2.named_view
+
+        # Get current view to apply interpolation to
+        current_view = self.session.view
+
+        # Calculate centers for model interpolation (needed for _interpolate_views)
+        centers = {}
+        models = self.session.models.list()
+        for model in models:
+            if model in v1.positions and model in v2.positions:
+                # Use model center for interpolation, handle None bounds
+                bounds = model.bounds()
+                if bounds is not None:
+                    centers[model] = bounds.center()
+                else:
+                    # Use origin if model has no bounds
+                    from chimerax.geometry import Point
+                    centers[model] = Point(0, 0, 0)
+
+        # Perform the interpolation
+        _interpolate_views(v1, v2, fraction, current_view, centers)
+
+        # Interpolate model-specific scene data if models support it
+        current_models = self.session.models.list()
+        for model in current_models:
+            # Check if both scenes have data for this model
+            if (model in scene1.scene_models and model in scene2.scene_models):
+                scene1_restore_implemented, scene1_data = scene1.scene_models[model]
+                scene2_restore_implemented, scene2_data = scene2.scene_models[model]
+
+                # Only interpolate if both models have proper scene restore support
+                if scene1_restore_implemented and scene2_restore_implemented:
+                    # For now, just use a simple approach: apply scene1 data if fraction < 0.5, else scene2
+                    # More sophisticated model property interpolation could be implemented later
+                    if fraction < 0.5:
+                        if hasattr(model, 'restore_scene'):
+                            model.restore_scene(scene1_data)
+                        else:
+                            from chimerax.core.models import Model
+                            Model.restore_scene(model, scene1_data)
+                    else:
+                        if hasattr(model, 'restore_scene'):
+                            model.restore_scene(scene2_data)
+                        else:
+                            from chimerax.core.models import Model
+                            Model.restore_scene(model, scene2_data)
+
