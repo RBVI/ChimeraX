@@ -180,7 +180,7 @@ class SceneManager(StateManager):
         if 'num_saved_scenes' in data:
             self.num_saved_scenes = data['num_saved_scenes']
 
-    def interpolate_scenes(self, scene1_name: str, scene2_name: str, fraction: float):
+    def interpolate_scenes(self, scene1_name: str, scene2_name: str, fraction: float, fade_models: bool = False):
         """
         Interpolate between two scenes at the given fraction.
 
@@ -211,56 +211,181 @@ class SceneManager(StateManager):
             self.restore_scene(scene2_name)
             return
 
-        # Import interpolation functions from view module
-        from chimerax.std_commands.view import _interpolate_views
-
-        # Create mock view objects for interpolation
-        # We'll use the NamedView data to interpolate camera and model positions
+        # Get view data for interpolation
         v1 = scene1.named_view
         v2 = scene2.named_view
-
-        # Get current view to apply interpolation to
         current_view = self.session.view
 
-        # Calculate centers for model interpolation (needed for _interpolate_views)
-        centers = {}
-        models = self.session.models.list()
-        for model in models:
-            if model in v1.positions and model in v2.positions:
-                # Use model center for interpolation, handle None bounds
-                bounds = model.bounds()
-                if bounds is not None:
-                    centers[model] = bounds.center()
-                else:
-                    # Use origin if model has no bounds
-                    from chimerax.geometry import Point
-                    centers[model] = Point(0, 0, 0)
+        # Check if models actually moved between scenes or if only camera moved
+        models_actually_moved = self._models_actually_moved(v1, v2)
 
-        # Perform the interpolation
-        _interpolate_views(v1, v2, fraction, current_view, centers)
+        print(f"DEBUG: Interpolating between '{scene1_name}' and '{scene2_name}' at fraction {fraction}")
+        print(f"DEBUG: Number of models in scene: {len(self.session.models.list())}")
 
-        # Interpolate model-specific scene data if models support it
-        current_models = self.session.models.list()
-        for model in current_models:
-            # Check if both scenes have data for this model
-            if (model in scene1.scene_models and model in scene2.scene_models):
-                scene1_restore_implemented, scene1_data = scene1.scene_models[model]
-                scene2_restore_implemented, scene2_data = scene2.scene_models[model]
+        if models_actually_moved:
+            # Models moved - use full interpolation including model positions
+            from chimerax.std_commands.view import _interpolate_views
 
-                # Only interpolate if both models have proper scene restore support
-                if scene1_restore_implemented and scene2_restore_implemented:
-                    # For now, just use a simple approach: apply scene1 data if fraction < 0.5, else scene2
-                    # More sophisticated model property interpolation could be implemented later
-                    if fraction < 0.5:
-                        if hasattr(model, 'restore_scene'):
-                            model.restore_scene(scene1_data)
-                        else:
-                            from chimerax.core.models import Model
-                            Model.restore_scene(model, scene1_data)
+            # Calculate centers for model interpolation
+            centers = {}
+            models = self.session.models.list()
+            for model in models:
+                if model in v1.positions and model in v2.positions:
+                    bounds = model.bounds()
+                    if bounds is not None:
+                        centers[model] = bounds.center()
                     else:
-                        if hasattr(model, 'restore_scene'):
-                            model.restore_scene(scene2_data)
+                        import numpy as np
+                        centers[model] = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+
+            # Perform full interpolation (camera + models)
+            _interpolate_views(v1, v2, fraction, current_view, centers)
+        else:
+            # Only camera moved - interpolate only camera and clip planes
+            # This avoids moving models and triggering expensive ambient occlusion updates
+            from chimerax.std_commands.view import _interpolate_camera, _interpolate_clip_planes
+            _interpolate_camera(v1, v2, fraction, current_view.camera)
+            _interpolate_clip_planes(v1, v2, fraction, current_view)
+
+        # Only interpolate model-specific scene data if models actually moved
+        if models_actually_moved:
+            current_models = self.session.models.list()
+            for model in current_models:
+                # Check if both scenes have data for this model
+                if (model in scene1.scene_models and model in scene2.scene_models):
+                    scene1_restore_implemented, scene1_data = scene1.scene_models[model]
+                    scene2_restore_implemented, scene2_data = scene2.scene_models[model]
+
+                    # Only interpolate if both models have proper scene restore support
+                    if scene1_restore_implemented and scene2_restore_implemented:
+                        # For now, just use a simple approach: apply scene1 data if fraction < 0.5, else scene2
+                        # More sophisticated model property interpolation could be implemented later
+                        if fraction < 0.5:
+                            if hasattr(model, 'restore_scene'):
+                                model.restore_scene(scene1_data)
+                            else:
+                                from chimerax.core.models import Model
+                                Model.restore_scene(model, scene1_data)
                         else:
-                            from chimerax.core.models import Model
-                            Model.restore_scene(model, scene2_data)
+                            if hasattr(model, 'restore_scene'):
+                                model.restore_scene(scene2_data)
+                            else:
+                                from chimerax.core.models import Model
+                                Model.restore_scene(model, scene2_data)
+
+        # Handle model fading if enabled
+        if fade_models:
+            print(f"DEBUG: Applying model fade effects")
+            self._apply_model_fade(scene1, scene2, fraction)
+
+    def _apply_model_fade(self, scene1, scene2, fraction):
+        """Apply fade in/out effects for models appearing/disappearing between scenes"""
+        # Get models present in each scene
+        scene1_models = set(scene1.scene_models.keys()) if hasattr(scene1, 'scene_models') else set()
+        scene2_models = set(scene2.scene_models.keys()) if hasattr(scene2, 'scene_models') else set()
+
+        # Models that appear in scene2 but not scene1 (need to fade in)
+        appearing_models = scene2_models - scene1_models
+        # Models that disappear (in scene1 but not scene2) (need to fade out)
+        disappearing_models = scene1_models - scene2_models
+
+        print(f"DEBUG: Scene1 models: {len(scene1_models)}, Scene2 models: {len(scene2_models)}")
+        print(f"DEBUG: Appearing: {len(appearing_models)}, Disappearing: {len(disappearing_models)}")
+
+        for model in appearing_models:
+            # Model should fade in: opacity goes from 0 to original opacity
+            if hasattr(model, 'transparency'):
+                # Get target transparency from scene2 (default to opaque if not stored)
+                target_transparency = 0  # Assume opaque as default
+                if model in scene2.scene_models:
+                    # Try to extract transparency from scene data if available
+                    _, scene2_data = scene2.scene_models[model]
+                    # For now, use default opaque. Scene data parsing would be more complex.
+
+                # Fade in: start fully transparent, end at target transparency
+                current_transparency = int(255 * (1.0 - fraction) + target_transparency * fraction)
+                model.transparency = current_transparency
+                print(f"DEBUG: Fading in model: transparency {current_transparency}")
+
+        for model in disappearing_models:
+            # Model should fade out: opacity goes from original to 0
+            if hasattr(model, 'transparency'):
+                # Get original transparency from scene1
+                original_transparency = 0  # Assume opaque as default
+                if model in scene1.scene_models:
+                    # Try to extract transparency from scene data if available
+                    _, scene1_data = scene1.scene_models[model]
+                    # For now, use default opaque
+
+                # Fade out: start at original transparency, end fully transparent
+                current_transparency = int(original_transparency * (1.0 - fraction) + 255 * fraction)
+                model.transparency = current_transparency
+                print(f"DEBUG: Fading out model: transparency {current_transparency}")
+
+    def _models_actually_moved(self, v1, v2):
+        """
+        Check if models actually moved between two views, or if only the camera moved.
+
+        This is important to avoid unnecessary model interpolation when users are just
+        rotating the camera around stationary models, which triggers expensive operations
+        like ambient occlusion recalculation.
+        """
+        print(f"DEBUG: _models_actually_moved called")
+
+        # Get model positions from both views
+        pos1 = v1.positions
+        pos2 = v2.positions
+
+        print(f"DEBUG: pos1 has {len(pos1)} models, pos2 has {len(pos2)} models")
+
+        # Don't consider model visibility changes as "movement"
+        # Only check position changes of models that exist in BOTH scenes
+        common_models = set(pos1.keys()) & set(pos2.keys())
+        print(f"DEBUG: {len(common_models)} models exist in both scenes")
+
+        # If no common models, no movement to check
+        if not common_models:
+            print(f"DEBUG: No common models - treating as camera-only movement")
+            return False
+
+        # Check if any model position actually changed
+        # We need to be careful about floating point precision
+        # Using a much more permissive tolerance for performance
+        tolerance = 1e-1  # Very permissive - only catch actual intentional model movements
+
+        models_moved = False
+        for model in common_models:  # Only check models in both scenes
+
+            positions1 = pos1[model]
+            positions2 = pos2[model]
+
+            # If different number of positions, definitely moved
+            if len(positions1) != len(positions2):
+                models_moved = True
+                break
+
+            # Compare each position with tolerance
+            for i, (p1, p2) in enumerate(zip(positions1, positions2)):
+                # Get transformation matrices for comparison
+                m1 = p1.matrix
+                m2 = p2.matrix
+
+                # Check if matrices are significantly different
+                import numpy as np
+                diff = np.abs(m1 - m2)
+                max_diff = np.max(diff)
+                if max_diff > tolerance:
+                    models_moved = True
+                    break
+
+            if models_moved:
+                break
+
+        # Debug logging to understand performance issues
+        if models_moved:
+            print(f"DEBUG: Models actually moved between scenes - using full interpolation")
+        else:
+            print(f"DEBUG: Only camera moved - using camera-only interpolation")
+
+        return models_moved
 
