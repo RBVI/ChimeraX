@@ -43,7 +43,7 @@ class MinimizeTool(ToolInstance):
         self.convergence_button.stateChanged.connect(self._convergence_changed)
         steps_layout.addWidget(self.convergence_button)
         steps_layout.addSpacing(20)
-        self.max_steps_label = QLabel("Maxmimum # steps: ")
+        self.max_steps_label = QLabel("Maximum # steps: ")
         steps_layout.addWidget(self.max_steps_label, alignment=Qt.AlignRight)
         self.max_steps_box = QSpinBox()
         self.max_steps_box.setRange(1, 999999)
@@ -57,7 +57,7 @@ class MinimizeTool(ToolInstance):
         self.update_structure_button.setChecked(self.settings.update_structure)
         layout.addWidget(self.update_structure_button)
 
-        self.log_energies_button = QCheckBox("Report energies to log")
+        self.log_energies_button = QCheckBox("Report energies to Log")
         self.log_energies_button.setChecked(self.settings.log_energies)
         layout.addWidget(self.log_energies_button)
 
