@@ -1,0 +1,103 @@
+<html lang="en">
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Minimize Structure</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Minimize Structure</h3>
+<p>
+<b>Minimize Structure</b> energy-minimizes an atomic structure.
+It is also implemented as the
+<a href="../commands/minimize.html"><b>minimize</b></a> command.
+The atoms are assigned types and associated force field parameters
+as described for <a href="addcharges.html"><b>Add Charges</b></a>, and
+then the minimization is carried out using the OpenMM
+<a href="http://docs.openmm.org/7.0.0/api-python/generated/simtk.openmm.openmm.LocalEnergyMinimizer.html"
+target="_blank">LocalEnergyMinimizer</a> with the
+<a href="http://docs.openmm.org/7.1.0/api-python/generated/simtk.openmm.openmm.LangevinIntegrator.html"
+target="_blank">LangevinIntegrator</a>.
+See also: 
+<a href="buildstructure.html"><b>Build Structure</b></a>,
+<a href="../commands/tug.html"><b>tug</b></a>,
+<a href="../commands/ui.html#mousemode">mouse modes</a>
+<a href="mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="mouse-icons/tug.png"></a>
+<b>tug</b> and
+<a href="../commands/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="mouse-icons/minimize.png"></a>
+<b>minimize</b>
+</p><p>
+<b>Minimize Structure</b> automatically runs
+<a href="../commands/dockprep.html"><b>dockprep</b></a>
+to perform several tasks to prepare the structure, including:
+</p>
+<ul>
+<li>deleting water molecules
+<li>repairing truncated sidechains
+<li>adding hydrogens
+<li>assigning partial charges
+</ul>
+<p>
+To skip running <a href="../commands/dockprep.html"><b>dockprep</b></a>
+or to use specific options of that command, use
+<a href="../commands/minimize.html"><b>minimize</b></a> instead
+of the graphical interface.
+</p><p>
+<b>Minimize Structure</b> can be opened from the 
+<b>Structure Editing</b> section of the <b>Tools</b> menu and 
+manipulated like other panels (<a href="../window.html#panels">more...</a>).
+</p><p>
+Only a single atomic model can be specified;
+to combine multiple atomic models into one beforehand,
+see <a href="../commands/combine.html"><b>combine</b></a>.
+</p>
+<ul>
+<li><b>Minimize until convergence</b> (initial default <b>on</b>)
+&ndash; whether to minimize to convergence regardless of 
+how many steps it takes. If this option is turned off, a
+<b>Maximum # steps</b> can be specified, meaning to halt minimization
+after the specified number of steps has occurred or convergence is reached,
+whichever is sooner.
+Convergence is defined as when the root-mean-square of all force components
+falls to 10 or lower. 
+<li><b>Update structure during minimization</b> (initial default <b>on</b>)
+&ndash; whether to update the structure periodically during the
+minimization; otherwise, the structure will not be updated
+until the minimization ends.
+The current update interval is every 100 steps, at the same time
+the energy is reported in the <a href="../window.html">status line</a>.
+<li><b>Report energies to Log</b> (initial default <b>off</b>)
+&ndash; whether to report the energy in the
+<a href="../tools/log.html"><b>Log</b></a>,
+not just transiently in the <a href="../window.html">status line</a>
+</ul>
+<p>
+<b>OK</b> initiates the process and dismisses the dialog, 
+whereas <b>Cancel</b> simply dismisses the dialog. <b>Help</b> 
+opens this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2025</address>
+</body></html>

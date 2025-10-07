@@ -46,8 +46,11 @@ https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amb
 https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/RNA.OL3.xml
 https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/lipid17.xml
 -->
-The <b>minimize</b> command performs energy minimization.
-Only a single atomic model should be specified.
+The <b>minimize</b> command energy-minimizes atomic structures.
+The corresponding tool is
+<a href="../tools/minimizestructure.html"><b>Minimize Structure</b></a>.
+Only a single atomic model should be specified; to combine multiple models 
+into one beforehand, see <a href="combine.html"><b>combine</b></a>.
 The atoms are assigned types and associated force field parameters
 as described for <a href="addcharge.html"><b>addcharge</b></a>, and
 then the minimization is carried out using the OpenMM
@@ -68,23 +71,26 @@ See also:
 </p><p>
 By default (<b>dockprep true</b>), the <b>minimize</b> command calls 
 <a href="dockprep.html"><b>dockprep</b></a> to perform
-several tasks to prepare the structure beforehand, such as:
+several tasks to prepare the structure beforehand, including:
 </p>
 <ul>
-<li> deleting water molecules
-<li> repairing truncated sidechains
-<li> adding hydrogens
-<li> assigning partial charges
+<li>deleting water molecules
+<li>repairing truncated sidechains
+<li>adding hydrogens
+<li>assigning partial charges
 </ul>
 <p>
 The <a href="dockprep.html"><b>dockprep</b></a> command options can
 also be used in the <b>minimize</b> command to control these processes.
 </p><p>
-The <b>maxSteps</b> option sets the number of iterations
+The <b>maxSteps</b> option sets the number of minimization steps
 (default <b>0</b>, meaning that minimization will continue until 
-convergence regardless of how many iterations it takes).
-Convergence is defined as when the root-mean-square of all force components 
-falls to 10 or lower.
+convergence regardless of how many steps it takes).
+If a maximum number of steps (>0) is specified, minimization
+will still end at convergence, even if fewer than the specified number
+of steps have been taken.
+Convergence is defined as when the root-mean-square of all 
+force components falls to 10 or lower.
 </p><p>
 The <b>liveUpdates</b> option (default <b>true</b>)
 indicates whether to update the structure periodically during the
