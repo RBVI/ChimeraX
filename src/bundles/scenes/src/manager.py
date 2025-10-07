@@ -280,47 +280,152 @@ class SceneManager(StateManager):
 
     def _apply_model_fade(self, scene1, scene2, fraction):
         """Apply fade in/out effects for models appearing/disappearing between scenes"""
-        # Get models present in each scene
-        scene1_models = set(scene1.scene_models.keys()) if hasattr(scene1, 'scene_models') else set()
-        scene2_models = set(scene2.scene_models.keys()) if hasattr(scene2, 'scene_models') else set()
+        # Get models that are visible in each scene (not just present in scene data)
+        scene1_visible_models = self._get_visible_models_in_scene(scene1)
+        scene2_visible_models = self._get_visible_models_in_scene(scene2)
 
-        # Models that appear in scene2 but not scene1 (need to fade in)
-        appearing_models = scene2_models - scene1_models
-        # Models that disappear (in scene1 but not scene2) (need to fade out)
-        disappearing_models = scene1_models - scene2_models
+        # Models that become visible in scene2 but were not visible in scene1 (need to fade in)
+        appearing_models = scene2_visible_models - scene1_visible_models
+        # Models that were visible in scene1 but are not visible in scene2 (need to fade out)
+        disappearing_models = scene1_visible_models - scene2_visible_models
 
-        print(f"DEBUG: Scene1 models: {len(scene1_models)}, Scene2 models: {len(scene2_models)}")
-        print(f"DEBUG: Appearing: {len(appearing_models)}, Disappearing: {len(disappearing_models)}")
+        # print(f"DEBUG: Scene1 visible models: {len(scene1_visible_models)}, Scene2 visible models: {len(scene2_visible_models)}")
+        # print(f"DEBUG: Appearing: {len(appearing_models)}, Disappearing: {len(disappearing_models)}")
+
+        # IMPORTANT: Make models visible during transition if they're fading in either direction
+        # This ensures the fade effect is actually visible during animation
+        models_to_fade = appearing_models | disappearing_models
+        for model in models_to_fade:
+            if hasattr(model, 'display'):
+                model.display = True
+                # print(f"DEBUG: Made model visible for fading: {model}")
+
+        # Debug: Show current session models and their display state
+        #current_session_models = list(self.session.models.list())
+        # print(f"DEBUG: Current session has {len(current_session_models)} models:")
+        #for model in current_session_models[:5]:  # Limit to first 5
+            # print(f"DEBUG: Session model: {model}, display={getattr(model, 'display', 'N/A')}")
+
+        # Debug: Let's see what models we actually have
+        # print(f"DEBUG: Scene1 visible model names: {[str(m) for m in scene1_visible_models]}")
+        # print(f"DEBUG: Scene2 visible model names: {[str(m) for m in scene2_visible_models]}")
+
+        # Debug: Let's manually check the difference
+        # print(f"DEBUG: Models only in Scene1: {[str(m) for m in scene1_visible_models - scene2_visible_models]}")
+        # print(f"DEBUG: Models only in Scene2: {[str(m) for m in scene2_visible_models - scene1_visible_models]}")
+
+        if appearing_models:
+            # print(f"DEBUG: Appearing model names: {[str(m) for m in appearing_models]}")
+            pass
+        if disappearing_models:
+            # print(f"DEBUG: Disappearing model names: {[str(m) for m in disappearing_models]}")
+            pass
+
+        # If no models to fade, explain why
+        if len(appearing_models) == 0 and len(disappearing_models) == 0:
+            # print(f"DEBUG: No models to fade - both scenes have identical visible models.")
+            # print(f"DEBUG: For model fading to work, scenes must have different model visibility.")
+            # print(f"DEBUG: Hide some models before saving one scene, then show them before saving the other.")
+            pass
 
         for model in appearing_models:
             # Model should fade in: opacity goes from 0 to original opacity
-            if hasattr(model, 'transparency'):
+            print(f"DEBUG: Checking appearing model {model}")
+
+            # For atomic models, we need to handle atoms.colors
+            if hasattr(model, 'atoms') and len(model.atoms) > 0:
+                atoms = model.atoms
+                print(f"DEBUG: Atomic model with {len(atoms)} atoms")
+
                 # Get target transparency from scene2 (default to opaque if not stored)
-                target_transparency = 0  # Assume opaque as default
+                target_alpha = 255  # Assume opaque as default (0-255 range)
                 if model in scene2.scene_models:
                     # Try to extract transparency from scene data if available
                     _, scene2_data = scene2.scene_models[model]
                     # For now, use default opaque. Scene data parsing would be more complex.
 
                 # Fade in: start fully transparent, end at target transparency
-                current_transparency = int(255 * (1.0 - fraction) + target_transparency * fraction)
-                model.transparency = current_transparency
-                print(f"DEBUG: Fading in model: transparency {current_transparency}")
+                current_alpha = int(0 * (1.0 - fraction) + target_alpha * fraction)
+
+                # Get atom colors and modify alpha channel
+                c = atoms.colors
+                c[:, 3] = current_alpha
+                atoms.colors = c
+                # print(f"DEBUG: Fading in atomic model: set {len(atoms)} atom alphas to {current_alpha}")
+
+            # For non-atomic models, try the simple color approach
+            elif hasattr(model, 'color'):
+                # Get target transparency from scene2 (default to opaque if not stored)
+                target_alpha = 255  # Assume opaque as default (0-255 range)
+                current_alpha = int(0 * (1.0 - fraction) + target_alpha * fraction)
+
+                # For non-atomic models, color might be a simple tuple
+                try:
+                    r, g, b, a = model.color
+                    model.color = (r, g, b, current_alpha)
+                    # print(f"DEBUG: Fading in non-atomic model: set color alpha to {current_alpha}")
+                except:
+                    # print(f"DEBUG: Could not set color on model {model}")
+                    pass
+            else:
+                # print(f"DEBUG: Model {model} has no atoms or color attribute")
+                pass
 
         for model in disappearing_models:
             # Model should fade out: opacity goes from original to 0
-            if hasattr(model, 'transparency'):
-                # Get original transparency from scene1
-                original_transparency = 0  # Assume opaque as default
+            # print(f"DEBUG: Checking disappearing model {model}")
+
+            # For atomic models, we need to handle atoms.colors
+            if hasattr(model, 'atoms') and len(model.atoms) > 0:
+                atoms = model.atoms
+                print(f"DEBUG: Atomic model with {len(atoms)} atoms")
+
+                # Get original transparency from scene1 (default to opaque)
+                original_alpha = 255  # Assume opaque as default (0-255 range)
                 if model in scene1.scene_models:
                     # Try to extract transparency from scene data if available
                     _, scene1_data = scene1.scene_models[model]
                     # For now, use default opaque
 
                 # Fade out: start at original transparency, end fully transparent
-                current_transparency = int(original_transparency * (1.0 - fraction) + 255 * fraction)
-                model.transparency = current_transparency
-                print(f"DEBUG: Fading out model: transparency {current_transparency}")
+                current_alpha = int(original_alpha * (1.0 - fraction) + 0 * fraction)
+
+                # Get atom colors and modify alpha channel
+                c = atoms.colors
+                c[:, 3] = current_alpha
+                atoms.colors = c
+                print(f"DEBUG: Fading out atomic model: set {len(atoms)} atom alphas to {current_alpha}")
+
+            # For non-atomic models, try the simple color approach
+            elif hasattr(model, 'color'):
+                # Get original transparency from scene1 (default to opaque)
+                original_alpha = 255  # Assume opaque as default (0-255 range)
+                current_alpha = int(original_alpha * (1.0 - fraction) + 0 * fraction)
+
+                # For non-atomic models, color might be a simple tuple
+                try:
+                    r, g, b, a = model.color
+                    model.color = (r, g, b, current_alpha)
+                    print(f"DEBUG: Fading out non-atomic model: set color alpha to {current_alpha}")
+                except:
+                    print(f"DEBUG: Could not set color on model {model}")
+            else:
+                print(f"DEBUG: Model {model} has no atoms or color attribute")
+
+    def _apply_model_alpha(self, model, start_alpha, end_alpha, fraction):
+        """Apply alpha interpolation to a model (works for both fade in/out)"""
+        current_alpha = int(start_alpha * (1.0 - fraction) + end_alpha * fraction)
+
+        if hasattr(model, 'atoms') and len(model.atoms) > 0:
+            c = model.atoms.colors
+            c[:, 3] = current_alpha
+            model.atoms.colors = c
+        elif hasattr(model, 'color'):
+            try:
+                r, g, b, a = model.color
+                model.color = (r, g, b, current_alpha)
+            except:
+                pass
 
     def _models_actually_moved(self, v1, v2):
         """
@@ -388,4 +493,72 @@ class SceneManager(StateManager):
             print(f"DEBUG: Only camera moved - using camera-only interpolation")
 
         return models_moved
+
+    def _get_visible_models_in_scene(self, scene):
+        """Get the set of models that are actually visible in a scene"""
+        visible_models = set()
+
+        # print(f"DEBUG: _get_visible_models_in_scene for scene '{scene.name if hasattr(scene, 'name') else 'unknown'}'")
+
+        if not hasattr(scene, 'named_view'):
+            # print(f"DEBUG: Scene has no named_view")
+            return visible_models
+
+        if not hasattr(scene.named_view, 'positions'):
+            # print(f"DEBUG: NamedView has no positions")
+            return visible_models
+
+        # print(f"DEBUG: NamedView.positions has {len(scene.named_view.positions)} models")
+
+        # Check what's in scene_models and if it contains display state
+        # Commenting out verbose debug logging for now
+        # if hasattr(scene, 'scene_models'):
+        #     print(f"DEBUG: Scene.scene_models has {len(scene.scene_models)} models")
+        #     for model, (has_restore, scene_data) in list(scene.scene_models.items())[:3]:  # Limit to first 3
+        #         print(f"DEBUG: scene_models[{model}] = has_restore={has_restore}")
+        #         print(f"DEBUG:   scene_data type: {type(scene_data)}")
+        #         if isinstance(scene_data, dict):
+        #             print(f"DEBUG:   scene_data keys: {list(scene_data.keys())}")
+        #             for key, value in scene_data.items():
+        #                 print(f"DEBUG:     {key}: {type(value)} = {value}")
+        #                 if isinstance(value, dict):
+        #                     print(f"DEBUG:       {key} sub-keys: {list(value.keys())}")
+        #                     if 'display' in value:
+        #                         print(f"DEBUG:         -> {key}.display = {value['display']}")
+        #         else:
+        #             print(f"DEBUG:   scene_data = {scene_data}")
+
+        # Check display state from scene data for each current model
+        current_models = self.session.models.list()
+        for model in current_models:
+            if hasattr(scene, 'scene_models') and model in scene.scene_models:
+                has_restore, scene_data = scene.scene_models[model]
+
+                # Look for top-level display attribute in the scene data
+                display_value = None
+                if isinstance(scene_data, dict):
+                    # Check for model state -> display (works for most models)
+                    if 'model state' in scene_data and isinstance(scene_data['model state'], dict):
+                        display_value = scene_data['model state'].get('display')
+                    # For atomic structures, also check structure state -> model state -> display
+                    elif 'structure state' in scene_data and isinstance(scene_data['structure state'], dict):
+                        model_state = scene_data['structure state'].get('model state', {})
+                        if isinstance(model_state, dict):
+                            display_value = model_state.get('display')
+
+                if display_value is True:
+                    visible_models.add(model)
+                    # print(f"DEBUG: Model visible (display=True): {model}")
+                elif display_value is False:
+                    # print(f"DEBUG: Model hidden (display=False): {model}")
+                    pass
+                else:
+                    # print(f"DEBUG: No display data found for: {model}")
+                    pass
+            else:
+                # print(f"DEBUG: Model not in scene: {model}")
+                pass
+
+        # print(f"DEBUG: Returning {len(visible_models)} visible models")
+        return visible_models
 

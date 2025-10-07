@@ -118,6 +118,24 @@ __all__ = [
 from .scene_timeline import SceneTimelineWidget
 from .scene_animation import SceneAnimation
 
+
+class CompactStackedWidget(QStackedWidget):
+    """Custom QStackedWidget that only uses the size of the current widget"""
+
+    def sizeHint(self):
+        """Return the size hint of the current widget only, not the largest"""
+        current_widget = self.currentWidget()
+        if current_widget:
+            return current_widget.sizeHint()
+        return super().sizeHint()
+
+    def minimumSizeHint(self):
+        """Return the minimum size hint of the current widget only"""
+        current_widget = self.currentWidget()
+        if current_widget:
+            return current_widget.minimumSizeHint()
+        return super().minimumSizeHint()
+
 TRACK_HEIGHT = 24
 RULER_HEIGHT = 18
 FRAME_WIDTH = 12  # pixels per frame at 100% zoom
@@ -1409,8 +1427,10 @@ class KeyframeEditorWidget(QWidget):
 
         main_layout.addLayout(mode_controls_layout)
 
-        # Stacked widget for different modes
-        self.stacked_widget = QStackedWidget()
+        # Stacked widget for different modes - custom class to handle sizing properly
+        self.stacked_widget = CompactStackedWidget()
+        # Set size policy to only use space of current widget, not the largest
+        self.stacked_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
 
         # Keyframe editor mode (original)
         self.keyframe_widget = self._create_keyframe_widget()
@@ -1441,12 +1461,14 @@ class KeyframeEditorWidget(QWidget):
 
         main_layout.addWidget(self.stacked_widget)
 
+
     def _get_scene_animation_manager(self):
         """Get or create the scene animation manager"""
         if not hasattr(self.session, '_scene_animation_manager'):
             # Pass the keyframe system's FPS to ensure consistent timing
             self.session._scene_animation_manager = SceneAnimation(self.session, fps=self.fps)
         return self.session._scene_animation_manager
+
 
     def _create_keyframe_widget(self):
         """Create the original keyframe editor widget"""
@@ -1528,16 +1550,10 @@ class KeyframeEditorWidget(QWidget):
         """Switch between keyframe and scene animation modes"""
         if button == self.keyframe_mode_btn:
             self.stacked_widget.setCurrentIndex(0)
-            # Show keyframe widget, hide scene widget to reclaim space
-            self.keyframe_widget.show()
-            self.scene_timeline_widget.hide()
             if self.session:
                 self.session.logger.info("Switched to Keyframe Mode")
         elif button == self.scene_mode_btn:
             self.stacked_widget.setCurrentIndex(1)
-            # Show scene widget, hide keyframe widget to reclaim space
-            self.scene_timeline_widget.show()
-            self.keyframe_widget.hide()
             if self.session:
                 self.session.logger.info("Switched to Scene Mode")
 

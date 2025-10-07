@@ -227,15 +227,20 @@ class SceneAnimation(StateManager):
             # No interpolation needed, just restore the scene (faster)
             if scene1:  # Make sure scene exists
                 self.session.scenes.restore_scene(scene1)
+
+                # Check if we're at a scene timestamp that needs to prepare for model fading
+                self._prepare_model_fading_at_scene_timestamp(scene1, time)
         else:
             # Interpolate between scenes (slower but necessary for transitions)
             if scene1 and scene2:
                 # Debug: Show the easing effect
-                print(f"DEBUG: Interpolating {scene1} -> {scene2} at fraction {fraction:.3f}")
+                # print(f"DEBUG: Interpolating {scene1} -> {scene2} at fraction {fraction:.3f}")
 
                 # Check if model fading is enabled for the target scene
                 scene2_data = self._get_scene_transition_data(scene2)
                 fade_models = scene2_data.get('fade_models', False) if scene2_data else False
+
+                # print(f"DEBUG: scene2_data = {scene2_data}, fade_models = {fade_models}")
 
                 # Pass fade_models flag to the scene manager
                 self.session.scenes.interpolate_scenes(scene1, scene2, fraction, fade_models=fade_models)
@@ -381,7 +386,7 @@ class SceneAnimation(StateManager):
             import time
             if time.time() - self._frame_wait_start_time > 0.5:
                 # Timeout - force a frame capture by manually triggering the movie system
-                print(f"DEBUG: Frame capture timeout, forcing frame capture (frame {current_frame_count + 1})")
+                # print(f"DEBUG: Frame capture timeout, forcing frame capture (frame {current_frame_count + 1})")
                 self.session.movie.capture_image()
                 # Update our expected count and continue
                 self._last_frame_count = self.session.movie.getFrameCount()
@@ -449,8 +454,8 @@ class SceneAnimation(StateManager):
             size = self._parse_resolution(resolution)
 
             # Debug logging
-            print(f"DEBUG: Original resolution parameter: {resolution}")
-            print(f"DEBUG: Parsed size tuple: {size}")
+            # print(f"DEBUG: Original resolution parameter: {resolution}")
+            # print(f"DEBUG: Parsed size tuple: {size}")
 
             # Log recording info
             if size:
@@ -468,7 +473,7 @@ class SceneAnimation(StateManager):
             }
 
             # Debug logging for movie record parameters
-            print(f"DEBUG: movie_record parameters: {record_params}")
+            # print(f"DEBUG: movie_record parameters: {record_params}")
 
             # Start recording
             movie_record(self.session, **record_params)
@@ -499,13 +504,13 @@ class SceneAnimation(StateManager):
             actual_frame_count = self.session.movie.getFrameCount()
             expected_frames = getattr(self, '_expected_frame_count', self.duration * self.fps)
 
-            print(f"DEBUG: Animation duration: {self.duration}s at {self.fps} FPS")
-            print(f"DEBUG: Expected frames during playback: {expected_frames}")
-            print(f"DEBUG: Actually captured by movie system: {actual_frame_count} frames")
+            # print(f"DEBUG: Animation duration: {self.duration}s at {self.fps} FPS")
+            # print(f"DEBUG: Expected frames during playback: {expected_frames}")
+            # print(f"DEBUG: Actually captured by movie system: {actual_frame_count} frames")
 
             # Calculate what the actual video duration will be at the user's requested FPS
             actual_duration = actual_frame_count / self.fps
-            print(f"DEBUG: Video duration at {self.fps} FPS: {actual_duration:.2f}s")
+            # print(f"DEBUG: Video duration at {self.fps} FPS: {actual_duration:.2f}s")
 
             if abs(actual_frame_count - expected_frames) > 1:
                 self.logger.warning(f"Frame count mismatch: expected {expected_frames}, got {actual_frame_count}")
@@ -569,7 +574,7 @@ class SceneAnimation(StateManager):
         t2, scene2, transition2 = next_scene
 
         # Debug: Show what transition data we found
-        print(f"DEBUG: Scene '{scene2}' has transition data: {transition2}")
+        # print(f"DEBUG: Scene '{scene2}' has transition data: {transition2}")
 
         # Time between scenes
         time_between = t2 - t1
@@ -591,7 +596,7 @@ class SceneAnimation(StateManager):
         eased_fraction = easing_func(linear_fraction)
 
         # Debug: Always show transition info
-        print(f"DEBUG: Transition type: {transition_type}, linear: {linear_fraction:.3f} -> eased: {eased_fraction:.3f}")
+        # print(f"DEBUG: Transition type: {transition_type}, linear: {linear_fraction:.3f} -> eased: {eased_fraction:.3f}")
 
         return scene1, scene2, eased_fraction
 
@@ -601,6 +606,93 @@ class SceneAnimation(StateManager):
             if name == scene_name:
                 return transition_data
         return None
+
+    def _prepare_model_fading_at_scene_timestamp(self, current_scene_name: str, current_time: float):
+        """
+        Prepare model fading when we're at an exact scene timestamp.
+        This ensures that models appearing in the next scene with fade_models=True
+        are made visible with zero opacity at the current scene's timestamp.
+        """
+        # Find if there's a next scene with model fading enabled
+        sorted_scenes = sorted(self.scenes, key=lambda x: x[0])
+
+        current_scene_index = None
+        for i, (time, name, _) in enumerate(sorted_scenes):
+            if name == current_scene_name and abs(time - current_time) < 0.001:  # Small tolerance for float comparison
+                current_scene_index = i
+                break
+
+        if current_scene_index is None or current_scene_index >= len(sorted_scenes) - 1:
+            # No next scene or this is the last scene
+            return
+
+        # Get the next scene
+        next_time, next_scene_name, next_transition_data = sorted_scenes[current_scene_index + 1]
+
+        # Check if the next scene has model fading enabled
+        fade_models = next_transition_data.get('fade_models', False) if next_transition_data else False
+
+        if not fade_models:
+            # Next scene doesn't have fading enabled
+            return
+
+        # print(f"DEBUG: Preparing model fading at scene '{current_scene_name}' timestamp {current_time:.2f}s for next scene '{next_scene_name}'")
+
+        # Get scene objects
+        current_scene = self.session.scenes.get_scene(current_scene_name)
+        next_scene = self.session.scenes.get_scene(next_scene_name)
+
+        if not current_scene or not next_scene:
+            return
+
+        # Find models that are visible in the next scene but not in the current scene
+        current_visible_models = self._get_visible_models_in_scene(current_scene)
+        next_visible_models = self._get_visible_models_in_scene(next_scene)
+
+        appearing_models = next_visible_models - current_visible_models
+
+        # print(f"DEBUG: Found {len(appearing_models)} models that will appear in next scene")
+
+        # Make appearing models visible with zero opacity
+        for model in appearing_models:
+            if hasattr(model, 'display'):
+                # Make sure the model is visible but fully transparent
+                model.display = True
+
+                # For atomic models, we need to handle atoms.colors
+                if hasattr(model, 'atoms') and len(model.atoms) > 0:
+                    atoms = model.atoms
+                    # Get atom colors and set alpha to 0 (fully transparent)
+                    c = atoms.colors
+                    c[:, 3] = 0
+                    atoms.colors = c
+                    # print(f"DEBUG: Prepared atomic model for fade-in: set {len(atoms)} atom alphas to 0")
+
+                # For non-atomic models, try the simple color approach
+                elif hasattr(model, 'color'):
+                    try:
+                        r, g, b, a = model.color
+                        model.color = (r, g, b, 0)  # Fully transparent (0-255 range)
+                        # print(f"DEBUG: Prepared non-atomic model for fade-in: set to visible with full transparency")
+                    except:
+                    # print(f"DEBUG: Could not set color on model {model}")
+                else:
+                # print(f"DEBUG: Model {model} has no atoms or color attribute")
+
+    def _get_visible_models_in_scene(self, scene):
+        """Get the set of models that are actually visible in a scene"""
+        visible_models = set()
+
+        if not hasattr(scene, 'named_view') or not hasattr(scene.named_view, 'positions'):
+            return visible_models
+
+        # Models are visible in a scene if they have positions stored in the named_view
+        # This follows the logic in scene.restore_scene() where models not in named_view.positions
+        # get model.display = False (i.e., hidden)
+        for model in scene.named_view.positions.keys():
+            visible_models.add(model)
+
+        return visible_models
 
     def get_scene_list(self) -> List[Tuple[float, str]]:
         """Get list of all scenes with their times (for compatibility)"""

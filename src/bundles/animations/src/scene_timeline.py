@@ -10,16 +10,28 @@ Components:
 - TimelineControlWidget: Timeline scrubber and playback controls
 """
 
-from Qt.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-                         QScrollArea, QFrame, QSlider, QSizePolicy, QGridLayout,
-                         QListWidget, QListWidgetItem, QSplitter, QMenu, QAction)
+from Qt.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QScrollArea,
+    QFrame,
+    QSlider,
+    QSizePolicy,
+    QGridLayout,
+    QListWidget,
+    QListWidgetItem,
+    QSplitter,
+    QMenu,
+    QAction,
+)
 from Qt.QtCore import Qt, QSize, QTimer, Signal, QPointF
 from Qt.QtGui import QPixmap, QIcon, QPainter, QColor
 
 import io
 from PIL import Image
-
-
 
 
 class ActionThumbnailWidget(QWidget):
@@ -107,7 +119,9 @@ class TimelineControlWidget(QWidget):
 
         self.add_keyframe_btn = QPushButton("+")
         self.add_keyframe_btn.setFixedSize(30, 30)
-        self.add_keyframe_btn.setStyleSheet("background-color: #2196F3; color: white; border-radius: 15px; font-weight: bold;")
+        self.add_keyframe_btn.setStyleSheet(
+            "background-color: #2196F3; color: white; border-radius: 15px; font-weight: bold;"
+        )
         self.add_keyframe_btn.clicked.connect(self.add_scene_at_current_time)
 
         self.reverse_btn = QPushButton("↶")
@@ -122,12 +136,16 @@ class TimelineControlWidget(QWidget):
         # Zoom controls
         self.zoom_in_btn = QPushButton("+")
         self.zoom_in_btn.setFixedSize(30, 30)
-        self.zoom_in_btn.setStyleSheet("background-color: #666; color: white; border-radius: 15px;")
+        self.zoom_in_btn.setStyleSheet(
+            "background-color: #666; color: white; border-radius: 15px;"
+        )
         self.zoom_in_btn.clicked.connect(self.increase_duration)
 
         self.zoom_out_btn = QPushButton("-")
         self.zoom_out_btn.setFixedSize(30, 30)
-        self.zoom_out_btn.setStyleSheet("background-color: #666; color: white; border-radius: 15px;")
+        self.zoom_out_btn.setStyleSheet(
+            "background-color: #666; color: white; border-radius: 15px;"
+        )
         self.zoom_out_btn.clicked.connect(self.decrease_duration)
 
         layout.addWidget(self.zoom_in_btn)
@@ -137,7 +155,9 @@ class TimelineControlWidget(QWidget):
         # Record button
         self.record_btn = QPushButton("●")
         self.record_btn.setFixedSize(30, 30)
-        self.record_btn.setStyleSheet("background-color: #f44336; color: white; border-radius: 15px; font-weight: bold;")
+        self.record_btn.setStyleSheet(
+            "background-color: #f44336; color: white; border-radius: 15px; font-weight: bold;"
+        )
         self.record_btn.clicked.connect(self.record_requested.emit)
 
         layout.addWidget(self.record_btn)
@@ -228,7 +248,7 @@ class TimelineSceneWidget(QWidget):
     def add_scene_marker(self, time, scene_name, transition_data=None):
         """Add a scene marker at the specified time"""
         if transition_data is None:
-            transition_data = {'type': 'linear', 'fade_models': False}
+            transition_data = {"type": "linear", "fade_models": False}
 
         # Get scene thumbnail from session
         thumbnail_pixmap = self._get_scene_thumbnail(scene_name)
@@ -238,7 +258,9 @@ class TimelineSceneWidget(QWidget):
 
     def remove_scene_marker(self, scene_name):
         """Remove scene marker by name"""
-        self.scene_markers = [(t, s, p, td) for t, s, p, td in self.scene_markers if s != scene_name]
+        self.scene_markers = [
+            (t, s, p, td) for t, s, p, td in self.scene_markers if s != scene_name
+        ]
         self.update()
 
     def _get_scene_thumbnail(self, scene_name):
@@ -253,10 +275,13 @@ class TimelineSceneWidget(QWidget):
                     if thumbnail_data:
                         pixmap = QPixmap()
                         import base64
+
                         image_data = base64.b64decode(thumbnail_data)
                         pixmap.loadFromData(image_data)
                         # Scale to reasonable size for timeline
-                        return pixmap.scaled(40, 30, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                        return pixmap.scaled(
+                            40, 30, Qt.KeepAspectRatio, Qt.SmoothTransformation
+                        )
                 except Exception as e:
                     print(f"Error loading thumbnail for {scene_name}: {e}")
 
@@ -310,17 +335,36 @@ class TimelineSceneWidget(QWidget):
             # Timeline background
             painter.fillRect(0, 20, width, height - 40, QColor(60, 60, 60))
 
-            # Time marks every second
+            # Time marks every 100ms (0.1 seconds)
             painter.setPen(QColor(200, 200, 200))
+            tick_interval = 0.1  # 100ms
+
+            # Major ticks every second with labels (better font size)
+            font = painter.font()
+            font.setPointSize(10)  # Slightly larger than before but still compact
+            painter.setFont(font)
             for i in range(int(self.duration) + 1):
                 x = int((i / self.duration) * width)
-                painter.drawLine(x, 20, x, height - 20)
+                painter.drawLine(x, 0, x, 20)  # Draw tick marks in ruler area only
                 painter.drawText(x + 2, 15, f"{i}s")
+
+            # Minor ticks every 100ms
+            painter.setPen(QColor(150, 150, 150))
+            num_ticks = int(self.duration / tick_interval) + 1
+            for i in range(num_ticks):
+                time_pos = i * tick_interval
+                # Skip major tick positions (every second)
+                if time_pos % 1.0 != 0:
+                    x = int((time_pos / self.duration) * width)
+                    # Draw smaller tick marks in the ruler area only
+                    painter.drawLine(x, 10, x, 20)
 
             # Draw scene markers with thumbnails
             for marker_data in self.scene_markers:
                 if len(marker_data) >= 3:
-                    time, scene_name, thumbnail_pixmap = marker_data[:3]  # Only take first 3 elements
+                    time, scene_name, thumbnail_pixmap = marker_data[
+                        :3
+                    ]  # Only take first 3 elements
                 else:
                     # Handle old format without thumbnails
                     time, scene_name = marker_data[:2]
@@ -341,7 +385,13 @@ class TimelineSceneWidget(QWidget):
 
                 # Draw thumbnail
                 if thumbnail_pixmap and not thumbnail_pixmap.isNull():
-                    painter.drawPixmap(thumb_rect_x, thumb_rect_y, thumb_rect_w, thumb_rect_h, thumbnail_pixmap)
+                    painter.drawPixmap(
+                        thumb_rect_x,
+                        thumb_rect_y,
+                        thumb_rect_w,
+                        thumb_rect_h,
+                        thumbnail_pixmap,
+                    )
 
                 # Draw border around thumbnail
                 painter.setBrush(Qt.NoBrush)
@@ -352,14 +402,22 @@ class TimelineSceneWidget(QWidget):
                 painter.setPen(QColor(255, 255, 255))
                 painter.drawText(x - 25, 70, scene_name[:8])  # Truncate long names
 
+                # Draw vertical line from scene marker up into timeline ruler area for clarity
+                painter.setPen(
+                    QColor(100, 150, 255, 200)
+                )  # Blue line for scene position clarity
+                painter.drawLine(
+                    x, 0, x, 20
+                )  # Line in the dark timeline ruler area (y=0 to y=20)
+
                 # Small diamond indicator at the exact time position
                 painter.setBrush(QColor(255, 100, 100))
                 painter.setPen(QColor(255, 255, 255))
                 diamond_points = [
-                    QPointF(x, 20),      # top
+                    QPointF(x, 20),  # top
                     QPointF(x + 4, 25),  # right
-                    QPointF(x, 30),      # bottom
-                    QPointF(x - 4, 25)   # left
+                    QPointF(x, 30),  # bottom
+                    QPointF(x - 4, 25),  # left
                 ]
                 painter.drawPolygon(diamond_points)
 
@@ -409,16 +467,17 @@ class TimelineSceneWidget(QWidget):
         """Helper to get session from parent widget hierarchy"""
         widget = self
         while widget:
-            if hasattr(widget, 'session'):
+            if hasattr(widget, "session"):
                 return widget.session
             widget = widget.parent()
         return None
 
     def dragMoveEvent(self, event):
         """Handle drag move events"""
-        if (event.mimeData().hasFormat("application/x-chimerax-scene") or
-            event.mimeData().hasText()):
-
+        if (
+            event.mimeData().hasFormat("application/x-chimerax-scene")
+            or event.mimeData().hasText()
+        ):
             # Update drag preview position
             x = event.position().x()
             self.drag_time = (x / self.width()) * self.duration
@@ -443,13 +502,14 @@ class TimelineSceneWidget(QWidget):
         if event.mimeData().hasFormat("application/x-chimerax-scene"):
             try:
                 import json
+
                 scene_data_bytes = event.mimeData().data("application/x-chimerax-scene")
-                scene_data_str = scene_data_bytes.data().decode('utf-8')
+                scene_data_str = scene_data_bytes.data().decode("utf-8")
 
                 # Try to parse as JSON first
                 try:
                     scene_data = json.loads(scene_data_str)
-                    scene_name = scene_data.get('name')
+                    scene_name = scene_data.get("name")
                 except json.JSONDecodeError:
                     # Fallback: treat as plain scene name
                     scene_name = scene_data_str
@@ -503,8 +563,10 @@ class TimelineSceneWidget(QWidget):
                 session = self._get_session()
                 if session:
                     from chimerax.core.commands import run
+
                     run(session, f'scene restore "{clicked_scene}"')
                     print(f"Restored scene: {clicked_scene}")
+                # Don't move playhead when clicking on scenes
             else:
                 # Clear scene dragging state and prepare for playhead dragging
                 self.dragging_scene = None
@@ -512,11 +574,9 @@ class TimelineSceneWidget(QWidget):
                 self.original_scene_time = None
                 self.dragging_playhead = True
 
-            # Update current time
-            self.set_current_time(time)
-
-            # Emit time clicked signal
-            self.time_clicked.emit(time)
+                # Only update current time and emit signal when NOT clicking on a scene
+                self.set_current_time(time)
+                self.time_clicked.emit(time)
 
         super().mousePressEvent(event)
 
@@ -528,9 +588,10 @@ class TimelineSceneWidget(QWidget):
 
             # Check if we've moved far enough to start dragging
             from Qt.QtWidgets import QApplication
-            if ((current_pos - self.drag_start_pos).manhattanLength() >
-                QApplication.startDragDistance()):
 
+            if (
+                current_pos - self.drag_start_pos
+            ).manhattanLength() > QApplication.startDragDistance():
                 # Calculate new time position
                 x = current_pos.x()
                 new_time = (x / self.width()) * self.duration
@@ -589,10 +650,10 @@ class TimelineSceneWidget(QWidget):
 
     def contextMenuEvent(self, event):
         """Show context menu on right-click for transition settings"""
-        print(f"DEBUG: Context menu event at position {event.pos().x()}")
+        # print(f"DEBUG: Context menu event at position {event.pos().x()}")
         # Check if we right-clicked on a scene marker
         clicked_scene = self._get_scene_at_position(event.pos().x())
-        print(f"DEBUG: Clicked scene: {clicked_scene}")
+        # print(f"DEBUG: Clicked scene: {clicked_scene}")
         if clicked_scene:
             self._show_transition_menu(clicked_scene, event.globalPos())
         else:
@@ -600,14 +661,20 @@ class TimelineSceneWidget(QWidget):
 
     def _show_transition_menu(self, scene_name, global_pos):
         """Show transition selection menu for a scene"""
-        print(f"DEBUG: Showing transition menu for scene '{scene_name}'")
+        # print(f"DEBUG: Showing transition menu for scene '{scene_name}'")
         from .scene_animation import TRANSITION_TYPES
 
         # Get current transition data
         current_transition = self._get_scene_transition_data(scene_name)
-        print(f"DEBUG: Current transition data: {current_transition}")
-        current_type = current_transition.get('type', 'linear') if current_transition else 'linear'
-        current_fade = current_transition.get('fade_models', False) if current_transition else False
+        # print(f"DEBUG: Current transition data: {current_transition}")
+        current_type = (
+            current_transition.get("type", "linear") if current_transition else "linear"
+        )
+        current_fade = (
+            current_transition.get("fade_models", False)
+            if current_transition
+            else False
+        )
 
         menu = QMenu(self)
 
@@ -615,16 +682,16 @@ class TimelineSceneWidget(QWidget):
         transition_menu = menu.addMenu("Transition Type")
 
         transition_names = {
-            'linear': 'Linear',
-            'ease_in_sine': 'Ease In (Sine)',
-            'ease_out_sine': 'Ease Out (Sine)',
-            'ease_in_out_sine': 'Ease In-Out (Sine)',
-            'ease_in_quad': 'Ease In (Quad)',
-            'ease_out_quad': 'Ease Out (Quad)',
-            'ease_in_out_quad': 'Ease In-Out (Quad)',
-            'ease_in_cubic': 'Ease In (Cubic)',
-            'ease_out_cubic': 'Ease Out (Cubic)',
-            'ease_in_out_cubic': 'Ease In-Out (Cubic)',
+            "linear": "Linear",
+            "ease_in_sine": "Ease In (Sine)",
+            "ease_out_sine": "Ease Out (Sine)",
+            "ease_in_out_sine": "Ease In-Out (Sine)",
+            "ease_in_quad": "Ease In (Quad)",
+            "ease_out_quad": "Ease Out (Quad)",
+            "ease_in_out_quad": "Ease In-Out (Quad)",
+            "ease_in_cubic": "Ease In (Cubic)",
+            "ease_out_cubic": "Ease Out (Cubic)",
+            "ease_in_out_cubic": "Ease In-Out (Cubic)",
         }
 
         for transition_key, transition_name in transition_names.items():
@@ -643,7 +710,9 @@ class TimelineSceneWidget(QWidget):
         fade_action = QAction("Fade Models", menu)
         fade_action.setCheckable(True)
         fade_action.setChecked(current_fade)
-        fade_action.triggered.connect(lambda checked: self._set_scene_fade_models(scene_name, checked))
+        fade_action.triggered.connect(
+            lambda checked: self._set_scene_fade_models(scene_name, checked)
+        )
         menu.addAction(fade_action)
 
         menu.exec(global_pos)
@@ -654,7 +723,7 @@ class TimelineSceneWidget(QWidget):
         if action:
             transition_key = action.property("transition_key")
             scene_name = action.property("scene_name")
-            print(f"DEBUG: Action triggered for scene '{scene_name}', transition '{transition_key}'")
+            # print(f"DEBUG: Action triggered for scene '{scene_name}', transition '{transition_key}'")
             self._set_scene_transition_type(scene_name, transition_key)
 
     def _get_scene_transition_data(self, scene_name):
@@ -666,14 +735,14 @@ class TimelineSceneWidget(QWidget):
 
     def _set_scene_transition_type(self, scene_name, transition_type):
         """Set transition type for a scene"""
-        print(f"DEBUG: Setting scene '{scene_name}' transition to '{transition_type}'")
+        # print(f"DEBUG: Setting scene '{scene_name}' transition to '{transition_type}'")
         # Update the scene marker data
         for i, (time, name, pixmap, transition_data) in enumerate(self.scene_markers):
             if name == scene_name:
-                print(f"DEBUG: Found scene '{name}', old transition: {transition_data}")
-                transition_data['type'] = transition_type
+                # print(f"DEBUG: Found scene '{name}', old transition: {transition_data}")
+                transition_data["type"] = transition_type
                 self.scene_markers[i] = (time, name, pixmap, transition_data)
-                print(f"DEBUG: Updated transition data: {transition_data}")
+                # print(f"DEBUG: Updated transition data: {transition_data}")
                 break
 
         # Update the scene animation manager
@@ -685,7 +754,7 @@ class TimelineSceneWidget(QWidget):
         # Update the scene marker data
         for i, (time, name, pixmap, transition_data) in enumerate(self.scene_markers):
             if name == scene_name:
-                transition_data['fade_models'] = fade_models
+                transition_data["fade_models"] = fade_models
                 self.scene_markers[i] = (time, name, pixmap, transition_data)
                 break
 
@@ -695,16 +764,16 @@ class TimelineSceneWidget(QWidget):
 
     def _sync_to_scene_animation(self):
         """Sync timeline data to scene animation manager"""
-        print(f"DEBUG: _sync_to_scene_animation called")
+        # print(f"DEBUG: _sync_to_scene_animation called")
         # Get the scene animation manager and update it with our current data
         scene_timeline_widget = self._get_scene_timeline_widget()
-        print(f"DEBUG: Found widget: {scene_timeline_widget}")
-        if scene_timeline_widget and hasattr(scene_timeline_widget, 'session'):
+        # print(f"DEBUG: Found widget: {scene_timeline_widget}")
+        if scene_timeline_widget and hasattr(scene_timeline_widget, "session"):
             session = scene_timeline_widget.session
-            print(f"DEBUG: Found session: {session}")
+            # print(f"DEBUG: Found session: {session}")
             # Get the scene animation manager from the session (stored as a custom attribute)
-            scene_animation = getattr(session, '_scene_animation_manager', None)
-            print(f"DEBUG: Found scene_animation from session: {scene_animation}")
+            scene_animation = getattr(session, "_scene_animation_manager", None)
+            # print(f"DEBUG: Found scene_animation from session: {scene_animation}")
             if scene_animation:
                 # Instead of clearing all scenes, just update this specific scene
                 # Remove existing scene at this time/name first
@@ -712,34 +781,40 @@ class TimelineSceneWidget(QWidget):
                     # Remove old scene if it exists
                     scene_animation.remove_scene(name)
                     # Add with new transition data
-                    print(f"DEBUG: Syncing scene '{name}' at {time}s with transition: {transition_data}")
+                    # print(f"DEBUG: Syncing scene '{name}' at {time}s with transition: {transition_data}")
                     scene_animation.add_scene_at_time(
-                        name, time,
-                        transition_data.get('type', 'linear'),
-                        transition_data.get('fade_models', False)
+                        name,
+                        time,
+                        transition_data.get("type", "linear"),
+                        transition_data.get("fade_models", False),
                     )
             else:
-                print(f"DEBUG: Could not get scene_animation from session")
+                pass
+            # print(f"DEBUG: Could not get scene_animation from session")
         else:
-            print(f"DEBUG: Could not find scene_timeline_widget or session")
+            pass
+        # print(f"DEBUG: Could not find scene_timeline_widget or session")
 
     def _get_scene_timeline_widget(self):
         """Find the parent SceneTimelineWidget"""
-        print(f"DEBUG: Looking for SceneTimelineWidget parent...")
+        # print(f"DEBUG: Looking for SceneTimelineWidget parent...")
         parent = self.parent()
         level = 0
         while parent:
-            print(f"DEBUG: Parent level {level}: {parent.__class__.__name__}")
-            if hasattr(parent, '__class__') and 'SceneTimelineWidget' in parent.__class__.__name__:
-                print(f"DEBUG: Found SceneTimelineWidget at level {level}")
+            # print(f"DEBUG: Parent level {level}: {parent.__class__.__name__}")
+            if (
+                hasattr(parent, "__class__")
+                and "SceneTimelineWidget" in parent.__class__.__name__
+            ):
+                # print(f"DEBUG: Found SceneTimelineWidget at level {level}")
                 return parent
             # Also check if this parent has scene_animation directly
-            if hasattr(parent, 'scene_animation'):
-                print(f"DEBUG: Found parent with scene_animation at level {level}: {parent.__class__.__name__}")
+            if hasattr(parent, "scene_animation"):
+                # print(f"DEBUG: Found parent with scene_animation at level {level}: {parent.__class__.__name__}")
                 return parent
             parent = parent.parent()
             level += 1
-        print(f"DEBUG: No suitable parent found")
+        # print(f"DEBUG: No suitable parent found")
         return None
 
     def _draw_transition_curves(self, painter, width, height):
@@ -759,8 +834,10 @@ class TimelineSceneWidget(QWidget):
             t2, name2 = scene2_data[:2]
 
             # Get transition data for the target scene
-            transition_data = scene2_data[3] if len(scene2_data) > 3 else {'type': 'linear'}
-            transition_type = transition_data.get('type', 'linear')
+            transition_data = (
+                scene2_data[3] if len(scene2_data) > 3 else {"type": "linear"}
+            )
+            transition_type = transition_data.get("type", "linear")
 
             # Calculate X positions
             x1 = int((t1 / self.duration) * width)
@@ -772,16 +849,16 @@ class TimelineSceneWidget(QWidget):
 
             # Set curve color based on transition type
             curve_colors = {
-                'linear': QColor(100, 100, 100, 150),
-                'ease_in_sine': QColor(100, 150, 255, 150),
-                'ease_out_sine': QColor(255, 150, 100, 150),
-                'ease_in_out_sine': QColor(150, 255, 150, 150),
-                'ease_in_quad': QColor(255, 100, 150, 150),
-                'ease_out_quad': QColor(150, 255, 255, 150),
-                'ease_in_out_quad': QColor(255, 255, 100, 150),
-                'ease_in_cubic': QColor(200, 100, 255, 150),
-                'ease_out_cubic': QColor(255, 200, 100, 150),
-                'ease_in_out_cubic': QColor(100, 255, 200, 150),
+                "linear": QColor(100, 100, 100, 150),
+                "ease_in_sine": QColor(100, 150, 255, 150),
+                "ease_out_sine": QColor(255, 150, 100, 150),
+                "ease_in_out_sine": QColor(150, 255, 150, 150),
+                "ease_in_quad": QColor(255, 100, 150, 150),
+                "ease_out_quad": QColor(150, 255, 255, 150),
+                "ease_in_out_quad": QColor(255, 255, 100, 150),
+                "ease_in_cubic": QColor(200, 100, 255, 150),
+                "ease_out_cubic": QColor(255, 200, 100, 150),
+                "ease_in_out_cubic": QColor(100, 255, 200, 150),
             }
 
             curve_color = curve_colors.get(transition_type, QColor(100, 100, 100, 150))
@@ -791,23 +868,27 @@ class TimelineSceneWidget(QWidget):
             curve_y = 85  # Below the scene markers
             curve_height = 15
 
-            if transition_type == 'linear':
+            if transition_type == "linear":
                 # Straight line
                 painter.drawLine(x1, curve_y, x2, curve_y)
             else:
                 # Draw approximated easing curve using line segments
-                self._draw_easing_curve(painter, x1, x2, curve_y, curve_height, transition_type)
+                self._draw_easing_curve(
+                    painter, x1, x2, curve_y, curve_height, transition_type
+                )
 
             # Add small text label for transition type
             mid_x = (x1 + x2) // 2
             painter.setPen(QColor(200, 200, 200, 180))
-            painter.drawText(mid_x - 20, curve_y + 12, transition_type.replace('_', ' ').title())
+            painter.drawText(
+                mid_x - 20, curve_y + 12, transition_type.replace("_", " ").title()
+            )
 
     def _draw_easing_curve(self, painter, x1, x2, y_center, height, transition_type):
         """Draw an approximated easing curve using line segments"""
         from .scene_animation import TRANSITION_TYPES
 
-        easing_func = TRANSITION_TYPES.get(transition_type, TRANSITION_TYPES['linear'])
+        easing_func = TRANSITION_TYPES.get(transition_type, TRANSITION_TYPES["linear"])
         num_segments = 20  # Number of line segments to approximate curve
 
         points = []
@@ -833,13 +914,28 @@ class TimelineSceneWidget(QWidget):
                 # Preserve thumbnail and transition data if they exist
                 if len(marker_data) >= 4:
                     # Full format: (time, name, thumbnail, transition_data)
-                    self.scene_markers[i] = (new_time, scene_name, marker_data[2], marker_data[3])
+                    self.scene_markers[i] = (
+                        new_time,
+                        scene_name,
+                        marker_data[2],
+                        marker_data[3],
+                    )
                 elif len(marker_data) >= 3:
                     # Backward compatibility: add default transition data
-                    self.scene_markers[i] = (new_time, scene_name, marker_data[2], {'type': 'linear', 'fade_models': False})
+                    self.scene_markers[i] = (
+                        new_time,
+                        scene_name,
+                        marker_data[2],
+                        {"type": "linear", "fade_models": False},
+                    )
                 else:
                     # Very old format
-                    self.scene_markers[i] = (new_time, scene_name, None, {'type': 'linear', 'fade_models': False})
+                    self.scene_markers[i] = (
+                        new_time,
+                        scene_name,
+                        None,
+                        {"type": "linear", "fade_models": False},
+                    )
                 break
 
         # Re-sort markers by time
@@ -863,7 +959,7 @@ class SceneTimelineWidget(QWidget):
     def __init__(self, session, parent=None):
         super().__init__(parent)
         self.session = session
-        #self.actions = ["Rock", "Roll"]  # Default actions
+        # self.actions = ["Rock", "Roll"]  # Default actions
 
         self.setup_ui()
 
@@ -872,29 +968,29 @@ class SceneTimelineWidget(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         # Actions panel (top)
-        #actions_frame = QFrame()
-        #actions_frame.setFrameStyle(QFrame.StyledPanel)
-        #actions_layout = QVBoxLayout(actions_frame)
+        # actions_frame = QFrame()
+        # actions_frame.setFrameStyle(QFrame.StyledPanel)
+        # actions_layout = QVBoxLayout(actions_frame)
 
-        #actions_header = QLabel("▼Actions")
-        #actions_header.setStyleSheet("font-weight: bold; color: white; padding: 5px;")
-        #actions_layout.addWidget(actions_header)
+        # actions_header = QLabel("▼Actions")
+        # actions_header.setStyleSheet("font-weight: bold; color: white; padding: 5px;")
+        # actions_layout.addWidget(actions_header)
 
         ## Actions container
-        #actions_container = QWidget()
-        #actions_grid = QHBoxLayout(actions_container)  # Horizontal layout for actions
+        # actions_container = QWidget()
+        # actions_grid = QHBoxLayout(actions_container)  # Horizontal layout for actions
 
         # Add default actions
-        #for action in self.actions:
+        # for action in self.actions:
         #    action_widget = ActionThumbnailWidget(action)
         #    action_widget.action_selected.connect(self.apply_action)
         #    actions_grid.addWidget(action_widget)
 
-        #actions_grid.addStretch()  # Push actions to the left
-        #actions_layout.addWidget(actions_container)
+        # actions_grid.addStretch()  # Push actions to the left
+        # actions_layout.addWidget(actions_container)
 
         # Hide actions frame since we're not using it currently
-        #main_layout.addWidget(actions_frame)
+        # main_layout.addWidget(actions_frame)
 
         # Timeline panel
         timeline_frame = QFrame()
@@ -967,6 +1063,7 @@ class SceneTimelineWidget(QWidget):
         if scene_name:
             # Save current state as a scene
             from chimerax.core.commands import run
+
             run(self.session, f'scene save "{scene_name}"')
 
             # Add the scene to the timeline

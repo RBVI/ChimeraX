@@ -82,6 +82,16 @@ class AnimationsTool(ToolInstance):
 
         # Use the enhanced KeyframeEditorWidget that includes dual-mode support
         self.kf_editor_widget = KeyframeEditorWidget(self.session)
+
+        # Hide mode toggle buttons to reclaim vertical space
+        self._hide_mode_buttons()
+
+        # Initialize mode based on settings
+        self._initialize_mode_from_settings()
+
+        # Set up settings change monitoring
+        self._setup_settings_monitoring()
+
         main_vbox_layout.addWidget(self.kf_editor_widget)
 
         self.tool_window.ui_area.setLayout(main_vbox_layout)
@@ -117,12 +127,58 @@ class AnimationsTool(ToolInstance):
             return file_path
         return None
 
+    def _hide_mode_buttons(self):
+        """Hide the mode toggle buttons to reclaim vertical space."""
+        self.kf_editor_widget.keyframe_mode_btn.hide()
+        self.kf_editor_widget.scene_mode_btn.hide()
+
+    def _initialize_mode_from_settings(self):
+        """Initialize the current mode based on the saved settings."""
+        from .settings import get_settings
+        settings = get_settings(self.session)
+        mode = settings.animation_mode
+
+        if mode == 'keyframe':
+            self.kf_editor_widget.keyframe_mode_btn.setChecked(True)
+            self.kf_editor_widget.switch_mode(self.kf_editor_widget.keyframe_mode_btn)
+        else:  # scene mode
+            self.kf_editor_widget.scene_mode_btn.setChecked(True)
+            self.kf_editor_widget.switch_mode(self.kf_editor_widget.scene_mode_btn)
+
+
+    def _setup_settings_monitoring(self):
+        """Set up monitoring for settings changes to switch modes automatically."""
+        from .settings import get_settings
+        settings = get_settings(self.session)
+
+        # Listen for settings changes
+        settings.triggers.add_handler('setting changed', self._on_setting_changed)
+
+    def _on_setting_changed(self, trigger_name, data):
+        """Handle settings changes, particularly for animation mode."""
+        setting_name, old_value, new_value = data
+        if setting_name == 'animation_mode':
+            if new_value == 'keyframe':
+                self.kf_editor_widget.keyframe_mode_btn.setChecked(True)
+                self.kf_editor_widget.switch_mode(self.kf_editor_widget.keyframe_mode_btn)
+            else:  # scene mode
+                self.kf_editor_widget.scene_mode_btn.setChecked(True)
+                self.kf_editor_widget.switch_mode(self.kf_editor_widget.scene_mode_btn)
+
+
     def delete(self):
         """
         Override from super. Remove the trigger handlers before the tool is deleted.
         """
         for handler in self.handlers:
             remove_handler(handler)
+
+        # Clean up settings trigger handler
+        if hasattr(self, '_settings_handler'):
+            from .settings import get_settings
+            settings = get_settings(self.session)
+            settings.triggers.remove_handler('setting changed', self._on_setting_changed)
+
         # Note: KeyframeEditorWidget cleanup is handled automatically by Qt
 
         super().delete()
