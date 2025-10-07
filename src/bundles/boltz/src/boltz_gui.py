@@ -738,9 +738,10 @@ class BoltzPredictionGUI(ToolInstance):
         pae_path = _matching_pae_file(structure.filename)
         if pae_path is None:
             raise UserError(f'Could not find Boltz PAE file for "{structure.filename}".')
-            
+
         from chimerax.alphafold.pae import AlphaFoldPAE, AlphaFoldPAEPlot
         pae = AlphaFoldPAE(pae_path, structure)
+        structure.alphafold_pae = pae
         p = AlphaFoldPAEPlot(self.session, 'Boltz Predicted Aligned Error', pae)
         
     # ---------------------------------------------------------------------------
