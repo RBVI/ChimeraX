@@ -15,8 +15,7 @@ from chimerax.core.tools import ToolInstance
 
 class MinimizeTool(ToolInstance):
 
-    help = None
-    #help = "help:user/tools/modelpanel.html"
+    help = "help:user/tools/minimizestructure.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
