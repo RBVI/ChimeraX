@@ -550,8 +550,11 @@ class ItemTable(QTableView):
         while True:
             for i, datum in enumerate(self._data):
                 if datum not in new_data_set:
-                    self._table_model.beginRemoveRows(QModelIndex(), i, i)
-                    self._data = self._data[:i] + self._data[i+1:]
+                    start = end = i
+                    while end+1 < len(self._data) and self._data[end+1] not in new_data_set:
+                        end += 1
+                    self._table_model.beginRemoveRows(QModelIndex(), start, end)
+                    self._data = self._data[:start] + self._data[end+1:]
                     self._table_model.endRemoveRows()
                     break
             else:
