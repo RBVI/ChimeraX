@@ -312,6 +312,9 @@ class ViewDockTool(ToolInstance):
         the set, the cell will be empty.
         """
 
+        self._orig_struct_table_kpe = self.struct_table.keyPressEvent
+        self.struct_table.keyPressEvent = self.table_keypress
+
         table_group = QGroupBox()
         table_group_layout = QVBoxLayout()
 
@@ -358,6 +361,12 @@ class ViewDockTool(ToolInstance):
 
         # Add the table group to the layout
         self.main_v_layout.addWidget(table_group)
+
+    def table_keypress(self, event):
+        if self.hotkeys_on:
+            self.tool_window.ui_area.keyPressEvent(event)
+        else:
+            self._orig_struct_table_kpe(event)
 
     def id_lt(self, s1, s2):
         """
@@ -507,6 +516,7 @@ class ViewDockTool(ToolInstance):
         else:
             ui_area.keyPressEvent = self.session.ui.forward_keystroke
             self.session.ui.deregister_for_keystrokes(self)
+            self.session.logger.info("<h3>ViewDock hotkeys off</h3>", is_html=True)
         self.hotkeys_on = hotkeys_on
 
     def update_table_for_hidden(self):
