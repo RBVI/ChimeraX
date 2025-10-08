@@ -231,13 +231,13 @@ class Structure(Model, StructureData):
             scene_data = {
                 'model state': Model.take_snapshot(self, session, flags),
                 'atoms': { attr_name: getattr(atoms, attr_name)
-                    for attr_name in ['colors', 'coords', 'displays', 'selected']
+                    for attr_name in self.ATOM_SCENE_ATTRS
                 },
                 'bonds': { attr_name: getattr(bonds, attr_name)
-                    for attr_name in ['colors', 'displays', 'halfbonds', 'selected']
+                    for attr_name in self.BOND_SCENE_ATTRS
                 },
                 'residues': { attr_name: getattr(residues, attr_name)
-                    for attr_name in ['ribbon_colors', 'ribbon_displays', 'ring_colors', 'ring_displays']
+                    for attr_name in self.RESIDUE_SCENE_ATTRS
                 },
             }
             return scene_data
