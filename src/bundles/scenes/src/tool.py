@@ -24,10 +24,29 @@ import base64
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
 from chimerax.ui.widgets import DisclosureArea
-from Qt.QtWidgets import QHBoxLayout, QLineEdit, QScrollArea, QWidget, QGridLayout, QLabel, QVBoxLayout, QGroupBox, QPushButton, QApplication
+from Qt.QtWidgets import (
+    QHBoxLayout,
+    QLineEdit,
+    QScrollArea,
+    QWidget,
+    QGridLayout,
+    QLabel,
+    QVBoxLayout,
+    QGroupBox,
+    QPushButton,
+    QApplication,
+)
 from Qt.QtGui import QPixmap, QDrag
 from Qt.QtCore import Qt, QMimeData, QPoint
-from .triggers import activate_trigger, add_handler, SCENE_SELECTED, EDITED, SAVED, SCENE_HIGHLIGHTED, DELETED
+from .triggers import (
+    activate_trigger,
+    add_handler,
+    SCENE_SELECTED,
+    EDITED,
+    SAVED,
+    SCENE_HIGHLIGHTED,
+    DELETED,
+)
 from chimerax.core.commands import run
 
 """
@@ -49,6 +68,7 @@ The `SceneItem` class represents an individual scene with a thumbnail and name, 
 activation of relevant triggers.
 """
 
+
 class ScenesTool(ToolInstance):
     """
     Main tool for managing scenes. This tool contains a custom scroll area for displaying SceneItem widgets and a
@@ -64,7 +84,7 @@ class ScenesTool(ToolInstance):
         self.display_name = "Scenes"
         self.tool_window = MainToolWindow(self)
         self.build_ui()
-        self.tool_window.manage('side')
+        self.tool_window.manage("side")
 
         self.handlers = []
         self.handlers.append(add_handler(SCENE_SELECTED, self.scene_selected_cb))
@@ -72,7 +92,6 @@ class ScenesTool(ToolInstance):
         self.handlers.append(add_handler(SAVED, self.scene_saved_cb))
         self.handlers.append(add_handler(SCENE_HIGHLIGHTED, self.scene_highlighted_cb))
         self.handlers.append(add_handler(DELETED, self.scene_deleted_cb))
-
 
     def build_ui(self):
         """
@@ -170,7 +189,7 @@ class ScenesTool(ToolInstance):
         Save the current scene with the name in the line edit widget.
         """
         scene_name = self.scene_name_entry.text()
-        run(self.session, f"scene save {scene_name}")
+        run(self.session, f'scene save "{scene_name}"')
 
     def edit_button_clicked(self):
         """
@@ -178,7 +197,7 @@ class ScenesTool(ToolInstance):
         """
         highlighted_scene = self.scroll_area.get_highlighted_scene()
         if highlighted_scene:
-            run(self.session, f"scene edit {highlighted_scene.get_name()}")
+            run(self.session, f'scene edit "{highlighted_scene.get_name()}"')
         else:
             self.session.logger.warning("No scene selected to edit")
 
@@ -188,7 +207,7 @@ class ScenesTool(ToolInstance):
         """
         highlighted_scene = self.scroll_area.get_highlighted_scene()
         if highlighted_scene:
-            run(self.session, f"scene delete {highlighted_scene.get_name()}")
+            run(self.session, f'scene delete "{highlighted_scene.get_name()}"')
         else:
             self.session.logger.warning("No scene selected to delete")
 
@@ -206,8 +225,10 @@ class ScenesTool(ToolInstance):
         """
         data = super().take_snapshot(session, flags)
         highlighted_scene = self.scroll_area.get_highlighted_scene()
-        data['highlighted_scene'] = highlighted_scene.get_name() if highlighted_scene else None
-        data['scroll_area'] = self.scroll_area.take_snapshot(session, flags)
+        data["highlighted_scene"] = (
+            highlighted_scene.get_name() if highlighted_scene else None
+        )
+        data["scroll_area"] = self.scroll_area.take_snapshot(session, flags)
         return data
 
     @classmethod
@@ -215,14 +236,15 @@ class ScenesTool(ToolInstance):
         """
         Restore highlighted SceneItem in the tools scroll area when needed.
         """
-        ti = super().restore_snapshot(session, data) # get tool instance
-        highlighted_scene_name = data.get('highlighted_scene')
+        ti = super().restore_snapshot(session, data)  # get tool instance
+        highlighted_scene_name = data.get("highlighted_scene")
         if highlighted_scene_name:
             scene_item = ti.scroll_area.get_scene_item(highlighted_scene_name)
             if scene_item:
                 ti.scroll_area.set_highlighted_scene(scene_item)
-        ti.scroll_area.set_state_from_snapshot(session, data.get('scroll_area'))
+        ti.scroll_area.set_state_from_snapshot(session, data.get("scroll_area"))
         return ti
+
 
 class SceneScrollArea(QScrollArea):
     """
@@ -243,7 +265,9 @@ class SceneScrollArea(QScrollArea):
         self.grid.setContentsMargins(0, 0, 0, 0)  # Remove margins
         self.grid.setHorizontalSpacing(0)  # Remove horizontal spacing
         self.grid.setVerticalSpacing(0)  # Remove vertical spacing"""
-        self.grid.setAlignment(Qt.AlignLeft | Qt.AlignTop)  # Align items to the top-left
+        self.grid.setAlignment(
+            Qt.AlignLeft | Qt.AlignTop
+        )  # Align items to the top-left
         self.setWidget(self.container_widget)
         self.cols = 0
         self.scene_items = []
@@ -259,7 +283,9 @@ class SceneScrollArea(QScrollArea):
         self.grid.setRowStretch(0, 0)
         self.grid.setColumnStretch(0, 0)
         scenes = session.scenes.get_scenes()
-        self.scene_items = [SceneItem(scene.get_name(), scene.get_thumbnail()) for scene in scenes]
+        self.scene_items = [
+            SceneItem(scene.get_name(), scene.get_thumbnail()) for scene in scenes
+        ]
         self.update_grid()
 
     def resizeEvent(self, event):
@@ -284,7 +310,9 @@ class SceneScrollArea(QScrollArea):
             self.grid.itemAt(i).widget().setParent(None)
 
         width = self.viewport().width()
-        self.cols = max(1, width // SceneItem.IMAGE_WIDTH)  # Adjust to the desired width of each SceneItem
+        self.cols = max(
+            1, width // SceneItem.IMAGE_WIDTH
+        )  # Adjust to the desired width of each SceneItem
         row, col = 0, 0
         for scene_item in self.scene_items:
             self.grid.addWidget(scene_item, row, col)
@@ -337,7 +365,14 @@ class SceneScrollArea(QScrollArea):
             self.update_grid()
 
     def get_scene_item(self, name):
-        return next((scene_item for scene_item in self.scene_items if scene_item.get_name() == name), None)
+        return next(
+            (
+                scene_item
+                for scene_item in self.scene_items
+                if scene_item.get_name() == name
+            ),
+            None,
+        )
 
     def set_highlighted_scene(self, scene_item):
         """
@@ -360,19 +395,27 @@ class SceneScrollArea(QScrollArea):
         """
         Save the order of the scenes in the grid for the snapshot data.
         """
-        data = {'scene_items': [scene_item.get_name() for scene_item in self.scene_items]}
+        data = {
+            "scene_items": [scene_item.get_name() for scene_item in self.scene_items]
+        }
         return data
 
     def set_state_from_snapshot(self, session, data):
         """
         Restore the order of the scenes in the SceneScrollArea from the snapshot data.
         """
-        ordered_scene_names = data.get('scene_items', [])
+        ordered_scene_names = data.get("scene_items", [])
         # Create a dictionary for quick lookup of SceneItem by name from scene_items attribute.
-        scene_item_dict = {scene_item.get_name(): scene_item for scene_item in self.scene_items}
+        scene_item_dict = {
+            scene_item.get_name(): scene_item for scene_item in self.scene_items
+        }
         # Reorder self.scene_items based on snapshot data
-        self.scene_items = [scene_item_dict[name] for name in ordered_scene_names if name in scene_item_dict]
-        self.update_grid() # Make sure the grid layout reflects the new ordering
+        self.scene_items = [
+            scene_item_dict[name]
+            for name in ordered_scene_names
+            if name in scene_item_dict
+        ]
+        self.update_grid()  # Make sure the grid layout reflects the new ordering
 
     def mousePressEvent(self, event):
         """
@@ -382,7 +425,7 @@ class SceneScrollArea(QScrollArea):
             # Check if click is on a SceneItem widget
             clicked_widget = self.childAt(event.pos())
             scene_item_clicked = False
-            
+
             # Walk up the widget hierarchy to see if we clicked on a SceneItem
             widget = clicked_widget
             while widget and widget != self:
@@ -390,12 +433,13 @@ class SceneScrollArea(QScrollArea):
                     scene_item_clicked = True
                     break
                 widget = widget.parent()
-            
+
             # If we didn't click on a SceneItem, deselect the highlighted scene
             if not scene_item_clicked:
                 self.set_highlighted_scene(None)
-        
+
         super().mousePressEvent(event)
+
 
 class SceneItem(QWidget):
     """
@@ -434,7 +478,9 @@ class SceneItem(QWidget):
         layout.addWidget(self.label)
 
         # Set fixed size for the SceneItem
-        self.setFixedSize(self.pixmap.width(), self.pixmap.height() + self.label.sizeHint().height())
+        self.setFixedSize(
+            self.pixmap.width(), self.pixmap.height() + self.label.sizeHint().height()
+        )
 
     def set_thumbnail(self, thumbnail_data):
         """
@@ -445,7 +491,9 @@ class SceneItem(QWidget):
         """
         image_data = base64.b64decode(thumbnail_data)
         self.pixmap.loadFromData(image_data)
-        self.pixmap = self.pixmap.scaled(self.IMAGE_WIDTH, self.IMAGE_HEIGHT, Qt.KeepAspectRatio)
+        self.pixmap = self.pixmap.scaled(
+            self.IMAGE_WIDTH, self.IMAGE_HEIGHT, Qt.KeepAspectRatio
+        )
         self.thumbnail_label.setPixmap(self.pixmap)
         self.thumbnail_label.setAlignment(Qt.AlignCenter)
 
@@ -456,7 +504,7 @@ class SceneItem(QWidget):
         if event.button() == Qt.LeftButton:
             # Store the position for potential drag operation
             self.drag_start_position = event.pos()
-            
+
             # Find the parent SceneScrollArea and tell it to highlight this item
             parent = self.parent()
             while parent and not isinstance(parent, SceneScrollArea):
@@ -471,15 +519,16 @@ class SceneItem(QWidget):
         """
         if not (event.buttons() & Qt.LeftButton):
             return
-        
+
         if not self.drag_start_position:
             return
-            
+
         # Check if we've moved far enough to start a drag
-        if ((event.pos() - self.drag_start_position).manhattanLength() < 
-            QApplication.startDragDistance()):
+        if (
+            event.pos() - self.drag_start_position
+        ).manhattanLength() < QApplication.startDragDistance():
             return
-            
+
         self.start_drag()
         super().mouseMoveEvent(event)
 
@@ -489,25 +538,26 @@ class SceneItem(QWidget):
         """
         drag = QDrag(self)
         mime_data = QMimeData()
-        
+
         # Set basic scene name
         mime_data.setText(self.name)
-        
+
         # Get scene from session and encode comprehensive data
         parent = self.parent()
         while parent and not isinstance(parent, SceneScrollArea):
             parent = parent.parent()
-        
+
         if parent and parent.session:
             scene = parent.session.scenes.get_scene(self.name)
             if scene:
                 import json
+
                 scene_data = {
-                    'name': self.name,
-                    'thumbnail': self.thumbnail_data,
-                    'models': []  # Will be populated from scene data
+                    "name": self.name,
+                    "thumbnail": self.thumbnail_data,
+                    "models": [],  # Will be populated from scene data
                 }
-                
+
                 # Extract model positions from the scene if available
                 try:
                     # This may vary depending on ChimeraX scene format
@@ -515,21 +565,26 @@ class SceneItem(QWidget):
                     pass
                 except:
                     pass
-                
-                mime_data.setData("application/x-chimerax-scene", json.dumps(scene_data).encode('utf-8'))
+
+                mime_data.setData(
+                    "application/x-chimerax-scene",
+                    json.dumps(scene_data).encode("utf-8"),
+                )
             else:
                 # Fallback to just the name
-                mime_data.setData("application/x-chimerax-scene", self.name.encode('utf-8'))
+                mime_data.setData(
+                    "application/x-chimerax-scene", self.name.encode("utf-8")
+                )
         else:
             # Fallback to just the name
-            mime_data.setData("application/x-chimerax-scene", self.name.encode('utf-8'))
-        
+            mime_data.setData("application/x-chimerax-scene", self.name.encode("utf-8"))
+
         drag.setMimeData(mime_data)
-        
+
         # Use the thumbnail as the drag pixmap
         drag.setPixmap(self.pixmap)
         drag.setHotSpot(QPoint(self.pixmap.width() // 2, self.pixmap.height() // 2))
-        
+
         # Execute the drag
         drag.exec(Qt.CopyAction)
 

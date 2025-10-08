@@ -74,23 +74,22 @@ class EasingFunctions:
 
 # Transition types available to users
 TRANSITION_TYPES = {
-    'linear': EasingFunctions.linear,
-    'ease_in_sine': EasingFunctions.ease_in_sine,
-    'ease_out_sine': EasingFunctions.ease_out_sine,
-    'ease_in_out_sine': EasingFunctions.ease_in_out_sine,
-    'ease_in_quad': EasingFunctions.ease_in_quad,
-    'ease_out_quad': EasingFunctions.ease_out_quad,
-    'ease_in_out_quad': EasingFunctions.ease_in_out_quad,
-    'ease_in_cubic': EasingFunctions.ease_in_cubic,
-    'ease_out_cubic': EasingFunctions.ease_out_cubic,
-    'ease_in_out_cubic': EasingFunctions.ease_in_out_cubic,
+    "linear": EasingFunctions.linear,
+    "ease_in_sine": EasingFunctions.ease_in_sine,
+    "ease_out_sine": EasingFunctions.ease_out_sine,
+    "ease_in_out_sine": EasingFunctions.ease_in_out_sine,
+    "ease_in_quad": EasingFunctions.ease_in_quad,
+    "ease_out_quad": EasingFunctions.ease_out_quad,
+    "ease_in_out_quad": EasingFunctions.ease_in_out_quad,
+    "ease_in_cubic": EasingFunctions.ease_in_cubic,
+    "ease_out_cubic": EasingFunctions.ease_out_cubic,
+    "ease_in_out_cubic": EasingFunctions.ease_in_out_cubic,
 }
-
-
 
 
 class SceneAnimationSignals(QObject):
     """Signal emitter for SceneAnimation to avoid metaclass conflicts"""
+
     time_changed = pyqtSignal(float)  # Current playback time
     playback_started = pyqtSignal()
     playback_stopped = pyqtSignal()
@@ -141,7 +140,13 @@ class SceneAnimation(StateManager):
         if animation_data:
             self.restore_from_data(animation_data)
 
-    def add_scene_at_time(self, scene_name: str, time: float, transition_type: str = 'linear', fade_models: bool = False):
+    def add_scene_at_time(
+        self,
+        scene_name: str,
+        time: float,
+        transition_type: str = "linear",
+        fade_models: bool = False,
+    ):
         """Add a scene at a specific time with transition settings"""
         if not self.session.scenes.get_scene(scene_name):
             self.logger.warning(f"Scene '{scene_name}' does not exist")
@@ -149,23 +154,24 @@ class SceneAnimation(StateManager):
 
         # Validate transition type
         if transition_type not in TRANSITION_TYPES:
-            self.logger.warning(f"Unknown transition type '{transition_type}', using 'linear'")
-            transition_type = 'linear'
+            self.logger.warning(
+                f"Unknown transition type '{transition_type}', using 'linear'"
+            )
+            transition_type = "linear"
 
         # Remove any existing scene at this time
         self.scenes = [(t, s, td) for t, s, td in self.scenes if t != time]
 
         # Create transition data
-        transition_data = {
-            'type': transition_type,
-            'fade_models': fade_models
-        }
+        transition_data = {"type": transition_type, "fade_models": fade_models}
 
         # Add new scene
         self.scenes.append((time, scene_name, transition_data))
         self.scenes.sort(key=lambda x: x[0])  # Keep sorted by time
 
-        self.logger.info(f"Added scene '{scene_name}' at time {time:.2f}s with {transition_type} transition")
+        self.logger.info(
+            f"Added scene '{scene_name}' at time {time:.2f}s with {transition_type} transition"
+        )
         return True
 
     def remove_scene(self, scene_name: str):
@@ -206,7 +212,6 @@ class SceneAnimation(StateManager):
         self.logger.info(f"Set animation duration to {duration:.2f}s")
         return True
 
-
     def preview_at_time(self, time: float):
         """Preview the animation at a specific time"""
         if time < 0 or time > self.duration:
@@ -219,7 +224,7 @@ class SceneAnimation(StateManager):
         scene1, scene2, fraction = self._get_interpolation_at_time(time)
 
         # Check if this is the same as what we're currently displaying to avoid redundant updates
-        if hasattr(self, '_last_scene_state'):
+        if hasattr(self, "_last_scene_state"):
             if self._last_scene_state == (scene1, scene2, fraction):
                 return  # No change needed
 
@@ -238,18 +243,22 @@ class SceneAnimation(StateManager):
 
                 # Check if model fading is enabled for the target scene
                 scene2_data = self._get_scene_transition_data(scene2)
-                fade_models = scene2_data.get('fade_models', False) if scene2_data else False
+                fade_models = (
+                    scene2_data.get("fade_models", False) if scene2_data else False
+                )
 
                 # print(f"DEBUG: scene2_data = {scene2_data}, fade_models = {fade_models}")
 
                 # Pass fade_models flag to the scene manager
-                self.session.scenes.interpolate_scenes(scene1, scene2, fraction, fade_models=fade_models)
+                self.session.scenes.interpolate_scenes(
+                    scene1, scene2, fraction, fade_models=fade_models
+                )
 
         # Cache the current state to avoid redundant updates
         self._last_scene_state = (scene1, scene2, fraction)
 
         # Only log occasionally to avoid spam during playback
-        if hasattr(self, '_last_log_time'):
+        if hasattr(self, "_last_log_time"):
             if time - self._last_log_time > 5.0:  # Log even less frequently
                 self.logger.info(f"Previewing animation at {time:.2f}s")
                 self._last_log_time = time
@@ -267,7 +276,9 @@ class SceneAnimation(StateManager):
             return
 
         if start_time < 0 or start_time > self.duration:
-            self.logger.warning(f"Start time {start_time:.2f}s is outside animation duration")
+            self.logger.warning(
+                f"Start time {start_time:.2f}s is outside animation duration"
+            )
             return
 
         self.is_playing = True
@@ -280,7 +291,9 @@ class SceneAnimation(StateManager):
 
         if self.is_recording:
             # When recording, don't use timer - advance only after frames are captured
-            self.logger.status(f"Recording animation at {self.fps} FPS (frame-synchronized)...")
+            self.logger.status(
+                f"Recording animation at {self.fps} FPS (frame-synchronized)..."
+            )
             # Set up frame capture synchronization
             self._setup_recording_sync()
             # Start with the first frame
@@ -365,9 +378,11 @@ class SceneAnimation(StateManager):
         """Wait for the current frame to be captured before advancing"""
         # Record when we started waiting for this frame
         import time
+
         self._frame_wait_start_time = time.time()
         # Set up a single-shot timer to check if frame was captured
         from Qt.QtCore import QTimer
+
         QTimer.singleShot(50, self._check_frame_captured)
 
     def _check_frame_captured(self):
@@ -384,6 +399,7 @@ class SceneAnimation(StateManager):
         else:
             # Check if we've been waiting too long (timeout after 500ms)
             import time
+
             if time.time() - self._frame_wait_start_time > 0.5:
                 # Timeout - force a frame capture by manually triggering the movie system
                 # print(f"DEBUG: Frame capture timeout, forcing frame capture (frame {current_frame_count + 1})")
@@ -394,6 +410,7 @@ class SceneAnimation(StateManager):
             else:
                 # Frame not captured yet, wait a bit more
                 from Qt.QtCore import QTimer
+
                 QTimer.singleShot(10, self._check_frame_captured)
 
     def stop_playing(self):
@@ -447,6 +464,7 @@ class SceneAnimation(StateManager):
             # Use settings default if no resolution specified
             if resolution is None:
                 from .settings import get_settings
+
                 settings = get_settings(self.session)
                 resolution = settings.recording_resolution
 
@@ -465,11 +483,11 @@ class SceneAnimation(StateManager):
 
             # Set up recording parameters
             record_params = {
-                'directory': None,  # Use temporary directory
-                'pattern': None,    # Use default pattern
-                'format': 'png',
-                'size': size,       # Set custom resolution
-                **kwargs
+                "directory": None,  # Use temporary directory
+                "pattern": None,  # Use default pattern
+                "format": "png",
+                "size": size,  # Set custom resolution
+                **kwargs,
             }
 
             # Debug logging for movie record parameters
@@ -478,7 +496,7 @@ class SceneAnimation(StateManager):
             # Start recording
             movie_record(self.session, **record_params)
             self.is_recording = True
-            self._record_data = {'output_path': output_path, 'framerate': self.fps}
+            self._record_data = {"output_path": output_path, "framerate": self.fps}
             self._expected_frame_count = 0  # Track expected frames during recording
 
             # Emit recording started signal
@@ -498,11 +516,14 @@ class SceneAnimation(StateManager):
 
         try:
             from chimerax.movie.moviecmd import movie_encode
+
             run(self.session, "movie stop", log=False)
 
             # Get the number of frames that were actually captured
             actual_frame_count = self.session.movie.getFrameCount()
-            expected_frames = getattr(self, '_expected_frame_count', self.duration * self.fps)
+            expected_frames = getattr(
+                self, "_expected_frame_count", self.duration * self.fps
+            )
 
             # print(f"DEBUG: Animation duration: {self.duration}s at {self.fps} FPS")
             # print(f"DEBUG: Expected frames during playback: {expected_frames}")
@@ -513,16 +534,20 @@ class SceneAnimation(StateManager):
             # print(f"DEBUG: Video duration at {self.fps} FPS: {actual_duration:.2f}s")
 
             if abs(actual_frame_count - expected_frames) > 1:
-                self.logger.warning(f"Frame count mismatch: expected {expected_frames}, got {actual_frame_count}")
+                self.logger.warning(
+                    f"Frame count mismatch: expected {expected_frames}, got {actual_frame_count}"
+                )
 
             # Always encode at the user's requested framerate
             movie_encode(
                 self.session,
-                output=[self._record_data['output_path']],  # output should be a list
-                framerate=self.fps  # Use the user's requested FPS
+                output=[self._record_data["output_path"]],  # output should be a list
+                framerate=self.fps,  # Use the user's requested FPS
             )
 
-            self.logger.info(f"Animation recorded to {self._record_data['output_path']}")
+            self.logger.info(
+                f"Animation recorded to {self._record_data['output_path']}"
+            )
 
         except Exception as e:
             self.logger.error(f"Failed to encode movie: {str(e)}")
@@ -591,8 +616,8 @@ class SceneAnimation(StateManager):
         linear_fraction = max(0.0, min(1.0, linear_fraction))
 
         # Apply easing function based on the target scene's transition type
-        transition_type = transition2.get('type', 'linear')
-        easing_func = TRANSITION_TYPES.get(transition_type, TRANSITION_TYPES['linear'])
+        transition_type = transition2.get("type", "linear")
+        easing_func = TRANSITION_TYPES.get(transition_type, TRANSITION_TYPES["linear"])
         eased_fraction = easing_func(linear_fraction)
 
         # Debug: Always show transition info
@@ -607,7 +632,9 @@ class SceneAnimation(StateManager):
                 return transition_data
         return None
 
-    def _prepare_model_fading_at_scene_timestamp(self, current_scene_name: str, current_time: float):
+    def _prepare_model_fading_at_scene_timestamp(
+        self, current_scene_name: str, current_time: float
+    ):
         """
         Prepare model fading when we're at an exact scene timestamp.
         This ensures that models appearing in the next scene with fade_models=True
@@ -618,7 +645,9 @@ class SceneAnimation(StateManager):
 
         current_scene_index = None
         for i, (time, name, _) in enumerate(sorted_scenes):
-            if name == current_scene_name and abs(time - current_time) < 0.001:  # Small tolerance for float comparison
+            if (
+                name == current_scene_name and abs(time - current_time) < 0.001
+            ):  # Small tolerance for float comparison
                 current_scene_index = i
                 break
 
@@ -627,10 +656,16 @@ class SceneAnimation(StateManager):
             return
 
         # Get the next scene
-        next_time, next_scene_name, next_transition_data = sorted_scenes[current_scene_index + 1]
+        next_time, next_scene_name, next_transition_data = sorted_scenes[
+            current_scene_index + 1
+        ]
 
         # Check if the next scene has model fading enabled
-        fade_models = next_transition_data.get('fade_models', False) if next_transition_data else False
+        fade_models = (
+            next_transition_data.get("fade_models", False)
+            if next_transition_data
+            else False
+        )
 
         if not fade_models:
             # Next scene doesn't have fading enabled
@@ -655,12 +690,12 @@ class SceneAnimation(StateManager):
 
         # Make appearing models visible with zero opacity
         for model in appearing_models:
-            if hasattr(model, 'display'):
+            if hasattr(model, "display"):
                 # Make sure the model is visible but fully transparent
                 model.display = True
 
                 # For atomic models, we need to handle atoms.colors
-                if hasattr(model, 'atoms') and len(model.atoms) > 0:
+                if hasattr(model, "atoms") and len(model.atoms) > 0:
                     atoms = model.atoms
                     # Get atom colors and set alpha to 0 (fully transparent)
                     c = atoms.colors
@@ -669,21 +704,25 @@ class SceneAnimation(StateManager):
                     # print(f"DEBUG: Prepared atomic model for fade-in: set {len(atoms)} atom alphas to 0")
 
                 # For non-atomic models, try the simple color approach
-                elif hasattr(model, 'color'):
+                elif hasattr(model, "color"):
                     try:
                         r, g, b, a = model.color
                         model.color = (r, g, b, 0)  # Fully transparent (0-255 range)
                         # print(f"DEBUG: Prepared non-atomic model for fade-in: set to visible with full transparency")
                     except:
+                        pass
                     # print(f"DEBUG: Could not set color on model {model}")
                 else:
+                    pass
                 # print(f"DEBUG: Model {model} has no atoms or color attribute")
 
     def _get_visible_models_in_scene(self, scene):
         """Get the set of models that are actually visible in a scene"""
         visible_models = set()
 
-        if not hasattr(scene, 'named_view') or not hasattr(scene.named_view, 'positions'):
+        if not hasattr(scene, "named_view") or not hasattr(
+            scene.named_view, "positions"
+        ):
             return visible_models
 
         # Models are visible in a scene if they have positions stored in the named_view
@@ -710,21 +749,21 @@ class SceneAnimation(StateManager):
     def take_snapshot(self, session, flags):
         """Save state for session snapshots"""
         return {
-            'version': self.version,
-            'duration': self.duration,
-            'scenes': self.scenes,
-            'current_time': self.current_time
+            "version": self.version,
+            "duration": self.duration,
+            "scenes": self.scenes,
+            "current_time": self.current_time,
         }
 
     def restore_from_data(self, data):
         """Restore state from snapshot data"""
-        if data.get('version', 0) != self.version:
+        if data.get("version", 0) != self.version:
             self.logger.warning(f"Version mismatch in animation data")
             return
 
-        self.duration = data.get('duration', self.DEFAULT_DURATION)
-        self.scenes = data.get('scenes', [])
-        self.current_time = data.get('current_time', 0.0)
+        self.duration = data.get("duration", self.DEFAULT_DURATION)
+        self.scenes = data.get("scenes", [])
+        self.current_time = data.get("current_time", 0.0)
 
         # Validate that all scenes still exist
         valid_scenes = []
@@ -732,7 +771,9 @@ class SceneAnimation(StateManager):
             if self.session.scenes.get_scene(scene_name):
                 valid_scenes.append((time, scene_name, transition_data))
             else:
-                self.logger.warning(f"Scene '{scene_name}' no longer exists, removing from animation")
+                self.logger.warning(
+                    f"Scene '{scene_name}' no longer exists, removing from animation"
+                )
 
         self.scenes = valid_scenes
 
@@ -760,17 +801,21 @@ class SceneAnimation(StateManager):
 
         if isinstance(resolution, str):
             resolution = resolution.lower()
-            if resolution in ['4k', 'uhd', '2160p']:
+            if resolution in ["4k", "uhd", "2160p"]:
                 return (3840, 2160)
-            elif resolution in ['1080p', 'fhd', 'fullhd']:
+            elif resolution in ["1080p", "fhd", "fullhd"]:
                 return (1920, 1080)
-            elif resolution in ['720p', 'hd']:
+            elif resolution in ["720p", "hd"]:
                 return (1280, 720)
-            elif resolution in ['480p', 'sd']:
+            elif resolution in ["480p", "sd"]:
                 return (640, 480)
             else:
-                self.logger.warning(f"Unknown resolution '{resolution}', using display resolution")
+                self.logger.warning(
+                    f"Unknown resolution '{resolution}', using display resolution"
+                )
                 return None
 
-        self.logger.warning(f"Invalid resolution format '{resolution}', using display resolution")
+        self.logger.warning(
+            f"Invalid resolution format '{resolution}', using display resolution"
+        )
         return None

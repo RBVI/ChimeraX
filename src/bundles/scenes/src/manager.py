@@ -67,7 +67,9 @@ class SceneManager(StateManager):
         Delete scene by name.
         """
         if self.scene_exists(scene_name):
-            self.scenes = [scene for scene in self.scenes if scene.get_name() != scene_name]
+            self.scenes = [
+                scene for scene in self.scenes if scene.get_name() != scene_name
+            ]
             activate_trigger(DELETED, scene_name)
         else:
             self.session.logger.warning(f"Scene {scene_name} does not exist.")
@@ -153,15 +155,17 @@ class SceneManager(StateManager):
     def take_snapshot(self, session, flags):
         # viewer_info is "session independent"
         return {
-            'version': self.version,
-            'scenes': [scene.take_snapshot(session, flags) for scene in self.scenes],
-            'num_saved_scenes': self.num_saved_scenes
+            "version": self.version,
+            "scenes": [scene.take_snapshot(session, flags) for scene in self.scenes],
+            "num_saved_scenes": self.num_saved_scenes,
         }
 
     @staticmethod
     def restore_snapshot(session, data):
-        if data['version'] != SceneManager.version:
-            raise ValueError("scenes restore_snapshot: unknown version in data: %d" % data['version'])
+        if data["version"] != SceneManager.version:
+            raise ValueError(
+                "scenes restore_snapshot: unknown version in data: %d" % data["version"]
+            )
         mgr = session.scenes
         mgr._restore_snapshot(data)
         return mgr
@@ -174,13 +178,19 @@ class SceneManager(StateManager):
             data (dict): The session data.
         """
         self.clear()
-        for scene_snapshot in data['scenes']:
+        for scene_snapshot in data["scenes"]:
             scene = Scene.restore_snapshot(self.session, scene_snapshot)
             self.scenes.append(scene)
-        if 'num_saved_scenes' in data:
-            self.num_saved_scenes = data['num_saved_scenes']
+        if "num_saved_scenes" in data:
+            self.num_saved_scenes = data["num_saved_scenes"]
 
-    def interpolate_scenes(self, scene1_name: str, scene2_name: str, fraction: float, fade_models: bool = False):
+    def interpolate_scenes(
+        self,
+        scene1_name: str,
+        scene2_name: str,
+        fraction: float,
+        fade_models: bool = False,
+    ):
         """
         Interpolate between two scenes at the given fraction.
 
@@ -219,8 +229,10 @@ class SceneManager(StateManager):
         # Check if models actually moved between scenes or if only camera moved
         models_actually_moved = self._models_actually_moved(v1, v2)
 
-        print(f"DEBUG: Interpolating between '{scene1_name}' and '{scene2_name}' at fraction {fraction}")
-        print(f"DEBUG: Number of models in scene: {len(self.session.models.list())}")
+        # print(
+        # f"DEBUG: Interpolating between '{scene1_name}' and '{scene2_name}' at fraction {fraction}"
+        # )
+        # print(f"DEBUG: Number of models in scene: {len(self.session.models.list())}")
 
         if models_actually_moved:
             # Models moved - use full interpolation including model positions
@@ -236,6 +248,7 @@ class SceneManager(StateManager):
                         centers[model] = bounds.center()
                     else:
                         import numpy as np
+
                         centers[model] = np.array([0.0, 0.0, 0.0], dtype=np.float32)
 
             # Perform full interpolation (camera + models)
@@ -243,7 +256,11 @@ class SceneManager(StateManager):
         else:
             # Only camera moved - interpolate only camera and clip planes
             # This avoids moving models and triggering expensive ambient occlusion updates
-            from chimerax.std_commands.view import _interpolate_camera, _interpolate_clip_planes
+            from chimerax.std_commands.view import (
+                _interpolate_camera,
+                _interpolate_clip_planes,
+            )
+
             _interpolate_camera(v1, v2, fraction, current_view.camera)
             _interpolate_clip_planes(v1, v2, fraction, current_view)
 
@@ -252,7 +269,7 @@ class SceneManager(StateManager):
             current_models = self.session.models.list()
             for model in current_models:
                 # Check if both scenes have data for this model
-                if (model in scene1.scene_models and model in scene2.scene_models):
+                if model in scene1.scene_models and model in scene2.scene_models:
                     scene1_restore_implemented, scene1_data = scene1.scene_models[model]
                     scene2_restore_implemented, scene2_data = scene2.scene_models[model]
 
@@ -261,21 +278,23 @@ class SceneManager(StateManager):
                         # For now, just use a simple approach: apply scene1 data if fraction < 0.5, else scene2
                         # More sophisticated model property interpolation could be implemented later
                         if fraction < 0.5:
-                            if hasattr(model, 'restore_scene'):
+                            if hasattr(model, "restore_scene"):
                                 model.restore_scene(scene1_data)
                             else:
                                 from chimerax.core.models import Model
+
                                 Model.restore_scene(model, scene1_data)
                         else:
-                            if hasattr(model, 'restore_scene'):
+                            if hasattr(model, "restore_scene"):
                                 model.restore_scene(scene2_data)
                             else:
                                 from chimerax.core.models import Model
+
                                 Model.restore_scene(model, scene2_data)
 
         # Handle model fading if enabled
         if fade_models:
-            print(f"DEBUG: Applying model fade effects")
+            # print(f"DEBUG: Applying model fade effects")
             self._apply_model_fade(scene1, scene2, fraction)
 
     def _apply_model_fade(self, scene1, scene2, fraction):
@@ -296,15 +315,15 @@ class SceneManager(StateManager):
         # This ensures the fade effect is actually visible during animation
         models_to_fade = appearing_models | disappearing_models
         for model in models_to_fade:
-            if hasattr(model, 'display'):
+            if hasattr(model, "display"):
                 model.display = True
                 # print(f"DEBUG: Made model visible for fading: {model}")
 
         # Debug: Show current session models and their display state
-        #current_session_models = list(self.session.models.list())
+        # current_session_models = list(self.session.models.list())
         # print(f"DEBUG: Current session has {len(current_session_models)} models:")
-        #for model in current_session_models[:5]:  # Limit to first 5
-            # print(f"DEBUG: Session model: {model}, display={getattr(model, 'display', 'N/A')}")
+        # for model in current_session_models[:5]:  # Limit to first 5
+        # print(f"DEBUG: Session model: {model}, display={getattr(model, 'display', 'N/A')}")
 
         # Debug: Let's see what models we actually have
         # print(f"DEBUG: Scene1 visible model names: {[str(m) for m in scene1_visible_models]}")
@@ -330,12 +349,12 @@ class SceneManager(StateManager):
 
         for model in appearing_models:
             # Model should fade in: opacity goes from 0 to original opacity
-            print(f"DEBUG: Checking appearing model {model}")
+            # print(f"DEBUG: Checking appearing model {model}")
 
             # For atomic models, we need to handle atoms.colors
-            if hasattr(model, 'atoms') and len(model.atoms) > 0:
+            if hasattr(model, "atoms") and len(model.atoms) > 0:
                 atoms = model.atoms
-                print(f"DEBUG: Atomic model with {len(atoms)} atoms")
+                # print(f"DEBUG: Atomic model with {len(atoms)} atoms")
 
                 # Get target transparency from scene2 (default to opaque if not stored)
                 target_alpha = 255  # Assume opaque as default (0-255 range)
@@ -354,7 +373,7 @@ class SceneManager(StateManager):
                 # print(f"DEBUG: Fading in atomic model: set {len(atoms)} atom alphas to {current_alpha}")
 
             # For non-atomic models, try the simple color approach
-            elif hasattr(model, 'color'):
+            elif hasattr(model, "color"):
                 # Get target transparency from scene2 (default to opaque if not stored)
                 target_alpha = 255  # Assume opaque as default (0-255 range)
                 current_alpha = int(0 * (1.0 - fraction) + target_alpha * fraction)
@@ -376,9 +395,9 @@ class SceneManager(StateManager):
             # print(f"DEBUG: Checking disappearing model {model}")
 
             # For atomic models, we need to handle atoms.colors
-            if hasattr(model, 'atoms') and len(model.atoms) > 0:
+            if hasattr(model, "atoms") and len(model.atoms) > 0:
                 atoms = model.atoms
-                print(f"DEBUG: Atomic model with {len(atoms)} atoms")
+                # print(f"DEBUG: Atomic model with {len(atoms)} atoms")
 
                 # Get original transparency from scene1 (default to opaque)
                 original_alpha = 255  # Assume opaque as default (0-255 range)
@@ -394,10 +413,10 @@ class SceneManager(StateManager):
                 c = atoms.colors
                 c[:, 3] = current_alpha
                 atoms.colors = c
-                print(f"DEBUG: Fading out atomic model: set {len(atoms)} atom alphas to {current_alpha}")
+                # print(f"DEBUG: Fading out atomic model: set {len(atoms)} atom alphas to {current_alpha}")
 
             # For non-atomic models, try the simple color approach
-            elif hasattr(model, 'color'):
+            elif hasattr(model, "color"):
                 # Get original transparency from scene1 (default to opaque)
                 original_alpha = 255  # Assume opaque as default (0-255 range)
                 current_alpha = int(original_alpha * (1.0 - fraction) + 0 * fraction)
@@ -406,21 +425,23 @@ class SceneManager(StateManager):
                 try:
                     r, g, b, a = model.color
                     model.color = (r, g, b, current_alpha)
-                    print(f"DEBUG: Fading out non-atomic model: set color alpha to {current_alpha}")
+                    # print(f"DEBUG: Fading out non-atomic model: set color alpha to {current_alpha}")
                 except:
-                    print(f"DEBUG: Could not set color on model {model}")
+                    pass
+                # print(f"DEBUG: Could not set color on model {model}")
             else:
-                print(f"DEBUG: Model {model} has no atoms or color attribute")
+                pass
+            # print(f"DEBUG: Model {model} has no atoms or color attribute")
 
     def _apply_model_alpha(self, model, start_alpha, end_alpha, fraction):
         """Apply alpha interpolation to a model (works for both fade in/out)"""
         current_alpha = int(start_alpha * (1.0 - fraction) + end_alpha * fraction)
 
-        if hasattr(model, 'atoms') and len(model.atoms) > 0:
+        if hasattr(model, "atoms") and len(model.atoms) > 0:
             c = model.atoms.colors
             c[:, 3] = current_alpha
             model.atoms.colors = c
-        elif hasattr(model, 'color'):
+        elif hasattr(model, "color"):
             try:
                 r, g, b, a = model.color
                 model.color = (r, g, b, current_alpha)
@@ -435,32 +456,33 @@ class SceneManager(StateManager):
         rotating the camera around stationary models, which triggers expensive operations
         like ambient occlusion recalculation.
         """
-        print(f"DEBUG: _models_actually_moved called")
+        # print(f"DEBUG: _models_actually_moved called")
 
         # Get model positions from both views
         pos1 = v1.positions
         pos2 = v2.positions
 
-        print(f"DEBUG: pos1 has {len(pos1)} models, pos2 has {len(pos2)} models")
+        # print(f"DEBUG: pos1 has {len(pos1)} models, pos2 has {len(pos2)} models")
 
         # Don't consider model visibility changes as "movement"
         # Only check position changes of models that exist in BOTH scenes
         common_models = set(pos1.keys()) & set(pos2.keys())
-        print(f"DEBUG: {len(common_models)} models exist in both scenes")
+        # print(f"DEBUG: {len(common_models)} models exist in both scenes")
 
         # If no common models, no movement to check
         if not common_models:
-            print(f"DEBUG: No common models - treating as camera-only movement")
+            # print(f"DEBUG: No common models - treating as camera-only movement")
             return False
 
         # Check if any model position actually changed
         # We need to be careful about floating point precision
         # Using a much more permissive tolerance for performance
-        tolerance = 1e-1  # Very permissive - only catch actual intentional model movements
+        tolerance = (
+            1e-1  # Very permissive - only catch actual intentional model movements
+        )
 
         models_moved = False
         for model in common_models:  # Only check models in both scenes
-
             positions1 = pos1[model]
             positions2 = pos2[model]
 
@@ -477,6 +499,7 @@ class SceneManager(StateManager):
 
                 # Check if matrices are significantly different
                 import numpy as np
+
                 diff = np.abs(m1 - m2)
                 max_diff = np.max(diff)
                 if max_diff > tolerance:
@@ -488,9 +511,11 @@ class SceneManager(StateManager):
 
         # Debug logging to understand performance issues
         if models_moved:
-            print(f"DEBUG: Models actually moved between scenes - using full interpolation")
+            pass
+            # print(f"DEBUG: Models actually moved between scenes - using full interpolation")
         else:
-            print(f"DEBUG: Only camera moved - using camera-only interpolation")
+            pass
+            # print(f"DEBUG: Only camera moved - using camera-only interpolation")
 
         return models_moved
 
@@ -500,11 +525,11 @@ class SceneManager(StateManager):
 
         # print(f"DEBUG: _get_visible_models_in_scene for scene '{scene.name if hasattr(scene, 'name') else 'unknown'}'")
 
-        if not hasattr(scene, 'named_view'):
+        if not hasattr(scene, "named_view"):
             # print(f"DEBUG: Scene has no named_view")
             return visible_models
 
-        if not hasattr(scene.named_view, 'positions'):
+        if not hasattr(scene.named_view, "positions"):
             # print(f"DEBUG: NamedView has no positions")
             return visible_models
 
@@ -531,20 +556,26 @@ class SceneManager(StateManager):
         # Check display state from scene data for each current model
         current_models = self.session.models.list()
         for model in current_models:
-            if hasattr(scene, 'scene_models') and model in scene.scene_models:
+            if hasattr(scene, "scene_models") and model in scene.scene_models:
                 has_restore, scene_data = scene.scene_models[model]
 
                 # Look for top-level display attribute in the scene data
                 display_value = None
                 if isinstance(scene_data, dict):
                     # Check for model state -> display (works for most models)
-                    if 'model state' in scene_data and isinstance(scene_data['model state'], dict):
-                        display_value = scene_data['model state'].get('display')
+                    if "model state" in scene_data and isinstance(
+                        scene_data["model state"], dict
+                    ):
+                        display_value = scene_data["model state"].get("display")
                     # For atomic structures, also check structure state -> model state -> display
-                    elif 'structure state' in scene_data and isinstance(scene_data['structure state'], dict):
-                        model_state = scene_data['structure state'].get('model state', {})
+                    elif "structure state" in scene_data and isinstance(
+                        scene_data["structure state"], dict
+                    ):
+                        model_state = scene_data["structure state"].get(
+                            "model state", {}
+                        )
                         if isinstance(model_state, dict):
-                            display_value = model_state.get('display')
+                            display_value = model_state.get("display")
 
                 if display_value is True:
                     visible_models.add(model)
@@ -561,4 +592,3 @@ class SceneManager(StateManager):
 
         # print(f"DEBUG: Returning {len(visible_models)} visible models")
         return visible_models
-

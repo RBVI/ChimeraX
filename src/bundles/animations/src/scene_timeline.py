@@ -223,6 +223,7 @@ class TimelineSceneWidget(QWidget):
 
     scene_dropped = Signal(str, float)  # scene_name, time
     scene_moved = Signal(str, float, float)  # scene_name, old_time, new_time
+    scene_deleted = Signal(str)  # scene_name
     time_clicked = Signal(float)  # time position clicked
 
     def __init__(self, duration=5.0, parent=None):
@@ -236,6 +237,15 @@ class TimelineSceneWidget(QWidget):
 
         # Enable drag and drop
         self.setAcceptDrops(True)
+
+        # Enable focus to receive key events
+        self.setFocusPolicy(Qt.StrongFocus)
+
+        # Selected scene tracking
+        self.selected_scene = None
+
+        # Store reference to session for key handling
+        self.session = None
 
         # Dragging state for scene markers
         self.dragging_scene = None  # Scene name being dragged
@@ -393,9 +403,15 @@ class TimelineSceneWidget(QWidget):
                         thumbnail_pixmap,
                     )
 
-                # Draw border around thumbnail
+                # Draw border around thumbnail (highlight if selected)
                 painter.setBrush(Qt.NoBrush)
-                painter.setPen(QColor(100, 150, 255, 200))
+                if scene_name == self.selected_scene:
+                    # Highlight selected scene with thicker, brighter border
+                    painter.setPen(QColor(255, 255, 0, 255))  # Yellow selection
+                    painter.drawRect(thumb_rect_x - 1, thumb_rect_y - 1, thumb_rect_w + 2, thumb_rect_h + 2)
+                    painter.setPen(QColor(255, 255, 0, 200))
+                else:
+                    painter.setPen(QColor(100, 150, 255, 200))
                 painter.drawRect(thumb_rect_x, thumb_rect_y, thumb_rect_w, thumb_rect_h)
 
                 # Scene name below thumbnail
@@ -543,7 +559,7 @@ class TimelineSceneWidget(QWidget):
             event.ignore()
 
     def mousePressEvent(self, event):
-        """Handle mouse clicks on timeline"""
+        """Handle mouse clicks on timeline for scene selection"""
         if event.button() == Qt.LeftButton:
             # Calculate time from click position
             x = event.position().x()
@@ -553,30 +569,32 @@ class TimelineSceneWidget(QWidget):
             # Check if we clicked on a scene marker
             clicked_scene = self._get_scene_at_position(x)
             if clicked_scene:
+                # Select the scene for potential deletion
+                self.selected_scene = clicked_scene
+                self.setFocus()  # Ensure we can receive key events
+
                 # Prepare for potential scene dragging
                 self.dragging_scene = clicked_scene
                 self.drag_start_pos = event.position()
                 self.original_scene_time = self._get_scene_time(clicked_scene)
                 self.dragging_playhead = False
 
-                # Restore the clicked scene immediately using the same approach as the scenes tool
-                session = self._get_session()
-                if session:
-                    from chimerax.core.commands import run
-
-                    run(session, f'scene restore "{clicked_scene}"')
-                    print(f"Restored scene: {clicked_scene}")
+                # Single click now only selects - don't restore scene
                 # Don't move playhead when clicking on scenes
+                self.update()  # Redraw to show selection
             else:
-                # Clear scene dragging state and prepare for playhead dragging
+                # Clear scene selection and dragging state
+                self.selected_scene = None
                 self.dragging_scene = None
                 self.drag_start_pos = event.position()
                 self.original_scene_time = None
                 self.dragging_playhead = True
 
                 # Only update current time and emit signal when NOT clicking on a scene
-                self.set_current_time(time)
-                self.time_clicked.emit(time)
+                # Also check if we're clicking within timeline bounds
+                if x <= self.width():  # Only if click is within timeline
+                    self.set_current_time(time)
+                    self.time_clicked.emit(time)
 
         super().mousePressEvent(event)
 
@@ -648,6 +666,43 @@ class TimelineSceneWidget(QWidget):
 
         super().mouseReleaseEvent(event)
 
+    def mouseDoubleClickEvent(self, event):
+        """Handle double-clicks for scene restoration"""
+        if event.button() == Qt.LeftButton:
+            # Calculate click position
+            x = event.position().x()
+
+            # Check if we double-clicked on a scene marker
+            clicked_scene = self._get_scene_at_position(x)
+            if clicked_scene:
+                # Restore the double-clicked scene
+                session = self._get_session()
+                if session:
+                    from chimerax.core.commands import run
+                    run(session, f'scene restore "{clicked_scene}"')
+                    print(f"Restored scene: {clicked_scene}")
+
+        super().mouseDoubleClickEvent(event)
+
+    def keyPressEvent(self, event):
+        """Handle key presses for scene deletion"""
+        if event.key() == Qt.Key_Delete and self.selected_scene:
+            # Delete the selected scene
+            self.scene_deleted.emit(self.selected_scene)
+            self.selected_scene = None
+            self.update()
+            # Don't call super() to prevent forwarding to command line
+            return
+        else:
+            super().keyPressEvent(event)
+
+    def _grab_focus_and_handle_delete(self):
+        """Alternative approach: just handle delete in a more direct way"""
+        if self.selected_scene:
+            self.scene_deleted.emit(self.selected_scene)
+            self.selected_scene = None
+            self.update()
+
     def contextMenuEvent(self, event):
         """Show context menu on right-click for transition settings"""
         # print(f"DEBUG: Context menu event at position {event.pos().x()}")
@@ -677,6 +732,11 @@ class TimelineSceneWidget(QWidget):
         )
 
         menu = QMenu(self)
+
+        # Add delete option at the top
+        delete_action = menu.addAction(f"Delete '{scene_name}' from Timeline")
+        delete_action.triggered.connect(lambda: self.scene_deleted.emit(scene_name))
+        menu.addSeparator()
 
         # Transition type submenu
         transition_menu = menu.addMenu("Transition Type")
@@ -1014,6 +1074,7 @@ class SceneTimelineWidget(QWidget):
         self.timeline_scene.session = self.session  # Pass session to timeline
         self.timeline_scene.scene_dropped.connect(self.on_scene_dropped)
         self.timeline_scene.scene_moved.connect(self.on_scene_moved)
+        self.timeline_scene.scene_deleted.connect(self.on_scene_deleted)
         self.timeline_scene.time_clicked.connect(self.on_time_clicked)
         timeline_layout.addWidget(self.timeline_scene)
 
@@ -1036,6 +1097,12 @@ class SceneTimelineWidget(QWidget):
         # Emit signal so parent tool can update the animation
         self.scene_moved.emit(scene_name, old_time, new_time)
         print(f"Scene '{scene_name}' moved from {old_time:.2f}s to {new_time:.2f}s")
+
+    def on_scene_deleted(self, scene_name):
+        """Handle scene deleted from timeline"""
+        # Remove scene marker from timeline widget
+        self.timeline_scene.remove_scene_marker(scene_name)
+        print(f"Scene '{scene_name}' removed from timeline")
 
     def on_time_clicked(self, time):
         """Handle timeline click to preview at that time"""
