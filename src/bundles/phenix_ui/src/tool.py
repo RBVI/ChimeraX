@@ -1267,6 +1267,7 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
 
         self.bounds_text = "Adjust search bounds"
         self.move_text = "Move example ligand"
+        self.translate_text = "Translate scene"
         super().__init__(session, initial_center, ligand)
         from chimerax.core.commands import run
         run(session,
@@ -1289,6 +1290,10 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         self.center_button.toggled.connect(lambda *args, run=run, ses=self.session:
             run(ses, "ui mousemode right 'translate selected models'"))
         b_layout.addWidget(self.center_button)
+        self.translate_button = QRadioButton(self.translate_text)
+        self.translate_button.toggled.connect(lambda *args, run=run, ses=self.session:
+            run(ses, "ui mousemode right translate"))
+        b_layout.addWidget(self.translate_button)
         self.other_button = QRadioButton("(Other)")
         b_layout.addWidget(self.other_button)
         self.other_button.setEnabled(False)
@@ -1336,7 +1341,7 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
 
     def _mouse_mode_changed(self, trig_name, trig_data):
         button, modifiers, mode = trig_data
-        all_buttons = [self.center_button, self.bounds_button, self.other_button]
+        all_buttons = [self.center_button, self.bounds_button, self.translate_button, self.other_button]
         for b in all_buttons:
             b.blockSignals(True)
         try:
@@ -1346,7 +1351,11 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
             elif mode.name == 'crop volume':
                 self.bounds_button.setChecked(True)
                 self.other_button.setHidden(True)
+            elif mode.name == 'translate':
+                self.translate_button.setChecked(True)
+                self.other_button.setHidden(True)
             else:
+                self.other_button.setText(f"({mode.name})")
                 self.other_button.setHidden(False)
                 self.other_button.setChecked(True)
         finally:
