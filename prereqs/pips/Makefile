@@ -38,12 +38,6 @@ endif
 
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 
-ifeq ($(OSARCH),DarwinArm64)
-CYTHON_BUILD_ARGS= --no-binary :all:
-else
-CYTHON_BUILD_ARGS=
-endif
-
 ifeq ($(OS),Windows)
 else
 ifeq ($(OS),Linux)
@@ -57,6 +51,7 @@ ifeq ($(OSARCH),DarwinArm64)
 SCIPY_WHEEL = $(subst ==,-,$(shell grep scipy $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_12_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
+SCIPY_WHEEL = $(subst ==,-,$(shell grep scipy $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_10_14_x86_64.whl
 endif
 endif
 endif
@@ -77,13 +72,13 @@ app-list:
 
 upgrade:
 
-ifeq ($(OSARCH),DarwinArm64)
+ifeq ($(OS),Darwin)
 app-install: app_requirements.txt $(PLATO_WHEELS) $(SCIPY_WHEEL)
 else
 app-install: app_requirements.txt $(PLATO_WHEELS)
 endif
-	# Install Cython first so PyOpenGL_accelerate builds
-	$(APP_PIP_INSTALL) $(CYTHON_BUILD_ARGS) $(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
+	# Install Cython first so ndindex builds on Linux ARM64
+	$(APP_PIP_INSTALL) $(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt | sed -e 's/[\ #",]//g')
 ifeq ($(OSARCH),DarwinArm64)
 	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)

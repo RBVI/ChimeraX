@@ -351,11 +351,28 @@ class GridCanvas:
         QToolTip.showText(event.screenPos(), self.main_view.toolTip())
 
     def mouse_move(self, event):
-        residues, row, col = self._residues_for_event(event)
-        if col is None:
+        residues, event_row, event_col = self._residues_for_event(event)
+        if event_col is None:
             text = ""
         else:
-            text = "Column " + str(col+1)
+            text = "Column " + str(event_col+1)
+            associations = {}
+            for row, label in enumerate(self.existing_row_labels):
+                row_residues = self._residues_at(row, event_col)
+                if row_residues:
+                    associations[label] = len(row_residues)
+            if associations:
+                text += '; '
+                labels = list(associations.keys())
+                labels.sort(key=lambda l: -associations[l])
+                label = labels.pop(0)
+                text += "%d chain%s associated with %s" % (associations[label],
+                    ("s" if associations[label] > 1 else ""), label)
+                for label in labels[:-1]:
+                    text += ", %d with %s" % (associations[label], label)
+                if labels:
+                    label = labels[-1]
+                    text += " and %d with %s" % (associations[label], label)
         self.pg.status(text, secondary=True)
 
     def refresh(self, seq, left=0, right=None):

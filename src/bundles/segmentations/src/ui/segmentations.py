@@ -728,6 +728,15 @@ class SegmentationTool(ToolInstance):
             if self.session.ui.main_window.view_layout == "orthoplanes":
                 self.session.ui.main_window.main_view.add_segmentation(model)
 
+    def set_radius(self, axis, radius):
+        if axis not in self.segmentation_cursors:
+            new_cursor = SegmentationDisk(self.session, axis, height=5)
+            self.segmentation_cursors[axis] = new_cursor
+            self.session.models.add([new_cursor])
+            self.session.logger.info("Created segmentation sphere cursor with ID #%s" % new_cursor.id_string)
+        self.segmentation_cursors[axis].radius = radius
+
+
     def _clear_segmentation_list(self):
         for _ in range(self.segmentation_list.count()):
             item = self.segmentation_list.takeItem(0)
@@ -792,6 +801,9 @@ class SegmentationTool(ToolInstance):
                                 segments = [seg_item.segmentation]
                                 seg_item.segmentation = None
                                 del seg_item
+                if isinstance(model, SegmentationDisk):
+                    self.segmentation_cursors[model.axis] = None
+                    del self.segmentation_cursors[model.axis]
 
     def delete(self):
         self.session.triggers.remove_handler(self.model_added_handler)

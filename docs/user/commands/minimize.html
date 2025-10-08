@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
 
 <!--
 === UCSF ChimeraX Copyright ===
@@ -35,10 +35,8 @@ class="clRighticon" title="User Guide Index"/></a>
 [&nbsp;<b>logEnergy</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </h3>
 <p>
-<b>**In progress**</b> and currently works only for structures containing only
-&ldquo;standard&rdquo; residues as defined  in the Amber14 parameter files.
 <!-- 
-it uses amber14-all.xml and amber14/tip3pfb.xml to define what's standard,
+uses amber14-all.xml and amber14/tip3pfb.xml to define what's standard,
 and amber-14-all in turn uses amber14/protein.ff14SB.xml, amber14/DNA.OL15.xml,
 amber14/RNA.OL3.xml, and amber14/lipid17.xml. Links:
 https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14-all.xml
@@ -48,34 +46,51 @@ https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amb
 https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/RNA.OL3.xml
 https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/lipid17.xml
 -->
-These include standard amino and nucleic acid residues, water, and 
-several lipids and metal ions, but not arbitrary ligands.
-Only a single model should be specified.
-The minimization is carried out using the OpenMM
+The <b>minimize</b> command energy-minimizes atomic structures.
+The corresponding tool is
+<a href="../tools/minimizestructure.html"><b>Minimize Structure</b></a>.
+Only a single atomic model should be specified; to combine multiple models 
+into one beforehand, see <a href="combine.html"><b>combine</b></a>.
+The atoms are assigned types and associated force field parameters
+as described for <a href="addcharge.html"><b>addcharge</b></a>, and
+then the minimization is carried out using the OpenMM
 <a href="http://docs.openmm.org/7.0.0/api-python/generated/simtk.openmm.openmm.LocalEnergyMinimizer.html" 
 target="_blank">LocalEnergyMinimizer</a> with the
 <a href="http://docs.openmm.org/7.1.0/api-python/generated/simtk.openmm.openmm.LangevinIntegrator.html"
 target="_blank">LangevinIntegrator</a>.
+See also: 
+<a href="../tools/buildstructure.html"><b>Build Structure</b></a>,
+<a href="tug.html"><b>tug</b></a>,
+<a href="ui.html#mousemode">mouse modes</a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/tug.png"></a>
+<b>tug</b> and
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/minimize.png"></a>
+<b>minimize</b>
 </p><p>
 By default (<b>dockprep true</b>), the <b>minimize</b> command calls 
 <a href="dockprep.html"><b>dockprep</b></a> to perform
-several tasks to prepare the structure beforehand, such as:
+several tasks to prepare the structure beforehand, including:
 </p>
 <ul>
-<li> deleting water molecules
-<li> repairing truncated sidechains
-<li> adding hydrogens
-<li> assigning partial charges
+<li>deleting water molecules
+<li>repairing truncated sidechains
+<li>adding hydrogens
+<li>assigning partial charges
 </ul>
 <p>
 The <a href="dockprep.html"><b>dockprep</b></a> command options can
 also be used in the <b>minimize</b> command to control these processes.
 </p><p>
-The <b>maxSteps</b> option sets the number of iterations
+The <b>maxSteps</b> option sets the number of minimization steps
 (default <b>0</b>, meaning that minimization will continue until 
-convergence regardless of how many iterations it takes).
-Convergence is defined as when the root-mean-square of all force components 
-falls to 10 or lower.
+convergence regardless of how many steps it takes).
+If a maximum number of steps (>0) is specified, minimization
+will still end at convergence, even if fewer than the specified number
+of steps have been taken.
+Convergence is defined as when the root-mean-square of all 
+force components falls to 10 or lower.
 </p><p>
 The <b>liveUpdates</b> option (default <b>true</b>)
 indicates whether to update the structure periodically during the
@@ -91,5 +106,5 @@ indicates whether to also report the energy in the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-July 2024</address>
+October 2025</address>
 </body></html>

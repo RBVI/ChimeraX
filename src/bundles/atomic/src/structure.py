@@ -203,7 +203,7 @@ class Structure(Model, StructureData):
         # Setup handler to manage C++ data changes that require graphics updates.
         self._graphics_updater.add_structure(self)
         Model.added_to_session(self, session, log_info = self._log_info)
-
+            
     def removed_from_session(self, session):
         self._graphics_updater.remove_structure(self)
 
@@ -1330,6 +1330,14 @@ class AtomicStructure(Structure):
             self._report_altloc_info(session)
             self._report_aniso_info(session)
 
+        emdb_id = getattr(self, 'fetch_emdb_id', None)
+        if emdb_id:
+            from chimerax.core.commands import run
+            try:
+                run(session, f'open {emdb_id} from emdb')
+            except BaseException as e:
+                session.logger.warning(f'Failed fetching {emdb_id}: {str(e)}')
+
     def apply_auto_styling(self, set_lighting = False, style=None):
         explicit_style = style is not None
         if style is None:
@@ -1703,14 +1711,14 @@ class AtomicStructure(Structure):
             pass
         else:
             if len(template_details_headers) != 11:
-                session.warning("Don't know how to parse model template detail information")
+                session.logger.warning("Don't know how to parse model template detail information")
             else:
                 for i in range(0, len(template_details), 10):
                     template_id, template_cid = template_details[i+1], template_details[i+7]
                     try:
                         template_names[template_id] += " /%s" % template_cid
                     except KeyError:
-                        session.warning("Unknown template ID in detail information: %s" % template_id)
+                        session.logger.warning("Unknown template ID in detail information: %s" % template_id)
         """
         if template_segment:
             for template_id, begin, end in template_segment.fields(
@@ -1718,7 +1726,8 @@ class AtomicStructure(Structure):
                 try:
                     template_names[template_id] += ":%s-%s" % (begin, end)
                 except KeyError:
-                    session.warning("Unknown template ID in residue-range information: %s" % template_id)
+                    session.logger.warning("Unknown template ID in residue-range information: %s"
+                        % template_id)
         cur_align = None
         seqs =[]
         from . import Sequence
