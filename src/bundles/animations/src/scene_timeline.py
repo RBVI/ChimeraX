@@ -249,6 +249,7 @@ class TimelineSceneWidget(QWidget):
 
         # Dragging state for scene markers
         self.dragging_scene = None  # Scene name being dragged
+        self.potential_drag_scene = None  # Scene that might be dragged if mouse moves far enough
         self.drag_start_pos = None  # Mouse position when drag started
         self.original_scene_time = None  # Original time of scene being dragged
 
@@ -573,8 +574,9 @@ class TimelineSceneWidget(QWidget):
                 self.selected_scene = clicked_scene
                 self.setFocus()  # Ensure we can receive key events
 
-                # Prepare for potential scene dragging
-                self.dragging_scene = clicked_scene
+                # Prepare for potential scene dragging, but don't actually drag until significant movement
+                self.dragging_scene = None  # Don't set this until we actually start dragging
+                self.potential_drag_scene = clicked_scene  # Track which scene might be dragged
                 self.drag_start_pos = event.position()
                 self.original_scene_time = self._get_scene_time(clicked_scene)
                 self.dragging_playhead = False
@@ -586,6 +588,7 @@ class TimelineSceneWidget(QWidget):
                 # Clear scene selection and dragging state
                 self.selected_scene = None
                 self.dragging_scene = None
+                self.potential_drag_scene = None
                 self.drag_start_pos = event.position()
                 self.original_scene_time = None
                 self.dragging_playhead = True
@@ -600,24 +603,29 @@ class TimelineSceneWidget(QWidget):
 
     def mouseMoveEvent(self, event):
         """Handle mouse movement for dragging scene markers or playhead"""
+        # Check if we have a potential drag that should become actual dragging
+        if self.potential_drag_scene and self.drag_start_pos and not self.dragging_scene:
+            current_pos = event.position()
+            from Qt.QtWidgets import QApplication
+
+            # Only start dragging if mouse has moved significantly (default drag distance)
+            if (current_pos - self.drag_start_pos).manhattanLength() > QApplication.startDragDistance():
+                # Now start actually dragging
+                self.dragging_scene = self.potential_drag_scene
+                self.potential_drag_scene = None
+
         if self.dragging_scene and self.drag_start_pos:
             # Calculate how far we've moved
             current_pos = event.position()
 
-            # Check if we've moved far enough to start dragging
-            from Qt.QtWidgets import QApplication
+            # Calculate new time position
+            x = current_pos.x()
+            new_time = (x / self.width()) * self.duration
+            new_time = max(0, min(new_time, self.duration))  # Clamp to valid range
 
-            if (
-                current_pos - self.drag_start_pos
-            ).manhattanLength() > QApplication.startDragDistance():
-                # Calculate new time position
-                x = current_pos.x()
-                new_time = (x / self.width()) * self.duration
-                new_time = max(0, min(new_time, self.duration))  # Clamp to valid range
-
-                # Update the scene marker position
-                self._move_scene_marker(self.dragging_scene, new_time)
-                self.update()
+            # Update the scene marker position
+            self._move_scene_marker(self.dragging_scene, new_time)
+            self.update()
 
         elif self.dragging_playhead and self.drag_start_pos:
             # Handle playhead dragging for timeline scrubbing
@@ -654,6 +662,13 @@ class TimelineSceneWidget(QWidget):
 
                 # Clear scene dragging state
                 self.dragging_scene = None
+                self.potential_drag_scene = None
+                self.drag_start_pos = None
+                self.original_scene_time = None
+
+            elif self.potential_drag_scene:
+                # Clear potential drag state (was a simple click, not a drag)
+                self.potential_drag_scene = None
                 self.drag_start_pos = None
                 self.original_scene_time = None
 
