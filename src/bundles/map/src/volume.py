@@ -1852,6 +1852,15 @@ class Volume(Model):
   def take_snapshot(self, session, flags):
     from .session import state_from_map, grid_data_state
     from chimerax.core.state import State
+
+    # For scene snapshots, return simplified data
+    if flags & State.SCENE:
+      from .session import state_from_map
+      scene_data = state_from_map(self)
+      print(f"DEBUG: Volume take_snapshot for SCENE, data keys: {scene_data.keys()}")
+      return scene_data
+
+    # For full snapshots, include everything
     include_maps = bool(flags & State.INCLUDE_MAPS)
     data = {
       'model state': Model.take_snapshot(self, session, flags),
@@ -1876,6 +1885,20 @@ class Volume(Model):
     v._drawings_need_update()
     show_volume_dialog(session)
     return v
+
+  # ---------------------------------------------------------------------------
+  # Scene interface implementation
+  #
+  def restore_scene(self, scene_data):
+    '''
+    Restore volume to state from scene_data (obtained from take_snapshot() with State.SCENE flag)
+    '''
+    print(f"DEBUG: Volume.restore_scene called with data keys: {scene_data.keys()}")
+
+    # Handle volume-specific scene properties using existing session code
+    from .session import set_map_state
+    set_map_state(scene_data, self, notify=True)
+    self._drawings_need_update()
 
 # -----------------------------------------------------------------------------
 #
