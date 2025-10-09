@@ -204,7 +204,6 @@ class EmplaceLocalResultsViewer(ToolInstance):
         self.sym_map = sym_map
 
         from chimerax.core.models import REMOVE_MODELS
-        from chimerax.atomic import get_triggers
         self._finalizing_symmetry = False
         self.handlers = [
             self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
@@ -1271,7 +1270,7 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         super().__init__(session, initial_center, ligand)
         from chimerax.core.commands import run
         run(session,
-            f"view {map.atomspec}; ui mousemode right 'translate selected models'; select {ligand.atomspec}")
+            f"view {ligand.atomspec} @<{extent_angstroms}; ui mousemode right 'translate selected models'; select {ligand.atomspec}")
 
     def add_custom_widgets(self, layout):
         super().add_custom_widgets(layout)
@@ -1394,22 +1393,13 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
 class PickBlobDialog(QDialog):
     instructions = "instructions"
 
-    def __init__(self, session, verify_center, ligand_fmt, ligand_value, receptor, map,
-            chain_id, res_num, resolution, extent_type, extent_value, hbonds, clashes):
+    def __init__(self, session, verify_center, *non_center_args):
         super().__init__()
         self.session = session
         self.verify_center = verify_center
-        self.ligand_fmt = ligand_fmt
-        self.ligand_value = ligand_value
-        self.receptor = receptor
-        self.map = map
-        self.chain_id = chain_id
-        self.res_num = res_num
-        self.resolution = resolution
-        self.extent_type = extent_type
-        self.extent_value = extent_value
-        self.hbonds = hbonds
-        self.clashes = clashes
+        self.non_center_args = non_center_args
+        ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution, extent_type, \
+            extent_value, hbonds, clashes = non_center_args
 
         from Qt.QtWidgets import QVBoxLayout, QLabel
         layout = QVBoxLayout()
@@ -1419,6 +1409,35 @@ class PickBlobDialog(QDialog):
         instructions.setAlignment(Qt.AlignCenter)
         layout.addWidget(instructions)
 
+        self.prev_mouse_mode = None
+        for binding in session.ui.mouse_modes.bindings:
+            if binding.matches('right', []):
+                self.prev_mouse_mode = binding.mode
+                break
+
+        self.pick_text = "Pick volume blob"
+        self.translate_text = "Translate scene"
+
+        from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QGroupBox, QRadioButton
+        button_area = QGroupBox("Right Mouse Function")
+        button_area.setAlignment(Qt.AlignHCenter)
+        layout.addWidget(button_area)
+        b_layout = QHBoxLayout()
+        button_area.setLayout(b_layout)
+        from chimerax.core.commands import run
+        self.blob_button = QRadioButton(self.pick_text)
+        self.blob_button.toggled.connect(lambda *args, run=run, ses=self.session:
+            run(ses, "ui mousemode right 'mark maximum'"))
+        b_layout.addWidget(self.blob_button)
+        self.translate_button = QRadioButton(self.translate_text)
+        self.translate_button.toggled.connect(lambda *args, run=run, ses=self.session:
+            run(ses, "ui mousemode right translate"))
+        b_layout.addWidget(self.translate_button)
+        self.other_button = QRadioButton("(Other)")
+        b_layout.addWidget(self.other_button)
+        self.other_button.setEnabled(False)
+        self.mouse_handler = self.session.triggers.add_handler("set mouse mode", self._mouse_mode_changed)
+
         #self.add_custom_widgets(layout)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
@@ -1426,14 +1445,87 @@ class PickBlobDialog(QDialog):
         bbox.addButton("Adjust search zone" if verify_center else VerifyLFCenterDialog.search_button_text,
             bbox.AcceptRole)
         bbox.accepted.connect(self.launch)
-        bbox.accepted.connect(self.close)
         bbox.rejected.connect(self.close)
         layout.addWidget(bbox)
 
+        self.check_models = [receptor, map]
+        from chimerax.core.models import REMOVE_MODELS
+        self.remove_models_handler = session.triggers.add_handler(REMOVE_MODELS, self._check_still_valid)
+        from chimerax.atomic import get_triggers
+        self.new_marker_handler = get_triggers().add_handler('changes', self._new_marker_check)
+        self._current_marker = None
+        self._creating_markers = False
+
         self.show()
 
+        from chimerax.core.commands import run
+        run(session, f"ui mousemode right 'mark maximum'")
+
+    def closeEvent(self, event):
+        self.mouse_handler.remove()
+        self.remove_models_handler.remove()
+        self.new_marker_handler.remove()
+        return super().closeEvent(event)
+
     def launch(self):
-        pass
+        self.hide()
+        self.session.ui.processEvents()
+        # restore previous mouse mode
+        if self.prev_mouse_mode is not None:
+            from chimerax.core.commands import run
+            run(self.session, f"ui mousemode right '{self.prev_mouse_mode.name}'")
+        if self._current_marker and not self._current_marker.deleted:
+            center = self._current_marker.scene_coord
+            self._current_marker.structure.delete_atom(self._current_marker)
+        else:
+            self.show()
+            from chimerax.ui import tool_user_error
+            return tool_user_error("No volume blob picked")
+        if self.verify_center:
+            VerifyLFCenterDialog(self.session, center, *self.non_center_args)
+        else:
+            _run_ligand_fit_command(self.session, center, *self.non_center_args)
+        self.close()
+
+    def _check_still_valid(self, trig_name, removed_models):
+        for rm in removed_models:
+            if rm in self.check_models:
+                self.close()
+                break
+
+    def _mouse_mode_changed(self, trig_name, trig_data):
+        button, modifiers, mode = trig_data
+        all_buttons = [self.blob_button, self.translate_button, self.other_button]
+        for b in all_buttons:
+            b.blockSignals(True)
+        try:
+            if mode.name == 'mark maximum':
+                self.blob_button.setChecked(True)
+                self.other_button.setHidden(True)
+                self._creating_markers = True
+            elif mode.name == 'translate':
+                self.translate_button.setChecked(True)
+                self.other_button.setHidden(True)
+                self._creating_markers = False
+            else:
+                self.other_button.setText(f"({mode.name})")
+                self.other_button.setHidden(False)
+                self.other_button.setChecked(True)
+                self._creating_markers = False
+        finally:
+            for b in all_buttons:
+                b.blockSignals(False)
+
+    def _new_marker_check(self, trig_name, trig_data):
+        if not self._creating_markers:
+            return
+        from chimerax.markers import MarkerSet
+        for a in trig_data.created_atoms():
+            if isinstance(a.structure, MarkerSet):
+                if self._current_marker and not self._current_marker.deleted:
+                    self._current_marker.structure.delete_atom(self._current_marker)
+                self._current_marker = a
+                break
 
 class LaunchLigandFitTool(ToolInstance):
     #help = "help:user/tools/localemfitting.html"
@@ -1728,10 +1820,10 @@ Choices are:
 
         if method == self.CENTER_BLOB:
             from chimerax.core.errors import LimitationError
-            raise LimitationError("Blob-picking centering not yet implemented")
+            #raise LimitationError("Blob-picking centering not yet implemented")
             # Probably needs to subclass VerifyCenterDialog, so that (among other things)
             # triggers hold a reference to the dialog so that it isn't immediately destroyed
-            #return PickBlobDialog(self.session, verify_center, *non_center_args)
+            return PickBlobDialog(self.session, verify_center, *non_center_args)
         elif method == self.CENTER_XYZ:
             center = [float(widget.text()) for widget in self.xyz_widgets]
         elif method == self.CENTER_MODEL:
@@ -1924,7 +2016,6 @@ class FitLoopsResultsViewer(ToolInstance):
         self.map = map
 
         from chimerax.core.models import REMOVE_MODELS
-        from chimerax.atomic import get_triggers
         self.handlers = [
             self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
         ]
