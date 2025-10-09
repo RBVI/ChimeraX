@@ -50,7 +50,8 @@ class MutationHistogram(Graph):
         nodes = edges = []
         Graph.__init__(self, session, nodes, edges,
                        tool_name = 'Mutation scores histogram', title = 'Mutation scores histogram',
-                       hide_ticks = False, drag_select_callback = self._rectangle_selected)
+                       hide_ticks = False, drag_select_callback = self._rectangle_selected,
+                       zoom_axes = 'x', translate_axes = 'x')
 
         tw = self.tool_window
         parent = tw.ui_area
