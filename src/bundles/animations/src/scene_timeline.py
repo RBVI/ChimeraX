@@ -1117,7 +1117,14 @@ class SceneTimelineWidget(QWidget):
         """Handle scene deleted from timeline"""
         # Remove scene marker from timeline widget
         self.timeline_scene.remove_scene_marker(scene_name)
-        print(f"Scene '{scene_name}' removed from timeline")
+
+        # Also remove from the scene animation manager to prevent interpolation errors
+        scene_animation = getattr(self.session, "_scene_animation_manager", None)
+        if scene_animation:
+            scene_animation.remove_scene(scene_name)
+            print(f"Scene '{scene_name}' removed from timeline and animation manager")
+        else:
+            print(f"Scene '{scene_name}' removed from timeline (no animation manager found)")
 
     def on_time_clicked(self, time):
         """Handle timeline click to preview at that time"""
