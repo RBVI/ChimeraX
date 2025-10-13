@@ -75,11 +75,13 @@ class MutationSet(State):
     def computed_values_names(self):
         return tuple(self._computed_scores.keys())
 
-    def associate_chains(self, session):
+    def associate_chains(self, session, report = True):
         if len(self.associated_chains()) == 0:
             chains = _find_matching_chains(session, self.residue_number_to_amino_acid())
             self._associated_chains = chains
             self._associated_residues = [(r.number, r) for chain in chains for r in chain.existing_residues]
+            if report and len(chains) > 0:
+                _report_associated_chains(self, session.logger)
         return self._associated_chains
 
     def associated_chains(self):
