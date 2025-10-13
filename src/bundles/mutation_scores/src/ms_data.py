@@ -112,7 +112,7 @@ class MutationSet(State):
                 achains.append(chain)
                 ares.extend([(rnum,r) for r,rnum in zip(cres,cres_num) if rnum in rnum_to_aa])
             if alignment:
-                msg = (f'Aligned {len(rnums)} residues of sequence {chain} to mutation scores {self.name} with {len(mismatches)} amino acid mismatches. and {len(cres)} aligned residues have coordinates and mutation scores.')
+                msg = (f'Aligned {len(rnums)} residues of sequence {chain} to mutation scores {self.name} with {len(mismatches)} amino acid mismatches. {len(cres)} aligned residues have coordinates and mutation scores.')
                 chain.structure.session.logger.info(msg)
             elif mismatches and not allow_mismatches:
                 r = mismatches[0]
