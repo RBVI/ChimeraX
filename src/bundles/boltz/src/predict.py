@@ -93,25 +93,21 @@ def _polymer_components(sequences, protein, dna, rna):
     chain_ids = set()
     modeled_chains = []
     unmodeled_chains = []
-    from chimerax.atomic import Chain, Residue
+    from chimerax.atomic import Chain
     for seq_list, type in ((sequences, None), (protein, 'protein'), (dna, 'dna'), (rna, 'rna')):
         for seq in seq_list:
             seq_string = seq.characters
             is_chain = isinstance(seq, Chain)
+            polymer_type = _chain_type(seq) if is_chain else None  # protein, dna, rna or None
             if type is None:
                 if is_chain:
-                    if seq.polymer_type == Residue.PT_AMINO:
-                        polymer_type = 'protein'
-                    elif seq.polymer_type == Residue.PT_NUCLEIC:
-                        # TODO: This is not reliable to distinguish RNA from DNA
-                        polymer_type = 'rna' if 'U' in seq_string else 'dna'
-                    else:
+                    if polymer_type is None:
                         unmodeled_chains.append(seq)
                         continue
                 else:
                     polymer_type = 'protein'
-            else:
-                polymer_type = type
+            elif polymer_type != type:
+                continue
             chain_id = _next_chain_id(chain_ids, seq.chain_id) if is_chain else None
             seqs.append([polymer_type, chain_id, seq_string])
             if is_chain:
@@ -136,6 +132,19 @@ def _polymer_components(sequences, protein, dna, rna):
                           for (polymer_type, seq_string), chain_ids in useqs.items()]
 
     return polymer_components, modeled_chains, unmodeled_chains
+
+# ------------------------------------------------------------------------------
+#
+def _chain_type(chain):
+    from chimerax.atomic import Residue
+    if chain.polymer_type == Residue.PT_AMINO:
+        polymer_type = 'protein'
+    elif chain.polymer_type == Residue.PT_NUCLEIC:
+        # TODO: This is not reliable to distinguish RNA from DNA
+        polymer_type = 'rna' if 'U' in chain.characters else 'dna'
+    else:
+        polymer_type = None
+    return polymer_type
 
 # ------------------------------------------------------------------------------
 #

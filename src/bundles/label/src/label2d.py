@@ -551,6 +551,8 @@ class Label:
         # Used to be in LabelModel.update_drawing(), but that doesn't get called if display is False!
         d.display = self.visibility
         d.redraw_needed()
+        if self.text != d.name:
+            d.name = self.text
         
     def delete(self):
         d = self.drawing
