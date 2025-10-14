@@ -592,6 +592,12 @@ class LabelModel(Model):
     def delete(self):
         Model.delete(self)
         self.label.delete()
+
+    def _set_label_display(self, display):
+        # Make sure label visibility attribute tracks model display changes.
+        self.label.visibility = display
+        Model.display.fset(self, display)
+    display = Model.display.setter(_set_label_display)
         
     def draw(self, renderer, draw_pass):
         if self._update_graphics(renderer):
