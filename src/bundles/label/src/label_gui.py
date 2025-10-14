@@ -19,7 +19,7 @@ from chimerax.core.tools import ToolInstance
 # ------------------------------------------------------------------------------
 #
 class LabelGUI(ToolInstance):
-    help = "help:user/tools/labels.html"
+    help = "help:user/tools/2dlabels.html"
 
     def __init__(self, session, tool_name):
 
