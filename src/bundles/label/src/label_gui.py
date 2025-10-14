@@ -84,8 +84,7 @@ class LabelGUI(ToolInstance):
         size.widget.returnPressed.connect(self._update_label_size)
         size.widget.setMaximumWidth(30)
         color.color_changed.connect(self._update_color)
-        color.color = 'white'
-        self._user_set_color = False
+        color.color = self._default_color()
         c2.labels[0].setMinimumWidth(100)	# Indent second line of controls
         font.widget.menu().triggered.connect(self._update_font)
         style.widget.menu().triggered.connect(self._update_style)
@@ -95,6 +94,19 @@ class LabelGUI(ToolInstance):
         bg_color.color_changed.connect(self._update_background_color)
         bg_color.color = 'black'
 
+    def _default_color(self):
+        bg = [255*c for c in self.session.main_view.background_color]
+        from .label2d import _contrasting_rgba8
+        return _contrasting_rgba8(bg)
+
+    def _color_or_default(self, rgba8):
+        if tuple(rgba8) == tuple(self._default_color()):
+            color_name = 'default'
+        else:
+            from chimerax.core import colors
+            color_name = colors.color_name(rgba8)
+        return color_name
+    
     def _create_arrow_controls(self, parent):
         from chimerax.ui.widgets import EntriesRow, ColorButton
         EntriesRow(parent, 'Click and drag on graphics to create an arrow.  Drag arrow ends to reposition them.')
@@ -106,8 +118,7 @@ class LabelGUI(ToolInstance):
         amenu.triggered.connect(self._arrow_menu_changed)
         amenu.aboutToShow.connect(self._fill_arrow_menu)
         color.color_changed.connect(self._update_arrow_color)
-        color.color = 'white'
-        self._user_set_arrow_color = False
+        color.color = self._default_color()
         weight.widget.returnPressed.connect(self._update_arrow_weight)
         weight.widget.setMaximumWidth(30)
         style.widget.menu().triggered.connect(self._update_arrow_style)
@@ -182,9 +193,8 @@ class LabelGUI(ToolInstance):
         size = self._size.value
         if size != 24:
             options.append(f'size {size}')
-        from chimerax.core.colors import color_name
-        color = color_name(self._color.color) if self._user_set_color else None
-        if color is not None:
+        color = self._color_or_default(self._color.color)
+        if color != 'default':
             options.append(f'color {color}')
         x, y = ('%.3f' % self._label_position[0]), ('%.3f' % self._label_position[1])
         options.append(f'xpos {x} ypos {y}')
@@ -214,15 +224,13 @@ class LabelGUI(ToolInstance):
             self._run_command(f'2dlabel {self._label_spec} size {size}')
     
     def _update_color(self):
-        self._user_set_color = True
         label = self._current_label
         if label is None:
             return
 
         color = self._color.color
         if label == 'all' or label.color is None or tuple(color) != tuple(label.color):
-            from chimerax.core.colors import color_name
-            cname = color_name(color)
+            cname = self._color_or_default(color)
             self._run_command(f'2dlabel {self._label_spec} color {cname}')
     
     def _update_background_color(self):
@@ -328,7 +336,7 @@ class LabelGUI(ToolInstance):
             text.selectAll()
             text.setFocus()
         self._size.value = label.size
-        self._color.color = 'white' if label.color is None else label.color
+        self._color.color = self._default_color() if label.color is None else label.color
         self._label_position = (label.xpos, label.ypos)
         self._font.value = label.font
         style = ('bold italic' if label.italic else 'bold') if label.bold else ('italic' if label.italic else 'normal')
@@ -342,7 +350,7 @@ class LabelGUI(ToolInstance):
     def _set_current_arrow(self, arrow):
         self._arrow_menu.value = arrow.drawing.atomspec
         self._current_arrow = arrow
-        self._arrow_color.color = 'white' if arrow.color is None else arrow.color
+        self._arrow_color.color = self._default_color() if arrow.color is None else arrow.color
         self._arrow_weight.value = arrow.weight
         self._arrow_style.value = arrow.head_style
         self._set_arrow_mouse_mode_defaults()
@@ -378,15 +386,13 @@ class LabelGUI(ToolInstance):
     
     def _update_arrow_color(self):
         self._set_arrow_mouse_mode_defaults()
-        self._user_set_arrow_color = True
         arrow = self._current_arrow
         if arrow is None:
             return
 
         color = self._arrow_color.color
         if arrow == 'all' or arrow.color is None or tuple(color) != tuple(arrow.color):
-            from chimerax.core.colors import color_name
-            cname = color_name(color)
+            cname = self._color_or_default(color)
             self._run_command(f'2dlabel arrow {self._arrow_spec} color {cname}')
             
     def _update_arrow_weight(self):
@@ -412,7 +418,8 @@ class LabelGUI(ToolInstance):
     def _set_arrow_mouse_mode_defaults(self):
         arrow_mode = self.session.ui.mouse_modes.named_mode('label or arrow')
         if arrow_mode:
-            arrow_mode.color = self._arrow_color.color if self._user_set_arrow_color else None
+            color = self._arrow_color.color
+            arrow_mode.color = color if self._color_or_default(color) != 'default' else None
             arrow_mode.weight = self._arrow_weight.value
             arrow_mode.style = self._arrow_style.value
 
