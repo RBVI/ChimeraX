@@ -51,7 +51,12 @@ class BugReporter(ToolInstance):
 
         row = 1
 
-        intro = '''
+        warn = ''
+        no_email = (self.settings.email_address.strip() == '')
+        if no_email and ignoring_newer_versions():
+            warn = 'Bugs in older ChimeraX versions will not be evaluted unless an email address is provided.'
+
+        intro = f'''
         <center><h1>Report a Bug</h1></center>
         <p>Thank you for using our feedback system.
       Feedback is greatly appreciated and plays a crucial role
@@ -59,7 +64,7 @@ class BugReporter(ToolInstance):
       <p><b>Note</b>:
           We do not automatically collect any personal information or the data
           you were working with when the problem occurred.  Providing your e-mail address is optional,
-          but will allow us to inform you of a fix or to ask questions, if needed.
+          but will allow us to inform you of a fix or to ask questions, if needed. {warn}
           Attaching data may also be helpful.  However, any information or data
           you wish to keep confidential should be sent separately (not using this form).</p>
         '''
@@ -394,6 +399,27 @@ class BugReporter(ToolInstance):
         }
         return values
 
+
+def ignoring_newer_versions():
+    from chimerax.core.core_settings import settings
+    ignore_versions = settings.ignore_update
+    if not ignore_versions:
+        return False
+    from chimerax.core import version
+    cur_version = version_tuple(version)
+    for iversion in ignore_versions:
+        if version_tuple(iversion) > cur_version:
+            return True
+    return False
+
+def version_tuple(version):
+    vtuple = []
+    for part in version.split('.'):
+        try:
+            vtuple.append(int(part))
+        except:
+            vtuple.append(part)
+    return vtuple
 
 def show_bug_reporter(session, is_known_crash = False):
     from Qt.QtCore import QTimer
