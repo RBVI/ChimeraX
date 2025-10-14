@@ -429,8 +429,8 @@ def _sequence_pairing(mseq, chains):
     return pairing
 
 def _sequence_pairing_from_alignment(mset, chains, alignment):
-    rnum_to_aa = mset.residue_number_to_amino_acid()
     # Make sure first sequence of alignment matches mutation data sequence.
+    rnum_to_aa = mset.residue_number_to_amino_acid()
     mseq = alignment.seqs[0]
     _check_scores_sequence(mseq.ungapped(), rnum_to_aa)
 
