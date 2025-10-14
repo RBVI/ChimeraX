@@ -106,7 +106,7 @@ class LabelGUI(ToolInstance):
         amenu.aboutToShow.connect(self._fill_arrow_menu)
         color.color_changed.connect(self._update_arrow_color)
         color.color = 'white'
-        self._user_set_color = False
+        self._user_set_arrow_color = False
         weight.widget.returnPressed.connect(self._update_arrow_weight)
         weight.widget.setMaximumWidth(30)
         style.widget.menu().triggered.connect(self._update_arrow_style)
@@ -373,7 +373,7 @@ class LabelGUI(ToolInstance):
     
     def _update_arrow_color(self):
         self._set_arrow_mouse_mode_defaults()
-        self._user_set_color = True
+        self._user_set_arrow_color = True
         arrow = self._current_arrow
         if arrow is None:
             return
@@ -407,7 +407,7 @@ class LabelGUI(ToolInstance):
     def _set_arrow_mouse_mode_defaults(self):
         arrow_mode = self.session.ui.mouse_modes.named_mode('label or arrow')
         if arrow_mode:
-            arrow_mode.color = self._arrow_color.color
+            arrow_mode.color = self._arrow_color.color if self._user_set_arrow_color else None
             arrow_mode.weight = self._arrow_weight.value
             arrow_mode.style = self._arrow_style.value
 
