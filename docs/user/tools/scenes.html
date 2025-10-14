@@ -29,13 +29,15 @@ class="clRighticon" title="User Guide Index"/></a>
 <b>Scenes</b> allows saving and restoring ChimeraX
 <b><i>scenes</i></b>, which include model and clipping plane positions 
 (as in <a href="../commands/view.html#name"><b>view</b></a>), as well as
-display states, colors, <a href="../commands/2dlabels.html">2D labels</a>,
-<i>etc.</i> 
+display states, colors, <a href="2dlabels.html">2D labels</a>, <i>etc.</i> 
 </p><p>
 <font color="brown">
 **In progress: not all aspects are saved; more will be added
 added as development proceeds**
 </font>
+</p><p>
+Users should not delete or close any models that appear in a scene, as
+trying to restore the scene will not regenerate them.
 </p><p>
 Scenes are saved in <a href="../commands/save.html#session">sessions</a>.
 The <b>Scenes</b> tool is also implemented as the 
@@ -70,6 +72,7 @@ When no scene is chosen, clicking <b>Save</b> saves the current contents of the
 graphics window as a new scene with specified name, if any, otherwise an
 automatically generated integer name.
 When a scene is chosen, available actions include:
+</p>
 <ul>
 <li><b>Update</b>
 &ndash; overwrite the chosen scene with the current ChimeraX contents
@@ -81,5 +84,5 @@ When a scene is chosen, available actions include:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2025</address>
+October 2025</address>
 </body></html>

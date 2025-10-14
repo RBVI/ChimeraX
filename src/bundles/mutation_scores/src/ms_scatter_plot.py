@@ -57,6 +57,8 @@ def mutation_scores_scatter_plot(session, x_score_name, y_score_name, mutation_s
 from chimerax.interfaces.graph import Graph
 class MutationScatterPlot(Graph):
 
+    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html#scatterplots'
+
     def __init__(self, session):
         self.mutation_set_name = ''
         self._correlation_shown = False

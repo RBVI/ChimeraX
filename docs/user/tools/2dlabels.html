@@ -1,0 +1,153 @@
+<html lang="en">
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: 2D Labels and Arrows</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: 2D Labels and Arrows</h3>
+
+<table class="clRight">
+<tr><td>
+<a href="../commands/prc.png" title="click to enlarge...">
+<img class="outline" src="../commands/prc.png" alt="2D labels example"
+width="300px"></a></td></tr>
+<tr><td align="center"><font size="-1">
+<a href="https://www.rbvi.ucsf.edu/chimerax/gallery_samples.prc.cxs"
+target="_blank">Get this session...</a></font></td></tr>
+</table>
+
+<p>
+<b>2D Labels and Arrows</b> is a graphical interface for adding text labels
+and straight arrows to the display for presentation-quality images and movies.
+The command-line implementation is
+<a href="../commands/2dlabels.html"><b>2dlabels</b></a>.
+These 2D labels exist in the X,Y plane of the screen and do not move
+along with the 3D scene, but can be repositioned by dragging 
+(at either end, if an arrow) with:
+</p>
+<ul>
+<li>the <b>Use mouse...</b> setting in the <b>2D Labels and Arrows</b> dialog
+<li>the <b>move label</b>
+<span class="nowrap"><a href="../commands/ui.html#mousemode">mouse mode</a>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/movelabel.png"></a>.</span>
+</ul>
+<p>
+For &ldquo;3D&rdquo; labels that move along with the associated atoms,
+see the <a href="../commands/label.html"><b>label</b></a> command.
+The <b>move label</b>
+<span class="nowrap"><a href="../commands/ui.html#mousemode">mouse mode</a>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/movelabel.png"></a></span>
+works for both 2D labels and 3D labels.
+Dragging a 2D label echoes the corresponding command with X and Y positions
+to the <a href="log.html"><b>Log</b></a>, which may be useful
+for <a href="../commands/usageconventions.html#cxc-files">scripting</a>.
+</p><p>
+2D labels are models that can be acted on by general commands such as
+<a href="../commands/close.html"><b>close</b></a>,
+<a href="../commands/show.html"><b>show/hide</b></a>, and
+<a href="../commands/color.html"><b>color</b></a>.
+They are saved in <a href="scenes.html">scenes</a> and
+<a href="../commands/save.html#session">sessions</a>.
+To fade 2D labels in/out or reposition them gradually over a specified 
+number of frames, see the 
+<a href="../commands/2dlabels.html"><b>2dlabels</b></a> command.
+See also: 
+<!--
+<a href="animation.html"><b>Animation</b></a>
+-->
+<a href="scenes.html"><b>Scenes</b></a>,
+<a href="colorkey.html"><b>Color Key</b></a>,
+<a href="scalebar.html"><b>Scale Bar</b></a>,
+<a href="../images.html">making images</a>,
+<a href="../movies.html">making movies</a>
+</p>
+<b>2D Labels and Arrows</b> can be started from the <b>Depiction</b>
+section of the <b>Tools</b> menu and manipulated like other panels 
+(<a href="../window.html#panels">more...</a>).
+</p><p>
+With the tool dialog shown and the <b>Use mouse...</b> option activated:
+</p>
+<ul>
+<li>clicking in the graphics window creates a 2D <b>Label</b> with
+the specified settings:
+  <ul>
+<li><b>Text</b> &ndash; label contents, initially &ldquo;New label,&rdquo; 
+overwritten by entering different text
+<li><b>Size</b> (default <b>24</b>)
+<li><b>Color</b> &ndash; label color (default blank, 
+meaning it will automatically adjust to <b>white</b> or <b>black</b> 
+depending on the color of the label background,
+or if there is no label background, depending on the color of
+the <a href="../commands/set.html#bgColor">window background</a>)
+<li><b>Font</b> (default <b>Arial</b>)
+<li><b>Style</b> &ndash; whether <b>normal</b> (default),
+bold, italic, or bold italic
+<li><b>Background</b> &ndash; whether to draw a rectangular background
+behind the text of the label, and if so, in what color 
+(default <b>off</b> and black)
+  </ul>
+<br>
+<li>clicking and dragging creates a 2D <b>Arrow</b> with
+the specified settings:
+  <ul>
+<li><b>Color</b> &ndash; arrow color (default blank, meaning it will 
+automatically adjust to <b>white</b> or <b>black</b> depending on the 
+<a href="../commands/set.html#bgColor">window background color</a>)
+<li><b>Weight</b> &ndash; a scale factor
+for the overall thickness of the arrow (default <b>1.0</b>)
+<li><b>Style</b> &ndash; whether arrowhead style should be <b>solid</b>
+(default), blocky, pointy, or pointer
+  </ul>
+<br>
+<li>click-dragging a pre-existing 2D label or either end of a pre-existing 
+2D arrow repositions it
+</ul>
+<p>
+Creating a 2D <b>Label</b> or <b>Arrow</b> adds its model number to the
+pulldown menu of choices. The settings of any existing 2D label or arrow
+can be changed by choosing its model number and adjusting the options in
+the dialog. If <b>all</b> is chosen rather than a specific model number:
+</p>
+<ul>
+<li>changes in label settings other than <b>Text</b> will apply to all 
+2D labels
+<li>changes in arrow settings will apply to all 2D arrows
+</ul>
+<p>
+Buttons:
+</p>
+<ul>
+<li><b>Delete label</b> &ndash; delete the currently chosen 2D label model
+(does not apply to <b>all</b>)
+<li><b>Delete arrow</b> &ndash; delete the currently chosen 2D arrow model
+(does not apply to <b>all</b>)
+<li><b>Help</b> &ndash; show this page in the 
+<a href="helpviewer.html"><b>Help Viewer</b></a>
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2025</address>
+</body></html>
