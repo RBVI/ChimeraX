@@ -26,6 +26,7 @@ from Qt.QtWidgets import (
     QSplitter,
     QMenu,
     QAction,
+    QStyle,
 )
 from Qt.QtCore import Qt, QSize, QTimer, Signal, QPointF
 from Qt.QtGui import QPixmap, QIcon, QPainter, QColor
@@ -124,7 +125,8 @@ class TimelineControlWidget(QWidget):
         )
         self.add_keyframe_btn.clicked.connect(self.add_scene_at_current_time)
 
-        self.reverse_btn = QPushButton("↶")
+        self.reverse_btn = QPushButton()
+        self.reverse_btn.setIcon(self.style().standardIcon(QStyle.SP_MediaSkipBackward))
         self.reverse_btn.setFixedSize(30, 30)
         self.reverse_btn.clicked.connect(self.reset_timeline)
 
