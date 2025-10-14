@@ -45,7 +45,8 @@ class LabelGUI(ToolInstance):
         self._create_label_controls(parent)
         self._create_arrow_controls(parent)
         self._create_mouse_controls(parent)
-
+        self._create_hide_show_text(parent)
+        
         # Create buttons
         from chimerax.ui.widgets import button_row
         bf = button_row(parent,
@@ -117,6 +118,10 @@ class LabelGUI(ToolInstance):
         self._use_mouse = use_mouse = ms.values[0]
         use_mouse.changed.connect(self._update_use_mouse)
         self._update_use_mouse(True)
+
+    def _create_hide_show_text(self, parent):
+        from chimerax.ui.widgets import EntriesRow
+        EntriesRow(parent, 'Hide or show labels and arrows using checkbuttons in the Models tool')
 
     def _shown_changed(self, shown):
         self._use_mouse.value = shown
