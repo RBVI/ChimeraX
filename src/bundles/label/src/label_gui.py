@@ -113,7 +113,7 @@ class LabelGUI(ToolInstance):
 
     def _create_mouse_controls(self, parent):
         from chimerax.ui.widgets import EntriesRow
-        ms = EntriesRow(parent, True, 'Use mouse to position labels or make arrows')
+        ms = EntriesRow(parent, True, 'Use mouse to create or move labels and arrows')
         self._use_mouse = use_mouse = ms.values[0]
         use_mouse.changed.connect(self._update_use_mouse)
         self._update_use_mouse(True)
