@@ -22,7 +22,7 @@ BUG_SELECTOR = "/chimerax/cgi-bin/chimerax_bug_report.py"
 #
 class BugReporter(ToolInstance):
 
-    def __init__(self, session, tool_name, is_known_crash = False):
+    def __init__(self, session, tool_name, is_known_crash=False):
         import locale
 
         self._ses = session
@@ -208,7 +208,7 @@ class BugReporter(ToolInstance):
     def hide(self):
         self.tool_window.shown = False
 
-    def set_description(self, text, minimum_height = None):
+    def set_description(self, text, minimum_height=None):
         self.description.setText(text)
         if minimum_height is not None:
             self.description.setMinimumHeight(minimum_height)
@@ -290,6 +290,8 @@ class BugReporter(ToolInstance):
             s = self.settings
             s.contact_name = self.contact_name.text()
             s.email_address = self.email_address.text()
+        elif errcode == HTTPStatus.CONFLICT:
+            self.report_conflict(body)
         else:
             self.report_failure(f"HTTP error {errcode} occurred")
 
@@ -332,6 +334,21 @@ class BugReporter(ToolInstance):
             " then you will be contacted with a report status.")
         self.result.setText(thanks)
 
+    def report_conflict(self, html: bytes):
+        from chimerax.core.colors import scheme_color
+        color = scheme_color('warning')
+        begin_h3 = html.find(b'<h3>')
+        end_h3 = html.find(b'</h3>')
+        if begin_h3 != end_h3 != -1:
+            html = b''.join([
+                html[0: begin_h3 + 4],
+                bytes(f"<font color='{color}'>", encoding='utf-8'),
+                html[begin_h3 + 4: end_h3],
+                b"</font>",
+                html[end_h3:]
+            ])
+        self.result.setText(html.decode('utf-8', errors='replace'))
+
     def report_failure(self, reason=None):
         from chimerax.core.colors import scheme_color
         color = scheme_color("error")
@@ -373,7 +390,7 @@ class BugReporter(ToolInstance):
             "is failed remote display.  Remote display techologies with 3D OpenGL graphics often don't work, "
             "and we are not able to advise on how to fix remote display.</font>")
         self.result.setText(thanks)
-        
+
     def cancel(self):
         self.delete()
 
@@ -421,10 +438,10 @@ def version_tuple(version):
             vtuple.append(part)
     return vtuple
 
-def show_bug_reporter(session, is_known_crash = False):
+def show_bug_reporter(session, is_known_crash=False):
     from Qt.QtCore import QTimer
     tool_name = 'Bug Reporter'
-    tool = BugReporter(session, tool_name, is_known_crash = is_known_crash)
+    tool = BugReporter(session, tool_name, is_known_crash=is_known_crash)
     # make sure bug report is active and description has focus
     QTimer.singleShot(
         0, lambda *args, tool=tool:
