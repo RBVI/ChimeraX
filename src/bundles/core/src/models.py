@@ -367,7 +367,9 @@ class Model(State, Drawing):
         # Scene interface implementation
         if flags == State.SCENE:
             scene_data = {'version': MODEL_STATE_VERSION}
-            scene_attrs = ['selected', 'model_color', 'display']
+            scene_attrs = ['selected', 'display']
+            if self.model_color is not None:
+                scene_attrs.append('model_color')
             for attr in scene_attrs:
                 scene_data[attr] = getattr(self, attr)
             return scene_data
