@@ -148,8 +148,7 @@ class GeometryColor(State):
 
         self.set_colormap(palette, range)
         
-        arv = self.set_vertex_colors if auto_recolor else None
-        surface.auto_recolor_vertices = arv
+        surface.auto_recolor_vertices = self if auto_recolor else None
 
         if auto_recolor:
             from .updaters import add_updater_for_session_saving
@@ -159,7 +158,7 @@ class GeometryColor(State):
     #
     def active(self):
         s = self.surface
-        return s is not None and s.auto_recolor_vertices == self.set_vertex_colors
+        return s is not None and s.auto_recolor_vertices is self
     
     # -------------------------------------------------------------------------
     #
@@ -185,6 +184,11 @@ class GeometryColor(State):
             alpha = min(255, max(0, int(2.56 * (100 - self.transparency))))
             rgba8[:,3] = alpha
         return rgba8
+        
+    # -------------------------------------------------------------------------
+    #
+    def __call__(self):
+        self.set_vertex_colors()
         
     # -------------------------------------------------------------------------
     #
@@ -245,11 +249,9 @@ class GeometryColor(State):
 #
 def geometry_coloring(surface):
     '''Return GeometryColor class for surface model if it is being auto colored.'''
-    arv = surface.auto_recolor_vertices
-    if hasattr(arv, '__self__'):
-        gc = arv.__self__  # Instance of a bound method
-        if isinstance(gc, GeometryColor):
-            return gc
+    gc = surface.auto_recolor_vertices
+    if isinstance(gc, GeometryColor):
+        return gc
     return None
     
 # -----------------------------------------------------------------------------

@@ -107,13 +107,34 @@ from Qt.QtWidgets import (QAbstractItemView, QAbstractScrollArea, QApplication, 
                                QListWidget, QListWidgetItem, QMenu, QSizePolicy,
                                QStyleOptionGraphicsItem, QVBoxLayout, QWidget,
                                QPushButton, QFrame, QDoubleSpinBox, QSpinBox, QFormLayout,
-                               QGroupBox, QGridLayout, QColorDialog, QScrollArea, QToolButton)
-
-from chimerax.animations.settings import get_settings
+                               QGroupBox, QGridLayout, QStackedWidget, QButtonGroup,
+                               QDialog, QComboBox, QLineEdit)
 
 __all__ = [
     "KeyframeEditorWidget",
 ]
+
+# Import scene timeline components for dual-mode support
+from .scene_timeline import SceneTimelineWidget
+from .scene_animation import SceneAnimation
+
+
+class CompactStackedWidget(QStackedWidget):
+    """Custom QStackedWidget that only uses the size of the current widget"""
+
+    def sizeHint(self):
+        """Return the size hint of the current widget only, not the largest"""
+        current_widget = self.currentWidget()
+        if current_widget:
+            return current_widget.sizeHint()
+        return super().sizeHint()
+
+    def minimumSizeHint(self):
+        """Return the minimum size hint of the current widget only"""
+        current_widget = self.currentWidget()
+        if current_widget:
+            return current_widget.minimumSizeHint()
+        return super().minimumSizeHint()
 
 TRACK_HEIGHT = 24
 RULER_HEIGHT = 18
@@ -579,9 +600,7 @@ class TimelineView(QGraphicsView):
     row_clicked = Signal(int)
     track_hovered = Signal(int, bool)  # track_index, is_hovered
     frame_changed = Signal(int)  # current_frame
-    ruler_clicked = Signal()
-    mouse_released = Signal()
-    keyframes_deleted = Signal(list)  # list of deleted keyframes
+    keyframes_deleted = Signal(list)  # list of deleted keyframes  
     scene_dropped = Signal(str, int)  # scene_name, frame
     track_deleted = Signal(int)  # track_index
 
@@ -593,14 +612,11 @@ class TimelineView(QGraphicsView):
         self.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
-        # Enable focus to receive key events and prevent command line capture
+        # Enable focus to receive key events
         self.setFocusPolicy(Qt.StrongFocus)
-        self.setFocus()  # Grab focus immediately
-        # Enable mouse tracking for focus on hover
-        self.setMouseTracking(True)
         # Track playhead dragging state
         self._dragging_playhead = False
-
+        
         # Enable drag and drop
         self.setAcceptDrops(True)
         # Track last clicked track for deletion
@@ -623,9 +639,6 @@ class TimelineView(QGraphicsView):
         self.horizontalScrollBar().setValue(self.horizontalScrollBar().minimum())
 
     def mousePressEvent(self, event):
-        # Always grab focus when clicked to ensure keyboard events come here
-        self.setFocus()
-
         if event.button() == Qt.MouseButton.LeftButton:
             pos = self.mapToScene(event.position().toPoint())
 
@@ -638,7 +651,6 @@ class TimelineView(QGraphicsView):
 
             # Check if clicking in ruler area to set playhead
             if 0 <= pos.y() <= RULER_HEIGHT:
-                self.ruler_clicked.emit()
                 frame_width = self.scene().frame_width  # type: ignore[attr-defined]
                 frame = round(pos.x() / frame_width)
                 frame = max(0, min(frame, self.scene().num_frames))  # type: ignore[attr-defined]
@@ -675,15 +687,9 @@ class TimelineView(QGraphicsView):
         else:
             super().mouseMoveEvent(event)
 
-    def enterEvent(self, event):
-        """Handle mouse enter - grab focus to intercept keyboard events."""
-        self.setFocus()
-        super().enterEvent(event)
-
     def mouseReleaseEvent(self, event):
         """Handle mouse release events."""
         if event.button() == Qt.MouseButton.LeftButton:
-            self.mouse_released.emit()
             self._dragging_playhead = False
         super().mouseReleaseEvent(event)
 
@@ -707,9 +713,6 @@ class TimelineView(QGraphicsView):
                 # We'll use the last clicked track for this
                 if hasattr(self, '_last_clicked_track') and self._last_clicked_track >= 0:
                     self.track_deleted.emit(self._last_clicked_track)
-                # Accept the event to prevent it from going to command line
-                event.accept()
-                return
         else:
             super().keyPressEvent(event)
 
@@ -738,11 +741,11 @@ class TimelineView(QGraphicsView):
         if event.mimeData().hasFormat("application/x-chimerax-scene"):
             # Get the drop position
             pos = self.mapToScene(event.position().toPoint())
-
+            
             # Calculate frame from X position
             frame_width = self.scene().frame_width
             frame = max(0, round(pos.x() / frame_width))
-
+            
             # Extract scene data
             scene_data_bytes = event.mimeData().data("application/x-chimerax-scene")
             try:
@@ -752,7 +755,7 @@ class TimelineView(QGraphicsView):
             except:
                 # Fallback to treating it as plain text
                 scene_name = scene_data_bytes.data().decode('utf-8')
-
+            
             # Emit signal to handle the scene drop
             self.scene_dropped.emit(scene_name, frame)
             event.acceptProposedAction()
@@ -789,8 +792,6 @@ class TrackHeaderView(QListWidget):
 
         # Enable mouse tracking for hover events
         self.setMouseTracking(True)
-        # Set focus policy to handle keyboard events
-        self.setFocusPolicy(Qt.StrongFocus)
         self._last_hovered_index = -1
         self.track_widgets = {}  # track_index -> TrackItemWidget
 
@@ -1060,101 +1061,76 @@ class PlaceEditorWidget(QWidget):
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(2, 2, 2, 2)
-        layout.setSpacing(2)
+        layout.setContentsMargins(5, 5, 5, 5)
 
-        # Position group (more compact)
-        pos_layout = QGridLayout()
-        pos_layout.setSpacing(2)
+        # Position group
+        pos_group = QGroupBox("Position")
+        pos_layout = QGridLayout(pos_group)
 
-        # Make smaller spinboxes
         self.x_spin = QDoubleSpinBox()
         self.x_spin.setRange(-9999, 9999)
-        self.x_spin.setDecimals(1)
-        self.x_spin.setFixedHeight(20)
+        self.x_spin.setDecimals(2)
         self.x_spin.valueChanged.connect(self._on_position_changed)
 
         self.y_spin = QDoubleSpinBox()
         self.y_spin.setRange(-9999, 9999)
-        self.y_spin.setDecimals(1)
-        self.y_spin.setFixedHeight(20)
+        self.y_spin.setDecimals(2)
         self.y_spin.valueChanged.connect(self._on_position_changed)
 
         self.z_spin = QDoubleSpinBox()
         self.z_spin.setRange(-9999, 9999)
-        self.z_spin.setDecimals(1)
-        self.z_spin.setFixedHeight(20)
+        self.z_spin.setDecimals(2)
         self.z_spin.valueChanged.connect(self._on_position_changed)
 
-        # Compact labels
-        x_label = QLabel("X:")
-        x_label.setStyleSheet("font-size: 10px;")
-        y_label = QLabel("Y:")
-        y_label.setStyleSheet("font-size: 10px;")
-        z_label = QLabel("Z:")
-        z_label.setStyleSheet("font-size: 10px;")
-
-        pos_layout.addWidget(x_label, 0, 0)
+        pos_layout.addWidget(QLabel("X:"), 0, 0)
         pos_layout.addWidget(self.x_spin, 0, 1)
-        pos_layout.addWidget(y_label, 1, 0)
+        pos_layout.addWidget(QLabel("Y:"), 1, 0)
         pos_layout.addWidget(self.y_spin, 1, 1)
-        pos_layout.addWidget(z_label, 2, 0)
+        pos_layout.addWidget(QLabel("Z:"), 2, 0)
         pos_layout.addWidget(self.z_spin, 2, 1)
 
-        # Rotation group (more compact)
-        rot_layout = QGridLayout()
-        rot_layout.setSpacing(2)
+        # Rotation group
+        rot_group = QGroupBox("Rotation")
+        rot_layout = QGridLayout(rot_group)
 
         self.rx_spin = QDoubleSpinBox()
         self.rx_spin.setRange(-180, 180)
-        self.rx_spin.setDecimals(0)
+        self.rx_spin.setDecimals(1)
         self.rx_spin.setSuffix("°")
-        self.rx_spin.setFixedHeight(20)
         self.rx_spin.valueChanged.connect(self._on_rotation_changed)
 
         self.ry_spin = QDoubleSpinBox()
         self.ry_spin.setRange(-180, 180)
-        self.ry_spin.setDecimals(0)
+        self.ry_spin.setDecimals(1)
         self.ry_spin.setSuffix("°")
-        self.ry_spin.setFixedHeight(20)
         self.ry_spin.valueChanged.connect(self._on_rotation_changed)
 
         self.rz_spin = QDoubleSpinBox()
         self.rz_spin.setRange(-180, 180)
-        self.rz_spin.setDecimals(0)
+        self.rz_spin.setDecimals(1)
         self.rz_spin.setSuffix("°")
-        self.rz_spin.setFixedHeight(20)
         self.rz_spin.valueChanged.connect(self._on_rotation_changed)
 
-        rx_label = QLabel("X:")
-        rx_label.setStyleSheet("font-size: 10px;")
-        ry_label = QLabel("Y:")
-        ry_label.setStyleSheet("font-size: 10px;")
-        rz_label = QLabel("Z:")
-        rz_label.setStyleSheet("font-size: 10px;")
-
-        rot_layout.addWidget(rx_label, 0, 0)
+        rot_layout.addWidget(QLabel("X:"), 0, 0)
         rot_layout.addWidget(self.rx_spin, 0, 1)
-        rot_layout.addWidget(ry_label, 1, 0)
+        rot_layout.addWidget(QLabel("Y:"), 1, 0)
         rot_layout.addWidget(self.ry_spin, 1, 1)
-        rot_layout.addWidget(rz_label, 2, 0)
+        rot_layout.addWidget(QLabel("Z:"), 2, 0)
         rot_layout.addWidget(self.rz_spin, 2, 1)
 
-        # Create collapsible sections
-        self.position_group = CollapsibleGroupBox("Position")
-        self.position_group.set_content_layout(pos_layout)
-        layout.addWidget(self.position_group)
+        layout.addWidget(pos_group)
+        layout.addWidget(rot_group)
 
-        self.rotation_group = CollapsibleGroupBox("Rotation")
-        self.rotation_group.set_content_layout(rot_layout)
-        layout.addWidget(self.rotation_group)
+        # Keyframe buttons
+        button_group = QGroupBox("Keyframes")
+        button_layout = QVBoxLayout(button_group)
 
-        # Keyframe button (compact)
-        self.keyframe_btn = QPushButton("Create Transform Keyframe")
-        self.keyframe_btn.setFixedHeight(24)
-        self.keyframe_btn.setStyleSheet("font-size: 10px;")
+        self.keyframe_btn = QPushButton("Create Keyframe")
         self.keyframe_btn.clicked.connect(self._create_keyframe)
-        layout.addWidget(self.keyframe_btn)
+        button_layout.addWidget(self.keyframe_btn)
+
+        layout.addWidget(button_group)
+        layout.addStretch()
 
         # Initially disabled
         self.setEnabled(False)
@@ -1342,169 +1318,6 @@ class PlaceEditorWidget(QWidget):
             self.keyframe_requested.emit("transform", self._place)
 
 
-class CollapsibleGroupBox(QWidget):
-    """A collapsible group box with an expand/collapse button."""
-
-    def __init__(self, title: str, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-        self.title = title
-        self.is_expanded = True
-        self.content_widget = None
-        self.setup_ui()
-
-    def setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-
-        # Header with expand/collapse button
-        header_frame = QFrame()
-        header_frame.setFrameStyle(QFrame.StyledPanel)
-        header_frame.setFixedHeight(25)
-        header_layout = QHBoxLayout(header_frame)
-        header_layout.setContentsMargins(5, 2, 5, 2)
-
-        # Expand/collapse button
-        self.toggle_button = QToolButton()
-        self.toggle_button.setArrowType(Qt.DownArrow)
-        self.toggle_button.setFixedSize(16, 16)
-        self.toggle_button.clicked.connect(self.toggle_expanded)
-        header_layout.addWidget(self.toggle_button)
-
-        # Title label
-        title_label = QLabel(self.title)
-        title_label.setStyleSheet("font-weight: bold; font-size: 11px;")
-        header_layout.addWidget(title_label)
-        header_layout.addStretch()
-
-        layout.addWidget(header_frame)
-
-        # Content area
-        self.content_widget = QWidget()
-        layout.addWidget(self.content_widget)
-
-    def toggle_expanded(self):
-        """Toggle the expanded state."""
-        self.is_expanded = not self.is_expanded
-        self.content_widget.setVisible(self.is_expanded)
-        self.toggle_button.setArrowType(Qt.DownArrow if self.is_expanded else Qt.RightArrow)
-
-    def set_content_layout(self, layout):
-        """Set the layout for the content area."""
-        self.content_widget.setLayout(layout)
-
-    def set_expanded(self, expanded: bool):
-        """Set the expanded state programmatically."""
-        if expanded != self.is_expanded:
-            self.toggle_expanded()
-
-
-class ColorEditorWidget(QWidget):
-    """Widget for editing color properties using Qt's color dialog."""
-
-    color_changed = Signal(object)  # Emits the new ChimeraX Color object
-    keyframe_requested = Signal(str, object)  # property_name, value
-
-    def __init__(self, session, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-        self.session = session
-        self._color = None
-        self._current_model = None
-        self.setup_ui()
-
-    def setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(2, 2, 2, 2)
-        layout.setSpacing(2)
-
-        # Color preview and picker button (more compact)
-        self.color_button = QPushButton("Choose Color...")
-        self.color_button.setFixedHeight(28)
-        self.color_button.setStyleSheet("background-color: white; border: 1px solid gray; font-size: 10px;")
-        self.color_button.clicked.connect(self._open_color_dialog)
-        layout.addWidget(self.color_button)
-
-        # Keyframe button (smaller)
-        self.keyframe_btn = QPushButton("Create Color Keyframe")
-        self.keyframe_btn.setFixedHeight(24)
-        self.keyframe_btn.setStyleSheet("font-size: 10px;")
-        self.keyframe_btn.clicked.connect(self._create_keyframe)
-        layout.addWidget(self.keyframe_btn)
-
-        # Initially disabled
-        self.setEnabled(False)
-
-    def _open_color_dialog(self):
-        """Open Qt's color picker dialog."""
-        if self._color is not None:
-            # Convert ChimeraX color to QColor
-            rgba = self._color.rgba
-            qcolor = QColor.fromRgbF(rgba[0], rgba[1], rgba[2], rgba[3])
-        else:
-            qcolor = QColor.fromRgbF(1.0, 1.0, 1.0, 1.0)
-
-        new_color = QColorDialog.getColor(qcolor, self, "Choose Color")
-        if new_color.isValid():
-            # Convert QColor back to ChimeraX Color
-            rgba = new_color.getRgbF()
-            from chimerax.core.colors import Color
-            chimerax_color = Color(rgba)
-            self.set_color(chimerax_color)
-
-            # Apply color to current model immediately
-            if self._current_model is not None and hasattr(self._current_model, 'atoms'):
-                self._current_model.atoms.colors = chimerax_color.uint8x4()
-
-    def _update_color_button(self):
-        """Update the color preview button."""
-        if self._color is not None:
-            rgba = self._color.rgba
-            # Convert to 0-255 range for QColor
-            r, g, b = int(rgba[0] * 255), int(rgba[1] * 255), int(rgba[2] * 255)
-            hex_color = f"#{r:02x}{g:02x}{b:02x}"
-            self.color_button.setStyleSheet(
-                f"background-color: {hex_color}; border: 1px solid gray; color: {'white' if (r + g + b) < 384 else 'black'}"
-            )
-            self.color_button.setText(f"Color: {hex_color.upper()}")
-
-    def set_color(self, color):
-        """Set the color to edit."""
-        self._color = color
-        if color is not None:
-            self._update_color_button()
-            self.setEnabled(True)
-            self.color_changed.emit(color)
-        else:
-            self.color_button.setStyleSheet("background-color: white; border: 1px solid gray;")
-            self.color_button.setText("Choose Color...")
-            self.setEnabled(False)
-
-    def set_model(self, model):
-        """Set the model being edited."""
-        self._current_model = model
-        if model is not None and hasattr(model, 'atoms') and len(model.atoms) > 0:
-            # Get the predominant color from atoms
-            from chimerax.atomic.colors import predominant_color
-            atom_color = predominant_color(model.atoms)
-            if atom_color is not None:
-                from chimerax.core.colors import Color
-                # Convert from uint8 to float
-                color_rgba = atom_color / 255.0
-                color = Color(color_rgba)
-                self.set_color(color)
-            else:
-                # Default to white
-                from chimerax.core.colors import Color
-                self.set_color(Color([1.0, 1.0, 1.0, 1.0]))
-        else:
-            self.set_color(None)
-
-    def _create_keyframe(self):
-        """Create a keyframe for the current color."""
-        if self._color is not None:
-            self.keyframe_requested.emit("color", self._color)
-
-
 class TrackDetailView(QWidget):
     """Detail view showing track info and property editors."""
 
@@ -1517,64 +1330,21 @@ class TrackDetailView(QWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(2, 2, 2, 2)
-        main_layout.setSpacing(2)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(5, 5, 5, 5)
 
-        # Track info label (compact)
+        # Track info label
         self.label = QLabel("no track selected", self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.label.setStyleSheet("font-size: 10px; font-weight: bold; padding: 2px;")
-        self.label.setFixedHeight(20)
-        main_layout.addWidget(self.label)
+        layout.addWidget(self.label)
 
-        # Create scroll area for the content
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setFrameStyle(QScrollArea.NoFrame)
-
-        # Content widget that goes inside the scroll area
-        content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(2, 2, 2, 2)
-        content_layout.setSpacing(4)
-
-        # Transform collapsible section
-        self.transform_group = CollapsibleGroupBox("Transform")
-        transform_content = QVBoxLayout()
-        transform_content.setContentsMargins(2, 2, 2, 2)
-
-        self.place_editor = PlaceEditorWidget(self.session)
+        # Place editor
+        self.place_editor = PlaceEditorWidget(self.session, self)
         self.place_editor.place_changed.connect(self._on_place_changed)
         self.place_editor.keyframe_requested.connect(self.keyframe_requested)
-        transform_content.addWidget(self.place_editor)
+        layout.addWidget(self.place_editor)
 
-        self.transform_group.set_content_layout(transform_content)
-        content_layout.addWidget(self.transform_group)
-
-        # Color collapsible section
-        self.color_group = CollapsibleGroupBox("Color")
-        color_content = QVBoxLayout()
-        color_content.setContentsMargins(2, 2, 2, 2)
-
-        self.color_editor = ColorEditorWidget(self.session)
-        self.color_editor.keyframe_requested.connect(self.keyframe_requested)
-        color_content.addWidget(self.color_editor)
-
-        self.color_group.set_content_layout(color_content)
-        content_layout.addWidget(self.color_group)
-
-        # Add stretch to push everything to top
-        content_layout.addStretch()
-
-        # Set the content widget to the scroll area
-        scroll_area.setWidget(content_widget)
-        main_layout.addWidget(scroll_area)
-
-        # Start with color section collapsed to save space
-        self.color_group.set_expanded(False)
+        layout.addStretch()
 
     @Slot(str)
     def set_track(self, name: str):
@@ -1584,7 +1354,6 @@ class TrackDetailView(QWidget):
         """Set the model to edit."""
         self.current_model = model
         self.place_editor.set_object(model)
-        self.color_editor.set_model(model)
 
     @Slot(object)
     def _on_place_changed(self, new_place):
@@ -1607,37 +1376,122 @@ class KeyframeEditorWidget(QWidget):
     def __init__(self, session=None, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.session = session
-        self.settings = get_settings(session)
         self.track_models = {}  # track_index -> model
         self.track_subtracks = {}  # track_index -> {property_name: subtrack_index}
         self.track_parents = {}  # subtrack_index -> parent_track_index
         self.collapsed_tracks = set()  # Set of collapsed parent track indices
         self.is_playing = False
-        self._need_restore_graphics = False
         self.playback_timer = QTimer(self)
         self.playback_timer.timeout.connect(self._advance_frame)
-        self.fps = 24  # Frames per second
+        self.fps = 60  # Frames per second - increased for smoother playback
+
+        # Get or create scene animation manager
+        self.scene_animation = self._get_scene_animation_manager()
+
+        # Main layout
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Mode switching controls
+        mode_controls_layout = QHBoxLayout()
+        self.mode_button_group = QButtonGroup()
+
+        self.keyframe_mode_btn = QPushButton("Keyframe Mode")
+        self.keyframe_mode_btn.setCheckable(True)
+        self.keyframe_mode_btn.setChecked(True)  # Default to keyframe mode
+        self.keyframe_mode_btn.setStyleSheet("""
+            QPushButton:checked {
+                background-color: #4CAF50;
+                color: white;
+                font-weight: bold;
+            }
+        """)
+
+        self.scene_mode_btn = QPushButton("Scene Mode")
+        self.scene_mode_btn.setCheckable(True)
+        self.scene_mode_btn.setStyleSheet("""
+            QPushButton:checked {
+                background-color: #2196F3;
+                color: white;
+                font-weight: bold;
+            }
+        """)
+
+        self.mode_button_group.addButton(self.keyframe_mode_btn, 0)
+        self.mode_button_group.addButton(self.scene_mode_btn, 1)
+        self.mode_button_group.buttonClicked.connect(self.switch_mode)
+
+        mode_controls_layout.addWidget(self.keyframe_mode_btn)
+        mode_controls_layout.addWidget(self.scene_mode_btn)
+        mode_controls_layout.addStretch()
+
+        main_layout.addLayout(mode_controls_layout)
+
+        # Stacked widget for different modes - custom class to handle sizing properly
+        self.stacked_widget = CompactStackedWidget()
+        # Set size policy to only use space of current widget, not the largest
+        self.stacked_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+
+        # Keyframe editor mode (original)
+        self.keyframe_widget = self._create_keyframe_widget()
+        self.stacked_widget.addWidget(self.keyframe_widget)
+
+        # Scene timeline mode (new)
+        self.scene_timeline_widget = SceneTimelineWidget(self.session)
+        self.stacked_widget.addWidget(self.scene_timeline_widget)
+
+        # Connect scene timeline signals
+        self.scene_timeline_widget.scene_added.connect(self.on_scene_added)
+        self.scene_timeline_widget.scene_removed.connect(self.on_scene_removed)
+        self.scene_timeline_widget.scene_moved.connect(self.on_scene_moved)
+        self.scene_timeline_widget.scene_selected.connect(self.on_scene_selected)
+        self.scene_timeline_widget.time_changed.connect(self.on_scene_time_changed)
+        self.scene_timeline_widget.play_requested.connect(self.on_scene_play_requested)
+        self.scene_timeline_widget.pause_requested.connect(self.on_scene_pause_requested)
+        self.scene_timeline_widget.record_requested.connect(self.on_scene_record_requested)
+        self.scene_timeline_widget.duration_changed.connect(self.on_scene_duration_changed)
+        self.scene_timeline_widget.reset_requested.connect(self.on_scene_reset_requested)
+
+        # Connect scene animation signals to timeline controls
+        self.scene_animation.signals.time_changed.connect(self.on_scene_animation_time_changed)
+        self.scene_animation.signals.playback_started.connect(self.on_scene_animation_started)
+        self.scene_animation.signals.playback_stopped.connect(self.on_scene_animation_stopped)
+        self.scene_animation.signals.recording_started.connect(self.on_scene_recording_started)
+        self.scene_animation.signals.recording_stopped.connect(self.on_scene_recording_stopped)
+
+        main_layout.addWidget(self.stacked_widget)
+
+
+    def _get_scene_animation_manager(self):
+        """Get or create the scene animation manager"""
+        if not hasattr(self.session, '_scene_animation_manager'):
+            # Pass the keyframe system's FPS to ensure consistent timing
+            self.session._scene_animation_manager = SceneAnimation(self.session, fps=self.fps)
+        return self.session._scene_animation_manager
+
+
+    def _create_keyframe_widget(self):
+        """Create the original keyframe editor widget"""
+        keyframe_widget = QWidget()
+        keyframe_layout = QVBoxLayout(keyframe_widget)
+        keyframe_layout.setContentsMargins(0, 0, 0, 0)
 
         # Create model selection panel
-        self.model_selection_panel = ModelSelectionPanel(session)
+        self.model_selection_panel = ModelSelectionPanel(self.session)
         self.model_selection_panel.track_requested.connect(self.add_model_track)
         self.model_selection_panel.setFixedWidth(200)
 
         self.track_header = TrackHeaderView()
         self.timeline_scene = TimelineScene()
         self.timeline_view = TimelineView(self.timeline_scene)
-        self.track_detail_view = TrackDetailView(session)
-        self.track_detail_view.setFixedWidth(140)
+        self.track_detail_view = TrackDetailView(self.session)
+        self.track_detail_view.setFixedWidth(160)
 
         # Create transport controls
         self.transport_controls = self._create_transport_controls()
 
-        # Main layout
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-
         # Transport controls at top
-        main_layout.addWidget(self.transport_controls)
+        keyframe_layout.addWidget(self.transport_controls)
 
         # Timeline area
         timeline_layout = QHBoxLayout()
@@ -1647,8 +1501,10 @@ class KeyframeEditorWidget(QWidget):
         timeline_layout.addWidget(self.timeline_view)
         timeline_layout.addWidget(self.track_detail_view)
 
-        # Add timeline to main layout
-        main_layout.addLayout(timeline_layout)
+        # Add timeline to keyframe layout
+        keyframe_layout.addLayout(timeline_layout)
+
+        # Connect widget interactions
         # keep vertical scroll positions tied together
         self.track_header.verticalScrollBar().valueChanged.connect(
             self.timeline_view.verticalScrollBar().setValue
@@ -1675,9 +1531,6 @@ class KeyframeEditorWidget(QWidget):
         # Also connect scene frame changes to update UI
         self.timeline_view.frame_changed.connect(lambda f: self.frame_label.setText(f"Frame: {f}"))
 
-        self.timeline_view.ruler_clicked.connect(self._set_preview_graphics_options)
-        self.timeline_view.mouse_released.connect(self._restore_graphics_options)
-
         # Connect keyframe deletion
         self.timeline_view.keyframes_deleted.connect(self._on_keyframes_deleted)
 
@@ -1688,19 +1541,147 @@ class KeyframeEditorWidget(QWidget):
         self.track_header.track_deleted.connect(self._on_track_deleted)
         self.timeline_view.track_deleted.connect(self._on_track_deleted)
 
+        # Add default camera track
         self.add_camera_track()
 
-    def _set_preview_graphics_options(self):
-        from copy import deepcopy
-        from chimerax.core.commands import run
-        self._need_restore_graphics = True
-        self._old_lighting = deepcopy(self.session.main_view.lighting)
-        run(self.session, "lighting %s" % self.settings.preview_lighting)
+        return keyframe_widget
 
-    def _restore_graphics_options(self):
-        if self._need_restore_graphics:
-            self.session.main_view.lighting = self._old_lighting
-            self._need_restore_graphics = False
+    def switch_mode(self, button):
+        """Switch between keyframe and scene animation modes"""
+        if button == self.keyframe_mode_btn:
+            self.stacked_widget.setCurrentIndex(0)
+            if self.session:
+                self.session.logger.info("Switched to Keyframe Mode")
+        elif button == self.scene_mode_btn:
+            self.stacked_widget.setCurrentIndex(1)
+            if self.session:
+                self.session.logger.info("Switched to Scene Mode")
+
+    def on_scene_added(self, scene_name, time=None):
+        """Handle scene addition in scene mode"""
+        if time is None:
+            time = self.scene_timeline_widget.timeline_controls.current_time
+
+        success = self.scene_animation.add_scene_at_time(scene_name, time)
+
+        if success:
+            self.scene_timeline_widget.add_scene_marker(time, scene_name)
+            if self.session:
+                self.session.logger.info(f"Added scene '{scene_name}' to animation at {time:.2f}s")
+
+    def on_scene_removed(self, scene_name):
+        """Handle scene removal in scene mode"""
+        success = self.scene_animation.remove_scene(scene_name)
+
+        if success:
+            self.scene_timeline_widget.timeline_scene.remove_scene_marker(scene_name)
+            if self.session:
+                self.session.logger.info(f"Removed scene '{scene_name}' from animation")
+
+    def on_scene_selected(self, scene_name):
+        """Handle scene selection in scene mode"""
+        if self.session and self.session.scenes.get_scene(scene_name):
+            self.session.scenes.restore_scene(scene_name)
+            if self.session:
+                self.session.logger.info(f"Restored scene '{scene_name}'")
+
+    def on_scene_time_changed(self, time):
+        """Handle time changes in scene mode for preview"""
+        self.scene_animation.preview_at_time(time)
+
+    def on_scene_play_requested(self):
+        """Handle play request from scene timeline"""
+        current_time = self.scene_timeline_widget.timeline_controls.current_time
+        self.scene_animation.play(start_time=current_time)
+
+    def on_scene_pause_requested(self):
+        """Handle pause request from scene timeline"""
+        self.scene_animation.stop_playing()
+
+    def on_scene_record_requested(self):
+        """Handle record request from scene timeline"""
+        # Check if already recording
+        if self.scene_animation.is_recording:
+            # Stop recording
+            self.scene_animation.stop_playing()
+            return
+
+        # Check if there are scenes to record
+        if not self.scene_animation.scenes:
+            self.session.logger.warning("No scenes to record. Add some scenes to the timeline first.")
+            return
+
+        # Get save path and recording options using file dialog
+        save_path, resolution = self._get_movie_save_path_and_options()
+        if save_path:
+            self.scene_animation.record(save_path, resolution=resolution)
+            res_str = f" at {resolution}" if resolution else " at display resolution"
+            self.session.logger.info(f"Starting recording to {save_path}{res_str}")
+
+    def _get_movie_save_path_and_options(self):
+        """Get save path and recording options using enhanced dialog"""
+        dialog = MovieRecordingDialog(self.session, parent=self)
+        if dialog.exec():
+            return dialog.get_save_path(), dialog.get_resolution()
+        return None, None
+
+    def _get_movie_save_path(self):
+        """Get save path for movie recording using file dialog (legacy method)"""
+        from chimerax.ui.open_save import SaveDialog
+        save_dialog = SaveDialog(self.session, parent=self)
+        save_dialog.setNameFilter("Video Files (*.mp4 *.mov *.avi *.wmv)")
+        if save_dialog.exec():
+            file_path = save_dialog.selectedFiles()[0]
+            return file_path
+        return None
+
+    def on_scene_animation_time_changed(self, time):
+        """Handle time updates from scene animation during playback"""
+        # Update the timeline controls to show current time
+        self.scene_timeline_widget.timeline_controls.set_current_time(time)
+        self.scene_timeline_widget.timeline_scene.set_current_time(time)
+
+    def on_scene_animation_started(self):
+        """Handle scene animation playback started"""
+        # Ensure timeline controls show playing state
+        self.scene_timeline_widget.timeline_controls.is_playing = True
+        self.scene_timeline_widget.timeline_controls.play_btn.setText("⏸")
+
+    def on_scene_animation_stopped(self):
+        """Handle scene animation playback stopped"""
+        # Ensure timeline controls show paused state
+        self.scene_timeline_widget.timeline_controls.is_playing = False
+        self.scene_timeline_widget.timeline_controls.play_btn.setText("▶")
+
+    def on_scene_duration_changed(self, new_duration):
+        """Handle duration change from zoom buttons"""
+        # Update the scene animation duration
+        self.scene_animation.set_duration(new_duration)
+        # Also update the timeline controls duration
+        self.scene_timeline_widget.timeline_controls.set_duration(new_duration)
+        print(f"Scene animation duration set to {new_duration:.2f}s")
+
+    def on_scene_reset_requested(self):
+        """Handle reset request from return button"""
+        # Stop any current playback
+        self.scene_animation.stop_playing()
+        # Reset time to 0 and preview at that time
+        self.scene_animation.preview_at_time(0.0)
+        print("Scene timeline reset to 0.0s")
+
+    def on_scene_recording_started(self):
+        """Handle scene recording started"""
+        # Update record button appearance to show recording state
+        record_btn = self.scene_timeline_widget.timeline_controls.record_btn
+        record_btn.setText("⏹")  # Square stop symbol
+        record_btn.setStyleSheet("background-color: #ff9800; color: white; border-radius: 15px; font-weight: bold;")
+
+    def on_scene_recording_stopped(self):
+        """Handle scene recording stopped"""
+        # Reset record button appearance
+        record_btn = self.scene_timeline_widget.timeline_controls.record_btn
+        record_btn.setText("●")  # Circle record symbol
+        record_btn.setStyleSheet("background-color: #f44336; color: white; border-radius: 15px; font-weight: bold;")
 
     def _create_transport_controls(self):
         """Create the transport control panel with play/pause buttons."""
@@ -2006,6 +1987,8 @@ class KeyframeEditorWidget(QWidget):
     def _on_frame_changed(self, frame: int):
         """Handle frame changes from the timeline."""
         self.frame_label.setText(f"Frame: {frame}")
+        if self.session:
+            self.session.logger.info(f"Frame changed to {frame}, evaluating animation...")
         # Apply animation at this frame
         self._evaluate_animation_at_frame(frame)
 
@@ -2019,16 +2002,16 @@ class KeyframeEditorWidget(QWidget):
 
     def _start_playback(self):
         """Start timeline playback."""
-        self._set_preview_graphics_options()
         self.is_playing = True
         self.play_pause_btn.setText("Pause")
         # Calculate timer interval from FPS
         interval = int(1000 / self.fps)  # milliseconds
         self.playback_timer.start(interval)
+        if self.session:
+            self.session.logger.info(f"Started keyframe playback at {self.fps} FPS (interval: {interval}ms)")
 
     def _pause_playback(self):
         """Pause timeline playback."""
-        self._restore_graphics_options()
         self.is_playing = False
         self.play_pause_btn.setText("Play")
         self.playback_timer.stop()
@@ -2061,6 +2044,10 @@ class KeyframeEditorWidget(QWidget):
             interval = int(1000 / self.fps)
             self.playback_timer.start(interval)
 
+        # Sync FPS with scene animation manager
+        if hasattr(self, 'scene_animation'):
+            self.scene_animation.set_fps(fps)
+
     def _evaluate_animation_at_frame(self, frame: int):
         """Evaluate and apply animation at the given frame."""
         for track_index, model in self.track_models.items():
@@ -2073,17 +2060,31 @@ class KeyframeEditorWidget(QWidget):
                     if property_name == "transform":
                         # Get interpolated value for this frame
                         interpolated_value = self._interpolate_keyframes(subtrack_index, frame)
+
                         if interpolated_value is not None:
-                            # Apply the transformation
-                            if hasattr(model, 'position'):
-                                model.position = interpolated_value
-                    elif property_name == "color":
-                        # Get interpolated color for this frame
-                        interpolated_color = self._interpolate_keyframes(subtrack_index, frame)
-                        if interpolated_color is not None:
-                            # Apply the color
-                            if hasattr(model, 'atoms'):
-                                model.atoms.colors = interpolated_color.uint8x4()
+                            # Apply the transformation using positions (plural) for complex models
+                            if hasattr(model, 'positions'):
+                                try:
+                                    # The interpolated value could be a single Place or a Places array
+                                    from chimerax.geometry import Place, Places
+
+                                    if isinstance(interpolated_value, Places):
+                                        # Multiple positions for complex models
+                                        model.positions = interpolated_value
+                                    elif isinstance(interpolated_value, Place):
+                                        # Single position - convert to Places format
+                                        model.positions = Places([interpolated_value])
+                                    elif hasattr(interpolated_value, '__iter__') and all(isinstance(p, Place) for p in interpolated_value):
+                                        # List of Place objects
+                                        model.positions = Places(interpolated_value)
+                                    else:
+                                        if self.session:
+                                            self.session.logger.warning(f"Invalid interpolated value type: {type(interpolated_value)}")
+                                except Exception as e:
+                                    if self.session:
+                                        self.session.logger.error(f"Error setting model positions: {e}")
+                                    # Fallback: try to preserve current positions
+                                    pass
 
     def _interpolate_keyframes(self, track_index: int, frame: int):
         """Interpolate between keyframes for the given track at the given frame."""
@@ -2135,31 +2136,254 @@ class KeyframeEditorWidget(QWidget):
             t = (frame - prev_kf[0]) / (next_kf[0] - prev_kf[0])
             t = max(0, min(1, t))  # Clamp to [0, 1]
 
-            # Interpolate Place objects
-            from chimerax.geometry import Place
-            if isinstance(prev_kf[1], Place) and isinstance(next_kf[1], Place):
-                # Use ChimeraX's Place interpolation
-                center = [0, 0, 0]  # Use origin as interpolation center
-                return prev_kf[1].interpolate(next_kf[1], center, t)
+            # Interpolate Place/Places objects
+            from chimerax.geometry import Place, Places
 
-            # Interpolate Color objects
-            from chimerax.core.colors import Color
-            if isinstance(prev_kf[1], Color) and isinstance(next_kf[1], Color):
-                # Linear interpolation between colors in RGBA space
-                prev_rgba = prev_kf[1].rgba
-                next_rgba = next_kf[1].rgba
+            # Handle both single Place and multiple Places
+            if ((isinstance(prev_kf[1], (Place, Places)) and isinstance(next_kf[1], (Place, Places))) or
+                (hasattr(prev_kf[1], '__iter__') and hasattr(next_kf[1], '__iter__') and
+                 all(isinstance(p, Place) for p in prev_kf[1]) and all(isinstance(p, Place) for p in next_kf[1]))):
+                try:
+                    # Normalize to consistent format for interpolation
+                    prev_positions = prev_kf[1] if isinstance(prev_kf[1], Places) else Places([prev_kf[1]]) if isinstance(prev_kf[1], Place) else Places(list(prev_kf[1]))
+                    next_positions = next_kf[1] if isinstance(next_kf[1], Places) else Places([next_kf[1]]) if isinstance(next_kf[1], Place) else Places(list(next_kf[1]))
 
-                # Interpolate each channel
-                interpolated_rgba = [
-                    prev_rgba[0] + t * (next_rgba[0] - prev_rgba[0]),  # Red
-                    prev_rgba[1] + t * (next_rgba[1] - prev_rgba[1]),  # Green
-                    prev_rgba[2] + t * (next_rgba[2] - prev_rgba[2]),  # Blue
-                    prev_rgba[3] + t * (next_rgba[3] - prev_rgba[3])   # Alpha
-                ]
+                    # Ensure both have same number of positions
+                    if len(prev_positions) != len(next_positions):
+                        if self.session:
+                            self.session.logger.warning(f"Mismatched position counts: {len(prev_positions)} vs {len(next_positions)}")
+                        return prev_kf[1]  # Fallback
 
-                return Color(interpolated_rgba)
+                    # Get interpolation center
+                    if track_index in self.track_models:
+                        model = self.track_models[track_index]
+                        if hasattr(model, 'view') or model == self.session.view.camera:
+                            # Camera interpolation
+                            center = self._get_scene_center()
+                        else:
+                            # Model interpolation
+                            center = self._get_model_center(model)
+                    else:
+                        center = [0, 0, 0]
+
+                    # Ensure center is a numpy array as expected by Place.interpolate()
+                    import numpy as np
+                    if not isinstance(center, np.ndarray):
+                        center = np.array(center, dtype=np.float32)
+
+                    # Interpolate each position
+                    interpolated_positions = []
+                    for i in range(len(prev_positions)):
+                        result = prev_positions[i].interpolate(next_positions[i], center, t)
+                        if isinstance(result, Place):
+                            interpolated_positions.append(result)
+                        else:
+                            if self.session:
+                                self.session.logger.warning(f"Position {i} interpolation returned {type(result)}, expected Place")
+                            interpolated_positions.append(prev_positions[i])  # Fallback
+
+                    # Return in the same format as input
+                    if len(interpolated_positions) == 1 and isinstance(prev_kf[1], Place):
+                        return interpolated_positions[0]  # Single Place
+                    else:
+                        return Places(interpolated_positions)  # Multiple Places
+                except Exception as e:
+                    if self.session:
+                        self.session.logger.error(f"Error interpolating Place objects: {e}")
+                    # Fallback to the previous keyframe value
+                    return prev_kf[1]
 
         return prev_kf[1] if prev_kf else next_kf[1]
+
+    def _get_scene_center(self):
+        """Calculate the center of rotation for camera interpolation."""
+        if not self.session:
+            return [0, 0, 0]
+        
+        try:
+            # Try to get ChimeraX's current center of rotation first
+            if hasattr(self.session.view, 'center_of_rotation'):
+                cor = self.session.view.center_of_rotation
+                if cor is not None:
+                    return [cor[0], cor[1], cor[2]]
+        except:
+            pass
+        
+        try:
+            # Get bounds of all visible models
+            from chimerax.atomic import AtomicStructure
+            bounds_list = []
+            
+            for model in self.session.models:
+                if isinstance(model, AtomicStructure) and model.visible:
+                    try:
+                        bounds = model.bounds()
+                        if bounds is not None:
+                            bounds_list.append(bounds)
+                    except:
+                        continue
+                elif hasattr(model, 'bounds') and model.visible:
+                    try:
+                        bounds = model.bounds()
+                        if bounds is not None:
+                            bounds_list.append(bounds)
+                    except:
+                        continue
+            
+            if bounds_list:
+                # Calculate overall bounds
+                from chimerax.geometry import union_bounds
+                overall_bounds = union_bounds(bounds_list)
+                if overall_bounds is not None:
+                    # Return center of bounds
+                    center = overall_bounds.center()
+                    return [center[0], center[1], center[2]]
+        except:
+            pass
+        
+        # Fallback to origin if we can't calculate scene center
+        return [0, 0, 0]
+
+    def _get_model_center(self, model):
+        """Get the center of a model for in-place rotation."""
+        if not model:
+            return [0, 0, 0]
+        
+        try:
+            # Try to get the model's bounding box center
+            if hasattr(model, 'bounds'):
+                bounds = model.bounds()
+                if bounds is not None:
+                    center = bounds.center()
+                    return [center[0], center[1], center[2]]
+        except:
+            pass
+        
+        try:
+            # Fallback: use the model's current position as center
+            if hasattr(model, 'position'):
+                pos = model.position.translation()
+                return [pos[0], pos[1], pos[2]]
+        except:
+            pass
+        
+        # Final fallback
+        return [0, 0, 0]
+
+    def _interpolate_camera_direct(self, place1, place2, t):
+        """Direct linear interpolation for camera positions."""
+        from chimerax.geometry import Place
+        import numpy as np
+        
+        # Interpolate position (translation) linearly
+        pos1 = place1.translation()
+        pos2 = place2.translation()
+        interp_pos = pos1 + t * (pos2 - pos1)
+        
+        # Interpolate rotation using quaternion slerp for smooth rotation
+        # Get rotation matrices
+        rot1 = place1.axes()
+        rot2 = place2.axes()
+        
+        # Convert to quaternions for better interpolation
+        q1 = self._matrix_to_quaternion(rot1)
+        q2 = self._matrix_to_quaternion(rot2)
+        
+        # Spherical linear interpolation (slerp) for quaternions
+        interp_q = self._slerp_quaternion(q1, q2, t)
+        
+        # Convert back to rotation matrix
+        interp_rot = self._quaternion_to_matrix(interp_q)
+        
+        # Create new Place with interpolated position and rotation
+        return Place(axes=interp_rot, origin=interp_pos)
+
+    def _matrix_to_quaternion(self, matrix):
+        """Convert 3x3 rotation matrix to quaternion [w, x, y, z]."""
+        import numpy as np
+        
+        # Simplified conversion - assumes matrix is orthogonal
+        trace = np.trace(matrix)
+        if trace > 0:
+            s = np.sqrt(trace + 1.0) * 2  # s = 4 * qw
+            w = 0.25 * s
+            x = (matrix[2, 1] - matrix[1, 2]) / s
+            y = (matrix[0, 2] - matrix[2, 0]) / s
+            z = (matrix[1, 0] - matrix[0, 1]) / s
+        else:
+            if matrix[0, 0] > matrix[1, 1] and matrix[0, 0] > matrix[2, 2]:
+                s = np.sqrt(1.0 + matrix[0, 0] - matrix[1, 1] - matrix[2, 2]) * 2
+                w = (matrix[2, 1] - matrix[1, 2]) / s
+                x = 0.25 * s
+                y = (matrix[0, 1] + matrix[1, 0]) / s
+                z = (matrix[0, 2] + matrix[2, 0]) / s
+            elif matrix[1, 1] > matrix[2, 2]:
+                s = np.sqrt(1.0 + matrix[1, 1] - matrix[0, 0] - matrix[2, 2]) * 2
+                w = (matrix[0, 2] - matrix[2, 0]) / s
+                x = (matrix[0, 1] + matrix[1, 0]) / s
+                y = 0.25 * s
+                z = (matrix[1, 2] + matrix[2, 1]) / s
+            else:
+                s = np.sqrt(1.0 + matrix[2, 2] - matrix[0, 0] - matrix[1, 1]) * 2
+                w = (matrix[1, 0] - matrix[0, 1]) / s
+                x = (matrix[0, 2] + matrix[2, 0]) / s
+                y = (matrix[1, 2] + matrix[2, 1]) / s
+                z = 0.25 * s
+        
+        return np.array([w, x, y, z])
+
+    def _slerp_quaternion(self, q1, q2, t):
+        """Spherical linear interpolation between two quaternions."""
+        import numpy as np
+        
+        # Normalize quaternions
+        q1 = q1 / np.linalg.norm(q1)
+        q2 = q2 / np.linalg.norm(q2)
+        
+        # Compute dot product
+        dot = np.dot(q1, q2)
+        
+        # If dot product is negative, use -q2 to take shorter path
+        if dot < 0.0:
+            q2 = -q2
+            dot = -dot
+        
+        # If quaternions are very similar, use linear interpolation
+        if dot > 0.9995:
+            result = q1 + t * (q2 - q1)
+            return result / np.linalg.norm(result)
+        
+        # Calculate slerp
+        theta_0 = np.arccos(abs(dot))
+        sin_theta_0 = np.sin(theta_0)
+        theta = theta_0 * t
+        sin_theta = np.sin(theta)
+        
+        s0 = np.cos(theta) - dot * sin_theta / sin_theta_0
+        s1 = sin_theta / sin_theta_0
+        
+        return s0 * q1 + s1 * q2
+
+    def _quaternion_to_matrix(self, q):
+        """Convert quaternion [w, x, y, z] to 3x3 rotation matrix."""
+        import numpy as np
+        
+        w, x, y, z = q
+        
+        # Normalize
+        norm = np.sqrt(w*w + x*x + y*y + z*z)
+        if norm == 0:
+            return np.eye(3)
+        w, x, y, z = w/norm, x/norm, y/norm, z/norm
+        
+        # Convert to matrix
+        matrix = np.array([
+            [1 - 2*y*y - 2*z*z, 2*x*y - 2*z*w, 2*x*z + 2*y*w],
+            [2*x*y + 2*z*w, 1 - 2*x*x - 2*z*z, 2*y*z - 2*x*w],
+            [2*x*z - 2*y*w, 2*y*z + 2*x*w, 1 - 2*x*x - 2*y*y]
+        ])
+        
+        return matrix
 
     @Slot(list)
     def _on_keyframes_deleted(self, deleted_keyframes):
@@ -2242,25 +2466,19 @@ class KeyframeEditorWidget(QWidget):
         # Get the scene from the session
         scene = self.session.scenes.get_scene(scene_name)
         if not scene:
+            self.session.logger.warning(f"Scene '{scene_name}' not found")
             return
 
-        # Get all models that have positions different from their defaults
-        # This is where we'd analyze the scene to find animated objects
-        models_to_animate = []
+        # Get models from the scene's named_view positions (these are the models that were saved)
+        scene_models = list(scene.named_view.positions.keys())
+        self.session.logger.info(f"Dropping scene '{scene_name}' with {len(scene_models)} models at frame {frame}")
 
-        # For now, let's get all visible models in the session
-        from chimerax.atomic import AtomicStructure
-        for model in self.session.models:
-            if isinstance(model, AtomicStructure) and model.visible:
-                models_to_animate.append(model)
+        # Create tracks for each model in the scene
+        for model in scene_models:
+            # Check if this model still exists in the session
+            if model not in self.session.models.list():
+                continue
 
-        # Also check for other model types that might be animated
-        for model in self.session.models:
-            if hasattr(model, 'position') and model.visible and model not in models_to_animate:
-                models_to_animate.append(model)
-
-        # Create tracks for each model if they don't exist yet
-        for model in models_to_animate:
             # Find existing track for this model
             existing_track = None
             for track_index, track_model in self.track_models.items():
@@ -2286,50 +2504,91 @@ class KeyframeEditorWidget(QWidget):
             # Remove any existing keyframe at this frame
             self._remove_keyframe_at_frame(subtrack_index, frame)
 
-            # Add keyframe with current model position
-            self.insert_keyframe(subtrack_index, frame, model.position)
+            # Add keyframe with the model positions from the scene (note: positions plural!)
+            scene_positions = scene.named_view.positions[model]
+            self.session.logger.info(f"  Adding transform keyframe for {getattr(model, 'name', 'unnamed model')} with {len(scene_positions) if hasattr(scene_positions, '__len__') else 1} positions")
+            self.insert_keyframe(subtrack_index, frame, scene_positions)
 
-        # Also handle camera if it's different from default
-        camera_track = None
-        for track_index, track_model in self.track_models.items():
-            if hasattr(track_model, 'view'):  # This is likely the camera
-                camera_track = track_index
-                break
+            # Also handle model-specific scene data if it exists
+            if model in scene.scene_models:
+                restore_implemented, model_scene_data = scene.scene_models[model]
+                # For now, we'll focus on position data, but this is where we could
+                # expand to handle other model properties like display settings,
+                # coloring, etc. in separate subtracks
+
+        # Handle camera data from the scene
+        # Get camera track (create if needed)
+        camera_track = self._get_or_create_camera_track()
 
         if camera_track is not None:
             # Create or find the camera transform subtrack
-            camera_subtrack = self._get_or_create_subtrack(camera_track, "transform")
+            camera_subtrack = self._get_or_create_subtrack(camera_track, "camera")
 
             # Remove any existing keyframe at this frame
             self._remove_keyframe_at_frame(camera_subtrack, frame)
 
-            # Add keyframe with current camera position
-            camera = self.session.view.camera
-            self.insert_keyframe(camera_subtrack, frame, camera.position)
+            # Add keyframe with camera data from the scene's main view
+            # The scene stores camera data in main_view_data
+            if scene.main_view_data and 'camera' in scene.main_view_data:
+                camera_data = scene.main_view_data['camera']
+                self.insert_keyframe(camera_subtrack, frame, camera_data)
+            else:
+                # Fallback to current camera if no scene camera data
+                camera = self.session.view.camera
+                camera_data = {
+                    'position': camera.position,
+                    'field_of_view': getattr(camera, 'field_of_view', None),
+                    'field_width': getattr(camera, 'field_width', None)
+                }
+                self.insert_keyframe(camera_subtrack, frame, camera_data)
+
+    def _get_or_create_camera_track(self):
+        """Get existing camera track or create one if it doesn't exist"""
+        # Look for existing camera track
+        for track_index, model in self.track_models.items():
+            if hasattr(model, 'view'):  # This indicates it's a camera track
+                return track_index
+
+        # Camera track doesn't exist, check if we have a camera track by name
+        camera_track_index = None
+        for i, row in enumerate(self.timeline_scene.track_rows):
+            if row.track_name.lower() == "camera":
+                camera_track_index = i
+                break
+
+        if camera_track_index is not None:
+            # Mark this as camera track in our tracking
+            self.track_models[camera_track_index] = self.session.view
+            return camera_track_index
+
+        # No camera track exists, so we return None and let the calling code decide
+        # whether to create one. For scene drops, we'll add camera keyframes to
+        # the existing camera track if it exists.
+        return None
 
     @Slot(int)
     def _on_track_deleted(self, track_index: int):
         """Handle track deletion."""
         if track_index < 0 or track_index >= len(self.timeline_scene.track_rows):
             return
-
+        
         # Check if this is the camera track - prevent deletion
         if track_index in self.track_models:
             model = self.track_models[track_index]
             if hasattr(model, 'view') or model == self.session.view.camera:
                 # This is the camera track, don't allow deletion
                 return
-
+        
         # Check if this is a parent track with subtracks
         if track_index in self.track_subtracks:
             # Delete all subtracks first
             subtracks_to_delete = list(self.track_subtracks[track_index].values())
             # Sort in reverse order to delete from bottom up
             subtracks_to_delete.sort(reverse=True)
-
+            
             for subtrack_index in subtracks_to_delete:
                 self._delete_track_at_index(subtrack_index)
-
+        
         # Delete the main track
         self._delete_track_at_index(track_index)
 
@@ -2337,29 +2596,29 @@ class KeyframeEditorWidget(QWidget):
         """Delete a track at the specified index and update all data structures."""
         if track_index < 0 or track_index >= len(self.timeline_scene.track_rows):
             return
-
+        
         # Remove all keyframes for this track from the scene
         items_to_remove = []
         for item in self.timeline_scene.items():
-            if (isinstance(item, KeyframeItem) and
-                hasattr(item, '_track_row') and
+            if (isinstance(item, KeyframeItem) and 
+                hasattr(item, '_track_row') and 
                 item._track_row.index == track_index):
                 items_to_remove.append(item)
-
+        
         for item in items_to_remove:
             self.timeline_scene.removeItem(item)
-
+        
         # Remove the track row from the scene
         track_row = self.timeline_scene.track_rows[track_index]
         self.timeline_scene.removeItem(track_row)
         self.timeline_scene.track_rows.pop(track_index)
-
+        
         # Remove from header
         self.track_header.takeItem(track_index)
-
+        
         # Update all data structures by shifting indices down
         self._shift_track_indices_after_deletion(track_index)
-
+        
         # Update the scene to reflect changes
         self.timeline_scene._update_scene_rect()
         self.timeline_scene._draw_playhead()
@@ -2375,36 +2634,36 @@ class KeyframeEditorWidget(QWidget):
             elif track_index > deleted_index:
                 self.track_models[track_index - 1] = model
             # Skip the deleted index
-
+        
         # Update track_subtracks mapping
         old_subtracks = dict(self.track_subtracks)
         self.track_subtracks.clear()
         for parent_index, subtracks in old_subtracks.items():
             if parent_index == deleted_index:
                 continue  # Skip deleted parent
-
+            
             # Update parent index if needed
             new_parent_index = parent_index - 1 if parent_index > deleted_index else parent_index
             self.track_subtracks[new_parent_index] = {}
-
+            
             # Update subtrack indices
             for property_name, subtrack_index in subtracks.items():
                 if subtrack_index == deleted_index:
                     continue  # Skip deleted subtrack
                 new_subtrack_index = subtrack_index - 1 if subtrack_index > deleted_index else subtrack_index
                 self.track_subtracks[new_parent_index][property_name] = new_subtrack_index
-
+        
         # Update track_parents mapping
         old_parents = dict(self.track_parents)
         self.track_parents.clear()
         for subtrack_index, parent_index in old_parents.items():
             if subtrack_index == deleted_index or parent_index == deleted_index:
                 continue  # Skip deleted relationships
-
+            
             new_subtrack_index = subtrack_index - 1 if subtrack_index > deleted_index else subtrack_index
             new_parent_index = parent_index - 1 if parent_index > deleted_index else parent_index
             self.track_parents[new_subtrack_index] = new_parent_index
-
+        
         # Update collapsed_tracks set
         old_collapsed = set(self.collapsed_tracks)
         self.collapsed_tracks.clear()
@@ -2413,23 +2672,23 @@ class KeyframeEditorWidget(QWidget):
                 continue  # Skip deleted track
             new_collapsed_index = collapsed_index - 1 if collapsed_index > deleted_index else collapsed_index
             self.collapsed_tracks.add(new_collapsed_index)
-
+        
         # Update track row indices in the remaining tracks
         for i, track_row in enumerate(self.timeline_scene.track_rows):
             track_row.index = i
             # Update position
             new_y = i * TRACK_HEIGHT + RULER_HEIGHT
             track_row.setPos(0, new_y)
-
+            
             # Update all keyframes for this track to match the new position
             for item in self.timeline_scene.items():
-                if (isinstance(item, KeyframeItem) and
-                    hasattr(item, '_track_row') and
+                if (isinstance(item, KeyframeItem) and 
+                    hasattr(item, '_track_row') and 
                     item._track_row == track_row):
                     # Update keyframe Y position to match new track position
                     kf_y = new_y + TRACK_HEIGHT / 2
                     item.setPos(item.pos().x(), kf_y)
-
+        
         # Update track widget indices in header
         old_track_widgets = dict(self.track_header.track_widgets)
         self.track_header.track_widgets.clear()
@@ -2439,3 +2698,227 @@ class KeyframeEditorWidget(QWidget):
             new_index = old_index - 1 if old_index > deleted_index else old_index
             widget.track_index = new_index
             self.track_header.track_widgets[new_index] = widget
+
+    # Scene Mode Methods
+    def on_scene_added(self, scene_name):
+        """Handle scene added to timeline"""
+        # Scene is already added to timeline via drag/drop
+        # Find the time where this scene was added and add it to scene animation
+        for marker_data in self.scene_timeline_widget.timeline_scene.scene_markers:
+            time, name = marker_data[:2]  # Only take first 2 elements
+            if name == scene_name:
+                # Add the scene to the scene animation manager at this time
+                self.scene_animation.add_scene_at_time(scene_name, time)
+                self.session.logger.info(f"Added scene '{scene_name}' to animation at {time:.2f}s")
+                break
+
+    def on_scene_removed(self, scene_name):
+        """Handle scene removed from timeline"""
+        # Remove scene from scene animation manager
+        self.scene_animation.remove_scene(scene_name)
+
+    def on_scene_moved(self, scene_name, old_time, new_time):
+        """Handle scene moved on timeline"""
+        # Remove scene from old time and add at new time in scene animation manager
+        self.scene_animation.remove_scene_at_time(old_time)
+        self.scene_animation.add_scene_at_time(scene_name, new_time)
+
+    def on_scene_selected(self, scene_name):
+        """Handle scene selected on timeline"""
+        # This is called when user clicks on a scene marker
+        # Scene restoration is handled directly in the timeline widget
+        pass
+
+    def on_scene_time_changed(self, time):
+        """Handle time scrubber changed in scene mode"""
+        # Preview the animation at this time
+        self.scene_animation.preview_at_time(time)
+
+    def on_scene_play_requested(self):
+        """Handle play button pressed in scene mode"""
+        # Get current time from timeline controls
+        current_time = self.scene_timeline_widget.timeline_controls.current_time
+
+        # Sync scene data from timeline to animation manager
+        self._sync_timeline_to_scene_animation()
+
+        # Start playback from current time
+        self.scene_animation.play(start_time=current_time)
+
+    def on_scene_pause_requested(self):
+        """Handle pause button pressed in scene mode"""
+        self.scene_animation.stop_playing()
+
+    def _sync_timeline_to_scene_animation(self):
+        """Sync scene markers from timeline to scene animation manager"""
+        # Clear existing scenes from animation manager
+        self.scene_animation.clear_all_scenes()
+
+        # Set duration to match timeline
+        duration = self.scene_timeline_widget.timeline_scene.duration
+        self.scene_animation.set_duration(duration)
+
+        # Add all scenes from timeline to animation manager
+        for marker_data in self.scene_timeline_widget.timeline_scene.scene_markers:
+            if len(marker_data) >= 4:
+                # Full format with transition data
+                time, scene_name, pixmap, transition_data = marker_data
+                self.scene_animation.add_scene_at_time(
+                    scene_name, time,
+                    transition_data.get('type', 'linear'),
+                    transition_data.get('fade_models', False)
+                )
+            elif len(marker_data) >= 2:
+                # Backward compatibility - no transition data
+                time, scene_name = marker_data[:2]
+                self.scene_animation.add_scene_at_time(scene_name, time)
+
+    # Scene Animation Signal Handlers
+    def on_scene_animation_time_changed(self, time):
+        """Handle scene animation time change"""
+        # Update timeline controls to reflect current time
+        self.scene_timeline_widget.timeline_controls.set_current_time(time)
+        self.scene_timeline_widget.timeline_scene.set_current_time(time)
+
+    def on_scene_animation_started(self):
+        """Handle scene animation playback started"""
+        # Update timeline controls to show playing state
+        self.scene_timeline_widget.timeline_controls.is_playing = True
+        self.scene_timeline_widget.timeline_controls.play_btn.setText("⏸")
+
+    def on_scene_animation_stopped(self):
+        """Handle scene animation playback stopped"""
+        # Update timeline controls to show stopped state
+        self.scene_timeline_widget.timeline_controls.is_playing = False
+        self.scene_timeline_widget.timeline_controls.play_btn.setText("▶")
+
+
+class MovieRecordingDialog(QDialog):
+    """Dialog for movie recording options including resolution"""
+
+    def __init__(self, session, parent=None):
+        super().__init__(parent)
+        self.session = session
+        self.setWindowTitle("Record Animation")
+        self.setModal(True)
+        self.setup_ui()
+
+    def setup_ui(self):
+        layout = QVBoxLayout(self)
+
+        # File selection
+        file_group = QGroupBox("Output File")
+        file_layout = QHBoxLayout(file_group)
+
+        self.file_path_edit = QLineEdit()
+        self.file_path_edit.setPlaceholderText("Choose output file...")
+        file_layout.addWidget(self.file_path_edit)
+
+        browse_btn = QPushButton("Browse...")
+        browse_btn.clicked.connect(self.browse_file)
+        file_layout.addWidget(browse_btn)
+
+        layout.addWidget(file_group)
+
+        # Resolution selection
+        res_group = QGroupBox("Recording Resolution")
+        res_layout = QVBoxLayout(res_group)
+
+        self.resolution_combo = QComboBox()
+        self.resolution_combo.addItems([
+            "Display Resolution (Current)",
+            "4K UHD (3840×2160)",
+            "1080p Full HD (1920×1080)",
+            "720p HD (1280×720)",
+            "480p SD (640×480)",
+            "Custom..."
+        ])
+
+        # Set default based on settings
+        self._set_default_resolution()
+
+        self.resolution_combo.currentTextChanged.connect(self.on_resolution_changed)
+        res_layout.addWidget(self.resolution_combo)
+
+        # Custom resolution inputs (initially hidden)
+        self.custom_widget = QWidget()
+        custom_layout = QHBoxLayout(self.custom_widget)
+        custom_layout.addWidget(QLabel("Width:"))
+        self.width_spin = QSpinBox()
+        self.width_spin.setRange(100, 7680)
+        self.width_spin.setValue(1920)
+        custom_layout.addWidget(self.width_spin)
+        custom_layout.addWidget(QLabel("Height:"))
+        self.height_spin = QSpinBox()
+        self.height_spin.setRange(100, 4320)
+        self.height_spin.setValue(1080)
+        custom_layout.addWidget(self.height_spin)
+        self.custom_widget.hide()
+        res_layout.addWidget(self.custom_widget)
+
+        layout.addWidget(res_group)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(self.reject)
+        button_layout.addWidget(cancel_btn)
+
+        self.record_btn = QPushButton("Start Recording")
+        self.record_btn.clicked.connect(self.accept)
+        self.record_btn.setStyleSheet("background-color: #f44336; color: white; font-weight: bold;")
+        button_layout.addWidget(self.record_btn)
+
+        layout.addWidget(QWidget())  # Spacer
+        layout.addLayout(button_layout)
+
+    def _set_default_resolution(self):
+        """Set the default resolution based on settings"""
+        try:
+            from .settings import get_settings
+            settings = get_settings(self.session)
+            default_res = settings.recording_resolution
+
+            # Map settings values to combo box items
+            if default_res == '4k':
+                self.resolution_combo.setCurrentText("4K UHD (3840×2160)")
+            elif default_res == '1080p':
+                self.resolution_combo.setCurrentText("1080p Full HD (1920×1080)")
+            elif default_res == 'custom':
+                self.resolution_combo.setCurrentText("Custom...")
+            else:
+                # Default to 1080p if unknown setting
+                self.resolution_combo.setCurrentText("1080p Full HD (1920×1080)")
+        except Exception:
+            # Fallback to 1080p if settings not available
+            self.resolution_combo.setCurrentText("1080p Full HD (1920×1080)")
+
+    def browse_file(self):
+        from chimerax.ui.open_save import SaveDialog
+        save_dialog = SaveDialog(self.session, parent=self)
+        save_dialog.setNameFilter("Video Files (*.mp4 *.mov *.avi *.wmv)")
+        if save_dialog.exec():
+            file_path = save_dialog.selectedFiles()[0]
+            self.file_path_edit.setText(file_path)
+
+    def on_resolution_changed(self, text):
+        self.custom_widget.setVisible("Custom" in text)
+
+    def get_save_path(self):
+        return self.file_path_edit.text()
+
+    def get_resolution(self):
+        text = self.resolution_combo.currentText()
+        if "Display Resolution" in text:
+            return None
+        elif "4K UHD" in text:
+            return "4k"
+        elif "1080p" in text:
+            return "1080p"
+        elif "720p" in text:
+            return "720p"
+        elif "480p" in text:
+            return "480p"
+        elif "Custom" in text:
+            return (self.width_spin.value(), self.height_spin.value())
+        return None
