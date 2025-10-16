@@ -1,4 +1,4 @@
-from chimerax.core.commands import CmdDesc, register, IntArg
+from chimerax.core.commands import CmdDesc, register, IntArg, BoolArg
 from chimerax.core.errors import UserError
 
 
@@ -28,8 +28,16 @@ def mcp_status(session):
         raise UserError("MCP server not initialized")
 
     success, message = session.mcp_server.status()
-    session.logger.info(message)
-    return success, message
+    settings = session.mcp_server.settings
+
+    status_info = f"{message}\n"
+    status_info += f"Settings:\n"
+    status_info += f"  Auto-start: {settings.auto_start}\n"
+    status_info += f"  Default port: {settings.port}\n"
+    status_info += f"  Log to ChimeraX: {settings.log_to_chimerax}"
+
+    session.logger.info(status_info)
+    return success, status_info
 
 
 mcp_start_desc = CmdDesc(

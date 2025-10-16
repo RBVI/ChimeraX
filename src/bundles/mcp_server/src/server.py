@@ -16,6 +16,10 @@ class MCPServer:
         self.loop = None
         self.thread = None
 
+        # Initialize settings
+        from .settings import get_settings
+        self.settings = get_settings(session)
+
     def start(self, port: int = 3001):
         """Start the MCP server on specified port"""
         if self.running:
@@ -26,7 +30,6 @@ class MCPServer:
             self.thread = threading.Thread(target=self._run_server, args=(port,), daemon=True)
             self.thread.start()
             self.running = True
-            self.session.logger.info(f"MCP server started on port {port}")
             return True, f"MCP server started on port {port}"
         except Exception as e:
             return False, f"Failed to start MCP server: {e}"
@@ -261,10 +264,20 @@ class MCPServer:
             def execute_command():
                 try:
                     from chimerax.core.commands import run
+
                     logger = self.session.logger
-                    with StringPlainTextLog(logger) as cmd_log:
-                        result = run(self.session, command, log=True)
-                        output = cmd_log.getvalue()
+                    from chimerax.rest_server.server import ByLevelPlainTextLog
+                    log_class = ByLevelPlainTextLog
+                    log_class.propagate_to_chimerax = True
+                    with ByLevelPlainTextLog(logger) as rest_log:
+                        result = run(
+                            self.session,
+                            command,
+                            log = True,
+                            #return_json = True,
+                            return_list = True
+                        )
+                        output = rest_log.getvalue()
                         q.put(("success", result, output))
                 except Exception as e:
                     q.put(("error", str(e), ""))
@@ -276,13 +289,20 @@ class MCPServer:
             status, result, output = q.get()
 
             if status == "success":
+                # Format response for AI with both log output and results
+                response_text = f"Command executed: {command}\n"
+                if output:
+                    response_text += f"Log output: {output}\n"
+                if result:
+                    response_text += f"Return value: {result}\n"
+
                 return {
                     "jsonrpc": "2.0",
                     "result": {
                         "content": [
                             {
                                 "type": "text",
-                                "text": f"Command executed: {command}\nOutput: {output}\nResult: {result if result else 'Success'}"
+                                "text": response_text
                             }
                         ]
                     },
