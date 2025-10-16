@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-MCPServer"
+license = { text = "Free for non-commercial use" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+description = "Model Context Protocol server for ChimeraX"
+dependencies = [
+	"ChimeraX-Core ~=1.10dev"
+]
+
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = """The MCP Server bundle provides Model Context Protocol (MCP) functionality
+for ChimeraX, enabling external applications like Claude Code to communicate
+with and control ChimeraX programmatically."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+custom-init = true
+categories = ["General"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.command."mcp start"]
+category = "General"
+description = "Start the MCP server for external communication"
+
+[tool.chimerax.command."mcp stop"]
+category = "General"
+description = "Stop the MCP server"
+
+[tool.chimerax.command."mcp status"]
+category = "General"
+description = "Show MCP server status"
