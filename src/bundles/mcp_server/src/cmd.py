@@ -53,9 +53,109 @@ mcp_status_desc = CmdDesc(
     synopsis="Show MCP server status"
 )
 
+mcp_setup_desc = CmdDesc(
+    synopsis="Install MCP SDK and generate Claude configuration"
+)
+
+
+def mcp_setup(session):
+    """Install MCP SDK and generate Claude configuration"""
+    if not hasattr(session, 'mcp_server'):
+        raise UserError("MCP server not initialized")
+
+    import subprocess
+    import json
+    import os
+    import sys
+
+    try:
+        # Get the bundle directory
+        bundle_dir = os.path.dirname(__file__)
+        bridge_path = os.path.join(bundle_dir, "chimerax_mcp_bridge.js")
+
+        settings = session.mcp_server.settings
+        port = settings.port
+
+        # Ensure package.json exists
+        package_json_path = os.path.join(bundle_dir, "package.json")
+        if not os.path.exists(package_json_path):
+            package_json = {
+                "name": "chimerax-mcp-bridge",
+                "version": "1.0.0",
+                "type": "module",
+                "description": "MCP bridge for ChimeraX",
+                "main": "chimerax_mcp_bridge.js",
+                "dependencies": {
+                    "@modelcontextprotocol/sdk": "^0.5.0"
+                },
+                "engines": {
+                    "node": ">=18.0.0"
+                }
+            }
+            with open(package_json_path, 'w') as f:
+                json.dump(package_json, f, indent=2)
+            session.logger.info("Created package.json")
+
+        # Install MCP SDK
+        session.logger.info("Installing @modelcontextprotocol/sdk...")
+        try:
+            # Try to install in the bundle directory
+            result = subprocess.run([
+                "npm", "install", "@modelcontextprotocol/sdk"
+            ], cwd=bundle_dir, capture_output=True, text=True, check=True)
+            session.logger.info("MCP SDK installed successfully")
+        except subprocess.CalledProcessError as e:
+            session.logger.error(f"Failed to install MCP SDK: {e.stderr}")
+            return False, f"Failed to install MCP SDK: {e.stderr}"
+        except FileNotFoundError:
+            session.logger.error("npm not found. Please install Node.js and npm first.")
+            return False, "npm not found. Please install Node.js and npm first."
+
+        # Generate Claude configuration
+        config = {
+            "mcpServers": {
+                "chimerax": {
+                    "command": "node",
+                    "args": [bridge_path],
+                    "env": {
+                        "CHIMERAX_MCP_HOST": "localhost",
+                        "CHIMERAX_MCP_PORT": str(port)
+                    }
+                }
+            }
+        }
+
+        config_json = json.dumps(config, indent=2)
+
+        message = f"""MCP setup completed successfully!
+
+1. MCP SDK installed in: {bundle_dir}
+
+2. Add this configuration to your Claude Desktop config file:
+
+{config_json}
+
+3. To use:
+   - Start ChimeraX
+   - Run: mcp start {port}
+   - Start Claude Desktop (it will automatically connect)
+
+4. Bridge script location: {bridge_path}
+
+Note: Make sure Node.js is installed and accessible in your PATH."""
+
+        session.logger.info(message)
+        return True, message
+
+    except Exception as e:
+        error_msg = f"Setup failed: {e}"
+        session.logger.error(error_msg)
+        return False, error_msg
+
 
 def register_commands(logger):
     """Register MCP commands with ChimeraX"""
     register("mcp start", mcp_start_desc, mcp_start, logger=logger)
     register("mcp stop", mcp_stop_desc, mcp_stop, logger=logger)
     register("mcp status", mcp_status_desc, mcp_status, logger=logger)
+    register("mcp setup", mcp_setup_desc, mcp_setup, logger=logger)

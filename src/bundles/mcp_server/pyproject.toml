@@ -43,3 +43,7 @@ description = "Stop the MCP server"
 [tool.chimerax.command."mcp status"]
 category = "General"
 description = "Show MCP server status"
+
+[tool.chimerax.command."mcp setup"]
+category = "General"
+description = "Install MCP SDK and generate Claude configuration"
