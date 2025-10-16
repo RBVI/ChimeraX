@@ -193,12 +193,12 @@ class Scene(State):
                 model.positions = self.named_view.positions[model]
             else:
                 model.display = False
-            for model, scene_info in self.scene_models.items():
-                restore_implemented, scene_data = scene_info
-                if restore_implemented:
-                    model.restore_scene(scene_data)
-                else:
-                    Model.restore_scene(model, scene_data)
+        for model, scene_info in self.scene_models.items():
+            restore_implemented, scene_data = scene_info
+            if restore_implemented:
+                model.restore_scene(scene_data)
+            else:
+                Model.restore_scene(model, scene_data)
 
     def models_removed(self, models: [str]):
         """

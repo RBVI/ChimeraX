@@ -1857,7 +1857,6 @@ class Volume(Model):
     if flags & State.SCENE:
       from .session import state_from_map
       scene_data = state_from_map(self)
-      print(f"DEBUG: Volume take_snapshot for SCENE, data keys: {scene_data.keys()}")
       return scene_data
 
     # For full snapshots, include everything
@@ -1893,8 +1892,6 @@ class Volume(Model):
     '''
     Restore volume to state from scene_data (obtained from take_snapshot() with State.SCENE flag)
     '''
-    print(f"DEBUG: Volume.restore_scene called with data keys: {scene_data.keys()}")
-
     # Handle volume-specific scene properties using existing session code
     from .session import set_map_state
     set_map_state(scene_data, self, notify=True)
@@ -2365,6 +2362,14 @@ class VolumeSurface(Surface):
     }
     if self.vertex_colors is not None and self.auto_recolor_vertices is None:
       data['vertex_colors'] = self.vertex_colors
+
+    from chimerax.core.state import State
+    if flags & State.SCENE:
+      if self.auto_recolor_vertices is not None and isinstance(self.auto_recolor_vertices, State):
+        data['auto_recolor_vertices'] = self.auto_recolor_vertices
+      if self.auto_remask_triangles is not None and isinstance(self.auto_remask_triangles, State):
+        data['auto_remask_triangles'] = self.auto_remask_triangles
+
     return data
 
   @staticmethod
@@ -2384,6 +2389,30 @@ class VolumeSurface(Surface):
       if len(s.vertices) == len(vc):
         s.vertex_colors = vc
     return s
+
+  def restore_scene(self, data):
+    for attr in ['level', 'rgba', 'show_mesh']:
+      setattr(self, attr, data[attr])
+    Model.restore_scene(self, data['model state'])
+
+    if 'vertex_colors' in data:
+      # Compute surface and set vertex colors.
+      self.update_surface(self.volume.rendering_options)
+      vc = data['vertex_colors']
+      if len(self.vertices) == len(vc):
+        self.vertex_colors = vc
+
+    self.auto_recolor_vertices = recolor = data.get('auto_recolor_vertices')
+    if recolor:
+      self.update_surface(self.volume.rendering_options)  # Avoid recoloring twice
+      recolor()
+
+    self.auto_remask_triangles = remask = data.get('auto_remask_triangles')
+    if remask:
+      self.update_surface(self.volume.rendering_options)  # Avoid remasking twice
+      remask()
+    else:
+      self.triangle_mask = None
 
 # -----------------------------------------------------------------------------
 #

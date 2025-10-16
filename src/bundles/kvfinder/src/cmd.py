@@ -205,19 +205,20 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, Float3Arg, FloatArg, EnumOf, BoolArg
+    from chimerax.core.commands import Bounded, PositiveFloatArg
     from chimerax.atomic import AtomicStructuresArg
     kw = {
         'required': [('structures', Or(AtomicStructuresArg, EmptyArg))],
         'keyword': [
             ('box_extent', Or(Float3Arg, FloatArg)),
             ('box_origin', Float3Arg),
-            ('probe_in', FloatArg),
-            ('probe_out', FloatArg),
+            ('probe_in', PositiveFloatArg),
+            ('probe_out', PositiveFloatArg),
             ('removal_distance', FloatArg),
             ('replace', BoolArg),
             ('show_box', BoolArg),
             ('show_tool', BoolArg),
-            ('grid_spacing', FloatArg),
+            ('grid_spacing', Bounded(FloatArg, min=0, max=5, inclusive=False, name="a number > 0 and < 5")),
             ('surface_type', EnumOf(['SAS', 'SES'])),
             ('volume_cutoff', FloatArg),
         ]

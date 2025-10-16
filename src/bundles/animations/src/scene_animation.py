@@ -212,6 +212,21 @@ class SceneAnimation(StateManager):
         self.logger.info(f"Set animation duration to {duration:.2f}s")
         return True
 
+    def get_effective_end_time(self):
+        """Get the effective end time for recording (1 second after last scene)
+
+        Returns the time 1 second after the last scene marker, or the full duration
+        if there are no scenes.
+        """
+        if not self.scenes:
+            return self.duration
+
+        # Find the last scene time
+        last_scene_time = max(t for t, _, _ in self.scenes)
+
+        # Return 1 second after the last scene
+        return last_scene_time + 1.0
+
     def preview_at_time(self, time: float):
         """Preview the animation at a specific time"""
         if time < 0 or time > self.duration:
@@ -312,6 +327,10 @@ class SceneAnimation(StateManager):
         # Calculate next time
         frame_duration = 1.0 / self.fps
 
+        # Determine the effective end time
+        # When recording, end 1 second after the last scene; otherwise use full duration
+        end_time = self.get_effective_end_time() if self.is_recording else self.duration
+
         if self.reverse:
             next_time = self.current_time - frame_duration
             if next_time <= 0:
@@ -319,8 +338,8 @@ class SceneAnimation(StateManager):
                 self.stop_playing()
         else:
             next_time = self.current_time + frame_duration
-            if next_time >= self.duration:
-                next_time = self.duration
+            if next_time >= end_time:
+                next_time = end_time
                 self.stop_playing()
 
         # Update current time and preview
@@ -348,6 +367,9 @@ class SceneAnimation(StateManager):
         # Calculate next time
         frame_duration = 1.0 / self.fps
 
+        # When recording, end 1 second after the last scene
+        end_time = self.get_effective_end_time()
+
         if self.reverse:
             next_time = self.current_time - frame_duration
             if next_time <= 0:
@@ -356,8 +378,8 @@ class SceneAnimation(StateManager):
                 return
         else:
             next_time = self.current_time + frame_duration
-            if next_time >= self.duration:
-                next_time = self.duration
+            if next_time >= end_time:
+                next_time = end_time
                 self.stop_playing()
                 return
 
@@ -521,11 +543,14 @@ class SceneAnimation(StateManager):
 
             # Get the number of frames that were actually captured
             actual_frame_count = self.session.movie.getFrameCount()
+            # Calculate expected frames based on effective end time (1 second after last scene)
+            effective_end_time = self.get_effective_end_time()
             expected_frames = getattr(
-                self, "_expected_frame_count", self.duration * self.fps
+                self, "_expected_frame_count", effective_end_time * self.fps
             )
 
             # print(f"DEBUG: Animation duration: {self.duration}s at {self.fps} FPS")
+            # print(f"DEBUG: Effective recording duration: {effective_end_time:.2f}s")
             # print(f"DEBUG: Expected frames during playback: {expected_frames}")
             # print(f"DEBUG: Actually captured by movie system: {actual_frame_count} frames")
 
