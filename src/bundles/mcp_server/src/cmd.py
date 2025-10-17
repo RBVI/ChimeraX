@@ -27,16 +27,57 @@ def mcp_status(session):
     if not hasattr(session, 'mcp_server'):
         raise UserError("MCP server not initialized")
 
+    import json
+    import os
+
     success, message = session.mcp_server.status()
     settings = session.mcp_server.settings
 
-    status_info = f"{message}\n"
-    status_info += f"Settings:\n"
-    status_info += f"  Auto-start: {settings.auto_start}\n"
-    status_info += f"  Default port: {settings.port}\n"
-    status_info += f"  Log to ChimeraX: {settings.log_to_chimerax}"
+    # Get the bridge script path
+    bundle_dir = os.path.dirname(__file__)
+    bridge_path = os.path.join(bundle_dir, "chimerax_mcp_bridge.js")
 
-    session.logger.info(status_info)
+    # Generate Claude configuration
+    config = {
+        "mcpServers": {
+            "chimerax": {
+                "command": "node",
+                "args": [bridge_path],
+                "env": {
+                    "CHIMERAX_MCP_HOST": "localhost",
+                    "CHIMERAX_MCP_PORT": str(settings.port)
+                }
+            }
+        }
+    }
+
+    # Format JSON with proper indentation that won't get stripped
+    config_lines = [
+        "{",
+        '  "mcpServers": {',
+        '    "chimerax": {',
+        '      "command": "node",',
+        f'      "args": ["{bridge_path}"],',
+        '      "env": {',
+        '        "CHIMERAX_MCP_HOST": "localhost",',
+        f'        "CHIMERAX_MCP_PORT": "{settings.port}"',
+        '      }',
+        '    }',
+        '  }',
+        "}"
+    ]
+    config_json = "\n".join(config_lines)
+
+    status_info = f"{message}<br><br>"
+    status_info += f"Settings:<br>"
+    status_info += f"&nbsp;&nbsp;Auto-start: {settings.auto_start}<br>"
+    status_info += f"&nbsp;&nbsp;Default port: {settings.port}<br><br>"
+    status_info += f"Claude Desktop Configuration:<br>"
+    status_info += f"Copy this JSON to your Claude Desktop config file:<br><br>"
+    status_info += f"<pre><code>{config_json}</code></pre><br>"
+    status_info += f"Bridge script: {bridge_path}"
+
+    session.logger.info(status_info, is_html=True)
     return success, status_info
 
 
