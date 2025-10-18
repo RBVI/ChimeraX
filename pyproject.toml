@@ -60,6 +60,7 @@ gui = [
   "distro==1.9.0; sys_platform == 'linux'",
 ]
 wheel = [
+  "aiohttp==3.13.1",
   "appdirs==1.4.4",
   "beautifulsoup4==4.13.5",
   "colorama==0.4.6",
@@ -80,6 +81,7 @@ wheel = [
   # lz4 4.4.4 has problems decompressing what it encoded, ticket #18140
   "lz4==4.3.2",
   "matplotlib==3.10.5",
+  "mcp==1.18.0",
   "msgpack==1.1.1",
   "nibabel == 5.2.0",
   "netCDF4==1.6.5",
