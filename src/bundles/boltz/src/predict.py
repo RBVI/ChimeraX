@@ -102,7 +102,7 @@ def _polymer_components(sequences, protein, dna, rna):
         for seq in seq_list:
             seq_string = seq.characters
             is_chain = isinstance(seq, Chain)
-            polymer_type = _chain_type(seq) if is_chain else None  # protein, dna, rna or None
+            polymer_type = _chain_type(seq) if is_chain else type  # protein, dna, rna or None
             if type is None:
                 if is_chain:
                     if polymer_type is None:
