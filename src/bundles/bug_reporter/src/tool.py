@@ -283,15 +283,16 @@ class BugReporter(ToolInstance):
 
         # Report success or error.
         from http import HTTPStatus
-        if errcode == HTTPStatus.OK:
-            self.report_success()
+        if errcode in (HTTPStatus.OK, HTTPStatus.CONFLICT):
+            if errcode == HTTPStatus.OK:
+                self.report_success()
+            else:
+                self.report_conflict(body)
             self.cancel_button.setText("Close")
             self.submit_button.deleteLater()  # Prevent second submission
             s = self.settings
             s.contact_name = self.contact_name.text()
             s.email_address = self.email_address.text()
-        elif errcode == HTTPStatus.CONFLICT:
-            self.report_conflict(body)
         else:
             self.report_failure(f"HTTP error {errcode} occurred")
 
@@ -429,6 +430,7 @@ def ignoring_newer_versions():
             return True
     return False
 
+
 def version_tuple(version):
     vtuple = []
     for part in version.split('.'):
@@ -437,6 +439,7 @@ def version_tuple(version):
         except:
             vtuple.append(part)
     return vtuple
+
 
 def show_bug_reporter(session, is_known_crash=False):
     from Qt.QtCore import QTimer
