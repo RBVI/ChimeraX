@@ -51,6 +51,10 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
                                                              ligand_ccd, ligand_smiles, used_chain_ids)
     molecular_components = polymer_components + ligand_components
 
+    if len(molecular_components) == 0 and len(for_each_smiles_ligand) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('No molecules specified for Boltz prediction')
+
     predict_affinity = _affinity_component(affinity, ligand_components)
     _split_affinity_ligand(predict_affinity, molecular_components)
    
@@ -98,7 +102,7 @@ def _polymer_components(sequences, protein, dna, rna):
         for seq in seq_list:
             seq_string = seq.characters
             is_chain = isinstance(seq, Chain)
-            polymer_type = _chain_type(seq) if is_chain else None  # protein, dna, rna or None
+            polymer_type = _chain_type(seq) if is_chain else type  # protein, dna, rna or None
             if type is None:
                 if is_chain:
                     if polymer_type is None:
