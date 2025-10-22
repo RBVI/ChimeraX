@@ -658,7 +658,8 @@ class SceneItem(QWidget):
         if event.button() == Qt.LeftButton and not self.drag_initiated:
             # This was a click (not a drag), so restore the scene
             activate_trigger(SCENE_SELECTED, self.name)
-        super().mouseReleaseEvent(event)
+        else:
+            super().mouseReleaseEvent(event)
 
     def set_highlighted(self, highlighted):
         """
