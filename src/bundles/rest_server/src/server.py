@@ -217,9 +217,8 @@ class RESTHandler(BaseHTTPRequestHandler):
         session = self.server.chimerax_restserver.session
         q = Queue()
 
-        def f(
-            args=args, session=session, q=q, json=self.server.chimerax_restserver.json
-        ):
+        json = self.server.chimerax_restserver.json
+        def f(args=args, session=session, q=q, json=json):
             logger = session.logger
             # rest_log.log_summary gets called at the end
             # of the "with" statement
@@ -289,7 +288,8 @@ class RESTHandler(BaseHTTPRequestHandler):
 
         session.ui.thread_safe(f)
         data = bytes(q.get(), "utf-8")
-        self._header(200, "text/plain", len(data))
+        content_type = "application/json" if json else "text/plain"
+        self._header(200, content_type, len(data))
         self.wfile.write(data)
 
 
