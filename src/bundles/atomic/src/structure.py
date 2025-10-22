@@ -53,6 +53,7 @@ class Structure(Model, StructureData):
     ATOM_SCENE_ATTRS = ['colors', 'coords', 'displays', 'selected']
     BOND_SCENE_ATTRS = ['colors', 'displays', 'halfbonds', 'selected']
     RESIDUE_SCENE_ATTRS = ['ribbon_colors', 'ribbon_displays', 'ring_colors', 'ring_displays']
+    STRUCTURE_SCENE_ATTRS = ['active_coordset_id']
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  auto_style = True, log_info = True):
@@ -239,6 +240,9 @@ class Structure(Model, StructureData):
                 'residues': { attr_name: getattr(residues, attr_name)
                     for attr_name in self.RESIDUE_SCENE_ATTRS
                 },
+                'structure': { attr_name: getattr(self, attr_name)
+                    for attr_name in self.STRUCTURE_SCENE_ATTRS
+                },
             }
             return scene_data
 
@@ -270,6 +274,9 @@ class Structure(Model, StructureData):
             for attr_name in attr_names:
                 if attr_name in values:
                     setattr(collection, attr_name, values[attr_name])
+        for attr_name, val in scene_data.get('structure', {}).items():
+            print("Set", attr_name, "to", val)
+            setattr(self, attr_name, val)
 
     def set_state_from_snapshot(self, session, data):
         StructureData.set_state_from_snapshot(self, session, data['structure state'])
