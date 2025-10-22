@@ -657,6 +657,133 @@ async def session_info(session_id: int = None) -> str:
     session_info = f" for session {session_id}" if session_id else ""
     return f"ChimeraX session information{session_info}:\n{result}"
 
+@mcp.tool()
+async def superpose_residue(
+    source_model: str,
+    source_chain: str,
+    source_residue: str,
+    target_model: str,
+    target_chain: str,
+    target_residue: str,
+    session_id: int = None
+) -> str:
+    """Move a residue from one model to superpose with a residue in another model.
+    
+    This is useful when the 'align' command won't work because the two residues 
+    don't have the same atoms (e.g., different small molecule ligands).
+    
+    The tool works by:
+    1. Centering the view on the target residue (sets center of rotation)
+    2. Moving the source residue to the center of rotation
+    
+    Args:
+        source_model: Model number containing the residue to move (e.g., '2')
+        source_chain: Chain ID of the residue to move (e.g., 'A')
+        source_residue: Residue name/number to move (e.g., 'DRG' or '100')
+        target_model: Model number containing the target residue (e.g., '1')
+        target_chain: Chain ID of the target residue (e.g., 'A')
+        target_residue: Residue name/number to align to (e.g., 'DRG' or '100')
+        session_id: ChimeraX session port (defaults to primary session)
+    """
+    # Build selection strings
+    target_spec = f"#{target_model}/{target_chain}:{target_residue}"
+    source_spec = f"#{source_model}/{source_chain}:{source_residue}"
+    
+    session_info = f" in session {session_id}" if session_id else ""
+    
+    try:
+        # Step 1: Center view on target residue (sets center of rotation)
+        view_command = f"view {target_spec}"
+        view_result = await run_chimerax_command(view_command, session_id)
+        
+        # Step 2: Move source residue to center of rotation
+        move_command = f"move cofr {source_spec}"
+        move_result = await run_chimerax_command(move_command, session_id)
+        
+        return (f"Successfully superposed residue{session_info}:\n"
+                f"  Source: {source_spec}\n"
+                f"  Target: {target_spec}\n\n"
+                f"View command output:\n{view_result}\n\n"
+                f"Move command output:\n{move_result}")
+    
+    except Exception as e:
+        return (f"Error superposing residue{session_info}:\n"
+                f"  Source: {source_spec}\n"
+                f"  Target: {target_spec}\n"
+                f"  Error: {e}")
+
+@mcp.tool()
+async def show_hide_hydrogens(
+    action: str,
+    hydrogen_type: str = "all",
+    target: str = "",
+    session_id: int = None
+) -> str:
+    """Show or hide hydrogen atoms (all, polar only, or nonpolar only)
+    
+    In ChimeraX:
+    - 'H' refers to all hydrogen atoms
+    - 'HC' refers to nonpolar hydrogens (hydrogens bonded to carbon)
+    - Polar hydrogens are H atoms that are not HC
+    
+    Args:
+        action: 'show' or 'hide'
+        hydrogen_type: Type of hydrogens - 'all', 'polar', or 'nonpolar' (default: 'all')
+        target: Optional target specification to limit scope (e.g., '#1', ':ALA', default: all models)
+        session_id: ChimeraX session port (defaults to primary session)
+    
+    Examples:
+        - Show all hydrogens: action='show', hydrogen_type='all'
+        - Hide all hydrogens: action='hide', hydrogen_type='all'
+        - Show only polar hydrogens: action='show', hydrogen_type='polar'
+        - Hide nonpolar hydrogens: action='hide', hydrogen_type='nonpolar'
+    """
+    if action not in ["show", "hide"]:
+        raise ValueError("Action must be 'show' or 'hide'")
+    
+    if hydrogen_type not in ["all", "polar", "nonpolar"]:
+        raise ValueError("hydrogen_type must be 'all', 'polar', or 'nonpolar'")
+    
+    session_info = f" in session {session_id}" if session_id else ""
+    commands = []
+    
+    # Build target specification
+    target_spec = f" {target}" if target else ""
+    
+    if hydrogen_type == "all":
+        # Simple case: show or hide all hydrogens
+        command = f"{action} H{target_spec}"
+        commands.append(command)
+    
+    elif hydrogen_type == "polar":
+        if action == "show":
+            # Show all H, then hide HC (nonpolar)
+            commands.append(f"show H{target_spec}")
+            commands.append(f"hide HC{target_spec}")
+        else:  # hide
+            # Hide H but not HC (using negation)
+            command = f"hide H{target_spec} & ~HC{target_spec}"
+            commands.append(command)
+    
+    elif hydrogen_type == "nonpolar":
+        # Nonpolar hydrogens are HC
+        command = f"{action} HC{target_spec}"
+        commands.append(command)
+    
+    try:
+        results = []
+        for cmd in commands:
+            result = await run_chimerax_command(cmd, session_id)
+            results.append(f"Command: {cmd}\nOutput: {result}")
+        
+        combined_results = "\n\n".join(results)
+        return (f"Successfully {action} {hydrogen_type} hydrogens{session_info}\n"
+                f"Target: {target if target else 'all models'}\n\n"
+                f"{combined_results}")
+    
+    except Exception as e:
+        return (f"Error {action}ing {hydrogen_type} hydrogens{session_info}: {e}")
+
 # Instance management tools
 
 @mcp.tool()
