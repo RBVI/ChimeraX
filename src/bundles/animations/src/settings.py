@@ -27,7 +27,7 @@ from chimerax.core.settings import Settings
 class _AnimationsSettings(Settings):
     EXPLICIT_SAVE = {
         'recording_resolution': '1080p',  # Default to 1080p
-        'animation_mode': 'keyframe',  # Default to keyframe mode ('keyframe' or 'scene')
+        'animation_mode': 'scene',  # Default to scene mode ('keyframe' or 'scene')
     }
     AUTO_SAVE = {}
 
