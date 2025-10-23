@@ -28,7 +28,6 @@ version = { attr = "src.__version__" }
 [tool.chimerax]
 min-session-version = 1
 max-session-version = 1
-custom-init = true
 categories = ["General"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
@@ -40,10 +39,6 @@ description = "Start the MCP server for external communication"
 category = "General"
 description = "Stop the MCP server"
 
-[tool.chimerax.command."mcp status"]
+[tool.chimerax.command."mcp info"]
 category = "General"
-description = "Show MCP server status"
-
-[tool.chimerax.command."mcp setup"]
-category = "General"
-description = "Install MCP SDK and generate Claude configuration"
+description = "Show AI tools integration guide and setup instructions"

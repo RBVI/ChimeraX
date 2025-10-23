@@ -2,201 +2,183 @@ from chimerax.core.commands import CmdDesc, register, IntArg, BoolArg
 from chimerax.core.errors import UserError
 
 
-def mcp_start(session, port=3001):
-    """Start the MCP server"""
-    if not hasattr(session, 'mcp_server'):
-        raise UserError("MCP server not initialized")
+def mcp_start(session, port=8080):
+    """Start or reconfigure REST server for MCP bridge connections"""
+    from chimerax.core.commands import run
 
-    success, message = session.mcp_server.start(port)
-    session.logger.info(message)
-    return success, message
+    try:
+        # Check if REST server is already running
+        try:
+            run(session, "remotecontrol rest port")
+            # Server is running, check if we need to reconfigure it
+            rest_server = _get_rest_server()
+            if rest_server is not None:
+                current_port = rest_server.server_address[1]
+
+                # Check if we need to reconfigure for MCP compatibility
+                needs_reconfigure = False
+
+                # Check JSON setting
+                if not getattr(rest_server, "json", False):
+                    rest_server.json = True
+                    needs_reconfigure = True
+
+                # Check log setting
+                if not rest_server.log:
+                    rest_server.log = True
+                    needs_reconfigure = True
+
+                if current_port == port:
+                    if needs_reconfigure:
+                        message = f"REST server on port {port} reconfigured for MCP bridge compatibility (JSON: enabled, Log: enabled)"
+                    else:
+                        message = f"REST server on port {port} already configured for MCP bridge connections"
+                    session.logger.info(message)
+                    return True, message
+                else:
+                    # Different port requested, stop and restart
+                    run(session, "remotecontrol rest stop quiet true")
+                    run(
+                        session,
+                        f"remotecontrol rest start port {port} json true log true",
+                    )
+                    message = f"REST server restarted on port {port} for MCP bridge connections"
+                    session.logger.info(message)
+                    return True, message
+            else:
+                # Server reference lost, try to restart
+                run(session, f"remotecontrol rest start port {port} json true log true")
+                message = (
+                    f"REST server started on port {port} for MCP bridge connections"
+                )
+                session.logger.info(message)
+                return True, message
+
+        except:
+            # Server not running, start it
+            run(session, f"remotecontrol rest start port {port} json true log true")
+            message = f"REST server started on port {port} for MCP bridge connections"
+            session.logger.info(message)
+            return True, message
+
+    except Exception as e:
+        error_msg = f"Failed to start/configure REST server: {e}"
+        session.logger.error(error_msg)
+        return False, error_msg
+
+
+def _get_rest_server():
+    """Get the current REST server instance"""
+    try:
+        import chimerax.rest_server.cmd as rest_cmd
+
+        return rest_cmd._get_server()
+    except:
+        return None
 
 
 def mcp_stop(session):
-    """Stop the MCP server"""
-    if not hasattr(session, 'mcp_server'):
-        raise UserError("MCP server not initialized")
+    """Stop the REST server"""
+    from chimerax.core.commands import run
 
-    success, message = session.mcp_server.stop()
-    session.logger.info(message)
-    return success, message
-
-
-def mcp_status(session):
-    """Show MCP server status"""
-    if not hasattr(session, 'mcp_server'):
-        raise UserError("MCP server not initialized")
-
-    import json
-    import os
-
-    success, message = session.mcp_server.status()
-    settings = session.mcp_server.settings
-
-    # Get the bridge script path
-    bundle_dir = os.path.dirname(__file__)
-    bridge_path = os.path.join(bundle_dir, "chimerax_mcp_bridge.js")
-
-    # Generate Claude configuration
-    config = {
-        "mcpServers": {
-            "chimerax": {
-                "command": "node",
-                "args": [bridge_path],
-                "env": {
-                    "CHIMERAX_MCP_HOST": "localhost",
-                    "CHIMERAX_MCP_PORT": str(settings.port)
-                }
-            }
-        }
-    }
-
-    # Format JSON with proper indentation that won't get stripped
-    config_lines = [
-        "{",
-        '  "mcpServers": {',
-        '    "chimerax": {',
-        '      "command": "node",',
-        f'      "args": ["{bridge_path}"],',
-        '      "env": {',
-        '        "CHIMERAX_MCP_HOST": "localhost",',
-        f'        "CHIMERAX_MCP_PORT": "{settings.port}"',
-        '      }',
-        '    }',
-        '  }',
-        "}"
-    ]
-    config_json = "\n".join(config_lines)
-
-    status_info = f"{message}<br><br>"
-    status_info += f"Settings:<br>"
-    status_info += f"&nbsp;&nbsp;Auto-start: {settings.auto_start}<br>"
-    status_info += f"&nbsp;&nbsp;Default port: {settings.port}<br><br>"
-    status_info += f"Claude Desktop Configuration:<br>"
-    status_info += f"Copy this JSON to your Claude Desktop config file:<br><br>"
-    status_info += f"<pre><code>{config_json}</code></pre><br>"
-    status_info += f"Bridge script: {bridge_path}"
-
-    session.logger.info(status_info, is_html=True)
-    return success, status_info
+    try:
+        result = run(session, "remotecontrol rest stop")
+        message = "REST server stopped"
+        session.logger.info(message)
+        return True, message
+    except Exception as e:
+        error_msg = f"Failed to stop REST server: {e}"
+        session.logger.error(error_msg)
+        return False, error_msg
 
 
-mcp_start_desc = CmdDesc(
-    optional=[("port", IntArg)],
-    synopsis="Start MCP server on specified port (default: 3001)"
-)
-
-mcp_stop_desc = CmdDesc(
-    synopsis="Stop the MCP server"
-)
-
-mcp_status_desc = CmdDesc(
-    synopsis="Show MCP server status"
-)
-
-mcp_setup_desc = CmdDesc(
-    synopsis="Install MCP SDK and generate Claude configuration"
-)
-
-
-def mcp_setup(session):
-    """Install MCP SDK and generate Claude configuration"""
-    if not hasattr(session, 'mcp_server'):
-        raise UserError("MCP server not initialized")
-
-    import subprocess
+def mcp_info(session):
+    """Show MCP server status and configuration"""
+    from chimerax.core.commands import run
     import json
     import os
     import sys
 
-    try:
-        # Get the bundle directory
-        bundle_dir = os.path.dirname(__file__)
-        bridge_path = os.path.join(bundle_dir, "chimerax_mcp_bridge.js")
+    # Check REST server status and configuration
+    rest_server = _get_rest_server()
+    if rest_server is not None:
+        port = rest_server.server_address[1]
+        json_enabled = getattr(rest_server, "json", False)
+        log_enabled = rest_server.log
 
-        settings = session.mcp_server.settings
-        port = settings.port
+        json_status = "✓ enabled" if json_enabled else "✗ disabled"
+        log_status = "✓ enabled" if log_enabled else "✗ disabled"
 
-        # Ensure package.json exists
-        package_json_path = os.path.join(bundle_dir, "package.json")
-        if not os.path.exists(package_json_path):
-            package_json = {
-                "name": "chimerax-mcp-bridge",
-                "version": "1.0.0",
-                "type": "module",
-                "description": "MCP bridge for ChimeraX",
-                "main": "chimerax_mcp_bridge.js",
-                "dependencies": {
-                    "@modelcontextprotocol/sdk": "^0.5.0"
-                },
-                "engines": {
-                    "node": ">=18.0.0"
-                }
-            }
-            with open(package_json_path, 'w') as f:
-                json.dump(package_json, f, indent=2)
-            session.logger.info("Created package.json")
+        mcp_ready = json_enabled and log_enabled
+        mcp_status = "✓ ready" if mcp_ready else "⚠ needs configuration"
 
-        # Install MCP SDK
-        session.logger.info("Installing @modelcontextprotocol/sdk...")
-        try:
-            # Try to install in the bundle directory
-            result = subprocess.run([
-                "npm", "install", "@modelcontextprotocol/sdk"
-            ], cwd=bundle_dir, capture_output=True, text=True, check=True)
-            session.logger.info("MCP SDK installed successfully")
-        except subprocess.CalledProcessError as e:
-            session.logger.error(f"Failed to install MCP SDK: {e.stderr}")
-            return False, f"Failed to install MCP SDK: {e.stderr}"
-        except FileNotFoundError:
-            session.logger.error("npm not found. Please install Node.js and npm first.")
-            return False, "npm not found. Please install Node.js and npm first."
+        rest_status = f"REST server is running on port {port}<br>"
+        rest_status += f"&nbsp;&nbsp;JSON output: {json_status}<br>"
+        rest_status += f"&nbsp;&nbsp;Log capture: {log_status}<br>"
+        rest_status += f"&nbsp;&nbsp;MCP compatibility: {mcp_status}"
 
-        # Generate Claude configuration
-        config = {
-            "mcpServers": {
-                "chimerax": {
-                    "command": "node",
-                    "args": [bridge_path],
-                    "env": {
-                        "CHIMERAX_MCP_HOST": "localhost",
-                        "CHIMERAX_MCP_PORT": str(port)
-                    }
-                }
-            }
-        }
+        if not mcp_ready:
+            rest_status += (
+                "<br>&nbsp;&nbsp;💡 Run 'mcp start' to enable MCP compatibility"
+            )
+    else:
+        rest_status = "REST server is not running"
 
-        config_json = json.dumps(config, indent=2)
+    # Get the bridge script path
+    bundle_dir = os.path.dirname(__file__)
+    bridge_path = os.path.join(bundle_dir, "chimerax_mcp_bridge.py")
 
-        message = f"""MCP setup completed successfully!
+    # Get ChimeraX's Python executable path
+    chimerax_python_dir = os.path.dirname(sys.executable)
+    chimerax_python = (
+        chimerax_python_dir + os.sep + "python3.11"
+    )  # Ensure correct path format
 
-1. MCP SDK installed in: {bundle_dir}
+    # Generate Claude configuration (no env needed - bridge auto-discovers)
+    config_lines = [
+        "{",
+        '  "mcpServers": {',
+        '    "chimerax": {',
+        f'      "command": "{chimerax_python}",',
+        f'      "args": ["{bridge_path}"]',
+        "    }",
+        "  }",
+        "}",
+    ]
+    config_json = "\n".join(config_lines)
 
-2. Add this configuration to your Claude Desktop config file:
+    status_info = f"{rest_status}<br><br>"
+    status_info += f"MCP Bridge Setup:<br>"
+    status_info += f"&nbsp;&nbsp;Bridge script: {bridge_path}<br>"
+    status_info += f"&nbsp;&nbsp;ChimeraX Python: {chimerax_python}<br><br>"
+    status_info += f"Claude Desktop Configuration:<br>"
+    status_info += f"Copy this JSON to your Claude Desktop config file:<br><br>"
+    status_info += f"<pre><code>{config_json}</code></pre><br>"
+    if (
+        rest_server is not None
+        and getattr(rest_server, "json", False)
+        and rest_server.log
+    ):
+        status_info += f"Usage: MCP bridge ready - start Claude Desktop to connect"
+    else:
+        status_info += f"Usage: Run 'mcp start' to configure REST server for MCP bridge connections"
 
-{config_json}
+    session.logger.info(status_info, is_html=True)
+    return True, status_info
 
-3. To use:
-   - Start ChimeraX
-   - Run: mcp start {port}
-   - Start Claude Desktop (it will automatically connect)
 
-4. Bridge script location: {bridge_path}
+mcp_start_desc = CmdDesc(
+    optional=[("port", IntArg)],
+    synopsis="Start REST server for MCP bridge connections (default port: 8080)",
+)
 
-Note: Make sure Node.js is installed and accessible in your PATH."""
+mcp_stop_desc = CmdDesc(synopsis="Stop the REST server")
 
-        session.logger.info(message)
-        return True, message
-
-    except Exception as e:
-        error_msg = f"Setup failed: {e}"
-        session.logger.error(error_msg)
-        return False, error_msg
+mcp_info_desc = CmdDesc(synopsis="Show MCP bridge status and configuration")
 
 
 def register_commands(logger):
     """Register MCP commands with ChimeraX"""
     register("mcp start", mcp_start_desc, mcp_start, logger=logger)
     register("mcp stop", mcp_stop_desc, mcp_stop, logger=logger)
-    register("mcp status", mcp_status_desc, mcp_status, logger=logger)
-    register("mcp setup", mcp_setup_desc, mcp_setup, logger=logger)
+    register("mcp info", mcp_info_desc, mcp_info, logger=logger)
