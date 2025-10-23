@@ -709,10 +709,13 @@ def _format_single_model_info(model: dict) -> list:
 
 @mcp.tool()
 async def list_models(session_id: int = None) -> str:
-    """List all models currently loaded in ChimeraX with comprehensive details
+    """List all models currently loaded in ChimeraX with key details.
+
+    Use this regularly to check whether the expected models are visible.
     
     Returns a summary line with the total number of models, followed by detailed 
-    information for each model. The format varies by model type:
+    information for each model, including whether it is visible. 
+    The format varies by model type:
     
     - Model ID (e.g., #1, #1.1, #2)
     - Model name
