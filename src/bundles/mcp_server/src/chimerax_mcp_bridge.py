@@ -457,8 +457,55 @@ async def find_best_chimerax_instance() -> int:
     print(f"No ChimeraX instances found, will try to start on port {_default_port}", file=sys.stderr)
     return _default_port
 
-async def run_chimerax_command(command: str, port: int = None) -> str:
-    """Execute a ChimeraX command via REST API on specified instance"""
+async def _execute_command_request(session, url: str, command: str) -> dict:
+    """Helper to execute a ChimeraX command and parse the response.
+    
+    Args:
+        session: aiohttp ClientSession
+        url: Full URL to the ChimeraX /run endpoint
+        command: ChimeraX command to execute
+    
+    Returns:
+        dict with 'return_values', 'json_values', and 'logs' keys
+    
+    Raises:
+        Exception if request fails or ChimeraX returns an error
+    """
+    params = {'command': command}
+    
+    async with session.get(url, params=params) as response:
+        if response.status == 200:
+            # Parse JSON response
+            data = await response.json()
+            
+            # Check for errors - raise exception if present
+            if data.get("error") is not None:
+                error_info = data["error"]
+                error_type = error_info.get("type", "UnknownError")
+                error_msg = error_info.get("message", "Unknown error")
+                raise Exception(f"{error_type}: {error_msg}")
+            
+            # Extract structured data
+            return {
+                "return_values": data.get("python values", []),
+                "json_values": data.get("json values", []),
+                "logs": data.get("log messages", {})
+            }
+        else:
+            error_text = await response.text()
+            raise Exception(f"ChimeraX returned status {response.status}: {error_text}")
+
+
+async def run_chimerax_command(command: str, port: int = None) -> dict:
+    """Execute a ChimeraX command via REST API on specified instance
+    
+    Returns a structured dict with:
+        - return_values: list of Python values returned by commands
+        - json_values: list of JSON values returned by commands
+        - logs: dict with log messages organized by level (error, warning, info, etc.)
+    
+    Raises Exception if ChimeraX command returns an error.
+    """
 
     if port is None:
         # Auto-discover the best instance to use
@@ -466,18 +513,11 @@ async def run_chimerax_command(command: str, port: int = None) -> str:
 
     session = await get_session()
     base_url = get_chimerax_url(port)
+    url = f"{base_url}/run"
 
     try:
-        # Use GET with query parameters - more reliable for single commands
-        url = f"{base_url}/run"
-        params = {'command': command}
-
-        async with session.get(url, params=params) as response:
-            if response.status == 200:
-                return await response.text()
-            else:
-                error_text = await response.text()
-                raise Exception(f"ChimeraX returned status {response.status}: {error_text}")
+        # Use GET with query parameters (JSON mode enabled at startup)
+        return await _execute_command_request(session, url, command)
 
     except aiohttp.ClientConnectorError:
         # Try to start ChimeraX if it's not running
@@ -487,19 +527,50 @@ async def run_chimerax_command(command: str, port: int = None) -> str:
             if actual_port != port:
                 base_url = get_chimerax_url(actual_port)
                 url = f"{base_url}/run"
-
+            
             # Retry the command after starting ChimeraX
-            params = {'command': command}
-            async with session.get(url, params=params) as response:
-                if response.status == 200:
-                    return await response.text()
-                else:
-                    error_text = await response.text()
-                    raise Exception(f"ChimeraX returned status {response.status}: {error_text}")
+            return await _execute_command_request(session, url, command)
         else:
             raise Exception(f"Cannot connect to ChimeraX at {base_url} and failed to start ChimeraX automatically.")
+    except aiohttp.ClientConnectorError as e:
+        raise Exception(f"Cannot connect to ChimeraX: {e}")
     except Exception as e:
+        # Re-raise if already a ChimeraX error
+        if isinstance(e, Exception) and any(err_type in str(e) for err_type in ["Error:", "Exception:"]):
+            raise
         raise Exception(f"Error communicating with ChimeraX: {e}")
+
+def format_chimerax_response(result: dict, context: str = "") -> str:
+    """Format structured ChimeraX response into readable string
+    
+    Args:
+        result: Dict with 'return_values', 'json_values', and 'logs' keys
+        context: Optional context string to prepend to output
+    
+    Returns:
+        Formatted string with context and log messages organized by level
+    """
+    output = []
+    
+    # Add context if provided
+    if context:
+        output.append(context)
+    
+    # Format logs by level (in order of severity)
+    logs = result.get("logs", {})
+    for level in ["error", "warning", "info", "debug"]:
+        messages = logs.get(level, [])
+        if messages:
+            # Filter out empty messages
+            filtered_messages = [msg for msg in messages if msg.strip()]
+            if filtered_messages:
+                output.append(f"{level.upper()}: {'; '.join(filtered_messages)}")
+    
+    # If no output generated, indicate success
+    if not output:
+        return "Command completed successfully"
+    
+    return "\n".join(output)
 
 # Tool definitions using FastMCP decorators
 
@@ -514,14 +585,9 @@ async def run_command(command: str, session_id: int = None) -> str:
     """
     result = await run_chimerax_command(command, session_id)
     session_info = f" on session {session_id}" if session_id else ""
-
-    # Add helpful hints for common issues
-    hints = ""
-    if "error" in result.lower():
-        cmd_name = command.split()[0] if command.split() else command
-        hints = f"\n💡 For command help, check the documentation resource: chimerax://command/{cmd_name}"
-
-    return f"Command executed{session_info}: {command}\nOutput:\n{result}{hints}"
+    context = f"Command executed{session_info}: {command}"
+    
+    return format_chimerax_response(result, context)
 
 @mcp.tool()
 async def open_structure(identifier: str, format: str = "auto-detect", session_id: int = None) -> str:
@@ -539,7 +605,9 @@ async def open_structure(identifier: str, format: str = "auto-detect", session_i
 
     result = await run_chimerax_command(command, session_id)
     session_info = f" in session {session_id}" if session_id else ""
-    return f"Opened structure: {identifier}{session_info}\nOutput:\n{result}"
+    context = f"Opened structure: {identifier}{session_info}"
+    
+    return format_chimerax_response(result, context)
 
 @mcp.tool()
 async def list_models(session_id: int = None) -> str:
@@ -550,7 +618,9 @@ async def list_models(session_id: int = None) -> str:
     """
     result = await run_chimerax_command("info models", session_id)
     session_info = f" in session {session_id}" if session_id else ""
-    return f"Models{session_info}:\n{result}"
+    context = f"Models{session_info}:"
+    
+    return format_chimerax_response(result, context)
 
 @mcp.tool()
 async def get_model_info(model_id: str, session_id: int = None) -> str:
@@ -562,7 +632,9 @@ async def get_model_info(model_id: str, session_id: int = None) -> str:
     """
     result = await run_chimerax_command(f"info model #{model_id}", session_id)
     session_info = f" in session {session_id}" if session_id else ""
-    return f"Model #{model_id} information{session_info}:\n{result}"
+    context = f"Model #{model_id} information{session_info}:"
+    
+    return format_chimerax_response(result, context)
 
 @mcp.tool()
 async def show_hide_models(model_spec: str, action: str, session_id: int = None) -> str:
@@ -579,7 +651,9 @@ async def show_hide_models(model_spec: str, action: str, session_id: int = None)
     command = f"{action} {model_spec}"
     result = await run_chimerax_command(command, session_id)
     session_info = f" in session {session_id}" if session_id else ""
-    return f"Action '{action}' applied to {model_spec}{session_info}\nOutput:\n{result}"
+    context = f"Action '{action}' applied to {model_spec}{session_info}"
+    
+    return format_chimerax_response(result, context)
 
 @mcp.tool()
 async def color_models(color: str, target: str = "all", session_id: int = None) -> str:
@@ -593,7 +667,9 @@ async def color_models(color: str, target: str = "all", session_id: int = None) 
     command = f"color {target} {color}"
     result = await run_chimerax_command(command, session_id)
     session_info = f" in session {session_id}" if session_id else ""
-    return f"Colored {target} with {color}{session_info}\nOutput:\n{result}"
+    context = f"Colored {target} with {color}{session_info}"
+    
+    return format_chimerax_response(result, context)
 
 @mcp.tool()
 async def save_image(filename: str, width: int = 1920, height: int = 1080, supersample: int = 3, session_id: int = None) -> str:
@@ -609,42 +685,9 @@ async def save_image(filename: str, width: int = 1920, height: int = 1080, super
     command = f"save {filename} width {width} height {height} supersample {supersample}"
     result = await run_chimerax_command(command, session_id)
     session_info = f" from session {session_id}" if session_id else ""
-    return f"Saved image: {filename}{session_info} ({width}x{height}, supersample {supersample})\nOutput:\n{result}"
-
-@mcp.tool()
-async def capture_view(width: int = 800, height: int = 600, supersample: int = 1, session_id: int = None) -> str:
-    """Capture the current ChimeraX graphics view and return it as base64-encoded image data
-
-    Args:
-        width: Image width in pixels (default: 800)
-        height: Image height in pixels (default: 600)
-        supersample: Supersampling factor for higher quality (default: 1)
-        session_id: ChimeraX session port (defaults to primary session)
-    """
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
-        temp_path = tmp_file.name
-
-    try:
-        # Save the current view to the temporary file
-        command = f"save {temp_path} width {width} height {height} supersample {supersample}"
-        result = await run_chimerax_command(command, session_id)
-
-        # Read the image file and encode as base64
-        with open(temp_path, "rb") as img_file:
-            img_data = img_file.read()
-            base64_data = base64.b64encode(img_data).decode('utf-8')
-
-        return f"data:image/png;base64,{base64_data}"
-
-    except Exception as e:
-        return f"Error capturing view: {e}"
-
-    finally:
-        # Clean up temporary file
-        try:
-            os.unlink(temp_path)
-        except:
-            pass
+    context = f"Saved image: {filename}{session_info} ({width}x{height}, supersample {supersample})"
+    
+    return format_chimerax_response(result, context)
 
 @mcp.tool()
 async def session_info(session_id: int = None) -> str:
@@ -655,7 +698,9 @@ async def session_info(session_id: int = None) -> str:
     """
     result = await run_chimerax_command("info", session_id)
     session_info = f" for session {session_id}" if session_id else ""
-    return f"ChimeraX session information{session_info}:\n{result}"
+    context = f"ChimeraX session information{session_info}:"
+    
+    return format_chimerax_response(result, context)
 
 @mcp.tool()
 async def superpose_residue(
@@ -691,26 +736,34 @@ async def superpose_residue(
     
     session_info = f" in session {session_id}" if session_id else ""
     
-    try:
-        # Step 1: Center view on target residue (sets center of rotation)
-        view_command = f"view {target_spec}"
-        view_result = await run_chimerax_command(view_command, session_id)
-        
-        # Step 2: Move source residue to center of rotation
-        move_command = f"move cofr {source_spec}"
-        move_result = await run_chimerax_command(move_command, session_id)
-        
-        return (f"Successfully superposed residue{session_info}:\n"
-                f"  Source: {source_spec}\n"
-                f"  Target: {target_spec}\n\n"
-                f"View command output:\n{view_result}\n\n"
-                f"Move command output:\n{move_result}")
+    # Step 1: Center view on target residue (sets center of rotation)
+    view_command = f"view {target_spec}"
+    view_result = await run_chimerax_command(view_command, session_id)
     
-    except Exception as e:
-        return (f"Error superposing residue{session_info}:\n"
-                f"  Source: {source_spec}\n"
-                f"  Target: {target_spec}\n"
-                f"  Error: {e}")
+    # Step 2: Move source residue to center of rotation
+    move_command = f"move cofr {source_spec}"
+    move_result = await run_chimerax_command(move_command, session_id)
+    
+    # Format combined results
+    context = (f"Successfully superposed residue{session_info}:\n"
+               f"  Source: {source_spec}\n"
+               f"  Target: {target_spec}")
+    
+    # Combine logs from both commands
+    combined_logs = {}
+    for result in [view_result, move_result]:
+        for level, messages in result.get("logs", {}).items():
+            if level not in combined_logs:
+                combined_logs[level] = []
+            combined_logs[level].extend(messages)
+    
+    combined_result = {
+        "return_values": view_result.get("return_values", []) + move_result.get("return_values", []),
+        "json_values": view_result.get("json_values", []) + move_result.get("json_values", []),
+        "logs": combined_logs
+    }
+    
+    return format_chimerax_response(combined_result, context)
 
 @mcp.tool()
 async def show_hide_hydrogens(
@@ -770,19 +823,31 @@ async def show_hide_hydrogens(
         command = f"{action} HC{target_spec}"
         commands.append(command)
     
-    try:
-        results = []
-        for cmd in commands:
-            result = await run_chimerax_command(cmd, session_id)
-            results.append(f"Command: {cmd}\nOutput: {result}")
-        
-        combined_results = "\n\n".join(results)
-        return (f"Successfully {action} {hydrogen_type} hydrogens{session_info}\n"
-                f"Target: {target if target else 'all models'}\n\n"
-                f"{combined_results}")
+    # Execute commands and collect results
+    results = []
+    for cmd in commands:
+        result = await run_chimerax_command(cmd, session_id)
+        results.append(result)
     
-    except Exception as e:
-        return (f"Error {action}ing {hydrogen_type} hydrogens{session_info}: {e}")
+    # Format combined results
+    context = (f"Successfully {action} {hydrogen_type} hydrogens{session_info}\n"
+               f"Target: {target if target else 'all models'}")
+    
+    # Combine logs from all commands
+    combined_logs = {}
+    for result in results:
+        for level, messages in result.get("logs", {}).items():
+            if level not in combined_logs:
+                combined_logs[level] = []
+            combined_logs[level].extend(messages)
+    
+    combined_result = {
+        "return_values": sum([r.get("return_values", []) for r in results], []),
+        "json_values": sum([r.get("json_values", []) for r in results], []),
+        "logs": combined_logs
+    }
+    
+    return format_chimerax_response(combined_result, context)
 
 # Instance management tools
 
