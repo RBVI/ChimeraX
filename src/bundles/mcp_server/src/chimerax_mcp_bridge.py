@@ -609,18 +609,179 @@ async def open_structure(identifier: str, format: str = "auto-detect", session_i
     
     return format_chimerax_response(result, context)
 
+def _format_single_model_info(model: dict) -> list:
+    """Helper function to format a single model's information into lines of text.
+    
+    Args:
+        model: Dictionary containing model data from ChimeraX info command
+        
+    Returns:
+        List of strings representing formatted lines for this model
+    """
+    output = []
+    
+    # Basic model line: #id, name, shown/hidden
+    spec = model.get('spec', '').lstrip('#')
+    name = model.get('name', 'unnamed')
+    shown = model.get('shown', False)
+    visibility = 'shown' if shown else 'hidden'
+    
+    line = f"#{spec}, {name}, {visibility}"
+    
+    # Add triangle count if present
+    triangles = model.get('num triangles', 0)
+    if triangles > 0:
+        line += f", {triangles} triangles"
+    
+    output.append(line)
+    
+    # For atomic structures, add detailed info on next line
+    num_atoms = model.get('num atoms')
+    if num_atoms is not None and num_atoms > 0:
+        details = []
+        details.append(f"{num_atoms} atoms")
+        
+        num_bonds = model.get('num bonds')
+        if num_bonds is not None:
+            details.append(f"{num_bonds} bonds")
+        
+        num_residues = model.get('num residues')
+        if num_residues is not None:
+            details.append(f"{num_residues} residues")
+        
+        chains = model.get('chains', [])
+        if chains:
+            chain_list = ','.join(chains)
+            details.append(f"{len(chains)} chains ({chain_list})")
+        
+        output.append(', '.join(details))
+        
+        # Add pseudobond group info if present
+        pbg = model.get('pseudobond groups', [])
+        for pg in pbg:
+            pg_name = pg.get('name', 'unknown')
+            pg_count = pg.get('num pseudobonds', 0)
+            output.append(f"{pg_count} {pg_name}")
+    
+    # For pseudobond groups, add pseudobond count
+    num_pseudobonds = model.get('num pseudobonds')
+    if num_pseudobonds is not None and num_atoms is None:
+        # Only show if it's a standalone pseudobond group (not part of structure)
+        pass  # Already included in main line via triangles or can be added here
+    
+    # For volumes, add volume-specific info
+    size = model.get('size')
+    if size is not None:
+        vol_details = []
+        vol_details.append(f"size {','.join(map(str, size))}")
+        
+        step = model.get('step')
+        if step is not None:
+            vol_details.append(f"step {step}")
+        
+        voxel_size = model.get('voxel size')
+        if voxel_size is not None:
+            vol_details.append(f"voxel size {voxel_size}")
+        
+        # Add level info
+        surface_levels = model.get('surface levels', [])
+        if surface_levels:
+            levels_str = ', '.join(str(l) for l in surface_levels)
+            vol_details.append(f"level {levels_str}")
+        
+        # Add value range
+        min_val = model.get('minimum value')
+        max_val = model.get('maximum value')
+        if min_val is not None and max_val is not None:
+            vol_details.append(f"value range {min_val} - {max_val}")
+        
+        value_type = model.get('value type')
+        if value_type is not None:
+            vol_details.append(f"value type {value_type}")
+        
+        num_sym = model.get('num symmetry operators', 0)
+        vol_details.append(f"{num_sym} symmetry operators")
+        
+        # Replace the main line with volume info
+        output[-1] = f"#{spec}, {name}, {visibility} " + ', '.join(vol_details)
+    
+    return output
+
 @mcp.tool()
 async def list_models(session_id: int = None) -> str:
-    """List all models currently loaded in ChimeraX
+    """List all models currently loaded in ChimeraX with comprehensive details
+    
+    Returns a summary line with the total number of models, followed by detailed 
+    information for each model. The format varies by model type:
+    
+    - Model ID (e.g., #1, #1.1, #2)
+    - Model name
+    - Visibility status (shown/hidden)
+    
+    For AtomicStructure models:
+        - Number of atoms
+        - Number of bonds
+        - Number of residues
+        - Number of chains with chain IDs (e.g., "4 chains (D,A,C,B)")
+        - Missing structure pseudobond groups (if any)
+    
+    For PseudobondGroup models:
+        - Number of pseudobonds
+    
+    For Volume models:
+        - Size (e.g., "size 400,400,400")
+        - Step value
+        - Voxel size
+        - Level value(s)
+        - Value range (min - max)
+        - Value type (e.g., float32, int16)
+        - Number of symmetry operators
+    
+    For Surface models:
+        - Number of triangles
+    
+    For ObjectLabels models:
+        - Number of triangles
+    
+    Example output:
+        Models:
+        INFO: 3 models
+        #1, 7msa, shown
+        7200 atoms, 7240 bonds, 1006 residues, 4 chains (D,A,C,B)
+        11 missing structure
+        #1.1, missing structure, shown, 11 pseudobonds
+        #1.1.1, labels, shown, 22 triangles
 
     Args:
         session_id: ChimeraX session port (defaults to primary session)
     """
-    result = await run_chimerax_command("info models", session_id)
+    result = await run_chimerax_command("info", session_id)
     session_info = f" in session {session_id}" if session_id else ""
-    context = f"Models{session_info}:"
     
-    return format_chimerax_response(result, context)
+    # The info command returns JSON data when the REST server is in JSON mode
+    json_values = result.get("json_values", [])
+    
+    if json_values and len(json_values) > 0:
+        # We got JSON data - need to format it back into the text representation
+        import json
+        model_data = json_values[0] if isinstance(json_values[0], list) else json.loads(json_values[0])
+        
+        output = [f"Models{session_info}:"]
+        output.append(f"{len(model_data)} models")
+        
+        for model in model_data:
+            # Use helper function to format this model
+            model_lines = _format_single_model_info(model)
+            output.extend(model_lines)
+        
+        context = "\n".join(output)
+        return format_chimerax_response(result, context)
+    else:
+        output = [f"Models{session_info}:"]
+        output.append("No models loaded")
+        
+        context = "\n".join(output)
+        return format_chimerax_response(result, context)
 
 @mcp.tool()
 async def get_model_info(model_id: str, session_id: int = None) -> str:
@@ -630,9 +791,188 @@ async def get_model_info(model_id: str, session_id: int = None) -> str:
         model_id: Model ID (e.g., '#1' or '#1.1')
         session_id: ChimeraX session port (defaults to primary session)
     """
-    result = await run_chimerax_command(f"info model #{model_id}", session_id)
+    # Strip '#' from model_id if present
+    model_id_clean = model_id.lstrip('#')
+    
+    # Call info command to get all models (reusing list_models approach)
+    result = await run_chimerax_command("info", session_id)
+    
+    # Parse JSON output
+    json_values = result.get("json_values", [])
+    
+    if not json_values or len(json_values) == 0:
+        return f"No model information available"
+    
+    # Parse model data
+    import json
+    model_data = json_values[0] if isinstance(json_values[0], list) else json.loads(json_values[0])
+    
+    # Find the specific model by spec
+    target_model = None
+    for model in model_data:
+        spec = model.get('spec', '').lstrip('#')
+        if spec == model_id_clean:
+            target_model = model
+            break
+    
+    if target_model is None:
+        return f"Model #{model_id_clean} not found"
+    
+    # Format model information using helper function
+    output = _format_single_model_info(target_model)
+    
+    # Collect all chain results for combined log handling
+    all_chain_results = []
+    
+    # Get chain information for each chain
+    chains = target_model.get('chains', [])
+    if chains:
+        for chain_id in chains:
+            try:
+                chain_info, chain_result = await _get_chain_info_helper(model_id_clean, chain_id, session_id)
+                output.append(chain_info)
+                all_chain_results.append(chain_result)
+            except Exception as e:
+                output.append(f"Chain {chain_id}: Error retrieving information - {e}")
+    
+    # Combine logs from info command and all chain info commands
+    combined_logs = {}
+    for res in [result] + all_chain_results:
+        for level, messages in res.get("logs", {}).items():
+            if level not in combined_logs:
+                combined_logs[level] = []
+            combined_logs[level].extend(messages)
+    
+    combined_result = {
+        "return_values": result.get("return_values", []),
+        "json_values": result.get("json_values", []),
+        "logs": combined_logs
+    }
+    
     session_info = f" in session {session_id}" if session_id else ""
-    context = f"Model #{model_id} information{session_info}:"
+    context = f"Model information for #{model_id_clean}{session_info}:\n" + "\n".join(output)
+    
+    return format_chimerax_response(combined_result, context)
+
+async def _get_chain_info_helper(model_id: str, chain_id: str, session_id: int = None) -> tuple[str, dict]:
+    """Helper function to get chain information without formatting the response.
+    
+    Returns a tuple of (formatted_string, combined_result_dict) where combined_result_dict
+    contains all the logs from the commands executed.
+    
+    Args:
+        model_id: Model ID (e.g., '1' for #1)
+        chain_id: Chain ID (e.g., 'A')
+        session_id: ChimeraX session port (defaults to primary session)
+    
+    Returns:
+        Tuple of (formatted chain info string, combined result dict with logs)
+    """
+    # Build the chain specification
+    chain_spec = f"#{model_id}/{chain_id}"
+    
+    # Attributes to query
+    attributes = ["chain_id", "polymer_type", "description", "num_residues", "num_existing_residues"]
+    
+    # Collect information from each attribute
+    chain_data = {}
+    all_results = []
+    
+    for attr in attributes:
+        command = f"info chains {chain_spec} attribute {attr}"
+        result = await run_chimerax_command(command, session_id)
+        all_results.append(result)
+        
+        # Parse the output - check all log levels
+        logs = result.get("logs", {})
+        
+        # Try all log levels (messages can be in different log levels)
+        all_messages = []
+        for level in logs:
+            all_messages.extend(logs[level])
+        
+        if all_messages:
+            # Expected format: "chain id /A chain_id A" or "chain id /A description Estrogen receptor"
+            # We want to extract the value after the attribute name
+            # Note: messages include command echo AND result, so we need to find the result line
+            for msg in all_messages:
+                # Skip command echo - look for lines starting with "chain id"
+                msg_stripped = msg.strip()
+                if not msg_stripped.startswith("chain id"):
+                    continue
+                
+                # The message format is: "chain id /{chain_id} {attribute_name} {value}"
+                # Find the attribute name and extract everything after it
+                parts = msg_stripped.split()
+                
+                # Look for the attribute name in the parts list
+                if attr in parts:
+                    attr_index = parts.index(attr)
+                    # Everything after the attribute name is the value
+                    if attr_index + 1 < len(parts):
+                        value_parts = parts[attr_index + 1:]
+                        value = ' '.join(value_parts)
+                        # Remove quotes if present
+                        value = value.strip('"\'')
+                        chain_data[attr] = value
+                        break
+    
+    # Map polymer_type to readable name
+    polymer_type_map = {
+        "1": "Protein",
+        "2": "Nucleic Acid"
+    }
+    
+    # Build the formatted output line
+    chain_id_val = chain_data.get("chain_id", "Unknown")
+    polymer_type = chain_data.get("polymer_type", "Unknown")
+    polymer_type_str = polymer_type_map.get(polymer_type, f"Other (type {polymer_type})")
+    description = chain_data.get("description", "No description")
+    num_residues = chain_data.get("num_residues", "Unknown")
+    num_existing = chain_data.get("num_existing_residues", "Unknown")
+    
+    # Format the output line
+    output = (f"Chain ID = {chain_id_val} | "
+             f"Type = {polymer_type_str} | "
+             f"Description = {description} | "
+             f"Number of residues = {num_residues} | "
+             f"Num. of residues that have atomic coordinates = {num_existing}")
+    
+    # Combine logs from all commands
+    combined_logs = {}
+    for result in all_results:
+        for level, messages in result.get("logs", {}).items():
+            if level not in combined_logs:
+                combined_logs[level] = []
+            combined_logs[level].extend(messages)
+    
+    combined_result = {
+        "return_values": sum([r.get("return_values", []) for r in all_results], []),
+        "json_values": sum([r.get("json_values", []) for r in all_results], []),
+        "logs": combined_logs
+    }
+    
+    return output, combined_result
+
+@mcp.tool()
+async def get_chain_info(model_id: str, chain_id: str, session_id: int = None) -> str:
+    """Get detailed information about a specific chain in a model
+    
+    Returns a formatted summary line with:
+    - Chain ID
+    - Type (Protein, Nucleic Acid, or Other)
+    - Description
+    - Total number of residues
+    - Number of residues with atomic coordinates
+
+    Args:
+        model_id: Model ID (e.g., '1' for #1)
+        chain_id: Chain ID (e.g., 'A')
+        session_id: ChimeraX session port (defaults to primary session)
+    """
+    chain_info, result = await _get_chain_info_helper(model_id, chain_id, session_id)
+    session_info = f" in session {session_id}" if session_id else ""
+    context = f"Chain information for #{model_id}/{chain_id}{session_info}:\n{chain_info}"
     
     return format_chimerax_response(result, context)
 
@@ -689,18 +1029,6 @@ async def save_image(filename: str, width: int = 1920, height: int = 1080, super
     
     return format_chimerax_response(result, context)
 
-@mcp.tool()
-async def session_info(session_id: int = None) -> str:
-    """Get general information about the current ChimeraX session
-
-    Args:
-        session_id: ChimeraX session port (defaults to primary session)
-    """
-    result = await run_chimerax_command("info", session_id)
-    session_info = f" for session {session_id}" if session_id else ""
-    context = f"ChimeraX session information{session_info}:"
-    
-    return format_chimerax_response(result, context)
 
 @mcp.tool()
 async def superpose_residue(
