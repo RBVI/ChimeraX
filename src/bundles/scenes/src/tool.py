@@ -205,7 +205,7 @@ class ScenesTool(ToolInstance):
         """
         scene_name = self.scene_name_entry.text().strip()
         if scene_name:
-            if scene_name in self.session.scenes.get_scene_names():
+            if scene_name in self.session.scenes.scene_names:
                 tool_user_error(f"Scene named {StringArg.unparse(scene_name)} already exists")
                 return
         run(self.session, f"scene save {StringArg.unparse(scene_name)}")
