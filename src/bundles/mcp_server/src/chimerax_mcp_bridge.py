@@ -469,7 +469,7 @@ async def _execute_command_request(session, url: str, command: str) -> dict:
         dict with 'return_values', 'json_values', and 'logs' keys
     
     Raises:
-        Exception if request fails or ChimeraX returns an error
+        Exception if request fails or ChimeraX returns an error (with helpful hints)
     """
     params = {'command': command}
     
@@ -483,7 +483,10 @@ async def _execute_command_request(session, url: str, command: str) -> dict:
                 error_info = data["error"]
                 error_type = error_info.get("type", "UnknownError")
                 error_msg = error_info.get("message", "Unknown error")
-                raise Exception(f"{error_type}: {error_msg}")
+                
+                # Add helpful hints to guide agents
+                enhanced_error = add_error_hints(error_type, error_msg, command)
+                raise Exception(enhanced_error)
             
             # Extract structured data
             return {
@@ -569,6 +572,341 @@ def format_chimerax_response(result: dict, context: str = "") -> str:
         return "Command completed successfully"
     
     return "\n".join(output)
+
+def add_error_hints(error_type: str, error_msg: str, command: str) -> str:
+    """Add contextual hints to ChimeraX error messages to guide agents.
+    
+    Analyzes error messages and appends helpful hints that direct agents to:
+    - The specify_objects prompt for atomspec syntax errors
+    - list_models() tool for model-related errors
+    - Documentation resources for command errors
+    
+    Args:
+        error_type: Type of error (e.g., "UserError", "SyntaxError")
+        error_msg: Original error message from ChimeraX
+        command: The command that failed (for context)
+    
+    Returns:
+        Enhanced error message with helpful hints appended
+    """
+    # Build the base error message
+    full_error = f"{error_type}: {error_msg}"
+    
+    # Convert to lowercase for case-insensitive matching
+    error_lower = error_msg.lower()
+    
+    # Pattern matching for different error categories
+    hints = []
+    
+    # ===== Object Specification Errors =====
+    # Real ChimeraX errors: "Expected an objects specifier", "invalid an atom specifier",
+    # "not an atom specifier", "empty atom specifier", '"X" is not a selector name'
+    # Also "Expected a keyword" from atomspec-taking commands like select, color, show, hide
+    atomspec_commands = ['select', 'color', 'show', 'hide', 'style', 'cartoon', 
+                         'display', 'label', 'size', 'view', 'zone', 'surface']
+    cmd_first_word = command.strip().split()[0].lower() if command.strip() else ""
+    
+    is_atomspec_error = any(pattern in error_lower for pattern in [
+        "expected an objects specifier",
+        "expected a model specifier",
+        "expected an atom specifier",
+        "invalid an atom specifier",
+        "not an atom specifier",
+        "empty atom specifier",
+        "is not a selector name",
+        "only initial part"  # "only initial part 'X' of atom specifier valid"
+    ])
+    
+    # Also catch "Expected a keyword" or similar when used with atomspec-taking commands
+    is_atomspec_keyword_error = (
+        ("expected a keyword" in error_lower or "expected keyword" in error_lower) 
+        and cmd_first_word in atomspec_commands
+    )
+    
+    if is_atomspec_error or is_atomspec_keyword_error:
+        hints.append("\n\n🔍 HINT: This error indicates incorrect object specification (atomspec) syntax.")
+        hints.append("→ Invoke the 'specify_objects' PROMPT to learn the complete atomspec syntax")
+        hints.append("→ Common patterns:")
+        hints.append("  • #1          (entire model 1)")
+        hints.append("  • #1/A        (chain A in model 1)")
+        hints.append("  • #1/A:100    (residue 100 in chain A)")
+        hints.append("  • @ca         (all CA atoms)")
+        hints.append("  • protein     (all protein atoms)")
+        hints.append("→ Model IDs MUST include # prefix: use '#1' not '1'")
+    
+    # ===== No Atoms Matched (less severe spec error) =====
+    elif "no atoms matched" in error_lower or "nothing specified" in error_lower:
+        hints.append("\n\n🔍 HINT: Your specification syntax may be correct, but no atoms matched.")
+        hints.append("→ Use list_models() to see what structures/chains are loaded")
+        hints.append("→ Check chain IDs are correct (case-sensitive)")
+        hints.append("→ Verify residue numbers/names exist in the structure")
+        hints.append("→ Invoke 'specify_objects' prompt if you need help with atomspec syntax")
+    
+    # ===== Model/Structure Errors =====
+    # Real ChimeraX errors: "No models specified by", "No atomic structures open/specified",
+    # "Must specify 1 model, got X"
+    elif any(pattern in error_lower for pattern in [
+        "no models",
+        "no atomic structures",
+        "must specify 1 model",
+        "must specify 1 atomic structure",
+        "must specify exactly one"
+    ]):
+        hints.append("\n\n🔍 HINT: No models are loaded or the specified model doesn't exist.")
+        hints.append("→ Use list_models() to see currently loaded structures")
+        hints.append("→ Use open_structure() or run_command('open <pdb_id>') to load a structure")
+        hints.append("→ Verify model IDs with # prefix (e.g., #1, #2)")
+    
+    # ===== Command Errors =====
+    # Real ChimeraX error: "Unknown command: X" from cli.py
+    elif any(pattern in error_lower for pattern in [
+        "unknown command",
+        "no command"
+    ]):
+        # Try to extract command name for more specific help
+        cmd_parts = command.strip().split()
+        cmd_name = cmd_parts[0] if cmd_parts else "unknown"
+        
+        hints.append(f"\n\n🔍 HINT: Command '{cmd_name}' is not recognized.")
+        hints.append("→ Check command spelling and capitalization")
+        hints.append("→ Use the resource 'chimerax://commands' to see all available commands")
+        hints.append(f"→ Use resource 'chimerax://command/{cmd_name}' for specific command help")
+        hints.append("→ Common commands: open, color, show, hide, save, view, align")
+    
+    # ===== Argument/Syntax Errors =====
+    # Real ChimeraX errors: "Missing or invalid X argument", "Expected X", "Should be X"
+    elif any(pattern in error_lower for pattern in [
+        "missing or invalid",
+        "missing required",
+        "expected",  # "Expected true or false", "Expected X"
+        "should be",  # From Enum parsing
+        "require"   # "Require 1 surface, got X"
+    ]):
+        # Extract command name
+        cmd_parts = command.strip().split()
+        cmd_name = cmd_parts[0] if cmd_parts else "unknown"
+        
+        hints.append(f"\n\n🔍 HINT: The '{cmd_name}' command has incorrect arguments.")
+        hints.append(f"→ Use resource 'chimerax://command/{cmd_name}' for correct syntax")
+        hints.append("→ Check that you've included all required arguments")
+        hints.append("→ Verify keyword spelling and order")
+    
+    # ===== File/Path Errors =====
+    elif any(pattern in error_lower for pattern in [
+        "cannot open",
+        "file not found",
+        "no such file",
+        "cannot read",
+        "does not exist"
+    ]):
+        hints.append("\n\n🔍 HINT: File or path error.")
+        hints.append("→ Verify the file path is correct and the file exists")
+        hints.append("→ Use absolute paths when possible")
+        hints.append("→ For PDB files, try using PDB ID: open_structure('1gcn')")
+    
+    # ===== Generic Error (no specific pattern matched) =====
+    else:
+        # Only add a generic hint if we didn't match anything specific
+        hints.append("\n\n🔍 HINT: ChimeraX command failed.")
+        hints.append("→ Use list_models() to verify what structures are loaded")
+        hints.append("→ Invoke 'specify_objects' prompt for help with atom spec syntax")
+        hints.append("→ Check command documentation via resources")
+    
+    # Append all hints to the error message
+    if hints:
+        full_error += "".join(hints)
+    
+    return full_error
+
+# Prompt definitions
+@mcp.prompt()
+async def specify_objects(prompt: str) -> str:
+    """Build a specification string for a specific selection of objects
+    
+    Use this whenever you want to specify a selection of objects, such as:
+    - an entire model,
+    - a specific chain,
+    - a set of atoms,
+    - atoms selected by type,
+    - atoms selected by distance from other atoms,
+    - residues selected by type or name,
+    - etc.
+    
+    This will guide through using the ChimeraX atomspec syntax correctly.
+    """
+    return """
+# ChimeraX Object Specification Guide
+
+## Overview
+Most ChimeraX commands require specifying which items they should affect. This guide covers the atomspec syntax.
+
+## Hierarchical Specifiers
+
+The four main levels in descending order:
+
+| Symbol | Level    | Description                                           | Example           |
+|--------|----------|-------------------------------------------------------|-------------------|
+| #      | Model    | Model number (hierarchical: N, N.N, N.N.N, etc.)     | #1, #1.3          |
+| /      | Chain    | Chain identifier (case-insensitive unless mixed case) | /A, /B            |
+| :      | Residue  | Residue number OR residue name (case-insensitive)     | :51, :glu, :asp   |
+| @      | Atom     | Atom name (case-insensitive)                          | @ca, @n, @sg      |
+
+**Key Rules:**
+- Omitting a level means "all" at that level (e.g., `#1` = all atoms in model 1)
+- Specifying atoms also includes bonds between them (unless you start with `=`)
+- Use `#!N` to specify parent model only without submodels
+
+## Lists and Ranges
+
+**Numeric ranges and lists:**
+- Comma-separated lists: `#1,2,5` or `:10,15,20`
+- Ranges with hyphens: `:10-20` or `#1-3`
+- Use `start` or `end` keywords: `:start-40`, `#1.2-end`
+- Asterisk `*` as wildcard: `#*` (all models)
+
+**Examples:**
+```
+#1,2:50,70-85@ca          # CA atoms in residues 50, 70-85 of models 1 and 2
+/A-D,F                    # Chains A, B, C, D, and F
+:lys,arg@cb               # CB atoms in lysine and arginine residues
+```
+
+## Implicit Operations
+
+When repeating or returning to a higher level, the hierarchy resets:
+
+```
+:12:14@ca                 # All atoms of residue 12, CA atom of residue 14
+/A/B:12-20@ca             # All atoms of chain A, CA atoms of residues 12-20 in chain B
+/a:10-20,26/b:12-22,29@n,ca,c,o  # All atoms of chain A residues 10-20,26 plus 
+                                  # N,CA,C,O atoms of chain B residues 12-22,29
+```
+
+## Built-in Classifications
+
+**Structural:**
+- `protein`, `nucleic`, `solvent`, `ligand`, `ions`
+- `helix`, `strand`, `coil`
+- `backbone`, `sidechain`, `sideonly`
+- `main`, `ligand`, `solvent`
+
+**Chemical:**
+- Element symbols: `C`, `N`, `O`, `S`, `P`, etc.
+- `H` (all hydrogens), `HC` (nonpolar H bonded to C)
+- Functional groups: `aromatic`, `aromatic-ring`, `carboxylate`, `disulfide`
+- Atom types: `C4`, `N3+`, `Car` (aromatic carbon), `Npl` (planar N), etc.
+
+**Special:**
+- `sel` - current selection
+- `displayed` - currently displayed atoms
+
+**Examples:**
+```
+protein & helix           # Protein atoms in helices
+H & ~HC                   # Polar hydrogens (not bonded to carbon)
+ligand & aromatic         # Aromatic atoms in ligands
+```
+
+## Zones (Distance-Based)
+
+Specify atoms within or beyond a distance from a reference:
+
+**Syntax:** `<reference> <level><operator> <distance>`
+
+**Level symbols:** `@` (atom), `:` (residue), `/` (chain), `#` (model)
+**Operators:** `<` (within/less than) or `>` (beyond/greater than)
+
+**Examples:**
+```
+@nz @< 3.8                # Atoms within 3.8 Å of NZ atoms
+#1:gtp :< 10.5            # Residues with any atom within 10.5 Å of GTP
+(ligand | ions) @< 4.8    # Atoms within 4.8 Å of ligand or ions
+(ions @< 4) & ~ions       # Atoms within 4 Å of ions, excluding ions themselves
+```
+
+## Attributes
+
+Query by attribute values:
+
+**Symbols:** `@@` (atom), `::` (residue), `//` (chain), `##` (model)
+
+**Operators:** `=`, `!=`, `==` (case-sensitive), `!==`, `>`, `<`, `>=`, `<=`
+**Negation:** `^` before attribute name (attribute not assigned)
+
+**Examples:**
+```
+@@display                 # Displayed atoms
+~@@display                # Hidden atoms
+@@bfactor>40              # Atoms with B-factor > 40
+@ca & @@bfactor>40        # CA atoms with B-factor > 40
+::num_atoms>=10           # Residues with 10+ atoms
+##name="2gbp map 5"       # Model named "2gbp map 5"
+```
+
+## Combinations
+
+Combine specifications using operators:
+
+- `&` - Intersection (AND) - higher priority
+- `|` - Union (OR)
+- `~` - Negation (NOT)
+- Use parentheses `()` for grouping
+
+**Examples:**
+```
+/A & protein              # Chain A protein residues only
+/A & ~:hem                # Chain A except HEM residues
+protein & (ligand :< 5)   # Protein residues within 5 Å of ligand
+:phe,tyr & sidechain      # Phenylalanine and tyrosine sidechains
+sideonly & ligand @<4     # Sidechain atoms within 4 Å of ligand
+```
+
+## Common Patterns
+
+**Specific selections:**
+```
+#1/A:100-200@ca           # CA atoms of residues 100-200 in chain A of model 1
+:asp,glu                  # All aspartate and glutamate residues
+protein & ~backbone       # Protein sidechains only
+```
+
+**Interface analysis:**
+```
+#1 & (#2 :< 5)            # Model 1 residues within 5 Å of model 2
+(#1 & protein) & ((#2 & ligand) :< 4)  # Protein residues near ligand
+```
+
+**Chemical groups:**
+```
+:cys@sg & ~disulfide      # Free cysteine sulfurs (not in disulfide bonds)
+aromatic-ring & :phe,tyr  # Aromatic ring carbons in Phe and Tyr
+```
+
+## Tips
+
+1. **Start broad, then narrow:** Begin with model/chain, then add residue/atom filters
+2. **Test incrementally:** Build complex specs step by step
+3. **Use sel for iteration:** Select visually, then refine with commands
+4. **Blank spec = all:** An empty specification means "all applicable items"
+5. **Case matters (sometimes):** Only for chain IDs when both upper/lowercase exist
+
+## Quick Reference Card
+
+| Task                              | Example Specification     |
+|-----------------------------------|---------------------------|
+| Entire model                      | `#1`                      |
+| Specific chain                    | `#1/A`                    |
+| Residue range                     | `#1/A:100-150`            |
+| Specific atom type                | `@ca`                     |
+| Multiple chains                   | `/A,B,C`                  |
+| Protein backbone                  | `protein & backbone`      |
+| Ligands and nearby residues       | `ligand | (ligand :< 5)`  |
+| Selection within distance         | `sel @< 4`                |
+| Heavy atoms (non-hydrogen)        | `~H`                      |
+| Polar hydrogens                   | `H & ~HC`                 |
+
+For more details, see: https://www.cgl.ucsf.edu/chimerax/docs/user/commands/atomspec.html
+    """
 
 # Tool definitions using FastMCP decorators
 
@@ -709,7 +1047,8 @@ def _format_single_model_info(model: dict) -> list:
 async def list_models(session_id: Optional[int] = None) -> str:
     """List all models currently loaded in ChimeraX with key details.
 
-    Use this regularly to check whether the expected models are visible.
+    Use this regularly to find out what models are loaded and check which 
+    ones are set to be visible.
     
     Returns a summary line with the total number of models, followed by detailed 
     information for each model, including whether it is visible. 
@@ -977,24 +1316,6 @@ async def get_chain_info(model_id: str, chain_id: str, session_id: Optional[int]
     
     return format_chimerax_response(result, context)
 
-@mcp.tool()
-async def show_hide_models(model_spec: str, action: str, session_id: Optional[int] = None) -> str:
-    """Show or hide models in the display
-
-    Args:
-        model_spec: Model specification (e.g., '#1', '#2', 'all')
-        action: Whether to show or hide the specified models ('show' or 'hide')
-        session_id: ChimeraX session port (defaults to primary session)
-    """
-    if action not in ["show", "hide"]:
-        raise ValueError("Action must be 'show' or 'hide'")
-
-    command = f"{action} {model_spec}"
-    result = await run_chimerax_command(command, session_id)
-    session_info = f" in session {session_id}" if session_id else ""
-    context = f"Action '{action}' applied to {model_spec}{session_info}"
-    
-    return format_chimerax_response(result, context)
 
 @mcp.tool()
 async def color_models(color: str, target: str = "all", session_id: Optional[int] = None) -> str:
