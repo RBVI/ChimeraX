@@ -145,7 +145,7 @@ def find_available_port(start_port: int = 8080) -> int:
             continue
     raise RuntimeError("No available ports found")
 
-async def is_chimerax_running(port: int = None) -> bool:
+async def is_chimerax_running(port: Optional[int] = None) -> bool:
     """Check if ChimeraX REST server is running on specified port"""
     if port is None:
         port = _default_port
@@ -159,7 +159,7 @@ async def is_chimerax_running(port: int = None) -> bool:
     except:
         return False
 
-def get_chimerax_url(port: int = None) -> str:
+def get_chimerax_url(port: Optional[int] = None) -> str:
     """Get ChimeraX REST API base URL for specified port"""
     if port is None:
         port = _default_port
@@ -252,7 +252,7 @@ async def check_existing_rest_server() -> tuple[bool, int]:
 
     return False, _default_port
 
-async def start_chimerax(port: int = None, session_name: str = None, force_new: bool = False) -> tuple[bool, int]:
+async def start_chimerax(port: Optional[int] = None, session_name: Optional[str] = None, force_new: bool = False) -> tuple[bool, int]:
     """Start ChimeraX if not running, returns (success, port)"""
     if port is None:
         port = _default_port
@@ -496,7 +496,7 @@ async def _execute_command_request(session, url: str, command: str) -> dict:
             raise Exception(f"ChimeraX returned status {response.status}: {error_text}")
 
 
-async def run_chimerax_command(command: str, port: int = None) -> dict:
+async def run_chimerax_command(command: str, port: Optional[int] = None) -> dict:
     """Execute a ChimeraX command via REST API on specified instance
     
     Returns a structured dict with:
@@ -532,8 +532,6 @@ async def run_chimerax_command(command: str, port: int = None) -> dict:
             return await _execute_command_request(session, url, command)
         else:
             raise Exception(f"Cannot connect to ChimeraX at {base_url} and failed to start ChimeraX automatically.")
-    except aiohttp.ClientConnectorError as e:
-        raise Exception(f"Cannot connect to ChimeraX: {e}")
     except Exception as e:
         # Re-raise if already a ChimeraX error
         if isinstance(e, Exception) and any(err_type in str(e) for err_type in ["Error:", "Exception:"]):
@@ -575,7 +573,7 @@ def format_chimerax_response(result: dict, context: str = "") -> str:
 # Tool definitions using FastMCP decorators
 
 @mcp.tool()
-async def run_command(command: str, session_id: int = None) -> str:
+async def run_command(command: str, session_id: Optional[int] = None) -> str:
     """Execute any ChimeraX command directly. USE THIS TOOL FIRST for any ChimeraX operation.
     For command syntax help, check the documentation resource chimerax://command/<command_name>.
 
@@ -590,7 +588,7 @@ async def run_command(command: str, session_id: int = None) -> str:
     return format_chimerax_response(result, context)
 
 @mcp.tool()
-async def open_structure(identifier: str, format: str = "auto-detect", session_id: int = None) -> str:
+async def open_structure(identifier: str, format: str = "auto-detect", session_id: Optional[int] = None) -> str:
     """Open a molecular structure file or fetch from PDB
 
     Args:
@@ -708,7 +706,7 @@ def _format_single_model_info(model: dict) -> list:
     return output
 
 @mcp.tool()
-async def list_models(session_id: int = None) -> str:
+async def list_models(session_id: Optional[int] = None) -> str:
     """List all models currently loaded in ChimeraX with key details.
 
     Use this regularly to check whether the expected models are visible.
@@ -787,7 +785,7 @@ async def list_models(session_id: int = None) -> str:
         return format_chimerax_response(result, context)
 
 @mcp.tool()
-async def get_model_info(model_id: str, session_id: int = None) -> str:
+async def get_model_info(model_id: str, session_id: Optional[int] = None) -> str:
     """Get detailed information about a specific model
 
     Args:
@@ -857,7 +855,7 @@ async def get_model_info(model_id: str, session_id: int = None) -> str:
     
     return format_chimerax_response(combined_result, context)
 
-async def _get_chain_info_helper(model_id: str, chain_id: str, session_id: int = None) -> tuple[str, dict]:
+async def _get_chain_info_helper(model_id: str, chain_id: str, session_id: Optional[int] = None) -> tuple[str, dict]:
     """Helper function to get chain information without formatting the response.
     
     Returns a tuple of (formatted_string, combined_result_dict) where combined_result_dict
@@ -958,7 +956,7 @@ async def _get_chain_info_helper(model_id: str, chain_id: str, session_id: int =
     return output, combined_result
 
 @mcp.tool()
-async def get_chain_info(model_id: str, chain_id: str, session_id: int = None) -> str:
+async def get_chain_info(model_id: str, chain_id: str, session_id: Optional[int] = None) -> str:
     """Get detailed information about a specific chain in a model
     
     Returns a formatted summary line with:
@@ -980,7 +978,7 @@ async def get_chain_info(model_id: str, chain_id: str, session_id: int = None) -
     return format_chimerax_response(result, context)
 
 @mcp.tool()
-async def show_hide_models(model_spec: str, action: str, session_id: int = None) -> str:
+async def show_hide_models(model_spec: str, action: str, session_id: Optional[int] = None) -> str:
     """Show or hide models in the display
 
     Args:
@@ -999,7 +997,7 @@ async def show_hide_models(model_spec: str, action: str, session_id: int = None)
     return format_chimerax_response(result, context)
 
 @mcp.tool()
-async def color_models(color: str, target: str = "all", session_id: int = None) -> str:
+async def color_models(color: str, target: str = "all", session_id: Optional[int] = None) -> str:
     """Color models or parts of models
 
     Args:
@@ -1015,7 +1013,7 @@ async def color_models(color: str, target: str = "all", session_id: int = None) 
     return format_chimerax_response(result, context)
 
 @mcp.tool()
-async def save_image(filename: str, width: int = 1920, height: int = 1080, supersample: int = 3, session_id: int = None) -> str:
+async def save_image(filename: str, width: int = 1920, height: int = 1080, supersample: int = 3, session_id: Optional[int] = None) -> str:
     """Save a screenshot of the current view
 
     Args:
@@ -1041,7 +1039,7 @@ async def superpose_residue(
     target_model: str,
     target_chain: str,
     target_residue: str,
-    session_id: int = None
+    session_id: Optional[int] = None
 ) -> str:
     """Move a residue from one model to superpose with a residue in another model.
     
@@ -1101,7 +1099,7 @@ async def show_hide_hydrogens(
     action: str,
     hydrogen_type: str = "all",
     target: str = "",
-    session_id: int = None
+    session_id: Optional[int] = None
 ) -> str:
     """Show or hide hydrogen atoms (all, polar only, or nonpolar only)
     
@@ -1199,7 +1197,7 @@ async def list_chimerax_instances() -> str:
     return result
 
 @mcp.tool()
-async def start_new_chimerax_session(session_name: str = None, port: int = None) -> str:
+async def start_new_chimerax_session(session_name: Optional[str] = None, port: Optional[int] = None) -> str:
     """Start a new ChimeraX instance/session
 
     Args:
@@ -1237,7 +1235,7 @@ async def start_new_chimerax_session(session_name: str = None, port: int = None)
         return f"Failed to start ChimeraX session on port {port}"
 
 @mcp.tool()
-async def check_chimerax_status(session_id: int = None) -> str:
+async def check_chimerax_status(session_id: Optional[int] = None) -> str:
     """Check if ChimeraX is running and accessible
 
     Args:
