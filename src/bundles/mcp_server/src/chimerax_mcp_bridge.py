@@ -55,6 +55,9 @@ from typing import Optional
 CHIMERAX_HOST = 'localhost'
 DEFAULT_CHIMERAX_PORT = 8080
 
+# Debug settings
+DEBUG = False  # Set to True to enable debug logging to /tmp/
+
 # Global state for managing multiple ChimeraX instances
 _instances = {}  # port -> instance info
 _default_port = DEFAULT_CHIMERAX_PORT
@@ -478,6 +481,22 @@ async def _execute_command_request(session, url: str, command: str) -> dict:
             # Parse JSON response
             data = await response.json()
             
+            # DEBUG: Write full response to file
+            if DEBUG:
+                import json
+                import time
+                debug_file = f"/tmp/chimerax_response_{int(time.time() * 1000)}.json"
+                try:
+                    with open(debug_file, 'w') as f:
+                        json.dump({
+                            "command": command,
+                            "url": url,
+                            "raw_response": data
+                        }, f, indent=2)
+                    print(f"DEBUG: Full response written to {debug_file}", file=sys.stderr)
+                except Exception as e:
+                    print(f"DEBUG: Failed to write debug file: {e}", file=sys.stderr)
+            
             # Check for errors - raise exception if present
             if data.get("error") is not None:
                 error_info = data["error"]
@@ -544,31 +563,81 @@ async def run_chimerax_command(command: str, port: Optional[int] = None) -> dict
 def format_chimerax_response(result: dict, context: str = "") -> str:
     """Format structured ChimeraX response into readable string
     
+    Implements a cascading fallback strategy:
+    1. Priority 1: Format and return log messages
+    2. Priority 2: If logs are empty, format and return json values
+    3. Priority 3: If json values are also empty, format and return python values
+    
     Args:
         result: Dict with 'return_values', 'json_values', and 'logs' keys
         context: Optional context string to prepend to output
     
     Returns:
-        Formatted string with context and log messages organized by level
+        Formatted string with context and log messages/return values organized by level
     """
+    import json
+    
     output = []
     
     # Add context if provided
     if context:
         output.append(context)
     
-    # Format logs by level (in order of severity)
+    # Priority 1: Format logs by level (in order of severity)
     logs = result.get("logs", {})
-    for level in ["error", "warning", "info", "debug"]:
+    has_log_content = False
+    for level in ["error", "warning", "info", "note", "debug"]:
         messages = logs.get(level, [])
         if messages:
-            # Filter out empty messages
-            filtered_messages = [msg for msg in messages if msg.strip()]
+            # Filter out empty messages and markdown-heavy command echoes
+            filtered_messages = []
+            for msg in messages:
+                if msg.strip():
+                    # Skip messages that are primarily markdown links (command echoes)
+                    # These typically start with markdown link syntax and contain multiple links
+                    msg_stripped = msg.strip()
+                    if not (msg_stripped.startswith('[') and msg_stripped.count('](') >= 2):
+                        filtered_messages.append(msg)
             if filtered_messages:
                 output.append(f"{level.upper()}: {'; '.join(filtered_messages)}")
+                has_log_content = True
     
-    # If no output generated, indicate success
-    if not output:
+    # Priority 2: If no log content, try json values
+    if not has_log_content:
+        json_values = result.get("json_values", [])
+        # Filter out None/null values
+        json_values = [v for v in json_values if v is not None]
+        if json_values:
+            output.append("\nJSON Output:")
+            for i, val in enumerate(json_values):
+                if len(json_values) > 1:
+                    output.append(f"[Result {i+1}]")
+                # Format JSON with indentation for readability
+                try:
+                    # If val is already a JSON string, parse it first
+                    if isinstance(val, str):
+                        val = json.loads(val)
+                    formatted_json = json.dumps(val, indent=2, ensure_ascii=False)
+                    output.append(formatted_json)
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    # If JSON serialization/parsing fails, fall back to string representation
+                    output.append(str(val))
+        else:
+            # Priority 3: If no json values, try python values
+            python_values = result.get("return_values", [])
+            # Filter out None values
+            python_values = [v for v in python_values if v is not None]
+            if python_values:
+                output.append("\nOutput:")
+                for i, val in enumerate(python_values):
+                    if len(python_values) > 1:
+                        output.append(f"[Result {i+1}]")
+                    output.append(str(val))
+    
+    # If no output generated at all, indicate success
+    if len(output) <= 1 and context:  # Only context was added
+        output.append("Command completed successfully")
+    elif not output:  # Nothing at all
         return "Command completed successfully"
     
     return "\n".join(output)
@@ -1461,7 +1530,7 @@ async def show_hide_objects(
         raise ValueError("Target must be one or more of 'a', 'b', 'p', 'c', 's', 'm'")
     
     session_info = f" in session {session_id}" if session_id else ""
-    command = f"{action} {atomspec} {target}"
+    command = f"{action} {atomspec} target {target}"
     
     # Execute the first command (if it fails, exception propagates and second command won't run)
     result = await run_chimerax_command(command, session_id)
@@ -1470,7 +1539,7 @@ async def show_hide_objects(
     if action == "show":
         # If we are showing a specific target (representation) of atomspec,
         # let's assume the agent means to also show the parent model.
-        model_command = f"show {atomspec} models"
+        model_command = f"show {atomspec} target m"
         model_result = await run_chimerax_command(model_command, session_id)
         
         # Combine logs from both commands
