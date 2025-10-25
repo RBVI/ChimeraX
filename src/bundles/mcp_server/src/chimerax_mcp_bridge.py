@@ -1410,6 +1410,10 @@ async def color_models(color: str, target: str = "all", session_id: Optional[int
     
     For complex target specifications, use get_atomspec_guide() to construct the correct atomspec.
 
+    Hints:
+    - "byhet" is a special color that colors non-carbon atoms by their chemical element
+    - When coloring atom representations, you should always then run another color command with "byhet" as the color
+
     Args:
         color: Color name or hex code (e.g., 'red', 'blue', '#ff0000')
         target: What to color using atomspec syntax (e.g., '#1', '#1/A', 'protein', 'ligand'), defaults to 'all'
@@ -1524,12 +1528,21 @@ async def show_hide_objects(
 
     Examples:
         - Show all atoms in model 1: action='show', atomspec='#1', target='atoms'
-        - Hide all atoms and bonds in chain A of model 1: action='hide', atomspec='#1/A', target='ab'
+        - Hide all atoms and bonds and cartoons and surfaces in chain A of model 1: action='hide', atomspec='#1/A', target='abcs'
         - Show all pseudobonds in residue 100 of chain A of model 1: action='show', atomspec='#1/A:100', target='p'
         - Hide all cartoons in model 1: action='hide', atomspec='#1', target='c'
         - Hide all surfaces in model 1: action='hide', atomspec='#1', target='s'
         - Show ribbons and atoms in residues 1-50 of chain B of model 2: action='show', atomspec='#2/B:1-50', target='cb'
+        - Show polar hydrogens in model 1: action='show', atomspec='#1 & H & ~HC', target='a'
+        - Hide non-polar hydrogens in model 1: action='hide', atomspec='#1 & HC', target='a'
     
+    Tips:
+        - By default, when a model is opened by ChimeraX, it will often show in the protein in cartoon except near ligands, where it will show side chain atoms in stick; but sometimes, the whole protein will be shown with atoms as spheres; so you should not make any assumptions about which representations are visible when you first open a model
+        - For this reason, in general, when hiding a chain or part of the sequence, you might as well hide all the targets: abpcs
+        - If you want to show a particular ligand, specify the chain if possible. For example, prefer #1/A:LIG rather than just :LIG, which would show all the ligands named LIG
+        - To make sure that only one particular representation is shown (e.g. atoms, not ribbons), you should first hide all representations before showing the one you want
+        - When you want to show atoms you should  always also show the bonds, unless the user explicitly asked you to see atoms without bonds
+
     Args:
         action: 'show' or 'hide'
         atomspec: Atomspec specification using atomspec syntax (e.g., '#1', '#1/A', ':ALA'; use the get_atomspec_guide() tool to see the correct syntax)
@@ -1571,11 +1584,11 @@ async def show_hide_objects(
             "logs": combined_logs
         }
         
-        context = f"Successfully {action} {target} {atomspec}{session_info}"
+        context = f"Success: {command}"
         return format_chimerax_response(combined_result, context)
     
     # Single command case (hide or show models)
-    context = f"Successfully {action} {target} {atomspec}{session_info}"
+    context = f"Success: {command}"
     return format_chimerax_response(result, context)
 
 
