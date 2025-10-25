@@ -625,7 +625,7 @@ def add_error_hints(error_type: str, error_msg: str, command: str) -> str:
     
     if is_atomspec_error or is_atomspec_keyword_error:
         hints.append("\n\n🔍 HINT: This error indicates incorrect object specification (atomspec) syntax.")
-        hints.append("→ Invoke the 'specify_objects' PROMPT to learn the complete atomspec syntax")
+        hints.append("→ Use the get_atomspec_guide() tool to learn the complete atomspec syntax")
         hints.append("→ Common patterns:")
         hints.append("  • #1          (entire model 1)")
         hints.append("  • #1/A        (chain A in model 1)")
@@ -640,7 +640,7 @@ def add_error_hints(error_type: str, error_msg: str, command: str) -> str:
         hints.append("→ Use list_models() to see what structures/chains are loaded")
         hints.append("→ Check chain IDs are correct (case-sensitive)")
         hints.append("→ Verify residue numbers/names exist in the structure")
-        hints.append("→ Invoke 'specify_objects' prompt if you need help with atomspec syntax")
+        hints.append("→ Use get_atomspec_guide() tool if you need help with atomspec syntax")
     
     # ===== Model/Structure Errors =====
     # Real ChimeraX errors: "No models specified by", "No atomic structures open/specified",
@@ -669,8 +669,8 @@ def add_error_hints(error_type: str, error_msg: str, command: str) -> str:
         
         hints.append(f"\n\n🔍 HINT: Command '{cmd_name}' is not recognized.")
         hints.append("→ Check command spelling and capitalization")
-        hints.append("→ Use the resource 'chimerax://commands' to see all available commands")
-        hints.append(f"→ Use resource 'chimerax://command/{cmd_name}' for specific command help")
+        hints.append("→ Use the list_chimerax_commands() tool to see all available commands")
+        hints.append(f"→ Use get_command_documentation('{cmd_name}') tool for specific command help")
         hints.append("→ Common commands: open, color, show, hide, save, view, align")
     
     # ===== Argument/Syntax Errors =====
@@ -687,7 +687,7 @@ def add_error_hints(error_type: str, error_msg: str, command: str) -> str:
         cmd_name = cmd_parts[0] if cmd_parts else "unknown"
         
         hints.append(f"\n\n🔍 HINT: The '{cmd_name}' command has incorrect arguments.")
-        hints.append(f"→ Use resource 'chimerax://command/{cmd_name}' for correct syntax")
+        hints.append(f"→ Use get_command_documentation('{cmd_name}') tool for correct syntax")
         hints.append("→ Check that you've included all required arguments")
         hints.append("→ Verify keyword spelling and order")
     
@@ -709,8 +709,8 @@ def add_error_hints(error_type: str, error_msg: str, command: str) -> str:
         # Only add a generic hint if we didn't match anything specific
         hints.append("\n\n🔍 HINT: ChimeraX command failed.")
         hints.append("→ Use list_models() to verify what structures are loaded")
-        hints.append("→ Invoke 'specify_objects' prompt for help with atom spec syntax")
-        hints.append("→ Check command documentation via resources")
+        hints.append("→ Use get_atomspec_guide() tool for help with atom spec syntax")
+        hints.append("→ Use get_command_documentation() tool for command syntax help")
     
     # Append all hints to the error message
     if hints:
@@ -718,21 +718,20 @@ def add_error_hints(error_type: str, error_msg: str, command: str) -> str:
     
     return full_error
 
-# Prompt definitions
-@mcp.prompt()
-async def specify_objects(prompt: str) -> str:
-    """Build a specification string for a specific selection of objects
+@mcp.tool()
+async def get_atomspec_guide() -> str:
+    """Get the complete guide for ChimeraX atomspec (object specification) syntax.
     
-    Use this whenever you want to specify a selection of objects, such as:
-    - an entire model,
-    - a specific chain,
-    - a set of atoms,
-    - atoms selected by type,
-    - atoms selected by distance from other atoms,
-    - residues selected by type or name,
-    - etc.
+    Use this tool whenever you need to specify objects in ChimeraX commands, such as:
+    - Selecting specific models, chains, residues, or atoms
+    - Creating distance-based selections (zones)
+    - Combining selections with logical operators
+    - Using built-in classifications (protein, ligand, helix, etc.)
+    - Querying by attributes
     
-    This will guide through using the ChimeraX atomspec syntax correctly.
+    This comprehensive guide covers all atomspec syntax patterns and common use cases.
+    Always consult this when constructing object specifications for commands like:
+    color, show, hide, select, style, view, and any command that acts on objects.
     """
     return """
 # ChimeraX Object Specification Guide
@@ -908,15 +907,19 @@ aromatic-ring & :phe,tyr  # Aromatic ring carbons in Phe and Tyr
 For more details, see: https://www.cgl.ucsf.edu/chimerax/docs/user/commands/atomspec.html
     """
 
-# Tool definitions using FastMCP decorators
-
 @mcp.tool()
 async def run_command(command: str, session_id: Optional[int] = None) -> str:
-    """Execute any ChimeraX command directly. USE THIS TOOL FIRST for any ChimeraX operation.
-    For command syntax help, check the documentation resource chimerax://command/<command_name>.
+    """Execute any ChimeraX command directly. Use this tool if you don't find another tool
+    that suits your needs.
+    
+    When constructing commands that specify objects (models, chains, residues, atoms):
+    - Use get_atomspec_guide() to learn the correct atomspec syntax
+    - Common atomspecs: #1 (model), #1/A (chain), #1/A:100 (residue), @ca (atom type), HC (nonpolar hydrogens), #1/A & ligand (ligands in chain A of model 1)
+    
+    For command syntax help, use get_command_documentation(command_name).
 
     Args:
-        command: ChimeraX command to execute (e.g., 'open 1gcn', 'color red')
+        command: ChimeraX command to execute (e.g., 'open 1gcn', 'color #1/A red')
         session_id: ChimeraX session port (defaults to primary session)
     """
     result = await run_chimerax_command(command, session_id)
@@ -1125,7 +1128,8 @@ async def list_models(session_id: Optional[int] = None) -> str:
 
 @mcp.tool()
 async def get_model_info(model_id: str, session_id: Optional[int] = None) -> str:
-    """Get detailed information about a specific model
+    """Get detailed information about a specific model, including details about
+    all its chains. You can call this to get all chain identifications in one go.
 
     Args:
         model_id: Model ID (e.g., '#1' or '#1.1')
@@ -1320,10 +1324,12 @@ async def get_chain_info(model_id: str, chain_id: str, session_id: Optional[int]
 @mcp.tool()
 async def color_models(color: str, target: str = "all", session_id: Optional[int] = None) -> str:
     """Color models or parts of models
+    
+    For complex target specifications, use get_atomspec_guide() to construct the correct atomspec.
 
     Args:
         color: Color name or hex code (e.g., 'red', 'blue', '#ff0000')
-        target: What to color (e.g., '#1', 'protein', 'ligand'), defaults to 'all'
+        target: What to color using atomspec syntax (e.g., '#1', '#1/A', 'protein', 'ligand'), defaults to 'all'
         session_id: ChimeraX session port (defaults to primary session)
     """
     command = f"color {target} {color}"
@@ -1416,6 +1422,81 @@ async def superpose_residue(
     return format_chimerax_response(combined_result, context)
 
 @mcp.tool()
+async def show_hide_objects(
+    action: str,
+    atomspec: str,
+    target: str,
+    session_id: Optional[int] = None
+) -> str:
+    """Show or hide a specified selection of objects' representation. 
+    Use this tool to show or hide specific representations (targets) of objects (atomspec) in the model, 
+    rather than the generic run_command() method.
+    
+    For the target, use one or more of the following letter: 
+    - a: atoms: Toggle on (show) or off (hide) the atomic representation of the objects specified by the atomspec
+    - b: bonds: Toggle on (show) or off (hide) the bonds representation of the atomspec
+    - p: pseudobonds: Toggle on (show) or off (hide) the pseudobonds
+    - c: cartoons or ribbons: Toggle on (show) or off (hide) the cartoon/ribbon representation of the atomspec
+    - s: surfaces: Toggle on (show) or off (hide) the surfaces associated with the atomspec    
+
+    Examples:
+        - Show all atoms in model 1: action='show', atomspec='#1', target='atoms'
+        - Hide all atoms and bonds in chain A of model 1: action='hide', atomspec='#1/A', target='ab'
+        - Show all pseudobonds in residue 100 of chain A of model 1: action='show', atomspec='#1/A:100', target='p'
+        - Hide all cartoons in model 1: action='hide', atomspec='#1', target='c'
+        - Hide all surfaces in model 1: action='hide', atomspec='#1', target='s'
+        - Show ribbons and atoms in residues 1-50 of chain B of model 2: action='show', atomspec='#2/B:1-50', target='cb'
+    
+    Args:
+        action: 'show' or 'hide'
+        atomspec: Atomspec specification using atomspec syntax (e.g., '#1', '#1/A', ':ALA'; use the get_atomspec_guide() tool to see the correct syntax)
+        target: What to show or hide
+        session_id: ChimeraX session port (defaults to primary session)
+    """
+    if action not in ["show", "hide"]:
+        raise ValueError("Action must be 'show' or 'hide'")
+
+    # If target contains any letters that are not in the list of allowed letters, raise an error
+    if any(letter not in ["a", "b", "p", "c", "s", "m"] for letter in target):
+        raise ValueError("Target must be one or more of 'a', 'b', 'p', 'c', 's', 'm'")
+    
+    session_info = f" in session {session_id}" if session_id else ""
+    command = f"{action} {atomspec} {target}"
+    
+    # Execute the first command (if it fails, exception propagates and second command won't run)
+    result = await run_chimerax_command(command, session_id)
+
+    # If action is "show" also show the parent model
+    if action == "show":
+        # If we are showing a specific target (representation) of atomspec,
+        # let's assume the agent means to also show the parent model.
+        model_command = f"show {atomspec} models"
+        model_result = await run_chimerax_command(model_command, session_id)
+        
+        # Combine logs from both commands
+        combined_logs = {}
+        for res in [result, model_result]:
+            for level, messages in res.get("logs", {}).items():
+                if level not in combined_logs:
+                    combined_logs[level] = []
+                combined_logs[level].extend(messages)
+        
+        # Create combined result
+        combined_result = {
+            "return_values": result.get("return_values", []) + model_result.get("return_values", []),
+            "json_values": result.get("json_values", []) + model_result.get("json_values", []),
+            "logs": combined_logs
+        }
+        
+        context = f"Successfully {action} {target} {atomspec}{session_info}"
+        return format_chimerax_response(combined_result, context)
+    
+    # Single command case (hide or show models)
+    context = f"Successfully {action} {target} {atomspec}{session_info}"
+    return format_chimerax_response(result, context)
+
+
+@mcp.tool()
 async def show_hide_hydrogens(
     action: str,
     hydrogen_type: str = "all",
@@ -1429,10 +1510,12 @@ async def show_hide_hydrogens(
     - 'HC' refers to nonpolar hydrogens (hydrogens bonded to carbon)
     - Polar hydrogens are H atoms that are not HC
     
+    For complex target specifications, use get_atomspec_guide() to construct the correct atomspec.
+    
     Args:
         action: 'show' or 'hide'
         hydrogen_type: Type of hydrogens - 'all', 'polar', or 'nonpolar' (default: 'all')
-        target: Optional target specification to limit scope (e.g., '#1', ':ALA', default: all models)
+        target: Optional target specification using atomspec syntax (e.g., '#1', '#1/A', ':ALA', default: all models)
         session_id: ChimeraX session port (defaults to primary session)
     
     Examples:
@@ -1599,11 +1682,13 @@ async def set_default_session(session_id: int) -> str:
 
     return f"Default session changed from port {old_default} to port {session_id} ({session_name})"
 
-# Documentation Resources using MCP resources
-
-@mcp.resource("chimerax://commands")
-async def list_commands() -> str:
-    """List all available ChimeraX commands"""
+@mcp.tool()
+async def list_chimerax_commands() -> str:
+    """List all available ChimeraX commands.
+    
+    Use this to discover what commands are available in ChimeraX.
+    Once you know the command name, use get_command_documentation() to get detailed syntax.
+    """
     commands = list_available_commands()
     if not commands:
         return "No ChimeraX documentation found"
@@ -1616,12 +1701,18 @@ async def list_commands() -> str:
             break
 
     result += f"\nTotal: {len(commands)} commands available\n"
-    result += "Use chimerax://command/<name> to get detailed documentation for any command."
+    result += "Use get_command_documentation(command_name) to get detailed documentation for any command."
     return result
 
-@mcp.resource("chimerax://command/{command_name}")
+@mcp.tool()
 async def get_command_documentation(command_name: str) -> str:
-    """Get detailed documentation for a specific ChimeraX command"""
+    """Get detailed documentation for a specific ChimeraX command.
+    
+    Use this to learn the correct syntax, arguments, and usage for a specific command.
+    
+    Args:
+        command_name: Name of the ChimeraX command (e.g., 'open', 'color', 'save')
+    """
     return get_command_doc(command_name)
 
 # Cleanup function for aiohttp session
