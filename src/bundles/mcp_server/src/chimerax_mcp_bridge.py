@@ -981,6 +981,11 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
     """Execute any ChimeraX command directly. Use this tool if you don't find another tool
     that suits your needs.
     
+    IMPORTANT RESTRICTIONS:
+    - DO NOT use this tool for 'show' or 'hide' commands
+    - For show/hide operations, use show_hide_objects() or show_hide_hydrogens() instead
+    - Attempting to run 'show' or 'hide' commands will raise an exception
+    
     When constructing commands that specify objects (models, chains, residues, atoms):
     - Use get_atomspec_guide() to learn the correct atomspec syntax
     - Common atomspecs: #1 (model), #1/A (chain), #1/A:100 (residue), @ca (atom type), HC (nonpolar hydrogens), #1/A & ligand (ligands in chain A of model 1)
@@ -991,6 +996,15 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
         command: ChimeraX command to execute (e.g., 'open 1gcn', 'color #1/A red')
         session_id: ChimeraX session port (defaults to primary session)
     """
+    # Validate that show/hide commands are not being used
+    command_stripped = command.strip().lower()
+    if command_stripped.startswith('show ') or command_stripped.startswith('hide ') or command_stripped == 'show' or command_stripped == 'hide':
+        raise ValueError(
+            "ERROR: 'show' and 'hide' commands are not allowed via run_command. "
+            "Please use the dedicated show_hide_objects() or show_hide_hydrogens() tools instead. "
+            "These specialized tools provide better parameter validation and error handling."
+        )
+    
     result = await run_chimerax_command(command, session_id)
     session_info = f" on session {session_id}" if session_id else ""
     context = f"Command executed{session_info}: {command}"
