@@ -1,0 +1,4 @@
+I'd like to look at how fentanyl interacts with the opioid receptor, PDB 8ef5
+Open that PDB, hide the G proteins and the antibody. Only show one copy of the receptor, in ribbon style, and one copy of the fentanyl - the one bound to that receptor. 
+Then, show residues near the fentanyl as sticks. 
+Are there any hydrogen bonds between fentanyl and the receptor?
