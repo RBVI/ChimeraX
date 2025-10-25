@@ -1015,6 +1015,9 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
 async def open_structure(identifier: str, format: str = "auto-detect", session_id: Optional[int] = None) -> str:
     """Open a molecular structure file or fetch from PDB
 
+    Hint:
+    - After opening a structure and before showing any objects of this new model, you should first hide all its representations, so that we start from a clean slate
+
     Args:
         identifier: PDB ID (e.g., '1gcn') or file path to open
         format: File format if needed (pdb, cif, etc.), defaults to auto-detect
@@ -1527,7 +1530,7 @@ async def show_hide_objects(
     - s: surfaces: Toggle on (show) or off (hide) the surfaces associated with the atomspec    
 
     Examples:
-        - Show all atoms in model 1: action='show', atomspec='#1', target='atoms'
+        - Show all atoms and bonds in model 1: action='show', atomspec='#1', target='ab'
         - Hide all atoms and bonds and cartoons and surfaces in chain A of model 1: action='hide', atomspec='#1/A', target='abcs'
         - Show all pseudobonds in residue 100 of chain A of model 1: action='show', atomspec='#1/A:100', target='p'
         - Hide all cartoons in model 1: action='hide', atomspec='#1', target='c'
@@ -1536,18 +1539,28 @@ async def show_hide_objects(
         - Show polar hydrogens in model 1: action='show', atomspec='#1 & H & ~HC', target='a'
         - Hide non-polar hydrogens in model 1: action='hide', atomspec='#1 & HC', target='a'
     
+    Important:
+        - Before you attempt for the first time to show a particular object, you MUST first hide all its representations (because you don't know what representations are already active)
+        - After showing or hiding objects, you MUST check the response to see if the count of affected residues is what you expected. If not, you should run this tool again to correct the situation.
+    
     Tips:
-        - By default, when a model is opened by ChimeraX, it will often show in the protein in cartoon except near ligands, where it will show side chain atoms in stick; but sometimes, the whole protein will be shown with atoms as spheres; so you should not make any assumptions about which representations are visible when you first open a model
+        - When a model is first opened by ChimeraX, it may be shown in cartoon or atoms (sticks or spheres), or some combination of the two 
         - For this reason, in general, when hiding a chain or part of the sequence, you might as well hide all the targets: abpcs
+        - Also, when showing a particular representation (e.g. cartoon), you must first hide all the other representations before showing the one you want
         - If you want to show a particular ligand, specify the chain if possible. For example, prefer #1/A:LIG rather than just :LIG, which would show all the ligands named LIG
         - To make sure that only one particular representation is shown (e.g. atoms, not ribbons), you should first hide all representations before showing the one you want
         - When you want to show atoms you should  always also show the bonds, unless the user explicitly asked you to see atoms without bonds
+        - When showing atoms, you should style them as sticks, not spheres; to do this, run the command "style {atomspec} stick"; also, by default you should color them by het by using the color_models tool with the color "byhet"
 
     Args:
         action: 'show' or 'hide'
         atomspec: Atomspec specification using atomspec syntax (e.g., '#1', '#1/A', ':ALA'; use the get_atomspec_guide() tool to see the correct syntax)
         target: What to show or hide
         session_id: ChimeraX session port (defaults to primary session)
+    
+    Response format:
+    Success: {command}
+    This action affected {counts_string}
     """
     if action not in ["show", "hide"]:
         raise ValueError("Action must be 'show' or 'hide'")
@@ -1557,6 +1570,24 @@ async def show_hide_objects(
         raise ValueError("Target must be one or more of 'a', 'b', 'p', 'c', 's', 'm'")
     
     session_info = f" in session {session_id}" if session_id else ""
+
+    # First, we will use the select command to select the objects specified by the atomspec
+    # This has the advantage that ChimeraX will return a count of atoms, bonds, residues and models selected, which
+    # is useful feedback for the client.
+    # For example, the output printed to log would look something like this:
+    # "108 atoms, 112 bonds, 2 residues, 1 model selected"
+    select_command = f"select {atomspec}"
+    select_result = await run_chimerax_command(select_command, session_id)
+
+    # Parse the select result to get a string with the counts.
+    # Note that the log level is "note" and that it will contain 2 lines: 
+    # the first line is the command echo, the second line is the result which we want to grab
+    counts_string = select_result.get("logs", {}).get("note", [""])[1]
+    # Remove the "selected" from the counts string
+    counts_string = counts_string.replace(" selected", "")
+
+
+    # The show/hide command itself
     command = f"{action} {atomspec} target {target}"
     
     # Execute the first command (if it fails, exception propagates and second command won't run)
@@ -1584,99 +1615,12 @@ async def show_hide_objects(
             "logs": combined_logs
         }
         
-        context = f"Success: {command}"
+        context = f"Success: {command}\nThis action affected {counts_string}"
         return format_chimerax_response(combined_result, context)
     
     # Single command case (hide or show models)
     context = f"Success: {command}"
     return format_chimerax_response(result, context)
-
-
-@mcp.tool()
-async def show_hide_hydrogens(
-    action: str,
-    hydrogen_type: str = "all",
-    target: str = "",
-    session_id: Optional[int] = None
-) -> str:
-    """Show or hide hydrogen atoms (all, polar only, or nonpolar only)
-    
-    In ChimeraX:
-    - 'H' refers to all hydrogen atoms
-    - 'HC' refers to nonpolar hydrogens (hydrogens bonded to carbon)
-    - Polar hydrogens are H atoms that are not HC
-    
-    For complex target specifications, use get_atomspec_guide() to construct the correct atomspec.
-    
-    Args:
-        action: 'show' or 'hide'
-        hydrogen_type: Type of hydrogens - 'all', 'polar', or 'nonpolar' (default: 'all')
-        target: Optional target specification using atomspec syntax (e.g., '#1', '#1/A', ':ALA', default: all models)
-        session_id: ChimeraX session port (defaults to primary session)
-    
-    Examples:
-        - Show all hydrogens: action='show', hydrogen_type='all'
-        - Hide all hydrogens: action='hide', hydrogen_type='all'
-        - Show only polar hydrogens: action='show', hydrogen_type='polar'
-        - Hide nonpolar hydrogens: action='hide', hydrogen_type='nonpolar'
-    """
-    if action not in ["show", "hide"]:
-        raise ValueError("Action must be 'show' or 'hide'")
-    
-    if hydrogen_type not in ["all", "polar", "nonpolar"]:
-        raise ValueError("hydrogen_type must be 'all', 'polar', or 'nonpolar'")
-    
-    session_info = f" in session {session_id}" if session_id else ""
-    commands = []
-    
-    # Build target specification
-    target_spec = f" {target}" if target else ""
-    
-    if hydrogen_type == "all":
-        # Simple case: show or hide all hydrogens
-        command = f"{action} H{target_spec}"
-        commands.append(command)
-    
-    elif hydrogen_type == "polar":
-        if action == "show":
-            # Show all H, then hide HC (nonpolar)
-            commands.append(f"show H{target_spec}")
-            commands.append(f"hide HC{target_spec}")
-        else:  # hide
-            # Hide H but not HC (using negation)
-            command = f"hide H{target_spec} & ~HC{target_spec}"
-            commands.append(command)
-    
-    elif hydrogen_type == "nonpolar":
-        # Nonpolar hydrogens are HC
-        command = f"{action} HC{target_spec}"
-        commands.append(command)
-    
-    # Execute commands and collect results
-    results = []
-    for cmd in commands:
-        result = await run_chimerax_command(cmd, session_id)
-        results.append(result)
-    
-    # Format combined results
-    context = (f"Successfully {action} {hydrogen_type} hydrogens{session_info}\n"
-               f"Target: {target if target else 'all models'}")
-    
-    # Combine logs from all commands
-    combined_logs = {}
-    for result in results:
-        for level, messages in result.get("logs", {}).items():
-            if level not in combined_logs:
-                combined_logs[level] = []
-            combined_logs[level].extend(messages)
-    
-    combined_result = {
-        "return_values": sum([r.get("return_values", []) for r in results], []),
-        "json_values": sum([r.get("json_values", []) for r in results], []),
-        "logs": combined_logs
-    }
-    
-    return format_chimerax_response(combined_result, context)
 
 # Instance management tools
 
