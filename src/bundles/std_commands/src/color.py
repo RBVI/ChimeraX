@@ -1338,6 +1338,18 @@ def _value_colors(palette, range, values, *, return_cmap_data=False):
         # all values the same; artificially manipulate the range to get the
         # 'middle' of the color range used
         r = (r[0]-1, r[1]+1)
+    
+    # Handle descending user range (e.g., range=7,2): keep palette orientation,
+    # but invert the numeric axis so clamping maps to the correct ends.
+    if r is not None and r[0] > r[1]:
+        lo, hi = r[1], r[0]
+        try:
+            import numpy
+            values = (lo + hi) - numpy.asarray(values)
+        except Exception:
+            values = [(lo + hi) - v for v in values]
+        r = (lo, hi)
+        
     cmap = _colormap_with_range(palette, r, default = 'blue-white-red')
     if return_cmap_data:
         return min_val, max_val, cmap
