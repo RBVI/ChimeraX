@@ -84,7 +84,7 @@ def _search_sequences_web(sequences, url = sequence_search_url):
     if 'error' in results:
         raise SearchError('AlphaFold sequence search web service\n\n%s\n\nreported error:\n\n%s'
                           % (url, results['error']))
-    seq_uids = {seq : DatabaseEntryId(u['uniprot id'], name = u['uniprot name'], version = u['db version'])
+    seq_uids = {seq : DatabaseEntryId(u['uniprot id'], name = u['uniprot name'])
                 for seq, u in zip(sequences, results['sequences']) if u}
     return seq_uids
 
