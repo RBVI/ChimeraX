@@ -377,14 +377,11 @@ class MoveMouseMode(MouseMode):
         if self.mouse_action=='rotate':
             self._rotate((0,0,1), angle)
 
-    def _set_z_rotation(self, event):
+    def _set_z_rotation(self, event, edge_distance = 0.1):
         x,y = event.position()
         w,h = self.view.window_size
-        cx, cy = x-0.5*w, y-0.5*h
-        from math import sqrt
-        r = sqrt(cx*cx + cy*cy)
-        fperim = 0.9
-        self._z_rotate = (r > fperim*0.5*min(w,h))
+        self._z_rotate = (x <= edge_distance*w or x >= (1-edge_distance)*w or
+                          y <= edge_distance*h or y >= (1-edge_distance)*h)
 
     def _rotate(self, axis, angle):
         # Convert axis from camera to scene coordinates
