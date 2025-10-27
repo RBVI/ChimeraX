@@ -990,6 +990,7 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
     - Use get_atomspec_guide() to learn the correct atomspec syntax
     - Common atomspecs: #1 (model), #1/A (chain), #1/A:100 (residue), @ca (atom type), HC (nonpolar hydrogens), #1/A & ligand (ligands in chain A of model 1)
     
+    To see a list of all commands, use the list_commands() tool.
     For command syntax help, use get_command_documentation(command_name).
 
     Args:
@@ -1416,6 +1417,7 @@ async def color_models(color: str, target: str = "all", session_id: Optional[int
     Hints:
     - "byhet" is a special color that colors non-carbon atoms by their chemical element
     - When coloring atom representations, you should always then run another color command with "byhet" as the color
+    - When coloring binding pockets, you should keep the protein atoms the same color as the rest of the protein, and make the ligand a different color
 
     Args:
         color: Color name or hex code (e.g., 'red', 'blue', '#ff0000')
@@ -1432,6 +1434,8 @@ async def color_models(color: str, target: str = "all", session_id: Optional[int
 @mcp.tool()
 async def save_image(filename: str, width: int = 1920, height: int = 1080, supersample: int = 3, session_id: Optional[int] = None) -> str:
     """Save a screenshot of the current view
+
+    Before saving an image, clear the selection by running command "~select" - otherwise we will have bright green lights around the selected objects
 
     Args:
         filename: Output filename (e.g., 'structure.png')
@@ -1538,6 +1542,7 @@ async def show_hide_objects(
         - Show ribbons and atoms in residues 1-50 of chain B of model 2: action='show', atomspec='#2/B:1-50', target='cb'
         - Show polar hydrogens in model 1: action='show', atomspec='#1 & H & ~HC', target='a'
         - Hide non-polar hydrogens in model 1: action='hide', atomspec='#1 & HC', target='a'
+        - Show protein side chains near ligand #1/A:LIG: action='show #1 & protein & #1/A:LIG:<5', target='ab'
     
     Important:
         - Before you attempt for the first time to show a particular object, you MUST first hide all its representations (because you don't know what representations are already active)
@@ -1585,6 +1590,10 @@ async def show_hide_objects(
     counts_string = select_result.get("logs", {}).get("note", [""])[1]
     # Remove the "selected" from the counts string
     counts_string = counts_string.replace(" selected", "")
+
+    # If the counts_string is "Nothing", raise an error
+    if counts_string == "Nothing":
+        raise ValueError(f"No objects were found matching the atomspec: {atomspec}")
 
 
     # The show/hide command itself
