@@ -141,9 +141,8 @@ class Log(ToolInstance, HtmlLog):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
-        from .settings import settings
-
-        self.settings = settings
+        from .settings import get_settings
+        self.settings = get_settings(session)
         self.suppress_scroll = False
         self._log_file = None
         self.page_source = ""
@@ -156,38 +155,42 @@ class Log(ToolInstance, HtmlLog):
 
                     run(ses, "log thumbnail")
 
-                menu.addAction("Insert Image", save_image)
-                log_window = self.tool_instance.log_window
-                menu.addAction("Save As...", log_window.cm_save)
                 menu.addAction("Clear", self.tool_instance.clear)
-                menu.addAction(
-                    "Copy Selection",
-                    lambda: self.session.ui.clipboard().setText(
-                        log_window.selectedText()
-                    ),
-                )
-                menu.addAction(
-                    "Select All",
-                    lambda: log_window.page().triggerAction(
-                        log_window.page().SelectAll
-                    ),
-                )
-                from Qt.QtGui import QAction
-
-                show_action = QAction("Raise Log When Logging Occurs", menu)
-                show_action.setCheckable(True)
-                show_action.setChecked(self.tool_instance.settings.show_if_new_content)
-                show_action.triggered.connect(
-                    lambda checked, settings=self.tool_instance.settings: setattr(
-                        settings, "show_if_new_content", checked
-                    )
-                )
-                menu.addAction(show_action)
-                link_action = QAction("Executable Command Links", menu)
+                menu.addAction("Copy Selection", lambda:
+                    self.session.ui.clipboard().setText(log_window.selectedText()))
+                link_action = menu.addAction("Executable Command Links")
                 link_action.setCheckable(True)
                 link_action.setChecked(self.tool_instance.settings.exec_cmd_links)
                 link_action.triggered.connect(self.tool_instance.cm_set_cmd_links)
-                menu.addAction(link_action)
+                menu.addAction("Insert Image", save_image)
+                log_window = self.tool_instance.log_window
+                note_menu = menu.addMenu("Notifications")
+                raise_action = menu.addAction("Restoring Session Clears Dialog")
+                raise_action.setCheckable(True)
+                raise_action.setChecked(self.tool_instance.settings.session_restore_clears)
+                raise_action.triggered.connect(lambda checked, settings=self.tool_instance.settings:
+                    setattr(settings, "session_restore_clears", checked))
+                menu.addAction("Select All", lambda:
+                    log_window.page().triggerAction(log_window.page().SelectAll))
+                menu.addAction("Save As...", log_window.cm_save)
+
+                errors_action = note_menu.addAction("Errors Shown in Dialog")
+                errors_action.setCheckable(True)
+                errors_action.setChecked(self.tool_instance.settings.errors_raise_dialog)
+                errors_action.triggered.connect(lambda checked, settings=self.tool_instance.settings:
+                    setattr(settings, "errors_raise_dialog", checked))
+
+                raise_action = note_menu.addAction("Raise Log When Logging Occurs")
+                raise_action.setCheckable(True)
+                raise_action.setChecked(self.tool_instance.settings.show_if_new_content)
+                raise_action.triggered.connect(lambda checked, settings=self.tool_instance.settings:
+                    setattr(settings, "show_if_new_content", checked))
+
+                raise_action = note_menu.addAction("Warnings Shown in Dialog")
+                raise_action.setCheckable(True)
+                raise_action.setChecked(self.tool_instance.settings.warnings_raise_dialog)
+                raise_action.triggered.connect(lambda checked, settings=self.tool_instance.settings:
+                    setattr(settings, "warnings_raise_dialog", checked))
 
         self.tool_window = LogToolWindow(self, close_destroys=False)
 
@@ -382,10 +385,8 @@ class Log(ToolInstance, HtmlLog):
 
             self._append_message(image_info_to_html(msg, image_info))
         else:
-            from .settings import settings
-
-            if (level >= self.LEVEL_ERROR and settings.errors_raise_dialog) or (
-                level == self.LEVEL_WARNING and settings.warnings_raise_dialog
+            if (level >= self.LEVEL_ERROR and self.settings.errors_raise_dialog) or (
+                level == self.LEVEL_WARNING and self.settings.warnings_raise_dialog
             ):
                 if not is_html:
                     dlg_msg = "<br>".join(msg.split("\n"))
@@ -412,7 +413,7 @@ class Log(ToolInstance, HtmlLog):
             else:
                 # If we're not raising a dialog, at least try to bring the Log to the front
                 # if it is somehow obscured
-                if settings.show_if_new_content:
+                if self.settings.show_if_new_content:
                     self.tool_window.shown = True
 
             if not is_html:
