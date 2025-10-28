@@ -20,9 +20,18 @@ jobs:
       PATH: /usr/bin:/usr/sbin:/bin:/sbin
       PYOPENGL_PLATFORM: egl
     container:
-      image: bilelmoussaoui/flatpak-github-actions:freedesktop-23.08
+      image: fedora:latest
       options: --privileged
     steps:
+      - name: Update system packages
+        run: |
+          dnf update -y
+          dnf install -y dbus-daemon flatpak flatpak-builder git-lfs python3-aiohttp python3-tenacity python3-gobject xorg-x11-server-Xvfb ccache zstd libappstream-glib jq
+          dnf clean all
+          flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak remote-add --if-not-exists flathub-beta https://flathub.org/beta-repo/flathub-beta.flatpakrepo
+          flatpak install -y flathub org.flatpak.Builder
+          flatpak install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.branch || 'develop' }}
@@ -39,8 +48,6 @@ jobs:
             linux-bundles.tar.gz
             linux-include.tar.gz
           key: linux-bundles-x64-${{ inputs.release_type }}-${{ github.sha }}
-      - name: Install jq
-        run: dnf install -y jq
       - uses: Tiryoh/gha-jobid-action@v1
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         id: get_job_id

@@ -265,6 +265,9 @@ class Structure(Model, StructureData):
         Scene interface implementation.
         """
         Model.restore_scene(self, scene_data['model state'])
+        # Need to restore Structure.active_coordset_id before Atoms.coords
+        for attr_name, val in scene_data.get('structure', {}).items():
+            setattr(self, attr_name, val)
         for target, attr_names in [
                 ('atoms', self.ATOM_SCENE_ATTRS),
                 ('bonds', self.BOND_SCENE_ATTRS),
@@ -274,9 +277,6 @@ class Structure(Model, StructureData):
             for attr_name in attr_names:
                 if attr_name in values:
                     setattr(collection, attr_name, values[attr_name])
-        for attr_name, val in scene_data.get('structure', {}).items():
-            print("Set", attr_name, "to", val)
-            setattr(self, attr_name, val)
 
     def set_state_from_snapshot(self, session, data):
         StructureData.set_state_from_snapshot(self, session, data['structure state'])
