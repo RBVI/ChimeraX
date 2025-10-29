@@ -96,6 +96,7 @@ class TimelineControlWidget(QWidget):
     add_scene_requested = Signal(float)  # time to add scene at
     duration_changed = Signal(float)  # new duration in seconds
     reset_requested = Signal()  # reset timeline to zero
+    preferences_requested = Signal()  # preferences button clicked
 
     def __init__(self, duration=5.0, session=None, parent=None):
         super().__init__(parent)
@@ -165,8 +166,17 @@ class TimelineControlWidget(QWidget):
             "background-color: #f44336; color: white; border-radius: 15px; font-weight: bold;"
         )
         self.record_btn.clicked.connect(self.record_requested.emit)
-
         layout.addWidget(self.record_btn)
+
+        # Preferences button with gear icon
+        from chimerax.ui.icons import get_qt_icon
+        from Qt.QtWidgets import QToolButton
+        self.preferences_btn = QToolButton()
+        self.preferences_btn.setIcon(get_qt_icon("gear"))
+        self.preferences_btn.setToolTip("Preferences")
+        self.preferences_btn.setFixedSize(30, 30)
+        self.preferences_btn.clicked.connect(self.preferences_requested.emit)
+        layout.addWidget(self.preferences_btn)
 
     def toggle_playback(self):
         if self.is_playing:
@@ -1073,6 +1083,7 @@ class SceneTimelineWidget(QWidget):
     record_requested = Signal()  # record animation
     duration_changed = Signal(float)  # new duration in seconds
     reset_requested = Signal()  # reset timeline to zero
+    preferences_requested = Signal()  # preferences button clicked
 
     def __init__(self, session, parent=None):
         super().__init__(parent)
@@ -1125,6 +1136,7 @@ class SceneTimelineWidget(QWidget):
         self.timeline_controls.add_scene_requested.connect(self.on_add_scene_requested)
         self.timeline_controls.duration_changed.connect(self.on_duration_changed)
         self.timeline_controls.reset_requested.connect(self.on_reset_requested)
+        self.timeline_controls.preferences_requested.connect(self.preferences_requested.emit)
         timeline_layout.addWidget(self.timeline_controls)
 
         # Timeline scene view

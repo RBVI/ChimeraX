@@ -108,7 +108,7 @@ from Qt.QtWidgets import (QAbstractItemView, QAbstractScrollArea, QApplication, 
                                QStyleOptionGraphicsItem, QVBoxLayout, QWidget,
                                QPushButton, QFrame, QDoubleSpinBox, QSpinBox, QFormLayout,
                                QGroupBox, QGridLayout, QStackedWidget, QButtonGroup,
-                               QDialog, QComboBox, QLineEdit)
+                               QDialog, QComboBox, QLineEdit, QToolButton)
 
 __all__ = [
     "KeyframeEditorWidget",
@@ -117,6 +117,9 @@ __all__ = [
 # Import scene timeline components for dual-mode support
 from .scene_timeline import SceneTimelineWidget
 from .scene_animation import SceneAnimation
+
+# Import icon utility
+from chimerax.ui.icons import get_qt_icon
 
 
 class CompactStackedWidget(QStackedWidget):
@@ -1425,11 +1428,6 @@ class KeyframeEditorWidget(QWidget):
         mode_controls_layout.addWidget(self.scene_mode_btn)
         mode_controls_layout.addStretch()
 
-        # Add preferences button
-        self.preferences_btn = QPushButton("Preferences...")
-        self.preferences_btn.clicked.connect(self.show_preferences)
-        mode_controls_layout.addWidget(self.preferences_btn)
-
         main_layout.addLayout(mode_controls_layout)
 
         # Stacked widget for different modes - custom class to handle sizing properly
@@ -1456,6 +1454,7 @@ class KeyframeEditorWidget(QWidget):
         self.scene_timeline_widget.record_requested.connect(self.on_scene_record_requested)
         self.scene_timeline_widget.duration_changed.connect(self.on_scene_duration_changed)
         self.scene_timeline_widget.reset_requested.connect(self.on_scene_reset_requested)
+        self.scene_timeline_widget.preferences_requested.connect(self.show_preferences)
 
         # Connect scene animation signals to timeline controls
         self.scene_animation.signals.time_changed.connect(self.on_scene_animation_time_changed)
