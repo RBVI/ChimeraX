@@ -1897,6 +1897,57 @@ class Volume(Model):
     set_map_state(scene_data, self, notify=True)
     self._drawings_need_update()
 
+  def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+    '''
+    Interpolate volume state between two scene snapshots.
+
+    Args:
+        scene1_data: Scene data from first scene (from take_snapshot with State.SCENE)
+        scene2_data: Scene data from second scene (from take_snapshot with State.SCENE)
+        fraction: Interpolation fraction (0.0 = scene1, 1.0 = scene2)
+        switchover: If True, use threshold behavior for non-interpolable attributes
+    '''
+    # Start by restoring scene1 as base state
+    from .session import set_map_state
+    set_map_state(scene1_data, self, notify=True)
+
+    # Get volume states from both scenes
+    volume_state1 = scene1_data.get('volume state', scene1_data)
+    volume_state2 = scene2_data.get('volume state', scene2_data)
+
+    # Interpolate volume region (the main feature)
+    region1 = volume_state1.get('region')
+    region2 = volume_state2.get('region')
+
+    if region1 and region2 and region1 != region2:
+        # Extract region parameters
+        ijk_min1, ijk_max1, ijk_step1 = region1
+        ijk_min2, ijk_max2, ijk_step2 = region2
+
+        # Interpolate region bounds
+        ijk_min_interp = [
+            int(round(min1 + fraction * (min2 - min1)))
+            for min1, min2 in zip(ijk_min1, ijk_min2)
+        ]
+        ijk_max_interp = [
+            int(round(max1 + fraction * (max2 - max1)))
+            for max1, max2 in zip(ijk_max1, ijk_max2)
+        ]
+
+        # For step size, use threshold behavior since interpolating steps is problematic
+        ijk_step_interp = ijk_step2 if (switchover or fraction >= 0.5) else ijk_step1
+
+        # Apply the interpolated region
+        self.new_region(ijk_min_interp, ijk_max_interp, ijk_step_interp,
+                       adjust_step=False, adjust_voxel_limit=False)
+
+        # Make sure volume updates its rendering
+        self._drawings_need_update()
+    elif region1 != region2:
+        # One or both regions missing - use threshold behavior
+        if switchover or fraction >= 0.5:
+            set_map_state(volume_state2, self, notify=True)
+
 # -----------------------------------------------------------------------------
 #
 from .image3d import Image3d
