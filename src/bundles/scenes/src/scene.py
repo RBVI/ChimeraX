@@ -143,13 +143,13 @@ class Scene(State):
         if implements_scene(view_state):
             self.main_view_data = view_state.take_snapshot(main_view, self.session, State.SCENE)
         # Session Models
-        models = self.session.models.list()
+        models = self.session.scenes.scene_relevant_models
         # Create a NamedView object to store camera and model positions. NamedView's are built in to allow future support
         # for interpolating scenes.
         self.named_view = NamedView(self.session.view, self.session.view.center_of_rotation, models)
         # Attr scene_models stores model -> snapshot data mappings.
         self.scene_models = {}
-        for model in self.session.models:
+        for model in self.session.scenes.scene_relevant_models:
             if model.__class__.restore_scene == Model.restore_scene:
                 model_scene_data = (False, Model.take_snapshot(model, self.session, flags=State.SCENE))
             else:
@@ -185,20 +185,19 @@ class Scene(State):
         view_state = self.session.snapshot_methods(main_view)
         if implements_scene(view_state):
             view_state.restore_scene(main_view, self.session, copy.deepcopy(self.main_view_data))
-        current_models = self.session.models.list()
-        for model in current_models:
+        for model in self.session.scenes.scene_relevant_models:
             # NamedView only handles restoring model positions. Camera and clip plane positions are restored with the
             # ViewState.
             if model in self.named_view.positions:
                 model.positions = self.named_view.positions[model]
             else:
                 model.display = False
-            for model, scene_info in self.scene_models.items():
-                restore_implemented, scene_data = scene_info
-                if restore_implemented:
-                    model.restore_scene(scene_data)
-                else:
-                    Model.restore_scene(model, scene_data)
+        for model, scene_info in self.scene_models.items():
+            restore_implemented, scene_data = scene_info
+            if restore_implemented:
+                model.restore_scene(scene_data)
+            else:
+                Model.restore_scene(model, scene_data)
 
     def models_removed(self, models: [str]):
         """

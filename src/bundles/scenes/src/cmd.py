@@ -79,7 +79,7 @@ rename_scene_desc = CmdDesc(
 
 def list_scenes(session):
     """List all saved scenes."""
-    for scene_name in session.scenes.get_scene_names():
+    for scene_name in session.scenes.scene_names:
         print(scene_name)
 
 

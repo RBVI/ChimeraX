@@ -53,6 +53,7 @@ class Structure(Model, StructureData):
     ATOM_SCENE_ATTRS = ['colors', 'coords', 'displays', 'selected']
     BOND_SCENE_ATTRS = ['colors', 'displays', 'halfbonds', 'selected']
     RESIDUE_SCENE_ATTRS = ['ribbon_colors', 'ribbon_displays', 'ring_colors', 'ring_displays']
+    STRUCTURE_SCENE_ATTRS = ['active_coordset_id']
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  auto_style = True, log_info = True):
@@ -239,6 +240,9 @@ class Structure(Model, StructureData):
                 'residues': { attr_name: getattr(residues, attr_name)
                     for attr_name in self.RESIDUE_SCENE_ATTRS
                 },
+                'structure': { attr_name: getattr(self, attr_name)
+                    for attr_name in self.STRUCTURE_SCENE_ATTRS
+                },
             }
             return scene_data
 
@@ -261,6 +265,9 @@ class Structure(Model, StructureData):
         Scene interface implementation.
         """
         Model.restore_scene(self, scene_data['model state'])
+        # Need to restore Structure.active_coordset_id before Atoms.coords
+        for attr_name, val in scene_data.get('structure', {}).items():
+            setattr(self, attr_name, val)
         for target, attr_names in [
                 ('atoms', self.ATOM_SCENE_ATTRS),
                 ('bonds', self.BOND_SCENE_ATTRS),

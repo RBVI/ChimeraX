@@ -51,7 +51,8 @@ class ViewDockTool(ToolInstance):
     SESSION_SAVE = True
     registered_mousemode = False
 
-    def __init__(self, session, tool_name, structures, *, table_state=None, hide_boxes=None):
+    def __init__(self, session, tool_name, structures, *, table_state=None, table_structures=None,
+            hide_boxes=None):
         """
         Initialize the ViewDock tool with, table, table controls, and model descriptions.
 
@@ -90,7 +91,7 @@ class ViewDockTool(ToolInstance):
             self.col_display_widget, self.settings, {}, True, None, None, True
         ))
         self.vd_structures = vd_structures
-        self.table_setup(vd_structures, table_state)
+        self.table_setup(vd_structures if table_structures is None else table_structures, table_state)
 
         from .mousemode import register_mousemode, NextDockingMouseMode
         if not self.__class__.registered_mousemode:
@@ -810,9 +811,10 @@ class ViewDockTool(ToolInstance):
         return {
             'version': 1,
             'hide_boxes': { val: box.isChecked() for val, box in self.hide_rating_boxes.items() },
-            'structures': self.struct_table.data,
+            'table_structures': self.struct_table.data,
             'table_state': self.struct_table.session_info(),
-            'tool_name': self.tool_name
+            'tool_name': self.tool_name,
+            'structures': self.vd_structures,
         }
 
     @classmethod
@@ -838,7 +840,9 @@ class ViewDockTool(ToolInstance):
             return None
 
         return cls(session, snapshot['tool_name'], snapshot['structures'],
-            table_state=snapshot.get('table_state', None), hide_boxes=snapshot.get('hide_boxes', {}))
+            table_state=snapshot.get('table_state', None),
+            table_structures=snapshot.get('table_structures', None),
+            hide_boxes=snapshot.get('hide_boxes', {}))
 
 # RatingDelegate no longer used, but retaining code for reference
 class RatingDelegate(QStyledItemDelegate):

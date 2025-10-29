@@ -141,6 +141,14 @@ class SceneManager(StateManager):
         """
         return [scene.get_name() for scene in self.scenes]
 
+    @property
+    def scene_names(self):
+        return self.get_scene_names()
+
+    @property
+    def scene_relevant_models(self):
+        return [m for m in self.session.models if m.SESSION_SAVE]
+
     def _remove_models_cb(self, trig_name, models):
         """
         Callback for removing models from scenes.
@@ -233,7 +241,7 @@ class SceneManager(StateManager):
         # print(
         # f"DEBUG: Interpolating between '{scene1_name}' and '{scene2_name}' at fraction {fraction}"
         # )
-        # print(f"DEBUG: Number of models in scene: {len(self.session.models.list())}")
+        # print(f"DEBUG: Number of models in scene: {len(self.session.scenes.scene_relevant_models)}")
 
         if models_actually_moved:
             # Models moved - use full interpolation including model positions
@@ -241,7 +249,7 @@ class SceneManager(StateManager):
 
             # Calculate centers for model interpolation
             centers = {}
-            models = self.session.models.list()
+            models = self.session.scenes.scene_relevant_models
             for model in models:
                 if model in v1.positions and model in v2.positions:
                     bounds = model.bounds()
@@ -266,7 +274,7 @@ class SceneManager(StateManager):
             _interpolate_clip_planes(v1, v2, fraction, current_view)
 
         # Always check for volume interpolation regardless of whether models moved
-        current_models = self.session.models.list()
+        current_models = self.session.scenes.scene_relevant_models
         print(f"DEBUG: Checking {len(current_models)} models for volume interpolation")
         for model in current_models:
             # Check if both scenes have data for this model
@@ -346,7 +354,7 @@ class SceneManager(StateManager):
                 # print(f"DEBUG: Made model visible for fading: {model}")
 
         # Debug: Show current session models and their display state
-        # current_session_models = list(self.session.models.list())
+        # current_session_models = list(self.session.scenes.scene_relevant_models)
         # print(f"DEBUG: Current session has {len(current_session_models)} models:")
         # for model in current_session_models[:5]:  # Limit to first 5
         # print(f"DEBUG: Session model: {model}, display={getattr(model, 'display', 'N/A')}")
@@ -580,7 +588,7 @@ class SceneManager(StateManager):
         #             print(f"DEBUG:   scene_data = {scene_data}")
 
         # Check display state from scene data for each current model
-        current_models = self.session.models.list()
+        current_models = self.session.scenes.scene_relevant_models
         for model in current_models:
             if hasattr(scene, "scene_models") and model in scene.scene_models:
                 has_restore, scene_data = scene.scene_models[model]

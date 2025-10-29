@@ -48,11 +48,26 @@ class="clRighticon" title="User Guide Index"/></a>
 </h3>
 <p>
 The <b>scenes</b> command allows saving and restoring ChimeraX
-<b><i>scenes</i></b>, which include model and clipping plane positions
-(as in <a href="view.html#name"><b>view</b></a>), as well as
-display states, colors, <a href="2dlabels.html">2D labels</a>,
-<i>etc.</i>
-</p><p>
+<b><i>scenes</i></b>. A scene currently includes:
+</p>
+<ul>
+<li>model and clipping plane positions 
+(as in <a href="view.html#name"><b>view</b></a>)
+<li>atomic structure and <a href="../pseudobonds.html">pseudobond</a>
+display states and colors
+<li><a href="2dlabels.html">2D labels and arrows</a>
+<!-- #19150 volume data support-->
+<li><a href="../tools/volumeviewer.html">volume data</a> (map)
+display styles, levels, coloring, and masking (such as with
+<a href="surface.html#dust"><b>surface dust</b></a>)
+<li><a href="set.html#bgColor">background color</a>
+</ul>
+<p>
+<!-- 
+does not save:
+atom style (e.g. sticks vs. spheres), ribbon style, 3D labels visibility,
+size (atom radius, stick radius), molecular surface coloring (all? per-vertex?)
+-->
 <font color="brown">
 **In progress: not all aspects are saved; more will be added
 added as development proceeds**

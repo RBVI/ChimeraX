@@ -125,8 +125,11 @@ class ScenesTool(ToolInstance):
         self.action_buttons_layout.setSpacing(5)
 
         # Create buttons for saving, editing, and deleting scenes and connect them to their respective methods
-        self.save_button = QPushButton("Save")
+        self.save_button = QPushButton("Add")
         self.save_button.clicked.connect(self.save_button_clicked)
+        self.update_button = QPushButton("Update")
+        self.update_button.clicked.connect(self.update_button_clicked)
+        self.update_button.setEnabled(False)
         self.rename_button = QPushButton("Rename")
         self.rename_button.clicked.connect(self.rename_button_clicked)
         self.rename_button.setEnabled(False)
@@ -136,6 +139,7 @@ class ScenesTool(ToolInstance):
 
         # Add the buttons to the action buttons layout
         self.action_buttons_layout.addWidget(self.save_button)
+        self.action_buttons_layout.addWidget(self.update_button)
         self.action_buttons_layout.addWidget(self.rename_button)
         self.action_buttons_layout.addWidget(self.delete_button)
 
@@ -184,7 +188,7 @@ class ScenesTool(ToolInstance):
         """
         highlighting = scene_name is not None
         self.scene_name_entry.setText(scene_name if highlighting else "")
-        self.save_button.setText("Update" if highlighting else "Save")
+        self.update_button.setEnabled(highlighting)
         self.rename_button.setEnabled(highlighting)
         self.delete_button.setEnabled(highlighting)
 
@@ -199,14 +203,20 @@ class ScenesTool(ToolInstance):
         """
         Save the current scene with the name in the line edit widget.
         """
+        scene_name = self.scene_name_entry.text().strip()
+        if scene_name:
+            if scene_name in self.session.scenes.scene_names:
+                tool_user_error(f"Scene named {StringArg.unparse(scene_name)} already exists")
+                return
+        run(self.session, f"scene save {StringArg.unparse(scene_name)}")
+
+    def update_button_clicked(self):
+        """
+        Save the current scene with the name in the line edit widget.
+        """
         highlighted_scene = self.scroll_area.get_highlighted_scene()
-        if highlighted_scene:
-            # Update
-            scene_name = highlighted_scene.get_name()
-        else:
-            # New scene
-            scene_name = self.scene_name_entry.text().strip()
-            scene_name = scene_name.strip()
+        # 'Update' button only enabled if there's a highlighted scene
+        scene_name = highlighted_scene.get_name()
         run(self.session, f"scene save {StringArg.unparse(scene_name)}")
 
     def rename_button_clicked(self):
@@ -648,7 +658,8 @@ class SceneItem(QWidget):
         if event.button() == Qt.LeftButton and not self.drag_initiated:
             # This was a click (not a drag), so restore the scene
             activate_trigger(SCENE_SELECTED, self.name)
-        super().mouseReleaseEvent(event)
+        else:
+            super().mouseReleaseEvent(event)
 
     def set_highlighted(self, highlighted):
         """

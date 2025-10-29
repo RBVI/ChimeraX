@@ -96,14 +96,18 @@ the specified settings:
 <li><b>Text</b> &ndash; label contents, initially &ldquo;New label,&rdquo; 
 overwritten by entering different text
 <li><b>Size</b> (default <b>24</b>)
-<li><b>Color</b> &ndash; label color (default blank, 
-meaning it will automatically adjust to <b>white</b> or <b>black</b> 
-depending on the color of the label background,
+<li><b>Color</b> &ndash; label color, default <b>white</b> or <b>black</b> 
+depending on the color of the <a href="#label-background">label background</a>,
 or if there is no label background, depending on the color of
-the <a href="../commands/set.html#bgColor">window background</a>)
+the <a href="../commands/set.html#bgColor">window background</a>.
+Further, explicitly setting the color to <b>white</b> when the background
+is dark or <b>black</b> when the background is light actually sets it to 
+the default behavior of adjusting black &harr; white as needed if 
+the background color is subsequently changed.
 <li><b>Font</b> (default <b>Arial</b>)
 <li><b>Style</b> &ndash; whether <b>normal</b> (default),
 bold, italic, or bold italic
+<a name="label-background"></a>
 <li><b>Background</b> &ndash; whether to draw a rectangular background
 behind the text of the label, and if so, in what color 
 (default <b>off</b> and black)
@@ -112,9 +116,13 @@ behind the text of the label, and if so, in what color
 <li>clicking and dragging creates a 2D <b>Arrow</b> with
 the specified settings:
   <ul>
-<li><b>Color</b> &ndash; arrow color (default blank, meaning it will 
-automatically adjust to <b>white</b> or <b>black</b> depending on the 
-<a href="../commands/set.html#bgColor">window background color</a>)
+<li><b>Color</b> &ndash; arrow color, default <b>white</b> or <b>black</b>
+depending on the color of the
+<a href="../commands/set.html#bgColor">window background</a>.
+Further, explicitly setting the color to <b>white</b> when the background
+is dark or <b>black</b> when the background is light actually sets it to 
+the default behavior of adjusting black &harr; white as needed if 
+the background color is subsequently changed.
 <li><b>Weight</b> &ndash; a scale factor
 for the overall thickness of the arrow (default <b>1.0</b>)
 <li><b>Style</b> &ndash; whether arrowhead style should be <b>solid</b>

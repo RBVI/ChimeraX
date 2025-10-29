@@ -462,8 +462,10 @@ class Model(State, Drawing):
         you needn't implement this method (restore_scene() is sufficient).
 
         '''
-        #TODO: interpolate base Model state here
-        raise NotImplementedError("interpolate_scene not implemented")
+        for attr_name, val in scene1_data.items():
+            if attr_name in scene2_data:
+                #TODO: do something better for colors
+                setattr(self, attr_name, scene2_data[attr_name] if switchover else val)
 
     def save_geometry(self, session, flags):
         '''

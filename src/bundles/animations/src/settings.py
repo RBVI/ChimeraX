@@ -27,7 +27,7 @@ from chimerax.core.settings import Settings
 class _AnimationsSettings(Settings):
     EXPLICIT_SAVE = {
         'recording_resolution': '1080p',  # Default to 1080p
-        'animation_mode': 'keyframe',  # Default to keyframe mode ('keyframe' or 'scene')
+        'animation_mode': 'scene',  # Default to scene mode ('keyframe' or 'scene')
     }
     AUTO_SAVE = {}
 
@@ -41,39 +41,59 @@ def get_settings(session):
         _settings = _AnimationsSettings(session, "animations")
     return _settings
 
-def register_settings_options(session):
-    """Register animations settings in ChimeraX main settings menu"""
-    from chimerax.ui.options import SymbolicEnumOption
+class AnimationsPreferencesDialog:
+    """Dialog for animations preferences"""
 
-    class RecordingResolutionOption(SymbolicEnumOption):
-        values = ("1080p", "4k", "custom")
-        labels = ("1080p (1920x1080)", "4K UHD (3840x2160)", "Custom Resolution")
+    def __init__(self, session, parent=None):
+        from Qt.QtWidgets import QDialog, QVBoxLayout
+        from chimerax.ui.options import SettingsPanel, SymbolicEnumOption
 
-    class AnimationModeOption(SymbolicEnumOption):
-        values = ("keyframe", "scene")
-        labels = ("Keyframe Mode", "Scene Mode")
+        self.session = session
+        self.settings = get_settings(session)
 
-    settings = get_settings(session)
+        self.dialog = QDialog(parent)
+        self.dialog.setWindowTitle("Animations Preferences")
+        self.dialog.setModal(True)
 
-    settings_info = {
-        'recording_resolution': (
-            "Default recording resolution",
-            RecordingResolutionOption,
-            "Default resolution for recording animations to video files"
-        ),
-        'animation_mode': (
-            "Animation tool mode",
-            AnimationModeOption,
-            "Default mode for the Animation tool (Keyframe or Scene)"
-        ),
-    }
+        layout = QVBoxLayout()
 
-    for setting, setting_info in settings_info.items():
-        opt_name, opt_class, balloon = setting_info
-        if isinstance(opt_class, tuple):
-            opt_class, kw = opt_class
-        else:
-            kw = {}
-        opt = opt_class(opt_name, getattr(settings, setting), None,
-            attr_name=setting, settings=settings, balloon=balloon, **kw)
-        session.ui.main_window.add_settings_option("Animations", opt)
+        # Create settings panel with standard buttons (Save, Reset, Restore, Help)
+        self.panel = SettingsPanel(scrolled=False, help_cb=self._show_help)
+
+        # Recording resolution option
+        self.panel.add_option(
+            SymbolicEnumOption(
+                name="Default recording resolution",
+                default=None,
+                attr_name="recording_resolution",
+                settings=self.settings,
+                callback=None,
+                labels=["1080p (1920x1080)", "4K UHD (3840x2160)", "Custom Resolution"],
+                values=["1080p", "4k", "custom"]
+            )
+        )
+
+        # Animation mode option
+        self.panel.add_option(
+            SymbolicEnumOption(
+                name="Animation tool mode",
+                default=None,
+                attr_name="animation_mode",
+                settings=self.settings,
+                callback=None,
+                labels=["Keyframe Mode", "Scene Mode"],
+                values=["keyframe", "scene"]
+            )
+        )
+
+        layout.addWidget(self.panel)
+        self.dialog.setLayout(layout)
+
+    def _show_help(self):
+        """Show help for animations preferences"""
+        from chimerax.core.commands import run
+        run(self.session, "help help:user/tools/animations.html")
+
+    def show(self):
+        """Show the dialog"""
+        return self.dialog.exec()
