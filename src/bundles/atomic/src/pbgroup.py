@@ -372,6 +372,27 @@ class PseudobondGroup(PseudobondGroupData, Model):
         pseudobonds.radii = pb_state['radii']
         pseudobonds.selecteds = pb_state['selecteds']
 
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        """
+        Interpolate pseudobond group state between two scenes.
+        Most pseudobond attributes use threshold behavior since they're not easily interpolable.
+        """
+        # Interpolate model state (display, selection, etc.)
+        Model.interpolate_scene(self, scene1_data['model state'], scene2_data['model state'],
+                               fraction, switchover=switchover)
+
+        # For non-interpolable attributes, use threshold behavior
+        source_data = scene2_data if switchover else scene1_data
+        self.dashes = source_data['dashes']
+
+        pseudobonds = self.pseudobonds
+        pb_state = source_data['scene state']
+        pseudobonds.colors = pb_state['colors']
+        pseudobonds.displays = pb_state['displays']
+        pseudobonds.halfbonds = pb_state['halfbonds']
+        pseudobonds.radii = pb_state['radii']
+        pseudobonds.selecteds = pb_state['selecteds']
+
 # -----------------------------------------------------------------------------
 #
 def selected_pseudobonds(session):
