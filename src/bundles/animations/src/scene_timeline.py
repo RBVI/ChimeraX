@@ -296,7 +296,8 @@ class TimelineSceneWidget(QWidget):
                             40, 30, Qt.KeepAspectRatio, Qt.SmoothTransformation
                         )
                 except Exception as e:
-                    print(f"Error loading thumbnail for {scene_name}: {e}")
+                    pass
+                    # print(f"Error loading thumbnail for {scene_name}: {e}")
 
         # Return default thumbnail if scene not found or error
         default_pixmap = QPixmap(40, 30)
@@ -534,7 +535,7 @@ class TimelineSceneWidget(QWidget):
                     scene_name = scene_data_str
 
             except Exception as e:
-                print(f"Error parsing scene data: {e}")
+                # print(f"Error parsing scene data: {e}")
                 scene_name = None
 
         # Fallback to text format
@@ -696,8 +697,9 @@ class TimelineSceneWidget(QWidget):
                 session = self._get_session()
                 if session:
                     from chimerax.core.commands import run
+
                     run(session, f'scene restore "{clicked_scene}"')
-                    print(f"Restored scene: {clicked_scene}")
+                    # print(f"Restored scene: {clicked_scene}")
 
         super().mouseDoubleClickEvent(event)
 
@@ -1126,7 +1128,9 @@ class SceneTimelineWidget(QWidget):
             scene_animation.remove_scene(scene_name)
             print(f"Scene '{scene_name}' removed from timeline and animation manager")
         else:
-            print(f"Scene '{scene_name}' removed from timeline (no animation manager found)")
+            print(
+                f"Scene '{scene_name}' removed from timeline (no animation manager found)"
+            )
 
     def on_time_clicked(self, time):
         """Handle timeline click to preview at that time"""
@@ -1161,7 +1165,7 @@ class SceneTimelineWidget(QWidget):
             self.timeline_scene.add_scene_marker(time, scene_name)
             self.scene_added.emit(scene_name)
 
-            print(f"Created scene '{scene_name}' at {time:.2f}s")
+            # print(f"Created scene '{scene_name}' at {time:.2f}s")
 
     def on_duration_changed(self, new_duration):
         """Handle duration change from zoom buttons"""
@@ -1180,7 +1184,7 @@ class SceneTimelineWidget(QWidget):
         self.time_changed.emit(0.0)
         # Emit reset signal for parent to handle
         self.reset_requested.emit()
-        print("Timeline reset to 0.0s")
+        # print("Timeline reset to 0.0s")
 
     def _generate_scene_name(self):
         """Generate a unique scene name"""

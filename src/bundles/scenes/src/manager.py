@@ -199,7 +199,7 @@ class SceneManager(StateManager):
         fraction: float,
         fade_models: bool = False,
     ):
-        print(f"DEBUG: interpolate_scenes called: {scene1_name} -> {scene2_name}, fraction={fraction:.3f}")
+#       print(f"DEBUG: interpolate_scenes called: {scene1_name} -> {scene2_name}, fraction={fraction:.3f}")
         """
         Interpolate between two scenes at the given fraction.
 
@@ -238,11 +238,7 @@ class SceneManager(StateManager):
         # Check if models actually moved between scenes or if only camera moved
         models_actually_moved = self._models_actually_moved(v1, v2)
 
-        # print(
-        # f"DEBUG: Interpolating between '{scene1_name}' and '{scene2_name}' at fraction {fraction}"
-        # )
-        # print(f"DEBUG: Number of models in scene: {len(self.session.scenes.scene_relevant_models)}")
-
+        # Interpolate camera and model positions
         if models_actually_moved:
             # Models moved - use full interpolation including model positions
             from chimerax.std_commands.view import _interpolate_views
@@ -257,25 +253,22 @@ class SceneManager(StateManager):
                         centers[model] = bounds.center()
                     else:
                         import numpy as np
-
                         centers[model] = np.array([0.0, 0.0, 0.0], dtype=np.float32)
 
             # Perform full interpolation (camera + models)
             _interpolate_views(v1, v2, fraction, current_view, centers)
         else:
             # Only camera moved - interpolate only camera and clip planes
-            # This avoids moving models and triggering expensive ambient occlusion updates
             from chimerax.std_commands.view import (
                 _interpolate_camera,
                 _interpolate_clip_planes,
             )
-
             _interpolate_camera(v1, v2, fraction, current_view.camera)
             _interpolate_clip_planes(v1, v2, fraction, current_view)
 
-        # Always check for volume interpolation regardless of whether models moved
+        # Interpolate model-specific scene data
+        # When only camera moved, skip model interpolation for performance (except for volumes)
         current_models = self.session.scenes.scene_relevant_models
-        print(f"DEBUG: Checking {len(current_models)} models for volume interpolation")
         for model in current_models:
             # Check if both scenes have data for this model
             if model in scene1.scene_models and model in scene2.scene_models:
