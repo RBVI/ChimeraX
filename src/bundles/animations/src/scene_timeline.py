@@ -1170,7 +1170,6 @@ class SceneTimelineWidget(QWidget):
         self.timeline_scene.update()  # Trigger repaint with new duration
         # Emit signal for parent to handle
         self.duration_changed.emit(new_duration)
-        print(f"Animation duration changed to {new_duration:.2f}s")
 
     def on_reset_requested(self):
         """Handle reset button (return arrow) pressed"""

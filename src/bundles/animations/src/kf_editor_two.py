@@ -1555,12 +1555,8 @@ class KeyframeEditorWidget(QWidget):
         """Switch between keyframe and scene animation modes"""
         if button == self.keyframe_mode_btn:
             self.stacked_widget.setCurrentIndex(0)
-            if self.session:
-                self.session.logger.info("Switched to Keyframe Mode")
         elif button == self.scene_mode_btn:
             self.stacked_widget.setCurrentIndex(1)
-            if self.session:
-                self.session.logger.info("Switched to Scene Mode")
 
     def show_preferences(self):
         """Show the animations preferences dialog"""
