@@ -756,6 +756,8 @@ class LaunchFitLoopsTool(ToolInstance):
         layout.addWidget(self.target_area, stretch=1, alignment=Qt.AlignCenter)
         self.need_input_message = "Select a structure and map from the menus above"
         self.no_table_label = QLabel(self.need_input_message)
+        self.no_table_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.no_table_label.setWordWrap(True)
         self.target_area.addWidget(self.no_table_label)
 
         self.table_area = QWidget()
@@ -887,6 +889,11 @@ class LaunchFitLoopsTool(ToolInstance):
         try:
             pbs = structure.pbg_map[structure.PBG_MISSING_STRUCTURE].pseudobonds
         except KeyError:
+            return [], []
+        for chain in structure.chains:
+            if chain.full_sequence_known:
+                break
+        else:
             return [], []
         gaps = []
         unk_gaps = []
@@ -1022,43 +1029,67 @@ class LaunchFitLoopsTool(ToolInstance):
         structure = self.structure_menu.value
         map = self.map_menu.value
         if structure and map:
-            gap_info, unk_gaps = self._find_gaps(structure)
-            if unk_gaps:
-                self.session.logger.info("Phenix loop fitting cannot handle gaps involving UNK residues and"
-                    " therefore the following gaps have not been included in the dialog's list of gaps:")
-                self.session.logger.info('<ul>%s</ul>\n' % ('\n'.join(
-                    ['<li><a href="cxcmd:view %s%s">%s&rarr;%s</a></li>' % (r1.atomspec, r2.atomspec, r1, r2)
-                    for r1, r2, pb in unk_gaps])), is_html=True)
-            if gap_info:
-                msg = self.model_structure_message % (structure, self.map_menu.value)
-                class TableDatum:
-                    def __init__(self, gap_info):
-                        self.gap_info = gap_info
-                        r1, r2, pb = gap_info
-                        self.chain_id = r1.chain_id
-                        self.between = "%s \N{LEFT RIGHT ARROW} %s" % (
-                            r1.string(residue_only=True), r2.string(residue_only=True))
-                        i1 = r1.chain.residues.index(r1)
-                        i2 = r1.chain.residues.index(r2)
-                        self.length = i2-i1-1
-                data = [TableDatum(gi) for gi in gap_info]
-                self.target_table.data = data
-                self.target_table.resizeColumnsToContents()
-                self.target_table.resizeRowsToContents()
+            if structure.chains:
+                gap_info, unk_gaps = self._find_gaps(structure)
                 if unk_gaps:
-                    msg += f"  {structure} also has missing-structure gaps involving UNK residues, which" \
-                        " Phenix loop fitting cannot handle (see Log for more info)."
-                self.help_label.setText(msg)
-                self.target_area.setCurrentWidget(self.table_area)
-            else:
-                self.target_table.data = []
-                if unk_gaps:
-                    msg = f"{structure} only has missing-structure gaps involving UNK residues, which" \
-                        " Phenix loop fitting cannot handle (see Log for more info).  You could remodel" \
-                        " other residues by selecting them."
+                    self.session.logger.info("Phenix loop fitting cannot handle gaps involving UNK residues"
+                        " and therefore the following gaps have not been included in the dialog's list of"
+                        " gaps:")
+                    self.session.logger.info('<ul>%s</ul>\n' % ('\n'.join(
+                        ['<li><a href="cxcmd:view %s%s">%s&rarr;%s</a></li>'
+                        % (r1.atomspec, r2.atomspec, r1, r2) for r1, r2, pb in unk_gaps])), is_html=True)
+                if gap_info:
+                    msg = self.model_structure_message % (structure, self.map_menu.value)
+                    class TableDatum:
+                        def __init__(self, gap_info):
+                            self.gap_info = gap_info
+                            r1, r2, pb = gap_info
+                            self.chain_id = r1.chain_id
+                            self.between = "%s \N{LEFT RIGHT ARROW} %s" % (
+                                r1.string(residue_only=True), r2.string(residue_only=True))
+                            i1 = r1.chain.residues.index(r1)
+                            i2 = r1.chain.residues.index(r2)
+                            self.length = i2-i1-1
+                    data = [TableDatum(gi) for gi in gap_info]
+                    self.target_table.data = data
+                    self.target_table.resizeColumnsToContents()
+                    self.target_table.resizeRowsToContents()
+                    if unk_gaps:
+                        msg += f"  {structure} also has missing-structure gaps involving UNK residues," \
+                            " which Phenix loop fitting cannot handle (see Log for more info)."
+                    self.help_label.setText(msg)
+                    self.target_area.setCurrentWidget(self.table_area)
                 else:
-                    msg = f"Select residues you wish to remodel."
-                self.no_table_label.setText(msg)
+                    self.target_table.data = []
+                    if unk_gaps:
+                        msg = f"{structure} only has missing-structure gaps involving UNK residues, which" \
+                            " Phenix loop fitting cannot handle (see Log for more info).  You could" \
+                            " remodel other residues by selecting them."
+                    else:
+                        for chain in structure.chains:
+                            if chain.full_sequence_known:
+                                seq_known = True
+                                break
+                        else:
+                            seq_known = False
+                        if seq_known:
+                            msg = f"Select residues you wish to remodel."
+                        else:
+                            msg = f"The full %s {structure} is not provided in the structure's input file" \
+                                " and therefore the sequence within any missing structure gaps is not" \
+                                " known, making it impossible to model those gaps.  If you want to model" \
+                                " those gaps, you need to make the full sequence known to ChimeraX.  One" \
+                                " way to do that is to open a file containing the sequence (in a format" \
+                                " supported by ChimeraX; use the 'open formats' command to see a list) and" \
+                                " use the Structure\N{RIGHTWARDS ARROW}Update Chain Sequence... entry in" \
+                                " the Sequence tool's context menu to associate that sequence with the" \
+                                " chain.  If you are not trying to model the gaps, then just select the" \
+                                " residues you do wish to remodel." % (
+                                "sequence of" if structure.num_chains == 1 else "sequences of the chains in")
+                    self.no_table_label.setText(msg)
+                    self.target_area.setCurrentWidget(self.no_table_label)
+            else:
+                self.no_table_label.setText("%s has no polymeric chains!" % structure)
                 self.target_area.setCurrentWidget(self.no_table_label)
         else:
             self.no_table_label.setText(self.need_input_message)
