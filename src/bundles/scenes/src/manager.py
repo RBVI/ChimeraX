@@ -207,6 +207,7 @@ class SceneManager(StateManager):
             scene1_name (str): Name of the first scene
             scene2_name (str): Name of the second scene
             fraction (float): Interpolation fraction (0.0 = scene1, 1.0 = scene2)
+            fade_models (bool): Whether to apply fade effects to appearing/disappearing models
         """
         scene1 = self.get_scene(scene1_name)
         scene2 = self.get_scene(scene2_name)
@@ -277,47 +278,18 @@ class SceneManager(StateManager):
 
                 # Only interpolate if both models have proper scene restore support
                 if scene1_restore_implemented and scene2_restore_implemented:
-                    # Check if this is a volume model and handle smooth interpolation
-                    print(f"DEBUG: Checking model {model} ({type(model)})")
-                    print(f"DEBUG: Model module: {model.__class__.__module__}")
-                    print(f"DEBUG: Has new_region: {hasattr(model, 'new_region')}")
-                    print(f"DEBUG: Has region: {hasattr(model, 'region')}")
-                    print(f"DEBUG: Has data: {hasattr(model, 'data')}")
-                    print(f"DEBUG: Is volume model: {self._is_volume_model(model)}")
+                    # Check if this is a volume model (volumes need interpolation even if they didn't move)
+                    is_volume = (hasattr(model, 'new_region') and
+                                hasattr(model, 'region') and
+                                hasattr(model, 'data'))
 
-                    if self._is_volume_model(model):
-                        print(f"DEBUG: Found volume model {model}, calling interpolation")
-                        self._interpolate_volume_model(model, scene1_data, scene2_data, fraction)
-                    else:
-                        print(f"DEBUG: Not identified as volume model: {model}")
+                    # Skip interpolation if only camera moved (unless it's a volume)
+                    if not models_actually_moved and not is_volume:
+                        continue
 
-        # Only interpolate non-volume model-specific scene data if models actually moved
-        if models_actually_moved:
-            print(f"DEBUG: Models actually moved, starting non-volume model interpolation")
-            for model in current_models:
-                # Check if both scenes have data for this model
-                if model in scene1.scene_models and model in scene2.scene_models:
-                    scene1_restore_implemented, scene1_data = scene1.scene_models[model]
-                    scene2_restore_implemented, scene2_data = scene2.scene_models[model]
-
-                    # Only interpolate if both models have proper scene restore support
-                    if scene1_restore_implemented and scene2_restore_implemented:
-                        # Skip volume models (already handled above)
-                        if not self._is_volume_model(model):
-                            print(f"DEBUG: Non-volume model using threshold approach: {model}")
-                            # For non-volume models, use simple threshold approach
-                            if fraction < 0.5:
-                                if hasattr(model, "restore_scene"):
-                                    model.restore_scene(scene1_data)
-                                else:
-                                    from chimerax.core.models import Model
-                                    Model.restore_scene(model, scene1_data)
-                            else:
-                                if hasattr(model, "restore_scene"):
-                                    model.restore_scene(scene2_data)
-                                else:
-                                    from chimerax.core.models import Model
-                                    Model.restore_scene(model, scene2_data)
+                    # Use model's interpolation (will use custom if available, or base Model implementation)
+                    model.interpolate_scene(scene1_data, scene2_data, fraction,
+                                          switchover=(fraction >= 0.5 and not models_actually_moved))
 
         # Handle model fading if enabled
         if fade_models:
@@ -619,74 +591,3 @@ class SceneManager(StateManager):
 
         # print(f"DEBUG: Returning {len(visible_models)} visible models")
         return visible_models
-
-    def _is_volume_model(self, model):
-        """Check if a model is a Volume model from the map bundle"""
-        # Check if this is a Volume model without importing the map bundle
-        return (hasattr(model, 'new_region') and
-                hasattr(model, 'region') and
-                hasattr(model, 'data') and
-                model.__class__.__module__.startswith('chimerax.map'))
-
-    def _interpolate_volume_model(self, model, scene1_data, scene2_data, fraction):
-        """Interpolate volume model between two scene states"""
-        # Call volume's restore_scene method directly since it handles volume-specific data
-        model.restore_scene(scene1_data)
-
-        # Get volume states from both scenes - they should be directly in scene data
-        volume_state1 = scene1_data.get('volume state', scene1_data)
-        volume_state2 = scene2_data.get('volume state', scene2_data)
-
-        # Debug: Print what we're working with
-        print(f"DEBUG: Volume interpolation called for {model}, fraction={fraction:.3f}")
-        print(f"DEBUG: scene1_data keys: {scene1_data.keys()}")
-        print(f"DEBUG: scene2_data keys: {scene2_data.keys()}")
-
-        # Interpolate volume region (the main feature)
-        region1 = volume_state1.get('region')
-        region2 = volume_state2.get('region')
-
-        if region1 and region2:
-            print(f"DEBUG: region1={region1}")
-            print(f"DEBUG: region2={region2}")
-
-            # Early exit if regions are the same
-            if region1 == region2:
-                print(f"DEBUG: Regions are identical, skipping interpolation")
-                return
-
-            # Extract region parameters
-            ijk_min1, ijk_max1, ijk_step1 = region1
-            ijk_min2, ijk_max2, ijk_step2 = region2
-
-            # Interpolate region bounds
-            ijk_min_interp = [
-                int(round(min1 + fraction * (min2 - min1)))
-                for min1, min2 in zip(ijk_min1, ijk_min2)
-            ]
-            ijk_max_interp = [
-                int(round(max1 + fraction * (max2 - max1)))
-                for max1, max2 in zip(ijk_max1, ijk_max2)
-            ]
-
-            # For step size, use threshold behavior since interpolating steps can be problematic
-            ijk_step_interp = ijk_step2 if fraction >= 0.5 else ijk_step1
-
-            print(f"DEBUG: Interpolated region: min={ijk_min_interp}, max={ijk_max_interp}, step={ijk_step_interp}")
-
-            # Apply the interpolated region
-            print(f"DEBUG: Applying interpolated region to volume")
-            model.new_region(ijk_min_interp, ijk_max_interp, ijk_step_interp,
-                           adjust_step=False, adjust_voxel_limit=False)
-
-            # Make sure volume updates its rendering
-            model._drawings_need_update()
-            print(f"DEBUG: Volume region interpolation complete")
-            return
-        else:
-            print(f"DEBUG: No region data found for interpolation, using threshold behavior")
-            # Fall back to threshold behavior for non-region properties
-            if fraction >= 0.5:
-                from chimerax.map.session import set_map_state
-                set_map_state(volume_state2, model, notify=True)
-            # else keep scene1 which was already applied by restore_scene
