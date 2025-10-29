@@ -55,6 +55,9 @@ from typing import Optional
 CHIMERAX_HOST = 'localhost'
 DEFAULT_CHIMERAX_PORT = 8080
 
+# Debug settings
+DEBUG = False  # Set to True to enable debug logging to /tmp/
+
 # Global state for managing multiple ChimeraX instances
 _instances = {}  # port -> instance info
 _default_port = DEFAULT_CHIMERAX_PORT
@@ -145,7 +148,7 @@ def find_available_port(start_port: int = 8080) -> int:
             continue
     raise RuntimeError("No available ports found")
 
-async def is_chimerax_running(port: int = None) -> bool:
+async def is_chimerax_running(port: Optional[int] = None) -> bool:
     """Check if ChimeraX REST server is running on specified port"""
     if port is None:
         port = _default_port
@@ -159,7 +162,7 @@ async def is_chimerax_running(port: int = None) -> bool:
     except:
         return False
 
-def get_chimerax_url(port: int = None) -> str:
+def get_chimerax_url(port: Optional[int] = None) -> str:
     """Get ChimeraX REST API base URL for specified port"""
     if port is None:
         port = _default_port
@@ -252,7 +255,7 @@ async def check_existing_rest_server() -> tuple[bool, int]:
 
     return False, _default_port
 
-async def start_chimerax(port: int = None, session_name: str = None, force_new: bool = False) -> tuple[bool, int]:
+async def start_chimerax(port: Optional[int] = None, session_name: Optional[str] = None, force_new: bool = False) -> tuple[bool, int]:
     """Start ChimeraX if not running, returns (success, port)"""
     if port is None:
         port = _default_port
@@ -457,8 +460,74 @@ async def find_best_chimerax_instance() -> int:
     print(f"No ChimeraX instances found, will try to start on port {_default_port}", file=sys.stderr)
     return _default_port
 
-async def run_chimerax_command(command: str, port: int = None) -> str:
-    """Execute a ChimeraX command via REST API on specified instance"""
+async def _execute_command_request(session, url: str, command: str) -> dict:
+    """Helper to execute a ChimeraX command and parse the response.
+    
+    Args:
+        session: aiohttp ClientSession
+        url: Full URL to the ChimeraX /run endpoint
+        command: ChimeraX command to execute
+    
+    Returns:
+        dict with 'return_values', 'json_values', and 'logs' keys
+    
+    Raises:
+        Exception if request fails or ChimeraX returns an error (with helpful hints)
+    """
+    params = {'command': command}
+    
+    async with session.get(url, params=params) as response:
+        if response.status == 200:
+            # Parse JSON response
+            data = await response.json()
+            
+            # DEBUG: Write full response to file
+            if DEBUG:
+                import json
+                import time
+                debug_file = f"/tmp/chimerax_response_{int(time.time() * 1000)}.json"
+                try:
+                    with open(debug_file, 'w') as f:
+                        json.dump({
+                            "command": command,
+                            "url": url,
+                            "raw_response": data
+                        }, f, indent=2)
+                    print(f"DEBUG: Full response written to {debug_file}", file=sys.stderr)
+                except Exception as e:
+                    print(f"DEBUG: Failed to write debug file: {e}", file=sys.stderr)
+            
+            # Check for errors - raise exception if present
+            if data.get("error") is not None:
+                error_info = data["error"]
+                error_type = error_info.get("type", "UnknownError")
+                error_msg = error_info.get("message", "Unknown error")
+                
+                # Add helpful hints to guide agents
+                enhanced_error = add_error_hints(error_type, error_msg, command)
+                raise Exception(enhanced_error)
+            
+            # Extract structured data
+            return {
+                "return_values": data.get("python values", []),
+                "json_values": data.get("json values", []),
+                "logs": data.get("log messages", {})
+            }
+        else:
+            error_text = await response.text()
+            raise Exception(f"ChimeraX returned status {response.status}: {error_text}")
+
+
+async def run_chimerax_command(command: str, port: Optional[int] = None) -> dict:
+    """Execute a ChimeraX command via REST API on specified instance
+    
+    Returns a structured dict with:
+        - return_values: list of Python values returned by commands
+        - json_values: list of JSON values returned by commands
+        - logs: dict with log messages organized by level (error, warning, info, etc.)
+    
+    Raises Exception if ChimeraX command returns an error.
+    """
 
     if port is None:
         # Auto-discover the best instance to use
@@ -466,18 +535,11 @@ async def run_chimerax_command(command: str, port: int = None) -> str:
 
     session = await get_session()
     base_url = get_chimerax_url(port)
+    url = f"{base_url}/run"
 
     try:
-        # Use GET with query parameters - more reliable for single commands
-        url = f"{base_url}/run"
-        params = {'command': command}
-
-        async with session.get(url, params=params) as response:
-            if response.status == 200:
-                return await response.text()
-            else:
-                error_text = await response.text()
-                raise Exception(f"ChimeraX returned status {response.status}: {error_text}")
+        # Use GET with query parameters (JSON mode enabled at startup)
+        return await _execute_command_request(session, url, command)
 
     except aiohttp.ClientConnectorError:
         # Try to start ChimeraX if it's not running
@@ -487,45 +549,475 @@ async def run_chimerax_command(command: str, port: int = None) -> str:
             if actual_port != port:
                 base_url = get_chimerax_url(actual_port)
                 url = f"{base_url}/run"
-
+            
             # Retry the command after starting ChimeraX
-            params = {'command': command}
-            async with session.get(url, params=params) as response:
-                if response.status == 200:
-                    return await response.text()
-                else:
-                    error_text = await response.text()
-                    raise Exception(f"ChimeraX returned status {response.status}: {error_text}")
+            return await _execute_command_request(session, url, command)
         else:
             raise Exception(f"Cannot connect to ChimeraX at {base_url} and failed to start ChimeraX automatically.")
     except Exception as e:
+        # Re-raise if already a ChimeraX error
+        if isinstance(e, Exception) and any(err_type in str(e) for err_type in ["Error:", "Exception:"]):
+            raise
         raise Exception(f"Error communicating with ChimeraX: {e}")
 
-# Tool definitions using FastMCP decorators
+def format_chimerax_response(result: dict, context: str = "") -> str:
+    """Format structured ChimeraX response into readable string
+    
+    Implements a cascading fallback strategy:
+    1. Priority 1: Format and return log messages
+    2. Priority 2: If logs are empty, format and return json values
+    3. Priority 3: If json values are also empty, format and return python values
+    
+    Args:
+        result: Dict with 'return_values', 'json_values', and 'logs' keys
+        context: Optional context string to prepend to output
+    
+    Returns:
+        Formatted string with context and log messages/return values organized by level
+    """
+    import json
+    
+    output = []
+    
+    # Add context if provided
+    if context:
+        output.append(context)
+    
+    # Priority 1: Format logs by level (in order of severity)
+    logs = result.get("logs", {})
+    has_log_content = False
+    for level in ["error", "warning", "info", "note", "debug"]:
+        messages = logs.get(level, [])
+        if messages:
+            # Filter out empty messages and markdown-heavy command echoes
+            filtered_messages = []
+            for msg in messages:
+                if msg.strip():
+                    # Skip messages that are primarily markdown links (command echoes)
+                    # These typically start with markdown link syntax and contain multiple links
+                    msg_stripped = msg.strip()
+                    if not (msg_stripped.startswith('[') and msg_stripped.count('](') >= 2):
+                        filtered_messages.append(msg)
+            if filtered_messages:
+                output.append(f"{level.upper()}: {'; '.join(filtered_messages)}")
+                has_log_content = True
+    
+    # Priority 2: If no log content, try json values
+    if not has_log_content:
+        json_values = result.get("json_values", [])
+        # Filter out None/null values
+        json_values = [v for v in json_values if v is not None]
+        if json_values:
+            output.append("\nJSON Output:")
+            for i, val in enumerate(json_values):
+                if len(json_values) > 1:
+                    output.append(f"[Result {i+1}]")
+                # Format JSON with indentation for readability
+                try:
+                    # If val is already a JSON string, parse it first
+                    if isinstance(val, str):
+                        val = json.loads(val)
+                    formatted_json = json.dumps(val, indent=2, ensure_ascii=False)
+                    output.append(formatted_json)
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    # If JSON serialization/parsing fails, fall back to string representation
+                    output.append(str(val))
+        else:
+            # Priority 3: If no json values, try python values
+            python_values = result.get("return_values", [])
+            # Filter out None values
+            python_values = [v for v in python_values if v is not None]
+            if python_values:
+                output.append("\nOutput:")
+                for i, val in enumerate(python_values):
+                    if len(python_values) > 1:
+                        output.append(f"[Result {i+1}]")
+                    output.append(str(val))
+    
+    # If no output generated at all, indicate success
+    if len(output) <= 1 and context:  # Only context was added
+        output.append("Command completed successfully")
+    elif not output:  # Nothing at all
+        return "Command completed successfully"
+    
+    return "\n".join(output)
+
+def add_error_hints(error_type: str, error_msg: str, command: str) -> str:
+    """Add contextual hints to ChimeraX error messages to guide agents.
+    
+    Analyzes error messages and appends helpful hints that direct agents to:
+    - The specify_objects prompt for atomspec syntax errors
+    - list_models() tool for model-related errors
+    - Documentation resources for command errors
+    
+    Args:
+        error_type: Type of error (e.g., "UserError", "SyntaxError")
+        error_msg: Original error message from ChimeraX
+        command: The command that failed (for context)
+    
+    Returns:
+        Enhanced error message with helpful hints appended
+    """
+    # Build the base error message
+    full_error = f"{error_type}: {error_msg}"
+    
+    # Convert to lowercase for case-insensitive matching
+    error_lower = error_msg.lower()
+    
+    # Pattern matching for different error categories
+    hints = []
+    
+    # ===== Object Specification Errors =====
+    # Real ChimeraX errors: "Expected an objects specifier", "invalid an atom specifier",
+    # "not an atom specifier", "empty atom specifier", '"X" is not a selector name'
+    # Also "Expected a keyword" from atomspec-taking commands like select, color, show, hide
+    atomspec_commands = ['select', 'color', 'show', 'hide', 'style', 'cartoon', 
+                         'display', 'label', 'size', 'view', 'zone', 'surface']
+    cmd_first_word = command.strip().split()[0].lower() if command.strip() else ""
+    
+    is_atomspec_error = any(pattern in error_lower for pattern in [
+        "expected an objects specifier",
+        "expected a model specifier",
+        "expected an atom specifier",
+        "invalid an atom specifier",
+        "not an atom specifier",
+        "empty atom specifier",
+        "is not a selector name",
+        "only initial part"  # "only initial part 'X' of atom specifier valid"
+    ])
+    
+    # Also catch "Expected a keyword" or similar when used with atomspec-taking commands
+    is_atomspec_keyword_error = (
+        ("expected a keyword" in error_lower or "expected keyword" in error_lower) 
+        and cmd_first_word in atomspec_commands
+    )
+    
+    if is_atomspec_error or is_atomspec_keyword_error:
+        hints.append("\n\n🔍 HINT: This error indicates incorrect object specification (atomspec) syntax.")
+        hints.append("→ Use the get_atomspec_guide() tool to learn the complete atomspec syntax")
+        hints.append("→ Common patterns:")
+        hints.append("  • #1          (entire model 1)")
+        hints.append("  • #1/A        (chain A in model 1)")
+        hints.append("  • #1/A:100    (residue 100 in chain A)")
+        hints.append("  • @ca         (all CA atoms)")
+        hints.append("  • protein     (all protein atoms)")
+        hints.append("→ Model IDs MUST include # prefix: use '#1' not '1'")
+    
+    # ===== No Atoms Matched (less severe spec error) =====
+    elif "no atoms matched" in error_lower or "nothing specified" in error_lower:
+        hints.append("\n\n🔍 HINT: Your specification syntax may be correct, but no atoms matched.")
+        hints.append("→ Use list_models() to see what structures/chains are loaded")
+        hints.append("→ Check chain IDs are correct (case-sensitive)")
+        hints.append("→ Verify residue numbers/names exist in the structure")
+        hints.append("→ Use get_atomspec_guide() tool if you need help with atomspec syntax")
+    
+    # ===== Model/Structure Errors =====
+    # Real ChimeraX errors: "No models specified by", "No atomic structures open/specified",
+    # "Must specify 1 model, got X"
+    elif any(pattern in error_lower for pattern in [
+        "no models",
+        "no atomic structures",
+        "must specify 1 model",
+        "must specify 1 atomic structure",
+        "must specify exactly one"
+    ]):
+        hints.append("\n\n🔍 HINT: No models are loaded or the specified model doesn't exist.")
+        hints.append("→ Use list_models() to see currently loaded structures")
+        hints.append("→ Use open_structure() or run_command('open <pdb_id>') to load a structure")
+        hints.append("→ Verify model IDs with # prefix (e.g., #1, #2)")
+    
+    # ===== Command Errors =====
+    # Real ChimeraX error: "Unknown command: X" from cli.py
+    elif any(pattern in error_lower for pattern in [
+        "unknown command",
+        "no command"
+    ]):
+        # Try to extract command name for more specific help
+        cmd_parts = command.strip().split()
+        cmd_name = cmd_parts[0] if cmd_parts else "unknown"
+        
+        hints.append(f"\n\n🔍 HINT: Command '{cmd_name}' is not recognized.")
+        hints.append("→ Check command spelling and capitalization")
+        hints.append("→ Use the list_chimerax_commands() tool to see all available commands")
+        hints.append(f"→ Use get_command_documentation('{cmd_name}') tool for specific command help")
+        hints.append("→ Common commands: open, color, show, hide, save, view, align")
+    
+    # ===== Argument/Syntax Errors =====
+    # Real ChimeraX errors: "Missing or invalid X argument", "Expected X", "Should be X"
+    elif any(pattern in error_lower for pattern in [
+        "missing or invalid",
+        "missing required",
+        "expected",  # "Expected true or false", "Expected X"
+        "should be",  # From Enum parsing
+        "require"   # "Require 1 surface, got X"
+    ]):
+        # Extract command name
+        cmd_parts = command.strip().split()
+        cmd_name = cmd_parts[0] if cmd_parts else "unknown"
+        
+        hints.append(f"\n\n🔍 HINT: The '{cmd_name}' command has incorrect arguments.")
+        hints.append(f"→ Use get_command_documentation('{cmd_name}') tool for correct syntax")
+        hints.append("→ Check that you've included all required arguments")
+        hints.append("→ Verify keyword spelling and order")
+    
+    # ===== File/Path Errors =====
+    elif any(pattern in error_lower for pattern in [
+        "cannot open",
+        "file not found",
+        "no such file",
+        "cannot read",
+        "does not exist"
+    ]):
+        hints.append("\n\n🔍 HINT: File or path error.")
+        hints.append("→ Verify the file path is correct and the file exists")
+        hints.append("→ Use absolute paths when possible")
+        hints.append("→ For PDB files, try using PDB ID: open_structure('1gcn')")
+    
+    # ===== Generic Error (no specific pattern matched) =====
+    else:
+        # Only add a generic hint if we didn't match anything specific
+        hints.append("\n\n🔍 HINT: ChimeraX command failed.")
+        hints.append("→ Use list_models() to verify what structures are loaded")
+        hints.append("→ Use get_atomspec_guide() tool for help with atom spec syntax")
+        hints.append("→ Use get_command_documentation() tool for command syntax help")
+    
+    # Append all hints to the error message
+    if hints:
+        full_error += "".join(hints)
+    
+    return full_error
 
 @mcp.tool()
-async def run_command(command: str, session_id: int = None) -> str:
-    """Execute any ChimeraX command directly. USE THIS TOOL FIRST for any ChimeraX operation.
-    For command syntax help, check the documentation resource chimerax://command/<command_name>.
+async def get_atomspec_guide() -> str:
+    """Get the complete guide for ChimeraX atomspec (object specification) syntax.
+    
+    Use this tool whenever you need to specify objects in ChimeraX commands, such as:
+    - Selecting specific models, chains, residues, or atoms
+    - Creating distance-based selections (zones)
+    - Combining selections with logical operators
+    - Using built-in classifications (protein, ligand, helix, etc.)
+    - Querying by attributes
+    
+    This comprehensive guide covers all atomspec syntax patterns and common use cases.
+    Always consult this when constructing object specifications for commands like:
+    color, show, hide, select, style, view, and any command that acts on objects.
+    """
+    return """
+# ChimeraX Object Specification Guide
+
+## Overview
+Most ChimeraX commands require specifying which items they should affect. This guide covers the atomspec syntax.
+
+## Hierarchical Specifiers
+
+The four main levels in descending order:
+
+| Symbol | Level    | Description                                           | Example           |
+|--------|----------|-------------------------------------------------------|-------------------|
+| #      | Model    | Model number (hierarchical: N, N.N, N.N.N, etc.)     | #1, #1.3          |
+| /      | Chain    | Chain identifier (case-insensitive unless mixed case) | /A, /B            |
+| :      | Residue  | Residue number OR residue name (case-insensitive)     | :51, :glu, :asp   |
+| @      | Atom     | Atom name (case-insensitive)                          | @ca, @n, @sg      |
+
+**Key Rules:**
+- Omitting a level means "all" at that level (e.g., `#1` = all atoms in model 1)
+- Specifying atoms also includes bonds between them (unless you start with `=`)
+- Use `#!N` to specify parent model only without submodels
+
+## Lists and Ranges
+
+**Numeric ranges and lists:**
+- Comma-separated lists: `#1,2,5` or `:10,15,20`
+- Ranges with hyphens: `:10-20` or `#1-3`
+- Use `start` or `end` keywords: `:start-40`, `#1.2-end`
+- Asterisk `*` as wildcard: `#*` (all models)
+
+**Examples:**
+```
+#1,2:50,70-85@ca          # CA atoms in residues 50, 70-85 of models 1 and 2
+/A-D,F                    # Chains A, B, C, D, and F
+:lys,arg@cb               # CB atoms in lysine and arginine residues
+```
+
+## Implicit Operations
+
+When repeating or returning to a higher level, the hierarchy resets:
+
+```
+:12:14@ca                 # All atoms of residue 12, CA atom of residue 14
+/A/B:12-20@ca             # All atoms of chain A, CA atoms of residues 12-20 in chain B
+/a:10-20,26/b:12-22,29@n,ca,c,o  # All atoms of chain A residues 10-20,26 plus 
+                                  # N,CA,C,O atoms of chain B residues 12-22,29
+```
+
+## Built-in Classifications
+
+**Structural:**
+- `protein`, `nucleic`, `solvent`, `ligand`, `ions`
+- `helix`, `strand`, `coil`
+- `backbone`, `sidechain`, `sideonly`
+- `main`, `ligand`, `solvent`
+
+**Chemical:**
+- Element symbols: `C`, `N`, `O`, `S`, `P`, etc.
+- `H` (all hydrogens), `HC` (nonpolar H bonded to C)
+- Functional groups: `aromatic`, `aromatic-ring`, `carboxylate`, `disulfide`
+- Atom types: `C4`, `N3+`, `Car` (aromatic carbon), `Npl` (planar N), etc.
+
+**Special:**
+- `sel` - current selection
+- `displayed` - currently displayed atoms
+
+**Examples:**
+```
+protein & helix           # Protein atoms in helices
+H & ~HC                   # Polar hydrogens (not bonded to carbon)
+ligand & aromatic         # Aromatic atoms in ligands
+```
+
+## Zones (Distance-Based)
+
+Specify atoms within or beyond a distance from a reference:
+
+**Syntax:** `<reference> <level><operator> <distance>`
+
+**Level symbols:** `@` (atom), `:` (residue), `/` (chain), `#` (model)
+**Operators:** `<` (within/less than) or `>` (beyond/greater than)
+
+**Examples:**
+```
+@nz @< 3.8                # Atoms within 3.8 Å of NZ atoms
+#1:gtp :< 10.5            # Residues with any atom within 10.5 Å of GTP
+(ligand | ions) @< 4.8    # Atoms within 4.8 Å of ligand or ions
+(ions @< 4) & ~ions       # Atoms within 4 Å of ions, excluding ions themselves
+```
+
+## Attributes
+
+Query by attribute values:
+
+**Symbols:** `@@` (atom), `::` (residue), `//` (chain), `##` (model)
+
+**Operators:** `=`, `!=`, `==` (case-sensitive), `!==`, `>`, `<`, `>=`, `<=`
+**Negation:** `^` before attribute name (attribute not assigned)
+
+**Examples:**
+```
+@@display                 # Displayed atoms
+~@@display                # Hidden atoms
+@@bfactor>40              # Atoms with B-factor > 40
+@ca & @@bfactor>40        # CA atoms with B-factor > 40
+::num_atoms>=10           # Residues with 10+ atoms
+##name="2gbp map 5"       # Model named "2gbp map 5"
+```
+
+## Combinations
+
+Combine specifications using operators:
+
+- `&` - Intersection (AND) - higher priority
+- `|` - Union (OR)
+- `~` - Negation (NOT)
+- Use parentheses `()` for grouping
+
+**Examples:**
+```
+/A & protein              # Chain A protein residues only
+/A & ~:hem                # Chain A except HEM residues
+protein & (ligand :< 5)   # Protein residues within 5 Å of ligand
+:phe,tyr & sidechain      # Phenylalanine and tyrosine sidechains
+sideonly & ligand @<4     # Sidechain atoms within 4 Å of ligand
+```
+
+## Common Patterns
+
+**Specific selections:**
+```
+#1/A:100-200@ca           # CA atoms of residues 100-200 in chain A of model 1
+:asp,glu                  # All aspartate and glutamate residues
+protein & ~backbone       # Protein sidechains only
+```
+
+**Interface analysis:**
+```
+#1 & (#2 :< 5)            # Model 1 residues within 5 Å of model 2
+(#1 & protein) & ((#2 & ligand) :< 4)  # Protein residues near ligand
+```
+
+**Chemical groups:**
+```
+:cys@sg & ~disulfide      # Free cysteine sulfurs (not in disulfide bonds)
+aromatic-ring & :phe,tyr  # Aromatic ring carbons in Phe and Tyr
+```
+
+## Tips
+
+1. **Start broad, then narrow:** Begin with model/chain, then add residue/atom filters
+2. **Test incrementally:** Build complex specs step by step
+3. **Use sel for iteration:** Select visually, then refine with commands
+4. **Blank spec = all:** An empty specification means "all applicable items"
+5. **Case matters (sometimes):** Only for chain IDs when both upper/lowercase exist
+
+## Quick Reference Card
+
+| Task                              | Example Specification     |
+|-----------------------------------|---------------------------|
+| Entire model                      | `#1`                      |
+| Specific chain                    | `#1/A`                    |
+| Residue range                     | `#1/A:100-150`            |
+| Specific atom type                | `@ca`                     |
+| Multiple chains                   | `/A,B,C`                  |
+| Protein backbone                  | `protein & backbone`      |
+| Ligands and nearby residues       | `ligand | (ligand :< 5)`  |
+| Selection within distance         | `sel @< 4`                |
+| Heavy atoms (non-hydrogen)        | `~H`                      |
+| Polar hydrogens                   | `H & ~HC`                 |
+
+For more details, see: https://www.cgl.ucsf.edu/chimerax/docs/user/commands/atomspec.html
+    """
+
+@mcp.tool()
+async def run_command(command: str, session_id: Optional[int] = None) -> str:
+    """Execute any ChimeraX command directly. Use this tool if you don't find another tool
+    that suits your needs.
+    
+    IMPORTANT RESTRICTIONS:
+    - DO NOT use this tool for 'show' or 'hide' commands
+    - For show/hide operations, use show_hide_objects() or show_hide_hydrogens() instead
+    - Attempting to run 'show' or 'hide' commands will raise an exception
+    
+    When constructing commands that specify objects (models, chains, residues, atoms):
+    - Use get_atomspec_guide() to learn the correct atomspec syntax
+    - Common atomspecs: #1 (model), #1/A (chain), #1/A:100 (residue), @ca (atom type), HC (nonpolar hydrogens), #1/A & ligand (ligands in chain A of model 1)
+    
+    To see a list of all commands, use the list_commands() tool.
+    For command syntax help, use get_command_documentation(command_name).
 
     Args:
-        command: ChimeraX command to execute (e.g., 'open 1gcn', 'color red')
+        command: ChimeraX command to execute (e.g., 'open 1gcn', 'color #1/A red')
         session_id: ChimeraX session port (defaults to primary session)
     """
+    # Validate that show/hide commands are not being used
+    command_stripped = command.strip().lower()
+    if command_stripped.startswith('show ') or command_stripped.startswith('hide ') or command_stripped == 'show' or command_stripped == 'hide':
+        raise ValueError(
+            "ERROR: 'show' and 'hide' commands are not allowed via run_command. "
+            "Please use the dedicated show_hide_objects() or show_hide_hydrogens() tools instead. "
+            "These specialized tools provide better parameter validation and error handling."
+        )
+    
     result = await run_chimerax_command(command, session_id)
     session_info = f" on session {session_id}" if session_id else ""
-
-    # Add helpful hints for common issues
-    hints = ""
-    if "error" in result.lower():
-        cmd_name = command.split()[0] if command.split() else command
-        hints = f"\n💡 For command help, check the documentation resource: chimerax://command/{cmd_name}"
-
-    return f"Command executed{session_info}: {command}\nOutput:\n{result}{hints}"
+    context = f"Command executed{session_info}: {command}"
+    
+    return format_chimerax_response(result, context)
 
 @mcp.tool()
-async def open_structure(identifier: str, format: str = "auto-detect", session_id: int = None) -> str:
+async def open_structure(identifier: str, format: str = "auto-detect", session_id: Optional[int] = None) -> str:
     """Open a molecular structure file or fetch from PDB
+
+    Hint:
+    - After opening a structure and before showing any objects of this new model, you should first hide all its representations, so that we start from a clean slate
 
     Args:
         identifier: PDB ID (e.g., '1gcn') or file path to open
@@ -539,65 +1031,411 @@ async def open_structure(identifier: str, format: str = "auto-detect", session_i
 
     result = await run_chimerax_command(command, session_id)
     session_info = f" in session {session_id}" if session_id else ""
-    return f"Opened structure: {identifier}{session_info}\nOutput:\n{result}"
+    context = f"Opened structure: {identifier}{session_info}"
+    
+    return format_chimerax_response(result, context)
+
+def _format_single_model_info(model: dict) -> list:
+    """Helper function to format a single model's information into lines of text.
+    
+    Args:
+        model: Dictionary containing model data from ChimeraX info command
+        
+    Returns:
+        List of strings representing formatted lines for this model
+    """
+    output = []
+    
+    # Basic model line: #id, name, shown/hidden
+    spec = model.get('spec', '').lstrip('#')
+    name = model.get('name', 'unnamed')
+    shown = model.get('shown', False)
+    visibility = 'shown' if shown else 'hidden'
+    
+    line = f"#{spec}, {name}, {visibility}"
+    
+    # Add triangle count if present
+    triangles = model.get('num triangles', 0)
+    if triangles > 0:
+        line += f", {triangles} triangles"
+    
+    output.append(line)
+    
+    # For atomic structures, add detailed info on next line
+    num_atoms = model.get('num atoms')
+    if num_atoms is not None and num_atoms > 0:
+        details = []
+        details.append(f"{num_atoms} atoms")
+        
+        num_bonds = model.get('num bonds')
+        if num_bonds is not None:
+            details.append(f"{num_bonds} bonds")
+        
+        num_residues = model.get('num residues')
+        if num_residues is not None:
+            details.append(f"{num_residues} residues")
+        
+        chains = model.get('chains', [])
+        if chains:
+            chain_list = ','.join(chains)
+            details.append(f"{len(chains)} chains ({chain_list})")
+        
+        output.append(', '.join(details))
+        
+        # Add pseudobond group info if present
+        pbg = model.get('pseudobond groups', [])
+        for pg in pbg:
+            pg_name = pg.get('name', 'unknown')
+            pg_count = pg.get('num pseudobonds', 0)
+            output.append(f"{pg_count} {pg_name}")
+    
+    # For pseudobond groups, add pseudobond count
+    num_pseudobonds = model.get('num pseudobonds')
+    if num_pseudobonds is not None and num_atoms is None:
+        # Only show if it's a standalone pseudobond group (not part of structure)
+        pass  # Already included in main line via triangles or can be added here
+    
+    # For volumes, add volume-specific info
+    size = model.get('size')
+    if size is not None:
+        vol_details = []
+        vol_details.append(f"size {','.join(map(str, size))}")
+        
+        step = model.get('step')
+        if step is not None:
+            vol_details.append(f"step {step}")
+        
+        voxel_size = model.get('voxel size')
+        if voxel_size is not None:
+            vol_details.append(f"voxel size {voxel_size}")
+        
+        # Add level info
+        surface_levels = model.get('surface levels', [])
+        if surface_levels:
+            levels_str = ', '.join(str(l) for l in surface_levels)
+            vol_details.append(f"level {levels_str}")
+        
+        # Add value range
+        min_val = model.get('minimum value')
+        max_val = model.get('maximum value')
+        if min_val is not None and max_val is not None:
+            vol_details.append(f"value range {min_val} - {max_val}")
+        
+        value_type = model.get('value type')
+        if value_type is not None:
+            vol_details.append(f"value type {value_type}")
+        
+        num_sym = model.get('num symmetry operators', 0)
+        vol_details.append(f"{num_sym} symmetry operators")
+        
+        # Replace the main line with volume info
+        output[-1] = f"#{spec}, {name}, {visibility} " + ', '.join(vol_details)
+    
+    return output
 
 @mcp.tool()
-async def list_models(session_id: int = None) -> str:
-    """List all models currently loaded in ChimeraX
+async def list_models(session_id: Optional[int] = None) -> str:
+    """List all models currently loaded in ChimeraX with key details.
+
+    Use this regularly to find out what models are loaded and check which 
+    ones are set to be visible.
+    
+    Returns a summary line with the total number of models, followed by detailed 
+    information for each model, including whether it is visible. 
+    The format varies by model type:
+    
+    - Model ID (e.g., #1, #1.1, #2)
+    - Model name
+    - Visibility status (shown/hidden)
+    
+    For AtomicStructure models:
+        - Number of atoms
+        - Number of bonds
+        - Number of residues
+        - Number of chains with chain IDs (e.g., "4 chains (D,A,C,B)")
+        - Missing structure pseudobond groups (if any)
+    
+    For PseudobondGroup models:
+        - Number of pseudobonds
+    
+    For Volume models:
+        - Size (e.g., "size 400,400,400")
+        - Step value
+        - Voxel size
+        - Level value(s)
+        - Value range (min - max)
+        - Value type (e.g., float32, int16)
+        - Number of symmetry operators
+    
+    For Surface models:
+        - Number of triangles
+    
+    For ObjectLabels models:
+        - Number of triangles
+    
+    Example output:
+        Models:
+        INFO: 3 models
+        #1, 7msa, shown
+        7200 atoms, 7240 bonds, 1006 residues, 4 chains (D,A,C,B)
+        11 missing structure
+        #1.1, missing structure, shown, 11 pseudobonds
+        #1.1.1, labels, shown, 22 triangles
 
     Args:
         session_id: ChimeraX session port (defaults to primary session)
     """
-    result = await run_chimerax_command("info models", session_id)
+    result = await run_chimerax_command("info", session_id)
     session_info = f" in session {session_id}" if session_id else ""
-    return f"Models{session_info}:\n{result}"
+    
+    # The info command returns JSON data when the REST server is in JSON mode
+    json_values = result.get("json_values", [])
+    
+    if json_values and len(json_values) > 0:
+        # We got JSON data - need to format it back into the text representation
+        import json
+        model_data = json_values[0] if isinstance(json_values[0], list) else json.loads(json_values[0])
+        
+        output = [f"Models{session_info}:"]
+        output.append(f"{len(model_data)} models")
+        
+        for model in model_data:
+            # Use helper function to format this model
+            model_lines = _format_single_model_info(model)
+            output.extend(model_lines)
+        
+        context = "\n".join(output)
+        return format_chimerax_response(result, context)
+    else:
+        output = [f"Models{session_info}:"]
+        output.append("No models loaded")
+        
+        context = "\n".join(output)
+        return format_chimerax_response(result, context)
 
 @mcp.tool()
-async def get_model_info(model_id: str, session_id: int = None) -> str:
-    """Get detailed information about a specific model
+async def get_model_info(model_id: str, session_id: Optional[int] = None) -> str:
+    """Get detailed information about a specific model, including details about
+    all its chains. You can call this to get all chain identifications in one go.
 
     Args:
         model_id: Model ID (e.g., '#1' or '#1.1')
         session_id: ChimeraX session port (defaults to primary session)
     """
-    result = await run_chimerax_command(f"info model #{model_id}", session_id)
+    # Strip '#' from model_id if present
+    model_id_clean = model_id.lstrip('#')
+    
+    # Call info command to get all models (reusing list_models approach)
+    result = await run_chimerax_command("info", session_id)
+    
+    # Parse JSON output
+    json_values = result.get("json_values", [])
+    
+    if not json_values or len(json_values) == 0:
+        return f"No model information available"
+    
+    # Parse model data
+    import json
+    model_data = json_values[0] if isinstance(json_values[0], list) else json.loads(json_values[0])
+    
+    # Find the specific model by spec
+    target_model = None
+    for model in model_data:
+        spec = model.get('spec', '').lstrip('#')
+        if spec == model_id_clean:
+            target_model = model
+            break
+    
+    if target_model is None:
+        return f"Model #{model_id_clean} not found"
+    
+    # Format model information using helper function
+    output = _format_single_model_info(target_model)
+    
+    # Collect all chain results for combined log handling
+    all_chain_results = []
+    
+    # Get chain information for each chain
+    chains = target_model.get('chains', [])
+    if chains:
+        for chain_id in chains:
+            try:
+                chain_info, chain_result = await _get_chain_info_helper(model_id_clean, chain_id, session_id)
+                output.append(chain_info)
+                all_chain_results.append(chain_result)
+            except Exception as e:
+                output.append(f"Chain {chain_id}: Error retrieving information - {e}")
+    
+    # Combine logs from info command and all chain info commands
+    combined_logs = {}
+    for res in [result] + all_chain_results:
+        for level, messages in res.get("logs", {}).items():
+            if level not in combined_logs:
+                combined_logs[level] = []
+            combined_logs[level].extend(messages)
+    
+    combined_result = {
+        "return_values": result.get("return_values", []),
+        "json_values": result.get("json_values", []),
+        "logs": combined_logs
+    }
+    
     session_info = f" in session {session_id}" if session_id else ""
-    return f"Model #{model_id} information{session_info}:\n{result}"
+    context = f"Model information for #{model_id_clean}{session_info}:\n" + "\n".join(output)
+    
+    return format_chimerax_response(combined_result, context)
+
+async def _get_chain_info_helper(model_id: str, chain_id: str, session_id: Optional[int] = None) -> tuple[str, dict]:
+    """Helper function to get chain information without formatting the response.
+    
+    Returns a tuple of (formatted_string, combined_result_dict) where combined_result_dict
+    contains all the logs from the commands executed.
+    
+    Args:
+        model_id: Model ID (e.g., '1' for #1)
+        chain_id: Chain ID (e.g., 'A')
+        session_id: ChimeraX session port (defaults to primary session)
+    
+    Returns:
+        Tuple of (formatted chain info string, combined result dict with logs)
+    """
+    # Build the chain specification
+    chain_spec = f"#{model_id}/{chain_id}"
+    
+    # Attributes to query
+    attributes = ["chain_id", "polymer_type", "description", "num_residues", "num_existing_residues"]
+    
+    # Collect information from each attribute
+    chain_data = {}
+    all_results = []
+    
+    for attr in attributes:
+        command = f"info chains {chain_spec} attribute {attr}"
+        result = await run_chimerax_command(command, session_id)
+        all_results.append(result)
+        
+        # Parse the output - check all log levels
+        logs = result.get("logs", {})
+        
+        # Try all log levels (messages can be in different log levels)
+        all_messages = []
+        for level in logs:
+            all_messages.extend(logs[level])
+        
+        if all_messages:
+            # Expected format: "chain id /A chain_id A" or "chain id /A description Estrogen receptor"
+            # We want to extract the value after the attribute name
+            # Note: messages include command echo AND result, so we need to find the result line
+            for msg in all_messages:
+                # Skip command echo - look for lines starting with "chain id"
+                msg_stripped = msg.strip()
+                if not msg_stripped.startswith("chain id"):
+                    continue
+                
+                # The message format is: "chain id /{chain_id} {attribute_name} {value}"
+                # Find the attribute name and extract everything after it
+                parts = msg_stripped.split()
+                
+                # Look for the attribute name in the parts list
+                if attr in parts:
+                    attr_index = parts.index(attr)
+                    # Everything after the attribute name is the value
+                    if attr_index + 1 < len(parts):
+                        value_parts = parts[attr_index + 1:]
+                        value = ' '.join(value_parts)
+                        # Remove quotes if present
+                        value = value.strip('"\'')
+                        chain_data[attr] = value
+                        break
+    
+    # Map polymer_type to readable name
+    polymer_type_map = {
+        "1": "Protein",
+        "2": "Nucleic Acid"
+    }
+    
+    # Build the formatted output line
+    chain_id_val = chain_data.get("chain_id", "Unknown")
+    polymer_type = chain_data.get("polymer_type", "Unknown")
+    polymer_type_str = polymer_type_map.get(polymer_type, f"Other (type {polymer_type})")
+    description = chain_data.get("description", "No description")
+    num_residues = chain_data.get("num_residues", "Unknown")
+    num_existing = chain_data.get("num_existing_residues", "Unknown")
+    
+    # Format the output line
+    output = (f"Chain ID = {chain_id_val} | "
+             f"Type = {polymer_type_str} | "
+             f"Description = {description} | "
+             f"Number of residues = {num_residues} | "
+             f"Num. of residues that have atomic coordinates = {num_existing}")
+    
+    # Combine logs from all commands
+    combined_logs = {}
+    for result in all_results:
+        for level, messages in result.get("logs", {}).items():
+            if level not in combined_logs:
+                combined_logs[level] = []
+            combined_logs[level].extend(messages)
+    
+    combined_result = {
+        "return_values": sum([r.get("return_values", []) for r in all_results], []),
+        "json_values": sum([r.get("json_values", []) for r in all_results], []),
+        "logs": combined_logs
+    }
+    
+    return output, combined_result
 
 @mcp.tool()
-async def show_hide_models(model_spec: str, action: str, session_id: int = None) -> str:
-    """Show or hide models in the display
+async def get_chain_info(model_id: str, chain_id: str, session_id: Optional[int] = None) -> str:
+    """Get detailed information about a specific chain in a model
+    
+    Returns a formatted summary line with:
+    - Chain ID
+    - Type (Protein, Nucleic Acid, or Other)
+    - Description
+    - Total number of residues
+    - Number of residues with atomic coordinates
 
     Args:
-        model_spec: Model specification (e.g., '#1', '#2', 'all')
-        action: Whether to show or hide the specified models ('show' or 'hide')
+        model_id: Model ID (e.g., '1' for #1)
+        chain_id: Chain ID (e.g., 'A')
         session_id: ChimeraX session port (defaults to primary session)
     """
-    if action not in ["show", "hide"]:
-        raise ValueError("Action must be 'show' or 'hide'")
-
-    command = f"{action} {model_spec}"
-    result = await run_chimerax_command(command, session_id)
+    chain_info, result = await _get_chain_info_helper(model_id, chain_id, session_id)
     session_info = f" in session {session_id}" if session_id else ""
-    return f"Action '{action}' applied to {model_spec}{session_info}\nOutput:\n{result}"
+    context = f"Chain information for #{model_id}/{chain_id}{session_info}:\n{chain_info}"
+    
+    return format_chimerax_response(result, context)
+
 
 @mcp.tool()
-async def color_models(color: str, target: str = "all", session_id: int = None) -> str:
+async def color_models(color: str, target: str = "all", session_id: Optional[int] = None) -> str:
     """Color models or parts of models
+    
+    For complex target specifications, use get_atomspec_guide() to construct the correct atomspec.
+
+    Hints:
+    - "byhet" is a special color that colors non-carbon atoms by their chemical element
+    - When coloring atom representations, you should always then run another color command with "byhet" as the color
+    - When coloring binding pockets, you should keep the protein atoms the same color as the rest of the protein, and make the ligand a different color
 
     Args:
         color: Color name or hex code (e.g., 'red', 'blue', '#ff0000')
-        target: What to color (e.g., '#1', 'protein', 'ligand'), defaults to 'all'
+        target: What to color using atomspec syntax (e.g., '#1', '#1/A', 'protein', 'ligand'), defaults to 'all'
         session_id: ChimeraX session port (defaults to primary session)
     """
     command = f"color {target} {color}"
     result = await run_chimerax_command(command, session_id)
     session_info = f" in session {session_id}" if session_id else ""
-    return f"Colored {target} with {color}{session_info}\nOutput:\n{result}"
+    context = f"Colored {target} with {color}{session_info}"
+    
+    return format_chimerax_response(result, context)
 
 @mcp.tool()
-async def save_image(filename: str, width: int = 1920, height: int = 1080, supersample: int = 3, session_id: int = None) -> str:
+async def save_image(filename: str, width: int = 1920, height: int = 1080, supersample: int = 3, session_id: Optional[int] = None) -> str:
     """Save a screenshot of the current view
+
+    Before saving an image, clear the selection by running command "~select" - otherwise we will have bright green lights around the selected objects
 
     Args:
         filename: Output filename (e.g., 'structure.png')
@@ -609,53 +1447,10 @@ async def save_image(filename: str, width: int = 1920, height: int = 1080, super
     command = f"save {filename} width {width} height {height} supersample {supersample}"
     result = await run_chimerax_command(command, session_id)
     session_info = f" from session {session_id}" if session_id else ""
-    return f"Saved image: {filename}{session_info} ({width}x{height}, supersample {supersample})\nOutput:\n{result}"
+    context = f"Saved image: {filename}{session_info} ({width}x{height}, supersample {supersample})"
+    
+    return format_chimerax_response(result, context)
 
-@mcp.tool()
-async def capture_view(width: int = 800, height: int = 600, supersample: int = 1, session_id: int = None) -> str:
-    """Capture the current ChimeraX graphics view and return it as base64-encoded image data
-
-    Args:
-        width: Image width in pixels (default: 800)
-        height: Image height in pixels (default: 600)
-        supersample: Supersampling factor for higher quality (default: 1)
-        session_id: ChimeraX session port (defaults to primary session)
-    """
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
-        temp_path = tmp_file.name
-
-    try:
-        # Save the current view to the temporary file
-        command = f"save {temp_path} width {width} height {height} supersample {supersample}"
-        result = await run_chimerax_command(command, session_id)
-
-        # Read the image file and encode as base64
-        with open(temp_path, "rb") as img_file:
-            img_data = img_file.read()
-            base64_data = base64.b64encode(img_data).decode('utf-8')
-
-        return f"data:image/png;base64,{base64_data}"
-
-    except Exception as e:
-        return f"Error capturing view: {e}"
-
-    finally:
-        # Clean up temporary file
-        try:
-            os.unlink(temp_path)
-        except:
-            pass
-
-@mcp.tool()
-async def session_info(session_id: int = None) -> str:
-    """Get general information about the current ChimeraX session
-
-    Args:
-        session_id: ChimeraX session port (defaults to primary session)
-    """
-    result = await run_chimerax_command("info", session_id)
-    session_info = f" for session {session_id}" if session_id else ""
-    return f"ChimeraX session information{session_info}:\n{result}"
 
 @mcp.tool()
 async def superpose_residue(
@@ -665,7 +1460,7 @@ async def superpose_residue(
     target_model: str,
     target_chain: str,
     target_residue: str,
-    session_id: int = None
+    session_id: Optional[int] = None
 ) -> str:
     """Move a residue from one model to superpose with a residue in another model.
     
@@ -691,98 +1486,150 @@ async def superpose_residue(
     
     session_info = f" in session {session_id}" if session_id else ""
     
-    try:
-        # Step 1: Center view on target residue (sets center of rotation)
-        view_command = f"view {target_spec}"
-        view_result = await run_chimerax_command(view_command, session_id)
-        
-        # Step 2: Move source residue to center of rotation
-        move_command = f"move cofr {source_spec}"
-        move_result = await run_chimerax_command(move_command, session_id)
-        
-        return (f"Successfully superposed residue{session_info}:\n"
-                f"  Source: {source_spec}\n"
-                f"  Target: {target_spec}\n\n"
-                f"View command output:\n{view_result}\n\n"
-                f"Move command output:\n{move_result}")
+    # Step 1: Center view on target residue (sets center of rotation)
+    view_command = f"view {target_spec}"
+    view_result = await run_chimerax_command(view_command, session_id)
     
-    except Exception as e:
-        return (f"Error superposing residue{session_info}:\n"
-                f"  Source: {source_spec}\n"
-                f"  Target: {target_spec}\n"
-                f"  Error: {e}")
+    # Step 2: Move source residue to center of rotation
+    move_command = f"move cofr {source_spec}"
+    move_result = await run_chimerax_command(move_command, session_id)
+    
+    # Format combined results
+    context = (f"Successfully superposed residue{session_info}:\n"
+               f"  Source: {source_spec}\n"
+               f"  Target: {target_spec}")
+    
+    # Combine logs from both commands
+    combined_logs = {}
+    for result in [view_result, move_result]:
+        for level, messages in result.get("logs", {}).items():
+            if level not in combined_logs:
+                combined_logs[level] = []
+            combined_logs[level].extend(messages)
+    
+    combined_result = {
+        "return_values": view_result.get("return_values", []) + move_result.get("return_values", []),
+        "json_values": view_result.get("json_values", []) + move_result.get("json_values", []),
+        "logs": combined_logs
+    }
+    
+    return format_chimerax_response(combined_result, context)
 
 @mcp.tool()
-async def show_hide_hydrogens(
+async def show_hide_objects(
     action: str,
-    hydrogen_type: str = "all",
-    target: str = "",
-    session_id: int = None
+    atomspec: str,
+    target: str,
+    session_id: Optional[int] = None
 ) -> str:
-    """Show or hide hydrogen atoms (all, polar only, or nonpolar only)
+    """Show or hide a specified selection of objects' representation. 
+    Use this tool to show or hide specific representations (targets) of objects (atomspec) in the model, 
+    rather than the generic run_command() method.
     
-    In ChimeraX:
-    - 'H' refers to all hydrogen atoms
-    - 'HC' refers to nonpolar hydrogens (hydrogens bonded to carbon)
-    - Polar hydrogens are H atoms that are not HC
+    For the target, use one or more of the following letter: 
+    - a: atoms: Toggle on (show) or off (hide) the atomic representation of the objects specified by the atomspec
+    - b: bonds: Toggle on (show) or off (hide) the bonds representation of the atomspec
+    - p: pseudobonds: Toggle on (show) or off (hide) the pseudobonds
+    - c: cartoons or ribbons: Toggle on (show) or off (hide) the cartoon/ribbon representation of the atomspec
+    - s: surfaces: Toggle on (show) or off (hide) the surfaces associated with the atomspec    
+
+    Examples:
+        - Show all atoms and bonds in model 1: action='show', atomspec='#1', target='ab'
+        - Hide all atoms and bonds and cartoons and surfaces in chain A of model 1: action='hide', atomspec='#1/A', target='abcs'
+        - Show all pseudobonds in residue 100 of chain A of model 1: action='show', atomspec='#1/A:100', target='p'
+        - Hide all cartoons in model 1: action='hide', atomspec='#1', target='c'
+        - Hide all surfaces in model 1: action='hide', atomspec='#1', target='s'
+        - Show ribbons and atoms in residues 1-50 of chain B of model 2: action='show', atomspec='#2/B:1-50', target='cb'
+        - Show polar hydrogens in model 1: action='show', atomspec='#1 & H & ~HC', target='a'
+        - Hide non-polar hydrogens in model 1: action='hide', atomspec='#1 & HC', target='a'
+        - Show protein side chains near ligand #1/A:LIG: action='show #1 & protein & #1/A:LIG:<5', target='ab'
     
+    Important:
+        - Before you attempt for the first time to show a particular object, you MUST first hide all its representations (because you don't know what representations are already active)
+        - After showing or hiding objects, you MUST check the response to see if the count of affected residues is what you expected. If not, you should run this tool again to correct the situation.
+    
+    Tips:
+        - When a model is first opened by ChimeraX, it may be shown in cartoon or atoms (sticks or spheres), or some combination of the two 
+        - For this reason, in general, when hiding a chain or part of the sequence, you might as well hide all the targets: abpcs
+        - Also, when showing a particular representation (e.g. cartoon), you must first hide all the other representations before showing the one you want
+        - If you want to show a particular ligand, specify the chain if possible. For example, prefer #1/A:LIG rather than just :LIG, which would show all the ligands named LIG
+        - To make sure that only one particular representation is shown (e.g. atoms, not ribbons), you should first hide all representations before showing the one you want
+        - When you want to show atoms you should  always also show the bonds, unless the user explicitly asked you to see atoms without bonds
+        - When showing atoms, you should style them as sticks, not spheres; to do this, run the command "style {atomspec} stick"; also, by default you should color them by het by using the color_models tool with the color "byhet"
+
     Args:
         action: 'show' or 'hide'
-        hydrogen_type: Type of hydrogens - 'all', 'polar', or 'nonpolar' (default: 'all')
-        target: Optional target specification to limit scope (e.g., '#1', ':ALA', default: all models)
+        atomspec: Atomspec specification using atomspec syntax (e.g., '#1', '#1/A', ':ALA'; use the get_atomspec_guide() tool to see the correct syntax)
+        target: What to show or hide
         session_id: ChimeraX session port (defaults to primary session)
     
-    Examples:
-        - Show all hydrogens: action='show', hydrogen_type='all'
-        - Hide all hydrogens: action='hide', hydrogen_type='all'
-        - Show only polar hydrogens: action='show', hydrogen_type='polar'
-        - Hide nonpolar hydrogens: action='hide', hydrogen_type='nonpolar'
+    Response format:
+    Success: {command}
+    This action affected {counts_string}
     """
     if action not in ["show", "hide"]:
         raise ValueError("Action must be 'show' or 'hide'")
-    
-    if hydrogen_type not in ["all", "polar", "nonpolar"]:
-        raise ValueError("hydrogen_type must be 'all', 'polar', or 'nonpolar'")
+
+    # If target contains any letters that are not in the list of allowed letters, raise an error
+    if any(letter not in ["a", "b", "p", "c", "s", "m"] for letter in target):
+        raise ValueError("Target must be one or more of 'a', 'b', 'p', 'c', 's', 'm'")
     
     session_info = f" in session {session_id}" if session_id else ""
-    commands = []
+
+    # First, we will use the select command to select the objects specified by the atomspec
+    # This has the advantage that ChimeraX will return a count of atoms, bonds, residues and models selected, which
+    # is useful feedback for the client.
+    # For example, the output printed to log would look something like this:
+    # "108 atoms, 112 bonds, 2 residues, 1 model selected"
+    select_command = f"select {atomspec}"
+    select_result = await run_chimerax_command(select_command, session_id)
+
+    # Parse the select result to get a string with the counts.
+    # Note that the log level is "note" and that it will contain 2 lines: 
+    # the first line is the command echo, the second line is the result which we want to grab
+    counts_string = select_result.get("logs", {}).get("note", [""])[1]
+    # Remove the "selected" from the counts string
+    counts_string = counts_string.replace(" selected", "")
+
+    # If the counts_string is "Nothing", raise an error
+    if counts_string == "Nothing":
+        raise ValueError(f"No objects were found matching the atomspec: {atomspec}")
+
+
+    # The show/hide command itself
+    command = f"{action} {atomspec} target {target}"
     
-    # Build target specification
-    target_spec = f" {target}" if target else ""
-    
-    if hydrogen_type == "all":
-        # Simple case: show or hide all hydrogens
-        command = f"{action} H{target_spec}"
-        commands.append(command)
-    
-    elif hydrogen_type == "polar":
-        if action == "show":
-            # Show all H, then hide HC (nonpolar)
-            commands.append(f"show H{target_spec}")
-            commands.append(f"hide HC{target_spec}")
-        else:  # hide
-            # Hide H but not HC (using negation)
-            command = f"hide H{target_spec} & ~HC{target_spec}"
-            commands.append(command)
-    
-    elif hydrogen_type == "nonpolar":
-        # Nonpolar hydrogens are HC
-        command = f"{action} HC{target_spec}"
-        commands.append(command)
-    
-    try:
-        results = []
-        for cmd in commands:
-            result = await run_chimerax_command(cmd, session_id)
-            results.append(f"Command: {cmd}\nOutput: {result}")
+    # Execute the first command (if it fails, exception propagates and second command won't run)
+    result = await run_chimerax_command(command, session_id)
+
+    # If action is "show" also show the parent model
+    if action == "show":
+        # If we are showing a specific target (representation) of atomspec,
+        # let's assume the agent means to also show the parent model.
+        model_command = f"show {atomspec} target m"
+        model_result = await run_chimerax_command(model_command, session_id)
         
-        combined_results = "\n\n".join(results)
-        return (f"Successfully {action} {hydrogen_type} hydrogens{session_info}\n"
-                f"Target: {target if target else 'all models'}\n\n"
-                f"{combined_results}")
+        # Combine logs from both commands
+        combined_logs = {}
+        for res in [result, model_result]:
+            for level, messages in res.get("logs", {}).items():
+                if level not in combined_logs:
+                    combined_logs[level] = []
+                combined_logs[level].extend(messages)
+        
+        # Create combined result
+        combined_result = {
+            "return_values": result.get("return_values", []) + model_result.get("return_values", []),
+            "json_values": result.get("json_values", []) + model_result.get("json_values", []),
+            "logs": combined_logs
+        }
+        
+        context = f"Success: {command}\nThis action affected {counts_string}"
+        return format_chimerax_response(combined_result, context)
     
-    except Exception as e:
-        return (f"Error {action}ing {hydrogen_type} hydrogens{session_info}: {e}")
+    # Single command case (hide or show models)
+    context = f"Success: {command}"
+    return format_chimerax_response(result, context)
 
 # Instance management tools
 
@@ -803,7 +1650,7 @@ async def list_chimerax_instances() -> str:
     return result
 
 @mcp.tool()
-async def start_new_chimerax_session(session_name: str = None, port: int = None) -> str:
+async def start_new_chimerax_session(session_name: Optional[str] = None, port: Optional[int] = None) -> str:
     """Start a new ChimeraX instance/session
 
     Args:
@@ -841,7 +1688,7 @@ async def start_new_chimerax_session(session_name: str = None, port: int = None)
         return f"Failed to start ChimeraX session on port {port}"
 
 @mcp.tool()
-async def check_chimerax_status(session_id: int = None) -> str:
+async def check_chimerax_status(session_id: Optional[int] = None) -> str:
     """Check if ChimeraX is running and accessible
 
     Args:
@@ -884,11 +1731,13 @@ async def set_default_session(session_id: int) -> str:
 
     return f"Default session changed from port {old_default} to port {session_id} ({session_name})"
 
-# Documentation Resources using MCP resources
-
-@mcp.resource("chimerax://commands")
-async def list_commands() -> str:
-    """List all available ChimeraX commands"""
+@mcp.tool()
+async def list_chimerax_commands() -> str:
+    """List all available ChimeraX commands.
+    
+    Use this to discover what commands are available in ChimeraX.
+    Once you know the command name, use get_command_documentation() to get detailed syntax.
+    """
     commands = list_available_commands()
     if not commands:
         return "No ChimeraX documentation found"
@@ -901,12 +1750,18 @@ async def list_commands() -> str:
             break
 
     result += f"\nTotal: {len(commands)} commands available\n"
-    result += "Use chimerax://command/<name> to get detailed documentation for any command."
+    result += "Use get_command_documentation(command_name) to get detailed documentation for any command."
     return result
 
-@mcp.resource("chimerax://command/{command_name}")
+@mcp.tool()
 async def get_command_documentation(command_name: str) -> str:
-    """Get detailed documentation for a specific ChimeraX command"""
+    """Get detailed documentation for a specific ChimeraX command.
+    
+    Use this to learn the correct syntax, arguments, and usage for a specific command.
+    
+    Args:
+        command_name: Name of the ChimeraX command (e.g., 'open', 'color', 'save')
+    """
     return get_command_doc(command_name)
 
 # Cleanup function for aiohttp session

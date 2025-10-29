@@ -1,0 +1,3 @@
+Show me trascription factor Ntca in pdb 8h40
+I'd like to see just the trascription factor bound to the DNA without the polymerase
+Could you show those in ribbon style without atoms
