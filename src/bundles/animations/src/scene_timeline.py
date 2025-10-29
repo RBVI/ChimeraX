@@ -28,8 +28,8 @@ from Qt.QtWidgets import (
     QAction,
     QStyle,
 )
-from Qt.QtCore import Qt, QSize, QTimer, Signal, QPointF
-from Qt.QtGui import QPixmap, QIcon, QPainter, QColor
+from Qt.QtCore import Qt, QSize, QTimer, Signal, QPointF, QEvent
+from Qt.QtGui import QPixmap, QIcon, QPainter, QColor, QPalette
 
 import io
 from PIL import Image
@@ -97,11 +97,12 @@ class TimelineControlWidget(QWidget):
     duration_changed = Signal(float)  # new duration in seconds
     reset_requested = Signal()  # reset timeline to zero
 
-    def __init__(self, duration=5.0, parent=None):
+    def __init__(self, duration=5.0, session=None, parent=None):
         super().__init__(parent)
         self.duration = duration
         self.current_time = 0.0
         self.is_playing = False
+        self.session = session
 
         self.setup_ui()
 
@@ -126,9 +127,12 @@ class TimelineControlWidget(QWidget):
         self.add_keyframe_btn.clicked.connect(self.add_scene_at_current_time)
 
         self.reverse_btn = QPushButton()
-        self.reverse_btn.setIcon(self.style().standardIcon(QStyle.SP_MediaSkipBackward))
         self.reverse_btn.setFixedSize(30, 30)
+        self.reverse_btn.setIconSize(
+            QSize(18, 18)
+        )  # Set icon size explicitly for proper centering
         self.reverse_btn.clicked.connect(self.reset_timeline)
+        self._update_reverse_btn_icon()  # Set initial icon
 
         layout.addWidget(self.play_btn)
         layout.addWidget(self.add_keyframe_btn)
@@ -218,6 +222,41 @@ class TimelineControlWidget(QWidget):
     def set_duration(self, duration):
         """Set the timeline duration"""
         self.duration = duration
+
+    def _update_reverse_btn_icon(self):
+        """Update reverse button icon based on current color scheme"""
+        standard_icon = self.style().standardIcon(QStyle.SP_MediaSkipBackward)
+        icon_size = 18  # Match the iconSize we set
+
+        # Get the pixmap at the correct size
+        pixmap = standard_icon.pixmap(icon_size, icon_size)
+
+        if self.session and hasattr(self.session, "ui") and self.session.ui.dark_mode():
+            # Recolor icon to white for dark mode
+            colored_pixmap = QPixmap(icon_size, icon_size)
+            colored_pixmap.fill(Qt.transparent)
+            painter = QPainter(colored_pixmap)
+            painter.setCompositionMode(QPainter.CompositionMode_Source)
+            painter.drawPixmap(0, 0, pixmap)
+            painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+            painter.fillRect(colored_pixmap.rect(), QColor(255, 255, 255))
+            painter.end()
+            # Create icon and explicitly set the pixmap at the correct size
+            icon = QIcon()
+            icon.addPixmap(colored_pixmap, QIcon.Normal, QIcon.Off)
+            self.reverse_btn.setIcon(icon)
+        else:
+            # Use the pixmap at the correct size for light mode too
+            icon = QIcon()
+            icon.addPixmap(pixmap, QIcon.Normal, QIcon.Off)
+            self.reverse_btn.setIcon(icon)
+
+    def changeEvent(self, event):
+        """Handle widget change events, including palette changes"""
+        if event.type() == QEvent.PaletteChange:
+            # Update icon when color scheme changes
+            self._update_reverse_btn_icon()
+        super().changeEvent(event)
 
 
 class TimelineSceneWidget(QWidget):
@@ -1077,7 +1116,7 @@ class SceneTimelineWidget(QWidget):
         timeline_layout = QVBoxLayout(timeline_frame)
 
         # Timeline controls
-        self.timeline_controls = TimelineControlWidget()
+        self.timeline_controls = TimelineControlWidget(session=self.session)
         self.timeline_controls.time_changed.connect(self.time_changed.emit)
         # Connect timeline control signals to scene animation
         self.timeline_controls.play_requested.connect(self.on_play_requested)
