@@ -1425,6 +1425,11 @@ class KeyframeEditorWidget(QWidget):
         mode_controls_layout.addWidget(self.scene_mode_btn)
         mode_controls_layout.addStretch()
 
+        # Add preferences button
+        self.preferences_btn = QPushButton("Preferences...")
+        self.preferences_btn.clicked.connect(self.show_preferences)
+        mode_controls_layout.addWidget(self.preferences_btn)
+
         main_layout.addLayout(mode_controls_layout)
 
         # Stacked widget for different modes - custom class to handle sizing properly
@@ -1556,6 +1561,12 @@ class KeyframeEditorWidget(QWidget):
             self.stacked_widget.setCurrentIndex(1)
             if self.session:
                 self.session.logger.info("Switched to Scene Mode")
+
+    def show_preferences(self):
+        """Show the animations preferences dialog"""
+        from .settings import AnimationsPreferencesDialog
+        dialog = AnimationsPreferencesDialog(self.session, parent=self)
+        dialog.show()
 
     def on_scene_added(self, scene_name, time=None):
         """Handle scene addition in scene mode"""
