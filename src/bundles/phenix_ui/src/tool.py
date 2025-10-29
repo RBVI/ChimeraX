@@ -1345,10 +1345,8 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
             " to place its center where you want the search focused.  The ligand must be selected"
             " (green outline) to be moved.  Once satified with the search focus, switch to the '%s'"
             " mouse mode to use the right mouse to adjust the bounds of the search area.  You can switch"
-            " between centering/focusing and bounds adjustment as needed.  You may have to occasionally"
-            " switch to the 'Translate' mouse mode (in the Right Mouse tab at the top right of the ChimeraX"
-            " window) to adjust your view of the search area.  When satisified with the search area, click"
-            " the '%s' button to fit the ligand." % (self.move_text, self.bounds_text,
+            " between centering/focusing and bounds adjustment as needed.  When satisified with the search"
+            " area, click the '%s' button to fit the ligand." % (self.move_text, self.bounds_text,
                 self.search_button_label)
         )
 
@@ -1422,7 +1420,9 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
             self.session.logger.status("")
 
 class PickBlobDialog(QDialog):
-    instructions = "instructions"
+    instructions = "Right click on the volume \"blob\" where you want the ligand placed. " \
+        " A yellow marker will appear indicating where the search will be focused. " \
+        " Clicking again will replace the marker if desired."
 
     def __init__(self, session, verify_center, *non_center_args):
         super().__init__()
