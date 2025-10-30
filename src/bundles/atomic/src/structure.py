@@ -1655,14 +1655,26 @@ class AtomicStructure(Structure):
                     chain = chain_lookup[chain_id]
                 except KeyError:
                     if non_chain_residues is None:
-                        non_chain_residues = { (r.chain_id, r.number): r
-                            for r in self.residues if r.chain is None }
+                        non_chain_residues = {}
+                        for r in self.residues:
+                            if r.chain is None:
+                                non_chain_residues.setdefault(r.chain_id, {})[r.number] = r
                     try:
-                        res = non_chain_residues[(chain_id, int(seq_id))]
+                        nc_residues = non_chain_residues[chain_id]
                     except KeyError:
                         session.logger.warning("No chain in structure corresponds to chain ID given"
                             " in local score info (chain '%s') or can't find residue %s in that chain"
                             % (chain_id, seq_id))
+                        break
+                    # non-chain residues may not have a number in the mmCIF [#19132]
+                    if len(nc_residues) == 1:
+                        res = list(nc_residues.values())[0]
+                    else:
+                        try:
+                            res = nc_residues[int(seq_id)]
+                        except KeyError:
+                            session.logger.warning("No non-polymeric residue in chain %s has sequence"
+                                " number %s" % (chain_id, seq_id))
                         break
                 else:
                     res = chain.residues[int(seq_id)-1]
